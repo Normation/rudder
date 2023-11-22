@@ -102,7 +102,7 @@ pub mod action {
 
     pub fn uninstall(packages: Vec<String>) -> Result<()> {
         let mut db = Database::read(PACKAGES_DATABASE_PATH)?;
-        packages.iter().try_for_each(|p| db.uninstall(&p))
+        packages.iter().try_for_each(|p| db.uninstall(p))
     }
 
     pub fn install(force: bool, packages: Vec<String>, repository: Repository) -> Result<()> {
@@ -113,7 +113,7 @@ pub mod action {
                 // Find compatible plugin if any
                 let webapp_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
                 let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
-                let to_dl_and_install = match index.get_compatible_plugin(webapp_version, &package) {
+                let to_dl_and_install = match index.get_compatible_plugin(webapp_version, package) {
                     None => bail!("Could not find any compatible '{}' plugin with the current Rudder version in the configured repository.", package),
                     Some(p) => {
                         debug!("Found a compatible plugin in the repository:\n{:?}", p);
