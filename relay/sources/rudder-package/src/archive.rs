@@ -19,7 +19,7 @@ use crate::{
     plugin::Metadata,
     versions::RudderVersion,
     webapp_xml::WebappXml,
-    PACKAGES_DATABASE_PATH, PACKAGES_FOLDER, RUDDER_VERSION_FILE, WEBAPP_XML_PATH,
+    PACKAGES_DATABASE_PATH, PACKAGES_FOLDER, RUDDER_VERSION_PATH, WEBAPP_XML_PATH,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
@@ -191,7 +191,7 @@ impl Rpkg {
     pub fn install(&self, force: bool) -> Result<()> {
         debug!("Installing rpkg '{}'...", self.path);
         // Verify webapp compatibility
-        let webapp_version = RudderVersion::from_path(RUDDER_VERSION_FILE)?;
+        let webapp_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
         if !(force
             || self
                 .metadata

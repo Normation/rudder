@@ -1,16 +1,53 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
+use std::fs;
+
 use serde::{Deserialize, Serialize};
 
-use crate::plugin;
+use crate::{plugin, versions::RudderVersion};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct RepoIndex(Vec<Plugin>);
 
+impl RepoIndex {
+    pub fn from_path(path: &str) -> Result<Self, anyhow::Error> {
+        let data = fs::read_to_string(path)?;
+        let index: RepoIndex = serde_json::from_str(&data)?;
+        Ok(index)
+    }
+
+    pub fn get_compatible_plugins(&self, webapp_version: RudderVersion) -> Vec<Plugin> {
+        self.clone()
+            .0
+            .into_iter()
+            .filter(|x| {
+                let distant_package_webapp_version = x.metadata.version.rudder_version.to_string();
+                webapp_version.is_compatible(&distant_package_webapp_version)
+            })
+            .collect()
+    }
+
+    pub fn get_compatible_plugin(
+        &self,
+        webapp_version: RudderVersion,
+        plugin_name: &str,
+    ) -> Option<Plugin> {
+        self.get_compatible_plugins(webapp_version)
+            .into_iter()
+            .find(|x| {
+                [
+                    plugin_name.to_string(),
+                    format!("rudder-plugin-{}", plugin_name),
+                ]
+                .contains(&x.metadata.name)
+            })
+    }
+}
+
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Plugin {
-    path: String,
+    pub path: String,
 
     #[serde(flatten)]
     metadata: plugin::Metadata,
@@ -18,7 +55,7 @@ pub struct Plugin {
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, fs, str::FromStr};
+    use std::{collections::HashMap, str::FromStr};
 
     use pretty_assertions::assert_eq;
 
@@ -27,9 +64,7 @@ mod tests {
 
     #[test]
     fn test_plugin_index_parsing() {
-        let data = fs::read_to_string("./tests/repo_index.json")
-            .expect("Unable to parse file './tests/repo_index.json'");
-        let index: RepoIndex = serde_json::from_str(&data).unwrap();
+        let index: RepoIndex = RepoIndex::from_path("./tests/repo_index.json").unwrap();
         let expected = RepoIndex(
       vec![
         Plugin {

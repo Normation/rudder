@@ -30,7 +30,9 @@ const WEBAPP_XML_PATH: &str = "/opt/rudder/share/webapps/rudder.xml";
 const PACKAGES_DATABASE_PATH: &str = "/var/rudder/packages/index.json";
 const CONFIG_PATH: &str = "/opt/rudder/etc/rudder-pkg/rudder-pkg.conf";
 const SIGNATURE_KEYRING_PATH: &str = "/opt/rudder/etc/rudder-pkg/rudder_plugins_key.gpg";
-const RUDDER_VERSION_FILE: &str = "/opt/rudder/share/versions/rudder-server-version";
+const RUDDER_VERSION_PATH: &str = "/opt/rudder/share/versions/rudder-server-version";
+const REPOSITORY_INDEX_PATH: &str = "/var/rudder/tmp/plugins/rpkg.index";
+const TMP_PLUGINS_FOLDER: &str = "/var/rudder/tmp/plugins";
 
 fn am_i_root() -> Result<bool> {
     let out = process::Command::new("id").arg("--user").output()?;
@@ -66,12 +68,12 @@ pub fn run() -> Result<()> {
     debug!("Parsed CLI arguments: {args:?}");
     let cfg = Configuration::read(Path::new(&args.config))
         .with_context(|| format!("Reading configuration from '{}'", &args.config))?;
-    let _repo = Repository::new(&cfg)?;
+    let repo = Repository::new(&cfg)?;
     debug!("Parsed configuration: {cfg:?}");
 
     match args.command {
         Command::Install { force, package } => {
-            return action::install(force, package);
+            return action::install(force, package, repo);
         }
         _ => {
             error!("This command is not implemented");
@@ -81,19 +83,47 @@ pub fn run() -> Result<()> {
 }
 
 pub mod action {
-    use anyhow::{bail, Result};
+    use anyhow::{anyhow, bail, Result};
+    use log::debug;
 
     use crate::archive::Rpkg;
     use crate::database::Database;
+    use crate::repo_index::RepoIndex;
+    use crate::repository::Repository;
+    use crate::versions::RudderVersion;
     use crate::webapp_xml::restart_webapp;
-    use crate::PACKAGES_DATABASE_PATH;
+    use crate::{
+        PACKAGES_DATABASE_PATH, REPOSITORY_INDEX_PATH, RUDDER_VERSION_PATH, TMP_PLUGINS_FOLDER,
+    };
     use std::path::Path;
 
-    pub fn install(force: bool, package: String) -> Result<()> {
+    pub fn install(force: bool, package: String, repository: Repository) -> Result<()> {
         let rpkg_path = if Path::new(&package).exists() {
             package
         } else {
-            bail!("TODO");
+            // Find compatible plugin if any
+            let webapp_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
+            let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
+            let to_dl_and_install = match index.get_compatible_plugin(webapp_version, &package) {
+                None => bail!("Could not find any compatible '{}' plugin with the current Rudder version in the configured repository.", package),
+                Some(p) => {
+                    debug!("Found a compatible plugin in the repository:\n{:?}", p);
+                    p
+                }
+            };
+            let dest = Path::new(TMP_PLUGINS_FOLDER).join(
+                Path::new(&to_dl_and_install.path)
+                    .file_name()
+                    .ok_or_else(|| {
+                        anyhow!(
+                            "Could not retrieve filename from path '{}'",
+                            to_dl_and_install.path
+                        )
+                    })?,
+            );
+            // Download rpkg
+            repository.download(&to_dl_and_install.path, &dest)?;
+            dest.as_path().display().to_string()
         };
         let rpkg = Rpkg::from_path(&rpkg_path)?;
         rpkg.install(force)?;

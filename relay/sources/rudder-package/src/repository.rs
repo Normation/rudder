@@ -4,6 +4,7 @@
 use std::{fs::File, path::Path};
 
 use anyhow::{bail, Result};
+use log::debug;
 use reqwest::{
     blocking::{Client, Response},
     Proxy, StatusCode, Url,
@@ -62,6 +63,11 @@ impl Repository {
 
     // Path is relative to the server
     pub fn download(self, path: &str, dest: &Path) -> Result<()> {
+        debug!(
+            "Downloading file from {} to '{}'",
+            self.server.join(path)?,
+            dest.display().to_string()
+        );
         let mut res = self.get(path)?;
         let mut file = File::create(dest)?;
         res.copy_to(&mut file)?;
