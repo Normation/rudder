@@ -27,7 +27,11 @@ pub enum Command {
         force: bool,
 
         #[clap()]
-        package: String,
+        package: Vec<String>,
     },
     List {},
+    Uninstall {
+        #[clap()]
+        package: Vec<String>,
+    },
 }

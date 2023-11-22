@@ -10,11 +10,9 @@ use std::{
     fs::{self, *},
     io::{Cursor, Read},
     path::{Path, PathBuf},
-    process::Command,
 };
 
 use crate::{
-    cmd::CmdOutput,
     database::{Database, InstalledPlugin},
     plugin::Metadata,
     versions::RudderVersion,
@@ -37,7 +35,7 @@ impl fmt::Display for PackageType {
 }
 
 #[derive(Debug, Clone, Copy)]
-enum PackageScript {
+pub enum PackageScript {
     Postinst,
     Postrm,
     Preinst,
@@ -56,7 +54,7 @@ impl fmt::Display for PackageScript {
 }
 
 #[derive(Debug, Clone, Copy)]
-enum PackageScriptArg {
+pub enum PackageScriptArg {
     Install,
     Upgrade,
     None,
@@ -90,7 +88,11 @@ impl Rpkg {
     fn get_txz_dst(&self, txz_name: &str) -> String {
         // Build the destination path
         if txz_name == "scripts.txz" {
-            return PACKAGES_FOLDER.to_string();
+            return PathBuf::from(PACKAGES_FOLDER)
+                .join(self.metadata.name.clone())
+                .as_path()
+                .display()
+                .to_string();
         }
         return self.metadata.content.get(txz_name).unwrap().to_string();
     }
@@ -211,7 +213,8 @@ impl Rpkg {
         self.unpack_embedded_txz("script.txz", PACKAGES_FOLDER)?;
         // Run preinst if any
         let install_or_upgrade: PackageScriptArg = PackageScriptArg::Install;
-        self.run_package_script(PackageScript::Preinst, install_or_upgrade)?;
+        self.metadata
+            .run_package_script(PackageScript::Preinst, install_or_upgrade)?;
         // Extract archive content
         let keys = self.metadata.content.keys().clone();
         for txz_name in keys {
@@ -231,7 +234,8 @@ impl Rpkg {
         Database::write(PACKAGES_DATABASE_PATH, db)?;
         // Run postinst if any
         let install_or_upgrade: PackageScriptArg = PackageScriptArg::Install;
-        self.run_package_script(PackageScript::Postinst, install_or_upgrade)?;
+        self.metadata
+            .run_package_script(PackageScript::Postinst, install_or_upgrade)?;
         // Update the webapp xml file if the plugin contains one or more jar file
         debug!("Enabling the associated jars if any");
         match self.metadata.jar_files.clone() {
@@ -245,32 +249,6 @@ impl Rpkg {
         }
         // Restarting webapp
         debug!("Install completed");
-        Ok(())
-    }
-
-    fn run_package_script(&self, script: PackageScript, arg: PackageScriptArg) -> Result<()> {
-        debug!(
-            "Running package script '{}' with args '{}' for rpkg '{}'...",
-            script, arg, self.path
-        );
-        let package_script_path = Path::new(PACKAGES_FOLDER)
-            .join(self.metadata.name.clone())
-            .join(script.to_string());
-        if !package_script_path.exists() {
-            debug!("Skipping as the script does not exist.");
-            return Ok(());
-        }
-        let mut binding = Command::new(package_script_path);
-        let cmd = binding.arg(arg.to_string());
-        let r = match CmdOutput::new(cmd) {
-            std::result::Result::Ok(a) => a,
-            Err(e) => {
-                bail!("Could not execute package script '{}'`n{}", script, e);
-            }
-        };
-        if !r.output.status.success() {
-            debug!("Package script execution return unexpected exit code.");
-        }
         Ok(())
     }
 }

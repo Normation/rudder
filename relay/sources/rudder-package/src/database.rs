@@ -1,13 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use std::{collections::HashMap, fs::*, io::BufWriter};
+use std::{
+    collections::HashMap,
+    fs::{self, *},
+    io::BufWriter,
+    path::PathBuf,
+};
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
 
 use super::archive::Rpkg;
-use crate::plugin;
+use crate::{
+    archive::{PackageScript, PackageScriptArg},
+    plugin,
+    webapp_xml::WebappXml,
+    PACKAGES_DATABASE_PATH, PACKAGES_FOLDER,
+};
 use log::debug;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
@@ -38,6 +48,44 @@ impl Database {
             Some(installed) => installed.metadata.version == r.metadata.version,
         }
     }
+
+    pub fn uninstall(&mut self, plugin_name: &str) -> Result<()> {
+        // Force to use plugin long qualified name
+        if !plugin_name.starts_with("rudder-plugin-") {
+            plugin_name.to_owned().insert_str(0, "rudder-plugin-{}")
+        };
+        // Return Ok if not installed
+        if !self.plugins.contains_key(plugin_name) {
+            debug!("Plugin {} is not installed.", plugin_name);
+            return Ok(());
+        }
+        debug!("Uninstalling plugin {}", plugin_name);
+        // Disable the jar files if any
+        let installed_plugin = self.plugins.get(plugin_name).ok_or(anyhow!(
+            "Could not extract data for plugin {} in the database",
+            plugin_name
+        ))?;
+        installed_plugin.disable()?;
+        installed_plugin
+            .metadata
+            .run_package_script(PackageScript::Prerm, PackageScriptArg::None)?;
+        match installed_plugin.remove_installed_files() {
+            Ok(()) => (),
+            Err(e) => debug!("{}", e),
+        }
+        installed_plugin
+            .metadata
+            .run_package_script(PackageScript::Postrm, PackageScriptArg::None)?;
+        // Remove associated package scripts and plugin folder
+        fs::remove_dir_all(
+            PathBuf::from(PACKAGES_FOLDER).join(installed_plugin.metadata.name.clone()),
+        )?;
+        // Update the database
+        let mut updated_db = self.clone();
+        updated_db.plugins.remove(plugin_name);
+        Database::write(PACKAGES_DATABASE_PATH, updated_db)?;
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
@@ -46,6 +94,44 @@ pub struct InstalledPlugin {
 
     #[serde(flatten)]
     pub metadata: plugin::Metadata,
+}
+
+impl InstalledPlugin {
+    pub fn disable(&self) -> Result<()> {
+        debug!("Disabling plugin {}", self.metadata.name);
+        let x = WebappXml::new(PACKAGES_DATABASE_PATH.to_owned());
+        match &self.metadata.jar_files {
+            None => {
+                println!("Plugin {} does not support the enable/disable feature, it will always be enabled if installed.", self.metadata.name);
+                Ok(())
+            }
+            Some(jars) => jars.iter().try_for_each(|j| x.disable_jar(j.to_string())),
+        }
+    }
+    pub fn enable(&self) -> Result<()> {
+        debug!("Enabling plugin {}", self.metadata.name);
+        let x = WebappXml::new(PACKAGES_DATABASE_PATH.to_owned());
+        match &self.metadata.jar_files {
+            None => {
+                println!("Plugin {} does not support the enable/disable feature, it will always be enabled if installed.", self.metadata.name);
+                Ok(())
+            }
+            Some(jars) => jars.iter().try_for_each(|j| x.enable_jar(j.to_string())),
+        }
+    }
+
+    pub fn remove_installed_files(&self) -> Result<()> {
+        self.files.clone().into_iter().try_for_each(|f| {
+            let m = PathBuf::from(f.clone());
+            if m.is_dir() {
+                debug!("Removing file '{}'", f);
+                fs::remove_dir(f).map_err(anyhow::Error::from)
+            } else {
+                debug!("Removing folder '{}' if empty", f);
+                fs::remove_file(f).map_err(anyhow::Error::from)
+            }
+        })
+    }
 }
 
 #[cfg(test)]
