@@ -1,0 +1,13 @@
+rudder_version=8.0.4~git202311160211
+main_version=8.0.4
+release_step=8.0.4
+nightly_tag=git202311160211
+repository_version=8.0-nightly
+git_ref=branches/rudder/8.0
+rudder_commit=dd702432da9128de6a2fbc97490b10f202c443ba
+rudder-techniques_commit=629a1c51002d736fa189a50c30dcaa6c972af1de
+rudder-doc_commit=66ce25f3cff7185b12b20f90b8bcc6a225ff6f4f
+rudder-packages_commit=baaf8b3b3e29cb668b5bac58e6f6c86c6bb59a43
+rudder-agent_commit=609b412e77ca84b8c1266658eeed4085f854274d
+ncf_commit=ffaff0c270b7c715ac2ae3db0cc1f5134cec8005
+rudder-api-client_commit=e1db11d7ba9d753a70c2f579120941955cdb0f3d

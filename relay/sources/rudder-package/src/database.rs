@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use super::archive::Rpkg;
 use crate::plugin;
+use log::debug;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Database {
@@ -23,6 +24,7 @@ impl Database {
     }
 
     pub fn write(path: &str, index: Database) -> Result<()> {
+        debug!("Updating the installed plugin database in '{}'", path);
         let file = File::create(path)?;
         let mut writer = BufWriter::new(file);
         serde_json::to_writer_pretty(&mut writer, &index)

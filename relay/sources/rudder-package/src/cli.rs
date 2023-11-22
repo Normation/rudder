@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
 use crate::CONFIG_PATH;
 
@@ -15,4 +15,19 @@ pub struct Args {
     /// Enable verbose logs
     #[arg(short, long, default_value_t = false)]
     pub debug: bool,
+
+    #[clap(subcommand)]
+    pub command: Command,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum Command {
+    Install {
+        #[clap(long, short = 'f', help = "Force installation of given plugin")]
+        force: bool,
+
+        #[clap()]
+        package: String,
+    },
+    List {},
 }

@@ -4,6 +4,7 @@
 use anyhow::{anyhow, bail, Context, Ok, Result};
 use ar::Archive;
 use core::fmt;
+use log::debug;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::{self, *},
@@ -13,10 +14,12 @@ use std::{
 };
 
 use crate::{
+    cmd::CmdOutput,
     database::{Database, InstalledPlugin},
     plugin::Metadata,
+    versions::RudderVersion,
     webapp_xml::WebappXml,
-    PACKAGES_DATABASE_PATH, PACKAGES_FOLDER, WEBAPP_XML_PATH,
+    PACKAGES_DATABASE_PATH, PACKAGES_FOLDER, RUDDER_VERSION_FILE, WEBAPP_XML_PATH,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
@@ -76,7 +79,7 @@ pub struct Rpkg {
 }
 
 impl Rpkg {
-    fn from_path(path: &str) -> Result<Rpkg> {
+    pub fn from_path(path: &str) -> Result<Rpkg> {
         let r = Rpkg {
             path: String::from(path),
             metadata: read_metadata(path).unwrap(),
@@ -154,6 +157,7 @@ impl Rpkg {
     }
 
     fn unpack_embedded_txz(&self, txz_name: &str, dst_path: &str) -> Result<(), anyhow::Error> {
+        debug!("Extracting archive '{}' in folder '{}'", txz_name, dst_path);
         let dst = Path::new(dst_path);
         // Loop over ar archive files
         let mut archive = Archive::new(File::open(self.path.clone()).unwrap());
@@ -184,11 +188,22 @@ impl Rpkg {
         Ok(current_database.is_installed(self.to_owned()))
     }
 
-    pub fn install(&self) -> Result<()> {
-        let keys = self.metadata.content.keys().clone();
+    pub fn install(&self, force: bool) -> Result<()> {
+        debug!("Installing rpkg '{}'...", self.path);
+        // Verify webapp compatibility
+        let webapp_version = RudderVersion::from_path(RUDDER_VERSION_FILE)?;
+        if !(force
+            || self
+                .metadata
+                .version
+                .rudder_version
+                .is_compatible(&webapp_version.to_string()))
+        {
+            bail!("This plugin was built for a Rudder '{}', it is incompatible with your current webapp version '{}'.", self.metadata.version.rudder_version, webapp_version)
+        }
         // Verify that dependencies are installed
         if let Some(d) = &self.metadata.depends {
-            if !d.are_installed() {
+            if !(force || d.are_installed()) {
                 bail!("Some dependencies are missing, install them before trying to install the plugin.")
             }
         }
@@ -198,6 +213,7 @@ impl Rpkg {
         let install_or_upgrade: PackageScriptArg = PackageScriptArg::Install;
         self.run_package_script(PackageScript::Preinst, install_or_upgrade)?;
         // Extract archive content
+        let keys = self.metadata.content.keys().clone();
         for txz_name in keys {
             let dst = self.get_txz_dst(txz_name);
             self.unpack_embedded_txz(txz_name, &dst)?
@@ -217,6 +233,7 @@ impl Rpkg {
         let install_or_upgrade: PackageScriptArg = PackageScriptArg::Install;
         self.run_package_script(PackageScript::Postinst, install_or_upgrade)?;
         // Update the webapp xml file if the plugin contains one or more jar file
+        debug!("Enabling the associated jars if any");
         match self.metadata.jar_files.clone() {
             None => (),
             Some(jars) => {
@@ -226,19 +243,34 @@ impl Rpkg {
                 }
             }
         }
+        // Restarting webapp
+        debug!("Install completed");
         Ok(())
     }
 
     fn run_package_script(&self, script: PackageScript, arg: PackageScriptArg) -> Result<()> {
+        debug!(
+            "Running package script '{}' with args '{}' for rpkg '{}'...",
+            script, arg, self.path
+        );
         let package_script_path = Path::new(PACKAGES_FOLDER)
             .join(self.metadata.name.clone())
             .join(script.to_string());
         if !package_script_path.exists() {
+            debug!("Skipping as the script does not exist.");
             return Ok(());
         }
-        let _result = Command::new(package_script_path)
-            .arg(arg.to_string())
-            .output()?;
+        let mut binding = Command::new(package_script_path);
+        let cmd = binding.arg(arg.to_string());
+        let r = match CmdOutput::new(cmd) {
+            std::result::Result::Ok(a) => a,
+            Err(e) => {
+                bail!("Could not execute package script '{}'`n{}", script, e);
+            }
+        };
+        if !r.output.status.success() {
+            debug!("Package script execution return unexpected exit code.");
+        }
         Ok(())
     }
 }

@@ -2,9 +2,10 @@
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
 use core::fmt;
-use std::{cmp::Ordering, fmt::Display, str::FromStr};
+use std::{cmp::Ordering, fmt::Display, fs, str::FromStr};
 
 use anyhow::{bail, Error, Result};
+use log::debug;
 use regex::Regex;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
@@ -124,6 +125,23 @@ impl RudderVersion {
             Err(_) => false,
         }
     }
+
+    pub fn from_path(path: &str) -> Result<Self, Error> {
+        let content = fs::read_to_string(path)?;
+        let re = Regex::new(r"rudder_version=(?<raw_rudder_version>.*)")?;
+        let caps = match re.captures(&content) {
+            None => bail!(
+                "'{}' does not look like a well formed Rudder version file.",
+                path
+            ),
+            Some(c) => c,
+        };
+        debug!(
+            "Raw Rudder version read from '{}' file: '{}'.",
+            path, &caps["raw_rudder_version"]
+        );
+        RudderVersion::from_str(&caps["raw_rudder_version"])
+    }
 }
 
 impl FromStr for RudderVersion {
@@ -132,7 +150,7 @@ impl FromStr for RudderVersion {
     fn from_str(raw: &str) -> Result<Self, Self::Err> {
         let re = Regex::new(r"^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(?<mode>.*)$")?;
         let caps = match re.captures(raw) {
-            None => bail!("Unparsable rudder version '{}'", raw),
+            None => bail!("Unparsable Rudder version '{}'", raw),
             Some(c) => c,
         };
         let major: u32 = caps["major"].parse()?;
@@ -218,6 +236,12 @@ mod tests {
 
     use super::*;
 
+    #[test]
+    fn test_rudder_version_from_path() {
+        let a = RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap();
+        assert_eq!(a, RudderVersion::from_str("8.0.4~git202311160211").unwrap());
+    }
+
     #[rstest]
     #[case("7.0.0~alpha2", 7, 0, 0, "~alpha2")]
     #[case("7.0.0", 7, 0, 0, "")]
@@ -234,6 +258,7 @@ mod tests {
         assert_eq!(v.minor, e_minor);
         assert_eq!(v.patch, e_patch);
         assert_eq!(v.mode, RudderVersionMode::from_str(e_mode).unwrap());
+        assert_eq!(v.to_string(), raw);
     }
 
     #[rstest]
