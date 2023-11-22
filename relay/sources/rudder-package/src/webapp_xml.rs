@@ -11,7 +11,7 @@ use crate::cmd::CmdOutput;
 
 /// Synchronous restart of the web application
 pub fn restart_webapp() -> Result<()> {
-    debug!("Restarting the Weba application to apply plugin changes");
+    debug!("Restarting the Web application to apply plugin changes");
     let mut systemctl = Command::new("/usr/bin/systemctl");
     systemctl
         .arg("--no-ask-password")

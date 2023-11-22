@@ -16,7 +16,7 @@ mod signature;
 mod versions;
 mod webapp_xml;
 
-use std::path::Path;
+use std::{path::Path, process};
 
 use crate::cli::Command;
 use anyhow::{Context, Result};
@@ -32,8 +32,25 @@ const CONFIG_PATH: &str = "/opt/rudder/etc/rudder-pkg/rudder-pkg.conf";
 const SIGNATURE_KEYRING_PATH: &str = "/opt/rudder/etc/rudder-pkg/rudder_plugins_key.gpg";
 const RUDDER_VERSION_FILE: &str = "/opt/rudder/share/versions/rudder-server-version";
 
+fn am_i_root() -> Result<bool> {
+    let out = process::Command::new("id").arg("--user").output()?;
+    let uid = String::from_utf8_lossy(&out.stdout)
+        .strip_suffix('\n')
+        .unwrap()
+        .parse::<usize>()?;
+    Ok(uid == 0)
+}
+
 /// CLI entry point
 pub fn run() -> Result<()> {
+    // Abort of not run as root
+    // Ignore on error
+    #[cfg(not(debug_assertions))]
+    if let Ok(false) = am_i_root() {
+        eprintln!("This program needs to run as root, aborting.");
+        process::exit(1);
+    }
+
     let args = cli::Args::parse();
     let filter = if args.debug {
         LevelFilter::Debug
