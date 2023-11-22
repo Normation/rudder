@@ -1,4 +1,5 @@
 [default.extend-words]
 # from fusion
 SOFTWARES = "SOFTWARES"
-
+# crate name
+flate = "flate"

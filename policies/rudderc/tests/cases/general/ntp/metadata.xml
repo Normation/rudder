@@ -12,6 +12,10 @@
       <FILE name="technique.cf">
         <INCLUDED>true</INCLUDED>
       </FILE>
+      <FILE name="resources/directory/file2.conf">
+        <INCLUDED>false</INCLUDED>
+        <OUTPATH>ntp_technique/0.1/resources/directory/file2.conf</OUTPATH>
+      </FILE>
       <FILE name="resources/file.cfg">
         <INCLUDED>false</INCLUDED>
         <OUTPATH>ntp_technique/0.1/resources/file.cfg</OUTPATH>
@@ -25,6 +29,10 @@
     <FILES>
       <FILE name="technique.ps1">
         <INCLUDED>true</INCLUDED>
+      </FILE>
+      <FILE name="resources/directory/file2.conf">
+        <INCLUDED>false</INCLUDED>
+        <OUTPATH>ntp_technique/0.1/resources/directory/file2.conf</OUTPATH>
       </FILE>
       <FILE name="resources/file.cfg">
         <INCLUDED>false</INCLUDED>

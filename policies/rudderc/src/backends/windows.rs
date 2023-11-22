@@ -18,6 +18,13 @@ use crate::ir::{
 
 pub struct Windows;
 
+#[cfg(unix)]
+pub const POWERSHELL_BIN: &str = "pwsh";
+#[cfg(windows)]
+pub const POWERSHELL_BIN: &str = "PowerShell.exe";
+
+pub const POWERSHELL_OPTS: &[&str] = &["-NoProfile", "-NonInteractive"];
+
 impl Default for Windows {
     fn default() -> Self {
         Self::new()
@@ -65,6 +72,11 @@ pub mod filters {
             None => String::new(),
             Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
         }
+    }
+
+    pub fn remove_trailing_slash<T: Display>(s: T) -> askama::Result<String> {
+        let s = s.to_string();
+        Ok(s.strip_suffix('/').map(|s| s.to_string()).unwrap_or(s))
     }
 
     /// Format an expression to be evaluated by the agent

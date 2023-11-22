@@ -40,14 +40,6 @@ criteria = "safe-to-deploy"
 version = "0.1.1"
 criteria = "safe-to-deploy"
 
-[[exemptions.askama_derive]]
-version = "0.12.1"
-criteria = "safe-to-deploy"
-
-[[exemptions.askama_escape]]
-version = "0.10.3"
-criteria = "safe-to-deploy"
-
 [[exemptions.boon]]
 version = "0.5.0"
 criteria = "safe-to-deploy"
@@ -108,15 +100,7 @@ criteria = "safe-to-deploy"
 version = "0.8.1"
 criteria = "safe-to-deploy"
 
-[[exemptions.handlebars]]
-version = "4.3.7"
-criteria = "safe-to-deploy"
-
 [[exemptions.hermit-abi]]
-version = "0.3.1"
-criteria = "safe-to-deploy"
-
-[[exemptions.hostname]]
 version = "0.3.1"
 criteria = "safe-to-deploy"
 
@@ -190,10 +174,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.normpath]]
 version = "1.1.1"
-criteria = "safe-to-deploy"
-
-[[exemptions.ntapi]]
-version = "0.4.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.once_cell]]

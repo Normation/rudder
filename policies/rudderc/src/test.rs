@@ -13,14 +13,16 @@
 // Test file specifications. Do we want several test cases in one file?
 
 use anyhow::{bail, Result};
-use powershell_script::PsScriptBuilder;
 use rudder_commons::{logs::ok_output, PolicyMode, Target};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
+    fs::{self, remove_file},
     path::Path,
     process::Command,
 };
+
+use crate::backends::windows::{POWERSHELL_BIN, POWERSHELL_OPTS};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Step {
@@ -29,7 +31,7 @@ pub struct Step {
 }
 
 impl Step {
-    fn run(&self, target: Target, dir: &Path) -> Result<()> {
+    fn run(&self, target: Target, dir: &Path, target_dir: &Path) -> Result<()> {
         ok_output("Running", format!("'{}'", &self.command));
         let output = match target {
             Target::Unix => Command::new("/bin/sh")
@@ -38,17 +40,17 @@ impl Step {
                 .current_dir(dir)
                 .output()?,
             Target::Windows => {
-                let ps = PsScriptBuilder::new()
-                    // load profile normally
-                    .no_profile(false)
-                    // non-interactive session
-                    .non_interactive(true)
-                    // don't show a window
-                    .hidden(true)
-                    // don't print commands in output
-                    .print_commands(false)
-                    .build();
-                ps.run(&self.command)?.into_inner()
+                // Write the command into a script
+                // To allow failing on error
+                let script = target_dir.join("tmp.ps1");
+                let _ = remove_file(&script);
+                fs::write(&script, self.command.as_bytes())?;
+                Command::new(POWERSHELL_BIN)
+                    .args(POWERSHELL_OPTS)
+                    .arg("-Command")
+                    .arg(format!("&'{}'", &script.canonicalize()?.to_string_lossy()))
+                    .current_dir(dir)
+                    .output()?
             }
         };
         if !output.status.success() {
@@ -91,23 +93,23 @@ pub struct TestCase {
 }
 
 impl TestCase {
-    pub fn setup(&self, dir: &Path) -> Result<()> {
+    pub fn setup(&self, dir: &Path, target_dir: &Path) -> Result<()> {
         for s in &self.setup {
-            s.run(self.target, dir)?;
+            s.run(self.target, dir, target_dir)?;
         }
         Ok(())
     }
 
-    pub fn check(&self, dir: &Path) -> Result<()> {
+    pub fn check(&self, dir: &Path, target_dir: &Path) -> Result<()> {
         for s in &self.check {
-            s.run(self.target, dir)?;
+            s.run(self.target, dir, target_dir)?;
         }
         Ok(())
     }
 
-    pub fn cleanup(&self, dir: &Path) -> Result<()> {
+    pub fn cleanup(&self, dir: &Path, target_dir: &Path) -> Result<()> {
         for s in &self.cleanup {
-            s.run(self.target, dir)?;
+            s.run(self.target, dir, target_dir)?;
         }
         Ok(())
     }

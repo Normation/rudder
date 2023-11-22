@@ -34,6 +34,11 @@ pub const RESOURCES_DIR: &str = "resources";
 /// Where to read the library if no path were provided
 pub const DEFAULT_LIB_PATH: &str = "/var/rudder/ncf/";
 
+#[cfg(windows)]
+pub const DEFAULT_AGENT_PATH: &str = "C:\\Program Files\\Rudder";
+#[cfg(unix)]
+pub const DEFAULT_AGENT_PATH: &str = "/opt/rudder/bin/";
+
 /// Main entry point for rudderc
 ///
 /// # Error management
@@ -115,6 +120,7 @@ pub fn run(args: MainArgs) -> Result<()> {
         }
         Command::Test {
             library,
+            agent,
             filter,
             agent_verbose,
         } => {
@@ -125,10 +131,12 @@ pub fn run(args: MainArgs) -> Result<()> {
                 &target,
                 Path::new(TESTS_DIR),
                 library.as_slice(),
+                agent,
                 filter,
                 agent_verbose,
             )
         }
+        Command::Export { output } => action::export(&cwd, output),
         Command::Lib {
             library,
             output,
@@ -153,13 +161,15 @@ pub fn run(args: MainArgs) -> Result<()> {
 pub mod action {
     use std::{
         fs::{self, create_dir, create_dir_all, read_to_string, remove_dir_all, File},
-        io::{self, Write},
+        io::{self, Read, Write},
         path::{Path, PathBuf},
         process::Command,
     };
 
     use anyhow::{bail, Context, Result};
     use rudder_commons::{logs::ok_output, Target, ALL_TARGETS};
+    use walkdir::WalkDir;
+    use zip::write::ZipWriter;
 
     pub use crate::compiler::compile;
     use crate::{
@@ -276,9 +286,11 @@ pub mod action {
         target_dir: &Path,
         test_dir: &Path,
         libraries: &[PathBuf],
+        agent: String,
         filter: Option<String>,
         agent_verbose: bool,
     ) -> Result<()> {
+        let agent_path = PathBuf::from(agent);
         // Run everything relatively to the test directory
         // Collect test cases
         let mut cases = vec![];
@@ -301,11 +313,16 @@ pub mod action {
 
         ok_output("Running", format!("{} test(s)", cases.len()));
         for case_path in cases {
+            let case_id = case_path
+                .file_stem()
+                .unwrap()
+                .to_string_lossy()
+                .into_owned();
             ok_output("Testing", case_path.to_string_lossy());
             let yaml = read_to_string(&case_path)?;
             let case: TestCase = serde_yaml::from_str(&yaml)?;
             // Run test setup
-            case.setup(test_dir)?;
+            case.setup(test_dir, target_dir)?;
             // Run the technique
             ok_output(
                 "Running",
@@ -323,10 +340,10 @@ pub mod action {
                     &target_dir.join("technique.cf"),
                     case_path.as_path(),
                     libraries[0].as_path(),
+                    &agent_path,
                     agent_verbose,
                 )?,
                 Target::Windows => {
-                    let technique_file = target_dir.join("technique.ps1");
                     // Read the technique
                     // TODO: reuse parsed technique from build step
                     let methods = read_methods(libraries)?;
@@ -337,15 +354,16 @@ pub mod action {
                     let policy = read_technique(methods, &policy_str)?;
 
                     win_agent(
-                        &technique_file,
+                        target_dir,
                         &policy,
                         &case,
-                        libraries[0].as_path(),
+                        &case_id,
+                        &agent_path,
                         agent_verbose,
                     )?
                 }
             };
-            let report_file = Path::new(TARGET_DIR).join(case_path.with_extension("json"));
+            let report_file = target_dir.join(Path::new(&case_id).with_extension("json"));
             create_dir_all(report_file.parent().unwrap())?;
             fs::write(&report_file, serde_json::to_string_pretty(&run_log)?)?;
             ok_output(
@@ -357,9 +375,9 @@ pub mod action {
                 ),
             );
             // Run test checks
-            let res = case.check(test_dir);
+            let res = case.check(test_dir, target_dir);
             // Run anyway
-            case.cleanup(test_dir)?;
+            case.cleanup(test_dir, target_dir)?;
             res?;
         }
         Ok(())
@@ -442,6 +460,63 @@ pub mod action {
             ok_output("Copied", resources_path.display());
         }
 
+        Ok(())
+    }
+
+    pub fn export(src: &Path, output: Option<PathBuf>) -> Result<()> {
+        // We don't need to parse everything, let's just extract what we need
+        let technique_src = src.join(TECHNIQUE_SRC);
+        let yml: serde_yaml::Value = serde_yaml::from_str(&read_to_string(&technique_src)?)?;
+        let id = yml.get("id").unwrap().as_str().unwrap();
+        let version = yml.get("version").unwrap().as_str().unwrap();
+        let actual_output = match output {
+            Some(p) => p,
+            None => {
+                let dir = src.join(TARGET_DIR);
+                create_dir_all(&dir)?;
+                dir.join(format!("{}-{}.zip", id, version))
+            }
+        };
+
+        let file = File::create(&actual_output)?;
+        let options = zip::write::FileOptions::default();
+        let mut zip = ZipWriter::new(file);
+
+        let zip_dir = format!("archive/techniques/ncf_techniques/{id}/{version}");
+
+        // Technique
+        zip.start_file(format!("{}/{}", zip_dir, TECHNIQUE_SRC), options)?;
+        let mut buffer = Vec::new();
+        let mut f = File::open(technique_src)?;
+        f.read_to_end(&mut buffer)?;
+        zip.write_all(&buffer)?;
+
+        // Resources
+        let resources_dir = src.join("resources");
+        if resources_dir.exists() {
+            for r in WalkDir::new(&resources_dir).into_iter() {
+                // Only select files
+                let entry = r?;
+                if !entry.file_type().is_file() {
+                    continue;
+                }
+                let p = entry.path();
+                zip.start_file(
+                    format!(
+                        "{}/resources/{}",
+                        zip_dir,
+                        p.strip_prefix(&resources_dir).unwrap().display()
+                    ),
+                    options,
+                )?;
+                let mut buffer = Vec::new();
+                let mut f = File::open(p)?;
+                f.read_to_end(&mut buffer)?;
+                zip.write_all(&buffer)?;
+            }
+        }
+        zip.finish()?;
+        ok_output("Writing", actual_output.display());
         Ok(())
     }
 }

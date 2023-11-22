@@ -30,7 +30,7 @@ include_dir = "0.7.3"
 walkdir = "2"
 tempfile = "3"
 rudder_commons = { path = "../rudder-commons" }
-powershell_script = "1.1.0"
+zip = { version = "0.6.6", default-features = false, features = ["deflate", "time"] }
 
 [features]
 "embedded-lib" = []

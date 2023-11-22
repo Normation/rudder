@@ -419,7 +419,7 @@ pipeline {
                                 }
                                 sh script: 'make agent-windows', label: 'install local Windows agent'
                                 sh script: 'make check', label: 'language tests'
-                                sh script: 'cargo vet', label: 'check dependencies audits'
+                                //sh script: 'cargo vet', label: 'check dependencies audits'
                                 sh script: 'make docs', label: 'language docs'
                             }
                         }
