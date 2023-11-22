@@ -16,7 +16,7 @@ mod signature;
 mod versions;
 mod webapp_xml;
 
-use std::{path::Path, process, process::exit};
+use std::{path::Path, process};
 
 use crate::cli::Command;
 use anyhow::{Context, Result};
@@ -48,7 +48,7 @@ pub fn run() -> Result<()> {
     #[cfg(not(debug_assertions))]
     if let Ok(false) = am_i_root() {
         eprintln!("This program needs to run as root, aborting.");
-        exit(1);
+        process::exit(1);
     }
 
     let args = cli::Args::parse();
