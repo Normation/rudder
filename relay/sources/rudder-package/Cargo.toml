@@ -32,6 +32,7 @@ sha2 = "0.10.8"
 tar = "0.4.40"
 tempfile = "3.8.0"
 which = "5.0.0"
+flate2 = "1.0.28"
 
 [profile.dev]
 # Disabling debug info speeds up builds a bunch,

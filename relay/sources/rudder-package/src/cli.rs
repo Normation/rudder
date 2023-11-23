@@ -34,4 +34,5 @@ pub enum Command {
         #[clap()]
         package: Vec<String>,
     },
+    Update {},
 }
