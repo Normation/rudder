@@ -21,8 +21,8 @@ function {{ id|dsc_case }} {
     $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
     $localContext = New-Object -TypeName "Rudder.Context" -ArgumentList @($techniqueName)
     $localContext.Merge($system_classes)
-{% if has_modules %}
-    $modules_dir = $PSScriptRoot + "\modules"
+{% if has_resources %}
+    $resources_dir = $PSScriptRoot + "\resources"
 {% endif %}
 
 {% for m in methods %}

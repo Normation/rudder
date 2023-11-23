@@ -52,7 +52,7 @@ impl Backend for Windows {
 #[template(path = "technique.ps1.askama", escape = "none")]
 struct TechniqueTemplate<'a> {
     id: &'a str,
-    has_modules: bool,
+    has_resources: bool,
     parameters: Vec<Parameter>,
     methods: Vec<WindowsMethod>,
 }
@@ -236,7 +236,7 @@ impl Windows {
 
         let technique = TechniqueTemplate {
             id: &src.id.to_string(),
-            has_modules: !Windows::list_resources(resources)?.is_empty(),
+            has_resources: !Windows::list_resources(resources)?.is_empty(),
             parameters: src.params,
             methods,
         };
