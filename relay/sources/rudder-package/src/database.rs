@@ -81,9 +81,8 @@ impl Database {
             PathBuf::from(PACKAGES_FOLDER).join(installed_plugin.metadata.name.clone()),
         )?;
         // Update the database
-        let mut updated_db = self.clone();
-        updated_db.plugins.remove(plugin_name);
-        Database::write(PACKAGES_DATABASE_PATH, updated_db)?;
+        self.plugins.remove(plugin_name);
+        Database::write(PACKAGES_DATABASE_PATH, self.to_owned())?;
         Ok(())
     }
 }
