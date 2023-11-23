@@ -17,7 +17,7 @@ use crate::{
     plugin::Metadata,
     versions::RudderVersion,
     webapp::Webapp,
-    PACKAGES_DATABASE_PATH, PACKAGES_FOLDER, RUDDER_VERSION_PATH, WEBAPP_XML_PATH,
+    PACKAGES_DATABASE_PATH, PACKAGES_FOLDER, RUDDER_VERSION_PATH,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
@@ -188,7 +188,7 @@ impl Rpkg {
         Ok(current_database.is_installed(self.to_owned()))
     }
 
-    pub fn install(&self, force: bool) -> Result<()> {
+    pub fn install(&self, force: bool, webapp: &mut Webapp) -> Result<()> {
         debug!("Installing rpkg '{}'...", self.path);
         // Verify webapp compatibility
         let webapp_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
@@ -238,10 +238,7 @@ impl Rpkg {
         match self.metadata.jar_files.clone() {
             None => (),
             Some(jars) => {
-                let mut w = Webapp::new(PathBuf::from(WEBAPP_XML_PATH));
-                for jar_path in jars.into_iter() {
-                    w.enable_jar(jar_path)?;
-                }
+                webapp.enable_jars(&jars)?;
             }
         }
         // Restarting webapp

@@ -60,7 +60,7 @@ impl Webapp {
     }
 
     /// Update the loaded jars
-    fn modify_jars(&mut self, present: &[&str], absent: &[&str]) -> Result<()> {
+    fn modify_jars(&mut self, present: &[String], absent: &[String]) -> Result<()> {
         let mut reader = Reader::from_file(&self.path)?;
         let mut buf = Vec::new();
         let mut writer = Writer::new(Cursor::new(Vec::new()));
@@ -88,7 +88,7 @@ impl Webapp {
                             self.pending_changes = jars.insert(p);
                         }
                         for a in absent {
-                            self.pending_changes = jars.remove(a);
+                            self.pending_changes = jars.remove(a.as_str());
                         }
                         let jar_value: Vec<&str> = jars.into_iter().collect();
                         writer.write_event(Event::Text(BytesText::new(&jar_value.join(","))))?;
@@ -97,9 +97,7 @@ impl Webapp {
                     }
                 }
                 Event::End(e) if e.name().as_ref() == b"Configure" => {
-                    dbg!("PLOUF");
                     if !extra_classpath_found && !present.is_empty() {
-                    dbg!("PLOUF2");
                         // Create the element if needed
                         let mut start = BytesStart::new("Set");
                         start.push_attribute(("name", "extraClasspath"));
@@ -136,12 +134,12 @@ impl Webapp {
         Ok(())
     }
 
-    pub fn enable_jar(&mut self, path: String) -> Result<()> {
-        self.modify_jars(&[&path], &[])
+    pub fn enable_jars(&mut self, jars: &[String]) -> Result<()> {
+        self.modify_jars(jars, &[])
     }
 
-    pub fn disable_jar(&mut self, path: String) -> Result<()> {
-        self.modify_jars(&[], &[&path])
+    pub fn disable_jars(&mut self, jars: &[String]) -> Result<()> {
+        self.modify_jars(&[], jars)
     }
 
     /// Synchronous restart of the web application
@@ -195,7 +193,7 @@ mod tests {
         let target = temp_dir.path().join(origin);
         fs::copy(sample, target.clone()).unwrap();
         let mut x = Webapp::new(target.clone());
-        let _ = x.enable_jar(String::from(jar_name));
+        let _ = x.enable_jars(&[String::from(jar_name)]);
         assert_eq!(
             fs::read_to_string(target).unwrap(),
             fs::read_to_string(expected).unwrap()
@@ -213,7 +211,7 @@ mod tests {
         let target = temp_dir.path().join(origin);
         fs::copy(sample, target.clone()).unwrap();
         let mut x = Webapp::new(target.clone());
-        let _ = x.disable_jar(String::from(jar_name));
+        let _ = x.disable_jars(&[String::from(jar_name)]);
         assert_eq!(
             fs::read_to_string(target).unwrap(),
             fs::read_to_string(expected).unwrap()
