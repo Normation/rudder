@@ -16,9 +16,12 @@ mod signature;
 mod versions;
 mod webapp_xml;
 
-use std::{path::Path, process};
+use std::{
+    path::{Path, PathBuf},
+    process,
+};
 
-use crate::cli::Command;
+use crate::{cli::Command, signature::SignatureVerifier};
 use anyhow::{Context, Result};
 use clap::Parser;
 use log::{debug, error, LevelFilter};
@@ -68,7 +71,8 @@ pub fn run() -> Result<()> {
     debug!("Parsed CLI arguments: {args:?}");
     let cfg = Configuration::read(Path::new(&args.config))
         .with_context(|| format!("Reading configuration from '{}'", &args.config))?;
-    let repo = Repository::new(&cfg)?;
+    let verifier = SignatureVerifier::new(PathBuf::from(SIGNATURE_KEYRING_PATH));
+    let repo = Repository::new(&cfg, verifier)?;
     debug!("Parsed configuration: {cfg:?}");
 
     match args.command {
