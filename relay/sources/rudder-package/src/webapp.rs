@@ -85,10 +85,16 @@ impl Webapp {
                         let jars_t = e.unescape()?;
                         let mut jars: HashSet<&str> = HashSet::from_iter(jars_t.split(','));
                         for p in present {
-                            self.pending_changes = jars.insert(p);
+                            let changed = jars.insert(p);
+                            if changed && !self.pending_changes {
+                                self.pending_changes = true;
+                            }
                         }
                         for a in absent {
-                            self.pending_changes = jars.remove(a.as_str());
+                            let changed = jars.remove(a.as_str());
+                            if changed && !self.pending_changes {
+                                self.pending_changes = true;
+                            }
                         }
                         let jar_value: Vec<&str> = jars.into_iter().collect();
                         writer.write_event(Event::Text(BytesText::new(&jar_value.join(","))))?;
