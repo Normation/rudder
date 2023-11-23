@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     fs::{self, *},
     io::{Cursor, Read},
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
 
 use crate::{
@@ -85,16 +85,12 @@ impl Rpkg {
         Ok(r)
     }
 
-    fn get_txz_dst(&self, txz_name: &str) -> String {
+    fn get_txz_dst(&self, txz_name: &str) -> PathBuf {
         // Build the destination path
         if txz_name == "scripts.txz" {
-            return PathBuf::from(PACKAGES_FOLDER)
-                .join(self.metadata.name.clone())
-                .as_path()
-                .display()
-                .to_string();
+            return PathBuf::from(PACKAGES_FOLDER).join(self.metadata.name.clone());
         }
-        return self.metadata.content.get(txz_name).unwrap().to_string();
+        return PathBuf::from(self.metadata.content.get(txz_name).unwrap().to_string());
     }
 
     fn get_archive_installed_files(&self) -> Result<Vec<String>> {
@@ -153,14 +149,16 @@ impl Rpkg {
         let relative_files = self.get_relative_file_list_of_txz(txz_name)?;
         Ok(relative_files
             .iter()
-            .map(|x| -> PathBuf { Path::new(&prefix.clone()).join(x) })
+            .map(|x| -> PathBuf { prefix.join(x) })
             .map(|y| y.to_str().ok_or(anyhow!("err")).map(|z| z.to_owned()))
             .collect::<Result<Vec<String>>>()?)
     }
 
-    fn unpack_embedded_txz(&self, txz_name: &str, dst_path: &str) -> Result<(), anyhow::Error> {
-        debug!("Extracting archive '{}' in folder '{}'", txz_name, dst_path);
-        let dst = Path::new(dst_path);
+    fn unpack_embedded_txz(&self, txz_name: &str, dst_path: PathBuf) -> Result<(), anyhow::Error> {
+        debug!(
+            "Extracting archive '{}' in folder '{:?}'",
+            txz_name, dst_path
+        );
         // Loop over ar archive files
         let mut archive = Archive::new(File::open(self.path.clone()).unwrap());
         while let Some(entry_result) = archive.next_entry() {
@@ -169,7 +167,7 @@ impl Rpkg {
             if entry_title != txz_name {
                 continue;
             }
-            let parent = dst.parent().unwrap();
+            let parent = dst_path.parent().unwrap();
             // Verify that the directory structure exists
             fs::create_dir_all(parent).with_context(|| {
                 format!("Make sure the folder '{}' exists", parent.to_str().unwrap(),)
@@ -179,7 +177,7 @@ impl Rpkg {
             let mut f = std::io::BufReader::new(txz_archive);
             lzma_rs::xz_decompress(&mut f, &mut unxz_archive)?;
             let mut tar_archive = tar::Archive::new(Cursor::new(unxz_archive));
-            tar_archive.unpack(dst)?;
+            tar_archive.unpack(dst_path)?;
             return Ok(());
         }
         Ok(())
@@ -210,7 +208,7 @@ impl Rpkg {
             }
         }
         // Extract package scripts
-        self.unpack_embedded_txz("script.txz", PACKAGES_FOLDER)?;
+        self.unpack_embedded_txz("script.txz", PathBuf::from(PACKAGES_FOLDER))?;
         // Run preinst if any
         let install_or_upgrade: PackageScriptArg = PackageScriptArg::Install;
         self.metadata
@@ -218,8 +216,7 @@ impl Rpkg {
         // Extract archive content
         let keys = self.metadata.content.keys().clone();
         for txz_name in keys {
-            let dst = self.get_txz_dst(txz_name);
-            self.unpack_embedded_txz(txz_name, &dst)?
+            self.unpack_embedded_txz(txz_name, self.get_txz_dst(txz_name))?
         }
         // Update the plugin index file to track installed files
         // We need to add the content section to the metadata to do so
@@ -271,6 +268,8 @@ fn read_metadata(path: &str) -> Result<Metadata> {
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use tempfile::tempdir;
 
     use super::*;
@@ -344,7 +343,7 @@ mod tests {
             bind = tempdir().unwrap().into_path().join(trimmed);
             bind.to_str().unwrap()
         };
-        r.unpack_embedded_txz("files.txz", effective_target)
+        r.unpack_embedded_txz("files.txz", PathBuf::from(effective_target))
             .unwrap();
         assert!(!dir_diff::is_different(effective_target, expected_dir_content).unwrap());
     }
