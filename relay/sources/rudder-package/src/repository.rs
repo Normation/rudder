@@ -53,6 +53,10 @@ impl Repository {
         })
     }
 
+    pub fn get_username(&self) -> Option<String> {
+        self.creds.as_ref().map(|c| c.username.clone())
+    }
+
     fn get(&self, path: &str) -> Result<Response> {
         let mut req = self.inner.get(self.server.join(path)?);
         if let Some(creds) = &self.creds {
