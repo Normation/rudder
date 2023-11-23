@@ -16,7 +16,7 @@ use crate::{
     database::{Database, InstalledPlugin},
     plugin::Metadata,
     versions::RudderVersion,
-    webapp_xml::WebappXml,
+    webapp::Webapp,
     PACKAGES_DATABASE_PATH, PACKAGES_FOLDER, RUDDER_VERSION_PATH, WEBAPP_XML_PATH,
 };
 
@@ -238,7 +238,7 @@ impl Rpkg {
         match self.metadata.jar_files.clone() {
             None => (),
             Some(jars) => {
-                let w = WebappXml::new(String::from(WEBAPP_XML_PATH));
+                let mut w = Webapp::new(PathBuf::from(WEBAPP_XML_PATH));
                 for jar_path in jars.into_iter() {
                     w.enable_jar(jar_path)?;
                 }

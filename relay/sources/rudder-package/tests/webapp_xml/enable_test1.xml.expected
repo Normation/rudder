@@ -10,5 +10,4 @@
     <Arg>org.eclipse.jetty.servlet.SessionPath</Arg>
     <Arg>/</Arg>
   </Call>
-  <Set name="extraClasspath">extra_jar.jar</Set>
-</Configure>
+<Set name="extraClasspath">extra_jar.jar</Set></Configure>

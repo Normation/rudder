@@ -14,7 +14,7 @@ mod repo_index;
 mod repository;
 mod signature;
 mod versions;
-mod webapp_xml;
+mod webapp;
 
 use std::{
     path::{Path, PathBuf},
@@ -98,11 +98,11 @@ pub mod action {
     use crate::repo_index::RepoIndex;
     use crate::repository::Repository;
     use crate::versions::RudderVersion;
-    use crate::webapp_xml::restart_webapp;
+    use crate::webapp::Webapp;
     use crate::{
-        PACKAGES_DATABASE_PATH, REPOSITORY_INDEX_PATH, RUDDER_VERSION_PATH, TMP_PLUGINS_FOLDER,
+        PACKAGES_DATABASE_PATH, REPOSITORY_INDEX_PATH, RUDDER_VERSION_PATH, TMP_PLUGINS_FOLDER, WEBAPP_XML_PATH,
     };
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
 
     pub fn uninstall(packages: Vec<String>) -> Result<()> {
         let mut db = Database::read(PACKAGES_DATABASE_PATH)?;
@@ -142,7 +142,9 @@ pub mod action {
             rpkg.install(force)?;
             Ok(())
         })?;
-        restart_webapp()
+        // FIXME only one!
+        let mut webapp = Webapp::new(PathBuf::from(WEBAPP_XML_PATH));
+        webapp.apply_changes()
     }
 
     pub fn list() -> Result<()> {
