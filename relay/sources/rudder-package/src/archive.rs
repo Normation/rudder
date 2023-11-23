@@ -315,7 +315,7 @@ mod tests {
         );
         assert_eq!(
             r.get_absolute_file_list_of_txz("scripts.txz").unwrap(),
-            vec!["/var/rudder/packages/postinst"]
+            vec!["/var/rudder/packages/rudder-plugin-notify/postinst"]
         );
     }
 
