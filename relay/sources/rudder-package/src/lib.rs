@@ -79,6 +79,9 @@ pub fn run() -> Result<()> {
         Command::Install { force, package } => {
             return action::install(force, package, repo);
         }
+        Command::Uninstall { package } => {
+            return action::uninstall(package);
+        }
         _ => {
             error!("This command is not implemented");
         }
@@ -101,36 +104,44 @@ pub mod action {
     };
     use std::path::Path;
 
-    pub fn install(force: bool, package: String, repository: Repository) -> Result<()> {
-        let rpkg_path = if Path::new(&package).exists() {
-            package
-        } else {
-            // Find compatible plugin if any
-            let webapp_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
-            let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
-            let to_dl_and_install = match index.get_compatible_plugin(webapp_version, &package) {
-                None => bail!("Could not find any compatible '{}' plugin with the current Rudder version in the configured repository.", package),
-                Some(p) => {
-                    debug!("Found a compatible plugin in the repository:\n{:?}", p);
-                    p
-                }
+    pub fn uninstall(packages: Vec<String>) -> Result<()> {
+        let mut db = Database::read(PACKAGES_DATABASE_PATH)?;
+        packages.iter().try_for_each(|p| db.uninstall(p))
+    }
+
+    pub fn install(force: bool, packages: Vec<String>, repository: Repository) -> Result<()> {
+        packages.iter().try_for_each(|package| {
+            let rpkg_path = if Path::new(&package).exists() {
+                package.clone()
+            } else {
+                // Find compatible plugin if any
+                let webapp_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
+                let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
+                let to_dl_and_install = match index.get_compatible_plugin(webapp_version, package) {
+                    None => bail!("Could not find any compatible '{}' plugin with the current Rudder version in the configured repository.", package),
+                    Some(p) => {
+                        debug!("Found a compatible plugin in the repository:\n{:?}", p);
+                        p
+                    }
+                };
+                let dest = Path::new(TMP_PLUGINS_FOLDER).join(
+                    Path::new(&to_dl_and_install.path)
+                        .file_name()
+                        .ok_or_else(|| {
+                            anyhow!(
+                                "Could not retrieve filename from path '{}'",
+                                to_dl_and_install.path
+                            )
+                        })?,
+                );
+                // Download rpkg
+                repository.clone().download(&to_dl_and_install.path, &dest)?;
+                dest.as_path().display().to_string()
             };
-            let dest = Path::new(TMP_PLUGINS_FOLDER).join(
-                Path::new(&to_dl_and_install.path)
-                    .file_name()
-                    .ok_or_else(|| {
-                        anyhow!(
-                            "Could not retrieve filename from path '{}'",
-                            to_dl_and_install.path
-                        )
-                    })?,
-            );
-            // Download rpkg
-            repository.download(&to_dl_and_install.path, &dest)?;
-            dest.as_path().display().to_string()
-        };
-        let rpkg = Rpkg::from_path(&rpkg_path)?;
-        rpkg.install(force)?;
+            let rpkg = Rpkg::from_path(&rpkg_path)?;
+            rpkg.install(force)?;
+            Ok(())
+        })?;
         restart_webapp()
     }
 

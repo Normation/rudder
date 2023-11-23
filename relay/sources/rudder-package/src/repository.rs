@@ -21,6 +21,7 @@ use crate::{
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
+#[derive(Clone)]
 pub struct Repository {
     inner: Client,
     creds: Option<Credentials>,
