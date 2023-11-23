@@ -113,42 +113,56 @@
           <span class="logo-mini"><img alt="Rudder" data-lift="with-cached-resource" src="/images/logo-rudder-sm.svg"></span>
           <span class="logo-lg"><img alt="Rudder" data-lift="with-cached-resource" src="/images/logo-rudder-white.svg"></span>
         </a>
-        <nav class="navbar navbar-static-top" role="navigation">
-          <a href="#" class="sidebar-toggle" role="button" onclick="$('body').toggleClass('sidebar-collapse')">
-            <span class="visually-hidden">Toggle navigation</span>
-          </a>
-          <!-- Quick Search-->
 
-            <rudder-quicksearch>
-            </rudder-quicksearch>
-          <div class="navbar-custom-menu">
-            <ul class="nav navbar-nav" id="rudder-navbar">
+        <nav class="navbar navbar-expand">
+          <div class="container-fluid ps-0 pe-0">
+            <div class="d-flex align-items-center">
+              <!-- Toggle menu button -->
+              <a href="#" class="sidebar-toggle p-3" role="button" onclick="$('body').toggleClass('sidebar-collapse')">
+                <i class="fa fa-bars"></i>
+                <span class="visually-hidden">Toggle navigation</span>
+              </a>
+
+              <!-- Quick search -->
+              <rudder-quicksearch></rudder-quicksearch>
+            </div>
+
+            <ul class="navbar-nav align-items-center">
               <!-- Plugin license warning -->
-             <div data-lift="PluginExpirationInfo.render"></div>
+              <li data-lift="PluginExpirationInfo.render"></li>
+
               <!-- Health check warning -->
-             <div data-lift="HealthcheckInfo.render"></div>
+              <li data-lift="HealthcheckInfo.render"></li>
+
               <!-- Promise Generation -->
               <li class="lift:comet?type=AsyncDeployment" name="deploymentStatus"></li>
-              <li class="tasks-menu">
+
+              <!-- Documentation -->
+              <li class="nav-item tasks-menu">
                 <a target="_blank" href="/rudder-doc">
-                  <i class="fa fa-book"></i>
-                  <span class="hidden-xs"> Documentation </span>
+                  <i class="fa fa-book me-1"></i>
+                  <span>Documentation</span>
                 </a>
               </li>
+
               <!-- User -->
-              <li id="user-menu" class="user user-menu" data-lift="UserInformation.userCredentials">
+              <li id="user-menu" class="nav-item user user-menu" data-lift="UserInformation.userCredentials">
                 <a id="user-menu-action">
-                  <span class="hidden-xs glyphicon glyphicon-user"></span>
+                  <span class="fa fa-user me-1"></span>
                   <span id="openerAccount">[User name]</span>
                 </a>
               </li>
+
               <!-- Log out -->
-              <li>
+              <li class="nav-item">
                 <a id="logout" href="#" data-bs-toggle="control-sidebar"><i class="fa fa-sign-out"></i></a>
               </li>
+
             </ul>
+
           </div>
         </nav>
+
       </header>
       <aside class="main-sidebar fixed">
         <section class="sidebar">

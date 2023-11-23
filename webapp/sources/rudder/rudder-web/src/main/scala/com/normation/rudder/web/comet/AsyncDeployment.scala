@@ -96,7 +96,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
           case NoStatus =>
             "bg-neutral"
           case _: SuccessStatus =>
-            "bg-success"
+            "bg-ok"
           case _: ErrorStatus   =>
             "bg-error"
         }
@@ -114,20 +114,17 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         iconClass:    String,
         statusClass:  String
     ) = {
-      <li>
-        <ul class="menu">
-          <li><a href="#" class={statusClass + " no-click"}><span class={iconClass}></span>{headText}</a></li>
-          <li><a href="#" class="no-click"><span class={statusClass + " fa fa-hourglass-start"}></span>{
+      <li><a href="#" class={statusClass + " no-click"}><span class={iconClass}></span>{headText}</a></li>
+        <li><a href="#" class="no-click"><span class={statusClass + " fa fa-hourglass-start"}></span>{
         displayTime("Started at ", start)
-      }</a></li>
-          <li><a href="#" class="no-click"><span class={statusClass + " fa fa-hourglass-end"}></span><span id="deployment-end">{
+      }</a>
+        </li>
+        <li><a href="#" class="no-click"><span class={statusClass + " fa fa-hourglass-end"}></span><span id="deployment-end">{
         displayTime("Ended at ", end)
       }</span></a></li>
           <li><a href="#" class="no-click"><span class={statusClass + " fa fa-clock-o"}></span>{durationText} {
         DateFormaterService.getFormatedPeriod(start, end)
       }</a></li>
-        </ul>
-      </li>
     }
     def loadingStatement(start: DateTime) = {
       <li class="dropdown-header">Policies building...</li>
@@ -222,14 +219,14 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
   private[this] def layout = {
     <lift:authz role="deployment_read">
-      <li class={"dropdown notifications-menu " ++ statusBackground}>
-        <a href="#" class="dropdown-toggle"  data-bs-toggle="dropdown">
+
+      <li class={"nav-item dropdown notifications-menu " ++ statusBackground}>
+        <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           Status
           <i class="fa fa-heartbeat"></i>
           <span id="generation-status" class="label"><span></span></span>
-          <i class="fa fa-angle-down" style="margin-left:15px;"></i>
         </a>
-        <ul class="dropdown-menu" role="menu">
+        <ul class="dropdown-menu">
           {lastStatus}
           <li class="footer">
             {showGeneratePoliciesPopup}

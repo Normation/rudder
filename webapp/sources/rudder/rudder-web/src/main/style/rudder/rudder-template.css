@@ -1292,7 +1292,7 @@ label.custom-toggle.toggle-secondary .custom-toggle-group > label:first-child {
   background-color: #1295c2;
 }
 label.custom-toggle .custom-toggle-group > label:last-child{
-  background-color: #e8eaed;
+  background-color: #eef1f9;
   color: #04192299;
   padding-left: 16px;
 }
@@ -1591,7 +1591,7 @@ ul.applied-list > .add-target > .fa{
 #directiveTree ul > li.included .action-icon,
 #groupTree ul > li.included .action-icon.accept,
 #groupTree ul > li.excluded .action-icon.except{
-  color: #888;
+  color: #738195;
 }
 #directiveTree ul > li.included .action-icon:before{
   content: "\f00d";

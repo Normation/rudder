@@ -23,7 +23,7 @@ viewItem item =
   li [ class "list-group-item" ] [
     a [href item.url, style "text-decoration" "none"] [
       span [] [ text item.name ]
-    , div [ class "angucomplete-description" ] [ text item.desc ]
+    , div [ class "description" ] [ text item.desc ]
     ]
   ]
 
@@ -36,17 +36,17 @@ viewResult result =
   div [] [
     div [ class "panel-heading",  role "tab",  id ("resultGroup"++ name)] [
       h4 [ class "panel-title" ] [
-        a [ role "button", attribute "data-bs-toggle" "collapse", href ("#result" ++name) ] [
-          span [ class "glyphicon glyphicon-chevron-right" ] []
+        a [ role "button", attribute "data-bs-toggle" "collapse", href ("#result" ++name), attribute "aria-expanded" "true" ] [
+          span [ class "fa fa-chevron-right" ] []
         , text name
-        , span [ class "angucomplete-description" ]
+        , span [ class "description" ]
           [ text ((String.fromInt result.header.numbers) ++" found")
           , text (if result.header.numbers > 10 then ", only displaying the first 10. Please refine your query." else "")
           ]
         ]
       ]
     ]
-  , div [ id ("result"++name) , class "panel-collapse collapse in", role "tabpanel", attribute "aria-labelledby" ("result"++name), attribute "aria-expanded" "true" ] [
+  , div [ id ("result"++name) , class "panel-collapse collapse show", role "tabpanel", attribute "aria-labelledby" ("result"++name), attribute "aria-expanded" "true" ] [
       ul [ class "list-group" ]
         (List.map viewItem result.items)
       ]
@@ -74,7 +74,7 @@ filterButton model filter =
     , text (String.Extra.toSentenceCase name)
     , span [ class "badge pull-right" ] [
         case model.state of
-          Searching -> span [class "loading glyphicon glyphicon-refresh" ] []
+          Searching -> span [class "loading fa fa-sync-alt" ] []
           _ -> span [] [
                  text (String.fromInt numbers)
                ]
@@ -86,70 +86,64 @@ filterButton model filter =
 view : Model -> Html Msg
 view model =
   let
-    open = if (model.state == Closed) then "" else "open"
+    open = if (model.state == Closed) then "" else "show"
     filteredResult =
       if (List.isEmpty model.selectedFilter) then model.results
       else model.results |> List.filter (\r -> List.member r.header.type_ model.selectedFilter  )
   in
-  div [ class "sidebar-form topbar-search-form" ] [
-    div [ class "input-group ng-scope", id "quicksearch" ] [
-      div [ id "angucomplete-ie8-quicksearch"] [
-        div [ class "angucomplete-holder angucomplete-dropdown-visible" ] [
-          div [ class ("input-group group-search "++open) ] [
-            label [ class "input-group-addon",  for "searchInput" ] [
-              span [ class "glyphicon glyphicon-search" ] []
-              ]
-          , input [ type_ "text", value model.search, placeholder "Search anything", onClick Open, onInput UpdateSearch , id "searchInput" , class "form-control input", autocomplete False] []          , label [ class ("input-group-addon " ++ if (String.isEmpty model.search) then "noRemove" else ""),  id "clear-search", for "searchInput" ] [
-              span [ class "glyphicon glyphicon-remove", onClick (UpdateSearch "") ] []
-            ]
-          , a [ class "input-group-addon",  id "help-search",  href "/rudder-doc/reference/current/usage/node_management.html#search-nodes",  target "_blank" ] [
-              span [ class "glyphicon glyphicon-question-sign" ] []
-             ]
-          , div [ id "background-fade-quicksearch", onClick Close  ] []
-          , ul [ class "dropdown-menu dropdown-search dropdown-menu-right" ] [
-              li [ class "dropdown-header" ] [
-                div [ class "row no-margin" ] [
-                  div [ class "row",  id "search-tab" ] [
-                    div [ class "filter-search col-xs-12" ] [
-                      div [ class "panel panel-default panel-help" ] [
-                        div [ class "panel-heading heading-search" ] [
-                          div [ class "btn-toolbar", role "toolbar" ] [
-                            div [ class "btn-group group-all", attribute "data-bs-toggle" "buttons" ] [
-                              filterButton model All
-                            ]
-                          , div  [ class "btn-group group-filters", attribute "data-bs-toggle" "buttons" ]
-                              (List.map (filterButton model) allFilters)
-                          ]
+  div [ class "quicksearch-form ms-2" ]
+  [ div [ class "input-group"]
+    [ label [ class "input-group-text", for "searchInput" ]
+      [ span [ class "fa fa-search" ] []
+      ]
+    , input [ type_ "text", value model.search, placeholder "Search anything", onClick Open, onInput UpdateSearch , id "searchInput" , class "form-control input", autocomplete False] []
+    , label [ class ("input-group-text " ++ if (String.isEmpty model.search) then "noRemove" else ""),  id "clear-search", for "searchInput", onClick (UpdateSearch "") ]
+      [ span [ class "fa fa-times" ] []
+      ]
+    , a [ class "input-group-text", id "help-search", href "/rudder-doc/reference/current/usage/node_management.html#search-nodes",  target "_blank" ]
+      [ span [ class "fa fa-question-circle" ] []
+      ]
+    ]
+  , div [ id "background-fade-quicksearch", class open, onClick Close  ][]
+
+  , ul [ class ("dropdown-menu dropdown-search " ++ open) ]
+    [ li []
+      [ div [ id "search-tab" ]
+        [ div [ class "filter-search" ] [
+                  div [ class "main-panel" ] [
+                    div [ class "panel-heading heading-search p-2" ] [
+                      div [ class "btn-toolbar", role "toolbar" ] [
+                        div [ class "btn-group group-all" ] [
+                          filterButton model All
                         ]
-                        , div [ class "panel-body results-content" ] [
-                            div [ class "info-messages" ] [
-                              div [ class "angucomplete-searching", hidden ((String.length model.search ) >= 3 )] [
-                                span [ class "glyphicon glyphicon-exclamation-sign" ] []
-                              , text "The field size must be greater than 2 characters"
-                              ]
-                            , div [ hidden ((String.length model.search ) < 3 )] [
-                                div [ class "angucomplete-searching", hidden (model.state /= Searching) ] [
-                                  text "Searching..."
-                                ]
-                              , div [ class "angucomplete-searching text-danger", hidden ((model.state /= Opened) || (List.length model.results > 0))  ] [
-                                  span [ class "glyphicon glyphicon-exclamation-sign text-danger" ] []
-                                , text "No results found"
-                                ]
-                              ]
-                            , div [ class "panel-group", hidden (model.state == Searching || (List.isEmpty model.results )  ) ] [
-                                div [ class "angucomplete-dropdown dropdown-search ", role "tablist" ]
-                                  (List.map viewResult filteredResult)
-                              ]
-                            ]
+                      , div  [ class "btn-group group-filters ms-3" ]
+                          (List.map (filterButton model) allFilters)
+                      ]
+                  ]
+                  , div [ class "panel-body results-content p-2" ] [
+                       div [ class "info-messages" ] [
+                        div [ class "angucomplete-searching", hidden ((String.length model.search ) >= 3 )] [
+                          span [ class "fa fa-exclamation-triangle" ] []
+                        , text "The field size must be greater than 2 characters"
+                        ]
+                      , div [ hidden ((String.length model.search ) < 3 )] [
+                          div [ class "angucomplete-searching", hidden (model.state /= Searching) ] [
+                             text "Searching..."
                           ]
+                        , div [ class "angucomplete-searching text-danger", hidden ((model.state /= Opened) || (List.length model.results > 0))  ] [
+                            span [ class "fa fa-exclamation-triangle text-danger" ] []
+                          , text "No results found"
+                         ]
+                         ]
+                      , div [ class "panel-group", hidden (model.state == Searching || (List.isEmpty model.results )  ) ] [
+                          div [ class "dropdown-search ", role "tablist" ]
+                            (List.map viewResult filteredResult)
                         ]
                       ]
                     ]
                   ]
                 ]
               ]
-            ]
           ]
-        ]
-      ]
     ]
+  ]
