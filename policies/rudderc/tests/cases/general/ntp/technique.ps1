@@ -19,7 +19,7 @@
     $localContext = New-Object -TypeName "Rudder.Context" -ArgumentList @($techniqueName)
     $localContext.Merge($system_classes)
 
-    $modules_dir = $PSScriptRoot + "\modules"
+    $resources_dir = $PSScriptRoot + "\resources"
 
 
 
