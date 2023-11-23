@@ -15,6 +15,7 @@ mod repository;
 mod signature;
 mod versions;
 mod webapp;
+mod list;
 
 use std::{
     path::{Path, PathBuf},
@@ -78,10 +79,17 @@ pub fn run() -> Result<()> {
 
     match args.command {
         Command::Install { force, package } => {
-            return action::install(force, package, repo, &mut webapp);
+            action::install(force, package, repo, &mut webapp)?;
         }
         Command::Uninstall { package } => {
-            return action::uninstall(package, &mut webapp);
+            action::uninstall(package, &mut webapp)?;
+        }
+        Command::List {
+            all,
+            enabled,
+            format,
+        } => {
+            action::list(all, enabled, format, &mut webapp)?;
         }
         _ => {
             error!("This command is not implemented");
@@ -97,18 +105,29 @@ pub mod action {
     use tar::Archive;
 
     use crate::archive::Rpkg;
+    use crate::cli::Format;
     use crate::database::Database;
     use crate::repo_index::RepoIndex;
     use crate::repository::Repository;
     use crate::versions::RudderVersion;
     use crate::{
         webapp::Webapp, PACKAGES_DATABASE_PATH, REPOSITORY_INDEX_PATH, RUDDER_VERSION_PATH,
-        TMP_PLUGINS_FOLDER,
+        TMP_PLUGINS_FOLDER, list,
     };
     use std::fs;
     use std::fs::File;
     use std::io::BufRead;
     use std::path::{Path, PathBuf};
+
+    pub fn list(all: bool, enabled: bool, format: Format, webapp: &Webapp) -> Result<()> {
+        // Installed plugins
+        let db = Database::read(PACKAGES_DATABASE_PATH)?;
+        // Available plugins
+        let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
+        // Enabled
+        list(all, enabled, format, webapp);
+        Ok(())
+    }
 
     pub fn uninstall(packages: Vec<String>, webapp: &mut Webapp) -> Result<()> {
         let mut db = Database::read(PACKAGES_DATABASE_PATH)?;
@@ -154,12 +173,6 @@ pub mod action {
             Ok(())
         })?;
         webapp.apply_changes()
-    }
-
-    pub fn list() -> Result<()> {
-        let db = Database::read(PACKAGES_DATABASE_PATH);
-        println!("Installed plugins:\n{:?}", db);
-        Ok(())
     }
 
     pub fn update(repository: Repository) -> Result<()> {

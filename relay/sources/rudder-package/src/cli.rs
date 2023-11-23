@@ -1,9 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 
 use crate::CONFIG_PATH;
+
+#[derive(ValueEnum)]
+#[derive(Copy, Clone, Debug, Default)]
+pub enum Format {
+    Json,
+    #[default]
+    Human,
+}
+
+
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -23,13 +33,22 @@ pub struct Args {
 #[derive(Debug, Subcommand)]
 pub enum Command {
     Install {
-        #[clap(long, short = 'f', help = "Force installation of given plugin")]
+        #[clap(long, short, help = "Force installation of given plugin")]
         force: bool,
 
         #[clap()]
         package: Vec<String>,
     },
-    List {},
+    List {
+        #[clap(long, short, help = "Show all available plugins")]
+        all: bool,
+
+        #[clap(long, short, help = "Show enabled plugins")]
+        enabled: bool,
+        
+        #[clap(long, short, help = "Output format")]
+        format: Format,
+    },
     Uninstall {
         #[clap()]
         package: Vec<String>,

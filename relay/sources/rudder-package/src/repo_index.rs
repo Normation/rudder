@@ -17,6 +17,10 @@ impl RepoIndex {
         Ok(index)
     }
 
+    pub fn inner(&self) -> &[Plugin] {
+        self.0.as_slice()
+    }
+ 
     pub fn get_compatible_plugins(&self, webapp_version: RudderVersion) -> Vec<Plugin> {
         self.clone()
             .0
@@ -50,7 +54,7 @@ pub struct Plugin {
     pub path: String,
 
     #[serde(flatten)]
-    metadata: plugin::Metadata,
+    pub metadata: plugin::Metadata,
 }
 
 #[cfg(test)]
