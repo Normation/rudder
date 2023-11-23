@@ -9,17 +9,26 @@
 # - RUDDER_NUMBER_NODES_UPDATED      : integer >= 0; number of nodes updated (could be found by counting $RUDDER_NODE_IDS)
 # - RUDDER_ROOT_POLICY_SERVER_UPDATED: 0 if root was updated, anything else if not
 
-# Signal to cf-serverd that it shall look-up the new promises
+# Signal to cf-serverd that it shall look-up the new promises, and apache to update its kown certs.
 
 export PATH="/opt/rudder/bin:$PATH"
 
-# For windows agents
-# we need to reload the configuration on apache2, based on the policies
-# it must be done even if the hash didn't change, as cf-serverd doesn't have the lists of
-# windows agent in it, and it doesn't change on windows node addition/deletion
-rudder agent run -lb system_rudder_apache_configuration,system_reload_rudder_services
+# For Windows agents
+CERT_CUR="/var/rudder/lib/ssl/nodescerts.pem"
+CERT_NEW="/var/rudder/cfengine-community/inputs/rudder-service-apache/1.0/apache/nodescerts.pem"
+if ! cmp --silent -- "${CERT_CUR}" "${CERT_NEW}"; then
+  # When no Windows nodes are present, file is empty and breaks apache
+  if [ -s "${CERT_NEW}" ]; then
+    cp "${CERT_NEW}" "${CERT_CUR}"
+    if command -v apache2 >/dev/null 2>&1; then
+      systemctl reload-or-restart apache2.service
+    else
+      systemctl reload-or-restart httpd.service
+    fi
+  fi
+fi
 
-# for linux agents
+# for Linux agents
 ACL_BACK="/var/rudder/tmp/cf-serverd.sha256"
 ACL_FILE="/var/rudder/cfengine-community/inputs/common/1.0/cf-serverd.cf"
 ACL_HASH=$(openssl sha256 -r "${ACL_FILE}" | cut -d' ' -f 1)
