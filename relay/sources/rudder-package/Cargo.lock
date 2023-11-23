@@ -885,6 +885,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "quick-xml"
+version = "0.31.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1004a344b30a54e2ee58d66a71b32d2db2feb0a31f9a2d302bf0536f15de2a33"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1033,6 +1042,7 @@ dependencies = [
  "log",
  "lzma-rs",
  "pretty_assertions",
+ "quick-xml",
  "regex",
  "reqwest",
  "rstest",
@@ -1044,7 +1054,6 @@ dependencies = [
  "tar",
  "tempfile",
  "which",
- "xmltree",
 ]
 
 [[package]]
@@ -1675,21 +1684,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f4686009f71ff3e5c4dbcf1a282d0a44db3f021ba69350cd42086b3e5f1c6985"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "xml-rs"
-version = "0.8.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fcb9cbac069e033553e8bb871be2fbdffcab578eb25bd0f7c508cedc6dcd75a"
-
-[[package]]
-name = "xmltree"
-version = "0.10.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7d8a75eaf6557bb84a65ace8609883db44a29951042ada9b393151532e41fcb"
-dependencies = [
- "xml-rs",
 ]
 
 [[package]]

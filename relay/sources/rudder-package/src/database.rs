@@ -15,7 +15,7 @@ use super::archive::Rpkg;
 use crate::{
     archive::{PackageScript, PackageScriptArg},
     plugin,
-    webapp_xml::WebappXml,
+    webapp::Webapp,
     PACKAGES_DATABASE_PATH, PACKAGES_FOLDER,
 };
 use log::debug;
@@ -49,7 +49,7 @@ impl Database {
         }
     }
 
-    pub fn uninstall(&mut self, plugin_name: &str) -> Result<()> {
+    pub fn uninstall(&mut self, plugin_name: &str, webapp: &mut Webapp) -> Result<()> {
         // Force to use plugin long qualified name
         if !plugin_name.starts_with("rudder-plugin-") {
             plugin_name.to_owned().insert_str(0, "rudder-plugin-{}")
@@ -65,7 +65,7 @@ impl Database {
             "Could not extract data for plugin {} in the database",
             plugin_name
         ))?;
-        installed_plugin.disable()?;
+        installed_plugin.disable(webapp)?;
         installed_plugin
             .metadata
             .run_package_script(PackageScript::Prerm, PackageScriptArg::None)?;
@@ -96,26 +96,24 @@ pub struct InstalledPlugin {
 }
 
 impl InstalledPlugin {
-    pub fn disable(&self) -> Result<()> {
+    pub fn disable(&self, webapp: &mut Webapp) -> Result<()> {
         debug!("Disabling plugin {}", self.metadata.name);
-        let x = WebappXml::new(PACKAGES_DATABASE_PATH.to_owned());
         match &self.metadata.jar_files {
             None => {
                 println!("Plugin {} does not support the enable/disable feature, it will always be enabled if installed.", self.metadata.name);
                 Ok(())
             }
-            Some(jars) => jars.iter().try_for_each(|j| x.disable_jar(j.to_string())),
+            Some(jars) => webapp.disable_jars(jars),
         }
     }
-    pub fn enable(&self) -> Result<()> {
+    pub fn enable(&self, webapp: &mut Webapp) -> Result<()> {
         debug!("Enabling plugin {}", self.metadata.name);
-        let x = WebappXml::new(PACKAGES_DATABASE_PATH.to_owned());
         match &self.metadata.jar_files {
             None => {
                 println!("Plugin {} does not support the enable/disable feature, it will always be enabled if installed.", self.metadata.name);
                 Ok(())
             }
-            Some(jars) => jars.iter().try_for_each(|j| x.enable_jar(j.to_string())),
+            Some(jars) => webapp.enable_jars(jars),
         }
     }
 

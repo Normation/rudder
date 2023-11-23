@@ -31,6 +31,7 @@ pub enum VerificationSuccess {
 
 use crate::cmd::CmdOutput;
 
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct SignatureVerifier {
     keyring: PathBuf,
 }

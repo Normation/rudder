@@ -14,14 +14,14 @@ mod repo_index;
 mod repository;
 mod signature;
 mod versions;
-mod webapp_xml;
+mod webapp;
 
 use std::{
     path::{Path, PathBuf},
     process,
 };
 
-use crate::{cli::Command, signature::SignatureVerifier};
+use crate::{cli::Command, signature::SignatureVerifier, webapp::Webapp};
 use anyhow::{Context, Result};
 use clap::Parser;
 use log::{debug, error, LevelFilter};
@@ -73,14 +73,15 @@ pub fn run() -> Result<()> {
         .with_context(|| format!("Reading configuration from '{}'", &args.config))?;
     let verifier = SignatureVerifier::new(PathBuf::from(SIGNATURE_KEYRING_PATH));
     let repo = Repository::new(&cfg, verifier)?;
+    let mut webapp = Webapp::new(PathBuf::from(WEBAPP_XML_PATH));
     debug!("Parsed configuration: {cfg:?}");
 
     match args.command {
         Command::Install { force, package } => {
-            return action::install(force, package, repo);
+            return action::install(force, package, repo, &mut webapp);
         }
         Command::Uninstall { package } => {
-            return action::uninstall(package);
+            return action::uninstall(package, &mut webapp);
         }
         _ => {
             error!("This command is not implemented");
@@ -98,18 +99,23 @@ pub mod action {
     use crate::repo_index::RepoIndex;
     use crate::repository::Repository;
     use crate::versions::RudderVersion;
-    use crate::webapp_xml::restart_webapp;
+    use crate::webapp::Webapp;
     use crate::{
         PACKAGES_DATABASE_PATH, REPOSITORY_INDEX_PATH, RUDDER_VERSION_PATH, TMP_PLUGINS_FOLDER,
     };
     use std::path::Path;
 
-    pub fn uninstall(packages: Vec<String>) -> Result<()> {
+    pub fn uninstall(packages: Vec<String>, webapp: &mut Webapp) -> Result<()> {
         let mut db = Database::read(PACKAGES_DATABASE_PATH)?;
-        packages.iter().try_for_each(|p| db.uninstall(p))
+        packages.iter().try_for_each(|p| db.uninstall(p, webapp))
     }
 
-    pub fn install(force: bool, packages: Vec<String>, repository: Repository) -> Result<()> {
+    pub fn install(
+        force: bool,
+        packages: Vec<String>,
+        repository: Repository,
+        webapp: &mut Webapp,
+    ) -> Result<()> {
         packages.iter().try_for_each(|package| {
             let rpkg_path = if Path::new(&package).exists() {
                 package.clone()
@@ -139,10 +145,10 @@ pub mod action {
                 dest.as_path().display().to_string()
             };
             let rpkg = Rpkg::from_path(&rpkg_path)?;
-            rpkg.install(force)?;
+            rpkg.install(force, webapp)?;
             Ok(())
         })?;
-        restart_webapp()
+        webapp.apply_changes()
     }
 
     pub fn list() -> Result<()> {
