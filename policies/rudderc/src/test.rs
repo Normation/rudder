@@ -57,8 +57,8 @@ impl Step {
             bail!(
                 "Test '{}' failed\nstdout: {}\nstderr: {}",
                 &self.command,
-                String::from_utf8(output.stdout)?,
-                String::from_utf8(output.stderr)?,
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr),
             )
         }
         Ok(())

@@ -179,8 +179,8 @@ pub fn cf_agent(
         .env("TMP_DIR", work_dir.path().to_string_lossy().to_string())
         .env("CWD", std::env::current_dir()?)
         .output()?;
-    let stdout = String::from_utf8(cmd.stdout)?;
-    let stderr = String::from_utf8(cmd.stderr)?;
+    let stdout = String::from_utf8_lossy(&cmd.stdout);
+    let stderr = String::from_utf8_lossy(&cmd.stderr);
     if !cmd.status.success() {
         bail!("Failed to run cf-agent:\nstdout: {stdout}\nstderr:{stderr}",);
     } else {

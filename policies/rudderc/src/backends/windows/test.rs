@@ -114,7 +114,7 @@ pub fn win_agent(
 
     let run_log = Report::parse(&clean_reports.join("\n"))?;
     debug!("reports: {}", reports);
-    debug!("stdout: {}", String::from_utf8(output.stdout)?);
-    debug!("stderr: {}", String::from_utf8(output.stderr)?);
+    debug!("stdout: {}", String::from_utf8_lossy(&output.stdout));
+    debug!("stderr: {}", String::from_utf8_lossy(&output.stderr));
     Ok(run_log)
 }
