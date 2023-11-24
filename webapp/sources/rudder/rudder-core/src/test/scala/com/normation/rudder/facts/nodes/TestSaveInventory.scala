@@ -314,7 +314,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
       (receivedInventoryFile(nodeName).exists must beTrue) and
       (checkPendingNodeExists(nodeId) must beTrue) and
       (factRepo.get(nodeId)(SelectNodeStatus.Pending).runNow must beSome()) and
-      (getLogName === Chunk("newPending"))
+      (getLogName must beEqualTo(Chunk("newPending")).eventually(2, 100.millis.asScala))
     }
 
     "change in node by repos are reflected in cold storage" in {
@@ -327,7 +327,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
 
       (getPendingNodeAsString(nodeId).contains(newfqdn) must beTrue) and
       (e.event must beAnInstanceOf[NodeFactChangeEvent.UpdatedPending]) and
-      (getLogName === Chunk("updatedPending"))
+      (getLogName must beEqualTo(Chunk("updatedPending")).eventually(2, 100.millis.asScala))
 
     }
 
@@ -341,7 +341,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
       )) and
       (factRepo.get(nodeId)(SelectNodeStatus.Pending).testRunGet.fqdn must beEqualTo(fqdn)) and
       (getPendingNodeAsString(nodeId).contains(fqdn) must beTrue) and
-      (getLogName === Chunk("updatedPending"))
+      (getLogName must beEqualTo(Chunk("updatedPending")).eventually(2, 100.millis.asScala))
     }
 
     "rudder settings and properties can be modified on pending nodes" in {
@@ -384,7 +384,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
       (e.event must beAnInstanceOf[NodeFactChangeEvent.Accepted]) and
       (checkAcceptedNodeExists(nodeId) must beTrue) and
       (factRepo.get(nodeId)(SelectNodeStatus.Accepted).testRunGet.rudderSettings.status must beEqualTo(AcceptedInventory)) and
-      (getLogName === Chunk("accepted"))
+      (getLogName must beEqualTo(Chunk("accepted")).eventually(2, 100.millis.asScala))
     }
     "change in node by repos are reflected in file" in {
       resetLog
@@ -397,7 +397,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
 
       (e.event must beAnInstanceOf[NodeFactChangeEvent.Updated]) and
       (getAcceptedNodeAsString(nodeId).contains(newfqdn) must beTrue) and
-      (getLogName === Chunk("updatedAccepted"))
+      (getLogName must beEqualTo(Chunk("updatedAccepted")).eventually(2, 100.millis.asScala))
     }
 
     "update the node that was modified in repo" in {
@@ -412,7 +412,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
       ) and
       (factRepo.get(nodeId)(SelectNodeStatus.Accepted).testRunGet.fqdn must beEqualTo(fqdn)) and
       (getAcceptedNodeAsString(nodeId).contains(fqdn) must beTrue) and
-      (getLogName === Chunk("updatedAccepted"))
+      (getLogName must beEqualTo(Chunk("updatedAccepted")).eventually(2, 100.millis.asScala))
     }
   }
 
@@ -426,7 +426,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
       (checkPendingNodeExists(nodeId) must beFalse) and
       (checkAcceptedNodeExists(nodeId) must beFalse) and
       (factRepo.get(nodeId)(SelectNodeStatus.Any).runNow must beNone) and
-      (getLogName === Chunk("deleted"))
+      (getLogName must beEqualTo(Chunk("deleted")).eventually(2, 100.millis.asScala))
     }
   }
 
