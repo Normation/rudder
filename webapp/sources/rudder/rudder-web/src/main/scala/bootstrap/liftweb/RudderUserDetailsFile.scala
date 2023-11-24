@@ -645,6 +645,38 @@ object UserFileProcessing {
     }
   }
 
+  /*
+   * Tenants name are only alphanumeric (mandatory first) + '-' + '_' with two special cases:
+   * - '*' means "all"
+   * - '-' means "none"
+   * None means "all" for compat
+   */
+  def resolveTenants(tenants: Option[List[String]]): UIO[NodeSecurityContext] = {
+
+    tenants match {
+      case None     => NodeSecurityContext.All.succeed // for compatibility with previous versions
+      case Some(ts) =>
+        (ZIO
+          .foldLeft(ts)(NodeSecurityContext.ByTenants(Chunk.empty): NodeSecurityContext) {
+            case (t1, t2) =>
+              t2.strip() match {
+                case "*"                     => t1.plus(NodeSecurityContext.All).succeed
+                case "-"                     => NodeSecurityContext.None.succeed
+                case Tenant.checkTenantId(v) => t1.plus(NodeSecurityContext.ByTenants(Chunk(Tenant(v)))).succeed
+                case x                       =>
+                  ApplicationLoggerPure.Authz.warn(
+                    s"Value '${x}' is not a valid tenant identifier. It must contains only alpha-num  ascii chars or " +
+                    s"'-' and '_' (not in the first) place; or exactly '*' (all tenants) or '-' (none tenants)"
+                  ) *> t1.plus(NodeSecurityContext.ByTenants(Chunk.empty)).succeed
+              }
+          })
+          .map {
+            case NodeSecurityContext.ByTenants(c) if (c.isEmpty) => NodeSecurityContext.None
+            case x                                               => x
+          }
+    }
+  }
+
   def resolveUsers(
       users:         List[ParsedUser],
       extendedAuthz: Boolean,

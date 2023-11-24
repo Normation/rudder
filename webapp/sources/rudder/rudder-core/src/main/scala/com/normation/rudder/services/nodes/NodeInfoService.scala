@@ -201,7 +201,8 @@ object NodeInfoService {
       A_KEY_STATUS,
       A_TIMEZONE_NAME,
       A_TIMEZONE_OFFSET,
-      A_CUSTOM_PROPERTY
+      A_CUSTOM_PROPERTY,
+      A_SECURITY_TAG
     )
   ).toSeq
 

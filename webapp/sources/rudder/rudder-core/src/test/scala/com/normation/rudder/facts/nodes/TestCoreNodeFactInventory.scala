@@ -237,7 +237,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
   )
 
   implicit val testChangeContext: ChangeContext =
-    ChangeContext(ModificationId("test-mod-id"), EventActor("test"), DateTime.now(), None, None)
+    ChangeContext(ModificationId("test-mod-id"), EventActor("test"), DateTime.now(), None, None, QueryContext.testQC.nodePerms)
 
   "query action" should {
 
@@ -324,10 +324,58 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     }
   }
 
+  "security tag" should {
+    val all = Set("root", "node0", "node1", "node2", "node3", "node4", "node5", "node6", "node7")
+
+    /*
+     * node0: zoneA
+     * node1: zoneA, zoneB
+     * node2: zoneB
+     * node3: zoneC
+     * other: no zone, always present BUT for people with none right
+     */
+
+    "allow to filter all nodes with no access" in {
+      val nodes = factRepo
+        .getAll()(QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.None), SelectNodeStatus.Accepted)
+        .runCollect
+        .runNow
+
+      nodes must beEmpty
+    }
+
+    "allow to get only nodes with one security tag" in {
+      val nodes = factRepo
+        .getAll()(
+          QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.ByTags(Chunk("zoneA"))),
+          SelectNodeStatus.Accepted
+        )
+        .runCollect
+        .runNow
+
+      nodes.map(_.id.value) must containTheSameElementsAs((all -- List("node2", "node3")).toSeq)
+    }
+
+    "have cumulative rights" in {
+      val nodes = factRepo
+        .getAll()(
+          QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.ByTags(Chunk("zoneA", "zoneB"))),
+          SelectNodeStatus.Accepted
+        )
+        .runCollect
+        .runNow
+
+      nodes.map(_.id.value) must containTheSameElementsAs((all -- List("node3")).toSeq)
+    }
+  }
+
   "basic update action" should {
     "we can save a whole inventory and changing everything in storage, included software" >> {
       factStorage.clearCallStack
-      val node = factRepo.slowGet(node7id)(SelectNodeStatus.Accepted, SelectFacts.all).notOptional("node7 must be here").runNow
+      val node = factRepo
+        .slowGet(node7id)(QueryContext.testQC, SelectNodeStatus.Accepted, SelectFacts.all)
+        .notOptional("node7 must be here")
+        .runNow
 
       val updated = node
         .modify(_.software)
@@ -363,10 +411,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     "we can change only one inventory aspect without touching others even if they are not the same in our business object" >> {
       factStorage.clearCallStack
       val node = factRepo
-        .slowGet(node7id)(
-          SelectNodeStatus.Accepted,
-          SelectFacts.all
-        )
+        .slowGet(node7id)(QueryContext.testQC, SelectNodeStatus.Accepted, SelectFacts.all)
         .notOptional("node7 must be here")
         .runNow
 

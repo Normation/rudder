@@ -62,6 +62,7 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HookReturnCode
@@ -183,7 +184,7 @@ class FactRemoveNodeBackend(backend: NodeFactRepository) extends RemoveNodeBacke
   override def findNodeStatuses(nodeId: NodeId): IOResult[Set[InventoryStatus]] = {
     // here, we need to return "RemovedInventory" in case of missing node, so CoreNodeFactRepo #getStatus
     // is not what we want;
-    backend.get(nodeId)(SelectNodeStatus.Any).map {
+    backend.get(nodeId)(QueryContext.todoQC, SelectNodeStatus.Any).map {
       case None    => Set(RemovedInventory)
       case Some(x) => Set(x.rudderSettings.status)
     }
@@ -279,6 +280,7 @@ class RemoveNodeServiceImpl(
                   new DateTime(0),
                   ReportingConfiguration(None, None, None),
                   Nil,
+                  None,
                   None
                 ),
                 "",

@@ -309,6 +309,12 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.354
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
   EQUALITY caseExactMatch
   SUBSTR caseIgnoreSubstringsMatch )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.355
+  NAME 'securityTag'
+  DESC 'security tag'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+  EQUALITY caseExactMatch
+  SUBSTR caseIgnoreSubstringsMatch )
 #######################################################
 ################  Object Classes ######################
 #######################################################
@@ -329,7 +335,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.1
   SUP top
   STRUCTURAL
   MUST ( nodeId $ cn $ isSystem )
-  MAY ( description $ serializedNodeProperty $ serializedAgentRunInterval $
+  MAY ( description $ serializedNodeProperty $ serializedAgentRunInterval $ securityTag $
   serializedHeartbeatRunConfiguration $ agentReportingProtocol $ policyMode $ state $ isBroken) )
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.2
   NAME 'rudderPolicyServer'

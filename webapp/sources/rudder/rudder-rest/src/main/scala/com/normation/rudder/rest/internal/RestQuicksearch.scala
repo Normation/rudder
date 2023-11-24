@@ -95,7 +95,7 @@ class RestQuicksearch(
           // Should not happen, but for now make one token from it, maybe we should only take head ?
           case Some(values)       => values.mkString("")
         }
-        quicksearch.search(token) match {
+        quicksearch.search(token)(CurrentUser.queryContext) match {
           case eb: EmptyBox =>
             val e = eb ?~! s"Error when looking for object containing ${token}"
             toJsonError(None, e.messageChain)

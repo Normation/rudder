@@ -81,6 +81,7 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFact
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
@@ -755,8 +756,16 @@ class RestTestSetUp {
     () => Full(GlobalPolicyMode(Audit, PolicyModeOverrides.Always)),
     "relay"
   ) {
-    implicit val testCC: ChangeContext =
-      ChangeContext(ModificationId(uuidGen.newUuid), EventActor("test"), DateTime.now(), None, None)
+    implicit val testCC: ChangeContext = {
+      ChangeContext(
+        ModificationId(uuidGen.newUuid),
+        EventActor("test"),
+        DateTime.now(),
+        None,
+        None,
+        QueryContext.testQC.nodePerms
+      )
+    }
 
     override def checkUuid(nodeId: NodeId): IO[Creation.CreationError, Unit] = {
       mockNodes.nodeFactRepo

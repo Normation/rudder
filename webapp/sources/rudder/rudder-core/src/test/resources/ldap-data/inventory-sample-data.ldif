@@ -77,6 +77,7 @@ cn: nothing
 isSystem: false
 isBroken: false
 createTimestamp: 20070101000000Z
+securityTag: zoneA
 
 ## That node is in inventory but not in node: never returned
 ## dn: nodeId=node0_0,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
@@ -92,6 +93,8 @@ isSystem: false
 isBroken: false
 createTimestamp: 20070101000000Z
 serializedNodeProperty: {"name":"foo","value":"bar"}
+securityTag: zoneA
+securityTag: zoneB
 
 dn: nodeId=node2,ou=Nodes,cn=rudder-configuration
 objectClass: top
@@ -102,6 +105,7 @@ isSystem: false
 isBroken: false
 createTimestamp: 20070101000000Z
 serializedNodeProperty: {"name":"datacenter","value":{"country":"France","id":1234,"replicated":true},"provider":"datasources"}
+securityTag: zoneB
 
 dn: nodeId=node3,ou=Nodes,cn=rudder-configuration
 objectClass: top
@@ -113,6 +117,7 @@ isBroken: false
 createTimestamp: 20070101000000Z
 serializedNodeProperty: {"name":"datacenter","value":{"country":"Germany","id":12345,"replicated":true,"provider":"user value"}}
 serializedNodeProperty: {"name":"number","value":42}
+securityTag: zoneC
 
 dn: nodeId=node4,ou=Nodes,cn=rudder-configuration
 objectClass: top

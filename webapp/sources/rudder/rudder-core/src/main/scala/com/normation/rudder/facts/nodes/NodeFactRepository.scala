@@ -83,6 +83,13 @@ import zio.syntax._
 trait NodeFactRepository {
 
   /*
+   * Check if the node can be seen in the given query context. Return none if it can't.
+   */
+  def securityFilter[A <: MinimalNodeFactInterface](n: A)(implicit qc: QueryContext): Option[A] = {
+    if (qc.nodePerms.nsc.canSee(n)) Some(n) else None
+  }
+
+  /*
    * Add a call back that will be called when a change occurs.
    * The callbacks are not ordered and not blocking and will have a short time-out
    * on them, the caller will need to manage that constraint.
@@ -93,15 +100,17 @@ trait NodeFactRepository {
    * Get the status of the node, or RemovedStatus if it is
    * not found.
    */
-  def getStatus(id: NodeId): IOResult[InventoryStatus]
+  def getStatus(id: NodeId)(implicit qc: QueryContext): IOResult[InventoryStatus]
 
   /*
    * Translation between old inventory status and new SelectNodeStatus for IOResult methods
    */
-  def statusCompat[A](status: InventoryStatus, f: SelectNodeStatus => IOResult[A]): IOResult[A] = {
+  def statusCompat[A](status: InventoryStatus, f: (QueryContext, SelectNodeStatus) => IOResult[A])(implicit
+      qc:                     QueryContext
+  ): IOResult[A] = {
     status match {
-      case AcceptedInventory => f(SelectNodeStatus.Accepted)
-      case PendingInventory  => f(SelectNodeStatus.Pending)
+      case AcceptedInventory => f(qc, SelectNodeStatus.Accepted)
+      case PendingInventory  => f(qc, SelectNodeStatus.Pending)
       case RemovedInventory  => Inconsistency("You can not query deleted nodes").fail
     }
   }
@@ -109,10 +118,12 @@ trait NodeFactRepository {
   /*
    * Translation between old inventory status and new SelectNodeStatus for IOStream methods
    */
-  def statusStreamCompat[A](status: InventoryStatus, f: SelectNodeStatus => IOStream[A]): IOStream[A] = {
+  def statusStreamCompat[A](status: InventoryStatus, f: (QueryContext, SelectNodeStatus) => IOStream[A])(implicit
+      qc:                           QueryContext
+  ): IOStream[A] = {
     status match {
-      case AcceptedInventory => f(SelectNodeStatus.Accepted)
-      case PendingInventory  => f(SelectNodeStatus.Pending)
+      case AcceptedInventory => f(qc, SelectNodeStatus.Accepted)
+      case PendingInventory  => f(qc, SelectNodeStatus.Pending)
       case RemovedInventory  => ZStream.fromZIO(Inconsistency("You can not query deleted nodes").fail)
     }
   }
@@ -120,10 +131,12 @@ trait NodeFactRepository {
   /*
    * Get node on given status
    */
-  def get(nodeId: NodeId)(implicit status: SelectNodeStatus = SelectNodeStatus.Any): IOResult[Option[CoreNodeFact]]
+  def get(
+      nodeId:    NodeId
+  )(implicit qc: QueryContext, status: SelectNodeStatus = SelectNodeStatus.Any): IOResult[Option[CoreNodeFact]]
 
-  def getCompat(nodeId: NodeId, status: InventoryStatus): IOResult[Option[CoreNodeFact]] = {
-    statusCompat(status, get(nodeId)(_))
+  def getCompat(nodeId: NodeId, status: InventoryStatus)(implicit qc: QueryContext): IOResult[Option[CoreNodeFact]] = {
+    statusCompat(status, (qc, s) => get(nodeId)(qc, s))
   }
 
   /*
@@ -131,12 +144,15 @@ trait NodeFactRepository {
    * the fields from select mode "ignored" set to empty.
    */
   def slowGet(nodeId: NodeId)(implicit
+      qc:             QueryContext,
       status:         SelectNodeStatus = SelectNodeStatus.Any,
       attrs:          SelectFacts = SelectFacts.default
   ): IOResult[Option[NodeFact]]
 
-  def slowGetCompat(nodeId: NodeId, status: InventoryStatus, attrs: SelectFacts): IOResult[Option[NodeFact]] = {
-    statusCompat(status, slowGet(nodeId)(_, attrs))
+  def slowGetCompat(nodeId: NodeId, status: InventoryStatus, attrs: SelectFacts)(implicit
+      qc:                   QueryContext
+  ): IOResult[Option[NodeFact]] = {
+    statusCompat(status, (qc, s) => slowGet(nodeId)(qc, s, attrs))
   }
 
   def getNodesbySofwareName(softName: String): IOResult[List[(NodeId, Software)]]
@@ -145,10 +161,10 @@ trait NodeFactRepository {
    * get all node facts.
    * SelectStatus allows to choose which nodes are retrieved (pending, accepted, all)
    */
-  def getAll()(implicit status: SelectNodeStatus = SelectNodeStatus.Accepted): IOStream[CoreNodeFact]
+  def getAll()(implicit qc: QueryContext, status: SelectNodeStatus = SelectNodeStatus.Accepted): IOStream[CoreNodeFact]
 
-  def getAllCompat(status: InventoryStatus, attrs: SelectFacts): IOStream[CoreNodeFact] = {
-    statusStreamCompat(status, getAll()(_))
+  def getAllCompat(status: InventoryStatus, attrs: SelectFacts)(implicit qc: QueryContext): IOStream[CoreNodeFact] = {
+    statusStreamCompat(status, (qc, s) => getAll()(qc, s))
   }
 
   /*
@@ -158,12 +174,13 @@ trait NodeFactRepository {
    * then it reverts back to the quick version.
    */
   def slowGetAll()(implicit
+      qc:     QueryContext,
       status: SelectNodeStatus = SelectNodeStatus.Accepted,
       attrs:  SelectFacts = SelectFacts.default
   ): IOStream[NodeFact]
 
-  def slowGetAllCompat(status: InventoryStatus, attrs: SelectFacts): IOStream[NodeFact] = {
-    statusStreamCompat(status, slowGetAll()(_, attrs))
+  def slowGetAllCompat(status: InventoryStatus, attrs: SelectFacts)(implicit qc: QueryContext): IOStream[NodeFact] = {
+    statusStreamCompat(status, (qc, s) => slowGetAll()(qc, s, attrs))
   }
 
   ///// changes /////
@@ -335,20 +352,21 @@ class CoreNodeFactRepository(
     } yield ()
   }
 
-  override def getStatus(id: NodeId): IOResult[InventoryStatus] = {
-    pendingNodes.get.flatMap { p =>
-      if (p.keySet.contains(id)) PendingInventory.succeed
-      else {
-        acceptedNodes.get.flatMap(a => {
-          if (a.keySet.contains(id)) AcceptedInventory.succeed
-          else RemovedInventory.succeed
-        })
-      }
+  override def getStatus(id: NodeId)(implicit qc: QueryContext): IOResult[InventoryStatus] = {
+    getOnRef(acceptedNodes, id).flatMap {
+      case None =>
+        getOnRef(pendingNodes, id).flatMap {
+          case None => RemovedInventory.succeed
+          case _    => PendingInventory.succeed
+        }
+      case _    => AcceptedInventory.succeed
     }
   }
 
-  private[nodes] def getOnRef(ref: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId): IOResult[Option[CoreNodeFact]] = {
-    ref.get.map(_.get(nodeId))
+  private[nodes] def getOnRef(ref: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
+      qc:                          QueryContext
+  ): IOResult[Option[CoreNodeFact]] = {
+    ref.get.map(_.get(nodeId).flatMap(securityFilter))
   }
 
   /*
@@ -357,27 +375,32 @@ class CoreNodeFactRepository(
    */
   def fetchAndSync(nodeId: NodeId)(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] = {
     implicit val attrs: SelectFacts = SelectFacts.default
-    for {
-      a    <- storage.getAccepted(nodeId)
-      p    <- storage.getPending(nodeId)
-      c    <- get(nodeId)(SelectNodeStatus.Any)
-      diff <- (a, p, c) match {
-                case (None, None, _)    => delete(nodeId)
-                case (None, Some(x), _) =>
-                  saveOn(pendingNodes, x.toCore).map { e =>
-                    e.updateWith(StorageChangeEventSave.Created(x, attrs))
-                      .toChangeEvent(nodeId, PendingInventory, cc)
-                  }
-                case (Some(x), _, _)    =>
-                  saveOn(acceptedNodes, x.toCore).map { e =>
-                    e.updateWith(StorageChangeEventSave.Created(x, attrs))
-                      .toChangeEvent(nodeId, AcceptedInventory, cc)
-                  }
-              }
-    } yield diff
+    if (cc.nodePerms.isNone) NodeFactChangeEventCC(NodeFactChangeEvent.Noop(nodeId, attrs), cc).succeed
+    else {
+      for {
+        a    <- storage.getAccepted(nodeId)
+        p    <- storage.getPending(nodeId)
+        c    <- get(nodeId)(cc.toQuery, SelectNodeStatus.Any)
+        diff <- (a, p, c) match {
+                  case (None, None, _)    => delete(nodeId)
+                  case (None, Some(x), _) =>
+                    saveOn(pendingNodes, x.toCore).map { e =>
+                      e.updateWith(StorageChangeEventSave.Created(x, attrs))
+                        .toChangeEvent(nodeId, PendingInventory, cc)
+                    }
+                  case (Some(x), _, _)    =>
+                    saveOn(acceptedNodes, x.toCore).map { e =>
+                      e.updateWith(StorageChangeEventSave.Created(x, attrs))
+                        .toChangeEvent(nodeId, AcceptedInventory, cc)
+                    }
+                }
+      } yield diff
+    }
   }
 
-  override def get(nodeId: NodeId)(implicit status: SelectNodeStatus = SelectNodeStatus.Any): IOResult[Option[CoreNodeFact]] = {
+  override def get(
+      nodeId:    NodeId
+  )(implicit qc: QueryContext, status: SelectNodeStatus = SelectNodeStatus.Any): IOResult[Option[CoreNodeFact]] = {
     status match {
       case SelectNodeStatus.Pending  =>
         getOnRef(pendingNodes, nodeId)
@@ -388,9 +411,11 @@ class CoreNodeFactRepository(
     }
   }
 
-  override def slowGet(nodeId: NodeId)(implicit status: SelectNodeStatus, attrs: SelectFacts): IOResult[Option[NodeFact]] = {
+  override def slowGet(
+      nodeId:    NodeId
+  )(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): IOResult[Option[NodeFact]] = {
     (for {
-      optCNF <- get(nodeId)(status)
+      optCNF <- get(nodeId)(qc, status)
       res    <- optCNF match {
                   case None    => None.succeed
                   case Some(v) =>
@@ -423,14 +448,18 @@ class CoreNodeFactRepository(
                       }
                     }
                 }
-    } yield res)
+    } yield res.flatMap(securityFilter))
   }
 
-  private[nodes] def getAllOnRef[A](ref: Ref[Map[NodeId, CoreNodeFact]]): IOStream[CoreNodeFact] = {
-    ZStream.fromZIO(ref.get.map(_.values)).flatMap(x => ZStream.fromIterable(x))
+  private[nodes] def getAllOnRef[A](ref: Ref[Map[NodeId, CoreNodeFact]])(implicit qc: QueryContext): IOStream[CoreNodeFact] = {
+    if (qc.nodePerms.isNone) {
+      ZStream.empty
+    } else {
+      ref.get.map(_.view.filter { case (_, n) => qc.nodePerms.canSee(n) })
+    }
   }
 
-  override def getAll()(implicit status: SelectNodeStatus = SelectNodeStatus.Accepted): IOStream[CoreNodeFact] = {
+  override def getAll()(implicit qc: QueryContext, status: SelectNodeStatus): IOStream[CoreNodeFact] = {
     status match {
       case SelectNodeStatus.Pending  => getAllOnRef(pendingNodes)
       case SelectNodeStatus.Accepted => getAllOnRef(acceptedNodes)
@@ -438,14 +467,21 @@ class CoreNodeFactRepository(
     }
   }
 
-  override def slowGetAll()(implicit status: SelectNodeStatus, attrs: SelectFacts): IOStream[NodeFact] = {
-    if (attrs == SelectFacts.none) {
-      getAll()(status).map(cnf => NodeFact.fromMinimal(cnf))
-    } else {
-      status match {
-        case SelectNodeStatus.Pending  => storage.getAllPending()(attrs)
-        case SelectNodeStatus.Accepted => storage.getAllAccepted()(attrs)
-        case SelectNodeStatus.Any      => storage.getAllPending()(attrs) ++ storage.getAllAccepted()(attrs)
+  override def slowGetAll()(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): IOStream[NodeFact] = {
+    if (qc.nodePerms.isNone) ZStream.empty
+    else {
+      if (attrs == SelectFacts.none) {
+        getAll()(qc, status).map(cnf => NodeFact.fromMinimal(cnf))
+      } else {
+        status match {
+          // here, the filtering can be forward to storage, by core node fact must check it in all case, it's
+          // its responsibility
+          case SelectNodeStatus.Pending  => storage.getAllPending()(attrs).filter(qc.nodePerms.canSee(_))
+          case SelectNodeStatus.Accepted => storage.getAllAccepted()(attrs).filter(qc.nodePerms.canSee(_))
+          case SelectNodeStatus.Any      =>
+            storage.getAllPending()(attrs).filter(qc.nodePerms.canSee(_)) ++
+            storage.getAllAccepted()(attrs).filter(qc.nodePerms.canSee(_))
+        }
       }
     }
   }
@@ -564,6 +600,7 @@ class CoreNodeFactRepository(
     if (nodeId == Constants.ROOT_POLICY_SERVER_ID && into != AcceptedInventory) {
       Inconsistency(s"Rudder server (id='root' must be accepted").fail
     } else {
+      implicit val qc: QueryContext = cc.toQuery
       ZIO.scoped(
         for {
           _ <- lock.withLock
@@ -629,7 +666,7 @@ class CoreNodeFactRepository(
     ZIO.scoped(
       for {
         _   <- lock.withLock
-        cnf <- get(nodeId)(SelectNodeStatus.Any)
+        cnf <- get(nodeId)(cc.toQuery, SelectNodeStatus.Any)
         s   <- storage.delete(nodeId)(SelectFacts.all)
         e   <- cnf match {
                  case Some(n) =>
@@ -650,6 +687,7 @@ class CoreNodeFactRepository(
   ): IOResult[NodeFactChangeEventCC] = {
     val nodeId         = inventory.node.main.id
     implicit val attrs = if (software.isEmpty) SelectFacts.noSoftware else SelectFacts.all
+    implicit val qc    = cc.toQuery
     ZIO.scoped(
       for {
         _          <- lock.withLock
@@ -659,10 +697,24 @@ class CoreNodeFactRepository(
                         case None    => getOnRef(acceptedNodes, nodeId)
                       }
         fact        = optFact match {
-                        case Some(f) => NodeFact.updateFullInventory(NodeFact.fromMinimal(f), inventory, software)
-                        case None    => NodeFact.newFromFullInventory(inventory, software)
+                        case Some(f) =>
+                          Some(NodeFact.updateFullInventory(NodeFact.fromMinimal(f), inventory, software))
+                        case None    =>
+                          // only people with full node rights can create node for now
+                          if (cc.nodePerms == NodeSecurityContext.All) {
+                            Some(NodeFact.newFromFullInventory(inventory, software))
+                          } else {
+                            None
+                          }
                       }
-        e          <- save(fact) // save already runs callbacks
+        e          <- fact match {
+                        case Some(f) => save(f) // save already runs callbacks
+                        case None    =>
+                          NodeLoggerPure.Security.warn(
+                            s"Actor '${cc.actor.name}' does not have sufficient permission to create new nodes"
+                          ) *>
+                          NodeFactChangeEventCC(NodeFactChangeEvent.Noop(nodeId, attrs), cc).succeed
+                      }
       } yield e
     )
   }

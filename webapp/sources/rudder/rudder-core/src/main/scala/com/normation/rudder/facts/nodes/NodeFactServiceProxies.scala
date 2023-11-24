@@ -88,14 +88,15 @@ class NodeFactInventorySaver(
  * Proxy for node fact to full inventory / node inventory / machine inventory / node info and their repositories.
  */
 class NodeInfoServiceProxy(backend: NodeFactRepository) extends NodeInfoService {
+  import QueryContext.testQC
 
   override def getNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = {
-    backend.get(nodeId)(SelectNodeStatus.Accepted).map(_.map(_.toNodeInfo))
+    backend.get(nodeId)(testQC, SelectNodeStatus.Accepted).map(_.map(_.toNodeInfo))
   }
 
   override def getNodeInfosSeq(nodeIds: Seq[NodeId]): IOResult[Seq[NodeInfo]] = {
     backend
-      .getAll()(SelectNodeStatus.Accepted)
+      .getAll()(testQC, SelectNodeStatus.Accepted)
       .collect { case n if (nodeIds.contains(n.id)) => n.toNodeInfo }
       .run(ZSink.collectAll)
       .map(_.toSeq)
@@ -103,11 +104,11 @@ class NodeInfoServiceProxy(backend: NodeFactRepository) extends NodeInfoService 
 
   // used in all plugins for checking license
   override def getNumberOfManagedNodes: IOResult[Int] = {
-    backend.getAll()(SelectNodeStatus.Accepted).run(ZSink.count).map(_.toInt)
+    backend.getAll()(testQC, SelectNodeStatus.Accepted).run(ZSink.count).map(_.toInt)
   }
 
   override def getAll(): IOResult[Map[NodeId, NodeInfo]] = {
-    backend.getAll()(SelectNodeStatus.Accepted).map(_.toNodeInfo) run (ZSink.collectAllToMap[NodeInfo, NodeId](_.node.id)(
+    backend.getAll()(testQC, SelectNodeStatus.Accepted).map(_.toNodeInfo) run (ZSink.collectAllToMap[NodeInfo, NodeId](_.node.id)(
       (a, b) => b
     ))
   }
@@ -115,24 +116,22 @@ class NodeInfoServiceProxy(backend: NodeFactRepository) extends NodeInfoService 
   // plugins: only use in tests
   // 4 usages in rudder
   override def getAllNodesIds(): IOResult[Set[NodeId]] = {
-    backend.getAll()(SelectNodeStatus.Accepted).map(_.id).run(ZSink.collectAllToSet)
+    backend.getAll()(testQC, SelectNodeStatus.Accepted).map(_.id).run(ZSink.collectAllToSet)
   }
 
   // only used in plugin: rudder-plugins/datasources/src/main/scala/com/normation/plugins/datasources/api/DataSourceApiImpl.scala l214
   override def getAllNodes(): IOResult[Map[NodeId, Node]] = {
-    backend.getAll()(SelectNodeStatus.Accepted).map(_.toNode).run(ZSink.collectAllToMap[Node, NodeId](_.id)((a, b) => b))
+    backend.getAll()(testQC, SelectNodeStatus.Accepted).map(_.toNode).run(ZSink.collectAllToMap[Node, NodeId](_.id)((a, b) => b))
   }
 
   // only use in tests in plugins
   override def getAllNodeInfos(): IOResult[Seq[NodeInfo]] = {
-    backend.getAll()(SelectNodeStatus.Accepted).map(_.toNodeInfo).run(ZSink.collectAll).map(_.toSeq)
+    backend.getAll()(testQC, SelectNodeStatus.Accepted).map(_.toNodeInfo).run(ZSink.collectAll).map(_.toSeq)
   }
 
-  // plugins: only use in tests
-  // rudder: 2 usages
   override def getAllSystemNodeIds(): IOResult[Seq[NodeId]] = {
     backend
-      .getAll()(SelectNodeStatus.Accepted)
+      .getAll()(testQC, SelectNodeStatus.Accepted)
       .collect { case n if (n.rudderSettings.kind != NodeKind.Node) => n.id }
       .run(ZSink.collectAll)
       .map(_.toSeq)
@@ -141,13 +140,16 @@ class NodeInfoServiceProxy(backend: NodeFactRepository) extends NodeInfoService 
   // plugins: only use in test
   // rudder: 3 usages
   override def getPendingNodeInfos(): IOResult[Map[NodeId, NodeInfo]] = {
-    backend.getAll()(SelectNodeStatus.Pending).map(_.toNodeInfo).run(ZSink.collectAllToMap[NodeInfo, NodeId](_.id)((a, b) => b))
+    backend
+      .getAll()(testQC, SelectNodeStatus.Pending)
+      .map(_.toNodeInfo)
+      .run(ZSink.collectAllToMap[NodeInfo, NodeId](_.id)((a, b) => b))
   }
 
   // plugins: only use in tests
   // rudder: 2 usages
   override def getPendingNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = {
-    backend.get(nodeId)(SelectNodeStatus.Pending).map(_.map(_.toNodeInfo))
+    backend.get(nodeId)(testQC, SelectNodeStatus.Pending).map(_.map(_.toNodeInfo))
   }
 
 }
@@ -162,6 +164,7 @@ class NodeInfoServiceProxy(backend: NodeFactRepository) extends NodeInfoService 
  */
 class MockNodeFactFullInventoryRepositoryProxy(backend: NodeFactRepository)
     extends FullInventoryRepository[Unit] with ReadOnlySoftwareNameDAO {
+  import QueryContext.testQC
 
   override def get(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Option[FullInventory]] = {
     backend.slowGetCompat(id, inventoryStatus, SelectFacts.noSoftware).map(_.map(_.toFullInventory))
@@ -212,7 +215,7 @@ class MockNodeFactFullInventoryRepositoryProxy(backend: NodeFactRepository)
       ZIO
         .foreach(nodeIds.toList) {
           case id =>
-            backend.slowGet(id)(s, attrs).map(_.map(n => (n.id, n.software.map(_.toSoftware))))
+            backend.slowGet(id)(testQC, s, attrs).map(_.map(n => (n.id, n.software.map(_.toSoftware))))
         }
         .map(_.flatten.toMap)
     }
@@ -234,14 +237,19 @@ class MockNodeFactFullInventoryRepositoryProxy(backend: NodeFactRepository)
  * We removed its usage in rudder-rest NodeAPI and replaced it by bar NodeFactRepository
  */
 class WoFactNodeRepositoryProxy(backend: NodeFactRepository) extends WoNodeRepository {
+  import QueryContext.testQC
+
   override def updateNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = {
     for {
-      opt  <- backend.get(node.id)(SelectNodeStatus.Any)
+      opt  <- backend.get(node.id)(testQC, SelectNodeStatus.Any)
       fact <- opt match {
                 case None       => Inconsistency(s"Node with id '${node.id.value}' was not found").fail
                 case Some(fact) => CoreNodeFact.updateNode(fact, node).succeed
               }
-      _    <- backend.save(NodeFact.fromMinimal(fact))(ChangeContext(modId, actor, DateTime.now(), reason, None), SelectFacts.none)
+      _    <- backend.save(NodeFact.fromMinimal(fact))(
+                ChangeContext(modId, actor, DateTime.now(), reason, None, testQC.nodePerms),
+                SelectFacts.none
+              )
     } yield fact.toNode
   }
 
@@ -267,7 +275,10 @@ class WoFactNodeRepositoryProxy(backend: NodeFactRepository) extends WoNodeRepos
                     .modify(_.rudderSettings.keyStatus)
                     .setToIfDefined(agentKeyStatus)
         _      <-
-          backend.save(NodeFact.fromMinimal(newNode))(ChangeContext(modId, actor, DateTime.now(), reason, None), SelectFacts.none)
+          backend.save(NodeFact.fromMinimal(newNode))(
+            ChangeContext(modId, actor, DateTime.now(), reason, None, testQC.nodePerms),
+            SelectFacts.none
+          )
       } yield ()
     }
   }

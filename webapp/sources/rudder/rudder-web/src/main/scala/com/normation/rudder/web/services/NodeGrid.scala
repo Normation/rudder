@@ -259,7 +259,7 @@ final class NodeGrid(
       status: InventoryStatus <- Box(InventoryStatus(arg.status))
       nodeId             = NodeId(arg.id)
       sm                <- nodeFactRepo
-                             .slowGetCompat(nodeId, status, SelectFacts.default)
+                             .slowGetCompat(nodeId, status, SelectFacts.default)(CurrentUser.queryContext)
                              .notOptional(s"Error when trying to find inventory for node '${nodeId.value}'")
                              .toBox
       nodeAndGlobalMode <- (nodeInfoService

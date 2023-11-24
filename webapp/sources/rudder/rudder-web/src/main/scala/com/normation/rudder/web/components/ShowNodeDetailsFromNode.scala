@@ -204,7 +204,7 @@ class ShowNodeDetailsFromNode(
           <p>Error message was: {e.messageChain}</p>
         </div>
       case Full(Some(node)) => // currentSelectedNode = Some(server)
-        nodeFactRepo.slowGet(node.id).toBox match {
+        nodeFactRepo.slowGet(node.id)(CurrentUser.queryContext).toBox match {
           case Full(Some(nf)) =>
             val tab  = displayDetailsMode.tab
             val jsId = JsNodeId(nodeId, "")

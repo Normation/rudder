@@ -45,6 +45,7 @@ import com.normation.inventory.domain.SecurityToken
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.domain.properties.NodeProperty
+import com.normation.rudder.facts.nodes.SecurityTag
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.reports.ReportingConfiguration
@@ -67,7 +68,8 @@ final case class Node(
     creationDate:               DateTime,
     nodeReportingConfiguration: ReportingConfiguration,
     properties:                 List[NodeProperty],
-    policyMode:                 Option[PolicyMode]
+    policyMode:                 Option[PolicyMode],
+    securityTag:                Option[SecurityTag]
 )
 
 case object Node {
@@ -82,6 +84,7 @@ case object Node {
       inventory.node.inventoryDate.getOrElse(new DateTime(0)),
       ReportingConfiguration(None, None, None),
       Nil,
+      None,
       None
     )
   }

@@ -40,6 +40,7 @@ import com.normation.rudder.Rights
 import com.normation.rudder.Role
 import com.normation.rudder.RudderAccount
 import com.normation.rudder.api.ApiAuthorization
+import com.normation.rudder.facts.nodes.NodeSecurityContext
 import java.util.Collection
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
@@ -87,7 +88,8 @@ object RudderAuthType {
 case class RudderUserDetail(
     account:   RudderAccount,
     roles:     Set[Role],
-    apiAuthz:  ApiAuthorization
+    apiAuthz:  ApiAuthorization,
+    nodePerms: NodeSecurityContext
 ) extends UserDetails {
   // merge roles rights
   val authz = Rights(roles.flatMap(_.rights.authorizationTypes))

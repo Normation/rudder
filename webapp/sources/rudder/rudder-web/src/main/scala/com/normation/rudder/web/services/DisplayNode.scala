@@ -39,6 +39,7 @@ package com.normation.rudder.web
 package services
 
 import bootstrap.liftweb.RudderConfig
+
 import com.normation.box._
 import com.normation.cfclerk.domain.HashAlgoConstraint.SHA1
 import com.normation.eventlog.ModificationId
@@ -53,6 +54,7 @@ import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.ComplianceLevelSerialisation
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.services.reports.NoReportInInterval
@@ -63,6 +65,7 @@ import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.snippet.RegisterToasts
 import com.normation.rudder.web.snippet.ToastNotification
 import com.normation.utils.DateFormaterService
+
 import com.normation.zio._
 import net.liftweb.common._
 import net.liftweb.http._
@@ -76,6 +79,7 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import org.joda.time.DateTime
+
 import scala.xml._
 import scala.xml.Utility.escape
 
@@ -149,6 +153,7 @@ object DisplayNode extends Loggable {
 
   private def loadSoftware(jsId: JsNodeId)(nodeId: String): JsCmd = {
     implicit val attrs = SelectFacts.none.copy(software = SelectFacts.none.software.toRetrieve)
+    implicit val qc    = CurrentUser.queryContext
     (for {
       seq       <- nodeFactRepository.slowGet(NodeId(nodeId)).map(_.toList.flatMap(_.software.map(_.toSoftware)))
       gridDataId = htmlId(jsId, "soft_grid_data_")
@@ -1153,7 +1158,8 @@ object DisplayNode extends Loggable {
       CurrentUser.actor,
       DateTime.now(),
       None,
-      S.request.map(_.remoteAddr).toOption
+      S.request.map(_.remoteAddr).toOption,
+      QueryContext.todoQC.nodePerms
     )
 
     // only erase for Rudder 8.0

@@ -115,6 +115,7 @@ import com.normation.rudder.facts.nodes.NodeFactInventorySaver
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.NodeInfoServiceProxy
 import com.normation.rudder.facts.nodes.NoopFactStorage
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SoftDaoGetNodesbySofwareName
 import com.normation.rudder.facts.nodes.WoFactNodeRepositoryProxy
 import com.normation.rudder.git.GitRepositoryProvider
@@ -1960,7 +1961,7 @@ object RudderConfigInit {
         inventorySaver,
         maxParallel,
         // it's always rudder doing these checking queries
-        new InventoryDigestServiceV1((id: NodeId) => nodeFactRepository.get(id)),
+        new InventoryDigestServiceV1((id: NodeId) => nodeFactRepository.get(id)(QueryContext.systemQC)),
         checkLdapAlive
       )
     }

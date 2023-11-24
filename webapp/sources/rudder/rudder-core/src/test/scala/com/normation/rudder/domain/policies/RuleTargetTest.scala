@@ -30,7 +30,7 @@ class RuleTargetTest extends Specification with Loggable {
   }).toSet
 
   def newNode(id: NodeId) =
-    Node(id, "", "", NodeState.Enabled, false, false, DateTime.now, ReportingConfiguration(None, None, None), List(), None)
+    Node(id, "", "", NodeState.Enabled, false, false, DateTime.now, ReportingConfiguration(None, None, None), List(), None,None)
 
   val allNodeIds = nodeIds + NodeId("root")
   val nodes      = allNodeIds.map { id =>
