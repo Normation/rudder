@@ -571,17 +571,30 @@ case object DateComparator extends LDAPCriterionType {
     s"Invalid date: '${value}', expected format is: '${fmt}'. Error was: ${e.getMessage}"
   )
 
-  def dateConverter(formatIn: String, formatOut: String, date: String) = {
-    val test   = new SimpleDateFormat(formatIn)
-    val dateIn = test.parse(date)
-    val test2  = new SimpleDateFormat(formatOut)
-    test2.format(dateIn)
+  def dateConverter(formatIn: String, formatOut: String, date: String): Either[Inconsistency, String] = try {
+    val formatterIn   = new SimpleDateFormat(formatIn)
+    formatterIn.setLenient(false)
+    val dateIn        = formatterIn.parse(date)
+    val formatterOut  = new SimpleDateFormat(formatOut)
+    formatterOut.setLenient(false)
+    val formattedDate = formatterOut.format(dateIn)
+    Right(formattedDate)
+  } catch {
+    case e: Exception =>
+      val err = Inconsistency(
+        s"Converting date error: trying to convert '${date}' expected format is '${formatIn}' to format '${formatOut}'. Error was: ${e.getMessage}"
+      )
+      Left(err)
   }
 
   override protected def validateSubCase(v: String, comparator: CriterionComparator) = try {
     val formattedDate = dateConverter("yyyy/MM/dd", "dd/MM/yyyy", v)
-
-    Right(frenchFmt.parseDateTime(formattedDate).toString())
+    val convertedDate = formattedDate.getOrElse(
+      throw new IllegalArgumentException(
+        s"The date format was not recognized: input date ${v} converted to ${formattedDate} but expected ${fmt}"
+      )
+    )
+    Right(frenchFmt.parseDateTime(convertedDate).toString())
   } catch {
     case e: Exception =>
       Left(error(v, e))
@@ -593,7 +606,15 @@ case object DateComparator extends LDAPCriterionType {
        $('#%s').datepicker(init);
        """.format(formId)))
   override def destroyForm(formId: String): JsCmd = OnLoad(JsRaw("""$('#%s').datepicker( "destroy" );""".format(formId)))
-  override def toLDAP(value: String) = parseDate(value).map(GeneralizedTime(_).toString)
+  override def toLDAP(value: String) = {
+    val formattedDate = dateConverter("yyyy/MM/dd", "dd/MM/yyyy", value)
+    val convertedDate = formattedDate.getOrElse(
+      throw new IllegalArgumentException(
+        s"The date format was not recognized: input date ${value} converted to ${formattedDate} but expected ${fmt}"
+      )
+    )
+    parseDate(convertedDate).map(GeneralizedTime(_).toString)
+  }
 
   private[this] def parseDate(value: String): PureResult[DateTime] = try {
     val date = frenchFmt.parseDateTime(value)
@@ -609,17 +630,21 @@ case object DateComparator extends LDAPCriterionType {
    */
   override def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = {
 
-    val formattedDate = dateConverter("yyyy/MM/dd", "dd/MM/yyyy", value)
-
-    // don't parse the date and throw exception when not needed
-    lazy val date = parseDate(formattedDate).getOrElse(
+    val formattedDate    = dateConverter("yyyy/MM/dd", "dd/MM/yyyy", value)
+    val convertedDateStr = formattedDate.getOrElse(
       throw new IllegalArgumentException(
         s"The date format was not recognized: input date ${value} converted to ${formattedDate} but expected ${fmt}"
       )
     )
-    def date0000  = GeneralizedTime(date.withTimeAtStartOfDay).toString
-    def date2359  = GeneralizedTime(date.withTime(23, 59, 59, 999)).toString
-    def eq        = AND(GTEQ(attributeName, date0000), LTEQ(attributeName, date2359))
+    // don't parse the date and throw exception when not needed
+    lazy val date        = parseDate(convertedDateStr).getOrElse(
+      throw new IllegalArgumentException(
+        s"The date format was not recognized: input date ${value} converted to ${formattedDate} but expected ${fmt}"
+      )
+    )
+    def date0000         = GeneralizedTime(date.withTimeAtStartOfDay).toString
+    def date2359         = GeneralizedTime(date.withTime(23, 59, 59, 999)).toString
+    def eq               = AND(GTEQ(attributeName, date0000), LTEQ(attributeName, date2359))
 
     comparator match {
       // for equals and not equals, check value for jocker
