@@ -52,6 +52,7 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.services.queries._
 import com.normation.zio._
 import com.unboundid.ldap.sdk._
+import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.regex.PatternSyntaxException
 import net.liftweb.common._
@@ -564,14 +565,23 @@ case object OrderedStringComparator extends TStringComparator {
 
 case object DateComparator extends LDAPCriterionType {
   override val comparators               = OrderedComparators.comparators.filterNot(c => c == Regex || c == NotRegex)
-  val fmt                                = "yyyy/MM/dd"
+  val fmt                                = "dd/MM/yyyy"
   val frenchFmt                          = DateTimeFormat.forPattern(fmt).withLocale(Locale.FRANCE)
   def error(value: String, e: Exception) = Inconsistency(
-    s"Invalide date: '${value}', expected format is: '${fmt}'. Error was: ${e.getMessage}"
+    s"Invalid date: '${value}', expected format is: '${fmt}'. Error was: ${e.getMessage}"
   )
 
+  def dateConverter(formatIn: String, formatOut: String, date: String) = {
+    val test   = new SimpleDateFormat(formatIn)
+    val dateIn = test.parse(date)
+    val test2  = new SimpleDateFormat(formatOut)
+    test2.format(dateIn)
+  }
+
   override protected def validateSubCase(v: String, comparator: CriterionComparator) = try {
-    Right(frenchFmt.parseDateTime(v).toString)
+    val formattedDate = dateConverter("yyyy/MM/dd", "dd/MM/yyyy", v)
+
+    Right(frenchFmt.parseDateTime(formattedDate).toString())
   } catch {
     case e: Exception =>
       Left(error(v, e))
@@ -599,9 +609,13 @@ case object DateComparator extends LDAPCriterionType {
    */
   override def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = {
 
+    val formattedDate = dateConverter("yyyy/MM/dd", "dd/MM/yyyy", value)
+
     // don't parse the date and throw exception when not needed
-    lazy val date = parseDate(value).getOrElse(
-      throw new IllegalArgumentException("The date format was not recognized: '%s', expected '%s'".format(value, fmt))
+    lazy val date = parseDate(formattedDate).getOrElse(
+      throw new IllegalArgumentException(
+        s"The date format was not recognized: input date ${value} converted to ${formattedDate} but expected ${fmt}"
+      )
     )
     def date0000  = GeneralizedTime(date.withTimeAtStartOfDay).toString
     def date2359  = GeneralizedTime(date.withTime(23, 59, 59, 999)).toString
