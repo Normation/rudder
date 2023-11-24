@@ -101,11 +101,13 @@ pub mod action {
     use crate::repo_index::RepoIndex;
     use crate::repository::Repository;
     use crate::versions::RudderVersion;
-    use crate::webapp::Webapp;
     use crate::{
-        PACKAGES_DATABASE_PATH, REPOSITORY_INDEX_PATH, RUDDER_VERSION_PATH, TMP_PLUGINS_FOLDER,
+        webapp::Webapp, PACKAGES_DATABASE_PATH, REPOSITORY_INDEX_PATH, RUDDER_VERSION_PATH,
+        TMP_PLUGINS_FOLDER,
     };
+    use std::fs;
     use std::fs::File;
+    use std::io::BufRead;
     use std::path::{Path, PathBuf};
 
     pub fn uninstall(packages: Vec<String>, webapp: &mut Webapp) -> Result<()> {
@@ -190,6 +192,69 @@ pub mod action {
             archive.unpack(license_folder)?;
         } else {
             debug!("Not updating licenses as no configured credentials were found")
+        }
+        Ok(())
+    }
+
+    pub fn enable(
+        mut w: Webapp,
+        packages: Option<Vec<String>>,
+        all: bool,
+        snapshot: bool,
+        restore: bool,
+        backup_path: Option<String>,
+    ) -> Result<()> {
+        let db = Database::read(PACKAGES_DATABASE_PATH)?;
+        // If all is passed, enabled all installed plugins
+        let to_enabled = if all {
+            Some(db.plugins.keys().cloned().collect())
+        } else {
+            packages
+        };
+        // If package names are passed, enabled them
+        if let Some(x) = to_enabled {
+            return x.iter().try_for_each(|p| match db.plugins.get(p) {
+                None => {
+                    println!("Plugin {} not found installed", p);
+                    Ok(())
+                }
+                Some(installed_plugin) => installed_plugin.enable(&mut w),
+            });
+        }
+        let backup_path = match backup_path {
+            None => format!("{}/plugins_status.backup", TMP_PLUGINS_FOLDER),
+            Some(p) => p,
+        };
+        if snapshot {
+            let mut enabled_jars_from_plugins = Vec::<String>::new();
+            let enabled_jar = w.jars()?;
+            for (k, v) in db.plugins.clone() {
+                if let Some(j) = v.metadata.jar_files {
+                    if j.iter().any(|x| enabled_jar.contains(x)) {
+                        enabled_jars_from_plugins.push(format!("enable {}", k))
+                    }
+                }
+            }
+            fs::write(backup_path, enabled_jars_from_plugins.join("\n"))?;
+            return Ok(());
+        }
+
+        if restore {
+            let file = File::open(backup_path)?;
+            let buf = std::io::BufReader::new(file);
+            buf.lines().for_each(|l| {
+                let binding = l.expect("Could not read line from plugin backup status file");
+                let plugin_name = binding.trim().split(' ').nth(1);
+                match plugin_name {
+                    None => debug!("Malformed line in plugin backup status file"),
+                    Some(x) => match db.plugins.get(x) {
+                        None => debug!("Plugin {} is not installed, it could not be enabled", x),
+                        Some(y) => {
+                            let _ = y.enable(&mut w);
+                        }
+                    },
+                }
+            })
         }
         Ok(())
     }

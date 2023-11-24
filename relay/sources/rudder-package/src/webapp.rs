@@ -31,7 +31,7 @@ impl Webapp {
     }
 
     /// Return currently loaded jars
-    fn jars(&self) -> Result<Vec<String>> {
+    pub fn jars(&self) -> Result<Vec<String>> {
         let mut reader = Reader::from_file(&self.path)?;
         let mut buf = Vec::new();
         let mut in_extra_classpath = false;
