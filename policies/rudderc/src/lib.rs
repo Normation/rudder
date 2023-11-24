@@ -469,6 +469,10 @@ pub mod action {
         let yml: serde_yaml::Value = serde_yaml::from_str(&read_to_string(&technique_src)?)?;
         let id = yml.get("id").unwrap().as_str().unwrap();
         let version = yml.get("version").unwrap().as_str().unwrap();
+        let category = yml
+            .get("category")
+            .map(|c| c.as_str().unwrap())
+            .unwrap_or("ncf_techniques");
         let actual_output = match output {
             Some(p) => p,
             None => {
@@ -482,7 +486,7 @@ pub mod action {
         let options = zip::write::FileOptions::default();
         let mut zip = ZipWriter::new(file);
 
-        let zip_dir = format!("archive/techniques/ncf_techniques/{id}/{version}");
+        let zip_dir = format!("archive/techniques/{category}/{id}/{version}");
 
         // Technique
         zip.start_file(format!("{}/{}", zip_dir, TECHNIQUE_SRC), options)?;
