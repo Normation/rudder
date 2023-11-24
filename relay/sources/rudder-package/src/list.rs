@@ -1,42 +1,72 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
+use std::collections::HashSet;
+
 use anyhow::Result;
 
 use crate::{cli::Format, database::Database, repo_index::RepoIndex, webapp::Webapp};
 
 /// Content we want to display about each plugin
-pub struct ListEntry<'a> {
-    name: &'a str,
-    version: &'a str,
-    available: Option<&'a str>,
-    enabled: bool,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListEntry {
+    /// Plugin name ("short")
+    name: String,
+    /// Full plugin version
+    version: String,
+    /// None means no higher version is available
+    available: Option<String>,
+    // None means plugin is not disableable
+    enabled: Option<bool>,
 }
 
 pub fn list(
-    all: bool,
-    enabled: bool,
+    show_all: bool,
+    show_only_enabled: bool,
     format: Format,
     db: &Database,
     index: &RepoIndex,
     webapp: &Webapp,
 ) -> Result<()> {
+    let mut plugins: Vec<ListEntry> = vec![];
 
-    dbg!(index);
+    // Principles:
+    //
+    // * By default, display installed plugins.
+    // * If an index is available and "all", also add available plugins.
+    // * If "enabled", display installed package minus disabled ones.
+    let jars = webapp.jars()?;
+    let enabled_plugins: HashSet<String> = jars
+        .into_iter()
+        .flat_map(|j| db.plugin_provides_jar(j))
+        .map(|p| p.metadata.name.clone())
+        .collect();
+    dbg!(&enabled_plugins);
 
-    for p in index.inner().iter() {
-        dbg!(&p.metadata.name);
-        dbg!(&p.metadata.version.to_string());
+    for p in db.plugins.values() {
+        let name = p.metadata.name.strip_prefix("rudder-plugin-").unwrap().to_string();
+        let enabled = p
+            .metadata
+            .jar_files
+            .as_ref()
+            .map(|_| enabled_plugins.contains(&p.metadata.name));
+        let e = ListEntry {
+            name,
+            version: p.metadata.version.to_string(),
+            available: None,
+            enabled,
+        };
+        plugins.push(e);
     }
-    
 
-    
-    //dbg!(db);
-    let enabled = webapp.jars()?;
-    //dbg!(enabled);
+    if show_all {
+        for p in index.inner().iter() {
+            //dbg!(&p.metadata.name);
+            //dbg!(&p.metadata.version);
+        }
+    }
+    dbg!(plugins);
 
-
-    
     Ok(())
 }
 

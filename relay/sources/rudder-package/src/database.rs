@@ -49,6 +49,17 @@ impl Database {
         }
     }
 
+    /// Return the plugin containing a given jar
+    pub fn plugin_provides_jar(&self, jar: String) -> Option<&InstalledPlugin> {
+        self.plugins.values().find(|p| {
+            p.metadata
+                .jar_files
+                .as_ref()
+                .map(|j| dbg!(j).contains(dbg!(&jar)))
+                .unwrap_or(false)
+        })
+    }
+
     pub fn uninstall(&mut self, plugin_name: &str, webapp: &mut Webapp) -> Result<()> {
         // Force to use plugin long qualified name
         if !plugin_name.starts_with("rudder-plugin-") {

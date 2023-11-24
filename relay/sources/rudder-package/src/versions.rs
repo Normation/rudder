@@ -15,6 +15,13 @@ pub struct ArchiveVersion {
     pub plugin_version: PluginVersion,
 }
 
+impl Display for ArchiveVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}-{}", self.rudder_version, self.plugin_version)
+    }
+}
+
+
 impl FromStr for ArchiveVersion {
     type Err = Error;
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {

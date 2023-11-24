@@ -6,7 +6,7 @@
 	<Set name="contextPath">/rudder</Set>
 	<Set name="war">/opt/rudder/share/webapps/rudder.war</Set>
 
-	<Set name="extraClasspath">/opt/rudder/share/plugins/auth-backends/auth-backends.jar,/opt/rudder/share/plugins/api-authorizations/api-authorizations.jar</Set>
+	<Set name="extraClasspath">/opt/rudder/share/plugins/dsc/dsc.jar,/opt/rudder/share/plugins/api-authorizations/api-authorizations.jar</Set>
 
   <Set name="tempDirectory">/var/rudder/tmp/jetty/jetty-rudder.war.dir</Set>
 

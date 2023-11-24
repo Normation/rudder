@@ -183,7 +183,7 @@ mod tests {
         assert_eq!(
             jars,
             vec![
-                "/opt/rudder/share/plugins/auth-backends/auth-backends.jar",
+                "/opt/rudder/share/plugins/dsc/dsc.jar",
                 "/opt/rudder/share/plugins/api-authorizations/api-authorizations.jar"
             ]
         );
