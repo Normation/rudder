@@ -101,8 +101,8 @@ import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
+import com.normation.rudder.facts.nodes.MockNodeFactFullInventoryRepositoryProxy
 import com.normation.rudder.facts.nodes.NodeFact
-import com.normation.rudder.facts.nodes.NodeFactFullInventoryRepositoryProxy
 import com.normation.rudder.facts.nodes.NodeFactStorage
 import com.normation.rudder.facts.nodes.NodeInfoServiceProxy
 import com.normation.rudder.facts.nodes.SelectFacts
@@ -2125,6 +2125,7 @@ class MockNodes() {
   }
 
   object softwareDao extends ReadOnlySoftwareDAO {
+
     val softRef = Ref.Synchronized.make(MockNodes.softwares.map(s => (s.id, s)).toMap).runNow
 
     override def getSoftware(ids: Seq[SoftwareUuid]): IOResult[Seq[Software]] = {
@@ -2267,10 +2268,11 @@ class MockNodes() {
   }
 
   val nodeInfoService         = new NodeInfoServiceProxy(nodeFactRepo)
-  val fullInventoryRepository = new NodeFactFullInventoryRepositoryProxy(nodeFactRepo)
+  val fullInventoryRepository = new MockNodeFactFullInventoryRepositoryProxy(nodeFactRepo)
   val woNodeRepository        = new WoFactNodeRepositoryProxy(nodeFactRepo)
 
   object newNodeManager extends NewNodeManager {
+
     val list = new FactListNewNodes(nodeFactRepo)
 
     override def listNewNodes: IOResult[Seq[CoreNodeFact]] = list.listNewNodes

@@ -481,7 +481,7 @@ class CoreNodeFactRepository(
       })
   }
 
-  private def checkRootProperties(node: NodeFact): IOResult[Unit] = {
+  private[nodes] def checkRootProperties(node: NodeFact): IOResult[Unit] = {
     // use cats validation
     import cats.data._
     import cats.implicits._
@@ -525,10 +525,18 @@ class CoreNodeFactRepository(
     ZIO.when(node.id == Constants.ROOT_POLICY_SERVER_ID)(validateRoot(node)).unit
   }
 
+  private[nodes] def checkAgentKey(node: NodeFact): IOResult[Unit] = {
+    node.rudderAgent.securityToken match {
+      case Certificate(value) => SecurityToken.checkCertificateForNode(node.id, Certificate(value))
+      case _                  => NodeLoggerPure.Security.warn(s"only certificate are supported for agent security token since Rudder 7.0")
+    }
+  }
+
   def save(
       nodeFact:  NodeFact
   )(implicit cc: ChangeContext, attrs: SelectFacts = SelectFacts.all): IOResult[NodeFactChangeEventCC] = {
     checkRootProperties(nodeFact) *>
+    checkAgentKey(nodeFact) *>
     ZIO.scoped(
       for {
         _ <- lock.withLock

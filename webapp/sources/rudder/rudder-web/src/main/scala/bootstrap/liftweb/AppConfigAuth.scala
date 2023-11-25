@@ -379,7 +379,10 @@ class RudderXmlUserDetailsContextMapper(authConfigProvider: UserDetailListProvid
       authorities: Collection[_ <: GrantedAuthority]
   ): UserDetails = {
     authConfigProvider.authConfig.users
-      .getOrElse(username, RudderUserDetail(RudderAccount.User(username, ""), Set(Role.NoRights), ApiAuthorization.None))
+      .getOrElse(
+        username,
+        RudderUserDetail(RudderAccount.User(username, ""), Set(Role.NoRights), ApiAuthorization.None)
+      )
   }
 }
 
@@ -586,7 +589,7 @@ class RestAuthenticationFilter(
                 RudderUserDetail(
                   RudderAccount.Api(apiV1Account),
                   RudderAuthType.Api.apiRudderRole,
-                  ApiAuthorization.None // un-authenticated APIv1 token certainly doesn't get any authz on v2 API
+                  ApiAuthorization.None   // un-authenticated APIv1 token certainly doesn't get any authz on v2 API
                 )
               )
               chain.doFilter(request, response)
@@ -607,7 +610,6 @@ class RestAuthenticationFilter(
                 RudderUserDetail(
                   RudderAccount.Api(systemAccount),
                   Set(Role.Administrator), // this token has "admin rights - use with care
-
                   systemApiAcl
                 )
               )
@@ -665,7 +667,8 @@ class RestAuthenticationFilter(
                               RudderUserDetail(
                                 RudderAccount.Api(principal),
                                 u.roles,
-                                u.apiAuthz
+                                u.apiAuthz,
+                                u.nodePerms
                               )
                             )
                             chain.doFilter(request, response)

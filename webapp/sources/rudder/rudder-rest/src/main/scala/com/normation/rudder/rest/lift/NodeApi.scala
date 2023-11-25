@@ -49,13 +49,10 @@ import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
-import com.normation.rudder.UserService
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.NodeDetailLevel
 import com.normation.rudder.apidata.RenderInheritedProperties
 import com.normation.rudder.apidata.RestDataSerializer
-import com.normation.rudder.batch.AsyncDeploymentActor
-import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
@@ -72,8 +69,8 @@ import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFact
-import com.normation.rudder.facts.nodes.NodeFactFullInventoryRepositoryProxy
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.reports.ReportingConfiguration
@@ -81,7 +78,6 @@ import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
-import com.normation.rudder.repository.WoNodeRepository
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
@@ -161,6 +157,7 @@ class NodeApi(
     serializer:           RestDataSerializer,
     nodeApiService:       NodeApiService,
     inheritedProperties:  NodeApiInheritedProperties,
+    uuidGen:              StringUuidGenerator,
     deleteDefaultMode:    DeleteMode
 ) extends LiftApiModuleProvider[API] {
 
@@ -352,6 +349,13 @@ class NodeApi(
     ): LiftResponse = {
       implicit val prettify = params.prettify
       implicit val action   = "updateNode"
+      implicit val cc       = ChangeContext(
+        ModificationId(uuidGen.newUuid),
+        authzToken.actor,
+        new DateTime(),
+        params.reason,
+        Some(req.remoteAddr)
+      )
 
       (for {
         restNode <- if (req.json_?) {
@@ -360,9 +364,9 @@ class NodeApi(
                       restExtractor.extractNode(req.params)
                     }
         reason   <- restExtractor.extractReason(req)
-        result   <- nodeApiService.updateRestNode(NodeId(id), restNode, authzToken.actor, reason).toBox
+        result   <- nodeApiService.updateRestNode(NodeId(id), restNode).toBox
       } yield {
-        toJsonResponse(Some(id), serializer.serializeNode(result))
+        toJsonResponse(Some(id), serializer.serializeNode(result.toNode))
       }) match {
         case Full(response) =>
           response
@@ -539,15 +543,12 @@ class NodeApi(
                       .map(_.map(_.toList).getOrElse(Nil)) ?~! "Error: 'ids' parameter not found"
         accepted <- nodeApiService.nodeInfoService.getAllNodesIds().map(_.map(_.value)).toBox ?~! errorMsg(ids)
         pending  <- nodeApiService.nodeInfoService.getPendingNodeInfos().map(_.keySet.map(_.value)).toBox ?~! errorMsg(ids)
-        deleted  <- nodeApiService.nodeInfoService.getDeletedNodeInfos().map(_.keySet.map(_.value)).toBox ?~! errorMsg(ids)
       } yield {
         val array = ids.map { id =>
           val status = {
             if (accepted.contains(id)) AcceptedInventory.name
             else if (pending.contains(id)) PendingInventory.name
-            else if (deleted.contains(id))
-              "deleted" // RemovedInventory would output "removed" which is inconsistent with other API
-            else "unknown"
+            else "deleted"
           }
           JObject(JField("id", id) :: JField("status", status) :: Nil)
         }
@@ -675,11 +676,9 @@ class NodeApiInheritedProperties(
 class NodeApiService(
     ldapConnection:             LDAPConnectionProvider[RwLDAPConnection],
     nodeFactRepository:         NodeFactRepository,
-    inventoryRepository:        NodeFactFullInventoryRepositoryProxy,
     groupRepo:                  RoNodeGroupRepository,
     paramRepo:                  RoParameterRepository,
     reportsExecutionRepository: RoReportsExecutionRepository,
-    nodeRepository:             WoNodeRepository,
     ldapEntityMapper:           LDAPEntityMapper,
     uuidGen:                    StringUuidGenerator,
     nodeDit:                    NodeDit,
@@ -693,8 +692,6 @@ class NodeApiService(
     reportingService:           ReportingService,
     acceptedNodeQueryProcessor: QueryProcessor,
     pendingNodeQueryProcessor:  QueryChecker,
-    asyncRegenerate:            AsyncDeploymentActor,
-    userService:                UserService,
     getGlobalMode:              () => Box[GlobalPolicyMode],
     relayApiEndpoint:           String
 ) {
@@ -716,11 +713,19 @@ class NodeApiService(
       }
     }
 
+    implicit val cc: ChangeContext = ChangeContext(
+      ModificationId(uuidGen.newUuid),
+      eventActor,
+      new DateTime(),
+      None,
+      Some(actorIp)
+    )
+
     for {
       validated <- toCreationError(Validation.toNodeTemplate(nodeDetails))
       _         <- checkUuid(validated.inventory.node.main.id)
       created   <- saveInventory(validated.inventory)
-      nodeSetup <- accept(validated, eventActor, actorIp)
+      nodeSetup <- accept(validated)
       nodeId    <- saveRudderNode(validated.inventory.node.main.id, nodeSetup)
     } yield {
       nodeId
@@ -759,21 +764,21 @@ class NodeApiService(
    * Save the inventory part. Always save in "pending", acceptation
    * is done afterward if needed.
    */
-  def saveInventory(inventory: FullInventory): IO[CreationError, NodeId] = {
-    inventoryRepository
-      .save(inventory)
+  def saveInventory(inventory: FullInventory)(implicit cc: ChangeContext): IO[CreationError, NodeId] = {
+    nodeFactRepository
+      .updateInventory(inventory, software = None)
       .map(_ => inventory.node.main.id)
       .mapError(err => CreationError.OnSaveInventory(s"Error during node creation: ${err.fullMsg}"))
   }
 
-  def accept(template: NodeTemplate, eventActor: EventActor, actorIp: String): IO[CreationError, NodeSetup] = {
+  def accept(template: NodeTemplate)(implicit cc: ChangeContext): IO[CreationError, NodeSetup] = {
     val id = template.inventory.node.main.id
 
     // only nodes with status "accepted" need to be accepted
     template match {
       case AcceptedNodeTemplate(_, properties, policyMode, state) =>
         newNodeManager
-          .accept(id)(ChangeContext(ModificationId(uuidGen.newUuid), eventActor, DateTime.now(), None, Some(actorIp)))
+          .accept(id)
           .mapError(err => CreationError.OnAcceptation((s"Can not accept node '${id.value}': ${err.fullMsg}"))) *>
         NodeSetup(properties, policyMode, state).succeed
       case PendingNodeTemplate(_, properties)                     =>
@@ -972,7 +977,7 @@ class NodeApiService(
       _                                     = TimingDebugLoggerPure.logEffect.trace(s"Getting global mode: ${n5 - n4}ms")
       softToLookAfter                      <- req.json.flatMap(j => OptionnalJson.extractJsonListString(j, "software").map(_.getOrElse(Nil)))
       softs                                <- ZIO
-                                                .foreach(softToLookAfter)(soft => inventoryRepository.getNodesbySofwareName(soft))
+                                                .foreach(softToLookAfter)(soft => nodeFactRepository.getNodesbySofwareName(soft))
                                                 .toBox
                                                 .map(_.flatten.groupMap(_._1)(_._2))
       n6                                    = System.currentTimeMillis
@@ -1042,7 +1047,7 @@ class NodeApiService(
                  case None          => nodeInfoService.getAll().toBox
                  case Some(nodeIds) => nodeInfoService.getNodeInfosSeq(nodeIds).map(_.map(n => (n.id, n)).toMap).toBox
                }
-      softs <- inventoryRepository.getNodesbySofwareName(software).toBox.map(_.toMap)
+      softs <- nodeFactRepository.getNodesbySofwareName(software).toBox.map(_.toMap)
     } yield {
       JsonResponse(
         JObject(nodes.keySet.toList.flatMap(id => softs.get(id).flatMap(_.version.map(v => JField(id.value, JString(v.value))))))
@@ -1300,8 +1305,9 @@ class NodeApiService(
     }
   }
 
-  def listNodes(state:   InventoryStatus, detailLevel: NodeDetailLevel, nodeFilter: Option[Seq[NodeId]], version: ApiVersion)(
-      implicit prettify: Boolean
+  def listNodes(state: InventoryStatus, detailLevel: NodeDetailLevel, nodeFilter: Option[Seq[NodeId]], version: ApiVersion)(
+      implicit
+      prettify:        Boolean
   ) = {
     implicit val action = s"list${state.name.capitalize}Nodes"
     val predicate       = (n: NodeFact) => {
@@ -1373,9 +1379,7 @@ class NodeApiService(
     }
   }
 
-  def updateRestNode(nodeId: NodeId, restNode: RestNode, actor: EventActor, reason: Option[String]): IOResult[Node] = {
-
-    val modId = ModificationId(uuidGen.newUuid)
+  def updateRestNode(nodeId: NodeId, restNode: RestNode)(implicit cc: ChangeContext): IOResult[CoreNodeFact] = {
 
     def getKeyInfo(restNode: RestNode): (Option[SecurityToken], Option[KeyStatus]) = {
 
@@ -1390,34 +1394,40 @@ class NodeApiService(
       }
     }
 
-    def updateNode(node: Node, restNode: RestNode, newProperties: List[NodeProperty]): Node = {
+    def updateNode(
+        node:          CoreNodeFact,
+        restNode:      RestNode,
+        newProperties: List[NodeProperty],
+        newKey:        Option[SecurityToken],
+        newKeyStatus:  Option[KeyStatus]
+    ): CoreNodeFact = {
       import com.softwaremill.quicklens._
 
-      (node
+      node
         .modify(_.properties)
-        .setTo(newProperties)
-        .modify(_.policyMode)
+        .setTo(Chunk.fromIterable(newProperties))
+        .modify(_.rudderSettings.policyMode)
         .using(current => restNode.policyMode.getOrElse(current))
-        .modify(_.state)
-        .using(current => restNode.state.getOrElse(current)))
+        .modify(_.rudderSettings.state)
+        .using(current => restNode.state.getOrElse(current))
+        .modify(_.rudderAgent.securityToken)
+        .setToIfDefined(newKey)
+        .modify(_.rudderSettings.keyStatus)
+        .setToIfDefined(newKeyStatus)
     }
 
+    implicit val qc    = cc.toQuery
+    implicit val attrs = SelectFacts.none
+
     for {
-      node          <- nodeInfoService.getNodeInfo(nodeId).map(_.map(_.node)).notOptional(s"node with id '${nodeId.value}' was not found")
-      newProperties <- CompareProperties.updateProperties(node.properties, restNode.properties).toIO
-      updated        = updateNode(node, restNode, newProperties)
+      nodeFact      <- nodeFactRepository.get(nodeId).notOptional(s"node with id '${nodeId.value}' was not found")
+      newProperties <- CompareProperties.updateProperties(nodeFact.properties.toList, restNode.properties).toIO
       keyInfo        = getKeyInfo(restNode)
-      saved         <- if (updated == node) node.succeed
-                       else nodeRepository.updateNode(updated, modId, actor, reason)
-      keyChanged     = keyInfo._1.isDefined || keyInfo._2.isDefined
-      keys          <- if (keyChanged) {
-                         nodeRepository.updateNodeKeyInfo(node.id, keyInfo._1, keyInfo._2, modId, actor, reason)
-                       } else ZIO.unit
+      updated        = updateNode(nodeFact, restNode, newProperties, keyInfo._1, keyInfo._2)
+      _             <- if (CoreNodeFact.same(updated, nodeFact)) ZIO.unit
+                       else nodeFactRepository.save(NodeFact.fromMinimal(updated)).unit
     } yield {
-      if (node != updated || keyChanged) {
-        asyncRegenerate ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor)
-      }
-      saved
+      updated
     }
   }
 

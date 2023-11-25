@@ -47,6 +47,7 @@ import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.quicksearch.QSObject
 import com.normation.rudder.services.quicksearch.QuickSearchResult
 import com.normation.rudder.web.model.LinkUtil
+import com.normation.rudder.web.services.CurrentUser
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JArray

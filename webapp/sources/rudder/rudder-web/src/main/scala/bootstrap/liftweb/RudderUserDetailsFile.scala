@@ -49,6 +49,7 @@ import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.rest.RoleApiMapping
 import com.normation.rudder.web.services.RudderUserDetail
+
 import com.normation.zio._
 import java.io.File
 import java.io.FileInputStream
@@ -60,9 +61,11 @@ import java.util.Collection
 import org.bouncycastle.util.encoders.Hex
 import org.springframework.security.core.GrantedAuthority
 import org.xml.sax.SAXParseException
+
 import scala.collection.immutable.SortedMap
 import scala.jdk.CollectionConverters._
 import scala.xml.Elem
+
 import zio._
 import zio.syntax._
 

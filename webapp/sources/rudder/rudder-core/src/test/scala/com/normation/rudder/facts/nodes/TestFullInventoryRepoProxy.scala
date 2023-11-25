@@ -170,7 +170,7 @@ class TestInventory extends Specification {
 
   def full(n: NodeInventory, m: MachineInventory) = FullInventory(n, Some(m))
 
-  val repo: FullInventoryRepository[Unit] = new NodeFactFullInventoryRepositoryProxy(factRepo)
+  val repo: FullInventoryRepository[Unit] = new MockNodeFactFullInventoryRepositoryProxy(factRepo)
 
   "Saving, finding and moving node" should {
 

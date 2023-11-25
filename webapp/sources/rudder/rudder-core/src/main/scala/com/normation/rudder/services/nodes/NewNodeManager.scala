@@ -333,7 +333,7 @@ class ComposedNewNodeManager[A](
       _         <- nodeFactRepo.changeStatus(id, AcceptedInventory)
       // Update hooks for the node
       _         <- hooksRunner
-                     .afterNodeAcceptedAsync(id)
+                     .afterNodeAcceptedAsync(id)(cc.toQuery)
                      .catchAll(err => {
                        NodeLoggerPure.PendingNode.error(
                          s"Error when executing post-acceptation hooks for node '${cnf.fqdn}' " +
@@ -467,7 +467,7 @@ class AcceptHostnameAndIp(
       _                  <- ZIO.when(!acceptDuplicated) {
                               for {
                                 noDuplicateHostnames <- checkDuplicateString(List(cnf.fqdn), "hostname")
-                                noDuplicateInDB      <- queryForDuplicateHostname(List(cnf.fqdn))
+                                noDuplicateInDB      <- queryForDuplicateHostname(List(cnf.fqdn))(cc.toQuery)
                               } yield ()
                             }
     } yield ()

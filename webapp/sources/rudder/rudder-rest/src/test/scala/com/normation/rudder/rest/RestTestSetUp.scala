@@ -736,11 +736,9 @@ class RestTestSetUp {
   val nodeApiService = new NodeApiService(
     null,
     mockNodes.nodeFactRepo,
-    mockNodes.fullInventoryRepository,
     null,
     null,
     roReportsExecutionRepository,
-    mockNodes.woNodeRepository,
     null,
     uuidGen,
     null,
@@ -754,8 +752,6 @@ class RestTestSetUp {
     null,
     mockNodes.queryProcessor,
     null,
-    asyncDeploymentAgent,
-    userService,
     () => Full(GlobalPolicyMode(Audit, PolicyModeOverrides.Always)),
     "relay"
   ) {
@@ -770,9 +766,9 @@ class RestTestSetUp {
         .unit
     }
 
-    override def saveInventory(inventory: FullInventory): IO[Creation.CreationError, NodeId] = {
+    override def saveInventory(inventory: FullInventory)(implicit cc: ChangeContext): IO[Creation.CreationError, NodeId] = {
       mockNodes.nodeFactRepo
-        .updateInventory(inventory, None)
+        .updateInventory(inventory, None)(cc)
         .mapBoth(
           err => CreationError.OnSaveInventory(s"Error when saving node: ${err.fullMsg}"),
           _ => inventory.node.main.id
@@ -903,6 +899,7 @@ class RestTestSetUp {
       restDataSerializer,
       nodeApiService,
       null,
+      uuidGen,
       DeleteMode.Erase
     ),
     new GroupsApi(

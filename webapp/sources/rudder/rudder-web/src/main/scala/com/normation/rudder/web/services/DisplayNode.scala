@@ -196,7 +196,7 @@ object DisplayNode extends Loggable {
     }
   }
 
-  def jsInit(nodeId: NodeId, softIds: Seq[SoftwareUuid], salt: String = ""): JsCmd = {
+  def jsInit(nodeId: NodeId, salt: String = ""): JsCmd = {
     val jsId           = JsNodeId(nodeId, salt)
     val detailsId      = htmlId(jsId, "details_")
     val softGridDataId = htmlId(jsId, "soft_grid_data_")

@@ -50,9 +50,6 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.GlobalComplianceMode
-import com.normation.rudder.reports.HeartbeatConfiguration
-import com.normation.rudder.reports.NodeComplianceMode
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.JsNodeId
@@ -90,59 +87,14 @@ class ShowNodeDetailsFromNode(
   import ShowNodeDetailsFromNode._
 
   private[this] val nodeInfoService      = RudderConfig.nodeInfoService
-  private[this] val serverAndMachineRepo = RudderConfig.fullInventoryRepository
+  private[this] val nodeFactRepo         = RudderConfig.nodeFactRepository
   private[this] val reportDisplayer      = RudderConfig.reportDisplayer
   private[this] val logDisplayer         = RudderConfig.logDisplayer
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
   private[this] val nodeRepo             = RudderConfig.woNodeRepository
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private[this] val configService        = RudderConfig.configService
-  private[this] var boxNodeInfo          = nodeInfoService.getNodeInfo(nodeId).toBox
-
-  def complianceModeEditForm(nodeInfo: NodeInfo) = {
-    val (globalMode, nodeMode) = {
-      val modes = getHeartBeat(nodeInfo)
-      (modes.map(_._1), modes.map(_._2))
-    }
-
-    new ComplianceModeEditForm(
-      nodeMode,
-      saveHeart(nodeInfo),
-      () => (),
-      globalMode
-    )
-  }
-  def getHeartBeat(nodeInfo: NodeInfo): Box[(GlobalComplianceMode, NodeComplianceMode)] = {
-    for {
-      globalMode <- configService.rudder_compliance_mode().toBox
-
-    } yield {
-      // If heartbeat is not overriden, we revert to the default one
-      val defaultHeartBeat = HeartbeatConfiguration(false, globalMode.heartbeatPeriod)
-      val hbConf           = nodeInfo.nodeReportingConfiguration.heartbeatConfiguration.getOrElse(defaultHeartBeat)
-      val nodeMode         = NodeComplianceMode(globalMode.mode, hbConf.heartbeatPeriod, hbConf.overrides)
-      (globalMode, nodeMode)
-    }
-  }
-
-  def saveHeart(nodeInfo: NodeInfo)(complianceMode: NodeComplianceMode): Box[Unit] = {
-    val heartbeatConfiguration = HeartbeatConfiguration(complianceMode.overrideGlobal, complianceMode.heartbeatPeriod)
-    val modId                  = ModificationId(uuidGen.newUuid)
-    boxNodeInfo = Full(
-      Some(
-        nodeInfo.copy(
-          nodeInfo.node.copy(nodeReportingConfiguration =
-            nodeInfo.node.nodeReportingConfiguration.copy(heartbeatConfiguration = Some(heartbeatConfiguration))
-          )
-        )
-      )
-    )
-    for {
-      result <- nodeRepo.updateNode(nodeInfo.node, modId, CurrentUser.actor, None).toBox
-    } yield {
-      asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
-    }
-  }
+  private[this] val boxNodeInfo          = nodeInfoService.getNodeInfo(nodeId).toBox
 
   def agentPolicyModeEditForm = new AgentPolicyModeEditForm()
 
@@ -202,11 +154,8 @@ class ShowNodeDetailsFromNode(
         nodeInfo.node.nodeReportingConfiguration.copy(agentRunInterval = Some(schedule))
       )
     )
-    boxNodeInfo = Full(Some(newNodeInfo))
     (for {
-      oldNode <-
-        nodeInfoService.getNodeInfo(nodeId).map(_.map(_.node)).notOptional(s"Node with id '${nodeId.value}' was not found")
-      result  <- nodeRepo.updateNode(newNodeInfo.node, modId, user, None)
+      _ <- nodeRepo.updateNode(newNodeInfo.node, modId, user, None)
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
     }).toBox
@@ -255,18 +204,18 @@ class ShowNodeDetailsFromNode(
           <p>Error message was: {e.messageChain}</p>
         </div>
       case Full(Some(node)) => // currentSelectedNode = Some(server)
-        serverAndMachineRepo.get(node.id, AcceptedInventory).toBox match {
-          case Full(Some(sm)) =>
+        nodeFactRepo.slowGet(node.id).toBox match {
+          case Full(Some(nf)) =>
             val tab  = displayDetailsMode.tab
             val jsId = JsNodeId(nodeId, "")
             def htmlId(jsId: JsNodeId, prefix: String): String = prefix + jsId.toString
             val detailsId = htmlId(jsId, "details_")
             configService.rudder_global_policy_mode().toBox match {
               case Full(globalMode) =>
-                bindNode(node, sm, withinPopup, globalMode) ++ Script(
-                  DisplayNode.jsInit(node.id, sm.node.softwareIds, "") &
+                bindNode(node, nf.toFullInventory, withinPopup, globalMode) ++ Script(
+                  DisplayNode.jsInit(node.id, "") &
                   JsRaw(s"""
-                    $$('#nodeHostname').html("${xml.Utility.escape(sm.node.main.hostname)}");
+                    $$('#nodeHostname').html("${xml.Utility.escape(nf.fqdn)}");
                     $$( "#${detailsId}" ).tabs({ active : ${tab} } );
                     $$('#nodeInventory .ui-tabs-vertical .ui-tabs-nav li a').on('click',function(){
                       var tab = $$(this).attr('href');

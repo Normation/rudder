@@ -48,7 +48,6 @@ import com.normation.errors._
 import com.normation.inventory.domain.AixOS
 import com.normation.inventory.domain.MemorySize
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
 import com.normation.rudder.batch.UpdateDynamicGroups
 import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.domain.Constants
@@ -812,7 +811,6 @@ class PromiseGenerationServiceImpl(
     override val ruleApplicationStatusService:      RuleApplicationStatusService,
     override val parameterService:                  RoParameterService,
     override val interpolatedValueCompiler:         InterpolatedValueCompiler,
-    override val roInventoryRepository:             ReadOnlyFullInventoryRepository,
     override val complianceModeService:             ComplianceModeService,
     override val agentRunService:                   AgentRunIntervalService,
     override val complianceCache:                   CachedFindRuleNodeStatusReports,
@@ -889,7 +887,6 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   def roDirectiveRepository:   RoDirectiveRepository
   def configurationRepository: ConfigurationRepository
   def parameterService:        RoParameterService
-  def roInventoryRepository:   ReadOnlyFullInventoryRepository
   def complianceModeService:   ComplianceModeService
   def agentRunService:         AgentRunIntervalService
 

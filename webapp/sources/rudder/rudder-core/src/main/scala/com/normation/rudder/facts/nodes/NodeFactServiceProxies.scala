@@ -41,7 +41,6 @@ import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AcceptedInventory
-import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.Inventory
 import com.normation.inventory.domain.InventoryError.Inconsistency
@@ -69,6 +68,10 @@ import zio._
 import zio.stream.ZSink
 import zio.syntax._
 
+/*
+ * This service is only used in InventoryProcessor. It is not so much a proxy than an actual implementation,
+ * but it is a major port/change from 8.0 and feels right here.
+ */
 class NodeFactInventorySaver(
     backend:                NodeFactRepository,
     val preCommitPipeline:  Seq[PreCommit],
@@ -82,19 +85,12 @@ class NodeFactInventorySaver(
 }
 
 /*
- * Proxy for node fact to full inventory / node inventory / machine inventory / node info and their repositories
+ * Proxy for node fact to full inventory / node inventory / machine inventory / node info and their repositories.
  */
 class NodeInfoServiceProxy(backend: NodeFactRepository) extends NodeInfoService {
 
   override def getNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = {
     backend.get(nodeId)(SelectNodeStatus.Accepted).map(_.map(_.toNodeInfo))
-  }
-
-  override def getNodeInfos(nodeIds: Set[NodeId]): IOResult[Set[NodeInfo]] = {
-    backend
-      .getAll()(SelectNodeStatus.Accepted)
-      .collect { case n if (nodeIds.contains(n.id)) => n.toNodeInfo }
-      .run(ZSink.collectAllToSet)
   }
 
   override def getNodeInfosSeq(nodeIds: Seq[NodeId]): IOResult[Seq[NodeInfo]] = {
@@ -105,6 +101,7 @@ class NodeInfoServiceProxy(backend: NodeFactRepository) extends NodeInfoService 
       .map(_.toSeq)
   }
 
+  // used in all plugins for checking license
   override def getNumberOfManagedNodes: IOResult[Int] = {
     backend.getAll()(SelectNodeStatus.Accepted).run(ZSink.count).map(_.toInt)
   }
@@ -115,18 +112,24 @@ class NodeInfoServiceProxy(backend: NodeFactRepository) extends NodeInfoService 
     ))
   }
 
+  // plugins: only use in tests
+  // 4 usages in rudder
   override def getAllNodesIds(): IOResult[Set[NodeId]] = {
     backend.getAll()(SelectNodeStatus.Accepted).map(_.id).run(ZSink.collectAllToSet)
   }
 
+  // only used in plugin: rudder-plugins/datasources/src/main/scala/com/normation/plugins/datasources/api/DataSourceApiImpl.scala l214
   override def getAllNodes(): IOResult[Map[NodeId, Node]] = {
     backend.getAll()(SelectNodeStatus.Accepted).map(_.toNode).run(ZSink.collectAllToMap[Node, NodeId](_.id)((a, b) => b))
   }
 
+  // only use in tests in plugins
   override def getAllNodeInfos(): IOResult[Seq[NodeInfo]] = {
     backend.getAll()(SelectNodeStatus.Accepted).map(_.toNodeInfo).run(ZSink.collectAll).map(_.toSeq)
   }
 
+  // plugins: only use in tests
+  // rudder: 2 usages
   override def getAllSystemNodeIds(): IOResult[Seq[NodeId]] = {
     backend
       .getAll()(SelectNodeStatus.Accepted)
@@ -135,32 +138,29 @@ class NodeInfoServiceProxy(backend: NodeFactRepository) extends NodeInfoService 
       .map(_.toSeq)
   }
 
+  // plugins: only use in test
+  // rudder: 3 usages
   override def getPendingNodeInfos(): IOResult[Map[NodeId, NodeInfo]] = {
     backend.getAll()(SelectNodeStatus.Pending).map(_.toNodeInfo).run(ZSink.collectAllToMap[NodeInfo, NodeId](_.id)((a, b) => b))
   }
 
+  // plugins: only use in tests
+  // rudder: 2 usages
   override def getPendingNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = {
     backend.get(nodeId)(SelectNodeStatus.Pending).map(_.map(_.toNodeInfo))
   }
 
-  // not supported anymore
-  override def getDeletedNodeInfos(): IOResult[Map[NodeId, NodeInfo]] = {
-    Map().succeed
-  }
-
-  // not supported anymore
-  override def getDeletedNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = {
-    None.succeed
-  }
 }
 
 /*
  * Proxy for full node inventory.
+ * It is only used in mock and for testing compatibility with old data structures.
+ *
  * We willfully chose to not implement machine repo because it doesn't make any sense with fact.
  * There is also a limit with software, since now they are directly in the node and they don't
  * have specific IDs. So they will need to be retrieved by node id.
  */
-class NodeFactFullInventoryRepositoryProxy(backend: NodeFactRepository)
+class MockNodeFactFullInventoryRepositoryProxy(backend: NodeFactRepository)
     extends FullInventoryRepository[Unit] with ReadOnlySoftwareNameDAO {
 
   override def get(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Option[FullInventory]] = {
@@ -201,6 +201,10 @@ class NodeFactFullInventoryRepositoryProxy(backend: NodeFactRepository)
     backend.changeStatus(id, into)(ChangeContext.newForRudder()).unit
   }
 
+  /*
+   * Used in:
+   * - CVE plugin: Services.scala l255
+   */
   override def getSoftwareByNode(nodeIds: Set[NodeId], status: InventoryStatus): IOResult[Map[NodeId, Seq[Software]]] = {
     def getAll(s: SelectNodeStatus): IOResult[Map[NodeId, Chunk[Software]]] = {
       implicit val attrs = SelectFacts.none.copy(software = SelectFacts.all.software)
@@ -225,6 +229,10 @@ class NodeFactFullInventoryRepositoryProxy(backend: NodeFactRepository)
   }
 }
 
+/*
+ * This one is only used in plugins, so we are not exposing QueryContext for now.
+ * We removed its usage in rudder-rest NodeAPI and replaced it by bar NodeFactRepository
+ */
 class WoFactNodeRepositoryProxy(backend: NodeFactRepository) extends WoNodeRepository {
   override def updateNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = {
     for {
@@ -252,10 +260,6 @@ class WoFactNodeRepositoryProxy(backend: NodeFactRepository) extends WoNodeRepos
     if (agentKey.isEmpty && agentKeyStatus.isEmpty) ZIO.unit
     else {
       for {
-        _      <- agentKey match {
-                    case Some(Certificate(value)) => SecurityToken.checkCertificateForNode(nodeId, Certificate(value))
-                    case _                        => ZIO.unit
-                  }
         node   <- backend.get(nodeId).notOptional(s"Cannot update node with id ${nodeId.value}: there is no node with that id")
         newNode = node
                     .modify(_.rudderAgent.securityToken)

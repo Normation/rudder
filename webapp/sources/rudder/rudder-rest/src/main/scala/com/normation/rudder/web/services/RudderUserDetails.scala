@@ -85,9 +85,9 @@ object RudderAuthType {
  * Don't make it final as SSO kind of authentication may need to extend it.
  */
 case class RudderUserDetail(
-    account:  RudderAccount,
-    roles:    Set[Role],
-    apiAuthz: ApiAuthorization
+    account:   RudderAccount,
+    roles:     Set[Role],
+    apiAuthz:  ApiAuthorization
 ) extends UserDetails {
   // merge roles rights
   val authz = Rights(roles.flatMap(_.rights.authorizationTypes))

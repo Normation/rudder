@@ -85,6 +85,7 @@ import net.liftweb.json.JsonDSL._
 import org.joda.time.DateTime
 import scala.util.control.NonFatal
 import zio._
+import zio.json._
 import zio.syntax._
 
 object NodeStateEncoder {

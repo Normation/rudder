@@ -261,7 +261,6 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
       case "fb0096f3-a928-454d-9776-e8079d48cdd8" => None.succeed
       case "fb0096f4-a928-454d-9776-e8079d48cdd8" => None.succeed
     }
-    override def getNodeInfos(nodeIds: Set[NodeId]):    IOResult[Set[NodeInfo]]         = ???
     override def getNodeInfosSeq(nodesId: Seq[NodeId]): IOResult[Seq[NodeInfo]]         = ???
     override def getNumberOfManagedNodes:               IOResult[Int]                   = ???
     override def getAllNodesIds():                      IOResult[Set[NodeId]]           = ???
@@ -269,8 +268,6 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
     override def getAllSystemNodeIds():                 IOResult[Seq[NodeId]]           = ???
     override def getPendingNodeInfos():                 IOResult[Map[NodeId, NodeInfo]] = ???
     override def getPendingNodeInfo(nodeId: NodeId):    IOResult[Option[NodeInfo]]      = ???
-    override def getDeletedNodeInfos():                 IOResult[Map[NodeId, NodeInfo]] = ???
-    override def getDeletedNodeInfo(nodeId: NodeId):    IOResult[Option[NodeInfo]]      = ???
     override def getAllNodeInfos():                     IOResult[Seq[NodeInfo]]         = ???
   }
 

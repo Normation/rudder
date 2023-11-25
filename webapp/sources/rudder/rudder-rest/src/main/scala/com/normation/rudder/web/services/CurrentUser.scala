@@ -90,4 +90,5 @@ object CurrentUser extends SessionVar[Option[RudderUserDetail]]({
       case Some(u) => u.apiAuthz
     }
   }
+
 }

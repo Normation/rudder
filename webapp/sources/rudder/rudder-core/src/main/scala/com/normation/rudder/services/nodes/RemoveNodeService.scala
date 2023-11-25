@@ -252,16 +252,8 @@ class RemoveNodeServiceImpl(
                               }
                        } yield r).catchAll(err => Error(err).succeed)
                      } else Success.succeed
-          res3    <- if (status.contains(RemovedInventory)) {
-                       (for {
-                         i <- nodeInfoService.getDeletedNodeInfo(nodeId)
-                         r <- deleteDeletedNode(nodeId, mode)
-                         // only update if nodeInfo is not already set, b/c accepted has more info
-                         _ <- info.update(opt => opt.orElse(i))
-                       } yield r).catchAll(err => Error(err).succeed)
-                     } else Success.succeed
           // if any of the previous cases were in error, we want to stop here
-          res     <- DeletionResult.resolve(res1 :: res2 :: res3 :: Nil)
+          res     <- DeletionResult.resolve(res1 :: res2 :: Nil)
           // in all cases, run postNodeDeletionAction
           _       <- NodeLoggerPure.Delete.debug(s"-> execute clean-up actions for node '${nodeId.value}'")
           actions <- postNodeDeleteActions.get

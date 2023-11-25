@@ -1289,6 +1289,9 @@ object NodeFactChangeEvent {
   }
 }
 
+/*
+ * A change context groups together information needed to track a change: who, when, why
+ */
 final case class ChangeContext(
     modId:     ModificationId,
     actor:     EventActor,

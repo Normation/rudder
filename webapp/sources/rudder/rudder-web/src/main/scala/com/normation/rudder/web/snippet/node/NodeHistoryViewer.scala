@@ -80,7 +80,7 @@ class NodeHistoryViewer extends StatefulSnippet {
             case Full(Some(sm))     =>
               <div id={hid}>{
                 DisplayNode.showPannedContent(None, sm.data.fact.toFullInventory, sm.data.status, "hist") ++
-                Script(DisplayNode.jsInit(sm.id, sm.data.fact.toFullInventory.node.softwareIds, "hist"))
+                Script(DisplayNode.jsInit(sm.id, "hist"))
               }</div>
           }
         }
@@ -121,7 +121,7 @@ class NodeHistoryViewer extends StatefulSnippet {
       case Empty | Full(None) => Alert("No history was retrieved for the chosen date")
       case Full(Some(sm))     =>
         SetHtml(hid, DisplayNode.showPannedContent(None, sm.data.fact.toFullInventory, sm.data.status, "hist")) &
-        DisplayNode.jsInit(sm.id, sm.data.fact.toFullInventory.node.softwareIds, "hist")
+        DisplayNode.jsInit(sm.id, "hist")
     }
   }
 
