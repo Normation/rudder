@@ -35,4 +35,21 @@ pub enum Command {
         package: Vec<String>,
     },
     Update {},
+    Enable {
+        #[clap()]
+        package: Option<Vec<String>>,
+
+        #[clap(long, short, help = "Enable all installed plugins")]
+        all: bool,
+
+        #[clap(long, short, help = "Snapshot the list of enabled plugins")]
+        save: bool,
+
+        #[clap(
+            long,
+            short,
+            help = "Restore the list of enabled plugins from latest snapshot"
+        )]
+        restore: bool,
+    },
 }
