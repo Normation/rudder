@@ -5,7 +5,7 @@ use std::{
     collections::HashMap,
     fs::{self, *},
     io::BufWriter,
-    path::PathBuf,
+    path::{PathBuf, Path},
 };
 
 use anyhow::{anyhow, Context, Result};
@@ -92,6 +92,34 @@ impl Database {
         Database::write(PACKAGES_DATABASE_PATH, self.to_owned())?;
         Ok(())
     }
+
+    pub fn save(&self, backup_path: &Path, webapp: &mut Webapp) -> Result<()> {
+        let saved = webapp
+            .jars()?
+            .iter()
+            // Let's ignore unknown jars
+            .flat_map(|j| self.plugin_provides_jar(j))
+            .map(|p| format!("enable {}", p.metadata.name))
+            .collect::<Vec<String>>()
+            .join("\n");
+        fs::write(backup_path, saved)?;
+        Ok(())
+    }
+
+    pub fn restore(&self, backup_path: &Path, webapp: &mut Webapp) -> Result<()> {
+        for line in read_to_string(backup_path)?.lines() {
+            let plugin_name = line.trim().split(' ').nth(1);
+            match plugin_name {
+                None => debug!("Malformed line in plugin backup status file"),
+                Some(x) => match self.plugins.get(x) {
+                    None => debug!("Plugin {} is not installed, it could not be enabled", x),
+                    Some(y) => y.enable(webapp)?,
+                },
+            }
+        }
+        Ok(())
+    }
+
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]

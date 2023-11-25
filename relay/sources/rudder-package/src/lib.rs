@@ -126,9 +126,9 @@ pub fn run() -> Result<()> {
             if to_enable.is_empty() {
                 let backup_path = Path::new(TMP_PLUGINS_FOLDER).join("plugins_status.backup");
                 if save {
-                    action::save(&backup_path, &db, &mut webapp)?
+                    db.save(&backup_path, &mut webapp)?
                 } else if restore {
-                    action::restore(&backup_path, &db, &mut webapp)?
+                    db.restore(&backup_path, &mut webapp)?
                 } else {
                     bail!("No plugin provided")
                 }
@@ -160,13 +160,13 @@ pub fn run() -> Result<()> {
 }
 
 pub mod action {
-    use std::{fs, fs::File, io::BufRead, path::Path};
+    use std::path::Path;
 
-    use anyhow::{anyhow, bail, Context, Result};
+    use anyhow::{anyhow, bail, Result};
     use log::debug;
 
     use crate::{
-        archive::Rpkg, database::Database, repo_index::RepoIndex, repository::Repository,
+        archive::Rpkg, repo_index::RepoIndex, repository::Repository,
         webapp::Webapp, TMP_PLUGINS_FOLDER,
     };
 
@@ -207,35 +207,6 @@ pub mod action {
         Ok(())
     }
 
-    pub fn save(backup_path: &Path, db: &Database, webapp: &mut Webapp) -> Result<()> {
-        let saved = webapp
-            .jars()?
-            .iter()
-            // Let's ignore unknown jars
-            .flat_map(|j| db.plugin_provides_jar(j))
-            .map(|p| format!("enable {}", p.metadata.name))
-            .collect::<Vec<String>>()
-            .join("\n");
-        fs::write(backup_path, saved)?;
-        Ok(())
-    }
-
-    pub fn restore(backup_path: &Path, db: &Database, webapp: &mut Webapp) -> Result<()> {
-        let file = File::open(backup_path)?;
-        let buf = std::io::BufReader::new(file);
-        for l in buf.lines() {
-            let line = l.context("Could not read line from plugin backup status file")?;
-            let plugin_name = line.trim().split(' ').nth(1);
-            match plugin_name {
-                None => debug!("Malformed line in plugin backup status file"),
-                Some(x) => match db.plugins.get(x) {
-                    None => debug!("Plugin {} is not installed, it could not be enabled", x),
-                    Some(y) => y.enable(webapp)?,
-                },
-            }
-        }
-        Ok(())
-    }
 }
 
 #[cfg(test)]
