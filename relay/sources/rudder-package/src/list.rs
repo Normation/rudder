@@ -20,6 +20,35 @@ pub struct ListEntry {
     enabled: Option<bool>,
 }
 
+fn human_table(list: Vec<ListEntry>) {
+    use cli_table::{format::Justify, print_stdout, Cell, Style, Table};
+
+    let table = list
+        .into_iter()
+        .map(|e| {
+            vec![
+                e.name.cell(),
+                e.version.cell().justify(Justify::Right),
+                "".cell(),
+                if e.enabled.is_some() { "web plugin"} else {"standalone plugin"}.cell(),
+                e.enabled
+                    .map(|s| if s {"enabled"} else {"disabled"})
+                    .unwrap_or("")
+                    .cell(),
+            ]
+        })
+        .table()
+        .title(vec![
+            "Name".cell().bold(true),
+            "Installed".cell().bold(true),
+            "Latest".cell().bold(true),
+            "Type".cell().bold(true),
+            "Status".cell().bold(true),
+        ]);
+
+    assert!(print_stdout(table).is_ok());
+}
+
 pub fn list(
     show_all: bool,
     show_only_enabled: bool,
@@ -29,7 +58,6 @@ pub fn list(
     webapp: &Webapp,
 ) -> Result<()> {
     let mut plugins: Vec<ListEntry> = vec![];
-
     // Principles:
     //
     // * By default, display installed plugins.
@@ -41,10 +69,14 @@ pub fn list(
         .flat_map(|j| db.plugin_provides_jar(j))
         .map(|p| p.metadata.name.clone())
         .collect();
-    dbg!(&enabled_plugins);
 
     for p in db.plugins.values() {
-        let name = p.metadata.name.strip_prefix("rudder-plugin-").unwrap().to_string();
+        let name = p
+            .metadata
+            .name
+            .strip_prefix("rudder-plugin-")
+            .unwrap()
+            .to_string();
         let enabled = p
             .metadata
             .jar_files
@@ -56,7 +88,9 @@ pub fn list(
             available: None,
             enabled,
         };
-        plugins.push(e);
+        if !(show_only_enabled && enabled == Some(false)) {
+            plugins.push(e);
+        }
     }
 
     if show_all {
@@ -65,8 +99,11 @@ pub fn list(
             //dbg!(&p.metadata.version);
         }
     }
-    dbg!(plugins);
+    dbg!(&plugins);
 
+    plugins.sort_by_key(|e| e.name.clone());
+
+    human_table(plugins);
     Ok(())
 }
 

@@ -55,7 +55,7 @@ impl Database {
             p.metadata
                 .jar_files
                 .as_ref()
-                .map(|j| dbg!(j).contains(dbg!(&jar)))
+                .map(|j| j.contains(&jar))
                 .unwrap_or(false)
         })
     }
