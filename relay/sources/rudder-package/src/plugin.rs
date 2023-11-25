@@ -58,11 +58,13 @@ impl Display for Metadata {
             "Name: {}
 Version: {}
 Description: {}
+Type: {} plugin
 Build-date: {}
 Build-commit: {}",
             self.name,
             self.version,
             self.description.as_ref().unwrap_or(&"".to_owned()),
+            self.plugin_type(),
             self.build_date,
             self.build_commit))?;
         f.write_str("\nJar files:")?;
