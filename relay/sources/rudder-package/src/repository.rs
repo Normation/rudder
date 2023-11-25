@@ -3,20 +3,22 @@
 
 use std::{
     fs::{self, File},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use anyhow::{anyhow, bail, Result};
+use flate2::read::GzDecoder;
 use log::debug;
 use reqwest::{
     blocking::{Client, Response},
     Proxy, StatusCode, Url,
 };
+use tar::Archive;
 use tempfile::tempdir;
 
 use crate::{
     config::{Configuration, Credentials},
-    signature::{SignatureVerifier, VerificationSuccess},
+    signature::{SignatureVerifier, VerificationSuccess}, versions::RudderVersion, RUDDER_VERSION_PATH, REPOSITORY_INDEX_PATH,
 };
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
@@ -132,6 +134,44 @@ impl Repository {
         self.get("")?;
         Ok(())
     }
+
+    /// Update index and licences
+    pub fn update(&self) -> Result<()> {
+        // Update the index file
+        debug!("Updating repository index");
+        let rudder_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
+        let remote_index = format!(
+            "{}.{}/rpkg.index",
+            rudder_version.major, rudder_version.minor
+        );
+        self.download_unsafe(&remote_index, &PathBuf::from(REPOSITORY_INDEX_PATH))?;
+
+        // Update the licenses
+        if let Some(x) = self.get_username() {
+            debug!("Updating licenses");
+            // FIXME: take as param, we need to be able to test this
+            let license_folder = PathBuf::from("/opt/rudder/etc/plugins/licenses");
+            let archive_name = format!("{}-license.tar.gz", x);
+            let local_archive_path = &license_folder.clone().join(archive_name.clone());
+            if let Err(e) = self.download_unsafe(
+                &format!("licences/{}/{}", x, archive_name),
+                local_archive_path,
+            ) {
+                bail!(
+                    "Could not download licenses from configured repository.\n{}",
+                    e
+                )
+            }
+            // Decompress archive
+            let mut archive = Archive::new(GzDecoder::new(File::open(local_archive_path)?));
+            archive.unpack(license_folder)?;
+        } else {
+            debug!("Not updating licenses as no configured credentials were found")
+        }
+        Ok(())
+    }
+
+
 }
 
 #[cfg(test)]

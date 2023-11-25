@@ -9,27 +9,31 @@ mod cmd;
 mod config;
 mod database;
 mod dependency;
+mod list;
 mod plugin;
 mod repo_index;
 mod repository;
 mod signature;
 mod versions;
 mod webapp;
-mod list;
 
 use std::{
     path::{Path, PathBuf},
     process,
 };
 
-use crate::{cli::Command, signature::SignatureVerifier, webapp::Webapp};
+use crate::{
+    cli::Command, database::Database, list::ListOutput, repo_index::RepoIndex,
+    signature::SignatureVerifier, webapp::Webapp,
+};
 use anyhow::{Context, Result};
 use clap::Parser;
-use log::{debug, error, LevelFilter};
+use log::{debug, LevelFilter};
 
 use crate::{config::Configuration, repository::Repository};
 
 const PACKAGES_FOLDER: &str = "/var/rudder/packages";
+const LICENSES_FOLDER: &str = "/opt/rudder/etc/plugins/licenses";
 const WEBAPP_XML_PATH: &str = "/opt/rudder/share/webapps/rudder.xml";
 const PACKAGES_DATABASE_PATH: &str = "/var/rudder/packages/index.json";
 const CONFIG_PATH: &str = "/opt/rudder/etc/rudder-pkg/rudder-pkg.conf";
@@ -57,7 +61,10 @@ pub fn run() -> Result<()> {
         process::exit(1);
     }
 
+    // Read CLI args
     let args = cli::Args::parse();
+
+    // Setup logger early
     let filter = if args.debug {
         LevelFilter::Debug
     } else {
@@ -69,30 +76,36 @@ pub fn run() -> Result<()> {
         .format_target(false)
         .filter_level(filter)
         .init();
+
+    // Parse configuration file
     debug!("Parsed CLI arguments: {args:?}");
     let cfg = Configuration::read(Path::new(&args.config))
         .with_context(|| format!("Reading configuration from '{}'", &args.config))?;
+    debug!("Parsed configuration: {cfg:?}");
+
+    // Now initialize all common data structures
     let verifier = SignatureVerifier::new(PathBuf::from(SIGNATURE_KEYRING_PATH));
     let repo = Repository::new(&cfg, verifier)?;
     let mut webapp = Webapp::new(PathBuf::from(WEBAPP_XML_PATH));
-    debug!("Parsed configuration: {cfg:?}");
+    let mut db = Database::read(PACKAGES_DATABASE_PATH)?;
+    let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
 
     match args.command {
         Command::Install { force, package } => {
             action::install(force, package, repo, &mut webapp)?;
         }
-        Command::Uninstall { package } => {
-            action::uninstall(package, &mut webapp)?;
+        Command::Uninstall { package: packages } => {
+            packages.iter().try_for_each(|p| db.uninstall(p, &mut webapp))?;
         }
         Command::List {
             all,
             enabled,
             format,
         } => {
-            action::list(all, enabled, format, &webapp)?;
+            ListOutput::new(all, enabled, &db, &index, &webapp)?.display(format)?;
         }
         _ => {
-            error!("This command is not implemented");
+            todo!("This command is not implemented yet");
         }
     }
     Ok(())
@@ -100,41 +113,21 @@ pub fn run() -> Result<()> {
 
 pub mod action {
     use anyhow::{anyhow, bail, Result};
-    use flate2::read::GzDecoder;
     use log::debug;
-    use tar::Archive;
 
     use crate::archive::Rpkg;
-    use crate::cli::Format;
     use crate::database::Database;
-    use crate::list::ListOutput;
     use crate::repo_index::RepoIndex;
     use crate::repository::Repository;
     use crate::versions::RudderVersion;
     use crate::{
         webapp::Webapp, PACKAGES_DATABASE_PATH, REPOSITORY_INDEX_PATH, RUDDER_VERSION_PATH,
-        TMP_PLUGINS_FOLDER, list,
+        TMP_PLUGINS_FOLDER,
     };
     use std::fs;
     use std::fs::File;
     use std::io::BufRead;
-    use std::path::{Path, PathBuf};
-
-    pub fn list(all: bool, enabled: bool, format: Format, webapp: &Webapp) -> Result<()> {
-        // Installed plugins
-        let db = Database::read(PACKAGES_DATABASE_PATH)?;
-        // Available plugins
-        let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
-
-        let out = ListOutput::new(all, enabled, &db, &index, webapp)?;
-        out.display(format)?;
-        Ok(())
-    }
-
-    pub fn uninstall(packages: Vec<String>, webapp: &mut Webapp) -> Result<()> {
-        let mut db = Database::read(PACKAGES_DATABASE_PATH)?;
-        packages.iter().try_for_each(|p| db.uninstall(p, webapp))
-    }
+    use std::path::Path;
 
     pub fn install(
         force: bool,
@@ -175,40 +168,6 @@ pub mod action {
             Ok(())
         })?;
         webapp.apply_changes()
-    }
-
-    pub fn update(repository: Repository) -> Result<()> {
-        // Update the index file
-        debug!("Updating repository index");
-        let rudder_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
-        let remote_index = format!(
-            "{}.{}/rpkg.index",
-            rudder_version.major, rudder_version.minor
-        );
-        repository.download_unsafe(&remote_index, &PathBuf::from(REPOSITORY_INDEX_PATH))?;
-
-        // Update the licenses
-        if let Some(x) = repository.get_username() {
-            debug!("Updating licenses");
-            let license_folder = PathBuf::from("/opt/rudder/etc/plugins/licenses");
-            let archive_name = format!("{}-license.tar.gz", x);
-            let local_archive_path = &license_folder.clone().join(archive_name.clone());
-            if let Err(e) = repository.download_unsafe(
-                &format!("licences/{}/{}", x, archive_name),
-                local_archive_path,
-            ) {
-                bail!(
-                    "Could not download licenses from configured repository.\n{}",
-                    e
-                )
-            }
-            // Decompress archive
-            let mut archive = Archive::new(GzDecoder::new(File::open(local_archive_path)?));
-            archive.unpack(license_folder)?;
-        } else {
-            debug!("Not updating licenses as no configured credentials were found")
-        }
-        Ok(())
     }
 
     pub fn enable(
