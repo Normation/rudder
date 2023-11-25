@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use std::{collections::HashMap, path::Path, process::Command};
+use std::{collections::HashMap, path::Path, process::Command, fmt::Display};
 
 use anyhow::bail;
 use log::debug;
@@ -17,7 +17,7 @@ use crate::{
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Metadata {
     #[serde(rename = "type")]
-    pub plugin_type: archive::PackageType,
+    pub package_type: archive::PackageType,
     pub name: String,
     pub version: versions::ArchiveVersion,
     #[serde(rename(serialize = "build-date", deserialize = "build-date"))]
@@ -32,9 +32,36 @@ pub struct Metadata {
     pub jar_files: Option<Vec<String>>,
 }
 
+/// Not present in metdata but computed from them
+///
+/// Allows exposing to the user if the plugin will appear in the interface or not.
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Copy, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum PluginType {
+    Web,
+    Standalone,
+}
+
+impl Display for PluginType{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+       f.write_str(match self {
+            Self::Web => "web",
+            Self::Standalone => "standalone",
+        })
+    }
+}
+
 impl Metadata {
     pub fn is_compatible(&self, webapp_version: &str) -> bool {
         self.version.rudder_version.is_compatible(webapp_version)
+    }
+
+    pub fn plugin_type(&self) -> PluginType {
+        if self.jar_files.is_some() {
+            PluginType::Web
+        } else {
+            PluginType::Standalone
+        }
     }
 
     pub fn run_package_script(

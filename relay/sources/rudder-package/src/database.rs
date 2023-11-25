@@ -160,7 +160,7 @@ mod tests {
             .expect("Unable to parse file './tests/pluginèdatabase_parsing.json'");
         let db: Database = serde_json::from_str(&data).unwrap();
         assert_eq!(
-            db.plugins["rudder-plugin-aix"].metadata.plugin_type,
+            db.plugins["rudder-plugin-aix"].metadata.package_type,
             archive::PackageType::Plugin
         );
     }
@@ -173,7 +173,7 @@ mod tests {
         let addon = InstalledPlugin {
             files: vec![String::from("/tmp/my_path")],
             metadata: plugin::Metadata {
-                plugin_type: archive::PackageType::Plugin,
+                package_type: archive::PackageType::Plugin,
                 name: String::from("my_name"),
                 version: versions::ArchiveVersion::from_str("0.0.0-0.0").unwrap(),
                 build_date: String::from("2023-10-13T10:03:34+00:00"),

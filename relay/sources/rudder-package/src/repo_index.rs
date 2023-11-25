@@ -73,7 +73,7 @@ mod tests {
       vec![
         Plugin {
           metadata: plugin::Metadata {
-            plugin_type: archive::PackageType::Plugin,
+            package_type: archive::PackageType::Plugin,
             name: String::from("rudder-plugin-aix"),
             version: versions::ArchiveVersion::from_str("8.0.0~beta2-2.1").unwrap(),
             build_date: String::from("2023-09-14T14:31:35+00:00"),
@@ -88,7 +88,7 @@ mod tests {
         },
         Plugin {
           metadata: plugin::Metadata {
-            plugin_type: archive::PackageType::Plugin,
+            package_type: archive::PackageType::Plugin,
             name: String::from("rudder-plugin-aix"),
             version: versions::ArchiveVersion::from_str("8.0.0~rc1-2.1").unwrap(),
             build_date: String::from("2023-10-13T09:44:54+00:00"),
@@ -103,7 +103,7 @@ mod tests {
         },
         Plugin {
           metadata: plugin::Metadata {
-            plugin_type: archive::PackageType::Plugin,
+            package_type: archive::PackageType::Plugin,
             name: String::from("rudder-plugin-vault"),
             version: versions::ArchiveVersion::from_str("8.0.0~rc1-2.1-nightly").unwrap(),
             build_date: String::from("2023-10-07T20:38:18+00:00"),

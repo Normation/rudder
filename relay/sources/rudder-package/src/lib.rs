@@ -89,7 +89,7 @@ pub fn run() -> Result<()> {
             enabled,
             format,
         } => {
-            action::list(all, enabled, format, &mut webapp)?;
+            action::list(all, enabled, format, &webapp)?;
         }
         _ => {
             error!("This command is not implemented");
@@ -107,6 +107,7 @@ pub mod action {
     use crate::archive::Rpkg;
     use crate::cli::Format;
     use crate::database::Database;
+    use crate::list::ListOutput;
     use crate::repo_index::RepoIndex;
     use crate::repository::Repository;
     use crate::versions::RudderVersion;
@@ -124,8 +125,9 @@ pub mod action {
         let db = Database::read(PACKAGES_DATABASE_PATH)?;
         // Available plugins
         let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
-        // Enabled
-        list(all, enabled, format, webapp);
+
+        let out = ListOutput::new(all, enabled, &db, &index, webapp)?;
+        out.display(format)?;
         Ok(())
     }
 
