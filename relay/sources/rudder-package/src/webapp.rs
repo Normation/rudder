@@ -15,18 +15,21 @@ use anyhow::Result;
 use log::debug;
 
 use crate::cmd::CmdOutput;
+use crate::versions::RudderVersion;
 
 /// We want to write the file after each plugin to avoid half-installs
 pub struct Webapp {
     pub path: PathBuf,
     pending_changes: bool,
+    pub version: RudderVersion,
 }
 
 impl Webapp {
-    pub fn new(path: PathBuf) -> Self {
+    pub fn new(path: PathBuf, version: RudderVersion) -> Self {
         Self {
             path,
             pending_changes: false,
+            version,
         }
     }
 
@@ -178,7 +181,7 @@ mod tests {
 
     #[test]
     fn it_reads_jars() {
-        let w = Webapp::new(PathBuf::from("tests/webapp_xml/example.xml"));
+        let w = Webapp::new(PathBuf::from("tests/webapp_xml/example.xml"), RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap() );
         let jars = w.jars().unwrap();
         assert_eq!(
             jars,
@@ -198,7 +201,7 @@ mod tests {
         let expected = path::Path::new(&sample).with_extension("xml.expected");
         let target = temp_dir.path().join(origin);
         fs::copy(sample, target.clone()).unwrap();
-        let mut x = Webapp::new(target.clone());
+        let mut x = Webapp::new(target.clone(), RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap());
         let _ = x.enable_jars(&[String::from(jar_name)]);
         assert_eq!(
             fs::read_to_string(target).unwrap(),
@@ -216,7 +219,7 @@ mod tests {
         let expected = path::Path::new(&sample).with_extension("xml.expected");
         let target = temp_dir.path().join(origin);
         fs::copy(sample, target.clone()).unwrap();
-        let mut x = Webapp::new(target.clone());
+        let mut x = Webapp::new(target.clone(), RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap());
         let _ = x.disable_jars(&[String::from(jar_name)]);
         assert_eq!(
             fs::read_to_string(target).unwrap(),

@@ -143,11 +143,11 @@ impl ListOutput {
 mod tests {
     use std::path::PathBuf;
 
-    use crate::{cli::Format, database::Database, repo_index::RepoIndex, webapp::Webapp};
+    use crate::{cli::Format, database::Database, repo_index::RepoIndex, webapp::Webapp, versions::RudderVersion};
 
     #[test]
     fn it_lists_plugins() {
-        let w = Webapp::new(PathBuf::from("tests/webapp_xml/example.xml"));
+        let w = Webapp::new(PathBuf::from("tests/webapp_xml/example.xml"), RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap());
         let r = RepoIndex::from_path("./tests/repo_index.json").unwrap();
         let d = Database::read("./tests/database/plugin_database_update_sample.json").unwrap();
 

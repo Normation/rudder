@@ -24,9 +24,9 @@ use std::{
 
 use crate::{
     cli::Command, database::Database, list::ListOutput, repo_index::RepoIndex,
-    signature::SignatureVerifier, webapp::Webapp,
+    signature::SignatureVerifier, versions::RudderVersion, webapp::Webapp,
 };
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use clap::Parser;
 use log::{debug, LevelFilter};
 
@@ -86,30 +86,31 @@ pub fn run() -> Result<()> {
     // Now initialize all common data structures
     let verifier = SignatureVerifier::new(PathBuf::from(SIGNATURE_KEYRING_PATH));
     let repo = Repository::new(&cfg, verifier)?;
-    let mut webapp = Webapp::new(PathBuf::from(WEBAPP_XML_PATH));
+    let webapp_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
+    let mut webapp = Webapp::new(PathBuf::from(WEBAPP_XML_PATH), webapp_version);
     let mut db = Database::read(PACKAGES_DATABASE_PATH)?;
     let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
 
     match args.command {
-        Command::Install { force, package } => {
-            action::install(force, package, repo, &mut webapp)?;
-        }
-        Command::Uninstall { package: packages } => {
-            packages
-                .iter()
-                .try_for_each(|p| db.uninstall(p, &mut webapp))?;
-        }
+        Command::Install { force, package } => package
+            .into_iter()
+            .try_for_each(|p| action::install(force, p, &repo, &index, &mut webapp))?,
+        Command::Uninstall { package: packages } => packages
+            .into_iter()
+            .try_for_each(|p| db.uninstall(&p, &mut webapp))?,
         Command::List {
             all,
             enabled,
             format,
-        } => {
-            ListOutput::new(all, enabled, &db, &index, &webapp)?.display(format)?;
-        }
-        Command::Show { package } => todo!(),
-        Command::Update {} => {
-            repo.update()?;
-        }
+        } => ListOutput::new(all, enabled, &db, &index, &webapp)?.display(format)?,
+        Command::Show { package } => println!(
+            "{}",
+            db.plugins
+                .get(&package)
+                .ok_or_else(|| anyhow!("Could not find plugin"))?
+                .metadata
+        ),
+        Command::Update {} => repo.update()?,
         Command::Enable {
             package,
             all,
@@ -117,10 +118,10 @@ pub fn run() -> Result<()> {
             restore,
         } => todo!(),
         Command::Disable { package, all } => todo!(),
-        Command::CheckConnection {} => {
-            repo.test_connection()?;
-        }
+        Command::CheckConnection {} => repo.test_connection()?,
     }
+    // Restart if needed
+    webapp.apply_changes()?;
     Ok(())
 }
 
@@ -132,7 +133,6 @@ pub mod action {
     use crate::database::Database;
     use crate::repo_index::RepoIndex;
     use crate::repository::Repository;
-    use crate::versions::RudderVersion;
     use crate::{
         webapp::Webapp, PACKAGES_DATABASE_PATH, REPOSITORY_INDEX_PATH, RUDDER_VERSION_PATH,
         TMP_PLUGINS_FOLDER,
@@ -144,18 +144,16 @@ pub mod action {
 
     pub fn install(
         force: bool,
-        packages: Vec<String>,
-        repository: Repository,
+        package: String,
+        repository: &Repository,
+        index: &RepoIndex,
         webapp: &mut Webapp,
     ) -> Result<()> {
-        packages.iter().try_for_each(|package| {
-            let rpkg_path = if Path::new(&package).exists() {
-                package.clone()
+            let rpkg_path = if Path::new(&package).exists() && package.ends_with(".rpkg") {
+                package
             } else {
                 // Find compatible plugin if any
-                let webapp_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
-                let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
-                let to_dl_and_install = match index.get_compatible_plugin(webapp_version, package) {
+                let to_dl_and_install = match index.get_compatible_plugin(&webapp.version, &package) {
                     None => bail!("Could not find any compatible '{}' plugin with the current Rudder version in the configured repository.", package),
                     Some(p) => {
                         debug!("Found a compatible plugin in the repository:\n{:?}", p);
@@ -173,14 +171,12 @@ pub mod action {
                         })?,
                 );
                 // Download rpkg
-                repository.clone().download(&to_dl_and_install.path, &dest)?;
+                repository.download(&to_dl_and_install.path, &dest)?;
                 dest.as_path().display().to_string()
             };
             let rpkg = Rpkg::from_path(&rpkg_path)?;
             rpkg.install(force, webapp)?;
             Ok(())
-        })?;
-        webapp.apply_changes()
     }
 
     pub fn enable(
@@ -216,9 +212,9 @@ pub mod action {
             let mut enabled_jars_from_plugins = Vec::<String>::new();
             let enabled_jar = w.jars()?;
             for (k, v) in db.plugins.clone() {
-                    if v.metadata.jar_files.iter().any(|x| enabled_jar.contains(x)) {
-                        enabled_jars_from_plugins.push(format!("enable {}", k))
-                    }
+                if v.metadata.jar_files.iter().any(|x| enabled_jar.contains(x)) {
+                    enabled_jars_from_plugins.push(format!("enable {}", k))
+                }
             }
             fs::write(backup_path, enabled_jars_from_plugins.join("\n"))?;
             return Ok(());
@@ -242,5 +238,13 @@ pub mod action {
             })
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn i_am_not_root() {
+        assert!(!super::am_i_root().unwrap())
     }
 }

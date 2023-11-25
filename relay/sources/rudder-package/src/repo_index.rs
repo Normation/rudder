@@ -21,7 +21,7 @@ impl RepoIndex {
         self.0.as_slice()
     }
 
-    pub fn get_compatible_plugins(&self, webapp_version: RudderVersion) -> Vec<Plugin> {
+    pub fn get_compatible_plugins(&self, webapp_version: &RudderVersion) -> Vec<Plugin> {
         self.clone()
             .0
             .into_iter()
@@ -34,7 +34,7 @@ impl RepoIndex {
 
     pub fn get_compatible_plugin(
         &self,
-        webapp_version: RudderVersion,
+        webapp_version: &RudderVersion,
         plugin_name: &str,
     ) -> Option<Plugin> {
         self.get_compatible_plugins(webapp_version)
