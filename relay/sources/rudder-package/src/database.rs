@@ -9,6 +9,7 @@ use std::{
 };
 
 use anyhow::{anyhow, Context, Result};
+use log::debug;
 use serde::{Deserialize, Serialize};
 
 use super::archive::Rpkg;
@@ -18,7 +19,6 @@ use crate::{
     webapp::Webapp,
     PACKAGES_DATABASE_PATH, PACKAGES_FOLDER,
 };
-use log::debug;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Database {
@@ -50,10 +50,10 @@ impl Database {
     }
 
     /// Return the plugin containing a given jar
-    pub fn plugin_provides_jar(&self, jar: String) -> Option<&InstalledPlugin> {
+    pub fn plugin_provides_jar(&self, jar: &String) -> Option<&InstalledPlugin> {
         self.plugins
             .values()
-            .find(|p| p.metadata.jar_files.contains(&jar))
+            .find(|p| p.metadata.jar_files.contains(jar))
     }
 
     pub fn uninstall(&mut self, plugin_name: &str, webapp: &mut Webapp) -> Result<()> {

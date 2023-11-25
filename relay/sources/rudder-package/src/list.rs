@@ -3,11 +3,12 @@
 
 use std::collections::HashSet;
 
+use anyhow::Result;
+use serde::Serialize;
+
 use crate::{
     cli::Format, database::Database, plugin::PluginType, repo_index::RepoIndex, webapp::Webapp,
 };
-use anyhow::Result;
-use serde::Serialize;
 
 pub struct ListOutput {
     inner: Vec<ListEntry>,
@@ -88,7 +89,7 @@ impl ListOutput {
         let jars = webapp.jars()?;
         let enabled_plugins: HashSet<String> = jars
             .into_iter()
-            .flat_map(|j| db.plugin_provides_jar(j))
+            .flat_map(|j| db.plugin_provides_jar(&j))
             .map(|p| p.metadata.name.clone())
             .collect();
 
@@ -143,11 +144,17 @@ impl ListOutput {
 mod tests {
     use std::path::PathBuf;
 
-    use crate::{cli::Format, database::Database, repo_index::RepoIndex, webapp::Webapp, versions::RudderVersion};
+    use crate::{
+        cli::Format, database::Database, repo_index::RepoIndex, versions::RudderVersion,
+        webapp::Webapp,
+    };
 
     #[test]
     fn it_lists_plugins() {
-        let w = Webapp::new(PathBuf::from("tests/webapp_xml/example.xml"), RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap());
+        let w = Webapp::new(
+            PathBuf::from("tests/webapp_xml/example.xml"),
+            RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap(),
+        );
         let r = RepoIndex::from_path("./tests/repo_index.json").unwrap();
         let d = Database::read("./tests/database/plugin_database_update_sample.json").unwrap();
 

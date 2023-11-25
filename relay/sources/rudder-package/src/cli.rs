@@ -29,6 +29,9 @@ pub struct Args {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    /// Update package index and licenses from the repository
+    Update {},
+    /// Install plugins, locally or from the repository
     Install {
         #[clap(long, short, help = "Force installation of given plugin")]
         force: bool,
@@ -36,7 +39,12 @@ pub enum Command {
         #[clap()]
         package: Vec<String>,
     },
-    /// Show the plugin list
+    /// Uninstall plugins
+    Uninstall {
+        #[clap()]
+        package: Vec<String>,
+    },
+    /// Display the plugins list
     List {
         #[clap(long, short, help = "Show all available plugins")]
         all: bool,
@@ -52,15 +60,10 @@ pub enum Command {
         #[clap()]
         package: String,
     },
-    Uninstall {
-        #[clap()]
-        package: Vec<String>,
-    },
-    /// Update package index and licenses
-    Update {},
+    /// Enable installed plugins
     Enable {
         #[clap()]
-        package: Option<Vec<String>>,
+        package: Vec<String>,
 
         #[clap(long, short, help = "Enable all installed plugins")]
         all: bool,
@@ -75,12 +78,14 @@ pub enum Command {
         )]
         restore: bool,
     },
+    /// Disable installed plugins
     Disable {
         #[clap()]
-        package: Option<Vec<String>>,
+        package: Vec<String>,
 
         #[clap(long, short, help = "Enable all installed plugins")]
         all: bool,
     },
+    /// Test connection to the plugin repository
     CheckConnection {},
 }

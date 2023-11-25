@@ -4,6 +4,7 @@
 use std::{fmt, fs::read_to_string, path::Path};
 
 use anyhow::Result;
+use log::info;
 use serde::{Deserialize, Serialize};
 
 const PUBLIC_REPO_URL: &str = "https://repository.rudder.io/plugins";
@@ -77,7 +78,15 @@ impl Configuration {
     }
 
     pub fn read(path: &Path) -> Result<Self> {
-        let c = read_to_string(path)?;
+        let c = if path.exists() {
+            read_to_string(path)?
+        } else {
+            info!(
+                "'{}' does not exist, using default configuration",
+                path.display()
+            );
+            "".to_string()
+        };
         Self::parse(&c)
     }
 }

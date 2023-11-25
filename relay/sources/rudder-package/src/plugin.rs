@@ -66,7 +66,8 @@ Build-commit: {}",
             self.description.as_ref().unwrap_or(&"".to_owned()),
             self.plugin_type(),
             self.build_date,
-            self.build_commit))?;
+            self.build_commit
+        ))?;
         f.write_str("\nJar files:")?;
         if self.jar_files.is_empty() {
             f.write_str(" none")?;
@@ -81,7 +82,7 @@ Build-commit: {}",
             writeln!(f, "  {}: {}", a, p)?;
         }
         Ok(())
-            }
+    }
 }
 
 impl Metadata {

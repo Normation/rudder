@@ -1,21 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
-use quick_xml::reader::Reader;
-use quick_xml::Writer;
-use std::collections::HashSet;
-use std::fs;
-use std::io::{Cursor, Write};
-use std::path::PathBuf;
-
-use std::process::Command;
+use std::{
+    collections::HashSet,
+    fs,
+    io::{Cursor, Write},
+    path::PathBuf,
+    process::Command,
+};
 
 use anyhow::Result;
 use log::debug;
+use quick_xml::{
+    events::{BytesEnd, BytesStart, BytesText, Event},
+    reader::Reader,
+    Writer,
+};
 
-use crate::cmd::CmdOutput;
-use crate::versions::RudderVersion;
+use crate::{cmd::CmdOutput, versions::RudderVersion};
 
 /// We want to write the file after each plugin to avoid half-installs
 pub struct Webapp {
@@ -181,7 +183,10 @@ mod tests {
 
     #[test]
     fn it_reads_jars() {
-        let w = Webapp::new(PathBuf::from("tests/webapp_xml/example.xml"), RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap() );
+        let w = Webapp::new(
+            PathBuf::from("tests/webapp_xml/example.xml"),
+            RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap(),
+        );
         let jars = w.jars().unwrap();
         assert_eq!(
             jars,
@@ -201,7 +206,10 @@ mod tests {
         let expected = path::Path::new(&sample).with_extension("xml.expected");
         let target = temp_dir.path().join(origin);
         fs::copy(sample, target.clone()).unwrap();
-        let mut x = Webapp::new(target.clone(), RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap());
+        let mut x = Webapp::new(
+            target.clone(),
+            RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap(),
+        );
         let _ = x.enable_jars(&[String::from(jar_name)]);
         assert_eq!(
             fs::read_to_string(target).unwrap(),
@@ -219,7 +227,10 @@ mod tests {
         let expected = path::Path::new(&sample).with_extension("xml.expected");
         let target = temp_dir.path().join(origin);
         fs::copy(sample, target.clone()).unwrap();
-        let mut x = Webapp::new(target.clone(), RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap());
+        let mut x = Webapp::new(
+            target.clone(),
+            RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap(),
+        );
         let _ = x.disable_jars(&[String::from(jar_name)]);
         assert_eq!(
             fs::read_to_string(target).unwrap(),

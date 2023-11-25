@@ -22,15 +22,15 @@ use std::{
     process,
 };
 
-use crate::{
-    cli::Command, database::Database, list::ListOutput, repo_index::RepoIndex,
-    signature::SignatureVerifier, versions::RudderVersion, webapp::Webapp,
-};
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use clap::Parser;
 use log::{debug, LevelFilter};
 
-use crate::{config::Configuration, repository::Repository};
+use crate::{
+    cli::Command, config::Configuration, database::Database, list::ListOutput,
+    repo_index::RepoIndex, repository::Repository, signature::SignatureVerifier,
+    versions::RudderVersion, webapp::Webapp,
+};
 
 const PACKAGES_FOLDER: &str = "/var/rudder/packages";
 const LICENSES_FOLDER: &str = "/opt/rudder/etc/plugins/licenses";
@@ -116,8 +116,42 @@ pub fn run() -> Result<()> {
             all,
             save,
             restore,
-        } => todo!(),
-        Command::Disable { package, all } => todo!(),
+        } => {
+            // If all is passed, enabled all installed plugins
+            let to_enable = if all {
+                db.plugins.keys().cloned().collect()
+            } else {
+                package
+            };
+            if to_enable.is_empty() {
+                let backup_path = Path::new(TMP_PLUGINS_FOLDER).join("plugins_status.backup");
+                if save {
+                    action::save(&backup_path, &db, &mut webapp)?
+                } else if restore {
+                    action::restore(&backup_path, &db, &mut webapp)?
+                } else {
+                    bail!("No plugin provided")
+                }
+            } else {
+                to_enable.iter().try_for_each(|p| match db.plugins.get(p) {
+                    None => bail!("Plugin {} not installed", p),
+                    Some(p) => p.enable(&mut webapp),
+                })?
+            }
+        }
+        Command::Disable { package, all } => {
+            let to_disable = if all {
+                db.plugins.keys().cloned().collect()
+            } else {
+                package
+            };
+            to_disable
+                .iter()
+                .try_for_each(|p| match db.plugins.get(p) {
+                    None => bail!("Plugin {} not installed", p),
+                    Some(p) => p.disable(&mut webapp),
+                })?
+        }
         Command::CheckConnection {} => repo.test_connection()?,
     }
     // Restart if needed
@@ -126,21 +160,15 @@ pub fn run() -> Result<()> {
 }
 
 pub mod action {
-    use anyhow::{anyhow, bail, Result};
+    use std::{fs, fs::File, io::BufRead, path::Path};
+
+    use anyhow::{anyhow, bail, Context, Result};
     use log::debug;
 
-    use crate::archive::Rpkg;
-    use crate::database::Database;
-    use crate::repo_index::RepoIndex;
-    use crate::repository::Repository;
     use crate::{
-        webapp::Webapp, PACKAGES_DATABASE_PATH, REPOSITORY_INDEX_PATH, RUDDER_VERSION_PATH,
-        TMP_PLUGINS_FOLDER,
+        archive::Rpkg, database::Database, repo_index::RepoIndex, repository::Repository,
+        webapp::Webapp, TMP_PLUGINS_FOLDER,
     };
-    use std::fs;
-    use std::fs::File;
-    use std::io::BufRead;
-    use std::path::Path;
 
     pub fn install(
         force: bool,
@@ -149,93 +177,62 @@ pub mod action {
         index: &RepoIndex,
         webapp: &mut Webapp,
     ) -> Result<()> {
-            let rpkg_path = if Path::new(&package).exists() && package.ends_with(".rpkg") {
-                package
-            } else {
-                // Find compatible plugin if any
-                let to_dl_and_install = match index.get_compatible_plugin(&webapp.version, &package) {
+        let rpkg_path = if Path::new(&package).exists() && package.ends_with(".rpkg") {
+            package
+        } else {
+            // Find compatible plugin if any
+            let to_dl_and_install = match index.get_compatible_plugin(&webapp.version, &package) {
                     None => bail!("Could not find any compatible '{}' plugin with the current Rudder version in the configured repository.", package),
                     Some(p) => {
                         debug!("Found a compatible plugin in the repository:\n{:?}", p);
                         p
                     }
                 };
-                let dest = Path::new(TMP_PLUGINS_FOLDER).join(
-                    Path::new(&to_dl_and_install.path)
-                        .file_name()
-                        .ok_or_else(|| {
-                            anyhow!(
-                                "Could not retrieve filename from path '{}'",
-                                to_dl_and_install.path
-                            )
-                        })?,
-                );
-                // Download rpkg
-                repository.download(&to_dl_and_install.path, &dest)?;
-                dest.as_path().display().to_string()
-            };
-            let rpkg = Rpkg::from_path(&rpkg_path)?;
-            rpkg.install(force, webapp)?;
-            Ok(())
+            let dest = Path::new(TMP_PLUGINS_FOLDER).join(
+                Path::new(&to_dl_and_install.path)
+                    .file_name()
+                    .ok_or_else(|| {
+                        anyhow!(
+                            "Could not retrieve filename from path '{}'",
+                            to_dl_and_install.path
+                        )
+                    })?,
+            );
+            // Download rpkg
+            repository.download(&to_dl_and_install.path, &dest)?;
+            dest.as_path().display().to_string()
+        };
+        let rpkg = Rpkg::from_path(&rpkg_path)?;
+        rpkg.install(force, webapp)?;
+        Ok(())
     }
 
-    pub fn enable(
-        mut w: Webapp,
-        packages: Option<Vec<String>>,
-        all: bool,
-        snapshot: bool,
-        restore: bool,
-        backup_path: Option<String>,
-    ) -> Result<()> {
-        let db = Database::read(PACKAGES_DATABASE_PATH)?;
-        // If all is passed, enabled all installed plugins
-        let to_enabled = if all {
-            Some(db.plugins.keys().cloned().collect())
-        } else {
-            packages
-        };
-        // If package names are passed, enabled them
-        if let Some(x) = to_enabled {
-            return x.iter().try_for_each(|p| match db.plugins.get(p) {
-                None => {
-                    println!("Plugin {} not found installed", p);
-                    Ok(())
-                }
-                Some(installed_plugin) => installed_plugin.enable(&mut w),
-            });
-        }
-        let backup_path = match backup_path {
-            None => format!("{}/plugins_status.backup", TMP_PLUGINS_FOLDER),
-            Some(p) => p,
-        };
-        if snapshot {
-            let mut enabled_jars_from_plugins = Vec::<String>::new();
-            let enabled_jar = w.jars()?;
-            for (k, v) in db.plugins.clone() {
-                if v.metadata.jar_files.iter().any(|x| enabled_jar.contains(x)) {
-                    enabled_jars_from_plugins.push(format!("enable {}", k))
-                }
-            }
-            fs::write(backup_path, enabled_jars_from_plugins.join("\n"))?;
-            return Ok(());
-        }
+    pub fn save(backup_path: &Path, db: &Database, webapp: &mut Webapp) -> Result<()> {
+        let saved = webapp
+            .jars()?
+            .iter()
+            // Let's ignore unknown jars
+            .flat_map(|j| db.plugin_provides_jar(j))
+            .map(|p| format!("enable {}", p.metadata.name))
+            .collect::<Vec<String>>()
+            .join("\n");
+        fs::write(backup_path, saved)?;
+        Ok(())
+    }
 
-        if restore {
-            let file = File::open(backup_path)?;
-            let buf = std::io::BufReader::new(file);
-            buf.lines().for_each(|l| {
-                let binding = l.expect("Could not read line from plugin backup status file");
-                let plugin_name = binding.trim().split(' ').nth(1);
-                match plugin_name {
-                    None => debug!("Malformed line in plugin backup status file"),
-                    Some(x) => match db.plugins.get(x) {
-                        None => debug!("Plugin {} is not installed, it could not be enabled", x),
-                        Some(y) => {
-                            let _ = y.enable(&mut w);
-                        }
-                    },
-                }
-            })
+    pub fn restore(backup_path: &Path, db: &Database, webapp: &mut Webapp) -> Result<()> {
+        let file = File::open(backup_path)?;
+        let buf = std::io::BufReader::new(file);
+        for l in buf.lines() {
+            let line = l.context("Could not read line from plugin backup status file")?;
+            let plugin_name = line.trim().split(' ').nth(1);
+            match plugin_name {
+                None => debug!("Malformed line in plugin backup status file"),
+                Some(x) => match db.plugins.get(x) {
+                    None => debug!("Plugin {} is not installed, it could not be enabled", x),
+                    Some(y) => y.enable(webapp)?,
+                },
+            }
         }
         Ok(())
     }

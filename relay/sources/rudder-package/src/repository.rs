@@ -6,9 +6,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use flate2::read::GzDecoder;
-use log::debug;
+use log::{debug, info};
 use reqwest::{
     blocking::{Client, Response},
     Proxy, StatusCode, Url,
@@ -133,7 +133,9 @@ impl Repository {
     }
 
     pub fn test_connection(&self) -> Result<()> {
-        self.get("")?;
+        self.get("")
+            .context(format!("Could not connect with {}", self.server))?;
+        info!("Connection with {}: OK", self.server);
         Ok(())
     }
 

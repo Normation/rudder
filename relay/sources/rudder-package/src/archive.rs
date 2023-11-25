@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use anyhow::{anyhow, bail, Context, Ok, Result};
-use ar::Archive;
 use core::fmt;
-use log::debug;
-use serde::{Deserialize, Serialize};
 use std::{
     fs::{self, *},
     io::{Cursor, Read},
     path::PathBuf,
 };
+
+use anyhow::{anyhow, bail, Context, Ok, Result};
+use ar::Archive;
+use log::debug;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     database::{Database, InstalledPlugin},
