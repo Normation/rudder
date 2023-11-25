@@ -51,13 +51,9 @@ impl Database {
 
     /// Return the plugin containing a given jar
     pub fn plugin_provides_jar(&self, jar: String) -> Option<&InstalledPlugin> {
-        self.plugins.values().find(|p| {
-            p.metadata
-                .jar_files
-                .as_ref()
-                .map(|j| j.contains(&jar))
-                .unwrap_or(false)
-        })
+        self.plugins
+            .values()
+            .find(|p| p.metadata.jar_files.contains(&jar))
     }
 
     pub fn uninstall(&mut self, plugin_name: &str, webapp: &mut Webapp) -> Result<()> {
@@ -109,22 +105,21 @@ pub struct InstalledPlugin {
 impl InstalledPlugin {
     pub fn disable(&self, webapp: &mut Webapp) -> Result<()> {
         debug!("Disabling plugin {}", self.metadata.name);
-        match &self.metadata.jar_files {
-            None => {
-                println!("Plugin {} does not support the enable/disable feature, it will always be enabled if installed.", self.metadata.name);
-                Ok(())
-            }
-            Some(jars) => webapp.disable_jars(jars),
+        if self.metadata.jar_files.is_empty() {
+            println!("Plugin {} does not support the enable/disable feature, it will always be enabled if installed.", self.metadata.name);
+            Ok(())
+        } else {
+            webapp.disable_jars(&self.metadata.jar_files)
         }
     }
+
     pub fn enable(&self, webapp: &mut Webapp) -> Result<()> {
         debug!("Enabling plugin {}", self.metadata.name);
-        match &self.metadata.jar_files {
-            None => {
-                println!("Plugin {} does not support the enable/disable feature, it will always be enabled if installed.", self.metadata.name);
-                Ok(())
-            }
-            Some(jars) => webapp.enable_jars(jars),
+        if self.metadata.jar_files.is_empty() {
+            println!("Plugin {} does not support the enable/disable feature, it will always be enabled if installed.", self.metadata.name);
+            Ok(())
+        } else {
+            webapp.enable_jars(&self.metadata.jar_files)
         }
     }
 
@@ -163,6 +158,9 @@ mod tests {
             db.plugins["rudder-plugin-aix"].metadata.package_type,
             archive::PackageType::Plugin
         );
+        for p in db.plugins {
+            println!("{}", p.1.metadata);
+        }
     }
 
     #[test]
@@ -175,6 +173,7 @@ mod tests {
             metadata: plugin::Metadata {
                 package_type: archive::PackageType::Plugin,
                 name: String::from("my_name"),
+                description: None,
                 version: versions::ArchiveVersion::from_str("0.0.0-0.0").unwrap(),
                 build_date: String::from("2023-10-13T10:03:34+00:00"),
                 depends: None,
@@ -183,7 +182,7 @@ mod tests {
                     String::from("files.txz"),
                     String::from("/opt/rudder/share/plugins"),
                 )]),
-                jar_files: None,
+                jar_files: vec![],
             },
         };
         a.plugins.insert(addon.metadata.name.clone(), addon);

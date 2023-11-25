@@ -99,12 +99,10 @@ impl ListOutput {
                 .strip_prefix("rudder-plugin-")
                 .unwrap()
                 .to_string();
-            let enabled = p
-                .metadata
-                .jar_files
-                .as_ref()
-                .map(|_| enabled_plugins.contains(&p.metadata.name))
-                .unwrap_or(true);
+            let enabled = match p.metadata.plugin_type() {
+                PluginType::Standalone => true,
+                PluginType::Web => enabled_plugins.contains(&p.metadata.name),
+            };
             let e = ListEntry {
                 name,
                 version: p.metadata.version.to_string(),

@@ -21,7 +21,6 @@ impl Display for ArchiveVersion {
     }
 }
 
-
 impl FromStr for ArchiveVersion {
     type Err = Error;
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {

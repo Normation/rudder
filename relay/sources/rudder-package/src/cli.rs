@@ -5,15 +5,12 @@ use clap::{Parser, Subcommand, ValueEnum};
 
 use crate::CONFIG_PATH;
 
-#[derive(ValueEnum)]
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(ValueEnum, Copy, Clone, Debug, Default)]
 pub enum Format {
     Json,
     #[default]
     Human,
 }
-
-
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -39,20 +36,27 @@ pub enum Command {
         #[clap()]
         package: Vec<String>,
     },
+    /// Show the plugin list
     List {
         #[clap(long, short, help = "Show all available plugins")]
         all: bool,
 
         #[clap(long, short, help = "Show enabled plugins")]
         enabled: bool,
-        
+
         #[clap(long, short, help = "Output format")]
         format: Format,
+    },
+    /// Show detailed information about a plugin
+    Show {
+        #[clap()]
+        package: String,
     },
     Uninstall {
         #[clap()]
         package: Vec<String>,
     },
+    /// Update package index and licenses
     Update {},
     Enable {
         #[clap()]
@@ -71,4 +75,12 @@ pub enum Command {
         )]
         restore: bool,
     },
+    Disable {
+        #[clap()]
+        package: Option<Vec<String>>,
+
+        #[clap(long, short, help = "Enable all installed plugins")]
+        all: bool,
+    },
+    CheckConnection {},
 }

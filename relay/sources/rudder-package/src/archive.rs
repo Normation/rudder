@@ -230,17 +230,12 @@ impl Rpkg {
         );
         Database::write(PACKAGES_DATABASE_PATH, db)?;
         // Run postinst if any
-        let install_or_upgrade: PackageScriptArg = PackageScriptArg::Install;
+        let install_or_upgrade = PackageScriptArg::Install;
         self.metadata
             .run_package_script(PackageScript::Postinst, install_or_upgrade)?;
         // Update the webapp xml file if the plugin contains one or more jar file
         debug!("Enabling the associated jars if any");
-        match self.metadata.jar_files.clone() {
-            None => (),
-            Some(jars) => {
-                webapp.enable_jars(&jars)?;
-            }
-        }
+        webapp.enable_jars(&self.metadata.jar_files)?;
         // Restarting webapp
         debug!("Install completed");
         Ok(())

@@ -18,7 +18,9 @@ use tempfile::tempdir;
 
 use crate::{
     config::{Configuration, Credentials},
-    signature::{SignatureVerifier, VerificationSuccess}, versions::RudderVersion, RUDDER_VERSION_PATH, REPOSITORY_INDEX_PATH,
+    signature::{SignatureVerifier, VerificationSuccess},
+    versions::RudderVersion,
+    REPOSITORY_INDEX_PATH, RUDDER_VERSION_PATH,
 };
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
@@ -170,8 +172,6 @@ impl Repository {
         }
         Ok(())
     }
-
-
 }
 
 #[cfg(test)]

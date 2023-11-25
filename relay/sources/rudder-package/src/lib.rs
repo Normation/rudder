@@ -95,7 +95,9 @@ pub fn run() -> Result<()> {
             action::install(force, package, repo, &mut webapp)?;
         }
         Command::Uninstall { package: packages } => {
-            packages.iter().try_for_each(|p| db.uninstall(p, &mut webapp))?;
+            packages
+                .iter()
+                .try_for_each(|p| db.uninstall(p, &mut webapp))?;
         }
         Command::List {
             all,
@@ -104,8 +106,19 @@ pub fn run() -> Result<()> {
         } => {
             ListOutput::new(all, enabled, &db, &index, &webapp)?.display(format)?;
         }
-        _ => {
-            todo!("This command is not implemented yet");
+        Command::Show { package } => todo!(),
+        Command::Update {} => {
+            repo.update()?;
+        }
+        Command::Enable {
+            package,
+            all,
+            save,
+            restore,
+        } => todo!(),
+        Command::Disable { package, all } => todo!(),
+        Command::CheckConnection {} => {
+            repo.test_connection()?;
         }
     }
     Ok(())
@@ -203,11 +216,9 @@ pub mod action {
             let mut enabled_jars_from_plugins = Vec::<String>::new();
             let enabled_jar = w.jars()?;
             for (k, v) in db.plugins.clone() {
-                if let Some(j) = v.metadata.jar_files {
-                    if j.iter().any(|x| enabled_jar.contains(x)) {
+                    if v.metadata.jar_files.iter().any(|x| enabled_jar.contains(x)) {
                         enabled_jars_from_plugins.push(format!("enable {}", k))
                     }
-                }
             }
             fs::write(backup_path, enabled_jars_from_plugins.join("\n"))?;
             return Ok(());

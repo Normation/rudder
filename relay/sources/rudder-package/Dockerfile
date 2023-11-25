@@ -1,4 +1,4 @@
-FROM rust:1.72.0-bullseye
+FROM rust:1.74.0-bullseye
 LABEL ci=rudder/relay/sources/rudder-package/Dockerfile
 
 ARG USER_ID=1000
