@@ -42,7 +42,8 @@ import com.normation.rudder.Rights
 import com.normation.rudder.RudderAccount
 import com.normation.rudder.User
 import com.normation.rudder.api.ApiAuthorization
-import net.liftweb.http.SessionVar
+import com.normation.rudder.facts.nodes.NodeSecurityContext
+import com.normation.rudder.facts.nodes.QueryContext
 import org.springframework.security.core.context.SecurityContextHolder
 
 /**
@@ -50,17 +51,17 @@ import org.springframework.security.core.context.SecurityContextHolder
  * (if any)
  *
  */
-object CurrentUser extends SessionVar[Option[RudderUserDetail]]({
-      SecurityContextHolder.getContext.getAuthentication match {
-        case null => None
-        case auth =>
-          auth.getPrincipal match {
-            case u: RudderUserDetail => Some(u)
-            case _ => None
-          }
-      }
-
-    }) with User {
+object CurrentUser extends User {
+  def get = {
+    SecurityContextHolder.getContext.getAuthentication match {
+      case null => None
+      case auth =>
+        auth.getPrincipal match {
+          case u: RudderUserDetail => Some(u)
+          case _ => None
+        }
+    }
+  }
 
   def getRights: Rights = this.get match {
     case Some(u) => u.authz
@@ -89,5 +90,16 @@ object CurrentUser extends SessionVar[Option[RudderUserDetail]]({
       case None    => ApiAuthorization.None
       case Some(u) => u.apiAuthz
     }
+  }
+
+  def nodePerms: NodeSecurityContext = this.get match {
+    case Some(u) => u.nodePerms
+    case None    => NodeSecurityContext.None
+  }
+
+  def queryContext: QueryContext = {
+
+    println(s"User: ${actor} nodePerms: ${nodePerms}")
+    QueryContext(actor, nodePerms)
   }
 }

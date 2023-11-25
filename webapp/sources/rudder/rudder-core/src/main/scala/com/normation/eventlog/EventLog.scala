@@ -39,7 +39,8 @@ final case class EventMetadata(
 object EventMetadata {
   // this mainly use here. It removes the possibility to switch easily implementation,
   // but it was never used in 10 y of rudder
-  val uuidGen                                                  = new StringUuidGeneratorImpl()
+  val uuidGen = new StringUuidGeneratorImpl()
+
   def withNewId(actor: EventActor, msg: Option[String] = None) = {
     EventMetadata(ModificationId(uuidGen.newUuid), actor, msg)
   }

@@ -55,6 +55,7 @@ import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HooksLogger
@@ -65,7 +66,6 @@ import com.normation.rudder.services.queries.QueryProcessor
 import com.normation.zio._
 import com.softwaremill.quicklens._
 import zio.{System => _, _}
-import zio.stream.ZSink
 import zio.syntax._
 
 /**
@@ -74,7 +74,7 @@ import zio.syntax._
 trait NewNodePostAcceptHooks {
 
   def name: String
-  def run(nodeId: NodeId): IOResult[Unit]
+  def run(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Unit]
 
 }
 
@@ -85,7 +85,7 @@ trait NewNodeManagerHooks {
    * their result. They are responsible to log
    * their errors.
    */
-  def afterNodeAcceptedAsync(nodeId: NodeId): IOResult[Unit]
+  def afterNodeAcceptedAsync(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Unit]
 
   def appendPostAcceptCodeHook(hook: NewNodePostAcceptHooks): IOResult[Unit]
 }
@@ -138,7 +138,7 @@ class PostNodeAcceptanceHookScripts(
 ) extends NewNodePostAcceptHooks {
   override def name: String = "new-node-post-accept-hooks"
 
-  override def run(nodeId: NodeId): IOResult[Unit] = {
+  override def run(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Unit] = {
     val systemEnv = {
       import scala.jdk.CollectionConverters._
       HookEnvPairs.build(System.getenv.asScala.toSeq: _*)
@@ -185,7 +185,7 @@ class NewNodeManagerHooksImpl(
     )
     .runNow
 
-  override def afterNodeAcceptedAsync(nodeId: NodeId): IOResult[Unit] = {
+  override def afterNodeAcceptedAsync(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Unit] = {
     codeHooks.get.flatMap(hooks => ZIO.foreach(hooks)(h => IOResult.attempt(h.run(nodeId)))).unit
   }
 
@@ -236,7 +236,7 @@ trait ListNewNode {
 
 class FactListNewNodes(backend: NodeFactRepository) extends ListNewNode {
   override def listNewNodes: IOResult[Seq[CoreNodeFact]] = {
-    backend.getAll()(SelectNodeStatus.Pending).run(ZSink.collectAll)
+    backend.getAll()(QueryContext.todoQC, SelectNodeStatus.Pending).map(_.values.toSeq)
   }
 }
 
@@ -292,7 +292,9 @@ class ComposedNewNodeManager[A](
   def refuse(id: NodeId)(implicit cc: ChangeContext): IOResult[CoreNodeFact] = {
     for {
       cnf <-
-        nodeFactRepo.get(id)(SelectNodeStatus.Pending).notOptional(s"Node with id '${id.value}' was not found in pending nodes")
+        nodeFactRepo
+          .get(id)(QueryContext.todoQC, SelectNodeStatus.Pending)
+          .notOptional(s"Node with id '${id.value}' was not found in pending nodes")
       _   <- refuseOne(cnf)
       _   <- nodeFactRepo.delete(id)
     } yield cnf
@@ -326,14 +328,16 @@ class ComposedNewNodeManager[A](
 
     for {
       // Get inventory og the node
-      cnf       <- nodeFactRepo.get(id)(SelectNodeStatus.Pending).notOptional(s"Missing inventory for node with ID: '${id.value}'")
+      cnf       <- nodeFactRepo
+                     .get(id)(QueryContext.todoQC, SelectNodeStatus.Pending)
+                     .notOptional(s"Missing inventory for node with ID: '${id.value}'")
       // Pre accept it
       preAccept <- passPreAccept(cnf)
       // Accept it
       _         <- nodeFactRepo.changeStatus(id, AcceptedInventory)
       // Update hooks for the node
       _         <- hooksRunner
-                     .afterNodeAcceptedAsync(id)
+                     .afterNodeAcceptedAsync(id)(cc.toQuery)
                      .catchAll(err => {
                        NodeLoggerPure.PendingNode.error(
                          s"Error when executing post-acceptation hooks for node '${cnf.fqdn}' " +
@@ -423,7 +427,7 @@ class AcceptHostnameAndIp(
    * search in database nodes having the same hostname as one provided.
    * Only return existing hostname (and so again, we want that to be empty)
    */
-  private[this] def queryForDuplicateHostname(hostnames: Seq[String]): IOResult[Unit] = {
+  private[this] def queryForDuplicateHostname(hostnames: Seq[String])(implicit qc: QueryContext): IOResult[Unit] = {
     def failure(duplicates: Seq[String], name: String) = {
       Inconsistency(
         s"There is already a node with ${name} ${duplicates.mkString("'", "' or '", "'")} in database. You can not add it again."
@@ -450,8 +454,7 @@ class AcceptHostnameAndIp(
                          // get the hostname from nodeInfoService
                          nodeFactRepo
                            .getAll()
-                           .collect { case n if (duplicatesH.contains(n.id)) => n.fqdn }
-                           .runCollect
+                           .map(_.collect { case (_, n) if (duplicatesH.contains(n.id)) => n.fqdn }.toSeq)
                            .flatMap(failure(_, "Hostname"))
                        }
     } yield ()
@@ -467,7 +470,7 @@ class AcceptHostnameAndIp(
       _                  <- ZIO.when(!acceptDuplicated) {
                               for {
                                 noDuplicateHostnames <- checkDuplicateString(List(cnf.fqdn), "hostname")
-                                noDuplicateInDB      <- queryForDuplicateHostname(List(cnf.fqdn))
+                                noDuplicateInDB      <- queryForDuplicateHostname(List(cnf.fqdn))(cc.toQuery)
                               } yield ()
                             }
     } yield ()

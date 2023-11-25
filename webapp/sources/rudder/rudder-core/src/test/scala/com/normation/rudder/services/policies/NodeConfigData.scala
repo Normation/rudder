@@ -282,7 +282,8 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
     DateTime.now,
     emptyNodeReportingConfiguration,
     Nil,
-    Some(Enforce)
+    Some(Enforce),
+    None
   )
   val root     = NodeInfo(
     rootNode,
@@ -310,6 +311,7 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
     DateTime.now,
     emptyNodeReportingConfiguration,
     Nil,
+    None,
     None
   )
 
@@ -376,6 +378,7 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
     DateTime.now,
     emptyNodeReportingConfiguration,
     Nil,
+    None,
     None
   )
 
@@ -478,7 +481,7 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
   }).toSet
 
   def newNode(id: NodeId) =
-    Node(id, "", "", NodeState.Enabled, false, false, DateTime.now, ReportingConfiguration(None, None, None), Nil, None)
+    Node(id, "", "", NodeState.Enabled, false, false, DateTime.now, ReportingConfiguration(None, None, None), Nil, None, None)
 
   val nodes = (Set(root, node1, node2) ++ nodeIds.map { id =>
     NodeInfo(

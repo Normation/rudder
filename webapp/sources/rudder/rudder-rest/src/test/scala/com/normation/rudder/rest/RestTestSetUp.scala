@@ -81,6 +81,7 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFact
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
@@ -736,11 +737,9 @@ class RestTestSetUp {
   val nodeApiService = new NodeApiService(
     null,
     mockNodes.nodeFactRepo,
-    mockNodes.fullInventoryRepository,
     null,
     null,
     roReportsExecutionRepository,
-    mockNodes.woNodeRepository,
     null,
     uuidGen,
     null,
@@ -754,13 +753,20 @@ class RestTestSetUp {
     null,
     mockNodes.queryProcessor,
     null,
-    asyncDeploymentAgent,
-    userService,
     () => Full(GlobalPolicyMode(Audit, PolicyModeOverrides.Always)),
     "relay"
   ) {
-    implicit val testCC: ChangeContext =
-      ChangeContext(ModificationId(uuidGen.newUuid), EventActor("test"), DateTime.now(), None, None)
+    implicit val testCC: ChangeContext = {
+      ChangeContext(
+        ModificationId(uuidGen.newUuid),
+        EventActor("test"),
+        DateTime.now(),
+        None,
+        None,
+        QueryContext.testQC.nodePerms
+      )
+    }
+    import QueryContext.testQC
 
     override def checkUuid(nodeId: NodeId): IO[Creation.CreationError, Unit] = {
       mockNodes.nodeFactRepo
@@ -770,9 +776,9 @@ class RestTestSetUp {
         .unit
     }
 
-    override def saveInventory(inventory: FullInventory): IO[Creation.CreationError, NodeId] = {
+    override def saveInventory(inventory: FullInventory)(implicit cc: ChangeContext): IO[Creation.CreationError, NodeId] = {
       mockNodes.nodeFactRepo
-        .updateInventory(inventory, None)
+        .updateInventory(inventory, None)(cc)
         .mapBoth(
           err => CreationError.OnSaveInventory(s"Error when saving node: ${err.fullMsg}"),
           _ => inventory.node.main.id
@@ -903,6 +909,7 @@ class RestTestSetUp {
       restDataSerializer,
       nodeApiService,
       null,
+      uuidGen,
       DeleteMode.Erase
     ),
     new GroupsApi(

@@ -87,8 +87,6 @@ trait NodeInfoService {
    */
   def getNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]]
 
-  def getNodeInfos(nodeIds: Set[NodeId]): IOResult[Set[NodeInfo]]
-
   def getNodeInfosSeq(nodeIds: Seq[NodeId]): IOResult[Seq[NodeInfo]]
 
   /**
@@ -141,8 +139,6 @@ trait NodeInfoService {
    */
   def getPendingNodeInfos(): IOResult[Map[NodeId, NodeInfo]]
   def getPendingNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]]
-  def getDeletedNodeInfos(): IOResult[Map[NodeId, NodeInfo]]
-  def getDeletedNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]]
 }
 
 object NodeInfoService {
@@ -205,7 +201,8 @@ object NodeInfoService {
       A_KEY_STATUS,
       A_TIMEZONE_NAME,
       A_TIMEZONE_OFFSET,
-      A_CUSTOM_PROPERTY
+      A_CUSTOM_PROPERTY,
+      A_SECURITY_TAG
     )
   ).toSeq
 

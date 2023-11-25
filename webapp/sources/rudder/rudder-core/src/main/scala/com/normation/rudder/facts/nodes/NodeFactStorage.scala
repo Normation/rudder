@@ -801,6 +801,7 @@ class LdapNodeFactStorage(
     ): IOResult[Option[NodeFact]] = {
       for {
         node    <- nodeMapper.entryToNode(nodeEntry).toIO
+        // handle security tag mapping here
         optInvS <- fullInventoryRepository.getWithSoftware(nodeId, status, needSoftware)
         softs   <- getSoftware(con, optInvS.map(_._2).getOrElse(Seq()), needSoftware)
       } yield {

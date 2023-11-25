@@ -65,11 +65,14 @@ final case class MachineInfo(
     manufacturer: Option[Manufacturer] = None
 )
 
-sealed trait NodeKind { def name: String }
+sealed trait NodeKind {
+  def name:           String
+  def isPolicyServer: Boolean
+}
 object NodeKind       {
-  final case object Root  extends NodeKind { val name = "root"  }
-  final case object Relay extends NodeKind { val name = "relay" }
-  final case object Node  extends NodeKind { val name = "node"  }
+  final case object Root  extends NodeKind { val name = "root"; val isPolicyServer = true  }
+  final case object Relay extends NodeKind { val name = "relay"; val isPolicyServer = true }
+  final case object Node  extends NodeKind { val name = "node"; val isPolicyServer = false }
 
   def values = ca.mrvisser.sealerate.values[NodeKind]
 

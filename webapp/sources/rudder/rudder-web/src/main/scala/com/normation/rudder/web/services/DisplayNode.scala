@@ -53,6 +53,7 @@ import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.ComplianceLevelSerialisation
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.services.reports.NoReportInInterval
@@ -149,6 +150,7 @@ object DisplayNode extends Loggable {
 
   private def loadSoftware(jsId: JsNodeId)(nodeId: String): JsCmd = {
     implicit val attrs = SelectFacts.none.copy(software = SelectFacts.none.software.toRetrieve)
+    implicit val qc    = CurrentUser.queryContext
     (for {
       seq       <- nodeFactRepository.slowGet(NodeId(nodeId)).map(_.toList.flatMap(_.software.map(_.toSoftware)))
       gridDataId = htmlId(jsId, "soft_grid_data_")
@@ -196,7 +198,7 @@ object DisplayNode extends Loggable {
     }
   }
 
-  def jsInit(nodeId: NodeId, softIds: Seq[SoftwareUuid], salt: String = ""): JsCmd = {
+  def jsInit(nodeId: NodeId, salt: String = ""): JsCmd = {
     val jsId           = JsNodeId(nodeId, salt)
     val detailsId      = htmlId(jsId, "details_")
     val softGridDataId = htmlId(jsId, "soft_grid_data_")
@@ -1154,7 +1156,8 @@ object DisplayNode extends Loggable {
       CurrentUser.actor,
       DateTime.now(),
       None,
-      S.request.map(_.remoteAddr).toOption
+      S.request.map(_.remoteAddr).toOption,
+      QueryContext.todoQC.nodePerms
     )
 
     // only erase for Rudder 8.0

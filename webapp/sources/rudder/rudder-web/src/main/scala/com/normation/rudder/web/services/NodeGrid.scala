@@ -41,8 +41,9 @@ import com.normation.appconfig.ReadConfigService
 import com.normation.box._
 import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.services.core.FullInventoryRepository
 import com.normation.rudder.domain.servers.Srv
+import com.normation.rudder.facts.nodes.CoreNodeFactRepository
+import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.utils.Utils.isEmpty
@@ -77,9 +78,9 @@ final case class JsonArg(jsid: String, id: String, status: String)
  * - call the display(servers) method
  */
 final class NodeGrid(
-    getNodeAndMachine: FullInventoryRepository[_],
-    nodeInfoService:   NodeInfoService,
-    configService:     ReadConfigService
+    nodeFactRepo:    CoreNodeFactRepository,
+    nodeInfoService: NodeInfoService,
+    configService:   ReadConfigService
 ) extends Loggable {
 
   private def tableTemplate = ChooseTemplate(
@@ -257,8 +258,10 @@ final class NodeGrid(
       arg  <- tryo(json.extract[JsonArg])
       status: InventoryStatus <- Box(InventoryStatus(arg.status))
       nodeId             = NodeId(arg.id)
-      sm                <-
-        getNodeAndMachine.get(nodeId, status).notOptional(s"Error when trying to find inventory for node '${nodeId.value}'").toBox
+      sm                <- nodeFactRepo
+                             .slowGetCompat(nodeId, status, SelectFacts.default)(CurrentUser.queryContext)
+                             .notOptional(s"Error when trying to find inventory for node '${nodeId.value}'")
+                             .toBox
       nodeAndGlobalMode <- (nodeInfoService
                              .getNodeInfo(nodeId)
                              .flatMap {
@@ -276,8 +279,8 @@ final class NodeGrid(
     } yield (nodeId, sm, arg.jsid, status, nodeAndGlobalMode)) match {
       case Full((nodeId, sm, jsid, status, nodeAndGlobalMode)) =>
         // Node may not be available, so we look for it outside the for comprehension
-        SetHtml(jsid, DisplayNode.showPannedContent(nodeAndGlobalMode, sm, status)) &
-        DisplayNode.jsInit(sm.node.main.id, sm.node.softwareIds, "")
+        SetHtml(jsid, DisplayNode.showPannedContent(nodeAndGlobalMode, sm.toFullInventory, status)) &
+        DisplayNode.jsInit(sm.id, "")
       case e: EmptyBox =>
         logger.debug((e ?~! "error").messageChain)
         Alert("Called id is not valid: %s".format(jsonArg))

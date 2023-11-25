@@ -62,6 +62,7 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HookReturnCode
@@ -183,7 +184,7 @@ class FactRemoveNodeBackend(backend: NodeFactRepository) extends RemoveNodeBacke
   override def findNodeStatuses(nodeId: NodeId): IOResult[Set[InventoryStatus]] = {
     // here, we need to return "RemovedInventory" in case of missing node, so CoreNodeFactRepo #getStatus
     // is not what we want;
-    backend.get(nodeId)(SelectNodeStatus.Any).map {
+    backend.get(nodeId)(QueryContext.todoQC, SelectNodeStatus.Any).map {
       case None    => Set(RemovedInventory)
       case Some(x) => Set(x.rudderSettings.status)
     }
@@ -252,16 +253,8 @@ class RemoveNodeServiceImpl(
                               }
                        } yield r).catchAll(err => Error(err).succeed)
                      } else Success.succeed
-          res3    <- if (status.contains(RemovedInventory)) {
-                       (for {
-                         i <- nodeInfoService.getDeletedNodeInfo(nodeId)
-                         r <- deleteDeletedNode(nodeId, mode)
-                         // only update if nodeInfo is not already set, b/c accepted has more info
-                         _ <- info.update(opt => opt.orElse(i))
-                       } yield r).catchAll(err => Error(err).succeed)
-                     } else Success.succeed
           // if any of the previous cases were in error, we want to stop here
-          res     <- DeletionResult.resolve(res1 :: res2 :: res3 :: Nil)
+          res     <- DeletionResult.resolve(res1 :: res2 :: Nil)
           // in all cases, run postNodeDeletionAction
           _       <- NodeLoggerPure.Delete.debug(s"-> execute clean-up actions for node '${nodeId.value}'")
           actions <- postNodeDeleteActions.get
@@ -287,6 +280,7 @@ class RemoveNodeServiceImpl(
                   new DateTime(0),
                   ReportingConfiguration(None, None, None),
                   Nil,
+                  None,
                   None
                 ),
                 "",

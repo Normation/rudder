@@ -51,6 +51,7 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.reports.NodeChanges
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.services.ComputePolicyMode
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.services.JsTableData
 import com.normation.rudder.web.services.JsTableLine
 import com.normation.utils.Control.sequence
@@ -111,7 +112,6 @@ class RuleGrid(
   private[this] val getFullNodeGroupLib      = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private[this] val getFullDirectiveLib      = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
   private[this] val getRuleApplicationStatus = RudderConfig.ruleApplicationStatus.isApplied _
-  private[this] val getAllNodeInfos          = RudderConfig.nodeInfoService.getAll _
   private[this] val getRootRuleCategory      = RudderConfig.roRuleCategoryRepository.getRootCategory _
 
   private[this] val recentChanges          = RudderConfig.recentChangesService
@@ -124,6 +124,7 @@ class RuleGrid(
   private[this] val roRuleRepository = RudderConfig.roRuleRepository
   private[this] val woRuleRepository = RudderConfig.woRuleRepository
   private[this] val uuidGen          = RudderConfig.stringUuidGenerator
+  private[this] val nodeFactRepo     = RudderConfig.nodeFactRepository
 
   /////  local variables /////
   private[this] val htmlId_rulesGridId       = "grid_" + htmlId_rulesGridZone
@@ -193,14 +194,14 @@ class RuleGrid(
             // we skip request only if the column is not displayed - we need it even to display text info
             futureChanges = if (showComplianceAndChangesColumn) ajaxChanges(changesFuture(rules)) else Noop
 
-            nodeInfo      <- getAllNodeInfos().toBox
+            nodeFacts     <- nodeFactRepo.getAll()(CurrentUser.queryContext).toBox
             afterNodeInfos = System.currentTimeMillis
             _              = TimingDebugLogger.debug(s"Rule grid: fetching all Nodes informations took ${afterNodeInfos - afterRules}ms")
 
             // we have all the data we need to start our future
             futureCompliance = if (showComplianceAndChangesColumn) {
                                  asyncComplianceService
-                                   .complianceByRule(nodeInfo.keys.toSet, rules.map(_.id).toSet, htmlId_rulesGridId)
+                                   .complianceByRule(nodeFacts.keys.toSet, rules.map(_.id).toSet, htmlId_rulesGridId)
                                } else {
                                  Noop
                                }
@@ -215,7 +216,8 @@ class RuleGrid(
 
             rootRuleCat <- getRootRuleCategory().toBox
             globalMode  <- configService.rudder_global_policy_mode().toBox
-            newData      = getRulesTableData(rules, nodeInfo, groupLib, directiveLib, rootRuleCat, globalMode)
+            newData      =
+              getRulesTableData(rules, nodeFacts.mapValues(_.toNodeInfo).toMap, groupLib, directiveLib, rootRuleCat, globalMode)
             afterData    = System.currentTimeMillis
             _            = TimingDebugLogger.debug(s"Rule grid: transforming into data took ${afterData - afterDirectives}ms")
             _            = TimingDebugLogger.debug(s"Rule grid: computing whole data for rule grid took ${afterData - start}ms")
@@ -249,13 +251,20 @@ class RuleGrid(
   def rulesGridWithUpdatedInfo(rules: Option[Seq[Rule]], showActionsColumn: Boolean, isPopup: Boolean): NodeSeq = {
 
     (for {
-      allNodeInfos <- getAllNodeInfos()
+      allNodeInfos <- nodeFactRepo.getAll()(CurrentUser.queryContext)
       groupLib     <- getFullNodeGroupLib()
       directiveLib <- getFullDirectiveLib()
       ruleCat      <- getRootRuleCategory()
       globalMode   <- configService.rudder_global_policy_mode()
     } yield {
-      getRulesTableData(rules.getOrElse(Seq()), allNodeInfos, groupLib, directiveLib, ruleCat, globalMode)
+      getRulesTableData(
+        rules.getOrElse(Seq()),
+        allNodeInfos.mapValues(_.toNodeInfo).toMap,
+        groupLib,
+        directiveLib,
+        ruleCat,
+        globalMode
+      )
     }).either.runNow match {
       case Left(err) =>
         val e = s"Error when trying to get information about rules: ${err.fullMsg}"

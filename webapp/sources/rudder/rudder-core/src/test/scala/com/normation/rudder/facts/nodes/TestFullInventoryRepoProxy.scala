@@ -62,7 +62,7 @@ final case class SystemError(cause: Throwable) extends RudderError {
  */
 //@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
-class TestInventory extends Specification {
+class TestFullInventoryRepoProxy extends Specification {
 
   implicit class RunThing[E, T](thing: ZIO[Any, E, T])      {
     def testRun = ZioRuntime.unsafeRun(thing.either)
@@ -170,7 +170,7 @@ class TestInventory extends Specification {
 
   def full(n: NodeInventory, m: MachineInventory) = FullInventory(n, Some(m))
 
-  val repo: FullInventoryRepository[Unit] = new NodeFactFullInventoryRepositoryProxy(factRepo)
+  val repo: FullInventoryRepository[Unit] = new MockNodeFactFullInventoryRepositoryProxy(factRepo)
 
   "Saving, finding and moving node" should {
 

@@ -101,10 +101,11 @@ import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
+import com.normation.rudder.facts.nodes.MockNodeFactFullInventoryRepositoryProxy
 import com.normation.rudder.facts.nodes.NodeFact
-import com.normation.rudder.facts.nodes.NodeFactFullInventoryRepositoryProxy
 import com.normation.rudder.facts.nodes.NodeFactStorage
 import com.normation.rudder.facts.nodes.NodeInfoServiceProxy
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.facts.nodes.SoftDaoGetNodesbySofwareName
 import com.normation.rudder.facts.nodes.StorageChangeEventDelete
@@ -1737,7 +1738,8 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     DateTime.parse("2021-01-30T01:20+01:00"),
     emptyNodeReportingConfiguration,
     Nil,
-    Some(PolicyMode.Enforce)
+    Some(PolicyMode.Enforce),
+    None
   )
   val root     = NodeInfo(
     rootNode,
@@ -1813,7 +1815,8 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     DateTime.parse("2021-01-30T01:20+01:00"),
     emptyNodeReportingConfiguration,
     Nil,
-    Some(PolicyMode.Enforce)
+    Some(PolicyMode.Enforce),
+    None
   )
 
   val node1 = NodeInfo(
@@ -1914,6 +1917,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     DateTime.parse("2021-01-30T01:20+01:00"),
     emptyNodeReportingConfiguration,
     Nil,
+    None,
     None
   )
 
@@ -2023,7 +2027,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   ).toSet
 
   def newNode(id: NodeId) =
-    Node(id, "", "", NodeState.Enabled, false, false, DateTime.now, ReportingConfiguration(None, None, None), Nil, None)
+    Node(id, "", "", NodeState.Enabled, false, false, DateTime.now, ReportingConfiguration(None, None, None), Nil, None, None)
 
   val nodes = (
     Set(root, node1, node2) ++ nodeIds.map { id =>
@@ -2125,6 +2129,8 @@ class MockNodes() {
   }
 
   object softwareDao extends ReadOnlySoftwareDAO {
+    implicit val qc: QueryContext = QueryContext.todoQC
+
     val softRef = Ref.Synchronized.make(MockNodes.softwares.map(s => (s.id, s)).toMap).runNow
 
     override def getSoftware(ids: Seq[SoftwareUuid]): IOResult[Seq[Software]] = {
@@ -2267,10 +2273,12 @@ class MockNodes() {
   }
 
   val nodeInfoService         = new NodeInfoServiceProxy(nodeFactRepo)
-  val fullInventoryRepository = new NodeFactFullInventoryRepositoryProxy(nodeFactRepo)
+  val fullInventoryRepository = new MockNodeFactFullInventoryRepositoryProxy(nodeFactRepo)
   val woNodeRepository        = new WoFactNodeRepositoryProxy(nodeFactRepo)
 
   object newNodeManager extends NewNodeManager {
+    implicit val qc: QueryContext = QueryContext.todoQC
+
     val list = new FactListNewNodes(nodeFactRepo)
 
     override def listNewNodes: IOResult[Seq[CoreNodeFact]] = list.listNewNodes

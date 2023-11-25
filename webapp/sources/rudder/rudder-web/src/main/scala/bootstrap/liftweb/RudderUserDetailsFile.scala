@@ -47,6 +47,8 @@ import com.normation.rudder.api._
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.logger.PluginLogger
+import com.normation.rudder.facts.nodes.NodeSecurityContext
+import com.normation.rudder.facts.nodes.Tenant
 import com.normation.rudder.rest.RoleApiMapping
 import com.normation.rudder.web.services.RudderUserDetail
 import com.normation.zio._
@@ -168,7 +170,7 @@ final case class UserDetailFileConfiguration(
     encoder:         PasswordEncoder.Rudder,
     isCaseSensitive: Boolean,
     customRoles:     List[Role],
-    users:           Map[String, (RudderAccount.User, Seq[Role])]
+    users:           Map[String, (RudderAccount.User, Seq[Role], NodeSecurityContext)]
 )
 
 final case class ValidatedUserList(
@@ -233,7 +235,7 @@ object ValidatedUserList {
   ): ValidatedUserList = {
 
     val userDetails   = accountConfig.users.map {
-      case (_, (user, roles)) =>
+      case (_, (user, roles, nodeSecurityContext)) =>
         // for users, we don't have the possibility to order APIs. So we just sort them from most specific to less
         // (ie from longest path to shorted)
         // but still group by first part so that we have all nodes together, etc.
@@ -245,7 +247,7 @@ object ValidatedUserList {
               seq.sortBy(_.path)(AclPath.orderingaAclPath).sortBy(_.path.parts.head.value)
           }
           .toList
-        RudderUserDetail(user, roles.toSet, ApiAuthorization.ACL(acls))
+        RudderUserDetail(user, roles.toSet, ApiAuthorization.ACL(acls), nodeSecurityContext)
     }
     val filteredUsers = filterByCaseSensitivity(userDetails.toList, accountConfig.isCaseSensitive)
     ValidatedUserList(accountConfig.encoder, accountConfig.isCaseSensitive, accountConfig.customRoles, filteredUsers)
@@ -382,7 +384,7 @@ object UserFileProcessing {
 
   // utility classes for a parsed custom role/user/everything before sanity check is done on them
   final case class ParsedRole(name: String, permissions: List[String])
-  final case class ParsedUser(name: String, password: String, permissions: List[String])
+  final case class ParsedUser(name: String, password: String, permissions: List[String], tenants: Option[List[String]])
   final case class ParsedUserFile(
       encoder:         PasswordEncoder.Rudder,
       isCaseSensitive: Boolean,
@@ -476,7 +478,7 @@ object UserFileProcessing {
           parsed.encoder,
           parsed.isCaseSensitive,
           roles,
-          users.map { case (u, l) => (u.login, (u, l)) }.toMap
+          users.map { case (u, rs, nsc) => (u.login, (u, rs, nsc)) }.toMap
         )
       }
       ValidatedUserList.fromRudderAccountList(roleApiMapping, config)
@@ -524,15 +526,13 @@ object UserFileProcessing {
 
       // roles are comma-separated list of non-empty string. Several `roles` attribute should be avoid, but are ok and are merged.
       // List is gotten as is (no dedup, no sanity check, no sorting, no "roleToRight", etc)
-      def getRoleRoles(node: scala.xml.Node): PureResult[List[String]] = {
-        node.attribute("permissions") match {
-          case None | Some(Nil)  => Right(List.empty)
-          case Some(permissions) =>
-            Right(
-              permissions.toList
-                .flatMap(permlist => permlist.text.split(",").map(_.strip()).collect { case r if (r.nonEmpty) => r }.toList)
-            )
-        }
+      def getCommaSeparatiedList(attrName: String, node: scala.xml.Node): Option[List[String]] = {
+        node
+          .attribute(attrName)
+          .map(
+            _.toList
+              .flatMap(permlist => permlist.text.split(",").map(_.strip()).collect { case r if (r.nonEmpty) => r }.toList)
+          )
       }
 
       val customRoles: UIO[List[UncheckedCustomRole]] = (ZIO
@@ -542,7 +542,7 @@ object UserFileProcessing {
 
           (for {
             n <- getRoleName(node)
-            r <- getRoleRoles(node)
+            r  = getCommaSeparatiedList("permissions", node).getOrElse(Nil)
           } yield {
             UncheckedCustomRole(n, r)
           }) match {
@@ -569,9 +569,10 @@ object UserFileProcessing {
                 .map(_.toList.map(_.text)),
               node.attribute("password").map(_.toList.map(_.text)),
               // accept both "role" and "roles"
-              userRoles(node.attribute("role")) ++ userRoles(node.attribute("permissions"))
+              userRoles(node.attribute("role")) ++ userRoles(node.attribute("permissions")),
+              getCommaSeparatiedList("tenants", node)
             ) match {
-              case (Some(name :: Nil), pwd, permissions) if (name.size > 0) =>
+              case (Some(name :: Nil), pwd, permissions, tenants) if (name.size > 0) =>
                 // password can be optional when an other authentication backend is used.
                 // When the tag is omitted, we generate a 10 bytes random value in place of the pass internally
                 // to avoid any cases where the empty string will be used if all other backend are in failure.
@@ -581,7 +582,7 @@ object UserFileProcessing {
                   case Some(p :: _) if (p.strip().size > 0) => p
                   case _                                    => PasswordEncoder.randomHexa32
                 }
-                Some(ParsedUser(name, p, permissions)).succeed
+                Some(ParsedUser(name, p, permissions, tenants)).succeed
 
               case _ =>
                 ApplicationLoggerPure.Authz.error(
@@ -642,36 +643,83 @@ object UserFileProcessing {
     }
   }
 
+  /*
+   * Tenants name are only alphanumeric (mandatory first) + '-' + '_' with two special cases:
+   * - '*' means "all"
+   * - '-' means "none"
+   * None means "all" for compat
+   */
+  def resolveTenants(tenants: Option[List[String]]): UIO[NodeSecurityContext] = {
+
+    tenants match {
+      case None     => NodeSecurityContext.All.succeed // for compatibility with previous versions
+      case Some(ts) =>
+        (ZIO
+          .foldLeft(ts)(NodeSecurityContext.ByTenants(Chunk.empty): NodeSecurityContext) {
+            case (t1, t2) =>
+              t2.strip() match {
+                case "*"                     => t1.plus(NodeSecurityContext.All).succeed
+                case "-"                     => NodeSecurityContext.None.succeed
+                case Tenant.checkTenantId(v) => t1.plus(NodeSecurityContext.ByTenants(Chunk(Tenant(v)))).succeed
+                case x                       =>
+                  ApplicationLoggerPure.Authz.warn(
+                    s"Value '${x}' is not a valid tenant identifier. It must contains only alpha-num  ascii chars or " +
+                    s"'-' and '_' (not in the first) place; or exactly '*' (all tenants) or '-' (none tenants)"
+                  ) *> t1.plus(NodeSecurityContext.ByTenants(Chunk.empty)).succeed
+              }
+          })
+          .map {
+            case NodeSecurityContext.ByTenants(c) if (c.isEmpty) => NodeSecurityContext.None
+            case x                                               => x
+          }
+    }
+  }
+
   def resolveUsers(
       users:         List[ParsedUser],
       extendedAuthz: Boolean,
       debugFileName: String
-  ): UIO[List[(RudderAccount.User, List[Role])]] = {
+  ): UIO[List[(RudderAccount.User, List[Role], NodeSecurityContext)]] = {
+
+    val TODO_MODULE_TENANTS_ENABLED = true
+
     ZIO.foreach(users) { u =>
-      val ParsedUser(name, pwd, roles) = u
+      val ParsedUser(name, pwd, roles, tenants) = u
 
-      RudderRoles
-        .parseRoles(roles)
-        .flatMap(list => {
-          list match {
-            case Nil => // 'role' attribute is optional, by default get "none" role
-              List(Role.NoRights).succeed
+      for {
+        nsc <- resolveTenants(u.tenants).flatMap { // check for adequate plugin
+                 case NodeSecurityContext.ByTenants(_) if (!TODO_MODULE_TENANTS_ENABLED) =>
+                   ApplicationLoggerPure.Authz.warn(
+                     s"Tenants definition are only available with the corresponding plugin. To prevent unwanted right escalation, " +
+                     s"user '${name}' will be restricted to no tenants"
+                   ) *> NodeSecurityContext.None.succeed
+                 case x                                                                  => x.succeed
+               }
+        rs  <-
+          RudderRoles
+            .parseRoles(roles)
+            .flatMap(list => {
+              list match {
+                case Nil => // 'role' attribute is optional, by default get "none" role
+                  List(Role.NoRights).succeed
 
-            case rs =>
-              if (!extendedAuthz && rs.exists(_ != Role.Administrator)) {
-                ApplicationLoggerPure.Authz.warn(
-                  s"User '${name}' defined with authorizations different from 'administrator', which is not supported without the User management plugin. " +
-                  s"To prevent problem, that user authorization is removed."
-                ) *> List(Role.NoRights).succeed
+                case rs =>
+                  if (!extendedAuthz && rs.exists(_ != Role.Administrator)) {
+                    ApplicationLoggerPure.Authz.warn(
+                      s"User '${name}' defined with authorizations different from 'administrator', which is not supported without the User management plugin. " +
+                      s"To prevent problem, that user authorization is removed."
+                    ) *> List(Role.NoRights).succeed
 
-              } else {
-                ApplicationLoggerPure.Authz.debug(
-                  s"User '${name}' defined with authorizations: ${rs.map(_.debugString).mkString(", ")}"
-                ) *> rs.succeed
+                  } else {
+                    ApplicationLoggerPure.Authz.debug(
+                      s"User '${name}' defined with authorizations: ${rs.map(_.debugString).mkString(", ")}"
+                    ) *> rs.succeed
+                  }
               }
-          }
-        })
-        .map(rs => (RudderAccount.User(name, pwd), rs))
+            })
+      } yield {
+        (RudderAccount.User(name, pwd), rs, nsc)
+      }
     }
   }
 
