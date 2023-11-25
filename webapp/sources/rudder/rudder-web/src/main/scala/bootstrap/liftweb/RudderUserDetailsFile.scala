@@ -47,6 +47,8 @@ import com.normation.rudder.api._
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.logger.PluginLogger
+import com.normation.rudder.facts.nodes.NodeSecurityContext
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.rest.RoleApiMapping
 import com.normation.rudder.web.services.RudderUserDetail
 
@@ -248,7 +250,8 @@ object ValidatedUserList {
               seq.sortBy(_.path)(AclPath.orderingaAclPath).sortBy(_.path.parts.head.value)
           }
           .toList
-        RudderUserDetail(user, roles.toSet, ApiAuthorization.ACL(acls))
+        val todoNodePerms = if(user.login == "admin2") NodeSecurityContext.ByTags(Chunk("zoneA")) else QueryContext.todoQC.nodePerms
+        RudderUserDetail(user, roles.toSet, ApiAuthorization.ACL(acls), todoNodePerms)
     }
     val filteredUsers = filterByCaseSensitivity(userDetails.toList, accountConfig.isCaseSensitive)
     ValidatedUserList(accountConfig.encoder, accountConfig.isCaseSensitive, accountConfig.customRoles, filteredUsers)

@@ -766,6 +766,7 @@ class RestTestSetUp {
         QueryContext.testQC.nodePerms
       )
     }
+    import QueryContext.testQC
 
     override def checkUuid(nodeId: NodeId): IO[Creation.CreationError, Unit] = {
       mockNodes.nodeFactRepo
