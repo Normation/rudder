@@ -24,10 +24,10 @@ use std::{
 
 use anyhow::{anyhow, bail, Context, Result};
 use clap::Parser;
-use log::{debug, LevelFilter};
+use log::{debug, info, LevelFilter};
 
 use crate::{
-    cli::Command, config::Configuration, database::Database, list::ListOutput,
+    cli::Command, config::Configuration, database::Database, list::ListOutput, plugin::long_names,
     repo_index::RepoIndex, repository::Repository, signature::SignatureVerifier,
     versions::RudderVersion, webapp::Webapp,
 };
@@ -92,10 +92,10 @@ pub fn run() -> Result<()> {
     let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
 
     match args.command {
-        Command::Install { force, package } => package
+        Command::Install { force, package } => long_names(package)
             .into_iter()
             .try_for_each(|p| db.install(force, p, &repo, index.as_ref(), &mut webapp))?,
-        Command::Uninstall { package: packages } => packages
+        Command::Uninstall { package } => long_names(package)
             .into_iter()
             .try_for_each(|p| db.uninstall(&p, &mut webapp))?,
         Command::List {
@@ -103,13 +103,17 @@ pub fn run() -> Result<()> {
             enabled,
             format,
         } => ListOutput::new(all, enabled, &db, index.as_ref(), &webapp)?.display(format)?,
-        Command::Show { package } => println!(
-            "{}",
-            db.plugins
-                .get(&package)
-                .ok_or_else(|| anyhow!("Could not find plugin"))?
-                .metadata
-        ),
+        Command::Show { package } => {
+            for p in long_names(package) {
+                println!(
+                    "{}",
+                    db.plugins
+                        .get(&p)
+                        .ok_or_else(|| anyhow!("Could not find plugin"))?
+                        .metadata
+                )
+            }
+        }
         Command::Update {} => repo.update(&webapp)?,
         Command::Enable {
             package,
@@ -118,39 +122,41 @@ pub fn run() -> Result<()> {
             restore,
         } => {
             // If all is passed, enabled all installed plugins
-            let to_enable = if all {
+            let to_enable: Vec<String> = if all {
                 db.plugins.keys().cloned().collect()
             } else {
-                package
+                long_names(package)
             };
             if to_enable.is_empty() {
                 let backup_path = Path::new(TMP_PLUGINS_FOLDER).join("plugins_status.backup");
                 if save {
-                    db.enabled_plugins_save(&backup_path, &mut webapp)?
+                    db.enabled_plugins_save(&backup_path, &mut webapp)?;
                 } else if restore {
-                    db.enabled_plugins_restore(&backup_path, &mut webapp)?
+                    db.enabled_plugins_restore(&backup_path, &mut webapp)?;
                 } else {
-                    bail!("No plugin provided")
+                    bail!("No plugin provided");
                 }
             } else {
                 to_enable.iter().try_for_each(|p| match db.plugins.get(p) {
                     None => bail!("Plugin {} not installed", p),
                     Some(p) => p.enable(&mut webapp),
-                })?
+                })?;
             }
+            info!("Plugins sucessfully enabled");
         }
         Command::Disable { package, all } => {
-            let to_disable = if all {
+            let to_disable: Vec<String> = if all {
                 db.plugins.keys().cloned().collect()
             } else {
-                package
+                long_names(package)
             };
             to_disable
                 .iter()
                 .try_for_each(|p| match db.plugins.get(p) {
                     None => bail!("Plugin {} not installed", p),
                     Some(p) => p.disable(&mut webapp),
-                })?
+                })?;
+            info!("Plugins sucessfully disabled");
         }
         Command::CheckConnection {} => repo.test_connection()?,
     }

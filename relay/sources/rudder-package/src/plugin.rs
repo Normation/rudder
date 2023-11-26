@@ -15,6 +15,18 @@ use crate::{
     PACKAGES_FOLDER,
 };
 
+pub fn long_names(l: Vec<String>) -> Vec<String> {
+    l.into_iter()
+        .map(|p| {
+            if p.starts_with("rudder-plugin-") {
+                p
+            } else {
+                format!("rudder-plugin-{p}")
+            }
+        })
+        .collect()
+}
+
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct Metadata {

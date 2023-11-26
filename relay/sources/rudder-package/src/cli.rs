@@ -73,7 +73,7 @@ pub enum Command {
     /// Show detailed information about a plugin
     Show {
         #[clap()]
-        package: String,
+        package: Vec<String>,
     },
     /// Enable installed plugins
     Enable {

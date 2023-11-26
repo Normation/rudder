@@ -135,21 +135,15 @@ impl Database {
     }
 
     pub fn uninstall(&mut self, plugin_name: &str, webapp: &mut Webapp) -> Result<()> {
-        // Force to use plugin long qualified name
-        let plugin_name = if !plugin_name.starts_with("rudder-plugin-") {
-            format!("rudder-plugin-{plugin_name}")
-        } else {
-            plugin_name.to_owned()
-        };
         let short_name = plugin_name.strip_prefix("rudder-plugin-").unwrap();
         // Return Ok if not installed
-        if !self.plugins.contains_key(&plugin_name) {
+        if !self.plugins.contains_key(plugin_name) {
             info!("Plugin {} is not installed.", short_name);
             return Ok(());
         }
         debug!("Uninstalling plugin {}", short_name);
         // Disable the jar files if any
-        let installed_plugin = self.plugins.get(&plugin_name).ok_or(anyhow!(
+        let installed_plugin = self.plugins.get(plugin_name).ok_or(anyhow!(
             "Could not extract data for plugin {} in the database",
             short_name
         ))?;
@@ -174,7 +168,7 @@ impl Database {
             ))?;
         }
         // Update the database
-        self.plugins.remove(&plugin_name);
+        self.plugins.remove(plugin_name);
         self.write()?;
         info!("Plugin {} successfully uninstalled", short_name);
         Ok(())
@@ -218,7 +212,7 @@ pub struct InstalledPlugin {
 
 impl InstalledPlugin {
     pub fn disable(&self, webapp: &mut Webapp) -> Result<()> {
-        debug!("Disabling plugin {}", self.metadata.name);
+        debug!("Disabling plugin {}", self.metadata.short_name());
         if self.metadata.jar_files.is_empty() {
             debug!("Plugin {} does not support the enable/disable feature, it will always be enabled if installed.", self.metadata.name);
             Ok(())
@@ -228,9 +222,9 @@ impl InstalledPlugin {
     }
 
     pub fn enable(&self, webapp: &mut Webapp) -> Result<()> {
-        debug!("Enabling plugin {}", self.metadata.name);
+        debug!("Enabling plugin {}", self.metadata.short_name());
         if self.metadata.jar_files.is_empty() {
-            println!("Plugin {} does not support the enable/disable feature, it will always be enabled if installed.", self.metadata.name);
+            debug!("Plugin {} does not support the enable/disable feature, it will always be enabled if installed.", self.metadata.name);
             Ok(())
         } else {
             webapp.enable_jars(&self.metadata.jar_files)

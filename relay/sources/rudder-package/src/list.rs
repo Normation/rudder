@@ -113,6 +113,7 @@ impl ListOutput {
             }
         }
 
+        // FIXME: integrate latest version info
         if show_all {
             if let Some(i) = index {
                 for _p in i.inner().iter() {

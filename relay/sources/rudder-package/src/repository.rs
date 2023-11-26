@@ -20,7 +20,7 @@ use crate::{
     config::{Configuration, Credentials},
     signature::{SignatureVerifier, VerificationSuccess},
     webapp::Webapp,
-    REPOSITORY_INDEX_PATH,
+    LICENSES_FOLDER, REPOSITORY_INDEX_PATH,
 };
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
@@ -161,8 +161,7 @@ impl Repository {
         // Update the licenses
         if let Some(user) = self.get_username() {
             debug!("Updating licenses");
-            // FIXME: take as param, we need to be able to test this
-            let license_folder = PathBuf::from("/opt/rudder/etc/plugins/licenses");
+            let license_folder = PathBuf::from(LICENSES_FOLDER);
             let archive_name = format!("{}-license.tar.gz", user);
             let local_archive_path = &license_folder.clone().join(archive_name.clone());
             if let Err(e) = self.download_unsafe(

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
+use spinners::{Spinner, Spinners};
 use std::{
     collections::HashSet,
     fs,
@@ -86,18 +87,20 @@ impl Webapp {
                     writer.write_event(Event::Start(e))?;
                 }
                 Event::Text(e) => {
+                    // there are existing jars
                     if in_extra_classpath {
+                        in_extra_classpath = false;
                         let jars_t = e.unescape()?;
                         let mut jars: HashSet<&str> = HashSet::from_iter(jars_t.split(','));
                         for p in present {
                             let changed = jars.insert(p);
-                            if changed && !self.pending_changes {
+                            if changed {
                                 self.pending_changes = true;
                             }
                         }
                         for a in absent {
                             let changed = jars.remove(a.as_str());
-                            if changed && !self.pending_changes {
+                            if changed {
                                 self.pending_changes = true;
                             }
                         }
@@ -107,7 +110,22 @@ impl Webapp {
                         writer.write_event(Event::Text(e))?;
                     }
                 }
+                Event::End(e) if e.name().as_ref() == b"Set" => {
+                    // there are no existing jars, but the section exists
+                    if in_extra_classpath {
+                        in_extra_classpath = false;
+                        let mut jars: HashSet<&str> = HashSet::new();
+                        for p in present {
+                            jars.insert(p);
+                            self.pending_changes = true;
+                        }
+                        let jar_value: Vec<&str> = jars.into_iter().collect();
+                        writer.write_event(Event::Text(BytesText::new(&jar_value.join(","))))?;
+                    }
+                    writer.write_event(Event::End(e))?;
+                }
                 Event::End(e) if e.name().as_ref() == b"Configure" => {
+                    // there is not extry at all
                     if !extra_classpath_found && !present.is_empty() {
                         // Create the element if needed
                         let mut start = BytesStart::new("Set");
@@ -156,13 +174,18 @@ impl Webapp {
     /// Synchronous restart of the web application
     pub fn apply_changes(&mut self) -> Result<()> {
         if self.pending_changes {
-            debug!("Restarting the Web application to apply plugin changes");
+            print!("  ");
+            let mut sp = Spinner::new(
+                Spinners::Dots,
+                "Restarting the Web application to apply changes".into(),
+            );
             let mut systemctl = Command::new("/usr/bin/systemctl");
             systemctl
                 .arg("--no-ask-password")
                 .arg("restart")
                 .arg("rudder-jetty");
             let _ = CmdOutput::new(&mut systemctl)?;
+            sp.stop_with_symbol("🗸");
             self.pending_changes = false;
         } else {
             debug!("No need to restart the Web application");

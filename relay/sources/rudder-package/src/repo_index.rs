@@ -42,13 +42,8 @@ impl RepoIndex {
     ) -> Option<Plugin> {
         self.get_compatible_plugins(webapp_version)
             .into_iter()
-            .find(|x| {
-                [
-                    plugin_name.to_string(),
-                    format!("rudder-plugin-{}", plugin_name),
-                ]
-                .contains(&x.metadata.name)
-            })
+            // FIXME: could have several plugin version compatible, we need to select the latest
+            .find(|x| plugin_name == x.metadata.name)
     }
 }
 
