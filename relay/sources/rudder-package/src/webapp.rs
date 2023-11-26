@@ -125,7 +125,7 @@ impl Webapp {
                     writer.write_event(Event::End(e))?;
                 }
                 Event::End(e) if e.name().as_ref() == b"Configure" => {
-                    // there is not extry at all
+                    // there is not entry at all
                     if !extra_classpath_found && !present.is_empty() {
                         // Create the element if needed
                         let mut start = BytesStart::new("Set");

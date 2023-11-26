@@ -142,7 +142,7 @@ pub fn run() -> Result<()> {
                     Some(p) => p.enable(&mut webapp),
                 })?;
             }
-            info!("Plugins sucessfully enabled");
+            info!("Plugins successfully enabled");
         }
         Command::Disable { package, all } => {
             let to_disable: Vec<String> = if all {
@@ -156,7 +156,7 @@ pub fn run() -> Result<()> {
                     None => bail!("Plugin {} not installed", p),
                     Some(p) => p.disable(&mut webapp),
                 })?;
-            info!("Plugins sucessfully disabled");
+            info!("Plugins successfully disabled");
         }
         Command::CheckConnection {} => repo.test_connection()?,
     }
