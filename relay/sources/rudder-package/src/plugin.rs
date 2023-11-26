@@ -11,7 +11,7 @@ use crate::{
     archive::{self, PackageScript, PackageScriptArg},
     cmd::CmdOutput,
     dependency::Dependencies,
-    versions, PACKAGES_FOLDER,
+    versions::{self, RudderVersion}, PACKAGES_FOLDER,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
@@ -86,7 +86,7 @@ Build-commit: {}",
 }
 
 impl Metadata {
-    pub fn is_compatible(&self, webapp_version: &str) -> bool {
+    pub fn is_compatible(&self, webapp_version: &RudderVersion) -> bool {
         self.version.rudder_version.is_compatible(webapp_version)
     }
 

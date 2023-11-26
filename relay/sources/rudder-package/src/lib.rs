@@ -88,13 +88,13 @@ pub fn run() -> Result<()> {
     let repo = Repository::new(&cfg, verifier)?;
     let webapp_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
     let mut webapp = Webapp::new(PathBuf::from(WEBAPP_XML_PATH), webapp_version);
-    let mut db = Database::read(PACKAGES_DATABASE_PATH)?;
+    let mut db = Database::read(Path::new(PACKAGES_DATABASE_PATH))?;
     let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
 
     match args.command {
         Command::Install { force, package } => package
             .into_iter()
-            .try_for_each(|p| action::install(force, p, &repo, &index, &mut webapp))?,
+            .try_for_each(|p| db.install(force, p, &repo,index.as_ref(), &mut webapp))?,
         Command::Uninstall { package: packages } => packages
             .into_iter()
             .try_for_each(|p| db.uninstall(&p, &mut webapp))?,
@@ -102,7 +102,7 @@ pub fn run() -> Result<()> {
             all,
             enabled,
             format,
-        } => ListOutput::new(all, enabled, &db, &index, &webapp)?.display(format)?,
+        } => ListOutput::new(all, enabled, &db, index.as_ref(), &webapp)?.display(format)?,
         Command::Show { package } => println!(
             "{}",
             db.plugins
@@ -126,9 +126,9 @@ pub fn run() -> Result<()> {
             if to_enable.is_empty() {
                 let backup_path = Path::new(TMP_PLUGINS_FOLDER).join("plugins_status.backup");
                 if save {
-                    db.save(&backup_path, &mut webapp)?
+                    db.enabled_plugins_save(&backup_path, &mut webapp)?
                 } else if restore {
-                    db.restore(&backup_path, &mut webapp)?
+                    db.enabled_plugins_restore(&backup_path, &mut webapp)?
                 } else {
                     bail!("No plugin provided")
                 }
@@ -157,56 +157,6 @@ pub fn run() -> Result<()> {
     // Restart if needed
     webapp.apply_changes()?;
     Ok(())
-}
-
-pub mod action {
-    use std::path::Path;
-
-    use anyhow::{anyhow, bail, Result};
-    use log::debug;
-
-    use crate::{
-        archive::Rpkg, repo_index::RepoIndex, repository::Repository,
-        webapp::Webapp, TMP_PLUGINS_FOLDER,
-    };
-
-    pub fn install(
-        force: bool,
-        package: String,
-        repository: &Repository,
-        index: &RepoIndex,
-        webapp: &mut Webapp,
-    ) -> Result<()> {
-        let rpkg_path = if Path::new(&package).exists() && package.ends_with(".rpkg") {
-            package
-        } else {
-            // Find compatible plugin if any
-            let to_dl_and_install = match index.get_compatible_plugin(&webapp.version, &package) {
-                    None => bail!("Could not find any compatible '{}' plugin with the current Rudder version in the configured repository.", package),
-                    Some(p) => {
-                        debug!("Found a compatible plugin in the repository:\n{:?}", p);
-                        p
-                    }
-                };
-            let dest = Path::new(TMP_PLUGINS_FOLDER).join(
-                Path::new(&to_dl_and_install.path)
-                    .file_name()
-                    .ok_or_else(|| {
-                        anyhow!(
-                            "Could not retrieve filename from path '{}'",
-                            to_dl_and_install.path
-                        )
-                    })?,
-            );
-            // Download rpkg
-            repository.download(&to_dl_and_install.path, &dest)?;
-            dest.as_path().display().to_string()
-        };
-        let rpkg = Rpkg::from_path(&rpkg_path)?;
-        rpkg.install(force, webapp)?;
-        Ok(())
-    }
-
 }
 
 #[cfg(test)]

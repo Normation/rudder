@@ -5,40 +5,65 @@ use std::{
     collections::HashMap,
     fs::{self, *},
     io::BufWriter,
-    path::{PathBuf, Path},
+    path::{Path, PathBuf},
 };
 
-use anyhow::{anyhow, Context, Result};
-use log::debug;
+use anyhow::{anyhow, bail, Context, Result};
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
 
 use super::archive::Rpkg;
 use crate::{
     archive::{PackageScript, PackageScriptArg},
     plugin,
+    repo_index::RepoIndex,
+    repository::Repository,
     webapp::Webapp,
-    PACKAGES_DATABASE_PATH, PACKAGES_FOLDER,
+    PACKAGES_FOLDER, TMP_PLUGINS_FOLDER,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Database {
+    #[serde(skip)]
+    path: PathBuf,
     pub plugins: HashMap<String, InstalledPlugin>,
 }
 
 impl Database {
-    pub fn read(path: &str) -> Result<Database> {
-        let data = std::fs::read_to_string(path)
-            .with_context(|| format!("Failed to read the installed plugin database in {}", path))?;
-        let database: Database = serde_json::from_str(&data)?;
-        Ok(database)
+    pub fn read(path: &Path) -> Result<Database> {
+        Ok(if path.exists() {
+            let data = std::fs::read_to_string(path).with_context(|| {
+                format!(
+                    "Failed to read the installed plugin database in {}",
+                    path.display()
+                )
+            })?;
+            let mut db: Database = serde_json::from_str(&data)?;
+            db.path = path.to_path_buf();
+            db
+        } else {
+            debug!("No database yet, using an empty one");
+            Self {
+                path: path.to_path_buf(),
+                plugins: HashMap::new(),
+            }
+        })
     }
 
-    pub fn write(path: &str, index: Database) -> Result<()> {
-        debug!("Updating the installed plugin database in '{}'", path);
-        let file = File::create(path)?;
+    pub fn insert(&mut self, k: String, v: InstalledPlugin) -> Result<()> {
+        self.plugins.insert(k,v);
+        self.write()
+    }
+
+    pub fn write(&mut self) -> Result<()> {
+        debug!("Updating the installed plugin database in '{}'", self.path.display());
+        let file = fs::OpenOptions::new()
+                .write(true)
+                .truncate(true)
+                .open(&self.path)?;
         let mut writer = BufWriter::new(file);
-        serde_json::to_writer_pretty(&mut writer, &index)
-            .with_context(|| format!("Failed to update the installed plugins database {}", path))?;
+        serde_json::to_writer_pretty(&mut writer, &self)
+            .with_context(|| format!("Failed to update the installed plugins database {}", self.path.display()))?;
         Ok(())
     }
 
@@ -54,6 +79,50 @@ impl Database {
         self.plugins
             .values()
             .find(|p| p.metadata.jar_files.contains(jar))
+    }
+
+    pub fn install(
+        &mut self,
+        force: bool,
+        package: String,
+        repository: &Repository,
+        index: Option<&RepoIndex>,
+        webapp: &mut Webapp,
+    ) -> Result<()> {
+        let rpkg_path = if Path::new(&package).exists() && package.ends_with(".rpkg") {
+            package
+        } else {
+            // Find compatible plugin if any
+            let to_dl_and_install = match index.and_then(|i|i.get_compatible_plugin(&webapp.version, &package)) {
+                    None => bail!("Could not find any compatible '{}' plugin with the current Rudder version in the configured repository.", package),
+                    Some(p) => {
+                        debug!("Found a compatible plugin in the repository:\n{:?}", p);
+                        p
+                    }
+                };
+            let dest = Path::new(TMP_PLUGINS_FOLDER).join(
+                Path::new(&to_dl_and_install.path)
+                    .file_name()
+                    .ok_or_else(|| {
+                        anyhow!(
+                            "Could not retrieve filename from path '{}'",
+                            to_dl_and_install.path
+                        )
+                    })?,
+            );
+            // Download rpkg
+            repository.download(&to_dl_and_install.path, &dest)?;
+            dest.as_path().display().to_string()
+        };
+        let rpkg = Rpkg::from_path(&rpkg_path)?;
+        if self.plugins.get(&rpkg.metadata.name).is_some() {
+            info!(
+                "Plugin '{}' already installed, uprading",
+                rpkg.metadata.name
+            );
+        }
+        rpkg.install(force, self, webapp)?;
+        Ok(())
     }
 
     pub fn uninstall(&mut self, plugin_name: &str, webapp: &mut Webapp) -> Result<()> {
@@ -89,11 +158,10 @@ impl Database {
         )?;
         // Update the database
         self.plugins.remove(plugin_name);
-        Database::write(PACKAGES_DATABASE_PATH, self.to_owned())?;
-        Ok(())
+        self.write()
     }
 
-    pub fn save(&self, backup_path: &Path, webapp: &mut Webapp) -> Result<()> {
+    pub fn enabled_plugins_save(&self, backup_path: &Path, webapp: &mut Webapp) -> Result<()> {
         let saved = webapp
             .jars()?
             .iter()
@@ -106,7 +174,7 @@ impl Database {
         Ok(())
     }
 
-    pub fn restore(&self, backup_path: &Path, webapp: &mut Webapp) -> Result<()> {
+    pub fn enabled_plugins_restore(&self, backup_path: &Path, webapp: &mut Webapp) -> Result<()> {
         for line in read_to_string(backup_path)?.lines() {
             let plugin_name = line.trim().split(' ').nth(1);
             match plugin_name {
@@ -119,7 +187,6 @@ impl Database {
         }
         Ok(())
     }
-
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
@@ -195,7 +262,7 @@ mod tests {
     fn test_adding_a_plugin_to_db() {
         use crate::versions;
 
-        let mut a = Database::read("./tests/database/plugin_database_update_sample.json").unwrap();
+        let mut a = Database::read(Path::new("./tests/database/plugin_database_update_sample.json")).unwrap();
         let addon = InstalledPlugin {
             files: vec![String::from("/tmp/my_path")],
             metadata: plugin::Metadata {
@@ -213,7 +280,7 @@ mod tests {
                 jar_files: vec![],
             },
         };
-        a.plugins.insert(addon.metadata.name.clone(), addon);
+        a.insert(addon.metadata.name.clone(), addon).unwrap();
         let dir = TempDir::new().unwrap();
         let target_path = dir
             .path()
@@ -221,7 +288,6 @@ mod tests {
             .into_os_string()
             .into_string()
             .unwrap();
-        let _ = Database::write(&target_path.clone(), a);
         let reference: serde_json::Value = serde_json::from_str(
             &read_to_string("./tests/database/plugin_database_update_sample.json.expected")
                 .unwrap(),

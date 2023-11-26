@@ -16,9 +16,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     database::{Database, InstalledPlugin},
     plugin::Metadata,
-    versions::RudderVersion,
     webapp::Webapp,
-    PACKAGES_DATABASE_PATH, PACKAGES_FOLDER, RUDDER_VERSION_PATH,
+    PACKAGES_FOLDER,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
@@ -73,17 +72,16 @@ impl fmt::Display for PackageScriptArg {
 
 #[derive(Clone)]
 pub struct Rpkg {
-    pub path: String,
+    pub path: PathBuf,
     pub metadata: Metadata,
 }
 
 impl Rpkg {
     pub fn from_path(path: &str) -> Result<Rpkg> {
-        let r = Rpkg {
-            path: String::from(path),
-            metadata: read_metadata(path).unwrap(),
-        };
-        Ok(r)
+        Ok(Self {
+            path: PathBuf::from(path),
+            metadata: read_metadata(path)?,
+        })
     }
 
     fn get_txz_dst(&self, txz_name: &str) -> PathBuf {
@@ -184,23 +182,21 @@ impl Rpkg {
         Ok(())
     }
 
-    pub fn is_installed(&self) -> Result<bool> {
-        let current_database = Database::read(PACKAGES_DATABASE_PATH)?;
-        Ok(current_database.is_installed(self.to_owned()))
+    pub fn is_installed(&self, db: &Database) -> Result<bool> {
+        Ok(db.is_installed(self.to_owned()))
     }
 
-    pub fn install(&self, force: bool, webapp: &mut Webapp) -> Result<()> {
-        debug!("Installing rpkg '{}'...", self.path);
+    pub fn install(&self, force: bool, db: &mut Database, webapp: &mut Webapp) -> Result<()> {
+        debug!("Installing rpkg '{}'...", self.path.display());
         // Verify webapp compatibility
-        let webapp_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
         if !(force
             || self
                 .metadata
                 .version
                 .rudder_version
-                .is_compatible(&webapp_version.to_string()))
+                .is_compatible(&webapp.version))
         {
-            bail!("This plugin was built for a Rudder '{}', it is incompatible with your current webapp version '{}'.", self.metadata.version.rudder_version, webapp_version)
+            bail!("This plugin was built for a Rudder '{}', it is incompatible with your current webapp version '{}'.", self.metadata.version.rudder_version, webapp.version)
         }
         // Verify that dependencies are installed
         if let Some(d) = &self.metadata.depends {
@@ -211,7 +207,7 @@ impl Rpkg {
         // Extract package scripts
         self.unpack_embedded_txz("script.txz", PathBuf::from(PACKAGES_FOLDER))?;
         // Run preinst if any
-        let install_or_upgrade: PackageScriptArg = PackageScriptArg::Install;
+        let install_or_upgrade= PackageScriptArg::Install;
         self.metadata
             .run_package_script(PackageScript::Preinst, install_or_upgrade)?;
         // Extract archive content
@@ -221,15 +217,13 @@ impl Rpkg {
         }
         // Update the plugin index file to track installed files
         // We need to add the content section to the metadata to do so
-        let mut db = Database::read(PACKAGES_DATABASE_PATH)?;
-        db.plugins.insert(
+        db.insert(
             self.metadata.name.clone(),
             InstalledPlugin {
                 files: self.get_archive_installed_files()?,
                 metadata: self.metadata.clone(),
             },
-        );
-        Database::write(PACKAGES_DATABASE_PATH, db)?;
+        )?;
         // Run postinst if any
         let install_or_upgrade = PackageScriptArg::Install;
         self.metadata

@@ -125,11 +125,8 @@ pub struct RudderVersion {
 }
 
 impl RudderVersion {
-    pub fn is_compatible(&self, webapp_version: &str) -> bool {
-        match RudderVersion::from_str(webapp_version) {
-            Ok(w) => *self == w,
-            Err(_) => false,
-        }
+    pub fn is_compatible(&self, webapp_version: &RudderVersion) -> bool {
+        self == webapp_version
     }
 
     pub fn from_path(path: &str) -> Result<Self, Error> {
@@ -439,7 +436,7 @@ mod tests {
     ) {
         let m = ArchiveVersion::from_str(metadata_version).unwrap();
         assert_eq!(
-            m.rudder_version.clone().is_compatible(webapp_version),
+            m.rudder_version.clone().is_compatible(&RudderVersion::from_str(webapp_version).unwrap()),
             is_compatible,
             "Unexpected compatibility checkfor webapp version '{}' and metadata version {:?}'",
             webapp_version,

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use std::fs;
+use std::{fs, path::Path};
 
 use serde::{Deserialize, Serialize};
 
@@ -11,10 +11,16 @@ use crate::{plugin, versions::RudderVersion};
 pub struct RepoIndex(Vec<Plugin>);
 
 impl RepoIndex {
-    pub fn from_path(path: &str) -> Result<Self, anyhow::Error> {
-        let data = fs::read_to_string(path)?;
-        let index: RepoIndex = serde_json::from_str(&data)?;
-        Ok(index)
+    /// Try to read the index. We need to handle the case where the server has not access
+    /// to the repository and work offline.
+    pub fn from_path(path: &str) -> Result<Option<Self>, anyhow::Error> {
+        if Path::new(path).exists() {
+            let data = fs::read_to_string(path)?;
+            let index: RepoIndex = serde_json::from_str(&data)?;
+            Ok(Some(index))
+        } else {
+            Ok(None)
+        }
     }
 
     pub fn inner(&self) -> &[Plugin] {
@@ -25,10 +31,7 @@ impl RepoIndex {
         self.clone()
             .0
             .into_iter()
-            .filter(|x| {
-                let distant_package_webapp_version = x.metadata.version.rudder_version.to_string();
-                webapp_version.is_compatible(&distant_package_webapp_version)
-            })
+            .filter(|x| webapp_version.is_compatible(&x.metadata.version.rudder_version))
             .collect()
     }
 
@@ -68,7 +71,7 @@ mod tests {
 
     #[test]
     fn test_plugin_index_parsing() {
-        let index: RepoIndex = RepoIndex::from_path("./tests/repo_index.json").unwrap();
+        let index: RepoIndex = RepoIndex::from_path("./tests/repo_index.json").unwrap().unwrap();
         let expected = RepoIndex(
       vec![
         Plugin {

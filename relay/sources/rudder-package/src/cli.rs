@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
+use std::fmt::Display;
+
 use clap::{Parser, Subcommand, ValueEnum};
 
 use crate::CONFIG_PATH;
@@ -10,6 +12,16 @@ pub enum Format {
     Json,
     #[default]
     Human,
+}
+
+impl Display for Format {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,"{}",
+        match self {
+            Self::Json => "json",
+            Self::Human => "human",
+        })
+    }
 }
 
 #[derive(Parser, Debug)]
@@ -52,7 +64,7 @@ pub enum Command {
         #[clap(long, short, help = "Show enabled plugins")]
         enabled: bool,
 
-        #[clap(long, short, help = "Output format")]
+        #[clap(long, short, help = "Output format", default_value_t = Format::Human)]
         format: Format,
     },
     /// Show detailed information about a plugin

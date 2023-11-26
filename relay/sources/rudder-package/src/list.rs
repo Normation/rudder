@@ -77,7 +77,7 @@ impl ListOutput {
         show_all: bool,
         show_only_enabled: bool,
         db: &Database,
-        index: &RepoIndex,
+        index: Option<&RepoIndex>,
         webapp: &Webapp,
     ) -> Result<Self> {
         let mut plugins: Vec<ListEntry> = vec![];
@@ -119,9 +119,11 @@ impl ListOutput {
         }
 
         if show_all {
-            for p in index.inner().iter() {
-                //dbg!(&p.metadata.name);
-                //dbg!(&p.metadata.version);
+            if let Some(i) = index {
+                for p in i.inner().iter() {
+                    //dbg!(&p.metadata.name);
+                    //dbg!(&p.metadata.version);
+                }
             }
         }
 
@@ -142,12 +144,14 @@ impl ListOutput {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::path::{PathBuf, Path};
 
     use crate::{
         cli::Format, database::Database, repo_index::RepoIndex, versions::RudderVersion,
         webapp::Webapp,
     };
+
+    use super::ListOutput;
 
     #[test]
     fn it_lists_plugins() {
@@ -155,10 +159,12 @@ mod tests {
             PathBuf::from("tests/webapp_xml/example.xml"),
             RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap(),
         );
-        let r = RepoIndex::from_path("./tests/repo_index.json").unwrap();
-        let d = Database::read("./tests/database/plugin_database_update_sample.json").unwrap();
-
-        let out = super::ListOutput::new(true, false, &d, &r, &w).unwrap();
+        let r =RepoIndex::from_path("./tests/repo_index.json").unwrap().unwrap();
+        let d = Database::read(Path::new(
+            "./tests/database/plugin_database_update_sample.json",
+        ))
+        .unwrap();
+        let out = ListOutput::new(true, false, &d, Some(&r), &w).unwrap();
         out.display(Format::Human).unwrap();
     }
 }
