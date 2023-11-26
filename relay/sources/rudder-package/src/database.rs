@@ -9,7 +9,7 @@ use std::{
 };
 
 use anyhow::{anyhow, bail, Context, Result};
-use log::{debug, info, warn};
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
 
 use super::archive::Rpkg;
@@ -176,7 +176,7 @@ impl Database {
         // Update the database
         self.plugins.remove(&plugin_name);
         self.write()?;
-        info!("Plugin {} sucessfully uninstalled", short_name);
+        info!("Plugin {} successfully uninstalled", short_name);
         Ok(())
     }
 

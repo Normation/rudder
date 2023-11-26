@@ -19,7 +19,8 @@ use tempfile::tempdir;
 use crate::{
     config::{Configuration, Credentials},
     signature::{SignatureVerifier, VerificationSuccess},
-    REPOSITORY_INDEX_PATH, RUDDER_VERSION_PATH, webapp::Webapp,
+    webapp::Webapp,
+    REPOSITORY_INDEX_PATH,
 };
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);

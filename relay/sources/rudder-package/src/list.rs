@@ -94,9 +94,7 @@ impl ListOutput {
             .collect();
 
         for p in db.plugins.values() {
-            let name = p
-                .metadata.short_name()
-                .to_string();
+            let name = p.metadata.short_name().to_string();
             let enabled = match p.metadata.plugin_type() {
                 PluginType::Standalone => true,
                 PluginType::Web => enabled_plugins.contains(&p.metadata.name),
@@ -117,7 +115,7 @@ impl ListOutput {
 
         if show_all {
             if let Some(i) = index {
-                for p in i.inner().iter() {
+                for _p in i.inner().iter() {
                     //dbg!(&p.metadata.name);
                     //dbg!(&p.metadata.version);
                 }
@@ -143,12 +141,11 @@ impl ListOutput {
 mod tests {
     use std::path::{Path, PathBuf};
 
+    use super::ListOutput;
     use crate::{
         cli::Format, database::Database, repo_index::RepoIndex, versions::RudderVersion,
         webapp::Webapp,
     };
-
-    use super::ListOutput;
 
     #[test]
     fn it_lists_plugins() {

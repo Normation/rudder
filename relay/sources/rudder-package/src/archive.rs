@@ -156,7 +156,8 @@ impl Rpkg {
     fn unpack_embedded_txz(&self, txz_name: &str, dst_path: PathBuf) -> Result<(), anyhow::Error> {
         debug!(
             "Extracting archive '{}' in folder '{}'",
-            txz_name, dst_path.display()
+            txz_name,
+            dst_path.display()
         );
         // Loop over ar archive files
         let mut archive = Archive::new(File::open(self.path.clone()).unwrap());
@@ -231,7 +232,10 @@ impl Rpkg {
         // Update the webapp xml file if the plugin contains one or more jar file
         debug!("Enabling the associated jars if any");
         webapp.enable_jars(&self.metadata.jar_files)?;
-        info!("Plugin {} was sucessfully installed", self.metadata.short_name());
+        info!(
+            "Plugin {} was successfully installed",
+            self.metadata.short_name()
+        );
         Ok(())
     }
 }

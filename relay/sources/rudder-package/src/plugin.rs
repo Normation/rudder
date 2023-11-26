@@ -33,7 +33,7 @@ pub struct Metadata {
     pub jar_files: Vec<String>,
 }
 
-/// Not present in metdata but computed from them
+/// Not present in metadata but computed from them
 ///
 /// Allows exposing to the user if the plugin will appear in the interface or not.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Copy, Clone)]
@@ -110,7 +110,11 @@ impl Metadata {
     ) -> Result<(), anyhow::Error> {
         debug!(
             "Running package script '{}' with args '{}' for plugin '{}' in version '{}-{}'...",
-            script, arg, self.short_name(), self.version.rudder_version, self.version.plugin_version
+            script,
+            arg,
+            self.short_name(),
+            self.version.rudder_version,
+            self.version.plugin_version
         );
         let package_script_path = Path::new(PACKAGES_FOLDER)
             .join(self.name.clone())
