@@ -140,7 +140,7 @@ impl RudderVersion {
             Some(c) => c,
         };
         debug!(
-            "Raw Rudder version read from '{}' file: '{}'.",
+            "Rudder version read from '{}' file: '{}'.",
             path, &caps["raw_rudder_version"]
         );
         RudderVersion::from_str(&caps["raw_rudder_version"])

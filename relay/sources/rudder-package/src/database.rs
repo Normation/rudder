@@ -9,7 +9,7 @@ use std::{
 };
 
 use anyhow::{anyhow, bail, Context, Result};
-use log::{debug, info};
+use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 
 use super::archive::Rpkg;
@@ -126,8 +126,8 @@ impl Database {
         let rpkg = Rpkg::from_path(&rpkg_path)?;
         if self.plugins.get(&rpkg.metadata.name).is_some() {
             info!(
-                "Plugin '{}' already installed, uprading",
-                rpkg.metadata.name
+                "Plugin {} already installed, upgrading",
+                rpkg.metadata.short_name()
             );
         }
         rpkg.install(force, self, webapp)?;
@@ -141,16 +141,17 @@ impl Database {
         } else {
             plugin_name.to_owned()
         };
+        let short_name = plugin_name.strip_prefix("rudder-plugin-").unwrap();
         // Return Ok if not installed
         if !self.plugins.contains_key(&plugin_name) {
-            debug!("Plugin {} is not installed.", plugin_name);
+            info!("Plugin {} is not installed.", short_name);
             return Ok(());
         }
-        debug!("Uninstalling plugin {}", plugin_name);
+        debug!("Uninstalling plugin {}", short_name);
         // Disable the jar files if any
         let installed_plugin = self.plugins.get(&plugin_name).ok_or(anyhow!(
             "Could not extract data for plugin {} in the database",
-            plugin_name
+            short_name
         ))?;
         installed_plugin.disable(webapp)?;
         installed_plugin
@@ -164,12 +165,20 @@ impl Database {
             .metadata
             .run_package_script(PackageScript::Postrm, PackageScriptArg::None)?;
         // Remove associated package scripts and plugin folder
-        fs::remove_dir_all(
+        if let Err(e) = fs::remove_dir_all(
             PathBuf::from(PACKAGES_FOLDER).join(installed_plugin.metadata.name.clone()),
-        )?;
+        ) {
+            warn!(
+                "Could not remove {} plugin folder: {}",
+                short_name,
+                e
+            );
+        }
         // Update the database
         self.plugins.remove(&plugin_name);
-        self.write()
+        self.write()?;
+        info!("Plugin {} sucessfully uninstalled", short_name);
+        Ok(())
     }
 
     pub fn enabled_plugins_save(&self, backup_path: &Path, webapp: &mut Webapp) -> Result<()> {
@@ -212,7 +221,7 @@ impl InstalledPlugin {
     pub fn disable(&self, webapp: &mut Webapp) -> Result<()> {
         debug!("Disabling plugin {}", self.metadata.name);
         if self.metadata.jar_files.is_empty() {
-            println!("Plugin {} does not support the enable/disable feature, it will always be enabled if installed.", self.metadata.name);
+            debug!("Plugin {} does not support the enable/disable feature, it will always be enabled if installed.", self.metadata.name);
             Ok(())
         } else {
             webapp.disable_jars(&self.metadata.jar_files)
@@ -233,10 +242,16 @@ impl InstalledPlugin {
         self.files.clone().into_iter().try_for_each(|f| {
             let m = PathBuf::from(f.clone());
             if m.is_dir() {
-                debug!("Removing file '{}'", f);
-                fs::remove_dir(f).map_err(anyhow::Error::from)
+                let is_empty = m.read_dir()?.next().is_none();
+                if is_empty {
+                    debug!("Removing folder '{}'", f);
+                    fs::remove_dir(f).map_err(anyhow::Error::from)
+                } else {
+                    debug!("Not removing folder '{}' as it's not empty", f);
+                    Ok(())
+                }
             } else {
-                debug!("Removing folder '{}' if empty", f);
+                debug!("Removing file '{}'", f);
                 fs::remove_file(f).map_err(anyhow::Error::from)
             }
         })
@@ -250,7 +265,6 @@ mod tests {
     use ::std::fs::read_to_string;
     use assert_json_diff::assert_json_eq;
     use pretty_assertions::assert_eq;
-    use tempfile::TempDir;
 
     use super::*;
     use crate::archive;

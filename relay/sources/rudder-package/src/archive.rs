@@ -10,7 +10,7 @@ use std::{
 
 use anyhow::{anyhow, bail, Context, Ok, Result};
 use ar::Archive;
-use log::debug;
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -187,7 +187,7 @@ impl Rpkg {
     }
 
     pub fn install(&self, force: bool, db: &mut Database, webapp: &mut Webapp) -> Result<()> {
-        debug!("Installing rpkg '{}'...", self.path.display());
+        info!("Installing rpkg '{}'...", self.path.display());
         // Verify webapp compatibility
         if !(force
             || self
@@ -231,8 +231,7 @@ impl Rpkg {
         // Update the webapp xml file if the plugin contains one or more jar file
         debug!("Enabling the associated jars if any");
         webapp.enable_jars(&self.metadata.jar_files)?;
-        // Restarting webapp
-        debug!("Install completed");
+        info!("Plugin {} was sucessfully installed", self.metadata.short_name());
         Ok(())
     }
 }

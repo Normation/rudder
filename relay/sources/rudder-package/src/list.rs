@@ -95,10 +95,7 @@ impl ListOutput {
 
         for p in db.plugins.values() {
             let name = p
-                .metadata
-                .name
-                .strip_prefix("rudder-plugin-")
-                .unwrap()
+                .metadata.short_name()
                 .to_string();
             let enabled = match p.metadata.plugin_type() {
                 PluginType::Standalone => true,

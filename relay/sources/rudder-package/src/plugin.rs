@@ -99,6 +99,10 @@ impl Metadata {
         }
     }
 
+    pub fn short_name(&self) -> &str {
+        self.name.strip_prefix("rudder-plugin-").unwrap()
+    }
+
     pub fn run_package_script(
         &self,
         script: PackageScript,
@@ -106,7 +110,7 @@ impl Metadata {
     ) -> Result<(), anyhow::Error> {
         debug!(
             "Running package script '{}' with args '{}' for plugin '{}' in version '{}-{}'...",
-            script, arg, self.name, self.version.rudder_version, self.version.plugin_version
+            script, arg, self.short_name(), self.version.rudder_version, self.version.plugin_version
         );
         let package_script_path = Path::new(PACKAGES_FOLDER)
             .join(self.name.clone())
