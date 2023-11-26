@@ -49,6 +49,8 @@ import com.normation.rudder.Role.NamedCustom
 import com.normation.rudder.RudderRoles
 import com.normation.rudder.UncheckedCustomRole
 import com.normation.rudder.api.ApiAclElement
+import com.normation.rudder.facts.nodes.NodeSecurityContext
+import com.normation.rudder.facts.nodes.Tenant
 import com.normation.rudder.rest.AuthorizationApiMapping
 import com.normation.rudder.rest.RoleApiMapping
 import com.normation.zio._
@@ -58,6 +60,7 @@ import org.specs2.runner.JUnitRunner
 import org.specs2.specification.core.Fragments
 import scala.annotation.nowarn
 import scala.xml.Elem
+import zio.Chunk
 
 /*
  * Test hash algo for user password.
@@ -225,6 +228,55 @@ class RudderUserDetailsTest extends Specification {
           )
         )
       }
+    }
+  }
+
+  "In definition of tenants, we" should {
+    val tenantXML_1 = <authentication hash="sha512" case-sensitivity="true">
+      <!-- single tenants -->
+      <user name="user_single" role="administrator" tenants="zoneA"/>
+      <!-- multiple tenants -->
+      <user name="user_multi" role="administrator" tenants="zoneA, zoneB"/>
+      <!-- compat: access to all -->
+      <user name="user_all_compat" role="administrator" />
+      <!-- explicit access to all + check merge -->
+      <user name="user_all_explicit" role="administrator" tenants="*,zoneA" />
+      <!-- no tenant: none -->
+      <user name="user_empty_list" role="administrator" tenants="" />
+      <!-- explicit none, win over everything -->
+      <user name="user_none_explicit" role="administrator" tenants="-, *, zoneA"/>
+      <!-- non alnum are ignored -->
+      <user name="user_ascii" role="administrator" tenants="zoneA, @reza\,,"/>
+    </authentication>
+
+    val userDetailList = getUserDetailList(tenantXML_1, "tenantXML_1")
+
+    "be able to define one tenants" in {
+      userDetailList.users("user_single").nodePerms === NodeSecurityContext.ByTenants(Chunk(Tenant("zoneA")))
+    }
+
+    "be able to define a list of tenants" in {
+      userDetailList.users("user_multi").nodePerms === NodeSecurityContext.ByTenants(Chunk(Tenant("zoneA"), Tenant("zoneB")))
+    }
+
+    "have no tenants attribute means ALL for compat reason" in {
+      userDetailList.users("user_all_compat").nodePerms === NodeSecurityContext.All
+    }
+
+    "have explicit '*' means ALL" in {
+      userDetailList.users("user_all_explicit").nodePerms === NodeSecurityContext.All
+    }
+
+    "have an empty list means NONE" in {
+      userDetailList.users("user_empty_list").nodePerms === NodeSecurityContext.None
+    }
+
+    "have explicit '-' means NONE" in {
+      userDetailList.users("user_none_explicit").nodePerms === NodeSecurityContext.None
+    }
+
+    "only have access to sane ascii identifier" in {
+      userDetailList.users("user_ascii").nodePerms === NodeSecurityContext.ByTenants(Chunk(Tenant("zoneA")))
     }
   }
 
