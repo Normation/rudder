@@ -60,8 +60,10 @@ impl Database {
             "Updating the installed plugin database in '{}'",
             self.path.display()
         );
+        create_dir_all(self.path.parent().unwrap())?;
         let file = fs::OpenOptions::new()
             .write(true)
+            .create(true)
             .truncate(true)
             .open(&self.path)?;
         let mut writer = BufWriter::new(file);
@@ -269,8 +271,13 @@ mod tests {
     fn test_adding_a_plugin_to_db() {
         use crate::versions;
 
-        let mut a = Database::read(Path::new(
+        fs::copy(
             "./tests/database/plugin_database_update_sample.json",
+            "./tests/database/plugin_database_update_sample.json.test",
+        )
+        .unwrap();
+        let mut a = Database::read(Path::new(
+            "./tests/database/plugin_database_update_sample.json.test",
         ))
         .unwrap();
         let addon = InstalledPlugin {
@@ -291,20 +298,14 @@ mod tests {
             },
         };
         a.insert(addon.metadata.name.clone(), addon).unwrap();
-        let dir = TempDir::new().unwrap();
-        let target_path = dir
-            .path()
-            .join("target.json")
-            .into_os_string()
-            .into_string()
-            .unwrap();
         let reference: serde_json::Value = serde_json::from_str(
             &read_to_string("./tests/database/plugin_database_update_sample.json.expected")
                 .unwrap(),
         )
         .unwrap();
         let generated: serde_json::Value =
-            serde_json::from_str(&read_to_string(target_path).unwrap()).unwrap();
+            serde_json::from_str(&read_to_string("./tests/database/plugin_database_update_sample.json.test").unwrap()).unwrap();
+        fs::remove_file("./tests/database/plugin_database_update_sample.json.test").unwrap();
         assert_json_eq!(reference, generated);
     }
 }

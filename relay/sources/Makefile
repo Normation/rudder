@@ -118,9 +118,10 @@ install: build
 	# rudder-package new implementation
 	install -m 755 rudder-package/target/release/rudder-package $(DESTDIR)/opt/rudder/bin/rudder-package
 	install -m 755 rudder-package/tools/rudder_plugins_key.gpg $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.gpg
+	install -m 755 rudder-package/tools/rudder-package.sh $(DESTDIR)/opt/rudder/share/commands/package
 	install -m 755 rudder-pkg/rudder-pkg.conf $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder-pkg.conf
 	# rudder-pkg kept as backup for now
-	install -m 755 rudder-pkg/rudder-pkg $(DESTDIR)/opt/rudder/share/commands/package
+	install -m 755 rudder-pkg/rudder-pkg $(DESTDIR)/opt/rudder/share/python/rudder-pkg/rudder-pkg
 	ln -ns ../share/commands/package $(DESTDIR)/opt/rudder/bin/rudder-pkg
 	install -m 755 rudder-pkg/rudder_plugins_key.pub $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.pub
 	install -m 644 autocomplete/rudder-pkg.sh $(DESTDIR)/etc/bash_completion.d/
