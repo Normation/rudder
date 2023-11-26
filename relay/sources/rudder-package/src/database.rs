@@ -51,19 +51,26 @@ impl Database {
     }
 
     pub fn insert(&mut self, k: String, v: InstalledPlugin) -> Result<()> {
-        self.plugins.insert(k,v);
+        self.plugins.insert(k, v);
         self.write()
     }
 
     pub fn write(&mut self) -> Result<()> {
-        debug!("Updating the installed plugin database in '{}'", self.path.display());
+        debug!(
+            "Updating the installed plugin database in '{}'",
+            self.path.display()
+        );
         let file = fs::OpenOptions::new()
-                .write(true)
-                .truncate(true)
-                .open(&self.path)?;
+            .write(true)
+            .truncate(true)
+            .open(&self.path)?;
         let mut writer = BufWriter::new(file);
-        serde_json::to_writer_pretty(&mut writer, &self)
-            .with_context(|| format!("Failed to update the installed plugins database {}", self.path.display()))?;
+        serde_json::to_writer_pretty(&mut writer, &self).with_context(|| {
+            format!(
+                "Failed to update the installed plugins database {}",
+                self.path.display()
+            )
+        })?;
         Ok(())
     }
 
@@ -262,7 +269,10 @@ mod tests {
     fn test_adding_a_plugin_to_db() {
         use crate::versions;
 
-        let mut a = Database::read(Path::new("./tests/database/plugin_database_update_sample.json")).unwrap();
+        let mut a = Database::read(Path::new(
+            "./tests/database/plugin_database_update_sample.json",
+        ))
+        .unwrap();
         let addon = InstalledPlugin {
             files: vec![String::from("/tmp/my_path")],
             metadata: plugin::Metadata {

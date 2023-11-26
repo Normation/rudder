@@ -207,7 +207,7 @@ impl Rpkg {
         // Extract package scripts
         self.unpack_embedded_txz("script.txz", PathBuf::from(PACKAGES_FOLDER))?;
         // Run preinst if any
-        let install_or_upgrade= PackageScriptArg::Install;
+        let install_or_upgrade = PackageScriptArg::Install;
         self.metadata
             .run_package_script(PackageScript::Preinst, install_or_upgrade)?;
         // Extract archive content

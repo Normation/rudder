@@ -71,7 +71,9 @@ mod tests {
 
     #[test]
     fn test_plugin_index_parsing() {
-        let index: RepoIndex = RepoIndex::from_path("./tests/repo_index.json").unwrap().unwrap();
+        let index: RepoIndex = RepoIndex::from_path("./tests/repo_index.json")
+            .unwrap()
+            .unwrap();
         let expected = RepoIndex(
       vec![
         Plugin {

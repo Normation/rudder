@@ -436,7 +436,9 @@ mod tests {
     ) {
         let m = ArchiveVersion::from_str(metadata_version).unwrap();
         assert_eq!(
-            m.rudder_version.clone().is_compatible(&RudderVersion::from_str(webapp_version).unwrap()),
+            m.rudder_version
+                .clone()
+                .is_compatible(&RudderVersion::from_str(webapp_version).unwrap()),
             is_compatible,
             "Unexpected compatibility checkfor webapp version '{}' and metadata version {:?}'",
             webapp_version,

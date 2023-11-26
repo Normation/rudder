@@ -94,7 +94,7 @@ pub fn run() -> Result<()> {
     match args.command {
         Command::Install { force, package } => package
             .into_iter()
-            .try_for_each(|p| db.install(force, p, &repo,index.as_ref(), &mut webapp))?,
+            .try_for_each(|p| db.install(force, p, &repo, index.as_ref(), &mut webapp))?,
         Command::Uninstall { package: packages } => packages
             .into_iter()
             .try_for_each(|p| db.uninstall(&p, &mut webapp))?,

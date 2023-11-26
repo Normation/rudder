@@ -144,7 +144,7 @@ impl ListOutput {
 
 #[cfg(test)]
 mod tests {
-    use std::path::{PathBuf, Path};
+    use std::path::{Path, PathBuf};
 
     use crate::{
         cli::Format, database::Database, repo_index::RepoIndex, versions::RudderVersion,
@@ -159,7 +159,9 @@ mod tests {
             PathBuf::from("tests/webapp_xml/example.xml"),
             RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap(),
         );
-        let r =RepoIndex::from_path("./tests/repo_index.json").unwrap().unwrap();
+        let r = RepoIndex::from_path("./tests/repo_index.json")
+            .unwrap()
+            .unwrap();
         let d = Database::read(Path::new(
             "./tests/database/plugin_database_update_sample.json",
         ))

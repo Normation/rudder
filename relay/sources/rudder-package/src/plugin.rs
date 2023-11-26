@@ -11,7 +11,8 @@ use crate::{
     archive::{self, PackageScript, PackageScriptArg},
     cmd::CmdOutput,
     dependency::Dependencies,
-    versions::{self, RudderVersion}, PACKAGES_FOLDER,
+    versions::{self, RudderVersion},
+    PACKAGES_FOLDER,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
