@@ -136,17 +136,19 @@ impl Database {
 
     pub fn uninstall(&mut self, plugin_name: &str, webapp: &mut Webapp) -> Result<()> {
         // Force to use plugin long qualified name
-        if !plugin_name.starts_with("rudder-plugin-") {
-            plugin_name.to_owned().insert_str(0, "rudder-plugin-{}")
+        let plugin_name = if !plugin_name.starts_with("rudder-plugin-") {
+            format!("rudder-plugin-{plugin_name}")
+        } else {
+            plugin_name.to_owned()
         };
         // Return Ok if not installed
-        if !self.plugins.contains_key(plugin_name) {
+        if !self.plugins.contains_key(&plugin_name) {
             debug!("Plugin {} is not installed.", plugin_name);
             return Ok(());
         }
         debug!("Uninstalling plugin {}", plugin_name);
         // Disable the jar files if any
-        let installed_plugin = self.plugins.get(plugin_name).ok_or(anyhow!(
+        let installed_plugin = self.plugins.get(&plugin_name).ok_or(anyhow!(
             "Could not extract data for plugin {} in the database",
             plugin_name
         ))?;
@@ -166,7 +168,7 @@ impl Database {
             PathBuf::from(PACKAGES_FOLDER).join(installed_plugin.metadata.name.clone()),
         )?;
         // Update the database
-        self.plugins.remove(plugin_name);
+        self.plugins.remove(&plugin_name);
         self.write()
     }
 
@@ -303,8 +305,10 @@ mod tests {
                 .unwrap(),
         )
         .unwrap();
-        let generated: serde_json::Value =
-            serde_json::from_str(&read_to_string("./tests/database/plugin_database_update_sample.json.test").unwrap()).unwrap();
+        let generated: serde_json::Value = serde_json::from_str(
+            &read_to_string("./tests/database/plugin_database_update_sample.json.test").unwrap(),
+        )
+        .unwrap();
         fs::remove_file("./tests/database/plugin_database_update_sample.json.test").unwrap();
         assert_json_eq!(reference, generated);
     }
