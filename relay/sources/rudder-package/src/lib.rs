@@ -114,7 +114,10 @@ pub fn run() -> Result<()> {
                 )
             }
         }
-        Command::Update {} => repo.update(&webapp)?,
+        Command::Update {} => {
+            repo.update(&webapp)?;
+            info!("Index and licenses successfully updated")
+        }
         Command::Enable {
             package,
             all,
@@ -131,8 +134,10 @@ pub fn run() -> Result<()> {
                 let backup_path = Path::new(TMP_PLUGINS_FOLDER).join("plugins_status.backup");
                 if save {
                     db.enabled_plugins_save(&backup_path, &mut webapp)?;
+                    info!("Plugins status successfully saved");
                 } else if restore {
                     db.enabled_plugins_restore(&backup_path, &mut webapp)?;
+                    info!("Plugins status successfully restored");
                 } else {
                     bail!("No plugin provided");
                 }
@@ -141,8 +146,8 @@ pub fn run() -> Result<()> {
                     None => bail!("Plugin {} not installed", p),
                     Some(p) => p.enable(&mut webapp),
                 })?;
+                info!("Plugins successfully enabled");
             }
-            info!("Plugins successfully enabled");
         }
         Command::Disable { package, all } => {
             let to_disable: Vec<String> = if all {

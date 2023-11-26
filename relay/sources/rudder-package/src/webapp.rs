@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use spinners::{Spinner, Spinners};
 use std::{
     collections::HashSet,
     fs,
@@ -17,6 +16,7 @@ use quick_xml::{
     reader::Reader,
     Writer,
 };
+use spinners::{Spinner, Spinners};
 
 use crate::{cmd::CmdOutput, versions::RudderVersion};
 
@@ -174,7 +174,6 @@ impl Webapp {
     /// Synchronous restart of the web application
     pub fn apply_changes(&mut self) -> Result<()> {
         if self.pending_changes {
-            print!("  ");
             let mut sp = Spinner::new(
                 Spinners::Dots,
                 "Restarting the Web application to apply changes".into(),

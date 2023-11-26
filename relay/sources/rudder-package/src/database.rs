@@ -102,7 +102,7 @@ impl Database {
             package
         } else {
             // Find compatible plugin if any
-            let to_dl_and_install = match index.and_then(|i|i.get_compatible_plugin(&webapp.version, &package)) {
+            let to_dl_and_install = match index.and_then(|i|i.latest_compatible_plugin(&webapp.version, &package)) {
                     None => bail!("Could not find any compatible '{}' plugin with the current Rudder version in the configured repository.", package),
                     Some(p) => {
                         debug!("Found a compatible plugin in the repository:\n{:?}", p);

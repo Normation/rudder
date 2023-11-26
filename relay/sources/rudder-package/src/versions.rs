@@ -9,7 +9,7 @@ use log::debug;
 use regex::Regex;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ArchiveVersion {
     pub rudder_version: RudderVersion,
     pub plugin_version: PluginVersion,
@@ -37,7 +37,7 @@ impl FromStr for ArchiveVersion {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, PartialOrd, Ord)]
 pub enum RudderVersionMode {
     Alpha { version: u32 },
     Beta { version: u32 },
@@ -116,7 +116,7 @@ impl FromStr for RudderVersionMode {
 
 // Checking if a rudder version is a nightly or not is not important for plugin compatibility
 // So it is not implemented
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, PartialOrd, Ord)]
 pub struct RudderVersion {
     pub major: u32,
     pub minor: u32,
@@ -204,22 +204,29 @@ impl FromStr for PluginVersion {
         })
     }
 }
+
 impl PartialOrd for PluginVersion {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for PluginVersion {
+    fn cmp(&self, other: &Self) -> Ordering {
         if self.major < other.major {
-            Some(Ordering::Less)
+            Ordering::Less
         } else if self.major > other.major {
-            Some(Ordering::Greater)
+            Ordering::Greater
         } else if self.minor < other.minor {
-            Some(Ordering::Less)
+            Ordering::Less
         } else if self.minor > other.minor {
-            Some(Ordering::Greater)
+            Ordering::Greater
         } else if self.nightly && !other.nightly {
-            Some(Ordering::Less)
+            Ordering::Less
         } else if !self.nightly && other.nightly {
-            Some(Ordering::Greater)
+            Ordering::Greater
         } else {
-            Some(Ordering::Equal)
+            Ordering::Equal
         }
     }
 }
@@ -284,6 +291,19 @@ mod tests {
         let right = PluginVersion::from_str(b).unwrap();
         assert!(left > right, "{:?} is not less than {:?}", left, right);
     }
+
+    #[rstest]
+    #[case("8.0.0-1.0", "7.3.0-1.0")]
+    #[case("8.0.0-10.0", "8.0.0-2.0")]
+    #[case("8.0.0~alpha2-1.0", "8.0.0~alpha1-1.0")]
+    #[case("8.0.0-1.1", "8.0.0-1.0")]
+    #[case("8.0.0~beta1-1.0", "8.0.0~alpha1-2.0")]
+    fn test_archive_version_greater_than(#[case] a: &str, #[case] b: &str) {
+        let left = ArchiveVersion::from_str(a).unwrap();
+        let right = ArchiveVersion::from_str(b).unwrap();
+        assert!(left > right, "{:?} is not less than {:?}", left, right);
+    }
+
     #[rstest]
     #[case("8.0.0-1.1")]
     #[case("8.0.0-1.1-nightly")]

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use std::{fs, path::Path};
+use std::{collections::HashSet, fs, path::Path};
 
 use serde::{Deserialize, Serialize};
 
@@ -27,23 +27,36 @@ impl RepoIndex {
         self.0.as_slice()
     }
 
-    pub fn get_compatible_plugins(&self, webapp_version: &RudderVersion) -> Vec<Plugin> {
-        self.clone()
+    // What we need to do with the index:
+    //
+    // * get latest version of a given plugin (for install)
+    // * get latest version of all plugins (for list)
+
+    pub fn latest_compatible_plugins(&self, webapp_version: &RudderVersion) -> Vec<&Plugin> {
+        let names = self
             .0
+            .iter()
+            .filter(|p| webapp_version.is_compatible(&p.metadata.version.rudder_version))
+            .map(|p| &p.metadata.name)
+            .collect::<HashSet<&String>>();
+        names
             .into_iter()
-            .filter(|x| webapp_version.is_compatible(&x.metadata.version.rudder_version))
+            .flat_map(|n| self.latest_compatible_plugin(webapp_version, n))
             .collect()
     }
 
-    pub fn get_compatible_plugin(
+    pub fn latest_compatible_plugin(
         &self,
         webapp_version: &RudderVersion,
         plugin_name: &str,
-    ) -> Option<Plugin> {
-        self.get_compatible_plugins(webapp_version)
-            .into_iter()
-            // FIXME: could have several plugin version compatible, we need to select the latest
-            .find(|x| plugin_name == x.metadata.name)
+    ) -> Option<&Plugin> {
+        self.0
+            .iter()
+            .filter(|p| {
+                plugin_name == p.metadata.name
+                    && webapp_version.is_compatible(&p.metadata.version.rudder_version)
+            })
+            .max_by_key(|p| &p.metadata.version)
     }
 }
 

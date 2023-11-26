@@ -20,10 +20,13 @@ struct ListEntry {
     /// Plugin name ("short")
     name: String,
     /// Full plugin version
-    version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    version: Option<String>,
     /// None means no higher version is available
     #[serde(skip_serializing_if = "Option::is_none")]
     latest_version: Option<String>,
+    installed: bool,
+    /// Only true for enabled web plugins
     enabled: bool,
     #[serde(rename = "type")]
     plugin_type: PluginType,
@@ -31,7 +34,7 @@ struct ListEntry {
 
 impl ListOutput {
     fn human_table(self) -> Result<()> {
-        use cli_table::{format::Justify, print_stdout, Cell, Style, Table};
+        use cli_table::{print_stdout, Cell, Style, Table};
 
         let table = self
             .inner
@@ -39,18 +42,14 @@ impl ListOutput {
             .map(|e| {
                 vec![
                     e.name.cell(),
-                    e.version.cell().justify(Justify::Right),
+                    e.version.unwrap_or("".to_string()).cell(),
                     e.latest_version.unwrap_or("".to_string()).cell(),
                     e.plugin_type.cell(),
-                    match e.plugin_type {
-                        PluginType::Web => {
-                            if e.enabled {
-                                "installed (enabled)"
-                            } else {
-                                "installed (disabled)"
-                            }
-                        }
-                        PluginType::Standalone => "installed",
+                    match (e.installed, e.enabled, e.plugin_type) {
+                        (false, _, _) => "",
+                        (true, true, _) => "enabled",
+                        (true, false, PluginType::Web) => "disabled",
+                        (true, false, PluginType::Standalone) => "",
                     }
                     .cell(),
                 ]
@@ -87,24 +86,28 @@ impl ListOutput {
         // * If an index is available and "all", also add available plugins.
         // * If "enabled", display installed package minus disabled ones.
         let jars = webapp.jars()?;
+        let installed_plugins: Vec<&String> = db.plugins.keys().collect();
         let enabled_plugins: HashSet<String> = jars
             .into_iter()
             .flat_map(|j| db.plugin_provides_jar(&j))
             .map(|p| p.metadata.name.clone())
             .collect();
+        let latest = index.map(|i| i.latest_compatible_plugins(&webapp.version));
 
         for p in db.plugins.values() {
             let name = p.metadata.short_name().to_string();
-            let enabled = match p.metadata.plugin_type() {
-                PluginType::Standalone => true,
-                PluginType::Web => enabled_plugins.contains(&p.metadata.name),
-            };
+            let enabled = enabled_plugins.contains(&p.metadata.name);
+            let latest_version = index
+                .and_then(|i| i.latest_compatible_plugin(&webapp.version, &p.metadata.name))
+                .map(|p| p.metadata.version.to_string());
+
             let e = ListEntry {
                 name,
-                version: p.metadata.version.to_string(),
-                latest_version: None,
+                version: Some(p.metadata.version.to_string()),
+                latest_version,
                 plugin_type: p.metadata.plugin_type(),
                 enabled,
+                installed: true,
             };
             if !show_only_enabled || enabled {
                 // Standalone plugins are always considered enabled
@@ -113,19 +116,27 @@ impl ListOutput {
             }
         }
 
-        // FIXME: integrate latest version info
         if show_all {
-            if let Some(i) = index {
-                for _p in i.inner().iter() {
-                    //dbg!(&p.metadata.name);
-                    //dbg!(&p.metadata.version);
+            if let Some(available) = latest {
+                for p in available {
+                    if !installed_plugins.contains(&&p.metadata.name) {
+                        let name = p.metadata.short_name().to_string();
+                        let e = ListEntry {
+                            name,
+                            version: None,
+                            latest_version: Some(p.metadata.version.to_string()),
+                            plugin_type: p.metadata.plugin_type(),
+                            installed: false,
+                            enabled: false,
+                        };
+                        plugins.push(e);
+                    }
                 }
             }
         }
 
         // Sort by name alphabetical order
         plugins.sort_by_key(|e| e.name.clone());
-
         Ok(Self { inner: plugins })
     }
 
