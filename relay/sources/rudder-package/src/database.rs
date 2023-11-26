@@ -165,14 +165,13 @@ impl Database {
             .metadata
             .run_package_script(PackageScript::Postrm, PackageScriptArg::None)?;
         // Remove associated package scripts and plugin folder
-        if let Err(e) = fs::remove_dir_all(
-            PathBuf::from(PACKAGES_FOLDER).join(installed_plugin.metadata.name.clone()),
-        ) {
-            warn!(
-                "Could not remove {} plugin folder: {}",
+        let plugin_dir = PathBuf::from(PACKAGES_FOLDER).join(&installed_plugin.metadata.name);
+        if plugin_dir.exists() {
+            fs::remove_dir_all(&plugin_dir).context(format!(
+                "Could not remove {} plugin folder '{}'",
                 short_name,
-                e
-            );
+                plugin_dir.display()
+            ))?;
         }
         // Update the database
         self.plugins.remove(&plugin_name);
@@ -239,7 +238,11 @@ impl InstalledPlugin {
     }
 
     pub fn remove_installed_files(&self) -> Result<()> {
-        self.files.clone().into_iter().try_for_each(|f| {
+        // Remove by decreasing path length to
+        // empty directories before trying to remove them.
+        let mut to_remove = self.files.clone();
+        to_remove.sort_by(|a, b| b.len().partial_cmp(&a.len()).unwrap());
+        to_remove.into_iter().try_for_each(|f| {
             let m = PathBuf::from(f.clone());
             if m.is_dir() {
                 let is_empty = m.read_dir()?.next().is_none();

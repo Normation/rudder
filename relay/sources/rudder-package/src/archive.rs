@@ -155,8 +155,8 @@ impl Rpkg {
 
     fn unpack_embedded_txz(&self, txz_name: &str, dst_path: PathBuf) -> Result<(), anyhow::Error> {
         debug!(
-            "Extracting archive '{}' in folder '{:?}'",
-            txz_name, dst_path
+            "Extracting archive '{}' in folder '{}'",
+            txz_name, dst_path.display()
         );
         // Loop over ar archive files
         let mut archive = Archive::new(File::open(self.path.clone()).unwrap());

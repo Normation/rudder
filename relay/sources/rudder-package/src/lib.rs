@@ -110,7 +110,7 @@ pub fn run() -> Result<()> {
                 .ok_or_else(|| anyhow!("Could not find plugin"))?
                 .metadata
         ),
-        Command::Update {} => repo.update()?,
+        Command::Update {} => repo.update(&webapp)?,
         Command::Enable {
             package,
             all,

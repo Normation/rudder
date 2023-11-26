@@ -19,8 +19,7 @@ use tempfile::tempdir;
 use crate::{
     config::{Configuration, Credentials},
     signature::{SignatureVerifier, VerificationSuccess},
-    versions::RudderVersion,
-    REPOSITORY_INDEX_PATH, RUDDER_VERSION_PATH,
+    REPOSITORY_INDEX_PATH, RUDDER_VERSION_PATH, webapp::Webapp,
 };
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
@@ -47,7 +46,15 @@ impl Repository {
             }
             client = client.proxy(proxy)
         }
-        let server = Url::parse(&config.url)?;
+        // We need to ensure URL ends with a slash
+        let url = if config.url.ends_with("plugins") {
+            let mut u = config.url.to_owned();
+            u.push('/');
+            u
+        } else {
+            config.url.to_owned()
+        };
+        let server = Url::parse(&url)?;
 
         Ok(Self {
             inner: client.build()?,
@@ -140,10 +147,10 @@ impl Repository {
     }
 
     /// Update index and licences
-    pub fn update(&self) -> Result<()> {
+    pub fn update(&self, webapp: &Webapp) -> Result<()> {
         // Update the index file
         debug!("Updating repository index");
-        let rudder_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
+        let rudder_version = &webapp.version;
         let remote_index = format!(
             "{}.{}/rpkg.index",
             rudder_version.major, rudder_version.minor
@@ -151,14 +158,14 @@ impl Repository {
         self.download_unsafe(&remote_index, &PathBuf::from(REPOSITORY_INDEX_PATH))?;
 
         // Update the licenses
-        if let Some(x) = self.get_username() {
+        if let Some(user) = self.get_username() {
             debug!("Updating licenses");
             // FIXME: take as param, we need to be able to test this
             let license_folder = PathBuf::from("/opt/rudder/etc/plugins/licenses");
-            let archive_name = format!("{}-license.tar.gz", x);
+            let archive_name = format!("{}-license.tar.gz", user);
             let local_archive_path = &license_folder.clone().join(archive_name.clone());
             if let Err(e) = self.download_unsafe(
-                &format!("licences/{}/{}", x, archive_name),
+                &format!("licenses/{}/{}", user, archive_name),
                 local_archive_path,
             ) {
                 bail!(
@@ -191,7 +198,7 @@ mod tests {
         let verifier = SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg"));
         let repo = Repository::new(&config, verifier).unwrap();
         let dst = NamedTempFile::new().unwrap();
-        repo.download_unsafe("rpm/rudder_rpm_key.pub", dst.path())
+        repo.download_unsafe("../rpm/rudder_rpm_key.pub", dst.path())
             .unwrap();
         let contents = read_to_string(dst.path()).unwrap();
         assert!(contents.starts_with("-----BEGIN PGP PUBLIC KEY BLOCK----"))
@@ -204,7 +211,7 @@ mod tests {
         let repo = Repository::new(&config, verifier).unwrap();
         let dst = NamedTempFile::new().unwrap();
         repo.download(
-            "plugins/8.0/consul/release/rudder-plugin-consul-8.0.3-2.1.rpkg",
+            "8.0/consul/release/rudder-plugin-consul-8.0.3-2.1.rpkg",
             dst.path(),
         )
         .unwrap();
