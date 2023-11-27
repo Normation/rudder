@@ -54,6 +54,17 @@ pub enum Command {
         #[clap()]
         package: Vec<String>,
     },
+    /// Upgrade plugins
+    Upgrade {
+        #[clap(long, short, help = "Upgrade all installed plugins")]
+        all: bool,
+
+        #[clap(long, help = "Run all the postinstall scripts of installed plugins")]
+        all_postinstall: bool,
+
+        #[clap()]
+        package: Vec<String>,
+    },
     /// Uninstall plugins
     Uninstall {
         #[clap()]
@@ -98,8 +109,15 @@ pub enum Command {
         #[clap()]
         package: Vec<String>,
 
-        #[clap(long, short, help = "Enable all installed plugins")]
+        #[clap(long, short, help = "Disable all installed plugins")]
         all: bool,
+
+        #[clap(
+            long,
+            short,
+            help = "Disable all installed plugins incompatible with the Web application version"
+        )]
+        incompatible: bool,
     },
     /// Test connection to the plugin repository
     CheckConnection {},

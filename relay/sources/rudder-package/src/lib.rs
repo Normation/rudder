@@ -24,12 +24,19 @@ use std::{
 
 use anyhow::{anyhow, bail, Context, Result};
 use clap::Parser;
-use log::{debug, info, LevelFilter};
+use log::{debug, error, info, LevelFilter};
 
 use crate::{
-    cli::Command, config::Configuration, database::Database, list::ListOutput, plugin::long_names,
-    repo_index::RepoIndex, repository::Repository, signature::SignatureVerifier,
-    versions::RudderVersion, webapp::Webapp,
+    cli::Command,
+    config::Configuration,
+    database::Database,
+    list::ListOutput,
+    plugin::{long_names, short_name},
+    repo_index::RepoIndex,
+    repository::Repository,
+    signature::SignatureVerifier,
+    versions::RudderVersion,
+    webapp::Webapp,
 };
 
 const PACKAGES_FOLDER: &str = "/var/rudder/packages";
@@ -98,6 +105,45 @@ pub fn run() -> Result<()> {
         Command::Uninstall { package } => long_names(package)
             .into_iter()
             .try_for_each(|p| db.uninstall(&p, &mut webapp))?,
+        Command::Upgrade {
+            all,
+            package,
+            all_postinstall,
+        } => {
+            if all_postinstall {
+                for p in db.plugins.values() {
+                    if let Err(e) = p.metadata.run_package_script(
+                        archive::PackageScript::Postinst,
+                        archive::PackageScriptArg::Upgrade,
+                    ) {
+                        // Don't fail and continue
+                        error!(
+                            "Postinst script for {} failed: {e}",
+                            p.metadata.short_name()
+                        );
+                    }
+                }
+                info!("All postinstall scripts ran");
+            }
+            // Normal upgrades
+            let to_upgrade: Vec<String> = if all {
+                db.plugins.keys().cloned().collect()
+            } else {
+                let packages = long_names(package);
+                for p in &packages {
+                    if db.plugins.get(p).is_none() {
+                        bail!(
+                            "Plugin {} is not installed, stopping upgrade",
+                            short_name(p)
+                        )
+                    }
+                }
+                packages
+            };
+            to_upgrade
+                .into_iter()
+                .try_for_each(|p| db.install(false, p, &repo, index.as_ref(), &mut webapp))?;
+        }
         Command::List {
             all,
             enabled,
@@ -149,9 +195,23 @@ pub fn run() -> Result<()> {
                 info!("Plugins successfully enabled");
             }
         }
-        Command::Disable { package, all } => {
+        Command::Disable {
+            package,
+            all,
+            incompatible,
+        } => {
             let to_disable: Vec<String> = if all {
                 db.plugins.keys().cloned().collect()
+            } else if incompatible {
+                db.plugins
+                    .iter()
+                    .filter(|(_, p)| {
+                        !webapp
+                            .version
+                            .is_compatible(&p.metadata.version.rudder_version)
+                    })
+                    .map(|(p, _)| p.to_string())
+                    .collect()
             } else {
                 long_names(package)
             };

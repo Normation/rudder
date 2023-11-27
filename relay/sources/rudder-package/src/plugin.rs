@@ -27,6 +27,10 @@ pub fn long_names(l: Vec<String>) -> Vec<String> {
         .collect()
 }
 
+pub fn short_name(p: &str) -> &str {
+    p.strip_prefix("rudder-plugin-").unwrap_or(p)
+}
+
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct Metadata {
@@ -112,7 +116,7 @@ impl Metadata {
     }
 
     pub fn short_name(&self) -> &str {
-        self.name.strip_prefix("rudder-plugin-").unwrap()
+        short_name(&self.name)
     }
 
     pub fn run_package_script(
