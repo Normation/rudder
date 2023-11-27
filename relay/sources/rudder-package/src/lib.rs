@@ -124,25 +124,26 @@ pub fn run() -> Result<()> {
                     }
                 }
                 info!("All postinstall scripts ran");
-            }
-            // Normal upgrades
-            let to_upgrade: Vec<String> = if all {
-                db.plugins.keys().cloned().collect()
             } else {
-                let packages = long_names(package);
-                for p in &packages {
-                    if db.plugins.get(p).is_none() {
-                        bail!(
-                            "Plugin {} is not installed, stopping upgrade",
-                            short_name(p)
-                        )
+                // Normal upgrades
+                let to_upgrade: Vec<String> = if all {
+                    db.plugins.keys().cloned().collect()
+                } else {
+                    let packages = long_names(package);
+                    for p in &packages {
+                        if db.plugins.get(p).is_none() {
+                            bail!(
+                                "Plugin {} is not installed, stopping upgrade",
+                                short_name(p)
+                            )
+                        }
                     }
-                }
-                packages
-            };
-            to_upgrade
-                .into_iter()
-                .try_for_each(|p| db.install(false, p, &repo, index.as_ref(), &mut webapp))?;
+                    packages
+                };
+                to_upgrade
+                    .into_iter()
+                    .try_for_each(|p| db.install(false, p, &repo, index.as_ref(), &mut webapp))?;
+            }
         }
         Command::List {
             all,
