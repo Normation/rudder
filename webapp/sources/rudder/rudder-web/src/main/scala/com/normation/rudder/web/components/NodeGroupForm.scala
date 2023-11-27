@@ -99,7 +99,7 @@ class NodeGroupForm(
 ) extends DispatchSnippet with DefaultExtendableSnippet[NodeGroupForm] with Loggable {
   import NodeGroupForm._
 
-  private[this] val nodeInfoService            = RudderConfig.nodeInfoService
+  private[this] val nodeFactRepo               = RudderConfig.nodeFactRepository
   private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
   private[this] val workflowLevelService       = RudderConfig.workflowLevelService
   private[this] val dependencyService          = RudderConfig.dependencyAndDeletionService
@@ -131,15 +131,15 @@ class NodeGroupForm(
   private[this] def getNodeList(target: Either[NonGroupRuleTarget, NodeGroup]): Box[Seq[NodeInfo]] = {
 
     for {
-      nodes <- nodeInfoService.getAll().toBox
+      nodes <- nodeFactRepo.getAll()(CurrentUser.queryContext).toBox
       setIds = target match {
                  case Right(nodeGroup) => nodeGroup.serverList
                  case Left(target)     =>
-                   val allNodes = nodes.view.mapValues(n => n.isPolicyServer).toMap
+                   val allNodes = nodes.mapValues(_.rudderSettings.kind.isPolicyServer).toMap
                    RuleTarget.getNodeIds(Set(target), allNodes, Map())
                }
     } yield {
-      nodes.view.filterKeys(id => setIds.contains(id)).values.toSeq
+      nodes.filterKeys(id => setIds.contains(id)).map(_._2.toNodeInfo).toSeq
     }
   }
 

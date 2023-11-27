@@ -54,13 +54,15 @@ import com.normation.ldap.sdk.FALSE
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.logger.ComplianceLogger
 import com.normation.rudder.domain.logger.TimingDebugLogger
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.reports.ComplianceLevel
+import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.web.services.CurrentUser
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.js._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
+import scala.collection.MapView
 import scala.xml._
 
 sealed trait ComplianceLevelPieChart {
@@ -125,12 +127,12 @@ object HomePageUtils {
   }
 }
 object HomePage      {
-  private val nodeInfosService = RudderConfig.nodeInfoService
+  private val nodeFactRepo = RudderConfig.nodeFactRepository
 
-  def initNodeInfos(): Box[Map[NodeId, NodeInfo]] = {
+  def initNodeInfos(): Box[MapView[NodeId, CoreNodeFact]] = {
     TimingDebugLogger.debug(s"Start timing homepage")
     val n1 = System.currentTimeMillis
-    val n  = nodeInfosService.getAll().toBox
+    val n  = nodeFactRepo.getAll()(CurrentUser.queryContext).toBox
     val n2 = System.currentTimeMillis
     TimingDebugLogger.debug(s"Getting node infos: ${n2 - n1}ms")
     n
@@ -178,13 +180,13 @@ class HomePage extends Loggable {
     final case class ColoredChartType(value: Double) extends ChartType
 
     (for {
-      nodeInfos         <- HomePage.initNodeInfos()
+      nodeFacts         <- HomePage.initNodeInfos()
       n2                 = System.currentTimeMillis
       userRules         <- roRuleRepo.getIds().toBox
       n3                 = System.currentTimeMillis
       _                  = TimingDebugLogger.trace(s"Get rules: ${n3 - n2}ms")
       // reports contains the reports for user rules, used in the donut
-      reports           <- reportingService.findRuleNodeStatusReports(nodeInfos.keySet, userRules)
+      reports           <- reportingService.findRuleNodeStatusReports(nodeFacts.keys.toSet, userRules)
       n4                 = System.currentTimeMillis
       _                  = TimingDebugLogger.trace(s"Compute Rule Node status reports for all nodes: ${n4 - n3}ms")
       // global compliance is a unique number, used in the top right hand size, based on
@@ -330,20 +332,20 @@ class HomePage extends Loggable {
     val osNames = JsObj(osTypes.map(os => (S.?("os.name." + os.name), Str(os.name))): _*)
 
     (for {
-      nodeInfos <- HomePage.initNodeInfos()
+      nodeFacts <- HomePage.initNodeInfos()
     } yield {
-      val machines             = nodeInfos.values.map {
-        _.machine.map(_.machineType) match {
-          case Some(_: VirtualMachineType) => "Virtual"
-          case Some(PhysicalMachineType)   => "Physical"
-          case _                           => "No Machine Inventory"
+      val machines             = nodeFacts.values.map {
+        _.machine.machineType match {
+          case VirtualMachineType(_) => "Virtual"
+          case PhysicalMachineType   => "Physical"
+          case _                     => "Unknown machine type"
         }
       }.groupBy(identity).view.mapValues(_.size).toList.sortBy(_._2).foldLeft((Nil: List[JsExp], Nil: List[JsExp])) {
         case ((labels, values), (label, value)) => (label :: labels, value :: values)
       }
       val machinesArray        = JsObj("labels" -> JsArray(machines._1), "values" -> JsArray(machines._2))
-      val (osLabels, osValues) = nodeInfos.values
-        .groupBy(_.osDetails.os.name)
+      val (osLabels, osValues) = nodeFacts.values
+        .groupBy(_.os.os.name)
         .map { case (os, value) => (S.?(s"os.name.${os}"), value.size) }
         .toList
         .sortBy(_._2)
@@ -356,7 +358,7 @@ class HomePage extends Loggable {
         homePageInventory(
             ${machinesArray.toJsCmd}
           , ${osArray.toJsCmd}
-          , ${nodeInfos.size}
+          , ${nodeFacts.size}
           , ${osNames.toJsCmd}
         )""")))
     }) match {
@@ -397,7 +399,7 @@ class HomePage extends Loggable {
     for {
       nodeInfos    <- HomePage.initNodeInfos().toIO
       n2            = System.currentTimeMillis
-      agentSoftware = nodeInfos.map(_._2.agentsName).flatten
+      agentSoftware = nodeInfos.map(_._2.rudderAgent.toAgentInfo)
       agentVersions = agentSoftware.flatMap(_.version)
       n3            = System.currentTimeMillis
       _             = TimingDebugLogger.debug(s"Get nodes agent: ${n3 - n2}ms")

@@ -63,7 +63,6 @@ import org.joda.time.DateTime
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
 import scala.xml._
-import zio.stream.ZSink
 
 /**
  * Check for server in the pending repository and propose to
@@ -254,18 +253,17 @@ class AcceptNode extends Loggable {
       </tr>
     }
 
-    def displayServerLine(srv: Srv): NodeSeq = {
-      ("#server_hostname *" #> srv.hostname &
-      "#server_os *" #> srv.osFullName)(serverLine)
+    def displayServerLine(srv: CoreNodeFact): NodeSeq = {
+      ("#server_hostname *" #> srv.fqdn &
+      "#server_os *" #> srv.os.fullName)(serverLine)
     }
 
     nodeFactRepository
-      .getAll()(QueryContext.testQC, SelectNodeStatus.Pending)
-      .collect { case n if (listNode.contains(n.id)) => n.toSrv }
-      .run(ZSink.collectAll)
+      .getAll()(QueryContext.todoQC, SelectNodeStatus.Pending)
+      .map(_.values)
       .toBox match {
       case Full(servers) =>
-        val lines: NodeSeq = servers.flatMap(displayServerLine)
+        val lines: NodeSeq = servers.flatMap(displayServerLine).toSeq
         ("#server_lines" #> lines).apply(
           (
             "servergrid-accept" #>
