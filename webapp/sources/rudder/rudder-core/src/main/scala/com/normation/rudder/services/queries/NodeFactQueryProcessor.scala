@@ -56,7 +56,6 @@ import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.zio._
 import net.liftweb.common.Box
 import zio._
-import zio.stream.ZSink
 import zio.syntax._
 
 /*

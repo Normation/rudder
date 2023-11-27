@@ -64,13 +64,11 @@ import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import scala.util.control.NonFatal
-import zio.stream.ZSink
 
 /**
  * Correctly quote a token
  */
 object QSPattern {
-
   def apply(token: String) = s"""(?iums).*${Pattern.quote(token)}.*""".r.pattern
 }
 
@@ -105,11 +103,9 @@ object QSNodeFactBackend extends Loggable {
     val attributes: Set[QSAttribute] = query.attributes.intersect(QSObject.Node.attributes)
 
     if (query.objectClass.contains(QSNode) && attributes.nonEmpty) {
-
       repo
         .getAll()
-        .mapConcat((n: CoreNodeFact) => attributes.flatMap(a => a.find(n, query.userToken)))
-        .run(ZSink.collectAll)
+        .map(_.flatMap { case (_, n) => attributes.flatMap(a => a.find(n, query.userToken)) }.toSeq)
         .toBox
     } else {
       Full(Seq())

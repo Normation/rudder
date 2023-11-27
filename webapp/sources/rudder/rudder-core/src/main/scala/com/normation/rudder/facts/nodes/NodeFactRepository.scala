@@ -45,6 +45,7 @@ import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.NodeState
 import com.softwaremill.quicklens._
+import scala.collection.MapView
 import zio._
 import zio.concurrent.ReentrantLock
 import zio.stream.ZStream
@@ -159,12 +160,19 @@ trait NodeFactRepository {
 
   /*
    * get all node facts.
-   * SelectStatus allows to choose which nodes are retrieved (pending, accepted, all)
+   * SelectStatus allows to choose which nodes are retrieved (pending, accepted, all).
+   * For that methods to be the most effecient possible, it is deeply bounded to implementation
+   * and will just return the underline cached immutable map.
    */
-  def getAll()(implicit qc: QueryContext, status: SelectNodeStatus = SelectNodeStatus.Accepted): IOStream[CoreNodeFact]
+  def getAll()(implicit
+      qc:     QueryContext,
+      status: SelectNodeStatus = SelectNodeStatus.Accepted
+  ): IOResult[MapView[NodeId, CoreNodeFact]]
 
-  def getAllCompat(status: InventoryStatus, attrs: SelectFacts)(implicit qc: QueryContext): IOStream[CoreNodeFact] = {
-    statusStreamCompat(status, (qc, s) => getAll()(qc, s))
+  def getAllCompat(status: InventoryStatus, attrs: SelectFacts)(implicit
+      qc:                  QueryContext
+  ): IOResult[MapView[NodeId, CoreNodeFact]] = {
+    statusCompat(status, (qc, s) => getAll()(qc, s))
   }
 
   /*
@@ -451,19 +459,25 @@ class CoreNodeFactRepository(
     } yield res.flatMap(securityFilter))
   }
 
-  private[nodes] def getAllOnRef[A](ref: Ref[Map[NodeId, CoreNodeFact]])(implicit qc: QueryContext): IOStream[CoreNodeFact] = {
+  private[nodes] def getAllOnRef[A](
+      ref:       Ref[Map[NodeId, CoreNodeFact]]
+  )(implicit qc: QueryContext): IOResult[MapView[NodeId, CoreNodeFact]] = {
     if (qc.nodePerms.isNone) {
-      ZStream.empty
+      MapView().succeed
     } else {
       ref.get.map(_.view.filter { case (_, n) => qc.nodePerms.canSee(n) })
     }
   }
 
-  override def getAll()(implicit qc: QueryContext, status: SelectNodeStatus): IOStream[CoreNodeFact] = {
+  override def getAll()(implicit qc: QueryContext, status: SelectNodeStatus): IOResult[MapView[NodeId, CoreNodeFact]] = {
     status match {
       case SelectNodeStatus.Pending  => getAllOnRef(pendingNodes)
       case SelectNodeStatus.Accepted => getAllOnRef(acceptedNodes)
-      case SelectNodeStatus.Any      => getAllOnRef(pendingNodes) ++ getAllOnRef(acceptedNodes)
+      case SelectNodeStatus.Any      =>
+        for {
+          a <- getAllOnRef(pendingNodes)
+          b <- getAllOnRef(acceptedNodes)
+        } yield (a ++ b).toMap.view
     }
   }
 
@@ -471,7 +485,7 @@ class CoreNodeFactRepository(
     if (qc.nodePerms.isNone) ZStream.empty
     else {
       if (attrs == SelectFacts.none) {
-        getAll()(qc, status).map(cnf => NodeFact.fromMinimal(cnf))
+        ZStream.fromIterableZIO(getAll()(qc, status).map(_.map(cnf => NodeFact.fromMinimal(cnf._2))))
       } else {
         status match {
           // here, the filtering can be forward to storage, by core node fact must check it in all case, it's

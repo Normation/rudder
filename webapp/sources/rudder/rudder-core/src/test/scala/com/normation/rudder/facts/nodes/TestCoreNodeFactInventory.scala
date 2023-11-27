@@ -339,7 +339,6 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     "allow to filter all nodes with no access" in {
       val nodes = factRepo
         .getAll()(QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.None), SelectNodeStatus.Accepted)
-        .runCollect
         .runNow
 
       nodes must beEmpty
@@ -351,10 +350,9 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
           QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.ByTenants(Chunk(Tenant("zoneA")))),
           SelectNodeStatus.Accepted
         )
-        .runCollect
         .runNow
 
-      nodes.map(_.id.value) must containTheSameElementsAs((all -- List("node2", "node3")).toSeq)
+      nodes.keySet.map(_.value) must containTheSameElementsAs((all -- List("node2", "node3")).toSeq)
     }
 
     "have cumulative rights" in {
@@ -363,10 +361,9 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
           QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.ByTenants(Chunk(Tenant("zoneA"), Tenant("zoneB")))),
           SelectNodeStatus.Accepted
         )
-        .runCollect
         .runNow
 
-      nodes.map(_.id.value) must containTheSameElementsAs((all -- List("node3")).toSeq)
+      nodes.keySet.map(_.value) must containTheSameElementsAs((all -- List("node3")).toSeq)
     }
   }
 
