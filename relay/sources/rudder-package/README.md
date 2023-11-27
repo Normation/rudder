@@ -21,20 +21,20 @@ Each rpkg contain a metadata file at the start of the ar archive.
 It is in __Json__ format and contains all the data of the rpkg and how it should be unpacked.
 
 #### Mandatory fields
-* `type` :
+* `type`:
   * only `plugin` is supported
-* `name` :
+* `name`:
   * String
   * `^rudder-plugin-([-a-z])+$`
-* `version` :
+* `version`:
   * String
   * Of the form `<webappVersion>-<pluginVersion>`
-    * `webappVersion` : `^\d+\.\d+\.\d+(~(alpha|beta|rc|git)\d+)?`
-    * `pluginVersion` : `^\d+\.\d+(-nightly)?$`
-* `build-date` :
+    * `webappVersion`: `^\d+\.\d+\.\d+(~(alpha|beta|rc|git)\d+)?`
+    * `pluginVersion`: `^\d+\.\d+(-nightly)?$`
+* `build-date`:
   * Timestamp in UTC and RFC 3339 format
-* `build-commit` : commit hash
-* `content` :
+* `build-commit`: commit hash
+* `content`:
   * Data
   *  Of the form:
     ```json
@@ -46,23 +46,23 @@ It is in __Json__ format and contains all the data of the rpkg and how it should
   * `scripts.txz` must not be referenced here
 
 #### Optional fields
-* `depends` :
+* `depends`:
   * Data with the following optional fields:
-    * `binary` :
+    * `binary`:
       * Array
       * Each element will be validated if found as an executable on the system
-    * `apt` :
+    * `apt`:
       * Array
       * Each element will be validated if found installed using dpkg
       * Ignored if `apt` is not found on the system
-    * `rpm` :
+    * `rpm`:
       * Array
       * Each element will be validated if found installed using rpm
       * Ignored if `rpm` is not found on the system
-       * `python` :
+       * `python`:
          * Array
          * Deprecated, ignored
-* `jar_files` :
+* `jar_files`:
   * Array
   * Absolute path to jar files contained in the rpkg that need to be loaded by the webapp.
 
@@ -101,12 +101,12 @@ This folder is created and the `scripts.txz` unpacked before any other txz archi
 It is removed only after the execution of eventual package script when uninstalling a rpkg and after every other installed files has been removed.
 
 Supported package scripts are:
-* __preinst__ : Executed before unpacking an rpkg content
- * __postinst__ : Executed after the all files of the plugin content were unpacked at install time, before the webapp restart
-* __prerm__ : Executed before removing an rpkg installed files
-* __postrm__ : Executed after the removal of the installed files of an installed rpkg
+* __preinst__: Executed before unpacking an rpkg content
+ * __postinst__: Executed after the all files of the plugin content were unpacked at install time, before the webapp restart
+* __prerm__: Executed before removing an rpkg installed files
+* __postrm__: Executed after the removal of the installed files of an installed rpkg
 
-Each package script can receive one argument when called by `rudder-package` :
+Each package script can receive one argument when called by `rudder-package`:
 * `install` when installing a new plugin
 * `upgrade` when upgrading a plugin
 * None otherwise
