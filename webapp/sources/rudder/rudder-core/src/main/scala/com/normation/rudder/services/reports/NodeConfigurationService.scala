@@ -124,7 +124,7 @@ class CachedNodeConfigurationService(
    * Note that a clear cache will None the cache
    *
    * A query to fetch nodeexpectedreports that is not in the cache will return None
-   * (if node exists), or fail if node does not exists.
+   * (if node exists), or fail if node does not exist.
    *
    * Ref allows atomic action on the map, but concurrent non-atomic changes (ex: if
    * you need to something iterativelly to update the cache) still need to be behind a semaphore.
