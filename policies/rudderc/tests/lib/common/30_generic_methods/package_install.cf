@@ -33,3 +33,9 @@
 bundle agent package_install(name)
 {
 }
+
+bundle agent another_bundle(param)
+{
+  reports:
+      "dummy";
+}
