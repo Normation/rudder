@@ -7,7 +7,7 @@ use std::path::Path;
 
 use anyhow::{bail, Result};
 use askama::Template;
-use rudder_commons::{methods::method::Agent, Escaping};
+use rudder_commons::{methods::method::Agent, Escaping, PolicyMode};
 
 use super::Backend;
 use crate::ir::{
@@ -62,7 +62,7 @@ pub mod filters {
     use std::fmt::Display;
 
     use anyhow::Error;
-    use rudder_commons::{regex_comp, Escaping, Target};
+    use rudder_commons::{regex_comp, Escaping, PolicyMode, Target};
 
     use crate::ir::value::Expression;
 
@@ -135,6 +135,16 @@ pub mod filters {
             Escaping::Raw => value,
         })
     }
+
+    pub fn policy_mode_fmt(op: &Option<PolicyMode>) -> askama::Result<String> {
+        match op {
+            None => Ok("$policyMode".to_string()),
+            Some(p) => match p {
+                PolicyMode::Audit => Ok("([Rudder.PolicyMode]::Audit)".to_string()),
+                PolicyMode::Enforce => Ok("([Rudder.PolicyMode]::Enforce)".to_string()),
+            },
+        }
+    }
 }
 
 struct WindowsMethod {
@@ -147,6 +157,7 @@ struct WindowsMethod {
     args: Vec<(String, String, Escaping)>,
     name: String,
     is_supported: bool,
+    policy_mode: Option<PolicyMode>,
 }
 
 fn method_call(m: Method, condition: Condition) -> Result<WindowsMethod> {
@@ -196,6 +207,7 @@ fn method_call(m: Method, condition: Condition) -> Result<WindowsMethod> {
         args,
         name: filters::dsc_case(&m.info.as_ref().unwrap().bundle_name).unwrap(),
         is_supported,
+        policy_mode: m.policy_mode,
     })
 }
 

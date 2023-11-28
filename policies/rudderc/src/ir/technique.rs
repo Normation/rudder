@@ -9,7 +9,7 @@ use std::{
 };
 
 use anyhow::{bail, Error, Result};
-use rudder_commons::{methods::method::MethodInfo, RegexConstraint, Select};
+use rudder_commons::{methods::method::MethodInfo, PolicyMode, RegexConstraint, Select};
 use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_yaml::Value;
 use uuid::Uuid;
@@ -351,6 +351,9 @@ pub struct Block {
     pub id: Id,
     #[serde(default)]
     pub reporting: BlockReporting,
+    #[serde(deserialize_with = "PolicyMode::from_string")]
+    #[serde(default)]
+    pub policy_mode: Option<PolicyMode>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -388,6 +391,9 @@ pub struct Method {
     pub reporting: LeafReporting,
     #[serde(skip)]
     pub info: Option<&'static MethodInfo>,
+    #[serde(deserialize_with = "PolicyMode::from_string")]
+    #[serde(default)]
+    pub policy_mode: Option<PolicyMode>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]

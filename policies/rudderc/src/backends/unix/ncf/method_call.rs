@@ -8,7 +8,7 @@
 //! signature, type, and constraints).
 
 use anyhow::{bail, Result};
-use rudder_commons::{canonify, methods::method::Agent};
+use rudder_commons::{canonify, methods::method::Agent, PolicyMode};
 
 use crate::{
     backends::unix::cfengine::{
@@ -102,19 +102,43 @@ pub fn method_call(
         info.bundle_name
     );
 
+    let push_policy_mode = m.policy_mode.map(|p| {
+        Promise::usebundle(
+            "push_dry_run_mode",
+            Some(&report_component),
+            Some(unique),
+            vec![match p {
+                PolicyMode::Enforce => "\"false\"".to_string(),
+                PolicyMode::Audit => "\"true\"".to_string(),
+            }],
+        )
+    });
+    let pop_policy_mode = if m.policy_mode.is_some() {
+        Some(Promise::usebundle(
+            "pop_dry_run_mode",
+            Some(&report_component),
+            Some(unique),
+            vec![],
+        ))
+    } else {
+        None
+    };
+
     let mut promises = match (&condition, is_supported) {
             (Condition::Expression(_), true) => vec![
-                reporting_context,
-                method.if_condition(condition.clone()),
-                Promise::usebundle("_classes_noop", Some(&report_component), Some(unique), vec![na_condition.clone()]).unless_condition(&condition),
-                Promise::usebundle("log_rudder", Some(&report_component),  Some(unique), vec![
-                    quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &method_name, &report_parameter, condition)),
-                    quoted(&report_parameter),
-                    na_condition.clone(),
-                    na_condition,
-                    "@{args}".to_string()
-                ]).unless_condition(&condition)
-            ],
+                    Some(reporting_context),
+                    push_policy_mode,
+                    Some(method.if_condition(condition.clone())),
+                    pop_policy_mode,
+                    Some(Promise::usebundle("_classes_noop", Some(&report_component), Some(unique), vec![na_condition.clone()]).unless_condition(&condition)),
+                    Some(Promise::usebundle("log_rudder", Some(&report_component),  Some(unique), vec![
+                        quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &method_name, &report_parameter, condition)),
+                        quoted(&report_parameter),
+                        na_condition.clone(),
+                        na_condition,
+                        "@{args}".to_string()
+                    ]).unless_condition(&condition))
+            ].into_iter().flatten().collect(),
             (Condition::NotDefined, true) => vec![
                 reporting_context,
                 Promise::usebundle("_classes_noop", Some(&report_component), Some(unique), vec![na_condition.clone()]),
@@ -126,7 +150,12 @@ pub fn method_call(
                     "@{args}".to_string()
                 ])
             ],
-            (Condition::Defined, true) => vec![reporting_context, method],
+            (Condition::Defined, true) => vec![
+                Some(reporting_context),
+                push_policy_mode,
+                Some(method),
+                pop_policy_mode,
+            ].into_iter().flatten().collect(),
             (_, false) => vec![
                 reporting_context,
                 Promise::usebundle(

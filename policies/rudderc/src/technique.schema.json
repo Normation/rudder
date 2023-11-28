@@ -185,6 +185,14 @@
     "tags": {
       "type": "object"
     },
+    "policyMode": {
+      "type": "string",
+      "enum": [
+        "audit",
+        "enforce",
+        "default"
+      ]
+    },
     "reportingMode": {
       "oneOf": [
         {
@@ -233,6 +241,9 @@
         },
         "tags": {
           "$ref": "#/$defs/tags"
+        },
+        "policy_mode": {
+          "$ref": "#/$defs/policyMode"
         },
         "condition": {
           "type": ["string", "boolean"]

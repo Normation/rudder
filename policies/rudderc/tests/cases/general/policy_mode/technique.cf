@@ -1,0 +1,53 @@
+# @name test audit
+# @version 1.0
+
+bundle agent test_audit {
+
+  vars:
+    "args"              slist => {};
+    "report_param"      string => join("_", args);
+    "full_class_prefix" string => canonify("test_audit_${report_param}");
+    "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  methods:
+    "46b8025a-0b06-485c-9127-50e4258ee7e6_${report_data.directive_id}" usebundle => call_test_audit_46b8025a_0b06_485c_9127_50e4258ee7e6("In audit mode", "/tmp/1", "46b8025a-0b06-485c-9127-50e4258ee7e6", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true");
+
+    "1eedce7b-3441-4251-bdd6-706fda3ec7a8_${report_data.directive_id}" usebundle => call_test_audit_1eedce7b_3441_4251_bdd6_706fda3ec7a8("In omit mode", "/tmp/1", "1eedce7b-3441-4251-bdd6-706fda3ec7a8", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true");
+
+    "dbd5ba50-8dfc-11ee-a57e-84a938c470d4_${report_data.directive_id}" usebundle => call_test_audit_dbd5ba50_8dfc_11ee_a57e_84a938c470d4("In enforce mode", "/tmp/1", "dbd5ba50-8dfc-11ee-a57e-84a938c470d4", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true");
+
+    "1d809592-808e-4177-8351-8b7b7769af69_${report_data.directive_id}" usebundle => call_test_audit_1d809592_808e_4177_8351_8b7b7769af69("In default mode", "/tmp/1", "1d809592-808e-4177-8351-8b7b7769af69", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true");
+
+}
+bundle agent call_test_audit_46b8025a_0b06_485c_9127_50e4258ee7e6(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
+
+  methods:
+    "46b8025a-0b06-485c-9127-50e4258ee7e6_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
+    "46b8025a-0b06-485c-9127-50e4258ee7e6_${report_data.directive_id}" usebundle => push_dry_run_mode("true");
+    "46b8025a-0b06-485c-9127-50e4258ee7e6_${report_data.directive_id}" usebundle => file_content("${path}", "${lines}", "${enforce}");
+    "46b8025a-0b06-485c-9127-50e4258ee7e6_${report_data.directive_id}" usebundle => pop_dry_run_mode();
+
+}
+bundle agent call_test_audit_1eedce7b_3441_4251_bdd6_706fda3ec7a8(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
+
+  methods:
+    "1eedce7b-3441-4251-bdd6-706fda3ec7a8_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
+    "1eedce7b-3441-4251-bdd6-706fda3ec7a8_${report_data.directive_id}" usebundle => file_content("${path}", "${lines}", "${enforce}");
+
+}
+bundle agent call_test_audit_dbd5ba50_8dfc_11ee_a57e_84a938c470d4(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
+
+  methods:
+    "dbd5ba50-8dfc-11ee-a57e-84a938c470d4_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
+    "dbd5ba50-8dfc-11ee-a57e-84a938c470d4_${report_data.directive_id}" usebundle => push_dry_run_mode("false");
+    "dbd5ba50-8dfc-11ee-a57e-84a938c470d4_${report_data.directive_id}" usebundle => file_content("${path}", "${lines}", "${enforce}");
+    "dbd5ba50-8dfc-11ee-a57e-84a938c470d4_${report_data.directive_id}" usebundle => pop_dry_run_mode();
+
+}
+bundle agent call_test_audit_1d809592_808e_4177_8351_8b7b7769af69(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
+
+  methods:
+    "1d809592-808e-4177-8351-8b7b7769af69_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
+    "1d809592-808e-4177-8351-8b7b7769af69_${report_data.directive_id}" usebundle => file_content("${path}", "${lines}", "${enforce}");
+
+}
