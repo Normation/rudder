@@ -268,7 +268,8 @@ impl FromStr for MethodInfo {
         }
 
         // Bundle signature
-        let bundle_re = regex_comp!(r"[^#]*bundle\s+agent\s+(\w+)\s*(\(([^)]*)\))?\s*\{?\s*");
+        let bundle_re = regex_comp!(r"[^#{]*bundle\s+agent\s+(\w+)\s*(\(([^)]*)\))?\s*\{?\s*");
+        // Select the first bundle, which is by convention the main one
         if let Some(caps) = bundle_re.captures(s) {
             method.bundle_name = (caps[1]).to_string();
             method.bundle_args = match &caps.get(3) {
