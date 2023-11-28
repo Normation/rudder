@@ -2,25 +2,11 @@
 # cargo-vet imports lock
 
 [[publisher.aho-corasick]]
-version = "1.0.5"
-when = "2023-08-29"
-user-id = 189
-user-login = "BurntSushi"
-user-name = "Andrew Gallant"
-
-[[publisher.aho-corasick]]
 version = "1.1.2"
 when = "2023-10-09"
 user-id = 189
 user-login = "BurntSushi"
 user-name = "Andrew Gallant"
-
-[[publisher.anstream]]
-version = "0.5.0"
-when = "2023-08-24"
-user-id = 6743
-user-login = "epage"
-user-name = "Ed Page"
 
 [[publisher.anstream]]
 version = "0.6.4"
@@ -30,22 +16,8 @@ user-login = "epage"
 user-name = "Ed Page"
 
 [[publisher.anstyle]]
-version = "1.0.2"
-when = "2023-08-23"
-user-id = 6743
-user-login = "epage"
-user-name = "Ed Page"
-
-[[publisher.anstyle]]
 version = "1.0.4"
 when = "2023-09-28"
-user-id = 6743
-user-login = "epage"
-user-name = "Ed Page"
-
-[[publisher.anstyle-parse]]
-version = "0.2.1"
-when = "2023-06-20"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
@@ -60,13 +32,6 @@ user-name = "Ed Page"
 [[publisher.anstyle-query]]
 version = "1.0.0"
 when = "2023-04-13"
-user-id = 6743
-user-login = "epage"
-user-name = "Ed Page"
-
-[[publisher.anstyle-wincon]]
-version = "2.1.0"
-when = "2023-08-24"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
@@ -121,13 +86,6 @@ user-login = "epage"
 user-name = "Ed Page"
 
 [[publisher.basic-toml]]
-version = "0.1.4"
-when = "2023-07-15"
-user-id = 3618
-user-login = "dtolnay"
-user-name = "David Tolnay"
-
-[[publisher.basic-toml]]
 version = "0.1.7"
 when = "2023-10-27"
 user-id = 3618
@@ -142,13 +100,6 @@ user-login = "KodrAus"
 user-name = "Ashley Mannix"
 
 [[publisher.bitflags]]
-version = "2.4.0"
-when = "2023-08-11"
-user-id = 3204
-user-login = "KodrAus"
-user-name = "Ashley Mannix"
-
-[[publisher.bitflags]]
 version = "2.4.1"
 when = "2023-10-15"
 user-id = 3204
@@ -156,25 +107,11 @@ user-login = "KodrAus"
 user-name = "Ashley Mannix"
 
 [[publisher.bstr]]
-version = "1.6.1"
-when = "2023-08-29"
-user-id = 189
-user-login = "BurntSushi"
-user-name = "Andrew Gallant"
-
-[[publisher.bstr]]
 version = "1.8.0"
 when = "2023-11-09"
 user-id = 189
 user-login = "BurntSushi"
 user-name = "Andrew Gallant"
-
-[[publisher.bumpalo]]
-version = "3.13.0"
-when = "2023-05-22"
-user-id = 696
-user-login = "fitzgen"
-user-name = "Nick Fitzgerald"
 
 [[publisher.bumpalo]]
 version = "3.14.0"
@@ -198,43 +135,22 @@ user-login = "thomcc"
 user-name = "Thom Chiovoloni"
 
 [[publisher.chrono]]
-version = "0.4.27"
-when = "2023-08-29"
-user-id = 4556
-user-login = "djc"
-user-name = "Dirkjan Ochtman"
+version = "0.4.31"
+when = "2023-09-15"
+user-id = 228432
+user-login = "pitdicker"
+user-name = "Paul Dicker"
 
 [[publisher.clap]]
-version = "4.4.1"
-when = "2023-08-28"
-user-id = 6743
-user-login = "epage"
-user-name = "Ed Page"
-
-[[publisher.clap]]
-version = "4.4.8"
-when = "2023-11-10"
+version = "4.4.10"
+when = "2023-11-28"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
 
 [[publisher.clap_builder]]
-version = "4.4.1"
-when = "2023-08-28"
-user-id = 6743
-user-login = "epage"
-user-name = "Ed Page"
-
-[[publisher.clap_builder]]
-version = "4.4.8"
-when = "2023-11-10"
-user-id = 6743
-user-login = "epage"
-user-name = "Ed Page"
-
-[[publisher.clap_complete]]
-version = "4.4.0"
-when = "2023-08-24"
+version = "4.4.9"
+when = "2023-11-27"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
@@ -247,22 +163,8 @@ user-login = "epage"
 user-name = "Ed Page"
 
 [[publisher.clap_derive]]
-version = "4.4.0"
-when = "2023-08-24"
-user-id = 6743
-user-login = "epage"
-user-name = "Ed Page"
-
-[[publisher.clap_derive]]
 version = "4.4.7"
 when = "2023-10-24"
-user-id = 6743
-user-login = "epage"
-user-name = "Ed Page"
-
-[[publisher.clap_lex]]
-version = "0.5.1"
-when = "2023-08-24"
 user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
@@ -280,13 +182,6 @@ when = "2023-04-03"
 user-id = 5946
 user-login = "jrmuizel"
 user-name = "Jeff Muizelaar"
-
-[[publisher.cpufeatures]]
-version = "0.2.9"
-when = "2023-07-05"
-user-id = 5059
-user-login = "newpavlov"
-user-name = "Artyom Pavlov"
 
 [[publisher.cpufeatures]]
 version = "0.2.11"
@@ -338,13 +233,6 @@ user-login = "cuviper"
 user-name = "Josh Stone"
 
 [[publisher.env_logger]]
-version = "0.10.0"
-when = "2022-11-24"
-user-id = 6743
-user-login = "epage"
-user-name = "Ed Page"
-
-[[publisher.env_logger]]
 version = "0.10.1"
 when = "2023-11-10"
 user-id = 6743
@@ -359,8 +247,8 @@ user-login = "cuviper"
 user-name = "Josh Stone"
 
 [[publisher.errno]]
-version = "0.3.7"
-when = "2023-11-15"
+version = "0.3.8"
+when = "2023-11-28"
 user-id = 6825
 user-login = "sunfishcode"
 user-name = "Dan Gohman"
@@ -373,8 +261,8 @@ user-login = "Byron"
 user-name = "Sebastian Thiel"
 
 [[publisher.form_urlencoded]]
-version = "1.2.0"
-when = "2023-06-05"
+version = "1.2.1"
+when = "2023-11-22"
 user-id = 72883
 user-login = "valenting"
 user-name = "Valentin Gosu"
@@ -387,29 +275,29 @@ user-login = "sunng87"
 user-name = "Ning Sun"
 
 [[publisher.hashbrown]]
-version = "0.14.0"
-when = "2023-06-05"
+version = "0.14.3"
+when = "2023-11-26"
 user-id = 2915
 user-login = "Amanieu"
 user-name = "Amanieu d'Antras"
 
-[[publisher.hashbrown]]
-version = "0.14.2"
-when = "2023-10-19"
-user-id = 2915
-user-login = "Amanieu"
-user-name = "Amanieu d'Antras"
+[[publisher.iana-time-zone]]
+version = "0.1.58"
+when = "2023-10-17"
+user-id = 649
+user-login = "astraw"
+user-name = "Andrew Straw"
+
+[[publisher.idna]]
+version = "0.5.0"
+when = "2023-11-22"
+user-id = 72883
+user-login = "valenting"
+user-name = "Valentin Gosu"
 
 [[publisher.indexmap]]
 version = "1.9.3"
 when = "2023-03-24"
-user-id = 539
-user-login = "cuviper"
-user-name = "Josh Stone"
-
-[[publisher.indexmap]]
-version = "2.0.0"
-when = "2023-06-23"
 user-id = 539
 user-login = "cuviper"
 user-name = "Josh Stone"
@@ -436,25 +324,11 @@ user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.js-sys]]
-version = "0.3.64"
-when = "2023-06-12"
+version = "0.3.66"
+when = "2023-11-27"
 user-id = 1
 user-login = "alexcrichton"
 user-name = "Alex Crichton"
-
-[[publisher.js-sys]]
-version = "0.3.65"
-when = "2023-11-01"
-user-id = 1
-user-login = "alexcrichton"
-user-name = "Alex Crichton"
-
-[[publisher.libc]]
-version = "0.2.147"
-when = "2023-06-25"
-user-id = 51017
-user-login = "JohnTitor"
-user-name = "Yuki Okushi"
 
 [[publisher.libc]]
 version = "0.2.150"
@@ -464,13 +338,6 @@ user-login = "JohnTitor"
 user-name = "Yuki Okushi"
 
 [[publisher.libm]]
-version = "0.2.7"
-when = "2023-05-15"
-user-id = 2915
-user-login = "Amanieu"
-user-name = "Amanieu d'Antras"
-
-[[publisher.libm]]
 version = "0.2.8"
 when = "2023-10-06"
 user-id = 2915
@@ -478,32 +345,11 @@ user-login = "Amanieu"
 user-name = "Amanieu d'Antras"
 
 [[publisher.linux-raw-sys]]
-version = "0.3.8"
-when = "2023-05-19"
-user-id = 6825
-user-login = "sunfishcode"
-user-name = "Dan Gohman"
-
-[[publisher.linux-raw-sys]]
-version = "0.4.5"
-when = "2023-07-31"
-user-id = 6825
-user-login = "sunfishcode"
-user-name = "Dan Gohman"
-
-[[publisher.linux-raw-sys]]
 version = "0.4.11"
 when = "2023-11-08"
 user-id = 6825
 user-login = "sunfishcode"
 user-name = "Dan Gohman"
-
-[[publisher.lock_api]]
-version = "0.4.10"
-when = "2023-06-05"
-user-id = 2915
-user-login = "Amanieu"
-user-name = "Amanieu d'Antras"
 
 [[publisher.lock_api]]
 version = "0.4.11"
@@ -520,23 +366,10 @@ user-login = "KodrAus"
 user-name = "Ashley Mannix"
 
 [[publisher.mdbook]]
-version = "0.4.34"
-when = "2023-08-05"
-user-id = 55123
-user-login = "rust-lang-owner"
-
-[[publisher.mdbook]]
 version = "0.4.35"
 when = "2023-09-29"
 user-id = 55123
 user-login = "rust-lang-owner"
-
-[[publisher.memchr]]
-version = "2.6.1"
-when = "2023-08-29"
-user-id = 189
-user-login = "BurntSushi"
-user-name = "Andrew Gallant"
 
 [[publisher.memchr]]
 version = "2.6.4"
@@ -553,13 +386,6 @@ user-login = "seanmonstar"
 user-name = "Sean McArthur"
 
 [[publisher.minijinja]]
-version = "1.0.7"
-when = "2023-08-25"
-user-id = 39
-user-login = "mitsuhiko"
-user-name = "Armin Ronacher"
-
-[[publisher.minijinja]]
 version = "1.0.10"
 when = "2023-11-10"
 user-id = 39
@@ -567,25 +393,11 @@ user-login = "mitsuhiko"
 user-name = "Armin Ronacher"
 
 [[publisher.nix]]
-version = "0.26.2"
-when = "2023-01-18"
-user-id = 6094
-user-login = "asomers"
-user-name = "Alan Somers"
-
-[[publisher.nix]]
 version = "0.27.1"
 when = "2023-08-28"
 user-id = 6094
 user-login = "asomers"
 user-name = "Alan Somers"
-
-[[publisher.num-traits]]
-version = "0.2.16"
-when = "2023-07-20"
-user-id = 539
-user-login = "cuviper"
-user-name = "Josh Stone"
 
 [[publisher.num-traits]]
 version = "0.2.17"
@@ -602,13 +414,6 @@ user-login = "Amanieu"
 user-name = "Amanieu d'Antras"
 
 [[publisher.parking_lot_core]]
-version = "0.9.8"
-when = "2023-06-05"
-user-id = 2915
-user-login = "Amanieu"
-user-name = "Amanieu d'Antras"
-
-[[publisher.parking_lot_core]]
 version = "0.9.9"
 when = "2023-10-17"
 user-id = 2915
@@ -616,29 +421,15 @@ user-login = "Amanieu"
 user-name = "Amanieu d'Antras"
 
 [[publisher.percent-encoding]]
-version = "2.3.0"
-when = "2023-06-05"
+version = "2.3.1"
+when = "2023-11-22"
 user-id = 72883
 user-login = "valenting"
 user-name = "Valentin Gosu"
 
 [[publisher.pest]]
-version = "2.7.2"
-when = "2023-08-01"
-user-id = 95892
-user-login = "tomtau"
-user-name = "Tomas Tauber"
-
-[[publisher.pest]]
 version = "2.7.5"
 when = "2023-10-24"
-user-id = 95892
-user-login = "tomtau"
-user-name = "Tomas Tauber"
-
-[[publisher.pest_derive]]
-version = "2.7.2"
-when = "2023-08-01"
 user-id = 95892
 user-login = "tomtau"
 user-name = "Tomas Tauber"
@@ -651,22 +442,8 @@ user-login = "tomtau"
 user-name = "Tomas Tauber"
 
 [[publisher.pest_generator]]
-version = "2.7.2"
-when = "2023-08-01"
-user-id = 95892
-user-login = "tomtau"
-user-name = "Tomas Tauber"
-
-[[publisher.pest_generator]]
 version = "2.7.5"
 when = "2023-10-24"
-user-id = 95892
-user-login = "tomtau"
-user-name = "Tomas Tauber"
-
-[[publisher.pest_meta]]
-version = "2.7.2"
-when = "2023-08-01"
 user-id = 95892
 user-login = "tomtau"
 user-name = "Tomas Tauber"
@@ -721,13 +498,6 @@ user-login = "jhpratt"
 user-name = "Jacob Pratt"
 
 [[publisher.predicates]]
-version = "3.0.3"
-when = "2023-04-13"
-user-id = 6743
-user-login = "epage"
-user-name = "Ed Page"
-
-[[publisher.predicates]]
 version = "3.0.4"
 when = "2023-09-18"
 user-id = 6743
@@ -756,22 +526,15 @@ user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.proc-macro2]]
-version = "1.0.66"
-when = "2023-07-16"
-user-id = 3618
-user-login = "dtolnay"
-user-name = "David Tolnay"
-
-[[publisher.proc-macro2]]
-version = "1.0.69"
-when = "2023-10-09"
+version = "1.0.70"
+when = "2023-11-26"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.quick-xml]]
-version = "0.30.0"
-when = "2023-07-23"
+version = "0.31.0"
+when = "2023-10-23"
 user-id = 2927
 user-login = "Mingun"
 
@@ -790,13 +553,6 @@ user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.regex]]
-version = "1.9.4"
-when = "2023-08-26"
-user-id = 189
-user-login = "BurntSushi"
-user-name = "Andrew Gallant"
-
-[[publisher.regex]]
 version = "1.10.2"
 when = "2023-10-16"
 user-id = 189
@@ -806,13 +562,6 @@ user-name = "Andrew Gallant"
 [[publisher.regex-automata]]
 version = "0.1.10"
 when = "2021-06-01"
-user-id = 189
-user-login = "BurntSushi"
-user-name = "Andrew Gallant"
-
-[[publisher.regex-automata]]
-version = "0.3.7"
-when = "2023-08-26"
 user-id = 189
 user-login = "BurntSushi"
 user-name = "Andrew Gallant"
@@ -832,32 +581,11 @@ user-login = "BurntSushi"
 user-name = "Andrew Gallant"
 
 [[publisher.regex-syntax]]
-version = "0.7.5"
-when = "2023-08-26"
-user-id = 189
-user-login = "BurntSushi"
-user-name = "Andrew Gallant"
-
-[[publisher.regex-syntax]]
 version = "0.8.2"
 when = "2023-10-14"
 user-id = 189
 user-login = "BurntSushi"
 user-name = "Andrew Gallant"
-
-[[publisher.rustix]]
-version = "0.37.23"
-when = "2023-07-05"
-user-id = 6825
-user-login = "sunfishcode"
-user-name = "Dan Gohman"
-
-[[publisher.rustix]]
-version = "0.38.10"
-when = "2023-08-28"
-user-id = 6825
-user-login = "sunfishcode"
-user-name = "Dan Gohman"
 
 [[publisher.rustix]]
 version = "0.38.25"
@@ -888,13 +616,6 @@ user-login = "Amanieu"
 user-name = "Amanieu d'Antras"
 
 [[publisher.serde]]
-version = "1.0.188"
-when = "2023-08-26"
-user-id = 3618
-user-login = "dtolnay"
-user-name = "David Tolnay"
-
-[[publisher.serde]]
 version = "1.0.193"
 when = "2023-11-21"
 user-id = 3618
@@ -902,22 +623,8 @@ user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.serde_derive]]
-version = "1.0.188"
-when = "2023-08-26"
-user-id = 3618
-user-login = "dtolnay"
-user-name = "David Tolnay"
-
-[[publisher.serde_derive]]
 version = "1.0.193"
 when = "2023-11-21"
-user-id = 3618
-user-login = "dtolnay"
-user-name = "David Tolnay"
-
-[[publisher.serde_json]]
-version = "1.0.105"
-when = "2023-08-15"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
@@ -930,13 +637,6 @@ user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.serde_yaml]]
-version = "0.9.25"
-when = "2023-07-20"
-user-id = 3618
-user-login = "dtolnay"
-user-name = "David Tolnay"
-
-[[publisher.serde_yaml]]
 version = "0.9.27"
 when = "2023-10-26"
 user-id = 3618
@@ -944,25 +644,11 @@ user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.sha2]]
-version = "0.10.7"
-when = "2023-06-15"
-user-id = 5059
-user-login = "newpavlov"
-user-name = "Artyom Pavlov"
-
-[[publisher.sha2]]
 version = "0.10.8"
 when = "2023-09-26"
 user-id = 5059
 user-login = "newpavlov"
 user-name = "Artyom Pavlov"
-
-[[publisher.sharded-slab]]
-version = "0.1.4"
-when = "2021-10-12"
-user-id = 1249
-user-login = "hawkw"
-user-name = "Eliza Weisman"
 
 [[publisher.sharded-slab]]
 version = "0.1.7"
@@ -977,13 +663,6 @@ when = "2023-08-23"
 user-id = 468
 user-login = "jedisct1"
 user-name = "Frank Denis"
-
-[[publisher.smallvec]]
-version = "1.11.0"
-when = "2023-07-05"
-user-id = 2017
-user-login = "mbrubeck"
-user-name = "Matt Brubeck"
 
 [[publisher.smallvec]]
 version = "1.11.2"
@@ -1007,13 +686,6 @@ user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.syn]]
-version = "2.0.29"
-when = "2023-08-17"
-user-id = 3618
-user-login = "dtolnay"
-user-name = "David Tolnay"
-
-[[publisher.syn]]
 version = "2.0.39"
 when = "2023-11-06"
 user-id = 3618
@@ -1021,18 +693,18 @@ user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.sysinfo]]
-version = "0.29.10"
-when = "2023-09-06"
+version = "0.29.11"
+when = "2023-11-26"
 user-id = 111
 user-login = "GuillaumeGomez"
 user-name = "Guillaume Gomez"
 
-[[publisher.termcolor]]
-version = "1.2.0"
-when = "2023-01-15"
-user-id = 189
-user-login = "BurntSushi"
-user-name = "Andrew Gallant"
+[[publisher.tempfile]]
+version = "3.8.1"
+when = "2023-10-26"
+user-id = 280
+user-login = "Stebalien"
+user-name = "Steven Allen"
 
 [[publisher.termcolor]]
 version = "1.4.0"
@@ -1049,22 +721,8 @@ user-login = "epage"
 user-name = "Ed Page"
 
 [[publisher.thiserror]]
-version = "1.0.47"
-when = "2023-08-17"
-user-id = 3618
-user-login = "dtolnay"
-user-name = "David Tolnay"
-
-[[publisher.thiserror]]
 version = "1.0.50"
 when = "2023-10-19"
-user-id = 3618
-user-login = "dtolnay"
-user-name = "David Tolnay"
-
-[[publisher.thiserror-impl]]
-version = "1.0.47"
-when = "2023-08-17"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
@@ -1105,22 +763,8 @@ user-login = "epage"
 user-name = "Ed Page"
 
 [[publisher.tracing]]
-version = "0.1.37"
-when = "2022-10-06"
-user-id = 1249
-user-login = "hawkw"
-user-name = "Eliza Weisman"
-
-[[publisher.tracing]]
 version = "0.1.40"
 when = "2023-10-19"
-user-id = 1249
-user-login = "hawkw"
-user-name = "Eliza Weisman"
-
-[[publisher.tracing-attributes]]
-version = "0.1.26"
-when = "2023-06-22"
 user-id = 1249
 user-login = "hawkw"
 user-name = "Eliza Weisman"
@@ -1133,22 +777,8 @@ user-login = "hawkw"
 user-name = "Eliza Weisman"
 
 [[publisher.tracing-core]]
-version = "0.1.31"
-when = "2023-05-11"
-user-id = 1249
-user-login = "hawkw"
-user-name = "Eliza Weisman"
-
-[[publisher.tracing-core]]
 version = "0.1.32"
 when = "2023-10-13"
-user-id = 1249
-user-login = "hawkw"
-user-name = "Eliza Weisman"
-
-[[publisher.tracing-log]]
-version = "0.1.3"
-when = "2022-04-21"
 user-id = 1249
 user-login = "hawkw"
 user-name = "Eliza Weisman"
@@ -1163,13 +793,6 @@ user-name = "Eliza Weisman"
 [[publisher.tracing-serde]]
 version = "0.1.3"
 when = "2022-02-04"
-user-id = 1249
-user-login = "hawkw"
-user-name = "Eliza Weisman"
-
-[[publisher.tracing-subscriber]]
-version = "0.3.17"
-when = "2023-04-22"
 user-id = 1249
 user-login = "hawkw"
 user-name = "Eliza Weisman"
@@ -1194,13 +817,6 @@ when = "2023-08-21"
 user-id = 359
 user-login = "seanmonstar"
 user-name = "Sean McArthur"
-
-[[publisher.unicode-ident]]
-version = "1.0.11"
-when = "2023-07-15"
-user-id = 3618
-user-login = "dtolnay"
-user-name = "David Tolnay"
 
 [[publisher.unicode-ident]]
 version = "1.0.12"
@@ -1231,18 +847,11 @@ user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.url]]
-version = "2.4.1"
-when = "2023-08-28"
+version = "2.5.0"
+when = "2023-11-22"
 user-id = 72883
 user-login = "valenting"
 user-name = "Valentin Gosu"
-
-[[publisher.uuid]]
-version = "1.4.1"
-when = "2023-07-17"
-user-id = 3204
-user-login = "KodrAus"
-user-name = "Ashley Mannix"
 
 [[publisher.uuid]]
 version = "1.6.1"
@@ -1250,13 +859,6 @@ when = "2023-11-20"
 user-id = 3204
 user-login = "KodrAus"
 user-name = "Ashley Mannix"
-
-[[publisher.walkdir]]
-version = "2.3.3"
-when = "2023-03-16"
-user-id = 189
-user-login = "BurntSushi"
-user-name = "Andrew Gallant"
 
 [[publisher.walkdir]]
 version = "2.4.0"
@@ -1273,81 +875,39 @@ user-login = "alexcrichton"
 user-name = "Alex Crichton"
 
 [[publisher.wasm-bindgen]]
-version = "0.2.87"
-when = "2023-06-12"
-user-id = 1
-user-login = "alexcrichton"
-user-name = "Alex Crichton"
-
-[[publisher.wasm-bindgen]]
-version = "0.2.88"
-when = "2023-11-01"
+version = "0.2.89"
+when = "2023-11-27"
 user-id = 1
 user-login = "alexcrichton"
 user-name = "Alex Crichton"
 
 [[publisher.wasm-bindgen-backend]]
-version = "0.2.87"
-when = "2023-06-12"
-user-id = 1
-user-login = "alexcrichton"
-user-name = "Alex Crichton"
-
-[[publisher.wasm-bindgen-backend]]
-version = "0.2.88"
-when = "2023-11-01"
+version = "0.2.89"
+when = "2023-11-27"
 user-id = 1
 user-login = "alexcrichton"
 user-name = "Alex Crichton"
 
 [[publisher.wasm-bindgen-macro]]
-version = "0.2.87"
-when = "2023-06-12"
-user-id = 1
-user-login = "alexcrichton"
-user-name = "Alex Crichton"
-
-[[publisher.wasm-bindgen-macro]]
-version = "0.2.88"
-when = "2023-11-01"
+version = "0.2.89"
+when = "2023-11-27"
 user-id = 1
 user-login = "alexcrichton"
 user-name = "Alex Crichton"
 
 [[publisher.wasm-bindgen-macro-support]]
-version = "0.2.87"
-when = "2023-06-12"
-user-id = 1
-user-login = "alexcrichton"
-user-name = "Alex Crichton"
-
-[[publisher.wasm-bindgen-macro-support]]
-version = "0.2.88"
-when = "2023-11-01"
+version = "0.2.89"
+when = "2023-11-27"
 user-id = 1
 user-login = "alexcrichton"
 user-name = "Alex Crichton"
 
 [[publisher.wasm-bindgen-shared]]
-version = "0.2.87"
-when = "2023-06-12"
+version = "0.2.89"
+when = "2023-11-27"
 user-id = 1
 user-login = "alexcrichton"
 user-name = "Alex Crichton"
-
-[[publisher.wasm-bindgen-shared]]
-version = "0.2.88"
-when = "2023-11-01"
-user-id = 1
-user-login = "alexcrichton"
-user-name = "Alex Crichton"
-
-[[publisher.winapi-util]]
-version = "0.1.5"
-when = "2020-04-20"
-user-id = 189
-user-login = "BurntSushi"
-user-name = "Andrew Gallant"
 
 [[publisher.winapi-util]]
 version = "0.1.6"
@@ -1370,9 +930,23 @@ user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
 
+[[publisher.windows-sys]]
+version = "0.52.0"
+when = "2023-11-15"
+user-id = 64539
+user-login = "kennykerr"
+user-name = "Kenny Kerr"
+
 [[publisher.windows-targets]]
 version = "0.48.5"
 when = "2023-08-18"
+user-id = 64539
+user-login = "kennykerr"
+user-name = "Kenny Kerr"
+
+[[publisher.windows-targets]]
+version = "0.52.0"
+when = "2023-11-15"
 user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
@@ -1384,9 +958,23 @@ user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
 
+[[publisher.windows_aarch64_gnullvm]]
+version = "0.52.0"
+when = "2023-11-15"
+user-id = 64539
+user-login = "kennykerr"
+user-name = "Kenny Kerr"
+
 [[publisher.windows_aarch64_msvc]]
 version = "0.48.5"
 when = "2023-08-18"
+user-id = 64539
+user-login = "kennykerr"
+user-name = "Kenny Kerr"
+
+[[publisher.windows_aarch64_msvc]]
+version = "0.52.0"
+when = "2023-11-15"
 user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
@@ -1398,9 +986,23 @@ user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
 
+[[publisher.windows_i686_gnu]]
+version = "0.52.0"
+when = "2023-11-15"
+user-id = 64539
+user-login = "kennykerr"
+user-name = "Kenny Kerr"
+
 [[publisher.windows_i686_msvc]]
 version = "0.48.5"
 when = "2023-08-18"
+user-id = 64539
+user-login = "kennykerr"
+user-name = "Kenny Kerr"
+
+[[publisher.windows_i686_msvc]]
+version = "0.52.0"
+when = "2023-11-15"
 user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
@@ -1412,6 +1014,13 @@ user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
 
+[[publisher.windows_x86_64_gnu]]
+version = "0.52.0"
+when = "2023-11-15"
+user-id = 64539
+user-login = "kennykerr"
+user-name = "Kenny Kerr"
+
 [[publisher.windows_x86_64_gnullvm]]
 version = "0.48.5"
 when = "2023-08-18"
@@ -1419,9 +1028,23 @@ user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
 
+[[publisher.windows_x86_64_gnullvm]]
+version = "0.52.0"
+when = "2023-11-15"
+user-id = 64539
+user-login = "kennykerr"
+user-name = "Kenny Kerr"
+
 [[publisher.windows_x86_64_msvc]]
 version = "0.48.5"
 when = "2023-08-18"
+user-id = 64539
+user-login = "kennykerr"
+user-name = "Kenny Kerr"
+
+[[publisher.windows_x86_64_msvc]]
+version = "0.52.0"
+when = "2023-11-15"
 user-id = 64539
 user-login = "kennykerr"
 user-name = "Kenny Kerr"
@@ -1445,12 +1068,6 @@ criteria = "safe-to-deploy"
 version = "1.0.2"
 notes = "This is a small crate which forbids unsafe code and is a straightforward implementation of the adler hashing algorithm."
 
-[[audits.bytecode-alliance.audits.base64]]
-who = "Pat Hickey <phickey@fastly.com>"
-criteria = "safe-to-deploy"
-version = "0.21.0"
-notes = "This crate has no dependencies, no build.rs, and contains no unsafe code."
-
 [[audits.bytecode-alliance.audits.block-buffer]]
 who = "Benjamin Bouvier <public@benj.me>"
 criteria = "safe-to-deploy"
@@ -1466,24 +1083,6 @@ notes = "I am the author of this crate."
 who = "Benjamin Bouvier <public@benj.me>"
 criteria = "safe-to-deploy"
 version = "0.1.3"
-
-[[audits.bytecode-alliance.audits.errno]]
-who = "Dan Gohman <dev@sunfishcode.online>"
-criteria = "safe-to-deploy"
-version = "0.3.0"
-notes = "This crate uses libc and windows-sys APIs to get and set the raw OS error value."
-
-[[audits.bytecode-alliance.audits.errno]]
-who = "Dan Gohman <dev@sunfishcode.online>"
-criteria = "safe-to-deploy"
-delta = "0.3.0 -> 0.3.1"
-notes = "Just a dependency version bump and a bug fix for redox"
-
-[[audits.bytecode-alliance.audits.errno-dragonfly]]
-who = "Jamey Sharp <jsharp@fastly.com>"
-criteria = "safe-to-deploy"
-version = "0.1.2"
-notes = "This should be portable to any POSIX system and seems like it should be part of the libc crate, but at any rate it's safe as is."
 
 [[audits.bytecode-alliance.audits.fastrand]]
 who = "Alex Crichton <alex@alexcrichton.com>"
@@ -1510,24 +1109,6 @@ size of this crate comes from the large generated unicode tables file. This
 crate is broadly used throughout the ecosystem and does not contain anything
 suspicious.
 """
-
-[[audits.bytecode-alliance.audits.io-lifetimes]]
-who = "Dan Gohman <dev@sunfishcode.online>"
-criteria = "safe-to-deploy"
-version = "1.0.3"
-notes = "I am the author of this crate."
-
-[[audits.bytecode-alliance.audits.io-lifetimes]]
-who = "Pat Hickey <phickey@fastly.com>"
-criteria = "safe-to-deploy"
-delta = "1.0.3 -> 1.0.5"
-notes = "The Bytecode Alliance is the author of this crate."
-
-[[audits.bytecode-alliance.audits.io-lifetimes]]
-who = "Dan Gohman <dev@sunfishcode.online>"
-criteria = "safe-to-deploy"
-delta = "1.0.5 -> 1.0.10"
-notes = "I am the maintainer of this crate."
 
 [[audits.bytecode-alliance.audits.matchers]]
 who = "Pat Hickey <phickey@fastly.com>"
@@ -1559,11 +1140,6 @@ resources. It's originally a port of the `miniz.c` library as well, and given
 its own longevity should be relatively hardened against some of the more common
 compression-related issues.
 """
-
-[[audits.bytecode-alliance.audits.pin-utils]]
-who = "Pat Hickey <phickey@fastly.com>"
-criteria = "safe-to-deploy"
-version = "0.1.0"
 
 [[audits.bytecode-alliance.audits.pulldown-cmark]]
 who = "Alex Crichton <alex@alexcrichton.com>"
@@ -1622,12 +1198,6 @@ criteria = "safe-to-deploy"
 version = "1.0.0"
 notes = "No unsafe usage or ambient capabilities"
 
-[[audits.embark-studios.audits.idna]]
-who = "Johan Andersson <opensource@embark-studios.com>"
-criteria = "safe-to-deploy"
-delta = "0.3.0 -> 0.4.0"
-notes = "No unsafe usage or ambient capabilities"
-
 [[audits.embark-studios.audits.utf8parse]]
 who = "Johan Andersson <opensource@embark-studios.com>"
 criteria = "safe-to-deploy"
@@ -1673,21 +1243,6 @@ who = "George Burgess IV <gbiv@google.com>"
 criteria = "safe-to-deploy"
 version = "0.9.4"
 aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
-
-[[audits.isrg.audits.base64]]
-who = "Tim Geoghegan <timg@letsencrypt.org>"
-criteria = "safe-to-deploy"
-delta = "0.21.0 -> 0.21.1"
-
-[[audits.isrg.audits.base64]]
-who = "Brandon Pitman <bran@bran.land>"
-criteria = "safe-to-deploy"
-delta = "0.21.1 -> 0.21.2"
-
-[[audits.isrg.audits.base64]]
-who = "David Cook <dcook@divviup.org>"
-criteria = "safe-to-deploy"
-delta = "0.21.2 -> 0.21.3"
 
 [[audits.isrg.audits.block-buffer]]
 who = "David Cook <dcook@divviup.org>"
@@ -1786,23 +1341,6 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.1.4 -> 0.1.5"
 aggregated-from = "https://hg.mozilla.org/mozilla-central/raw-file/tip/supply-chain/audits.toml"
-
-[[audits.mozilla.audits.askama]]
-who = "Bobby Holley <bobbyholley@gmail.com>"
-criteria = "safe-to-deploy"
-version = "0.11.1"
-notes = """
-Just contains some traits and re-exports for use by a broader package of related
-crates. No unsafe code or ambient capability usage.
-"""
-aggregated-from = "https://hg.mozilla.org/mozilla-central/raw-file/tip/supply-chain/audits.toml"
-
-[[audits.mozilla.audits.askama]]
-who = "Jan-Erik Rediger <jrediger@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.11.1 -> 0.12.0"
-notes = "No new unsafe usage, mostly dependency updates and smaller API changes"
-aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
 
 [[audits.mozilla.audits.autocfg]]
 who = "Josh Stone <jistone@redhat.com>"
@@ -1948,12 +1486,6 @@ who = "Jack Grigg <jack@electriccoin.co>"
 criteria = "safe-to-deploy"
 delta = "0.10.3 -> 0.10.4"
 notes = "Adds panics to prevent a block size of zero from causing unsoundness."
-aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
-
-[[audits.zcash.audits.io-lifetimes]]
-who = "Jack Grigg <jack@electriccoin.co>"
-criteria = "safe-to-deploy"
-delta = "1.0.10 -> 1.0.11"
 aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
 
 [[audits.zcash.audits.tinyvec_macros]]

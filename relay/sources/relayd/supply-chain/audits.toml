@@ -1,6 +1,11 @@
 
 # cargo-vet audits file
 
+[[audits.base64]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "0.21.3 -> 0.21.5"
+
 [[audits.chrono]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
@@ -16,6 +21,11 @@ who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
 delta = "0.3.1 -> 0.3.2"
 
+[[audits.hermit-abi]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "0.3.2 -> 0.3.3"
+
 [[audits.httpdate]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
@@ -25,6 +35,11 @@ delta = "1.0.2 -> 1.0.3"
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
 delta = "0.1.56 -> 0.1.57"
+
+[[audits.idna]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "0.4.0 -> 0.5.0"
 
 [[audits.inotify]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
@@ -41,15 +56,45 @@ who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
 delta = "2.7.2 -> 2.8.0"
 
+[[audits.ipnet]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "2.8.0 -> 2.9.0"
+
 [[audits.pretty_assertions]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-run"
 delta = "1.3.0 -> 1.4.0"
 
+[[audits.proptest]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-run"
+delta = "1.2.0 -> 1.4.0"
+
+[[audits.redox_syscall]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "0.3.5 -> 0.4.1"
+
+[[audits.rustls-pemfile]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "1.0.3 -> 1.0.4"
+
 [[audits.schannel]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
 delta = "0.1.21 -> 0.1.22"
+
+[[audits.sha1]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "0.10.5 -> 0.10.6"
+
+[[audits.system-configuration-sys]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+version = "0.5.0"
 
 [[audits.tempfile]]
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
@@ -60,6 +105,11 @@ delta = "3.5.0 -> 3.6.0"
 who = "Alexis Mousset <alexis.mousset@rudder.io>"
 criteria = "safe-to-deploy"
 delta = "3.6.0 -> 3.8.0"
+
+[[audits.tempfile]]
+who = "Alexis Mousset <alexis.mousset@rudder.io>"
+criteria = "safe-to-deploy"
+delta = "3.8.0 -> 3.8.1"
 
 [[trusted.addr2line]]
 criteria = "safe-to-deploy"
@@ -139,6 +189,12 @@ user-id = 4556 # Dirkjan Ochtman (djc)
 start = "2022-07-25"
 end = "2024-06-09"
 
+[[trusted.chrono]]
+criteria = "safe-to-deploy"
+user-id = 228432 # Paul Dicker (pitdicker)
+start = "2023-08-30"
+end = "2024-11-28"
+
 [[trusted.clap]]
 criteria = "safe-to-deploy"
 user-id = 6743 # Ed Page (epage)
@@ -199,6 +255,12 @@ user-id = 539 # Josh Stone (cuviper)
 start = "2023-02-05"
 end = "2024-06-27"
 
+[[trusted.errno]]
+criteria = "safe-to-deploy"
+user-id = 6825 # Dan Gohman (sunfishcode)
+start = "2023-08-29"
+end = "2024-11-28"
+
 [[trusted.fastrand]]
 criteria = "safe-to-deploy"
 user-id = 33035 # Taiki Endo (taiki-e)
@@ -235,11 +297,41 @@ user-id = 72883 # Valentin Gosu (valenting)
 start = "2022-09-08"
 end = "2024-06-27"
 
+[[trusted.futures]]
+criteria = "safe-to-deploy"
+user-id = 33035 # Taiki Endo (taiki-e)
+start = "2020-10-05"
+end = "2024-11-28"
+
+[[trusted.futures-channel]]
+criteria = "safe-to-deploy"
+user-id = 33035 # Taiki Endo (taiki-e)
+start = "2020-10-05"
+end = "2024-11-28"
+
+[[trusted.futures-core]]
+criteria = "safe-to-deploy"
+user-id = 33035 # Taiki Endo (taiki-e)
+start = "2020-10-05"
+end = "2024-11-28"
+
+[[trusted.futures-io]]
+criteria = "safe-to-deploy"
+user-id = 33035 # Taiki Endo (taiki-e)
+start = "2020-10-05"
+end = "2024-11-28"
+
 [[trusted.futures-macro]]
 criteria = "safe-to-deploy"
 user-id = 33035 # Taiki Endo (taiki-e)
 start = "2020-10-05"
 end = "2024-08-30"
+
+[[trusted.futures-sink]]
+criteria = "safe-to-deploy"
+user-id = 33035 # Taiki Endo (taiki-e)
+start = "2020-10-05"
+end = "2024-11-28"
 
 [[trusted.futures-task]]
 criteria = "safe-to-deploy"
@@ -271,6 +363,12 @@ user-id = 2915 # Amanieu d'Antras (Amanieu)
 start = "2019-04-02"
 end = "2024-06-27"
 
+[[trusted.headers]]
+criteria = "safe-to-deploy"
+user-id = 359 # Sean McArthur (seanmonstar)
+start = "2019-09-09"
+end = "2024-11-28"
+
 [[trusted.http]]
 criteria = "safe-to-deploy"
 user-id = 359 # Sean McArthur (seanmonstar)
@@ -281,7 +379,7 @@ end = "2024-06-27"
 criteria = "safe-to-deploy"
 user-id = 359 # Sean McArthur (seanmonstar)
 start = "2019-10-01"
-end = "2024-08-30"
+end = "2024-11-28"
 
 [[trusted.http-body]]
 criteria = "safe-to-deploy"
@@ -306,6 +404,12 @@ criteria = "safe-to-deploy"
 user-id = 359 # Sean McArthur (seanmonstar)
 start = "2019-03-19"
 end = "2024-06-27"
+
+[[trusted.iana-time-zone]]
+criteria = "safe-to-deploy"
+user-id = 649 # Andrew Straw (astraw)
+start = "2020-06-27"
+end = "2024-11-28"
 
 [[trusted.indexmap]]
 criteria = "safe-to-deploy"
@@ -619,6 +723,12 @@ user-id = 5059 # Artyom Pavlov (newpavlov)
 start = "2020-01-06"
 end = "2024-06-27"
 
+[[trusted.sharded-slab]]
+criteria = "safe-to-deploy"
+user-id = 1249 # Eliza Weisman (hawkw)
+start = "2019-10-02"
+end = "2024-11-28"
+
 [[trusted.slab]]
 criteria = "safe-to-deploy"
 user-id = 6741 # Alice Ryhl (Darksonn)
@@ -648,6 +758,12 @@ criteria = "safe-to-deploy"
 user-id = 3618 # David Tolnay (dtolnay)
 start = "2019-03-01"
 end = "2024-06-27"
+
+[[trusted.system-configuration]]
+criteria = "safe-to-deploy"
+user-id = 1459 # Linus Färnstrand (faern)
+start = "2019-10-16"
+end = "2024-11-28"
 
 [[trusted.thiserror]]
 criteria = "safe-to-deploy"
@@ -721,11 +837,41 @@ user-id = 6743 # Ed Page (epage)
 start = "2021-09-13"
 end = "2024-06-27"
 
+[[trusted.tower-service]]
+criteria = "safe-to-deploy"
+user-id = 1249 # Eliza Weisman (hawkw)
+start = "2022-06-17"
+end = "2024-11-28"
+
+[[trusted.tracing]]
+criteria = "safe-to-deploy"
+user-id = 1249 # Eliza Weisman (hawkw)
+start = "2019-06-28"
+end = "2024-11-28"
+
 [[trusted.tracing-attributes]]
 criteria = "safe-to-deploy"
 user-id = 1249 # Eliza Weisman (hawkw)
 start = "2019-08-08"
 end = "2024-06-27"
+
+[[trusted.tracing-core]]
+criteria = "safe-to-deploy"
+user-id = 1249 # Eliza Weisman (hawkw)
+start = "2019-06-20"
+end = "2024-11-28"
+
+[[trusted.tracing-log]]
+criteria = "safe-to-deploy"
+user-id = 1249 # Eliza Weisman (hawkw)
+start = "2019-06-27"
+end = "2024-11-28"
+
+[[trusted.tracing-subscriber]]
+criteria = "safe-to-deploy"
+user-id = 1249 # Eliza Weisman (hawkw)
+start = "2019-06-27"
+end = "2024-11-28"
 
 [[trusted.unicase]]
 criteria = "safe-to-deploy"
@@ -828,6 +974,12 @@ criteria = "safe-to-deploy"
 user-id = 189 # Andrew Gallant (BurntSushi)
 start = "2020-01-11"
 end = "2024-06-27"
+
+[[trusted.windows-core]]
+criteria = "safe-to-deploy"
+user-id = 64539 # Kenny Kerr (kennykerr)
+start = "2021-11-15"
+end = "2024-11-28"
 
 [[trusted.windows-sys]]
 criteria = "safe-to-deploy"

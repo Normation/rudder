@@ -29,7 +29,7 @@ audit-as-crates-io = true
 audit-as-crates-io = true
 
 [[exemptions.ahash]]
-version = "0.8.3"
+version = "0.8.6"
 criteria = "safe-to-deploy"
 
 [[exemptions.ammonia]]
@@ -38,6 +38,10 @@ criteria = "safe-to-deploy"
 
 [[exemptions.android-tzdata]]
 version = "0.1.1"
+criteria = "safe-to-deploy"
+
+[[exemptions.base64]]
+version = "0.21.5"
 criteria = "safe-to-deploy"
 
 [[exemptions.boon]]
@@ -65,11 +69,11 @@ version = "3.0.2"
 criteria = "safe-to-deploy"
 
 [[exemptions.fancy-regex]]
-version = "0.11.0"
+version = "0.12.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.file-owner]]
-version = "0.1.1"
+version = "0.1.2"
 criteria = "safe-to-deploy"
 
 [[exemptions.float-cmp]]
@@ -101,6 +105,10 @@ version = "0.8.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.hermit-abi]]
+version = "0.3.3"
+criteria = "safe-to-deploy"
+
+[[exemptions.hostname]]
 version = "0.3.1"
 criteria = "safe-to-deploy"
 
@@ -116,10 +124,6 @@ criteria = "safe-to-deploy"
 version = "2.1.0"
 criteria = "safe-to-deploy"
 
-[[exemptions.iana-time-zone]]
-version = "0.1.56"
-criteria = "safe-to-deploy"
-
 [[exemptions.iana-time-zone-haiku]]
 version = "0.1.2"
 criteria = "safe-to-deploy"
@@ -133,7 +137,7 @@ version = "0.7.3"
 criteria = "safe-to-deploy"
 
 [[exemptions.itertools]]
-version = "0.10.5"
+version = "0.11.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.log]]
@@ -176,6 +180,10 @@ criteria = "safe-to-deploy"
 version = "1.1.1"
 criteria = "safe-to-deploy"
 
+[[exemptions.ntapi]]
+version = "0.4.1"
+criteria = "safe-to-deploy"
+
 [[exemptions.once_cell]]
 version = "1.17.2"
 criteria = "safe-to-deploy"
@@ -197,11 +205,11 @@ version = "0.8.5"
 criteria = "safe-to-deploy"
 
 [[exemptions.redox_syscall]]
-version = "0.3.5"
+version = "0.4.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.shlex]]
-version = "1.1.0"
+version = "1.2.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.string_cache]]
@@ -216,16 +224,12 @@ criteria = "safe-to-deploy"
 version = "0.10.0"
 criteria = "safe-to-deploy"
 
-[[exemptions.tempfile]]
-version = "3.5.0"
-criteria = "safe-to-deploy"
-
 [[exemptions.tendril]]
 version = "0.4.3"
 criteria = "safe-to-deploy"
 
 [[exemptions.terminal_size]]
-version = "0.2.6"
+version = "0.3.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.test-generator]]
@@ -238,6 +242,10 @@ criteria = "safe-to-deploy"
 
 [[exemptions.typenum]]
 version = "1.16.0"
+criteria = "safe-to-deploy"
+
+[[exemptions.uname-rs]]
+version = "0.1.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.utf-8]]
@@ -260,10 +268,14 @@ criteria = "safe-to-deploy"
 version = "0.4.0"
 criteria = "safe-to-deploy"
 
-[[exemptions.windows]]
-version = "0.48.0"
-criteria = "safe-to-deploy"
-
 [[exemptions.yansi]]
 version = "0.5.1"
 criteria = "safe-to-run"
+
+[[exemptions.zerocopy]]
+version = "0.7.26"
+criteria = "safe-to-deploy"
+
+[[exemptions.zerocopy-derive]]
+version = "0.7.26"
+criteria = "safe-to-deploy"

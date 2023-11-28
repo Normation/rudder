@@ -367,6 +367,7 @@ enum InputType {
 struct SectionInput {
     #[serde(rename = "@name")]
     name: String,
+    #[serde(rename = "$value")]
     section: Vec<InputType>,
 }
 

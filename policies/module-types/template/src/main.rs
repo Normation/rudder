@@ -195,7 +195,7 @@ impl ModuleType0 for Template {
                     .template_path
                     .as_ref()
                     .map(|p| format!(" (from {})", p.display()))
-                    .unwrap_or_else(|| "".to_string());
+                    .unwrap_or_default();
                 if already_present {
                     Outcome::repaired(format!(
                         "Replaced {output_file_d} content from template{source_file}",

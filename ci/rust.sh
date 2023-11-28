@@ -6,14 +6,14 @@ rustup component add clippy
 rustup component add rustfmt
 
 # Install pre-compiled sccache
-SCCACHE_VER=0.5.4
+SCCACHE_VER=0.7.4
 wget --quiet https://github.com/mozilla/sccache/releases/download/v$SCCACHE_VER/sccache-v$SCCACHE_VER-x86_64-unknown-linux-musl.tar.gz
 tar -xf sccache-v$SCCACHE_VER-x86_64-unknown-linux-musl.tar.gz
 chmod +x sccache-v$SCCACHE_VER-x86_64-unknown-linux-musl/sccache
 mv sccache-v$SCCACHE_VER-x86_64-unknown-linux-musl/sccache /usr/local/bin/
 
 # Install pre-compiled cargo-deny
-DENY_VER=0.14.1
+DENY_VER=0.14.3
 wget --quiet https://github.com/EmbarkStudios/cargo-deny/releases/download/$DENY_VER/cargo-deny-$DENY_VER-x86_64-unknown-linux-musl.tar.gz
 tar -xf cargo-deny-$DENY_VER-x86_64-unknown-linux-musl.tar.gz
 mv cargo-deny-$DENY_VER-x86_64-unknown-linux-musl/cargo-deny /usr/local/bin/
