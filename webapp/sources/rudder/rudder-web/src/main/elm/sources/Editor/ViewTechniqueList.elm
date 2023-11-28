@@ -1,4 +1,4 @@
-  module Editor.ViewTechniqueList exposing (..)
+module Editor.ViewTechniqueList exposing (..)
 
 import Dict
 import Either exposing (Either(..))
