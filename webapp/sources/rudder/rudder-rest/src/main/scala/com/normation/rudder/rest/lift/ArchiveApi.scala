@@ -1046,7 +1046,7 @@ class SaveArchiveServicebyRepo(
       existing <-
         IOResult.attempt(if (techniqueDir.exists) {
           techniqueDir.collectChildren(_ => true).toList.map(_.pathAsString.replaceFirst(techniqueDir.pathAsString + "/", ""))
-        } else { // technique or technique version does not exists
+        } else { // technique or technique version does not exist
           Chunk.empty
         })
       _        <- ZIO.foreachDiscard(existing) { e =>

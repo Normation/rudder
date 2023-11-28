@@ -90,7 +90,7 @@ class CheckAddSpecialTargetAllPolicyServers(
   }
 
   /*
-   * Migration is needed if target does not exists.
+   * Migration is needed if target does not exist.
    */
   def checkMigrationNeeded(): IOResult[Boolean] = {
     for {

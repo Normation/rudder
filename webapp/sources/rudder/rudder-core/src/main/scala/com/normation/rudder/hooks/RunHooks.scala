@@ -438,7 +438,7 @@ object RunHooks {
           .sortBy(_._1) // sort them alphanumericaly
         Hooks(basePath, files)
       } else {
-        HooksLogger.debug(s"Ignoring hook directory '${dir.getAbsolutePath}' because path does not exists")
+        HooksLogger.debug(s"Ignoring hook directory '${dir.getAbsolutePath}' because path does not exist")
         // return an empty Hook
         Hooks(basePath, List[(String, HookTimeout)]())
       }
