@@ -1,0 +1,13 @@
+header=rudder-license-v1
+algorithm=SHA512WithRSA
+digest=b2bc7a49db69a1c39ac6fa0cad4230edf5e9b4eb0
+digestdate=2023-09-20T19:26:36+00:00
+keyid=2a5ba55f
+---- signed information about the license
+licensee=Normation
+softwareid=rudder-plugin-dsc
+minversion=0.0-0.0
+maxversion=99.99-99.99
+startdate=2020-03-31T00:00:00Z
+enddate=2024-09-28T12:00:00Z
+----

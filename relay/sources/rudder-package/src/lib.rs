@@ -9,6 +9,7 @@ mod cmd;
 mod config;
 mod database;
 mod dependency;
+mod license;
 mod list;
 mod plugin;
 mod repo_index;
@@ -30,6 +31,7 @@ use crate::{
     cli::Command,
     config::Configuration,
     database::Database,
+    license::Licenses,
     list::ListOutput,
     plugin::{long_names, short_name},
     repo_index::RepoIndex,
@@ -97,6 +99,7 @@ pub fn run() -> Result<()> {
     let mut webapp = Webapp::new(PathBuf::from(WEBAPP_XML_PATH), webapp_version);
     let mut db = Database::read(Path::new(PACKAGES_DATABASE_PATH))?;
     let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
+    let licenses = Licenses::from_path(Path::new(LICENSES_FOLDER))?;
 
     match args.command {
         Command::Install { force, package } => {
@@ -186,7 +189,8 @@ pub fn run() -> Result<()> {
             all,
             enabled,
             format,
-        } => ListOutput::new(all, enabled, &db, index.as_ref(), &webapp)?.display(format)?,
+        } => ListOutput::new(all, enabled, &licenses, &db, index.as_ref(), &webapp)?
+            .display(format)?,
         Command::Show { package } => {
             for p in long_names(package) {
                 println!(

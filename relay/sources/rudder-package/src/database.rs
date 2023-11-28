@@ -224,7 +224,7 @@ pub struct InstalledPlugin {
 
 impl InstalledPlugin {
     pub fn disable(&self, webapp: &mut Webapp) -> Result<()> {
-        debug!("Disabling plugin {}", self.metadata.short_name());
+        info!("Disabling plugin {}", self.metadata.short_name());
         if self.metadata.jar_files.is_empty() {
             debug!("Plugin {} does not support the enable/disable feature, it will always be enabled if installed.", self.metadata.name);
             Ok(())
@@ -234,7 +234,7 @@ impl InstalledPlugin {
     }
 
     pub fn enable(&self, webapp: &mut Webapp) -> Result<()> {
-        debug!("Enabling plugin {}", self.metadata.short_name());
+        info!("Enabling plugin {}", self.metadata.short_name());
         if self.metadata.jar_files.is_empty() {
             debug!("Plugin {} does not support the enable/disable feature, it will always be enabled if installed.", self.metadata.name);
             Ok(())

@@ -78,7 +78,7 @@ Description: {}
 Type: {} plugin
 Build-date: {}
 Build-commit: {}",
-            self.name,
+            self.short_name(),
             self.version,
             self.description.as_ref().unwrap_or(&"".to_owned()),
             self.plugin_type(),

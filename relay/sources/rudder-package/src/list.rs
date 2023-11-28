@@ -7,7 +7,12 @@ use anyhow::Result;
 use serde::Serialize;
 
 use crate::{
-    cli::Format, database::Database, plugin::PluginType, repo_index::RepoIndex, webapp::Webapp,
+    cli::Format,
+    database::Database,
+    license::{License, Licenses},
+    plugin::PluginType,
+    repo_index::RepoIndex,
+    webapp::Webapp,
 };
 
 pub struct ListOutput {
@@ -30,6 +35,10 @@ struct ListEntry {
     enabled: bool,
     #[serde(rename = "type")]
     plugin_type: PluginType,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    license: Option<License>,
 }
 
 impl ListOutput {
@@ -57,6 +66,11 @@ impl ListOutput {
                         (true, false, PluginType::Standalone) => "",
                     }
                     .cell(),
+                    e.license
+                        .map(|l| l.end_date)
+                        .unwrap_or("".to_string())
+                        .cell(),
+                    e.description.unwrap_or("".to_string()).cell(),
                 ]
             })
             .table()
@@ -66,6 +80,8 @@ impl ListOutput {
                 "Latest".cell().bold(true),
                 "Type".cell().bold(true),
                 "Status".cell().bold(true),
+                "License valid until".cell().bold(true),
+                "Description".cell().bold(true),
             ]);
         print_stdout(table)?;
         Ok(())
@@ -80,6 +96,7 @@ impl ListOutput {
     pub fn new(
         show_all: bool,
         show_only_enabled: bool,
+        licenses: &Licenses,
         db: &Database,
         index: Option<&RepoIndex>,
         webapp: &Webapp,
@@ -113,6 +130,8 @@ impl ListOutput {
                 plugin_type: p.metadata.plugin_type(),
                 enabled,
                 installed: true,
+                description: p.metadata.description.clone(),
+                license: licenses.inner.get(&p.metadata.name).cloned(),
             };
             if !show_only_enabled || enabled {
                 // Standalone plugins are always considered enabled
@@ -133,6 +152,8 @@ impl ListOutput {
                             plugin_type: p.metadata.plugin_type(),
                             installed: false,
                             enabled: false,
+                            description: p.metadata.description.clone(),
+                            license: licenses.inner.get(&p.metadata.name).cloned(),
                         };
                         plugins.push(e);
                     }
@@ -160,8 +181,8 @@ mod tests {
 
     use super::ListOutput;
     use crate::{
-        cli::Format, database::Database, repo_index::RepoIndex, versions::RudderVersion,
-        webapp::Webapp,
+        cli::Format, database::Database, license::Licenses, repo_index::RepoIndex,
+        versions::RudderVersion, webapp::Webapp,
     };
 
     #[test]
@@ -177,7 +198,8 @@ mod tests {
             "./tests/database/plugin_database_update_sample.json",
         ))
         .unwrap();
-        let out = ListOutput::new(true, false, &d, Some(&r), &w).unwrap();
+        let l = Licenses::from_path(Path::new("tests/licenses")).unwrap();
+        let out = ListOutput::new(true, false, &l, &d, Some(&r), &w).unwrap();
         out.display(Format::Human).unwrap();
     }
 }
