@@ -59,11 +59,11 @@ import zio.syntax.ToZio
  */
 
 class DefaultInventorySaver(
-    ldapConnectionProvider:          LDAPConnectionProvider[RwLDAPConnection],
-    dit:                             InventoryDit,
-    mapper:                          InventoryMapper,
-    override val preCommitPipeline:  Seq[PreCommit],
-    override val postCommitPipeline: Seq[PostCommit[Seq[LDIFChangeRecord]]]
+    ldapConnectionProvider:         LDAPConnectionProvider[RwLDAPConnection],
+    dit:                            InventoryDit,
+    mapper:                         InventoryMapper,
+    override val preCommitPipeline: Seq[PreCommit],
+    override val basePostPipeline:  Seq[PostCommit[Seq[LDIFChangeRecord]]]
 ) extends PipelinedInventorySaver[Seq[LDIFChangeRecord]] {
 
   def commitChange(inventory: Inventory): IOResult[Seq[LDIFChangeRecord]] = {

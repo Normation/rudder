@@ -757,7 +757,6 @@ class RestTestSetUp {
     nodeInfo,
     nodeInfo,
     softDao,
-    restExtractorService,
     restDataSerializer,
     mockNodes.queryProcessor,
     null,

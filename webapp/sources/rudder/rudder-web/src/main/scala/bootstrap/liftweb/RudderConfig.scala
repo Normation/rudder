@@ -1392,7 +1392,9 @@ case class RudderServiceApi(
     secretEventLogService:               SecretEventLogService,
     changeRequestChangesSerialisation:   ChangeRequestChangesSerialisation,
     gitRepo:                             GitRepositoryProvider,
-    gitModificationRepository:           GitModificationRepository
+    gitModificationRepository:           GitModificationRepository,
+    inventorySaver:                      DefaultInventorySaver,
+    inventoryDitService:                 InventoryDitService
 )
 
 /*
@@ -1765,7 +1767,6 @@ object RudderConfigInit {
       nodeInfoService,
       fullInventoryRepository,
       softwareInventoryDAO,
-      restExtractorService,
       restDataSerializer,
       queryProcessor,
       inventoryQueryChecker,
@@ -3722,7 +3723,9 @@ object RudderConfigInit {
       secretEventLogService,
       changeRequestChangesSerialisation,
       gitConfigRepo,
-      gitModificationRepository
+      gitModificationRepository,
+      inventorySaver,
+      inventoryDitService
     )
 
     // we need to reference batches not part of the API to start them since

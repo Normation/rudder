@@ -1369,7 +1369,6 @@ class NodeApiService6(
     nodeInfoService:            NodeInfoService,
     inventoryRepository:        LDAPFullInventoryRepository,
     softwareRepository:         ReadOnlySoftwareDAO,
-    restExtractor:              RestExtractorService,
     restSerializer:             RestDataSerializer,
     acceptedNodeQueryProcessor: QueryProcessor,
     pendingNodeQueryProcessor:  QueryChecker,
