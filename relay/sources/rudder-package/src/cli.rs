@@ -1,9 +1,31 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use clap::{Parser, Subcommand};
+use std::fmt::Display;
+
+use clap::{Parser, Subcommand, ValueEnum};
 
 use crate::CONFIG_PATH;
+
+#[derive(ValueEnum, Copy, Clone, Debug, Default)]
+pub enum Format {
+    Json,
+    #[default]
+    Human,
+}
+
+impl Display for Format {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Json => "json",
+                Self::Human => "human",
+            }
+        )
+    }
+}
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -22,22 +44,52 @@ pub struct Args {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    /// Update package index and licenses from the repository
+    Update {},
+    /// Install plugins, locally or from the repository
     Install {
-        #[clap(long, short = 'f', help = "Force installation of given plugin")]
+        #[clap(long, short, help = "Force installation of given plugin")]
         force: bool,
 
         #[clap()]
         package: Vec<String>,
     },
-    List {},
+    /// Upgrade plugins
+    Upgrade {
+        #[clap(long, short, help = "Upgrade all installed plugins")]
+        all: bool,
+
+        #[clap(long, help = "Run all the postinstall scripts of installed plugins")]
+        all_postinstall: bool,
+
+        #[clap()]
+        package: Vec<String>,
+    },
+    /// Uninstall plugins
     Uninstall {
         #[clap()]
         package: Vec<String>,
     },
-    Update {},
+    /// Display the plugins list
+    List {
+        #[clap(long, short, help = "Show all available plugins")]
+        all: bool,
+
+        #[clap(long, short, help = "Show enabled plugins")]
+        enabled: bool,
+
+        #[clap(long, short, help = "Output format", default_value_t = Format::Human)]
+        format: Format,
+    },
+    /// Show detailed information about a plugin
+    Show {
+        #[clap()]
+        package: Vec<String>,
+    },
+    /// Enable installed plugins
     Enable {
         #[clap()]
-        package: Option<Vec<String>>,
+        package: Vec<String>,
 
         #[clap(long, short, help = "Enable all installed plugins")]
         all: bool,
@@ -52,4 +104,21 @@ pub enum Command {
         )]
         restore: bool,
     },
+    /// Disable installed plugins
+    Disable {
+        #[clap()]
+        package: Vec<String>,
+
+        #[clap(long, short, help = "Disable all installed plugins")]
+        all: bool,
+
+        #[clap(
+            long,
+            short,
+            help = "Disable all installed plugins incompatible with the Web application version"
+        )]
+        incompatible: bool,
+    },
+    /// Test connection to the plugin repository
+    CheckConnection {},
 }

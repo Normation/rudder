@@ -9,10 +9,16 @@ use log::debug;
 use regex::Regex;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ArchiveVersion {
     pub rudder_version: RudderVersion,
     pub plugin_version: PluginVersion,
+}
+
+impl Display for ArchiveVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}-{}", self.rudder_version, self.plugin_version)
+    }
 }
 
 impl FromStr for ArchiveVersion {
@@ -31,7 +37,7 @@ impl FromStr for ArchiveVersion {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, PartialOrd, Ord)]
 pub enum RudderVersionMode {
     Alpha { version: u32 },
     Beta { version: u32 },
@@ -110,7 +116,7 @@ impl FromStr for RudderVersionMode {
 
 // Checking if a rudder version is a nightly or not is not important for plugin compatibility
 // So it is not implemented
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, PartialOrd, Ord)]
 pub struct RudderVersion {
     pub major: u32,
     pub minor: u32,
@@ -119,11 +125,8 @@ pub struct RudderVersion {
 }
 
 impl RudderVersion {
-    pub fn is_compatible(&self, webapp_version: &str) -> bool {
-        match RudderVersion::from_str(webapp_version) {
-            Ok(w) => *self == w,
-            Err(_) => false,
-        }
+    pub fn is_compatible(&self, webapp_version: &RudderVersion) -> bool {
+        self == webapp_version
     }
 
     pub fn from_path(path: &str) -> Result<Self, Error> {
@@ -137,7 +140,7 @@ impl RudderVersion {
             Some(c) => c,
         };
         debug!(
-            "Raw Rudder version read from '{}' file: '{}'.",
+            "Rudder version read from '{}' file: '{}'.",
             path, &caps["raw_rudder_version"]
         );
         RudderVersion::from_str(&caps["raw_rudder_version"])
@@ -201,22 +204,29 @@ impl FromStr for PluginVersion {
         })
     }
 }
+
 impl PartialOrd for PluginVersion {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for PluginVersion {
+    fn cmp(&self, other: &Self) -> Ordering {
         if self.major < other.major {
-            Some(Ordering::Less)
+            Ordering::Less
         } else if self.major > other.major {
-            Some(Ordering::Greater)
+            Ordering::Greater
         } else if self.minor < other.minor {
-            Some(Ordering::Less)
+            Ordering::Less
         } else if self.minor > other.minor {
-            Some(Ordering::Greater)
+            Ordering::Greater
         } else if self.nightly && !other.nightly {
-            Some(Ordering::Less)
+            Ordering::Less
         } else if !self.nightly && other.nightly {
-            Some(Ordering::Greater)
+            Ordering::Greater
         } else {
-            Some(Ordering::Equal)
+            Ordering::Equal
         }
     }
 }
@@ -281,6 +291,19 @@ mod tests {
         let right = PluginVersion::from_str(b).unwrap();
         assert!(left > right, "{:?} is not less than {:?}", left, right);
     }
+
+    #[rstest]
+    #[case("8.0.0-1.0", "7.3.0-1.0")]
+    #[case("8.0.0-10.0", "8.0.0-2.0")]
+    #[case("8.0.0~alpha2-1.0", "8.0.0~alpha1-1.0")]
+    #[case("8.0.0-1.1", "8.0.0-1.0")]
+    #[case("8.0.0~beta1-1.0", "8.0.0~alpha1-2.0")]
+    fn test_archive_version_greater_than(#[case] a: &str, #[case] b: &str) {
+        let left = ArchiveVersion::from_str(a).unwrap();
+        let right = ArchiveVersion::from_str(b).unwrap();
+        assert!(left > right, "{:?} is not less than {:?}", left, right);
+    }
+
     #[rstest]
     #[case("8.0.0-1.1")]
     #[case("8.0.0-1.1-nightly")]
@@ -433,7 +456,9 @@ mod tests {
     ) {
         let m = ArchiveVersion::from_str(metadata_version).unwrap();
         assert_eq!(
-            m.rudder_version.clone().is_compatible(webapp_version),
+            m.rudder_version
+                .clone()
+                .is_compatible(&RudderVersion::from_str(webapp_version).unwrap()),
             is_compatible,
             "Unexpected compatibility checkfor webapp version '{}' and metadata version {:?}'",
             webapp_version,

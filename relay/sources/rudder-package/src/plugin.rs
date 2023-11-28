@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use std::{collections::HashMap, path::Path, process::Command};
+use std::{collections::HashMap, fmt::Display, path::Path, process::Command};
 
 use anyhow::bail;
 use log::debug;
@@ -11,30 +11,112 @@ use crate::{
     archive::{self, PackageScript, PackageScriptArg},
     cmd::CmdOutput,
     dependency::Dependencies,
-    versions, PACKAGES_FOLDER,
+    versions::{self, RudderVersion},
+    PACKAGES_FOLDER,
 };
 
+pub fn long_names(l: Vec<String>) -> Vec<String> {
+    l.into_iter()
+        .map(|p| {
+            if p.starts_with("rudder-plugin-") {
+                p
+            } else {
+                format!("rudder-plugin-{p}")
+            }
+        })
+        .collect()
+}
+
+pub fn short_name(p: &str) -> &str {
+    p.strip_prefix("rudder-plugin-").unwrap_or(p)
+}
+
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
+#[serde(rename_all = "kebab-case")]
 pub struct Metadata {
     #[serde(rename = "type")]
-    pub plugin_type: archive::PackageType,
+    pub package_type: archive::PackageType,
     pub name: String,
     pub version: versions::ArchiveVersion,
-    #[serde(rename(serialize = "build-date", deserialize = "build-date"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     pub build_date: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub depends: Option<Dependencies>,
-    #[serde(rename(serialize = "build-commit", deserialize = "build-commit"))]
     pub build_commit: String,
     pub content: HashMap<String, String>,
-    #[serde(rename(serialize = "jar-files", deserialize = "jar-files"))]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub jar_files: Option<Vec<String>>,
+    #[serde(default)]
+    pub jar_files: Vec<String>,
+}
+
+/// Not present in metadata but computed from them
+///
+/// Allows exposing to the user if the plugin will appear in the interface or not.
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Copy, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum PluginType {
+    Web,
+    Standalone,
+}
+
+impl Display for PluginType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Web => "web",
+            Self::Standalone => "standalone",
+        })
+    }
+}
+
+// Used by the "show" command
+impl Display for Metadata {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!(
+            "Name: {}
+Version: {}
+Description: {}
+Type: {} plugin
+Build-date: {}
+Build-commit: {}",
+            self.short_name(),
+            self.version,
+            self.description.as_ref().unwrap_or(&"".to_owned()),
+            self.plugin_type(),
+            self.build_date,
+            self.build_commit
+        ))?;
+        f.write_str("\nJar files:")?;
+        if self.jar_files.is_empty() {
+            f.write_str(" none")?;
+        } else {
+            f.write_str("\n")?;
+            for j in self.jar_files.iter() {
+                write!(f, "  {}", j)?;
+            }
+        }
+        f.write_str("\nContents:\n")?;
+        for (a, p) in self.content.iter() {
+            writeln!(f, "  {}: {}", a, p)?;
+        }
+        Ok(())
+    }
 }
 
 impl Metadata {
-    pub fn is_compatible(&self, webapp_version: &str) -> bool {
+    pub fn is_compatible(&self, webapp_version: &RudderVersion) -> bool {
         self.version.rudder_version.is_compatible(webapp_version)
+    }
+
+    pub fn plugin_type(&self) -> PluginType {
+        if self.jar_files.is_empty() {
+            PluginType::Standalone
+        } else {
+            PluginType::Web
+        }
+    }
+
+    pub fn short_name(&self) -> &str {
+        short_name(&self.name)
     }
 
     pub fn run_package_script(
@@ -44,7 +126,11 @@ impl Metadata {
     ) -> Result<(), anyhow::Error> {
         debug!(
             "Running package script '{}' with args '{}' for plugin '{}' in version '{}-{}'...",
-            script, arg, self.name, self.version.rudder_version, self.version.plugin_version
+            script,
+            arg,
+            self.short_name(),
+            self.version.rudder_version,
+            self.version.plugin_version
         );
         let package_script_path = Path::new(PACKAGES_FOLDER)
             .join(self.name.clone())

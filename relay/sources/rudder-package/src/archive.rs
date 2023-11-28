@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use anyhow::{anyhow, bail, Context, Ok, Result};
-use ar::Archive;
 use core::fmt;
-use log::debug;
-use serde::{Deserialize, Serialize};
 use std::{
     fs::{self, *},
     io::{Cursor, Read},
     path::PathBuf,
 };
 
+use anyhow::{anyhow, bail, Context, Ok, Result};
+use ar::Archive;
+use log::{debug, info};
+use serde::{Deserialize, Serialize};
+
 use crate::{
     database::{Database, InstalledPlugin},
     plugin::Metadata,
-    versions::RudderVersion,
     webapp::Webapp,
-    PACKAGES_DATABASE_PATH, PACKAGES_FOLDER, RUDDER_VERSION_PATH,
+    PACKAGES_FOLDER,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
@@ -72,17 +72,16 @@ impl fmt::Display for PackageScriptArg {
 
 #[derive(Clone)]
 pub struct Rpkg {
-    pub path: String,
+    pub path: PathBuf,
     pub metadata: Metadata,
 }
 
 impl Rpkg {
     pub fn from_path(path: &str) -> Result<Rpkg> {
-        let r = Rpkg {
-            path: String::from(path),
-            metadata: read_metadata(path).unwrap(),
-        };
-        Ok(r)
+        Ok(Self {
+            path: PathBuf::from(path),
+            metadata: read_metadata(path)?,
+        })
     }
 
     fn get_txz_dst(&self, txz_name: &str) -> PathBuf {
@@ -156,8 +155,9 @@ impl Rpkg {
 
     fn unpack_embedded_txz(&self, txz_name: &str, dst_path: PathBuf) -> Result<(), anyhow::Error> {
         debug!(
-            "Extracting archive '{}' in folder '{:?}'",
-            txz_name, dst_path
+            "Extracting archive '{}' in folder '{}'",
+            txz_name,
+            dst_path.display()
         );
         // Loop over ar archive files
         let mut archive = Archive::new(File::open(self.path.clone()).unwrap());
@@ -183,23 +183,22 @@ impl Rpkg {
         Ok(())
     }
 
-    pub fn is_installed(&self) -> Result<bool> {
-        let current_database = Database::read(PACKAGES_DATABASE_PATH)?;
-        Ok(current_database.is_installed(self.to_owned()))
+    pub fn is_installed(&self, db: &Database) -> bool {
+        db.is_installed(self)
     }
 
-    pub fn install(&self, force: bool, webapp: &mut Webapp) -> Result<()> {
-        debug!("Installing rpkg '{}'...", self.path);
+    pub fn install(&self, force: bool, db: &mut Database, webapp: &mut Webapp) -> Result<()> {
+        info!("Installing rpkg '{}'...", self.path.display());
+        let is_upgrade = self.is_installed(db);
         // Verify webapp compatibility
-        let webapp_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
         if !(force
             || self
                 .metadata
                 .version
                 .rudder_version
-                .is_compatible(&webapp_version.to_string()))
+                .is_compatible(&webapp.version))
         {
-            bail!("This plugin was built for a Rudder '{}', it is incompatible with your current webapp version '{}'.", self.metadata.version.rudder_version, webapp_version)
+            bail!("This plugin was built for a Rudder '{}', it is incompatible with your current webapp version '{}'.", self.metadata.version.rudder_version, webapp.version)
         }
         // Verify that dependencies are installed
         if let Some(d) = &self.metadata.depends {
@@ -210,9 +209,19 @@ impl Rpkg {
         // Extract package scripts
         self.unpack_embedded_txz("script.txz", PathBuf::from(PACKAGES_FOLDER))?;
         // Run preinst if any
-        let install_or_upgrade: PackageScriptArg = PackageScriptArg::Install;
+        let arg = if is_upgrade {
+            PackageScriptArg::Upgrade
+        } else {
+            PackageScriptArg::Install
+        };
         self.metadata
-            .run_package_script(PackageScript::Preinst, install_or_upgrade)?;
+            .run_package_script(PackageScript::Preinst, arg)?;
+
+        if is_upgrade {
+            // First uninstall old version, but without running prerm/portrm scripts
+            db.uninstall(&self.metadata.name, false, webapp)?;
+        }
+
         // Extract archive content
         let keys = self.metadata.content.keys().clone();
         for txz_name in keys {
@@ -220,29 +229,28 @@ impl Rpkg {
         }
         // Update the plugin index file to track installed files
         // We need to add the content section to the metadata to do so
-        let mut db = Database::read(PACKAGES_DATABASE_PATH)?;
-        db.plugins.insert(
+        db.insert(
             self.metadata.name.clone(),
             InstalledPlugin {
                 files: self.get_archive_installed_files()?,
                 metadata: self.metadata.clone(),
             },
-        );
-        Database::write(PACKAGES_DATABASE_PATH, db)?;
+        )?;
         // Run postinst if any
-        let install_or_upgrade: PackageScriptArg = PackageScriptArg::Install;
+        let arg = if self.is_installed(db) {
+            PackageScriptArg::Upgrade
+        } else {
+            PackageScriptArg::Install
+        };
         self.metadata
-            .run_package_script(PackageScript::Postinst, install_or_upgrade)?;
+            .run_package_script(PackageScript::Postinst, arg)?;
         // Update the webapp xml file if the plugin contains one or more jar file
         debug!("Enabling the associated jars if any");
-        match self.metadata.jar_files.clone() {
-            None => (),
-            Some(jars) => {
-                webapp.enable_jars(&jars)?;
-            }
-        }
-        // Restarting webapp
-        debug!("Install completed");
+        webapp.enable_jars(&self.metadata.jar_files)?;
+        info!(
+            "Plugin {} was successfully installed",
+            self.metadata.short_name()
+        );
         Ok(())
     }
 }

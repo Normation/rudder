@@ -3,20 +3,24 @@
 
 use std::{
     fs::{self, File},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
-use anyhow::{anyhow, bail, Result};
-use log::debug;
+use anyhow::{anyhow, bail, Context, Result};
+use flate2::read::GzDecoder;
+use log::{debug, info};
 use reqwest::{
     blocking::{Client, Response},
     Proxy, StatusCode, Url,
 };
+use tar::Archive;
 use tempfile::tempdir;
 
 use crate::{
     config::{Configuration, Credentials},
     signature::{SignatureVerifier, VerificationSuccess},
+    webapp::Webapp,
+    LICENSES_FOLDER, REPOSITORY_INDEX_PATH,
 };
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
@@ -33,6 +37,8 @@ impl Repository {
     pub fn new(config: &Configuration, verifier: SignatureVerifier) -> Result<Self> {
         let mut client = Client::builder()
             .use_native_tls()
+            // Enforce HTTPS at client level
+            .https_only(true)
             .user_agent(APP_USER_AGENT);
 
         if let Some(proxy_cfg) = &config.proxy {
@@ -43,7 +49,15 @@ impl Repository {
             }
             client = client.proxy(proxy)
         }
-        let server = Url::parse(&config.url)?;
+        // We need to ensure URL ends with a slash
+        let url = if config.url.ends_with("plugins") {
+            let mut u = config.url.to_owned();
+            u.push('/');
+            u
+        } else {
+            config.url.to_owned()
+        };
+        let server = Url::parse(&url)?;
 
         Ok(Self {
             inner: client.build()?,
@@ -129,7 +143,44 @@ impl Repository {
     }
 
     pub fn test_connection(&self) -> Result<()> {
-        self.get("")?;
+        self.get("")
+            .context(format!("Could not connect with {}", self.server))?;
+        info!("Connection with {}: OK", self.server);
+        Ok(())
+    }
+
+    /// Update index and licences
+    pub fn update(&self, webapp: &Webapp) -> Result<()> {
+        // Update the index file
+        debug!("Updating repository index");
+        let rudder_version = &webapp.version;
+        let remote_index = format!(
+            "{}.{}/rpkg.index",
+            rudder_version.major, rudder_version.minor
+        );
+        self.download_unsafe(&remote_index, &PathBuf::from(REPOSITORY_INDEX_PATH))?;
+
+        // Update the licenses
+        if let Some(user) = self.get_username() {
+            debug!("Updating licenses");
+            let license_folder = PathBuf::from(LICENSES_FOLDER);
+            let archive_name = format!("{}-license.tar.gz", user);
+            let local_archive_path = &license_folder.clone().join(archive_name.clone());
+            if let Err(e) = self.download_unsafe(
+                &format!("licenses/{}/{}", user, archive_name),
+                local_archive_path,
+            ) {
+                bail!(
+                    "Could not download licenses from configured repository.\n{}",
+                    e
+                )
+            }
+            // Decompress archive
+            let mut archive = Archive::new(GzDecoder::new(File::open(local_archive_path)?));
+            archive.unpack(license_folder)?;
+        } else {
+            debug!("Not updating licenses as no configured credentials were found")
+        }
         Ok(())
     }
 }
@@ -149,7 +200,7 @@ mod tests {
         let verifier = SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg"));
         let repo = Repository::new(&config, verifier).unwrap();
         let dst = NamedTempFile::new().unwrap();
-        repo.download_unsafe("rpm/rudder_rpm_key.pub", dst.path())
+        repo.download_unsafe("../rpm/rudder_rpm_key.pub", dst.path())
             .unwrap();
         let contents = read_to_string(dst.path()).unwrap();
         assert!(contents.starts_with("-----BEGIN PGP PUBLIC KEY BLOCK----"))
@@ -162,7 +213,7 @@ mod tests {
         let repo = Repository::new(&config, verifier).unwrap();
         let dst = NamedTempFile::new().unwrap();
         repo.download(
-            "plugins/8.0/consul/release/rudder-plugin-consul-8.0.3-2.1.rpkg",
+            "8.0/consul/release/rudder-plugin-consul-8.0.3-2.1.rpkg",
             dst.path(),
         )
         .unwrap();

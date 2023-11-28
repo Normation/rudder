@@ -241,6 +241,7 @@
       "version": "8.0.0~rc2-2.2",
       "build-date": "2023-10-13T10:02:19+00:00",
       "build-commit": "45b05f29381170c7a61484a59dcffec550a9c531",
+      "jar-files": [],
       "depends": {
         "python": [
           "python3-requests"
@@ -286,6 +287,7 @@
       "version": "0.0.0-0.0",
       "build-date": "2023-10-13T10:03:34+00:00",
       "build-commit": "2abc53fb8b2d1c667a91b1a1da2f941a99872cdf",
+      "jar-files": [],
       "content": {
         "files.txz": "/opt/rudder/share/plugins"
       }

@@ -9,6 +9,8 @@ mod cmd;
 mod config;
 mod database;
 mod dependency;
+mod license;
+mod list;
 mod plugin;
 mod repo_index;
 mod repository;
@@ -21,14 +23,26 @@ use std::{
     process,
 };
 
-use crate::{cli::Command, signature::SignatureVerifier, webapp::Webapp};
-use anyhow::{Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use clap::Parser;
-use log::{debug, error, LevelFilter};
+use log::{debug, error, info, warn, LevelFilter};
 
-use crate::{config::Configuration, repository::Repository};
+use crate::{
+    cli::Command,
+    config::Configuration,
+    database::Database,
+    license::Licenses,
+    list::ListOutput,
+    plugin::{long_names, short_name},
+    repo_index::RepoIndex,
+    repository::Repository,
+    signature::SignatureVerifier,
+    versions::RudderVersion,
+    webapp::Webapp,
+};
 
 const PACKAGES_FOLDER: &str = "/var/rudder/packages";
+const LICENSES_FOLDER: &str = "/opt/rudder/etc/plugins/licenses";
 const WEBAPP_XML_PATH: &str = "/opt/rudder/share/webapps/rudder.xml";
 const PACKAGES_DATABASE_PATH: &str = "/var/rudder/packages/index.json";
 const CONFIG_PATH: &str = "/opt/rudder/etc/rudder-pkg/rudder-pkg.conf";
@@ -56,7 +70,10 @@ pub fn run() -> Result<()> {
         process::exit(1);
     }
 
+    // Read CLI args
     let args = cli::Args::parse();
+
+    // Setup logger early
     let filter = if args.debug {
         LevelFilter::Debug
     } else {
@@ -68,194 +85,224 @@ pub fn run() -> Result<()> {
         .format_target(false)
         .filter_level(filter)
         .init();
+
+    // Parse configuration file
     debug!("Parsed CLI arguments: {args:?}");
     let cfg = Configuration::read(Path::new(&args.config))
         .with_context(|| format!("Reading configuration from '{}'", &args.config))?;
+    debug!("Parsed configuration: {cfg:?}");
+
+    // Now initialize all common data structures
     let verifier = SignatureVerifier::new(PathBuf::from(SIGNATURE_KEYRING_PATH));
     let repo = Repository::new(&cfg, verifier)?;
-    let mut webapp = Webapp::new(PathBuf::from(WEBAPP_XML_PATH));
-    debug!("Parsed configuration: {cfg:?}");
+    let webapp_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
+    let mut webapp = Webapp::new(PathBuf::from(WEBAPP_XML_PATH), webapp_version);
+    let mut db = Database::read(Path::new(PACKAGES_DATABASE_PATH))?;
+    let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
+    let licenses = Licenses::from_path(Path::new(LICENSES_FOLDER))?;
 
     match args.command {
         Command::Install { force, package } => {
-            return action::install(force, package, repo, &mut webapp);
+            let mut errors = false;
+            for p in &long_names(package) {
+                if let Err(e) = db.install(force, p, &repo, index.as_ref(), &mut webapp) {
+                    errors = true;
+                    error!("Installation of {} failed: {e}", short_name(p));
+                }
+            }
+            if errors {
+                bail!("Some plugin installation failed");
+            } else {
+                info!("Installation ran successfully");
+            }
         }
         Command::Uninstall { package } => {
-            return action::uninstall(package, &mut webapp);
+            let mut errors = false;
+            for p in &long_names(package) {
+                if let Err(e) = db.uninstall(p, true, &mut webapp) {
+                    errors = true;
+                    error!("Uninstallation of {} failed: {e}", short_name(p));
+                }
+            }
+            if errors {
+                bail!("Some plugin uninstallation failed");
+            } else {
+                info!("Uninstallation ran successfully");
+            }
         }
-        _ => {
-            error!("This command is not implemented");
+        Command::Upgrade {
+            all,
+            package,
+            all_postinstall,
+        } => {
+            if all_postinstall {
+                let mut errors = false;
+                for p in db.plugins.values() {
+                    if let Err(e) = p.metadata.run_package_script(
+                        archive::PackageScript::Postinst,
+                        archive::PackageScriptArg::Upgrade,
+                    ) {
+                        errors = true;
+                        // Don't fail and continue
+                        error!(
+                            "Postinst script for {} failed: {e}",
+                            p.metadata.short_name()
+                        );
+                    }
+                }
+                if errors {
+                    bail!("Some scripts failed");
+                } else {
+                    info!("All postinstall scripts ran successfully");
+                }
+            } else {
+                // Normal upgrades
+                let to_upgrade: Vec<String> = if all {
+                    db.plugins.keys().cloned().collect()
+                } else {
+                    let packages = long_names(package);
+                    for p in &packages {
+                        if db.plugins.get(p).is_none() {
+                            bail!(
+                                "Plugin {} is not installed, stopping upgrade",
+                                short_name(p)
+                            )
+                        }
+                    }
+                    packages
+                };
+                let mut errors = false;
+                for p in &to_upgrade {
+                    if let Err(e) = db.install(false, p, &repo, index.as_ref(), &mut webapp) {
+                        errors = true;
+                        error!("Could not upgrade {}: {e}", short_name(p))
+                    }
+                }
+                if errors {
+                    bail!("Some plugins were not upgraded correctly");
+                } else {
+                    info!("All plugins were upgraded successfully");
+                }
+            }
         }
+        Command::List {
+            all,
+            enabled,
+            format,
+        } => ListOutput::new(all, enabled, &licenses, &db, index.as_ref(), &webapp)?
+            .display(format)?,
+        Command::Show { package } => {
+            for p in long_names(package) {
+                println!(
+                    "{}",
+                    db.plugins
+                        .get(&p)
+                        .ok_or_else(|| anyhow!("Could not find plugin"))?
+                        .metadata
+                )
+            }
+        }
+        Command::Update {} => {
+            repo.update(&webapp)?;
+            info!("Index and licenses successfully updated")
+        }
+        Command::Enable {
+            package,
+            all,
+            save,
+            restore,
+        } => {
+            // If all is passed, enabled all installed plugins
+            let to_enable: Vec<String> = if all {
+                db.plugins.keys().cloned().collect()
+            } else {
+                long_names(package)
+            };
+            if to_enable.is_empty() {
+                let backup_path = Path::new(TMP_PLUGINS_FOLDER).join("plugins_status.backup");
+                if save {
+                    db.enabled_plugins_save(&backup_path, &mut webapp)?;
+                    info!("Plugins status successfully saved");
+                } else if restore {
+                    db.enabled_plugins_restore(&backup_path, &mut webapp)?;
+                    info!("Plugins status successfully restored");
+                } else {
+                    bail!("No plugin provided");
+                }
+            } else {
+                let mut errors = false;
+                for p in &to_enable {
+                    match db.plugins.get(p) {
+                        None => {
+                            warn!("Plugin {} not installed", short_name(p))
+                        }
+                        Some(p) => {
+                            if let Err(e) = p.enable(&mut webapp) {
+                                errors = true;
+                                error!("Could not enable plugin {}: {e}", p.metadata.short_name());
+                            }
+                        }
+                    }
+                }
+                if errors {
+                    error!("Some plugins could not be enabled");
+                } else {
+                    info!("Plugins successfully enabled");
+                }
+            }
+        }
+        Command::Disable {
+            package,
+            all,
+            incompatible,
+        } => {
+            let to_disable: Vec<String> = if all {
+                db.plugins.keys().cloned().collect()
+            } else if incompatible {
+                db.plugins
+                    .iter()
+                    .filter(|(_, p)| {
+                        !webapp
+                            .version
+                            .is_compatible(&p.metadata.version.rudder_version)
+                    })
+                    .map(|(p, _)| p.to_string())
+                    .collect()
+            } else {
+                long_names(package)
+            };
+
+            let mut errors = false;
+            for p in &to_disable {
+                match db.plugins.get(p) {
+                    None => {
+                        warn!("Plugin {} not installed", short_name(p))
+                    }
+                    Some(p) => {
+                        if let Err(e) = p.disable(&mut webapp) {
+                            errors = true;
+                            error!("Could not disable plugin {}: {e}", p.metadata.short_name());
+                        }
+                    }
+                }
+            }
+            if errors {
+                error!("Some plugins could not be disabled");
+            } else {
+                info!("Plugins successfully disabled");
+            }
+        }
+        Command::CheckConnection {} => repo.test_connection()?,
     }
+    // Restart if needed
+    webapp.apply_changes()?;
     Ok(())
 }
 
-pub mod action {
-    use anyhow::{anyhow, bail, Result};
-    use flate2::read::GzDecoder;
-    use log::debug;
-    use tar::Archive;
-
-    use crate::archive::Rpkg;
-    use crate::database::Database;
-    use crate::repo_index::RepoIndex;
-    use crate::repository::Repository;
-    use crate::versions::RudderVersion;
-    use crate::{
-        webapp::Webapp, PACKAGES_DATABASE_PATH, REPOSITORY_INDEX_PATH, RUDDER_VERSION_PATH,
-        TMP_PLUGINS_FOLDER,
-    };
-    use std::fs;
-    use std::fs::File;
-    use std::io::BufRead;
-    use std::path::{Path, PathBuf};
-
-    pub fn uninstall(packages: Vec<String>, webapp: &mut Webapp) -> Result<()> {
-        let mut db = Database::read(PACKAGES_DATABASE_PATH)?;
-        packages.iter().try_for_each(|p| db.uninstall(p, webapp))
-    }
-
-    pub fn install(
-        force: bool,
-        packages: Vec<String>,
-        repository: Repository,
-        webapp: &mut Webapp,
-    ) -> Result<()> {
-        packages.iter().try_for_each(|package| {
-            let rpkg_path = if Path::new(&package).exists() {
-                package.clone()
-            } else {
-                // Find compatible plugin if any
-                let webapp_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
-                let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
-                let to_dl_and_install = match index.get_compatible_plugin(webapp_version, package) {
-                    None => bail!("Could not find any compatible '{}' plugin with the current Rudder version in the configured repository.", package),
-                    Some(p) => {
-                        debug!("Found a compatible plugin in the repository:\n{:?}", p);
-                        p
-                    }
-                };
-                let dest = Path::new(TMP_PLUGINS_FOLDER).join(
-                    Path::new(&to_dl_and_install.path)
-                        .file_name()
-                        .ok_or_else(|| {
-                            anyhow!(
-                                "Could not retrieve filename from path '{}'",
-                                to_dl_and_install.path
-                            )
-                        })?,
-                );
-                // Download rpkg
-                repository.clone().download(&to_dl_and_install.path, &dest)?;
-                dest.as_path().display().to_string()
-            };
-            let rpkg = Rpkg::from_path(&rpkg_path)?;
-            rpkg.install(force, webapp)?;
-            Ok(())
-        })?;
-        webapp.apply_changes()
-    }
-
-    pub fn list() -> Result<()> {
-        let db = Database::read(PACKAGES_DATABASE_PATH);
-        println!("Installed plugins:\n{:?}", db);
-        Ok(())
-    }
-
-    pub fn update(repository: Repository) -> Result<()> {
-        // Update the index file
-        debug!("Updating repository index");
-        let rudder_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
-        let remote_index = format!(
-            "{}.{}/rpkg.index",
-            rudder_version.major, rudder_version.minor
-        );
-        repository.download_unsafe(&remote_index, &PathBuf::from(REPOSITORY_INDEX_PATH))?;
-
-        // Update the licenses
-        if let Some(x) = repository.get_username() {
-            debug!("Updating licenses");
-            let license_folder = PathBuf::from("/opt/rudder/etc/plugins/licenses");
-            let archive_name = format!("{}-license.tar.gz", x);
-            let local_archive_path = &license_folder.clone().join(archive_name.clone());
-            if let Err(e) = repository.download_unsafe(
-                &format!("licences/{}/{}", x, archive_name),
-                local_archive_path,
-            ) {
-                bail!(
-                    "Could not download licenses from configured repository.\n{}",
-                    e
-                )
-            }
-            // Decompress archive
-            let mut archive = Archive::new(GzDecoder::new(File::open(local_archive_path)?));
-            archive.unpack(license_folder)?;
-        } else {
-            debug!("Not updating licenses as no configured credentials were found")
-        }
-        Ok(())
-    }
-
-    pub fn enable(
-        mut w: Webapp,
-        packages: Option<Vec<String>>,
-        all: bool,
-        snapshot: bool,
-        restore: bool,
-        backup_path: Option<String>,
-    ) -> Result<()> {
-        let db = Database::read(PACKAGES_DATABASE_PATH)?;
-        // If all is passed, enabled all installed plugins
-        let to_enabled = if all {
-            Some(db.plugins.keys().cloned().collect())
-        } else {
-            packages
-        };
-        // If package names are passed, enabled them
-        if let Some(x) = to_enabled {
-            return x.iter().try_for_each(|p| match db.plugins.get(p) {
-                None => {
-                    println!("Plugin {} not found installed", p);
-                    Ok(())
-                }
-                Some(installed_plugin) => installed_plugin.enable(&mut w),
-            });
-        }
-        let backup_path = match backup_path {
-            None => format!("{}/plugins_status.backup", TMP_PLUGINS_FOLDER),
-            Some(p) => p,
-        };
-        if snapshot {
-            let mut enabled_jars_from_plugins = Vec::<String>::new();
-            let enabled_jar = w.jars()?;
-            for (k, v) in db.plugins.clone() {
-                if let Some(j) = v.metadata.jar_files {
-                    if j.iter().any(|x| enabled_jar.contains(x)) {
-                        enabled_jars_from_plugins.push(format!("enable {}", k))
-                    }
-                }
-            }
-            fs::write(backup_path, enabled_jars_from_plugins.join("\n"))?;
-            return Ok(());
-        }
-
-        if restore {
-            let file = File::open(backup_path)?;
-            let buf = std::io::BufReader::new(file);
-            buf.lines().for_each(|l| {
-                let binding = l.expect("Could not read line from plugin backup status file");
-                let plugin_name = binding.trim().split(' ').nth(1);
-                match plugin_name {
-                    None => debug!("Malformed line in plugin backup status file"),
-                    Some(x) => match db.plugins.get(x) {
-                        None => debug!("Plugin {} is not installed, it could not be enabled", x),
-                        Some(y) => {
-                            let _ = y.enable(&mut w);
-                        }
-                    },
-                }
-            })
-        }
-        Ok(())
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn i_am_not_root() {
+        assert!(!super::am_i_root().unwrap())
     }
 }

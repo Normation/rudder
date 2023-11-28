@@ -1,32 +1,38 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
-use quick_xml::reader::Reader;
-use quick_xml::Writer;
-use std::collections::HashSet;
-use std::fs;
-use std::io::{Cursor, Write};
-use std::path::PathBuf;
-
-use std::process::Command;
+use std::{
+    collections::HashSet,
+    fs,
+    io::{Cursor, Write},
+    path::PathBuf,
+    process::Command,
+};
 
 use anyhow::Result;
 use log::debug;
+use quick_xml::{
+    events::{BytesEnd, BytesStart, BytesText, Event},
+    reader::Reader,
+    Writer,
+};
+use spinners::{Spinner, Spinners};
 
-use crate::cmd::CmdOutput;
+use crate::{cmd::CmdOutput, versions::RudderVersion};
 
 /// We want to write the file after each plugin to avoid half-installs
 pub struct Webapp {
     pub path: PathBuf,
     pending_changes: bool,
+    pub version: RudderVersion,
 }
 
 impl Webapp {
-    pub fn new(path: PathBuf) -> Self {
+    pub fn new(path: PathBuf, version: RudderVersion) -> Self {
         Self {
             path,
             pending_changes: false,
+            version,
         }
     }
 
@@ -81,18 +87,20 @@ impl Webapp {
                     writer.write_event(Event::Start(e))?;
                 }
                 Event::Text(e) => {
+                    // there are existing jars
                     if in_extra_classpath {
+                        in_extra_classpath = false;
                         let jars_t = e.unescape()?;
                         let mut jars: HashSet<&str> = HashSet::from_iter(jars_t.split(','));
                         for p in present {
                             let changed = jars.insert(p);
-                            if changed && !self.pending_changes {
+                            if changed {
                                 self.pending_changes = true;
                             }
                         }
                         for a in absent {
                             let changed = jars.remove(a.as_str());
-                            if changed && !self.pending_changes {
+                            if changed {
                                 self.pending_changes = true;
                             }
                         }
@@ -102,7 +110,22 @@ impl Webapp {
                         writer.write_event(Event::Text(e))?;
                     }
                 }
+                Event::End(e) if e.name().as_ref() == b"Set" => {
+                    // there are no existing jars, but the section exists
+                    if in_extra_classpath {
+                        in_extra_classpath = false;
+                        let mut jars: HashSet<&str> = HashSet::new();
+                        for p in present {
+                            jars.insert(p);
+                            self.pending_changes = true;
+                        }
+                        let jar_value: Vec<&str> = jars.into_iter().collect();
+                        writer.write_event(Event::Text(BytesText::new(&jar_value.join(","))))?;
+                    }
+                    writer.write_event(Event::End(e))?;
+                }
                 Event::End(e) if e.name().as_ref() == b"Configure" => {
+                    // there is not entry at all
                     if !extra_classpath_found && !present.is_empty() {
                         // Create the element if needed
                         let mut start = BytesStart::new("Set");
@@ -151,13 +174,17 @@ impl Webapp {
     /// Synchronous restart of the web application
     pub fn apply_changes(&mut self) -> Result<()> {
         if self.pending_changes {
-            debug!("Restarting the Web application to apply plugin changes");
+            let mut sp = Spinner::new(
+                Spinners::Dots,
+                "Restarting the Web application to apply changes".into(),
+            );
             let mut systemctl = Command::new("/usr/bin/systemctl");
             systemctl
                 .arg("--no-ask-password")
                 .arg("restart")
                 .arg("rudder-jetty");
             let _ = CmdOutput::new(&mut systemctl)?;
+            sp.stop_with_symbol("🗸");
             self.pending_changes = false;
         } else {
             debug!("No need to restart the Web application");
@@ -178,12 +205,15 @@ mod tests {
 
     #[test]
     fn it_reads_jars() {
-        let w = Webapp::new(PathBuf::from("tests/webapp_xml/example.xml"));
+        let w = Webapp::new(
+            PathBuf::from("tests/webapp_xml/example.xml"),
+            RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap(),
+        );
         let jars = w.jars().unwrap();
         assert_eq!(
             jars,
             vec![
-                "/opt/rudder/share/plugins/auth-backends/auth-backends.jar",
+                "/opt/rudder/share/plugins/dsc/dsc.jar",
                 "/opt/rudder/share/plugins/api-authorizations/api-authorizations.jar"
             ]
         );
@@ -198,7 +228,10 @@ mod tests {
         let expected = path::Path::new(&sample).with_extension("xml.expected");
         let target = temp_dir.path().join(origin);
         fs::copy(sample, target.clone()).unwrap();
-        let mut x = Webapp::new(target.clone());
+        let mut x = Webapp::new(
+            target.clone(),
+            RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap(),
+        );
         let _ = x.enable_jars(&[String::from(jar_name)]);
         assert_eq!(
             fs::read_to_string(target).unwrap(),
@@ -216,7 +249,10 @@ mod tests {
         let expected = path::Path::new(&sample).with_extension("xml.expected");
         let target = temp_dir.path().join(origin);
         fs::copy(sample, target.clone()).unwrap();
-        let mut x = Webapp::new(target.clone());
+        let mut x = Webapp::new(
+            target.clone(),
+            RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap(),
+        );
         let _ = x.disable_jars(&[String::from(jar_name)]);
         assert_eq!(
             fs::read_to_string(target).unwrap(),
