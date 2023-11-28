@@ -61,6 +61,10 @@ pub enum Command {
         #[arg(long)]
         standalone: bool,
 
+        /// Export as an archive for import into a Rudder server
+        #[arg(long)]
+        export: bool,
+
         /// Add ids to the source technique. This will also reformat the file.
         #[arg(long)]
         store_ids: bool,
@@ -86,15 +90,6 @@ pub enum Command {
         /// Verbose agent
         #[arg(long)]
         agent_verbose: bool,
-    },
-
-    /// Export as an archive for import into a Rudder server
-    Export {
-        /// Output file
-        ///
-        /// Defaults to the target directory.
-        #[arg(short, long)]
-        output: Option<PathBuf>,
     },
 
     /// Build the method documentation
