@@ -1,4 +1,4 @@
-module Editor.ViewTechniqueList exposing (..)
+  module Editor.ViewTechniqueList exposing (..)
 
 import Dict
 import Either exposing (Either(..))
@@ -225,7 +225,7 @@ techniqueItem model technique =
             , if hasUnknownMethod  then
                 span [ class "cursor-help popover-bs", attribute "data-bs-toggle"  "popover", attribute "data-trigger" "hover"
                      , attribute "data-bs-container" "body", attribute  "data-bs-placement" "right", attribute "data-title" technique.name
-                     , attribute "data-bs-content" ("<div>This technique uses <b>unknown</b> generic methods: " ++ (String.join "," (List.map (\m -> m.methodName.value) unknownMethods)) ++ ".</br>These methods does not exists in provided library, you must provide it or it will break at run time</div>")
+                     , attribute "data-bs-content" ("<div>This technique uses <b>unknown</b> generic methods: " ++ (String.join "," (List.map (\m -> m.methodName.value) unknownMethods)) ++ ".</br>These methods do not exist in the library, you must provide them or it will break at run time</div>")
                      , attribute "data-bs-html" "true" ] [ i [ class "fa fa-warning text-warning-rudder min-size-icon unknown-gm-icon" ] [] ]
               else
                 text ""

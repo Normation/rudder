@@ -136,7 +136,7 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
 
   /**
    * Return the attribute with the given name.
-   * Throws an exception if that attribute does not exists.
+   * Throws an exception if that attribute does not exist.
    */
   def getAttribute(attributeName: String) = _backed.getAttribute(attributeName)
 

@@ -482,7 +482,7 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
     checkFile(hashesFile).catchAll(err => ApplicationLoggerPure.error(err.fullMsg)).runNow
   }
 
-  // read the file, of return the empty string if file does not exists
+  // read the file, of return the empty string if file does not exist
   def readHashesAsJsonString(): IOResult[String] = {
     IOResult.attempt(hashesFile.exists).flatMap {
       case true  => IOResult.attempt(hashesFile.contentAsString(StandardCharsets.UTF_8))

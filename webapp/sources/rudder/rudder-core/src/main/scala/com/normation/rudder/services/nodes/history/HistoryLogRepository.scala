@@ -46,7 +46,7 @@ trait ReadOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID, V, T]] {
    * Get the last record for the given ID and version.
    * @return
    *   Failure(message) or Empty if an error happened, or
-   *     if the id does not exists or has no such version in
+   *     if the id does not exist or has no such version in
    *     recorded history
    *   Full(hlog) the recorded version of hlog
    */

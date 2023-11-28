@@ -69,7 +69,7 @@ trait GitItemRepository {
   lazy val getItemDirectory: File = {
 
     /**
-     * Create directory given in argument if does not exists, checking
+     * Create directory given in argument if does not exist, checking
      * that it is writable.
      */
     def createDirectory(directory: File): Either[RudderError, File] = {
@@ -88,7 +88,7 @@ trait GitItemRepository {
         } else {
           Left(
             Inconsistency(
-              s"Directory '${directory.getPath}' does not exists and can not be created, please use another directory"
+              s"Directory '${directory.getPath}' does not exist and can not be created, please use another directory"
             )
           )
         }

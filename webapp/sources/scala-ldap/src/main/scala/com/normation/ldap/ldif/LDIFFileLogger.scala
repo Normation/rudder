@@ -179,7 +179,7 @@ trait Slf4jLDIFLogger extends LDIFFileLogger {
       try {
         if (records.nonEmpty) { // don't check it if logger trace is not enabled
           val ldif = createTraceFile(filename)
-          // create parent directory if it does not exists
+          // create parent directory if it does not exist
           ldif.getParentFile().mkdirs()
           // save ldif
           log("Printing LDIF trace of operations on records in : " + ldif.getAbsolutePath)
