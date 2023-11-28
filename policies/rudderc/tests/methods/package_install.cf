@@ -57,3 +57,9 @@ bundle agent package_install(name)
 
       "report"             usebundle => _log_v3("Install package ${name}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
+
+bundle agent another_bundle(param)
+{
+  reports:
+      "dummy";
+}
