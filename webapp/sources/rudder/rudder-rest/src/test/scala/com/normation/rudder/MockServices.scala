@@ -2050,7 +2050,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     override def updateNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = {
       nodeBase.modifyZIO { nodes =>
         nodes.get(node.id) match {
-          case None    => Inconsistency(s"Node ${node.id.value} does not exists").fail
+          case None    => Inconsistency(s"Node ${node.id.value} does not exist").fail
           case Some(n) =>
             import com.softwaremill.quicklens._
             val newN = n.modify(_.info.node).setTo(node)

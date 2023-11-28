@@ -313,7 +313,7 @@ trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
   }
 
   /**
-   * Get the node property value, or fails if it does not exists.
+   * Get the node property value, or fails if it does not exist.
    * If the path length is 1, only check that the property exists and
    * returned the corresponding string value.
    * If the path length is more than one, try to parse the string has a
