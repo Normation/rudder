@@ -183,12 +183,13 @@ impl Rpkg {
         Ok(())
     }
 
-    pub fn is_installed(&self, db: &Database) -> Result<bool> {
-        Ok(db.is_installed(self.to_owned()))
+    pub fn is_installed(&self, db: &Database) -> bool {
+        db.is_installed(self)
     }
 
     pub fn install(&self, force: bool, db: &mut Database, webapp: &mut Webapp) -> Result<()> {
         info!("Installing rpkg '{}'...", self.path.display());
+        let is_upgrade = self.is_installed(db);
         // Verify webapp compatibility
         if !(force
             || self
@@ -208,9 +209,19 @@ impl Rpkg {
         // Extract package scripts
         self.unpack_embedded_txz("script.txz", PathBuf::from(PACKAGES_FOLDER))?;
         // Run preinst if any
-        let install_or_upgrade = PackageScriptArg::Install;
+        let arg = if is_upgrade {
+            PackageScriptArg::Upgrade
+        } else {
+            PackageScriptArg::Install
+        };
         self.metadata
-            .run_package_script(PackageScript::Preinst, install_or_upgrade)?;
+            .run_package_script(PackageScript::Preinst, arg)?;
+
+        if is_upgrade {
+            // First uninstall old version, but without running prerm/portrm scripts
+            db.uninstall(&self.metadata.name, false, webapp)?;
+        }
+
         // Extract archive content
         let keys = self.metadata.content.keys().clone();
         for txz_name in keys {
@@ -226,9 +237,13 @@ impl Rpkg {
             },
         )?;
         // Run postinst if any
-        let install_or_upgrade = PackageScriptArg::Install;
+        let arg = if self.is_installed(db) {
+            PackageScriptArg::Upgrade
+        } else {
+            PackageScriptArg::Install
+        };
         self.metadata
-            .run_package_script(PackageScript::Postinst, install_or_upgrade)?;
+            .run_package_script(PackageScript::Postinst, arg)?;
         // Update the webapp xml file if the plugin contains one or more jar file
         debug!("Enabling the associated jars if any");
         webapp.enable_jars(&self.metadata.jar_files)?;

@@ -3,7 +3,7 @@
 
 use std::{process::Command, str};
 
-use log::{debug, error};
+use log::{debug, warn};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use which::which;
@@ -66,7 +66,7 @@ pub trait IsInstalled {
 
 impl IsInstalled for PythonDependency {
     fn is_installed(&self) -> bool {
-        error!("Deprecated dependency type 'python' with value '{}'. It is up to you to make sure it is installed, ignoring.", self.0);
+        warn!("Deprecated dependency type 'python' with value '{}'. It is up to you to make sure it is installed, ignoring.", self.0);
         true
     }
 }
@@ -98,7 +98,7 @@ impl IsInstalled for AptDependency {
 impl IsInstalled for RpmDependency {
     fn is_installed(&self) -> bool {
         let mut binding = Command::new("rpm");
-        let cmd = binding.arg("-q").arg(self.0.clone());
+        let cmd = binding.arg("-q").arg("--").arg(&self.0);
         let result = match CmdOutput::new(cmd) {
             Ok(a) => a,
             Err(e) => {
@@ -117,7 +117,7 @@ impl IsInstalled for RpmDependency {
 
 impl IsInstalled for BinaryDependency {
     fn is_installed(&self) -> bool {
-        match which(self.0.clone()) {
+        match which(&self.0) {
             Ok(_) => {
                 debug!("'binary' base dependency '{}' found on the system", self.0);
                 true

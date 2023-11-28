@@ -24,7 +24,7 @@ use std::{
 
 use anyhow::{anyhow, bail, Context, Result};
 use clap::Parser;
-use log::{debug, error, info, LevelFilter};
+use log::{debug, error, info, warn, LevelFilter};
 
 use crate::{
     cli::Command,
@@ -99,23 +99,47 @@ pub fn run() -> Result<()> {
     let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
 
     match args.command {
-        Command::Install { force, package } => long_names(package)
-            .into_iter()
-            .try_for_each(|p| db.install(force, p, &repo, index.as_ref(), &mut webapp))?,
-        Command::Uninstall { package } => long_names(package)
-            .into_iter()
-            .try_for_each(|p| db.uninstall(&p, &mut webapp))?,
+        Command::Install { force, package } => {
+            let mut errors = false;
+            for p in &long_names(package) {
+                if let Err(e) = db.install(force, p, &repo, index.as_ref(), &mut webapp) {
+                    errors = true;
+                    error!("Installation of {} failed: {e}", short_name(p));
+                }
+            }
+            if errors {
+                bail!("Some plugin installation failed");
+            } else {
+                info!("Installation ran successfully");
+            }
+        }
+        Command::Uninstall { package } => {
+            let mut errors = false;
+            for p in &long_names(package) {
+                if let Err(e) = db.uninstall(p, true, &mut webapp) {
+                    errors = true;
+                    error!("Uninstallation of {} failed: {e}", short_name(p));
+                }
+            }
+            if errors {
+                bail!("Some plugin uninstallation failed");
+            } else {
+                info!("Uninstallation ran successfully");
+            }
+        }
         Command::Upgrade {
             all,
             package,
             all_postinstall,
         } => {
             if all_postinstall {
+                let mut errors = false;
                 for p in db.plugins.values() {
                     if let Err(e) = p.metadata.run_package_script(
                         archive::PackageScript::Postinst,
                         archive::PackageScriptArg::Upgrade,
                     ) {
+                        errors = true;
                         // Don't fail and continue
                         error!(
                             "Postinst script for {} failed: {e}",
@@ -123,7 +147,11 @@ pub fn run() -> Result<()> {
                         );
                     }
                 }
-                info!("All postinstall scripts ran");
+                if errors {
+                    bail!("Some scripts failed");
+                } else {
+                    info!("All postinstall scripts ran successfully");
+                }
             } else {
                 // Normal upgrades
                 let to_upgrade: Vec<String> = if all {
@@ -140,9 +168,18 @@ pub fn run() -> Result<()> {
                     }
                     packages
                 };
-                to_upgrade
-                    .into_iter()
-                    .try_for_each(|p| db.install(false, p, &repo, index.as_ref(), &mut webapp))?;
+                let mut errors = false;
+                for p in &to_upgrade {
+                    if let Err(e) = db.install(false, p, &repo, index.as_ref(), &mut webapp) {
+                        errors = true;
+                        error!("Could not upgrade {}: {e}", short_name(p))
+                    }
+                }
+                if errors {
+                    bail!("Some plugins were not upgraded correctly");
+                } else {
+                    info!("All plugins were upgraded successfully");
+                }
             }
         }
         Command::List {
@@ -189,11 +226,25 @@ pub fn run() -> Result<()> {
                     bail!("No plugin provided");
                 }
             } else {
-                to_enable.iter().try_for_each(|p| match db.plugins.get(p) {
-                    None => bail!("Plugin {} not installed", p),
-                    Some(p) => p.enable(&mut webapp),
-                })?;
-                info!("Plugins successfully enabled");
+                let mut errors = false;
+                for p in &to_enable {
+                    match db.plugins.get(p) {
+                        None => {
+                            warn!("Plugin {} not installed", short_name(p))
+                        }
+                        Some(p) => {
+                            if let Err(e) = p.enable(&mut webapp) {
+                                errors = true;
+                                error!("Could not enable plugin {}: {e}", p.metadata.short_name());
+                            }
+                        }
+                    }
+                }
+                if errors {
+                    error!("Some plugins could not be enabled");
+                } else {
+                    info!("Plugins successfully enabled");
+                }
             }
         }
         Command::Disable {
@@ -216,13 +267,26 @@ pub fn run() -> Result<()> {
             } else {
                 long_names(package)
             };
-            to_disable
-                .iter()
-                .try_for_each(|p| match db.plugins.get(p) {
-                    None => bail!("Plugin {} not installed", p),
-                    Some(p) => p.disable(&mut webapp),
-                })?;
-            info!("Plugins successfully disabled");
+
+            let mut errors = false;
+            for p in &to_disable {
+                match db.plugins.get(p) {
+                    None => {
+                        warn!("Plugin {} not installed", short_name(p))
+                    }
+                    Some(p) => {
+                        if let Err(e) = p.disable(&mut webapp) {
+                            errors = true;
+                            error!("Could not disable plugin {}: {e}", p.metadata.short_name());
+                        }
+                    }
+                }
+            }
+            if errors {
+                error!("Some plugins could not be disabled");
+            } else {
+                info!("Plugins successfully disabled");
+            }
         }
         Command::CheckConnection {} => repo.test_connection()?,
     }

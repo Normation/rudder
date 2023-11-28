@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use super::archive::Rpkg;
 use crate::{
     archive::{PackageScript, PackageScriptArg},
-    plugin,
+    plugin::{self, short_name},
     repo_index::RepoIndex,
     repository::Repository,
     webapp::Webapp,
@@ -76,7 +76,7 @@ impl Database {
         Ok(())
     }
 
-    pub fn is_installed(&self, r: Rpkg) -> bool {
+    pub fn is_installed(&self, r: &Rpkg) -> bool {
         match self.plugins.get(&r.metadata.name) {
             None => false,
             Some(installed) => installed.metadata.version == r.metadata.version,
@@ -93,16 +93,16 @@ impl Database {
     pub fn install(
         &mut self,
         force: bool,
-        package: String,
+        package: &str,
         repository: &Repository,
         index: Option<&RepoIndex>,
         webapp: &mut Webapp,
     ) -> Result<()> {
         let rpkg_path = if Path::new(&package).exists() && package.ends_with(".rpkg") {
-            package
+            package.to_string()
         } else {
             // Find compatible plugin if any
-            let to_dl_and_install = match index.and_then(|i|i.latest_compatible_plugin(&webapp.version, &package)) {
+            let to_dl_and_install = match index.and_then(|i|i.latest_compatible_plugin(&webapp.version, package)) {
                     None => bail!("Could not find any compatible '{}' plugin with the current Rudder version in the configured repository.", package),
                     Some(p) => {
                         debug!("Found a compatible plugin in the repository:\n{:?}", p);
@@ -134,30 +134,42 @@ impl Database {
         Ok(())
     }
 
-    pub fn uninstall(&mut self, plugin_name: &str, webapp: &mut Webapp) -> Result<()> {
-        let short_name = plugin_name.strip_prefix("rudder-plugin-").unwrap();
+    pub fn uninstall(
+        &mut self,
+        plugin_name: &str,
+        run_rm_scripts: bool,
+        webapp: &mut Webapp,
+    ) -> Result<()> {
+        let short_name = short_name(plugin_name);
         // Return Ok if not installed
         if !self.plugins.contains_key(plugin_name) {
             info!("Plugin {} is not installed.", short_name);
             return Ok(());
         }
-        debug!("Uninstalling plugin {}", short_name);
         // Disable the jar files if any
         let installed_plugin = self.plugins.get(plugin_name).ok_or(anyhow!(
             "Could not extract data for plugin {} in the database",
             short_name
         ))?;
+        debug!(
+            "Uninstalling plugin {} (version {})",
+            short_name, installed_plugin.metadata.version
+        );
         installed_plugin.disable(webapp)?;
-        installed_plugin
-            .metadata
-            .run_package_script(PackageScript::Prerm, PackageScriptArg::None)?;
+        if run_rm_scripts {
+            installed_plugin
+                .metadata
+                .run_package_script(PackageScript::Prerm, PackageScriptArg::None)?;
+        }
         match installed_plugin.remove_installed_files() {
             Ok(()) => (),
             Err(e) => debug!("{}", e),
         }
-        installed_plugin
-            .metadata
-            .run_package_script(PackageScript::Postrm, PackageScriptArg::None)?;
+        if run_rm_scripts {
+            installed_plugin
+                .metadata
+                .run_package_script(PackageScript::Postrm, PackageScriptArg::None)?;
+        }
         // Remove associated package scripts and plugin folder
         let plugin_dir = PathBuf::from(PACKAGES_FOLDER).join(&installed_plugin.metadata.name);
         if plugin_dir.exists() {

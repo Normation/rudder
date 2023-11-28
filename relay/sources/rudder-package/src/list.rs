@@ -42,8 +42,13 @@ impl ListOutput {
             .map(|e| {
                 vec![
                     e.name.cell(),
-                    e.version.unwrap_or("".to_string()).cell(),
-                    e.latest_version.unwrap_or("".to_string()).cell(),
+                    e.version.as_ref().unwrap_or(&"".to_string()).cell(),
+                    if e.latest_version == e.version {
+                        "".to_string()
+                    } else {
+                        e.latest_version.unwrap_or("".to_string())
+                    }
+                    .cell(),
                     e.plugin_type.cell(),
                     match (e.installed, e.enabled, e.plugin_type) {
                         (false, _, _) => "",

@@ -37,6 +37,8 @@ impl Repository {
     pub fn new(config: &Configuration, verifier: SignatureVerifier) -> Result<Self> {
         let mut client = Client::builder()
             .use_native_tls()
+            // Enforce HTTPS at client level
+            .https_only(true)
             .user_agent(APP_USER_AGENT);
 
         if let Some(proxy_cfg) = &config.proxy {
