@@ -108,8 +108,8 @@ pub fn method_call(
             Some(&report_component),
             Some(unique),
             vec![match p {
-                PolicyMode::Enforce => "\"false\"".to_string(),
-                PolicyMode::Audit => "\"true\"".to_string(),
+                PolicyMode::Enforce => quoted("false").to_string(),
+                PolicyMode::Audit => quoted("true").to_string(),
             }],
         )
     });
