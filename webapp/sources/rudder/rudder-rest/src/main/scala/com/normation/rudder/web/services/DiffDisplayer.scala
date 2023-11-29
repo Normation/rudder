@@ -46,6 +46,7 @@ import com.normation.rudder.web.model.LinkUtil
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
+import scala.xml.Elem
 import scala.xml.NodeSeq
 
 trait DiffItem[T] {
@@ -103,8 +104,8 @@ final case class Modified[T](
 
 class DiffDisplayer(linkUtil: LinkUtil) extends Loggable {
 
-  implicit private[this] def displayDirective(directiveId: DirectiveId) = {
-    <span> Directive {linkUtil.createDirectiveLink(directiveId.uid)}</span>
+  implicit private[this] def displayDirective(directiveId: DirectiveId): Elem = {
+    <span>Directive {linkUtil.createDirectiveLink(directiveId.uid)}</span>
   }
   def displayDirectiveChangeList(
       oldDirectives: Seq[DirectiveId],

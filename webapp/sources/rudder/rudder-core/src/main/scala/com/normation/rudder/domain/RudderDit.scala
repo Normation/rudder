@@ -118,7 +118,7 @@ object RudderDit {
  */
 class RudderDit(val BASE_DN: DN) extends AbstractDit {
   dit =>
-  implicit val DIT = dit
+  implicit val DIT: dit.type = dit
 
   /**
    * Create a new category for the active technique library

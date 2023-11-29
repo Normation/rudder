@@ -430,7 +430,7 @@ object RudderRoles {
   // our database of roles. Everything is case insensitive, so role name are mapped "to lower string"
 
   // role names are case insensitive
-  implicit val roleOrdering = Ordering.comparatorToOrdering(String.CASE_INSENSITIVE_ORDER)
+  implicit val roleOrdering: Ordering[String] = Ordering.comparatorToOrdering(String.CASE_INSENSITIVE_ORDER)
 
   // built-in roles are provided by Rudder core and can be provided by plugins. We assume people knows what they are doing
   // and fewer check are done on them.

@@ -112,9 +112,9 @@ class ParameterApi(
   }
 
   object CreateParameter extends LiftApiModule0 {
-    val schema          = API.CreateParameter
-    val restExtractor   = restExtractorService
-    implicit val action = "createParameter"
+    val schema        = API.CreateParameter
+    val restExtractor = restExtractorService
+    implicit val action:                                                                                       String       = "createParameter"
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val prettify = params.prettify
 

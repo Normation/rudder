@@ -172,8 +172,10 @@ final case class InterpolationContext(
 ) extends GenericInterpolationContext[ConfigValue]
 
 object InterpolationContext {
-  implicit val caseInsensitiveString = new Ordering[String] {
-    def compare(x: String, y: String): Int = x.compareToIgnoreCase(y)
+  implicit val caseInsensitiveString: Ordering[String] = new Ordering[String] {
+    def compare(x: String, y: String): Int = {
+      x.compareToIgnoreCase(y)
+    }
   }
 
   def apply(

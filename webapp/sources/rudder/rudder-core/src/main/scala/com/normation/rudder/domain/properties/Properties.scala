@@ -654,7 +654,7 @@ object GenericProperty {
   }
 
   implicit class JsonProperties(val props: Seq[GenericProperty[_]]) extends AnyVal {
-    implicit def formats = DefaultFormats
+    implicit def formats: DefaultFormats.type = DefaultFormats
 
     def toApiJson: JArray = {
       JArray(props.map(_.toJson).toList)
@@ -874,7 +874,7 @@ object JsonPropertySerialisation {
   }
 
   implicit class JsonNodePropertyHierarchy(val prop: NodePropertyHierarchy) extends AnyVal {
-    implicit def formats = DefaultFormats
+    implicit def formats: DefaultFormats.type = DefaultFormats
 
     private def buildHierarchy(displayParents: List[ParentProperty] => JValue): JObject = {
       val (parents, origval) = prop.hierarchy match {
@@ -908,7 +908,7 @@ object JsonPropertySerialisation {
   }
 
   implicit class JsonNodePropertiesHierarchy(val props: List[NodePropertyHierarchy]) extends AnyVal {
-    implicit def formats = DefaultFormats
+    implicit def formats: DefaultFormats.type = DefaultFormats
 
     def toApiJson: JArray = {
       JArray(props.sortBy(_.prop.name).map(p => p.toApiJson))
@@ -928,7 +928,7 @@ object JsonPropertySerialisation {
   }
 
   implicit class JsonParameters(val parameters: Set[ParameterEntry]) extends AnyVal {
-    implicit def formats = DefaultFormats
+    implicit def formats: DefaultFormats.type = DefaultFormats
 
     def dataJson(x: ParameterEntry): JField = {
       JField(x.parameterName, x.escapedValue)

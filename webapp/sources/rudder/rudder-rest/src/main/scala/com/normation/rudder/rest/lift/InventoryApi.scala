@@ -154,9 +154,9 @@ class InventoryApi(
   }
 
   object FileWatcherStart extends LiftApiModule0 {
-    val schema              = API.FileWatcherStart
-    val restExtractor       = restExtractorService
-    implicit val actionName = "fileWatcherStart"
+    val schema        = API.FileWatcherStart
+    val restExtractor = restExtractorService
+    implicit val actionName:                                                                                   String       = "fileWatcherStart"
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val pretty = params.prettify
       inventoryFileWatcher.startWatcher() match {
@@ -172,9 +172,9 @@ class InventoryApi(
   }
 
   object FileWatcherStop extends LiftApiModule0 {
-    val schema              = API.FileWatcherStop
-    val restExtractor       = restExtractorService
-    implicit val actionName = "fileWatcherStop"
+    val schema        = API.FileWatcherStop
+    val restExtractor = restExtractorService
+    implicit val actionName:                                                                                   String       = "fileWatcherStop"
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val pretty = params.prettify
       inventoryFileWatcher.stopWatcher() match {
@@ -190,9 +190,9 @@ class InventoryApi(
   }
 
   object FileWatcherRestart extends LiftApiModule0 {
-    val schema              = API.FileWatcherRestart
-    val restExtractor       = restExtractorService
-    implicit val actionName = "frileWatcherRestart"
+    val schema        = API.FileWatcherRestart
+    val restExtractor = restExtractorService
+    implicit val actionName:                                                                                   String       = "frileWatcherRestart"
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val pretty = params.prettify
       (for {

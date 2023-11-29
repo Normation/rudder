@@ -46,7 +46,7 @@ import com.unboundid.ldap.sdk._
 
 class NodeDit(val BASE_DN: DN) extends AbstractDit {
   dit =>
-  implicit val DIT = dit
+  implicit val DIT: NodeDit = dit
 
   dit.register(NODES.model)
 

@@ -58,6 +58,7 @@ import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.services.policies.TechniqueAcceptationUpdater
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.utils.StringUuidGeneratorImpl
+import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import net.liftweb.common._
 import net.liftweb.common.Loggable
@@ -77,8 +78,8 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
   // Set sequential execution
   sequential
 
-  implicit val charset = StandardCharsets.UTF_8
-  val setupRepos       = new TestNodeConfiguration()
+  implicit val charset: Charset = StandardCharsets.UTF_8
+  val setupRepos = new TestNodeConfiguration()
 
   val fsRepos       = setupRepos.techniqueRepository
   val git           = setupRepos.repo.git

@@ -63,8 +63,10 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
   val P2      = Some(PropertyProvider("p2"))
 
   // just to have sequence in same order
-  implicit val ord = new Ordering[NodeProperty] {
-    override def compare(x: NodeProperty, y: NodeProperty): Int = x.name.compareTo(y.name)
+  implicit val ord: Ordering[NodeProperty] = new Ordering[NodeProperty] {
+    override def compare(x: NodeProperty, y: NodeProperty): Int = {
+      x.name.compareTo(y.name)
+    }
   }
 
   val baseProps = List(
