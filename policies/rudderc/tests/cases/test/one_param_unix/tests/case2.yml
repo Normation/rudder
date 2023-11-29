@@ -12,3 +12,4 @@ setup:
 check:
   # Commands to run to check
   - sh: "! test -f /tmp/rudderc_test_one"
+  - sh: "echo $REPORTS_FILE && test -f ${REPORTS_FILE}"

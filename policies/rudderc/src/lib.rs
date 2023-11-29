@@ -375,7 +375,7 @@ pub mod action {
                 ),
             );
             // Run test checks
-            let res = case.check(test_dir, target_dir);
+            let res = case.check(test_dir, &report_file, target_dir);
             // Run anyway
             case.cleanup(test_dir, target_dir)?;
             res?;

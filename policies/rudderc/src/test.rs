@@ -31,13 +31,20 @@ pub struct Step {
 }
 
 impl Step {
-    fn run(&self, target: Target, dir: &Path, target_dir: &Path) -> Result<()> {
+    fn run(
+        &self,
+        target: Target,
+        cwd: &Path,
+        env: Vec<(&str, &str)>,
+        target_dir: &Path,
+    ) -> Result<()> {
         ok_output("Running", format!("'{}'", &self.command));
         let output = match target {
             Target::Unix => Command::new("/bin/sh")
                 .arg("-c")
                 .arg(&self.command)
-                .current_dir(dir)
+                .envs(env.into_iter())
+                .current_dir(cwd)
                 .output()?,
             Target::Windows => {
                 // Write the command into a script
@@ -49,7 +56,8 @@ impl Step {
                     .args(POWERSHELL_OPTS)
                     .arg("-Command")
                     .arg(format!("&'{}'", &script.canonicalize()?.to_string_lossy()))
-                    .current_dir(dir)
+                    .envs(env.into_iter())
+                    .current_dir(cwd)
                     .output()?
             }
         };
@@ -95,21 +103,29 @@ pub struct TestCase {
 impl TestCase {
     pub fn setup(&self, dir: &Path, target_dir: &Path) -> Result<()> {
         for s in &self.setup {
-            s.run(self.target, dir, target_dir)?;
+            s.run(self.target, dir, vec![], target_dir)?;
         }
         Ok(())
     }
 
-    pub fn check(&self, dir: &Path, target_dir: &Path) -> Result<()> {
+    pub fn check(&self, dir: &Path, reports_file: &Path, target_dir: &Path) -> Result<()> {
         for s in &self.check {
-            s.run(self.target, dir, target_dir)?;
+            s.run(
+                self.target,
+                dir,
+                vec![(
+                    "REPORTS_FILE",
+                    &reports_file.canonicalize().unwrap().to_string_lossy(),
+                )],
+                target_dir,
+            )?;
         }
         Ok(())
     }
 
     pub fn cleanup(&self, dir: &Path, target_dir: &Path) -> Result<()> {
         for s in &self.cleanup {
-            s.run(self.target, dir, target_dir)?;
+            s.run(self.target, dir, vec![], target_dir)?;
         }
         Ok(())
     }
