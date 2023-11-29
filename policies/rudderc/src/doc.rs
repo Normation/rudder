@@ -215,7 +215,7 @@ mod markdown {
                 .documentation
                 .as_ref()
                 .map(|d| format!("#### Documentation\n{d}"))
-                .unwrap_or_else(|| "".to_string()),
+                .unwrap_or_default(),
         ))
     }
 

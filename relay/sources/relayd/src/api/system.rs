@@ -20,7 +20,9 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
     let base = path!("system" / ..);
 
     let info = method::get().and(base).and(path!("info")).map(|| {
-        Ok(ApiResponse::new::<Error>("getSystemInfo", Ok(Some(Info::new())), None).reply())
+        Ok::<_, warp::http::Error>(
+            ApiResponse::new::<Error>("getSystemInfo", Ok(Some(Info::new())), None).reply(),
+        )
     });
 
     let job_config_reload = job_config.clone();
@@ -32,12 +34,14 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
 
     let job_config_status = job_config;
     let status = method::get().and(base).and(path!("status")).map(move || {
-        Ok(ApiResponse::new::<Error>(
-            "getStatus",
-            Ok(Some(Status::poll(job_config_status.clone()))),
-            None,
+        Ok::<_, warp::http::Error>(
+            ApiResponse::new::<Error>(
+                "getStatus",
+                Ok(Some(Status::poll(job_config_status.clone()))),
+                None,
+            )
+            .reply(),
         )
-        .reply())
     });
 
     info.or(reload).or(status).boxed()
