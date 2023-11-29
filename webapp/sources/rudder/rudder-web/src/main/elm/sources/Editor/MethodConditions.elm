@@ -24,6 +24,13 @@ type alias Condition =
   , advanced : String
   }
 
+type AmazonLinuxVersion = Two | TwentyThree
+
+showAmazonLinuxVersion: AmazonLinuxVersion -> String
+showAmazonLinuxVersion v =
+  case v of
+    Two -> "2"
+    TwentyThree -> "23"
 
 type UbuntuMinor = All | Ten | ZeroFour
 
@@ -46,7 +53,7 @@ type LinuxOS = DebianFamily
              | Rocky     { major : Maybe  Int, minor : Maybe Int }
              | Oracle    { major : Maybe  Int, minor : Maybe Int }
              | Fedora    { version : Maybe  Int }
-             | Amazon
+             | Amazon    { version : Maybe AmazonLinuxVersion }
              | SuseFamily
              | SLES      { version : Maybe  Int, sp : Maybe Int }
              | SLED      { version : Maybe  Int, sp : Maybe Int }
@@ -96,7 +103,7 @@ osName maybeOs =
             Rocky _       -> "Rocky Linux"
             Oracle _      -> "Oracle Linux"
             Fedora _      -> "Fedora"
-            Amazon        -> "Amazon Linux"
+            Amazon _      -> "Amazon Linux"
             SuseFamily    -> "SUSE family"
             SLES _        -> "SLES"
             SLED _        -> "SLED"
@@ -116,6 +123,12 @@ ubuntuCondition s v =
     (Just major, All)    -> s ++ "_" ++ (String.fromInt major)
     (Just major, m) -> s ++ "_" ++ (String.fromInt major) ++ "_" ++ (showUbuntuMinor m)
     (Nothing, _) -> s
+
+amazonLinuxCondition: { version : Maybe AmazonLinuxVersion } -> String
+amazonLinuxCondition v =
+  case (v.version) of
+    (Just ver) -> "amzn_" ++ (showAmazonLinuxVersion ver)
+    (Nothing)  -> "amazon_linux"
 
 versionSPCondition: String -> { version : Maybe Int, sp : Maybe Int} -> String
 versionSPCondition s v =
@@ -155,7 +168,7 @@ conditionLinux os =
     Rocky v       -> majorMinorVersionCondition "rocky" v
     Oracle v      -> majorMinorVersionCondition "oracle" v
     Fedora v      -> Maybe.withDefault "fedora" (Maybe.map (String.fromInt >> (++) "fedora_") v.version)
-    Amazon        -> "amazon_linux"
+    Amazon v      -> amazonLinuxCondition v
     SuseFamily    -> "suse"
     SLES v        -> versionSPCondition "sles" v
     SLED v        -> versionSPCondition "sled" v
@@ -200,7 +213,10 @@ parseOs os =
     [ "suse" ]         -> Just (Linux (Just (SuseFamily)))
     [ "redhat" ]       -> Just (Linux (Just (RedhatFamily)))
     [ "debian" ]       -> Just (Linux (Just (DebianFamily)))
-    [ "amazon_linux" ] -> Just (Linux (Just (Amazon)))
+
+    [ "amazon", "linux" ] -> Just (Linux (Just (Amazon { version = Nothing })))
+    [ "amzn", "2" ]       -> Just (Linux (Just (Amazon { version = Just Two })))
+    [ "amzn", "2023" ]    -> Just (Linux (Just (Amazon { version = Just TwentyThree })))
 
     [ "fedora" ]        -> Just (Linux (Just (Fedora  { version = Nothing })))
     [ "fedora", major ] -> case String.toInt major of
@@ -350,7 +366,7 @@ osList =
   , Just (Linux (Just (Rocky noVersion)))
   , Just (Linux (Just (Oracle noVersion)))
   , Just (Linux (Just (Fedora {version = Nothing})))
-  , Just (Linux (Just (Amazon)))
+  , Just (Linux (Just (Amazon {version = Nothing})))
   , Just (Linux (Just (SuseFamily)))
   , Just (Linux (Just (SLES {version = Nothing, sp = Nothing})))
   , Just (Linux (Just (SLED {version = Nothing, sp = Nothing})))
