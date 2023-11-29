@@ -82,14 +82,20 @@ rudderc test --library /path/to/lib case1
 
 * When running this command outside a Rudder server, you need to pass it a library path
 (as it is required to run the agent).
-  * It can be the `tree` directory in a clone of the [ncf repository](https://github.com/Normation/ncf/)
+  * It can be the `tree` directory in a clone of the [ncf repository](https://github.com/Normation/ncf/).
+  * On Windows it can be the path to an agent installed locally or a decompressed `msi`.
 * the optional argument allows filtering the tests, only run those containing the given string.
 
 ### Test outputs
 
-The test runner will parse the agent output and place it in JSON format into `target/case1.json`.
+The test runner will parse the agent output and place it in JSON format into `target/<case_name>.json`.
 It is written before running check steps, so you can use it to assess reporting output
 (for example, using `jq` in a shell script).
+
+For convenience, *check* steps have an environment variable `REPORTS_FILE` pointing to the current reports
+JSON.
+
+The JSON file contains an array of entries: 
 
 ```json
 [
