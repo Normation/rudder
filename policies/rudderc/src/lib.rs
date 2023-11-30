@@ -106,6 +106,7 @@ pub fn run(args: MainArgs) -> Result<()> {
             library,
             output,
             standalone,
+            export,
             store_ids,
         } => {
             let library = check_libraries(library)?;
@@ -115,8 +116,12 @@ pub fn run(args: MainArgs) -> Result<()> {
                 input,
                 actual_output.as_path(),
                 standalone,
-                store_ids,
-            )
+                store_ids || export,
+            )?;
+            if export {
+                action::export(&cwd, actual_output)?;
+            }
+            Ok(())
         }
         Command::Test {
             library,
@@ -136,7 +141,6 @@ pub fn run(args: MainArgs) -> Result<()> {
                 agent_verbose,
             )
         }
-        Command::Export { output } => action::export(&cwd, output),
         Command::Lib {
             library,
             output,
@@ -179,7 +183,7 @@ pub mod action {
         frontends::read_methods,
         ir::Technique,
         test::TestCase,
-        METADATA_FILE, RESOURCES_DIR, TARGET_DIR, TECHNIQUE, TECHNIQUE_SRC, TESTS_DIR,
+        METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TECHNIQUE_SRC, TESTS_DIR,
     };
 
     /// Create a technique skeleton
@@ -463,26 +467,28 @@ pub mod action {
         Ok(())
     }
 
-    pub fn export(src: &Path, output: Option<PathBuf>) -> Result<()> {
+    pub fn export(src: &Path, dir: PathBuf) -> Result<()> {
         // We don't need to parse everything, let's just extract what we need
-        let technique_src = src.join(TECHNIQUE_SRC);
-        let yml: serde_yaml::Value = serde_yaml::from_str(&read_to_string(&technique_src)?)?;
+        // We use the technique with ids
+        let technique_src = src.join(TECHNIQUE_SRC).with_extension("ids.yml");
+        let yml: serde_yaml::Value =
+            serde_yaml::from_str(&read_to_string(&technique_src).context(format!(
+                "Could not read source technique {}",
+                technique_src.display()
+            ))?)?;
         let id = yml.get("id").unwrap().as_str().unwrap();
         let version = yml.get("version").unwrap().as_str().unwrap();
         let category = yml
             .get("category")
             .map(|c| c.as_str().unwrap())
             .unwrap_or("ncf_techniques");
-        let actual_output = match output {
-            Some(p) => p,
-            None => {
-                let dir = src.join(TARGET_DIR);
-                create_dir_all(&dir)?;
-                dir.join(format!("{}-{}.zip", id, version))
-            }
-        };
+        create_dir_all(&dir).context(format!("Creating output directory {}", dir.display()))?;
+        let actual_output = dir.join(format!("{}-{}.zip", id, version));
 
-        let file = File::create(&actual_output)?;
+        let file = File::create(&actual_output).context(format!(
+            "Creating export output file {}",
+            &actual_output.display()
+        ))?;
         let options = zip::write::FileOptions::default();
         let mut zip = ZipWriter::new(file);
 
@@ -491,7 +497,10 @@ pub mod action {
         // Technique
         zip.start_file(format!("{}/{}", zip_dir, TECHNIQUE_SRC), options)?;
         let mut buffer = Vec::new();
-        let mut f = File::open(technique_src)?;
+        let mut f = File::open(&technique_src).context(format!(
+            "Opening technique source {}",
+            technique_src.display()
+        ))?;
         f.read_to_end(&mut buffer)?;
         zip.write_all(&buffer)?;
 

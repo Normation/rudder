@@ -115,7 +115,7 @@ To open the documentation in your browser after build, pass the `--open` option.
 You can export your current technique with:
 
 ```shell
-$ rudderc export
+$ rudderc build --export
      Writing ./target/ntp_technique-0.1.zip
 ```
 

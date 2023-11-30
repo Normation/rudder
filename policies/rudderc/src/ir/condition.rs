@@ -5,21 +5,18 @@ use std::{fmt, str::FromStr};
 
 use anyhow::{bail, Error};
 use rudder_commons::is_canonified;
-use serde::{de, Deserialize, Deserializer, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use serde_yaml::Value;
 
 /// Valid condition
 ///
 /// Simple representation to allow trivial optimizations. At some point we might add
 /// a real condition evaluator.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-#[serde(untagged)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Condition {
     /// a.k.a. "true" / "any"
-    #[serde(rename = "true")]
     Defined,
     /// a.k.a. "false" / "!any"
-    #[serde(rename = "false")]
     NotDefined,
     /// Condition expression that will be evaluated at runtime
     Expression(String),
@@ -128,6 +125,20 @@ impl FromStr for Condition {
             Condition::Expression(s.replace(' ', ""))
         } else {
             bail!("Invalid condition expression: {}", s)
+        })
+    }
+}
+
+impl Serialize for Condition {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // 3 is the number of fields in the struct.
+        serializer.serialize_str(match self {
+            Condition::Defined => "true",
+            Condition::NotDefined => "false",
+            Condition::Expression(e) => e,
         })
     }
 }
