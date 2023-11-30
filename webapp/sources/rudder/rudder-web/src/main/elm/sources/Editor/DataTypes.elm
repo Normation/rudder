@@ -9,6 +9,7 @@ import Dom.DragDrop as DragDrop
 import Time exposing (Posix)
 
 import Editor.MethodConditions exposing (..)
+import Agentpolicymode.DataTypes exposing (PolicyMode)
 --
 -- All our data types
 --
@@ -54,6 +55,7 @@ type alias Method =
   , documentation  : Maybe String
   , deprecated     : Maybe String
   , rename         : Maybe String
+  , policyMode     : PolicyMode
   }
 
 type alias CompilationOutput =
