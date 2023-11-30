@@ -47,6 +47,8 @@ import com.normation.rudder.db.DB
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.ncf.DeleteEditorTechnique
 import com.normation.rudder.ncf.EditorTechnique
+import com.normation.rudder.ncf.ResourceFile
+import com.normation.rudder.ncf.ResourceFileState
 import com.normation.rudder.ncf.RuddercOptions
 import com.normation.rudder.ncf.RuddercResult
 import com.normation.rudder.ncf.RuddercService
@@ -103,7 +105,7 @@ class TestMigrateJsonTechniquesToYaml extends Specification with ContentMatchers
     override def compile(techniqueDir: File, options: RuddercOptions): IOResult[RuddercResult] = {
       // test implementation that just create the files with the technique name in them safe for
       if (techniqueDir.parent.name == "technique_with_error") {
-        RuddercResult.Fail(42, "error", "", "error stderr").succeed
+        RuddercResult.Fail(42, Chunk(ResourceFile("foo", ResourceFileState.Deleted)), "error", "", "error stderr").succeed
       } else {
         // replace content to be sure we get there
         IOResult.attempt {
@@ -121,7 +123,7 @@ class TestMigrateJsonTechniquesToYaml extends Specification with ContentMatchers
           (TechniqueFiles.Generated.dsc ++ TechniqueFiles.Generated.cfengineRudderc).foreach { n =>
             (techniqueDir / n).write("regenerated")
           }
-          RuddercResult.Ok("", "", "")
+          RuddercResult.Ok(Chunk.empty, "", "", "")
         }
       }
     }

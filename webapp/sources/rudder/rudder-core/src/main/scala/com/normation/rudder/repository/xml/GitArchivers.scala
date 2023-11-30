@@ -349,21 +349,25 @@ class TechniqueArchiverImpl(
     val techniquePath    = gitRepo.rootDirectory / techniqueGitPath
 
     (for {
-      res      <- techniqueCompiler.migrateCompileIfNeeded(techniquePath)
-      _        <- ZIO.when(res.resultCode != 0) {
-                    Unexpected(
-                      s"Error when trying to compile technique '${techniquePath.pathAsString}'. Error details are " +
-                      s"available in `compilation-output.yml` file in the same directory. Error message: '${res.msg}'"
-                    ).fail
-                  }
-      metadata <- IOResult.attempt(XML.load(Source.fromFile((techniquePath / TechniqueFiles.Generated.metadata).toJava)))
-      tech     <- techniqueParser.parseXml(metadata, techniqueId).toIO
-      files     = getFilesToCommit(tech, techniqueGitPath, resourcesStatus)
-      ident    <- personIdentservice.getPersonIdentOrDefault(committer.name)
-      added    <- ZIO.foreach(files.add)(f => IOResult.attempt(gitRepo.git.add.addFilepattern(f).call()))
-      removed  <- ZIO.foreach(files.delete)(f => IOResult.attempt(gitRepo.git.rm.addFilepattern(f).call()))
-      staged   <- ZIO.foreach(files.stage)(f => IOResult.attempt(gitRepo.git.add.setUpdate(true).addFilepattern(f).call()))
-      commit   <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
+      res       <- techniqueCompiler.migrateCompileIfNeeded(techniquePath)
+      _         <- ZIO.when(res.resultCode != 0) {
+                     Unexpected(
+                       s"Error when trying to compile technique '${techniquePath.pathAsString}'. Error details are " +
+                       s"available in `compilation-output.yml` file in the same directory. Error message: '${res.msg}'"
+                     ).fail
+                   }
+      // update file status file what the compiler did
+      known      = resourcesStatus.map(f => (f.path, f)).toMap
+      updated    = res.fileStatus.map(f => (f.path, f)).toMap
+      fileStates = Chunk.fromIterable((known ++ updated).values)
+      metadata  <- IOResult.attempt(XML.load(Source.fromFile((techniquePath / TechniqueFiles.Generated.metadata).toJava)))
+      tech      <- techniqueParser.parseXml(metadata, techniqueId).toIO
+      files      = getFilesToCommit(tech, techniqueGitPath, fileStates)
+      ident     <- personIdentservice.getPersonIdentOrDefault(committer.name)
+      added     <- ZIO.foreach(files.add)(f => IOResult.attempt(gitRepo.git.add.addFilepattern(f).call()))
+      removed   <- ZIO.foreach(files.delete)(f => IOResult.attempt(gitRepo.git.rm.addFilepattern(f).call()))
+      staged    <- ZIO.foreach(files.stage)(f => IOResult.attempt(gitRepo.git.add.setUpdate(true).addFilepattern(f).call()))
+      commit    <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
     } yield ()).chainError(s"error when committing Technique '${techniqueId.serialize}'").unit
   }
 
