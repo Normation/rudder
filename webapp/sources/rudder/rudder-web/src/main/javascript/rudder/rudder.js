@@ -111,6 +111,9 @@ function createTooltiptr() {
     });
   }
 
+function removeBsTooltips(){
+  document.querySelectorAll(".tooltip").forEach(e => e.remove());
+}
 
 function callPopupWithTimeout(timeout, popupName){
   setTimeout("createPopup('"+popupName+"')", timeout);
