@@ -60,11 +60,7 @@ function escapeHTML (string) {
 }
 
 function callPopupWithTimeout(timeout, popupName){
-  setTimeout("createPopup('"+popupName+"')", timeout);
-}
-
-function createPopup(popupName){
-  $('#'+popupName).bsModal('show');
+  setTimeout("initBsModal('"+popupName+"')", timeout);
 }
 
 function reverseErrorDetails(){
@@ -142,14 +138,6 @@ function jqCheckAll( id, name )
     });
     $('#openerAccount').click(function() {
       $('#dialog').dialog('open');
-      return false;
-    });
-  });
-
-  // Logout
-  $(function() {
-    $('#logout').click(function() {
-      $('#ModalLogOut').bsModal('show');
       return false;
     });
   });
@@ -853,7 +841,18 @@ function initBsTooltips(){
 function removeBsTooltips(){
   document.querySelectorAll(".tooltip").forEach(e => e.remove());
 }
-//tooltip.hide()
+function initBsModal(modalName){
+  var selector = document.querySelector('#' + modalName);
+  var modal    = bootstrap.Modal.getInstance(selector);
+  var instance = (modal === null || modal === undefined) ? new bootstrap.Modal('#'+modalName) : modal;
+  instance.show();
+}
+function hideBsModal(modalName){
+  var selector = document.querySelector('#' + modalName);
+  var modal    = bootstrap.Modal.getInstance(selector);
+  if(modal === null || modal === undefined) return false;
+  modal.hide();
+}
 function initBsTabs(){
   var triggerTabList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tab"]'));
   triggerTabList.forEach(function (triggerEl) {

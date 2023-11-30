@@ -126,7 +126,7 @@ class CreateActiveTechniqueCategoryPopup(
   private[this] def error(msg: String) = Text(msg)
 
   private[this] def closePopup(): JsCmd = {
-    JsRaw(""" $('#createActiveTechniqueCategoryPopup').bsModal('hide');""")
+    JsRaw("""hideBsModal('createActiveTechniqueCategoryPopup');""")
   }
 
   /**

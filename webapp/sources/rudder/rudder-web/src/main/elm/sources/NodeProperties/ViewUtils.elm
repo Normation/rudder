@@ -249,12 +249,12 @@ modalDelete model =
   case model.ui.modalState of
     NoModal -> text ""
     Deletion name ->
-      div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
-      [ div [class "modal-backdrop fade in"][]
+      div [ tabindex -1, class "modal fade show", style "z-index" "1050", style "display" "block" ]
+      [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
       , div [ class "modal-dialog" ]
         [ div [ class "modal-content" ]
           [ div [ class "modal-header ng-scope" ]
-            [ h3 [ class "modal-title" ] [ text "Delete property"] ]
+            [ h5 [ class "modal-title" ] [ text "Delete property"] ]
           , div [ class "modal-body" ]
             [ text ("Are you sure you want to delete property '"++ name ++"'?") ]
           , div [ class "modal-footer" ]

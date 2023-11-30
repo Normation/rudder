@@ -240,12 +240,12 @@ class TechniqueEditForm(
     )(crForm) ++
     Script(OnLoad(JsRaw("""
       $('#deleteButton').click(function() {
-        createPopup("deleteActionDialog");
+        initBsModal("deleteActionDialog");
         return false;
       });
 
       $('#disableButton').click(function() {
-        createPopup("disableActionDialog");
+        initBsModal("disableActionDialog");
         return false;
       });
 
@@ -343,13 +343,13 @@ class TechniqueEditForm(
   }
 
   private[this] def updateRemoveFormClientSide(): JsCmd = {
-    val jsDisplayRemoveDiv = JsRaw("""$("#deleteActionDialog").bsModal('show')""")
+    val jsDisplayRemoveDiv = JsRaw("""initBsModal("deleteActionDialog");""")
     Replace("deleteActionDialog", this.showRemovePopupForm()) &
     jsDisplayRemoveDiv
   }
 
   private[this] def updateDisableFormClientSide(): JsCmd = {
-    val jsDisplayRemoveDiv = JsRaw("""$("#disableActionDialog").bsModal('show')""")
+    val jsDisplayRemoveDiv = JsRaw("""initBsModal("disableActionDialog")""")
     Replace("disableActionDialog", this.showDisactivatePopupForm()) &
     jsDisplayRemoveDiv
   }
@@ -362,7 +362,7 @@ class TechniqueEditForm(
       if (formTrackerRemovePopup.hasErrors) {
         onFailureRemovePopup()
       } else {
-        JsRaw("$('#deleteActionDialog').bsModal('hide');") & {
+        JsRaw("hideBsModal('deleteActionDialog');") & {
           val modId = ModificationId(uuidGen.newUuid)
           (for {
             deleted <- dependencyService.cascadeDeleteTechnique(id, modId, CurrentUser.actor, crReasonsRemovePopup.map(_.get))
@@ -405,7 +405,7 @@ class TechniqueEditForm(
         onFailureDisablePopup()
       } else {
         currentActiveTechnique = currentActiveTechnique.map(activeTechnique => activeTechnique.copy(_isEnabled = status))
-        JsRaw("$('#disableActionDialog').bsModal('hide');") &
+        JsRaw("hideBsModal('disableActionDialog');") &
         statusAndDeployTechnique(activeTechnique.id, status)
       }
     }

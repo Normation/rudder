@@ -155,7 +155,9 @@
 
               <!-- Log out -->
               <li class="nav-item">
-                <a id="logout" href="#" data-bs-toggle="control-sidebar"><i class="fa fa-sign-out"></i></a>
+                <a id="logout" data-bs-toggle="modal" data-bs-target="#ModalLogout">
+                  <i class="fa fa-sign-out"></i>
+                </a>
               </li>
 
             </ul>
@@ -179,24 +181,19 @@
         </section>
       </aside>
     </div>
-    <div id="basePopup" class="modal fade" data-keyboard="true" tabindex="-1">
-      <div class="modal-backdrop fade in" style="height: 100%;"></div>
+    <div id="basePopup" class="modal fade" tabindex="-1">
       <div class="modal-dialog">
         <div class="modal-content">
 
-        </div><!-- /.modal-content -->
-      </div><!-- /.modal-dialog -->
+        </div>
+      </div>
     </div>
-    <div id="sendMetricsPopup" class="modal fade" data-keyboard="true" tabindex="-1">
-        <div class="modal-backdrop fade in" style="height: 100%;"></div>
+    <div id="sendMetricsPopup" class="modal fade" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <div class="close" data-bs-dismiss="modal">
-                        <span aria-hidden="true">&times;</span>
-                        <span class="visually-hidden">Close</span>
-                    </div>
-                    <h4 class="modal-title">Participate in usage survey?</h4>
+                  <h5 class="modal-title">Participate in usage survey?</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <p>Thanks for using Rudder! We hope you are enjoying it.</p>
@@ -213,28 +210,24 @@
                     <button type="button" id="laterSendMetrics" class="btn btn-default"  data-bs-dismiss="modal">Ask again later</button>
                     <button type="button" id="yesSendMetrics" class="btn btn-default pull-right">Yes</button>
                 </div>
-            </div><!-- /.modal-content -->
-        </div><!-- /.modal-dialog -->
-    </div><!-- /.modal -->
+            </div>
+        </div>
+    </div>
 
-    <div class="modal fade" id="ModalLogOut" tabindex="-1" role="dialog">
-      <div class="modal-backdrop fade in" style="height: 100%;"></div>
-        <div class="modal-dialog" role="document">
+    <div class="modal fade" id="ModalLogout" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <div class="close" data-bs-dismiss="modal">
-            <span aria-hidden="true">&times;</span>
-            <span class="visually-hidden">Close</span>
-            </div>
-            <h4 class="modal-title" id="myModalLabel">Log out</h4>
+            <h5 class="modal-title fs-5">Log out</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <h4 class="row text-center">
-               You are about to log out
-            </h4>
-            <h5 class="row text-center">
-               Do you want to proceed?
+            <h5 class="text-center">
+              You are about to log out
             </h5>
+            <h6 class="text-center">
+              Do you want to proceed?
+            </h6>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
@@ -245,6 +238,7 @@
         </div>
       </div>
     </div>
+
 
     <img alt="" id="ajax-loader" class="ajaxloader svg-loader" data-lift="with-cached-resource" src="/images/ajax-loader.svg"/>
 

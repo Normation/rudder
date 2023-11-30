@@ -167,12 +167,12 @@ view model =
               , False
               )
         in
-          div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
-          [ div [class "modal-backdrop fade in"][]
+          div [ tabindex -1, class "modal fade show", style "z-index" "1050", style "display" "block" ]
+          [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
           , div [ class "modal-dialog" ] [
               div [ class "modal-content" ] [
                 div [ class "modal-header ng-scope" ] [
-                  h3 [ class "modal-title" ] [ text "Delete Rule"]
+                  h5 [ class "modal-title" ] [ text "Delete Rule"]
                 ]
               , div [ class "modal-body" ]
                 [ h4 [class "text-center"][text ("Are you sure you want to Delete rule '"++ rule.name ++"'?")]
@@ -203,12 +203,12 @@ view model =
               )
 
         in
-          div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
-          [ div [class "modal-backdrop fade in"][]
+          div [ tabindex -1, class "modal fade show", style "z-index" "1050", style "display" "block" ]
+          [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
           , div [ class "modal-dialog" ] [
               div [ class "modal-content" ]  [
                 div [ class "modal-header ng-scope" ] [
-                  h3 [ class "modal-title" ] [ text (txtDisable ++" Rule")]
+                  h5[ class "modal-title" ] [ text (txtDisable ++" Rule")]
                 ]
               , div [ class "modal-body" ]
                 [ h4 [class "text-center"][text ("Are you sure you want to "++ String.toLower txtDisable ++" rule '"++ rule.name ++"'?")]
@@ -228,12 +228,12 @@ view model =
             ]
           ]
       DeletionValidationCat category ->
-        div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
-         [ div [class "modal-backdrop fade in"][]
+        div [ tabindex -1, class "modal fade show", style "z-index" "1050", style "display" "block" ]
+         [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
          , div [ class "modal-dialog" ] [
              div [ class "modal-content" ] [
                div [ class "modal-header ng-scope" ] [
-                 h3 [ class "modal-title" ] [ text "Delete category"]
+                 h5 [ class "modal-title" ] [ text "Delete category"]
                ]
              , div [ class "modal-body" ] [
                  h4 [class "text-center"][text ("Are you sure you want to delete category '"++ category.name ++"'?")]
@@ -253,12 +253,12 @@ view model =
         let
           action = if creation then "Create" else "Update"
         in
-          div [ tabindex -1, class "modal fade in", style "z-index" "1050", style "display" "block" ]
-          [ div [class "modal-backdrop fade in"][]
+          div [ tabindex -1, class "modal fade show", style "z-index" "1050", style "display" "block" ]
+          [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
           , div [ class "modal-dialog" ]
             [ div [ class "modal-content" ]
               [ div [ class "modal-header ng-scope" ]
-                [ h3 [ class "modal-title" ] [ text (action ++" Rule")]
+                [ h5 [ class "modal-title" ] [ text (action ++" Rule")]
                 ]
               , div [ class "modal-body" ]
                 [ h4 [class "text-center"]

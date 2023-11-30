@@ -540,8 +540,8 @@ class NodeGroupForm(
           new ModificationValidationPopup(
             Right(change),
             workflowService,
-            crId => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & successCallback(crId),
-            xml => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure,
+            crId => JsRaw("hideBsModal('confirmUpdateActionDialog');") & successCallback(crId),
+            xml => JsRaw("hideBsModal('confirmUpdateActionDialog');") & onFailure,
             parentFormTracker = formTracker
           )
         }
@@ -551,13 +551,13 @@ class NodeGroupForm(
             popup.onSubmit()
           case Some(_) =>
             SetHtml("confirmUpdateActionDialog", popup.popupContent()) &
-            JsRaw("""createPopup("confirmUpdateActionDialog")""")
+            JsRaw("""initBsModal("confirmUpdateActionDialog")""")
         }
     }
   }
 
   def createPopup(name: String):           JsCmd = {
-    JsRaw(s"""createPopup("${name}");""")
+    JsRaw(s"""initBsModal("${name}");""")
   }
   private[this] def showCloneGroupPopup(): JsCmd = {
 

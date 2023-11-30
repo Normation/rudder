@@ -866,6 +866,7 @@ header.main-header .logo-lg img{
     }
     & > a {
       color: #36474e;
+      cursor: pointer;
 
       &:hover{
         color: #041922;
@@ -892,9 +893,7 @@ header.main-header .logo-lg img{
 #logout:hover > i{
   color: #36474E;
 }
-.navbar .navbar-nav>li> a#logout{
-  max-height:50px;
-}
+
 .notifications-menu .rudder-badge {
   position: relative;
   left: 7px;

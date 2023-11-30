@@ -224,7 +224,7 @@ class AcceptNode extends Loggable {
             "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ],
             "pageLength": 25
           });""") & JsRaw(s"""
-              createPopup("${popupId}");
+              initBsModal("${popupId}");
         $$('#pendingNodeConfirm_info').remove();""")
       )
     }
@@ -282,7 +282,7 @@ class AcceptNode extends Loggable {
             & "servergrid-close" #>
             SHtml.ajaxButton(
               "Cancel",
-              () => JsRaw(" $('#confirmPopup').bsModal('hide');$('#refusePopup').bsModal('hide');"): JsCmd,
+              () => JsRaw(" $('#confirmPopup')hideBsModal;$('#refusePopup')hideBsModal;"): JsCmd,
               ("class", "btn btn-default")
             )
           )(template)
@@ -311,7 +311,7 @@ class AcceptNode extends Loggable {
    */
   def showExpectedPolicyPopup(node: Srv) = {
     SetHtml("expectedPolicyZone", (new ExpectedPolicyPopup("expectedPolicyZone", node)).display) &
-    OnLoad(JsRaw("""createPopup("expectedPolicyPopup")"""))
+    OnLoad(JsRaw("""initBsModal("expectedPolicyPopup")"""))
   }
 
   def display(html: NodeSeq, nodes: Seq[CoreNodeFact]): NodeSeq = {

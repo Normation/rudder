@@ -238,7 +238,7 @@ class CreateCategoryOrGroupPopup(
   private[this] def error(msg: String) = Text(msg)
 
   private[this] def closePopup(): JsCmd = {
-    JsRaw(""" $('#createGroupPopup').bsModal('hide');""")
+    JsRaw("""hideBsModal('createGroupPopup');""")
   }
 
   /**

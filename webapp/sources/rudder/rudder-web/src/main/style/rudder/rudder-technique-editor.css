@@ -36,12 +36,6 @@
 */
 
 /* =====  GENERAL  ===== */
-.fade.modal-backdrop.in {
-  opacity: .3;
-}
-.modal.fade .modal-dialog{
-  transform: initial !important;
-}
 .btn.btn-dsc.active{
   color: #fff !important;
   background-color: #440f62 !important;

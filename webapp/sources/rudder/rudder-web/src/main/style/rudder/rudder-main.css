@@ -150,10 +150,6 @@ pre.json-beautify code.elmsh {
   background: transparent !important;
 }
 /* - MODAL 4.0 - */
-body > .modal-backdrop.fade.in{
-  display :none;
-}
-
 .modal .modal-content {
   border-radius: 0;
   border: none;

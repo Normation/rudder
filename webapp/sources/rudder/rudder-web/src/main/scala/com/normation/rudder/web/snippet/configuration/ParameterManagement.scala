@@ -253,7 +253,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
         )
         val popupHtml = createPopup
         SetHtml(CreateOrUpdateGlobalParameterPopup.htmlId_popupContainer, popupHtml) &
-        JsRaw(""" createPopup("%s",300,600) """.format(CreateOrUpdateGlobalParameterPopup.htmlId_popup))
+        JsRaw(""" initBsModal("%s",300,600) """.format(CreateOrUpdateGlobalParameterPopup.htmlId_popup))
     }
   }
 
@@ -297,7 +297,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
   }
 
   private[this] def closePopup(): JsCmd = {
-    JsRaw(""" $('.modal').bsModal('hide');""")
+    JsRaw(s"""hideBsModal('${CreateOrUpdateGlobalParameterPopup.htmlId_popupContainer}');""")
   }
 
 }

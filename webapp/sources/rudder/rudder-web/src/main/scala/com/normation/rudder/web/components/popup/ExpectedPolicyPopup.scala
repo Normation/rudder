@@ -96,7 +96,6 @@ class ExpectedPolicyPopup(
       & "#dependentRulesGrid" #> rulesGrid
       & "expectedpolicypopup-node" #> displayNode(nodeSrv)
       & "expectedpolicypopup-os" #> displayNodeOs(nodeSrv)
-      & "expectedpolicypopup:close" #> <button onClick="$.modal.close(); return false;">Close</button>
     )(expectedTechnique)
   }
 

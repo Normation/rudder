@@ -80,18 +80,14 @@ class TechniqueCategoryEditForm(
         {categoryDetailsForm}
     </div>
     <div>
-    <div id="removeCategoryActionDialog" class="modal fade" data-keyboard="true" tabindex="-1">
-    <div class="modal-backdrop fade in" style="height: 100%;"></div>
+    <div id="removeCategoryActionDialog" class="modal fade" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="close" data-bs-dismiss="modal">
-                <span aria-hidden="true">&times;</span>
-                <span class="visually-hidden">Close</span>
-                </div>
-                <h4 class="modal-title">
-                    Delete a category
-                </h4>
+              <h5 class="modal-title">
+                Delete a category
+              </h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="row">
@@ -104,8 +100,8 @@ class TechniqueCategoryEditForm(
                 <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
                 {SHtml.ajaxButton(<span>Delete</span>, deleteCategory _) % ("class" -> "btn btn-danger")}
             </div>
-        </div><!-- /.modal-content -->
-    </div><!-- /.modal-dialog -->
+        </div>
+    </div>
     </div>
     </div>
   }
@@ -121,7 +117,7 @@ class TechniqueCategoryEditForm(
       .toBox match {
       case Full(id) =>
         // update UI
-        JsRaw("$('#removeCategoryActionDialog').bsModal('hide');") &
+        JsRaw("hideBsModal('removeCategoryActionDialog');") &
         onSuccessCallback() & // Replace(htmlId_activeTechniquesTree, userLibrary) &
         SetHtml(htmlId_form, <span class="greenscala">Category successfully deleted</span>) &
         successPopup
@@ -243,7 +239,7 @@ class TechniqueCategoryEditForm(
         if (currentCategory.id != rootCategoryId && currentCategory.children.isEmpty && currentCategory.items.isEmpty) {
           {
             Script(OnLoad(JsRaw("""$( "#deleteCategoryButton" ).click(function() {
-                $("#removeCategoryActionDialog").bsModal('show');
+                iniBsModal("removeCategoryActionDialog");
                 return false;
               })""")))
           } ++ {

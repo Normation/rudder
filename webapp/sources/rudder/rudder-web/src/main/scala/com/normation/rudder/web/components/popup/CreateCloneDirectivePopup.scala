@@ -61,15 +61,11 @@ object CreateCloneDirectivePopup {
   val htmlId_popupContainer = "createCloneDirectiveContainer"
   val htmlId_popup          = "createCloneDirectivePopup"
   val html                  = SHtml.ajaxForm(
-    <div class="modal-backdrop fade in" style="height: 100%;"></div>
     <div id="createCloneDirectiveContainer" class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="close" data-bs-dismiss="modal">
-                <span aria-hidden="true">&times;</span>
-                <span class="visually-hidden">Close</span>
-                </div>
-                <h4 class="modal-title">Clone directive</h4>
+              <h5 class="modal-title">Clone directive</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div id="notifications">Here comes validation messages</div>
@@ -82,8 +78,8 @@ object CreateCloneDirectivePopup {
                 <button id="save" class="btn btn-success">Clone</button>
             </div>
         <!-- TODO: migration-scala3 - bug: https://github.com/lampepfl/dotty/issues/16458 -->
-        </div> //<!-- /.modal-content -->
-    </div> // <!-- /.modal-dialog -->
+        </div>
+    </div>
   )
 }
 
@@ -178,7 +174,7 @@ class CreateCloneDirectivePopup(
   private[this] def error(msg: String) = Text(msg)
 
   private[this] def closePopup(): JsCmd = {
-    JsRaw(""" $('#basePopup').bsModal('hide');""")
+    JsRaw("""hideBsModal('basePopup');""")
   }
 
   /**

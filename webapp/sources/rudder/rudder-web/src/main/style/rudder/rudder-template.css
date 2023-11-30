@@ -1327,34 +1327,10 @@ label > .warning-info{
   border: none;
   color: #ef9600;
 }
-/* === MODAL === */
-.rudder-template .modal {
-  height: 0;
-  display: block;
-  background: none;
-  background-color: transparent !important;
-}
-.rudder-template .modal.in {
-  height: auto;
-}
-.rudder-template .modal > .modal-backdrop{
-  transition: opacity .4s ease-out;
-  height: 0;
-  opacity: 0;
-  background-color: #202e34;
-}
-.rudder-template .modal.in  > .modal-backdrop{
-  opacity: .4;
-  height: auto;
-}
-.rudder-template .modal .form-group + .form-group{
-  margin-top: 12px;
-}
 
 .rudder-template .clipboard-list > li:hover .btn-goto{
   opacity: 1;
 }
-
 
 /* === SECTION WITH DOC === */
 .rudder-template .section-with-doc{
