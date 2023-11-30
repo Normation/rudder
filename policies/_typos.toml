@@ -1,5 +1,11 @@
+[default]
+extend-ignore-re = [
+    "[0-9a-fA-F]{8}[-_][0-9a-fA-F]{4}[-_][0-9a-fA-F]{4}[-_][0-9a-fA-F]{4}[-_][0-9a-fA-F]{12}"
+]
+
 [default.extend-words]
 # from fusion
 SOFTWARES = "SOFTWARES"
 # crate name
 flate = "flate"
+
