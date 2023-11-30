@@ -842,7 +842,9 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     setCreationPopup
 
     // update UI
-    SetHtml("createActiveTechniquesCategoryContainer", createPopup) & JsRaw("""initBsModal("createActiveTechniqueCategoryPopup")""")
+    SetHtml("createActiveTechniquesCategoryContainer", createPopup) & JsRaw(
+      """initBsModal("createActiveTechniqueCategoryPopup")"""
+    )
 
   }
 

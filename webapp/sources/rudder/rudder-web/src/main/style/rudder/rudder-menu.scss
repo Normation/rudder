@@ -61,6 +61,14 @@ $navbar-hover-color : #F4F4F4;
   background-color: #fff;
   box-shadow: 4px 4px 10px #dce3efb0;
 }
+
+.modal-open {
+  .main-header > .navbar,
+  .main-header > .logo{
+    z-index: -1;
+  }
+}
+
 .main-header .form-control::-moz-placeholder {
   color: #36474eaa;
   opacity: 1
@@ -771,7 +779,7 @@ header.main-header .logo-lg img{
  }
  aside.main-sidebar.fixed {
   position:fixed;
-  z-index: 1030;
+  z-index: 1020;
   height: calc(100% - 50px);
   min-height: calc(100% - 50px);
   margin-top: 50px;
@@ -1182,4 +1190,11 @@ header.main-header .logo-lg img{
 }
 .content-wrapper label > .icon-info:hover{
   color: #286090;
+}
+
+// MODALS
+
+.modal.fade.show[data-bs-backdrop="false"] {
+  background-color: rgba(0,0,0,0.5);
+  position: fixed;
 }

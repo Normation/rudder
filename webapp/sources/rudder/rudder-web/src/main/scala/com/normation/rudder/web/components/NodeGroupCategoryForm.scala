@@ -176,7 +176,7 @@ class NodeGroupCategoryForm(
 
     if (parentCategory.isDefined && _nodeGroupCategory.children.isEmpty && _nodeGroupCategory.items.isEmpty) {
       val popupContent = {
-           <div class="modal-dialog">
+        <div class="modal-dialog">
              <div class="modal-content">
                <div class="modal-header">
                  <h5 class="modal-title text-start">

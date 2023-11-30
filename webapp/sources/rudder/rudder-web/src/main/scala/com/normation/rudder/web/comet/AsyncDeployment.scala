@@ -239,7 +239,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private[this] def errorPopup = {
-    <div class="modal fade" tabindex="-1" id="errorDetailsDialog">
+    <div class="modal fade" tabindex="-1" id="errorDetailsDialog" data-bs-backdrop="false">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -267,7 +267,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private[this] def generatePoliciesPopup = {
-    <div class="modal fade" tabindex="-1" id="generatePoliciesDialog" aria-hidden="true">
+    <div class="modal fade" tabindex="-1" id="generatePoliciesDialog" aria-hidden="true" data-bs-backdrop="false" data-bs-dismiss="modal">
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
