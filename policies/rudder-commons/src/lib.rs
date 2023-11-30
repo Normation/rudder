@@ -270,18 +270,19 @@ pub enum PolicyMode {
 }
 
 impl PolicyMode {
-    pub fn from_string <'de, D>(deserializer: D) -> Result<Option<PolicyMode>, D::Error>
+    pub fn from_string<'de, D>(deserializer: D) -> Result<Option<PolicyMode>, D::Error>
     where
         D: Deserializer<'de>,
     {
         use serde::de::Error;
-        String::deserialize(deserializer).and_then(|string| {
-            match string.as_ref() {
-                "enforce" => Ok(Some(PolicyMode::Enforce)),
-                "audit" => Ok(Some(PolicyMode::Audit)),
-                "default" => Ok(None),
-                _ => Err(Error::custom(format!("Could not parse policy mode '{}'", string)))
-            }
+        String::deserialize(deserializer).and_then(|string| match string.as_ref() {
+            "enforce" => Ok(Some(PolicyMode::Enforce)),
+            "audit" => Ok(Some(PolicyMode::Audit)),
+            "default" => Ok(None),
+            _ => Err(Error::custom(format!(
+                "Could not parse policy mode '{}'",
+                string
+            ))),
         })
     }
 }
