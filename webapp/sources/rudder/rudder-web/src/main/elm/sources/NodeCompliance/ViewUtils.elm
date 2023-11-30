@@ -287,6 +287,7 @@ buildComplianceReport reports =
         "error"                      -> "Error"
         "successAlreadyOK"           -> "Success"
         "successRepaired"            -> "Repaired"
+        "successNotApplicable"       -> "Not applicable"
         "applying"                   -> "Applying"
         "auditNotApplicable"         -> "Not applicable"
         "unexpectedUnknownComponent" -> "Unexpected"
