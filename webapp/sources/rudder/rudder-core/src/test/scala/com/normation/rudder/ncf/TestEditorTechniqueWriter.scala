@@ -534,7 +534,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     webappCompiler,
     new RuddercService {
       override def compile(techniqueDir: File, options: RuddercOptions): IOResult[RuddercResult] = {
-        RuddercResult.Fail(42, "error:see implementation of test", "", "").succeed
+        RuddercResult.Fail(42, Chunk.empty, "error:see implementation of test", "", "").succeed
       }
     },
     TechniqueCompilerApp.Webapp,

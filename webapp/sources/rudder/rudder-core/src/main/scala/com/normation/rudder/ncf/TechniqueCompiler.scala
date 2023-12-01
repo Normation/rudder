@@ -118,21 +118,33 @@ trait TechniqueCompiler {
       TechniqueCompilerApp.Rudderc,
       false,
       0,
+      Chunk.empty,
       "no compilation needed: artifact are up-to-date",
       "",
       ""
     ).succeed
 
     for {
+      _ <- RuddercLogger.debug(s"Migrate/recompile '${techniquePath.pathAsString}' if needed'")
       _ <- MigrateJsonTechniquesService.migrateJson(techniquePath)
       x <- IOResult.attemptZIO {
              if (yamlFile.exists) {
                if (metadata.exists) {
                  if (yamlFile.lastModifiedTime.isAfter(metadata.lastModifiedTime)) {
-                   compileYaml
+                   RuddercLogger.debug(
+                     s"'${techniquePath.pathAsString}': YAML descriptor is more recent than XML metadata, recompiling"
+                   ) *> compileYaml
                  } else success
-               } else compileYaml
-             } else success
+               } else {
+                 RuddercLogger.debug(
+                   s"'${techniquePath.pathAsString}': XML metadata missing, recompiling"
+                 ) *> compileYaml
+               }
+             } else {
+               RuddercLogger.debug(
+                 s"'${techniquePath.pathAsString}': YAML descriptor doesn't exist: assuming it's an old technique format, ignore"
+               ) *> success
+             }
            }
     } yield x
   }
@@ -173,6 +185,7 @@ final case class TechniqueCompilationOutput(
     compiler:   TechniqueCompilerApp,
     fallbacked: Boolean,
     resultCode: Int,
+    fileStatus: Chunk[ResourceFile],
     msg:        String,
     stdout:     String,
     stderr:     String
@@ -196,36 +209,49 @@ object TechniqueCompilationIO {
     })
   )
 
+  implicit val codecResourceFileState: JsonCodec[ResourceFileState] = {
+    new JsonCodec(
+      JsonEncoder.string.contramap(_.value),
+      JsonDecoder.string.mapOrFail(ResourceFileState.parse(_).left.map(_.fullMsg))
+    )
+  }
+  implicit val codecResourceFile:      JsonCodec[ResourceFile]      = DeriveJsonCodec.gen
+
   implicit val codecTechniqueCompilationOutput: JsonCodec[TechniqueCompilationOutput] = DeriveJsonCodec.gen
   implicit val codecTechniqueCompilationConfig: JsonCodec[TechniqueCompilationConfig] = DeriveJsonCodec.gen
 }
 
 sealed trait RuddercResult {
-  def code:   Int
-  def msg:    String // human formatted message / error
-  def stdout: String // capture of stdout
-  def stderr: String // capture of stderr
+  def code:       Int
+  def fileStatus: Chunk[ResourceFile]
+  def msg:        String // human formatted message / error
+  def stdout:     String // capture of stdout
+  def stderr:     String // capture of stderr
 }
 sealed trait RuddercError extends RuddercResult
 object RuddercResult       {
   // success - capture stdout for debug etc
-  final case class Ok(msg: String, stdout: String, stderr: String) extends RuddercResult { val code = 0 }
+  final case class Ok(fileStatus: Chunk[ResourceFile], msg: String, stdout: String, stderr: String) extends RuddercResult {
+    val code = 0
+  }
 
   // an error that should be displayed to user
-  final case class UserError(code: Int, msg: String, stdout: String, stderr: String) extends RuddercError
+  final case class UserError(code: Int, fileStatus: Chunk[ResourceFile], msg: String, stdout: String, stderr: String)
+      extends RuddercError
   // a rudderc error that is not recoverable by the user and should lead to a fallback
-  final case class Fail(code: Int, msg: String, stdout: String, stderr: String)      extends RuddercError
+  final case class Fail(code: Int, fileStatus: Chunk[ResourceFile], msg: String, stdout: String, stderr: String)
+      extends RuddercError
 
   // biased it toward system error for now, it can change when rudderc is mature enough
-  def fromCmdResult(code: Int, userMsg: String, stdout: String, stderr: String): RuddercResult = {
+  def fromCmdResult(code: Int, files: Chunk[ResourceFile], userMsg: String, stdout: String, stderr: String): RuddercResult = {
     // todo: parse a rudderc output and get an error from it
     if (code == 0) {
-      Ok(userMsg, stdout, stderr)
+      Ok(files, userMsg, stdout, stderr)
     } else if (code == USER_ERROR_CODE) {
-      UserError(code, userMsg, stdout, stderr)
+      UserError(code, files, userMsg, stdout, stderr)
     } else {
       // returns 1 on internal error
-      Fail(code, userMsg, stdout, stderr)
+      Fail(code, files, userMsg, stdout, stderr)
     }
   }
 
@@ -283,20 +309,28 @@ class RuddercServiceImpl(
                       val error = s"Rudderc ${cmd.display} timed out after ${killTimeout.render}"
                       RuddercLogger.error(error) *> CmdResult(1, "", error).succeed
                   }
-      c         = translateReturnCode(techniqueDir.pathAsString, r)
-      _        <- logReturnCode(c)
       // in all case, whatever the return code, move everything from target subdir if it exists to parent and delete it
       outputDir = compilationOutputDir(techniqueDir)
-      _        <- ZIO.whenZIO(IOResult.attempt(outputDir.exists)) {
-                    ZIO.foreach(outputDir.children.toList)(f => {
-                      IOResult.attempt {
-                        val dest = techniqueDir / f.name
-                        if (dest.exists()) dest.delete()
-                        f.moveTo(techniqueDir / f.name)(Seq[CopyOption](StandardCopyOption.REPLACE_EXISTING))
-                      }
-                    }) *>
-                    IOResult.attempt(outputDir.delete())
-                  }
+      files    <- ZIO
+                    .whenZIO(IOResult.attempt(outputDir.exists)) {
+                      ZIO.foreach(Chunk.fromIterator(outputDir.children)) { f =>
+                        IOResult.attempt {
+                          val dest = techniqueDir / f.name
+                          val s    = if (dest.exists()) {
+                            dest.delete()
+                            ResourceFile(dest.name, ResourceFileState.Modified)
+                          } else {
+                            ResourceFile(dest.name, ResourceFileState.New)
+                          }
+                          f.moveTo(techniqueDir / f.name)(Seq[CopyOption](StandardCopyOption.REPLACE_EXISTING))
+                          s
+                        }
+                      } <*
+                      IOResult.attempt(outputDir.delete())
+                    }
+                    .map(_.getOrElse(Chunk.empty))
+      c         = translateReturnCode(techniqueDir.pathAsString, r, files)
+      _        <- logReturnCode(c)
       time_1   <- currentTimeNanos
       duration  = time_1 - time_0
       _        <- RuddercLogger.debug(
@@ -319,7 +353,10 @@ class RuddercServiceImpl(
   def logReturnCode(result: RuddercResult): IOResult[Unit] = {
     for {
       _ <- ZIO.when(RuddercLogger.logEffect.isTraceEnabled()) {
-             RuddercLogger.trace(s"  -> results: ${result.stdout}") *>
+             RuddercLogger.trace(s"  -> results: ${result.code.toString}") *>
+             RuddercLogger.trace(
+               s"  -> modified files: ${result.fileStatus.map(s => s"${s.path}: ${s.state.value}").mkString(" ; ")}"
+             ) *>
              RuddercLogger.trace(s"  -> stdout : ${result.stdout}") *>
              RuddercLogger.trace(s"  -> stderr : ${result.stderr}")
            }
@@ -333,14 +370,14 @@ class RuddercServiceImpl(
     } yield ()
   }
 
-  def translateReturnCode(techniquePath: String, result: CmdResult): RuddercResult = {
+  def translateReturnCode(techniquePath: String, result: CmdResult, fileStates: Chunk[ResourceFile]): RuddercResult = {
     lazy val msg = {
       val specialCode = if (result.code == Int.MinValue) { // this is most commonly file not found or bad rights
         " (check that file exists and is executable)"
       } else ""
       s"Exit code=${result.code}${specialCode} for technique: '${techniquePath}'."
     }
-    RuddercResult.fromCmdResult(result.code, msg, result.stdout, result.stderr)
+    RuddercResult.fromCmdResult(result.code, fileStates, msg, result.stdout, result.stderr)
   }
 }
 
@@ -410,7 +447,7 @@ class TechniqueCompilerWithFallback(
 
     // recover from rudderc if result says so
     def recoverIfNeeded(app: TechniqueCompilerApp, r: RuddercResult): IOResult[TechniqueCompilationOutput] = {
-      val ltc = TechniqueCompilationOutput(app, false, r.code, r.msg, r.stdout, r.stderr)
+      val ltc = TechniqueCompilationOutput(app, false, r.code, r.fileStatus, r.msg, r.stdout, r.stderr)
       r match {
         case _: RuddercResult.Fail =>
           // fallback but keep rudderc error for logs
@@ -426,7 +463,9 @@ class TechniqueCompilerWithFallback(
       case Some(TechniqueCompilerApp.Webapp)  => // in that case, we can't fallback even more, so the result is final
         fallbackCompiler.compileTechnique(technique)
       case Some(TechniqueCompilerApp.Rudderc) =>
-        ruddercAll.map(r => TechniqueCompilationOutput(TechniqueCompilerApp.Rudderc, false, r.code, r.msg, r.stdout, r.stderr))
+        ruddercAll.map(r =>
+          TechniqueCompilationOutput(TechniqueCompilerApp.Rudderc, false, r.code, r.fileStatus, r.msg, r.stdout, r.stderr)
+        )
     }
   }
 
@@ -497,6 +536,7 @@ class WebappTechniqueCompiler(
         TechniqueCompilerApp.Webapp,
         false,
         0,
+        TechniqueFiles.Generated.all.map(f => ResourceFile(f, ResourceFileState.New)),
         s"Technique '${getTechniqueRelativePath(technique)}' written by webapp",
         "",
         ""

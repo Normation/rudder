@@ -59,6 +59,7 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.BeforeAfterAll
 import scala.annotation.nowarn
+import zio.Chunk
 import zio.syntax._
 
 /*
@@ -129,37 +130,37 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
             writeXML
             writeCFE
             writePS1
-            RuddercResult.Ok("ok", "stdout", "")
+            RuddercResult.Ok(Chunk.empty, "ok", "stdout", "")
           }
         case Content.techniqueNOK_user        =>
           IOResult.attempt {
-            RuddercResult.UserError(7, "nok:user", "stdout", "stderr")
+            RuddercResult.UserError(7, Chunk.empty, "nok:user", "stdout", "stderr")
           }
         case Content.techniqueNOK_empty_neg   =>
           IOResult.attempt {
-            RuddercResult.Fail(-42, "nok:empty", "stdout", "stderr")
+            RuddercResult.Fail(-42, Chunk.empty, "nok:empty", "stdout", "stderr")
           }
         case Content.techniqueNOK_empty_pos   =>
           IOResult.attempt {
-            RuddercResult.Fail(50, "nok:empty", "stdout", "stderr")
+            RuddercResult.Fail(50, Chunk.empty, "nok:empty", "stdout", "stderr")
           }
         case Content.techniqueNOK_xml         =>
           IOResult.attempt {
             writeXML
-            RuddercResult.Fail(60, "nok:xml", "stdout", "stderr")
+            RuddercResult.Fail(60, Chunk.empty, "nok:xml", "stdout", "stderr")
           }
         case Content.techniqueNOK_xml_cfe     =>
           IOResult.attempt {
             writeXML
             writeCFE
-            RuddercResult.Fail(70, "nok:cfe", "stdout", "stderr")
+            RuddercResult.Fail(70, Chunk.empty, "nok:cfe", "stdout", "stderr")
           }
         case Content.techniqueNOK_xml_cfe_ps1 =>
           IOResult.attempt {
             writeXML
             writeCFE
             writePS1
-            RuddercResult.Fail(80, "nok:ps1", "stdout", "stderr")
+            RuddercResult.Fail(80, Chunk.empty, "nok:ps1", "stdout", "stderr")
           }
         // other case must not exists in test, error.
         case other                            => Unexpected(s"Asking for technique with id '${other}' which is not a test case - go see TestRudderc").fail
@@ -296,7 +297,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       initDirectories(compiler, technique)
       val res                = compiler.compileTechnique(technique).runNow
 
-      (res must beEqualTo(TechniqueCompilationOutput(Rudderc, false, 0, "ok", "stdout", ""))) and
+      (res must beEqualTo(TechniqueCompilationOutput(Rudderc, false, 0, Chunk.empty, "ok", "stdout", ""))) and
       (compilationConfigFile.exists must beFalse) and
       (compilationOutputFile.exists must beFalse) and
       checkXML(CreatedByRudderc) and
@@ -309,7 +310,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       initDirectories(compiler, technique)
       val res                = compiler.compileTechnique(technique).runNow
 
-      (res must beEqualTo(TechniqueCompilationOutput(Rudderc, false, 7, "nok:user", "stdout", "stderr"))) and
+      (res must beEqualTo(TechniqueCompilationOutput(Rudderc, false, 7, Chunk.empty, "nok:user", "stdout", "stderr"))) and
       (compilationConfigFile.exists must beFalse) and
       (compilationOutputFile.exists must beTrue) and
       checkXML(Missing) and
@@ -322,7 +323,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       initDirectories(compiler, technique)
       val res                = compiler.compileTechnique(technique).runNow
 
-      (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, -42, "nok:empty", "stdout", "stderr"))) and
+      (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, -42, Chunk.empty, "nok:empty", "stdout", "stderr"))) and
       (compilationConfigFile.exists must beFalse) and
       (compilationOutputFile.exists must beTrue) and
       checkXML(CreatedByWebapp) and
@@ -335,7 +336,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       initDirectories(compiler, technique)
       val res                = compiler.compileTechnique(technique).runNow
 
-      (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, 50, "nok:empty", "stdout", "stderr"))) and
+      (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, 50, Chunk.empty, "nok:empty", "stdout", "stderr"))) and
       (compilationConfigFile.exists must beFalse) and
       (compilationOutputFile.exists must beTrue) and
       checkXML(CreatedByWebapp) and
@@ -348,7 +349,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       initDirectories(compiler, technique)
       val res                = compiler.compileTechnique(technique).runNow
 
-      (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, 60, "nok:xml", "stdout", "stderr"))) and
+      (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, 60, Chunk.empty, "nok:xml", "stdout", "stderr"))) and
       (compilationConfigFile.exists must beFalse) and
       (compilationOutputFile.exists must beTrue) and
       checkXML(CreatedByWebapp) and
@@ -361,7 +362,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       initDirectories(compiler, technique)
       val res                = compiler.compileTechnique(technique).runNow
 
-      (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, 70, "nok:cfe", "stdout", "stderr"))) and
+      (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, 70, Chunk.empty, "nok:cfe", "stdout", "stderr"))) and
       (compilationConfigFile.exists must beFalse) and
       (compilationOutputFile.exists must beTrue) and
       checkXML(CreatedByWebapp) and
@@ -374,7 +375,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       initDirectories(compiler, technique)
       val res                = compiler.compileTechnique(technique).runNow
 
-      (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, 80, "nok:ps1", "stdout", "stderr"))) and
+      (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, 80, Chunk.empty, "nok:ps1", "stdout", "stderr"))) and
       (compilationConfigFile.exists must beFalse) and
       (compilationOutputFile.exists must beTrue) and
       checkXML(CreatedByWebapp) and
@@ -402,7 +403,24 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       writeConfig
       val res                = compiler.compileTechnique(technique).runNow
 
-      (res must beEqualTo(TechniqueCompilationOutput(Webapp, false, 0, "Technique 'techniqueOK' written by webapp", "", ""))) and
+      import ResourceFileState.New
+
+      (res must beEqualTo(
+        TechniqueCompilationOutput(
+          Webapp,
+          false,
+          0,
+          Chunk(
+            ResourceFile("metadata.xml", New),
+            ResourceFile("rudder_reporting.cf", New),
+            ResourceFile("technique.cf", New),
+            ResourceFile("technique.ps1", New)
+          ),
+          "Technique 'techniqueOK' written by webapp",
+          "",
+          ""
+        )
+      )) and
       (compilationConfigFile.exists must beTrue) and
       (compilationOutputFile.exists must beFalse) and // it's not an override, there's no error: no output file
       checkXML(CreatedByWebapp) and
