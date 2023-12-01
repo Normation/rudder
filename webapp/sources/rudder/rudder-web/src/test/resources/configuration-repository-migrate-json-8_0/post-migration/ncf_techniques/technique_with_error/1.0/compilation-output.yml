@@ -1,6 +1,9 @@
 compiler: rudderc
 fallbacked: false
 resultCode: 42
+fileStatus:
+  - path: foo
+    state: deleted
 msg: error
 stdout: ''
 stderr: error stderr
