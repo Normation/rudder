@@ -126,48 +126,60 @@ object CampaignApi       extends ApiModuleProvider[CampaignApi] {
   def endpoints: List[CampaignApi] = ca.mrvisser.sealerate.values[CampaignApi].toList.sortBy(_.z)
 }
 
-sealed trait ComplianceApi extends EndpointSchema with GeneralApi with SortIndex
+sealed trait ComplianceApi extends EndpointSchema with SortIndex
 object ComplianceApi       extends ApiModuleProvider[ComplianceApi] {
 
-  final case object GetRulesCompliance   extends ComplianceApi with ZeroParam with StartsAtVersion7 with SortIndex  {
+  final case object GetRulesCompliance extends ComplianceApi with GeneralApi with ZeroParam with StartsAtVersion7 with SortIndex {
     val z              = implicitly[Line].value
     val description    = "Get compliance information for all rules"
     val (action, path) = GET / "compliance" / "rules"
     val dataContainer  = Some("rules")
   }
-  final case object GetRulesComplianceId extends ComplianceApi with OneParam with StartsAtVersion7 with SortIndex   {
+  final case object GetRulesComplianceId
+      extends ComplianceApi with GeneralApi with OneParam with StartsAtVersion7 with SortIndex {
     val z              = implicitly[Line].value
     val description    = "Get compliance information for the given rule"
     val (action, path) = GET / "compliance" / "rules" / "{id}"
     val dataContainer  = Some("rules")
   }
-  final case object GetNodesCompliance   extends ComplianceApi with ZeroParam with StartsAtVersion7 with SortIndex  {
+  final case object GetNodesCompliance extends ComplianceApi with GeneralApi with ZeroParam with StartsAtVersion7 with SortIndex {
     val z              = implicitly[Line].value
     val description    = "Get compliance information for all nodes"
     val (action, path) = GET / "compliance" / "nodes"
     val dataContainer  = Some("nodes")
   }
-  final case object GetNodeComplianceId  extends ComplianceApi with OneParam with StartsAtVersion7 with SortIndex   {
+
+  final case object GetNodeSystemCompliance
+      extends ComplianceApi with InternalApi with OneParam with StartsAtVersion7 with SortIndex  {
+    val z              = implicitly[Line].value
+    val description    = "Get compliance information for the given node"
+    val (action, path) = GET / "compliance" / "nodes" / "{id}" / "system"
+    val dataContainer  = Some("nodes")
+  }
+  final case object GetNodeComplianceId extends ComplianceApi with GeneralApi with OneParam with StartsAtVersion7 with SortIndex {
     val z              = implicitly[Line].value
     val description    = "Get compliance information for the given node"
     val (action, path) = GET / "compliance" / "nodes" / "{id}"
     val dataContainer  = Some("nodes")
   }
-  final case object GetGlobalCompliance  extends ComplianceApi with ZeroParam with StartsAtVersion10 with SortIndex {
+  final case object GetGlobalCompliance
+      extends ComplianceApi with GeneralApi with ZeroParam with StartsAtVersion10 with SortIndex {
     val z              = implicitly[Line].value
     val description    = "Get the global compliance (alike what one has on Rudder main dashboard)"
     val (action, path) = GET / "compliance"
     val dataContainer  = Some("globalCompliance")
   }
 
-  final case object GetDirectiveComplianceId extends ComplianceApi with OneParam with StartsAtVersion17 with SortIndex {
+  final case object GetDirectiveComplianceId
+      extends ComplianceApi with GeneralApi with OneParam with StartsAtVersion17 with SortIndex {
     val z              = implicitly[Line].value
     val description    = "Get a directive's compliance"
     val (action, path) = GET / "compliance" / "directives" / "{id}"
     val dataContainer  = Some("directiveCompliance")
   }
 
-  final case object GetDirectivesCompliance extends ComplianceApi with ZeroParam with StartsAtVersion17 with SortIndex {
+  final case object GetDirectivesCompliance
+      extends ComplianceApi with GeneralApi with ZeroParam with StartsAtVersion17 with SortIndex {
     val z              = implicitly[Line].value
     val description    = "Get all directive's compliance"
     val (action, path) = GET / "compliance" / "directives"

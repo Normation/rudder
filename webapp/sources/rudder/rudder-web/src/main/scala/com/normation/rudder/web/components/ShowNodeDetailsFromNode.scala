@@ -319,7 +319,8 @@ class ShowNodeDetailsFromNode(
       "reportsDetails",
       "reportsGrid",
       RudderConfig.reportingService.findUserNodeStatusReport,
-      true
+      true,
+      false
     ) &
     "#systemStatus *" #> reportDisplayer.asyncDisplay(
       node,
@@ -327,7 +328,8 @@ class ShowNodeDetailsFromNode(
       "systemStatus",
       "systemStatusGrid",
       RudderConfig.reportingService.findSystemNodeStatusReport,
-      false
+      false,
+      true
     ) &
     "#nodeProperties *" #> DisplayNode.displayTabProperties(id, node, inventory: FullInventory) &
     "#logsDetails *" #> Script(OnLoad(logDisplayer.asyncDisplay(node.id, None, "logsGrid"))) &

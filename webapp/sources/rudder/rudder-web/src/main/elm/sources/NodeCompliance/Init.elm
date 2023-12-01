@@ -7,12 +7,12 @@ import NodeCompliance.DataTypes exposing (..)
 import Compliance.DataTypes exposing (..)
 
 
-init : { nodeId : String, contextPath : String } -> ( Model, Cmd Msg )
+init : { nodeId : String, contextPath : String, onlySystem : Bool} -> ( Model, Cmd Msg )
 init flags =
   let
     initFilters  = (TableFilters Asc "" Dict.empty)
     initUI       = UI initFilters (ComplianceFilters False False []) True
-    initModel    = Model (DirectiveId flags.nodeId) flags.contextPath "" initUI Nothing
+    initModel    = Model (DirectiveId flags.nodeId) flags.contextPath "" initUI Nothing flags.onlySystem
     listInitActions =
       [ getPolicyMode initModel
       , getNodeCompliance initModel
