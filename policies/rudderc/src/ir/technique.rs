@@ -8,7 +8,7 @@ use std::{
     str::FromStr,
 };
 
-use anyhow::{bail, Error, Result};
+use anyhow::{bail, Context, Error, Result};
 use rudder_commons::{methods::method::MethodInfo, PolicyMode, RegexConstraint, Select};
 use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_yaml::Value;
@@ -249,7 +249,7 @@ impl Default for Technique {
 }
 
 /// A Rudder technique (based on methods and/or modules)
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct Technique {
     #[serde(default = "Technique::default_format")]
     #[serde(skip_serializing_if = "Technique::format_is_default")]
@@ -297,11 +297,154 @@ pub struct Parameter {
     pub _type: ParameterType,
     #[serde(default)]
     pub constraints: Constraints,
-    //#[serde(default)]
-    //pub escaping: Escaping,
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub default: Option<String>,
+}
+
+// Only used for parsing to allow proper error messages
+// Represents the union of all fields of the ItemKinds.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct DeserItem {
+    #[serde(default)]
+    pub condition: Condition,
+    #[serde(default)]
+    pub name: String,
+    pub tags: Option<Value>,
+    #[serde(default)]
+    pub items: Vec<DeserItem>,
+    #[serde(default)]
+    pub id: Id,
+    #[serde(default)]
+    pub reporting: BlockReporting,
+    #[serde(default)]
+    pub params: HashMap<String, String>,
+    pub method: Option<String>,
+    pub module: Option<String>,
+    #[serde(deserialize_with = "PolicyMode::from_string")]
+    #[serde(default)]
+    pub policy_mode: Option<PolicyMode>,
+}
+
+// Variant of Technique for first level of deserialization
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+pub struct DeserTechnique {
+    #[serde(default = "Technique::default_format")]
+    pub format: usize,
+    pub id: Id,
+    pub name: String,
+    pub version: String,
+    pub tags: Option<Value>,
+    pub category: Option<String>,
+    pub description: Option<String>,
+    pub documentation: Option<String>,
+    #[serde(default)]
+    pub items: Vec<DeserItem>,
+    #[serde(default)]
+    pub params: Vec<Parameter>,
+}
+
+impl DeserTechnique {
+    pub fn to_technique(self) -> Result<Technique> {
+        Ok(Technique {
+            format: self.format,
+            id: self.id,
+            name: self.name,
+            version: self.version,
+            tags: self.tags,
+            category: self.category,
+            description: self.description,
+            documentation: self.documentation,
+            items: self
+                .items
+                .into_iter()
+                .map(|i| i.into_kind())
+                .collect::<Result<Vec<ItemKind>>>()?,
+            params: self.params,
+        })
+    }
+}
+
+impl DeserItem {
+    // Can't use TryFrom as the implementation is recursive
+    fn into_kind(self) -> Result<ItemKind> {
+        // discriminating fields
+        match (
+            self.method.is_some(),
+            self.module.is_some(),
+            !self.items.is_empty(),
+            !self.params.is_empty(),
+        ) {
+            (true, false, false, true) => Ok(ItemKind::Method(Method {
+                name: self.name.clone(),
+                tags: self.tags,
+                condition: self.condition,
+                params: self.params,
+                method: self.method.unwrap(),
+                id: self.id.clone(),
+                reporting: self.reporting.try_into().context(format!(
+                    "Method {} ({}) has an unexpected reporting mode",
+                    &self.name, &self.id
+                ))?,
+                info: None,
+                policy_mode: self.policy_mode,
+            })),
+            (true, false, _, false) => {
+                bail!("Method {} ({}) requires params", self.name, self.id)
+            }
+            (false, true, false, true) => Ok(ItemKind::Module(Module {
+                name: self.name.clone(),
+                tags: self.tags,
+                condition: self.condition,
+                params: self.params,
+                module: self.module.unwrap(),
+                id: self.id.clone(),
+                reporting: self.reporting.try_into().context(format!(
+                    "Module {} ({}) has an unexpected reporting mode",
+                    self.name, self.id
+                ))?,
+                policy_mode: self.policy_mode,
+            })),
+            (false, true, _, false) => {
+                bail!("Module {} ({}) requires params", self.name, self.id)
+            }
+            (false, false, true, false) => Ok(ItemKind::Block(Block {
+                name: if self.name.is_empty() {
+                    bail!("Block {} requires a 'name' parameter", self.id)
+                } else {
+                    self.name
+                },
+                tags: self.tags,
+                condition: self.condition,
+                id: self.id,
+                reporting: self.reporting,
+                items: self
+                    .items
+                    .into_iter()
+                    .map(|i| i.into_kind().unwrap())
+                    .collect(),
+                policy_mode: self.policy_mode,
+            })),
+            (false, false, false, false) => {
+                bail!("Block {} ({}) requires items", self.name, self.id)
+            }
+            (true, true, _, _) => bail!(
+                "Item {} ({}) cannot be both a method and a resource",
+                self.name,
+                self.id
+            ),
+            (_, _, true, true) => bail!(
+                "Item {} ({}) cannot have both items and params",
+                self.name,
+                self.id
+            ),
+            (false, false, false, true) => bail!(
+                "Item {} ({}) required either a method or module parameter",
+                self.name,
+                self.id
+            ),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -312,33 +455,7 @@ pub enum ItemKind {
     Method(Method),
 }
 
-// Same as untagged deserialization, but with improved error messages
-impl<'de> Deserialize<'de> for ItemKind {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let parsed = Value::deserialize(deserializer)?;
-        let Some(map) = parsed.as_mapping() else {
-            return Err(de::Error::custom("Modules should be a map"));
-        };
-        // Pre-guess the type to provide relevant error messages in case of incorrect fields
-        match (map.get("items"), map.get("method"), map.get("module")) {
-            (Some(_), _, _) => Ok(ItemKind::Block(
-                Block::deserialize(parsed).map_err(de::Error::custom)?,
-            )),
-            (_, Some(_), _) => Ok(ItemKind::Method(
-                Method::deserialize(parsed).map_err(de::Error::custom)?,
-            )),
-            (_, _, Some(_)) => Ok(ItemKind::Module(
-                Module::deserialize(parsed).map_err(de::Error::custom)?,
-            )),
-            (None, None, None) => Err(de::Error::custom("Missing required parameters in module")),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Block {
     #[serde(default)]
     #[serde(skip_serializing_if = "Condition::is_defined")]
@@ -351,12 +468,12 @@ pub struct Block {
     pub id: Id,
     #[serde(default)]
     pub reporting: BlockReporting,
-    #[serde(deserialize_with = "PolicyMode::from_string")]
     #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub policy_mode: Option<PolicyMode>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Module {
     #[serde(default)]
     pub name: String,
@@ -371,9 +488,12 @@ pub struct Module {
     pub id: Id,
     #[serde(default)]
     pub reporting: LeafReporting,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub policy_mode: Option<PolicyMode>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Method {
     #[serde(default)]
     pub name: String,
@@ -391,8 +511,8 @@ pub struct Method {
     pub reporting: LeafReporting,
     #[serde(skip)]
     pub info: Option<&'static MethodInfo>,
-    #[serde(deserialize_with = "PolicyMode::from_string")]
     #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub policy_mode: Option<PolicyMode>,
 }
 
@@ -453,6 +573,23 @@ impl Display for BlockReportingMode {
 pub struct LeafReporting {
     #[serde(default)]
     pub mode: LeafReportingMode,
+}
+
+// only used for deserialization from large type
+impl TryFrom<BlockReporting> for LeafReporting {
+    type Error = Error;
+
+    fn try_from(value: BlockReporting) -> Result<Self, Self::Error> {
+        match (value.mode, value.id) {
+            (BlockReportingMode::Disabled, None) => Ok(LeafReporting {
+                mode: LeafReportingMode::Disabled,
+            }),
+            (BlockReportingMode::Weighted, None) => Ok(LeafReporting {
+                mode: LeafReportingMode::Enabled,
+            }),
+            _ => bail!("Unsupported reporting mode in a method or module"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
