@@ -21,13 +21,13 @@ type alias GlobalScore =
 
 type alias Score =
   { value   : ScoreValue -- "A/B/C/D/E/F/-"
-  , name    : String -- "compliance"
+  , scoreId : String -- "compliance"
   , message : String -- "un message en markdown"
   }
 
 type alias DetailedScore =
   { value   : ScoreValue -- "A/B/C/D/E/F/-"
-  , name    : String -- "compliance"
+  , scoreId : String -- "compliance"
   , message : String -- "un message en markdown"
   , details : Value
   }

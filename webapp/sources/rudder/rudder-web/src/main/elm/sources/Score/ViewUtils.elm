@@ -38,8 +38,8 @@ scoreBreakdownList : List Score -> List (Html Msg)
 scoreBreakdownList scoreDetails = scoreDetails
   |> List.map(\sD ->
     div[class "d-flex flex-column pe-5 align-items-center"]
-    [ getScoreBadge sD.value (buildTooltipBadge sD.name sD.message) True
-    , label[class "text-center pt-2"][text (String.Extra.humanize sD.name)]
+    [ getScoreBadge sD.value (buildTooltipBadge sD.scoreId sD.message) True
+    , label[class "text-center pt-2"][text (String.Extra.humanize sD.scoreId)]
     ]
   )
 

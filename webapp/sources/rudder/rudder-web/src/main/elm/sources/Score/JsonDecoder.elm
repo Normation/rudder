@@ -23,7 +23,7 @@ decodeScore : Decoder Score
 decodeScore =
   succeed Score
     |> required "value"   ( map toScoreValue string )
-    |> required "name"    string
+    |> required "scoreId"    string
     |> required "message" string
 
 
@@ -31,7 +31,7 @@ decodeDetailedScore : Decoder DetailedScore
 decodeDetailedScore =
   succeed DetailedScore
     |> required "value"   ( map toScoreValue string )
-    |> required "name"    string
+    |> required "scoreId"    string
     |> required "message" string
     |> required "details" value
 

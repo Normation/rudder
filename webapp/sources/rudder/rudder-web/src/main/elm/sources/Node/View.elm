@@ -15,5 +15,5 @@ view model =
 showScore : Model -> DetailedScore ->  Html Msg
 showScore model score =
   div[class "d-flex mb-3 align-items-center"]
-    ( label[class "text-end"][text score.name] ::
-      (Dict.get score.name model.detailsHtml |>  Maybe.withDefault [ small [] [text "No details yet"]]) )
+    ( label[class "text-end"][text score.scoreId] ::
+      (Dict.get score.scoreId model.detailsHtml |>  Maybe.withDefault [ small [] [text "No details yet"]]) )

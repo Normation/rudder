@@ -55,6 +55,10 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository.FindExpectedReportRepository
 import com.normation.rudder.repository.ReportsRepository
+import com.normation.rudder.score.GlobalScore
+import com.normation.rudder.score.Score
+import com.normation.rudder.score.ScoreService
+import com.normation.rudder.score.ScoreServiceManager
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.zio._
 import com.softwaremill.quicklens._
@@ -65,6 +69,7 @@ import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 import zio.Chunk
+import zio.syntax.ToZio
 
 /*
  * Test the cache behaviour
@@ -193,6 +198,18 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     def findStatusReportsForDirective(directiveId: DirectiveId)(implicit
         qc:                                        QueryContext
     ): IOResult[Map[NodeId, NodeStatusReport]] = ???
+
+    override def scoreServiceManager: ScoreServiceManager = new ScoreServiceManager(new ScoreService {
+      override def getAll(): IOResult[Map[NodeId, GlobalScore]] = ???
+
+      override def getGlobalScore(nodeId: NodeId): IOResult[GlobalScore] = ???
+
+      override def getScoreDetails(nodeId: NodeId): IOResult[List[Score]] = ???
+
+      override def cleanScore(name: String): IOResult[Unit] = ???
+
+      override def update(newScores: Map[NodeId, List[Score]]): IOResult[Unit] = ().succeed
+    })
   }
 
   implicit val qc: QueryContext = QueryContext.testQC

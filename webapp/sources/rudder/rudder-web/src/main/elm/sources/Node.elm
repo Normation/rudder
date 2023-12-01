@@ -6,7 +6,6 @@ import Html.Parser exposing (Node(..))
 import Html.Parser.Util
 import Http exposing (..)
 import Json.Decode exposing (Value)
-import Json.Encode
 import Result
 
 import Node.DataTypes exposing (..)
@@ -40,7 +39,7 @@ update msg model =
       case res of
         Ok scoreDetails ->
           ( { model | details = scoreDetails }
-          , Cmd.batch (List.map (\d -> getDetails {name = d.name, details = d.details }) scoreDetails)
+          , Cmd.batch (List.map (\d -> getDetails {name = d.scoreId, details = d.details }) scoreDetails)
           )
         Err err ->
           processApiError "Getting score details" err model
@@ -58,7 +57,7 @@ update msg model =
               ( { model | detailsHtml = Dict.update name (always (Just html)) model.detailsHtml }
             , Cmd.none
             )
-          Err err ->
+          Err _ ->
             (model, errorNotification ("Error when getting "++ name ++" score display") )
 
 

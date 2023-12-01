@@ -93,6 +93,44 @@ final case class CompliancePercent(
   val compliance = success + repaired + notApplicable + compliant + auditNotApplicable
 }
 
+final case class ComplianceSerializable(
+    applying:                   Option[Double],
+    successNotApplicable:       Option[Double],
+    successAlreadyOK:           Option[Double],
+    successRepaired:            Option[Double],
+    error:                      Option[Double],
+    auditCompliant:             Option[Double],
+    auditNonCompliant:          Option[Double],
+    auditError:                 Option[Double],
+    auditNotApplicable:         Option[Double],
+    unexpectedUnknownComponent: Option[Double],
+    unexpectedMissingComponent: Option[Double],
+    noReport:                   Option[Double],
+    reportsDisabled:            Option[Double],
+    badPolicyMode:              Option[Double]
+)
+
+object ComplianceSerializable {
+  def fromPercent(compliancePercent: CompliancePercent) = {
+    ComplianceSerializable(
+      if (compliancePercent.pending == 0) None else Some(compliancePercent.pending),
+      if (compliancePercent.notApplicable == 0) None else Some(compliancePercent.notApplicable),
+      if (compliancePercent.success == 0) None else Some(compliancePercent.success),
+      if (compliancePercent.repaired == 0) None else Some(compliancePercent.repaired),
+      if (compliancePercent.error == 0) None else Some(compliancePercent.error),
+      if (compliancePercent.compliant == 0) None else Some(compliancePercent.compliant),
+      if (compliancePercent.nonCompliant == 0) None else Some(compliancePercent.nonCompliant),
+      if (compliancePercent.auditError == 0) None else Some(compliancePercent.auditError),
+      if (compliancePercent.auditNotApplicable == 0) None else Some(compliancePercent.auditNotApplicable),
+      if (compliancePercent.unexpected == 0) None else Some(compliancePercent.unexpected),
+      if (compliancePercent.missing == 0) None else Some(compliancePercent.missing),
+      if (compliancePercent.noAnswer == 0) None else Some(compliancePercent.noAnswer),
+      if (compliancePercent.reportsDisabled == 0) None else Some(compliancePercent.reportsDisabled),
+      if (compliancePercent.badPolicyMode == 0) None else Some(compliancePercent.badPolicyMode)
+    )
+  }
+}
+
 object CompliancePercent {
 
   // a correspondance array between worse order in `ReportType` and the order of fields in `ComplianceLevel`

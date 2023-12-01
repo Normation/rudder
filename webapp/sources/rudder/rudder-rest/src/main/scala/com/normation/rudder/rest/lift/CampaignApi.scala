@@ -1,4 +1,5 @@
 package com.normation.rudder.rest.lift
+
 import com.normation.errors.Unexpected
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.ZioJsonExtractor

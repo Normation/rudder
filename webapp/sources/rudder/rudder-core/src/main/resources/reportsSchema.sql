@@ -453,3 +453,20 @@ CREATE TABLE NodeFacts (
 , acceptRefuseFact  jsonb  -- the big node fact data structure
 , deleteEvent       jsonb  -- { 'date': 'rfc3339 timestamp', 'actor': 'actor name' }
 );
+
+
+Create table GlobalScore (
+  nodeId  text primary key
+, score   text
+, message text
+, details jsonb
+);
+
+Create table scoreDetails (
+  nodeId  text
+, scoreId    text
+, score   text
+, message text
+, details jsonb
+, PRIMARY KEY (nodeId, scoreId)
+);
