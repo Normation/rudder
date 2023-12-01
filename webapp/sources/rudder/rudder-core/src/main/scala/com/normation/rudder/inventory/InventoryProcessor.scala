@@ -138,12 +138,11 @@ object StatusLog {
   implicit class LogMessage(status: InventoryProcessStatus) {
     def msg: String = status match {
       case InventoryProcessStatus.SignatureInvalid(inventoryName, nodeId) =>
-        s"Rejecting Inventory '${inventoryName}' for Node '${nodeId.value}' because the Inventory signature is " +
-        s"not valid: the Inventory was not signed with the same agent key as the one saved within Rudder for that Node. If " +
-        s"you updated the agent key on this node, you can update the key stored within Rudder with the https://docs.rudder.io/api/#api-Nodes-updateNode" +
-        s"api (look for 'agentKey' property). The key path depends of your OS, on linux it's: '/var/rudder/cfengine-community/ppkeys/localhost.pub'. It is " +
-        s"also contained in the <AGENT_CERT> value of inventory (you can extract public key with `openssl x509 -pubkey -noout -in - << EOF " +
-        s"-----BEGIN CERTIFICATE----- .... -----END CERTIFICATE----- EOF`). " +
+        s"Rejecting inventory '${inventoryName}' for node '${nodeId.value}' because the inventory signature is " +
+        s"not valid: the inventory may not be signed with the same agent key as the one saved within Rudder for that node. If " +
+        s"you updated the agent key on this node, you can update the certificate stored within Rudder with the https://docs.rudder.io/api/#tag/Nodes/operation/updateNode" +
+        s"api (look for 'agentKey' property). The certificate path depends of your OS, on Linux it's: '/opt/rudder/etc/ssl/agent.cert'. It is " +
+        s"also contained in the <AGENT_CERT> value of inventory. " +
         s"If you did not change the key, please ensure that the node sending that inventory is actually the node registered " +
         s"within Rudder"
 
