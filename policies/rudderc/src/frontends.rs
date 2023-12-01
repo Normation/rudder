@@ -10,22 +10,22 @@ use tracing::{error, trace};
 
 use crate::{
     compiler::user_error,
-    ir::{technique::TECHNIQUE_FORMAT_VERSION, Technique},
+    ir::{
+        technique::{DeserTechnique, TECHNIQUE_FORMAT_VERSION},
+        Technique,
+    },
 };
 
 /// Rudder technique represented in YAML file
 pub fn read(input: &str) -> Result<Technique> {
-    // FIXME: errors in items all point to the `items` first line to to the way
-    // the untagged enum is deserialized.
+    // Here we do the parsing in two steps:
     //
-    // Refs:
-    // https://github.com/dtolnay/serde-yaml/issues/128
-    // https://users.rust-lang.org/t/serde-untagged-enum-ruins-precise-errors/54128/3?u=amousset
-    // https://github.com/faradayio/openapi-interfaces/issues/28
-    //
-    // We need to find a way to pass line numbers, or just deserialized manually.
-    let policy: Technique =
+    // * A first pass using serde and more general "Deser*" structs, on order to get proper error messages
+    //   not permitting with an untagged enum.
+    // * A second manual conversion to get the precise type.
+    let policy: DeserTechnique =
         serde_yaml::from_str(input).map_err(|err| SerdeError::new(input.to_string(), err))?;
+    let policy = policy.to_technique()?;
 
     trace!("Parsed input:\n{:#?}", policy);
 
