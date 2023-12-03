@@ -238,7 +238,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
   implicit val testChangeContext: ChangeContext =
     ChangeContext(ModificationId("test-mod-id"), EventActor("test"), DateTime.now(), None, None, QueryContext.testQC.nodePerms)
-  implicit val qc: QueryContext = QueryContext.todoQC
+  implicit val qc:                QueryContext  = QueryContext.todoQC
 
   "query action" should {
 

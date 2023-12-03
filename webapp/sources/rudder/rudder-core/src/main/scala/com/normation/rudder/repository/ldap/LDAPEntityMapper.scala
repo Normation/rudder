@@ -88,7 +88,6 @@ import scala.util.control.NonFatal
 import zio._
 import zio.json._
 import zio.syntax._
-import zio.json._
 
 object NodeStateEncoder {
   implicit def enc(state: NodeState): String                       = state.name
@@ -205,7 +204,7 @@ class LDAPEntityMapper(
                                     case Some(value) => PolicyMode.parse(value).map(Some(_))
                                   }
         properties             <- e.valuesFor(A_NODE_PROPERTY).toList.traverse(NodeProperty.unserializeLdapNodeProperty)
-        securityTags           =  e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
+        securityTags            = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
       } yield {
         val hostname = e(A_NAME).getOrElse("")
         Node(

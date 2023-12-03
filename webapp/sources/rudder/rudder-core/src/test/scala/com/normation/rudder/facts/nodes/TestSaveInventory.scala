@@ -605,7 +605,6 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
   "Accepting a new, unknown inventory" should {
     implicit val status = SelectNodeStatus.Accepted
 
-
     "correctly update status and move file around" in {
       resetLog
       val e = factRepo.changeStatus(nodeId, AcceptedInventory).runNow
