@@ -133,7 +133,7 @@ class GiveReasonPopup(
   private[this] def error(msg: String) = <span class="col-lg-12 errors-container">{msg}</span>
 
   private[this] def closePopup(): JsCmd = {
-    JsRaw(""" $('#createActiveTechniquePopup').bsModal('hide');""")
+    JsRaw("""hideBsModal('createActiveTechniquePopup');""")
   }
 
   /**

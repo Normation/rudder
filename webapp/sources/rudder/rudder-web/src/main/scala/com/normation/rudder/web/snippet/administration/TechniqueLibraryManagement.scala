@@ -842,9 +842,9 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     setCreationPopup
 
     // update UI
-    SetHtml("createActiveTechniquesCategoryContainer", createPopup) &
-    JsRaw("""createPopup("createActiveTechniqueCategoryPopup")
-     """)
+    SetHtml("createActiveTechniquesCategoryContainer", createPopup) & JsRaw(
+      """initBsModal("createActiveTechniqueCategoryPopup")"""
+    )
 
   }
 
@@ -857,7 +857,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     // update UI
 
     SetHtml("createActiveTechniquesContainer", createReasonPopup) &
-    JsRaw("""createPopup("createActiveTechniquePopup")""")
+    JsRaw("""initBsModal("createActiveTechniquePopup")""")
   }
 
   private[this] def reloadTechniqueLibrary(isTechniqueLibraryPage: Boolean): NodeSeq = {

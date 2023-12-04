@@ -383,7 +383,7 @@ class DirectiveEditForm(
 
   private[this] def clonePopup(): JsCmd = {
     SetHtml("basePopup", newCreationPopup(technique, activeTechnique)) &
-    JsRaw(s""" createPopup("basePopup"); """)
+    JsRaw(s""" initBsModal("basePopup"); """)
   }
 
   ////////////// Callbacks //////////////
@@ -805,23 +805,23 @@ class DirectiveEditForm(
             if (workflowService.needExternalValidation()) {
               (
                 (crId: ChangeRequestId) => onSuccessCallback(Right(crId)),
-                (xml: NodeSeq) => JsRaw("$('#basePopup').bsModal('hide');") & onFailure()
+                (xml: NodeSeq) => JsRaw("hideBsModal('basePopup');") & onFailure()
               )
             } else {
               val success = {
                 if (action == DGModAction.Delete) {
                   val nSeq = <style>#policyConfiguration{{height: initial !important;}}</style>
                   (_: ChangeRequestId) =>
-                    JsRaw("$('#basePopup').bsModal('hide');") & onRemoveSuccessCallBack() & SetHtml(htmlId_policyConf, nSeq) &
+                    JsRaw("hideBsModal('basePopup');") & onRemoveSuccessCallBack() & SetHtml(htmlId_policyConf, nSeq) &
                     successNotification("Directive successfully deleted")
                 } else { (_: ChangeRequestId) =>
-                  JsRaw("$('#basePopup').bsModal('hide');") & successNotification("") & onSuccessCallback(Left(newDirective))
+                  JsRaw("hideBsModal('basePopup');") & successNotification("") & onSuccessCallback(Left(newDirective))
                 }
               }
 
               (
                 success,
-                (xml: NodeSeq) => JsRaw("$('#basePopup').bsModal('hide');") & onFailure()
+                (xml: NodeSeq) => JsRaw("hideBsModal('basePopup');") & onFailure()
               )
             }
           }
@@ -842,7 +842,7 @@ class DirectiveEditForm(
             popup.onSubmit()
           case Some(_) =>
             SetHtml("basePopup", popup.popupContent()) &
-            JsRaw("""createPopup("basePopup")""")
+            JsRaw("""initBsModal("basePopup")""")
         }
     }
   }

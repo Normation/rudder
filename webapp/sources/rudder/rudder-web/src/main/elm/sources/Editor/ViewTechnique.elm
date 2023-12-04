@@ -406,7 +406,7 @@ view model =
             div [ class "modal-dialog" ] [
               div [ class "modal-content" ]  [-- uib-modal-transclude="">
                 div [ class "modal-header ng-scope" ] [
-                  h3 [ class "modal-title" ] [ text "Delete Technique"]
+                  h5 [ class "modal-title" ] [ text "Delete Technique"]
                 ]
               , div [ class "modal-body" ] [
                   text ("Are you sure you want to Delete Technique '")

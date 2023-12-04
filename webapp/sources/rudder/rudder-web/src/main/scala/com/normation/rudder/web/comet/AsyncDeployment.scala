@@ -166,7 +166,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
               }
             }
 
-            val callback = JsRaw("$('#errorDetailsDialog').bsModal('show');") & SetHtml("errorDetailsMessage", popupContent)
+            val callback = JsRaw("initBsModal('errorDetailsDialog');") & SetHtml("errorDetailsMessage", popupContent)
 
             commonStatement(
               start,
@@ -185,7 +185,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private[this] def closePopup(): JsCmd = {
-    JsRaw("""$('#generatePoliciesDialog').hide();""")
+    JsRaw("""hideBsModal('generatePoliciesDialog')""")
   }
 
   private[this] def fullPolicyGeneration:      NodeSeq = {
@@ -207,7 +207,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     </lift:authz>
   }
   private[this] def showGeneratePoliciesPopup: NodeSeq = {
-    val callback = JsRaw("$('#generatePoliciesDialog').bsModal('show');")
+    val callback = JsRaw("initBsModal('generatePoliciesDialog')")
     <lift:authz role="deployment_write"> {
       SHtml.a(
         Text("Regenerate all policies"),
@@ -239,16 +239,12 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private[this] def errorPopup = {
-    <div class="modal fade" data-keyboard="true" tabindex="-1" id="errorDetailsDialog">
-      <div class="modal-backdrop fade in" style="height: 100%;"></div>
+    <div class="modal fade" tabindex="-1" id="errorDetailsDialog" data-bs-backdrop="false">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <div class="close" data-bs-dismiss="modal">
-                    <span aria-hidden="true">&times;</span>
-                    <span class="visually-hidden">Close</span>
-                    </div>
-                    <h4 class="modal-title">Error</h4>
+                    <h5 class="modal-title">Error</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row space-bottom">
@@ -265,22 +261,18 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
                 </div>
-            </div><!-- /.modal-content -->
-        </div><!-- /.modal-dialog -->
+            </div>
+        </div>
       </div>
   }
 
   private[this] def generatePoliciesPopup = {
-    <div class="modal fade" data-keyboard="true" tabindex="-1" id="generatePoliciesDialog">
-      <div class="modal-backdrop fade in" style="height: 100%;"></div>
+    <div class="modal fade" tabindex="-1" id="generatePoliciesDialog" aria-hidden="true" data-bs-backdrop="false" data-bs-dismiss="modal">
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <div class="close" data-bs-dismiss="modal">
-              <span aria-hidden="true">&times;</span>
-              <span class="visually-hidden">Close</span>
-            </div>
-            <h4 class="modal-title">Regenerate Policies</h4>
+            <h5 class="modal-title">Regenerate Policies</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
             <div class="row space-bottom">
@@ -295,8 +287,8 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
             <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
             {fullPolicyGeneration}
           </div>
-        </div><!-- /.modal-content -->
-      </div><!-- /.modal-dialog -->
+        </div>
+      </div>
     </div>
   }
 }

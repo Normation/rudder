@@ -25,7 +25,7 @@ displayModals model =
             EditAccount a -> ( String.isEmpty account.name , String.isEmpty account.name , (a.name/=account.name && List.member account.name (List.map .name model.accounts)) )
             _ -> ( False , False , False )
 
-    modalClass = if model.ui.modalState == NoModal then "" else " in"
+    modalClass = if model.ui.modalState == NoModal then "" else " show"
 
     (modalTitle, btnTxt, btnClass) = case model.ui.modalState of
        NoModal       -> ( "" , "Save", "default")
@@ -120,14 +120,12 @@ displayModals model =
               )
   in
     div [class ("modal fade " ++ modalClass)]
-    [ div [class "modal-backdrop fade in", onClick (ToggleEditPopup NoModal)][]
+    [ div [class "modal-backdrop fade show", onClick (ToggleEditPopup NoModal)][]
     , div [class "modal-dialog"]
       [ div [class "modal-content"]
         [ div [class "modal-header"]
-          [ div [class "close", attribute "data-bs-dismiss" "modal", onClick (ToggleEditPopup NoModal)]
-            [ span[][text (String.fromChar (Char.fromCode 215))]
-            ]
-          , h4 [class "modal-title"] [text modalTitle]
+          [ h5 [class "modal-title"] [text modalTitle]
+          , button [type_ "button", class "btn-close", attribute "data-bs-dismiss" "modal", attribute "aria-label" "Close"][]
           ]
         , div [class "modal-body"]
           [ popupBody
@@ -152,17 +150,15 @@ displayCopy model =
       t = case model.ui.copyState of
           NoCopy -> ""
           Token string -> string
-      modalClass = if model.ui.copyState == NoCopy then "" else " in"
+      modalClass = if model.ui.copyState == NoCopy then "" else " show"
     in
         div [class ("modal fade" ++ modalClass)]
-        [ div [class "modal-backdrop fade in", onClick (CloseCopyPopup)][]
+        [ div [class "modal-backdrop fade show", onClick (CloseCopyPopup)][]
         , div [class "modal-dialog"]
           [ div [class "modal-content"]
             [ div [class "modal-header"]
-              [ div [class "close", attribute "data-bs-dismiss" "modal", onClick (CloseCopyPopup)]
-                [ span[][text (String.fromChar (Char.fromCode 215))]
-                ]
-              , h4 [class "modal-title"] [text "Copy the token"]
+              [ h5 [class "modal-title"] [text "Copy the token"]
+              , button [type_ "button", class "btn-close", attribute "data-bs-dismiss" "modal", attribute "aria-label" "Close"][]
               ]
             , div [class "modal-body"]
               [ div[]

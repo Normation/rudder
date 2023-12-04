@@ -399,7 +399,7 @@ class RuleDisplayer(
       }
     }
     SetHtml(htmlId_popup, popupHtml) &
-    JsRaw(s""" createPopup("${htmlId_popup}") """)
+    JsRaw(s""" initBsModal("${htmlId_popup}") """)
   }
 
   /**
@@ -422,6 +422,6 @@ class RuleDisplayer(
       }
     }
     SetHtml(htmlId_popup, popupHtml) &
-    JsRaw(s"""createPopup("${htmlId_popup}");""")
+    JsRaw(s"""initBsModal("${htmlId_popup}");""")
   }
 }

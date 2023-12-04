@@ -502,7 +502,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
 
         // update UI
         SetHtml("createGroupContainer", createPopup) &
-        JsRaw(""" createPopup("createGroupPopup")""")
+        JsRaw("""initBsModal("createGroupPopup")""")
     }
   }
 }

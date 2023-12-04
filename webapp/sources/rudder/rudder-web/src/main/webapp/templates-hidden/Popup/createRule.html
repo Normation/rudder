@@ -3,15 +3,11 @@
   It get called to be injected within the  ruleManagement
  -->
 <rule-createrulepopup>
-    <div class="modal-backdrop fade in" style="height: 100%;"></div>
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="close" data-bs-dismiss="modal">
-                <span aria-hidden="true">&times;</span>
-                <span class="visually-hidden">Close</span>
-                </div>
-                <h4 class="modal-title"><item-title></item-title></h4>
+                <h5 class="modal-title"><item-title></item-title></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <item-clonenotice></item-clonenotice>
@@ -25,6 +21,6 @@
                 <item-cancel></item-cancel>
                 <item-save></item-save>
             </div>  
-        </div><!-- /.modal-content -->
-    </div><!-- /.modal-dialog -->
+        </div>
+    </div>
  </rule-createrulepopup>

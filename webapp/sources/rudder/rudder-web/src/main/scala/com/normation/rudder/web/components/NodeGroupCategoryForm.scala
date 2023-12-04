@@ -176,17 +176,13 @@ class NodeGroupCategoryForm(
 
     if (parentCategory.isDefined && _nodeGroupCategory.children.isEmpty && _nodeGroupCategory.items.isEmpty) {
       val popupContent = {
-        <div class="modal-backdrop fade in" style="height: 100%;"></div>
-           <div class="modal-dialog">
+        <div class="modal-dialog">
              <div class="modal-content">
                <div class="modal-header">
-                 <div class="close" data-bs-dismiss="modal">
-                   <span aria-hidden="true">&times;</span>
-                   <span class="visually-hidden">Close</span>
-                 </div>
-                 <h4 class="modal-title text-start">
+                 <h5 class="modal-title text-start">
                    Delete a group category
-                 </h4>
+                 </h5>
+                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                </div>
                <div class="modal-body">
                  <div class="row">
@@ -206,7 +202,7 @@ class NodeGroupCategoryForm(
       }
       SHtml.ajaxSubmit(
         "Delete",
-        () => SetHtml("basePopup", popupContent) & JsRaw("""createPopup("basePopup")"""),
+        () => SetHtml("basePopup", popupContent) & JsRaw("""initBsModal("basePopup")"""),
         ("class", "btn btn-danger")
       )
     } else {
@@ -226,7 +222,7 @@ class NodeGroupCategoryForm(
       )
       .toBox match {
       case Full(id) =>
-        JsRaw("""$('#basePopup').bsModal('hide');""") &
+        JsRaw("""hideBsModal('basePopup');""") &
         SetHtml(htmlIdCategory, NodeSeq.Empty) &
         onSuccessCallback(nodeGroupCategory.id.value) &
         successPopup

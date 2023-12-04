@@ -48,12 +48,6 @@
   fieldset { display: table-cell; }
 }
 
-* {
-  margin:0;
-  padding: 0;
-  list-style: none;
-}
-
 html {
   height:100%;
 }
@@ -1295,11 +1289,6 @@ table.directiveGroupDef, table.directiveVarDef, table.directiveSectionDef {
 input[type="number"] {
     padding: 5px 0 5px 5px;
     margin-top:-5px;
-}
-
-* {
-  box-sizing: border-box;
-  -moz-box-sizing: border-box;
 }
 
 .c3-tooltip td.name {
