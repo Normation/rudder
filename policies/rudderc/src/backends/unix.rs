@@ -4,13 +4,14 @@
 use std::path::Path;
 
 use anyhow::Result;
+
 use tracing::trace;
 
 use super::Backend;
 use crate::{
     backends::unix::{
         cfengine::{bundle::Bundle, promise::Promise},
-        ncf::{method_call::method_call, technique::Technique},
+        ncf::{dry_run_mode, method_call::method_call, technique::Technique},
     },
     ir::{
         self,
@@ -77,10 +78,16 @@ impl Backend for Unix {
             r: ItemKind,
             context: Condition,
             technique_id: &Id,
-        ) -> Result<Vec<(Promise, Bundle)>> {
+        ) -> Result<Vec<(Promise, Option<Bundle>)>> {
             match r {
                 ItemKind::Block(r) => {
-                    let mut calls: Vec<(Promise, Bundle)> = vec![];
+                    let mut calls: Vec<(Promise, Option<Bundle>)> = vec![];
+                    if let Some(x) = dry_run_mode::push_policy_mode(
+                        r.policy_mode,
+                        format!("push_policy_mode_for_block_{}", r.id),
+                    ) {
+                        calls.push((x, None))
+                    }
                     for inner in r.items {
                         calls.extend(resolve_module(
                             inner,
@@ -88,10 +95,16 @@ impl Backend for Unix {
                             technique_id,
                         )?);
                     }
+                    if let Some(x) = dry_run_mode::pop_policy_mode(
+                        r.policy_mode,
+                        format!("pop_policy_mode_for_block_{}", r.id),
+                    ) {
+                        calls.push((x, None))
+                    }
                     Ok(calls)
                 }
                 ItemKind::Method(r) => {
-                    let method: Vec<(Promise, Bundle)> =
+                    let method: Vec<(Promise, Option<Bundle>)> =
                         vec![method_call(technique_id, r, context)?];
                     Ok(method)
                 }
@@ -140,7 +153,7 @@ impl Backend for Unix {
             .name(technique.name)
             .version(technique.version)
             .bundle(main_bundle)
-            .bundles(call_bundles);
+            .bundles(call_bundles.into_iter().flatten().collect());
         trace!("Generated policy:\n{:#?}", cf_technique);
         Ok(if standalone {
             format!(

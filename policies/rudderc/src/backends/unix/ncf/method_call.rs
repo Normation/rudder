@@ -8,11 +8,12 @@
 //! signature, type, and constraints).
 
 use anyhow::{bail, Result};
-use rudder_commons::{canonify, methods::method::Agent, PolicyMode};
+use rudder_commons::{canonify, methods::method::Agent};
 
 use crate::{
-    backends::unix::cfengine::{
-        bundle::Bundle, cfengine_escape, expanded, promise::Promise, quoted,
+    backends::unix::{
+        cfengine::{bundle::Bundle, cfengine_escape, expanded, promise::Promise, quoted},
+        ncf::dry_run_mode,
     },
     ir::{
         condition::Condition,
@@ -33,7 +34,7 @@ pub fn method_call(
     technique_id: &Id,
     m: Method,
     condition: Condition,
-) -> Result<(Promise, Bundle)> {
+) -> Result<(Promise, Option<Bundle>)> {
     assert!(!m.name.is_empty());
 
     let info = m.info.unwrap();
@@ -102,27 +103,8 @@ pub fn method_call(
         info.bundle_name
     );
 
-    let push_policy_mode = m.policy_mode.map(|p| {
-        Promise::usebundle(
-            "push_dry_run_mode",
-            Some(&report_component),
-            Some(unique),
-            vec![match p {
-                PolicyMode::Enforce => quoted("false").to_string(),
-                PolicyMode::Audit => quoted("true").to_string(),
-            }],
-        )
-    });
-    let pop_policy_mode = if m.policy_mode.is_some() {
-        Some(Promise::usebundle(
-            "pop_dry_run_mode",
-            Some(&report_component),
-            Some(unique),
-            vec![],
-        ))
-    } else {
-        None
-    };
+    let push_policy_mode = dry_run_mode::push_policy_mode(m.policy_mode, unique.clone());
+    let pop_policy_mode = dry_run_mode::pop_policy_mode(m.policy_mode, unique.clone());
 
     let mut promises = match (&condition, is_supported) {
             (Condition::Expression(_), true) => vec![
@@ -207,8 +189,10 @@ pub fn method_call(
     method_parameters.append(&mut specific_parameters);
     Ok((
         bundle_call,
-        Bundle::agent(bundle_name)
-            .parameters(method_parameters)
-            .promise_group(bundle_content),
+        Some(
+            Bundle::agent(bundle_name)
+                .parameters(method_parameters)
+                .promise_group(bundle_content),
+        ),
     ))
 }

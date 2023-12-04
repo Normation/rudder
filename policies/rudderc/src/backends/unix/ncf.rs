@@ -7,5 +7,6 @@
 //! Once we get rid of these, we will be able to make things more general, but for now,
 //! let's stick with what the webapp generates.
 
+pub mod dry_run_mode;
 pub mod method_call;
 pub mod technique;

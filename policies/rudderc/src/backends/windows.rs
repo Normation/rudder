@@ -160,7 +160,11 @@ struct WindowsMethod {
     policy_mode: Option<PolicyMode>,
 }
 
-fn method_call(m: Method, condition: Condition) -> Result<WindowsMethod> {
+fn method_call(
+    m: Method,
+    condition: Condition,
+    policy_mode_context: Option<PolicyMode>,
+) -> Result<WindowsMethod> {
     let Some(report_parameter) = m.params.get(&m.info.unwrap().class_parameter) else {
         bail!("Missing parameter {}", m.info.unwrap().class_parameter)
     };
@@ -207,7 +211,15 @@ fn method_call(m: Method, condition: Condition) -> Result<WindowsMethod> {
         args,
         name: filters::dsc_case(&m.info.as_ref().unwrap().bundle_name).unwrap(),
         is_supported,
-        policy_mode: m.policy_mode,
+        policy_mode: if let Some(x) = policy_mode_context {
+            if m.policy_mode.is_none() {
+                Some(x)
+            } else {
+                m.policy_mode
+            }
+        } else {
+            m.policy_mode
+        },
     })
 }
 
@@ -222,17 +234,26 @@ impl Windows {
 
     fn technique(src: Technique, resources: &Path) -> Result<String> {
         // Extract methods
-        fn resolve_module(r: ItemKind, context: Condition) -> Result<Vec<WindowsMethod>> {
+        fn resolve_module(
+            r: ItemKind,
+            context: Condition,
+            policy_mode_context: Option<PolicyMode>,
+        ) -> Result<Vec<WindowsMethod>> {
             match r {
                 ItemKind::Block(r) => {
                     let mut calls: Vec<WindowsMethod> = vec![];
                     for inner in r.items {
-                        calls.extend(resolve_module(inner, context.and(&r.condition))?);
+                        calls.extend(resolve_module(
+                            inner,
+                            context.and(&r.condition),
+                            r.policy_mode,
+                        )?);
                     }
                     Ok(calls)
                 }
                 ItemKind::Method(r) => {
-                    let method: Vec<WindowsMethod> = vec![method_call(r, context)?];
+                    let method: Vec<WindowsMethod> =
+                        vec![method_call(r, context, policy_mode_context)?];
                     Ok(method)
                 }
                 _ => todo!(),
@@ -241,7 +262,7 @@ impl Windows {
 
         let mut methods = vec![];
         for item in src.items {
-            for call in resolve_module(item, Condition::Defined)? {
+            for call in resolve_module(item, Condition::Defined, None)? {
                 methods.push(call);
             }
         }
