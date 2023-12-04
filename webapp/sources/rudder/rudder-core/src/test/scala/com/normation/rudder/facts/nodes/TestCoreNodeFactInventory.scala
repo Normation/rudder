@@ -326,14 +326,12 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
   }
 
   "security tag" should {
-    val all = Set("root", "node0", "node1", "node2", "node3", "node4", "node5", "node6", "node7")
-
     /*
      * node0: zoneA
      * node1: zoneA, zoneB
      * node2: zoneB
      * node3: zoneC
-     * other: no zone, always present BUT for people with none right
+     * other: no zone, private by default BUT for people with the ALL right
      */
 
     "allow to filter all nodes with no access" in {
@@ -352,7 +350,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
         )
         .runNow
 
-      nodes.keySet.map(_.value) must containTheSameElementsAs((all -- List("node2", "node3")).toSeq)
+      nodes.keySet.map(_.value) must containTheSameElementsAs(List("node0", "node1"))
     }
 
     "have cumulative rights" in {
@@ -363,7 +361,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
         )
         .runNow
 
-      nodes.keySet.map(_.value) must containTheSameElementsAs((all -- List("node3")).toSeq)
+      nodes.keySet.map(_.value) must containTheSameElementsAs(List("node0", "node1", "node2"))
     }
   }
 

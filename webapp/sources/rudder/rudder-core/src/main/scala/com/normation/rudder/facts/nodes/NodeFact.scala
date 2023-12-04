@@ -1415,7 +1415,7 @@ object NodeSecurityContext       {
     def canSee(optTag: Option[SecurityTag]): Boolean = {
       optTag match {
         case Some(t)    => canSee(t)
-        case scala.None => true
+        case scala.None => nsc == NodeSecurityContext.All // only admin can see private nodes
       }
     }
 
