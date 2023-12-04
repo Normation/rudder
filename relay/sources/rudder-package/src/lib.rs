@@ -202,9 +202,13 @@ pub fn run() -> Result<()> {
                 )
             }
         }
-        Command::Update {} => {
-            repo.update(&webapp)?;
-            info!("Index and licenses successfully updated")
+        Command::Update { check } => {
+            if check {
+                repo.test_connection()?;
+            } else {
+                repo.update(&webapp)?;
+                info!("Index and licenses successfully updated")
+            }
         }
         Command::Enable {
             package,
@@ -292,7 +296,6 @@ pub fn run() -> Result<()> {
                 info!("Plugins successfully disabled");
             }
         }
-        Command::CheckConnection {} => repo.test_connection()?,
     }
     // Restart if needed
     webapp.apply_changes()?;
