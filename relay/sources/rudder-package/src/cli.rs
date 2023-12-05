@@ -45,7 +45,10 @@ pub struct Args {
 #[derive(Debug, Subcommand)]
 pub enum Command {
     /// Update package index and licenses from the repository
-    Update {},
+    Update {
+        #[clap(long, short, help = "Only check for server connectivity")]
+        check: bool,
+    },
     /// Install plugins, locally or from the repository
     Install {
         #[clap(long, short, help = "Force installation of given plugin")]
@@ -119,6 +122,4 @@ pub enum Command {
         )]
         incompatible: bool,
     },
-    /// Test connection to the plugin repository
-    CheckConnection {},
 }
