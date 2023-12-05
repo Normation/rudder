@@ -163,6 +163,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         if( directiveId != null && directiveId.length > 0) {
           ${SHtml.ajaxCall(JsVar("directiveId"), displayDetails _)._2.toJsCmd};
         }
+        removeBsTooltips();
     """)
   }
 
@@ -219,10 +220,12 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         } catch(e) {
           directiveId = '';
         }
-
         buildDirectiveTree('#${htmlId_activeTechniquesTree}', [ directiveId ], '${S.contextPath}', 1);
-        $$('#activeTechniquesTree').on('scroll',function(){$$('.tooltip').hide();});
+        removeBsTooltips();
         createTooltip();
+        $$('.sidebar-body').on('scroll', function(){
+          removeBsTooltips();
+        });
     """)
   }
 
@@ -416,6 +419,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           scope.$$apply(function(){
             scope.init(${dataArray.toJsCmd});
           } );
+          removeBsTooltips();
           createTooltip();""")))
   }
 
@@ -573,7 +577,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         this.window.location.hash = "#" + JSON.stringify(${json})
         sessionStorage.removeItem('tags-${directiveId.uid.value}');
       """.stripMargin) &
-    After(TimeSpan(0), JsRaw("""createTooltip();""")) // OnLoad or JsRaw createTooltip does not work ...
+    After(TimeSpan(0), JsRaw("""removeBsTooltips();createTooltip();""")) // OnLoad or JsRaw createTooltip does not work ...
   }
 
   private[this] case class MissingTechniqueException(directive: Directive) extends Exception(
