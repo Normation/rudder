@@ -680,12 +680,15 @@ object UserFileProcessing {
       extendedAuthz: Boolean,
       debugFileName: String
   ): UIO[List[(RudderAccount.User, List[Role], NodeSecurityContext)]] = {
+
+    val TODO_MODULE_TENANTS_ENABLED = true
+
     ZIO.foreach(users) { u =>
       val ParsedUser(name, pwd, roles, tenants) = u
 
       for {
         nsc <- resolveTenants(u.tenants).flatMap { // check for adequate plugin
-                 case NodeSecurityContext.ByTenants(_) if (!extendedAuthz) =>
+                 case NodeSecurityContext.ByTenants(_) if (!TODO_MODULE_TENANTS_ENABLED) =>
                    ApplicationLoggerPure.Authz.warn(
                      s"Tenants definition are only available with the corresponding plugin. To prevent unwanted right escalation, " +
                      s"user '${name}' will be restricted to no tenants"
