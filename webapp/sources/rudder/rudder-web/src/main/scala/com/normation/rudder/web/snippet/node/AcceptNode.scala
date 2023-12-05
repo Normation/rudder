@@ -288,12 +288,6 @@ class AcceptNode extends Loggable {
               },
               ("class", "btn btn-danger")
             )
-            & "servergrid-close" #>
-            SHtml.ajaxButton(
-              "Cancel",
-              () => JsRaw(" $('#confirmPopup')hideBsModal;$('#refusePopup')hideBsModal;"): JsCmd,
-              ("class", "btn btn-default")
-            )
           )(template)
         )
       case e: EmptyBox =>

@@ -14,9 +14,9 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <h4 class="text-center">
+                <h6 class="text-center">
                     Please confirm that you wish to <b class="text-danger">refuse</b> the following nodes in Rudder
-                </h4>
+                </h6>
                 <div id="pendingNodeConfirm_paginate_area" class="nodisplay"></div>
                 <div class="table-responsive space-bottom space-top">
                     <table id="pendingNodeConfirm">
@@ -45,7 +45,7 @@
             </div>
             <div class="modal-footer">
                 <form method="POST">
-                    <servergrid-close></servergrid-close>
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
                     <servergrid-refuse></servergrid-refuse>
                 </form>
             </div>  

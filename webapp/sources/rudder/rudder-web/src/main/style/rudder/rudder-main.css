@@ -261,10 +261,15 @@ pre.json-beautify code.elmsh {
 .content-wrapper .btn-default .fa,
 .modal .btn-danger .fa,
 .modal .btn-default .fa{
+  transition-duration: .2s;
   color: #738195;
 }
 .content-wrapper .btn.btn-danger:hover .fa,
-.modal .btn.btn-danger:hover .fa{
+.modal .btn.btn-danger:hover .fa,
+.content-wrapper .btn.btn-danger:active .fa,
+.modal .btn.btn-danger:active .fa,
+.content-wrapper .btn.btn-danger:focus .fa,
+.modal .btn.btn-danger:focus .fa{
   color: #fff;
 }
 .content-wrapper .dataTables_wrapper_top .btn-default,
@@ -526,13 +531,14 @@ pre.json-beautify code.elmsh {
   min-width: 95px;
 }
 /* --- NODE PAGE --- */
-.ui-tabs-nav.list-tabs-invetory{
+.ui-tabs-nav.list-tabs-inventory{
   margin-bottom: 15px;
   float: left;
   width: 12em;
   border-bottom: none;
+  padding-left: 0;
 }
-.ui-tabs-nav.list-tabs-invetory > .ui-tabs-tab {
+.ui-tabs-nav.list-tabs-inventory > .ui-tabs-tab {
   display: block;
   border: 1px solid #e8e8e8;
   border-top: none;
@@ -540,11 +546,11 @@ pre.json-beautify code.elmsh {
   transition-duration: .2s;
   padding: 0;
 }
-.ui-tabs-nav.list-tabs-invetory > .ui-tabs-tab {
+.ui-tabs-nav.list-tabs-inventory > .ui-tabs-tab {
   border: 1px solid #e8e8e8;
   position: relative;
 }
-.ui-tabs-nav.list-tabs-invetory > .ui-tabs-tab.ui-tabs-active:after{
+.ui-tabs-nav.list-tabs-inventory > .ui-tabs-tab.ui-tabs-active:after{
   content: "";
   position: absolute;
   top: calc(50% - 4px);
@@ -557,20 +563,20 @@ pre.json-beautify code.elmsh {
   transform: rotate(45deg);
   background-color: #fff;
 }
-.ui-tabs-nav.list-tabs-invetory > .ui-tabs-tab.ui-tabs-active:before{
+.ui-tabs-nav.list-tabs-inventory > .ui-tabs-tab.ui-tabs-active:before{
     content:initial;
 }
-.ui-tabs-nav.list-tabs-invetory > .ui-tabs-tab > a{
+.ui-tabs-nav.list-tabs-inventory > .ui-tabs-tab > a{
   transition-property : background-color;
   background-color: #F8F9FC;
   padding: 6px 10px;
   transition-duration: .2s;
   display: block;
 }
-.ui-tabs-nav.list-tabs-invetory > .ui-tabs-tab > a:hover{
+.ui-tabs-nav.list-tabs-inventory > .ui-tabs-tab > a:hover{
   background-color:#fff;
 }
-.ui-tabs-nav.list-tabs-invetory > .ui-tabs-tab.ui-tabs-active > a{
+.ui-tabs-nav.list-tabs-inventory > .ui-tabs-tab.ui-tabs-active > a{
   background-color: #fff;
 }
 #nodeInventory > .sInventory > div{
@@ -906,6 +912,9 @@ form .tooltip-content p {
 }
 .tooltip > .tooltip-inner .tooltip-content p{
   margin-bottom: 5px;
+}
+.tooltip > .tooltip-inner .tooltip-content > ul{
+  padding-left: 0;
 }
 .tooltip > .tooltip-inner .tooltip-content > ul:last-child,
 .tooltip > .tooltip-inner .tooltip-content > p:last-child{
@@ -3014,19 +3023,6 @@ table a > i.fa-pencil:hover{
   color: #041922;
   margin-bottom: 15px;
   display: flex;
-}
-.id-card .card-img {
-  width: 150px;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  opacity: 0.5;
-  margin-left: -10px;
-}
-@media (max-width: 992px){
-  .id-card .card-img  {
-    display: none !important
-  }
 }
 .id-card .card-info {
   flex: auto;

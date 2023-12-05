@@ -55,6 +55,7 @@ import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.services.DisplayNode
+import com.normation.rudder.web.services.DisplayNode.showDeleteButton
 import com.normation.rudder.web.services.DisplayNodeGroupTree
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
@@ -210,12 +211,12 @@ class ShowNodeDetailsFromNode(
             val jsId = JsNodeId(nodeId, "")
             def htmlId(jsId: JsNodeId, prefix: String): String = prefix + jsId.toString
             val detailsId = htmlId(jsId, "details_")
+
             configService.rudder_global_policy_mode().toBox match {
               case Full(globalMode) =>
                 bindNode(node, nf.toFullInventory, withinPopup, globalMode) ++ Script(
                   DisplayNode.jsInit(node.id, "") &
                   JsRaw(s"""
-                    $$('#nodeHostname').html("${xml.Utility.escape(nf.fqdn)}");
                     $$( "#${detailsId}" ).tabs({ active : ${tab} } );
                     $$('#nodeInventory .ui-tabs-vertical .ui-tabs-nav li a').on('click',function(){
                       var tab = $$(this).attr('href');
@@ -248,9 +249,12 @@ class ShowNodeDetailsFromNode(
    * Show the content of a node in the portlet
    * @return
    */
+
   private def bindNode(node: NodeInfo, inventory: FullInventory, withinPopup: Boolean, globalMode: GlobalPolicyMode): NodeSeq = {
     val id = JsNodeId(node.id)
-    ("#node_groupTree" #>
+    ("#nodeHeader" #> DisplayNode.showNodeHeader(inventory, Some(node)) &
+    "#confirmNodeDeletion" #> showDeleteButton(inventory.node.main) &
+    "#node_groupTree" #>
     <div id={groupTreeId}>
           <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node, None, None, Map(("info", _ => Noop)))}</ul>
         </div> &
