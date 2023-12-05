@@ -420,7 +420,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     }
     val dataArray               = JsArray(techniqueVersionInfo.toList)
     val actionsArray            = JsArray(techniqueVersionActions.toList)
-    
+
     Script(
       OnLoad(
         JsRaw(
