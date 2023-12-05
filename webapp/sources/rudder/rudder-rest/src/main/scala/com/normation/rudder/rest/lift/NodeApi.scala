@@ -109,6 +109,7 @@ import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.servers.NewNodeManager
 import com.normation.rudder.services.servers.RemoveNodeService
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio._
@@ -576,7 +577,7 @@ class NodeApi(
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       (for {
-        nodes <- nodeApiService.listNodes(req)
+        nodes <- nodeApiService.listNodes(req).toBox
       } yield {
         JsonResponse(nodes)
       }) match {
@@ -952,16 +953,15 @@ class NodeApiService(
     ~ ("lastRun"             -> agentRunWithNodeConfig.map(d => DateFormaterService.getDisplayDate(d.agentRunId.date)).getOrElse("Never"))
     ~ ("lastInventory"       -> DateFormaterService.getDisplayDate(nodeInfo.inventoryDate))
     ~ ("software"            -> JObject(
-      softs.map(s => JField(escapeHTML(s.name.getOrElse("")), JString(escapeHTML(s.version.map(_.value).getOrElse("N/A")))))
+      softs
+        .map(s => JField(escapeHTML(s.name.getOrElse("")), JString(escapeHTML(s.version.map(_.value).getOrElse("N/A")))))
+        .toList
     ))
     ~ ("properties"          -> JObject(properties.map(s => JField(s.name, s.toJson))))
     ~ ("inheritedProperties" -> JObject(inheritedProperties.map(s => JField(s.prop.name, s.toApiJsonRenderParents)))))
   }
 
   def listNodes(req: Req) = {
-    import com.normation.box._
-    val n1 = System.currentTimeMillis
-
     case class PropertyInfo(value: String, inherited: Boolean)
 
     def extractNodePropertyInfo(json: JValue) = {
@@ -973,75 +973,76 @@ class NodeApiService(
       }
     }
 
+    implicit val qc = CurrentUser.queryContext // won't work in real API
+
     for {
-      optNodeIds                           <-
-        req.json.flatMap(j => OptionnalJson.extractJsonListString(j, "nodeIds", (values => Full(values.map(NodeId(_))))))
-      nodes                                <- optNodeIds match {
-                                                case None          =>
-                                                  nodeInfoService.getAll().toBox
-                                                case Some(nodeIds) =>
-                                                  nodeInfoService.getNodeInfosSeq(nodeIds).map(_.map(n => (n.id, n)).toMap).toBox
-                                              }
-      n2                                    = System.currentTimeMillis
-      _                                     = TimingDebugLoggerPure.logEffect.trace(s"Getting node infos: ${n2 - n1}ms")
-      runs                                 <- reportsExecutionRepository.getNodesLastRun(nodes.keySet).toBox
-      n3                                    = System.currentTimeMillis
-      _                                     = TimingDebugLoggerPure.logEffect.trace(s"Getting run infos: ${n3 - n2}ms")
-      (systemCompliances, userCompliances) <- reportingService.getSystemAndUserCompliance(Some(nodes.keySet)).toBox
-      n4                                    = System.currentTimeMillis
-      _                                     = TimingDebugLoggerPure.logEffect.trace(s"Getting compliance infos: ${n4 - n3}ms")
-      globalMode                           <- getGlobalMode()
-      n5                                    = System.currentTimeMillis
-      _                                     = TimingDebugLoggerPure.logEffect.trace(s"Getting global mode: ${n5 - n4}ms")
-      softToLookAfter                      <- req.json.flatMap(j => OptionnalJson.extractJsonListString(j, "software").map(_.getOrElse(Nil)))
-      softs                                <- ZIO
-                                                .foreach(softToLookAfter)(soft => nodeFactRepository.getNodesbySofwareName(soft))
-                                                .toBox
-                                                .map(_.flatten.groupMap(_._1)(_._2))
-      n6                                    = System.currentTimeMillis
-      _                                     = TimingDebugLoggerPure.logEffect.trace(s"all data fetched for response: ${n6 - n5}ms")
+      n1              <- currentTimeMillis
+      optNodeIds      <- req.json.flatMap { j =>
+                           OptionnalJson.extractJsonListString(j, "nodeIds", (values => Full(values.map(NodeId(_)))))
+                         }.toIO
+      nodes           <- optNodeIds match {
+                           case None          =>
+                             nodeFactRepository.getAll()
+                           case Some(nodeIds) =>
+                             nodeFactRepository.getAll().map(_.filterKeys(id => nodeIds.contains(id)))
+                         }
+      n2              <- currentTimeMillis
+      _               <- TimingDebugLoggerPure.trace(s"Getting node infos: ${n2 - n1}ms")
+      runs            <- reportsExecutionRepository.getNodesLastRun(nodes.keySet.toSet)
+      n3              <- currentTimeMillis
+      _               <- TimingDebugLoggerPure.trace(s"Getting run infos: ${n3 - n2}ms")
+      compliance      <- reportingService.getSystemAndUserCompliance(Some(nodes.keySet.toSet))
+      n4              <- currentTimeMillis
+      _               <- TimingDebugLoggerPure.trace(s"Getting compliance infos: ${n4 - n3}ms")
+      globalMode      <- getGlobalMode().toIO
+      n5              <- currentTimeMillis
+      _               <- TimingDebugLoggerPure.trace(s"Getting global mode: ${n5 - n4}ms")
+      softToLookAfter <- req.json.flatMap(j => OptionnalJson.extractJsonListString(j, "software").map(_.getOrElse(Nil))).toIO
+      softs           <- ZIO
+                           .foreach(softToLookAfter)(soft => nodeFactRepository.getNodesbySofwareName(soft))
+                           .map(_.flatten.groupMap(_._1)(_._2))
+      n6              <- currentTimeMillis
+      _               <- TimingDebugLoggerPure.trace(s"all data fetched for response: ${n6 - n5}ms")
+      properties      <- req.json
+                           .flatMap(j => OptionnalJson.extractJsonArray(j, "properties")(json => extractNodePropertyInfo(json)))
+                           .map(_.getOrElse(Nil))
+                           .toIO
+      props           <- properties.partition(_.inherited) match {
+                           case (inheritedProp, nonInheritedProp) =>
+                             val propMap = nodes.values.groupMapReduce(_.id)(n => {
+                               n.properties.filter(p => {
+                                 nonInheritedProp.exists(
+                                   _.value == p.name
+                                 )
+                               })
+                             })(_ ++ _)
 
-      properties <- req.json
-                      .flatMap(j => OptionnalJson.extractJsonArray(j, "properties")(json => extractNodePropertyInfo(json)))
-                      .map(_.getOrElse(Nil))
-
-      (inheritedProp: Map[NodeId, List[NodePropertyHierarchy]], nonInheritedProp) <- properties.partition(_.inherited) match {
-                                                                                       case (inheritedProp, nonInheritedProp) =>
-                                                                                         val propMap = {
-                                                                                           nodes.values.groupMapReduce(_.id)(
-                                                                                             n => {
-                                                                                               n.properties.filter(p => {
-                                                                                                 nonInheritedProp.exists(
-                                                                                                   _.value == p.name
-                                                                                                 )
-                                                                                               })
-                                                                                             }
-                                                                                           )(_ ::: _)
-                                                                                         }
-                                                                                         if (inheritedProp.isEmpty) {
-                                                                                           Full((Map.empty, propMap))
-                                                                                         } else {
-                                                                                           for {
-                                                                                             inheritedProp <-
-                                                                                               getNodesPropertiesTree(
-                                                                                                 nodes.values,
-                                                                                                 inheritedProp.map(_.value)
-                                                                                               ).toBox
-                                                                                           } yield {
-                                                                                             (inheritedProp, propMap)
-                                                                                           }
-                                                                                         }
-                                                                                     }
+                             if (inheritedProp.isEmpty) {
+                               (Map.empty[NodeId, List[NodePropertyHierarchy]], propMap).succeed
+                             } else {
+                               for {
+                                 inheritedProp <-
+                                   getNodesPropertiesTree(
+                                     nodes.values.map(_.toNodeInfo),
+                                     inheritedProp.map(_.value)
+                                   )
+                               } yield {
+                                 (inheritedProp, propMap)
+                               }
+                             }
+                         }
     } yield {
-      val res = JArray(
+      val (systemCompliances, userCompliances) = compliance
+      val (inheritedProp, nonInheritedProp)    = props
+      val res                                  = JArray(
         nodes.values.toList.map(n => {
           serialize(
             runs.get(n.id).flatten,
             globalMode,
-            n,
-            nonInheritedProp.get(n.id).getOrElse(Nil),
-            inheritedProp.get(n.id).getOrElse(Nil),
-            softs.get(n.id).getOrElse(Nil),
+            n.toNodeInfo,
+            nonInheritedProp.get(n.id).getOrElse(Nil).toList,
+            inheritedProp.get(n.id).getOrElse(Nil).toList,
+            softs.get(n.id).getOrElse(Nil).toList,
             userCompliances.get(n.id),
             systemCompliances.get(n.id)
           )

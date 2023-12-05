@@ -693,7 +693,7 @@ object UserFileProcessing {
                      s"Tenants definition are only available with the corresponding plugin. To prevent unwanted right escalation, " +
                      s"user '${name}' will be restricted to no tenants"
                    ) *> NodeSecurityContext.None.succeed
-                 case x                                                    => x.succeed
+                 case x                                                                  => x.succeed
                }
         rs  <-
           RudderRoles
