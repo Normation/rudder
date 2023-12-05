@@ -163,6 +163,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         if( directiveId != null && directiveId.length > 0) {
           ${SHtml.ajaxCall(JsVar("directiveId"), displayDetails _)._2.toJsCmd};
         }
+        removeBsTooltips();
     """)
   }
 
@@ -219,10 +220,12 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         } catch(e) {
           directiveId = '';
         }
-
         buildDirectiveTree('#${htmlId_activeTechniquesTree}', [ directiveId ], '${S.contextPath}', 1);
-        $$('#activeTechniquesTree').on('scroll',function(){$$('.tooltip').hide();});
+        removeBsTooltips();
         initBsTooltips();
+        $$('.sidebar-body').on('scroll', function(){
+          removeBsTooltips();
+        });
     """)
   }
 
@@ -417,7 +420,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     }
     val dataArray               = JsArray(techniqueVersionInfo.toList)
     val actionsArray            = JsArray(techniqueVersionActions.toList)
-
+    
     Script(
       OnLoad(
         JsRaw(
@@ -446,6 +449,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
              |  }else{
              |    getVersion.action();
              |  }
+             |  removeBsTooltips();
              |});
              |removeBsTooltips();
           """.stripMargin
@@ -609,7 +613,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         this.window.location.hash = "#" + JSON.stringify(${json})
         sessionStorage.removeItem('tags-${directiveId.uid.value}');
       """.stripMargin) &
-    After(TimeSpan(0), JsRaw("""initBsTooltips();"""))
+    After(TimeSpan(0), JsRaw("""removeBsTooltips();initBsTooltips();"""))
   }
 
   private[this] case class MissingTechniqueException(directive: Directive) extends Exception(
