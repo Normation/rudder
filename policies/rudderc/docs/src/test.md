@@ -3,7 +3,7 @@
 ## Write technique tests
 
 **NOTE**: Not all methods can run successfully with this testing method.
-In particular all methods exchanging files with the Rudder server won't work. 
+In particular all methods exchanging files with the Rudder server won't work.
 
 The tests are placed in a `tests` folder in the technique directory.
 Each test case is defined by a YAML file in this folder.
@@ -18,11 +18,15 @@ The format of the test case file is:
 * `check`: Test steps, run sequentially. If one of them fails the test will be considered as a failure.
 * `cleanup` (optional): Steps to run sequentially after the test to clean the environment.
 
-The setup and check sections contain a list of commands to run. The only supported step type
-for now is `sh`, which runs commands in a shell (`/usr/bin/sh` on Linux target, PowerShell on Windows target).
-The outcome is based on the returned code, 0 is a success and other codes are failures.
+#### Supported steps:
 
-Example:
+Steps are usable in `setup`, `check` and `cleanup` stages:
+
+* `sh`:
+  * On Linux: executes commands in a shell (`/usr/bin/sh`), fails if the return code is not 0
+  * On Windows: executes commands in powershell, encapsulated in a script, fails if the exit code is not 0 or if an exception was thrown
+
+#### Example:
 
 ```yaml
 target: windows
@@ -39,7 +43,7 @@ check:
   # Linux target
   - sh: "test -f /my/file"
   # Windows target
-  - sh: "Test-Path -Path C:\\my\\file"
+  - sh: "if (Test-Path -Path C:\\my\\file) { exit 0 } else { exit 1 }"
 cleanup:
   - sh: "rm -f /my/file"
 ```
@@ -95,7 +99,7 @@ It is written before running check steps, so you can use it to assess reporting 
 For convenience, *check* steps have an environment variable `REPORTS_FILE` pointing to the current reports
 JSON.
 
-The JSON file contains an array of entries: 
+The JSON file contains an array of entries:
 
 ```json
 [
