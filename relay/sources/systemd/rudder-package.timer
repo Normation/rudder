@@ -2,7 +2,8 @@
 Description=Update Rudder package index and licenses
 
 [Timer]
-OnCalendar=weekly
+# daily between 00:00 and 01:00, but at the same time everyday
+OnCalendar=daily
 RandomizedDelaySec=3600
 FixedRandomDelay=true
 
