@@ -111,8 +111,8 @@ Blocks contains:
 * `condition` (optional): A condition expression for the whole block. `true` is an always defined (default), `false` is never defined.
 * `policy_mode` (optional):
   * `default`(default): Inherit policy mode from parent container
-  * `enforce`: Force the policy mode of all items within the block in Enforce mode.
-  * `audit`: Force the policy mode of all items within the block in Audit mode.
+  * `enforce`: Force the policy mode of all items within the block in enforce mode.
+  * `audit`: Force the policy mode of all items within the block in audit mode.
 * `reporting` (optional):
   * `mode`
     * `weighted` (default)
@@ -150,8 +150,8 @@ Methods contains:
 * `condition` (optional): A condition expression for the method. `true` is an always defined (default), `false` is never defined.
 * `policy_mode` (optional):
   * `default`(default): Inherit policy mode from parent container
-  * `enforce`: Force the policy mode to Enforce mode.
-  * `audit`: Force the policy mode to Audit mode.
+  * `enforce`: Force the policy mode to enforce mode.
+  * `audit`: Force the policy mode to audit mode.
 * `reporting` (optional)
   * `mode`
     * `enabled` (default): Normal reporting
@@ -179,7 +179,7 @@ items:
 Files can be attached to a technique, they will automatically be deployed in the policies when used on a node.
 The absolute path of the folder containing the resource files is accessible from within a technique using the variable `${resources_dir}`.
 
-To add resources to a yaml technique, put the files under a `resources` folder in the technique directory.
+To add resources to a YAML technique, put the files under a `resources` folder in the technique directory.
 In the example below, the `file1.txt` will be available from within the technique using `${resources_dir}/file1.txt`.
 
 ```bash
