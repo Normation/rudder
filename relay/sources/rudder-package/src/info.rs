@@ -3,9 +3,9 @@
 
 use chrono::SecondsFormat;
 
-use crate::{repo_index::RepoIndex, repository::Repository};
+use crate::{license::Licenses, repo_index::RepoIndex, repository::Repository};
 
-pub fn display_info(repo: &Repository, index: Option<&RepoIndex>) {
+pub fn display_info(licenses: &Licenses, repo: &Repository, index: Option<&RepoIndex>) {
     println!(
         "Account: {}",
         repo.get_username()
@@ -13,12 +13,18 @@ pub fn display_info(repo: &Repository, index: Option<&RepoIndex>) {
     );
     println!("Repository: {}", repo.server);
     if let Some(i) = index {
-        println!("Latest index update: {}", i.latest_update.to_rfc3339_opts(SecondsFormat::Secs, true));
+        println!(
+            "Latest index update: {}",
+            i.latest_update.to_rfc3339_opts(SecondsFormat::Secs, true)
+        );
     } else {
         println!("Index was never downloaded from the server");
     }
     // Compute next license expiration
-    
-    
-    // Next expiration
+    if let Some(next_expiration) = licenses.inner.values().map(|l| l.end_date).min() {
+        println!(
+            "Next license expiration: {}",
+            next_expiration.format("%Y/%m/%d")
+        );
+    }
 }

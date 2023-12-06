@@ -1,5 +1,5 @@
 [Unit]
-Description=Update package index and licenses
+Description=Update Rudder package index and licenses
 
 [Timer]
 OnCalendar=weekly

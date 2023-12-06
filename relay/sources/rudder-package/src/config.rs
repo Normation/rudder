@@ -121,7 +121,7 @@ impl From<RawConfiguration> for Configuration {
             }),
             _ => None,
         };
-        // Also fallback to public repo if no credentials and provate repo is configured - this was the previous default config
+        // Also fallback to public repo if no credentials and private repo is configured - this was the previous default config
         let url = if r.url.is_empty() || r.url.starts_with(PRIVATE_REPO_URL) {
             if credentials.is_some() {
                 PRIVATE_REPO_URL.to_owned()

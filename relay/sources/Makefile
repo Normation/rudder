@@ -119,6 +119,7 @@ install: build
 	install -m 755 rudder-package/tools/rudder-package.sh $(DESTDIR)/opt/rudder/share/commands/package
 	install -m 755 rudder-pkg/rudder-pkg.conf $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder-pkg.conf
 	install -m 644 systemd/rudder-package.timer $(DESTDIR)/usr/lib/systemd/system/rudder-package.timer
+	install -m 644 systemd/rudder-package.service $(DESTDIR)/usr/lib/systemd/system/rudder-package.service
 	# rudder-pkg kept as backup for now
 	install -m 755 rudder-pkg/rudder-pkg $(DESTDIR)/opt/rudder/share/python/rudder-pkg/rudder-pkg
 	ln -ns ../share/commands/package $(DESTDIR)/opt/rudder/bin/rudder-pkg
