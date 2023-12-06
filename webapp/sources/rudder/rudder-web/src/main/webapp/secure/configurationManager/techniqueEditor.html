@@ -14,6 +14,7 @@
       </div>
     </div>
     <div id="technique-editor">
+    </div>
       <script>
         var hasWriteRights = false;
       </script>
@@ -89,23 +90,35 @@ $(document).ready(function(){
   });
 
   app.ports.storeDraft.subscribe(function(draft) {
-    draft.date = new Date().toISOString();
-    var drafts = JSON.parse(localStorage.getItem("drafts"))
-    if (drafts === null) { drafts = {} }
-    drafts[draft.id] = draft;
-    localStorage.setItem("drafts", JSON.stringify(drafts));
+    try {
+      draft.date = new Date().toISOString();
+      var drafts = JSON.parse(localStorage.getItem("drafts"))
+      if (drafts === null) { drafts = {} }
+      drafts[draft.id] = draft;
+      localStorage.setItem("drafts", JSON.stringify(drafts));
+    } catch (error) {
+      createErrorNotification("An error occurred while saving technique draft, it will not be persisted in your browser.\nYou can try to clean your browser local storage, but you'll lose existing drafts.\nError details: " + error) ;
+    }
   });
 
   app.ports.clearDraft.subscribe(function(key) {
-    var drafts = JSON.parse(localStorage.getItem("drafts"));
-    delete drafts[key];
-    localStorage.setItem("drafts", JSON.stringify(drafts));
+    try {
+      var drafts = JSON.parse(localStorage.getItem("drafts"));
+      delete drafts[key];
+      localStorage.setItem("drafts", JSON.stringify(drafts));
+    } catch (error) {
+      createErrorNotification("An error occurred while removing draft for technique '" + key +"'.\nYou can try to clean your browser local storage, but you'll lose existing drafts.\nError details: " + error) ;
+    }
   });
 
   app.ports.getDrafts.subscribe(function() {
-    var drafts = JSON.parse(localStorage.getItem("drafts"))
-    if (drafts === null) { drafts = {} }
-    app.ports.draftsResponse.send(drafts)
+    try {
+      var drafts = JSON.parse(localStorage.getItem("drafts"))
+      if (drafts === null) { drafts = {} }
+      app.ports.draftsResponse.send(drafts)
+    } catch (error) {
+      createErrorNotification("An error occurred while getting drafts.\nYou can try to clean your browser local storage, but you'll lose existing drafts.\nError details: " + error) ;
+    }
   });
   app.ports.successNotification.subscribe(function(str) {
     createSuccessNotification(str)
@@ -169,6 +182,5 @@ function scrollToMethod(target){
   return false;
 }
 </script>
-    </div>
   </div>
 </lift:surround>
