@@ -107,7 +107,7 @@ pub fn run() -> Result<()> {
             for p in &long_names(package) {
                 if let Err(e) = db.install(force, p, &repo, index.as_ref(), &mut webapp) {
                     errors = true;
-                    error!("Installation of {} failed: {e}", short_name(p));
+                    error!("Installation of {} failed: {e:?}", short_name(p));
                 }
             }
             if errors {
@@ -121,7 +121,7 @@ pub fn run() -> Result<()> {
             for p in &long_names(package) {
                 if let Err(e) = db.uninstall(p, true, &mut webapp) {
                     errors = true;
-                    error!("Uninstallation of {} failed: {e}", short_name(p));
+                    error!("Uninstallation of {} failed: {e:?}", short_name(p));
                 }
             }
             if errors {
@@ -145,7 +145,7 @@ pub fn run() -> Result<()> {
                         errors = true;
                         // Don't fail and continue
                         error!(
-                            "Postinst script for {} failed: {e}",
+                            "Postinst script for {} failed: {e:?}",
                             p.metadata.short_name()
                         );
                     }
@@ -175,7 +175,7 @@ pub fn run() -> Result<()> {
                 for p in &to_upgrade {
                     if let Err(e) = db.install(false, p, &repo, index.as_ref(), &mut webapp) {
                         errors = true;
-                        error!("Could not upgrade {}: {e}", short_name(p))
+                        error!("Could not upgrade {}: {e:?}", short_name(p))
                     }
                 }
                 if errors {
@@ -243,7 +243,10 @@ pub fn run() -> Result<()> {
                         Some(p) => {
                             if let Err(e) = p.enable(&mut webapp) {
                                 errors = true;
-                                error!("Could not enable plugin {}: {e}", p.metadata.short_name());
+                                error!(
+                                    "Could not enable plugin {}: {e:?}",
+                                    p.metadata.short_name()
+                                );
                             }
                         }
                     }
@@ -285,7 +288,10 @@ pub fn run() -> Result<()> {
                     Some(p) => {
                         if let Err(e) = p.disable(&mut webapp) {
                             errors = true;
-                            error!("Could not disable plugin {}: {e}", p.metadata.short_name());
+                            error!(
+                                "Could not disable plugin {}: {e:?}",
+                                p.metadata.short_name()
+                            );
                         }
                     }
                 }
