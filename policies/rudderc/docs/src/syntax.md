@@ -109,11 +109,15 @@ Blocks contains:
 * `tags` (optional): Optional key-value tags.
 * `items`: A list of items (block or method call). Cannot be empty.
 * `condition` (optional): A condition expression for the whole block. `true` is an always defined (default), `false` is never defined.
-* `reporting` (optional)
+* `policy_mode` (optional):
+  * `default`(default): Inherit policy mode from parent container
+  * `enforce`: Force the policy mode of all items within the block in enforce mode.
+  * `audit`: Force the policy mode of all items within the block in audit mode.
+* `reporting` (optional):
   * `mode`
     * `weighted` (default)
-    * `worst-case-weighted-sum`: Take the worst outcome from the block and 
-    * `worst-case-weighted-one`: Take the worst outcome from as the block as if it was a singe method
+    * `worst-case-weighted-sum`: Take the worst outcome from all the method calls in the block
+    * `worst-case-weighted-one`: Take the worst outcome from as the block as if it was a single method
     * `focus`: Apply the outcome of one of the included methods to the whole block, requires passing the `id` value
     * `disabled`: No reporting
   * `id` (required with `focus` mode): id of the method to focus reporting on.
@@ -128,8 +132,11 @@ items:
       mode: worst-case-weighted-one
     items:
       - ...
-      - ... 
+      - ...
 ```
+
+<div class="warning">Policy mode effective value will always be taken from the latest override layer. Meaning that a forced policy mode on a method call
+will always prevail over directives and blocks ones.</div>
 
 ## Methods
 
@@ -141,8 +148,12 @@ Methods contains:
 * `tags` (optional): Optional key-value tags.
 * `params`: Key-Value dictionary of parameters for the method.
 * `condition` (optional): A condition expression for the method. `true` is an always defined (default), `false` is never defined.
+* `policy_mode` (optional):
+  * `default`(default): Inherit policy mode from parent container
+  * `enforce`: Force the policy mode to enforce mode.
+  * `audit`: Force the policy mode to audit mode.
 * `reporting` (optional)
-  * `mode` 
+  * `mode`
     * `enabled` (default): Normal reporting
     * `disabled`: No reporting
 
@@ -161,4 +172,20 @@ items:
       name: "telnet-server"
     reporting:
       mode: disabled
+```
+
+## Resources
+
+Files can be attached to a technique, they will automatically be deployed in the policies when used on a node.
+The absolute path of the folder containing the resource files is accessible from within a technique using the variable `${resources_dir}`.
+
+To add resources to a YAML technique, put the files under a `resources` folder in the technique directory.
+In the example below, the `file1.txt` will be available from within the technique using `${resources_dir}/file1.txt`.
+
+```bash
+my_technique
+├── resources
+│   └── file1.txt
+├── technique.yml
+└── tests
 ```
