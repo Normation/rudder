@@ -23,7 +23,10 @@ impl RepoIndex {
             let index: Vec<Plugin> = serde_json::from_str(&data)?;
             let modified = fs::metadata(path)?.modified()?;
             let latest_update: DateTime<Utc> = modified.into();
-            Ok(Some(Self {index, latest_update}))
+            Ok(Some(Self {
+                index,
+                latest_update,
+            }))
         } else {
             Ok(None)
         }
@@ -88,8 +91,7 @@ mod tests {
         let index: RepoIndex = RepoIndex::from_path("./tests/repo_index.json")
             .unwrap()
             .unwrap();
-        let expected = 
-      vec![
+        let expected = vec![
         Plugin {
           metadata: plugin::Metadata {
             package_type: archive::PackageType::Plugin,

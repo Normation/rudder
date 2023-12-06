@@ -48,8 +48,12 @@ pub enum Command {
     Update {
         #[clap(long, short, help = "Only check for server connectivity")]
         check: bool,
-        
-        #[clap(long, short, help = "Stop successfully if the repository if not reachable")]
+
+        #[clap(
+            long,
+            short,
+            help = "Stop successfully if the repository is not reachable"
+        )]
         if_available: bool,
     },
     /// Install plugins, locally or from the repository
