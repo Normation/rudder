@@ -57,16 +57,17 @@
   max-height: 250px;
   overflow: auto;
 }
-ul.dropdown-menu:not(.search-dropdown) {
+
+.rudder-template ul.dropdown-menu {
   padding: 0;
   min-width: 170px;
   margin-left: -75px;
 }
-ul.dropdown-menu.show {
+.rudder-template ul.dropdown-menu.show {
   right: -4px !important;
   left: auto !important;
 }
-ul.dropdown-menu > li > a{
+.rudder-template ul.dropdown-menu > li > a{
   display: block;
 }
 .btn.btn-outline-success{
