@@ -354,7 +354,7 @@ mod tests {
     }
 
     #[test]
-    fn test_extract_borken_archive() {
+    fn test_extract_broken_archive() {
         let r = Rpkg::from_path("./tests/archive/broken-archive.rpkg").unwrap();
         assert!(r
             .unpack_embedded_txz("files.txz", tempdir().unwrap().into_path())
