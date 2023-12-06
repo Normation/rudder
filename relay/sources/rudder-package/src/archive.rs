@@ -324,7 +324,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_archive_installed_filed() {
+    fn test_get_archive_installed_files() {
         let r = Rpkg::from_path("./tests/archive/rudder-plugin-notify-8.0.0-2.2.rpkg").unwrap();
         assert_eq!(
             r.get_archive_installed_files().unwrap(),
@@ -351,5 +351,13 @@ mod tests {
         r.unpack_embedded_txz("files.txz", PathBuf::from(effective_target))
             .unwrap();
         assert!(!dir_diff::is_different(effective_target, expected_dir_content).unwrap());
+    }
+
+    #[test]
+    fn test_extract_borken_archive() {
+        let r = Rpkg::from_path("./tests/archive/broken-archive.rpkg").unwrap();
+        assert!(r
+            .unpack_embedded_txz("files.txz", tempdir().unwrap().into_path())
+            .is_err());
     }
 }
