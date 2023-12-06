@@ -1,0 +1,7 @@
+[Unit]
+Description=Update Rudder package index and licenses
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/rudder/bin/rudder-package update --if-available

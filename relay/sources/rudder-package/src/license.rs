@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
 use anyhow::{anyhow, Result};
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 use std::{collections::HashMap, fs, path::Path};
 
@@ -10,8 +11,8 @@ use std::{collections::HashMap, fs, path::Path};
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize)]
 pub struct License {
-    pub start_date: String,
-    pub end_date: String,
+    pub start_date: DateTime<Utc>,
+    pub end_date: DateTime<Utc>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -40,12 +41,14 @@ impl Licenses {
                     let plugin = find_key_value("softwareid", &s)
                         .ok_or(anyhow!("Could not find software id in license"))?
                         .to_owned();
-                    let start_date = find_key_value("startdate", &s)
+                    let start_date_r = find_key_value("startdate", &s)
                         .ok_or(anyhow!("Could not find start date in license"))?
                         .to_owned();
-                    let end_date = find_key_value("enddate", &s)
+                    let start_date = DateTime::parse_from_rfc3339(&start_date_r)?.into();
+                    let end_date_r = find_key_value("enddate", &s)
                         .ok_or(anyhow!("Could not find end date in license"))?
                         .to_owned();
+                    let end_date = DateTime::parse_from_rfc3339(&end_date_r)?.into();
                     res.insert(
                         plugin,
                         License {

@@ -3,12 +3,16 @@
 
 use std::{collections::HashSet, fs, path::Path};
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::{plugin, versions::RudderVersion};
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
-pub struct RepoIndex(Vec<Plugin>);
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct RepoIndex {
+    index: Vec<Plugin>,
+    pub latest_update: DateTime<Utc>,
+}
 
 impl RepoIndex {
     /// Try to read the index. We need to handle the case where the server has not access
@@ -16,15 +20,20 @@ impl RepoIndex {
     pub fn from_path(path: &str) -> Result<Option<Self>, anyhow::Error> {
         if Path::new(path).exists() {
             let data = fs::read_to_string(path)?;
-            let index: RepoIndex = serde_json::from_str(&data)?;
-            Ok(Some(index))
+            let index: Vec<Plugin> = serde_json::from_str(&data)?;
+            let modified = fs::metadata(path)?.modified()?;
+            let latest_update: DateTime<Utc> = modified.into();
+            Ok(Some(Self {
+                index,
+                latest_update,
+            }))
         } else {
             Ok(None)
         }
     }
 
     pub fn inner(&self) -> &[Plugin] {
-        self.0.as_slice()
+        self.index.as_slice()
     }
 
     // What we need to do with the index:
@@ -34,7 +43,7 @@ impl RepoIndex {
 
     pub fn latest_compatible_plugins(&self, webapp_version: &RudderVersion) -> Vec<&Plugin> {
         let names = self
-            .0
+            .index
             .iter()
             .filter(|p| webapp_version.is_compatible(&p.metadata.version.rudder_version))
             .map(|p| &p.metadata.name)
@@ -50,7 +59,7 @@ impl RepoIndex {
         webapp_version: &RudderVersion,
         plugin_name: &str,
     ) -> Option<&Plugin> {
-        self.0
+        self.index
             .iter()
             .filter(|p| {
                 plugin_name == p.metadata.name
@@ -82,8 +91,7 @@ mod tests {
         let index: RepoIndex = RepoIndex::from_path("./tests/repo_index.json")
             .unwrap()
             .unwrap();
-        let expected = RepoIndex(
-      vec![
+        let expected = vec![
         Plugin {
           metadata: plugin::Metadata {
             package_type: archive::PackageType::Plugin,
@@ -132,7 +140,7 @@ mod tests {
           },
           path: String::from("./8.0/rudder-plugin-vault-8.0.0~rc1-2.1-nightly.rpkg/nightly/rudder-plugin-vault-8.0.0~rc1-2.1-nightly.rpkg"),
         },
-      ]);
-        assert_eq!(expected, index);
+      ];
+        assert_eq!(expected, index.index);
     }
 }

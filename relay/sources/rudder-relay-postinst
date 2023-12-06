@@ -35,11 +35,11 @@ fi
 # Always reload systemd (in case we changed the unit file)
 systemctl daemon-reload >> ${LOG_FILE}
 if [ "${FIRST_INSTALL}" -eq 1 ]; then
-  systemctl enable rudder-relayd >> ${LOG_FILE} 2>&1
+  systemctl enable rudder-relayd.service rudder-package.timer >> ${LOG_FILE} 2>&1
 fi
 
 systemctl stop "${APACHE}" >> ${LOG_FILE} || true
-systemctl stop rudder-relayd >> ${LOG_FILE} || true
+systemctl stop rudder-relayd.service >> ${LOG_FILE} || true
 
 # share directory with rudder-policy-reader
 chgrp rudder-policy-reader /var/rudder/share
@@ -144,7 +144,7 @@ if [ "${SELINUX}" = "true" ]; then
   fi
 fi
 
-systemctl start rudder-relayd >> ${LOG_FILE}
+systemctl start rudder-relayd.service rudder-package.timer >> ${LOG_FILE}
 systemctl start "${APACHE}" >> ${LOG_FILE}
 
 echo "$(date) - Ending rudder-relay post installation script" >> ${LOG_FILE}

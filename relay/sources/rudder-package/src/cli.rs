@@ -48,6 +48,13 @@ pub enum Command {
     Update {
         #[clap(long, short, help = "Only check for server connectivity")]
         check: bool,
+
+        #[clap(
+            long,
+            short,
+            help = "Stop successfully if the repository is not reachable"
+        )]
+        if_available: bool,
     },
     /// Install plugins, locally or from the repository
     Install {
@@ -89,6 +96,8 @@ pub enum Command {
         #[clap()]
         package: Vec<String>,
     },
+    /// Show general information about plugin management
+    Info {},
     /// Enable installed plugins
     Enable {
         #[clap()]

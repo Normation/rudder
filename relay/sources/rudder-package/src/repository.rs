@@ -29,7 +29,7 @@ static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_P
 pub struct Repository {
     inner: Client,
     creds: Option<Credentials>,
-    server: Url,
+    pub server: Url,
     verifier: SignatureVerifier,
 }
 

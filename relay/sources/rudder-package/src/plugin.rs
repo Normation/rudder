@@ -49,25 +49,6 @@ pub struct Metadata {
     pub jar_files: Vec<String>,
 }
 
-/// Not present in metadata but computed from them
-///
-/// Allows exposing to the user if the plugin will appear in the interface or not.
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Copy, Clone)]
-#[serde(rename_all = "snake_case")]
-pub enum PluginType {
-    Web,
-    Standalone,
-}
-
-impl Display for PluginType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self {
-            Self::Web => "web",
-            Self::Standalone => "standalone",
-        })
-    }
-}
-
 // Used by the "show" command
 impl Display for Metadata {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -75,13 +56,13 @@ impl Display for Metadata {
             "Name: {}
 Version: {}
 Description: {}
-Type: {} plugin
+Type: plugin {}
 Build-date: {}
 Build-commit: {}",
             self.short_name(),
             self.version,
             self.description.as_ref().unwrap_or(&"".to_owned()),
-            self.plugin_type(),
+            if self.is_webapp() { "(webapp)" } else { "" },
             self.build_date,
             self.build_commit
         ))?;
@@ -107,12 +88,8 @@ impl Metadata {
         self.version.rudder_version.is_compatible(webapp_version)
     }
 
-    pub fn plugin_type(&self) -> PluginType {
-        if self.jar_files.is_empty() {
-            PluginType::Standalone
-        } else {
-            PluginType::Web
-        }
+    pub fn is_webapp(&self) -> bool {
+        !self.jar_files.is_empty()
     }
 
     pub fn short_name(&self) -> &str {

@@ -9,6 +9,7 @@ mod cmd;
 mod config;
 mod database;
 mod dependency;
+mod info;
 mod license;
 mod list;
 mod plugin;
@@ -31,6 +32,7 @@ use crate::{
     cli::Command,
     config::Configuration,
     database::Database,
+    info::display_info,
     license::Licenses,
     list::ListOutput,
     plugin::{long_names, short_name},
@@ -202,11 +204,22 @@ pub fn run() -> Result<()> {
                 )
             }
         }
-        Command::Update { check } => {
+        Command::Update {
+            check,
+            if_available,
+        } => {
             if check {
                 repo.test_connection()?;
             } else {
-                repo.update(&webapp)?;
+                if if_available {
+                    if repo.test_connection().is_err() {
+                        info!("Repository is not reachable, stopping");
+                    } else {
+                        repo.update(&webapp)?;
+                    }
+                } else {
+                    repo.update(&webapp)?;
+                }
                 info!("Index and licenses successfully updated")
             }
         }
@@ -302,6 +315,7 @@ pub fn run() -> Result<()> {
                 info!("Plugins successfully disabled");
             }
         }
+        Command::Info {} => display_info(&licenses, &repo, index.as_ref()),
     }
     // Restart if needed
     webapp.apply_changes()?;
