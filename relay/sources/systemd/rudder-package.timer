@@ -1,0 +1,11 @@
+[Unit]
+Description=Update package index and licenses
+
+[Timer]
+OnCalendar=weekly
+RandomizedDelaySec=3600
+FixedRandomDelay=true
+
+[Install]
+WantedBy=timers.target
+

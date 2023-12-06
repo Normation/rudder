@@ -4,13 +4,14 @@
 use std::collections::HashSet;
 
 use anyhow::Result;
+use chrono::Utc;
+use cli_table::format::{HorizontalLine, Separator, VerticalLine};
 use serde::Serialize;
 
 use crate::{
     cli::Format,
     database::Database,
     license::{License, Licenses},
-    plugin::PluginType,
     repo_index::RepoIndex,
     webapp::Webapp,
 };
@@ -33,8 +34,7 @@ struct ListEntry {
     installed: bool,
     /// Only true for enabled web plugins
     enabled: bool,
-    #[serde(rename = "type")]
-    plugin_type: PluginType,
+    webapp_plugin: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -44,6 +44,7 @@ struct ListEntry {
 impl ListOutput {
     fn human_table(self) -> Result<()> {
         use cli_table::{print_stdout, Cell, Style, Table};
+        let now = Utc::now();
 
         let table = self
             .inner
@@ -52,35 +53,51 @@ impl ListOutput {
                 vec![
                     e.name.cell(),
                     e.version.as_ref().unwrap_or(&"".to_string()).cell(),
-                    if e.latest_version == e.version {
-                        "".to_string()
+                    if e.installed {
+                        if e.latest_version == e.version {
+                            "up-to-date".to_string()
+                        } else {
+                            e.latest_version.unwrap_or("none".to_string())
+                        }
                     } else {
-                        e.latest_version.unwrap_or("".to_string())
+                        // No need to show version if not installed
+                        "".to_string()
                     }
                     .cell(),
-                    e.plugin_type.cell(),
-                    match (e.installed, e.enabled, e.plugin_type) {
-                        (false, _, _) => "",
-                        (true, true, _) => "enabled",
-                        (true, false, PluginType::Web) => "disabled",
-                        (true, false, PluginType::Standalone) => "",
+                    match (e.installed, e.enabled, e.webapp_plugin) {
+                        (false, _, true) => "yes",
+                        (true, true, true) => "yes: enabled",
+                        (true, false, true) => "yes: disabled",
+                        _ => "",
                     }
                     .cell(),
                     e.license
                         .map(|l| l.end_date)
+                        .map(|e| {
+                            if e > now {
+                                format!("until {}", e.format("%Y/%m/%d"))
+                            } else {
+                                "expired".to_string()
+                            }
+                        })
                         .unwrap_or("".to_string())
                         .cell(),
                     e.description.unwrap_or("".to_string()).cell(),
                 ]
             })
             .table()
+            .separator(
+                Separator::builder()
+                    .column(Some(VerticalLine::new('|')))
+                    .title(Some(HorizontalLine::new('+', '+', '+', '-')))
+                    .build(),
+            )
             .title(vec![
                 "Name".cell().bold(true),
                 "Installed".cell().bold(true),
                 "Latest".cell().bold(true),
-                "Type".cell().bold(true),
-                "Status".cell().bold(true),
-                "License valid until".cell().bold(true),
+                "Web plugin".cell().bold(true),
+                "License".cell().bold(true),
                 "Description".cell().bold(true),
             ]);
         print_stdout(table)?;
@@ -127,7 +144,7 @@ impl ListOutput {
                 name,
                 version: Some(p.metadata.version.to_string()),
                 latest_version,
-                plugin_type: p.metadata.plugin_type(),
+                webapp_plugin: p.metadata.is_webapp(),
                 enabled,
                 installed: true,
                 description: p.metadata.description.clone(),
@@ -149,7 +166,7 @@ impl ListOutput {
                             name,
                             version: None,
                             latest_version: Some(p.metadata.version.to_string()),
-                            plugin_type: p.metadata.plugin_type(),
+                            webapp_plugin: p.metadata.is_webapp(),
                             installed: false,
                             enabled: false,
                             description: p.metadata.description.clone(),

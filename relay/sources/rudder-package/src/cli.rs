@@ -89,6 +89,8 @@ pub enum Command {
         #[clap()]
         package: Vec<String>,
     },
+    /// Show general information about plugin management
+    Info {},
     /// Enable installed plugins
     Enable {
         #[clap()]

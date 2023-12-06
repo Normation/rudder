@@ -17,6 +17,7 @@ mod repository;
 mod signature;
 mod versions;
 mod webapp;
+mod info;
 
 use std::{
     path::{Path, PathBuf},
@@ -38,7 +39,7 @@ use crate::{
     repository::Repository,
     signature::SignatureVerifier,
     versions::RudderVersion,
-    webapp::Webapp,
+    webapp::Webapp, info::display_info,
 };
 
 const PACKAGES_FOLDER: &str = "/var/rudder/packages";
@@ -296,6 +297,7 @@ pub fn run() -> Result<()> {
                 info!("Plugins successfully disabled");
             }
         }
+        Command::Info {  } => display_info(&repo, index.as_ref()),
     }
     // Restart if needed
     webapp.apply_changes()?;

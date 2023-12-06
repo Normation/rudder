@@ -109,8 +109,6 @@ install: build
 	install -m 644 relayd/tools/config/logging.conf $(DESTDIR)/opt/rudder/etc/relayd/logging.conf
 	# Install service
 	install -m 644 systemd/rudder-relayd.service $(DESTDIR)/usr/lib/systemd/system/rudder-relayd.service
-	# Sandboxing if compatible
-	[ $$(systemctl --version | head -1 | cut -d' ' -f2) -gt 232 ] && sed -i '/\[Service\]/ r systemd/rudder-relayd-hardening' $(DESTDIR)/usr/lib/systemd/system/rudder-relayd.service || true
 
 	# Install man pages
 	install -m 644 target/man/rudder-relayd.1.gz $(DESTDIR)/opt/rudder/share/man/man1/
@@ -120,6 +118,7 @@ install: build
 	install -m 755 rudder-package/tools/rudder_plugins_key.gpg $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.gpg
 	install -m 755 rudder-package/tools/rudder-package.sh $(DESTDIR)/opt/rudder/share/commands/package
 	install -m 755 rudder-pkg/rudder-pkg.conf $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder-pkg.conf
+	install -m 644 systemd/rudder-package.timer $(DESTDIR)/usr/lib/systemd/system/rudder-package.timer
 	# rudder-pkg kept as backup for now
 	install -m 755 rudder-pkg/rudder-pkg $(DESTDIR)/opt/rudder/share/python/rudder-pkg/rudder-pkg
 	ln -ns ../share/commands/package $(DESTDIR)/opt/rudder/bin/rudder-pkg
