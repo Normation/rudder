@@ -96,8 +96,8 @@ impl From<Parameter> for Input {
 
         Self {
             name: p.id.to_string().to_uppercase(),
-            description: p.name,
-            long_description: p.description,
+            description: p.description.unwrap_or(p.name),
+            long_description: p.documentation,
             constraint: Constraint {
                 _type: type_constraint.to_string(),
                 may_be_empty: if p.constraints.allow_empty {

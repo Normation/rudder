@@ -44,8 +44,7 @@
     <SECTION name="Technique parameters">
       <INPUT>
         <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27E</NAME>
-        <DESCRIPTION>server</DESCRIPTION>
-        <LONGDESCRIPTION>The server hostname</LONGDESCRIPTION>
+        <DESCRIPTION>The server hostname</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
         </CONSTRAINT>
