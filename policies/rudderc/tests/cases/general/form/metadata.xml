@@ -27,16 +27,15 @@
     <SECTION name="Technique parameters">
       <INPUT>
         <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27A</NAME>
-        <DESCRIPTION>server_a</DESCRIPTION>
-        <LONGDESCRIPTION>description</LONGDESCRIPTION>
+        <DESCRIPTION>description</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
         </CONSTRAINT>
       </INPUT>
       <INPUT>
         <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27B</NAME>
-        <DESCRIPTION>server_b</DESCRIPTION>
-        <LONGDESCRIPTION>The server hostname</LONGDESCRIPTION>
+        <DESCRIPTION>The server hostname</DESCRIPTION>
+        <LONGDESCRIPTION>This is markdown</LONGDESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
           <MAYBEEMPTY>true</MAYBEEMPTY>
