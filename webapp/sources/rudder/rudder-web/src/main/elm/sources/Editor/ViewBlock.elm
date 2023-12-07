@@ -401,12 +401,27 @@ blockBody model parentId block ui techniqueUi =
                      |> addActionStopPropagation ("mousedown" ,DisableDragDrop )
                   ]
     methodName = case ui.mode of
-                   Opened -> element "input"
-                             |> addAttributeList [ readonly (not model.hasWriteRights), onFocus DisableDragDrop , type_ "text"
-                                                 , name "component", class "form-control"
-                                                 , value block.component,  placeholder "Enter a component name" ]
-                             |> addActionStopPropagation ("mousedown" ,DisableDragDrop )
-                             |> addInputHandler  (\s -> MethodCallModified (Block parentId {block  | component = s }))
+                   Opened -> element "div"
+                             |> addClass "method-name"
+                             |> appendChild
+                                ( element "div"
+                                    |> addClass ("component-name-wrapper")
+                                    |> appendChild
+                                       ( element "div"
+                                         |> addClass "form-group"
+                                         |> appendChildList
+                                           [ element "div"
+                                             |> addClass "title-input-name"
+                                             |> appendText "Block name"
+                                           , element "input"
+                                             |> addAttributeList [ readonly (not model.hasWriteRights), onFocus DisableDragDrop , type_ "text"
+                                                                 , name "component", class "form-control"
+                                                                 , value block.component,  placeholder "Enter a friendly name for this component" ]
+                                             |> addActionStopPropagation ("mousedown" ,DisableDragDrop )
+                                             |> addInputHandler  (\s -> MethodCallModified (Block parentId {block  | component = s }))
+                                           ]
+                                       )
+                                )
                    Closed -> element "div"
                              |> addClass "method-name"
                              |> addStyleListConditional [ ("font-style", "italic"), ("opacity", "0.7") ]  (String.isEmpty block.component)
