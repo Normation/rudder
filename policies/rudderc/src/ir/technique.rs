@@ -282,6 +282,7 @@ impl Technique {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Parameter {
     #[serde(default)]
     pub id: Id,
@@ -305,6 +306,7 @@ pub struct Parameter {
 // Only used for parsing to allow proper error messages
 // Represents the union of all fields of the ItemKinds.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct DeserItem {
     #[serde(default)]
     pub condition: Condition,
@@ -325,6 +327,7 @@ pub struct DeserItem {
 
 // Variant of Technique for first level of deserialization
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct DeserTechnique {
     #[serde(default = "Technique::default_format")]
     pub format: usize,
