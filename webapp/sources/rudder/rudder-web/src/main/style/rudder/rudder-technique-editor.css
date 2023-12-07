@@ -994,7 +994,7 @@ button.btn.clipboard:hover {
 }
 /* =====  BLOCK  ===== */
 .method-info .block-name-container{
-  padding: 15px 100px 0 15px;
+  padding: 10px 100px 0 0;
 }
 .method-info.closed .block-name-container{
   padding-left: 0;
