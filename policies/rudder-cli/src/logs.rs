@@ -5,13 +5,13 @@
 //!
 //! The style is heavily inspired from cargo/rustc.
 
+use anyhow::{bail, Error};
 use colored::Colorize;
 use std::{
     env,
     fmt::{Display, Formatter},
     str::FromStr,
 };
-use anyhow::{bail, Error};
 use tracing_subscriber::{filter::LevelFilter, fmt, fmt::Subscriber, EnvFilter};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

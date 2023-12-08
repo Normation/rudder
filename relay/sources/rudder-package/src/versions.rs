@@ -5,9 +5,9 @@ use core::fmt;
 use std::{cmp::Ordering, fmt::Display, fs, str::FromStr};
 
 use anyhow::{bail, Error, Result};
-use tracing::debug;
 use regex::Regex;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use tracing::debug;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ArchiveVersion {

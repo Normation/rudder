@@ -9,8 +9,8 @@ use std::{
 };
 
 use anyhow::{anyhow, bail, Context, Result};
-use tracing::{debug, info};
 use serde::{Deserialize, Serialize};
+use tracing::{debug, info};
 
 use super::archive::Rpkg;
 use crate::{

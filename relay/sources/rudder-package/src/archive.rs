@@ -10,8 +10,8 @@ use std::{
 
 use anyhow::{anyhow, bail, Context, Ok, Result};
 use ar::Archive;
-use tracing::{debug, info};
 use serde::{Deserialize, Serialize};
+use tracing::{debug, info};
 
 use crate::{
     database::{Database, InstalledPlugin},

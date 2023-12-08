@@ -10,13 +10,13 @@ use std::{
 };
 
 use pretty_assertions::assert_eq;
+use rudder_cli::logs;
 use rudder_commons::{methods::Methods, Target, ALL_TARGETS};
 use rudderc::{
     action,
     compiler::{metadata, read_technique},
     frontends::read_methods,
 };
-use rudder_cli::logs;
 use test_generator::test_resources;
 
 static INIT: Once = Once::new();

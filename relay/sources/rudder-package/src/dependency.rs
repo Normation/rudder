@@ -3,9 +3,9 @@
 
 use std::{process::Command, str};
 
-use tracing::{debug, warn};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use tracing::{debug, warn};
 use which::which;
 
 use crate::cmd::CmdOutput;

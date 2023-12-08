@@ -10,13 +10,13 @@ use std::{
 };
 
 use anyhow::Result;
-use tracing::debug;
 use quick_xml::{
     events::{BytesEnd, BytesStart, BytesText, Event},
     reader::Reader,
     Writer,
 };
 use spinners::{Spinner, Spinners};
+use tracing::debug;
 
 use crate::{cmd::CmdOutput, versions::RudderVersion};
 
