@@ -867,11 +867,12 @@ object DisplayNode extends Loggable {
       OnLoad(
         JsRaw(
           s"""
+             |
       var main = document.getElementById("nodeproperties-app")
              |var initValues = {
              |    contextPath    : "${S.contextPath}"
-             |  , hasWriteRights : hasWriteRights
-             |  , hasReadRights  : hasReadRights
+             |  , hasNodeWrite   : CanWriteNode
+             |  , hasNodeRead    : CanReadNode
              |  , nodeId         : "${nodeId}"
              |  , objectType     : 'node'
              |};

@@ -43,8 +43,8 @@ type alias TableFilters =
   }
 
 type alias UI =
-  { hasWriteRights   : Bool
-  , hasReadRights    : Bool
+  { hasNodeWrite     : Bool
+  , hasNodeRead      : Bool
   , loading          : Bool
   , modalState       : ModalState
   , editedProperties : Dict String EditProperty

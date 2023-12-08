@@ -11,7 +11,7 @@ import NodeProperties.ApiCalls exposing (getNodeProperties)
 
 view : Model -> Html Msg
 view model =
-  if model.ui.hasReadRights then
+  if model.ui.hasNodeRead then
     let
       newProperty = model.newProperty
       isJson      = newProperty.format == JsonFormat
@@ -35,7 +35,7 @@ view model =
               , text " syntax."
               ]
           ]
-        , ( if model.ui.hasWriteRights then
+        , ( if model.ui.hasNodeWrite then
           div[class "col-lg-7 col-md-8 col-xs-12 add-prop-form"]
           [ label[for "newPropName"][text "Add a new property:"]
           , table[id "addPropTable"]
