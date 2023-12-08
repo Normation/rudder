@@ -8,7 +8,7 @@ use rudder_commons_test::module_type::unix;
 use rudder_module_type::{Outcome, PolicyMode};
 use tempfile::tempdir;
 
-const BIN: &str = concat!("../../target/debug/", env!("CARGO_PKG_NAME"));
+const BIN: &str = concat!("../../../target/debug/", env!("CARGO_PKG_NAME"));
 
 #[test]
 fn it_renders_mini_jinja_inlined() {

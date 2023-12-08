@@ -73,6 +73,7 @@ pub fn init(verbose: u8, quiet: bool, format: OutputFormat) {
 }
 
 /// Output a successful step
+/// In the `cargo` style
 pub fn ok_output<T: Display>(step: &'static str, message: T) {
     println!("{:>12} {message}", step.green().bold(),);
 }

@@ -2,12 +2,11 @@
 name = "rudder-package"
 version = "0.0.0-dev"
 description = "Plugin manager for Rudder"
-authors = ["Rudder developers <dev@rudder.io>"]
-edition = "2021"
-readme = "README.md"
-homepage = "https://www.rudder.io"
-repository = "https://github.com/Normation/rudder"
-license = "GPL-3.0-or-later"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
 
 [dependencies]
 anyhow = "1.0.75"
@@ -38,11 +37,3 @@ flate2 = "1.0.28"
 cli-table = "0.4.7"
 spinners = "4.1.1"
 rudder_cli = { path = "../../../policies/rudder-cli" }
-
-[profile.dev]
-# Disabling debug info speeds up builds a bunch,
-# and we don't rely on it for debugging that much.
-debug = 0
-
-[profile.release]
-strip = true
