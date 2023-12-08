@@ -5,7 +5,7 @@ use core::fmt;
 use std::{cmp::Ordering, fmt::Display, fs, str::FromStr};
 
 use anyhow::{bail, Error, Result};
-use log::debug;
+use tracing::debug;
 use regex::Regex;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 

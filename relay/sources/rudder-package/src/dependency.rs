@@ -3,7 +3,7 @@
 
 use std::{process::Command, str};
 
-use log::{debug, warn};
+use tracing::{debug, warn};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use which::which;

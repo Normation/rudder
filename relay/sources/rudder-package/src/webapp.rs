@@ -10,7 +10,7 @@ use std::{
 };
 
 use anyhow::Result;
-use log::debug;
+use tracing::debug;
 use quick_xml::{
     events::{BytesEnd, BytesStart, BytesText, Event},
     reader::Reader,

@@ -9,7 +9,7 @@ use std::{
 };
 
 use anyhow::{anyhow, bail, Context, Result};
-use log::{debug, info};
+use tracing::{debug, info};
 use serde::{Deserialize, Serialize};
 
 use super::archive::Rpkg;

@@ -8,7 +8,7 @@ use std::{
 
 use anyhow::{anyhow, bail, Context, Result};
 use flate2::read::GzDecoder;
-use log::{debug, info};
+use tracing::{debug, info};
 use reqwest::{
     blocking::{Client, Response},
     Proxy, StatusCode, Url,

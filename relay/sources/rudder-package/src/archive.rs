@@ -10,7 +10,7 @@ use std::{
 
 use anyhow::{anyhow, bail, Context, Ok, Result};
 use ar::Archive;
-use log::{debug, info};
+use tracing::{debug, info};
 use serde::{Deserialize, Serialize};
 
 use crate::{
