@@ -2,11 +2,11 @@
 name = "minifusion"
 version = "0.0.0-dev"
 description = "Minimal inventory agent generating Fusion Inventory compatible output"
-authors = ["Rudder developers <dev@rudder.io>"]
-edition = "2021"
-homepage = "https://www.rudder.io"
-repository = "https://github.com/Normation/rudder"
-license = "GPL-3.0-or-later"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
 
 [dependencies]
 quick-xml = { version = "0.31.0", features = ["serialize"] }

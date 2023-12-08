@@ -15,8 +15,8 @@ use rudderc::{
     action,
     compiler::{metadata, read_technique},
     frontends::read_methods,
-    logs,
 };
+use rudder_cli::logs;
 use test_generator::test_resources;
 
 static INIT: Once = Once::new();

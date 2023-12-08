@@ -1504,6 +1504,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rudder_cli"
+version = "0.0.0-dev"
+dependencies = [
+ "anyhow",
+ "colored",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "rudder_commons"
 version = "0.0.0-dev"
 dependencies = [
@@ -1559,6 +1569,7 @@ dependencies = [
  "pretty_assertions",
  "quick-xml",
  "regex",
+ "rudder_cli",
  "rudder_commons",
  "serde",
  "serde_json",

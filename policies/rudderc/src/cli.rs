@@ -5,7 +5,8 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
-use crate::{doc::Format, logs::OutputFormat, DEFAULT_AGENT_PATH};
+use rudder_cli::logs::OutputFormat;
+use crate::{doc::Format, DEFAULT_AGENT_PATH};
 
 /// Compile Rudder policies
 #[derive(Parser, Debug)]

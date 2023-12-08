@@ -2,12 +2,11 @@
 name = "rudder_commons_test"
 version = "0.0.0-dev"
 description = "Shared implementation for tests"
-authors = ["Rudder developers <dev@rudder.io>"]
-edition = "2021"
-readme = "README.adoc"
-homepage = "https://www.rudder.io"
-repository = "https://github.com/Normation/rudder"
-license = "GPL-3.0-or-later"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
 
 [dependencies]
 assert_cmd = "2"

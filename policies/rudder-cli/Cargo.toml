@@ -1,0 +1,16 @@
+[package]
+name = "rudder_cli"
+version = "0.0.0-dev"
+description = "Common definitions for CLIs in Rudder"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow = "1"
+colored = "2"
+# Compile dev and release with trace logs enabled
+tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_trace"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
