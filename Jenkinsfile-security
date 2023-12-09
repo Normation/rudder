@@ -94,7 +94,7 @@ pipeline {
                 }
             }
         }
-        stage('deps-relay') {
+        stage('deps-rust') {
             when { not { changeRequest() } }
             agent {
                 dockerfile {
@@ -106,75 +106,29 @@ pipeline {
             }
             steps {
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                    dir('relay/sources/relayd') {
-                        sh script: 'mkdir -p target', label: 'create target directory'
-                        sh script: 'cargo deny check', label: 'check relayd dependencies'
-                        sh script: 'cargo deny list > target/relayd-dependencies.txt', label: 'list relayd dependencies'
-                    }
-                    dir('relay/sources/rudder-package') {
-                        sh script: 'mkdir -p target', label: 'create target directory'
-                        sh script: 'cargo deny check', label: 'check rudder-package dependencies'
-                        sh script: 'cargo deny list > target/rudder-package-dependencies.txt', label: 'list rudder-package dependencies'
-                    }
+                    sh script: 'mkdir -p target', label: 'create target directory'
+                    sh script: 'cargo deny check', label: 'check relayd dependencies'
+                    sh script: 'cargo deny list > target/rust-dependencies.txt', label: 'list rust dependencies'
                 }
             }
             post {
                 failure {
                     script {
-                        errors.add("relay")
+                        errors.add("rust")
                         failedBuild = true
-                        slackSend(channel: slackResponse.threadId, message: "Dependency check error on relay - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
+                        slackSend(channel: slackResponse.threadId, message: "Dependency check error on rust - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
                         //notifier.notifyResult("rust-team")
                     }
                 }
 
                 cleanup {
                     script {
-                        running.remove("relay")
+                        running.remove("rust")
                         updateSlack(errors, running, slackResponse, version, changeUrl)
                     }
                 }
                 always {
-                    archiveArtifacts artifacts: 'relay/sources/relayd/target/*-dependencies.txt'
-                }
-            }
-        }
-        stage('deps-policies') {
-            when { not { changeRequest() } }
-            agent {
-                dockerfile {
-                    filename 'policies/Dockerfile'
-                    additionalBuildArgs "--build-arg USER_ID=${JENKINS_UID}"
-                    // mount cache
-                    args '-v /srv/cache/cargo:/usr/local/cargo/registry'
-                }
-            }
-            steps {
-                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                    dir('policies') {
-                        sh script: 'mkdir -p target', label: 'create target directory'
-                        sh script: 'cargo deny check', label: 'check policies dependencies'
-                        sh script: 'cargo deny list > target/policies-dependencies.txt', label: 'list policies dependencies'
-                    }
-                }
-            }
-            post {
-                failure {
-                    script {
-                        errors.add("policies")
-                        failedBuild = true
-                        //notifier.notifyResult("rust-team")
-                        slackSend(channel: slackResponse.threadId, message: "Dependency check error on policies - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
-                    }
-                }
-                cleanup {
-                    script {
-                        running.remove("policies")
-                        updateSlack(errors, running, slackResponse, version, changeUrl)
-                    }
-                }
-                always {
-                    archiveArtifacts artifacts: 'policies/target/policies-dependencies.txt'
+                    archiveArtifacts artifacts: 'target/*-dependencies.txt'
                 }
             }
         }
