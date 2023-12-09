@@ -14,8 +14,11 @@ use warp::{
     path, query, Filter, Reply,
 };
 
-use crate::api::sanitize_path;
-use crate::{api::RudderReject, hashing::Hash, JobConfig};
+use crate::{
+    api::{sanitize_path, RudderReject},
+    hashing::Hash,
+    JobConfig,
+};
 
 pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
     let base = path!("shared-folder" / ..);

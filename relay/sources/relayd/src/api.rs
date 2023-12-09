@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use anyhow::{bail, Error};
-use std::path::{Path, PathBuf};
-use std::{fmt, fmt::Display, net::ToSocketAddrs, sync::Arc};
+use std::{
+    fmt,
+    fmt::Display,
+    net::ToSocketAddrs,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
+use anyhow::{bail, Error};
 use percent_encoding::percent_decode_str;
 use serde::Serialize;
 use tracing::{error, info, instrument};

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use serde::Serialize;
 use warp::{
@@ -116,7 +116,7 @@ impl Status {
     pub fn poll(job_config: Arc<JobConfig>) -> Self {
         Self {
             database: job_config.pool.clone().map(|p| ping(&p).into()),
-            configuration: check_configuration(&job_config.cli_cfg.config)
+            configuration: check_configuration(Path::new(&job_config.cli_cfg.config))
                 .map(|_| ())
                 .into(),
         }
