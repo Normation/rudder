@@ -1261,13 +1261,25 @@ class DSCTechniqueWriter(
               s"  Rudder-Report-NA @reportParams"
             }
 
+            val policyMode =
+              call.policyMode match {
+                case None =>
+                  parentBlocks.find(_.policyMode.isDefined).flatMap(_.policyMode) match {
+                    case None =>
+                      "$policyMode"
+                    case Some(PolicyMode.Audit) => "([Rudder.PolicyMode]::Audit)"
+                    case Some(PolicyMode.Enforce) => "([Rudder.PolicyMode]::Enforce)"
+                  }
+                case Some(PolicyMode.Audit) => "([Rudder.PolicyMode]::Audit)"
+                case Some(PolicyMode.Enforce) => "([Rudder.PolicyMode]::Enforce)"
+              }
             s"""|  $$reportId=$$reportIdBase+"${call.id}"
                 |  $$componentKey = ${classParameter}
                 |  $$reportParams = @{
                 |    ClassPrefix = ([Rudder.Condition]::canonify(("${method.classPrefix}_" + $$componentKey)))
                 |    ComponentKey = $$componentKey
                 |    ComponentName = "${componentName}"
-                |    PolicyMode = $$policyMode
+                |    PolicyMode = ${policyMode}
                 |    ReportId = $$reportId
                 |    DisableReporting = $$${disableReporting}
                 |    TechniqueName = $$techniqueName

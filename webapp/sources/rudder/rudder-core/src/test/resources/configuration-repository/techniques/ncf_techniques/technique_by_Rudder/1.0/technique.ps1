@@ -24,7 +24,7 @@
     ClassPrefix = ([Rudder.Condition]::canonify(("package_install_version_" + $componentKey)))
     ComponentKey = $componentKey
     ComponentName = "Customized component"
-    PolicyMode = $policyMode
+    PolicyMode = ([Rudder.PolicyMode]::Audit)
     ReportId = $reportId
     DisableReporting = $false
     TechniqueName = $techniqueName
@@ -44,7 +44,7 @@
     ClassPrefix = ([Rudder.Condition]::canonify(("command_execution_" + $componentKey)))
     ComponentKey = $componentKey
     ComponentName = "Command execution"
-    PolicyMode = $policyMode
+    PolicyMode = ([Rudder.PolicyMode]::Enforce)
     ReportId = $reportId
     DisableReporting = $true
     TechniqueName = $techniqueName
@@ -64,7 +64,7 @@
     ClassPrefix = ([Rudder.Condition]::canonify(("service_start_" + $componentKey)))
     ComponentKey = $componentKey
     ComponentName = "Customized component"
-    PolicyMode = $policyMode
+    PolicyMode = ([Rudder.PolicyMode]::Audit)
     ReportId = $reportId
     DisableReporting = $false
     TechniqueName = $techniqueName
@@ -97,7 +97,7 @@
     ClassPrefix = ([Rudder.Condition]::canonify(("command_execution_" + $componentKey)))
     ComponentKey = $componentKey
     ComponentName = "Command execution"
-    PolicyMode = $policyMode
+    PolicyMode = ([Rudder.PolicyMode]::Audit)
     ReportId = $reportId
     DisableReporting = $false
     TechniqueName = $techniqueName
