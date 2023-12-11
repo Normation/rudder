@@ -41,6 +41,7 @@ import better.files.File
 import com.normation.errors._
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Version
+import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
 import com.normation.rudder.ncf.TechniqueCompilerApp._
@@ -49,6 +50,7 @@ import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
 import com.normation.rudder.services.policies.InterpolatedValueCompilerImpl
 import com.normation.zio._
 import com.softwaremill.quicklens._
+
 import java.io.{File => JFile}
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
@@ -58,6 +60,7 @@ import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.BeforeAfterAll
+
 import scala.annotation.nowarn
 import zio.Chunk
 import zio.syntax._
@@ -229,7 +232,8 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
         Map((ParameterId("package_name"), "openssh-server")),
         "redhat",
         "Package install",
-        false
+        false,
+        Some(Enforce)
       ) :: Nil,
       "",
       "",

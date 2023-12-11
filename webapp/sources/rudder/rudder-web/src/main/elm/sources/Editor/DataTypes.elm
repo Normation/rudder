@@ -86,12 +86,15 @@ type WorstReportKind = WorstReportWeightedOne | WorstReportWeightedSum
 
 type ReportingLogic = WorstReport WorstReportKind | WeightedReport | FocusReport String
 
+type PolicyMode = Audit | Enforce
+
 type alias MethodBlock =
   { id : CallId
   , component : String
   , condition : Condition
   , reportingLogic : ReportingLogic
   , calls : List MethodElem
+  , policyMode : Maybe PolicyMode
   }
 
 type alias MethodCall =
@@ -101,6 +104,7 @@ type alias MethodCall =
   , condition  : Condition
   , component  : String
   , disableReporting : Bool
+  , policyMode : Maybe PolicyMode
   }
 
 type alias CallParameter =

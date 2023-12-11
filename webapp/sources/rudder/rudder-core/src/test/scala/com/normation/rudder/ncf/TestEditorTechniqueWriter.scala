@@ -67,6 +67,7 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveSaveDiff
 import com.normation.rudder.domain.policies.DirectiveUid
+import com.normation.rudder.domain.policies.PolicyMode.{Audit, Enforce}
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.hooks.CmdResult
@@ -86,6 +87,7 @@ import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.zio._
+
 import java.io.{File => JFile}
 import java.io.InputStream
 import net.liftweb.common.Box
@@ -98,6 +100,7 @@ import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.BeforeAfterAll
+
 import scala.collection.SortedMap
 import scala.collection.SortedSet
 import zio._
@@ -444,7 +447,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
           ),
           "any",
           "Customized component",
-          false
+          false,
+          None
         ) ::
         MethodCall(
           BundleName("command_execution"),
@@ -452,8 +456,10 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
           Map((ParameterId("command"), "Write-Host \"testing special characters ` è &é 'à é \"")),
           "windows",
           "Command execution",
-          true
-        ) :: Nil
+          true,
+          Some(Enforce)
+        ) :: Nil,
+        Some(Audit)
       ) ::
       MethodCall(
         BundleName("service_start"),
@@ -461,7 +467,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         Map((ParameterId("service_name"), "${node.properties[apache_package_name]}")),
         "package_install_version_${node.properties[apache_package_name]}_repaired",
         "Customized component",
-        false
+        false,
+        Some(Audit)
       ) ::
       MethodCall(
         BundleName("package_install"),
@@ -469,7 +476,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         Map((ParameterId("package_name"), "openssh-server")),
         "redhat",
         "Package install",
-        false
+        false,
+        None
       ) ::
       MethodCall(
         BundleName("command_execution"),
@@ -477,7 +485,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         Map((ParameterId("command"), "/bin/echo \"testing special characters ` è &é 'à é \"\\")),
         "cfengine-community",
         "Command execution",
-        false
+        false,
+        Some(Audit)
       ) ::
       MethodCall(
         BundleName("package_state_windows"),
@@ -485,7 +494,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         Map((ParameterId("package_name"), "vim")),
         "dsc",
         "Package state windows",
-        false
+        false,
+        None
       ) ::
       MethodCall(
         BundleName("_logger"),
@@ -493,7 +503,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         Map((ParameterId("message"), "NA"), (ParameterId("old_class_prefix"), "NA")),
         "any",
         "Not sure we should test it ...",
-        false
+        false,
+        None
       ) :: Nil,
       "This Technique exists only to see if Rudder creates Technique correctly.",
       "",
@@ -641,7 +652,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         ),
         "any",
         "Test component$&é)à\\'\"",
-        false
+        false,
+        Some(Audit)
       ) :: Nil,
       "This Technique exists only to see if Rudder creates Technique correctly.",
       "",
@@ -731,7 +743,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         ),
         "${my_custom_condition}",
         "Command execution",
-        false
+        false,
+        None
       ) :: Nil,
       "",
       "",

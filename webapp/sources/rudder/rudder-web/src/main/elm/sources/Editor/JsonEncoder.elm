@@ -73,6 +73,19 @@ encodeTechniqueParameters param =
   in
     object (List.append base doc )
 
+
+appendPolicyMode: Maybe PolicyMode -> List (String, Value) -> Value
+appendPolicyMode pm base =
+    case pm of
+        Nothing -> object base
+        Just mode -> object (("policyMode", (encodePolicyMode mode)) :: base)
+
+encodePolicyMode: PolicyMode -> Value
+encodePolicyMode policyMode =
+    case policyMode of
+        Audit -> string "audit"
+        Enforce -> string "enforce"
+
 encodeMethodElem: MethodElem -> Value
 encodeMethodElem call =
   case call of
@@ -82,8 +95,7 @@ encodeMethodElem call =
 encodeMethodCall: MethodCall -> Value
 encodeMethodCall call =
 
-  object [
-
+  appendPolicyMode call.policyMode [
     ("id"           , string call.id.value)
   , ("component"    , string call.component)
   , ("method"  , string call.methodName.value)
@@ -107,7 +119,7 @@ encodeCompositionRule composition =
 
 encodeMethodBlock: MethodBlock -> Value
 encodeMethodBlock call =
-  object [
+  appendPolicyMode call.policyMode [
     ("reportingLogic"  , encodeCompositionRule call.reportingLogic)
   , ("condition",  string <| conditionStr call.condition)
   , ("component"    , string call.component)

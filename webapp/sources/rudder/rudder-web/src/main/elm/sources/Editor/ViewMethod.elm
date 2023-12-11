@@ -553,6 +553,32 @@ callBody model ui techniqueUi call pid =
                                   |> appendText method.name
                                 )
 
+    methodMode = case ui.mode of
+                   Opened -> element "div"
+                             |> addClass "method-name"
+                             |> appendChild
+                                ( element "div"
+                                    |> addClass ("component-name-wrapper")
+                                    |> appendChildList
+                                       [ element "div"
+                                         |> addClass "form-group"
+                                         |> appendChildList
+                                           [ element "div"
+                                             |> addClass "title-input-name"
+                                             |> appendText "Policy mode"
+                                           , element "select"
+                                             |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, name "policyMode", class "form-control" ]
+                                             |> addChangeHandler  (\s -> MethodCallModified (Call pid {call  | policyMode = Debug.log s (if (s == "audit") then Just Audit else if (s == "enforce") then Just Enforce else Nothing )}))
+                                             |> appendChildList [
+                                               element "option" |> addAttributeList [ selected (call.policyMode == Nothing), value "default"] |> appendText "Default"
+                                             , element "option" |> addAttributeList [ selected (call.policyMode == Just Audit), value "audit"] |> appendText "Audit"
+                                             , element "option" |> addAttributeList [ selected (call.policyMode == Just Enforce), value "enforce"] |> appendText "Enforce"
+                                             ]
+                                           ]
+                                       ]
+                                )
+                   Closed -> element "div"
+
     methodNameId = case ui.mode of
                      Opened -> element "span" |> appendText method.name
                                     |> addActionStopPropagation ("mousedown" , DisableDragDrop)
@@ -614,6 +640,7 @@ callBody model ui techniqueUi call pid =
             |> addAction ("click",  UIMethodAction call.id {ui | mode = Opened})
             |> appendChild condition
             |> appendChild methodName
+            |> appendChild methodMode
             --|> appendChild methodNameId
             |> appendChildConditional methodContent (ui.mode == Closed)
             |> appendChildConditional

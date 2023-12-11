@@ -14,11 +14,12 @@ bundle agent technique_any(version)
   methods:
     "id_${report_data.directive_id}" usebundle => technique_any_gm_0("Test component$&é)à\\'\"", "${node.properties[apache_package_name]}", "id", "${node.properties[apache_package_name]}", "2.2.11"),
                                             if => concat("any");
-
 }
 
 bundle agent technique_any_gm_0(c_name, c_key, report_id, package_name, package_version) {
   methods:
+    "id_${report_data.directive_id}" usebundle => push_dry_run_mode("true");
     "id_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
     "id_${report_data.directive_id}" usebundle => package_install_version("${package_name}","${package_version}");
+    "id_${report_data.directive_id}" usebundle => pop_dry_run_mode();
 }

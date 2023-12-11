@@ -46,8 +46,10 @@ import com.normation.errors.PureResult
 import com.normation.errors.Unexpected
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Version
+import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.ncf.Constraint.CheckResult
 import com.normation.rudder.ncf.Constraint.Constraint
+
 import java.util.regex.Pattern
 import zio.ZIO
 import zio.json.jsonDiscriminator
@@ -140,7 +142,8 @@ final case class MethodBlock(
     component:      String,
     reportingLogic: ReportingLogic,
     condition:      String,
-    calls:          List[MethodElem]
+    calls:          List[MethodElem],
+    policyMode:     Option[PolicyMode]
 ) extends MethodElem
 
 @jsonHint("call")
@@ -150,7 +153,8 @@ final case class MethodCall(
     parameters:        Map[ParameterId, String],
     condition:         String,
     component:         String,
-    disabledReporting: Boolean
+    disabledReporting: Boolean,
+    policyMode: Option[PolicyMode]
 ) extends MethodElem
 
 object MethodCall {

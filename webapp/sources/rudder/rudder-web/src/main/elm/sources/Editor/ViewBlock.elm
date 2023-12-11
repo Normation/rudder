@@ -434,6 +434,31 @@ blockBody model parentId block ui techniqueUi =
                                   |> addActionStopPropagation ("mouseover" , HoverMethod Nothing)
                                 )
 
+    methodMode = case ui.mode of
+                   Opened -> element "div"
+                             |> addClass "method-name"
+                             |> appendChild
+                                ( element "div"
+                                    |> addClass ("component-name-wrapper")
+                                    |> appendChildList
+                                       [ element "div"
+                                         |> addClass "form-group"
+                                         |> appendChildList
+                                           [ element "div"
+                                             |> addClass "title-input-name"
+                                             |> appendText "Policy mode"
+                                           , element "select"
+                                             |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, name "policyMode", class "form-control" ]
+                                             |> addChangeHandler  (\s -> MethodCallModified (Block parentId {block  | policyMode = Debug.log s (if (s == "audit") then Just Audit else if (s == "enforce") then Just Enforce else Nothing )}))
+                                             |> appendChildList [
+                                               element "option" |> addAttributeList [ selected (block.policyMode == Nothing), value "default"] |> appendText "Default"
+                                             , element "option" |> addAttributeList [ selected (block.policyMode == Just Audit), value "audit"] |> appendText "Audit"
+                                             , element "option" |> addAttributeList [ selected (block.policyMode == Just Enforce), value "enforce"] |> appendText "Enforce"
+                                             ]
+                                           ]
+                                       ]
+                                )
+                   Closed -> element "div"
     currentDrag = case DragDrop.currentlyDraggedObject model.dnd of
                     Just (Move x) -> getId x == block.id
                     Nothing -> False
@@ -466,6 +491,7 @@ blockBody model parentId block ui techniqueUi =
             |> addClass "flex-column block-name-container"
             |> appendChildConditional condition  (block.condition.os /= Nothing || block.condition.advanced /= "")
             |> appendChild methodName
+            |> appendChild methodMode
          ]
        |> appendChildConditional
          (blockDetail block parentId ui techniqueUi model )

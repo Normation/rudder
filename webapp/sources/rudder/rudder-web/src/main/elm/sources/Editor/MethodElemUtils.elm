@@ -1,5 +1,7 @@
 module Editor.MethodElemUtils exposing (..)
 
+import Html exposing (Html, label)
+import Html.Attributes exposing (class)
 import List.Extra
 
 import Editor.DataTypes exposing (..)
@@ -112,3 +114,11 @@ checkBlockConstraint block =
 
   in
     List.foldl  fold checkEmptyComponent [ checkFocusNotSet, checkCondition ]
+
+
+policyModeValue : Maybe PolicyMode -> String
+policyModeValue pm =
+    case pm of
+        Nothing -> "default"
+        Just Audit -> "audit"
+        Just Enforce -> "enforce"

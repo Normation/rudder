@@ -595,7 +595,7 @@ update msg model =
       if model.hasWriteRights then
       let
         disableReporting = False
-        newCall = MethodCall newId method.id (List.map (\p -> CallParameter p.name [Value ""]) method.parameters) (Condition Nothing "") "" disableReporting
+        newCall = MethodCall newId method.id (List.map (\p -> CallParameter p.name [Value ""]) method.parameters) (Condition Nothing "") "" disableReporting Nothing
         newModel =
           case model.mode of
             TechniqueDetails t o ui editInfo ->
@@ -613,7 +613,7 @@ update msg model =
     AddBlock newId ->
       if model.hasWriteRights then
       let
-        newCall = MethodBlock newId "" (Condition Nothing "") WeightedReport []
+        newCall = MethodBlock newId "" (Condition Nothing "") WeightedReport [] Nothing
         newModel =
           case model.mode of
             TechniqueDetails t o ui editInfo ->
@@ -825,12 +825,12 @@ update msg model =
             (baseCalls, newElem) =
               case draggedItemId of
                 Move b ->  ( removeElem (getId >> (==) (getId b)) t.elems, b)
-                NewBlock -> (t.elems, Block Nothing (MethodBlock (CallId "") "" (Condition Nothing "") WeightedReport []))
+                NewBlock -> (t.elems, Block Nothing (MethodBlock (CallId "") "" (Condition Nothing "") WeightedReport [] Nothing))
                 NewMethod method ->
                  let
                    disableReporting = False
                  in
-                   (t.elems, Call Nothing (MethodCall (CallId "") method.id (List.map (\p -> CallParameter p.name [Value ""]) method.parameters) (Condition Nothing "") "" disableReporting))
+                   (t.elems, Call Nothing (MethodCall (CallId "") method.id (List.map (\p -> CallParameter p.name [Value ""]) method.parameters) (Condition Nothing "") "" disableReporting  Nothing))
             updatedCalls =
               case dropTarget of
                 StartList ->
