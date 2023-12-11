@@ -2,12 +2,11 @@
 name = "rudder-package"
 version = "0.0.0-dev"
 description = "Plugin manager for Rudder"
-authors = ["Rudder developers <dev@rudder.io>"]
-edition = "2021"
-readme = "README.md"
-homepage = "https://www.rudder.io"
-repository = "https://github.com/Normation/rudder"
-license = "GPL-3.0-or-later"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
 
 [dependencies]
 anyhow = "1.0.75"
@@ -17,8 +16,6 @@ base16ct = { version = "0.2.0", features = ["alloc"] }
 clap = { version = "4.4.6", features = ["derive"] }
 chrono = { version = "0.4.31", default-features = false, features = ["clock", "std", "serde"] }
 dir-diff = "0.3.2"
-env_logger = "0.10.0"
-log = "0.4.20"
 lzma-rs = "0.3.0"
 pretty_assertions = "1.4.0"
 quick-xml = "0.31.0"
@@ -32,15 +29,11 @@ serde_toml = "0.0.1"
 sha2 = "0.10.8"
 tar = "0.4.40"
 tempfile = "3.8.0"
+# Compile dev and release with trace logs enabled
+tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_trace"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 which = "5.0.0"
 flate2 = "1.0.28"
 cli-table = "0.4.7"
 spinners = "4.1.1"
-
-[profile.dev]
-# Disabling debug info speeds up builds a bunch,
-# and we don't rely on it for debugging that much.
-debug = 0
-
-[profile.release]
-strip = true
+rudder_cli = { path = "../../../policies/rudder-cli" }

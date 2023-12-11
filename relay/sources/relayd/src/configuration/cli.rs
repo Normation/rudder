@@ -1,36 +1,27 @@
-// SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
+// SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use std::path::{Path, PathBuf};
+use clap::Parser;
 
-use gumdrop::Options;
-
-#[derive(Debug, Options)]
-// version and description are taken from Cargo.toml
-// struct fields comments are used as option description in help
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
 pub struct CliConfiguration {
-    #[options(
-        help = "set a custom config directory",
-        default = "/opt/rudder/etc/relayd/"
+    #[clap(long, short, help = "Set a custom configuration directory", default_value_t = String::from("/opt/rudder/etc/relayd"))]
+    pub config: String,
+    #[clap(
+        long,
+        short,
+        help = "Check the syntax of the configuration file and exit"
     )]
-    pub config: PathBuf,
-    #[options(help = "check the syntax of the configuration file and exit")]
     pub test: bool,
-    /// Automatically used for help flag
-    #[options(help = "print help message")]
-    help: bool,
-    #[options(help = "print version", short = "V")]
-    pub version: bool,
 }
 
 impl CliConfiguration {
     /// Used to generate configurations in tests
-    pub fn new<P: AsRef<Path>>(path: P, test: bool) -> Self {
+    pub fn new<P: AsRef<str>>(path: P, test: bool) -> Self {
         Self {
-            config: path.as_ref().to_path_buf(),
+            config: path.as_ref().to_string(),
             test,
-            help: false,
-            version: false,
         }
     }
 }

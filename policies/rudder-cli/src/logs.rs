@@ -5,13 +5,13 @@
 //!
 //! The style is heavily inspired from cargo/rustc.
 
+use anyhow::{bail, Error};
+use colored::Colorize;
 use std::{
     env,
     fmt::{Display, Formatter},
     str::FromStr,
 };
-
-use anyhow::{bail, Error};
 use tracing_subscriber::{filter::LevelFilter, fmt, fmt::Subscriber, EnvFilter};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -70,4 +70,10 @@ pub fn init(verbose: u8, quiet: bool, format: OutputFormat) {
             .init(),
         OutputFormat::Json => builder.event_format(fmt::format().json()).init(),
     };
+}
+
+/// Output a successful step
+/// In the `cargo` style
+pub fn ok_output<T: Display>(step: &'static str, message: T) {
+    println!("{:>12} {message}", step.green().bold(),);
 }

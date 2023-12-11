@@ -14,7 +14,7 @@ install: build
 test-docs: $(DOC_EXAMPLES_CF)
 
 test: libs
-	cargo test --locked
+	cargo test --locked --package rudderc
 	# Parse lib
 	cargo run --quiet --bin rudderc -- --quiet lib -f json --stdout -l target/repos/ncf/tree/30_generic_methods/ -l target/repos/dsc/plugin/src/ncf/30_generic_methods/ >/dev/null
 

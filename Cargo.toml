@@ -1,0 +1,26 @@
+[workspace]
+members = ["policies/rudderc",
+           "policies/rudder-module-type",
+           "policies/rudder-cli",
+           "policies/rudder-commons",
+           "policies/rudder-commons-test",
+           "policies/module-types/*",
+           "policies/minifusion",
+           "relay/sources/relayd",
+           "relay/sources/rudder-package"]
+resolver = "2"
+
+[workspace.package]
+authors = ["Rudder developers <dev@rudder.io>"]
+edition = "2021"
+homepage = "https://www.rudder.io"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/Normation/rudder"
+
+[profile.dev]
+# Disabling debug info speeds up builds a bunch,
+# and we don't rely on it for debugging that much.
+debug = 0
+
+[profile.release]
+strip = true

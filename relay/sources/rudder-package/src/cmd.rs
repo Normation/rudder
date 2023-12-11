@@ -4,7 +4,7 @@
 use std::{process::Command, str::FromStr};
 
 use anyhow::Result;
-use log::debug;
+use tracing::debug;
 
 pub struct CmdOutput {
     pub command: String,

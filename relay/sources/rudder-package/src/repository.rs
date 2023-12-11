@@ -8,13 +8,13 @@ use std::{
 
 use anyhow::{anyhow, bail, Context, Result};
 use flate2::read::GzDecoder;
-use log::{debug, info};
 use reqwest::{
     blocking::{Client, Response},
     Proxy, StatusCode, Url,
 };
 use tar::Archive;
 use tempfile::tempdir;
+use tracing::{debug, info};
 
 use crate::{
     config::{Configuration, Credentials},

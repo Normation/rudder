@@ -4,8 +4,8 @@
 use std::{collections::HashMap, fmt::Display, path::Path, process::Command};
 
 use anyhow::bail;
-use log::debug;
 use serde::{Deserialize, Serialize};
+use tracing::debug;
 
 use crate::{
     archive::{self, PackageScript, PackageScriptArg},

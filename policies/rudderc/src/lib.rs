@@ -21,7 +21,6 @@ pub mod compiler;
 mod doc;
 pub mod frontends;
 pub mod ir;
-pub mod logs;
 pub mod test;
 
 pub const TARGET_DIR: &str = "target";

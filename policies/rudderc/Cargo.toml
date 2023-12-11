@@ -2,11 +2,11 @@
 name = "rudderc"
 version = "0.0.0-dev"
 description = "Rudder configuration policies compiler"
-authors = ["Rudder developers <dev@rudder.io>"]
-edition = "2021"
-homepage = "https://www.rudder.io"
-repository = "https://github.com/Normation/rudder"
-license = "GPL-3.0-or-later"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
 
 [dependencies]
 anyhow = "1"
@@ -30,6 +30,7 @@ include_dir = "0.7.3"
 walkdir = "2"
 tempfile = "3"
 rudder_commons = { path = "../rudder-commons" }
+rudder_cli = { path = "../rudder-cli" }
 zip = { version = "0.6.6", default-features = false, features = ["deflate", "time"] }
 
 [features]

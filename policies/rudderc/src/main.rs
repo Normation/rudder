@@ -4,7 +4,8 @@
 use std::{env, process::exit};
 
 use clap::Parser;
-use rudderc::{cli::MainArgs, compiler::is_exit_on_user_error, logs};
+use rudder_cli::logs;
+use rudderc::{cli::MainArgs, compiler::is_exit_on_user_error};
 use tracing::{debug, error, trace};
 
 fn main() {

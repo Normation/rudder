@@ -4,8 +4,8 @@
 use std::{fmt, fs::read_to_string, path::Path};
 
 use anyhow::Result;
-use log::info;
 use serde::{Deserialize, Serialize};
+use tracing::info;
 
 const PUBLIC_REPO_URL: &str = "https://repository.rudder.io/plugins";
 const PRIVATE_REPO_URL: &str = "https://download.rudder.io/plugins";

@@ -26,7 +26,7 @@ use std::{
 
 use anyhow::{anyhow, bail, Context, Result};
 use clap::Parser;
-use log::{debug, error, info, warn, LevelFilter};
+use tracing::{debug, error, info, warn};
 
 use crate::{
     cli::Command,
@@ -76,17 +76,11 @@ pub fn run() -> Result<()> {
     let args = cli::Args::parse();
 
     // Setup logger early
-    let filter = if args.debug {
-        LevelFilter::Debug
-    } else {
-        LevelFilter::Info
-    };
-    env_logger::builder()
-        .format_timestamp(None)
-        .format_module_path(false)
-        .format_target(false)
-        .filter_level(filter)
-        .init();
+    rudder_cli::logs::init(
+        if args.debug { 0 } else { 1 },
+        false,
+        rudder_cli::logs::OutputFormat::Human,
+    );
 
     // Parse configuration file
     debug!("Parsed CLI arguments: {args:?}");

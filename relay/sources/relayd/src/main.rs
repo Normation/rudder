@@ -1,12 +1,12 @@
-// SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
+// SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use std::{env, process::exit};
+use std::{env, path::Path, process::exit};
 
-use gumdrop::Options;
+use clap::Parser;
 use rudder_relayd::{
     configuration::{check_configuration, cli::CliConfiguration},
-    init_logger, start, ExitStatus, CRATE_NAME, CRATE_VERSION,
+    init_logger, start, ExitStatus,
 };
 use tracing::error;
 
@@ -21,12 +21,9 @@ fn main() {
         env::set_var("RUST_BACKTRACE", "1");
     }
 
-    let cli_cfg = CliConfiguration::parse_args_default_or_exit();
-
-    if cli_cfg.version {
-        println!("{} {}", CRATE_NAME, CRATE_VERSION);
-    } else if cli_cfg.test {
-        match check_configuration(&cli_cfg.config) {
+    let cli_cfg = CliConfiguration::parse();
+    if cli_cfg.test {
+        match check_configuration(Path::new(&cli_cfg.config)) {
             Err(e) => {
                 println!("{}", e);
                 exit(ExitStatus::StartError(e).code());
