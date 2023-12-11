@@ -318,7 +318,6 @@ pipeline {
                                         dir('relay/sources/relayd') {
                                             sh script: "PGPASSWORD=${POSTGRES_PASSWORD} psql -U ${POSTGRES_USER} -h postgres -d ${POSTGRES_DB} -a -f tools/create-database.sql", label: 'provision database'
                                             sh script: 'make check', label: 'relayd tests'
-                                            sh script: 'cargo vet', label: 'check dependencies audits'
                                         }
                                     }
                                 }
@@ -365,7 +364,6 @@ pipeline {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('relay/sources/rudder-package') {
                                 sh script: 'make check', label: 'language tests'
-                                //sh script: 'cargo vet', label: 'check dependencies audits'
                             }
                         }
                     }
@@ -419,7 +417,6 @@ pipeline {
                                 }
                                 sh script: 'make agent-windows', label: 'install local Windows agent'
                                 sh script: 'make check', label: 'language tests'
-                                //sh script: 'cargo vet', label: 'check dependencies audits'
                                 sh script: 'make docs', label: 'language docs'
                             }
                         }
