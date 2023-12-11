@@ -449,7 +449,7 @@ blockBody model parentId block ui techniqueUi =
                                              |> appendText "Policy mode"
                                            , element "select"
                                              |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, name "policyMode", class "form-control" ]
-                                             |> addChangeHandler  (\s -> MethodCallModified (Block parentId {block  | policyMode = Debug.log s (if (s == "audit") then Just Audit else if (s == "enforce") then Just Enforce else Nothing )}))
+                                             |> addChangeHandler  (\s -> MethodCallModified (Block parentId {block  | policyMode = if (s == "audit") then Just Audit else if (s == "enforce") then Just Enforce else Nothing }))
                                              |> appendChildList [
                                                element "option" |> addAttributeList [ selected (block.policyMode == Nothing), value "default"] |> appendText "Default"
                                              , element "option" |> addAttributeList [ selected (block.policyMode == Just Audit), value "audit"] |> appendText "Audit"

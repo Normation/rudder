@@ -568,7 +568,7 @@ callBody model ui techniqueUi call pid =
                                              |> appendText "Policy mode"
                                            , element "select"
                                              |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, name "policyMode", class "form-control" ]
-                                             |> addChangeHandler  (\s -> MethodCallModified (Call pid {call  | policyMode = Debug.log s (if (s == "audit") then Just Audit else if (s == "enforce") then Just Enforce else Nothing )}))
+                                             |> addChangeHandler  (\s -> MethodCallModified (Call pid {call  | policyMode = if (s == "audit") then Just Audit else if (s == "enforce") then Just Enforce else Nothing }))
                                              |> appendChildList [
                                                element "option" |> addAttributeList [ selected (call.policyMode == Nothing), value "default"] |> appendText "Default"
                                              , element "option" |> addAttributeList [ selected (call.policyMode == Just Audit), value "audit"] |> appendText "Audit"
