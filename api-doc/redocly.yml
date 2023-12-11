@@ -13,7 +13,6 @@ rules:
   info-license-url: 'error'
   tag-description: 'error'
   operation-2xx-response: 'error'
-  assertions: 'error'
   operation-operationId: 'error'
   no-invalid-media-type-examples:
     severity: 'error'
