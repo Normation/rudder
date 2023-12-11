@@ -71,16 +71,16 @@ case class Technique(
 
 case class MethodItem(
     // Common fields
-    id:        String,
-    name:      String,
-    reporting: Option[Reporting],
-    condition: Option[String],
-    tags:      Option[Map[String, String]],
+    id:          String,
+    name:        String,
+    reporting:   Option[Reporting],
+    condition:   Option[String],
+    tags:        Option[Map[String, String]],
     // Call specific fields
-    method:    Option[String],
-    params:    Option[Map[ParameterId, String]],
+    method:      Option[String],
+    params:      Option[Map[ParameterId, String]],
     // Block specific fields
-    items:     Option[List[MethodItem]],
+    items:       Option[List[MethodItem]],
     policy_mode: Option[PolicyMode]
 )
 
@@ -123,7 +123,7 @@ object YamlTechniqueSerializer {
   implicit val decoderTechniqueParameter: JsonDecoder[TechniqueParameter] = DeriveJsonDecoder.gen
   implicit val decoderPolicyMode:         JsonDecoder[PolicyMode]         = JsonDecoder[String].mapOrFail(PolicyMode.parse(_) match {
     case Left(err) => Left(err.fullMsg)
-    case Right(r) => Right(r)
+    case Right(r)  => Right(r)
   })
   implicit lazy val decoderMethodElem:    JsonDecoder[MethodItem]         = DeriveJsonDecoder.gen
   implicit val decoderTechnique:          JsonDecoder[Technique]          = DeriveJsonDecoder.gen

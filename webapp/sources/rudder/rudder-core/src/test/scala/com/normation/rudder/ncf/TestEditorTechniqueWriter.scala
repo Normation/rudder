@@ -67,7 +67,8 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveSaveDiff
 import com.normation.rudder.domain.policies.DirectiveUid
-import com.normation.rudder.domain.policies.PolicyMode.{Audit, Enforce}
+import com.normation.rudder.domain.policies.PolicyMode.Audit
+import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.hooks.CmdResult
@@ -87,7 +88,6 @@ import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.zio._
-
 import java.io.{File => JFile}
 import java.io.InputStream
 import net.liftweb.common.Box
@@ -100,7 +100,6 @@ import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.BeforeAfterAll
-
 import scala.collection.SortedMap
 import scala.collection.SortedSet
 import zio._

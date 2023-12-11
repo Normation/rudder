@@ -59,7 +59,6 @@ import com.normation.rudder.services.policies.InterpolatedValueCompiler
 import com.normation.utils.Control
 import com.normation.zio.currentTimeMillis
 import com.normation.zio.currentTimeNanos
-
 import java.nio.charset.StandardCharsets
 import java.nio.file.CopyOption
 import java.nio.file.Files
@@ -68,7 +67,6 @@ import java.nio.file.StandardCopyOption
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
-
 import scala.xml.{Node => XmlNode}
 import scala.xml.NodeSeq
 import zio._
@@ -846,7 +844,7 @@ class ClassicTechniqueWriter(
              |    "${promiser}" usebundle => ${bundleNameAndArg}""".stripMargin('|')
         }
 
-        val bundleCallWithReportOption = {
+        val bundleCallWithReportOption              = {
           if (call.disabledReporting) {
             s"""    "${promiser}" usebundle => disable_reporting;
                |${bundleCall}
@@ -858,10 +856,10 @@ class ClassicTechniqueWriter(
         val bundleCallWithReportOptionAndPolicyMode = {
           call.policyMode match {
             case Some(pm) =>
-            s"""    "${promiser}" usebundle => push_dry_run_mode("${pm == PolicyMode.Audit}");
-               |${bundleCallWithReportOption}
-               |    "${promiser}" usebundle => pop_dry_run_mode();""".stripMargin('|')
-            case None =>
+              s"""    "${promiser}" usebundle => push_dry_run_mode("${pm == PolicyMode.Audit}");
+                 |${bundleCallWithReportOption}
+                 |    "${promiser}" usebundle => pop_dry_run_mode();""".stripMargin('|')
+            case None     =>
               bundleCallWithReportOption
           }
         }
@@ -903,29 +901,27 @@ class ClassicTechniqueWriter(
             createCallingBundle(condition, call, classParameterValue, params, false)
           })
         case block: MethodBlock =>
-          val bundleAndMethodCallsList = block.calls.flatMap(bundleMethodCall(block :: parentBlocks))
-          val methodBundles = bundleAndMethodCallsList.map(_._1).mkString("")
-          val methodCalls = bundleAndMethodCallsList.map(_._2).mkString("\n")
+          val bundleAndMethodCallsList  = block.calls.flatMap(bundleMethodCall(block :: parentBlocks))
+          val methodBundles             = bundleAndMethodCallsList.map(_._1).mkString("")
+          val methodCalls               = bundleAndMethodCallsList.map(_._2).mkString("\n")
           val methodCallsWithPolicyMode = {
             block.policyMode match {
               case Some(pm) =>
-
                 val promiser = block.id + "_${report_data.directive_id}"
                 s"""    "${promiser}" usebundle => push_dry_run_mode("${pm == PolicyMode.Audit}");
                    |${methodCalls}
                    |    "${promiser}" usebundle => pop_dry_run_mode();""".stripMargin('|')
-              case None =>
+              case None     =>
                 methodCalls
             }
           }
-          Some((methodBundles,methodCallsWithPolicyMode))
+          Some((methodBundles, methodCallsWithPolicyMode))
       }
     }
     val bundleAndMethodCallsList = technique.calls.flatMap(bundleMethodCall(Nil))
 
     val methodBundles = bundleAndMethodCallsList.map(_._1).mkString("")
-    val methodCalls  = bundleAndMethodCallsList.map(_._2).mkString("\n")
-
+    val methodCalls   = bundleAndMethodCallsList.map(_._2).mkString("\n")
 
     val content = {
       import net.liftweb.json._
@@ -1015,28 +1011,27 @@ class ClassicTechniqueWriter(
                }).map((naReport _).tupled)
             }).flatten
           case block: MethodBlock =>
-            val bundleAndMethodCallsList = block.calls.flatMap(bundleMethodCall(block :: parentBlocks))
-            val methodBundles = bundleAndMethodCallsList.map(_._1).mkString("")
-            val methodCalls = bundleAndMethodCallsList.map(_._2).mkString("\n")
+            val bundleAndMethodCallsList  = block.calls.flatMap(bundleMethodCall(block :: parentBlocks))
+            val methodBundles             = bundleAndMethodCallsList.map(_._1).mkString("")
+            val methodCalls               = bundleAndMethodCallsList.map(_._2).mkString("\n")
             val methodCallsWithPolicyMode = {
               block.policyMode match {
                 case Some(pm) =>
-
                   val promiser = block.id + "_${report_data.directive_id}"
                   s"""    "${promiser}" usebundle => push_dry_run_mode("${pm == PolicyMode.Audit}");
                      |${methodCalls}
                      |    "${promiser}" usebundle => pop_dry_run_mode();""".stripMargin('|')
-                case None =>
+                case None     =>
                   methodCalls
               }
             }
-            Some((methodBundles,methodCallsWithPolicyMode))
+            Some((methodBundles, methodCallsWithPolicyMode))
         }
       }
       val bundleAndMethodCallsList = technique.calls.flatMap(bundleMethodCall(Nil))
 
       val methodBundles = bundleAndMethodCallsList.map(_._1).mkString("")
-      val methodCalls  = bundleAndMethodCallsList.map(_._2).mkString("\n")
+      val methodCalls   = bundleAndMethodCallsList.map(_._2).mkString("\n")
 
       val content = {
         s"""bundle agent ${technique.id.value}_rudder_reporting${bundleParams}
@@ -1261,18 +1256,19 @@ class DSCTechniqueWriter(
               s"  Rudder-Report-NA @reportParams"
             }
 
-            val policyMode =
+            val policyMode = {
               call.policyMode match {
-                case None =>
+                case None                     =>
                   parentBlocks.find(_.policyMode.isDefined).flatMap(_.policyMode) match {
-                    case None =>
+                    case None                     =>
                       "$policyMode"
-                    case Some(PolicyMode.Audit) => "([Rudder.PolicyMode]::Audit)"
+                    case Some(PolicyMode.Audit)   => "([Rudder.PolicyMode]::Audit)"
                     case Some(PolicyMode.Enforce) => "([Rudder.PolicyMode]::Enforce)"
                   }
-                case Some(PolicyMode.Audit) => "([Rudder.PolicyMode]::Audit)"
+                case Some(PolicyMode.Audit)   => "([Rudder.PolicyMode]::Audit)"
                 case Some(PolicyMode.Enforce) => "([Rudder.PolicyMode]::Enforce)"
               }
+            }
             s"""|  $$reportId=$$reportIdBase+"${call.id}"
                 |  $$componentKey = ${classParameter}
                 |  $$reportParams = @{

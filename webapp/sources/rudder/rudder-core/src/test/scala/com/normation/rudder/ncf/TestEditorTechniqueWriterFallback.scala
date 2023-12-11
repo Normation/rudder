@@ -50,7 +50,6 @@ import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
 import com.normation.rudder.services.policies.InterpolatedValueCompilerImpl
 import com.normation.zio._
 import com.softwaremill.quicklens._
-
 import java.io.{File => JFile}
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
@@ -60,7 +59,6 @@ import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.BeforeAfterAll
-
 import scala.annotation.nowarn
 import zio.Chunk
 import zio.syntax._
