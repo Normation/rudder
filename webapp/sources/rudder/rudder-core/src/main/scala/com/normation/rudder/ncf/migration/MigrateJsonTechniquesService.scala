@@ -123,7 +123,8 @@ object MigrateJsonTechniquesService {
             elem.component,
             reportingLogic,
             elem.condition,
-            calls.map(toMethodElem)
+            calls.map(toMethodElem),
+            None
           )
         case None        =>
           MethodCall(
@@ -132,7 +133,8 @@ object MigrateJsonTechniquesService {
             elem.parameters.getOrElse(Nil).map(p => (ParameterId(p.name), p.value)).toMap,
             elem.condition,
             elem.component,
-            elem.disableReporting.getOrElse(false)
+            elem.disableReporting.getOrElse(false),
+            None
           )
       }
     }

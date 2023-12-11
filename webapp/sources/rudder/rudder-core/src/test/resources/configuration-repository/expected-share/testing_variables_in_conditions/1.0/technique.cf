@@ -14,7 +14,6 @@ bundle agent testing_variables_in_conditions(my_custom_condition)
   methods:
     "c0f1c227-0b8c-4219-ac3d-3c30fb4870ad_${report_data.directive_id}" usebundle => testing_variables_in_conditions_gm_0("Command execution", "{return 1}", "c0f1c227-0b8c-4219-ac3d-3c30fb4870ad", "{return 1}"),
                                                                               if => concat("",canonify("${my_custom_condition}"),"");
-
 }
 
 bundle agent testing_variables_in_conditions_gm_0(c_name, c_key, report_id, command) {

@@ -77,6 +77,14 @@ decodeCompositionRule =
   in  string
     |> andThen innerDecoder
 
+decodePolicyMode : Decoder PolicyMode
+decodePolicyMode =
+  andThen (\s -> case s of
+                   "audit" -> succeed Audit
+                   "enforce" -> succeed Enforce
+                   _ -> fail ""
+          ) string
+
 decodeBlock : Decoder MethodBlock
 decodeBlock =
   succeed MethodBlock
@@ -85,7 +93,8 @@ decodeBlock =
     |> required "condition"  (map parseCondition string)
     |> required "reportingLogic" decodeCompositionRule
     |> required "calls" (list  (lazy (\_ -> decodeMethodElem Nothing)))
-    >> andThen (\block -> succeed { block | calls = List.map (\x ->
+    |> optional "policyMode" (maybe decodePolicyMode) Nothing
+    >> map (\block ->  { block | calls = List.map (\x ->
                                                                case x of
                                                                  Block _ b -> Block (Just block.id) b
                                                                  Call _ c -> Call (Just block.id) c
@@ -101,6 +110,7 @@ decodeMethodCall =
     |> required "condition"  (map parseCondition string)
     |> optional "component"  string ""
     |> optional "disabledReporting" bool False
+    |> optional "policyMode" (maybe decodePolicyMode) Nothing
 
 decodeTechniqueMaybe : Decoder (Maybe Technique)
 decodeTechniqueMaybe =

@@ -47,6 +47,7 @@ import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.logger.RuddercLogger
 import com.normation.rudder.domain.logger.TechniqueWriterLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
+import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.hooks.RunNuCommand
@@ -843,7 +844,7 @@ class ClassicTechniqueWriter(
              |    "${promiser}" usebundle => ${bundleNameAndArg}""".stripMargin('|')
         }
 
-        val bundleCallWithReportOption = {
+        val bundleCallWithReportOption              = {
           if (call.disabledReporting) {
             s"""    "${promiser}" usebundle => disable_reporting;
                |${bundleCall}
@@ -852,10 +853,20 @@ class ClassicTechniqueWriter(
             bundleCall
           }
         }
+        val bundleCallWithReportOptionAndPolicyMode = {
+          call.policyMode match {
+            case Some(pm) =>
+              s"""    "${promiser}" usebundle => push_dry_run_mode("${pm == PolicyMode.Audit}");
+                 |${bundleCallWithReportOption}
+                 |    "${promiser}" usebundle => pop_dry_run_mode();""".stripMargin('|')
+            case None     =>
+              bundleCallWithReportOption
+          }
+        }
 
         s"""bundle agent ${bundleName}(${allArgs.mkString(", ")}) {
            |  methods:
-           |${bundleCallWithReportOption}
+           |${bundleCallWithReportOptionAndPolicyMode}
            |}
            |""".stripMargin('|')
       }
@@ -863,15 +874,14 @@ class ClassicTechniqueWriter(
       // the call to the bundle
       val callBundle = {
         s"""    "${promiser}" usebundle => ${bundleName}(${allValues.mkString(", ")}),
-           |     ${promiser.map(_ => ' ')}         ${filterOnMethod} => concat("${condition}");
-           |""".stripMargin('|')
+           |     ${promiser.map(_ => ' ')}         ${filterOnMethod} => concat("${condition}");""".stripMargin('|')
 
       }
       (bundleActing, callBundle)
     }
 
     // returns the bundle acting, and the method to call the bundle
-    def bundleMethodCall(parentBlocks: List[MethodBlock])(method: MethodElem): List[(String, String)] = {
+    def bundleMethodCall(parentBlocks: List[MethodBlock])(method: MethodElem): Option[(String, String)] = {
       method match {
         case call:  MethodCall  =>
           (for {
@@ -889,15 +899,29 @@ class ClassicTechniqueWriter(
           } yield {
             val condition = canonifyCondition(call, parentBlocks)
             createCallingBundle(condition, call, classParameterValue, params, false)
-          }).toList
+          })
         case block: MethodBlock =>
-          block.calls.flatMap(bundleMethodCall(block :: parentBlocks))
+          val bundleAndMethodCallsList  = block.calls.flatMap(bundleMethodCall(block :: parentBlocks))
+          val methodBundles             = bundleAndMethodCallsList.map(_._1).mkString("")
+          val methodCalls               = bundleAndMethodCallsList.map(_._2).mkString("\n")
+          val methodCallsWithPolicyMode = {
+            block.policyMode match {
+              case Some(pm) =>
+                val promiser = block.id + "_${report_data.directive_id}"
+                s"""    "${promiser}" usebundle => push_dry_run_mode("${pm == PolicyMode.Audit}");
+                   |${methodCalls}
+                   |    "${promiser}" usebundle => pop_dry_run_mode();""".stripMargin('|')
+              case None     =>
+                methodCalls
+            }
+          }
+          Some((methodBundles, methodCallsWithPolicyMode))
       }
     }
     val bundleAndMethodCallsList = technique.calls.flatMap(bundleMethodCall(Nil))
 
-    val bundleActings = bundleAndMethodCallsList.map(_._1).mkString("")
-    val methodsCalls  = bundleAndMethodCallsList.map(_._2).mkString("")
+    val methodBundles = bundleAndMethodCallsList.map(_._1).mkString("")
+    val methodCalls   = bundleAndMethodCallsList.map(_._2).mkString("\n")
 
     val content = {
       import net.liftweb.json._
@@ -922,10 +946,10 @@ class ClassicTechniqueWriter(
          |    "pass2" expression => "pass1";
          |    "pass1" expression => "any";
          |  methods:
-         |${methodsCalls}
+         |${methodCalls}
          |}
          |
-         |${bundleActings}""".stripMargin('|')
+         |${methodBundles}""".stripMargin('|')
     }
 
     implicit val charset = StandardCharsets.UTF_8
@@ -946,7 +970,7 @@ class ClassicTechniqueWriter(
         if (technique.parameters.nonEmpty) technique.parameters.map(_.name).mkString("(", ",", ")") else ""
       val args         = technique.parameters.map(p => s"$${${p.name}}").mkString(", ")
 
-      def bundleMethodCall(parentBlocks: List[MethodBlock])(method: MethodElem): List[(String, String)] = {
+      def bundleMethodCall(parentBlocks: List[MethodBlock])(method: MethodElem): Option[(String, String)] = {
         method match {
           case c:     MethodCall  =>
             val call = MethodCall.renameParams(c, methods).copy(method = BundleName("log_na_rudder"))
@@ -985,15 +1009,29 @@ class ClassicTechniqueWriter(
                    None
                  }
                }).map((naReport _).tupled)
-            }).toList.flatten
+            }).flatten
           case block: MethodBlock =>
-            block.calls.flatMap(bundleMethodCall(block :: parentBlocks))
+            val bundleAndMethodCallsList  = block.calls.flatMap(bundleMethodCall(block :: parentBlocks))
+            val methodBundles             = bundleAndMethodCallsList.map(_._1).mkString("")
+            val methodCalls               = bundleAndMethodCallsList.map(_._2).mkString("\n")
+            val methodCallsWithPolicyMode = {
+              block.policyMode match {
+                case Some(pm) =>
+                  val promiser = block.id + "_${report_data.directive_id}"
+                  s"""    "${promiser}" usebundle => push_dry_run_mode("${pm == PolicyMode.Audit}");
+                     |${methodCalls}
+                     |    "${promiser}" usebundle => pop_dry_run_mode();""".stripMargin('|')
+                case None     =>
+                  methodCalls
+              }
+            }
+            Some((methodBundles, methodCallsWithPolicyMode))
         }
       }
       val bundleAndMethodCallsList = technique.calls.flatMap(bundleMethodCall(Nil))
 
-      val bundleActings = bundleAndMethodCallsList.map(_._1).mkString("")
-      val methodsCalls  = bundleAndMethodCallsList.map(_._2).mkString("")
+      val methodBundles = bundleAndMethodCallsList.map(_._1).mkString("")
+      val methodCalls   = bundleAndMethodCallsList.map(_._2).mkString("\n")
 
       val content = {
         s"""bundle agent ${technique.id.value}_rudder_reporting${bundleParams}
@@ -1005,10 +1043,10 @@ class ClassicTechniqueWriter(
            |    "class_prefix"      string => string_head("$${full_class_prefix}", "1000");
            |
            |  methods:
-           |${methodsCalls}
+           |${methodCalls}
            |}
            |
-           |${bundleActings}"""
+           |${methodBundles}"""
       }
 
       val reportingFile = File(
@@ -1218,13 +1256,26 @@ class DSCTechniqueWriter(
               s"  Rudder-Report-NA @reportParams"
             }
 
+            val policyMode = {
+              call.policyMode match {
+                case None                     =>
+                  parentBlocks.find(_.policyMode.isDefined).flatMap(_.policyMode) match {
+                    case None                     =>
+                      "$policyMode"
+                    case Some(PolicyMode.Audit)   => "([Rudder.PolicyMode]::Audit)"
+                    case Some(PolicyMode.Enforce) => "([Rudder.PolicyMode]::Enforce)"
+                  }
+                case Some(PolicyMode.Audit)   => "([Rudder.PolicyMode]::Audit)"
+                case Some(PolicyMode.Enforce) => "([Rudder.PolicyMode]::Enforce)"
+              }
+            }
             s"""|  $$reportId=$$reportIdBase+"${call.id}"
                 |  $$componentKey = ${classParameter}
                 |  $$reportParams = @{
                 |    ClassPrefix = ([Rudder.Condition]::canonify(("${method.classPrefix}_" + $$componentKey)))
                 |    ComponentKey = $$componentKey
                 |    ComponentName = "${componentName}"
-                |    PolicyMode = $$policyMode
+                |    PolicyMode = ${policyMode}
                 |    ReportId = $$reportId
                 |    DisableReporting = $$${disableReporting}
                 |    TechniqueName = $$techniqueName

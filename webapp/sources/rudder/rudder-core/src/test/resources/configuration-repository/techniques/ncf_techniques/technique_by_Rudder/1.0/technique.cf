@@ -12,10 +12,12 @@ bundle agent technique_by_Rudder(technique_parameter)
     "pass2" expression => "pass1";
     "pass1" expression => "any";
   methods:
+    "id_method_${report_data.directive_id}" usebundle => push_dry_run_mode("true");
     "id1_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_0("Customized component", "${node.properties[apache_package_name]}", "id1", "${node.properties[apache_package_name]}", "2.2.11"),
                                              if => concat("(debian)");
     "id2_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_1("Command execution", "Write-Host \"testing special characters ` è &é 'à é \"", "id2", "Write-Host \"testing special characters ` è &é 'à é \""),
                                              if => concat("(debian.windows)");
+    "id_method_${report_data.directive_id}" usebundle => pop_dry_run_mode();
     "id3_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_2("Customized component", "${node.properties[apache_package_name]}", "id3", "${node.properties[apache_package_name]}"),
                                              if => concat("package_install_version_",canonify("${node.properties[apache_package_name]}"),"_repaired");
     "id4_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_3("Package install", "openssh-server", "id4", "openssh-server"),
@@ -26,7 +28,6 @@ bundle agent technique_by_Rudder(technique_parameter)
                                              if => concat("dsc");
     "id7_${report_data.directive_id}" usebundle => technique_by_Rudder_gm_6("Not sure we should test it ...", "NA", "id7", "NA", "NA"),
                                              if => concat("any");
-
 }
 
 bundle agent technique_by_Rudder_gm_0(c_name, c_key, report_id, package_name, package_version) {
@@ -36,15 +37,19 @@ bundle agent technique_by_Rudder_gm_0(c_name, c_key, report_id, package_name, pa
 }
 bundle agent technique_by_Rudder_gm_1(c_name, c_key, report_id, command) {
   methods:
+    "id2_${report_data.directive_id}" usebundle => push_dry_run_mode("false");
     "id2_${report_data.directive_id}" usebundle => disable_reporting;
     "id2_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
     "id2_${report_data.directive_id}" usebundle => command_execution("${command}");
     "id2_${report_data.directive_id}" usebundle => enable_reporting;
+    "id2_${report_data.directive_id}" usebundle => pop_dry_run_mode();
 }
 bundle agent technique_by_Rudder_gm_2(c_name, c_key, report_id, service_name) {
   methods:
+    "id3_${report_data.directive_id}" usebundle => push_dry_run_mode("true");
     "id3_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
     "id3_${report_data.directive_id}" usebundle => service_start("${service_name}");
+    "id3_${report_data.directive_id}" usebundle => pop_dry_run_mode();
 }
 bundle agent technique_by_Rudder_gm_3(c_name, c_key, report_id, package_name) {
   methods:
@@ -53,8 +58,10 @@ bundle agent technique_by_Rudder_gm_3(c_name, c_key, report_id, package_name) {
 }
 bundle agent technique_by_Rudder_gm_4(c_name, c_key, report_id, command) {
   methods:
+    "id5_${report_data.directive_id}" usebundle => push_dry_run_mode("true");
     "id5_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}","${c_key}","${report_id}");
     "id5_${report_data.directive_id}" usebundle => command_execution("${command}");
+    "id5_${report_data.directive_id}" usebundle => pop_dry_run_mode();
 }
 bundle agent technique_by_Rudder_gm_5(c_name, c_key, report_id, package_name) {
   methods:

@@ -40,6 +40,7 @@ package com.normation.rudder.ncf
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Version
+import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.ncf
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import net.liftweb.json.JField
@@ -55,11 +56,13 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
 
   import zio.json._
 
-  implicit val encoderParameterId:            JsonEncoder[ParameterId]                 = JsonEncoder[String].contramap(_.value)
-  implicit val encoderFieldParameterId:       JsonFieldEncoder[ParameterId]            = JsonFieldEncoder[String].contramap(_.value)
-  implicit val encoderBundleName:             JsonEncoder[BundleName]                  = JsonEncoder[String].contramap(_.value)
-  implicit val encoderVersion:                JsonEncoder[Version]                     = JsonEncoder[String].contramap(_.value)
-  implicit val encoderReportingLogic:         JsonEncoder[ReportingLogic]              = JsonEncoder[String].contramap(_.value)
+  implicit val encoderParameterId:      JsonEncoder[ParameterId]      = JsonEncoder[String].contramap(_.value)
+  implicit val encoderFieldParameterId: JsonFieldEncoder[ParameterId] = JsonFieldEncoder[String].contramap(_.value)
+  implicit val encoderBundleName:       JsonEncoder[BundleName]       = JsonEncoder[String].contramap(_.value)
+  implicit val encoderVersion:          JsonEncoder[Version]          = JsonEncoder[String].contramap(_.value)
+  implicit val encoderReportingLogic:   JsonEncoder[ReportingLogic]   = JsonEncoder[String].contramap(_.value)
+  implicit val encoderPolicyMode:       JsonEncoder[PolicyMode]       = JsonEncoder[String].contramap(_.name)
+
   implicit val encoderMethodElem:             JsonEncoder[MethodElem]                  = DeriveJsonEncoder.gen
   implicit val encoderTechniqueParameterType: JsonEncoder[ParameterType.ParameterType] =
     JsonEncoder[String].contramap(s => parameterTypeService.value(s).getOrElse(s.toString))
@@ -76,6 +79,10 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
     JsonDecoder[String].mapOrFail(ReportingLogic.parse(_).left.map(_.msg))
   implicit val decoderParameterType:      JsonDecoder[ParameterType.ParameterType] =
     JsonDecoder[String].mapOrFail(parameterTypeService.create(_).left.map(_.msg))
+  implicit val decoderPolicyMode:         JsonDecoder[PolicyMode]                  = JsonDecoder[String].mapOrFail(PolicyMode.parse(_) match {
+    case Left(err) => Left(err.fullMsg)
+    case Right(r)  => Right(r)
+  })
   implicit val decoderTechniqueParameter: JsonDecoder[TechniqueParameter]          = DeriveJsonDecoder.gen
   implicit val decoderMethodElem:         JsonDecoder[MethodElem]                  = DeriveJsonDecoder.gen
   implicit val decoderResourceFileState:  JsonDecoder[ResourceFileState]           =

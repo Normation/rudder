@@ -32,12 +32,15 @@ items:
         method: command_execution
         params:
           command: Write-Host "testing special characters ` è &é 'à é "
+        policy_mode: enforce
+    policy_mode: audit
   - id: id3
     name: Customized component
     condition: package_install_version_${node.properties[apache_package_name]}_repaired
     method: service_start
     params:
       service_name: ${node.properties[apache_package_name]}
+    policy_mode: audit
   - id: id4
     name: Package install
     condition: redhat
@@ -50,6 +53,7 @@ items:
     method: command_execution
     params:
       command: /bin/echo "testing special characters ` è &é 'à é "\
+    policy_mode: audit
   - id: id6
     name: Package state windows
     condition: dsc

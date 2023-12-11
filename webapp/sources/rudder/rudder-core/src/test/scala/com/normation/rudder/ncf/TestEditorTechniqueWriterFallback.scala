@@ -41,6 +41,7 @@ import better.files.File
 import com.normation.errors._
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Version
+import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
 import com.normation.rudder.ncf.TechniqueCompilerApp._
@@ -229,7 +230,8 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
         Map((ParameterId("package_name"), "openssh-server")),
         "redhat",
         "Package install",
-        false
+        false,
+        Some(Enforce)
       ) :: Nil,
       "",
       "",

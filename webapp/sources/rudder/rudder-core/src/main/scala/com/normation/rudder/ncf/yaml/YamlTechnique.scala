@@ -46,6 +46,7 @@ import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.PureResult
 import com.normation.inventory.domain.Version
+import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.ncf._
 import zio.json._
 import zio.json.yaml._
@@ -70,16 +71,17 @@ case class Technique(
 
 case class MethodItem(
     // Common fields
-    id:        String,
-    name:      String,
-    reporting: Option[Reporting],
-    condition: Option[String],
-    tags:      Option[Map[String, String]],
+    id:          String,
+    name:        String,
+    reporting:   Option[Reporting],
+    condition:   Option[String],
+    tags:        Option[Map[String, String]],
     // Call specific fields
-    method:    Option[String],
-    params:    Option[Map[ParameterId, String]],
+    method:      Option[String],
+    params:      Option[Map[ParameterId, String]],
     // Block specific fields
-    items:     Option[List[MethodItem]]
+    items:       Option[List[MethodItem]],
+    policy_mode: Option[PolicyMode]
 )
 
 case class Reporting(
@@ -106,6 +108,7 @@ object YamlTechniqueSerializer {
   implicit val encoderVersion:            JsonEncoder[Version]            = JsonEncoder[String].contramap(_.value)
   implicit val encoderReporting:          JsonEncoder[Reporting]          = DeriveJsonEncoder.gen
   implicit val encoderConstraints:        JsonEncoder[Constraints]        = DeriveJsonEncoder.gen
+  implicit val encoderPolicyMode:         JsonEncoder[PolicyMode]         = JsonEncoder[String].contramap(_.name)
   implicit lazy val encoderMethodElem:    JsonEncoder[MethodItem]         = DeriveJsonEncoder.gen
   implicit val encoderTechniqueParameter: JsonEncoder[TechniqueParameter] = DeriveJsonEncoder.gen
   implicit val encoderTechnique:          JsonEncoder[Technique]          = DeriveJsonEncoder.gen
@@ -118,6 +121,10 @@ object YamlTechniqueSerializer {
   implicit val decoderReporting:          JsonDecoder[Reporting]          = DeriveJsonDecoder.gen
   implicit val decoderConstraints:        JsonDecoder[Constraints]        = DeriveJsonDecoder.gen
   implicit val decoderTechniqueParameter: JsonDecoder[TechniqueParameter] = DeriveJsonDecoder.gen
+  implicit val decoderPolicyMode:         JsonDecoder[PolicyMode]         = JsonDecoder[String].mapOrFail(PolicyMode.parse(_) match {
+    case Left(err) => Left(err.fullMsg)
+    case Right(r)  => Right(r)
+  })
   implicit lazy val decoderMethodElem:    JsonDecoder[MethodItem]         = DeriveJsonDecoder.gen
   implicit val decoderTechnique:          JsonDecoder[Technique]          = DeriveJsonDecoder.gen
 
@@ -162,7 +169,8 @@ object YamlTechniqueSerializer {
             item.name,
             reporting,
             item.condition.getOrElse(""),
-            items
+            items,
+            item.policy_mode
           )
         }
       case None        =>
@@ -176,7 +184,8 @@ object YamlTechniqueSerializer {
                 item.condition.getOrElse(""),
                 item.name,
                 // boolean for "disableReporting"
-                item.reporting.map(_.mode == "disabled").getOrElse(false)
+                item.reporting.map(_.mode == "disabled").getOrElse(false),
+                item.policy_mode
               )
             )
           case None         => Left(Consistancy("error"))
@@ -242,7 +251,7 @@ object YamlTechniqueSerializer {
     }
 
     methodElem match {
-      case MethodBlock(id, name, reportingLogic, condition, items)               =>
+      case MethodBlock(id, name, reportingLogic, condition, items, policyMode)               =>
         MethodItem(
           id,
           name,
@@ -251,9 +260,10 @@ object YamlTechniqueSerializer {
           None,
           None,
           None,
-          Some(items.map(fromJsonMethodElem))
+          Some(items.map(fromJsonMethodElem)),
+          policyMode
         )
-      case MethodCall(method, id, parameters, condition, name, disableReporting) =>
+      case MethodCall(method, id, parameters, condition, name, disableReporting, policyMode) =>
         MethodItem(
           id,
           name,
@@ -262,7 +272,8 @@ object YamlTechniqueSerializer {
           None,
           Some(method.value),
           Some(parameters),
-          None
+          None,
+          policyMode
         )
     }
   }

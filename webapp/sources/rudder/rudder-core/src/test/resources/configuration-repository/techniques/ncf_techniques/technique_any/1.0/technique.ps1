@@ -24,7 +24,7 @@
     ClassPrefix = ([Rudder.Condition]::canonify(("package_install_version_" + $componentKey)))
     ComponentKey = $componentKey
     ComponentName = "Test component$&é)à\'`""
-    PolicyMode = $policyMode
+    PolicyMode = ([Rudder.PolicyMode]::Audit)
     ReportId = $reportId
     DisableReporting = $false
     TechniqueName = $techniqueName
