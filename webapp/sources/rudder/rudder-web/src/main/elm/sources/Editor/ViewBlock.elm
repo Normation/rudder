@@ -416,7 +416,7 @@ blockBody model parentId block ui techniqueUi =
                                            , element "input"
                                              |> addAttributeList [ readonly (not model.hasWriteRights), onFocus DisableDragDrop , type_ "text"
                                                                  , name "component", class "form-control"
-                                                                 , value block.component,  placeholder "Enter a friendly name for this component" ]
+                                                                 , value block.component,  placeholder "A friendly name for this component" ]
                                              |> addActionStopPropagation ("mousedown" ,DisableDragDrop )
                                              |> addInputHandler  (\s -> MethodCallModified (Block parentId {block  | component = s }))
                                            ]
