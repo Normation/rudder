@@ -1384,6 +1384,8 @@ case class RudderServiceApi(
     changeRequestChangesSerialisation:   ChangeRequestChangesSerialisation,
     gitRepo:                             GitRepositoryProvider,
     gitModificationRepository:           GitModificationRepository,
+    inventorySaver:                      NodeFactInventorySaver,
+    inventoryDitService:                 InventoryDitService,
     nodeFactRepository:                  NodeFactRepository
 )
 
@@ -3636,6 +3638,8 @@ object RudderConfigInit {
       changeRequestChangesSerialisation,
       gitConfigRepo,
       gitModificationRepository,
+      inventorySaver,
+      inventoryDitService,
       nodeFactRepository
     )
 

@@ -72,9 +72,9 @@ import zio.syntax._
  * but it is a major port/change from 8.0 and feels right here.
  */
 class NodeFactInventorySaver(
-    backend:                NodeFactRepository,
-    val preCommitPipeline:  Seq[PreCommit],
-    val postCommitPipeline: Seq[PostCommit[Unit]]
+    backend:               NodeFactRepository,
+    val preCommitPipeline: Seq[PreCommit],
+    val basePostPipeline:  Seq[PostCommit[Unit]]
 ) extends PipelinedInventorySaver[Unit] {
 
   override def commitChange(inventory: Inventory): IOResult[Unit] = {

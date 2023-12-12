@@ -77,8 +77,11 @@ trait InventorySaver[R] {
 
 trait PipelinedInventorySaver[R] extends InventorySaver[R] with Loggable {
 
-  val preCommitPipeline:  Seq[PreCommit]
-  val postCommitPipeline: Seq[PostCommit[R]]
+  val preCommitPipeline: Seq[PreCommit]
+  val basePostPipeline:  Seq[PostCommit[R]]
+  private[this] val postCommitPipeline: Ref[Seq[PostCommit[R]]] = Ref.make(basePostPipeline).runNow
+
+  def registerPostCommitHook(hook: PostCommit[R]) = postCommitPipeline.update(hook +: _)
 
   /**
    * Here comes the logic to actually save change in the Directory
@@ -125,7 +128,8 @@ trait PipelinedInventorySaver[R] extends InventorySaver[R] with Loggable {
        * now, post process inventory with third-party actions
        * PostPreCommitInventory only contains new software for perf reason, but we want "everything" in post commit
        */
-      postPostCommitInventory <- ZIO.foldLeft(postCommitPipeline)(commitedChange) { (currentChanges, postCommit) =>
+      postCommits             <- postCommitPipeline.get
+      postPostCommitInventory <- ZIO.foldLeft(postCommits)(commitedChange) { (currentChanges, postCommit) =>
                                    postCommit(postPreCommitInventory.copy(applications = inventory.applications), currentChanges)
                                      .chainError(
                                        s"Error in postCommit pipeline with processor '${postCommit.name}'. The commit was done, we may be in a inconsistent state."
