@@ -321,8 +321,8 @@ class NodeGroupForm(
             var main = document.getElementById("nodeproperties-app")
                                                      |var initValues = {
                                                      |    contextPath    : "${S.contextPath}"
-                                                     |  , hasWriteRights : hasWriteRights
-                                                     |  , hasReadRights  : hasReadRights
+                                                     |  , hasNodeWrite   : CanWriteNode
+                                                     |  , hasNodeRead    : CanReadNode
                                                      |  , nodeId         : "${group.id.uid.value}"
                                                      |  , objectType     : 'group'
                                                      |};
