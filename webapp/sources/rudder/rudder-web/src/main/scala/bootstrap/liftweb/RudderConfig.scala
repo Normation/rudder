@@ -49,6 +49,7 @@ import bootstrap.liftweb.checks.consistency.CheckDIT
 import bootstrap.liftweb.checks.consistency.CheckRudderGlobalParameter
 import bootstrap.liftweb.checks.migration.CheckAddSpecialNodeGroupsDescription
 import bootstrap.liftweb.checks.migration.CheckRemoveRuddercSetting
+import bootstrap.liftweb.checks.migration.MigrateChangeValidationEnforceSchema
 import bootstrap.liftweb.checks.migration.MigrateEventLogEnforceSchema
 import bootstrap.liftweb.checks.migration.MigrateJsonTechniquesToYaml
 import bootstrap.liftweb.checks.migration.MigrateNodeAcceptationInventories
@@ -1404,7 +1405,7 @@ object RudderConfigInit {
   /**
    * Catch all exception during initialization that would prevent initialization.
    * All exception are catched and will stop the application on boot.
-   * 
+   *
    * Throwing this is more transparent, otherwise the raw error could be unclear
    */
   sealed abstract class InitError(val msg: String, val cause: Option[Throwable])
@@ -3349,6 +3350,7 @@ object RudderConfigInit {
     lazy val allBootstrapChecks = new SequentialImmediateBootStrapChecks(
       new CheckConnections(dataSourceProvider, rwLdap),
       new MigrateEventLogEnforceSchema(doobie),
+      new MigrateChangeValidationEnforceSchema(doobie),
       new MigrateNodeAcceptationInventories(
         nodeInfoService,
         doobie,
