@@ -532,7 +532,7 @@ callBody model ui techniqueUi call pid =
                                              |> addClass "title-input-name"
                                              |> appendText "Method name"
                                            , element "input"
-                                             |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, type_ "text", name "component", style "width" "100%", class "form-control", value call.component,  placeholder "Enter a friendly name for this component" ]
+                                             |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, type_ "text", name "component", style "width" "100%", class "form-control", value call.component,  placeholder "A friendly name for this component" ]
                                              |> addInputHandler  (\s -> MethodCallModified (Call pid {call  | component = s }))
                                            ]
                                        ]
