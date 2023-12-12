@@ -39,11 +39,15 @@ package bootstrap.liftweb.checks.migration
 
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
-import com.normation.errors.IOResult
+import com.normation.errors.RudderError
 import com.normation.rudder.db.Doobie
 import com.normation.zio._
+import doobie.ConnectionIO
+import doobie.Transactor
 import doobie.implicits._
 import doobie.util.fragment.Fragment
+import doobie.util.update.Update0
+import zio._
 import zio.interop.catz._
 
 /*
@@ -57,55 +61,83 @@ class MigrateEventLogEnforceSchema(
 
   import doobie._
 
+  protected def tableName: String = "eventlog"
+  private def table = Fragment.const(tableName)
+
   val msg: String = "eventLog columns that should be not null (eventtype, principal, severity, data)"
 
   override def description: String =
     "Check if eventtype, principal, severity, data have a not null constraint, otherwise migrate these columns"
 
-  private val defaultSeverity  = Fragment.const("100")
-  private val defaultPrincipal = Fragment.const("'unknown'")
+  val defaultEventType = Fragment.const("''")
+  val defaultSeverity  = Fragment.const("100")
+  val defaultPrincipal = Fragment.const("'unknown'")
+  val defaultData      = Fragment.const("''")
 
-  private def alterTableStatement: IOResult[Unit] = {
-    val sql = {
-      sql"""
-        -- Alter the EventLog schema for the 'eventType' column
-        update EventLog set eventType = '' where eventType is null;
-        alter table EventLog
-        alter column eventType set default '',
-        alter column eventType set not null;
+  def migrateColumnStatement(column: Fragment, defaultValue: Fragment): Update0 = {
+    sql"""
+      -- Alter the EventLog schema for the column
+      update ${table} set ${column} = ${defaultValue} where $column is null;
+      alter table ${table}
+      alter column ${column} set default ${defaultValue},
+      alter column ${column} set not null;
+    """.update
+  }
 
-        -- Alter the EventLog schema for the 'principal' column
-        update EventLog set principal = ${defaultPrincipal} where principal is null;
-        alter table EventLog
-        alter column principal set default ${defaultPrincipal},
-        alter column principal set not null;
+  // we need to query using 'string' parameters, and not fragments
+  private def shouldMigrateColumn(columnName: String): ConnectionIO[Boolean] = {
+    sql"""
+      select count(*)
+      from information_schema.columns
+      where table_name = ${tableName}
+      and column_name = ${columnName}
+      and is_nullable = 'YES'
+    """.query[Int].unique.map(_ > 0)
+  }
 
-        -- Alter the EventLog schema for the 'severity' column
-        update EventLog set severity = ${defaultSeverity} where severity is null;
-        alter table EventLog
-        alter column severity set default ${defaultSeverity},
-        alter column severity set not null;
+  protected def migrationEffect(xa: Transactor[Task]): Task[Unit] = {
+    ZIO
+      .foreachDiscard(
+        List(
+          ("eventtype", defaultEventType),
+          ("principal", defaultPrincipal),
+          ("severity", defaultSeverity),
+          ("data", defaultData)
+        )
+      ) {
+        case (colName, defaultValue) =>
+          for {
+            migrate <- shouldMigrateColumn(colName).transact(xa)
+            _       <- if (migrate) {
+                         migrateColumnStatement(Fragment.const(colName), defaultValue).run.transact(xa)
+                       } else {
+                         BootstrapLogger.debug(
+                           s"No need to migrate: have already previously migrated table ${tableName} column ${colName} (${msg})"
+                         )
+                       }
 
-        -- Alter the EventLog schema for the 'data' column
-        update EventLog set data = '' where data is null;
-        alter table EventLog
-        alter column data set default '',
-        alter column data set not null;
-      """
-    }
+          } yield ()
+      }
 
-    transactIOResult(s"Error with 'EventLog' table migration")(xa => sql.update.run.transact(xa)).unit
+  }
+
+  val migrateAsync: URIO[Any, Fiber.Runtime[RudderError, Unit]] = {
+    transactIOResult(s"Error with 'EventLog' table migration")(
+      migrationEffect(_)
+        .foldZIO(
+          err =>
+            BootstrapLogger.error(
+              s"Non-fatal error when trying to migrate ${msg}." +
+              s"\nThis is a data check and it should not alter the behavior of Rudder." +
+              s"\nPlease contact the development team with the following information to help resolving the issue : ${err.getMessage}"
+            ),
+          _ => BootstrapLogger.info(s"Migrated ${msg}")
+        )
+    ).forkDaemon
   }
 
   override def checks(): Unit = {
-    val prog = {
-      for {
-        _ <- alterTableStatement
-        _ <- BootstrapLogger.info(s"Migrated ${msg}")
-      } yield ()
-    }
-
-    prog.catchAll(err => BootstrapLogger.error(s"Error when trying to migrate ${msg}: ${err.fullMsg}")).forkDaemon.runNow
+    migrateAsync.runNow
   }
 
 }
