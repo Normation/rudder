@@ -59,6 +59,7 @@ type alias Model =
   , policyMode  : String
   , ui          : UI
   , nodeCompliance : Maybe NodeCompliance
+  , onlySystem : Bool
   }
 
 type Msg

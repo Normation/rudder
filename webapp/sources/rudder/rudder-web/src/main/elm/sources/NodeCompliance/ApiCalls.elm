@@ -34,11 +34,12 @@ getPolicyMode model =
 getNodeCompliance : Model -> Cmd Msg
 getNodeCompliance model =
   let
+    url = if model.onlySystem then [ "compliance", "nodes", model.nodeId.value, "system" ] else [ "compliance", "nodes", model.nodeId.value ]
     req =
       request
         { method  = "GET"
         , headers = []
-        , url     = getUrl model [ "compliance", "nodes", model.nodeId.value ] []
+        , url     = getUrl model url []
         , body    = emptyBody
         , expect  = expectJson GetNodeComplianceResult decodeGetNodeCompliance
         , timeout = Nothing

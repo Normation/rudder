@@ -94,11 +94,15 @@ class ReportDisplayer(
       containerId:  String,
       tableId:      String,
       getReports:   NodeId => Box[NodeStatusReport],
-      addOverriden: Boolean
+      addOverriden: Boolean,
+      onlySystem:   Boolean
   ): NodeSeq = {
     val id       = JsNodeId(node.id)
-    val callback =
-      SHtml.ajaxInvoke(() => SetHtml(containerId, displayReports(node, getReports, tableId, containerId, addOverriden)))
+    val callback = {
+      SHtml.ajaxInvoke(() =>
+        SetHtml(containerId, displayReports(node, getReports, tableId, containerId, addOverriden, onlySystem))
+      )
+    }
     Script(OnLoad(JsRaw(s"""
       if($$("[aria-controls='${tabId}']").hasClass('ui-tabs-active')){
         ${callback.toJsCmd}
@@ -351,7 +355,8 @@ class ReportDisplayer(
       getReports:   NodeId => Box[NodeStatusReport],
       tableId:      String,
       containerId:  String,
-      addOverriden: Boolean
+      addOverriden: Boolean,
+      onlySystem:   Boolean
   ): NodeSeq = {
     val boxXml = (if (node.state == NodeState.Ignored) {
                     Full(
@@ -438,39 +443,13 @@ class ReportDisplayer(
 
                         case _: UnexpectedVersion | _: UnexpectedNoVersion | _: UnexpectedUnknownVersion | _: NoReportInInterval |
                             _: ReportsDisabledInInterval | _: NoUserRulesDefined =>
-                          /*
-                           * In these case, filter out "unexpected" reports to only
-                           * keep missing ones, and do not show the "compliance" row.
-                           */
-                          val filtered = NodeStatusReport(
-                            report.nodeId,
-                            report.runInfo,
-                            report.statusInfo,
-                            report.overrides,
-                            report.reports.flatMap { x =>
-                              x.withFilteredElements(
-                                _ => true, // keep all (non empty) directives
-
-                                _ => true, // keep all (non empty) component values
-
-                                value => { // filter values based on the message type - we don't want Unexpected values
-                                  value.messages.forall(m => m.reportType != ReportType.Unexpected)
-                                }
-                              )
-                            }
-                          )
-
                           (
                             "lastreportgrid-intro" #> intro
                             & "runagent" #> triggerAgent(node)
                             & "lastreportgrid-grid" #> showReportDetail(
-                              filtered,
                               node,
                               withCompliance = false,
-                              tableId,
-                              containerId,
-                              getReports,
-                              addOverriden
+                              onlySystem
                             )
                             & "#AllLogButton  [class+]" #> { if (runDate.isEmpty || tableId != "reportsGrid") "hide" else "" }
                             & "#AllLogButton  [onClick]" #> {
@@ -492,13 +471,9 @@ class ReportDisplayer(
                             "lastreportgrid-intro" #> intro
                             & "runagent" #> triggerAgent(node)
                             & "lastreportgrid-grid" #> showReportDetail(
-                              report,
                               node,
                               withCompliance = true,
-                              tableId,
-                              containerId,
-                              getReports,
-                              addOverriden
+                              onlySystem
                             )
                             & "#AllLogButton [class+]" #> { if (runDate.isEmpty || tableId != "reportsGrid") "hide" else "" }
                             & "#AllLogButton [onClick]" #> {
@@ -524,20 +499,17 @@ class ReportDisplayer(
   }
 
   private[this] def showReportDetail(
-      reports:        NodeStatusReport,
       node:           NodeInfo,
       withCompliance: Boolean,
-      tableId:        String,
-      id:             String,
-      getReports:     NodeId => Box[NodeStatusReport],
-      addOverriden:   Boolean
+      onlySystem:     Boolean
   ): NodeSeq = {
     <div id="nodecompliance-app"></div> ++
     Script(JsRaw(s"""
                     |var main = document.getElementById("nodecompliance-app")
                     |var initValues = {
                     |  nodeId : "${node.id.value}",
-                    |  contextPath : contextPath
+                    |  contextPath : contextPath,
+                    |  onlySystem: ${onlySystem}
                     |};
                     |var app = Elm.Nodecompliance.init({node: main, flags: initValues});
                     |app.ports.errorNotification.subscribe(function(str) {

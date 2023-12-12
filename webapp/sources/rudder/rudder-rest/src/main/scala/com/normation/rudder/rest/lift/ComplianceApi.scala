@@ -102,6 +102,7 @@ class ComplianceApi(
           case API.GetRulesCompliance       => GetRules
           case API.GetRulesComplianceId     => GetRuleId
           case API.GetNodesCompliance       => GetNodes
+          case API.GetNodeSystemCompliance  => GetNodeSystemCompliance
           case API.GetNodeComplianceId      => GetNodeId
           case API.GetGlobalCompliance      => GetGlobal
           case API.GetDirectiveComplianceId => GetDirectiveId
@@ -297,7 +298,7 @@ class ComplianceApi(
       (for {
         level     <- restExtractor.extractComplianceLevel(req.params)
         precision <- restExtractor.extractPercentPrecision(req.params)
-        nodes     <- complianceService.getNodesCompliance()
+        nodes     <- complianceService.getNodesCompliance(false)
       } yield {
         if (version.value <= 6) {
           nodes.map(_.toJsonV6)
@@ -332,13 +333,45 @@ class ComplianceApi(
       (for {
         level     <- restExtractor.extractComplianceLevel(req.params)
         precision <- restExtractor.extractPercentPrecision(req.params)
-        node      <- complianceService.getNodeCompliance(NodeId(nodeId))
+        node      <- complianceService.getNodeCompliance(NodeId(nodeId), false)
       } yield {
         if (version.value <= 6) {
           node.toJsonV6
         } else {
           node.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2))
         }
+      }) match {
+        case Full(node) =>
+          toJsonResponse(None, ("nodes" -> List(node)))
+
+        case eb: EmptyBox =>
+          val message = (eb ?~ (s"Could not get compliance for node '${nodeId}'")).messageChain
+          toJsonError(None, JString(message))
+      }
+    }
+  }
+
+  object GetNodeSystemCompliance extends LiftApiModule {
+    val schema: OneParam = API.GetNodeSystemCompliance
+    val restExtractor = restExtractorService
+
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        nodeId:     String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      implicit val action   = schema.name
+      implicit val prettify = params.prettify
+
+      (for {
+        level     <- restExtractor.extractComplianceLevel(req.params)
+        precision <- restExtractor.extractPercentPrecision(req.params)
+        node      <- complianceService.getNodeCompliance(NodeId(nodeId), true)
+      } yield {
+        node.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2))
       }) match {
         case Full(node) =>
           toJsonResponse(None, ("nodes" -> List(node)))
@@ -685,10 +718,24 @@ class ComplianceAPIService(
   /**
    * Get the compliance for everything
    */
-  private[this] def getByNodesCompliance(onlyNode: Option[NodeId]): IOResult[Seq[ByNodeNodeCompliance]] = {
+  private[this] def getSystemRules()  = {
+    for {
+      allRules  <- rulesRepo.getAll(true)
+      userRules <- rulesRepo.getAll()
+    } yield {
+      allRules.diff(userRules)
+    }
+  }
+  private[this] def getAllUserRules() = {
+    rulesRepo.getAll()
+  }
+  private[this] def getByNodesCompliance(
+      onlyNode: Option[NodeId],
+      getRules: => IOResult[Seq[Rule]]
+  ): IOResult[Seq[ByNodeNodeCompliance]] = {
 
     for {
-      rules        <- rulesRepo.getAll()
+      rules        <- getRules
       allGroups    <- nodeGroupRepo.getAllNodeIds()
       directiveLib <- directiveRepo.getFullDirectiveLibrary().map(_.allDirectives)
       allNodeInfos <- nodeInfoService.getAll()
@@ -783,9 +830,9 @@ class ComplianceAPIService(
     }
   }
 
-  def getNodeCompliance(nodeId: NodeId): Box[ByNodeNodeCompliance] = {
+  def getNodeCompliance(nodeId: NodeId, onlySystems: Boolean): Box[ByNodeNodeCompliance] = {
     for {
-      reports <- this.getByNodesCompliance(Some(nodeId)).toBox
+      reports <- this.getByNodesCompliance(Some(nodeId), if (onlySystems) getSystemRules() else getAllUserRules()).toBox
       report  <- Box(reports.find(_.id == nodeId)) ?~! s"No reports were found for node with ID '${nodeId.value}'"
     } yield {
       report
@@ -793,8 +840,8 @@ class ComplianceAPIService(
 
   }
 
-  def getNodesCompliance(): Box[Seq[ByNodeNodeCompliance]] = {
-    this.getByNodesCompliance(None).toBox
+  def getNodesCompliance(onlySystems: Boolean): Box[Seq[ByNodeNodeCompliance]] = {
+    this.getByNodesCompliance(None, if (onlySystems) getSystemRules() else getAllUserRules()).toBox
   }
 
   def getGlobalCompliance(): Box[Option[(ComplianceLevel, Long)]] = {
