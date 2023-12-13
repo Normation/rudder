@@ -27,23 +27,6 @@ pipeline {
     stages {
         stage('Tests') {
             parallel {
-                stage('windows-policies') {
-                    agent {
-                        label 'windows-generic'
-                    }
-                    steps {
-                        dir('policies') {
-                            //dir('target/repos/ncf') {
-                            //    git url: 'https://github.com/normation/ncf.git'
-                            //}
-                            //dir('target/repos/dsc') {
-                            //    git url: 'https://github.com/normation/rudder-agent-windows.git',
-                            //        credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
-                            //}
-                            sh script: 'RUDDERC_VERSION="${RUDDER_VERSION}-${GIT_COMMIT}" make static', label: 'public binary'
-                        }
-                    }
-                }
                 //stage('relayd-man') {
                 //    agent {
                 //        dockerfile {
@@ -78,45 +61,62 @@ pipeline {
                 //        }
                 //    }
                 //}
-                //stage('shell') {
-                //    agent {
-                //        dockerfile {
-                //            filename 'ci/shellcheck.Dockerfile'
-                //        }
-                //    }
+                stage('shell') {
+                    agent {
+                        dockerfile {
+                            filename 'ci/shellcheck.Dockerfile'
+                        }
+                    }
 
-                //    steps {
-                //        script {
-                //            running.add("Tests - shell")
-                //            updateSlack(errors, running, slackResponse, version, changeUrl)
-                //        }
-                //        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                //            sh script: './qa-test --shell', label: 'shell scripts lint'
-                //        }
+                    steps {
+                        script {
+                            running.add("Tests - shell")
+                            updateSlack(errors, running, slackResponse, version, changeUrl)
+                        }
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            sh script: './qa-test --shell', label: 'shell scripts lint'
+                        }
 
-                //    }
-                //    post {
-                //        always {
-                //            // linters results
-                //            recordIssues enabledForFailure: true, failOnError: true, sourceCodeEncoding: 'UTF-8',
-                //                         tool: checkStyle(pattern: '.shellcheck/*.log', reportEncoding: 'UTF-8', name: 'Shell scripts')
-                //        }
-                //        failure {
-                //            script {
-                //                failedBuild = true
-                //                errors.add("Tests - shell")
-                //                //notifier.notifyResult("shell-team")
-                //                slackSend(channel: slackResponse.threadId, message: "Error during shell tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
-                //            }
-                //        }
-                //        cleanup {
-                //            script {
-                //                running.remove("Tests - shell")
-                //                updateSlack(errors, running, slackResponse, version, changeUrl)
-                //            }
-                //        }
-                //    }
-                //}
+                    }
+                    post {
+                        always {
+                            // linters results
+                            recordIssues enabledForFailure: true, failOnError: true, sourceCodeEncoding: 'UTF-8',
+                                         tool: checkStyle(pattern: '.shellcheck/*.log', reportEncoding: 'UTF-8', name: 'Shell scripts')
+                        }
+                        failure {
+                            script {
+                                failedBuild = true
+                                errors.add("Tests - shell")
+                                //notifier.notifyResult("shell-team")
+                                slackSend(channel: slackResponse.threadId, message: "Error during shell tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                running.remove("Tests - shell")
+                                updateSlack(errors, running, slackResponse, version, changeUrl)
+                            }
+                        }
+                    }
+                }
+                stage('windows-policies') {
+                    agent {
+                        label 'windows-generic'
+                    }
+                    steps {
+                        dir('policies') {
+                            //dir('target/repos/ncf') {
+                            //    git url: 'https://github.com/normation/ncf.git'
+                            //}
+                            //dir('target/repos/dsc') {
+                            //    git url: 'https://github.com/normation/rudder-agent-windows.git',
+                            //        credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
+                            //}
+                            sh script: 'RUDDERC_VERSION="${RUDDER_VERSION}-${GIT_COMMIT}" make static', label: 'public binary'
+                        }
+                    }
+                }
                 //stage('python') {
                 //    agent {
                 //        dockerfile {
