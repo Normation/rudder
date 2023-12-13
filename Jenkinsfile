@@ -638,7 +638,24 @@ pipeline {
                         }
                     }
                 }
-                stage('policies') {
+                stage('windows-policies') {
+                    agent {
+                        label 'windows-generic'
+                    }
+                    steps {
+                        dir('policies') {
+                            dir('target/repos/ncf') {
+                                git url: 'https://github.com/normation/ncf.git'
+                            }
+                            dir('target/repos/dsc') {
+                                git url: 'https://github.com/normation/rudder-agent-windows.git',
+                                    credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
+                            }
+                            sh script: 'RUDDERC_VERSION="${RUDDER_VERSION}-${GIT_COMMIT}" make static', label: 'public binary'
+                        }
+                    }
+                }
+                stage('linux-policies') {
                     agent {
                         dockerfile {
                             filename 'policies/Dockerfile'
