@@ -2,3 +2,6 @@
 # SPDX-FileCopyrightText: 2020 Normation SAS
 
 include ../rust.makefile
+
+check:
+	cd rudderc && make check
