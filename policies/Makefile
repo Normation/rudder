@@ -8,3 +8,6 @@ build:
 
 check:
 	cd rudderc && make check
+
+install:
+	cd rudderc && make install
