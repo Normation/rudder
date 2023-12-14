@@ -26,6 +26,7 @@ use std::{
 
 use anyhow::{anyhow, bail, Context, Result};
 use clap::Parser;
+use cli::Args;
 use tracing::{debug, error, info, warn};
 
 use crate::{
@@ -64,14 +65,6 @@ fn am_i_root() -> Result<bool> {
 
 /// CLI entry point
 pub fn run() -> Result<()> {
-    // Abort of not run as root
-    // Ignore on error
-    #[cfg(not(debug_assertions))]
-    if let Ok(false) = am_i_root() {
-        eprintln!("This program needs to run as root, aborting.");
-        process::exit(1);
-    }
-
     // Read CLI args
     let args = cli::Args::parse();
 
@@ -81,7 +74,23 @@ pub fn run() -> Result<()> {
         false,
         rudder_cli::logs::OutputFormat::Human,
     );
+    
+    // Abort of not run as root
+    // Ignore on error
+    #[cfg(not(debug_assertions))]
+    if let Ok(false) = am_i_root() {
+        error!("This program needs to run as root, aborting.");
+        return Err(());
+    }
 
+    let r = run_inner(args);
+    if let Err(ref e) = r {
+        error!("{:?}", e);
+    }
+    r
+}
+
+pub fn run_inner(args: Args) -> Result<()> {
     // Parse configuration file
     debug!("Parsed CLI arguments: {args:?}");
     let cfg = Configuration::read(Path::new(&args.config))

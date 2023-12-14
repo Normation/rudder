@@ -10,7 +10,7 @@ use colored::Colorize;
 use std::{
     env,
     fmt::{Display, Formatter},
-    str::FromStr,
+    str::FromStr, io,
 };
 use tracing_subscriber::{filter::LevelFilter, fmt, fmt::Subscriber, EnvFilter};
 
@@ -65,7 +65,7 @@ pub fn init(verbose: u8, quiet: bool, format: OutputFormat) {
         .with_target(false)
         .with_env_filter(filter);
     match format {
-        OutputFormat::Human => builder
+        OutputFormat::Human => builder.with_writer(io::stderr)
             .event_format(fmt::format().compact().without_time().with_ansi(!no_color))
             .init(),
         OutputFormat::Json => builder.event_format(fmt::format().json()).init(),
