@@ -399,13 +399,12 @@ pipeline {
                         }
                     }
                     steps {
-
                         script {
                             running.add("Tests - policies")
                             updateSlack(errors, running, slackResponse, version, changeUrl)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            dir('policies') {
+                            dir('policies/rudderc') {
                                 dir('target/repos') {
                                     dir('ncf') {
                                         git url: 'https://github.com/normation/ncf.git'
@@ -416,8 +415,11 @@ pipeline {
                                     }
                                 }
                                 sh script: 'make agent-windows', label: 'install local Windows agent'
-                                sh script: 'make check', label: 'language tests'
-                                sh script: 'make docs', label: 'language docs'
+                                sh script: 'make check', label: 'rudderc tests'
+                                sh script: 'make docs', label: 'rudderc docs'
+                            }
+                            dir('policies') {
+                                sh script: 'make check', label: 'policies test'
                             }
                         }
                     }
@@ -693,7 +695,7 @@ pipeline {
                             updateSlack(errors, running, slackResponse, version, changeUrl)
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            dir('policies') {
+                            dir('policies/rudderc') {
                                 dir('target/repos') {
                                     dir('ncf') {
                                         git url: 'https://github.com/normation/ncf.git'
@@ -709,7 +711,7 @@ pipeline {
                                 }
                                 sh script: 'RUDDERC_VERSION="${RUDDER_VERSION}-${GIT_COMMIT}" make static', label: 'public binary'
                                 withCredentials([sshUserPrivateKey(credentialsId: 'f15029d3-ef1d-4642-be7d-362bf7141e63', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/release/rudderc packager@${HOST_REPO}:/var/www/repos/tools/rudderc/${RUDDER_VERSION}/rudderc-linux-x86_64', label: 'publish rudderc'
+                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" ../../target/release/rudderc packager@${HOST_REPO}:/var/www/repos/tools/rudderc/${RUDDER_VERSION}/rudderc-linux-x86_64', label: 'publish rudderc'
                                 }
                             }
                         }
