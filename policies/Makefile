@@ -3,5 +3,8 @@
 
 include ../rust.makefile
 
+build:
+	cd rudderc && make build
+
 check:
 	cd rudderc && make check
