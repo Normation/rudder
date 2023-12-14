@@ -14,9 +14,9 @@ fn main() {
         // Done in `Jenkinsfile`
         let libs = [
             // Unix
-            PathBuf::from("../target/repos/ncf/tree"),
+            PathBuf::from("target/repos/ncf/tree"),
             // Windows
-            PathBuf::from("../target/repos/dsc/plugin/src/ncf"),
+            PathBuf::from("target/repos/dsc/plugin/src/ncf"),
         ];
         let methods = read(&libs).unwrap();
         fs::write(METHODS_FILE, serde_json::to_string(methods).unwrap()).unwrap();

@@ -16,7 +16,7 @@ use test_generator::test_resources;
 
 const UNIX_TEST_LIB: &str = "tests/lib/common";
 // We need a real windows agent
-const WINDOWS_TEST_LIB: &str = "../target/agent-windows/Rudder";
+const WINDOWS_TEST_LIB: &str = "target/agent-windows/Rudder";
 const TEST_METHODS: &str = "tests/lib/common/30_generic_methods";
 
 /// Compile and tests all files in `cases/test`. This tests the testing feature itself.
@@ -69,9 +69,15 @@ fn test_windows(filename: &str) {
         &technique_dir.join("target"),
         &technique_dir.join("tests"),
         &[cwd.join(WINDOWS_TEST_LIB)],
-        "../target/agent-windows/Rudder".to_string(),
+        Path::new("target/agent-windows/Rudder")
+            .canonicalize()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string(),
         None,
         false,
     );
+    dbg!(&res);
     res.unwrap();
 }
