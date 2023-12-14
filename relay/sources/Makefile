@@ -82,7 +82,7 @@ install: build
 	mkdir -p $(DESTDIR)/opt/rudder/etc/ssl/
 	mkdir -m 700 -p $(DESTDIR)/opt/rudder/etc/rudder-pkg/
 	mkdir -p $(DESTDIR)/opt/rudder/share/selinux/
-	mkdir -p $(DESTDIR)/opt/rudder/share/python/
+	mkdir -p $(DESTDIR)/opt/rudder/share/python/rudder-pkg
 	mkdir -p $(DESTDIR)/opt/rudder/share/package-scripts/
 	mkdir -p $(DESTDIR)/opt/rudder/share/man/man1/
 	mkdir -p $(DESTDIR)/opt/rudder/share/commands/
