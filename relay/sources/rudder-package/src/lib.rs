@@ -20,6 +20,7 @@ mod versions;
 mod webapp;
 
 use std::{
+    fs::create_dir_all,
     path::{Path, PathBuf},
     process,
 };
@@ -74,7 +75,7 @@ pub fn run() -> Result<()> {
         false,
         rudder_cli::logs::OutputFormat::Human,
     );
-    
+
     // Abort of not run as root
     // Ignore on error
     #[cfg(not(debug_assertions))]
@@ -105,6 +106,8 @@ pub fn run_inner(args: Args) -> Result<()> {
     let mut db = Database::read(Path::new(PACKAGES_DATABASE_PATH))?;
     let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
     let licenses = Licenses::from_path(Path::new(LICENSES_FOLDER))?;
+
+    create_dir_all(TMP_PLUGINS_FOLDER).context("Create temporary directory")?;
 
     match args.command {
         Command::Install { force, package } => {
