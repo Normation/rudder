@@ -533,18 +533,24 @@ object DisplayNode extends Loggable {
       }.headOption.getOrElse("Not found")
     }</div>
           {displayPolicyServerInfos(sm)}
-          <div><label>Administrator account:</label> {sm.node.main.rootUser}</div>
+          <div>
+            {
+      creationDate.map { creation =>
+        <xml:group><label>Accepted since:</label> {DateFormaterService.getDisplayDate(creation)}</xml:group>
+      }.getOrElse(NodeSeq.Empty)
+    }
+          </div>
           {
       sm.node.agents.headOption match {
         case Some(agent) =>
           val checked     = (sm.node.main.status, sm.node.main.keyStatus) match {
             case (AcceptedInventory, CertifiedKey) =>
               <span>
-                <span class="glyphicon glyphicon-ok text-success" data-bs-toggle="tooltip" title="Inventories for this Node must be signed with this key"></span>
+                <span class="fa fa-check text-success" data-bs-toggle="tooltip" title="Inventories for this Node must be signed with this key"></span>
               </span>
             case (AcceptedInventory, UndefinedKey) =>
               <span>
-                <span class="glyphicon glyphicon-exclamation-sign text-warning" data-bs-toggle="tooltip" title="Certificate for this node has been reset, next inventory will be trusted automatically"></span>
+                <span class="fa fa-exclamation-triangle text-warning" data-bs-toggle="tooltip" title="Certificate for this node has been reset, next inventory will be trusted automatically"></span>
               </span>
             case _                                 => // not accepted inventory? Should not get there
               NodeSeq.Empty
@@ -599,7 +605,7 @@ object DisplayNode extends Loggable {
         </div>
 
         <div class="status-info col-lg-6 col-sm-5 col-xs-12">
-          <h3>Status information</h3>
+          <h3>Monitoring</h3>
           <div class="node-compliance-bar"></div>
           <div>
             <label>Inventory created (node local time):</label>  {
@@ -609,13 +615,6 @@ object DisplayNode extends Loggable {
           <div>
             <label>Inventory received:</label>  {
       sm.node.receiveDate.map(DateFormaterService.getDisplayDate(_)).getOrElse("Unknown")
-    }
-          </div>
-          <div>
-            {
-      creationDate.map { creation =>
-        <xml:group><label>Accepted since:</label> {DateFormaterService.getDisplayDate(creation)}</xml:group>
-      }.getOrElse(NodeSeq.Empty)
     }
           </div>
           <div>

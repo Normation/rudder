@@ -254,6 +254,7 @@ class ShowNodeDetailsFromNode(
     val id = JsNodeId(node.id)
     ("#nodeHeader" #> DisplayNode.showNodeHeader(inventory, Some(node)) &
     "#confirmNodeDeletion" #> showDeleteButton(inventory.node.main) &
+    "#nbGroups *" #> groupLib.getTarget(node).keySet.size.toString &
     "#node_groupTree" #>
     <div id={groupTreeId}>
           <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node, None, None, Map(("info", _ => Noop)))}</ul>

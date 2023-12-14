@@ -1921,11 +1921,14 @@ function reportsSum (complianceArray) {
  */
 function buildComplianceBar(compliance, minPxSize) {
 
-  if (Array.isArray(compliance)) {
+  var container = $('<div></div>');
+  var content;
+
+  if (Array.isArray(compliance) && compliance.length > 0) {
     //Set the default minimal size and displayed value of compliance bars if not defined
     if (minPxSize === undefined) minPxSize = 5;
 
-    var content = $('<div class="progress"></div>');
+    content = $('<div class="progress"></div>');
 
     // Correct compliance array, if sum is over 100, fix it y removing the excedent amount to the max value
     var sum = compliance.reduce(function(pv, cv) {return pv[1] + cv[1]; }, 0);
@@ -2041,17 +2044,15 @@ function buildComplianceBar(compliance, minPxSize) {
       content.append('<div class="progress-bar progress-bar-no-report" style=" width:'+complianceBars[6].width+'" title="No report: '+tooltip+'%">'+complianceBars[6].value+'</div>');
     }
 
-    var container = $('<div></div>');
-    container.append(content);
-
     $(window).on('resize',function(){
       adjustComplianceBar(content);
     });
 
-    return container
   } else {
-    return compliance
+    content = $("<div class='placeholder-bar progress'></div>");
   }
+  container.append(content);
+  return container
 }
 
 function adjustComplianceBar(bar){

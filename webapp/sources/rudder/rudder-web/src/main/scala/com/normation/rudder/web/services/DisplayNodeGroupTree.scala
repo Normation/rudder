@@ -85,7 +85,7 @@ object DisplayNodeGroupTree extends Loggable {
 
       private[this] val localOnClickTarget = onClickTarget.map(_.curried(category))
 
-      private[this] val tooltipContent = s"<h3>${category.name}</h3>\n<div>${category.description}</div>"
+      private[this] val tooltipContent = s"<h4>${category.name}</h4>\n<div class='tooltip-content'>${category.description}</div>"
       private[this] val xml            = (
         <span class="treeGroupCategoryName" data-bs-toggle="tooltip" title={tooltipContent}>{category.name}</span>
       )
@@ -195,7 +195,7 @@ object DisplayNodeGroupTree extends Loggable {
         }
 
         val xml = {
-          val tooltipContent = "<div>\n<h3>{targetInfo.name}</h3>\n<div>{targetInfo.description}</div>\n</div>"
+          val tooltipContent = s"<h4>${targetInfo.name}</h4>\n<div class='tooltip-content'>${targetInfo.description}</div>"
           <span class="treeGroupName" data-bs-toggle="tooltip" title={tooltipContent}>
             {targetInfo.name}
             {if (targetInfo.isSystem) <small class="greyscala"> - System</small>}
