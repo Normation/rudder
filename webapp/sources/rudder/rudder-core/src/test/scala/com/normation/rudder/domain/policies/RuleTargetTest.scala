@@ -202,10 +202,35 @@ class RuleTargetTest extends Specification with Loggable {
       allTargets.forall { gt =>
         RuleTarget.unser(gt.target) match {
           case Some(unser) => unser == gt
-          // TODO: what was he meaning of this test? It makes no sense
-          case None        => false // gt.target == gt
+          case None        => false
         }
       } === true
+    }
+
+    /*
+     * The format changed in 7.0, but we can have eventLogs with the old format.
+     * It is unclear is we want to pay the big migration cost for only that, and
+     * we would prefer to either amortize it with an other rewrite of eventLogs,
+     * or just keep it forever (we are not sure we really want to change evenLog ever)
+     */
+    "Is able to correctly parse the old format and write back the new one for policy servers" in {
+
+      val oldFormat = """{"include":{"or":["special:all_servers_with_role"]},"exclude":{"or":[]}}"""
+      val newFormat = """{"include":{"or":["special:all_policyServers"]},"exclude":{"or":[]}}"""
+
+      val p = RuleTarget.unser(oldFormat)
+      (p === Some(TargetExclusion(TargetUnion(Set(AllPolicyServers)), TargetUnion()))) and
+      (p.get.toString === newFormat)
+    }
+
+    "Is able to correctly parse the old format and write back for simple nodes" in {
+
+      val oldFormat = """{"include":{"or":["special:all_nodes_without_role"]},"exclude":{"or":[]}}"""
+      val newFormat = """{"include":{"or":["special:all_exceptPolicyServers"]},"exclude":{"or":[]}}"""
+
+      val p = RuleTarget.unser(oldFormat)
+      (p === Some(TargetExclusion(TargetUnion(Set(AllTargetExceptPolicyServers)), TargetUnion()))) and
+      (p.get.toString === newFormat)
     }
 
     "Have their group target removed in composite targets" in {
