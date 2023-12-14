@@ -13,7 +13,7 @@ use crate::{
     ir::Technique,
     test::TestCase,
 };
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use askama::Template;
 use rudder_commons::{
     logs::ok_output,
@@ -96,6 +96,16 @@ pub fn win_agent(
         .arg(format!("&'{}'", test_path.display()))
         .output()?;
 
+    debug!("stdout: {}", String::from_utf8_lossy(&output.stdout));
+    debug!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+    if !output.status.success() {
+        bail!(
+            "Test {} failed with {}",
+            case_id,
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
     // Take latest file from reports_dir
     // FIXME: find something more reliable
     let mut paths: Vec<_> = fs::read_dir(reports_dir)?.map(|r| r.unwrap()).collect();
@@ -114,7 +124,5 @@ pub fn win_agent(
 
     let run_log = Report::parse(&clean_reports.join("\n"))?;
     debug!("reports: {}", reports);
-    debug!("stdout: {}", String::from_utf8_lossy(&output.stdout));
-    debug!("stderr: {}", String::from_utf8_lossy(&output.stderr));
     Ok(run_log)
 }
