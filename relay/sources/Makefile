@@ -103,7 +103,7 @@ install: build
 	touch $(DESTDIR)/var/rudder/lib/ssl/.placeholder
 
 	# Install binary
-	install -m 755 relayd/target/release/rudder-relayd $(DESTDIR)/opt/rudder/bin/rudder-relayd
+	install -m 755 ../../target/release/rudder-relayd $(DESTDIR)/opt/rudder/bin/rudder-relayd
 	# Install default configuration file
 	install -m 640 relayd/tools/config/main.conf $(DESTDIR)/opt/rudder/etc/relayd/main.conf
 	install -m 644 relayd/tools/config/logging.conf $(DESTDIR)/opt/rudder/etc/relayd/logging.conf
@@ -114,7 +114,7 @@ install: build
 	install -m 644 target/man/rudder-relayd.1.gz $(DESTDIR)/opt/rudder/share/man/man1/
 
 	# rudder-package new implementation
-	install -m 755 rudder-package/target/release/rudder-package $(DESTDIR)/opt/rudder/bin/rudder-package
+	install -m 755 ../../target/release/rudder-package $(DESTDIR)/opt/rudder/bin/rudder-package
 	install -m 755 rudder-package/tools/rudder_plugins_key.gpg $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.gpg
 	install -m 755 rudder-package/tools/rudder-package.sh $(DESTDIR)/opt/rudder/share/commands/package
 	install -m 755 rudder-pkg/rudder-pkg.conf $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder-pkg.conf
