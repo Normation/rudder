@@ -35,6 +35,10 @@
 */
 
 /* === RESET === */
+ul {
+  list-style-type: none;
+}
+
 .content-wrapper > .rudder_col{
   padding: 0;
 }
@@ -165,6 +169,34 @@
 }
 .rudder-template .header-title h1.item-disabled {
   color: #828894;
+}
+.rudder-template .header-subtitle{
+  font-size: .8rem;
+  font-weight: normal;
+  color: #F8F9FC;
+  margin-top: 4px;
+
+  .clipboard{
+    color: #72829d;
+    transition-duration: .2s;
+    padding: 4px;
+    cursor: pointer;
+    border-radius: 4px;
+    .ion-clipboard{
+      opacity: 0;
+      transition-duration: .2s;
+      font-size: 1rem;
+      margin-left: 4px;
+    }
+
+    &:hover{
+      background-color: #F8F9FC;
+
+      .ion-clipboard{
+        opacity: 1;
+      }
+    }
+  }
 }
 .rudder-template .header-buttons {
   white-space: nowrap;
@@ -1216,7 +1248,8 @@
 }
 
 /* === BTN GOTO === */
-.rudder-template .btn-goto{
+.rudder-template .btn-goto,
+.rudder-template .btn-clipboard{
   padding: 3px 6px;
   border-radius: 4px;
   margin-left: 4px;

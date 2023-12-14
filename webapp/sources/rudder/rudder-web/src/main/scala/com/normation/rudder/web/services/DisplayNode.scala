@@ -55,12 +55,10 @@ import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
-import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.services.reports.NoReportInInterval
 import com.normation.rudder.services.reports.Pending
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.web.model.JsNodeId
-import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.snippet.RegisterToasts
 import com.normation.rudder.web.snippet.ToastNotification
 import com.normation.utils.DateFormaterService
@@ -94,16 +92,13 @@ import scala.xml.Utility.escape
  */
 object DisplayNode extends Loggable {
 
-  private[this] val nodeFactRepository    = RudderConfig.nodeFactRepository
-  private[this] val removeNodeService     = RudderConfig.removeNodeService
-  private[this] val asyncDeploymentAgent  = RudderConfig.asyncDeploymentAgent
-  private[this] val uuidGen               = RudderConfig.stringUuidGenerator
-  private[this] val nodeInfoService       = RudderConfig.nodeInfoService
-  private[this] val linkUtil              = RudderConfig.linkUtil
-  private[this] val reportingService      = RudderConfig.reportingService
-  private[this] val deleteNodePopupHtmlId = "deleteNodePopupHtmlId"
-  private[this] val errorPopupHtmlId      = "errorPopupHtmlId"
-  private[this] val successPopupHtmlId    = "successPopupHtmlId"
+  private[this] val nodeFactRepository   = RudderConfig.nodeFactRepository
+  private[this] val removeNodeService    = RudderConfig.removeNodeService
+  private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
+  private[this] val uuidGen              = RudderConfig.stringUuidGenerator
+  private[this] val nodeInfoService      = RudderConfig.nodeInfoService
+  private[this] val linkUtil             = RudderConfig.linkUtil
+  private[this] val reportingService     = RudderConfig.reportingService
 
   private def escapeJs(in: String):   JsExp   = Str(escape(in))
   private def escapeHTML(in: String): NodeSeq = Text(escape(in))
@@ -348,7 +343,7 @@ object DisplayNode extends Loggable {
     val tabId = htmlId(jsId, "node_details_")
 
     <div id={tabId} class="sInventory ui-tabs-vertical">
-      <ul class="list-tabs-invetory">{mainTabDeclaration}</ul>
+      <ul class="list-tabs-inventory">{mainTabDeclaration}</ul>
       {tabContent.flatten}
     </div> ++ Script(OnLoad(JsRaw(s"$$('#${tabId}').tabs()")))
   }
@@ -365,18 +360,119 @@ object DisplayNode extends Loggable {
   ): NodeSeq = {
     val jsId      = JsNodeId(sm.node.main.id, salt)
     val detailsId = htmlId(jsId, "details_")
-    <div id={detailsId} class="tabs">
-      <ul class="rudder-ui-tabs">
-        <li><a href={htmlId_#(jsId, "node_summary_")}>Summary</a></li>
-        <li><a href={htmlId_#(jsId, "node_inventory_")}>Inventory</a></li>
-      </ul>
-      <div id={htmlId(jsId, "node_summary_")}>
-        {showNodeDetails(sm, nodeAndGlobalMode, None, inventoryStatus, salt)}
+    <div id={detailsId}>
+      <div class="main-header">
+        {showNodeHeader(sm)}
       </div>
-      <div id={htmlId(jsId, "node_inventory_")}>
-        {showInventoryVerticalMenu(sm, nodeAndGlobalMode.map(_._1))}
+      <div class="tabs">
+        <div class="main-navbar">
+          <ul class="rudder-ui-tabs">
+            <li><a href={htmlId_#(jsId, "node_summary_")}>Summary</a></li>
+            <li><a href={htmlId_#(jsId, "node_inventory_")}>Inventory</a></li>
+          </ul>
+        </div>
+        <div id={htmlId(jsId, "node_summary_")}>
+          {showNodeDetails(sm, nodeAndGlobalMode, None, inventoryStatus, salt)}
+        </div>
+        <div id={htmlId(jsId, "node_inventory_")}>
+          {showInventoryVerticalMenu(sm, nodeAndGlobalMode.map(_._1))}
+        </div>
       </div>
     </div>
+  }
+
+  def showNodeHeader(sm: FullInventory, optNode: Option[NodeInfo] = None): NodeSeq = {
+    val machineTooltip: String = {
+      s"""
+         |<h4>Machine details</h4>
+         |<div class='tooltip-content'>
+         |  <ul>
+         |    <li><b>Type:</b> ${displayMachineType(sm.machine)}</li>
+         |    <li><b>Total physical memory (RAM):</b> ${xml.Utility.escape(
+          sm.node.ram.map(_.toStringMo).getOrElse("-")
+        )}</li>
+         |    <li><b>Manufacturer:</b> ${xml.Utility.escape(
+          sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-")
+        )}</li>
+         |    <li><b>Total swap space:</b> ${xml.Utility.escape(sm.node.swap.map(_.toStringMo).getOrElse("-"))}</li>
+         |    <li><b>System serial number:</b> ${xml.Utility.escape(
+          sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-")
+        )}</li>
+         |    <li><b>Time zone:</b> ${xml.Utility.escape(
+          sm.node.timezone
+            .map(x => if (x.name.toLowerCase == "utc") "UTC" else s"${x.name} (UTC ${x.offset})")
+            .getOrElse("unknown")
+        )}</li>
+         |    <li>${sm.machine
+          .map(_.id.value)
+          .map(machineId => "<b>Machine ID:</b> " ++ { xml.Utility.escape(machineId) })
+          .getOrElse("<span class='error'>Machine Information are missing for that node</span>")}</li>
+         |  </ul>
+         |</div>
+         |""".stripMargin.replaceAll("\n", " ")
+    }
+
+    val deleteBtn = {
+      sm.node.main.status match {
+        case AcceptedInventory =>
+          <lift:authz role="node_write">
+            {
+            if (!isRootNode(sm.node.main.id)) {
+              <button type="button" class="btn btn-danger btn-icon" data-bs-toggle="modal" data-bs-target="#nodeDeleteModal">
+                Delete
+                <i class="fa fa-times-circle"></i>
+              </button>
+            } else { NodeSeq.Empty }
+          }
+          </lift:authz>
+        case _                 => NodeSeq.Empty
+      }
+    }
+
+    val osTooltip: String = {
+      s"""
+         |<h4>Operating system details</h4>
+         |<div class='tooltip-content'>
+         |  <ul>
+         |    <li><b>Type:</b> ${xml.Utility.escape(sm.node.main.osDetails.os.kernelName)}</li>
+         |    <li><b>Name:</b> ${xml.Utility.escape(S.?("os.name." + sm.node.main.osDetails.os.name))}</li>
+         |    <li><b>Version:</b> ${xml.Utility.escape(sm.node.main.osDetails.version.value)}</li>
+         |    <li><b>Service pack:</b> ${xml.Utility.escape(sm.node.main.osDetails.servicePack.getOrElse("None"))}</li>
+         |    <li><b>Architecture:</b> ${xml.Utility.escape(sm.node.archDescription.getOrElse("None"))}</li>
+         |    <li><b>Kernel version:</b> ${xml.Utility.escape(sm.node.main.osDetails.kernelVersion.value)}</li>
+         |  </ul>
+         |</div>""".stripMargin.replaceAll("\n", " ")
+    }
+
+    val nodeStateIcon = (optNode
+      .map(n => <span class={"node-state " ++ getNodeState(n.state).toLowerCase} title={getNodeState(n.state)}></span>)
+      .getOrElse(NodeSeq.Empty))
+
+    <div class="header-title">
+    <div class={"os-logo " ++ sm.node.main.osDetails.os.name.toLowerCase()} data-bs-toggle="tooltip" title={osTooltip}></div>
+    <h1>
+      <div id="nodeHeaderInfo">
+        {nodeStateIcon}
+        <span>{sm.node.main.hostname}</span>
+        <span class="machine-os-info">
+          <span class="machine-info">{sm.node.main.osDetails.fullName}</span>
+          <span class="machine-info ram">{sm.node.ram.map(_.toStringMo).getOrElse("-")}</span>
+          <span class="fa fa-info-circle icon-info" data-bs-toggle="tooltip" data-bs-placement="bottom" title={
+      machineTooltip
+    }></span>
+        </span>
+      </div>
+      <div class="header-subtitle">
+        <a class="clipboard" title="Copy to clipboard" data-clipboard-text={sm.node.main.id.value}>
+          <span id="nodeHeaderId">{sm.node.main.id.value}</span>
+          <i class="ion ion-clipboard"></i>
+        </a>
+      </div>
+    </h1>
+    <div class="header-buttons">
+      {deleteBtn}
+    </div>
+  </div> ++ Script(OnLoad(JsRaw(s"""new ClipboardJS('[data-clipboard-text]');""")))
   }
 
   // mimic the content of server_details/ShowNodeDetailsFromNode
@@ -409,101 +505,8 @@ object DisplayNode extends Loggable {
         None
     }
 
-    val deleteButton: NodeSeq = {
-      sm.node.main.status match {
-        case AcceptedInventory =>
-          <div>
-              <div id={deleteNodePopupHtmlId}  class="modal fade" tabindex="-1" />
-              <div id={errorPopupHtmlId}  class="modal fade" tabindex="-1" />
-              <div id={successPopupHtmlId}  class="modal fade" tabindex="-1" />
-          </div>
-          <lift:authz role="node_write">
-            {
-            if (!isRootNode(sm.node.main.id)) {
-              <div>
-                  <div class="col-xs-12">
-                    {showDeleteButton(sm.node.main)}
-                  </div>
-                </div>
-            } else { NodeSeq.Empty }
-          }
-            </lift:authz>
-        case _                 => NodeSeq.Empty
-      }
-    }
-    val osIcon = sm.node.main.osDetails.os.name.toLowerCase();
-
-    val osTooltip:      String = {
-      s"""
-        <h4>Operating system details</h4>
-        <div class="tooltip-content">
-          <ul>
-            <li><b>Type:</b> ${escape(sm.node.main.osDetails.os.kernelName)}</li>
-            <li><b>Name:</b> ${escape(S.?("os.name." + sm.node.main.osDetails.os.name))}</li>
-            <li><b>Version:</b> ${escape(sm.node.main.osDetails.version.value)}</li>
-            <li><b>Service pack:</b> ${escape(sm.node.main.osDetails.servicePack.getOrElse("None"))}</li>
-            <li><b>Architecture:</b> ${escape(sm.node.archDescription.getOrElse("None"))}</li>
-            <li><b>Kernel version:</b> ${escape(sm.node.main.osDetails.kernelVersion.value)}</li>
-          </ul>
-        </div>
-      """
-    }
-    val machineTooltip: String = {
-      s"""
-        <h4>Operating system details</h4>
-        <div class="tooltip-content">
-          <ul>
-            <li><b>Total physical memory (RAM):</b> ${escape(sm.node.ram.map(_.toStringMo).getOrElse("-"))}</li>
-            <li><b>Manufacturer:</b> ${escape(sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-"))}</li>
-            <li><b>Total swap space:</b> ${escape(sm.node.swap.map(_.toStringMo).getOrElse("-"))}</li>
-            <li><b>System serial number:</b> ${escape(sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-"))}</li>
-            <li><b>Time zone:</b>
-              ${escape(
-          sm.node.timezone
-            .map(x => if (x.name.toLowerCase == "utc") "UTC" else s"${x.name} (UTC ${x.offset})")
-            .getOrElse("unknown")
-        )}
-            </li>
-            <li>
-              ${sm.machine
-          .map(_.id.value)
-          .map(machineId => "<b>Machine ID:</b> " ++ { escape(machineId) })
-          .getOrElse("""<span class="error">Machine Information are missing for that node</span>""")}
-            </li>
-          </ul>
-        </div>
-      """
-    }
-
     <div id="nodeDetails">
-      <div class="id-card node">
-        <div class={"card-img " ++ osIcon}></div>
-        <div class="card-info">
-          <div><label>Hostname:         </label>{sm.node.main.hostname}{
-      nodeAndGlobalMode match {
-        case Some((n, _)) => <span class={"node-state " ++ getNodeState(n.state).toLowerCase}></span>
-        case None         => NodeSeq.Empty
-      }
-    }
-          </div>
-          <div><label>Node ID:          </label>{sm.node.main.id.value}</div>
-          <div><label>Operating system: </label>{
-      escape(sm.node.main.osDetails.fullName)
-    }<span class="glyphicon glyphicon-info-sign icon-info" data-bs-toggle="tooltip" data-bs-placement="right" title={
-      osTooltip
-    }></span></div>
-          <div>
-            <label>Machine:             </label>{displayMachineType(sm.machine)}
-            <span class="machine-info ram">{sm.node.ram.map(_.toStringMo).getOrElse("-")}</span>
-            <span class="glyphicon glyphicon-info-sign icon-info" data-bs-toggle="tooltip" data-bs-placement="right" title={
-      machineTooltip
-    }></span>
-          </div>
-        </div>
-      </div>
-
       <div class="row">
-
         <div class="rudder-info col-lg-6 col-sm-7 col-xs-12">
           <h3>Rudder information</h3>
           <div>
@@ -619,7 +622,6 @@ object DisplayNode extends Loggable {
             <label>Software updates available:</label> {sm.node.softwareUpdates.size}
           </div>
         </div>
-        {deleteButton}
       </div>
     </div> ++ Script(OnLoad(JsRaw(s"""
         $$(".node-compliance-bar").html(buildComplianceBar(${compliance.toJsCmd}))
@@ -1114,40 +1116,12 @@ object DisplayNode extends Loggable {
       Nil
     }
   }
-
-  private[this] def showDeleteButton(node: NodeSummary) = {
-    def toggleDeletion(): JsCmd = {
-      JsRaw(""" $('#deleteButton').toggle(300); $('#confirmDeletion').toggle(300) """)
-    }
+  def showDeleteButton(node: NodeSummary):                         NodeSeq = {
     SHtml.ajaxButton(
-      "Delete",
-      () => { toggleDeletion() },
-      ("id", "deleteButton"),
+      "Confirm",
+      () => { removeNode(node) },
       ("class", "btn btn-danger")
-    ) ++ <div style="display:none" id="confirmDeletion">
-    <div style="margin:5px;">
-     <div>
-      <div>
-          <i class="fa fa-exclamation-triangle warnicon" aria-hidden="true"></i>
-          <b>Are you sure you want to delete this node?</b>
-      </div>
-      <div style="margin-top:7px">If you choose to remove this node from Rudder, it won't be managed anymore,
-       and all information about it will be removed from the application.</div>
-     </div>
-    <div>
-      <div style="margin-top:7px">
-        <span >
-          {
-      SHtml.ajaxButton("Cancel", () => { toggleDeletion() }, ("class", "btn btn-default"))
-    }
-          {
-      SHtml.ajaxButton("Confirm", () => { removeNode(node) }, ("class", "btn btn-danger"))
-    }
-        </span>
-      </div>
-    </div>
-    </div>
-</div>
+    )
   }
 
   private[this] def removeNode(node: NodeSummary): JsCmd = {
@@ -1169,15 +1143,13 @@ object DisplayNode extends Loggable {
         val message = s"There was an error while deleting node '${node.hostname}' [${node.id.value}]"
         val e       = eb ?~! message
         NodeLoggerPure.Delete.logEffect.error(e.messageChain)
-        onFailure(node, message, e.messageChain, None)
+        onFailure(node, message)
     }
   }
 
   private[this] def onFailure(
-      node:      NodeSummary,
-      message:   String,
-      details:   String,
-      hookError: Option[HookReturnCode.Error]
+      node:    NodeSummary,
+      message: String
   ): JsCmd = {
     RegisterToasts.register(
       ToastNotification.Error(
@@ -1195,7 +1167,7 @@ object DisplayNode extends Loggable {
   }
 
   private[this] def isRootNode(n: NodeId): Boolean = {
-    return n.value.equals("root");
+    n.value.equals("root");
   }
 
   import com.normation.rudder.domain.nodes.NodeState

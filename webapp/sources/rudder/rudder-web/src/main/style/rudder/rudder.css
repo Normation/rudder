@@ -631,15 +631,6 @@ table .innerDetails li{
   height: 25px;
 }
 
-.popupButton {
-  padding: 5px;
-  float: right;
-}
-
-.popupButton span {
-  float: none;
-}
-
 /*****************************************
 * Popup creation groupe/category
 ******************************************/
