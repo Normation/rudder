@@ -41,14 +41,8 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.box._
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
-import com.normation.rudder.domain.queries.And
-import com.normation.rudder.domain.queries.CriterionLine
-import com.normation.rudder.domain.queries.NewQuery
-import com.normation.rudder.domain.queries.NodeReturnType
-import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.repository._
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.FormTracker
@@ -93,7 +87,6 @@ class CreateCategoryOrGroupPopup(
   private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
   private[this] val uuidGen                    = RudderConfig.stringUuidGenerator
   private[this] val userPropertyService        = RudderConfig.userPropertyService
-  private[this] val ditQueryData               = RudderConfig.ditQueryData
 
   var createContainer = false // issue #1190 always create a group by default
 
@@ -283,21 +276,11 @@ class CreateCategoryOrGroupPopup(
             onFailure & onFailureCallback()
         }
       } else {
-        val defaultLine = CriterionLine(
-          objectType = ditQueryData.criteriaMap(OC_NODE),
-          attribute = ditQueryData.criteriaMap(OC_NODE).criteria(0),
-          comparator = ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.comparators(0),
-          value = "Linux"
-        )
-        val query       = Some(
-          groupGenerator
-            .flatMap(_.query)
-            .getOrElse(NewQuery(NodeReturnType, And, ResultTransformation.Identity, List(defaultLine)))
-        )
-        val isDynamic   = piStatic.get match { case "dynamic" => true; case _ => false }
-        val srvList     = groupGenerator.map(_.serverList).getOrElse(Set[NodeId]())
-        val nodeId      = NodeGroupId(NodeGroupUid(uuidGen.newUuid))
-        val nodeGroup   = NodeGroup(nodeId, piName.get, piDescription.get, Nil, query, isDynamic, srvList, true)
+        val query     = None
+        val isDynamic = piStatic.get match { case "dynamic" => true; case _ => false }
+        val srvList   = groupGenerator.map(_.serverList).getOrElse(Set[NodeId]())
+        val nodeId    = NodeGroupId(NodeGroupUid(uuidGen.newUuid))
+        val nodeGroup = NodeGroup(nodeId, piName.get, piDescription.get, Nil, query, isDynamic, srvList, true)
         woNodeGroupRepository
           .create(
             nodeGroup,
