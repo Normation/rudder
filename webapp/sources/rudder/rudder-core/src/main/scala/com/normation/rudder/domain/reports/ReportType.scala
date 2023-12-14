@@ -81,8 +81,6 @@ object ReportType {
   def apply(report: Reports, policyMode: PolicyMode): ReportType = {
     import PolicyMode._
     (report, policyMode) match {
-      case (_: AuditReports, Enforce)        => BadPolicyMode
-      case (_: EnforceReports, Audit)        => BadPolicyMode
       case (_: ResultErrorReport, _)         => EnforceError
       case (_: ResultRepairedReport, _)      => EnforceRepaired
       case (_: ResultNotApplicableReport, _) => EnforceNotApplicable
