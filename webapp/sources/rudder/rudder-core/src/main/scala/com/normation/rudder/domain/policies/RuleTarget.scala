@@ -84,12 +84,14 @@ case object AllTarget extends NonGroupRuleTarget {
 
 case object AllTargetExceptPolicyServers extends NonGroupRuleTarget {
   override def target = "special:all_exceptPolicyServers"
-  def r               = "special:all_exceptPolicyServers".r
+  // for compat reason in event logs < Rudder 7.0, we must be able to parse also old format: `special:all_nodes_without_role`
+  def r               = "(?:special:all_exceptPolicyServers|special:all_nodes_without_role)".r
 }
 
 case object AllPolicyServers extends NonGroupRuleTarget {
   override def target = "special:all_policyServers"
-  def r               = "special:all_policyServers".r
+  // for compat reason in event logs < Rudder 7.0, we must be able to parse also old format: `special:all_servers_with_role`
+  def r               = "(?:special:all_policyServers|special:all_servers_with_role)".r
 }
 
 /**
