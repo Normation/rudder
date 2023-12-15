@@ -97,12 +97,28 @@ update msg model =
         Ok settings ->
           let
             ui = model.ui
+            getPendingCR = case model.mode of
+              RuleForm details -> getPendingChangeRequests model details.rule.id
+              _ -> Cmd.none
           in
             ( { model | ui = { ui | crSettings = Just settings } }
-              , Cmd.none
+              , getPendingCR
             )
         Err err ->
           processApiError "Getting change request settings" err model
+
+    GetPendingChangeRequests res ->
+      case res of
+        Ok cr ->
+          let
+            ui = model.ui
+            newUi = case ui.crSettings of
+              Just settings -> { ui | crSettings = Just { settings | pendingChangeRequests = cr } }
+              Nothing -> ui
+          in
+            ( { model | ui = newUi } , Cmd.none )
+        Err err ->
+          processApiError "Getting pending change requests" err model
 
     GetGroupsTreeResult res ->
       case res of
@@ -130,6 +146,9 @@ update msg model =
         Ok r ->
           let
             newModel = {model | mode = RuleForm (RuleDetails (Just r) r Information defaultRulesUI Nothing Nothing Nothing []) }
+            getPendingCR = case model.ui.crSettings of
+              Nothing -> Cmd.none
+              Just settings -> if settings.enableChangeRequest then (getPendingChangeRequests newModel r.id) else Cmd.none
             getChanges = case Dict.get r.id.value model.changes of
                            Nothing -> []
                            Just changes ->
@@ -137,7 +156,7 @@ update msg model =
                                Nothing -> []
                                Just lastChanges -> [ getRepairedReports newModel r.id lastChanges.start lastChanges.end ]
           in
-            (newModel, Cmd.batch (getRulesComplianceDetails r.id newModel :: getRuleNodesDirectives r.id newModel :: getChanges) )
+            (newModel, Cmd.batch (getRulesComplianceDetails r.id newModel :: getRuleNodesDirectives r.id newModel :: getPendingCR :: getChanges ) )
         Err err ->
           processApiError "Getting Rule details" err model
 
@@ -605,7 +624,7 @@ processApiError apiName err model =
             errorMessage
 
   in
-    ({model | mode = if model.mode == Loading then RuleTable else model.mode, ui = { modelUi | loadingRules = False, saving = False}}, errorNotification ("Error when "++apiName ++",details: \n" ++ message ) )
+    ({model | mode = if model.mode == Loading then RuleTable else model.mode, ui = { modelUi | loadingRules = False, saving = False}}, errorNotification ("Error when "++apiName ++", details: \n" ++ message ) )
 
 getUrl : Model -> String
 getUrl model = model.contextPath ++ "/secure/configurationManager/ruleManagement"

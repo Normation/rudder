@@ -9,7 +9,7 @@ import Time.ZonedDateTime exposing (ZonedDateTime)
 import Url
 import Url.Builder exposing (QueryParameter, int, string)
 
-import ChangeRequest exposing (changeRequestParameters, decodeGetChangeRequestSettings)
+import ChangeRequest exposing (changeRequestParameters, decodeGetChangeRequestSettings, decodePendingChangeRequests)
 
 --
 -- This files contains all API calls for the Rules UI
@@ -111,6 +111,21 @@ getCrSettings model =
   in
     req
 
+getPendingChangeRequests : Model -> RuleId -> Cmd Msg
+getPendingChangeRequests model ruleId =
+  let
+    req =
+      request
+        { method  = "GET"
+        , headers = []
+        , url     = getUrl model [ "changeRequests" ] [string "status" "open", string "ruleId" ruleId.value]
+        , body    = emptyBody
+        , expect  = expectJson GetPendingChangeRequests decodePendingChangeRequests
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+  in
+    req
 
 getGroupsTree : Model -> Cmd Msg
 getGroupsTree model =

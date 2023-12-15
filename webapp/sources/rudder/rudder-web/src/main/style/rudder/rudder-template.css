@@ -1619,6 +1619,62 @@ ul.applied-list > .add-target > .fa{
   position: static;
   font-size: inherit;
 }
+
+/* CHANGE REQUESTS */
+.callout-cr{
+  max-height: 300px;
+  overflow: auto;
+  padding-right: 15px !important;
+  margin-top: 0 !important;
+}
+.callout-cr.list-hidden .fa-chevron-down{
+  transform: rotate(-90deg);
+}
+.callout-cr.list-hidden{
+  overflow: hidden;
+}
+.callout-cr.list-hidden > div{
+  display: none;
+}
+.callout-cr p:first-child {
+  font-size: 16px;
+  display: flex;
+  justify-content: space-between;
+  height: 30px;
+  align-items: center;
+  margin-bottom: 0;
+}
+.callout-cr p:first-child > .fa{
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 4px;
+}
+.callout-cr p:first-child > .fa:hover{
+  background-color: #EEF1F9;
+}
+.callout-cr ul {
+  margin-left: 0;
+  margin-top: 10px;
+}
+.callout-cr ul li {
+  list-style: none !important;
+}
+.callout-cr ul li a {
+  padding: 8px 0;
+  border-bottom: 1px solid #D6DEEF;
+  display: block;
+}
+.callout-cr ul li:last-child a {
+  border-bottom: none;
+}
+.callout-cr ul li a:hover {
+  background-color: #EEF1F9;
+}
+.callout-cr ul li a .badge{
+  margin-left: 0;
+  margin-right: 6px;
+}
+
 /* === KEYFRAMES === */
 @keyframes fadein {
   0%   {opacity:  0; transform:translateX(-100px);}

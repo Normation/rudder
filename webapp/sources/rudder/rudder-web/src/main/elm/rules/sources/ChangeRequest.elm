@@ -7,6 +7,14 @@ import Url.Builder
 --
 -- Module to handle change request settings
 --
+type Status = Unknown | Cancelled | Open | PendingValidation | PendingDeployment | Deployed
+
+type alias ChangeRequest =
+  { id          : Int
+  , name        : String
+  , description : String
+  , status      : Status
+  }
 
 type alias ChangeRequestSettings =
   { enableChangeMessage    : Bool
@@ -16,6 +24,8 @@ type alias ChangeRequestSettings =
   , changeRequestName      : String
   , message                : String
   , displayMessagePrompt   : Bool
+  , pendingChangeRequests  : List ChangeRequest
+  , collapsePending        : Bool
   }
 
 decodeGetChangeRequestSettings : Decoder ChangeRequestSettings
@@ -32,6 +42,41 @@ decodeChangeRequestSettings =
     |> hardcoded ""
     |> hardcoded ""
     |> hardcoded False
+    |> hardcoded []
+    |> hardcoded False
+
+decodePendingChangeRequests : Decoder (List ChangeRequest)
+decodePendingChangeRequests =
+  at [ "data" ] (list decodeChangeRequest)
+
+decodeChangeRequest : Decoder ChangeRequest
+decodeChangeRequest =
+  succeed ChangeRequest
+    |> required "id"          int
+    |> required "displayName" string
+    |> required "description" string
+    |> required "status"       ( string |> andThen (\s -> toStatus s) )
+
+toStatus : String -> Decoder Status
+toStatus str =
+  succeed ( case str of
+    "Deployed"           -> Deployed
+    "Pending deployment" -> PendingDeployment
+    "Cancelled"          -> Cancelled
+    "Pending validation" -> PendingValidation
+    "Open"               -> Open
+    _                    -> Unknown
+  )
+
+toLabel : Status -> String
+toLabel status =
+  case status of
+    Deployed          -> "Deployed"
+    PendingDeployment -> "Pending deployment"
+    Cancelled         -> "Cancelled"
+    PendingValidation -> "Pending validation"
+    Open              -> "Open"
+    _                 -> "Unknown"
 
 changeRequestParameters: Maybe ChangeRequestSettings -> List Url.Builder.QueryParameter
 changeRequestParameters changeRequestSettings =

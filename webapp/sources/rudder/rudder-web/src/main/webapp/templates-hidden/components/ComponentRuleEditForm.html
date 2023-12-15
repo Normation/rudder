@@ -136,10 +136,10 @@
 <component-form>
 <div class="object-details">
 
-  <div id="pendingChangeRequestNotification">
-    <div class="callout-fade callout-info">
-      <div class="marker"><span class="glyphicon glyphicon-info-sign"></span></div>
-      The following pending change requests affect this Rule, you should check that your modification is not already pending:
+  <div class="callout-fade callout-info callout-cr" id="pendingChangeRequestNotification">
+    <p><b><i class="fa fa-info-circle"></i>Pending change requests</b><span class="fa fa-chevron-down" onclick="$('#pendingChangeRequestNotification').toggleClass('list-hidden')"></span></p>
+    <div>
+      <p>The following pending change requests affect this rule, you should check that your modification is not already pending:</p>
       <ul id="changeRequestList"></ul>
     </div>
   </div>
