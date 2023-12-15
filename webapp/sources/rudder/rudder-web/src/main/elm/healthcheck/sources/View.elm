@@ -1,9 +1,8 @@
 module View exposing (..)
 
 import DataTypes exposing (Check, Model, Msg(..), SeverityLevel(..))
-import Html exposing (Html, br, button, div, i, span, text)
+import Html exposing (Html, br, div, i, span, text)
 import Html.Attributes exposing (class)
-import Html.Events exposing (onClick)
 import List exposing (any, intersperse, map, sortWith)
 import List.Extra exposing (minimumWith)
 import String exposing (lines)
@@ -57,24 +56,6 @@ severityLevelToIcon level =
     Warning     -> i [class "fa fa-exclamation-circle warning-icon icon-info"][]
     CheckPassed -> i [class "fa fa-check-circle ok-icon icon-info"][]
 
-displayCheckListButton: Bool -> Html Msg
-displayCheckListButton isOpen =
-    let
-        classNameBtn = "btn-checks btn btn-outline-secondary"
-    in
-    if isOpen then
-      button [class classNameBtn, onClick CheckListDisplay]
-      [
-          text "Hide check list"
-        , i [class "fa fa-chevron-down"][]
-      ]
-    else
-      button [class classNameBtn, onClick CheckListDisplay]
-      [
-          text "Show check list"
-        , i [class "fa fa-chevron-right"][]
-      ]
-
 displayBigMessage: List Check -> Html Msg
 displayBigMessage checks =
   let
@@ -109,11 +90,8 @@ checksDisplay model h =
 
      ) sortedChecks
   in
-    if model.showChecks then
-      div [class "checklist-container"]
-        [ div [class "checklist"] content ]
-    else
-      div[][]
+    div [class "checklist-container"]
+      [ div [class "checklist"] content ]
 
 view : Model -> Html Msg
 view model =
@@ -123,7 +101,6 @@ view model =
   , div[class "content-block"]
     [
         displayBigMessage model.healthcheck
-      , displayCheckListButton model.showChecks
       , checksDisplay model model.healthcheck
     ]
   ]
