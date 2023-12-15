@@ -54,6 +54,8 @@ class RuleTargetTest extends Specification with Loggable {
     )
   }.toMap
 
+  val nodeArePolicyServers = nodes.map { case (id, n) => (id, n.isPolicyServer) }.view
+
   val g1 = NodeGroup(
     NodeGroupId(NodeGroupUid("1")),
     "Empty group",
@@ -174,25 +176,25 @@ class RuleTargetTest extends Specification with Loggable {
     "Be found correctly on simple rule targets" in {
       groupTargets.forall {
         case (gt, g) =>
-          fngc.getNodeIds(Set(gt), nodes) === g.serverList
+          fngc.getNodeIds(Set(gt), nodeArePolicyServers) === g.serverList
       }
     }
     "Be found correctly on group targets union" in {
       unionTargets.forall {
         case (gt, g) =>
-          fngc.getNodeIds(Set(gt), nodes) === g
+          fngc.getNodeIds(Set(gt), nodeArePolicyServers) === g
       }
     }
     "Be found correctly on group targets intersection" in {
       interTargets.forall {
         case (gt, g) =>
-          fngc.getNodeIds(Set(gt), nodes) === g
+          fngc.getNodeIds(Set(gt), nodeArePolicyServers) === g
       }
     }
     "Be found correctly on group targets exclusion " in {
       allTargetExclusions.forall {
         case (target, resultNodes) =>
-          fngc.getNodeIds(Set(target), nodes) === resultNodes
+          fngc.getNodeIds(Set(target), nodeArePolicyServers) === resultNodes
       }
     }
   }

@@ -40,6 +40,8 @@ package com.normation.rudder
 import com.normation.eventlog.EventActor
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAuthorization
+import com.normation.rudder.facts.nodes.NodeSecurityContext
+import com.normation.rudder.facts.nodes.QueryContext
 
 /*
  * This file define data type around what is a User in Rudder,
@@ -65,6 +67,11 @@ trait User {
     case RudderAccount.User(login, _) => login
     case RudderAccount.Api(api)       => api.name.value
   })
+  def nodePerms: NodeSecurityContext
+
+  def queryContext: QueryContext = {
+    QueryContext(actor, nodePerms)
+  }
 }
 
 /**

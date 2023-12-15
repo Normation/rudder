@@ -233,7 +233,7 @@ class ParameterApi(
       (for {
         restParam <-
           zioJsonExtractor.extractGlobalParam(req).chainError(s"Could not extract a global parameter from request").toIO
-        result    <- serviceV14.createParameter(restParam, params, authzToken.actor)
+        result    <- serviceV14.createParameter(restParam, params, authzToken.qc.actor)
       } yield {
         result
       }).toLiftResponseOne(params, schema, s => Some(s.id))
@@ -250,7 +250,7 @@ class ParameterApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      serviceV14.deleteParameter(id, params, authzToken.actor).toLiftResponseOne(params, schema, s => Some(s.id))
+      serviceV14.deleteParameter(id, params, authzToken.qc.actor).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
@@ -266,7 +266,7 @@ class ParameterApi(
     ): LiftResponse = {
       (for {
         restParam <- zioJsonExtractor.extractGlobalParam(req).chainError(s"Could not extract parameter from request.").toIO
-        result    <- serviceV14.updateParameter(restParam.copy(id = Some(id)), params, authzToken.actor)
+        result    <- serviceV14.updateParameter(restParam.copy(id = Some(id)), params, authzToken.qc.actor)
       } yield {
         result
       }).toLiftResponseOne(params, schema, s => Some(s.id))

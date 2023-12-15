@@ -38,18 +38,18 @@
 package com.normation.rudder.services.policies
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
+import scala.collection.MapView
 
 trait RuleApplicationStatusService {
   def isApplied(
-      rule:           Rule,
-      groupLib:       FullNodeGroupCategory,
-      directiveLib:   FullActiveTechniqueCategory,
-      allNodeInfos:   Map[NodeId, NodeInfo],
-      appliedOnNodes: Option[Set[NodeId]] = None // Optionnal parameter: list of node target of this rule
+      rule:             Rule,
+      groupLib:         FullNodeGroupCategory,
+      directiveLib:     FullActiveTechniqueCategory,
+      arePolicyServers: MapView[NodeId, Boolean],  // we need both all nodes and if they are policy server
+      appliedOnNodes:   Option[Set[NodeId]] = None // Optional parameter: list of node target of this rule
       // exists because it is already computed in the API call
   ): ApplicationStatus
 }
@@ -62,17 +62,17 @@ class RuleApplicationStatusServiceImpl extends RuleApplicationStatusService {
 
   // is a cr applied for real ?
   def isApplied(
-      rule:           Rule,
-      groupLib:       FullNodeGroupCategory,
-      directiveLib:   FullActiveTechniqueCategory,
-      allNodeInfos:   Map[NodeId, NodeInfo],
-      appliedOnNodes: Option[Set[NodeId]] = None // Optionnal parameter: list of node target of this rule
+      rule:             Rule,
+      groupLib:         FullNodeGroupCategory,
+      directiveLib:     FullActiveTechniqueCategory,
+      arePolicyServers: MapView[NodeId, Boolean],
+      appliedOnNodes:   Option[Set[NodeId]] = None // Optional parameter: list of node target of this rule
       // exists because it is already computed in the API call
   ): ApplicationStatus = {
 
     if (rule.isEnabled) {
       val isAllTargetsEnabled = rule.targets.flatMap(groupLib.allTargets.get(_)).filter(!_.isEnabled).isEmpty
-      val nodesList           = appliedOnNodes.getOrElse(groupLib.getNodeIds(rule.targets, allNodeInfos))
+      val nodesList           = appliedOnNodes.getOrElse(groupLib.getNodeIds(rule.targets, arePolicyServers))
       if (nodesList.nonEmpty) {
         if (isAllTargetsEnabled) {
           val disabled = (rule.directiveIds

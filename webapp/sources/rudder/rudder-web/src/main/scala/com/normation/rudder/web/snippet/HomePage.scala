@@ -49,14 +49,18 @@ import com.normation.inventory.domain.PhysicalMachineType
 import com.normation.inventory.domain.SolarisOS
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.domain.WindowsType
+import com.normation.inventory.ldap.core.TimingDebugLoggerPure
 import com.normation.ldap.sdk.BuildFilter._
 import com.normation.ldap.sdk.FALSE
 import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ComplianceLogger
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.web.services.CurrentUser
+import com.normation.zio._
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.js._
@@ -126,34 +130,56 @@ object HomePageUtils {
       replace("~", ".")
   }
 }
-object HomePage      {
+
+object HomePage {
   private val nodeFactRepo = RudderConfig.nodeFactRepository
 
-  def initNodeInfos(): Box[MapView[NodeId, CoreNodeFact]] = {
-    TimingDebugLogger.debug(s"Start timing homepage")
-    val n1 = System.currentTimeMillis
-    val n  = nodeFactRepo.getAll()(CurrentUser.queryContext).toBox
-    val n2 = System.currentTimeMillis
-    TimingDebugLogger.debug(s"Getting node infos: ${n2 - n1}ms")
-    n
+  def initNodeInfos()(implicit qc: QueryContext): MapView[NodeId, CoreNodeFact] = {
+    (for {
+      _  <- TimingDebugLoggerPure.debug(s"Start timing homepage")
+      n1 <- currentTimeMillis
+      n  <- nodeFactRepo.getAll()
+      n2 <- currentTimeMillis
+      _  <- TimingDebugLoggerPure.debug(s"Getting node infos: ${n2 - n1}ms")
+    } yield {
+      n
+    }).either.runNow match {
+      case Right(n)  => n
+      case Left(err) =>
+        ApplicationLogger.warn(s"Error when getting nodes: ${err.fullMsg}")
+        MapView.empty[NodeId, CoreNodeFact]
+    }
   }
+
+  object nodeFacts extends SessionVar[MapView[NodeId, CoreNodeFact]](initNodeInfos()(CurrentUser.queryContext))
 }
 
-class HomePage extends Loggable {
+class HomePage extends StatefulSnippet {
 
   private[this] val ldap             = RudderConfig.roLDAPConnectionProvider
   private[this] val pendingNodesDit  = RudderConfig.pendingNodesDit
-  private[this] val nodeDit          = RudderConfig.nodeDit
   private[this] val rudderDit        = RudderConfig.rudderDit
   private[this] val reportingService = RudderConfig.reportingService
   private[this] val roRuleRepo       = RudderConfig.roRuleRepository
+
+  override val dispatch: DispatchIt = {
+    case "pendingNodes"       => pendingNodes
+    case "acceptedNodes"      => acceptedNodes
+    case "rules"              => rules
+    case "directives"         => directives
+    case "groups"             => groups
+    case "techniques"         => techniques
+    case "getAllCompliance"   => _ => getAllCompliance()
+    case "inventoryInfo"      => _ => inventoryInfo()
+    case "rudderAgentVersion" => _ => rudderAgentVersion()
+  }
 
   def pendingNodes(html: NodeSeq): NodeSeq = {
     displayCount(() => countPendingNodes(), "pending nodes")
   }
 
   def acceptedNodes(html: NodeSeq): NodeSeq = {
-    displayCount(() => countAcceptedNodes(), "accepted nodes")
+    displayCount(() => countAcceptedNodes(HomePage.nodeFacts.get), "accepted nodes")
   }
 
   def rules(html: NodeSeq): NodeSeq = {
@@ -172,7 +198,7 @@ class HomePage extends Loggable {
     displayCount(() => countAllTechniques(), "techniques")
   }
 
-  def getAllCompliance: NodeSeq = {
+  def getAllCompliance(): NodeSeq = {
 
     sealed trait ChartType
     case object PendingChartType                     extends ChartType
@@ -180,14 +206,13 @@ class HomePage extends Loggable {
     final case class ColoredChartType(value: Double) extends ChartType
 
     (for {
-      nodeFacts         <- HomePage.initNodeInfos()
-      n2                 = System.currentTimeMillis
-      userRules         <- roRuleRepo.getIds().toBox
-      n3                 = System.currentTimeMillis
+      n2                <- currentTimeMillis
+      userRules         <- roRuleRepo.getIds()
+      n3                <- currentTimeMillis
       _                  = TimingDebugLogger.trace(s"Get rules: ${n3 - n2}ms")
       // reports contains the reports for user rules, used in the donut
-      reports           <- reportingService.findRuleNodeStatusReports(nodeFacts.keys.toSet, userRules)
-      n4                 = System.currentTimeMillis
+      reports           <- reportingService.findRuleNodeStatusReports(HomePage.nodeFacts.get.keys.toSet, userRules).toIO
+      n4                <- currentTimeMillis
       _                  = TimingDebugLogger.trace(s"Compute Rule Node status reports for all nodes: ${n4 - n3}ms")
       // global compliance is a unique number, used in the top right hand size, based on
       // user rules, and ignoring pending nodes
@@ -206,9 +231,9 @@ class HomePage extends Loggable {
                                )
                              )
                            }
-      n5                 = System.currentTimeMillis
-      _                  = TimingDebugLogger.trace(s"Compute global compliance in: ${n5 - n4}ms")
-      _                  = TimingDebugLogger.debug(s"Compute compliance: ${n5 - n2}ms")
+      n5                <- currentTimeMillis
+      _                 <- TimingDebugLoggerPure.trace(s"Compute global compliance in: ${n5 - n4}ms")
+      _                 <- TimingDebugLoggerPure.debug(s"Compute compliance: ${n5 - n2}ms")
     } yield {
 
       // log global compliance info (useful for metrics on number of components and log data analysis)
@@ -311,10 +336,10 @@ class HomePage extends Loggable {
           , ${diagramColor.toJsCmd}
           , ${pendingNodes.toJsCmd}
         )""")))
-    }) match {
-      case Full(homePageCompliance) => homePageCompliance
-      case eb: EmptyBox =>
-        logger.error(eb)
+    }).either.runNow match {
+      case Right(homePageCompliance) => homePageCompliance
+      case Left(err)                 =>
+        ApplicationLogger.error(err.fullMsg)
         NodeSeq.Empty
     }
   }
@@ -331,53 +356,39 @@ class HomePage extends Loggable {
 
     val osNames = JsObj(osTypes.map(os => (S.?("os.name." + os.name), Str(os.name))): _*)
 
-    (for {
-      nodeFacts <- HomePage.initNodeInfos()
-    } yield {
-      val machines             = nodeFacts.values.map {
-        _.machine.machineType match {
-          case VirtualMachineType(_) => "Virtual"
-          case PhysicalMachineType   => "Physical"
-          case _                     => "Unknown machine type"
-        }
-      }.groupBy(identity).view.mapValues(_.size).toList.sortBy(_._2).foldLeft((Nil: List[JsExp], Nil: List[JsExp])) {
+    val machines             = HomePage.nodeFacts.get.values.map {
+      _.machine.machineType match {
+        case VirtualMachineType(_) => "Virtual"
+        case PhysicalMachineType   => "Physical"
+        case _                     => "Unknown machine type"
+      }
+    }.groupBy(identity).view.mapValues(_.size).toList.sortBy(_._2).foldLeft((Nil: List[JsExp], Nil: List[JsExp])) {
+      case ((labels, values), (label, value)) => (label :: labels, value :: values)
+    }
+    val machinesArray        = JsObj("labels" -> JsArray(machines._1), "values" -> JsArray(machines._2))
+    val (osLabels, osValues) = HomePage.nodeFacts.get.values
+      .groupBy(_.os.os.name)
+      .map { case (os, value) => (S.?(s"os.name.${os}"), value.size) }
+      .toList
+      .sortBy(_._2)
+      .foldLeft((Nil: List[JsExp], Nil: List[JsExp])) {
         case ((labels, values), (label, value)) => (label :: labels, value :: values)
       }
-      val machinesArray        = JsObj("labels" -> JsArray(machines._1), "values" -> JsArray(machines._2))
-      val (osLabels, osValues) = nodeFacts.values
-        .groupBy(_.os.os.name)
-        .map { case (os, value) => (S.?(s"os.name.${os}"), value.size) }
-        .toList
-        .sortBy(_._2)
-        .foldLeft((Nil: List[JsExp], Nil: List[JsExp])) {
-          case ((labels, values), (label, value)) => (label :: labels, value :: values)
-        }
 
-      val osArray = JsObj("labels" -> JsArray(osLabels), "values" -> JsArray(osValues))
-      Script(OnLoad(JsRaw(s"""
-        homePageInventory(
-            ${machinesArray.toJsCmd}
-          , ${osArray.toJsCmd}
-          , ${nodeFacts.size}
-          , ${osNames.toJsCmd}
-        )""")))
-    }) match {
-      case Full(inventory) => inventory
-      case _               => NodeSeq.Empty
-    }
+    val osArray = JsObj("labels" -> JsArray(osLabels), "values" -> JsArray(osValues))
+    Script(OnLoad(JsRaw(s"""
+      homePageInventory(
+          ${machinesArray.toJsCmd}
+        , ${osArray.toJsCmd}
+        , ${HomePage.nodeFacts.get.size}
+        , ${osNames.toJsCmd}
+      )""")))
   }
 
   def rudderAgentVersion() = {
 
     val n4     = System.currentTimeMillis
-    val agents = getRudderAgentVersion() match {
-      case Full(x) => x
-      case eb: EmptyBox =>
-        val e = eb ?~! "Error when getting installed agent version on nodes"
-        logger.debug(e.messageChain)
-        e.rootExceptionCause.foreach(ex => logger.debug("Root exception was:", ex))
-        Map("Unknown" -> 1)
-    }
+    val agents = getRudderAgentVersion(HomePage.nodeFacts.get)
     TimingDebugLogger.debug(s"Get software: ${System.currentTimeMillis - n4}ms")
 
     val agentsValue = agents.toList.sortBy(_._2)(Ordering[Int]).foldLeft((Nil: List[JsExp], Nil: List[JsExp])) {
@@ -395,30 +406,26 @@ class HomePage extends Loggable {
   /**
    * Get the count of agent version name -> size for accepted nodes
    */
-  private[this] def getRudderAgentVersion(): Box[Map[String, Int]] = {
-    for {
-      nodeInfos    <- HomePage.initNodeInfos().toIO
-      n2            = System.currentTimeMillis
-      agentSoftware = nodeInfos.map(_._2.rudderAgent.toAgentInfo)
-      agentVersions = agentSoftware.flatMap(_.version)
-      n3            = System.currentTimeMillis
-      _             = TimingDebugLogger.debug(s"Get nodes agent: ${n3 - n2}ms")
-    } yield {
+  private[this] def getRudderAgentVersion(nodeFacts: MapView[NodeId, CoreNodeFact]): Map[String, Int] = {
+    val n2            = System.currentTimeMillis
+    val agentSoftware = nodeFacts.map(_._2.rudderAgent.toAgentInfo)
+    val agentVersions = agentSoftware.flatMap(_.version)
+    val n3            = System.currentTimeMillis
+    TimingDebugLogger.debug(s"Get nodes agent: ${n3 - n2}ms")
 
-      val res = agentVersions.groupBy(ag => HomePageUtils.formatAgentVersion(ag.value)).map(x => (x._1, x._2.size))
-      val n4  = System.currentTimeMillis
-      TimingDebugLogger.debug(s"=> group and count agents: ${System.currentTimeMillis - n4}ms")
-      res
-    }
-  }.toBox
+    val res = agentVersions.groupBy(ag => HomePageUtils.formatAgentVersion(ag.value)).map(x => (x._1, x._2.size))
+    val n4  = System.currentTimeMillis
+    TimingDebugLogger.debug(s"=> group and count agents: ${System.currentTimeMillis - n4}ms")
+    res
+  }
 
   private[this] def countPendingNodes(): Box[Int] = {
     ldap.flatMap(con => con.searchOne(pendingNodesDit.NODES.dn, ALL, "1.1")).map(x => x.size)
   }.toBox
 
-  private[this] def countAcceptedNodes(): Box[Int] = {
-    ldap.flatMap(con => con.searchOne(nodeDit.NODES.dn, ALL, "1.1")).map(x => x.size)
-  }.toBox
+  private[this] def countAcceptedNodes(nodeFacts: MapView[NodeId, CoreNodeFact]): Box[Int] = {
+    Full(nodeFacts.size)
+  }
 
   private[this] def countAllRules(): Box[Int] = {
     roRuleRepo.getIds().map(_.size).toBox
@@ -446,7 +453,7 @@ class HomePage extends Loggable {
     Text((count() match {
       case Empty => 0
       case m: Failure =>
-        logger.error(s"Could not fetch the number of ${name}. reason : ${m.messageChain}")
+        ApplicationLogger.error(s"Could not fetch the number of ${name}. reason : ${m.messageChain}")
         0
       case Full(x) => x
     }).toString)

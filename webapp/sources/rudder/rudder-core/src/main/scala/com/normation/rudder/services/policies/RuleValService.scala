@@ -40,7 +40,6 @@ package com.normation.rudder.services.policies
 import com.normation.cfclerk.domain._
 import com.normation.errors._
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
@@ -49,14 +48,15 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.utils.Control.bestEffort
 import net.liftweb.common._
 import org.joda.time.DateTime
+import scala.collection.MapView
 import zio.syntax._
 
 trait RuleValService {
   def buildRuleVal(
-      rule:         Rule,
-      directiveLib: FullActiveTechniqueCategory,
-      groupLib:     FullNodeGroupCategory,
-      allNodeInfos: Map[NodeId, NodeInfo]
+      rule:             Rule,
+      directiveLib:     FullActiveTechniqueCategory,
+      groupLib:         FullNodeGroupCategory,
+      arePolicyServers: MapView[NodeId, Boolean]
   ): Box[RuleVal]
 
   def lookupNodeParameterization(
@@ -207,9 +207,9 @@ class RuleValServiceImpl(
     }
   }
 
-  def getTargetedNodes(rule: Rule, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]): Set[NodeId] = {
-    val wantedNodeIds = groupLib.getNodeIds(rule.targets, allNodeInfos)
-    val nodeIds       = wantedNodeIds.intersect(allNodeInfos.keySet)
+  def getTargetedNodes(rule: Rule, groupLib: FullNodeGroupCategory, arePolicyServers: MapView[NodeId, Boolean]): Set[NodeId] = {
+    val wantedNodeIds = groupLib.getNodeIds(rule.targets, arePolicyServers)
+    val nodeIds       = wantedNodeIds.intersect(arePolicyServers.keySet)
     if (nodeIds.size != wantedNodeIds.size) {
       // ignored nodes are filtered-out early during generation, so we don't have access to their node info here,
       // they are just missing from allNodeInfos map.
@@ -222,12 +222,12 @@ class RuleValServiceImpl(
   }
 
   override def buildRuleVal(
-      rule:         Rule,
-      directiveLib: FullActiveTechniqueCategory,
-      groupLib:     FullNodeGroupCategory,
-      allNodeInfos: Map[NodeId, NodeInfo]
+      rule:             Rule,
+      directiveLib:     FullActiveTechniqueCategory,
+      groupLib:         FullNodeGroupCategory,
+      arePolicyServers: MapView[NodeId, Boolean]
   ): Box[RuleVal] = {
-    val nodeIds = getTargetedNodes(rule, groupLib, allNodeInfos)
+    val nodeIds = getTargetedNodes(rule, groupLib, arePolicyServers)
 
     for {
       drafts <- bestEffort(rule.directiveIds.toSeq) {

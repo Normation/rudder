@@ -62,6 +62,7 @@ import com.normation.cfclerk.services.impl._
 import com.normation.cfclerk.xmlparsers._
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
 import com.normation.cfclerk.xmlwriters.SectionSpecWriterImpl
+import com.normation.errors._
 import com.normation.errors.IOResult
 import com.normation.errors.SystemError
 import com.normation.inventory.domain._
@@ -1630,7 +1631,7 @@ object RudderConfigInit {
         woRuleCategoryRepository,
         roDirectiveRepository,
         roNodeGroupRepository,
-        nodeFactInfoService,
+        nodeFactRepository,
         configService.rudder_global_policy_mode _,
         ruleApplicationStatus
       )
@@ -1795,11 +1796,11 @@ object RudderConfigInit {
 
     lazy val complianceAPIService = new ComplianceAPIService(
       roRuleRepository,
-      nodeFactInfoService,
+      nodeFactRepository,
       roNodeGroupRepository,
       reportingService,
       roDirectiveRepository,
-      () => globalComplianceModeService.getGlobalComplianceMode
+      globalComplianceModeService.getGlobalComplianceMode.toIO
     )
 
     lazy val techniqueArchiver = new TechniqueArchiverImpl(

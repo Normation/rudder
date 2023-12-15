@@ -81,6 +81,7 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFact
+import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.git.GitArchiveId
@@ -166,6 +167,7 @@ import org.apache.commons.io.output.ByteArrayOutputStream
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.specs2.matcher.MatchResult
+import scala.collection.MapView
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 import scala.xml.Elem
@@ -193,6 +195,7 @@ class RestTestSetUp {
       val account                              = RudderAccount.User("test-user", "pass")
       def checkRights(auth: AuthorizationType) = true
       def getApiAuthz                          = ApiAuthz.allAuthz
+      def nodePerms: NodeSecurityContext = NodeSecurityContext.All
     }
     val getCurrentUser = user
   }
@@ -311,7 +314,7 @@ class RestTestSetUp {
         rules:        Seq[Rule],
         groupLib:     FullNodeGroupCategory,
         directiveLib: FullActiveTechniqueCategory,
-        allNodeInfos: Map[NodeId, NodeInfo]
+        allNodeInfos: MapView[NodeId, Boolean]
     ): Set[RuleId] = ???
     override def findDependantRules():                                                         Box[Seq[Rule]]                          = ???
     override def buildRuleVals(
@@ -319,7 +322,7 @@ class RestTestSetUp {
         rules:        Seq[Rule],
         directiveLib: FullActiveTechniqueCategory,
         groupLib:     FullNodeGroupCategory,
-        allNodeInfos: Map[NodeId, NodeInfo]
+        allNodeInfos: MapView[NodeId, Boolean]
     ): Box[Seq[RuleVal]] = ???
     override def getNodeContexts(
         nodeIds:              Set[NodeId],
@@ -647,7 +650,7 @@ class RestTestSetUp {
     mockRules.ruleCategoryRepo,
     mockDirectives.directiveRepo,
     mockNodeGroups.groupsRepo,
-    mockNodes.nodeInfoService,
+    mockNodes.nodeFactRepo,
     () => GlobalPolicyMode(Enforce, Always).succeed,
     new RuleApplicationStatusServiceImpl()
   )
@@ -721,7 +724,7 @@ class RestTestSetUp {
   )
 
   val systemApi        = new SystemApi(restExtractorService, apiService11, apiService13, "5.0", "5.0.0", "some time")
-  val authzToken       = AuthzToken(EventActor("fakeToken"))
+  val authzToken       = AuthzToken(userService.getCurrentUser.queryContext)
   val systemStatusPath = "api" + systemApi.Status.schema.path
 
   val softDao                      = mockNodes.softwareDao

@@ -122,7 +122,9 @@ final case class RudderSettings(
     policyMode:             Option[PolicyMode],
     policyServerId:         NodeId,
     security:               Option[SecurityTag] // optional for backward compat. None means "no tenant"
-)
+) {
+  def isPolicyServer: Boolean = kind != NodeKind.Node
+}
 
 final case class InputDevice(caption: String, description: String, @jsonField("type") tpe: String)
 final case class LocalGroup(id: Int, name: String, members: Chunk[String])

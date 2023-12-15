@@ -44,8 +44,8 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.TimingDebugLogger
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies._
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.repository._
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.reports.NodeChanges
@@ -70,6 +70,7 @@ import net.liftweb.json.JsonParser
 import net.liftweb.json.JString
 import net.liftweb.util.Helpers._
 import org.joda.time.Interval
+import scala.collection.MapView
 import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.xml._
@@ -217,7 +218,7 @@ class RuleGrid(
             rootRuleCat <- getRootRuleCategory().toBox
             globalMode  <- configService.rudder_global_policy_mode().toBox
             newData      =
-              getRulesTableData(rules, nodeFacts.mapValues(_.toNodeInfo).toMap, groupLib, directiveLib, rootRuleCat, globalMode)
+              getRulesTableData(rules, nodeFacts, groupLib, directiveLib, rootRuleCat, globalMode)
             afterData    = System.currentTimeMillis
             _            = TimingDebugLogger.debug(s"Rule grid: transforming into data took ${afterData - afterDirectives}ms")
             _            = TimingDebugLogger.debug(s"Rule grid: computing whole data for rule grid took ${afterData - start}ms")
@@ -251,7 +252,7 @@ class RuleGrid(
   def rulesGridWithUpdatedInfo(rules: Option[Seq[Rule]], showActionsColumn: Boolean, isPopup: Boolean): NodeSeq = {
 
     (for {
-      allNodeInfos <- nodeFactRepo.getAll()(CurrentUser.queryContext)
+      nodeFacts    <- nodeFactRepo.getAll()(CurrentUser.queryContext)
       groupLib     <- getFullNodeGroupLib()
       directiveLib <- getFullDirectiveLib()
       ruleCat      <- getRootRuleCategory()
@@ -259,7 +260,7 @@ class RuleGrid(
     } yield {
       getRulesTableData(
         rules.getOrElse(Seq()),
-        allNodeInfos.mapValues(_.toNodeInfo).toMap,
+        nodeFacts,
         groupLib,
         directiveLib,
         ruleCat,
@@ -418,7 +419,7 @@ class RuleGrid(
    */
   private[this] def getRulesTableData(
       rules:            Seq[Rule],
-      allNodeInfos:     Map[NodeId, NodeInfo],
+      nodeFacts:        MapView[NodeId, CoreNodeFact],
       groupLib:         FullNodeGroupCategory,
       directiveLib:     FullActiveTechniqueCategory,
       rootRuleCategory: RuleCategory,
@@ -426,7 +427,13 @@ class RuleGrid(
   ): JsTableData[RuleLine] = {
 
     val t0        = System.currentTimeMillis
-    val converted = convertRulesToLines(directiveLib, groupLib, allNodeInfos, rules.toList, rootRuleCategory)
+    val converted = convertRulesToLines(
+      directiveLib,
+      groupLib,
+      nodeFacts.mapValues(_.rudderSettings.isPolicyServer),
+      rules.toList,
+      rootRuleCategory
+    )
     val t1        = System.currentTimeMillis
     TimingDebugLogger.trace(s"Rule grid: transforming into data: convert to lines: ${t1 - t0}ms")
 
@@ -436,7 +443,14 @@ class RuleGrid(
       line <- converted
     } yield {
       val tf0 = System.currentTimeMillis
-      val res = getRuleData(line, groupLib, allNodeInfos, rootRuleCategory, directiveLib, globalMode)
+      val res = getRuleData(
+        line,
+        groupLib,
+        nodeFacts,
+        rootRuleCategory,
+        directiveLib,
+        globalMode
+      )
       val tf1 = System.currentTimeMillis
       tData = tData + tf1 - tf0
       res
@@ -459,7 +473,7 @@ class RuleGrid(
   private[this] def convertRulesToLines(
       directivesLib:    FullActiveTechniqueCategory,
       groupsLib:        FullNodeGroupCategory,
-      nodes:            Map[NodeId, NodeInfo],
+      arePolicyServers: MapView[NodeId, Boolean],
       rules:            List[Rule],
       rootRuleCategory: RuleCategory
   ): List[Line] = {
@@ -506,7 +520,15 @@ class RuleGrid(
 
       (trackerVariables, targetsInfo) match {
         case (Full(seq), Full(targets)) =>
-          val applicationStatus = getRuleApplicationStatus(rule, groupsLib, directivesLib, nodes, None)
+          val applicationStatus = {
+            getRuleApplicationStatus(
+              rule,
+              groupsLib,
+              directivesLib,
+              arePolicyServers,
+              None
+            )
+          }
 
           OKLine(rule, applicationStatus, seq, targets)
 
@@ -558,7 +580,7 @@ class RuleGrid(
   private[this] def getRuleData(
       line:             Line,
       groupsLib:        FullNodeGroupCategory,
-      nodesInfo:        Map[NodeId, NodeInfo],
+      nodeFacts:        MapView[NodeId, CoreNodeFact],
       rootRuleCategory: RuleCategory,
       directiveLib:     FullActiveTechniqueCategory,
       globalMode:       GlobalPolicyMode
@@ -566,8 +588,8 @@ class RuleGrid(
 
     val t0 = System.currentTimeMillis
 
-    val nodes                     = groupsLib.getNodeIds(line.rule.targets, nodesInfo)
-    val nodeModes                 = nodes.flatMap(id => nodesInfo.get(id).map(_.policyMode))
+    val nodes                     = groupsLib.getNodeIds(line.rule.targets, nodeFacts.mapValues(_.rudderSettings.isPolicyServer))
+    val nodeModes                 = nodes.flatMap(id => nodeFacts.get(id).map(_.rudderSettings.policyMode))
     // when building policy mode explanation we look into all directives every directive applied by the rule
     // But some directive may be missing so we do 'get', we them skip the missing directive and only use existing one ( thanks to flatmap)
     // Rule will be disabled somewhere else, stating that some object are missing and you should enable it again to fix it

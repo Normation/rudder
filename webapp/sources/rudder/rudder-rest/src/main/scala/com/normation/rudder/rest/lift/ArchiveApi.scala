@@ -320,7 +320,7 @@ class ArchiveApi(
             merge   <- parseMergePolicy(req)
             archive <- parseArchive(zip)
             _       <- checkArchiveService.check(archive)
-            _       <- saveArchiveService.save(archive, merge, authzToken.actor)
+            _       <- saveArchiveService.save(archive, merge, authzToken.qc.actor)
             _       <- ApplicationLoggerPure.Archive.info(s"Uploaded archive '${zip.fileName}' processed successfully")
           } yield JRArchiveImported(true)
       }).tapError(err => ApplicationLoggerPure.Archive.error(s"Error when processing uploaded archive: ${err.fullMsg}"))

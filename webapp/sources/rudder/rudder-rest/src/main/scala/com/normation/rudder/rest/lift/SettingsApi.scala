@@ -204,12 +204,12 @@ class SettingsApi(
       var generate = false
       val data     = for {
         setting <- allSettings(version)
-        value   <- setting.setFromRequestOpt(req, authzToken.actor)
+        value   <- setting.setFromRequestOpt(req, authzToken.qc.actor)
       } yield {
         if (value.isDefined) generate = generate || setting.startPolicyGeneration
         JField(setting.key, value)
       }
-      startNewPolicyGeneration(authzToken.actor)
+      startNewPolicyGeneration(authzToken.qc.actor)
       RestUtils.response(restExtractorService, "settings", None)(Full(data), req, s"Could not modfiy settings")("modifySettings")
     }
   }
@@ -250,7 +250,7 @@ class SettingsApi(
     ): LiftResponse = {
       val data: Box[JValue] = for {
         setting <- settingFromKey(key, allSettings(version))
-        value   <- setting.setFromRequest(req, authzToken.actor)
+        value   <- setting.setFromRequest(req, authzToken.qc.actor)
       } yield {
         (key -> value)
       }
@@ -911,7 +911,7 @@ class SettingsApi(
         }
       }
 
-      val actor          = authzToken.actor
+      val actor          = authzToken.qc.actor
       val modificationId = new ModificationId(uuidGen.newUuid)
       val nodeId         = NodeId(id)
       val result         = for {
@@ -994,7 +994,7 @@ class SettingsApi(
         }
       }
 
-      val actor          = authzToken.actor
+      val actor          = authzToken.qc.actor
       val modificationId = new ModificationId(uuidGen.newUuid)
       val nodeId         = NodeId(id)
 

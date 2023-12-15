@@ -325,7 +325,7 @@ class GroupsApi(
         req,
         s"Could not delete Group category '${id}'",
         Some(id),
-        authzToken.actor
+        authzToken.qc.actor
       )
     }
   }
@@ -362,7 +362,7 @@ class GroupsApi(
         req,
         s"Could not update Group category '${id}'",
         Some(id),
-        authzToken.actor
+        authzToken.qc.actor
       )
     }
   }
@@ -393,7 +393,7 @@ class GroupsApi(
         req,
         s"Could not create group category",
         None,
-        authzToken.actor
+        authzToken.qc.actor
       )
     }
   }
@@ -474,7 +474,7 @@ class GroupsApi(
       NodeGroupId
         .parse(sid)
         .toIO
-        .flatMap(id => serviceV14.deleteGroup(id, params, authzToken.actor))
+        .flatMap(id => serviceV14.deleteGroup(id, params, authzToken.qc.actor))
         .toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
@@ -489,7 +489,7 @@ class GroupsApi(
                        restGroup.id.getOrElse(NodeGroupId(NodeGroupUid(uuidGen.newUuid))),
                        restGroup.source,
                        params,
-                       authzToken.actor
+                       authzToken.qc.actor
                      )
       } yield {
         val action = if (restGroup.source.nonEmpty) "cloneGroup" else schema.name
@@ -511,7 +511,7 @@ class GroupsApi(
       (for {
         restGroup <- zioJsonExtractor.extractGroup(req).chainError(s"Could not extract a group from request.").toIO
         id        <- NodeGroupId.parse(sid).toIO
-        res       <- serviceV14.updateGroup(restGroup.copy(id = Some(id)), params, authzToken.actor)
+        res       <- serviceV14.updateGroup(restGroup.copy(id = Some(id)), params, authzToken.qc.actor)
       } yield {
         res
       }).toLiftResponseOne(params, schema, s => Some(s.id))
@@ -529,7 +529,7 @@ class GroupsApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      serviceV14.reloadGroup(id, params, authzToken.actor).toLiftResponseOne(params, schema, s => Some(s.id))
+      serviceV14.reloadGroup(id, params, authzToken.qc.actor).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
@@ -584,7 +584,7 @@ class GroupsApi(
         req,
         s"Could not delete Group category '${id}'",
         Some(id),
-        authzToken.actor
+        authzToken.qc.actor
       )
     }
   }
@@ -621,7 +621,7 @@ class GroupsApi(
         req,
         s"Could not update Group category '${id}'",
         Some(id),
-        authzToken.actor
+        authzToken.qc.actor
       )
     }
   }
@@ -652,7 +652,7 @@ class GroupsApi(
         req,
         s"Could not create group category",
         None,
-        authzToken.actor
+        authzToken.qc.actor
       )
     }
   }

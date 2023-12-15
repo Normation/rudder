@@ -59,6 +59,7 @@ import org.joda.time.DateTime
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
+import scala.collection.MapView
 import scala.collection.SortedMap
 
 /**
@@ -190,7 +191,7 @@ class RuleValServiceTest extends Specification {
   // Ok, now I can test
   "The RuleValService, with one directive, one Meta-technique " should {
 
-    val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, Map())
+    val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, MapView())
 
     "return a Full(RuleVal)" in {
       ruleVal.isDefined == true
@@ -230,7 +231,7 @@ class RuleValServiceTest extends Specification {
   }
 
   "The cardinality computed " should {
-    val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, Map())
+    val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, MapView())
     val draft   = ruleVal.openOrThrowException("Should have been full for test").parsedPolicyDrafts.head
     // false PolicyVars for that draft
     val vars    = PolicyVars(draft.id, draft.policyMode, draft.originalVariables, draft.originalVariables, draft.trackerVariable)

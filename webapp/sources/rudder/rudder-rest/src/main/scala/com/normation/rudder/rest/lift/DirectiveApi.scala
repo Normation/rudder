@@ -197,7 +197,7 @@ class DirectiveApi(
         result
       }
 
-      actionResponse(response, req, "Could not create Directive", id.map(_.value), authzToken.actor)(action)
+      actionResponse(response, req, "Could not create Directive", id.map(_.value), authzToken.qc.actor)(action)
     }
   }
 
@@ -219,7 +219,7 @@ class DirectiveApi(
         s"Could not delete Directive '$id'",
         Some(id),
         s"Delete Directive '${id}' from API",
-        authzToken.actor
+        authzToken.qc.actor
       )
     }
   }
@@ -273,7 +273,7 @@ class DirectiveApi(
         s"Could not update Directive '${id}'",
         Some(id),
         s"Update Directive '${id}' from API",
-        authzToken.actor
+        authzToken.qc.actor
       )
     }
   }
@@ -339,7 +339,7 @@ class DirectiveApi(
                            restDirective.id.map(_.uid).getOrElse(DirectiveUid(uuidGen.newUuid)),
                            restDirective.source,
                            params,
-                           authzToken.actor
+                           authzToken.qc.actor
                          )
       } yield {
         val action = if (restDirective.source.nonEmpty) "cloneDirective" else schema.name
@@ -362,7 +362,7 @@ class DirectiveApi(
       (for {
         id            <- DirectiveId.parse(sid).toIO
         restDirective <- zioJsonExtractor.extractDirective(req).chainError(s"Could not extract a directive from request.").toIO
-        result        <- serviceV14.updateDirective(restDirective.copy(id = Some(id)), params, authzToken.actor)
+        result        <- serviceV14.updateDirective(restDirective.copy(id = Some(id)), params, authzToken.qc.actor)
       } yield {
         result
       }).toLiftResponseOne(params, schema, s => Some(s.id))
@@ -379,7 +379,7 @@ class DirectiveApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      serviceV14.deleteDirective(DirectiveUid(id), params, authzToken.actor).toLiftResponseOne(params, schema, s => Some(s.id))
+      serviceV14.deleteDirective(DirectiveUid(id), params, authzToken.qc.actor).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 

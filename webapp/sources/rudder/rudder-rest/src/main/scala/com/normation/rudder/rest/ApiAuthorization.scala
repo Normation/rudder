@@ -39,7 +39,6 @@ package com.normation.rudder.rest
 
 import cats.data._
 import cats.implicits._
-import com.normation.eventlog.EventActor
 import com.normation.rudder.RudderAccount
 import com.normation.rudder.UserService
 import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
@@ -50,6 +49,7 @@ import com.normation.rudder.api.ApiAccountKind
 import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.domain.logger.ApiLogger
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.web.services.CurrentUser
 import net.liftweb.common._
 import net.liftweb.http.LiftResponse
@@ -73,7 +73,7 @@ trait ApiAuthorization[T] {
  * A simple class used by API and which hold authentication actor.
  * We only need the authz token/user name
  */
-final case class AuthzToken(actor: EventActor)
+final case class AuthzToken(qc: QueryContext)
 
 /*
  * This service allows to know if the ACL module is set
@@ -150,7 +150,7 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
 
                 // in other cases, we interpret rights are they are reported (system user has ACL or RW independently of plugin status)
                 case (_, ApiAuthz.None, _)                                                                                       =>
-                  logger.debug(s"Acount '${user.actor.name}' does not have any authorizations.")
+                  logger.debug(s"Account '${user.actor.name}' does not have any authorizations.")
                   None
 
                 case (_, ApiAuthz.RO, _) =>
@@ -165,7 +165,7 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
                   logger.debug(s"Account '${user.actor.name}' has ACL authorizations.")
                   checkACL(acl, path, endpoint.schema.action)
 
-              }).map(_ => Right(AuthzToken(EventActor(user.actor.name))))
+              }).map(_ => Right(AuthzToken(user.queryContext)))
                 .getOrElse(
                   Left(
                     ApiError.Authz(

@@ -44,6 +44,7 @@ import com.normation.utils.Control.sequence
 import net.liftweb.common._
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
+import scala.collection.MapView
 import zio.Chunk
 
 /**
@@ -233,7 +234,7 @@ object RuleTarget extends Loggable {
    */
   def getNodeIds(
       targets:          Set[RuleTarget],
-      allNodes:         Map[NodeId, Boolean /* isPolicyServer */ ],
+      allNodes:         MapView[NodeId, Boolean /* isPolicyServer */ ],
       groups:           Map[NodeGroupId, Set[NodeId]],
       allNodesAreThere: Boolean = true // if we are working on a subset of node, set to false
   ): Set[NodeId] = {
@@ -241,7 +242,7 @@ object RuleTarget extends Loggable {
     targets.foldLeft(Set[NodeId]()) {
       case (nodes, target) =>
         target match {
-          case AllTarget                    => return allNodes.keySet
+          case AllTarget                    => return allNodes.keySet.toSet
           case AllTargetExceptPolicyServers => nodes ++ allNodes.collect { case (k, isPolicyServer) if (!isPolicyServer) => k }
           case AllPolicyServers             => nodes ++ allNodes.collect { case (k, isPolicyServer) if (isPolicyServer) => k }
           case PolicyServerTarget(nodeId)   =>
@@ -292,7 +293,7 @@ object RuleTarget extends Loggable {
    */
   def getNodeIdsChunk(
       targets:          Set[RuleTarget],
-      allNodes:         Map[NodeId, Boolean /* isPolicyServer */ ],
+      allNodes:         MapView[NodeId, Boolean /* isPolicyServer */ ],
       groups:           Map[NodeGroupId, Chunk[NodeId]],
       allNodesAreThere: Boolean = true // if we are working on a subset of node, set to false
   ): Chunk[NodeId] = {
@@ -302,7 +303,7 @@ object RuleTarget extends Loggable {
 
   def getNodeIdsChunkRec(
       targets:          Chunk[RuleTarget],
-      allNodes:         Map[NodeId, Boolean /* isPolicyServer */ ],
+      allNodes:         MapView[NodeId, Boolean /* isPolicyServer */ ],
       groups:           Map[NodeGroupId, Chunk[NodeId]],
       allNodesAreThere: Boolean = true // if we are working on a subset of node, set to false
   ): Chunk[NodeId] = {

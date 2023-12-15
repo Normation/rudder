@@ -106,6 +106,7 @@ import org.joda.time.DateTime
 import org.joda.time.Period
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.format.PeriodFormatterBuilder
+import scala.collection.MapView
 import scala.collection.immutable.Map
 import scala.concurrent.duration.FiniteDuration
 import zio.{System => _, _}
@@ -324,22 +325,23 @@ trait PromiseGenerationService {
 
                                                             ///// parse rule for directive parameters and build node context that will be used for them
                                                             ///// also restrict generation to only active rules & nodes:
-                                                            ///// - number of nodes: only node somehow targetted by a rule have to be considered.
+                                                            ///// - number of nodes: only node somehow targeted by a rule have to be considered.
                                                             ///// - number of rules: any rule without target or with only target with no node can be skipped
 
-                                                            ruleValTime   = System.currentTimeMillis
-                                                            activeRuleIds = getAppliedRuleIds(allRules, groupLib, directiveLib, allNodeInfos)
-                                                            ruleVals     <- buildRuleVals(
-                                                                              activeRuleIds,
-                                                                              allRules,
-                                                                              directiveLib,
-                                                                              groupLib,
-                                                                              allNodeInfos
-                                                                            ) ?~! "Cannot build Rule vals"
-                                                            timeRuleVal   = (System.currentTimeMillis - ruleValTime)
-                                                            _             = PolicyGenerationLogger.timing.debug(
-                                                                              s"RuleVals built in ${timeRuleVal} ms, start to expand their values."
-                                                                            )
+                                                            ruleValTime      = System.currentTimeMillis
+                                                            arePolicyServers = allNodeInfos.map { case (id, n) => (id, n.isPolicyServer) }.toMap.view
+                                                            activeRuleIds    = getAppliedRuleIds(allRules, groupLib, directiveLib, arePolicyServers)
+                                                            ruleVals        <- buildRuleVals(
+                                                                                 activeRuleIds,
+                                                                                 allRules,
+                                                                                 directiveLib,
+                                                                                 groupLib,
+                                                                                 arePolicyServers
+                                                                               ) ?~! "Cannot build Rule vals"
+                                                            timeRuleVal      = (System.currentTimeMillis - ruleValTime)
+                                                            _                = PolicyGenerationLogger.timing.debug(
+                                                                                 s"RuleVals built in ${timeRuleVal} ms, start to expand their values."
+                                                                               )
 
                                                             nodeContextsTime                          = System.currentTimeMillis
                                                             activeNodeIds                             = ruleVals.foldLeft(Set[NodeId]()) { case (s, r) => s ++ r.nodeIds }
@@ -647,10 +649,10 @@ trait PromiseGenerationService {
   }
 
   def getAppliedRuleIds(
-      rules:        Seq[Rule],
-      groupLib:     FullNodeGroupCategory,
-      directiveLib: FullActiveTechniqueCategory,
-      allNodeInfos: Map[NodeId, NodeInfo]
+      rules:            Seq[Rule],
+      groupLib:         FullNodeGroupCategory,
+      directiveLib:     FullActiveTechniqueCategory,
+      arePolicyServers: MapView[NodeId, Boolean]
   ): Set[RuleId]
 
   /**
@@ -664,11 +666,11 @@ trait PromiseGenerationService {
    * to a context latter.
    */
   def buildRuleVals(
-      activesRules: Set[RuleId],
-      rules:        Seq[Rule],
-      directiveLib: FullActiveTechniqueCategory,
-      groupLib:     FullNodeGroupCategory,
-      allNodeInfos: Map[NodeId, NodeInfo]
+      activesRules:     Set[RuleId],
+      rules:            Seq[Rule],
+      directiveLib:     FullActiveTechniqueCategory,
+      groupLib:         FullNodeGroupCategory,
+      arePolicyServers: MapView[NodeId, Boolean]
   ): Box[Seq[RuleVal]]
 
   def getNodeContexts(
@@ -905,14 +907,15 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   override def getGlobalComplianceMode():                  Box[GlobalComplianceMode]        = complianceModeService.getGlobalComplianceMode
   override def getGlobalAgentRun():                        Box[AgentRunInterval]            = agentRunService.getGlobalAgentRun()
   override def getAppliedRuleIds(
-      rules:        Seq[Rule],
-      groupLib:     FullNodeGroupCategory,
-      directiveLib: FullActiveTechniqueCategory,
-      allNodeInfos: Map[NodeId, NodeInfo]
+      rules:            Seq[Rule],
+      groupLib:         FullNodeGroupCategory,
+      directiveLib:     FullActiveTechniqueCategory,
+      arePolicyServers: MapView[NodeId, Boolean]
   ): Set[RuleId] = {
     rules
       .filter(r => {
-        ruleApplicationStatusService.isApplied(r, groupLib, directiveLib, allNodeInfos) match {
+        ruleApplicationStatusService
+          .isApplied(r, groupLib, directiveLib, arePolicyServers) match {
           case _: AppliedStatus => true
           case _ => false
         }
@@ -1115,17 +1118,17 @@ trait PromiseGeneration_buildRuleVals extends PromiseGenerationService {
   def ruleValService: RuleValService
 
   override def buildRuleVals(
-      activeRuleIds: Set[RuleId],
-      rules:         Seq[Rule],
-      directiveLib:  FullActiveTechniqueCategory,
-      allGroups:     FullNodeGroupCategory,
-      allNodeInfos:  Map[NodeId, NodeInfo]
+      activeRuleIds:    Set[RuleId],
+      rules:            Seq[Rule],
+      directiveLib:     FullActiveTechniqueCategory,
+      allGroups:        FullNodeGroupCategory,
+      arePolicyServers: MapView[NodeId, Boolean]
   ): Box[Seq[RuleVal]] = {
 
     val appliedRules = rules.filter(r => activeRuleIds.contains(r.id))
     for {
       rawRuleVals <- bestEffort(appliedRules) { rule =>
-                       ruleValService.buildRuleVal(rule, directiveLib, allGroups, allNodeInfos)
+                       ruleValService.buildRuleVal(rule, directiveLib, allGroups, arePolicyServers)
                      } ?~! "Could not find configuration vals"
     } yield rawRuleVals
   }

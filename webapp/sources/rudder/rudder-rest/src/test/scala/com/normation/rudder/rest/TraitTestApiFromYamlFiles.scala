@@ -51,6 +51,7 @@ import com.normation.rudder.UserService
 import com.normation.rudder.api.ApiAuthorization
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.lift.LiftApiProcessingLogger
 import com.normation.rudder.rest.lift.LiftHandler
@@ -114,6 +115,7 @@ object TraitTestApiFromYamlFiles {
             val account                              = RudderAccount.User("test-user", "pass")
             def checkRights(auth: AuthorizationType) = true
             def getApiAuthz                          = ApiAuthorization.allAuthz
+            def nodePerms: NodeSecurityContext = NodeSecurityContext.All
           }
           val getCurrentUser = user
         }

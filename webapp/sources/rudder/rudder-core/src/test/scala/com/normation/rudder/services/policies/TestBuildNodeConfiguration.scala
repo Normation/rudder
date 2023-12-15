@@ -170,7 +170,8 @@ class TestBuildNodeConfiguration extends Specification {
     for (i <- 0 until 10) {
       logger.trace("\n--------------------------------")
       val t1           = System.currentTimeMillis()
-      val ruleVal      = ruleValService.buildRuleVal(rule, directiveLib, groupLib, allNodes)
+      val ruleVal      =
+        ruleValService.buildRuleVal(rule, directiveLib, groupLib, allNodes.map { case (id, n) => (id, n.isPolicyServer) }.view)
       val ruleVals     = Seq(ruleVal.getOrElse(throw new RuntimeException("oups")))
       val t2           = System.currentTimeMillis()
       val nodeContexts = buildContext

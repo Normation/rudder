@@ -232,7 +232,7 @@ class TechniqueApi(
       val content = {
         for {
           force <- restExtractorService.extractBoolean("force")(req)(identity) map (_.getOrElse(false))
-          _     <- techniqueWriter.deleteTechnique(techniqueInfo._1, techniqueInfo._2, force, modId, authzToken.actor).toBox
+          _     <- techniqueWriter.deleteTechnique(techniqueInfo._1, techniqueInfo._2, force, modId, authzToken.qc.actor).toBox
         } yield {
           import net.liftweb.json.JsonDSL._
           (("id"       -> techniqueInfo._1)
@@ -268,7 +268,7 @@ class TechniqueApi(
               case Full(bytes) => new String(bytes, charset).fromJson[EditorTechnique].toIO
             }
           methodMap        <- techniqueReader.getMethodsMetadata
-          updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.actor)
+          updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.qc.actor)
           json             <- serviceV14.getTechniqueJson(updatedTechnique)
         } yield {
           json
@@ -342,7 +342,7 @@ class TechniqueApi(
                                             s"An error occurred while reading techniques when updating them: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}"
                                           )
                                         }
-        _                            <- ZIO.foreach(techniques)(t => techniqueWriter.writeTechnique(t, modId, authzToken.actor))
+        _                            <- ZIO.foreach(techniques)(t => techniqueWriter.writeTechnique(t, modId, authzToken.qc.actor))
         json                         <- ZIO.foreach(techniques)(_.toJsonAST.toIO)
       } yield {
         json
@@ -451,7 +451,7 @@ class TechniqueApi(
 
           // If no internalId (used to manage temporary folder for resources), ignore resources, this can happen when importing techniques through the api
           resoucesMoved <- technique.internalId.map(internalId => moveRessources(technique, internalId)).getOrElse("Ok".succeed)
-          updatedTech   <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.actor)
+          updatedTech   <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.qc.actor)
           json          <- serviceV14.getTechniqueJson(updatedTech)
         } yield {
           json

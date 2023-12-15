@@ -43,8 +43,10 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.policies._
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.utils.Utils
 import com.unboundid.ldif.LDIFChangeRecord
+import scala.collection.MapView
 import scala.collection.immutable.SortedMap
 import zio.Chunk
 
@@ -162,11 +164,10 @@ final case class FullNodeGroupCategory(
   /**
    * Return all node ids that match the set of target.
    */
-  def getNodeIds(targets: Set[RuleTarget], allNodeInfos: Map[NodeId, NodeInfo]): Set[NodeId] = {
-    val allNodes = allNodeInfos.view.mapValues(x => x.isPolicyServer)
-    val groups   = allGroups.view.mapValues(_.nodeGroup.serverList.toSet)
+  def getNodeIds(targets: Set[RuleTarget], arePolicyServers: MapView[NodeId, Boolean]): Set[NodeId] = {
+    val groups = allGroups.view.mapValues(_.nodeGroup.serverList.toSet)
 
-    RuleTarget.getNodeIds(targets, allNodes.toMap, groups.toMap)
+    RuleTarget.getNodeIds(targets, arePolicyServers, groups.toMap)
   }
 
   /**
@@ -182,7 +183,7 @@ final case class FullNodeGroupCategory(
             // here, we don't need all node info, just the current node
             // It's because we only do set analysis on node info, not things like "find all
             // the node with that policy server" in target.
-            getNodeIds(Set(t), Map(node.id -> node)).contains(node.id)
+            getNodeIds(Set(t), MapView(node.id -> node.isPolicyServer)).contains(node.id)
           case FullOtherTarget(t)             =>
             t match {
               case AllTarget                    => true
@@ -337,10 +338,10 @@ object RoNodeGroupRepository {
   def getNodeIds(
       allGroups:    Map[NodeGroupId, Set[NodeId]],
       targets:      Set[RuleTarget],
-      allNodeInfos: Map[NodeId, NodeInfo]
+      allNodeFacts: MapView[NodeId, CoreNodeFact]
   ): Set[NodeId] = {
-    val allNodes = allNodeInfos.view.mapValues(x => (x.isPolicyServer))
-    RuleTarget.getNodeIds(targets, allNodes.toMap, allGroups)
+    val allNodes = allNodeFacts.mapValues(x => (x.rudderSettings.isPolicyServer))
+    RuleTarget.getNodeIds(targets, allNodes, allGroups)
   }
 
   def getNodeIdsChunk(
@@ -349,7 +350,7 @@ object RoNodeGroupRepository {
       allNodeInfos: Map[NodeId, NodeInfo]
   ): Chunk[NodeId] = {
     val allNodes = allNodeInfos.view.mapValues(x => (x.isPolicyServer))
-    RuleTarget.getNodeIdsChunk(targets, allNodes.toMap, allGroups)
+    RuleTarget.getNodeIdsChunk(targets, allNodes, allGroups)
   }
 }
 

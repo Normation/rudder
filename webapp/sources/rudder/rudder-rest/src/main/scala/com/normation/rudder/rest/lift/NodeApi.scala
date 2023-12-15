@@ -109,7 +109,6 @@ import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.servers.NewNodeManager
 import com.normation.rudder.services.servers.RemoveNodeService
-import com.normation.rudder.web.services.CurrentUser
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio._
@@ -209,7 +208,7 @@ class NodeApi(
         nodes <- new String(json, StandardCharsets.UTF_8).fromJson[List[NodeDetails]].toIO
         res   <- ZIO.foldLeft(nodes)(ResultHolder(Nil, Nil)) {
                    case (res, node) =>
-                     nodeApiService.saveNode(node, authzToken.actor, req.remoteAddr).either.map {
+                     nodeApiService.saveNode(node, authzToken.qc.actor, req.remoteAddr).either.map {
                        case Right(id) => res.modify(_.created).using(_ :+ id)
                        case Left(err) => res.modify(_.failed).using(_ :+ ((node.id, err)))
                      }
@@ -244,7 +243,7 @@ class NodeApi(
     ): LiftResponse = {
       restExtractor.extractNodeDetailLevel(req.params) match {
         case Full(level) =>
-          nodeApiService.nodeDetailsGeneric(NodeId(id), level, version, req)
+          nodeApiService.nodeDetailsGeneric(NodeId(id), level)(params.prettify, authzToken.qc)
         case eb: EmptyBox =>
           val failMsg = eb ?~ "node detail level not correctly sent"
           toJsonError(None, failMsg.msg)("nodeDetail", params.prettify)
@@ -334,7 +333,7 @@ class NodeApi(
         .map(_.getOrElse(deleteDefaultMode))
         .getOrElse(deleteDefaultMode)
 
-      nodeApiService.deleteNode(NodeId(id), authzToken.actor, req.remoteAddr, pretiffy, mode)
+      nodeApiService.deleteNode(NodeId(id), authzToken.qc.actor, req.remoteAddr, pretiffy, mode)
     }
   }
 
@@ -353,7 +352,7 @@ class NodeApi(
       implicit val action   = "updateNode"
       implicit val cc       = ChangeContext(
         ModificationId(uuidGen.newUuid),
-        authzToken.actor,
+        authzToken.qc.actor,
         new DateTime(),
         params.reason,
         Some(req.remoteAddr),
@@ -394,7 +393,7 @@ class NodeApi(
       } else {
         (restExtractor.extractNodeIds(req.params), restExtractor.extractNodeStatus(req.params))
       }
-      nodeApiService.changeNodeStatus(nodeIds, nodeStatus, authzToken.actor, req.remoteAddr, prettify)
+      nodeApiService.changeNodeStatus(nodeIds, nodeStatus, authzToken.qc.actor, req.remoteAddr, prettify)
     }
   }
 
@@ -419,7 +418,7 @@ class NodeApi(
       } else {
         restExtractor.extractNodeStatus(req.params)
       }
-      nodeApiService.changeNodeStatus(Full(Some(List(NodeId(id)))), nodeStatus, authzToken.actor, req.remoteAddr, prettify)
+      nodeApiService.changeNodeStatus(Full(Some(List(NodeId(id)))), nodeStatus, authzToken.qc.actor, req.remoteAddr, prettify)
     }
   }
 
@@ -428,7 +427,7 @@ class NodeApi(
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val prettify = params.prettify
-      implicit val qc       = QueryContext(authzToken.actor, QueryContext.todoQC.nodePerms)
+      implicit val qc       = authzToken.qc
       restExtractor.extractNodeDetailLevel(req.params) match {
         case Full(level) =>
           restExtractor.extractQuery(req.params) match {
@@ -453,7 +452,7 @@ class NodeApi(
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val prettify = params.prettify
-      implicit val qc       = QueryContext(authzToken.actor, QueryContext.todoQC.nodePerms)
+      implicit val qc       = authzToken.qc
       restExtractor.extractNodeDetailLevel(req.params) match {
         case Full(level) =>
           restExtractor.extractQuery(req.params) match {
@@ -576,6 +575,8 @@ class NodeApi(
     val schema        = API.NodeDetailsTable
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
+
       (for {
         nodes <- nodeApiService.listNodes(req).toBox
       } yield {
@@ -961,7 +962,7 @@ class NodeApiService(
     ~ ("inheritedProperties" -> JObject(inheritedProperties.map(s => JField(s.prop.name, s.toApiJsonRenderParents)))))
   }
 
-  def listNodes(req: Req) = {
+  def listNodes(req: Req)(implicit qc: QueryContext) = {
     case class PropertyInfo(value: String, inherited: Boolean)
 
     def extractNodePropertyInfo(json: JValue) = {
@@ -972,8 +973,6 @@ class NodeApiService(
         PropertyInfo(value, inherited)
       }
     }
-
-    implicit val qc = CurrentUser.queryContext // won't work in real API
 
     for {
       n1              <- currentTimeMillis
@@ -1264,37 +1263,8 @@ class NodeApiService(
     }
   }
 
-  def nodeDetailsWithStatus(
-      nodeId:      NodeId,
-      detailLevel: NodeDetailLevel,
-      state:       InventoryStatus,
-      version:     ApiVersion,
-      req:         Req
-  ) = {
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    implicit val qc       = QueryContext.todoQC
-    implicit val action   = s"${state.name}NodeDetails"
-    getNodeDetails(nodeId, detailLevel, state).either.runNow match {
-      case Right(Some(inventory)) =>
-        toJsonResponse(Some(nodeId.value), ("nodes" -> JArray(List(inventory))))
-      case Right(None)            =>
-        effectiveResponse(
-          Some(nodeId.value),
-          s"Could not find Node ${nodeId.value} in state '${state.name}'",
-          NotFoundError,
-          action,
-          prettify
-        )
-      case Left(err)              =>
-        val message = s"Error when trying to find Node ${nodeId.value} in state '${state.name}': ${err.fullMsg}"
-        toJsonError(Some(nodeId.value), message)
-    }
-  }
-
-  def nodeDetailsGeneric(nodeId: NodeId, detailLevel: NodeDetailLevel, version: ApiVersion, req: Req) = {
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    implicit val qc       = QueryContext.todoQC
-    implicit val action   = "nodeDetails"
+  def nodeDetailsGeneric(nodeId: NodeId, detailLevel: NodeDetailLevel)(implicit prettify: Boolean, qc: QueryContext) = {
+    implicit val action = "nodeDetails"
     (for {
       accepted  <- getNodeDetails(nodeId, detailLevel, AcceptedInventory)
       orPending <- accepted match {

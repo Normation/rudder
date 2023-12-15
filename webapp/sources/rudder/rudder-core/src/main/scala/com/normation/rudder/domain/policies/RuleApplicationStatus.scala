@@ -37,8 +37,6 @@
 
 package com.normation.rudder.domain.policies
 
-import com.normation.rudder.domain.nodes.NodeInfo
-
 /**
  * Application status of a rule
  */
@@ -60,7 +58,7 @@ object ApplicationStatus {
       applicationStatus: ApplicationStatus,
       targets:           Set[RuleTargetInfo],
       directives:        Set[(ActiveTechnique, Directive)],
-      nodes:             Iterable[NodeInfo]
+      nodeIsEmpty:       Boolean
   ) = {
     applicationStatus match {
       case FullyApplied          => ("In application", None)
@@ -82,7 +80,7 @@ object ApplicationStatus {
             (rule.isEnabledStatus && !rule.isEnabled, "Rule unapplied"),
             (directives.isEmpty, "No policy defined"),
             (!isAllTargetsEnabled, "Group disabled"),
-            (nodes.isEmpty, "Empty groups")
+            (nodeIsEmpty, "Empty groups")
           ) ++
           directives.flatMap {
             case (activeTechnique, directive) =>

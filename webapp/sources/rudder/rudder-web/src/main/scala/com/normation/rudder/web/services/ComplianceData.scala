@@ -44,6 +44,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.reports._
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.utils.DateFormaterService
@@ -54,6 +55,7 @@ import net.liftweb.http.js.JsExp
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers._
 import org.joda.time.Interval
+import scala.collection.MapView
 
 /*
  * That files contains all the datastructures related to
@@ -485,7 +487,7 @@ object ComplianceData extends Loggable {
   def getRuleByDirectivesComplianceDetails(
       report:       RuleStatusReport,
       rule:         Rule,
-      allNodeInfos: Map[NodeId, NodeInfo],
+      nodeFacts:    MapView[NodeId, CoreNodeFact],
       directiveLib: FullActiveTechniqueCategory,
       groupLib:     FullNodeGroupCategory,
       allRules:     Seq[Rule], // for overrides
@@ -493,9 +495,9 @@ object ComplianceData extends Loggable {
       globalMode: GlobalPolicyMode
   ): JsTableData[DirectiveComplianceLine] = {
     val overrides    = getOverridenDirectiveDetails(report.overrides, directiveLib, allRules, Some(rule))
-    // restrict mode calcul to node really targetted by that rule
-    val appliedNodes = groupLib.getNodeIds(rule.targets, allNodeInfos)
-    val nodeModes    = appliedNodes.flatMap(id => allNodeInfos.get(id).map(_.policyMode))
+    // restrict mode computing to nodes really targeted by that rule
+    val appliedNodes = groupLib.getNodeIds(rule.targets, nodeFacts.mapValues(_.rudderSettings.isPolicyServer))
+    val nodeModes    = appliedNodes.flatMap(id => nodeFacts.get(id).map(_.rudderSettings.policyMode))
     val lines        = getDirectivesComplianceDetails(
       report.report.directives.values.toList,
       directiveLib,
