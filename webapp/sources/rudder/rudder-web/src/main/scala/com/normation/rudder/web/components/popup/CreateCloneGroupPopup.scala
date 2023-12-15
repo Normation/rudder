@@ -87,10 +87,6 @@ class CreateCloneGroupPopup(
     onFailureCallback() &
     updateFormClientSide()
   }
-//    private[this] def onFailure : JsCmd = {
-//    formTracker.addFormError(error("There was a problem with your request"))
-//    updateFormClientSide()
-//  }
 
   private[this] def error(msg: String) = <span class="col-lg-12 errors-container">{msg}</span>
 
