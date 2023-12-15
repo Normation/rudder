@@ -20,12 +20,14 @@ mod versions;
 mod webapp;
 
 use std::{
+    fs::create_dir_all,
     path::{Path, PathBuf},
     process,
 };
 
 use anyhow::{anyhow, bail, Context, Result};
 use clap::Parser;
+use cli::Args;
 use tracing::{debug, error, info, warn};
 
 use crate::{
@@ -64,24 +66,32 @@ fn am_i_root() -> Result<bool> {
 
 /// CLI entry point
 pub fn run() -> Result<()> {
-    // Abort of not run as root
-    // Ignore on error
-    #[cfg(not(debug_assertions))]
-    if let Ok(false) = am_i_root() {
-        eprintln!("This program needs to run as root, aborting.");
-        process::exit(1);
-    }
-
     // Read CLI args
     let args = cli::Args::parse();
 
     // Setup logger early
     rudder_cli::logs::init(
-        if args.debug { 0 } else { 1 },
+        if args.debug { 1 } else { 0 },
         false,
         rudder_cli::logs::OutputFormat::Human,
     );
 
+    // Abort of not run as root
+    // Ignore on error
+    #[cfg(not(debug_assertions))]
+    if let Ok(false) = am_i_root() {
+        error!("This program needs to run as root, aborting.");
+        return Err(());
+    }
+
+    let r = run_inner(args);
+    if let Err(ref e) = r {
+        error!("{:?}", e);
+    }
+    r
+}
+
+pub fn run_inner(args: Args) -> Result<()> {
     // Parse configuration file
     debug!("Parsed CLI arguments: {args:?}");
     let cfg = Configuration::read(Path::new(&args.config))
@@ -96,6 +106,8 @@ pub fn run() -> Result<()> {
     let mut db = Database::read(Path::new(PACKAGES_DATABASE_PATH))?;
     let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
     let licenses = Licenses::from_path(Path::new(LICENSES_FOLDER))?;
+
+    create_dir_all(TMP_PLUGINS_FOLDER).context("Create temporary directory")?;
 
     match args.command {
         Command::Install { force, package } => {

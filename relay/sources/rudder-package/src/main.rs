@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-#![allow(dead_code)]
+use std::process;
 
-fn main() -> anyhow::Result<()> {
-    rudder_package::run()?;
-    Ok(())
+fn main() {
+    if rudder_package::run().is_err() {
+        process::exit(1);
+    }
 }
