@@ -195,11 +195,6 @@
                 <input id="displayDeprecation" type="checkbox" ng-model="displayDeprecated"/>
                 <label for="displayDeprecation">Display deprecated Technique versions</label>
               </div>
-              <lift:authz role="directive_write">
-                <div class="space-top">
-                  <button type="button" id="addButton" ng-click="techniques[techniques.length-1].action()" class="btn btn-success new-icon">Create with latest version</button>
-                </div>
-              </lift:authz>
             </div>
           </div>
         </div>
