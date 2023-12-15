@@ -59,6 +59,7 @@ import com.normation.rudder.rest.lift.InfoApi
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.web.services.CurrentUser
+import com.normation.rudder.web.services.RudderUserDetail
 import com.normation.rudder.web.snippet.WithCachedResource
 import com.normation.zio._
 import java.net.URI
@@ -403,6 +404,37 @@ class Boot extends Loggable {
         s"Content security policy violation: blocked ${r.blockedUri} in ${r.documentUri} because of ${r.violatedDirective} directive"
       )
       Full(OkResponse())
+    }
+
+    /*
+     * Store current user.
+     * It needs to be done at the beginning of the request handling so that
+     * both our API and UI authorization works.
+     * Be careful! We have 3 moving parts here:
+     * - the session managed by jetty where is stored spring SecurityContextHolder
+     * - spring security anti session-fixation system that migrates (copy+clean the old one)
+     * - the session managed by lift through S (with SessionVar).
+     *
+     * It seems that:
+     * - Lift ContainerVars are broken by spring anti session-fixation scheme,
+     * - Lift SessionVars doesn't work well with comet async (they are said to work, but I wasn't
+     *   able to make them so - it may be also because of something else)
+     * - we can't just use SecurityContextHolder because comet/async are done in a different context
+     *   (thread or even thread pool), so they can't access these information.
+     * So we just fill authz info in a request var each time.
+     */
+    LiftRules.onBeginServicing.append { _ =>
+      if (CurrentUser.isEmpty) {
+        val optUser = SecurityContextHolder.getContext.getAuthentication match {
+          case null => None
+          case auth =>
+            auth.getPrincipal match {
+              case u: RudderUserDetail => Some(u)
+              case _ => None
+            }
+        }
+        CurrentUser.set(optUser)
+      }
     }
 
     // Store access time for user idle tracking in each non-comet request
