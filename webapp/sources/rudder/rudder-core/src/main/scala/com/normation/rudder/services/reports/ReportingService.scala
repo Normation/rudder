@@ -44,6 +44,7 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.NodeStatusReport
+import com.normation.rudder.facts.nodes.QueryContext
 import net.liftweb.common.Box
 
 /**
@@ -57,11 +58,14 @@ trait ReportingService {
    * Optionally restrict the set to some rules if filterByRules is non empty (else,
    * find node status reports for all rules)
    */
-  def findRuleNodeStatusReports(nodeIds: Set[NodeId], filterByRules: Set[RuleId]): Box[Map[NodeId, NodeStatusReport]]
-  def findDirectiveNodeStatusReports(
-      nodeIds:                           Set[NodeId],
-      filterByDirectives:                Set[DirectiveId]
+  def findRuleNodeStatusReports(nodeIds: Set[NodeId], filterByRules: Set[RuleId])(implicit
+      qc:                                QueryContext
   ): Box[Map[NodeId, NodeStatusReport]]
+
+  def findDirectiveNodeStatusReports(
+      nodeIds:            Set[NodeId],
+      filterByDirectives: Set[DirectiveId]
+  )(implicit qc:          QueryContext): Box[Map[NodeId, NodeStatusReport]]
 
   def findUncomputedNodeStatusReports(): Box[Map[NodeId, NodeStatusReport]]
 
@@ -70,7 +74,9 @@ trait ReportingService {
    * Optionally restrict the set to some rules if filterByRules is non empty (else,
    * find node status reports for all rules)
    */
-  def findRuleNodeCompliance(nodeIds: Set[NodeId], filterByRules: Set[RuleId]): IOResult[Map[NodeId, ComplianceLevel]]
+  def findRuleNodeCompliance(nodeIds: Set[NodeId], filterByRules: Set[RuleId])(implicit
+      qc:                             QueryContext
+  ): IOResult[Map[NodeId, ComplianceLevel]]
 
   /**
    * Retrieve two sets of rule/node compliances level given the nodes Id.
@@ -81,41 +87,41 @@ trait ReportingService {
       nodeIds:             Set[NodeId],
       filterBySystemRules: Set[RuleId],
       filterByUserRules:   Set[RuleId]
-  ): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])]
+  )(implicit qc:           QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])]
 
   /**
    * A specialised version of `findRuleNodeStatusReports` to find node status reports for a given rule.
    */
-  def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): IOResult[Map[NodeId, NodeStatusReport]]
+  def findDirectiveRuleStatusReportsByRule(ruleId: RuleId)(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]]
 
   /**
     * find node status reports for a given node.
     */
-  def findNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport]
+  def findNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext): Box[NodeStatusReport]
 
   /**
     * find node status reports for a given node.
     */
-  def findUserNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport]
+  def findUserNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext): Box[NodeStatusReport]
 
   /**
     * find system node status reports for a given node.
     */
-  def findSystemNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport]
+  def findSystemNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext): Box[NodeStatusReport]
 
   /**
    * find node status reports for *user* rules (all non system rules)
    */
-  def getUserNodeStatusReports(): Box[Map[NodeId, NodeStatusReport]]
+  def getUserNodeStatusReports()(implicit qc: QueryContext): Box[Map[NodeId, NodeStatusReport]]
 
-  def findStatusReportsForDirective(directiveId: DirectiveId): IOResult[Map[NodeId, NodeStatusReport]]
+  def findStatusReportsForDirective(directiveId: DirectiveId)(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]]
 
   /**
    * find node status reports for user and system rules but in a separated couple (system is first element, user second)
    */
   def getSystemAndUserCompliance(
       optNodeIds: Option[Set[NodeId]]
-  ): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])]
+  )(implicit qc:  QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])]
 
   /**
    * * Get the global compliance for reports passed in parameters
@@ -131,9 +137,9 @@ trait ReportingService {
   * Also get an unique number which describe the global compliance value (without
   * taking into account pending reports).
   * It's what is displayed on Rudder home page.
-  * If all rules/directies are system one, returns none.
+  * If all rules/directives are system one, returns none.
   */
-  def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]]
+  def getGlobalUserCompliance()(implicit qc: QueryContext): Box[Option[(ComplianceLevel, Long)]]
 
   // Utilitary method to filter reports by rules
   def filterReportsByRules(reports: Map[NodeId, NodeStatusReport], ruleIds: Set[RuleId]): Map[NodeId, NodeStatusReport] = {

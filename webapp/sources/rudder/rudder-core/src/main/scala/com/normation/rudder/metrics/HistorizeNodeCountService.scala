@@ -41,9 +41,11 @@ import better.files._
 import com.normation.errors._
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.domain.reports.ComplianceLevel
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.zio._
 import java.nio.charset.StandardCharsets
@@ -133,7 +135,7 @@ class HistorizeNodeCountService(
  * Default implementation of `FetchDataService` is just a call to relevant rudder service to get node and reporting
  * info (to know if node actual policy mode)
  */
-class FetchDataServiceImpl(nodeInfoService: NodeInfoService, reportingService: ReportingService) extends FetchDataService {
+class FetchDataServiceImpl(nodeFactRepo: NodeFactRepository, reportingService: ReportingService) extends FetchDataService {
 
   def getFrequentNodeMetric(): IOResult[FrequentNodeMetrics] = {
     // a method that returns "e" if compliance is enforce only,
@@ -150,9 +152,9 @@ class FetchDataServiceImpl(nodeInfoService: NodeInfoService, reportingService: R
     }
 
     (for {
-      accepted   <- nodeInfoService.getAll()
-      pending    <- nodeInfoService.getPendingNodeInfos()
-      compliance <- reportingService.getUserNodeStatusReports().toIO
+      accepted   <- nodeFactRepo.getAll()(QueryContext.systemQC, SelectNodeStatus.Accepted)
+      pending    <- nodeFactRepo.getAll()(QueryContext.systemQC, SelectNodeStatus.Pending)
+      compliance <- reportingService.getUserNodeStatusReports()(QueryContext.systemQC).toIO
     } yield {
       val modes = compliance.values.groupMapReduce(r => mode(r.compliance))(_ => 1)(_ + _)
       FrequentNodeMetrics(

@@ -46,11 +46,12 @@ import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.facts.nodes.NodeFact
+import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.NodeFactStorage
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.PureHooksLogger
 import com.normation.rudder.hooks.RunHooks
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.currentTimeMillis
 import zio._
@@ -116,7 +117,7 @@ class PostCommitInventoryHooks[A](
 
 class FactRepositoryPostCommit[A](
     nodeFactsRepository: NodeFactStorage,
-    nodeInfoService:     NodeInfoService
+    nodeFactRepository:  NodeFactRepository
 ) extends PostCommit[A] {
   override def name: String = "commit node in fact-repository"
 
@@ -126,11 +127,8 @@ class FactRepositoryPostCommit[A](
    */
   override def apply(inventory: Inventory, records: A): IOResult[A] = {
     (for {
-      optInfo <- inventory.node.main.status match {
-                   case AcceptedInventory => nodeInfoService.getNodeInfo(inventory.node.main.id)
-                   case PendingInventory  => nodeInfoService.getPendingNodeInfo(inventory.node.main.id)
-                   case RemovedInventory  => None.succeed
-                 }
+      optInfo <- if (inventory.node.main.status == RemovedInventory) None.succeed
+                 else nodeFactRepository.getCompat(inventory.node.main.id, inventory.node.main.status)(QueryContext.systemQC)
       _       <- optInfo match {
                    case None =>
                      InventoryProcessingLogger.info(
@@ -142,7 +140,7 @@ class FactRepositoryPostCommit[A](
                    case Some(nodeInfo) =>
                      nodeFactsRepository.save(
                        NodeFact.fromCompat(
-                         nodeInfo,
+                         nodeInfo.toNodeInfo,
                          Right(FullInventory(inventory.node, Some(inventory.machine))),
                          inventory.applications
                        )

@@ -37,8 +37,8 @@
 
 package com.normation.rudder.web.components
 
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.web.ChooseTemplate
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
@@ -53,7 +53,7 @@ import scala.xml.NodeSeq
  * Component to display and configure the Agent Schedule
  */
 class NodeStateForm(
-    nodeInfo:      NodeInfo,
+    nodeFact:      CoreNodeFact,
     saveNodeState: NodeState => Box[NodeState] // and save it
 ) extends DispatchSnippet with Loggable {
 
@@ -76,7 +76,7 @@ class NodeStateForm(
   }.toList.sortBy(_._1).map(_._2)
 
   def nodeStateConfiguration: NodeSeq = {
-    var state = nodeInfo.state
+    var state = nodeFact.rudderSettings.state
 
     def process(): JsCmd = {
       saveNodeState(state) match {

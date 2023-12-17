@@ -291,7 +291,7 @@ class RestTestSetUp {
   }
   val policyGeneration              = new PromiseGenerationService {
     override def deploy():                                                                     Box[Set[NodeId]]                        = Full(Set())
-    override def getAllNodeInfos():                                                            Box[Map[NodeId, NodeInfo]]              = ???
+    override def getNodeFacts():                                                               Box[MapView[NodeId, CoreNodeFact]]      = ???
     override def getDirectiveLibrary(ids: Set[DirectiveId]):                                   Box[FullActiveTechniqueCategory]        = ???
     override def getGroupLibrary():                                                            Box[FullNodeGroupCategory]              = ???
     override def getAllGlobalParameters:                                                       Box[Seq[GlobalParameter]]               = ???
@@ -303,7 +303,7 @@ class RestTestSetUp {
     override def getMaxParallelism:                                                            () => Box[String]                       = ???
     override def getJsTimeout:                                                                 () => Box[Int]                          = ???
     override def getGenerationContinueOnError:                                                 () => Box[Boolean]                      = ???
-    override def writeCertificatesPem(allNodeInfos: Map[NodeId, NodeInfo]):                    Unit                                    = ???
+    override def writeCertificatesPem(allNodeInfos: MapView[NodeId, CoreNodeFact]):            Unit                                    = ???
     override def triggerNodeGroupUpdate():                                                     Box[Unit]                               = ???
     override def beforeDeploymentSync(generationTime: DateTime):                               Box[Unit]                               = ???
     override def HOOKS_D:                                                                      String                                  = ???
@@ -326,7 +326,7 @@ class RestTestSetUp {
     ): Box[Seq[RuleVal]] = ???
     override def getNodeContexts(
         nodeIds:              Set[NodeId],
-        allNodeInfos:         Map[NodeId, NodeInfo],
+        allNodeInfos:         MapView[NodeId, CoreNodeFact],
         allGroups:            FullNodeGroupCategory,
         globalParameters:     List[GlobalParameter],
         globalAgentRun:       AgentRunInterval,
@@ -611,7 +611,7 @@ class RestTestSetUp {
     List(
       CheckCoreNumber,
       CheckFreeSpace,
-      new CheckFileDescriptorLimit(mockNodes.nodeInfoService)
+      new CheckFileDescriptorLimit(mockNodes.nodeFactRepo)
     )
   )
   val fakeHcNotifService     = new HealthcheckNotificationService(fakeHealthcheckService, 5.minute)
@@ -748,7 +748,6 @@ class RestTestSetUp {
     null,
     null,
     null,
-    mockNodes.nodeInfoService,
     mockNodes.newNodeManager,
     null,
     restExtractorService,

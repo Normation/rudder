@@ -45,14 +45,17 @@ import com.normation.errors._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.DB
 import com.normation.rudder.db.DBCommon
-import com.normation.rudder.domain.nodes.Node
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
+import com.normation.rudder.facts.nodes.CoreNodeFactRepository
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.NoopFactStorage
+import com.normation.rudder.facts.nodes.NoopGetNodesbySofwareName
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -63,7 +66,6 @@ import com.normation.rudder.repository.ComplianceRepository
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
@@ -73,6 +75,8 @@ import com.normation.rudder.services.reports.NodeConfigurationService
 import com.normation.rudder.services.reports.NodeConfigurationServiceImpl
 import com.normation.rudder.services.reports.ReportingServiceImpl
 import com.normation.rudder.services.reports.UnexpectedReportInterpretation
+import com.normation.zio._
+import com.softwaremill.quicklens._
 import doobie.implicits._
 import net.liftweb.common.Box
 import net.liftweb.common.Empty
@@ -81,6 +85,7 @@ import org.joda.time.DateTime
 import org.joda.time.Duration
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
+import scala.annotation.nowarn
 import scala.collection.SortedMap
 import scala.concurrent.duration.FiniteDuration
 import zio._
@@ -101,34 +106,20 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     transacRun(xa => sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa))
   }
 
-  object nodeInfoService extends NodeInfoService {
-    def getNodeInfo(nodeId: NodeId):           IOResult[Option[NodeInfo]]      = ???
-    def getNodeInfoPure(nodeId: NodeId):       IOResult[Option[NodeInfo]]      = ???
-    def getNodeInfos(nodesId: Set[NodeId]):    IOResult[Set[NodeInfo]]         = ???
-    def getNodeInfosSeq(nodeIds: Seq[NodeId]): IOResult[Seq[NodeInfo]]         = ???
-    def getNode(nodeId: NodeId):               Box[Node]                       = ???
-    def getAllNodes():                         IOResult[Map[NodeId, Node]]     = ???
-    def getAllNodesIds():                      IOResult[Set[NodeId]]           = ???
-    def getAllNodeInfos():                     IOResult[Seq[NodeInfo]]         = ???
-    def getAllSystemNodeIds():                 IOResult[Seq[NodeId]]           = ???
-    def getPendingNodeInfos():                 IOResult[Map[NodeId, NodeInfo]] = ???
-    def getPendingNodeInfo(nodeId: NodeId):    IOResult[Option[NodeInfo]]      = ???
-    def getDeletedNodeInfos():                 IOResult[Map[NodeId, NodeInfo]] = ???
-    def getDeletedNodeInfo(nodeId: NodeId):    IOResult[Option[NodeInfo]]      = ???
-    def getNumberOfManagedNodes:               IOResult[Int]                   = ???
-    val getAll:                                IOResult[Map[NodeId, NodeInfo]] = {
-      def build(id: String, mode: Option[PolicyMode]) = {
-        val node1 = NodeConfigData.node1.node
-        NodeConfigData.node1.copy(node = node1.copy(id = NodeId(id), policyMode = mode))
-      }
-      Seq(
-        build("n0", None),
-        build("n1", Some(PolicyMode.Enforce)),
-        build("n2", Some(PolicyMode.Audit)),
-        build("n3", Some(PolicyMode.Enforce)),
-        build("n4", Some(PolicyMode.Audit))
-      ).map(n => (n.id, n)).toMap.succeed
+  val nodeFactRepo = {
+    def build(id: String, mode: Option[PolicyMode]) = {
+      (NodeId(id), NodeConfigData.fact1.modify(_.id).setTo(NodeId(id)).modify(_.rudderSettings.policyMode).setTo(mode))
     }
+
+    val accepted = Seq(
+      build("n0", None),
+      build("n1", Some(PolicyMode.Enforce)),
+      build("n2", Some(PolicyMode.Audit)),
+      build("n3", Some(PolicyMode.Enforce)),
+      build("n4", Some(PolicyMode.Audit))
+    ).toMap
+
+    CoreNodeFactRepository.make(NoopFactStorage, NoopGetNodesbySofwareName, Map(), accepted, Chunk.empty).runNow
   }
 
   val directivesLib   = NodeConfigData.directives
@@ -162,21 +153,25 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   }
 
   val dummyComplianceCache = new CachedFindRuleNodeStatusReports {
-    def defaultFindRuleNodeStatusReports:                        DefaultFindRuleNodeStatusReports        = null
-    def nodeInfoService:                                         NodeInfoService                         = self.nodeInfoService
-    def nodeConfigrationService:                                 NodeConfigurationService                = null
-    def findDirectiveRuleStatusReportsByRule(ruleId: RuleId):    IOResult[Map[NodeId, NodeStatusReport]] = null
-    def findNodeStatusReport(nodeId: NodeId):                    Box[NodeStatusReport]                   = null
-    def findStatusReportsForDirective(directiveId: DirectiveId): IOResult[Map[NodeId, NodeStatusReport]] = null
-    def findUserNodeStatusReport(nodeId: NodeId):                Box[NodeStatusReport]                   = null
-    def findSystemNodeStatusReport(nodeId: NodeId):              Box[NodeStatusReport]                   = null
-    def getGlobalUserCompliance():                               Box[Option[(ComplianceLevel, Long)]]    = null
-    def findUncomputedNodeStatusReports():                       Box[Map[NodeId, NodeStatusReport]]      = null
+    def defaultFindRuleNodeStatusReports:                                                DefaultFindRuleNodeStatusReports        = null
+    def nodeFactRepository:                                                              NodeFactRepository                      = self.nodeFactRepo
+    def nodeConfigrationService:                                                         NodeConfigurationService                = null
+    def findDirectiveRuleStatusReportsByRule(ruleId: RuleId)(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] =
+      null
+    def findNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext):                 Box[NodeStatusReport]                   = null
+    def findStatusReportsForDirective(directiveId: DirectiveId)(implicit
+        qc:                                        QueryContext
+    ): IOResult[Map[NodeId, NodeStatusReport]] = null
+    def findUserNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext):             Box[NodeStatusReport]                   = null
+    def findSystemNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext):           Box[NodeStatusReport]                   = null
+    def getGlobalUserCompliance()(implicit qc: QueryContext):                            Box[Option[(ComplianceLevel, Long)]]    = null
+    def findUncomputedNodeStatusReports():                                               Box[Map[NodeId, NodeStatusReport]]      = null
 
-    def getUserNodeStatusReports():                                           Box[Map[NodeId, NodeStatusReport]] = Full(Map())
+    @nowarn()
+    def getUserNodeStatusReports()(implicit qc: QueryContext):                Box[Map[NodeId, NodeStatusReport]] = Full(Map())
     def getSystemAndUserCompliance(
         optNodeIds: Option[Set[NodeId]]
-    ): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
+    )(implicit qc:  QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
     def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)]    = None
 
     override def batchSize: Int = 5000
@@ -338,7 +333,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     reportsRepo,
     roAgentRun,
     agentRunService,
-    nodeInfoService,
+    nodeFactRepo,
     directivesRepos,
     rulesRepos,
     nodeConfigService,

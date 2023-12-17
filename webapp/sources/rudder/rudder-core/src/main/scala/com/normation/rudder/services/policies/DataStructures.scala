@@ -272,7 +272,7 @@ final case class NodeConfiguration(
  * Unique identifier for the policy.
  * These is a general container that can be used to generate the different ID
  * used in rudder: the policyId as used in reports, the unique identifier
- * used to differenciate multi-version technique, etc.
+ * used to differentiate multi-version technique, etc.
  */
 final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId, techniqueVersion: TechniqueVersion) {
 

@@ -50,8 +50,11 @@ import com.normation.ldap.sdk.syntax._
 import com.normation.rudder.domain._
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.queries._
+import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.zio.currentTimeMillis
 import com.unboundid.ldap.sdk.{LDAPConnection => _, SearchScope => _, _}
 import com.unboundid.ldap.sdk.DereferencePolicy.NEVER
@@ -211,11 +214,11 @@ object PostFilterNodeFromInfoService {
  * for pending nodes
  */
 class PendingNodesLDAPQueryChecker(
-    val checker:     InternalLDAPQueryProcessor,
-    nodeInfoService: NodeInfoService
+    val checker:        InternalLDAPQueryProcessor,
+    nodeFactRepository: NodeFactRepository
 ) extends QueryChecker {
 
-  override def check(query: Query, limitToNodeIds: Option[Seq[NodeId]]): IOResult[Set[NodeId]] = {
+  override def check(query: Query, limitToNodeIds: Option[Seq[NodeId]])(implicit qc: QueryContext): IOResult[Set[NodeId]] = {
     if (query.criteria.isEmpty) {
       InternalLDAPQueryProcessorLoggerPure.debug(
         s"Checking a query with 0 criterium will always lead to 0 nodes: ${query}"
@@ -224,7 +227,7 @@ class PendingNodesLDAPQueryChecker(
       for {
         timePreCompute      <- currentTimeMillis
         // get the pending node infos we are considering
-        allPendingNodeInfos <- nodeInfoService.getPendingNodeInfos()
+        allPendingNodeInfos <- nodeFactRepository.getAll()(qc, SelectNodeStatus.Pending)
         pendingNodeInfos     = limitToNodeIds match {
                                  case None      => allPendingNodeInfos.values.toSeq
                                  case Some(ids) =>
@@ -290,7 +293,7 @@ class InternalLDAPQueryProcessor(
       select:             Seq[String] = Seq(),
       limitToNodeIds:     Option[Seq[NodeId]] = None,
       debugId:            Long = 0L,
-      lambdaAllNodeInfos: () => IOResult[Seq[NodeInfo]] // this is hackish, to have the list of all node if
+      lambdaAllNodeInfos: () => IOResult[Seq[CoreNodeFact]] // this is hackish, to have the list of all node if
       // only if necessary, to avoid the overall cost of looking for it
 
   ): IOResult[Seq[NodeId]] = {
@@ -342,7 +345,7 @@ class InternalLDAPQueryProcessor(
                          case And if query.transform == ResultTransformation.Invert => lambdaAllNodeInfos()
                          case And if optdms.isDefined                               => lambdaAllNodeInfos()
 
-                         case _ => Seq[NodeInfo]().succeed
+                         case _ => Seq[CoreNodeFact]().succeed
                        }
       timefetch     <- currentTimeMillis
       _             <-
@@ -357,7 +360,7 @@ class InternalLDAPQueryProcessor(
                          case None if nq.noFilterButTakeAllFromCache =>
                            allNodesInfos.succeed
                          case None                                   =>
-                           Seq[NodeInfo]().succeed
+                           Seq[CoreNodeFact]().succeed
                          case Some(dms)                              =>
                            for {
                              ids <- executeLdapQueries(dms, nq, select, debugId)
@@ -365,7 +368,7 @@ class InternalLDAPQueryProcessor(
                                       s"[${debugId}] Found ${ids.size} entries ; filtering with ${allNodesInfos.size} accepted nodes"
                                     )
                            } yield {
-                             allNodesInfos.filter(nodeInfo => ids.contains(nodeInfo.node.id))
+                             allNodesInfos.filter(nodeInfo => ids.contains(nodeInfo.id))
                            }
                        }
       // No more LDAP query is required here
@@ -382,14 +385,19 @@ class InternalLDAPQueryProcessor(
                            Seq[NodeId]()
                          case And                    =>
                            // If i'm doing and AND, there is no need for the allNodes here
-                           PostFilterNodeFromInfoService.getLDAPNodeInfo(results, nq.nodeInfoFilters, query.composition, Seq())
+                           PostFilterNodeFromInfoService.getLDAPNodeInfo(
+                             results.map(_.toNodeInfo),
+                             nq.nodeInfoFilters,
+                             query.composition,
+                             Seq()
+                           )
                          case Or                     =>
                            // Here we need the list of all nodes
                            PostFilterNodeFromInfoService.getLDAPNodeInfo(
-                             results,
+                             results.map(_.toNodeInfo),
                              nq.nodeInfoFilters,
                              query.composition,
-                             allNodesInfos
+                             allNodesInfos.map(_.toNodeInfo)
                            )
                        }
       timefilter    <- currentTimeMillis
@@ -398,7 +406,7 @@ class InternalLDAPQueryProcessor(
           s"[post-filter:rudderNode] Found ${nodeIdFiltered.size} nodes when filtering for info service existence and properties (${timefilter - timeldap} ms)"
         )
       _             <- logPure.ifDebugEnabled {
-                         val filtered = results.map(x => x.node.id.value).diff(nodeIdFiltered.map(x => x.value))
+                         val filtered = results.map(x => x.id.value).diff(nodeIdFiltered.map(x => x.value))
                          if (filtered.nonEmpty) {
                            logPure.debug(
                              s"[${debugId}] [post-filter:rudderNode] ${nodeIdFiltered.size} results (following nodes not in ou=Nodes,cn=rudder-configuration or not matching filters on NodeInfo: ${filtered

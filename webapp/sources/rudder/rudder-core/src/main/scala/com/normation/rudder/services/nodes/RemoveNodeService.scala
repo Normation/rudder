@@ -41,11 +41,15 @@ import com.normation.errors._
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.AgentType
+import com.normation.inventory.domain.AgentVersion
 import com.normation.inventory.domain.InventoryStatus
+import com.normation.inventory.domain.MachineUuid
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PendingInventory
+import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.RemovedInventory
 import com.normation.inventory.domain.UndefinedKey
+import com.normation.inventory.domain.UnknownMachineType
 import com.normation.inventory.domain.UnknownOS
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.LDAPConstants._
@@ -57,12 +61,15 @@ import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
-import com.normation.rudder.domain.nodes.Node
-import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.nodes.MachineInfo
+import com.normation.rudder.domain.nodes.NodeKind
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.facts.nodes.RudderAgent
+import com.normation.rudder.facts.nodes.RudderSettings
 import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HookReturnCode
@@ -72,7 +79,6 @@ import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.repository.ldap.ScalaReadWriteLock
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.write.NodePoliciesPaths
 import com.normation.rudder.services.policies.write.PathComputer
 import com.normation.rudder.services.servers.DeletionResult._
@@ -132,17 +138,17 @@ trait PostNodeDeleteAction {
   // a node can have several status (if inventories already deleted, and now in pending again for ex)
   // or zero (if only some things remain)
   // and if can optionnally have a nodeInfo
-  def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus])(implicit
+  def run(nodeId: NodeId, mode: DeleteMode, info: Option[CoreNodeFact], status: Set[InventoryStatus])(implicit
       cc:         ChangeContext
   ): UIO[Unit]
 }
 
 object PostNodeDeleteAction {
-  implicit class NodeName(info: (NodeId, Option[NodeInfo])) {
+  implicit class NodeName(info: (NodeId, Option[CoreNodeFact])) {
     def name: String = {
       info match {
         case (id, None)    => s"with ID '${id.value}'"
-        case (id, Some(i)) => s"'${i.hostname}' [${id.value}]"
+        case (id, Some(i)) => s"'${i.fqdn}' [${id.value}]"
       }
     }
   }
@@ -164,7 +170,7 @@ trait RemoveNodeService {
     removeNodePure(nodeId, DeleteMode.MoveToRemoved).map(_ => Success).toBox
   }
 
-  def removeNodePure(nodeId: NodeId, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[NodeInfo]
+  def removeNodePure(nodeId: NodeId, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[CoreNodeFact]
 }
 
 trait RemoveNodeBackend {
@@ -173,7 +179,7 @@ trait RemoveNodeBackend {
   def findNodeStatuses(nodeId: NodeId): IOResult[Set[InventoryStatus]]
 
   // the abstract method that actually commit in backend repo the deletion from accepted nodes
-  def commitDeleteAccepted(nodeInfo: NodeInfo, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[Unit]
+  def commitDeleteAccepted(nodeInfo: CoreNodeFact, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[Unit]
 
   // the abstract method that actually commit in backend repo the deletion from accepted nodes
   def commitPurgeRemoved(nodeId: NodeId, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[Unit]
@@ -190,7 +196,7 @@ class FactRemoveNodeBackend(backend: NodeFactRepository) extends RemoveNodeBacke
     }
   }
 
-  override def commitDeleteAccepted(nodeInfo: NodeInfo, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[Unit] = {
+  override def commitDeleteAccepted(nodeInfo: CoreNodeFact, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[Unit] = {
     backend.delete(nodeInfo.id).unit
   }
 
@@ -201,7 +207,7 @@ class FactRemoveNodeBackend(backend: NodeFactRepository) extends RemoveNodeBacke
 
 class RemoveNodeServiceImpl(
     backend:                   RemoveNodeBackend,
-    nodeInfoService:           NodeInfoService,
+    nodeFactRepo:              NodeFactRepository,
     pathComputer:              PathComputer,
     newNodeManager:            NewNodeManager,
     val postNodeDeleteActions: Ref[List[PostNodeDeleteAction]],
@@ -226,7 +232,7 @@ class RemoveNodeServiceImpl(
    * The main goal is to separate the clear cache as it could fail while the node is correctly deleted.
    * A failing clear cache should not be considered an error when deleting a Node.
    */
-  override def removeNodePure(nodeId: NodeId, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[NodeInfo] = {
+  override def removeNodePure(nodeId: NodeId, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[CoreNodeFact] = {
     // main logic, see help function below
     nodeId match {
       case Constants.ROOT_POLICY_SERVER_ID => Inconsistency("The root node cannot be deleted.").fail
@@ -235,18 +241,18 @@ class RemoveNodeServiceImpl(
           _       <- NodeLoggerPure.Delete.debug(s"Deleting node with ID '${nodeId.value}' [mode:${mode.name}]")
           status  <- backend.findNodeStatuses(nodeId)
           -       <- NodeLoggerPure.Delete.debug(s"  - node '${nodeId.value}' has status: [${status.map(_.name).mkString(",")}]")
-          info    <- Ref.make(Option.empty[NodeInfo]) // a place to store the maybe node info
+          info    <- Ref.make(Option.empty[CoreNodeFact]) // a place to store the maybe node info
           // always delete in order pending then accepted then deleted
           res1    <- if (status.contains(PendingInventory)) {
                        (for {
-                         i <- nodeInfoService.getPendingNodeInfo(nodeId)
+                         i <- nodeFactRepo.get(nodeId)(QueryContext.systemQC, SelectNodeStatus.Pending)
                          r <- deletePendingNode(nodeId, mode)
                          _ <- info.set(i)
                        } yield r).catchAll(err => Error(err).succeed)
                      } else Success.succeed
           res2    <- if (status.contains(AcceptedInventory)) {
                        (for {
-                         i <- nodeInfoService.getNodeInfo(nodeId)
+                         i <- nodeFactRepo.get(nodeId)(QueryContext.systemQC, SelectNodeStatus.Accepted)
                          r <- i match {
                                 case None    => Success.succeed // perhaps deleted or something
                                 case Some(x) => info.set(Some(x)) *> deleteAcceptedNode(x, mode)
@@ -261,7 +267,7 @@ class RemoveNodeServiceImpl(
           optInfo <- info.get
           _       <- ZIO.foreachDiscard(actions)(_.run(nodeId, mode, optInfo, status))
           _       <- NodeLoggerPure.Delete.info(
-                       s"Node '${nodeId.value}' ${optInfo.map(_.hostname).getOrElse("")} was successfully deleted"
+                       s"Node '${nodeId.value}' ${optInfo.map(_.fqdn).getOrElse("")} was successfully deleted"
                      )
         } yield {
           optInfo match {
@@ -269,29 +275,34 @@ class RemoveNodeServiceImpl(
               info
             // in that case, just return a minimal info
             case None       =>
-              NodeInfo(
-                new Node(
-                  nodeId,
-                  "",
-                  "",
-                  NodeState.Ignored,
-                  false,
-                  false,
-                  new DateTime(0),
+              CoreNodeFact(
+                nodeId,
+                None,
+                "",
+                UnknownOS(),
+                MachineInfo(MachineUuid("unknown"), UnknownMachineType, None, None),
+                RudderSettings(
+                  UndefinedKey,
                   ReportingConfiguration(None, None, None),
-                  Nil,
+                  NodeKind.Node,
+                  RemovedInventory,
+                  NodeState.Ignored,
                   None,
+                  Constants.ROOT_POLICY_SERVER_ID,
                   None
                 ),
-                "",
-                None,
-                UnknownOS(),
-                Nil,
+                RudderAgent(
+                  AgentType.CfeCommunity,
+                  "root",
+                  AgentVersion(""),
+                  PublicKey(""),
+                  Chunk.empty
+                ),
+                Chunk.empty,
                 new DateTime(0),
-                UndefinedKey,
-                Nil,
-                Constants.ROOT_POLICY_SERVER_ID,
-                "",
+                new DateTime(0),
+                None,
+                Chunk.empty,
                 None,
                 None,
                 None
@@ -314,7 +325,7 @@ class RemoveNodeServiceImpl(
 
   // this is the core delete that is run on accepted node: pre hook, post hook, move to delete or erase
   // in that case, we do have a nodeInfo
-  def deleteAcceptedNode(nodeInfo: NodeInfo, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[DeletionResult] = {
+  def deleteAcceptedNode(nodeInfo: CoreNodeFact, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[DeletionResult] = {
 
     for {
       _       <- NodeLoggerPure.Delete.debug(s"-> deleting node with ID '${nodeInfo.id.value}' from accepted nodes")
@@ -355,18 +366,18 @@ class RemoveNodeServiceImpl(
   // they are only done when the node was accepted
 
   // returns (hooks env, system env) for hooks
-  def buildHooksEnv(nodeInfo: NodeInfo): IOResult[(HookEnvPairs, HookEnvPairs)] = {
-    def getNodePath(node: NodeInfo): IOResult[NodePoliciesPaths] = {
+  def buildHooksEnv(nodeInfo: CoreNodeFact): IOResult[(HookEnvPairs, HookEnvPairs)] = {
+    def getNodePath(node: CoreNodeFact): IOResult[NodePoliciesPaths] = {
       // accumulate all the node infos from node id to root through relay servers
-      def recGetParent(node: NodeInfo): IOResult[Map[NodeId, NodeInfo]] = {
+      def recGetParent(node: CoreNodeFact): IOResult[Map[NodeId, CoreNodeFact]] = {
         if (node.id == Constants.ROOT_POLICY_SERVER_ID) {
           Map((node.id, node)).succeed
         } else {
           for {
-            opt    <- nodeInfoService.getNodeInfo(node.policyServerId)
+            opt    <- nodeFactRepo.get(node.rudderSettings.policyServerId)(QueryContext.systemQC)
             parent <-
               opt.notOptional(
-                s"The policy server '${node.policyServerId.value}' for node ${node.hostname} ('${node.id.value}') was not found in Rudder"
+                s"The policy server '${node.rudderSettings.policyServerId.value}' for node ${node.fqdn} ('${node.id.value}') was not found in Rudder"
               )
             rec    <- recGetParent(parent)
           } yield {
@@ -376,7 +387,10 @@ class RemoveNodeServiceImpl(
       }
       for {
         nodeInfos <- recGetParent(node)
-        paths     <- pathComputer.computeBaseNodePath(node.id, Constants.ROOT_POLICY_SERVER_ID, nodeInfos).toIO
+        paths     <-
+          pathComputer
+            .computeBaseNodePath(node.id, Constants.ROOT_POLICY_SERVER_ID, nodeInfos.map { case (id, n) => (id, n.toNodeInfo) })
+            .toIO
       } yield {
         paths
       }
@@ -396,10 +410,10 @@ class RemoveNodeServiceImpl(
       (
         HookEnvPairs.build(
           ("RUDDER_NODE_ID", nodeInfo.id.value),
-          ("RUDDER_NODE_HOSTNAME", nodeInfo.hostname),
-          ("RUDDER_NODE_POLICY_SERVER_ID", nodeInfo.policyServerId.value),
-          ("RUDDER_AGENT_TYPE", nodeInfo.agentsName.headOption.map(_.agentType.id).getOrElse("")),
-          ("RUDDER_NODE_KIND", nodeInfo.nodeKind.name),
+          ("RUDDER_NODE_HOSTNAME", nodeInfo.fqdn),
+          ("RUDDER_NODE_POLICY_SERVER_ID", nodeInfo.rudderSettings.policyServerId.value),
+          ("RUDDER_AGENT_TYPE", nodeInfo.rudderAgent.agentType.id),
+          ("RUDDER_NODE_KIND", nodeInfo.rudderSettings.kind.name),
           ("RUDDER_POLICIES_DIRECTORY_CURRENT", optNodePaths.map(_.baseFolder).getOrElse("")),
           ("RUDDER_POLICIES_DIRECTORY_NEW", optNodePaths.map(_.newFolder).getOrElse("")),
           ("RUDDER_POLICIES_DIRECTORY_ARCHIVE", optNodePaths.flatMap(_.backupFolder).getOrElse(""))
@@ -456,7 +470,7 @@ class LdapRemoveNodeBackend(
   }
 
   // the part that just move/delete node
-  override def commitDeleteAccepted(nodeInfo: NodeInfo, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[Unit] = {
+  override def commitDeleteAccepted(nodeInfo: CoreNodeFact, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[Unit] = {
     for {
       _ <-
         nodeLibMutex.writeLock(atomicDelete(nodeInfo.id, mode)).chainError("Error when deleting a node")
@@ -500,10 +514,11 @@ class RemoveNodeFromGroups(
     woNodeGroupRepository: WoNodeGroupRepository,
     uuidGen:               StringUuidGenerator
 ) extends PostNodeDeleteAction {
+
   override def run(
       nodeId:    NodeId,
       mode:      DeleteMode,
-      info:      Option[NodeInfo],
+      info:      Option[CoreNodeFact],
       status:    Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
     (for {
@@ -538,7 +553,7 @@ class CloseNodeConfiguration(expectedReportsRepository: UpdateExpectedReportsRep
   override def run(
       nodeId:    NodeId,
       mode:      DeleteMode,
-      info:      Option[NodeInfo],
+      info:      Option[CoreNodeFact],
       status:    Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
     for {
@@ -557,11 +572,11 @@ class DeletePolicyServerPolicies(policyServerManagement: PolicyServerManagementS
   override def run(
       nodeId:    NodeId,
       mode:      DeleteMode,
-      info:      Option[NodeInfo],
+      info:      Option[CoreNodeFact],
       status:    Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
     // we can avoid to do LDAP requests if we are sure the node wasn't a policy server
-    info.map(_.isPolicyServer) match {
+    info.map(_.rudderSettings.isPolicyServer) match {
       case Some(false) =>
         ZIO.unit
       case _           =>
@@ -582,7 +597,7 @@ class ResetKeyStatus(ldap: LDAPConnectionProvider[RwLDAPConnection], deletedDit:
   override def run(
       nodeId:    NodeId,
       mode:      DeleteMode,
-      info:      Option[NodeInfo],
+      info:      Option[CoreNodeFact],
       status:    Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
     if (mode == DeleteMode.MoveToRemoved) {
@@ -607,13 +622,12 @@ class CleanUpCFKeys extends PostNodeDeleteAction {
   override def run(
       nodeId:    NodeId,
       mode:      DeleteMode,
-      info:      Option[NodeInfo],
+      info:      Option[CoreNodeFact],
       status:    Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
     info match {
       case Some(i) =>
-        val agentTypes = i.agentsName.map(_.agentType).toSet
-        if (agentTypes.contains(AgentType.CfeCommunity)) {
+        if (i.rudderAgent.agentType == AgentType.CfeCommunity) {
           NodeLoggerPure.Delete.debug(s"  - delete CFEngine keys for '${nodeId.value}'") *>
           deleteCfengineKey(i)
         } else ZIO.unit
@@ -625,7 +639,7 @@ class CleanUpCFKeys extends PostNodeDeleteAction {
    * Delete cfengine key. We need to do it here b/c we don't have a variable with the
    * key hash to use in a hook.
    */
-  def deleteCfengineKey(nodeInfo: NodeInfo): UIO[Unit] = {
+  def deleteCfengineKey(nodeInfo: CoreNodeFact): UIO[Unit] = {
     nodeInfo.keyHashCfengine match {
       case null | "" => // no key or not a cfengine agent
         ZIO.unit
@@ -656,7 +670,7 @@ class CleanUpCFKeys extends PostNodeDeleteAction {
           )
           .catchAll(err => {
             NodeLoggerPure.Delete.info(
-              s"Error when cleaning-up cfengine key for node ${nodeInfo.hostname} (${nodeInfo.id.value}), some files may be remaining."
+              s"Error when cleaning-up cfengine key for node ${nodeInfo.fqdn} (${nodeInfo.id.value}), some files may be remaining."
             )
           })
     }
@@ -671,7 +685,7 @@ class CleanUpNodePolicyFiles(varRudderShare: String) extends PostNodeDeleteActio
   override def run(
       nodeId:    NodeId,
       mode:      DeleteMode,
-      info:      Option[NodeInfo],
+      info:      Option[CoreNodeFact],
       status:    Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
     NodeLoggerPure.Delete.debug(s"  - clean-up node '${nodeId.value}' policy files in /var/rudder/share") *>

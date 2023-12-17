@@ -7,25 +7,24 @@ import com.normation.rudder.apidata.JsonResponseObjects.JRRuleNodesDirectives
 import com.normation.rudder.apidata.implicits._
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.rest.{RuleInternalApi => API}
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.implicits._
 import com.normation.rudder.rest.lift.DefaultParams
 import com.normation.rudder.rest.lift.LiftApiModule
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.lift.LiftApiModuleString
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.zio.currentTimeMillis
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import zio.syntax._
 
 class RulesInternalApi(
-    restExtractorService:   RestExtractorService,
     ruleInternalApiService: RuleInternalApiService
 ) extends LiftApiModuleProvider[API] {
 
@@ -50,6 +49,9 @@ class RulesInternalApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+
+      implicit val qc: QueryContext = authzToken.qc
+
       (for {
         id <- RuleId.parse(sid).toIO
         r  <- ruleInternalApiService.GetRuleNodesAndDirectives(id)
@@ -61,9 +63,9 @@ class RulesInternalApi(
 class RuleInternalApiService(
     readRule:  RoRuleRepository,
     readGroup: RoNodeGroupRepository,
-    readNodes: NodeInfoService
+    readNodes: NodeFactRepository
 ) {
-  def GetRuleNodesAndDirectives(id: RuleId): IOResult[JRRuleNodesDirectives] = {
+  def GetRuleNodesAndDirectives(id: RuleId)(implicit qc: QueryContext): IOResult[JRRuleNodesDirectives] = {
     for {
       t1   <- currentTimeMillis
       rule <- readRule.get(id)
@@ -71,9 +73,12 @@ class RuleInternalApiService(
       t2        <- currentTimeMillis
       allGroups <- readGroup.getAllNodeIdsChunk()
       t3        <- currentTimeMillis
-      nodeInfos <- readNodes.getAll()
+      nodes     <- readNodes.getAll()
       t4        <- currentTimeMillis
-      nodesIds  <- RoNodeGroupRepository.getNodeIdsChunk(allGroups, rule.targets, nodeInfos).size.succeed
+      nodesIds  <- RoNodeGroupRepository
+                     .getNodeIdsChunk(allGroups, rule.targets, nodes.mapValues(_.rudderSettings.isPolicyServer))
+                     .size
+                     .succeed
       t5        <- currentTimeMillis
 
       _ <- TimingDebugLoggerPure.trace(s"GetRuleNodesAndDirectives - readRule in ${t2 - t1} ms")

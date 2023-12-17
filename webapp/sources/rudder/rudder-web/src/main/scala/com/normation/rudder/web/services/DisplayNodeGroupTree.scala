@@ -40,11 +40,11 @@ package com.normation.rudder.web.services
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.FullRuleTarget
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.web.model.JsTreeNode
 import net.liftweb.common.Loggable
@@ -225,7 +225,7 @@ object DisplayNodeGroupTree extends Loggable {
   // build the tree category, filtering only category with groups
   def buildTreeKeepingGroupWithNode(
       groupLib:        FullNodeGroupCategory,
-      nodeInfo:        NodeInfo,
+      nodeInfo:        CoreNodeFact,
       onClickCategory: Option[FullNodeGroupCategory => JsCmd] = None,
       onClickTarget:   Option[(FullNodeGroupCategory, FullRuleTargetInfo) => JsCmd] = None,
       targetActions:   Map[String, (FullRuleTargetInfo) => JsCmd] = Map()

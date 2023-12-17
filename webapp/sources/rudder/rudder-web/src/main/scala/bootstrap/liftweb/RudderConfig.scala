@@ -1730,7 +1730,6 @@ object RudderConfigInit {
       nodeDit,
       pendingNodesDit,
       acceptedNodesDit,
-      nodeFactInfoService,
       newNodeManagerImpl,
       removeNodeServiceImpl,
       restExtractorService,
@@ -1792,7 +1791,7 @@ object RudderConfigInit {
       deprecated.softwareService
     )
 
-    lazy val ruleInternalApiService = new RuleInternalApiService(roRuleRepository, roNodeGroupRepository, nodeFactInfoService)
+    lazy val ruleInternalApiService = new RuleInternalApiService(roRuleRepository, roNodeGroupRepository, nodeFactRepository)
 
     lazy val complianceAPIService = new ComplianceAPIService(
       roRuleRepository,
@@ -2059,7 +2058,7 @@ object RudderConfigInit {
       import com.normation.rudder.rest.lift._
 
       val nodeInheritedProperties  =
-        new NodeApiInheritedProperties(nodeFactInfoService, roNodeGroupRepository, roLDAPParameterRepository)
+        new NodeApiInheritedProperties(nodeFactRepository, roNodeGroupRepository, roLDAPParameterRepository)
       val groupInheritedProperties = new GroupApiInheritedProperties(roNodeGroupRepository, roLDAPParameterRepository)
 
       val campaignApi = new lift.CampaignApi(
@@ -2138,7 +2137,7 @@ object RudderConfigInit {
         new InventoryApi(restExtractorService, inventoryWatcher, better.files.File(INVENTORY_DIR_INCOMING)),
         new PluginApi(restExtractorService, pluginSettingsService),
         new RecentChangesAPI(recentChangesService, restExtractorService),
-        new RulesInternalApi(restExtractorService, ruleInternalApiService),
+        new RulesInternalApi(ruleInternalApiService),
         campaignApi,
         new HookApi(hookApiService),
         archiveApi
@@ -2532,7 +2531,7 @@ object RudderConfigInit {
       )
     }
 
-    lazy val nodeGridImpl = new NodeGrid(nodeFactRepository, nodeFactInfoService, configService)
+    lazy val nodeGridImpl = new NodeGrid(nodeFactRepository, configService)
 
     lazy val modificationService      =
       new ModificationService(logRepository, gitModificationRepository, itemArchiveManagerImpl, uuidGen)
@@ -2792,7 +2791,6 @@ object RudderConfigInit {
     }
     lazy val globalAgentRunService:       AgentRunIntervalService = {
       new AgentRunIntervalServiceImpl(
-        nodeFactInfoService,
         () => configService.agent_run_interval().toBox,
         () => configService.agent_run_start_hour().toBox,
         () => configService.agent_run_start_minute().toBox,
@@ -2882,7 +2880,7 @@ object RudderConfigInit {
         ruleValService,
         systemVariableService,
         nodeConfigurationHashRepo,
-        nodeFactInfoService,
+        nodeFactRepository,
         updateExpectedRepo,
         roNodeGroupRepository,
         roDirectiveRepository,
@@ -2974,7 +2972,7 @@ object RudderConfigInit {
           reportsRepositoryImpl,
           roAgentRunsRepository,
           globalAgentRunService,
-          nodeFactInfoService,
+          nodeFactRepository,
           roLdapDirectiveRepository,
           roRuleRepository,
           cachedNodeConfigurationService,
@@ -2983,7 +2981,7 @@ object RudderConfigInit {
           () => configService.rudder_compliance_unexpected_report_interpretation().toBox,
           RUDDER_JDBC_BATCH_MAX_SIZE
         ),
-        nodeFactInfoService,
+        nodeFactRepository,
         RUDDER_JDBC_BATCH_MAX_SIZE, // use same size as for SQL requests
 
         complianceRepositoryImpl
@@ -3158,7 +3156,7 @@ object RudderConfigInit {
     lazy val removeNodeServiceImpl = new RemoveNodeServiceImpl(
       //    deprecated.ldapRemoveNodeBackend,
       factRemoveNodeBackend,
-      nodeFactInfoService,
+      nodeFactRepository,
       pathComputer,
       newNodeManagerImpl,
       postNodeDeleteActions,
@@ -3170,7 +3168,7 @@ object RudderConfigInit {
       List(
         CheckCoreNumber,
         CheckFreeSpace,
-        new CheckFileDescriptorLimit(nodeFactInfoService)
+        new CheckFileDescriptorLimit(nodeFactRepository)
       )
     )
 
@@ -3340,7 +3338,7 @@ object RudderConfigInit {
       reportsRepositoryImpl,
       roLdapRuleRepository,
       roLdapDirectiveRepository,
-      nodeFactInfoService,
+      nodeFactRepository,
       RUDDER_BATCH_REPORTS_LOGINTERVAL
     )
 
@@ -3351,7 +3349,7 @@ object RudderConfigInit {
     lazy val snippetExtensionRegister: SnippetExtensionRegister = new SnippetExtensionRegisterImpl()
 
     lazy val cachedNodeConfigurationService: CachedNodeConfigurationService = {
-      val cached = new CachedNodeConfigurationService(findExpectedRepo, nodeFactInfoService)
+      val cached = new CachedNodeConfigurationService(findExpectedRepo, nodeFactRepository)
       cached.init().runOrDie(err => new RuntimeException(s"Error when initializing node configuration cache: " + err))
       cached
     }
@@ -3411,7 +3409,7 @@ object RudderConfigInit {
       gitLogger <- CommitLogServiceImpl.make(METRICS_NODES_DIRECTORY_GIT_ROOT)
       writer    <- WriteNodeCSV.make(METRICS_NODES_DIRECTORY_GIT_ROOT, ';', "yyyy-MM")
       service    = new HistorizeNodeCountService(
-                     new FetchDataServiceImpl(RudderConfig.nodeInfoService, RudderConfig.reportingService),
+                     new FetchDataServiceImpl(RudderConfig.nodeFactRepository, RudderConfig.reportingService),
                      writer,
                      gitLogger,
                      DateTimeZone.UTC // never change log line

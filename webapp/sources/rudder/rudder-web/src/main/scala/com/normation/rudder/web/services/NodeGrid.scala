@@ -39,12 +39,13 @@ package com.normation.rudder.web.services
 
 import com.normation.appconfig.ReadConfigService
 import com.normation.box._
+import com.normation.errors._
 import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.utils.Utils.isEmpty
 import net.liftweb.common._
@@ -56,7 +57,6 @@ import net.liftweb.json._
 import net.liftweb.util.Helpers._
 import org.slf4j.LoggerFactory
 import scala.xml._
-import zio.syntax._
 
 object NodeGrid {
   val logger = LoggerFactory.getLogger(classOf[NodeGrid])
@@ -78,9 +78,8 @@ final case class JsonArg(jsid: String, id: String, status: String)
  * - call the display(servers) method
  */
 final class NodeGrid(
-    nodeFactRepo:    CoreNodeFactRepository,
-    nodeInfoService: NodeInfoService,
-    configService:   ReadConfigService
+    nodeFactRepo:  CoreNodeFactRepository,
+    configService: ReadConfigService
 ) extends Loggable {
 
   private def tableTemplate = ChooseTemplate(
@@ -95,7 +94,7 @@ final class NodeGrid(
       aoColumns:  String = "",
       searchable: Boolean = true,
       paginate:   Boolean = true
-  ): NodeSeq = {
+  )(implicit qr:  QueryContext): NodeSeq = {
     display(servers, tableId, columns, aoColumns) ++
     Script(initJs(tableId, columns, aoColumns, searchable, paginate))
   }
@@ -113,7 +112,7 @@ final class NodeGrid(
       aoColumns:  String = "",
       searchable: Boolean,
       paginate:   Boolean
-  ): JsCmd = {
+  )(implicit qr:  QueryContext): JsCmd = {
 
     JsRaw(s"""
         var ${jsVarNameForId(tableId)};
@@ -165,7 +164,7 @@ final class NodeGrid(
    * You will have to do that for line added after table
    * initialization.
    */
-  def initJsCallBack(tableId: String): JsCmd = {
+  def initJsCallBack(tableId: String)(implicit qc: QueryContext): JsCmd = {
     JsRaw(s"""$$( ${jsVarNameForId(tableId)}.fnGetNodes() ).each( function () {
           $$(this).click( function (event) {
             var source = event.target || event.srcElement;
@@ -249,38 +248,29 @@ final class NodeGrid(
    * id: the nodeid
    * status: the node status (pending, accecpted)
    */
-  private def details(jsonArg: String): JsCmd = {
+  private def details(jsonArg: String)(implicit qc: QueryContext): JsCmd = {
     import net.liftweb.common.Box._
     implicit val formats = DefaultFormats
 
     (for {
-      json <- tryo(parse(jsonArg)) ?~! "Error when trying to parse argument for node"
-      arg  <- tryo(json.extract[JsonArg])
-      status: InventoryStatus <- Box(InventoryStatus(arg.status))
-      nodeId             = NodeId(arg.id)
-      sm                <- nodeFactRepo
-                             .slowGetCompat(nodeId, status, SelectFacts.default)(CurrentUser.queryContext)
-                             .notOptional(s"Error when trying to find inventory for node '${nodeId.value}'")
-                             .toBox
-      nodeAndGlobalMode <- (nodeInfoService
-                             .getNodeInfo(nodeId)
-                             .flatMap {
-                               case None       => None.succeed
-                               case Some(node) =>
-                                 configService
-                                   .rudder_global_policy_mode()
-                                   .map(mode => Some((node, mode)))
-                                   .chainError(
-                                     s" Could not get global policy mode when getting node '${nodeId}' details"
-                                   )
-                             })
-                             .chainError(s" Error when getting node '${nodeId}' details")
-                             .toBox
-    } yield (nodeId, sm, arg.jsid, status, nodeAndGlobalMode)) match {
-      case Full((nodeId, sm, jsid, status, nodeAndGlobalMode)) =>
+      json       <- tryo(parse(jsonArg)).toIO.chainError("Error when trying to parse argument for node")
+      arg        <- tryo(json.extract[JsonArg]).toIO
+      status     <- InventoryStatus(arg.status).notOptional("Status parameter is mandatory")
+      nodeId      = NodeId(arg.id)
+      nodeFact   <- nodeFactRepo
+                      .slowGetCompat(nodeId, status, SelectFacts.default)(CurrentUser.queryContext)
+                      .notOptional(s"Error when trying to find information for node '${nodeId.value}'")
+      globalMode <- configService
+                      .rudder_global_policy_mode()
+                      .chainError(
+                        s" Could not get global policy mode when getting node '${nodeId}' details"
+                      )
+
+    } yield (nodeId, nodeFact, arg.jsid, status, globalMode)).toBox match {
+      case Full((nodeId, nodeFact, jsid, status, globalMode)) =>
         // Node may not be available, so we look for it outside the for comprehension
-        SetHtml(jsid, DisplayNode.showPannedContent(nodeAndGlobalMode, sm.toFullInventory, status)) &
-        DisplayNode.jsInit(sm.id, "")
+        SetHtml(jsid, DisplayNode.showPannedContent(nodeFact, globalMode)) &
+        DisplayNode.jsInit(nodeFact.id, "")
       case e: EmptyBox =>
         logger.debug((e ?~! "error").messageChain)
         Alert("Called id is not valid: %s".format(jsonArg))

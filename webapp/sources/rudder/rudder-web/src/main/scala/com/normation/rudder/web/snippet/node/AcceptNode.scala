@@ -114,12 +114,16 @@ class AcceptNode extends Loggable {
 
   var errors: Option[String] = None
 
+  /*
+   * This is the main (and only) entry point of the snippet,
+   * drawing the pending nodes table.
+   */
   def list(html: NodeSeq): NodeSeq = {
 
-    newNodeManager.listNewNodes.toBox match {
+    newNodeManager.listNewNodes()(CurrentUser.queryContext).toBox match {
       case Empty                => <div>Error, no server found</div>
       case f @ Failure(_, _, _) => <div>Error while retrieving pending nodes list</div>
-      case Full(seq)            => display(html, seq)
+      case Full(seq)            => display(html, seq)(CurrentUser.queryContext)
     }
   }
 
@@ -216,7 +220,7 @@ class AcceptNode extends Loggable {
     if (serverList.isEmpty) {
       Alert("You didn't select any nodes")
     } else {
-      SetHtml("manageNewNode", listNode(serverList, template)) & OnLoad(
+      SetHtml("", listNode(serverList, template)) & OnLoad(
         JsRaw("""
           /* Set the table layout */
           $('#pendingNodeConfirm').dataTable({
@@ -317,7 +321,7 @@ class AcceptNode extends Loggable {
     OnLoad(JsRaw("""initBsModal("expectedPolicyPopup")"""))
   }
 
-  def display(html: NodeSeq, nodes: Seq[CoreNodeFact]): NodeSeq = {
+  def display(html: NodeSeq, nodes: Seq[CoreNodeFact])(implicit qc: QueryContext): NodeSeq = {
     val servers = {
       serverGrid.displayAndInit(
         nodes.map(_.toSrv),

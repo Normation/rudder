@@ -58,6 +58,7 @@ import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Equals
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.unboundid.ldap.sdk.DereferencePolicy
 import com.unboundid.ldap.sdk.Filter
@@ -346,7 +347,7 @@ class CheckPendingNodeInDynGroups(
         case (h :: tail, b, res) => // standard step: takes the group and deals with it
           NodeLogger.PendingNode.Policies.trace("==> process " + h.id.serialize)
           (queryChecker
-            .check(h.query, Some(h.testNodes.toSeq))
+            .check(h.query, Some(h.testNodes.toSeq))(QueryContext.systemQC) // dyn groups need access to all nodes
             .flatMap { nIds =>
               // node matching that group - also include the one from "include" coming from "or" dep
               val setNodeIds                       = nIds.toSet ++ h.includeNodes

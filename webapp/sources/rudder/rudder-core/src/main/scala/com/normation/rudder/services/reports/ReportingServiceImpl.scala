@@ -51,6 +51,8 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.reports.RuleStatusReport
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -58,7 +60,6 @@ import com.normation.rudder.reports.ReportsDisabled
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository._
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.utils.Control.sequence
 import com.normation.zio._
 import net.liftweb.common._
@@ -132,7 +133,7 @@ class ReportingServiceImpl(
     val reportsRepository:           ReportsRepository,
     val agentRunRepository:          RoReportsExecutionRepository,
     val runIntervalService:          AgentRunIntervalService,
-    val nodeInfoService:             NodeInfoService,
+    val nodeFactRepository:          NodeFactRepository,
     val directivesRepo:              RoDirectiveRepository,
     val rulesRepo:                   RoRuleRepository,
     val nodeConfigService:           NodeConfigurationService,
@@ -144,7 +145,7 @@ class ReportingServiceImpl(
 
 class CachedReportingServiceImpl(
     val defaultFindRuleNodeStatusReports: ReportingServiceImpl,
-    val nodeInfoService:                  NodeInfoService,
+    val nodeFactRepository:               NodeFactRepository,
     val batchSize:                        Int,
     val complianceRepository:             ComplianceRepository
 ) extends ReportingService with RuleOrNodeReportingServiceImpl with CachedFindRuleNodeStatusReports {
@@ -165,13 +166,15 @@ class CachedReportingServiceImpl(
  */
 trait RuleOrNodeReportingServiceImpl extends ReportingService {
 
-  def confExpectedRepo:  FindExpectedReportRepository
-  def nodeConfigService: NodeConfigurationService
-  def directivesRepo:    RoDirectiveRepository
-  def nodeInfoService:   NodeInfoService
-  def rulesRepo:         RoRuleRepository
+  def confExpectedRepo:   FindExpectedReportRepository
+  def nodeConfigService:  NodeConfigurationService
+  def directivesRepo:     RoDirectiveRepository
+  def nodeFactRepository: NodeFactRepository
+  def rulesRepo:          RoRuleRepository
 
-  override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): IOResult[Map[NodeId, NodeStatusReport]] = {
+  override def findDirectiveRuleStatusReportsByRule(
+      ruleId:    RuleId
+  )(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] = {
     // here, the logic is ONLY to get the node for which that rule applies and then step back
     // on the other method
     for {
@@ -187,7 +190,9 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
     }
   }
 
-  override def findStatusReportsForDirective(directiveId: DirectiveId): IOResult[Map[NodeId, NodeStatusReport]] = {
+  override def findStatusReportsForDirective(
+      directiveId: DirectiveId
+  )(implicit qc:   QueryContext): IOResult[Map[NodeId, NodeStatusReport]] = {
     // here, the logic is ONLY to get the node for which that rule applies and then step back
     // on the other method
     for {
@@ -203,7 +208,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
     }
   }
 
-  override def findNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport] = {
+  override def findNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = {
     for {
       reports <- findRuleNodeStatusReports(Set(nodeId), Set())
       status  <- Box(reports.get(nodeId)) ?~! s"Can not find report for node with ID ${nodeId.value}"
@@ -212,7 +217,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
     }
   }
 
-  override def findUserNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport] = {
+  override def findUserNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = {
     for {
       userRules <- rulesRepo.getIds().toBox
       reports   <- findRuleNodeStatusReports(Set(nodeId), userRules)
@@ -249,7 +254,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
     }
   }
 
-  override def findSystemNodeStatusReport(nodeId: NodeId): Box[NodeStatusReport] = {
+  override def findSystemNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = {
     for {
       allRules   <- rulesRepo.getIds(true).toBox
       userRules  <- rulesRepo.getIds().toBox
@@ -261,14 +266,14 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
     }
   }
 
-  def getUserNodeStatusReports(): Box[Map[NodeId, NodeStatusReport]] = {
+  def getUserNodeStatusReports()(implicit qc: QueryContext): Box[Map[NodeId, NodeStatusReport]] = {
     val n1 = System.currentTimeMillis
     for {
-      nodeIds   <- nodeInfoService.getAllNodesIds().toBox
+      nodeIds   <- nodeFactRepository.getAll().map(_.keySet).toBox
       userRules <- rulesRepo.getIds().toBox
       n2         = System.currentTimeMillis
       _          = TimingDebugLogger.trace(s"Reporting service - Get nodes and users rules in: ${n2 - n1}ms")
-      reports   <- findRuleNodeStatusReports(nodeIds, userRules)
+      reports   <- findRuleNodeStatusReports(nodeIds.toSet, userRules)
     } yield {
       reports
     }
@@ -276,11 +281,11 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
 
   def getSystemAndUserCompliance(
       optNodeIds: Option[Set[NodeId]]
-  ): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = {
+  )(implicit qc:  QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = {
     for {
       n1         <- currentTimeMillis
       nodeIds    <- optNodeIds match {
-                      case None      => nodeInfoService.getAll().map(_.keySet)
+                      case None      => nodeFactRepository.getAll().map(_.keySet)
                       case Some(ids) => ids.succeed
                     }
       userRules  <- rulesRepo.getIds()
@@ -289,7 +294,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
       n2         <- currentTimeMillis
       _          <- TimingDebugLoggerPure.trace(s"Reporting service - Get nodes and rules in: ${n2 - n1}ms")
 
-      compliances <- findSystemAndUserRuleCompliances(nodeIds, systemRules, userRules)
+      compliances <- findSystemAndUserRuleCompliances(nodeIds.toSet, systemRules, userRules)
     } yield {
       (compliances._1, compliances._2)
     }
@@ -314,7 +319,7 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
     }
   }
 
-  def getGlobalUserCompliance(): Box[Option[(ComplianceLevel, Long)]] = {
+  def getGlobalUserCompliance()(implicit qc: QueryContext): Box[Option[(ComplianceLevel, Long)]] = {
     for {
       reports   <- getUserNodeStatusReports()
       compliance = computeComplianceFromReports(reports)
@@ -345,7 +350,7 @@ trait CachedFindRuleNodeStatusReports
    * underlying service that will provide the computation logic
    */
   def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports
-  def nodeInfoService:                  NodeInfoService
+  def nodeFactRepository:               NodeFactRepository
   def batchSize:                        Int
 
   /**
@@ -449,7 +454,9 @@ trait CachedFindRuleNodeStatusReports
             for {
               x <- ZIO.foreach(impactedNodeIds.grouped(batchSize).to(Seq)) { updatedNodes =>
                      for {
-                       updated <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(updatedNodes.toSet, Set()).toIO
+                       updated <- defaultFindRuleNodeStatusReports
+                                    .findRuleNodeStatusReports(updatedNodes.toSet, Set())(QueryContext.systemQC)
+                                    .toIO
                        _       <- IOResult.attempt {
                                     cache = cache ++ updated
                                   }
@@ -542,7 +549,9 @@ trait CachedFindRuleNodeStatusReports
    * This is handled in higher level of the app and leads to "no data available" in
    * place of compliance bar.
    */
-  private[this] def checkAndGetCache(nodeIdsToCheck: Set[NodeId]): IOResult[Map[NodeId, NodeStatusReport]] = {
+  private[this] def checkAndGetCache(
+      nodeIdsToCheck: Set[NodeId]
+  )(implicit qc:      QueryContext): IOResult[Map[NodeId, NodeStatusReport]] = {
     if (nodeIdsToCheck.isEmpty) {
       Map[NodeId, NodeStatusReport]().succeed
     } else {
@@ -550,7 +559,9 @@ trait CachedFindRuleNodeStatusReports
 
       for {
         // disabled nodes are ignored
-        allNodeIds   <- nodeInfoService.getAll().map(_.filter { case (_, n) => n.state != NodeState.Ignored }.keySet)
+        allNodeIds   <- nodeFactRepository
+                          .getAll()
+                          .map(_.collect { case (_, n) if (n.rudderSettings.state != NodeState.Ignored) => n.id }.toSet)
         // only try to update nodes that are accepted in Rudder
         nodeIds       = nodeIdsToCheck.intersect(allNodeIds)
         inCache       = cache.filter { case (id, _) => nodeIds.contains(id) }
@@ -569,7 +580,7 @@ trait CachedFindRuleNodeStatusReports
          * and will be excluded to nodes count.
          *
          * For 2, we need to return data because of issue https://issues.rudder.io/issues/16612
-         * Grace period is alredy taken into account in expiration date.
+         * Grace period is already taken into account in expiration date.
          * We return the cached value up to 2 runs after grace period expiration (service above that
          * one will display expiration info).
          *
@@ -609,7 +620,9 @@ trait CachedFindRuleNodeStatusReports
    *
    * That method nonetheless check for expiration dates.
    */
-  override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]): Box[Map[NodeId, NodeStatusReport]] = {
+  override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId])(implicit
+      qc:                                         QueryContext
+  ): Box[Map[NodeId, NodeStatusReport]] = {
     val n1 = System.currentTimeMillis
     for {
       reports <- checkAndGetCache(nodeIds).toBox
@@ -629,7 +642,7 @@ trait CachedFindRuleNodeStatusReports
   override def findDirectiveNodeStatusReports(
       nodeIds:      Set[NodeId],
       directiveIds: Set[DirectiveId]
-  ): Box[Map[NodeId, NodeStatusReport]] = {
+  )(implicit qc:    QueryContext): Box[Map[NodeId, NodeStatusReport]] = {
     val n1 = System.currentTimeMillis
     for {
       reports <- checkAndGetCache(nodeIds).toBox
@@ -648,7 +661,7 @@ trait CachedFindRuleNodeStatusReports
   override def findRuleNodeCompliance(
       nodeIds:       Set[NodeId],
       filterByRules: Set[RuleId]
-  ): IOResult[Map[NodeId, ComplianceLevel]] = {
+  )(implicit qc:     QueryContext): IOResult[Map[NodeId, ComplianceLevel]] = {
     for {
       n1        <- currentTimeMillis
       reports   <- checkAndGetCache(nodeIds)
@@ -670,7 +683,7 @@ trait CachedFindRuleNodeStatusReports
       nodeIds:             Set[NodeId],
       filterBySystemRules: Set[RuleId],
       filterByUserRules:   Set[RuleId]
-  ): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = {
+  )(implicit qc:           QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = {
     for {
       n1              <- currentTimeMillis
       reports         <- checkAndGetCache(nodeIds)
@@ -721,7 +734,9 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
   def getUnexpectedInterpretation: () => Box[UnexpectedReportInterpretation]
   def jdbcMaxBatchSize:            Int
 
-  override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]): Box[Map[NodeId, NodeStatusReport]] = {
+  override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId])(implicit
+      qc:                                         QueryContext
+  ): Box[Map[NodeId, NodeStatusReport]] = {
     /*
      * This is the main logic point to get reports.
      *
@@ -773,7 +788,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
   override def findDirectiveNodeStatusReports(
       nodeIds:      Set[NodeId],
       directiveIds: Set[DirectiveId]
-  ): Box[Map[NodeId, NodeStatusReport]] = {
+  )(implicit qc:    QueryContext): Box[Map[NodeId, NodeStatusReport]] = {
     /*
      * This is the main logic point to get reports.
      *
@@ -825,7 +840,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
   override def findRuleNodeCompliance(
       nodeIds:       Set[NodeId],
       filterByRules: Set[RuleId]
-  ): IOResult[Map[NodeId, ComplianceLevel]] = {
+  )(implicit qc:     QueryContext): IOResult[Map[NodeId, ComplianceLevel]] = {
     for {
       t0             <- currentTimeMillis
       complianceMode <- getGlobalComplianceMode().toIO
@@ -849,7 +864,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       nodeIds:             Set[NodeId],
       filterBySystemRules: Set[RuleId],
       filterByUserRules:   Set[RuleId]
-  ): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = {
+  )(implicit qc:           QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = {
     for {
       t0             <- currentTimeMillis
       complianceMode <- getGlobalComplianceMode().toIO

@@ -123,8 +123,8 @@ class NodeFactQueryProcessor(
   def process(query: Query):       Box[Seq[NodeId]] = processPure(query).map(_.toList.map(_.id)).toBox
   def processOnlyId(query: Query): Box[Seq[NodeId]] = processPure(query).map(_.toList.map(_.id)).toBox
 
-  def check(query: Query, nodeIds: Option[Seq[NodeId]]): IOResult[Set[NodeId]]         = { ??? }
-  def processPure(query: Query):                         IOResult[Chunk[CoreNodeFact]] = {
+  def check(query: Query, nodeIds: Option[Seq[NodeId]])(implicit qc: QueryContext): IOResult[Set[NodeId]]         = { ??? }
+  def processPure(query: Query):                                                    IOResult[Chunk[CoreNodeFact]] = {
     def process(s: SelectNodeStatus) = {
       for {
         t0  <- currentTimeMillis

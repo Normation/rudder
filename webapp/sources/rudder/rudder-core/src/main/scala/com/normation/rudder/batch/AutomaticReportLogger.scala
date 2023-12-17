@@ -41,19 +41,21 @@ import com.normation.errors._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.AllReportLogger
 import com.normation.rudder.domain.logger.ScheduledJobLogger
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.Reports
+import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.RudderPropertiesRepository
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.zio._
 import net.liftweb.actor._
 import net.liftweb.common._
+import scala.collection.MapView
 
 /**
  * This object will be used as message for the non compliant reports logger
@@ -71,7 +73,7 @@ class AutomaticReportLogger(
     reportsRepository:   ReportsRepository,
     ruleRepository:      RoRuleRepository,
     directiveRepository: RoDirectiveRepository,
-    nodeInfoService:     NodeInfoService,
+    nodeFactRepository:  NodeFactRepository,
     reportLogInterval:   Int
 ) {
 
@@ -113,7 +115,7 @@ class AutomaticReportLogger(
             logger.warn("Automatic report logger has never run, logging latest 100 non compliant reports")
             val isSuccess = (for {
               hundredReports <- reportsRepository.getLastHundredErrorReports(reportsKind).toIO
-              nodes          <- nodeInfoService.getAll()
+              nodes          <- nodeFactRepository.getAll()(QueryContext.systemQC)
               rules          <- ruleRepository.getAll(true)
               directives     <- directiveRepository.getFullDirectiveLibrary()
             } yield {
@@ -183,7 +185,7 @@ class AutomaticReportLogger(
           fromId:     Long,
           maxId:      Long,
           batchSize:  Int,
-          allNodes:   Map[NodeId, NodeInfo],
+          allNodes:   MapView[NodeId, CoreNodeFact],
           rules:      Map[RuleId, Rule],
           directives: FullActiveTechniqueCategory
       ): Box[Long] = {
@@ -207,7 +209,7 @@ class AutomaticReportLogger(
           fromId:     Long,
           maxId:      Long,
           batchSize:  Int,
-          nodes:      Map[NodeId, NodeInfo],
+          nodes:      MapView[NodeId, CoreNodeFact],
           rules:      Map[RuleId, Rule],
           directives: FullActiveTechniqueCategory
       ): Box[Long] = {
@@ -229,7 +231,7 @@ class AutomaticReportLogger(
       val startAt = lastProcessedId + 1
       logger.debug(s"Writing non-compliant-report logs between ids ${startAt} and ${maxId} (both included)")
       (for {
-        nodes      <- nodeInfoService.getAll()
+        nodes      <- nodeFactRepository.getAll()(QueryContext.systemQC)
         rules      <- ruleRepository.getAll(true)
         directives <- directiveRepository.getFullDirectiveLibrary()
       } yield {
@@ -263,7 +265,7 @@ class AutomaticReportLogger(
 
     def logReports(
         reports:    Seq[(Long, Reports)],
-        allNodes:   Map[NodeId, NodeInfo],
+        allNodes:   MapView[NodeId, CoreNodeFact],
         rules:      Map[RuleId, Rule],
         directives: FullActiveTechniqueCategory
     ): Option[Long] = {
@@ -275,7 +277,7 @@ class AutomaticReportLogger(
             val t           = report.executionDate.toString("yyyy-MM-dd HH:mm:ssZ")
             val s           = report.severity
             val nid         = report.nodeId.value
-            val n           = allNodes.get(report.nodeId).map(_.hostname).getOrElse("Unknown node")
+            val n           = allNodes.get(report.nodeId).map(_.fqdn).getOrElse("Unknown node")
             val rid         = report.ruleId.serialize
             val r           = rules.get(report.ruleId).map(_.name).getOrElse("Unknown rule")
             val did         = report.directiveId.debugString

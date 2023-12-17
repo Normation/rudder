@@ -72,6 +72,9 @@ import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.domain.reports.OverridenPolicy
 import com.normation.rudder.domain.reports.RuleExpectedReports
 import com.normation.rudder.domain.reports.ValueExpectedReport
+import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.Hooks
 import com.normation.rudder.hooks.HooksLogger
@@ -84,7 +87,6 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.repository._
 import com.normation.rudder.services.nodes.MergeNodeProperties
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.nodeconfig.FileBasedNodeConfigurationHashRepository
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRepository
@@ -131,10 +133,10 @@ trait PromiseGenerationHooks {
  * We want root first, then relay with node just above, then relay, then nodes
  */
 object NodePriority {
-  def apply(nodeInfo: NodeInfo): Int = {
-    if (nodeInfo.id.value == "root") 0
-    else if (nodeInfo.isPolicyServer) {
-      if (nodeInfo.policyServerId.value == "root") 1 else 2
+  def apply(nodeId: NodeId, isPolicyServer: Boolean, policyServerId: NodeId): Int = {
+    if (nodeId == Constants.ROOT_POLICY_SERVER_ID) 0
+    else if (isPolicyServer) {
+      if (policyServerId == Constants.ROOT_POLICY_SERVER_ID) 1 else 2
     } else 3
   }
 }
@@ -279,15 +281,16 @@ trait PromiseGenerationService {
                                                             allRules             <- findDependantRules() ?~! "Could not find dependant rules"
                                                             fetch1Time            = System.currentTimeMillis
                                                             _                     = PolicyGenerationLogger.timing.trace(s"Fetched rules in ${fetch1Time - fetch0Time} ms")
-                                                            allNodeInfos         <- getAllNodeInfos().map(_.filter {
-                                                                                      case (_, n) =>
-                                                                                        if (n.state == NodeState.Ignored) {
-                                                                                          PolicyGenerationLogger.debug(
-                                                                                            s"Skipping node '${n.id.value}' because the node is in state '${n.state.name}'"
-                                                                                          )
-                                                                                          false
-                                                                                        } else true
-                                                                                    }) ?~! "Could not get Node Infos" // disabled node don't get new policies
+                                                            nodeFacts            <-
+                                                              getNodeFacts().map(_.filter {
+                                                                case (_, n) =>
+                                                                  if (n.rudderSettings.state == NodeState.Ignored) {
+                                                                    PolicyGenerationLogger.debug(
+                                                                      s"Skipping node '${n.id.value}' because the node is in state '${n.rudderSettings.state.name}'"
+                                                                    )
+                                                                    false
+                                                                  } else true
+                                                              }) ?~! "Could not get Node Infos" // disabled node don't get new policies
                                                             fetch2Time            = System.currentTimeMillis
                                                             _                     = PolicyGenerationLogger.timing.trace(s"Fetched node infos in ${fetch2Time - fetch1Time} ms")
                                                             directiveLib         <-
@@ -308,11 +311,11 @@ trait PromiseGenerationService {
                                                             globalComplianceMode <- getGlobalComplianceMode()
                                                             globalPolicyMode     <- getGlobalPolicyMode() ?~! "Cannot get the Global Policy Mode (Enforce or Verify)"
                                                             nodeConfigCaches     <- getNodeConfigurationHash() ?~! "Cannot get the Configuration Cache"
-                                                            allNodeModes          = buildNodeModes(allNodeInfos, globalComplianceMode, globalAgentRun, globalPolicyMode)
+                                                            allNodeModes          = buildNodeModes(nodeFacts, globalComplianceMode, globalAgentRun, globalPolicyMode)
                                                             timeFetchAll          = (System.currentTimeMillis - fetch0Time)
                                                             _                     = PolicyGenerationLogger.timing.debug(s"All relevant information fetched in ${timeFetchAll} ms.")
 
-                                                            _ = logMetrics(allNodeInfos, allRules, directiveLib, groupLib, allParameters, nodeConfigCaches)
+                                                            _ = logMetrics(nodeFacts, allRules, directiveLib, groupLib, allParameters, nodeConfigCaches)
                                                             /////
                                                             ///// end of inputs, all information gathered for promise generation.
                                                             /////
@@ -321,7 +324,7 @@ trait PromiseGenerationService {
                                                             ///// Generate the root file with all certificate. This could be done in the node lifecycle management.
                                                             ///// For now, it's just a trigger: the generation is async and doesn't fail policy generation.
                                                             ///// File is: /var/rudder/lib/ssl/allnodescerts.pem
-                                                            _ = writeCertificatesPem(allNodeInfos)
+                                                            _ = writeCertificatesPem(nodeFacts)
 
                                                             ///// parse rule for directive parameters and build node context that will be used for them
                                                             ///// also restrict generation to only active rules & nodes:
@@ -329,7 +332,7 @@ trait PromiseGenerationService {
                                                             ///// - number of rules: any rule without target or with only target with no node can be skipped
 
                                                             ruleValTime      = System.currentTimeMillis
-                                                            arePolicyServers = allNodeInfos.map { case (id, n) => (id, n.isPolicyServer) }.toMap.view
+                                                            arePolicyServers = nodeFacts.mapValues(_.rudderSettings.isPolicyServer)
                                                             activeRuleIds    = getAppliedRuleIds(allRules, groupLib, directiveLib, arePolicyServers)
                                                             ruleVals        <- buildRuleVals(
                                                                                  activeRuleIds,
@@ -348,7 +351,7 @@ trait PromiseGenerationService {
                                                             NodesContextResult(nodeContexts, errors) <-
                                                               getNodeContexts(
                                                                 activeNodeIds,
-                                                                allNodeInfos,
+                                                                nodeFacts,
                                                                 groupLib,
                                                                 allParameters.toList,
                                                                 globalAgentRun,
@@ -554,7 +557,7 @@ trait PromiseGenerationService {
    * - directives library
    * - groups library
    */
-  def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]]
+  def getNodeFacts(): Box[MapView[NodeId, CoreNodeFact]]
   // get full active technique category, checking that:
   // - all ids in parameter are in it,
   // - filtering out other directives (and pruning relevant branches).
@@ -569,13 +572,13 @@ trait PromiseGenerationService {
   def getMaxParallelism:            () => Box[String]
   def getJsTimeout:                 () => Box[Int]
   def getGenerationContinueOnError: () => Box[Boolean]
-  def writeCertificatesPem(allNodeInfos: Map[NodeId, NodeInfo]): Unit
+  def writeCertificatesPem(nodeFacts: MapView[NodeId, CoreNodeFact]): Unit
 
   /**
    * This method logs interesting metrics that can be use to assess performance problem.
    */
   def logMetrics(
-      allNodeInfos:     Map[NodeId, NodeInfo],
+      nodeFacts:        MapView[NodeId, CoreNodeFact],
       allRules:         Seq[Rule],
       directiveLib:     FullActiveTechniqueCategory,
       groupLib:         FullNodeGroupCategory,
@@ -591,7 +594,7 @@ trait PromiseGenerationService {
      * - number of parameters
      */
     val ram = MemorySize(java.lang.Runtime.getRuntime().maxMemory()).toStringMo
-    val n   = allNodeInfos.size
+    val n   = nodeFacts.size
     val nc  = nodeConfigCaches.size
     val r   = allRules.size
     val re  = allRules.filter(_.isEnabled).size
@@ -624,7 +627,7 @@ trait PromiseGenerationService {
    * From global configuration and node modes, build node modes
    */
   def buildNodeModes(
-      nodes:                Map[NodeId, NodeInfo],
+      nodes:                MapView[NodeId, CoreNodeFact],
       globalComplianceMode: GlobalComplianceMode,
       globalAgentRun:       AgentRunInterval,
       globalPolicyMode:     GlobalPolicyMode
@@ -635,14 +638,14 @@ trait PromiseGenerationService {
           id,
           NodeModeConfig(
             globalComplianceMode,
-            info.nodeReportingConfiguration.heartbeatConfiguration match {
+            info.rudderSettings.reportingConfiguration.heartbeatConfiguration match {
               case Some(HeartbeatConfiguration(true, i)) => Some(i)
               case _                                     => None
             },
             globalAgentRun,
-            info.nodeReportingConfiguration.agentRunInterval,
+            info.rudderSettings.reportingConfiguration.agentRunInterval,
             globalPolicyMode,
-            info.policyMode
+            info.rudderSettings.policyMode
           )
         )
     }.toMap
@@ -675,7 +678,7 @@ trait PromiseGenerationService {
 
   def getNodeContexts(
       nodeIds:              Set[NodeId],
-      allNodeInfos:         Map[NodeId, NodeInfo],
+      nodeFacts:            MapView[NodeId, CoreNodeFact],
       allGroups:            FullNodeGroupCategory,
       globalParameters:     List[GlobalParameter],
       globalAgentRun:       AgentRunInterval,
@@ -737,7 +740,7 @@ trait PromiseGenerationService {
       rootNodeId:       NodeId,
       updated:          Map[NodeId, NodeConfigId],
       allNodeConfig:    Map[NodeId, NodeConfiguration],
-      allNodeInfos:     Map[NodeId, NodeInfo],
+      nodeInfo:         Map[NodeId, NodeInfo],
       globalPolicyMode: GlobalPolicyMode,
       generationTime:   DateTime,
       maxParallelism:   Int
@@ -805,7 +808,7 @@ class PromiseGenerationServiceImpl(
     override val ruleValService:                    RuleValService,
     override val systemVarService:                  SystemVariableService,
     override val nodeConfigurationService:          NodeConfigurationHashRepository,
-    override val nodeInfoService:                   NodeInfoService,
+    override val nodeFactRepository:                NodeFactRepository,
     override val confExpectedRepo:                  UpdateExpectedReportsRepository,
     override val roNodeGroupRepository:             RoNodeGroupRepository,
     override val roDirectiveRepository:             RoDirectiveRepository,
@@ -884,7 +887,7 @@ class PromiseGenerationServiceImpl(
  */
 trait PromiseGeneration_performeIO extends PromiseGenerationService {
   def roRuleRepo:              RoRuleRepository
-  def nodeInfoService:         NodeInfoService
+  def nodeFactRepository:      NodeFactRepository
   def roNodeGroupRepository:   RoNodeGroupRepository
   def roDirectiveRepository:   RoDirectiveRepository
   def configurationRepository: ConfigurationRepository
@@ -897,15 +900,15 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   def ruleApplicationStatusService: RuleApplicationStatusService
   def getGlobalPolicyMode:          () => Box[GlobalPolicyMode]
 
-  override def findDependantRules():                       Box[Seq[Rule]]                   = roRuleRepo.getAll(true).toBox
-  override def getAllNodeInfos():                          Box[Map[NodeId, NodeInfo]]       = nodeInfoService.getAll().toBox
-  override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory] = {
+  override def findDependantRules():                       Box[Seq[Rule]]                     = roRuleRepo.getAll(true).toBox
+  override def getNodeFacts():                             Box[MapView[NodeId, CoreNodeFact]] = nodeFactRepository.getAll()(QueryContext.systemQC).toBox
+  override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory]   = {
     configurationRepository.getDirectiveLibrary(ids).toBox
   }
-  override def getGroupLibrary():                          Box[FullNodeGroupCategory]       = roNodeGroupRepository.getFullGroupLibrary().toBox
-  override def getAllGlobalParameters:                     Box[Seq[GlobalParameter]]        = parameterService.getAllGlobalParameters()
-  override def getGlobalComplianceMode():                  Box[GlobalComplianceMode]        = complianceModeService.getGlobalComplianceMode
-  override def getGlobalAgentRun():                        Box[AgentRunInterval]            = agentRunService.getGlobalAgentRun()
+  override def getGroupLibrary():                          Box[FullNodeGroupCategory]         = roNodeGroupRepository.getFullGroupLibrary().toBox
+  override def getAllGlobalParameters:                     Box[Seq[GlobalParameter]]          = parameterService.getAllGlobalParameters()
+  override def getGlobalComplianceMode():                  Box[GlobalComplianceMode]          = complianceModeService.getGlobalComplianceMode
+  override def getGlobalAgentRun():                        Box[AgentRunInterval]              = agentRunService.getGlobalAgentRun()
   override def getAppliedRuleIds(
       rules:            Seq[Rule],
       groupLib:         FullNodeGroupCategory,
@@ -968,7 +971,7 @@ trait PromiseGeneration_BuildNodeContext {
    */
   def getNodeContexts(
       nodeIds:              Set[NodeId],
-      allNodeInfos:         Map[NodeId, NodeInfo],
+      nodeFacts:            MapView[NodeId, CoreNodeFact],
       allGroups:            FullNodeGroupCategory,
       globalParameters:     List[GlobalParameter],
       globalAgentRun:       AgentRunInterval,
@@ -1010,13 +1013,14 @@ trait PromiseGeneration_BuildNodeContext {
       val all = nodeIds.foldLeft(NodesContextResult(Map(), Map())) {
         case (res, nodeId) =>
           (for {
-            info              <- Box(allNodeInfos.get(nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
-            policyServer      <- Box(
-                                   allNodeInfos.get(info.policyServerId)
-                                 ) ?~! s"Policy server '${info.policyServerId.value}' of Node '${nodeId.value}' was not found"
+            info              <- Box(nodeFacts.get(nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
+            policyServer      <-
+              Box(
+                nodeFacts.get(info.rudderSettings.policyServerId)
+              ) ?~! s"Policy server '${info.rudderSettings.policyServerId.value}' of Node '${nodeId.value}' was not found"
             context            = ParamInterpolationContext(
-                                   info,
-                                   policyServer,
+                                   info.toNodeInfo,
+                                   policyServer.toNodeInfo,
                                    globalPolicyMode,
                                    parameters.map { case (p, i) => (p.name, i) }
                                  )
@@ -1034,10 +1038,11 @@ trait PromiseGeneration_BuildNodeContext {
                                    .toBox
             nodeTargets        = allGroups.getTarget(info).map(_._2).toList
             timeMerge          = System.nanoTime
-            mergedProps       <- MergeNodeProperties.forNode(info, nodeTargets, nodeParam.map { case (k, v) => (k, v) }.toMap).toBox
+            mergedProps       <-
+              MergeNodeProperties.forNode(info.toNodeInfo, nodeTargets, nodeParam.map { case (k, v) => (k, v) }.toMap).toBox
             nodeContextBefore <- systemVarService.getSystemVariables(
                                    info,
-                                   allNodeInfos,
+                                   nodeFacts,
                                    nodeTargets,
                                    globalSystemVariables,
                                    globalAgentRun,
@@ -1045,8 +1050,8 @@ trait PromiseGeneration_BuildNodeContext {
                                  )
             // Not sure if I should InterpolationContext or create a "EngineInterpolationContext
             contextEngine      = InterpolationContext(
-                                   info,
-                                   policyServer,
+                                   info.toNodeInfo,
+                                   policyServer.toNodeInfo,
                                    globalPolicyMode,
                                    nodeContextBefore,
                                    nodeParam.map { case (k, g) => (k, g.value) }.toMap
@@ -1064,10 +1069,10 @@ trait PromiseGeneration_BuildNodeContext {
                                      }
                                    }
                                    .toBox
-            nodeInfo           = info.modify(_.node.properties).setTo(propsCompiled.map(_.prop))
+            nodeInfo           = info.modify(_.properties).setTo(Chunk.fromIterable(propsCompiled.map(_.prop)))
             nodeContext       <- systemVarService.getSystemVariables(
                                    nodeInfo,
-                                   allNodeInfos,
+                                   nodeFacts,
                                    nodeTargets,
                                    globalSystemVariables,
                                    globalAgentRun,
@@ -1077,16 +1082,16 @@ trait PromiseGeneration_BuildNodeContext {
             withDefautls      <- CompareProperties
                                    .updateProperties(
                                      nodeParam.toList.map { case (k, v) => NodeProperty(k, v.value, v.inheritMode, None) },
-                                     Some(nodeInfo.properties)
+                                     Some(nodeInfo.properties.toList)
                                    )
-                                   .map(p => nodeInfo.modify(_.node.properties).setTo(p))
+                                   .map(p => nodeInfo.modify(_.properties).setTo(Chunk.fromIterable(p)))
                                    .toBox
           } yield {
             (
               nodeId,
               InterpolationContext(
-                withDefautls,
-                policyServer,
+                withDefautls.toNodeInfo,
+                policyServer.toNodeInfo,
                 globalPolicyMode,
                 nodeContext,
                 nodeParam.map { case (k, g) => (k, g.value) }.toMap
@@ -1250,7 +1255,7 @@ object BuildNodeConfiguration extends Loggable {
    * From a list of ruleVal, find the list of all impacted nodes
    * with the actual Policy they will have.
    * Replace all ${rudder.node.varName} vars, returns the nodes ready to be configured, and expanded RuleVal
-   * allNodeInfos *must* contains the nodes info of every nodes
+   * nodeFacts *must* contains the nodes info of every nodes
    *
    * Building configuration may fail for some nodes. In that case, the whole process is not in error but only
    * the given node error fails.
@@ -1591,7 +1596,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
       rootNodeId:       NodeId,
       updated:          Map[NodeId, NodeConfigId],
       allNodeConfigs:   Map[NodeId, NodeConfiguration],
-      allNodeInfos:     Map[NodeId, NodeInfo],
+      nodeInfos:        Map[NodeId, NodeInfo],
       globalPolicyMode: GlobalPolicyMode,
       generationTime:   DateTime,
       maxParallelism:   Int
@@ -1604,7 +1609,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
                      rootNodeId,
                      updated.keySet,
                      allNodeConfigs,
-                     allNodeInfos,
+                     nodeInfos,
                      updated,
                      globalPolicyMode,
                      generationTime,
@@ -2001,8 +2006,9 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
     val (policyServers, simpleNodes) = {
       val (a, b) = updatedNodeConfigsInfo.values.toSeq.partition(_.isPolicyServer)
       (
-        // policy servers are sorted by their promiximity with root, root first
-        a.sortBy(x => NodePriority(x)).map(_.id.value), // simple nodes are sorted alphanum
+        // policy servers are sorted by their proximity with root, root first
+        a.sortBy(x => NodePriority(x.id, x.isPolicyServer, x.policyServerId))
+          .map(_.id.value), // simple nodes are sorted alpha-num
 
         b.map(_.id.value).sorted
       )
@@ -2071,7 +2077,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
                            case (k, v) =>
                              (
                                k,
-                               NodePriority(v)
+                               NodePriority(v.id, v.isPolicyServer, v.policyServerId)
                              )
                          }.sortBy(_._2).map(_._1)
       defaultEnvParams = (("RUDDER_GENERATION_DATETIME", generationTime.toString())
@@ -2163,7 +2169,7 @@ trait PromiseGeneration_NodeCertificates extends PromiseGenerationService {
   def allNodeCertificatesPemFile: File
   def writeNodeCertificatesPem:   WriteNodeCertificatesPem
 
-  override def writeCertificatesPem(allNodeInfos: Map[NodeId, NodeInfo]): Unit = {
-    writeNodeCertificatesPem.writeCerticatesAsync(allNodeCertificatesPemFile, allNodeInfos)
+  override def writeCertificatesPem(nodeFacts: MapView[NodeId, CoreNodeFact]): Unit = {
+    writeNodeCertificatesPem.writeCerticatesAsync(allNodeCertificatesPemFile, nodeFacts.mapValues(_.toNodeInfo).toMap)
   }
 }

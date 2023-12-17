@@ -45,7 +45,6 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain._
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.logger.NodeLoggerPure
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeKind
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
@@ -53,6 +52,9 @@ import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.ComplianceLevelSerialisation
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
+import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.services.reports.NoReportInInterval
@@ -96,7 +98,6 @@ object DisplayNode extends Loggable {
   private[this] val removeNodeService    = RudderConfig.removeNodeService
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
-  private[this] val nodeInfoService      = RudderConfig.nodeInfoService
   private[this] val linkUtil             = RudderConfig.linkUtil
   private[this] val reportingService     = RudderConfig.reportingService
 
@@ -104,10 +105,9 @@ object DisplayNode extends Loggable {
   private def escapeHTML(in: String): NodeSeq = Text(escape(in))
   private def ?(in: Option[String]):  NodeSeq = in.map(escapeHTML).getOrElse(NodeSeq.Empty)
 
-  private def loadComplianceBar(nodeInfo: Option[NodeInfo]): Option[JsArray] = {
+  private def loadComplianceBar(nodeId: NodeId): Option[JsArray] = {
     for {
-      node                 <- nodeInfo
-      userNodeStatusReport <- reportingService.findUserNodeStatusReport(node.node.id)
+      userNodeStatusReport <- reportingService.findUserNodeStatusReport(nodeId)(CurrentUser.queryContext)
       nodeCompliance        = makeComplianceFromNodeStatusReport(userNodeStatusReport)
     } yield {
       ComplianceLevelSerialisation.ComplianceLevelToJs(nodeCompliance).toJsArray
@@ -294,7 +294,7 @@ object DisplayNode extends Loggable {
     )
   }
 
-  def showInventoryVerticalMenu(sm: FullInventory, optNode: Option[NodeInfo], salt: String = ""): NodeSeq = {
+  def showInventoryVerticalMenu(sm: FullInventory, node: CoreNodeFact, salt: String = ""): NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id, salt)
     val mainTabDeclaration: List[NodeSeq] = {
       <li><a href={htmlId_#(jsId, "sd_os_")}>Operating system</a></li> ::
@@ -320,7 +320,7 @@ object DisplayNode extends Loggable {
     }
 
     val tabContent = {
-      displayTabOS(jsId, sm, optNode) ::
+      displayTabOS(jsId, sm, node) ::
       displayTabBios(jsId, sm) ::
       displayTabControllers(jsId, sm) ::
       displayTabMemories(jsId, sm) ::
@@ -353,16 +353,17 @@ object DisplayNode extends Loggable {
    * Should be used with jsInit(dn:String, softIds:Seq[SoftwareUuid], salt:String="")
    */
   def showPannedContent(
-      nodeAndGlobalMode: Option[(NodeInfo, GlobalPolicyMode)],
-      sm:                FullInventory,
-      inventoryStatus:   InventoryStatus,
-      salt:              String = ""
-  ): NodeSeq = {
-    val jsId      = JsNodeId(sm.node.main.id, salt)
+      nodeFact:   NodeFact,
+      globalMode: GlobalPolicyMode,
+      salt:       String = ""
+  )(implicit qc:  QueryContext): NodeSeq = {
+    val jsId      = JsNodeId(nodeFact.id, salt)
     val detailsId = htmlId(jsId, "details_")
+    val sm        = nodeFact.toFullInventory
+
     <div id={detailsId}>
       <div class="main-header">
-        {showNodeHeader(sm)}
+        {showNodeHeader(sm, nodeFact)}
       </div>
       <div class="tabs">
         <div class="main-navbar">
@@ -372,16 +373,16 @@ object DisplayNode extends Loggable {
           </ul>
         </div>
         <div id={htmlId(jsId, "node_summary_")}>
-          {showNodeDetails(sm, nodeAndGlobalMode, None, inventoryStatus, salt)}
+          {showNodeDetails(nodeFact, globalMode, None, salt)}
         </div>
         <div id={htmlId(jsId, "node_inventory_")}>
-          {showInventoryVerticalMenu(sm, nodeAndGlobalMode.map(_._1))}
+          {showInventoryVerticalMenu(sm, nodeFact.toCore)}
         </div>
       </div>
     </div>
   }
 
-  def showNodeHeader(sm: FullInventory, optNode: Option[NodeInfo] = None): NodeSeq = {
+  def showNodeHeader(sm: FullInventory, node: NodeFact): NodeSeq = {
     val machineTooltip: String = {
       s"""
          |<h4>Machine details</h4>
@@ -444,9 +445,11 @@ object DisplayNode extends Loggable {
          |</div>""".stripMargin.replaceAll("\n", " ")
     }
 
-    val nodeStateIcon = (optNode
-      .map(n => <span class={"node-state " ++ getNodeState(n.state).toLowerCase} title={getNodeState(n.state)}></span>)
-      .getOrElse(NodeSeq.Empty))
+    val nodeStateIcon = (
+      <span class={"node-state " ++ getNodeState(node.rudderSettings.state).toLowerCase} title={
+        getNodeState(node.rudderSettings.state)
+      }></span>
+    )
 
     <div class="header-title">
     <div class={"os-logo " ++ sm.node.main.osDetails.os.name.toLowerCase()} data-bs-toggle="tooltip" title={osTooltip}></div>
@@ -477,32 +480,25 @@ object DisplayNode extends Loggable {
 
   // mimic the content of server_details/ShowNodeDetailsFromNode
   def showNodeDetails(
-      sm:                  FullInventory,
-      nodeAndGlobalMode:   Option[(NodeInfo, GlobalPolicyMode)],
+      nodeFact:            NodeFact,
+      globalMode:          GlobalPolicyMode,
       creationDate:        Option[DateTime],
-      inventoryStatus:     InventoryStatus,
       salt:                String = "",
       isDisplayingInPopup: Boolean = false
-  ): NodeSeq = {
+  )(implicit qr:           QueryContext): NodeSeq = {
 
-    val nodeInfo = nodeAndGlobalMode.map(_._1)
-
-    val compliance     = loadComplianceBar(nodeInfo).getOrElse(JsArray())
-    val nodePolicyMode = nodeAndGlobalMode match {
-      case Some((node, globalMode)) =>
-        Some((globalMode.overridable, node.policyMode) match {
-          case (Always, Some(mode)) =>
-            (mode, "<p>This mode is an override applied to this node. You can change it in the <i><b>node settings</b></i>.</p>")
-          case (Always, None)       =>
-            val expl =
-              """<p>This mode is the globally defined default. You can change it in <i><b>settings</b></i>.</p><p>You can also override it on this node in the <i><b>node's settings</b></i>.</p>"""
-            (globalMode.mode, expl)
-          case (Unoverridable, _)   =>
-            (globalMode.mode, "<p>This mode is the globally defined default. You can change it in <i><b>Settings</b></i>.</p>")
-        })
-
-      case None =>
-        None
+    val compliance     = loadComplianceBar(nodeFact.id).getOrElse(JsArray())
+    val nodePolicyMode = {
+      (globalMode.overridable, nodeFact.rudderSettings.policyMode) match {
+        case (Always, Some(mode)) =>
+          (mode, "<p>This mode is an override applied to this node. You can change it in the <i><b>node settings</b></i>.</p>")
+        case (Always, None)       =>
+          val expl =
+            """<p>This mode is the globally defined default. You can change it in <i><b>settings</b></i>.</p><p>You can also override it on this node in the <i><b>node's settings</b></i>.</p>"""
+          (globalMode.mode, expl)
+        case (Unoverridable, _)   =>
+          (globalMode.mode, "<p>This mode is the globally defined default. You can change it in <i><b>Settings</b></i>.</p>")
+      }
     }
 
     <div id="nodeDetails">
@@ -512,27 +508,24 @@ object DisplayNode extends Loggable {
           <div>
             {
       nodePolicyMode match {
-        case None                      => NodeSeq.Empty
-        case Some((mode, explanation)) =>
+        case (mode, explanation) =>
           <label>Policy mode:</label><span id="badge-apm"></span> ++
           Script(OnLoad(JsRaw(s"""
                 $$('#badge-apm').append(createBadgeAgentPolicyMode('node',"${mode}","${explanation}"));
-                initBsTooltips();
+                initBsTooltips(getNodeInfo);
               """)))
       }
     }
-          </div>
-          {displayServerRole(sm, inventoryStatus)}
-          <div><label>Agent:</label> {
-      sm.node.agents.map { a =>
-        val capabilities = {
-          if (a.capabilities.isEmpty) "no extra capabilities"
-          else "capabilities: " + a.capabilities.map(_.value).toList.sorted.mkString(", ")
-        }
-        s"${a.agentType.displayName} (${a.version.map(_.value).getOrElse("unknown version")} with ${capabilities})"
-      }.headOption.getOrElse("Not found")
+       </div>
+       {displayServerRole(nodeFact)}
+       <div><label>Agent:</label> {
+      val capabilities = {
+        if (nodeFact.rudderAgent.capabilities.isEmpty) "no extra capabilities"
+        else "capabilities: " + nodeFact.rudderAgent.capabilities.map(_.value).toList.sorted.mkString(", ")
+      }
+      s"${nodeFact.rudderAgent.agentType.displayName} (${nodeFact.rudderAgent.version.value} with ${capabilities})"
     }</div>
-          {displayPolicyServerInfos(sm)}
+          {displayPolicyServerInfos(nodeFact.toFullInventory)}
           <div>
             {
       creationDate.map { creation =>
@@ -541,67 +534,66 @@ object DisplayNode extends Loggable {
     }
           </div>
           {
-      sm.node.agents.headOption match {
-        case Some(agent) =>
-          val checked     = (sm.node.main.status, sm.node.main.keyStatus) match {
-            case (AcceptedInventory, CertifiedKey) =>
-              <span>
+
+      val checked     = (nodeFact.rudderSettings.status, nodeFact.rudderSettings.keyStatus) match {
+        case (AcceptedInventory, CertifiedKey) =>
+          <span>
                 <span class="fa fa-check text-success" data-bs-toggle="tooltip" title="Inventories for this Node must be signed with this key"></span>
               </span>
-            case (AcceptedInventory, UndefinedKey) =>
-              <span>
+        case (AcceptedInventory, UndefinedKey) =>
+          <span>
                 <span class="fa fa-exclamation-triangle text-warning" data-bs-toggle="tooltip" title="Certificate for this node has been reset, next inventory will be trusted automatically"></span>
               </span>
-            case _                                 => // not accepted inventory? Should not get there
-              NodeSeq.Empty
-          }
-          val nodeId      = sm.node.main.id
-          val publicKeyId = s"publicKey-${nodeId.value}"
-          val cfKeyHash   = nodeInfoService.getNodeInfo(nodeId).either.runNow match {
-            case Right(Some(nodeInfo)) if (nodeInfo.keyHashCfengine.nonEmpty) =>
-              <div><label>Key hash:</label> <samp>{nodeInfo.keyHashCfengine}</samp></div>
-            case _                                                            => NodeSeq.Empty
-          }
-          val curlHash    = nodeInfoService.getNodeInfo(nodeId).either.runNow match {
-            case Right(Some(nodeInfo)) if (nodeInfo.keyHashCfengine.nonEmpty) =>
-              <div><label>Key hash:</label> <samp>sha256//{nodeInfo.keyHashBase64Sha256}</samp></div>
-            case _                                                            => NodeSeq.Empty
-          }
+        case _                                 => // not accepted inventory? Should not get there
+          NodeSeq.Empty
+      }
+      val nodeId      = nodeFact.id
+      val publicKeyId = s"publicKey-${nodeId.value}"
+      val cfKeyHash   = nodeFactRepository.get(nodeId).either.runNow match {
+        case Right(Some(nodeFact)) if (nodeFact.keyHashCfengine.nonEmpty) =>
+          <div><label>Key hash:</label> <samp>{nodeFact.keyHashCfengine}</samp></div>
+        case _                                                            => NodeSeq.Empty
+      }
+      val curlHash    = nodeFactRepository.get(nodeId).either.runNow match {
+        case Right(Some(nodeFact)) if (nodeFact.keyHashCfengine.nonEmpty) =>
+          <div><label>Key hash:</label> <samp>sha256//{nodeFact.keyHashBase64Sha256}</samp></div>
+        case _                                                            => NodeSeq.Empty
+      }
 
-          val tokenKind = agent.securityToken match {
-            case _: PublicKey   => "Public key"
-            case _: Certificate => "Certificate"
-          }
-          <div class="security-info">
+      val agent     = nodeFact.rudderAgent
+      val tokenKind = agent.securityToken match {
+        case _: PublicKey   => "Public key"
+        case _: Certificate => "Certificate"
+      }
+      <div class="security-info">
                 {
-            agent.securityToken match {
-              case _: PublicKey   => NodeSeq.Empty
-              case c: Certificate =>
-                c.cert.either.runNow match {
-                  case Left(e)     => <span title={e.fullMsg}>Error while reading certificate information</span>
-                  case Right(cert) => (
-                    <div><label>Fingerprint (sha1): </label> <samp>{
-                      SHA1.hash(cert.getEncoded).grouped(2).mkString(":")
-                    }</samp></div>
+        agent.securityToken match {
+          case _: PublicKey   => NodeSeq.Empty
+          case c: Certificate =>
+            c.cert.either.runNow match {
+              case Left(e)     => <span title={e.fullMsg}>Error while reading certificate information</span>
+              case Right(cert) => (
+                <div><label>Fingerprint (sha1): </label> <samp>{
+                  SHA1.hash(cert.getEncoded).grouped(2).mkString(":")
+                }</samp></div>
                         <div><label>Expiration date: </label> {
-                      DateFormaterService.getDisplayDate(new DateTime(cert.getNotAfter))
-                    }</div>
-                  )
-                }
+                  DateFormaterService.getDisplayDate(new DateTime(cert.getNotAfter))
+                }</div>
+              )
             }
-          }
+        }
+      }
                 {curlHash}
                 {cfKeyHash}
                 <button type="button" class="toggle-security-info btn btn-default" onclick={
-            s"$$('#${publicKeyId}').toggle(300); $$(this).toggleClass('opened'); return false;"
-          }> <b>{tokenKind}</b> {checked}</button>
+        s"$$('#${publicKeyId}').toggle(300); $$(this).toggleClass('opened'); return false;"
+      }> <b>{tokenKind}</b> {checked}</button>
                 <pre id={publicKeyId} class="display-keys" style="display:none;"><div>{agent.securityToken.key}</div></pre>{
-            Script(OnLoad(JsRaw(s"""initBsTooltips();""")))
-          }
-              </div>
-        case None        => NodeSeq.Empty
+        Script(OnLoad(JsRaw(s"""initBsTooltips();""")))
       }
+              </div>
     }
+
         </div>
 
         <div class="status-info col-lg-6 col-sm-5 col-xs-12">
@@ -609,16 +601,16 @@ object DisplayNode extends Loggable {
           <div class="node-compliance-bar"></div>
           <div>
             <label>Inventory created (node local time):</label>  {
-      sm.node.inventoryDate.map(DateFormaterService.getDisplayDate(_)).getOrElse("Unknown")
+      nodeFact.lastInventoryDate.map(DateFormaterService.getDisplayDate(_)).getOrElse("Unknown")
     }
           </div>
           <div>
             <label>Inventory received:</label>  {
-      sm.node.receiveDate.map(DateFormaterService.getDisplayDate(_)).getOrElse("Unknown")
+      DateFormaterService.getDisplayDate(nodeFact.factProcessedDate)
     }
           </div>
           <div>
-            <label>Software updates available:</label> {sm.node.softwareUpdates.size}
+            <label>Software updates available:</label> {nodeFact.softwareUpdate.size}
           </div>
         </div>
       </div>
@@ -631,30 +623,18 @@ object DisplayNode extends Loggable {
   private def htmlId_#(jsId: JsNodeId, prefix: String): String = "#" + prefix + jsId.toString
 
   // Display the role of the node
-  private def displayServerRole(sm: FullInventory, inventoryStatus: InventoryStatus): NodeSeq = {
-    val nodeId = sm.node.main.id
-    inventoryStatus match {
+  private def displayServerRole(nodeFact: NodeFact): NodeSeq = {
+    nodeFact.rudderSettings.status match {
       case AcceptedInventory =>
-        val nodeInfoBox = nodeInfoService.getNodeInfo(nodeId).either.runNow
-        nodeInfoBox match {
-          case Right(Some(nodeInfo)) =>
-            val kind = {
-              nodeInfo.nodeKind match {
-                case NodeKind.Root  => "server"
-                case NodeKind.Relay => "relay server"
-                case NodeKind.Node  => "node"
-              }
-            }
-
-            <div><label>Role:</label> Rudder {kind}</div>
-          case Right(None)           =>
-            logger.error(s"Could not fetch node details for node with id ${sm.node.main.id}")
-            <div class="error"><label>Role:</label> Could not fetch Role for this node</div>
-          case Left(err)             =>
-            val e = s"Could not fetch node details for node with id ${sm.node.main.id}: ${err.fullMsg}"
-            logger.error(e)
-            <div class="error"><label>Role:</label> Could not fetch Role for this node</div>
+        val kind = {
+          nodeFact.rudderSettings.kind match {
+            case NodeKind.Root  => "server"
+            case NodeKind.Relay => "relay server"
+            case NodeKind.Node  => "node"
+          }
         }
+
+        <div><label>Role:</label> Rudder {kind}</div>
       case RemovedInventory  =>
         <div><label>Role:</label> Deleted node</div>
       case PendingInventory  =>
@@ -662,8 +642,8 @@ object DisplayNode extends Loggable {
     }
   }
 
-  private def displayPolicyServerInfos(sm: FullInventory): NodeSeq = {
-    nodeInfoService.getNodeInfo(sm.node.main.policyServerId).either.runNow match {
+  private def displayPolicyServerInfos(sm: FullInventory)(implicit qr: QueryContext): NodeSeq = {
+    nodeFactRepository.get(sm.node.main.policyServerId).either.runNow match {
       case Left(err)                        =>
         val e = s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${escape(
             sm.node.main.hostname
@@ -673,7 +653,7 @@ object DisplayNode extends Loggable {
       case Right(Some(policyServerDetails)) =>
         <div><label>Policy server:</label> <a href={linkUtil.baseNodeLink(policyServerDetails.id)}  onclick={
           s"updateNodeIdAndReload('${policyServerDetails.id.value}')"
-        }>{escape(policyServerDetails.hostname)}</a></div>
+        }>{escape(policyServerDetails.fqdn)}</a></div>
       case Right(None)                      =>
         logger.error(
           s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${sm.node.main.hostname}' ('${sm.node.main.id.value}')"
@@ -745,7 +725,7 @@ object DisplayNode extends Loggable {
     </div>
   }
 
-  private def displayTabOS(jsId: JsNodeId, sm: FullInventory, optNode: Option[NodeInfo]): NodeSeq = {
+  private def displayTabOS(jsId: JsNodeId, sm: FullInventory, node: CoreNodeFact): NodeSeq = {
     displayTabGrid(jsId)(
       "os",
       // special: add name -> value to be displayed as a table
@@ -767,11 +747,14 @@ object DisplayNode extends Loggable {
           ("Total swap space (Swap)", escape(sm.node.swap.map(_.toStringMo).getOrElse("-"))),
           ("System serial number", escape(sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-"))),
           ("Agent type", escape(sm.node.agents.headOption.map(_.agentType.displayName).getOrElse("-"))),
-          ("Node state", escape(optNode.map(n => getNodeState(n.state)).getOrElse("-"))),
+          ("Node state", escape(getNodeState(node.rudderSettings.state))),
           ("Account(s)", displayAccounts(sm.node)),
           ("Administrator account", escape(sm.node.main.rootUser)),
           ("IP addresses", escape(sm.node.serverIps.mkString(", "))),
-          ("Last inventory date", escape(optNode.map(n => DateFormaterService.getDisplayDate(n.inventoryDate)).getOrElse("-"))),
+          (
+            "Last inventory date",
+            escape(node.lastInventoryDate.map(DateFormaterService.getDisplayDate).getOrElse("-"))
+          ),
           ("Policy server ID", escape(sm.node.main.policyServerId.value)),
           (
             "Time zone",
@@ -858,13 +841,13 @@ object DisplayNode extends Loggable {
     }
   }
 
-  def displayTabProperties(jsId: JsNodeId, node: NodeInfo, sm: FullInventory): NodeSeq = {
+  def displayTabProperties(jsId: JsNodeId, node: NodeFact, sm: FullInventory): NodeSeq = {
 
     val nodeId        = node.id.value
     def tabProperties = ChooseTemplate(List("templates-hidden", "components", "ComponentNodeProperties"), "nodeproperties-tab")
     val tabId         = htmlId(jsId, "sd_props_")
     val css: CssSel = "#tabPropsId [id]" #> tabId &
-      "#inventoryVariables *" #> DisplayNode.displayTabInventoryVariable(jsId, node, sm)
+      "#inventoryVariables *" #> DisplayNode.displayTabInventoryVariable(jsId, node.toCore, sm)
 
     css(tabProperties) ++ Script(
       OnLoad(
@@ -908,7 +891,7 @@ object DisplayNode extends Loggable {
     )
   }
 
-  def displayTabInventoryVariable(jsId: JsNodeId, node: NodeInfo, sm: FullInventory): NodeSeq = {
+  def displayTabInventoryVariable(jsId: JsNodeId, node: CoreNodeFact, sm: FullInventory): NodeSeq = {
     def displayLine(name: String, value: String): NodeSeq = {
       <tr>
         <td>{name}<button class="btn btn-xs btn-default btn-clipboard" data-clipboard-text={
@@ -1115,7 +1098,7 @@ object DisplayNode extends Loggable {
       Nil
     }
   }
-  def showDeleteButton(node: NodeSummary):                         NodeSeq = {
+  def showDeleteButton(node: MinimalNodeFactInterface):            NodeSeq = {
     SHtml.ajaxButton(
       "Confirm",
       () => { removeNode(node) },
@@ -1123,7 +1106,7 @@ object DisplayNode extends Loggable {
     )
   }
 
-  private[this] def removeNode(node: NodeSummary): JsCmd = {
+  private[this] def removeNode(node: MinimalNodeFactInterface): JsCmd = {
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(uuidGen.newUuid),
       CurrentUser.actor,
@@ -1139,7 +1122,7 @@ object DisplayNode extends Loggable {
         asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
         onSuccess(node)
       case eb: EmptyBox =>
-        val message = s"There was an error while deleting node '${node.hostname}' [${node.id.value}]"
+        val message = s"There was an error while deleting node '${node.fqdn}' [${node.id.value}]"
         val e       = eb ?~! message
         NodeLoggerPure.Delete.logEffect.error(e.messageChain)
         onFailure(node, message)
@@ -1147,12 +1130,12 @@ object DisplayNode extends Loggable {
   }
 
   private[this] def onFailure(
-      node:    NodeSummary,
+      node:    MinimalNodeFactInterface,
       message: String
   ): JsCmd = {
     RegisterToasts.register(
       ToastNotification.Error(
-        s"An error happened when trying to delete node '${node.hostname}' [${node.id.value}]. " +
+        s"An error happened when trying to delete node '${node.fqdn}' [${node.id.value}]. " +
         "Please contact your server admin to resolve the problem. " +
         s"Error was: '${message}'"
       )
@@ -1160,8 +1143,8 @@ object DisplayNode extends Loggable {
     RedirectTo("/secure/nodeManager/nodes")
   }
 
-  private[this] def onSuccess(node: NodeSummary): JsCmd = {
-    RegisterToasts.register(ToastNotification.Success(s"Node '${node.hostname}' [${node.id.value}] was correctly deleted"))
+  private[this] def onSuccess(node: MinimalNodeFactInterface): JsCmd = {
+    RegisterToasts.register(ToastNotification.Success(s"Node '${node.fqdn}' [${node.id.value}] was correctly deleted"))
     RedirectTo("/secure/nodeManager/nodes")
   }
 

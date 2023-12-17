@@ -45,7 +45,6 @@ import com.normation.cfclerk.services.MissingSystemVariable
 import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
-import com.normation.inventory.domain.AgentInfo
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.AgentVersion
 import com.normation.inventory.domain.Certificate
@@ -56,6 +55,8 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.facts.nodes.RudderAgent
 import com.normation.rudder.reports._
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
@@ -65,13 +66,14 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
+import scala.collection.MapView
 
 trait SystemVariableService {
   def getGlobalSystemVariables(globalAgentRun: AgentRunInterval): Box[Map[String, Variable]]
 
   def getSystemVariables(
-      nodeInfo:              NodeInfo,
-      allNodeInfos:          Map[NodeId, NodeInfo],
+      nodeInfo:              CoreNodeFact,
+      allNodeInfos:          MapView[NodeId, CoreNodeFact],
       nodeTargets:           List[FullRuleTargetInfo],
       globalSystemVariables: Map[String, Variable],
       globalAgentRun:        AgentRunInterval,
@@ -221,8 +223,8 @@ class SystemVariableServiceImpl(
   // can be overriden by some node specific parameters (especially, the schedule for
   // policy servers)
   def getSystemVariables(
-      nodeInfo:              NodeInfo,
-      allNodeInfos:          Map[NodeId, NodeInfo],
+      nodeInfo:              CoreNodeFact,
+      allNodeInfos:          MapView[NodeId, CoreNodeFact],
       nodeTargets:           List[FullRuleTargetInfo],
       globalSystemVariables: Map[String, Variable],
       globalAgentRun:        AgentRunInterval,
@@ -231,11 +233,11 @@ class SystemVariableServiceImpl(
 
     logger.trace("Preparing the system variables for node %s".format(nodeInfo.id.value))
 
-    val varRudderNodeKind = systemVariableSpecService.get("RUDDER_NODE_KIND").toVariable(Seq(nodeInfo.nodeKind.name))
+    val varRudderNodeKind = systemVariableSpecService.get("RUDDER_NODE_KIND").toVariable(Seq(nodeInfo.rudderSettings.kind.name))
 
     val allowedNetworks = policyServerManagementService.getAllowedNetworks(nodeInfo.id).toBox match {
       case eb: EmptyBox =>
-        if (nodeInfo.isPolicyServer) {
+        if (nodeInfo.rudderSettings.isPolicyServer) {
           logger.warn(
             s"No allowed networks found for policy server '${nodeInfo.id.value}'; Nodes won't be able to connect to it to get their policies."
           )
@@ -248,12 +250,12 @@ class SystemVariableServiceImpl(
     val varAllowedNetworks = systemVariableSpecService.get("ALLOWED_NETWORKS").toVariable(allowedNetworks)
 
     val agentRunParams = {
-      if (nodeInfo.isPolicyServer) {
+      if (nodeInfo.rudderSettings.isPolicyServer) {
         val policyServerSchedule =
           """ "Min00", "Min05", "Min10", "Min15", "Min20", "Min25", "Min30", "Min35", "Min40", "Min45", "Min50", "Min55" """
         Right((AgentRunInterval(Some(false), 5, 0, 0, 0), policyServerSchedule))
       } else {
-        val runInterval = nodeInfo.nodeReportingConfiguration.agentRunInterval match {
+        val runInterval = nodeInfo.rudderSettings.reportingConfiguration.agentRunInterval match {
           case Some(nodeRunInterval) if nodeRunInterval.overrides.getOrElse(false) =>
             nodeRunInterval
           case _                                                                   =>
@@ -274,13 +276,13 @@ class SystemVariableServiceImpl(
     }
 
     val heartBeatFrequency = {
-      if (nodeInfo.isPolicyServer) {
+      if (nodeInfo.rudderSettings.isPolicyServer) {
         // A policy server is always sending heartbeat
         1
       } else {
         globalComplianceMode.mode match {
           case ChangesOnly =>
-            nodeInfo.nodeReportingConfiguration.heartbeatConfiguration match {
+            nodeInfo.rudderSettings.reportingConfiguration.heartbeatConfiguration match {
               // It overrides! use it to compute the new heartbeatInterval
               case Some(heartbeatConf) if heartbeatConf.overrides =>
                 heartbeatConf.heartbeatPeriod
@@ -310,10 +312,10 @@ class SystemVariableServiceImpl(
 
     // If we are facing a policy server, we have to allow each child to connect, plus the policy parent,
     // else it's only the policy server
-    val policyServerVars = if (nodeInfo.isPolicyServer) {
+    val policyServerVars = if (nodeInfo.rudderSettings.isPolicyServer) {
 
       // we need to know the mapping between policy servers and their children
-      val childrenByPolicyServer = allNodeInfos.values.toList.groupBy(_.policyServerId)
+      val childrenByPolicyServer = allNodeInfos.values.toList.groupBy(_.rudderSettings.policyServerId)
 
       // Find the "policy children" of this policy server
       // thanks to the allNodeInfos, this is super easy
@@ -321,8 +323,7 @@ class SystemVariableServiceImpl(
       val children = childrenByPolicyServer.getOrElse(nodeInfo.id, Nil).sortBy(_.id.value)
 
       // Sort these children by agent
-      // Each node may have several agent type, so we need to "unfold" agents per children
-      val childerNodesList = children.map(node => (node.agentsName.map(agent => agent -> node))).flatten
+      val childerNodesList = children.map(node => (node.rudderAgent -> node))
 
       // we need to split nodes based on the way they get their policies. If they use cf-serverd,
       // we need to set some system variable to managed authentication.
@@ -337,23 +338,26 @@ class SystemVariableServiceImpl(
       // IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
       val nodesWithCFEKey = nodesAgentWithCfserverDistrib.map(_._2).sortBy(_.id.value)
 
-      val varManagedNodes      = systemVariableSpecService.get("MANAGED_NODES_NAME").toVariable(nodesWithCFEKey.map(_.hostname))
+      val varManagedNodes      = systemVariableSpecService.get("MANAGED_NODES_NAME").toVariable(nodesWithCFEKey.map(_.fqdn))
       val varManagedNodesId    = systemVariableSpecService.get("MANAGED_NODES_ID").toVariable(nodesWithCFEKey.map(_.id.value))
       val varManagedNodesKey   =
         systemVariableSpecService.get("MANAGED_NODES_KEY").toVariable(nodesWithCFEKey.map(_.keyHashCfengine))
       // IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
       val varManagedNodesAdmin = systemVariableSpecService
         .get("MANAGED_NODES_ADMIN")
-        .toVariable(nodesWithCFEKey.map(_.localAdministratorAccountName).distinct.sorted)
+        .toVariable(nodesWithCFEKey.map(_.rudderAgent.user).distinct.sorted)
 
       // IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
-      val varManagedNodesIp =
-        systemVariableSpecService.get("MANAGED_NODES_IP").toVariable(nodesWithCFEKey.flatMap(_.ips).distinct.sorted)
+      val varManagedNodesIp = {
+        systemVariableSpecService
+          .get("MANAGED_NODES_IP")
+          .toVariable(nodesWithCFEKey.flatMap(_.ipAddresses.map(_.inet)).distinct.sorted)
+      }
 
       // same kind of variable but for ALL childrens, not only direct one:
       val allChildren = {
         // utility to add children of a list of nodes
-        def addWithSubChildren(nodes: List[NodeInfo]): List[NodeInfo] = {
+        def addWithSubChildren(nodes: List[CoreNodeFact]): List[CoreNodeFact] = {
           nodes.flatMap(n => {
             n :: {
               childrenByPolicyServer.get(n.id) match {
@@ -372,13 +376,12 @@ class SystemVariableServiceImpl(
         addWithSubChildren(children)
       }
 
-      // Each node may have several agent type, so we need to "unfold" agents per children
-      val subNodesList = allChildren.map(node => (node.agentsName.map(agent => agent -> node))).flatten
+      val subNodesList = allChildren.map(node => (node.rudderAgent -> node))
 
-      val varSubNodesName    = systemVariableSpecService.get("SUB_NODES_NAME").toVariable(subNodesList.map(_._2.hostname))
+      val varSubNodesName    = systemVariableSpecService.get("SUB_NODES_NAME").toVariable(subNodesList.map(_._2.fqdn))
       val varSubNodesId      = systemVariableSpecService.get("SUB_NODES_ID").toVariable(subNodesList.map(_._2.id.value))
       val varSubNodesServer  =
-        systemVariableSpecService.get("SUB_NODES_SERVER").toVariable(subNodesList.map(_._2.policyServerId.value))
+        systemVariableSpecService.get("SUB_NODES_SERVER").toVariable(subNodesList.map(_._2.rudderSettings.policyServerId.value))
       val varSubNodesKeyhash = systemVariableSpecService
         .get("SUB_NODES_KEYHASH")
         .toVariable(subNodesList.map(n => s"sha256//${n._2.keyHashBase64Sha256}"))
@@ -392,7 +395,7 @@ class SystemVariableServiceImpl(
               // for the certificate part, we exec the ZIO. If we have failure, log it and return "None"
               val parsedCert = cert.cert.either.runNow match {
                 case Left(err) =>
-                  logger.error(s"Error when parsing certificate for node '${node.hostname}' [${node.id.value}]: ${err.fullMsg}")
+                  logger.error(s"Error when parsing certificate for node '${node.fqdn}' [${node.id.value}]: ${err.fullMsg}")
                   None
                 case Right(x)  =>
                   Some(x)
@@ -460,12 +463,15 @@ class SystemVariableServiceImpl(
      * and there is by construct a securityToken
      */
     // cfengine version
-    val varPolicyServerKeyHashCfengine  =
-      systemVariableSpecService.get("POLICY_SERVER_KEY").toVariable(Seq(allNodeInfos(nodeInfo.policyServerId).keyHashCfengine))
+    val varPolicyServerKeyHashCfengine  = {
+      systemVariableSpecService
+        .get("POLICY_SERVER_KEY")
+        .toVariable(Seq(allNodeInfos(nodeInfo.rudderSettings.policyServerId).keyHashCfengine))
+    }
     // base64(sha256(der encoded pub key))) version
     val varPolicyServerKeyHashB64Sha256 = systemVariableSpecService
       .get("POLICY_SERVER_KEY_HASH")
-      .toVariable(Seq("sha256//" + allNodeInfos(nodeInfo.policyServerId).keyHashBase64Sha256))
+      .toVariable(Seq("sha256//" + allNodeInfos(nodeInfo.rudderSettings.policyServerId).keyHashBase64Sha256))
 
     logger.trace("System variables for node %s done".format(nodeInfo.id.value))
 
@@ -544,9 +550,9 @@ class SystemVariableServiceImpl(
         }
       }
 
-      def failure(nodeInfo: NodeInfo, badVersion: AgentInfo) = {
+      def failure(nodeInfo: CoreNodeFact, badVersion: RudderAgent) = {
         Failure(
-          s"Node ${nodeInfo.hostname} (${nodeInfo.id.value}) has an agent which doesn't support sending compliance reports in HTTPS: ${badVersion.agentType match {
+          s"Node ${nodeInfo.fqdn} (${nodeInfo.id.value}) has an agent which doesn't support sending compliance reports in HTTPS: ${badVersion.agentType match {
               case AgentType.Dsc => s"Rudder agent on Windows only support HTTPS reporting for version >= 6.1"
               case _             => s"Rudder agent only support HTTPS reporting for version >= 6.0"
             }}. You need to either disable that node (in node details > settings > Node State) or update agent version " +
@@ -557,7 +563,10 @@ class SystemVariableServiceImpl(
       // - version provided and
       //   - starts by 2.x, 3.x, 4.x, 5.x for Unix
       //   - agent is DSC < 6.1
-      val onlySyslogSupported                                = nodeInfo.agentsName.find(agent => versionHasSyslogOnly(agent.version, agent.agentType))
+      val onlySyslogSupported                                      = {
+        if (versionHasSyslogOnly(Some(nodeInfo.rudderAgent.version), nodeInfo.rudderAgent.agentType)) Some(nodeInfo.rudderAgent)
+        else None
+      }
 
       (onlySyslogSupported match {
         case Some(agentInfo) =>
@@ -601,8 +610,11 @@ class SystemVariableServiceImpl(
         )
       ) :: Nil
     }
-    val varRudderInventoryVariables =
-      systemVariableSpecService.get("RUDDER_INVENTORY_VARS").toVariable(Seq(prettyRender(JObject(nodeInfoToJson(nodeInfo)))))
+    val varRudderInventoryVariables = {
+      systemVariableSpecService
+        .get("RUDDER_INVENTORY_VARS")
+        .toVariable(Seq(prettyRender(JObject(nodeInfoToJson(nodeInfo.toNodeInfo)))))
+    }
 
     val baseVariables = {
       Seq(

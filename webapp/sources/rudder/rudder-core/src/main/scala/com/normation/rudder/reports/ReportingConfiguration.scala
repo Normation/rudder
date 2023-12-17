@@ -37,12 +37,8 @@
 
 package com.normation.rudder.reports
 
-import com.normation.box._
 import com.normation.errors.RudderError
 import com.normation.errors.Unexpected
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.Constants
-import com.normation.rudder.services.nodes.NodeInfoService
 import net.liftweb.common._
 import org.joda.time.Duration
 
@@ -96,17 +92,9 @@ final case class ResolvedAgentRunInterval(interval: Duration, heartbeatPeriod: I
 
 trait AgentRunIntervalService {
   def getGlobalAgentRun(): Box[AgentRunInterval]
-
-  /**
-   * For each node Id passed as argument, find the corresponding
-   * run interval and heartbeat value (using global default if needed)
-   */
-  def getNodeReportingConfigurations(nodeIds: Set[NodeId]): Box[Map[NodeId, ResolvedAgentRunInterval]]
-
 }
 
 class AgentRunIntervalServiceImpl(
-    nodeInfoService:       NodeInfoService,
     readGlobalInterval:    () => Box[Int],
     readGlobalStartHour:   () => Box[Int],
     readGlobalStartMinute: () => Box[Int],
@@ -130,34 +118,6 @@ class AgentRunIntervalServiceImpl(
       )
     }
   }
-
-  override def getNodeReportingConfigurations(nodeIds: Set[NodeId]): Box[Map[NodeId, ResolvedAgentRunInterval]] = {
-    for {
-      gInterval  <- readGlobalInterval()
-      gHeartbeat <- readGlobalHeartbeat()
-      nodeInfos  <- nodeInfoService.getAll().toBox
-    } yield {
-      nodeIds.map { nodeId =>
-        if (nodeId == Constants.ROOT_POLICY_SERVER_ID) {
-          // special case. The root policy server always run each 5 minutes
-          (nodeId, ResolvedAgentRunInterval(Duration.standardMinutes(5), 1))
-        } else {
-          val node = nodeInfos.get(nodeId)
-          val run: Int = node.flatMap {
-            _.nodeReportingConfiguration.agentRunInterval.flatMap(x =>
-              if (x.overrides.getOrElse(false)) Some(x.interval) else None
-            )
-          }.getOrElse(gInterval)
-          val heartbeat = node.flatMap {
-            _.nodeReportingConfiguration.heartbeatConfiguration.flatMap(x => if (x.overrides) Some(x.heartbeatPeriod) else None)
-          }.getOrElse(gHeartbeat)
-
-          (nodeId, ResolvedAgentRunInterval(Duration.standardMinutes(run.toLong), heartbeat))
-        }
-      }.toMap
-    }
-  }
-
 }
 
 import ca.mrvisser.sealerate.values

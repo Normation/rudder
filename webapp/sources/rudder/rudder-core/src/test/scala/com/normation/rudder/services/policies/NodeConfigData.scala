@@ -58,8 +58,6 @@ import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AcceptedInventory
-import com.normation.inventory.domain.AgentInfo
-import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.inventory.domain.AgentVersion
 import com.normation.inventory.domain.Certificate
@@ -83,12 +81,12 @@ import com.normation.inventory.domain.Windows
 import com.normation.inventory.domain.Windows2012
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.MachineInfo
-import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.nodes.NodeKind
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
@@ -110,6 +108,11 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.NodeModeConfig
+import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.facts.nodes.IpAddress
+import com.normation.rudder.facts.nodes.MinimalNodeFactInterface.toNode
+import com.normation.rudder.facts.nodes.RudderAgent
+import com.normation.rudder.facts.nodes.RudderSettings
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.git.SimpleGitRevisionProvider
@@ -118,6 +121,8 @@ import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.services.policies.NodeConfigData.fact1
+import com.normation.rudder.services.policies.NodeConfigData.factRoot
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.PolicyServer
 import com.normation.rudder.services.servers.PolicyServerManagementService
@@ -126,6 +131,7 @@ import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio._
+import com.softwaremill.quicklens._
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.FileSystemNotFoundException
@@ -139,7 +145,9 @@ import java.nio.file.attribute.BasicFileAttributes
 import net.liftweb.common.Full
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
+import scala.collection.MapView
 import scala.collection.SortedMap
+import zio.Chunk
 import zio.syntax._
 
 /*
@@ -272,64 +280,65 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
   val rootHostname = "server.rudder.local"
   val rootAdmin    = "root"
 
-  val rootNode = Node(
+  val factRoot = CoreNodeFact(
     rootId,
-    "root",
-    "",
-    NodeState.Enabled,
-    false,
-    true,
-    DateTime.now,
-    emptyNodeReportingConfiguration,
-    Nil,
-    Some(Enforce),
-    None
-  )
-  val root     = NodeInfo(
-    rootNode,
+    None,
     rootHostname,
-    Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None)),
     Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2")),
-    List("127.0.0.1", "192.168.0.100"),
+    MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None),
+    RudderSettings(
+      UndefinedKey,
+      emptyNodeReportingConfiguration,
+      NodeKind.Root,
+      AcceptedInventory,
+      NodeState.Enabled,
+      Some(Enforce),
+      rootId,
+      None
+    ),
+    RudderAgent(CfeCommunity, rootAdmin, AgentVersion("7.0.0"), Certificate(CERT), Chunk.empty),
+    Chunk.empty,
     DateTime.now,
-    UndefinedKey,
-    Seq(AgentInfo(CfeCommunity, Some(AgentVersion("7.0.0")), Certificate(CERT), Set())),
-    rootId,
-    rootAdmin,
+    DateTime.now,
     None,
+    Chunk(IpAddress("127.0.0.1"), IpAddress("192.168.0.100")),
+    Some(NodeTimezone("UTC", "+00")),
     None,
-    Some(NodeTimezone("UTC", "+00"))
+    None
   )
 
-  val node1Node = Node(
+  val rootNode = factRoot.toNode
+  val root     = factRoot.toNodeInfo
+
+  val fact1 = CoreNodeFact(
     id1,
-    "node1",
-    "",
-    NodeState.Enabled,
-    false,
-    false,
-    DateTime.now,
-    emptyNodeReportingConfiguration,
-    Nil,
     None,
-    None
+    hostname1,
+    Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2")),
+    MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None),
+    RudderSettings(
+      UndefinedKey,
+      emptyNodeReportingConfiguration,
+      NodeKind.Node,
+      AcceptedInventory,
+      NodeState.Enabled,
+      None,
+      rootId,
+      None
+    ),
+    RudderAgent(CfeCommunity, admin1, AgentVersion("6.0.0"), PublicKey(PUBKEY), Chunk.empty),
+    Chunk.empty,
+    DateTime.now,
+    DateTime.now,
+    None,
+    Chunk(IpAddress("192.168.0.10")),
+    None,
+    None,
+    Some(MemorySize(1460132))
   )
 
-  val node1 = NodeInfo(
-    node1Node,
-    hostname1,
-    Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None)),
-    Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2")),
-    List("192.168.0.10"),
-    DateTime.now,
-    UndefinedKey,
-    Seq(AgentInfo(CfeCommunity, Some(AgentVersion("6.0.0")), PublicKey(PUBKEY), Set())),
-    rootId,
-    admin1,
-    None,
-    Some(MemorySize(1460132)),
-    None
-  )
+  val node1Node = toNode(fact1)
+  val node1     = fact1.toNodeInfo
 
   val nodeInventory1: NodeInventory = NodeInventory(
     NodeSummary(
@@ -363,40 +372,39 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
     fileSystems = Seq()
   )
 
-  // node1 us a relay
-  val node2Node = node1Node.copy(id = id2, name = id2.value)
-  val node2     = node1.copy(node = node2Node, hostname = hostname2, policyServerId = root.id)
+  val fact2     = fact1.modify(_.id).setTo(id2).modify(_.fqdn).setTo(hostname2)
+  val node2Node = fact2.toNode
+  val node2     = fact2.toNodeInfo
 
-  val dscNode1Node = Node(
+  val factDsc = CoreNodeFact(
     NodeId("node-dsc"),
-    "node-dsc",
-    "",
-    NodeState.Enabled,
-    false,
-    true, // is draft server
-
-    DateTime.now,
-    emptyNodeReportingConfiguration,
-    Nil,
     None,
-    None
-  )
-
-  val dscNode1 = NodeInfo(
-    dscNode1Node,
     "node-dsc.localhost",
-    Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None)),
     Windows(Windows2012, "Windows 2012 youpla boom", new Version("2012"), Some("sp1"), new Version("win-kernel-2012")),
-    List("192.168.0.5"),
+    MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None),
+    RudderSettings(
+      UndefinedKey,
+      emptyNodeReportingConfiguration,
+      NodeKind.Node,
+      AcceptedInventory,
+      NodeState.Enabled,
+      None,
+      rootId,
+      None
+    ),
+    RudderAgent(CfeCommunity, admin1, AgentVersion("7.0.0"), Certificate("windows-node-dsc-certificate"), Chunk.empty),
+    Chunk.empty,
     DateTime.now,
-    UndefinedKey,
-    Seq(AgentInfo(AgentType.Dsc, Some(AgentVersion("7.0.0")), Certificate("windows-node-dsc-certificate"), Set())),
-    rootId,
-    admin1,
+    DateTime.now,
     None,
-    Some(MemorySize(1460132)),
-    None
+    Chunk(IpAddress("192.168.0.5")),
+    None,
+    None,
+    Some(MemorySize(1460132))
   )
+
+  val dscNode1Node = factDsc.toNode
+  val dscNode1     = factDsc.toNodeInfo
 
   val dscInventory1: NodeInventory = NodeInventory(
     NodeSummary(
@@ -430,6 +438,7 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
     fileSystems = Seq()
   )
 
+  val allNodeFacts = Map(rootId -> factRoot, node1.id -> fact1, node2.id -> fact2)
   val allNodesInfo = Map(rootId -> root, node1.id -> node1, node2.id -> node2)
 
   val defaultModesConfig = NodeModeConfig(
@@ -480,21 +489,29 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
     NodeId(s"${i}")
   }).toSet
 
-  def newNode(id: NodeId) =
-    Node(id, "", "", NodeState.Enabled, false, false, DateTime.now, ReportingConfiguration(None, None, None), Nil, None, None)
-
-  val nodes = (Set(root, node1, node2) ++ nodeIds.map { id =>
-    NodeInfo(
-      newNode(id),
-      s"Node-${id}",
+  val nodes = (Set(factRoot, fact1, fact2) ++ nodeIds.map { id =>
+    CoreNodeFact(
+      id,
       None,
+      s"Node-${id}",
       Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2")),
-      Nil,
+      MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None),
+      RudderSettings(
+        UndefinedKey,
+        emptyNodeReportingConfiguration,
+        NodeKind.Node,
+        AcceptedInventory,
+        NodeState.Enabled,
+        None,
+        rootId,
+        None
+      ),
+      RudderAgent(CfeCommunity, admin1, AgentVersion("6.0.0"), PublicKey("rsa public key"), Chunk.empty),
+      Chunk.empty,
       DateTime.now,
-      UndefinedKey,
-      Seq(AgentInfo(CfeCommunity, None, PublicKey("rsa public key"), Set())),
-      NodeId("root"),
-      "",
+      DateTime.now,
+      None,
+      Chunk(),
       None,
       None,
       None
@@ -708,7 +725,6 @@ class TestNodeConfiguration(
   val reader                      = testTechRepoEnv.reader
   val techniqueRepository         = testTechRepoEnv.techniqueRepository
 
-  import com.normation.rudder.services.policies.NodeConfigData.node1
   import com.normation.rudder.services.policies.NodeConfigData.root
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // set up root node configuration
@@ -768,10 +784,13 @@ class TestNodeConfiguration(
 
   // a test node - CFEngine
   val nodeId  = NodeId("c8813416-316f-4307-9b6a-ca9c109a9fb0")
-  val cfeNode = node1.copy(node = node1.node.copy(id = nodeId, name = nodeId.value))
+  val factCfe = fact1.modify(_.id).setTo(nodeId)
+  val cfeNode = factCfe.toNodeInfo
 
-  val allNodesInfo_rootOnly = Map(root.id -> root)
-  val allNodesInfo_cfeNode  = Map(root.id -> root, cfeNode.id -> cfeNode)
+  val allNodeFacts_rootOnly = MapView(root.id -> factRoot)
+  val allNodesInfo_rootOnly = allNodeFacts_rootOnly.mapValues(_.toNodeInfo).toMap
+  val allNodeFacts_cfeNode  = MapView(root.id -> factRoot, cfeNode.id -> factCfe)
+  val allNodesInfo_cfeNode  = allNodeFacts_cfeNode.mapValues(_.toNodeInfo).toMap
 
   // the group lib
   val emptyGroupLib = FullNodeGroupCategory(

@@ -2281,7 +2281,7 @@ class MockNodes() {
 
     val list = new FactListNewNodes(nodeFactRepo)
 
-    override def listNewNodes: IOResult[Seq[CoreNodeFact]] = list.listNewNodes
+    override def listNewNodes()(implicit qc: QueryContext): IOResult[Seq[CoreNodeFact]] = list.listNewNodes()
 
     override def accept(id: NodeId)(implicit cc: ChangeContext): IOResult[CoreNodeFact] = {
       nodeFactRepo.changeStatus(id, AcceptedInventory) *>

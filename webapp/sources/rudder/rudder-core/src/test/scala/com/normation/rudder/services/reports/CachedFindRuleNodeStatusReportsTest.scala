@@ -39,8 +39,6 @@ package com.normation.rudder.services.reports
 
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.nodes.Node
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ComplianceLevel
@@ -48,19 +46,25 @@ import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.reports.RunComplianceInfo
+import com.normation.rudder.facts.nodes.CoreNodeFactRepository
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.NoopFactStorage
+import com.normation.rudder.facts.nodes.NoopGetNodesbySofwareName
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository.FindExpectedReportRepository
 import com.normation.rudder.repository.ReportsRepository
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.NodeConfigData
+import com.normation.zio._
+import com.softwaremill.quicklens._
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
-import zio.syntax._
+import zio.Chunk
 
 /*
  * Test the cache behaviour
@@ -73,8 +77,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
 
   // build one node by kind of reports, expired or not
   def buildNode(id: String)                   = {
-    val node1 = NodeConfigData.node1.node
-    NodeConfigData.node1.copy(node = node1.copy(id = NodeId(id)))
+    (NodeId(id), NodeConfigData.fact1.modify(_.id).setTo(NodeId(id)))
   }
   def run(id: String, info: RunAndConfigInfo) = NodeStatusReport(NodeId(id), info, RunComplianceInfo.OK, Nil, Set())
   // a list of node, on node by type of reports, in a triplet:
@@ -129,26 +132,9 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     )
   )
 
-  object testNodeInfoService extends NodeInfoService {
-    def getNodeInfo(nodeId: NodeId):           IOResult[Option[NodeInfo]]      = ???
-    def getNodeInfoPure(nodeId: NodeId):       IOResult[Option[NodeInfo]]      = ???
-    def getNodeInfos(nodesId: Set[NodeId]):    IOResult[Set[NodeInfo]]         = ???
-    def getNodeInfosSeq(nodeIds: Seq[NodeId]): IOResult[Seq[NodeInfo]]         = ???
-    def getNode(nodeId: NodeId):               Box[Node]                       = ???
-    def getAllNodes():                         IOResult[Map[NodeId, Node]]     = ???
-    def getAllNodeInfos():                     IOResult[Seq[NodeInfo]]         = ???
-    def getAllNodesIds():                      IOResult[Set[NodeId]]           = ???
-    def getAllSystemNodeIds():                 IOResult[Seq[NodeId]]           = ???
-    def getPendingNodeInfos():                 IOResult[Map[NodeId, NodeInfo]] = ???
-    def getPendingNodeInfo(nodeId: NodeId):    IOResult[Option[NodeInfo]]      = ???
-    def getDeletedNodeInfos():                 IOResult[Map[NodeId, NodeInfo]] = ???
-    def getDeletedNodeInfo(nodeId: NodeId):    IOResult[Option[NodeInfo]]      = ???
-    def getNumberOfManagedNodes:               IOResult[Int]                   = ???
-    val getAll:                                IOResult[Map[NodeId, NodeInfo]] = {
-      nodes.map { case (n, _, _) => (n.id, n) }.toMap.succeed
-    }
-
-  }
+  val accepted     = nodes.map { case (n, _, _) => n }.toMap
+  val nodeFactRepo =
+    CoreNodeFactRepository.make(NoopFactStorage, NoopGetNodesbySofwareName, Map(), accepted, Chunk.empty).runNow
 
   class TestCache extends CachedFindRuleNodeStatusReports() {
     val batchSize = 3
@@ -163,41 +149,53 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
       override def agentRunRepository:                                                    RoReportsExecutionRepository              = ???
       override def getGlobalComplianceMode:                                               () => Box[GlobalComplianceMode]           = ???
       override def getUnexpectedInterpretation:                                           () => Box[UnexpectedReportInterpretation] = ???
-      override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId):                  IOResult[Map[NodeId, NodeStatusReport]]   = ???
-      override def getUserNodeStatusReports():                                            Box[Map[NodeId, NodeStatusReport]]        = ???
+      override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId)(implicit
+          qc:                                                   QueryContext
+      ): IOResult[Map[NodeId, NodeStatusReport]] = ???
+      override def getUserNodeStatusReports()(implicit qc: QueryContext):                 Box[Map[NodeId, NodeStatusReport]]        = ???
       override def getSystemAndUserCompliance(
           optNodeIds: Option[Set[NodeId]]
-      ): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
+      )(implicit qc:  QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
       override def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]):  Option[(ComplianceLevel, Long)]           = ???
-      override def getGlobalUserCompliance():                                             Box[Option[(ComplianceLevel, Long)]]      = ???
-      override def findNodeStatusReport(nodeId: NodeId):                                  Box[NodeStatusReport]                     = ???
-      override def findUserNodeStatusReport(nodeId: NodeId):                              Box[NodeStatusReport]                     = ???
-      override def findSystemNodeStatusReport(nodeId: NodeId):                            Box[NodeStatusReport]                     = ???
+      override def getGlobalUserCompliance()(implicit qc: QueryContext):                  Box[Option[(ComplianceLevel, Long)]]      = ???
+      override def findNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext):       Box[NodeStatusReport]                     = ???
+      override def findUserNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext):   Box[NodeStatusReport]                     = ???
+      override def findSystemNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext): Box[NodeStatusReport]                     = ???
       override def nodeConfigService:                                                     NodeConfigurationService                  = ???
       override def jdbcMaxBatchSize:                                                      Int                                       = batchSize
-      override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]): Box[Map[NodeId, NodeStatusReport]]        = {
+      override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId])(implicit
+          qc:                                         QueryContext
+      ): Box[Map[NodeId, NodeStatusReport]] = {
         updated = (updated ++ nodeIds)
         Full(reports.filter(x => nodeIds.contains(x._1)))
       }
 
-      def findStatusReportsForDirective(directiveId: DirectiveId): IOResult[Map[NodeId, NodeStatusReport]] = ???
+      def findStatusReportsForDirective(directiveId: DirectiveId)(implicit
+          qc:                                        QueryContext
+      ): IOResult[Map[NodeId, NodeStatusReport]] = ???
     }
-    override def nodeInfoService: NodeInfoService = testNodeInfoService
+    override def nodeFactRepository: NodeFactRepository = nodeFactRepo
 
-    override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId):                 IOResult[Map[NodeId, NodeStatusReport]] = ???
-    override def findNodeStatusReport(nodeId: NodeId):                                 Box[NodeStatusReport]                   = ???
-    override def findUncomputedNodeStatusReports():                                    Box[Map[NodeId, NodeStatusReport]]      = ???
-    override def getUserNodeStatusReports():                                           Box[Map[NodeId, NodeStatusReport]]      = ???
-    override def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)]         = ???
-    override def getGlobalUserCompliance():                                            Box[Option[(ComplianceLevel, Long)]]    = ???
-    override def findUserNodeStatusReport(nodeId: NodeId):                             Box[NodeStatusReport]                   = ???
-    override def findSystemNodeStatusReport(nodeId: NodeId):                           Box[NodeStatusReport]                   = ???
+    override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId)(implicit
+        qc:                                                   QueryContext
+    ): IOResult[Map[NodeId, NodeStatusReport]] = ???
+    override def findNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext):       Box[NodeStatusReport]                = ???
+    override def findUncomputedNodeStatusReports():                                     Box[Map[NodeId, NodeStatusReport]]   = ???
+    override def getUserNodeStatusReports()(implicit qc: QueryContext):                 Box[Map[NodeId, NodeStatusReport]]   = ???
+    override def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]):  Option[(ComplianceLevel, Long)]      = ???
+    override def getGlobalUserCompliance()(implicit qc: QueryContext):                  Box[Option[(ComplianceLevel, Long)]] = ???
+    override def findUserNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext):   Box[NodeStatusReport]                = ???
+    override def findSystemNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext): Box[NodeStatusReport]                = ???
     override def getSystemAndUserCompliance(
         optNodeIds: Option[Set[NodeId]]
-    ): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
+    )(implicit qc:  QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
 
-    def findStatusReportsForDirective(directiveId: DirectiveId): IOResult[Map[NodeId, NodeStatusReport]] = ???
+    def findStatusReportsForDirective(directiveId: DirectiveId)(implicit
+        qc:                                        QueryContext
+    ): IOResult[Map[NodeId, NodeStatusReport]] = ???
   }
+
+  implicit val qc: QueryContext = QueryContext.testQC
 
   /*
    * rule1/dir1 is applied on node1 and node2 and is both here (node1) and skipped (node2)
@@ -205,7 +203,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   "Uninitialized cache should ask for node compliance if it's not in cache already" >> {
     val cache = new TestCache
     val id    = NodeId("n1")
-    cache.reports = nodes.collect { case (n, a, _) if (n.id == id) => (n.id, a) }.toMap
+    cache.reports = nodes.collect { case (n, a, _) if (n._1 == id) => (n._1, a) }.toMap
 
     // node not in cache, miss
     val n1 = cache.findRuleNodeStatusReports(Set(id), Set())
@@ -222,7 +220,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
 
   "Cache should return expired compliance but also ask for renew" >> {
     val cache = new TestCache
-    cache.reports = nodes.map { case (n, a, _) => (n.id, a) }.toMap
+    cache.reports = nodes.map { case (n, a, _) => (n._1, a) }.toMap
 
     // node not in cache, empty, returns nothing
     val n1 = cache.findRuleNodeStatusReports(cache.reports.keySet, Set())
@@ -246,7 +244,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
 
   "Cache should not return ask for renew of up to date components" >> {
     val cache = new TestCache
-    cache.reports = nodes.map { case (n, _, b) => (n.id, b) }.toMap
+    cache.reports = nodes.map { case (n, _, b) => (n._1, b) }.toMap
 
     // node not in cache, empty, returns nothing
     val n1 = cache.findRuleNodeStatusReports(cache.reports.keySet, Set())

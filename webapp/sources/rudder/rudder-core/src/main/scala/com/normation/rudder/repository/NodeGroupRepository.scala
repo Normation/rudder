@@ -173,7 +173,7 @@ final case class FullNodeGroupCategory(
   /**
    * Given a nodeId, get all the groups where it belongs to.
    */
-  def getTarget(node: NodeInfo): Map[RuleTarget, FullRuleTargetInfo] = {
+  def getTarget(node: CoreNodeFact): Map[RuleTarget, FullRuleTargetInfo] = {
     allTargets.filter {
       case (t, info) =>
         info.target match {
@@ -183,12 +183,12 @@ final case class FullNodeGroupCategory(
             // here, we don't need all node info, just the current node
             // It's because we only do set analysis on node info, not things like "find all
             // the node with that policy server" in target.
-            getNodeIds(Set(t), MapView(node.id -> node.isPolicyServer)).contains(node.id)
+            getNodeIds(Set(t), MapView(node.id -> node.rudderSettings.isPolicyServer)).contains(node.id)
           case FullOtherTarget(t)             =>
             t match {
               case AllTarget                    => true
-              case AllTargetExceptPolicyServers => !node.isPolicyServer
-              case AllPolicyServers             => node.isPolicyServer
+              case AllTargetExceptPolicyServers => !node.rudderSettings.isPolicyServer
+              case AllPolicyServers             => node.rudderSettings.isPolicyServer
               case PolicyServerTarget(id)       => id == node.id
             }
         }
@@ -345,12 +345,11 @@ object RoNodeGroupRepository {
   }
 
   def getNodeIdsChunk(
-      allGroups:    Map[NodeGroupId, Chunk[NodeId]],
-      targets:      Set[RuleTarget],
-      allNodeInfos: Map[NodeId, NodeInfo]
+      allGroups:        Map[NodeGroupId, Chunk[NodeId]],
+      targets:          Set[RuleTarget],
+      arePolicyServers: MapView[NodeId, Boolean]
   ): Chunk[NodeId] = {
-    val allNodes = allNodeInfos.view.mapValues(x => (x.isPolicyServer))
-    RuleTarget.getNodeIdsChunk(targets, allNodes, allGroups)
+    RuleTarget.getNodeIdsChunk(targets, arePolicyServers, allGroups)
   }
 }
 

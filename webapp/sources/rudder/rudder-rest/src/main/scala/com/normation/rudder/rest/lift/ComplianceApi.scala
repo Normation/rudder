@@ -402,6 +402,7 @@ class ComplianceApi(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action   = schema.name
       implicit val prettify = params.prettify
+      implicit val qc: QueryContext = authzToken.qc
 
       (for {
         precision     <- restExtractor.extractPercentPrecision(req.params)
@@ -496,7 +497,7 @@ class ComplianceAPIService(
       _             <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - getAllRules in ${t2 - t1} ms")
       nodeFacts     <- nodeFactRepos.getAll()
       t3            <- currentTimeMillis
-      _             <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - nodeInfoService.getAll() in ${t3 - t2} ms")
+      _             <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - nodeFactRepo.getAll() in ${t3 - t2} ms")
       compliance    <- getGlobalComplianceMode
       t4            <- currentTimeMillis
       _             <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - getGlobalComplianceMode in ${t4 - t3} ms")
@@ -585,7 +586,7 @@ class ComplianceAPIService(
       _             <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - getFullDirectiveLibrary in ${t3 - t2} ms")
       nodeFacts     <- nodeFactRepos.getAll()
       t4            <- currentTimeMillis
-      _             <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - nodeInfoService.getAll() in ${t4 - t3} ms")
+      _             <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - nodeFactRepo.getAll() in ${t4 - t3} ms")
       compliance    <- getGlobalComplianceMode
       t5            <- currentTimeMillis
       _             <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - getGlobalComplianceMode in ${t5 - t4} ms")
@@ -850,7 +851,7 @@ class ComplianceAPIService(
     this.getByNodesCompliance(None, if (onlySystems) getSystemRules() else getAllUserRules()).toBox
   }
 
-  def getGlobalCompliance(): Box[Option[(ComplianceLevel, Long)]] = {
+  def getGlobalCompliance()(implicit qc: QueryContext): Box[Option[(ComplianceLevel, Long)]] = {
     this.reportingService.getGlobalUserCompliance()
   }
 }

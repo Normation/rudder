@@ -57,6 +57,7 @@ import com.normation.rudder.domain.queries.Or
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.ResultTransformation._
 import com.normation.rudder.domain.queries.StringComparator
+import com.normation.rudder.facts.nodes.QueryContext
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -181,7 +182,7 @@ class TestPendingNodePolicies extends Specification {
 
   // a fake query checker
   val queryChecker = new QueryChecker {
-    override def check(query: Query, nodeIds: Option[Seq[NodeId]]): IOResult[Set[NodeId]] = {
+    override def check(query: Query, nodeIds: Option[Seq[NodeId]])(implicit qc: QueryContext): IOResult[Set[NodeId]] = {
       // make a 0 criteria request raise an error like LDAP would do,
       // see: https://www.rudder-project.org/redmine/issues/12338
       if (query.criteria.isEmpty) {

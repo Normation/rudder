@@ -216,7 +216,7 @@ trait NodeInfoMatcher {
 }
 
 object NodeInfoMatcher {
-  // default builder: it will evaluated each time, sufficiant if all parts of the matcher uses NodeInfo
+  // default builder: it will evaluated each time, sufficient if all parts of the matcher uses NodeInfo
   def apply(s: String, f: NodeInfo => Boolean): NodeInfoMatcher = {
     new NodeInfoMatcher {
       override val debugString:             String  = s

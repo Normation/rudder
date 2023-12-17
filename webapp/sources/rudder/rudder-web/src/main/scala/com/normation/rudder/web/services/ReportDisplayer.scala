@@ -42,11 +42,11 @@ import com.normation.box._
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.reports._
-import com.normation.rudder.facts.nodes.CoreNodeFactRepository
+import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
@@ -72,7 +72,7 @@ class ReportDisplayer(
     ruleRepository:      RoRuleRepository,
     directiveRepository: RoDirectiveRepository,
     techniqueRepository: TechniqueRepository,
-    nodeFactRepo:        CoreNodeFactRepository,
+    nodeFactRepo:        NodeFactRepository,
     configService:       ReadConfigService,
     logDisplayer:        LogDisplayer
 ) extends Loggable {
@@ -89,7 +89,7 @@ class ReportDisplayer(
    * addOverriden decides if we need to add overriden policies (policy tab), or not (system tab)
    */
   def asyncDisplay(
-      node:         NodeInfo,
+      node:         CoreNodeFact,
       tabId:        String,
       containerId:  String,
       tableId:      String,
@@ -118,7 +118,12 @@ class ReportDisplayer(
   /**
    * Refresh the main compliance table
    */
-  def refreshReportDetail(node: NodeInfo, tableId: String, getReports: NodeId => Box[NodeStatusReport], addOverriden: Boolean) = {
+  def refreshReportDetail(
+      node:         CoreNodeFact,
+      tableId:      String,
+      getReports:   NodeId => Box[NodeStatusReport],
+      addOverriden: Boolean
+  ) = {
     def refreshData: Box[JsCmd] = {
       for {
         report <- getReports(node.id)
@@ -351,14 +356,14 @@ class ReportDisplayer(
   }
 
   private[this] def displayReports(
-      node:         NodeInfo,
+      node:         CoreNodeFact,
       getReports:   NodeId => Box[NodeStatusReport],
       tableId:      String,
       containerId:  String,
       addOverriden: Boolean,
       onlySystem:   Boolean
   ): NodeSeq = {
-    val boxXml = (if (node.state == NodeState.Ignored) {
+    val boxXml = (if (node.rudderSettings.state == NodeState.Ignored) {
                     Full(
                       <div><div class="col-sm-3"><p class="center bg-info" style="padding: 25px; margin:5px;">This node is disabled.</p></div></div>
                     )
@@ -385,11 +390,10 @@ class ReportDisplayer(
                        * Remoterun are only supported on cfengine agent, so disable access to button for
                        * other kind of agent (windows in particular).
                        */
-                      def triggerAgent(node: NodeInfo): NodeSeq = if (tableId == "reportsGrid") {
+                      def triggerAgent(node: CoreNodeFact): NodeSeq = if (tableId == "reportsGrid") {
                         if (
-                          node.agentsName.exists(agent =>
-                            agent.agentType == AgentType.CfeCommunity || agent.agentType == AgentType.CfeEnterprise
-                          )
+                          node.rudderAgent.agentType == AgentType.CfeCommunity ||
+                          node.rudderAgent.agentType == AgentType.CfeEnterprise
                         ) {
                           <div id="triggerAgent">
             <button id="triggerBtn" class="btn btn-primary btn-trigger"  onClick={
@@ -499,7 +503,7 @@ class ReportDisplayer(
   }
 
   private[this] def showReportDetail(
-      node:           NodeInfo,
+      node:           CoreNodeFact,
       withCompliance: Boolean,
       onlySystem:     Boolean
   ): NodeSeq = {

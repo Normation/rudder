@@ -43,6 +43,8 @@ import com.normation.eventlog._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.eventlog.DeleteNodeEventLog
+import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.services.DisplayNode
 import com.normation.utils.DateFormaterService
 import net.liftweb.common._
@@ -61,6 +63,7 @@ object PendingHistoryGrid extends Loggable {
   val history           = RudderConfig.inventoryHistoryJdbcRepository
   val logService        = RudderConfig.inventoryEventLogService
   val logDetailsService = RudderConfig.eventLogDetailsService
+  val configService     = RudderConfig.configService
 
   def pendingHistoryTemplatePath = List("templates-hidden", "pending_history_grid")
   def template(): NodeSeq = Templates(pendingHistoryTemplatePath) match {
@@ -72,6 +75,8 @@ object PendingHistoryGrid extends Loggable {
   }
 
   def displayAndInit(): NodeSeq = {
+    implicit val qc: QueryContext = CurrentUser.queryContext
+
     logService.getInventoryEventLogs() match {
       case Empty   => display(Seq[InventoryEventLog]()) ++ Script(initJs())
       case Full(x) =>
@@ -84,7 +89,7 @@ object PendingHistoryGrid extends Loggable {
 
   def jsVarNameForId() = "pendingNodeHistoryTable"
 
-  def initJs(entries: Seq[EventLog] = Seq()): JsCmd   = {
+  def initJs(entries: Seq[EventLog] = Seq())(implicit qr: QueryContext): JsCmd = {
     JsRaw("""
         var #table_var#;
         /* Formating function for row details */
@@ -119,7 +124,8 @@ object PendingHistoryGrid extends Loggable {
           """.replaceAll("#table_var#", jsVarNameForId())) & initJsCallBack(entries)
     )
   }
-  def display(entries: Seq[EventLog]):        NodeSeq = {
+
+  def display(entries: Seq[EventLog]): NodeSeq = {
 
     val historyLine = {
       <tr class= "curspoint">
@@ -175,7 +181,7 @@ object PendingHistoryGrid extends Loggable {
    * You will have to do that for line added after table
    * initialization.
    */
-  def initJsCallBack(entries: Seq[EventLog]): JsCmd = {
+  def initJsCallBack(entries: Seq[EventLog])(implicit qr: QueryContext): JsCmd = {
     val eventWithDetails = entries.flatMap(event => logDetailsService.getDeleteNodeLogDetails(event.details).map((event, _)))
     // Group the events by node id, then drop the event details. Set default Map value to an empty Seq
     val deletedNodes     = eventWithDetails.groupMap(_._2.nodeId)(_._1).withDefaultValue(Seq())
@@ -209,7 +215,7 @@ object PendingHistoryGrid extends Loggable {
     )
   }
 
-  def displayPastInventory(deletedNodes: Map[NodeId, Seq[EventLog]])(s: String): JsCmd = {
+  def displayPastInventory(deletedNodes: Map[NodeId, Seq[EventLog]])(s: String)(implicit qr: QueryContext): JsCmd = {
 
     val arr = s.split("\\|")
     if (arr.length != 4) {
@@ -219,17 +225,22 @@ object PendingHistoryGrid extends Loggable {
       val id           = NodeId(arr(1))
       val version      = ISODateTimeFormat.dateTimeParser.parseDateTime(arr(2))
       val isAcceptLine = arr(3) == "accepted"
-      history.get(id, version).toBox match {
-        case Failure(m, _, _)   => Alert("Error while trying to display node history. Error message:" + m)
-        case Empty | Full(None) => Alert("No history was retrieved for the chosen date")
-        case Full(Some(sm))     =>
+      (for {
+        globalMode <- configService
+                        .rudder_global_policy_mode()
+                        .chainError(s" Could not get global policy mode when getting node '${id.value}' details")
+        m          <- history.get(id, version)
+      } yield (globalMode, m)).toBox match {
+        case Failure(m, _, _)             => Alert("Error while trying to display node history. Error message:" + m)
+        case Empty | Full((_, None))      => Alert("No history was retrieved for the chosen date")
+        case Full((globalMode, Some(sm))) =>
           SetHtml(
             jsuuid,
             (if (isAcceptLine)
                displayIfDeleted(id, version, deletedNodes)
              else
                NodeSeq.Empty) ++
-            DisplayNode.showPannedContent(None, sm.data.fact.toFullInventory, sm.data.status, "hist")
+            DisplayNode.showPannedContent(sm.data.fact, globalMode, "hist")
           ) &
           DisplayNode.jsInit(sm.id, "hist")
       }

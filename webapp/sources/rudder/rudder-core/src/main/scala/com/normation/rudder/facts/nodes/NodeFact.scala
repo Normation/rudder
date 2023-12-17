@@ -37,15 +37,18 @@
 
 package com.normation.rudder.facts.nodes
 
+import com.normation.box._
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain._
 import com.normation.inventory.domain.{Version => SVersion}
 import com.normation.rudder.apidata.NodeDetailLevel
 import com.normation.rudder.domain.eventlog
+import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.nodes.MachineInfo
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.nodes.NodeKeyHash
 import com.normation.rudder.domain.nodes.NodeKind
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
@@ -57,10 +60,14 @@ import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.reports._
 import com.normation.utils.ParseVersion
 import com.normation.utils.Version
+import com.normation.zio._
 import com.softwaremill.quicklens._
 import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.config.ConfigValue
 import java.net.InetAddress
+import net.liftweb.common.Box
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Full
 import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonAST.JValue
@@ -845,6 +852,89 @@ trait MinimalNodeFactInterface {
   def timezone:          Option[NodeTimezone]
   def archDescription:   Option[String]
   def ram:               Option[MemorySize]
+
+  // this is copied from NodeInfo. Not sure if there is a better way for now.
+  /**
+   * Get a digest of the key in the proprietary CFEngine digest format. It is
+   * formated as expected by CFEngine authentication module, i.e with the
+   * "MD5=" prefix for community agent (resp. "SHA=") prefix for enterprise agent).
+   */
+  lazy val keyHashCfengine: String = {
+
+    def formatDigest(digest: Box[String], algo: String, tokenType: SecurityToken): String = {
+      digest match {
+        case Full(hash) => s"${algo}=${hash}"
+        case eb: EmptyBox =>
+          val msgForToken = tokenType match {
+            case _: PublicKey   => "of CFEngine public key for"
+            case _: Certificate => "for certificate of"
+          }
+          val e           = eb ?~! s"Error when trying to get the CFEngine-${algo} digest ${msgForToken} node '${fqdn}' (${id.value})"
+          PolicyGenerationLogger.error(e.messageChain)
+          ""
+      }
+    }
+
+    (rudderAgent.agentType, rudderAgent.securityToken) match {
+
+      case (AgentType.CfeCommunity, key: PublicKey) =>
+        formatDigest(NodeKeyHash.getCfengineMD5Digest(key).toBox, "MD5", key)
+
+      case (AgentType.CfeEnterprise, key: PublicKey) =>
+        formatDigest(NodeKeyHash.getCfengineSHA256Digest(key).toBox, "SHA", key)
+
+      case (AgentType.CfeCommunity, cert: Certificate) =>
+        formatDigest(NodeKeyHash.getCfengineMD5CertDigest(cert).toBox, "MD5", cert)
+
+      case (AgentType.CfeEnterprise, cert: Certificate) =>
+        formatDigest(NodeKeyHash.getCfengineSHA256CertDigest(cert).toBox, "SHA", cert)
+
+      case (AgentType.Dsc, _) =>
+        PolicyGenerationLogger.info(
+          s"Node '${fqdn}' (${id.value}) is a Windows node and a we do not know how to generate a hash yet"
+        )
+        ""
+
+      case (_, _) =>
+        PolicyGenerationLogger.info(
+          s"Node '${fqdn}' (${id.value}) has an unsuported key type (CFEngine agent with certificate?) and a we do not know how to generate a hash yet"
+        )
+        ""
+    }
+  }
+
+  /**
+   * Get a base64 sha-256 digest (of the DER byte sequence) of the key.
+   *
+   * This method never fails, and if we are not able to parse
+   * the store key, or if no key is store, it return an empty
+   * string. Logs are used to track problems.
+   *
+   */
+  lazy val keyHashBase64Sha256: String = {
+    rudderAgent.securityToken match {
+      case publicKey: PublicKey   =>
+        NodeKeyHash.getB64Sha256Digest(publicKey).either.runNow match {
+          case Right(hash) =>
+            hash
+          case Left(e)     =>
+            PolicyGenerationLogger.error(
+              s"Error when trying to get the sha-256 digest of CFEngine public key for node '${fqdn}' (${id.value}): ${e.fullMsg}"
+            )
+            ""
+        }
+      case cert:      Certificate =>
+        NodeKeyHash.getB64Sha256Digest(cert).either.runNow match {
+          case Right(hash) => hash
+          case Left(e)     =>
+            PolicyGenerationLogger.error(
+              s"Error when trying to get the sha-256 digest of Certificate for node '${fqdn}' (${id.value}): ${e.fullMsg}"
+            )
+            ""
+        }
+    }
+  }
+
 }
 
 /*

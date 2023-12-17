@@ -44,6 +44,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.ComplianceLevelSerialisation._
 import com.normation.rudder.domain.reports.RuleNodeStatusReport
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.reports.ReportingService
 import net.liftweb.common._
 import net.liftweb.common.Box
@@ -73,7 +74,7 @@ class AsyncComplianceService(
     val jsContainer: String
 
     // Compute compliance
-    def computeCompliance: Box[Map[Kind, Option[ComplianceLevel]]]
+    def computeCompliance()(implicit qc: QueryContext): Box[Map[Kind, Option[ComplianceLevel]]]
 
     final protected def toCompliance(id: Kind, reports: Iterable[RuleNodeStatusReport]) = {
       // BE CAREFUL: reports may be a SET - and it's likely that
@@ -99,13 +100,15 @@ class AsyncComplianceService(
 
     // Compute compliance level for all rules in  a future so it will be displayed asynchronously
     val futureCompliance: Future[Box[Map[Kind, Option[ComplianceLevel]]]] = {
+      implicit val qc: QueryContext = CurrentUser.queryContext
+
       Future {
         if (empty) {
           Full(Map())
         } else {
           val start = System.currentTimeMillis
           for {
-            compliances <- computeCompliance
+            compliances <- computeCompliance()
             after        = System.currentTimeMillis
             _            = TimingDebugLogger.debug(s"computing compliance in Future took ${after - start}ms")
           } yield {
@@ -125,7 +128,7 @@ class AsyncComplianceService(
     def empty:              Boolean = nodeIds.isEmpty
 
     // Compute compliance
-    def computeCompliance: Box[Map[NodeId, Option[ComplianceLevel]]] = {
+    def computeCompliance()(implicit qc: QueryContext): Box[Map[NodeId, Option[ComplianceLevel]]] = {
       for {
         compliance <- reportingService.findRuleNodeCompliance(nodeIds, ruleIds).toBox
       } yield {
@@ -147,7 +150,7 @@ class AsyncComplianceService(
     def empty:              Boolean = nodeIds.isEmpty
 
     // Compute compliance
-    def computeCompliance: Box[Map[NodeId, Option[ComplianceLevel]]] = {
+    def computeCompliance()(implicit qc: QueryContext): Box[Map[NodeId, Option[ComplianceLevel]]] = {
       for {
         compliance <- reportingService.findRuleNodeCompliance(nodeIds, ruleIds).toBox
       } yield {
@@ -170,7 +173,7 @@ class AsyncComplianceService(
     def empty:              Boolean = ruleIds.isEmpty
 
     // Compute compliance
-    def computeCompliance: Box[Map[RuleId, Option[ComplianceLevel]]] = {
+    def computeCompliance()(implicit qc: QueryContext): Box[Map[RuleId, Option[ComplianceLevel]]] = {
       for {
         reports <- reportingService.findRuleNodeStatusReports(nodeIds, ruleIds)
       } yield {
@@ -237,9 +240,9 @@ class AsyncComplianceService(
 
   }
 
-  def nodeCompliance(nodeId: NodeId, ruleIds: Set[RuleId]): Box[ComplianceLevel] = {
+  def nodeCompliance(nodeId: NodeId, ruleIds: Set[RuleId])(implicit qr: QueryContext): Box[ComplianceLevel] = {
     val node = new NodeCompliance(Set(nodeId), ruleIds)
-    node.computeCompliance match {
+    node.computeCompliance() match {
       case Full(contentMap) =>
         contentMap.get(nodeId) match {
           case Some(Some(compliance)) => Full(compliance)

@@ -34,7 +34,6 @@ trait ClearCacheService {
    * - cachedAgentRunRepository
    * - recentChangesService
    * - reportingServiceImpl
-   * - nodeInfoServiceImpl
    */
   def action(actor: EventActor): Box[String]
 }

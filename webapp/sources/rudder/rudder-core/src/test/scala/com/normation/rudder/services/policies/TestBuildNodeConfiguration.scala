@@ -59,6 +59,7 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
+import com.softwaremill.quicklens._
 import org.joda.time.DateTime
 import org.junit.runner._
 import org.specs2.mutable._
@@ -90,11 +91,11 @@ class TestBuildNodeConfiguration extends Specification {
   logger.trace(s"Test node configuration   : ${t0_1 - t0} ms")
 
   def newNode(i: Int) =
-    node1.copy(node = node1Node.copy(id = NodeId("node" + i), name = "node" + i), hostname = s"node$i.localhost")
+    fact1.modify(_.id).setTo(NodeId("node" + i)).modify(_.fqdn).setTo(s"node$i.localhost")
 
-  val allNodes     = ((1 to 1000).map(newNode) :+ root).map(n => (n.id, n)).toMap
+  val allNodes     = ((1 to 1000).map(newNode) :+ factRoot).map(n => (n.id, n)).toMap.view
   // only one group with all nodes
-  val group        = NodeGroup(NodeGroupId(NodeGroupUid("allnodes")), "allnodes", "", Nil, None, false, allNodes.keySet, true)
+  val group        = NodeGroup(NodeGroupId(NodeGroupUid("allnodes")), "allnodes", "", Nil, None, false, allNodes.keySet.toSet, true)
   val groupLib     = FullNodeGroupCategory(
     NodeGroupCategoryId("test_root"),
     "",
@@ -151,7 +152,7 @@ class TestBuildNodeConfiguration extends Specification {
   }
   val globalPolicyMode          = GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always)
   val activeNodeIds             = Set(rootId, node1Node.id, node2Node.id)
-  val allNodeModes              = allNodes.map { case (id, _) => (id, defaultModesConfig) }
+  val allNodeModes              = allNodes.map { case (id, _) => (id, defaultModesConfig) }.toMap
   val scriptEngineEnabled       = FeatureSwitch.Disabled
   val maxParallelism            = 8
   val jsTimeout                 = FiniteDuration(5, "minutes")
@@ -171,12 +172,12 @@ class TestBuildNodeConfiguration extends Specification {
       logger.trace("\n--------------------------------")
       val t1           = System.currentTimeMillis()
       val ruleVal      =
-        ruleValService.buildRuleVal(rule, directiveLib, groupLib, allNodes.map { case (id, n) => (id, n.isPolicyServer) }.view)
+        ruleValService.buildRuleVal(rule, directiveLib, groupLib, allNodes.mapValues(_.rudderSettings.isPolicyServer))
       val ruleVals     = Seq(ruleVal.getOrElse(throw new RuntimeException("oups")))
       val t2           = System.currentTimeMillis()
       val nodeContexts = buildContext
         .getNodeContexts(
-          allNodes.keySet,
+          allNodes.keySet.toSet,
           allNodes,
           groupLib,
           Nil,

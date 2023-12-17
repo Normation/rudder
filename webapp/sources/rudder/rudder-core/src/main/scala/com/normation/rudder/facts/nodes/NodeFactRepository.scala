@@ -306,6 +306,10 @@ trait GetNodesbySofwareName {
   def apply(softName: String): IOResult[List[(NodeId, Software)]]
 }
 
+object NoopGetNodesbySofwareName extends GetNodesbySofwareName {
+  override def apply(softName: String): IOResult[List[(NodeId, Software)]] = Nil.succeed
+}
+
 // default implementation is just a proxy on top of software dao
 class SoftDaoGetNodesbySofwareName(val softwareDao: ReadOnlySoftwareDAO) extends GetNodesbySofwareName {
   override def apply(softName: String): IOResult[List[(NodeId, Software)]] = {

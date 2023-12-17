@@ -898,7 +898,7 @@ object JsonPropertySerialisation {
       buildHierarchy(list => list.reverse.map(_.toJson))
     }
 
-    def toApiJsonRenderParents = {
+    def toApiJsonRenderParents: JObject = {
       buildHierarchy(list => {
         list.reverse
           .map(p => {

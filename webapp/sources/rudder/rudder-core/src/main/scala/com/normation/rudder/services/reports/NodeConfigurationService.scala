@@ -44,9 +44,10 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.NodeAndConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.repository.FindExpectedReportRepository
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.zio._
 import zio._
 import zio.syntax._
@@ -88,8 +89,8 @@ trait NewExpectedReportsAvailableHook {
 }
 
 class CachedNodeConfigurationService(
-    val confExpectedRepo: FindExpectedReportRepository,
-    val nodeInfoService:  NodeInfoService
+    val confExpectedRepo:   FindExpectedReportRepository,
+    val nodeFactRepository: NodeFactRepository
 ) extends NodeConfigurationService with CachedRepository with InvalidateCache[CacheExpectedReportAction] {
 
   val semaphore = Semaphore.make(1).runNow
@@ -155,7 +156,7 @@ class CachedNodeConfigurationService(
     for {
       _       <- logger.debug("Init cache in NodeConfigurationService")
       // first, get all nodes
-      nodeIds <- nodeInfoService.getAllNodesIds()
+      nodeIds <- nodeFactRepository.getAll()(QueryContext.systemQC).map(_.keySet)
       // void the cache
       _       <- semaphore.withPermit(cache.set(nodeIds.map(_ -> None).toMap))
     } yield ()

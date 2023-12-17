@@ -4,12 +4,13 @@ import better.files.File.root
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.logger.{HealthcheckLoggerPure => logger}
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.RunNuCommand
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Critical
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Ok
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Warning
-import com.normation.rudder.services.nodes.NodeInfoService
 import java.io
 import java.lang.Runtime.getRuntime
 import zio.ZIO
@@ -137,7 +138,7 @@ object CheckFreeSpace extends Check {
   }
 }
 
-final class CheckFileDescriptorLimit(val nodeInfoService: NodeInfoService) extends Check {
+final class CheckFileDescriptorLimit(val nodeFactRepository: NodeFactRepository) extends Check {
   def name: CheckName                   = CheckName("File descriptor limit")
   def run:  IOResult[HealthcheckResult] = {
     // Check the soft limit.
@@ -152,7 +153,7 @@ final class CheckFileDescriptorLimit(val nodeInfoService: NodeInfoService) exten
                       ).fail
                     }
       limit      <- IOResult.attempt(res.stdout.trim.toLong)
-      nodeCount  <- nodeInfoService.getNumberOfManagedNodes
+      nodeCount  <- nodeFactRepository.getAll()(QueryContext.systemQC).map(_.size)
     } yield {
       val reasonableMaxLimit   = 64_000
       val approximatedMinLimit = 100 * nodeCount

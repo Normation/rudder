@@ -98,7 +98,7 @@ trait NewNodeManager {
   /**
    * List all pending node
    */
-  def listNewNodes: IOResult[Seq[CoreNodeFact]]
+  def listNewNodes()(implicit qc: QueryContext): IOResult[Seq[CoreNodeFact]]
 
   /**
    * Accept a pending node in Rudder
@@ -207,8 +207,8 @@ class NewNodeManagerImpl[A](
     listNodes:              ListNewNode
 ) extends NewNodeManager {
 
-  override def listNewNodes: IOResult[Seq[CoreNodeFact]] = {
-    listNodes.listNewNodes
+  override def listNewNodes()(implicit qc: QueryContext): IOResult[Seq[CoreNodeFact]] = {
+    listNodes.listNewNodes()
   }
 
   override def accept(id: NodeId)(implicit cc: ChangeContext): IOResult[CoreNodeFact] = {
@@ -231,12 +231,12 @@ class NewNodeManagerImpl[A](
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 trait ListNewNode {
-  def listNewNodes: IOResult[Seq[CoreNodeFact]]
+  def listNewNodes()(implicit qc: QueryContext): IOResult[Seq[CoreNodeFact]]
 }
 
 class FactListNewNodes(backend: NodeFactRepository) extends ListNewNode {
-  override def listNewNodes: IOResult[Seq[CoreNodeFact]] = {
-    backend.getAll()(QueryContext.todoQC, SelectNodeStatus.Pending).map(_.values.toSeq)
+  override def listNewNodes()(implicit qc: QueryContext): IOResult[Seq[CoreNodeFact]] = {
+    backend.getAll()(qc, SelectNodeStatus.Pending).map(_.values.toSeq)
   }
 }
 
@@ -451,7 +451,7 @@ class AcceptHostnameAndIp(
       // if not, we don't group them that the duplicate appears in the list
       noDuplicatesH <- if (duplicatesH.isEmpty) ZIO.unit
                        else {
-                         // get the hostname from nodeInfoService
+                         // get the hostname from nodeFactRepo
                          nodeFactRepo
                            .getAll()
                            .map(_.collect { case (_, n) if (duplicatesH.contains(n.id)) => n.fqdn }.toSeq)

@@ -40,15 +40,16 @@ package com.normation.rudder.web.components
 import bootstrap.liftweb.RudderConfig
 import com.normation.box._
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain.AcceptedInventory
-import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.NodeId
 import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.Constants
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.facts.nodes.NodeFact
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.web.ChooseTemplate
@@ -57,6 +58,7 @@ import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.services.DisplayNode
 import com.normation.rudder.web.services.DisplayNode.showDeleteButton
 import com.normation.rudder.web.services.DisplayNodeGroupTree
+import com.softwaremill.quicklens._
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
@@ -64,6 +66,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JsExp
 import net.liftweb.util.Helpers._
+import org.joda.time.DateTime
 import scala.xml.NodeSeq
 
 object ShowNodeDetailsFromNode {
@@ -87,38 +90,39 @@ class ShowNodeDetailsFromNode(
 ) extends DispatchSnippet with DefaultExtendableSnippet[ShowNodeDetailsFromNode] with Loggable {
   import ShowNodeDetailsFromNode._
 
-  private[this] val nodeInfoService      = RudderConfig.nodeInfoService
   private[this] val nodeFactRepo         = RudderConfig.nodeFactRepository
   private[this] val reportDisplayer      = RudderConfig.reportDisplayer
   private[this] val logDisplayer         = RudderConfig.logDisplayer
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
-  private[this] val nodeRepo             = RudderConfig.woNodeRepository
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private[this] val configService        = RudderConfig.configService
-  private[this] val boxNodeInfo          = nodeInfoService.getNodeInfo(nodeId).toBox
 
   def agentPolicyModeEditForm = new AgentPolicyModeEditForm()
 
-  def agentScheduleEditForm(nodeInfo: NodeInfo) = new AgentScheduleEditForm(
-    () => getSchedule(nodeInfo),
-    saveSchedule(nodeInfo),
+  def agentScheduleEditForm(nodeFact: CoreNodeFact) = new AgentScheduleEditForm(
+    () => getSchedule(nodeFact),
+    saveSchedule(nodeFact),
     () => (),
     () => Some(getGlobalSchedule())
   )
 
-  def nodeStateEditForm(nodeInfo: NodeInfo) = new NodeStateForm(
-    nodeInfo,
-    saveNodeState(nodeInfo.id)
+  def nodeStateEditForm(nodeFact: CoreNodeFact)(implicit qr: QueryContext) = new NodeStateForm(
+    nodeFact,
+    saveNodeState(nodeFact.id)
   )
 
-  def saveNodeState(nodeId: NodeId)(nodeState: NodeState): Box[NodeState] = {
+  def saveNodeState(nodeId: NodeId)(nodeState: NodeState)(implicit qr: QueryContext): Box[NodeState] = {
     val modId = ModificationId(uuidGen.newUuid)
-    val user  = CurrentUser.actor
 
     for {
-      oldNode <- nodeInfoService.getNodeInfo(nodeId).toBox.flatMap(_.map(_.node)) // we can't change the state of a missing node
-      newNode  = oldNode.copy(state = nodeState)
-      result  <- nodeRepo.updateNode(newNode, modId, user, None).toBox
+      oldNode <- nodeFactRepo
+                   .get(nodeId)
+                   .notOptional(s"Node with ID '${nodeId.value}' was not found")
+                   .toBox // we can't change the state of a missing node
+      newNode  = oldNode.modify(_.rudderSettings.state).setTo(nodeState)
+      result  <- nodeFactRepo
+                   .save(NodeFact.fromMinimal(newNode))(ChangeContext(modId, qr.actor, DateTime.now(), None, None, qr.nodePerms))
+                   .toBox
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
       nodeState
@@ -143,33 +147,34 @@ class ShowNodeDetailsFromNode(
   }.toBox
 
   val emptyInterval = AgentRunInterval(Some(false), 5, 0, 0, 0) // if everything fails, we fall back to the default entry
-  def getSchedule(nodeInfo: NodeInfo): Box[AgentRunInterval] = {
-    Full(nodeInfo.nodeReportingConfiguration.agentRunInterval.getOrElse(getGlobalSchedule().getOrElse(emptyInterval)))
+  def getSchedule(nodeFact: CoreNodeFact): Box[AgentRunInterval] = {
+    Full(nodeFact.rudderSettings.reportingConfiguration.agentRunInterval.getOrElse(getGlobalSchedule().getOrElse(emptyInterval)))
   }
 
-  def saveSchedule(nodeInfo: NodeInfo)(schedule: AgentRunInterval): Box[Unit] = {
+  def saveSchedule(nodeFact: CoreNodeFact)(schedule: AgentRunInterval): Box[Unit] = {
+    val newNodeFact = nodeFact.modify(_.rudderSettings.reportingConfiguration.agentRunInterval).setTo(Some(schedule))
     val modId       = ModificationId(uuidGen.newUuid)
-    val user        = CurrentUser.actor
-    val newNodeInfo = nodeInfo.copy(
-      nodeInfo.node.copy(nodeReportingConfiguration =
-        nodeInfo.node.nodeReportingConfiguration.copy(agentRunInterval = Some(schedule))
-      )
-    )
+    val cc          = ChangeContext(modId, CurrentUser.actor, DateTime.now(), None, None, CurrentUser.nodePerms)
+
     (for {
-      _ <- nodeRepo.updateNode(newNodeInfo.node, modId, user, None)
+      _ <- nodeFactRepo.save(NodeFact.fromMinimal(newNodeFact))(cc)
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
     }).toBox
   }
 
-  def mainDispatch = Map(
-    "popupDetails"    -> { _: NodeSeq => privateDisplay(true, Summary) },
-    "popupCompliance" -> { _: NodeSeq => privateDisplay(true, Compliance) },
-    "popupSystem"     -> { _: NodeSeq => privateDisplay(true, System) },
-    "mainDetails"     -> { _: NodeSeq => privateDisplay(false, Summary) },
-    "mainCompliance"  -> { _: NodeSeq => privateDisplay(false, Compliance) },
-    "mainSystem"      -> { _: NodeSeq => privateDisplay(false, System) }
-  )
+  def mainDispatch = {
+    implicit val qc: QueryContext = CurrentUser.queryContext
+
+    Map(
+      "popupDetails"    -> { _: NodeSeq => privateDisplay(true, Summary) },
+      "popupCompliance" -> { _: NodeSeq => privateDisplay(true, Compliance) },
+      "popupSystem"     -> { _: NodeSeq => privateDisplay(true, System) },
+      "mainDetails"     -> { _: NodeSeq => privateDisplay(false, Summary) },
+      "mainCompliance"  -> { _: NodeSeq => privateDisplay(false, Compliance) },
+      "mainSystem"      -> { _: NodeSeq => privateDisplay(false, System) }
+    )
+  }
 
   def display(popupDisplay: Boolean, displayDetailsMode: DisplayDetailsMode): NodeSeq = {
     val dispatchName = (popupDisplay, displayDetailsMode) match {
@@ -183,8 +188,10 @@ class ShowNodeDetailsFromNode(
     dispatch(dispatchName)(NodeSeq.Empty)
   }
 
-  private[this] def privateDisplay(withinPopup: Boolean, displayDetailsMode: DisplayDetailsMode): NodeSeq = {
-    boxNodeInfo match {
+  private[this] def privateDisplay(withinPopup: Boolean, displayDetailsMode: DisplayDetailsMode)(implicit
+      qr:                                       QueryContext
+  ): NodeSeq = {
+    nodeFactRepo.get(nodeId).toBox match {
       case Full(None) =>
         (<ul id="NodeDetailsTabMenu" class="rudder-ui-tabs ui-tabs-nav"></ul>
           <div class="col-xs-12">
@@ -214,7 +221,7 @@ class ShowNodeDetailsFromNode(
 
             configService.rudder_global_policy_mode().toBox match {
               case Full(globalMode) =>
-                bindNode(node, nf.toFullInventory, withinPopup, globalMode) ++ Script(
+                bindNode(nf, withinPopup, globalMode) ++ Script(
                   DisplayNode.jsInit(node.id, "") &
                   JsRaw(s"""
                     $$( "#${detailsId}" ).tabs({ active : ${tab} } );
@@ -250,29 +257,35 @@ class ShowNodeDetailsFromNode(
    * @return
    */
 
-  private def bindNode(node: NodeInfo, inventory: FullInventory, withinPopup: Boolean, globalMode: GlobalPolicyMode): NodeSeq = {
-    val id = JsNodeId(node.id)
-    ("#nodeHeader" #> DisplayNode.showNodeHeader(inventory, Some(node)) &
-    "#confirmNodeDeletion" #> showDeleteButton(inventory.node.main) &
+  private def bindNode(
+      nodeFact:    NodeFact,
+      withinPopup: Boolean,
+      globalMode:  GlobalPolicyMode
+  )(implicit qr:   QueryContext): NodeSeq = {
+    val id   = JsNodeId(nodeFact.id)
+    val sm   = nodeFact.toFullInventory
+    val node = nodeFact.toCore
+
+    ("#nodeHeader" #> DisplayNode.showNodeHeader(sm, nodeFact) &
+    "#confirmNodeDeletion" #> showDeleteButton(node) &
     "#nbGroups *" #> groupLib.getTarget(node).keySet.size.toString &
     "#node_groupTree" #>
     <div id={groupTreeId}>
           <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node, None, None, Map(("info", _ => Noop)))}</ul>
         </div> &
     "#nodeDetails" #> DisplayNode.showNodeDetails(
-      inventory,
-      Some((node, globalMode)),
+      nodeFact,
+      globalMode,
       Some(node.creationDate),
-      AcceptedInventory,
       isDisplayingInPopup = withinPopup
     ) &
-    "#nodeInventory *" #> DisplayNode.showInventoryVerticalMenu(inventory, Some(node)) &
+    "#nodeInventory *" #> DisplayNode.showInventoryVerticalMenu(sm, node) &
     "#reportsDetails *" #> reportDisplayer.asyncDisplay(
       node,
       "node_reports",
       "reportsDetails",
       "reportsGrid",
-      RudderConfig.reportingService.findUserNodeStatusReport,
+      RudderConfig.reportingService.findUserNodeStatusReport(_),
       true,
       false
     ) &
@@ -281,16 +294,16 @@ class ShowNodeDetailsFromNode(
       "system_status",
       "systemStatus",
       "systemStatusGrid",
-      RudderConfig.reportingService.findSystemNodeStatusReport,
+      RudderConfig.reportingService.findSystemNodeStatusReport(_),
       false,
       true
     ) &
-    "#nodeProperties *" #> DisplayNode.displayTabProperties(id, node, inventory: FullInventory) &
+    "#nodeProperties *" #> DisplayNode.displayTabProperties(id, nodeFact, sm) &
     "#logsDetails *" #> Script(OnLoad(logDisplayer.asyncDisplay(node.id, None, "logsGrid"))) &
     "#node_parameters -*" #> (if (node.id == Constants.ROOT_POLICY_SERVER_ID) NodeSeq.Empty
                               else nodeStateEditForm(node).nodeStateConfiguration) &
     "#node_parameters -*" #> agentPolicyModeEditForm.cfagentPolicyModeConfiguration(Some(node.id)) &
-    "#node_parameters -*" #> (if (node.isPolicyServer) NodeSeq.Empty
+    "#node_parameters -*" #> (if (node.rudderSettings.isPolicyServer) NodeSeq.Empty
                               else agentScheduleEditForm(node).cfagentScheduleConfiguration) &
     "#node_tabs [id]" #> s"details_${id}").apply(serverDetailsTemplate)
   }

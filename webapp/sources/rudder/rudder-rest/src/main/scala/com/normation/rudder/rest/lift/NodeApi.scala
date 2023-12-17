@@ -74,6 +74,7 @@ import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
+import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
@@ -141,6 +142,7 @@ import net.liftweb.json.JsonDSL.pair2jvalue
 import net.liftweb.json.JsonDSL.string2jvalue
 import net.liftweb.json.JValue
 import org.joda.time.DateTime
+import scala.collection.MapView
 import scalaj.http.Http
 import scalaj.http.HttpOptions
 import zio.{System => _, _}
@@ -262,6 +264,8 @@ class NodeApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
+
       inheritedProperties.getNodePropertiesTree(NodeId(id), RenderInheritedProperties.JSON).either.runNow match {
         case Right(properties) =>
           toJsonResponse(None, properties)("nodeInheritedProperties", params.prettify)
@@ -282,6 +286,8 @@ class NodeApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
+
       inheritedProperties.getNodePropertiesTree(NodeId(id), RenderInheritedProperties.HTML).either.runNow match {
         case Right(properties) =>
           toJsonResponse(None, properties)("nodeDisplayInheritedProperties", params.prettify)
@@ -302,6 +308,7 @@ class NodeApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
       nodeApiService.pendingNodeDetails(NodeId(id), params.prettify)
     }
   }
@@ -450,6 +457,7 @@ class NodeApi(
   object ListPendingNodes extends LiftApiModule0 {
     val schema        = API.ListPendingNodes
     val restExtractor = restExtractorService
+
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val prettify = params.prettify
       implicit val qc       = authzToken.qc
@@ -477,6 +485,7 @@ class NodeApi(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val prettify = params.prettify
       implicit val action   = "applyPolicyAllNodes"
+      implicit val qc       = authzToken.qc
 
       (for {
         classes  <- restExtractorService.extractList("classes")(req)(json => Full(json))
@@ -505,18 +514,20 @@ class NodeApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       implicit val prettify = params.prettify
+      implicit val qc       = authzToken.qc
+
       (for {
         classes <- restExtractorService.extractList("classes")(req)(json => Full(json))
-        optNode <- nodeApiService.nodeInfoService.getNodeInfo(NodeId(id)).toBox
+        optNode <- nodeApiService.nodeFactRepository.get(NodeId(id)).toBox
       } yield {
         optNode match {
           case Some(node)
-              if (node.agentsName.exists(a => a.agentType == AgentType.CfeCommunity || a.agentType == AgentType.CfeEnterprise)) =>
+              if (node.rudderAgent.agentType == AgentType.CfeCommunity || node.rudderAgent.agentType == AgentType.CfeEnterprise) =>
             OutputStreamResponse(nodeApiService.runNode(node.id, classes))
           case Some(node) =>
             toJsonError(
               None,
-              s"Node with id '${id}' has an agent type (${node.agentsName.map(_.agentType.displayName).mkString(",")}) which doesn't support remote run"
+              s"Node with id '${id}' has an agent type (${node.rudderAgent.agentType.displayName}) which doesn't support remote run"
             )("applyPolicy", prettify)
           case None       =>
             toJsonError(None, s"Node with id '${id}' was not found")("applyPolicy", prettify)
@@ -542,18 +553,13 @@ class NodeApi(
       implicit val prettify           = params.prettify
       def errorMsg(ids: List[String]) = s"Error when trying to get status for nodes with IDs '${ids.mkString(",")}''"
       (for {
-        ids      <- (restExtractorService
-                      .extractString("ids")(req)(ids => Full(ids.split(",").map(_.trim))))
-                      .map(_.map(_.toList).getOrElse(Nil)) ?~! "Error: 'ids' parameter not found"
-        accepted <- nodeApiService.nodeInfoService.getAllNodesIds().map(_.map(_.value)).toBox ?~! errorMsg(ids)
-        pending  <- nodeApiService.nodeInfoService.getPendingNodeInfos().map(_.keySet.map(_.value)).toBox ?~! errorMsg(ids)
+        ids   <- (restExtractorService
+                   .extractString("ids")(req)(ids => Full(ids.split(",").map(_.trim))))
+                   .map(_.map(_.toList).getOrElse(Nil)) ?~! "Error: 'ids' parameter not found"
+        nodes <- nodeApiService.nodeFactRepository.getAll()(authzToken.qc, SelectNodeStatus.Any).toBox ?~! errorMsg(ids)
       } yield {
         val array = ids.map { id =>
-          val status = {
-            if (accepted.contains(id)) AcceptedInventory.name
-            else if (pending.contains(id)) PendingInventory.name
-            else "deleted"
-          }
+          val status = nodes.get(NodeId(id)).map(_.rudderSettings.status.name).getOrElse("deleted")
           JObject(JField("id", id) :: JField("status", status) :: Nil)
         }
         JObject(JField("nodes", JArray(array)) :: Nil)
@@ -600,11 +606,13 @@ class NodeApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+      implicit val qc = authzToken.qc
+
       (for {
         response <- nodeApiService.software(req, software)
       } yield {
         response
-      }) match {
+      }).toBox match {
         case Full(res) => res
         case eb: EmptyBox =>
           JsonResponse(
@@ -629,9 +637,11 @@ class NodeApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+      implicit val qc = authzToken.qc
+
       (for {
         inheritedProperty <- req.json.flatMap(j => OptionnalJson.extractJsonBoolean(j, "inherited"))
-        response          <- nodeApiService.property(req, property, inheritedProperty.getOrElse(false))
+        response          <- nodeApiService.property(req, property, inheritedProperty.getOrElse(false)).toBox
       } yield {
         response
       }) match {
@@ -648,7 +658,7 @@ class NodeApi(
 }
 
 class NodeApiInheritedProperties(
-    infoService: NodeInfoService,
+    infoService: NodeFactRepository,
     groupRepo:   RoNodeGroupRepository,
     paramRepo:   RoParameterRepository
 ) {
@@ -656,13 +666,15 @@ class NodeApiInheritedProperties(
   /*
    * Full list of node properties, including inherited ones for a node
    */
-  def getNodePropertiesTree(nodeId: NodeId, renderInHtml: RenderInheritedProperties): IOResult[JValue] = {
+  def getNodePropertiesTree(nodeId: NodeId, renderInHtml: RenderInheritedProperties)(implicit
+      qc:                           QueryContext
+  ): IOResult[JValue] = {
     for {
-      nodeInfo   <- infoService.getNodeInfo(nodeId).notOptional(s"Node with ID '${nodeId.value}' was not found.'")
+      nodeInfo   <- infoService.get(nodeId).notOptional(s"Node with ID '${nodeId.value}' was not found.'")
       groups     <- groupRepo.getFullGroupLibrary()
       nodeTargets = groups.getTarget(nodeInfo).map(_._2).toList
       params     <- paramRepo.getAllGlobalParameters()
-      properties <- MergeNodeProperties.forNode(nodeInfo, nodeTargets, params.map(p => (p.name, p)).toMap).toIO
+      properties <- MergeNodeProperties.forNode(nodeInfo.toNodeInfo, nodeTargets, params.map(p => (p.name, p)).toMap).toIO
     } yield {
       import com.normation.rudder.domain.properties.JsonPropertySerialisation._
       val rendered = renderInHtml match {
@@ -681,7 +693,7 @@ class NodeApiInheritedProperties(
 
 class NodeApiService(
     ldapConnection:             LDAPConnectionProvider[RwLDAPConnection],
-    nodeFactRepository:         NodeFactRepository,
+    val nodeFactRepository:     NodeFactRepository,
     groupRepo:                  RoNodeGroupRepository,
     paramRepo:                  RoParameterRepository,
     reportsExecutionRepository: RoReportsExecutionRepository,
@@ -690,7 +702,6 @@ class NodeApiService(
     nodeDit:                    NodeDit,
     pendingDit:                 InventoryDit,
     acceptedDit:                InventoryDit,
-    val nodeInfoService:        NodeInfoService,
     newNodeManager:             NewNodeManager,
     removeNodeService:          RemoveNodeService,
     restExtractor:              RestExtractorService,
@@ -857,24 +868,24 @@ class NodeApiService(
    * property. When a node doesn't have a property, the map will always
    */
   def getNodesPropertiesTree(
-      nodeInfos:  Iterable[NodeInfo],
+      nodeInfos:  MapView[NodeId, CoreNodeFact],
       properties: List[String]
   ): IOResult[Map[NodeId, List[NodePropertyHierarchy]]] = {
     for {
       groups      <- groupRepo.getFullGroupLibrary()
-      nodesTargets = nodeInfos.map(i => (i, groups.getTarget(i).map(_._2).toList))
+      nodesTargets = nodeInfos.values.map(i => (i, groups.getTarget(i).map(_._2).toList))
       params      <- paramRepo.getAllGlobalParameters()
       properties  <-
         ZIO.foreach(nodesTargets.toList) {
           case (nodeInfo, nodeTargets) =>
             MergeNodeProperties
-              .forNode(nodeInfo, nodeTargets, params.map(p => (p.name, p)).toMap)
+              .forNode(nodeInfo.toNodeInfo, nodeTargets, params.map(p => (p.name, p)).toMap)
               .toIO
               .fold(
                 err =>
                   (
                     nodeInfo.id,
-                    nodeInfo.properties.collect { case p if properties.contains(p.name) => NodePropertyHierarchy(p, Nil) }
+                    nodeInfo.properties.toList.collect { case p if properties.contains(p.name) => NodePropertyHierarchy(p, Nil) }
                   ),
                 props => {
                   // here we can have the whole parent hierarchy like in node properties details with p.toApiJsonRenderParents but it needs
@@ -1020,11 +1031,7 @@ class NodeApiService(
                                (Map.empty[NodeId, List[NodePropertyHierarchy]], propMap).succeed
                              } else {
                                for {
-                                 inheritedProp <-
-                                   getNodesPropertiesTree(
-                                     nodes.values.map(_.toNodeInfo),
-                                     inheritedProp.map(_.value)
-                                   )
+                                 inheritedProp <- getNodesPropertiesTree(nodes, inheritedProp.map(_.value))
                                } yield {
                                  (inheritedProp, propMap)
                                }
@@ -1054,18 +1061,16 @@ class NodeApiService(
     }
   }
 
-  def software(req: Req, software: String) = {
+  def software(req: Req, software: String)(implicit qc: QueryContext) = {
     import com.normation.box._
 
     for {
-
-      optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson)
-
-      nodes <- optNodeIds match {
-                 case None          => nodeInfoService.getAll().toBox
-                 case Some(nodeIds) => nodeInfoService.getNodeInfosSeq(nodeIds).map(_.map(n => (n.id, n)).toMap).toBox
-               }
-      softs <- nodeFactRepository.getNodesbySofwareName(software).toBox.map(_.toMap)
+      optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson).toIO
+      nodes      <- optNodeIds match {
+                      case None          => nodeFactRepository.getAll()
+                      case Some(nodeIds) => nodeFactRepository.getAll().map(_.filterKeys(id => nodeIds.contains(id.value)))
+                    }
+      softs      <- nodeFactRepository.getNodesbySofwareName(software).toBox.map(_.toMap).toIO
     } yield {
       JsonResponse(
         JObject(nodes.keySet.toList.flatMap(id => softs.get(id).flatMap(_.version.map(v => JField(id.value, JString(v.value))))))
@@ -1074,74 +1079,41 @@ class NodeApiService(
     }
   }
 
-  def property(req: Req, property: String, inheritedValue: Boolean) = {
+  def property(req: Req, property: String, inheritedValue: Boolean)(implicit qc: QueryContext) = {
     for {
-      optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson)
+      optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson).toIO
       nodes      <- optNodeIds match {
-                      case None          => nodeInfoService.getAll().toBox
-                      case Some(nodeIds) => nodeInfoService.getNodeInfosSeq(nodeIds).map(_.map(n => (n.id, n)).toMap).toBox
+                      case None          => nodeFactRepository.getAll()
+                      case Some(nodeIds) => nodeFactRepository.getAll().map(_.filterKeys(id => nodeIds.contains(id.value)))
                     }
-      propMap     = nodes.values.groupMapReduce(_.id)(n => n.properties.filter(_.name == property))(_ ::: _)
 
-      mapProps: Map[NodeId, List[JValue]] <-
-        if (inheritedValue) {
-          for {
-            inheritedProp <- getNodesPropertiesTree(nodes.values, List(property)).toBox
-          } yield {
-
-            import com.normation.rudder.domain.properties.JsonPropertySerialisation._
-            inheritedProp.map { case (k, v) => (k, v.map(_.toApiJsonRenderParents)) }
-          }
-        } else {
-          Full(propMap.map { case (k, v) => (k, v.map(_.toJson)) })
-        }
+      mapProps <- (if (inheritedValue) {
+                     for {
+                       inheritedProp <- getNodesPropertiesTree(nodes, List(property))
+                     } yield {
+                       import com.normation.rudder.domain.properties.JsonPropertySerialisation._
+                       inheritedProp.map { case (k, v) => (k, v.map(_.toApiJsonRenderParents)) }
+                     }
+                   } else {
+                     val propMap = nodes.values.groupMapReduce(_.id)(n => n.properties.filter(_.name == property))(_ ++ _)
+                     propMap.map { case (k, v) => (k, v.toList.map(_.toJson)) }.succeed
+                   }): IOResult[Map[NodeId, List[JValue]]]
     } yield {
-
       JsonResponse(JObject(nodes.keySet.toList.flatMap(id => mapProps.get(id).toList.flatMap(_.map(p => JField(id.value, p))))))
     }
   }
 
-  import restSerializer._
-  def listAcceptedNodes(req: Req) = {
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    implicit val action   = "listAcceptedNodes"
-    nodeInfoService.getAll().toBox match {
-      case Full(nodes) =>
-        val acceptedNodes = nodes.values.map(serializeNodeInfo(_, "accepted"))
-        toJsonResponse(None, ("nodes" -> JArray(acceptedNodes.toList)))
-
-      case eb: EmptyBox =>
-        val message = (eb ?~ ("Could not fetch accepted Nodes")).msg
-        toJsonError(None, message)
-    }
-  }
-
-  def acceptedNodeDetails(req: Req, id: NodeId) = {
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    implicit val action   = "acceptedNodeDetails"
-    nodeInfoService.getNodeInfo(id).toBox match {
-      case Full(Some(info)) =>
-        val node = serializeNodeInfo(info, "accepted")
-        toJsonResponse(None, ("nodes" -> JArray(List(node))))
-      case Full(None)       =>
-        toJsonError(None, s"Could not find accepted Node ${id.value}")
-      case eb: EmptyBox =>
-        val message = (eb ?~ s"Could not find accepted Node ${id.value}").messageChain
-        toJsonError(None, message)
-    }
-  }
-
-  def pendingNodeDetails(nodeId: NodeId, prettifyStatus: Boolean) = {
+  def pendingNodeDetails(nodeId: NodeId, prettifyStatus: Boolean)(implicit qc: QueryContext) = {
     implicit val prettify = prettifyStatus
     implicit val action   = "pendingNodeDetails"
-    newNodeManager.listNewNodes.toBox match {
+    newNodeManager.listNewNodes().toBox match {
       case Full(pendingNodes) =>
         pendingNodes.filter(_.id == nodeId) match {
           case Seq()        =>
             val message = s"Could not find pending Node ${nodeId.value}"
             toJsonError(None, message)
           case Seq(info)    =>
-            val node = serializeServerInfo(info.toSrv, "pending")
+            val node = restSerializer.serializeNodeInfo(info.toNodeInfo, "pending")
             toJsonResponse(None, ("nodes" -> JArray(List(node))))
           case tooManyNodes =>
             val message = s"Too many pending Nodes with same id ${nodeId.value} : ${tooManyNodes.size} "
@@ -1153,45 +1125,31 @@ class NodeApiService(
     }
   }
 
-  def listPendingNodes(req: Req) = {
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    implicit val action   = "listPendingNodes"
-    newNodeManager.listNewNodes.toBox match {
-      case Full(cnfs) =>
-        val pendingNodes = cnfs.map(cnf => serializeServerInfo(cnf.toSrv, "pending")).toList
-        toJsonResponse(None, ("nodes" -> JArray(pendingNodes)))
-
-      case eb: EmptyBox =>
-        val message = (eb ?~ ("Could not fetch pending Nodes")).msg
-        toJsonError(None, message)
-    }
-  }
-
   def modifyStatusFromAction(
       ids:       Seq[NodeId],
       action:    NodeStatusAction
   )(implicit cc: ChangeContext): Box[List[JValue]] = {
     def actualNodeDeletion(id: NodeId)(implicit cc: ChangeContext) = {
       for {
-        optInfo <- nodeInfoService.getNodeInfo(id).toBox
+        optInfo <- nodeFactRepository.get(id)(cc.toQuery).toBox
         info    <- optInfo match {
                      case None    => Failure(s"Can not removed the node with id '${id.value}' because it was not found")
                      case Some(x) => Full(x)
                    }
         remove  <- removeNodeService.removeNode(info.id)
-      } yield { serializeNodeInfo(info, "deleted") }
+      } yield { restSerializer.serializeNodeInfo(info.toNodeInfo, "deleted") }
     }
 
     (action match {
       case AcceptNode =>
         newNodeManager
           .acceptAll(ids)
-          .map(_.map(cnf => serializeInventory(NodeFact.fromMinimal(cnf).toFullInventory, "accepted")))
+          .map(_.map(cnf => restSerializer.serializeInventory(NodeFact.fromMinimal(cnf).toFullInventory, "accepted")))
 
       case RefuseNode =>
         newNodeManager
           .refuseAll(ids)
-          .map(_.map(cnf => serializeServerInfo(cnf.toSrv, "refused")))
+          .map(_.map(cnf => restSerializer.serializeServerInfo(cnf.toSrv, "refused")))
 
       case DeleteNode =>
         ZIO.foreach(ids)(actualNodeDeletion(_).toIO)
@@ -1258,7 +1216,7 @@ class NodeApiService(
       nodeInfo.map {
         case (node, runs, inventory, software) =>
           val runDate = runs.get(nodeId).flatMap(_.map(_.agentRunId.date))
-          serializeInventory(node, state, runDate, Some(inventory), software, detailLevel)
+          restSerializer.serializeInventory(node, state, runDate, Some(inventory), software, detailLevel)
       }
     }
   }
@@ -1325,7 +1283,7 @@ class NodeApiService(
         nodeFact <- nodeFacts.get(nodeId)
       } yield {
         val runDate = runs.get(nodeId).flatMap(_.map(_.agentRunId.date))
-        serializeInventory(
+        restSerializer.serializeInventory(
           nodeFact.toNodeInfo,
           state,
           runDate,
@@ -1544,11 +1502,10 @@ class NodeApiService(
     }.runNow
   }
 
-  def runAllNodes(classes: List[String]): Box[JValue] = {
+  def runAllNodes(classes: List[String])(implicit qc: QueryContext): Box[JValue] = {
 
     for {
-      nodes <- nodeInfoService.getAll().toBox ?~! s"Could not find nodes informations"
-
+      nodes <- nodeFactRepository.getAll().toBox ?~! s"Could not find nodes informations"
     } yield {
       val res = {
         for {
@@ -1556,7 +1513,7 @@ class NodeApiService(
         } yield {
           // remote run only works for CFEngine based agent
           val commandResult = {
-            if (node.agentsName.exists(a => a.agentType == AgentType.CfeEnterprise || a.agentType == AgentType.CfeCommunity)) {
+            if (node.rudderAgent.agentType == AgentType.CfeEnterprise || node.rudderAgent.agentType == AgentType.CfeCommunity) {
               val request = remoteRunRequest(node.id, classes, false, true)
               try {
                 val result = request.asString
@@ -1570,11 +1527,11 @@ class NodeApiService(
                   s"Can not connect to local remote run API (${request.method.toUpperCase}:${request.url})"
               }
             } else {
-              s"Node with id '${node.id.value}' has an agent type (${node.agentsName.map(_.agentType.displayName).mkString(",")}) which doesn't support remote run"
+              s"Node with id '${node.id.value}' has an agent type (${node.rudderAgent.agentType.displayName}) which doesn't support remote run"
             }
           }
           (("id" -> node.id.value)
-          ~ ("hostname" -> node.hostname)
+          ~ ("hostname" -> node.fqdn)
           ~ ("result"   -> commandResult))
         }
       }
@@ -1591,7 +1548,7 @@ class NodeApiService(
       .removeNodePure(id, mode)(ChangeContext(modId, actor, DateTime.now(), None, Some(actorIp), QueryContext.todoQC.nodePerms))
       .toBox match {
       case Full(info) =>
-        toJsonResponse(None, ("nodes" -> JArray(restSerializer.serializeNodeInfo(info, "deleted") :: Nil)))
+        toJsonResponse(None, ("nodes" -> JArray(restSerializer.serializeNodeInfo(info.toNodeInfo, "deleted") :: Nil)))
 
       case eb: EmptyBox =>
         val message = (eb ?~ ("Error when deleting Nodes")).msg

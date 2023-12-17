@@ -52,10 +52,12 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.reports.NodeConfigId
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.services.policies.BoundPolicyDraft
 import com.normation.rudder.services.policies.MergePolicyService
 import com.normation.rudder.services.policies.NodeConfigData
+import com.normation.rudder.services.policies.NodeConfigData.factRoot
 import com.normation.rudder.services.policies.NodeConfigData.root
 import com.normation.rudder.services.policies.NodeConfigData.rootNodeConfig
 import com.normation.rudder.services.policies.ParameterForConfiguration
@@ -77,6 +79,7 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import org.specs2.text.LinesContent
+import scala.collection.MapView
 import zio.syntax._
 
 /**
@@ -155,7 +158,7 @@ class TestSystemData {
   // actual tests
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  def getSystemVars(nodeInfo: NodeInfo, allNodeInfos: Map[NodeId, NodeInfo], allGroups: FullNodeGroupCategory) = {
+  def getSystemVars(nodeInfo: CoreNodeFact, allNodeInfos: MapView[NodeId, CoreNodeFact], allGroups: FullNodeGroupCategory) = {
     systemVariableService
       .getSystemVariables(
         nodeInfo,
@@ -179,7 +182,7 @@ class TestSystemData {
   val baseRootDrafts     = List(common(root.id, allNodesInfo_rootOnly)) ++ allRootPolicies
   val baseRootNodeConfig = rootNodeConfig.copy(
     policies = policies(rootNodeConfig.nodeInfo, baseRootDrafts),
-    nodeContext = getSystemVars(root, allNodesInfo_rootOnly, groupLib),
+    nodeContext = getSystemVars(factRoot, allNodeFacts_rootOnly, groupLib),
     parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
   )
 
@@ -393,9 +396,9 @@ class WriteSystemTechniquesTest extends TechniquesTest {
       // system variables for root
       val systemVariables = systemVariableService
         .getSystemVariables(
-          root,
-          allNodesInfo_rootOnly,
-          groupLib.getTarget(root).map(_._2).toList,
+          factRoot,
+          allNodeFacts_rootOnly,
+          groupLib.getTarget(factRoot).map(_._2).toList,
           globalSystemVariables,
           globalAgentRun,
           globalComplianceMode
@@ -461,7 +464,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
 
     val rnc = rootNodeConfig.copy(
       policies = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode)) ++ allRootPolicies),
-      nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib),
+      nodeContext = getSystemVars(factRoot, allNodeFacts_cfeNode, groupLib),
       parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
     )
 
@@ -469,7 +472,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
     val cfeNC = cfeNodeConfig.copy(
       nodeInfo = cfeNode,
       policies = p,
-      nodeContext = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib),
+      nodeContext = getSystemVars(factCfe, allNodeFacts_cfeNode, groupLib),
       runHooks = MergePolicyService.mergeRunHooks(p.filter(!_.technique.isSystem), None, globalPolicyMode)
     )
 
@@ -502,14 +505,14 @@ class WriteSystemTechniquesTest extends TechniquesTest {
 
     val rnc = rootNodeConfig.copy(
       policies = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode)) ++ allRootPolicies),
-      nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib),
+      nodeContext = getSystemVars(factRoot, allNodeFacts_cfeNode, groupLib),
       parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
     )
 
     val cfeNC = cfeNodeConfig.copy(
       nodeInfo = cfeNode,
       policies = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, gvd1, gvd2)),
-      nodeContext = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib)
+      nodeContext = getSystemVars(factCfe, allNodeFacts_cfeNode, groupLib)
     )
 
     "correctly get the expected policy files" in {
@@ -561,7 +564,7 @@ class WriteSystemTechniques500Test extends TechniquesTest {
     val rnc = rootNodeConfig.copy(
       policies =
         policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode)) ++ allRootPolicies ++ List(test18205)),
-      nodeContext = forceBooleanToFalse(getSystemVars(root, allNodesInfo_cfeNode, groupLib)),
+      nodeContext = forceBooleanToFalse(getSystemVars(factRoot, allNodeFacts_cfeNode, groupLib)),
       parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
     )
 
@@ -594,7 +597,7 @@ class WriteSystemTechniques500Test extends TechniquesTest {
     val rnc = rootNodeConfig.copy(
       policies =
         policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode)) ++ allRootPolicies ++ techniqueList),
-      nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib),
+      nodeContext = getSystemVars(factRoot, allNodeFacts_cfeNode, groupLib),
       parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
     )
 
@@ -602,7 +605,7 @@ class WriteSystemTechniques500Test extends TechniquesTest {
     val cfeNC = cfeNodeConfig.copy(
       nodeInfo = cfeNode,
       policies = p,
-      nodeContext = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib),
+      nodeContext = getSystemVars(factCfe, allNodeFacts_cfeNode, groupLib),
       runHooks = MergePolicyService.mergeRunHooks(p.filter(!_.technique.isSystem), None, globalPolicyMode)
     )
 
@@ -635,14 +638,14 @@ class WriteSystemTechniqueWithRevisionTest extends TechniquesTest {
   val parallelism = Integer.max(1, java.lang.Runtime.getRuntime.availableProcessors() / 2)
   val rnc         = rootNodeConfig.copy(
     policies = policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode)) ++ allRootPolicies),
-    nodeContext = getSystemVars(root, allNodesInfo_cfeNode, groupLib),
+    nodeContext = getSystemVars(factRoot, allNodeFacts_cfeNode, groupLib),
     parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
   )
 
   val cfeNC = cfeNodeConfig.copy(
     nodeInfo = cfeNode,
     policies = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, gvd1, gvd2)),
-    nodeContext = getSystemVars(cfeNode, allNodesInfo_cfeNode, groupLib)
+    nodeContext = getSystemVars(factCfe, allNodeFacts_cfeNode, groupLib)
   )
 
   // uncomment to have timing information
