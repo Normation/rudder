@@ -12,7 +12,7 @@ use rudder_commons::{canonify, methods::method::Agent};
 
 use crate::{
     backends::unix::{
-        cfengine::{bundle::Bundle, cfengine_escape, expanded, promise::Promise, quoted},
+        cfengine::{bundle::Bundle, cfengine_canonify_condition, cfengine_escape, expanded, promise::Promise, quoted},
         ncf::dry_run_mode,
     },
     ir::{
@@ -105,21 +105,22 @@ pub fn method_call(
 
     let push_policy_mode = dry_run_mode::push_policy_mode(m.policy_mode, unique.clone());
     let pop_policy_mode = dry_run_mode::pop_policy_mode(m.policy_mode, unique.clone());
+    let incall_condition = "${method_call_condition}".to_string();
 
     let mut promises = match (&condition, is_supported) {
             (Condition::Expression(_), true) => vec![
                     Some(reporting_context),
                     push_policy_mode,
-                    Some(method.if_condition(condition.clone())),
+                    Some(method.if_condition(incall_condition.clone())),
                     pop_policy_mode,
-                    Some(Promise::usebundle("_classes_noop", Some(&report_component), Some(unique), vec![na_condition.clone()]).unless_condition(&condition)),
+                    Some(Promise::usebundle("_classes_noop", Some(&report_component), Some(unique), vec![na_condition.clone()]).unless_condition(incall_condition.clone())),
                     Some(Promise::usebundle("log_rudder", Some(&report_component),  Some(unique), vec![
                         quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &method_name, &report_parameter, condition)),
                         quoted(&report_parameter),
                         na_condition.clone(),
                         na_condition,
                         "@{args}".to_string()
-                    ]).unless_condition(&condition))
+                    ]).unless_condition(incall_condition))
             ].into_iter().flatten().collect(),
             (Condition::NotDefined, true) => vec![
                 reporting_context,
@@ -174,10 +175,6 @@ pub fn method_call(
         "@{args}".to_string(),
         quoted("${class_prefix}"),
     ];
-    call_parameters.append(&mut parameters);
-    let bundle_call = Promise::usebundle(bundle_name.clone(), None, Some(unique), call_parameters);
-
-    // Get everything together
     let mut method_parameters = vec![
         "c_name".to_string(),
         "c_key".to_string(),
@@ -185,6 +182,15 @@ pub fn method_call(
         "args".to_string(),
         "class_prefix".to_string(),
     ];
+    if let Condition::Expression(_) = condition {
+        call_parameters.push(cfengine_canonify_condition(condition.as_ref()));
+        method_parameters.push("method_call_condition".to_string())
+    }
+
+    call_parameters.append(&mut parameters);
+    let bundle_call = Promise::usebundle(bundle_name.clone(), None, Some(unique), call_parameters);
+
+    // Get everything together
     let mut specific_parameters = parameters_names;
     method_parameters.append(&mut specific_parameters);
     Ok((
