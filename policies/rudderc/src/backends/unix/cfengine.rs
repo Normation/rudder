@@ -129,10 +129,13 @@ pub fn cfengine_canonify(input: &str) -> String {
 ///
 /// To do so, we split the condition to only canonify literal text
 /// outside variables.
-fn cfengine_canonify_condition(c: &str) -> String {
+pub fn cfengine_canonify_condition(c: &str) -> String {
+    let one_variable_ref = regex_comp!(r"^\$\{[^\}]*}$");
     // not a big deal if as specific as possible
     if !c.contains("${") {
         format!("\"{c}\"")
+    } else if one_variable_ref.is_match(c) {
+        format!("canonify(\"{c}\")")
     } else {
         // TODO: does not handle nested vars, we need a parser for this.
         let var = regex_comp!(r"(\$\{[^\}]*})");
@@ -231,6 +234,10 @@ mod tests {
         assert_eq!(
             cfengine_canonify_condition("class_prefix_${class_parameter}_stuff"),
             "concat(\"class_prefix_\",canonify(\"${class_parameter}\"),\"_stuff\")".to_string()
+        );
+        assert_eq!(
+            cfengine_canonify_condition("${class_parameter}"),
+            "canonify(\"${class_parameter}\")".to_string()
         );
     }
 }

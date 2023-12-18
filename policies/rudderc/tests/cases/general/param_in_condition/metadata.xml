@@ -1,0 +1,51 @@
+<TECHNIQUE name="Param in conditions">
+  <DESCRIPTION>Param in conditions</DESCRIPTION>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+  <MULTIINSTANCE>true</MULTIINSTANCE>
+  <POLICYGENERATION>separated-with-parameters</POLICYGENERATION>
+  <AGENT type="cfengine-community">
+    <BUNDLES>
+      <NAME>param_in_condition</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>Param-In-Condition</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.ps1">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <SECTIONS>
+    <SECTION name="Technique parameters">
+      <INPUT>
+        <NAME>2F415DC5-9F9E-4FBE-B836-8960AF613EC9</NAME>
+        <DESCRIPTION>file</DESCRIPTION>
+        <CONSTRAINT>
+          <TYPE>textarea</TYPE>
+        </CONSTRAINT>
+      </INPUT>
+    </SECTION>
+    <SECTION name="Check if a file exists" id="9e763779-9f33-44bc-ad73-1c5d5732301c" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE id="9e763779-9f33-44bc-ad73-1c5d5732301c">
+          /tmp/${file}
+        </VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION name="Execute only if..." id="e8362340-dc50-4231-9b7f-748b51e9fa07" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE id="e8362340-dc50-4231-9b7f-748b51e9fa07">
+          echo &quot;May be executed or not&quot;
+        </VALUE>
+      </REPORTKEYS>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>
