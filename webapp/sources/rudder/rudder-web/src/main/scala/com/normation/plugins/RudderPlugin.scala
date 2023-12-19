@@ -52,8 +52,10 @@ import com.normation.utils.VersionPart._
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import net.liftweb.sitemap.Menu
+import scala.annotation.nowarn
 import scala.xml.NodeSeq
 
+@nowarn
 final case class PluginVersion private (rudderAbi: Version, pluginVersion: Version) {
 
   override def toString: String = rudderAbi.toVersionStringNoEpoch + "-" + pluginVersion.toVersionString

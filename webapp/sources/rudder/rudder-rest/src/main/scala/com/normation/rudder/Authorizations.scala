@@ -44,6 +44,7 @@ import com.normation.rudder.Role.Builtin
 import com.normation.rudder.Role.BuiltinName
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.zio._
+import scala.annotation.nowarn
 import scala.collection.immutable.SortedMap
 import zio._
 import zio.syntax._
@@ -293,6 +294,7 @@ object AuthorizationType {
  * a new AuthorizationType which melt each AuthorizationType
  * that composed it.
  */
+@nowarn
 case class Rights private (authorizationTypes: Set[AuthorizationType]) {
 
   def displayAuthorizations: String = authorizationTypes.map(_.id).toList.sorted.mkString(", ")

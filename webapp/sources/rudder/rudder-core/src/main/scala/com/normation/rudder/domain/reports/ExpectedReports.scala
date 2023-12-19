@@ -60,6 +60,7 @@ import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import org.joda.time.DateTime
 import org.joda.time.Duration
+import scala.annotation.nowarn
 import zio.json._
 import zio.json.internal.Write
 
@@ -206,6 +207,7 @@ object ExpectedReportsSerialisation {
    * This object will be used for the JSON serialisation
    * to / from database
    */
+  @nowarn
   final case class JsonNodeExpectedReports protected (
       modes:               NodeModeConfig,
       ruleExpectedReports: List[RuleExpectedReports],

@@ -40,7 +40,9 @@ package com.normation.cfclerk.domain
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.utils._
+import scala.annotation.nowarn
 
+@nowarn
 final case class TechniqueVersion protected (version: Version, rev: Revision) extends Ordered[TechniqueVersion] {
   def compare(v: TechniqueVersion): Int = (version compare v.version) match {
     case 0 =>
