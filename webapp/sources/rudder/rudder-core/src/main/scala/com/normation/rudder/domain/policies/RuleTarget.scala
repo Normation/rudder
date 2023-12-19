@@ -208,6 +208,13 @@ final case class TargetExclusion(
     copy(includedTarget, newExcluded)
   }
 
+  /**
+   * Check if a target is included in this target. Also check if the target is not in the excluded target if strict argument is true (default)
+   */
+  def includes(target: RuleTarget, strict: Boolean = true): Boolean = {
+    includedTarget.targets.contains(target) && (!strict || !excludedTarget.targets.contains(target))
+  }
+
 }
 
 object RuleTarget extends Loggable {

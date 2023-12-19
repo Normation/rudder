@@ -90,6 +90,6 @@ class TestRestFromFileDef extends TraitTestApiFromYamlFiles with AfterAll {
 
   // you can pass a list of file to test exclusively if you don't want to test all .yml
   // files in src/test/resource/${yamlSourceDirectory}
-  doTest(Nil)
+  doTest(List("api_compliance.yml"))
 
 }

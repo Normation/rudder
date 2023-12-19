@@ -842,7 +842,8 @@ class RestTestSetUp {
   val techniqueRepository: TechniqueRepository   = null
   val techniqueSerializer: TechniqueSerializer   = null
   val resourceFileService: ResourceFileService   = null
-  val settingsService = new MockSettings(workflowLevelService, new AsyncWorkflowInfo())
+  val settingsService   = new MockSettings(workflowLevelService, new AsyncWorkflowInfo())
+  val complianceService = new MockCompliance(mockDirectives)
 
   object archiveAPIModule {
     val archiveBuilderService = new ZipArchiveBuilderService(
@@ -933,7 +934,12 @@ class RestTestSetUp {
       mockNodes.nodeInfoService
     ),
     archiveAPIModule.api,
-    campaignApiModule.api
+    campaignApiModule.api,
+    new ComplianceApi(
+      restExtractorService,
+      complianceService.complianceAPIService,
+      mockDirectives.directiveRepo
+    )
   )
 
   val apiVersions            =

@@ -186,6 +186,22 @@ object ComplianceApi       extends ApiModuleProvider[ComplianceApi] {
     val dataContainer  = Some("directivesCompliance")
   }
 
+  final case object GetNodeGroupComplianceId
+      extends ComplianceApi with GeneralApi with OneParam with StartsAtVersion17 with SortIndex {
+    val z              = implicitly[Line].value
+    val description    = "Get a node group's global compliance"
+    val (action, path) = GET / "compliance" / "groups" / "{id}"
+    val dataContainer  = Some("groupCompliance")
+  }
+
+  final case object GetNodeGroupComplianceTargetId
+      extends ComplianceApi with GeneralApi with OneParam with StartsAtVersion17 with SortIndex {
+    val z              = implicitly[Line].value
+    val description    = "Get a node group's targeted compliance"
+    val (action, path) = GET / "compliance" / "groups" / "{id}" / "target"
+    val dataContainer  = Some("groupCompliance")
+  }
+
   def endpoints = ca.mrvisser.sealerate.values[ComplianceApi].toList.sortBy(_.z)
 }
 
