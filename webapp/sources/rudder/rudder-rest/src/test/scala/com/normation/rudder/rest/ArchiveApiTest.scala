@@ -92,10 +92,10 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
   val restTest      = new RestTest(restTestSetUp.liftRules)
   val mockGitRepo   = new MockGitConfigRepo("")
 
-  val mockTechniques = MockTechniques(mockGitRepo)
+  val mockTechniques: MockTechniques = MockTechniques(mockGitRepo)
   val mockDirectives = new MockDirectives(mockTechniques)
 
-  val testDir = File(s"/tmp/test-rudder-response-content-${DateFormaterService.serialize(DateTime.now())}")
+  val testDir: File = File(s"/tmp/test-rudder-response-content-${DateFormaterService.serialize(DateTime.now())}")
   testDir.createDirectoryIfNotExists(true)
 
   override def afterAll(): Unit = {
@@ -107,7 +107,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     }
   }
 
-  def children(f: File) = f.listRecursively.toList.map(_.name)
+  def children(f: File): List[String] = f.listRecursively.toList.map(_.name)
 
   // format: off
 //  org.slf4j.LoggerFactory.getLogger("application.archive").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)

@@ -58,7 +58,7 @@ trait DiffItem[T] {
 final case class Added[T](
     value: T
 ) extends DiffItem[T] {
-  val newValue = Some(value)
+  val newValue: Some[T] = Some(value)
 
   def display(implicit displayer: T => NodeSeq): NodeSeq = {
     <li style="background:none repeat scroll 0 0 #D6FFD6; list-style-type:none">
@@ -224,7 +224,7 @@ class DiffDisplayer(linkUtil: LinkUtil) extends Loggable {
       rootCategory: RuleCategory,
       oldCategory:  RuleCategoryId,
       newCategory:  Option[RuleCategoryId]
-  ) = {
+  ): Elem = {
 
     def getCategoryFullName(category: RuleCategoryId)                = {
       ruleCategoryService.shortFqdn(rootCategory, category) match {

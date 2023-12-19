@@ -524,7 +524,7 @@ object CheckDivergenceForMerge {
     text.replaceAll("""\s+""", " ").trim
   }
 
-  def debugLog(message: String)(implicit changeRequestId: Int) = {
+  def debugLog(message: String)(implicit changeRequestId: Int): Unit = {
     ChangeRequestLogger.debug(s"CR #${changeRequestId}: ${message}")
   }
   /*

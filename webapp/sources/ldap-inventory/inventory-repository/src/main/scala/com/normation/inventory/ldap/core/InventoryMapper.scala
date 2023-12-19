@@ -59,7 +59,7 @@ import zio.syntax._
 sealed trait InventoryMappingRudderError extends RudderError
 object InventoryMappingRudderError {
   final case class MissingMandatoryAttribute(attribute: String, entry: LDAPEntry) extends InventoryMappingRudderError {
-    def msg = s"Missing required attribute '${attribute}' in entry: ${entry.toLDIFString()}"
+    def msg: String = s"Missing required attribute '${attribute}' in entry: ${entry.toLDIFString()}"
   }
   final case class MalformedDN(msg: String)                                       extends InventoryMappingRudderError
   final case class MissingMandatory(msg: String)                                  extends InventoryMappingRudderError
@@ -478,7 +478,7 @@ class InventoryMapper(
     }
   }
 
-  def machineTypeFromObjectClasses(objectClassNames: Set[String]) = {
+  def machineTypeFromObjectClasses(objectClassNames: Set[String]): Option[MachineType] = {
     def objectClass2MachineType(oc: LDAPObjectClass): Option[MachineType] = {
       oc match {
         case LDAPObjectClass(OC_VM, _, _, _)              => Some(VirtualMachineType(UnknownVmType))

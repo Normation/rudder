@@ -8,7 +8,7 @@ import scala.xml.NodeSeq
 class Login extends DispatchSnippet with DefaultExtendableSnippet[Login] {
 
   val userListProvider = RudderConfig.rudderUserListProvider
-  def mainDispatch     = Map(
+  def mainDispatch: Map[String, NodeSeq => NodeSeq] = Map(
     "display" -> { authForm: NodeSeq =>
       if (userListProvider.authConfig.users.isEmpty) {
         <div>

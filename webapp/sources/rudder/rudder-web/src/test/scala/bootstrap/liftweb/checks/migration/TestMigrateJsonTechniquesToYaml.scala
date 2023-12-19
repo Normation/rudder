@@ -84,14 +84,14 @@ class TestMigrateJsonTechniquesToYaml extends Specification with ContentMatchers
   val gitMock = new MockGitConfigRepo("", "configuration-repository-migrate-json-8_0")
 
   // a place to keep the metadata.xml of the migrated technique
-  val technique_with_blocks_metadata_save     = gitMock.abstractRoot / "technique_with_blocks_metadata_save"
-  val technique_with_parameters_metadata_save = gitMock.abstractRoot / "technique_with_parameters_metadata_save"
+  val technique_with_blocks_metadata_save:     File = gitMock.abstractRoot / "technique_with_blocks_metadata_save"
+  val technique_with_parameters_metadata_save: File = gitMock.abstractRoot / "technique_with_parameters_metadata_save"
 
-  val techMock = MockTechniques(gitMock)
+  val techMock: MockTechniques = MockTechniques(gitMock)
 
   val xmlPrettyPrinter = new RudderPrettyPrinter(Int.MaxValue, 2)
 
-  val deleteEditorTechnique = new DeleteEditorTechnique {
+  val deleteEditorTechnique: DeleteEditorTechnique = new DeleteEditorTechnique {
     override def deleteTechnique(
         techniqueName:    String,
         techniqueVersion: String,
@@ -101,7 +101,7 @@ class TestMigrateJsonTechniquesToYaml extends Specification with ContentMatchers
     ): IOResult[Unit] = ZIO.unit
   }
 
-  val rudderc = new RuddercService {
+  val rudderc: RuddercService = new RuddercService {
     override def compile(techniqueDir: File, options: RuddercOptions): IOResult[RuddercResult] = {
       // test implementation that just create the files with the technique name in them safe for
       if (techniqueDir.parent.name == "technique_with_error") {
@@ -129,7 +129,7 @@ class TestMigrateJsonTechniquesToYaml extends Specification with ContentMatchers
     }
   }
 
-  val webappCompiler = new TechniqueCompiler {
+  val webappCompiler: TechniqueCompiler = new TechniqueCompiler {
     override def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput] = {
       // this should not be called because we force rudderc via compilation config, so here we failed loudly if exec
       throw new IllegalArgumentException(s"Test is calling fallback compiler for technique: ${technique.path}")

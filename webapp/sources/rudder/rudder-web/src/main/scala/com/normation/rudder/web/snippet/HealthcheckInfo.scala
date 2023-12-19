@@ -60,7 +60,7 @@ object NotificationLevel {
 class HealthcheckInfo(
 ) extends DispatchSnippet with Loggable {
 
-  def dispatch = {
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
     case "render"     => healthcheckInfo
     case "renderIcon" => healthcheckInfoIcon
   }
@@ -127,7 +127,7 @@ class HealthcheckInfo(
     } else NodeSeq.Empty
   }
 
-  def healthcheckInfoIcon(html: NodeSeq) = {
+  def healthcheckInfoIcon(html: NodeSeq): NodeSeq = {
     def displayPluginIcon(iconClass: String, notifTitle: String): NodeSeq = {
       val tooltipContent =
         "<h4 class='" + iconClass + "' > <i class='fa fa-exclamation-triangle'></i> " + notifTitle + "</h4><div>More details on <b>Health Check</b> page</div>"

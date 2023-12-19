@@ -50,6 +50,7 @@ import com.normation.zio._
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.js._
+import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers._
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
@@ -65,7 +66,7 @@ class UserInformation extends DispatchSnippet with DefaultExtendableSnippet[User
     "logout"          -> ((xml: NodeSeq) => logout(xml))
   )
 
-  def userCredentials = {
+  def userCredentials: CssSel = {
     CurrentUser.get match {
       case Some(u) => "#openerAccount" #> u.getUsername
       case None    =>
@@ -77,7 +78,7 @@ class UserInformation extends DispatchSnippet with DefaultExtendableSnippet[User
     }
   }
 
-  def logout = {
+  def logout: CssSel = {
     "*" #> SHtml.ajaxButton(
       "Log out",
       JE.Call("logout"),

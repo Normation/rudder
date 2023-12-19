@@ -76,7 +76,7 @@ object AllowedNetwork {
    * i.e if it on the form IP(v4 or v6)/mask.
    * A single IP address will be accepted by the test.
    */
-  def isValid(net: String) = {
+  def isValid(net: String): Boolean = {
     new IPAddressString(net).isValid
   }
 }
@@ -116,7 +116,7 @@ object json {
   }
 
   object JAllowedNetwork {
-    def from(allowedNetwork: AllowedNetwork) = {
+    def from(allowedNetwork: AllowedNetwork): JAllowedNetwork = {
       allowedNetwork.into[JAllowedNetwork].transform
     }
   }
@@ -145,11 +145,12 @@ object json {
   }
 
   final case class JPolicyServers(root: JPolicyServer, relays: List[JPolicyServer]) {
-    def toPolicyServers() = PolicyServers(root.toPolicyServer, relays.map(_.toPolicyServer))
+    def toPolicyServers(): PolicyServers = PolicyServers(root.toPolicyServer, relays.map(_.toPolicyServer))
   }
 
   object JPolicyServers {
-    def from(servers: PolicyServers) = JPolicyServers(JPolicyServer.from(servers.root), servers.relays.map(JPolicyServer.from(_)))
+    def from(servers: PolicyServers): JPolicyServers =
+      JPolicyServers(JPolicyServer.from(servers.root), servers.relays.map(JPolicyServer.from(_)))
   }
 
   implicit val allowedNetworkEncoder: JsonEncoder[JAllowedNetwork] = DeriveJsonEncoder.gen

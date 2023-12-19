@@ -69,7 +69,7 @@ final case class SystemError(cause: Throwable) extends RudderError {
 class TestInventory extends Specification {
 
   implicit class RunThing[E, T](thing: ZIO[Any, E, T])      {
-    def testRun = ZioRuntime.unsafeRun(thing.either)
+    def testRun: Either[E, T] = ZioRuntime.unsafeRun(thing.either)
   }
   implicit class RunOptThing[A](thing: IOResult[Option[A]]) {
     def testRunGet: A = ZioRuntime.unsafeRun(thing.either) match {
@@ -93,7 +93,7 @@ class TestInventory extends Specification {
   // needed because the in memory LDAP server is not used with connection pool
   sequential
 
-  val schemaLDIFs = (
+  val schemaLDIFs: List[String] = (
     "00-core" ::
       "01-pwpolicy" ::
       "04-rfc2307bis" ::
@@ -112,18 +112,18 @@ class TestInventory extends Specification {
 
   val baseDN = "cn=rudder-configuration"
 
-  val bootstrapLDIFs = ("ldap-data/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
+  val bootstrapLDIFs: List[String] = ("ldap-data/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
     // toURI is needed for https://issues.rudder.io/issues/19186
     this.getClass.getClassLoader.getResource(name).toURI.getPath
   }
 
-  val ldap = InMemoryDsConnectionProvider[RwLDAPConnection](
+  val ldap: InMemoryDsConnectionProvider[RwLDAPConnection] = InMemoryDsConnectionProvider[RwLDAPConnection](
     baseDNs = baseDN :: Nil,
     schemaLDIFPaths = schemaLDIFs,
     bootstrapLDIFPaths = bootstrapLDIFs
   )
 
-  val roLdap = InMemoryDsConnectionProvider[RoLDAPConnection](
+  val roLdap: InMemoryDsConnectionProvider[RoLDAPConnection] = InMemoryDsConnectionProvider[RoLDAPConnection](
     baseDNs = baseDN :: Nil,
     schemaLDIFPaths = schemaLDIFs,
     bootstrapLDIFPaths = bootstrapLDIFs
@@ -160,10 +160,10 @@ class TestInventory extends Specification {
 
   val softwareService = new SoftwareServiceImpl(readOnlySoftware, writeOnlySoftware, acceptedNodesDitImpl)
 
-  val allStatus = Seq(RemovedInventory, PendingInventory, AcceptedInventory)
+  val allStatus: Seq[InventoryStatus] = Seq(RemovedInventory, PendingInventory, AcceptedInventory)
 
   // shortcut to create a machine with the name has ID in the given status
-  def machine(name: String, status: InventoryStatus)                                         = MachineInventory(
+  def machine(name: String, status: InventoryStatus):                                         MachineInventory = MachineInventory(
     MachineUuid(name),
     status,
     PhysicalMachineType,
@@ -185,7 +185,7 @@ class TestInventory extends Specification {
   )
   // shortcut to create a node with the name has ID and the given machine, in the
   // given status, has container.
-  def node(name: String, status: InventoryStatus, container: (MachineUuid, InventoryStatus)) = NodeInventory(
+  def node(name: String, status: InventoryStatus, container: (MachineUuid, InventoryStatus)): NodeInventory    = NodeInventory(
     NodeSummary(
       NodeId(name),
       status,
@@ -204,7 +204,7 @@ class TestInventory extends Specification {
     machineId = Some(container)
   )
 
-  def full(n: NodeInventory, m: MachineInventory) = FullInventory(n, Some(m))
+  def full(n: NodeInventory, m: MachineInventory): FullInventory = FullInventory(n, Some(m))
 
   // just to validate that things are set up
   "The in memory LDAP directory" should {

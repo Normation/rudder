@@ -69,10 +69,10 @@ object RudderAuthType {
   }
 
   case object User extends RudderAuthType {
-    override val grantedAuthorities = buildAuthority("ROLE_USER")
+    override val grantedAuthorities: Collection[GrantedAuthority] = buildAuthority("ROLE_USER")
   }
   case object Api  extends RudderAuthType {
-    override val grantedAuthorities = buildAuthority("ROLE_REMOTE")
+    override val grantedAuthorities: Collection[GrantedAuthority] = buildAuthority("ROLE_REMOTE")
 
     val apiRudderRights = Rights.NoRights
     val apiRudderRole: Set[Role] = Set(Role.NoRights)
@@ -92,7 +92,7 @@ case class RudderUserDetail(
     nodePerms: NodeSecurityContext
 ) extends UserDetails {
   // merge roles rights
-  val authz = Rights(roles.flatMap(_.rights.authorizationTypes))
+  val authz: Rights = Rights(roles.flatMap(_.rights.authorizationTypes))
 
   override val (getUsername, getPassword, getAuthorities) = account match {
     case RudderAccount.User(login, password) => (login, password, RudderAuthType.User.grantedAuthorities)

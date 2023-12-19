@@ -106,6 +106,7 @@ import net.liftweb.http.FileParamHolder
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.OutputStreamResponse
 import net.liftweb.http.Req
+import scala.util.matching.Regex
 import scala.xml.XML
 import zio._
 import zio.json._
@@ -147,7 +148,7 @@ object ArchiveScope       {
   final case object Techniques extends ArchiveScope { val value = "techniques" }
   final case object Groups     extends ArchiveScope { val value = "groups"     }
 
-  def values = ca.mrvisser.sealerate.values[ArchiveScope].toList.sortBy(_.value)
+  def values:           List[ArchiveScope]           = ca.mrvisser.sealerate.values[ArchiveScope].toList.sortBy(_.value)
   def parse(s: String): Either[String, ArchiveScope] = {
     values.find(_.value == s.toLowerCase.strip()) match {
       case None    =>
@@ -166,7 +167,7 @@ object MergePolicy       {
   // A merge policy that will keep current groups for rule with an ID common with one of the archive
   final case object KeepRuleGroups extends MergePolicy { val value = "keep-rule-groups" }
 
-  def values = ca.mrvisser.sealerate.values[MergePolicy].toList.sortBy(_.value)
+  def values: List[MergePolicy] = ca.mrvisser.sealerate.values[MergePolicy].toList.sortBy(_.value)
 
   def parse(s: String): Either[String, MergePolicy] = {
     values.find(_.value == s.toLowerCase.strip()) match {
@@ -640,7 +641,7 @@ final case class PolicyArchiveMetadata(
 )
 
 case object PolicyArchiveMetadata {
-  def empty = PolicyArchiveMetadata("")
+  def empty: PolicyArchiveMetadata = PolicyArchiveMetadata("")
 }
 
 final case class TechniqueInfo(id: TechniqueId, name: String, kind: TechniqueType)
@@ -679,7 +680,7 @@ final case class PolicyArchive(
   }
 }
 object PolicyArchive {
-  def empty = PolicyArchive(PolicyArchiveMetadata.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty)
+  def empty: PolicyArchive = PolicyArchive(PolicyArchiveMetadata.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty)
 }
 
 final case class SortedEntries(
@@ -689,7 +690,7 @@ final case class SortedEntries(
     rules:      Chunk[(String, Array[Byte])]
 )
 object SortedEntries {
-  def empty = SortedEntries(Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty)
+  def empty: SortedEntries = SortedEntries(Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty)
 }
 
 final case class PolicyArchiveUnzip(
@@ -698,7 +699,7 @@ final case class PolicyArchiveUnzip(
 )
 
 object PolicyArchiveUnzip {
-  def empty = PolicyArchiveUnzip(PolicyArchive.empty, Chunk.empty)
+  def empty: PolicyArchiveUnzip = PolicyArchiveUnzip(PolicyArchive.empty, Chunk.empty)
 }
 
 sealed trait TechniqueType { def name: String }
@@ -727,13 +728,13 @@ class ZipArchiveReaderImpl(
   import com.softwaremill.quicklens._
 
   // we must avoid to eagerly match "ncf_techniques" as "techniques" but still accept when it starts by "techniques" without /
-  val techniqueRegex = """(.*/|)techniques/(.+)""".r
-  val yamlRegex      = s"""(.+)/${TechniqueType.Yaml.name}""".r
-  val jsonRegex      = s"""(.+)/${TechniqueType.Json.name}""".r
-  val metadataRegex  = s"""(.+)/${TechniqueType.Metadata.name}""".r
-  val directiveRegex = """(.*/|)directives/(.+.json)""".r
-  val groupRegex     = """(.*/|)groups/(.+.json)""".r
-  val ruleRegex      = """(.*/|)rules/(.+.json)""".r
+  val techniqueRegex: Regex = """(.*/|)techniques/(.+)""".r
+  val yamlRegex:      Regex = s"""(.+)/${TechniqueType.Yaml.name}""".r
+  val jsonRegex:      Regex = s"""(.+)/${TechniqueType.Json.name}""".r
+  val metadataRegex:  Regex = s"""(.+)/${TechniqueType.Metadata.name}""".r
+  val directiveRegex: Regex = """(.*/|)directives/(.+.json)""".r
+  val groupRegex:     Regex = """(.*/|)groups/(.+.json)""".r
+  val ruleRegex:      Regex = """(.*/|)rules/(.+.json)""".r
 
   /*
    * For technique, we are parsing metadata.xml.

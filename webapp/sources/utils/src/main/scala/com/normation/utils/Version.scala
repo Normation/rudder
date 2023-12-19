@@ -38,6 +38,7 @@
 package com.normation.utils
 
 import java.nio.charset.Charset
+import java.nio.charset.CharsetEncoder
 import zio.Chunk
 
 /**
@@ -75,16 +76,16 @@ final case class Version(epoch: Long, head: PartType, parts: List[VersionPart]) 
   def toVersionString: String =
     (if (epoch == 0) "" else epoch.toString + ":") + toVersionStringNoEpoch
 
-  def toVersionStringNoEpoch = head.toVersionString + parts.map(_.toVersionString).mkString("")
+  def toVersionStringNoEpoch: String = head.toVersionString + parts.map(_.toVersionString).mkString("")
 
   override def compare(other: Version): Int = Version.compare(this, other)
 }
 
 object Version {
   // create a list of default value, ie a list of ".0", of the given size
-  def defaultList(size: Int) = List.fill(size)(VersionPart.After(Separator.Dot, PartType.Numeric(0)))
+  def defaultList(size: Int):                                                                  List[VersionPart.After] = List.fill(size)(VersionPart.After(Separator.Dot, PartType.Numeric(0)))
   @scala.annotation.tailrec
-  def compareList(a: List[VersionPart], aInitSize: Int, b: List[VersionPart], bInitSize: Int): Int = {
+  def compareList(a: List[VersionPart], aInitSize: Int, b: List[VersionPart], bInitSize: Int): Int                     = {
     (a, b) match {
       case (Nil, Nil)           =>
         aInitSize - bInitSize
@@ -95,7 +96,7 @@ object Version {
         if (h == 0) compareList(t1, aInitSize, t2, bInitSize) else h
     }
   }
-  def compare(a: Version, b: Version):                                                         Int = {
+  def compare(a: Version, b: Version):                                                         Int                     = {
     val e = a.epoch - b.epoch
     if (e == 0L) {
       val h = PartType.compare(a.head, b.head)
@@ -154,8 +155,8 @@ object PartType {
   object Numeric {
     // with software in node, we have zillion of duplication of numeric of low ran, so we store them here:
     val cacheSize = 100
-    val numCache  = Chunk.fromIterable((0 until cacheSize).map(i => new Numeric(i.toLong)))
-    def apply(n: Long): Numeric = if (n < cacheSize) numCache(n.toInt) else new Numeric(n)
+    val numCache:       Chunk[Numeric] = Chunk.fromIterable((0 until cacheSize).map(i => new Numeric(i.toLong)))
+    def apply(n: Long): Numeric        = if (n < cacheSize) numCache(n.toInt) else new Numeric(n)
   }
   def compare(a: PartType, b: PartType): Int = {
     val d = a.index - b.index
@@ -182,7 +183,7 @@ object VersionPart {
       extends VersionPart // we can have before with "-" separator for ex with alpha, etc
   final case class After(separator: Separator, value: PartType) extends VersionPart
 
-  def compare(a: VersionPart, b: VersionPart) = (a, b) match {
+  def compare(a: VersionPart, b: VersionPart): Int = (a, b) match {
     case (_: Before, _: After) => -1
     case (_: After, _: Before) => 1
     case (a, b)                =>
@@ -195,13 +196,14 @@ object ParseVersion {
   import fastparse._
   import fastparse.NoWhitespace._
 
-  def ascii                  = Charset.forName("US-ASCII").newEncoder()
+  def ascii:                  CharsetEncoder = Charset.forName("US-ASCII").newEncoder()
   // chars allowed in a version. Only ascii, non control, non space, non separator - including ":" used for epoch
-  def versionChar(c: Char)   = ascii.canEncode(c) && !(c.isDigit || c.isControl || c.isSpaceChar || separatorChar(c) || c == ':')
-  def separatorChar(c: Char) = List('~', '+', ',', '-', '.').contains(c)
+  def versionChar(c: Char):   Boolean        =
+    ascii.canEncode(c) && !(c.isDigit || c.isControl || c.isSpaceChar || separatorChar(c) || c == ':')
+  def separatorChar(c: Char): Boolean        = List('~', '+', ',', '-', '.').contains(c)
 
-  def num[A: P]   = P(CharIn("0-9").rep(1).!.map(_.toLong))
-  def chars[A: P] = P(CharsWhile(versionChar).rep(1).!).map { s =>
+  def num[A: P]:   P[Long]     = P(CharIn("0-9").rep(1).!.map(_.toLong))
+  def chars[A: P]: P[PartType] = P(CharsWhile(versionChar).rep(1).!).map { s =>
     import PartType._
     s.toLowerCase match {
       case "snapshot"  => Snapshot(s)
@@ -214,8 +216,8 @@ object ParseVersion {
     }
   }
 
-  def epoch[A: P]          = P(num ~ ":")
-  def toSeparator(c: Char) = {
+  def epoch[A: P]:          P[Long]                  = P(num ~ ":")
+  def toSeparator(c: Char): Separator                = {
     c match {
       case '~' => Separator.Tilde
       case '-' => Separator.Minus
@@ -224,7 +226,7 @@ object ParseVersion {
       case '.' => Separator.Dot
     }
   }
-  def separators[A: P]     = P(CharsWhile(separatorChar).!).map((s: String) => s.toSeq.map(toSeparator))
+  def separators[A: P]:     P[IndexedSeq[Separator]] = P(CharsWhile(separatorChar).!).map((s: String) => s.toSeq.map(toSeparator))
 
   def listOfSepToPart(list: List[Separator]): List[VersionPart]    = {
     list.map {
@@ -250,12 +252,13 @@ object ParseVersion {
       }
   }
 
-  def noSepPart1[A: P] = P(chars).map(c => VersionPart.After(Separator.None, c) :: Nil)
-  def noSepPart2[A: P] = P(num).map(n => VersionPart.After(Separator.None, PartType.Numeric(n)) :: Nil)
+  def noSepPart1[A: P]: P[List[VersionPart.After]] = P(chars).map(c => VersionPart.After(Separator.None, c) :: Nil)
+  def noSepPart2[A: P]: P[List[VersionPart.After]] =
+    P(num).map(n => VersionPart.After(Separator.None, PartType.Numeric(n)) :: Nil)
 
-  def startNum[A: P] = P(num).map(i => PartType.Numeric(i))
+  def startNum[A: P]: P[PartType.Numeric] = P(num).map(i => PartType.Numeric(i))
 
-  def version[A: P] = P(
+  def version[A: P]: P[Version] = P(
     Start ~ epoch.? ~/ startNum ~/
     (numPart | charPart | noSepPart1 | noSepPart2).rep(0) ~ separators.? ~ End
   ).map {

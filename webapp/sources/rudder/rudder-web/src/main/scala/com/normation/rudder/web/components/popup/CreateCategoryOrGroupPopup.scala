@@ -90,7 +90,7 @@ class CreateCategoryOrGroupPopup(
 
   var createContainer = false // issue #1190 always create a group by default
 
-  def dispatch = { case "popupContent" => { _ => popupContent() } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
 
   /**
    * If we create a category, the info about the group is hidden (default), otherwise we show it
@@ -318,7 +318,7 @@ class CreateCategoryOrGroupPopup(
     }
   }
 
-  def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol") = {
+  def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol"): WBTextAreaField = {
     new WBTextAreaField("Change audit message", "") {
       override def setFilter  = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField %

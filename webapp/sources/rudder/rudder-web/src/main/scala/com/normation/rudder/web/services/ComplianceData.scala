@@ -78,7 +78,7 @@ final case class ChangeLine(
     ruleName:      Option[String] = None,
     directiveName: Option[String] = None
 ) extends JsTableLine {
-  val json = {
+  val json: js.JsObj = {
     JsObj(
       ("nodeName"      -> JsExp.strToJsExp(nodeName.getOrElse(report.nodeId.value))),
       ("message"       -> escapeHTML(report.message)),
@@ -96,7 +96,7 @@ object ChangeLine {
       ruleName:     Option[String] = None,
       directiveLib: FullActiveTechniqueCategory,
       allNodeInfos: Map[NodeId, NodeInfo]
-  ) = {
+  ): JsArray = {
 
     val jsonChanges = {
       for {
@@ -143,7 +143,7 @@ final case class RuleComplianceLine(
     modeExplanation: String,
     tags:            JValue
 ) extends JsTableLine {
-  val json = {
+  val json: js.JsObj = {
     JsObj(
       ("rule"              -> escapeHTML(rule.name)),
       ("compliance"        -> jsCompliance(compliance)),
@@ -186,7 +186,7 @@ final case class DirectiveComplianceLine(
     modeExplanation:  String,
     tags:             JValue
 ) extends JsTableLine {
-  val json = {
+  val json: js.JsObj = {
     JsObj(
       ("directive"         -> escapeHTML(directive.name)),
       ("id"                -> escapeHTML(directive.id.uid.value)),
@@ -223,7 +223,7 @@ final case class NodeComplianceLine(
     policyMode:      String,
     modeExplanation: String
 ) extends JsTableLine {
-  val json = {
+  val json: js.JsObj = {
     JsObj(
       ("node"              -> escapeHTML(nodeInfo.hostname)),
       ("compliance"        -> jsCompliance(compliance)),
@@ -263,7 +263,7 @@ final case class BlockComplianceLine(
     reportingLogic: ReportingLogic
 ) extends ComponentComplianceLine {
 
-  val json = {
+  val json: js.JsObj = {
     JsObj(
       ("component"         -> escapeHTML(component)),
       ("compliance"        -> jsCompliance(compliance)),
@@ -283,7 +283,7 @@ final case class ValueComplianceLine(
     noExpand:   Boolean
 ) extends ComponentComplianceLine {
 
-  val json = {
+  val json: js.JsObj = {
     JsObj(
       ("component"         -> escapeHTML(component)),
       ("unexpanded"        -> escapeHTML(unexpanded)),
@@ -317,7 +317,7 @@ final case class ComponentValueComplianceLine(
     statusClass:     String
 ) extends JsTableLine {
 
-  val json = {
+  val json: js.JsObj = {
     JsObj(
       ("value"             -> escapeHTML(value)),
       ("unexpanded"        -> escapeHTML(unexpandedValue)),

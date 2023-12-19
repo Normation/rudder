@@ -41,6 +41,6 @@ import com.normation.eventlog.EventActor
 
 package object eventlog {
 
-  val RudderEventActor = EventActor("rudder")
+  val RudderEventActor: EventActor = EventActor("rudder")
 
 }

@@ -42,6 +42,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeInfo
 import org.joda.time.DateTime
+import scala.xml.Node
 
 /**
  * Accept/refuse new server
@@ -68,7 +69,7 @@ object InventoryEventLog {
   def toXml(
       logDetails: InventoryLogDetails,
       action:     String
-  ) = {
+  ): Node = {
     scala.xml.Utility.trim(
       <node action={action} fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <id>{logDetails.nodeId.value}</id>

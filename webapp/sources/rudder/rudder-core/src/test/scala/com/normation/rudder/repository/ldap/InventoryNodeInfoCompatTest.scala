@@ -95,7 +95,7 @@ class InventoryNodeInfoCompatTest extends Specification {
     new LDAPEntityMapper(rudderDit, nodeDit, acceptedNodesDitImpl, cmdbQueryParser, inventoryMapper)
   }
 
-  val linux41Ldif = {
+  val linux41Ldif: String = {
     """dn: nodeId=root,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
       |objectClass: top
       |objectClass: node
@@ -123,7 +123,7 @@ class InventoryNodeInfoCompatTest extends Specification {
       |agentName: {"agentType":"Community","version":"4.1.14"}""".stripMargin
   }
 
-  val linux42Ldif = {
+  val linux42Ldif: String = {
     """dn: nodeId=root,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
       |objectClass: top
       |objectClass: node
@@ -150,7 +150,7 @@ class InventoryNodeInfoCompatTest extends Specification {
       |agentName: {"agentType":"cfengine-community","version":"4.2.8","securityToken":{"value":"publickey","type":"publicKey"}}""".stripMargin
   }
 
-  val linux43Ldif = {
+  val linux43Ldif: String = {
     """dn: nodeId=root,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
       |objectClass: top
       |objectClass: node
@@ -178,7 +178,7 @@ class InventoryNodeInfoCompatTest extends Specification {
       |lastLoggedUserTime: 20000714084300.000Z""".stripMargin
   }
 
-  val dsc42Ldif = {
+  val dsc42Ldif: String = {
     s"""dn: nodeId=aff80e6d-68fb-43dd-9a33-a5204b7e3153,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
        |nodeId: aff80e6d-68fb-43dd-9a33-a5204b7e3153
        |objectClass: node

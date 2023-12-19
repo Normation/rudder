@@ -45,13 +45,14 @@ import net.liftweb.http._
 import net.liftweb.http.js._
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmds._
+import scala.xml.NodeSeq
 import util.Helpers._
 
 class ClearCache extends DispatchSnippet with Loggable {
 
   private[this] val clearCacheService = RudderConfig.clearCacheService
 
-  def dispatch = { case "render" => clearCache() }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "render" => clearCache() }
 
   def clearCache(): IdMemoizeTransform = SHtml.idMemoize { outerXml =>
     // our process method returns a

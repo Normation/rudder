@@ -65,6 +65,7 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.ModifyToDirectiveDiff
+import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
@@ -279,8 +280,8 @@ class DirectiveApi(
   }
 
   object ListDirectiveV14 extends LiftApiModule0 {
-    val schema                                                                                                = API.ListDirectives
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken) = {
+    val schema = API.ListDirectives
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       serviceV14.listDirectives().toLiftResponseList(params, schema)
     }
   }
@@ -440,7 +441,7 @@ class DirectiveApiService2(
     techniqueRepository:  TechniqueRepository
 ) extends Loggable {
 
-  def serialize = restDataSerializer.serializeDirective _
+  def serialize: (Technique, Directive, Option[ChangeRequestId]) => JValue = restDataSerializer.serializeDirective _
 
   private[this] def createChangeRequestAndAnswer(
       diff:            ChangeRequestDirectiveDiff,
@@ -619,7 +620,7 @@ class DirectiveApiService2(
     }
   }
 
-  def deleteDirective(id: DirectiveUid) = {
+  def deleteDirective(id: DirectiveUid): Box[(EventActor, Option[String], String, String) => Box[JValue]] = {
     for {
       (technique, activeTechnique, directive) <-
         readDirective.getDirectiveWithContext(id).notOptional(s"Could not find Directive ${id.value}").toBox
@@ -690,7 +691,10 @@ class DirectiveApiService2(
     }
   }
 
-  def updateDirective(directiveId: DirectiveUid, restDirective: RestDirective) = {
+  def updateDirective(
+      directiveId:   DirectiveUid,
+      restDirective: RestDirective
+  ): Box[(EventActor, Option[String], String, String) => Box[JValue]] = {
     for {
       directiveUpdate <- updateDirectiveModel(directiveId, restDirective)
 
@@ -724,7 +728,7 @@ class DirectiveApiService14(
     techniqueRepository:  TechniqueRepository
 ) {
 
-  def serialize = restDataSerializer.serializeDirective _
+  def serialize: (Technique, Directive, Option[ChangeRequestId]) => JValue = restDataSerializer.serializeDirective _
 
   def directiveTree(includeSystem: Boolean): IOResult[JRDirectiveTreeCategory] = {
     def filterSystem(cat: FullActiveTechniqueCategory): FullActiveTechniqueCategory = {

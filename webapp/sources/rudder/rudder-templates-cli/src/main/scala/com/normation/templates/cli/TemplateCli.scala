@@ -90,7 +90,7 @@ object TemplateCli {
 
   val fillerService = new FillTemplatesService()
 
-  val parser = new OptionParser[Config]("Rudder template cli") {
+  val parser: OptionParser[Config] = new OptionParser[Config]("Rudder template cli") {
     head("rudder-templates-cli", "4.0.x")
 
     opt[File]("outdir") valueName ("<file>") action { (x, c) =>
@@ -258,7 +258,12 @@ object TemplateCli {
     }
   }
 
-  def filledAndWriteToStdout(variables: Seq[STVariable], content: String, templateName: String, timer: FillTemplateTimer) = {
+  def filledAndWriteToStdout(
+      variables:    Seq[STVariable],
+      content:      String,
+      templateName: String,
+      timer:        FillTemplateTimer
+  ): ZIO[Any, RudderError, String] = {
     for {
       filled <- fillerService.fill(templateName, content, variables, timer)
       writed <- IOResult.attempt(s"Error when writting filled template to stdout")(IOUtils.write(filled, System.out, "UTF-8"))

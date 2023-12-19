@@ -113,7 +113,7 @@ class MigrateJsonTechniquesToYaml(
     } yield ()
   }
 
-  def updateNcfTechniques = {
+  def updateNcfTechniques: ZIO[Any, RudderError, Unit] = {
     for {
       _              <- TechniqueMigrationLogger.info("Checking if some techniques need to be migrated to YAML format")
       jsonTechniques <- getAllTechniqueFiles(File(rootConfigRepoDir) / "techniques")

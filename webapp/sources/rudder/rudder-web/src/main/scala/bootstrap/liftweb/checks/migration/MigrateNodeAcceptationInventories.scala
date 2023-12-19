@@ -39,6 +39,7 @@ package bootstrap.liftweb.checks.migration
 
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
+import com.normation.errors
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.inventory.domain.FullInventory
@@ -86,7 +87,7 @@ class MigrateNodeAcceptationInventories(
 
   val msg = "old inventory accept/refuse facts to 'NodeFacts' database table"
 
-  val migrationActor = EventActor("rudder-migration")
+  val migrationActor: EventActor = EventActor("rudder-migration")
 
   override def description: String =
     "Check if table 'NodeFacts' exists and if data from /var/rudder/inventories/historical are migrated"
@@ -114,7 +115,7 @@ class MigrateNodeAcceptationInventories(
   /*
    * Save a full inventory as a node fact in postgresql.
    */
-  def saveInDB(id: NodeId, date: DateTime, data: FullInventory, deleted: Boolean) = {
+  def saveInDB(id: NodeId, date: DateTime, data: FullInventory, deleted: Boolean): ZIO[Any, errors.RudderError, Option[Unit]] = {
     jdbcLogRepository.save(
       id,
       FactLogData(NodeFact.newFromFullInventory(data, None), migrationActor, data.node.main.status),
@@ -165,7 +166,7 @@ class MigrateNodeAcceptationInventories(
     } *> purgeLogFile(nodeId)
   }
 
-  def migrateAll(now: DateTime) = {
+  def migrateAll(now: DateTime): ZIO[Any, errors.RudderError, Unit] = {
     for {
       ids <- fileLogRepository.getIds
       _   <- BootstrapLogger.info(s"Migrating '${ids.size}' ${msg}")

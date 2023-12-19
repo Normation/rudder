@@ -86,8 +86,8 @@ class CachedReportsExecutionRepository(
     readBackend: RoReportsExecutionRepository
 ) extends RoReportsExecutionRepository with CachedRepository {
 
-  val logger    = ReportLogger
-  val semaphore = Semaphore.make(1).runNow
+  val logger = ReportLogger
+  val semaphore: Semaphore = Semaphore.make(1).runNow
 
   /*
    * We need to synchronise on cache to avoid the case:

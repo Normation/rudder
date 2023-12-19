@@ -214,7 +214,7 @@ class ModificationValidationPopup(
   // fonction to read state of things
   private[this] val getGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
 
-  def dispatch = { case "popupContent" => { _ => popupContent() } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
 
   private[this] val disabled = item match {
     case Left(item)  => !item.newDirective.isEnabled
@@ -375,7 +375,7 @@ class ModificationValidationPopup(
 
   ///////////// fields for category settings ///////////////////
 
-  def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol") = {
+  def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol"): WBTextAreaField = {
     new WBTextAreaField("Change audit message", "") {
       override def setFilter   = notNull _ :: trim _ :: Nil
       override def inputField  = super.inputField % ("style" -> "height:8em;") % ("tabindex" -> "2") % ("placeholder" -> {

@@ -44,9 +44,9 @@ package com.normation.inventory.domain
  * 244 Mo, 23 kB, etc
  */
 final case class MemorySize(size: Long) extends AnyVal {
-  override def toString() = "%s B".format(size)
+  override def toString(): String = "%s B".format(size)
 
-  def toStringMo = {
+  def toStringMo: String = {
     val (value, unit) = MemorySize.prettyMo(this)
     value + " " + unit
   }
@@ -108,7 +108,7 @@ object MemorySize {
     }
   }
 
-  def apply(s: String) = {
+  def apply(s: String): MemorySize = {
     new MemorySize(parse(s).getOrElse(-1))
   }
 

@@ -55,16 +55,16 @@ class SectionTest extends Specification {
     .asInstanceOf[ch.qos.logback.classic.Logger]
     .setLevel(ch.qos.logback.classic.Level.OFF)
 
-  val doc                          = readFile("testSections.xml")
-  def sectionsTag(example: String) = (doc \\ "examples" \ example \ "SECTIONS").head
+  val doc:                          Elem = readFile("testSections.xml")
+  def sectionsTag(example: String): Node = (doc \\ "examples" \ example \ "SECTIONS").head
 
   val sectionSpecParser = new SectionSpecParser(new VariableSpecParser)
 
-  val sectionParser = SectionParser(sectionSpecParser)
+  val sectionParser: SectionParser = SectionParser(sectionSpecParser)
 
   ///// test on the well formed example /////
 
-  val rootSectionsOk =
+  val rootSectionsOk: SectionSpec =
     sectionParser.parseXml(sectionsTag("ok")).getOrElse(throw new IllegalArgumentException("This must be valid for test!"))
 
   "the test sections <ok>" should {

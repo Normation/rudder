@@ -140,7 +140,8 @@ object TestImplicits {
         })
       }
 
-      def prog = test2("plop", 42) catchAll (err => trace(err.fullMsg) *> ("success", 0).succeed)
+      def prog: ZIO[Any, Nothing, (String, Int)] =
+        test2("plop", 42) catchAll (err => trace(err.fullMsg) *> ("success", 0).succeed)
     }
   }
 
@@ -152,7 +153,7 @@ object TestImplicits {
 
 object SimpleEvalTest {
 
-  val hello = IOResult.attempt(println("plop"))
+  val hello: IO[SystemError, Unit] = IOResult.attempt(println("plop"))
 
   def main(args: Array[String]): Unit = {
     // write a first time
@@ -164,7 +165,7 @@ object SimpleEvalTest {
 
 object TestLog {
 
-  val log = NamedZioLogger("test-logger")
+  val log: NamedZioLogger = NamedZioLogger("test-logger")
 
   def main(args: Array[String]): Unit = {
 
@@ -178,7 +179,7 @@ object TestLog {
 
 object TestSemaphore {
 
-  val log = NamedZioLogger("test-logger")
+  val log: NamedZioLogger = NamedZioLogger("test-logger")
   trait ScalaLock {
     def apply[T](block: IOResult[T]): ZIO[Any, RudderError, T]
   }
@@ -200,8 +201,8 @@ object TestSemaphore {
     }
   }
 
-  val semaphore = Semaphore.make(1)
-  def inSem()   = for {
+  val semaphore: UIO[Semaphore]              = Semaphore.make(1)
+  def inSem():   ZIO[Any, SystemError, Unit] = for {
     _   <- log.logPure.error("before sem")
     sem <- semaphore
     _   <- log.logPure.error("sem get")
@@ -221,9 +222,9 @@ object TestSemaphore {
     _   <- log.logPure.error("after sem")
   } yield ()
 
-  val lock = pureZioSemaphore("plop")
+  val lock: ScalaLock = pureZioSemaphore("plop")
 
-  def inLock = for {
+  def inLock: ZIO[Any, RudderError, Unit] = for {
     _ <- log.logPure.error("lock get")
     _ <- lock(IOResult.attempt(println("Hello world lock")))
     _ <- lock(IOResult.attempt({ println("sleeping now"); Thread.sleep(2000); println("after sleep") }))
@@ -244,7 +245,7 @@ object TestSemaphore {
  *
  */
 object TestJavaLockWithZio {
-  def log(s: String) = ZIO.succeed(println(s))
+  def log(s: String): ZIO[Any, Nothing, Unit] = ZIO.succeed(println(s))
 
   trait ScalaLock {
     def lock():   Unit
@@ -276,7 +277,8 @@ object TestJavaLockWithZio {
       }))
     }
   }
-  val lock = new ScalaLock {
+  val lock: lock = new lock
+  class lock extends ScalaLock {
     val jrwlock = new java.util.concurrent.locks.ReentrantReadWriteLock(true)
     override def lock(): Unit = {
       println(s"lock info before get: ${jrwlock.toString}")
@@ -294,7 +296,7 @@ object TestJavaLockWithZio {
     override def name: String = "test-scala-lock"
   }
 
-  def prog1(c: ZLayer[Any, Nothing, Any]) = for {
+  def prog1(c: ZLayer[Any, Nothing, Any]): ZIO[Any, RudderError, Unit] = for {
     _ <- log("sem get 1")
     a <- lock(IOResult.attempt(println("Hello world 1")))
     _ <- log("sem get 2")
@@ -324,13 +326,13 @@ object TestZioSemantic {
   trait LOG {
     def apply(s: String): UIO[Unit]
   }
-  def makeLog = ZIO.attempt(new LOG {
+  def makeLog: Task[LOG] = ZIO.attempt(new LOG {
     val zero             = java.lang.System.currentTimeMillis()
     def apply(s: String) = ZIO.succeed(println(s"[${java.lang.System.currentTimeMillis() - zero}] $s"))
   })
 
-  val semaphore                           = Semaphore.make(1)
-  def prog1(c: ZLayer[Any, Nothing, Any]) = for {
+  val semaphore:                           UIO[Semaphore]            = Semaphore.make(1)
+  def prog1(c: ZLayer[Any, Nothing, Any]): ZIO[Any, Throwable, Unit] = for {
     sem <- semaphore
     log <- makeLog
     _   <- log("sem get 1")
@@ -348,7 +350,7 @@ object TestZioSemantic {
              case Some(y) => log("++++ No timeout")
            }
   } yield ()
-  def prog2(c: ZLayer[Any, Nothing, Any]) = for {
+  def prog2(c: ZLayer[Any, Nothing, Any]): ZIO[Any, Throwable, Unit] = for {
     sem <- semaphore
     log <- makeLog
     _   <- log("sem get 1")

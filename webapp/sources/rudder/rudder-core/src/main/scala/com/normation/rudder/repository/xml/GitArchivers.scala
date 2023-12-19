@@ -227,7 +227,7 @@ object TechniqueFiles {
 
     val metadata = "metadata.xml" // standard technique API, used for policy generation pipeline
 
-    val all_common = Chunk(
+    val all_common: Chunk[String] = Chunk(
       metadata
     )
 
@@ -235,17 +235,17 @@ object TechniqueFiles {
 
     // `rudder_reporting.cf` is only used when the generation is done by webapp, it does not exist with rudderc
     val cfengineReporting = "rudder_reporting.cf"
-    val cfengineRudderc   = Chunk("technique.cf")
-    val cfengineAll       = Chunk(cfengineReporting, "technique.cf")
+    val cfengineRudderc: Chunk[String] = Chunk("technique.cf")
+    val cfengineAll:     Chunk[String] = Chunk(cfengineReporting, "technique.cf")
 
-    val dsc = Chunk("technique.ps1")
+    val dsc: Chunk[String] = Chunk("technique.ps1")
 
     val all: Chunk[String] = all_common ++ cfengineAll ++ dsc
   }
 
   // all is for current version only, ie json is not part of it.
-  val all: Chunk[String] = yaml +: Generated.all
-  val common = yaml +: Generated.all_common
+  val all:    Chunk[String] = yaml +: Generated.all
+  val common: Chunk[String] = yaml +: Generated.all_common
 }
 
 /*

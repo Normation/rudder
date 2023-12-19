@@ -203,7 +203,7 @@ final class AsyncDeploymentActor(
   /**
    * Manage what we send on other listener actors
    */
-  override def createUpdate = DeploymentStatus(lastFinishedDeployement, currentDeployerState)
+  override def createUpdate: DeploymentStatus = DeploymentStatus(lastFinishedDeployement, currentDeployerState)
 
   private[this] def WithDetails(xml: NodeSeq)(implicit actor: EventActor, reason: Option[String] = None) = {
     EventLogDetails(
@@ -227,7 +227,7 @@ final class AsyncDeploymentActor(
     }
   }
 
-  override protected def lowPriority = {
+  override protected def lowPriority: PartialFunction[Any, Unit] = {
 
     //
     // Start a new deployment. Some triggers can be inhibited with
@@ -490,7 +490,7 @@ final class AsyncDeploymentActor(
       bootSemaphore.await *> managedErr
     }
 
-    override protected def messageHandler = {
+    override protected def messageHandler: PartialFunction[Any, Unit] = {
       //
       // Start a new deployment. Wait for the guard to be released (in `Boot.boot`).
       // Each generation can be delayed by a given duration with the `rudder_generation_delay` setting.

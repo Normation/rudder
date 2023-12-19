@@ -284,7 +284,7 @@ class AppConfigAuth extends ApplicationContextAware {
   @Bean def restAuthenticationFilter =
     new RestAuthenticationFilter(RudderConfig.roApiAccountRepository, rudderUserDetailsService, SYSTEM_API_ACL)
 
-  @Bean def restAuthenticationEntryPoint = new AuthenticationEntryPoint() {
+  @Bean def restAuthenticationEntryPoint: AuthenticationEntryPoint = new AuthenticationEntryPoint() {
     override def commence(request: HttpServletRequest, response: HttpServletResponse, ex: AuthenticationException): Unit = {
       response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")
     }
@@ -401,9 +401,9 @@ trait AuthBackendsProvider {
 }
 
 final case class AuthenticationMethods(name: String) {
-  val path       = s"applicationContext-security-auth-${name}.xml"
-  val configFile = s"classpath:${path}"
-  val springBean = s"${name}AuthenticationProvider"
+  val path:       String = s"applicationContext-security-auth-${name}.xml"
+  val configFile: String = s"classpath:${path}"
+  val springBean: String = s"${name}AuthenticationProvider"
 }
 
 object AuthenticationMethods {
@@ -449,7 +449,7 @@ object AuthenticationMethods {
 // and default implementation: provides 'file', 'rootAdmin'
 class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
 
-  val defaultAuthBackendsProvider = new AuthBackendsProvider() {
+  val defaultAuthBackendsProvider: AuthBackendsProvider = new AuthBackendsProvider() {
     override def authenticationBackends:            Set[String] = Set("file", "rootAdmin")
     override def name:                              String      = s"Default authentication backends provider: '${authenticationBackends.mkString("','")}"
     override def allowedToUseBackend(name: String): Boolean     = true // always enable - ie we never want to skip them

@@ -56,6 +56,7 @@ import com.normation.zio.currentTimeMillis
 import com.unboundid.ldap.sdk.{LDAPConnection => _, SearchScope => _, _}
 import com.unboundid.ldap.sdk.DereferencePolicy.NEVER
 import java.util.regex.Pattern
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import zio.{System => _, _}
 import zio.syntax._
@@ -135,7 +136,7 @@ object InternalLDAPQueryProcessorLoggerPure extends NamedZioLogger {
  * the json path and check on node properties.
  */
 object PostFilterNodeFromInfoService {
-  val logger = LoggerFactory.getLogger("com.normation.rudder.services.queries")
+  val logger: Logger = LoggerFactory.getLogger("com.normation.rudder.services.queries")
   def getLDAPNodeInfo(
       foundNodeInfos: Seq[NodeInfo],
       predicates:     Seq[NodeInfoMatcher],

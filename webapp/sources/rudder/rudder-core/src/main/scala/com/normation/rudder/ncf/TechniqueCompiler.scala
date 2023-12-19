@@ -166,7 +166,7 @@ object TechniqueCompilerApp       {
   case object Webapp  extends TechniqueCompilerApp { val name = "webapp"  }
   case object Rudderc extends TechniqueCompilerApp { val name = "rudderc" }
 
-  def values = ca.mrvisser.sealerate.values[TechniqueCompilerApp]
+  def values: Set[TechniqueCompilerApp] = ca.mrvisser.sealerate.values[TechniqueCompilerApp]
 
   def parse(value: String): Option[TechniqueCompilerApp] = {
     values.find(_.name == value.toLowerCase())
@@ -395,14 +395,14 @@ class TechniqueCompilerWithFallback(
 ) extends TechniqueCompiler {
 
   // root of technique repository
-  val gitDir = File(baseConfigRepoPath)
+  val gitDir: File = File(baseConfigRepoPath)
 
   val compilationConfigFilename = "compilation-config.yml"
   val compilationOutputFilename = "compilation-output.yml"
 
-  def getCompilationOutputFile(technique: EditorTechnique) =
+  def getCompilationOutputFile(technique: EditorTechnique): File =
     gitDir / getTechniqueRelativePath(technique) / compilationOutputFilename
-  def getCompilationConfigFile(technique: EditorTechnique) =
+  def getCompilationConfigFile(technique: EditorTechnique): File =
     gitDir / getTechniqueRelativePath(technique) / compilationConfigFilename
 
   /*
@@ -697,15 +697,15 @@ class WebappTechniqueCompiler(
   }
 
   // root of technique repository
-  val gitDir = File(baseConfigRepoPath)
+  val gitDir: File = File(baseConfigRepoPath)
 
   val compilationConfigFilename = "compilation-config.yml"
   val compilationOutputFilename = "compilation-output.yml"
 
-  def getCompilationOutputFile(technique: EditorTechnique) =
+  def getCompilationOutputFile(technique: EditorTechnique): File =
     gitDir / getTechniqueRelativePath(technique) / compilationOutputFilename
 
-  def getCompilationConfigFile(technique: EditorTechnique) =
+  def getCompilationConfigFile(technique: EditorTechnique): File =
     gitDir / getTechniqueRelativePath(technique) / compilationConfigFilename
 
 }
@@ -724,7 +724,7 @@ class ClassicTechniqueWriter(
 ) extends AgentSpecificTechniqueWriter {
 
   // We need to add a reporting bundle for this method to generate a na report for any method with a condition != any/cfengine (which ~= true
-  def truthyCondition(condition: String) = condition.isEmpty || condition == "any" || condition == "cfengine-community"
+  def truthyCondition(condition: String): Boolean = condition.isEmpty || condition == "any" || condition == "cfengine-community"
   def methodCallNeedReporting(methods: Map[BundleName, GenericMethod], parentBlock: List[MethodBlock])(
       call:                            MethodCall
   ): Boolean = {
@@ -744,7 +744,7 @@ class ClassicTechniqueWriter(
     }
   }
 
-  def formatCondition(methodCall: MethodCall, parentBlock: List[MethodBlock]) = {
+  def formatCondition(methodCall: MethodCall, parentBlock: List[MethodBlock]): String = {
     (parentBlock.map(_.condition).filterNot(truthyCondition), truthyCondition(methodCall.condition)) match {
       case (Nil, true)   => "any"
       case (list, true)  => list.mkString("(", ").(", ")")
@@ -753,17 +753,17 @@ class ClassicTechniqueWriter(
     }
   }
 
-  def needReportingBundle(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]) =
+  def needReportingBundle(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]): Boolean =
     technique.calls.exists(elemNeedReportingBundle(methods, Nil))
 
-  def canonifyCondition(methodCall: MethodCall, parentBlock: List[MethodBlock]) = {
+  def canonifyCondition(methodCall: MethodCall, parentBlock: List[MethodBlock]): String = {
     formatCondition(methodCall, parentBlock).replaceAll("""(\$\{[^\}]*})""", """",canonify("$1"),"""")
   }
 
   // regex to match double quote characters not preceded by a backslash, and backslash not preceded by backslash or not followed by a backslash or a quote (simple or double)
-  def escapeCFEngineString(value: String) = value.replaceAll("""\\""", """\\\\""").replaceAll(""""""", """\\"""")
+  def escapeCFEngineString(value: String): String = value.replaceAll("""\\""", """\\\\""").replaceAll(""""""", """\\"""")
 
-  def reportingContextInBundle(args: Seq[String]) = {
+  def reportingContextInBundle(args: Seq[String]): String = {
     s"_method_reporting_context_v4(${convertArgsToBundleCall(args)})"
   }
 
@@ -1120,21 +1120,21 @@ class DSCTechniqueWriter(
 ) extends AgentSpecificTechniqueWriter {
   implicit class IndentString(s: String) {
     // indent all lines EXCLUDING THE FIRST by the given number of spaces
-    def indentNextLines(spaces: Int) = s.linesIterator.mkString("\n" + " " * spaces)
+    def indentNextLines(spaces: Int): String = s.linesIterator.mkString("\n" + " " * spaces)
   }
 
   // WARNING: this is extremely likely false, it MUST be done in the technique editor or
   // via a full fledge parser of conditions
-  def canonifyCondition(methodCall: MethodCall, parentBlocks: List[MethodBlock]) = {
+  def canonifyCondition(methodCall: MethodCall, parentBlocks: List[MethodBlock]): String = {
     formatCondition(methodCall, parentBlocks).replaceAll(
       """(\$\{[^\}]*})""",
       """" + ([Rudder.Condition]::canonify($1)) + """"
     )
   }
 
-  def truthyCondition(condition: String) = condition.isEmpty || condition == "any"
+  def truthyCondition(condition: String): Boolean = condition.isEmpty || condition == "any"
 
-  def formatCondition(methodCall: MethodCall, parentBlock: List[MethodBlock]) = {
+  def formatCondition(methodCall: MethodCall, parentBlock: List[MethodBlock]): String = {
     (parentBlock.map(_.condition).filterNot(truthyCondition), truthyCondition(methodCall.condition)) match {
       case (Nil, true)   => "any"
       case (list, true)  => list.mkString("(", ").(", ")")
@@ -1144,7 +1144,7 @@ class DSCTechniqueWriter(
   }
 
   // needed for override in tests
-  def pathOf(technique: EditorTechnique, filename: String) =
+  def pathOf(technique: EditorTechnique, filename: String): String =
     s"${getTechniqueRelativePath(technique)}}/${filename}"
 
   def formatDscMethodBlock(techniqueName: String, methods: Map[BundleName, GenericMethod], parentBlocks: List[MethodBlock])(
@@ -1348,7 +1348,7 @@ class DSCTechniqueWriter(
     }
   }
 
-  override def agentMetadata(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]) = {
+  override def agentMetadata(technique: EditorTechnique, methods: Map[BundleName, GenericMethod]): PureResult[NodeSeq] = {
     val xml = <AGENT type="dsc">
       <BUNDLES>
         <NAME>{technique.id.validDscName}</NAME>

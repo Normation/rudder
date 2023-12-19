@@ -142,7 +142,8 @@ class ShowNodeDetailsFromNode(
     }
   }.toBox
 
-  val emptyInterval = AgentRunInterval(Some(false), 5, 0, 0, 0) // if everything fails, we fall back to the default entry
+  val emptyInterval: AgentRunInterval =
+    AgentRunInterval(Some(false), 5, 0, 0, 0) // if everything fails, we fall back to the default entry
   def getSchedule(nodeInfo: NodeInfo): Box[AgentRunInterval] = {
     Full(nodeInfo.nodeReportingConfiguration.agentRunInterval.getOrElse(getGlobalSchedule().getOrElse(emptyInterval)))
   }
@@ -162,7 +163,7 @@ class ShowNodeDetailsFromNode(
     }).toBox
   }
 
-  def mainDispatch = Map(
+  def mainDispatch: Map[String, NodeSeq => NodeSeq] = Map(
     "popupDetails"    -> { _: NodeSeq => privateDisplay(true, Summary) },
     "popupCompliance" -> { _: NodeSeq => privateDisplay(true, Compliance) },
     "popupSystem"     -> { _: NodeSeq => privateDisplay(true, System) },

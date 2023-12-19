@@ -65,11 +65,11 @@ import net.liftweb.util.Helpers._
 import scala.xml._
 
 object NodeGroupForm {
-  val templatePath = "templates-hidden" :: "components" :: "NodeGroupForm" :: Nil
+  val templatePath: List[String] = "templates-hidden" :: "components" :: "NodeGroupForm" :: Nil
 
-  val staticInit = ChooseTemplate(templatePath, "component-staticinit")
-  val body       = ChooseTemplate(templatePath, "component-body")
-  val staticBody = ChooseTemplate(templatePath, "component-staticbody")
+  val staticInit: NodeSeq = ChooseTemplate(templatePath, "component-staticinit")
+  val body:       NodeSeq = ChooseTemplate(templatePath, "component-body")
+  val staticBody: NodeSeq = ChooseTemplate(templatePath, "component-staticbody")
 
   private val saveButtonId = "groupSaveButtonId"
 
@@ -150,7 +150,7 @@ class NodeGroupForm(
 
   setSearchNodeComponent
 
-  def mainDispatch = Map(
+  def mainDispatch: Map[String, NodeSeq => NodeSeq] = Map(
     "showForm"  -> { _: NodeSeq => showForm() },
     "showGroup" -> { _: NodeSeq =>
       searchNodeComponent.get match {
@@ -160,7 +160,7 @@ class NodeGroupForm(
     }
   )
 
-  val pendingChangeRequestXml = {
+  val pendingChangeRequestXml: Elem = {
     <div id="pendingChangeRequestNotification">
       <div class="row">
         <i class="fa fa-exclamation-triangle warnicon" aria-hidden="true"></i>

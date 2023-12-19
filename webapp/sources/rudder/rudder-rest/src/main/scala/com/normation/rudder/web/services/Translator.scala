@@ -42,6 +42,7 @@ import java.util.Locale
 import net.liftweb.common._
 import org.apache.commons.io.FilenameUtils
 import org.joda.time.format.DateTimeFormat
+import org.joda.time.format.DateTimeFormatter
 import scala.collection.mutable.{Map => MutMap}
 
 class Serializer[T](techniques: (String, T => String)*) {
@@ -62,7 +63,7 @@ class Serializer[T](techniques: (String, T => String)*) {
   /**
    * Get the list of all defined properties
    */
-  def properties = propReg.keysIterator.toSeq.sortWith(_ < _)
+  def properties: Seq[String] = propReg.keysIterator.toSeq.sortWith(_ < _)
 
   def iterator: Iterator[(String, T => String)] = propReg.iterator
 }
@@ -85,7 +86,7 @@ class Unserializer[T](techniques: (String, String => Box[T])*) {
   /**
    * Get the list of all defined properties
    */
-  def properties = propReg.keysIterator.toSeq.sortWith(_ < _)
+  def properties: Seq[String] = propReg.keysIterator.toSeq.sortWith(_ < _)
 
   def iterator: Iterator[(String, String => Box[T])] = propReg.iterator
 }
@@ -137,10 +138,10 @@ class Translators {
 
 object Translator {
 
-  val isoDateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd").withLocale(Locale.ENGLISH)
-  val isoTimeFormatter = DateTimeFormat.forPattern("HH:mm:ss").withLocale(Locale.ENGLISH)
+  val isoDateFormatter: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd").withLocale(Locale.ENGLISH)
+  val isoTimeFormatter: DateTimeFormatter = DateTimeFormat.forPattern("HH:mm:ss").withLocale(Locale.ENGLISH)
 
-  val defaultTranslators = {
+  val defaultTranslators: Translators = {
     val t = new Translators()
     t.add(StringTranslator)
     t.add(new DateTimeTranslator(isoDateFormatter, isoTimeFormatter))

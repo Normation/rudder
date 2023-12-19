@@ -53,6 +53,7 @@ import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.services.policies.PolicyId
 import org.joda.time.DateTime
 import org.junit.runner._
+import org.specs2.matcher.MatchResult
 import org.specs2.mutable._
 import org.specs2.runner._
 
@@ -63,25 +64,25 @@ class ReportingServiceUtilsTest extends Specification {
    * Check that "skipped" are correctly constructed. See
    * https://issues.rudder.io/issues/16280 and parents
    */
-  val node1 = NodeId("node1")
-  val node2 = NodeId("node2")
-  val rule1 = RuleId(RuleUid("rule1"))
-  val rule2 = RuleId(RuleUid("rule2"))
-  val rule3 = RuleId(RuleUid("rule3"))
-  val dir1  = DirectiveId(DirectiveUid("dir1"))
-  val dir2  = DirectiveId(DirectiveUid("dir2"))
-  val dir3  = DirectiveId(DirectiveUid("dir3"))
+  val node1: NodeId      = NodeId("node1")
+  val node2: NodeId      = NodeId("node2")
+  val rule1: RuleId      = RuleId(RuleUid("rule1"))
+  val rule2: RuleId      = RuleId(RuleUid("rule2"))
+  val rule3: RuleId      = RuleId(RuleUid("rule3"))
+  val dir1:  DirectiveId = DirectiveId(DirectiveUid("dir1"))
+  val dir2:  DirectiveId = DirectiveId(DirectiveUid("dir2"))
+  val dir3:  DirectiveId = DirectiveId(DirectiveUid("dir3"))
 
   val expiration = new DateTime(0) // not used
 
-  val noOverrides                                                        = Nil
-  def dirReport(id: DirectiveId)                                         = (id, DirectiveStatusReport(id, Nil))
-  def rnReport(nodeId: NodeId, ruleId: RuleId, directives: DirectiveId*) = {
+  val noOverrides = Nil
+  def dirReport(id: DirectiveId):                                         (DirectiveId, DirectiveStatusReport) = (id, DirectiveStatusReport(id, Nil))
+  def rnReport(nodeId: NodeId, ruleId: RuleId, directives: DirectiveId*): RuleNodeStatusReport                 = {
     RuleNodeStatusReport(nodeId, ruleId, None, None, directives.map(dirReport _).toMap, expiration)
   }
 
   // a case where the same directive is on two rules
-  def thisOverrideThatOn(overrider: RuleId, overridden: RuleId, directive: DirectiveId)                            = {
+  def thisOverrideThatOn(overrider: RuleId, overridden: RuleId, directive: DirectiveId): OverridenPolicy = {
     OverridenPolicy(
       PolicyId(overridden, directive, TechniqueVersionHelper("1.0")), // this one is
 
@@ -89,7 +90,12 @@ class ReportingServiceUtilsTest extends Specification {
     )
   }
   // a case where two directive from the same unique technique are on two rules
-  def thisOverrideThatOn2(overrider: RuleId, directiver: DirectiveId, overridden: RuleId, directiven: DirectiveId) = {
+  def thisOverrideThatOn2(
+      overrider:  RuleId,
+      directiver: DirectiveId,
+      overridden: RuleId,
+      directiven: DirectiveId
+  ): OverridenPolicy = {
     OverridenPolicy(
       PolicyId(overridden, directiven, TechniqueVersionHelper("1.0")), // this one is
 
@@ -108,7 +114,7 @@ class ReportingServiceUtilsTest extends Specification {
 
   // for aggregated status reports, we just compare directive list
   implicit class AggregatedReportMatcher(report1: AggregatedStatusReport) {
-    def isSameReportAs(report2: AggregatedStatusReport) = {
+    def isSameReportAs(report2: AggregatedStatusReport): MatchResult[Set[DirectiveId]] = {
       report1.directives.keySet === report2.directives.keySet
     }
   }

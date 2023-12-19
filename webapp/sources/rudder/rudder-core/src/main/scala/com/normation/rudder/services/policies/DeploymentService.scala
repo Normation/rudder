@@ -626,7 +626,7 @@ trait PromiseGenerationService {
       globalComplianceMode: GlobalComplianceMode,
       globalAgentRun:       AgentRunInterval,
       globalPolicyMode:     GlobalPolicyMode
-  ) = {
+  ): Map[NodeId, NodeModeConfig] = {
     nodes.map {
       case (id, info) =>
         (
@@ -1184,7 +1184,7 @@ object BuildNodeConfiguration extends Loggable {
    * of failure when using bestEffort.
    */
   implicit class DedupFailure[T](box: Box[T]) {
-    def dedupFailures(failure: String, transform: String => String = identity) = {
+    def dedupFailures(failure: String, transform: String => String = identity): Box[T] = {
       box match { // dedup error messages
         case Full(res) => Full(res)
         case eb: EmptyBox =>

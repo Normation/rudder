@@ -118,7 +118,7 @@ final case object HttpAction {
 
   // no PATCH for now
 
-  def values = ca.mrvisser.sealerate.values[HttpAction]
+  def values: Set[HttpAction] = ca.mrvisser.sealerate.values[HttpAction]
 
   def parse(action: String): Either[String, HttpAction] = {
     val lower = action.toLowerCase()
@@ -171,7 +171,7 @@ object AclPath {
   }
   // only the root is given, and the path ends with "**". It can even be only "**"
   final case class Root(segments: List[AclPathSegment])             extends AnyVal with AclPath {
-    def parts = NonEmptyList.ofInitLast(segments, AclPathSegment.DoubleWildcard)
+    def parts: NonEmptyList[AclPathSegment] = NonEmptyList.ofInitLast(segments, AclPathSegment.DoubleWildcard)
   }
 
   // parse a path to an acl path.
@@ -232,7 +232,7 @@ object AclPath {
  * is no authorization for that path.
  */
 final case class ApiAclElement(path: AclPath, actions: Set[HttpAction]) {
-  def display = path.value + ":" + actions.map(_.name.toUpperCase()).mkString("[", ",", "]")
+  def display: String = path.value + ":" + actions.map(_.name.toUpperCase()).mkString("[", ",", "]")
 }
 
 sealed trait ApiAuthorizationKind { def name: String }
@@ -249,7 +249,7 @@ object ApiAuthorizationKind       {
    */
   final case object ACL  extends ApiAuthorizationKind { override val name = "acl"  }
 
-  def values = ca.mrvisser.sealerate.values[ApiAuthorizationKind]
+  def values: Set[ApiAuthorizationKind] = ca.mrvisser.sealerate.values[ApiAuthorizationKind]
 
   def parse(s: String): Either[String, ApiAuthorizationKind] = {
     val lc = s.toLowerCase
@@ -278,7 +278,7 @@ object ApiAuthorization       {
    * An authorization object with ALL authorization,
    * present and future.
    */
-  val allAuthz = ACL(List(ApiAclElement(AclPath.Root(Nil), HttpAction.values)))
+  val allAuthz: ACL = ACL(List(ApiAclElement(AclPath.Root(Nil), HttpAction.values)))
 }
 
 /**
@@ -299,7 +299,7 @@ object ApiAccountType       {
   // a standard API token, that can be only for public API access
   final case object PublicApi extends ApiAccountType { val name = "public" }
 
-  def values = ca.mrvisser.sealerate.values[ApiAccountType]
+  def values: Set[ApiAccountType] = ca.mrvisser.sealerate.values[ApiAccountType]
 }
 
 sealed trait ApiAccountKind { def kind: ApiAccountType }

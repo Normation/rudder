@@ -151,7 +151,7 @@ final case class TechniqueTemplateCopyInfo(
     destination: String,
     content:     String // template content as a file
 ) {
-  override def toString() = s"Technique template ${id.name}; destination ${destination}"
+  override def toString(): String = s"Technique template ${id.name}; destination ${destination}"
 }
 
 final case class TechniqueResourceCopyInfo(
@@ -159,5 +159,5 @@ final case class TechniqueResourceCopyInfo(
     destination: String,
     content:     Array[Byte] // template resource as a file
 ) {
-  override def toString() = s"Technique resource ${id.name}; destination ${destination}"
+  override def toString(): String = s"Technique resource ${id.name}; destination ${destination}"
 }

@@ -138,7 +138,7 @@ final case class ConfigurationChangeRequest(
     rules:        Map[RuleId, RuleChanges],
     globalParams: Map[String, GlobalParameterChanges]
 ) extends ChangeRequest {
-  val owner = {
+  val owner: String = {
 
     // To get the owner of the change request we need to get the actor of oldest change associated to change request
     // We have to regroup all changes in one sequence then find the oldest change in them
@@ -264,7 +264,7 @@ final case class DirectiveChange(
     }
   }
 
-  val change = {
+  val change: Box[DirectiveChangeItem] = {
     val allChanges = firstChange :: nextChanges.toList
     (initialState, firstChange.diff) match {
       case (None, a: AddDirectiveDiff) => recChange(Full(firstChange), nextChanges.toList)
@@ -319,7 +319,7 @@ final case class NodeGroupChange(
   }
 
   // compute the change from the initial state to the end of the change request
-  def change = {
+  def change: Box[NodeGroupChangeItem] = {
     val allChanges = firstChange :: nextChanges.toList
     (initialState, firstChange.diff) match {
       case (None, a: AddNodeGroupDiff) => recChange(Full(firstChange), nextChanges.toList)
@@ -350,7 +350,7 @@ final case class RuleChange(
     val nextChanges:  Seq[RuleChangeItem]
 ) extends Change[Rule, ChangeRequestRuleDiff, RuleChangeItem] {
 
-  val change = Full(firstChange)
+  val change: Full[RuleChangeItem] = Full(firstChange)
 }
 
 final case class RuleChanges(
@@ -372,7 +372,7 @@ final case class GlobalParameterChange(
     val nextChanges:  Seq[GlobalParameterChangeItem]
 ) extends Change[GlobalParameter, ChangeRequestGlobalParameterDiff, GlobalParameterChangeItem] {
 
-  val change = Full(firstChange)
+  val change: Full[GlobalParameterChangeItem] = Full(firstChange)
 }
 
 final case class GlobalParameterChanges(

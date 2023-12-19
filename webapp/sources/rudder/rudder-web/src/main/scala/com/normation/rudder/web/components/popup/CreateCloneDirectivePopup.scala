@@ -60,7 +60,7 @@ import scala.xml._
 object CreateCloneDirectivePopup {
   val htmlId_popupContainer = "createCloneDirectiveContainer"
   val htmlId_popup          = "createCloneDirectivePopup"
-  val html                  = SHtml.ajaxForm(
+  val html: Elem = SHtml.ajaxForm(
     <div id="createCloneDirectiveContainer" class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -97,7 +97,7 @@ class CreateCloneDirectivePopup(
   private[this] val roDirectiveRepository = RudderConfig.roDirectiveRepository
   private[this] val woDirectiveRepository = RudderConfig.woDirectiveRepository
 
-  def dispatch = { case "popupContent" => { _ => popupContent() } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
 
   def popupContent(): NodeSeq = {
     ("#techniqueName" #> techniqueName
@@ -132,7 +132,7 @@ class CreateCloneDirectivePopup(
     }
   }
 
-  def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol") = {
+  def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol"): WBTextAreaField = {
     new WBTextAreaField("Change audit message", "") {
       override def setFilter      = notNull _ :: trim _ :: Nil
       override def inputField     = super.inputField % ("style" -> "height:5em;") % ("tabindex" -> "3") % ("placeholder" -> {

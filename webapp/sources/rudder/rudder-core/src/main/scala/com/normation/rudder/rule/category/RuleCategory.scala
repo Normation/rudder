@@ -120,7 +120,7 @@ final case class RuleCategory(
     }
   }
 
-  def canBeDeleted(rules: List[Rule]) = {
+  def canBeDeleted(rules: List[Rule]): Boolean = {
     childs.isEmpty && rules.filter(_.categoryId == this.id).isEmpty
   }
 

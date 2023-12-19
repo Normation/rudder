@@ -42,9 +42,9 @@ import scala.xml.Elem
 object DATA_6 {
   import Migration_6_DATA_Rule._
 
-  def e(xml: Elem) = <entry>{xml}</entry>
+  def e(xml: Elem): Elem = <entry>{xml}</entry>
 
-  val data_6 = Map(
+  val data_6: Map[String, MigrationTestLog] = Map(
     "rule_add"       -> MigrationTestLog(
       eventType = "RuleAdded",
       data = e(rule_add_6)
@@ -66,7 +66,7 @@ object DATA_6 {
 
 object Migration_6_DATA_Rule {
 
-  val rule_add_6 = {
+  val rule_add_6: Elem = {
     <rule fileFormat="6" changeType="add">
       <id>e7c21276-d2b5-4fff-9924-96b67db9bd1c</id>
       <displayName>configuration</displayName>
@@ -84,7 +84,7 @@ object Migration_6_DATA_Rule {
     </rule>
   }
 
-  val rule_modify_6 = {
+  val rule_modify_6: Elem = {
     <rule fileFormat="6" changeType="modify">
       <id>39720027-952c-4e28-b774-9d5ce63f7a1e</id>
       <displayName>Eutelsat CR Test</displayName>
@@ -120,7 +120,7 @@ object Migration_6_DATA_Rule {
     </rule>
   }
 
-  val rule_delete_6 = {
+  val rule_delete_6: Elem = {
     <rule fileFormat="6" changeType="delete">
       <id>ad8c48f7-b278-4f0c-83d7-f9cb28e0d440</id>
       <displayName>zada on SLES10</displayName>
@@ -139,7 +139,7 @@ object Migration_6_DATA_Rule {
 }
 
 object Migration_6_DATA_ChangeRequest {
-  val cr_rule_change_6 = {
+  val cr_rule_change_6: Elem = {
     <changeRequest fileFormat="6">
       <groups>
       </groups>

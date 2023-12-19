@@ -86,7 +86,7 @@ final case class FillTemplateTimer(
 )
 
 object FillTemplateTimer {
-  def make() = for {
+  def make(): ZIO[Any, Nothing, FillTemplateTimer] = for {
     a <- Ref.make(0L)
     b <- Ref.make(0L)
     c <- Ref.make(0L)
@@ -274,7 +274,8 @@ object FillTemplateThreadUnsafe {
 
 class FillTemplatesService {
 
-  val semaphore = ZioRuntime.unsafeRun(Semaphore.make(1)) // now that we use Promises this semaphore doesn't cost anything
+  val semaphore: Semaphore =
+    ZioRuntime.unsafeRun(Semaphore.make(1)) // now that we use Promises this semaphore doesn't cost anything
 
   /*
    * The cache is managed template by template

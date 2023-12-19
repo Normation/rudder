@@ -23,7 +23,7 @@ trait XmlFileFormatMigration {
   def fromVersion: Int
   def toVersion:   Int
 
-  def logger = MigrationLogger(toVersion)
+  def logger: MigrationLogger = MigrationLogger(toVersion)
 
   def errorLogger:   Failure => Unit             = logger.defaultErrorLogger
   def successLogger: Seq[MigrableEntity] => Unit = logger.defaultSuccessLogger
@@ -74,7 +74,7 @@ object TestIsEntry {
  */
 final case class ChangeLabel(label: String, logger: Logger) extends Function1[NodeSeq, Option[Elem]] {
 
-  override def apply(nodes: NodeSeq) = nodes match {
+  override def apply(nodes: NodeSeq): Option[Elem] = nodes match {
     case e: Elem => Some(e.copy(label = label))
     case x => // ignore other type of nodes
       logger.debug("Can not change the label to '%s' of a NodeSeq other than elem in a CssSel: '%s'".format(label, x))
@@ -87,7 +87,7 @@ final case class ChangeLabel(label: String, logger: Logger) extends Function1[No
  */
 final case class EncapsulateChild(label: String, logger: Logger) extends Function1[NodeSeq, Option[NodeSeq]] {
 
-  override def apply(nodes: NodeSeq) = nodes match {
+  override def apply(nodes: NodeSeq): Option[NodeSeq] = nodes match {
     case e: Elem => Some(e.copy(child = Encapsulate(label, logger).apply(e.child).getOrElse(NodeSeq.Empty)))
     case x => // ignore other type of nodes
       logger.debug("Can not change the label to '%s' of a NodeSeq other than elem in a CssSel: '%s'".format(label, x))
@@ -100,7 +100,7 @@ final case class EncapsulateChild(label: String, logger: Logger) extends Functio
  */
 final case class Encapsulate(label: String, logger: Logger) extends Function1[NodeSeq, Option[NodeSeq]] {
 
-  override def apply(nodes: NodeSeq) = nodes match {
+  override def apply(nodes: NodeSeq): Option[NodeSeq] = nodes match {
     case e:       Elem                                  => Some(e.copy(label = label, child = e))
     case nodeseq: NodeSeq if (nodeseq.size == 1)        => Some(<test>{nodeseq.head}</test>.copy(label = label))
     case nodeseq: NodeSeq if (nodeseq == NodeSeq.Empty) => Some(nodeseq)

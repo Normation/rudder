@@ -45,7 +45,7 @@ import scala.xml.NodeSeq
 
 class Authz extends DispatchSnippet with Loggable {
 
-  def dispatch = {
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
     case "render"        => testRight
     case "whennorights"  => whenNoRights
     case "whenhasrights" => whenHasRights

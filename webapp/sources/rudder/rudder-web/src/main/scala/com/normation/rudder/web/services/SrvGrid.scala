@@ -59,6 +59,7 @@ import net.liftweb.http.SHtml._
 import net.liftweb.http.js._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
+import org.slf4j
 import org.slf4j.LoggerFactory
 import scala.xml._
 import zio._
@@ -70,7 +71,7 @@ import zio._
  *
  */
 object SrvGrid {
-  val logger = LoggerFactory.getLogger(classOf[SrvGrid])
+  val logger: slf4j.Logger = LoggerFactory.getLogger(classOf[SrvGrid])
 }
 
 /**
@@ -89,7 +90,7 @@ class SrvGrid(
     nodeInfoService:       NodeInfoService
 ) extends Loggable {
 
-  def jsVarNameForId(tableId: String) = "oTable" + tableId
+  def jsVarNameForId(tableId: String): String = "oTable" + tableId
 
   /**
    * Display and init the display for the list of server
@@ -137,7 +138,7 @@ class SrvGrid(
   def getTableData(
       nodes:    Seq[NodeInfo],
       callback: Option[(String, Boolean) => JsCmd]
-  ) = {
+  ): JsTableData[NodeLine] = {
 
     val lines = (for {
       now         <- currentTimeMillis
@@ -223,7 +224,7 @@ final case class NodeLine(
     }
   }
 
-  val optCallback = {
+  val optCallback: Option[(String, AnonFunc)] = {
     callback.map(cb => {
       (
         "callback",
@@ -240,7 +241,7 @@ final case class NodeLine(
       )
     })
   }
-  val hostname    = {
+  val hostname:    String                     = {
     if (isEmpty(node.hostname)) {
       s"(Missing name)  ${node.id.value}"
     } else {
@@ -248,7 +249,7 @@ final case class NodeLine(
     }
   }
 
-  val lastReportValue = {
+  val lastReportValue: String = {
     lastReport match {
       case Full(exec) =>
         exec.map(report => DateFormaterService.getDisplayDate(report.agentRunId.date)).getOrElse("Never")
@@ -257,7 +258,7 @@ final case class NodeLine(
     }
   }
 
-  val baseFields = {
+  val baseFields: JsObj = {
     JsObj(
       ("name"            -> escapeHTML(hostname)),
       ("state"           -> escapeHTML(node.state.name)),
@@ -280,5 +281,5 @@ final case class NodeLine(
     )
   }
 
-  val json = baseFields +* JsObj(optCallback.toSeq: _*)
+  val json: JsObj = baseFields +* JsObj(optCallback.toSeq: _*)
 }

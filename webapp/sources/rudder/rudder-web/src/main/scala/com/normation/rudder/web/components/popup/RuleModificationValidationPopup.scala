@@ -102,9 +102,9 @@ class RuleModificationValidationPopup(
 
   private[this] val userPropertyService = RudderConfig.userPropertyService
 
-  val validationNeeded = workflowService.needExternalValidation()
+  val validationNeeded: Boolean = workflowService.needExternalValidation()
 
-  def dispatch = { case "popupContent" => { _ => popupContent() } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
 
   def popupContent(): NodeSeq = {
     import RuleModAction._
@@ -172,7 +172,7 @@ class RuleModificationValidationPopup(
     }
   }
 
-  def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol") = {
+  def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol"): WBTextAreaField = {
     new WBTextAreaField("Change audit message", "") {
       override def setFilter   = notNull _ :: trim _ :: Nil
       override def inputField  = super.inputField % ("style" -> "height:8em;") % ("tabindex" -> "2") % ("placeholder" -> {

@@ -38,6 +38,7 @@
 package com.normation.rudder.rest
 
 import com.normation.GitVersion.Revision
+import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.zio._
@@ -60,9 +61,9 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
     .getLogger("com.normation.rudder.rest.RestUtils")
     .asInstanceOf[ch.qos.logback.classic.Logger]
     .setLevel(ch.qos.logback.classic.Level.OFF)
-  val env  = RestTestSetUp.newEnv
+  val env = RestTestSetUp.newEnv
   import com.softwaremill.quicklens._
-  val rule = env.mockRules.ruleRepo
+  val rule: Rule = env.mockRules.ruleRepo
     .get(RuleId(RuleUid("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f")))
     .runNow
     .modify(_.id.rev)

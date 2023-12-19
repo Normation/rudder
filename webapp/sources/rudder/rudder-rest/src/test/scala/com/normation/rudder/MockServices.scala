@@ -67,13 +67,13 @@ import zio.{Tag => _}
 
 class MockSettings(wfservice: WorkflowLevelService, asyncWF: AsyncWorkflowInfo) {
 
-  val defaultPolicyServer = PolicyServers(
+  val defaultPolicyServer: PolicyServers = PolicyServers(
     PolicyServer(Constants.ROOT_POLICY_SERVER_ID, AllowedNetwork("192.168.2.0/32", "root") :: Nil),
     Nil
   )
 
   object policyServerManagementService extends PolicyServerManagementService {
-    val repo = Ref.make(defaultPolicyServer).runNow
+    val repo: Ref[PolicyServers] = Ref.make(defaultPolicyServer).runNow
 
     override def getPolicyServers(): IOResult[PolicyServers] = repo.get
 
@@ -101,7 +101,7 @@ class MockSettings(wfservice: WorkflowLevelService, asyncWF: AsyncWorkflowInfo) 
   }
 
   // a mock service that keep information in memory only
-  val configService = {
+  val configService: GenericConfigService = {
 
     object configRepo extends ConfigRepository {
       val configs = Ref.make(Map[String, RudderWebProperty]()).runNow

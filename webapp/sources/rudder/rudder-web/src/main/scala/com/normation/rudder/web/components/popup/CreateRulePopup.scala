@@ -71,8 +71,8 @@ class CreateOrCloneRulePopup(
 ) extends DispatchSnippet with Loggable {
 
   // Load the template from the popup
-  def templatePath = List("templates-hidden", "Popup", "createRule")
-  def template(): NodeSeq = Templates(templatePath) match {
+  def templatePath: List[String] = List("templates-hidden", "Popup", "createRule")
+  def template():   NodeSeq      = Templates(templatePath) match {
     case Empty | Failure(_, _, _) =>
       error("Template for creation popup not found. I was looking for %s.html".format(templatePath.mkString("/")))
     case Full(n)                  => n
@@ -88,7 +88,7 @@ class CreateOrCloneRulePopup(
   private[this] val userPropertyService        = RudderConfig.userPropertyService
   private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
 
-  def dispatch = { case "popupContent" => _ => popupContent() }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => _ => popupContent() }
 
   def popupContent(): NodeSeq = {
 
@@ -140,7 +140,7 @@ class CreateOrCloneRulePopup(
     }
   }
 
-  def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol") = {
+  def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol"): WBTextAreaField = {
     new WBTextAreaField("Change audit message", "") {
       override def setFilter      = notNull _ :: trim _ :: Nil
       override def inputField     = super.inputField % ("style" -> "height:5em;") % ("tabindex" -> "3") % ("placeholder" -> {

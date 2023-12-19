@@ -48,6 +48,7 @@ import com.normation.rudder.domain.policies.PolicyMode._
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
 import com.normation.rudder.domain.workflows._
+import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
 import com.normation.rudder.web.ChooseTemplate
@@ -126,15 +127,15 @@ class DirectiveEditForm(
     }
   }
 
-  val rules        = roRuleRepo.getAll(false).toBox.getOrElse(Seq()).toList
-  val rootCategory = roRuleCategoryRepo
+  val rules:        List[Rule]   = roRuleRepo.getAll(false).toBox.getOrElse(Seq()).toList
+  val rootCategory: RuleCategory = roRuleCategoryRepo
     .getRootCategory()
     .toBox
     .getOrElse(
       throw new RuntimeException("Error when retrieving the rule root category - it is most likelly a bug. Pleae report.")
     )
   val directiveApp = new DirectiveApplicationManagement(directive, rules, rootCategory)
-  def dispatch     = { case "showForm" => { _ => showForm() } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "showForm" => { _ => showForm() } }
 
   def isNcfTechnique(id: TechniqueId): Boolean = {
     val test = for {
@@ -158,7 +159,7 @@ class DirectiveEditForm(
     )(body)
   }
 
-  def migrateButton(version: => TechniqueVersion, text: String, id: String = "migrationButton") = {
+  def migrateButton(version: => TechniqueVersion, text: String, id: String = "migrationButton"): Elem = {
     <lift:authz role="directive_write">
       {
       SHtml.ajaxSubmit(
@@ -174,7 +175,7 @@ class DirectiveEditForm(
     </lift:authz>
   }
 
-  val displayDeprecationWarning = technique.deprecrationInfo match {
+  val displayDeprecationWarning: CssSel = technique.deprecrationInfo match {
     case Some(info) =>
       ("#deprecation-message *" #> info.message &
       "#migrate-button *" #> {
@@ -388,7 +389,7 @@ class DirectiveEditForm(
 
   ////////////// Callbacks //////////////
 
-  def addFormMsg(msg: NodeSeq) = formTracker.addFormError(msg)
+  def addFormMsg(msg: NodeSeq): Unit = formTracker.addFormError(msg)
 
   private[this] def onFailure(): JsCmd = {
     formTracker.addFormError(error("There was a problem with your request."))
@@ -540,7 +541,7 @@ class DirectiveEditForm(
 
   private[this] var newTags = directive.tags
 
-  def updateTag(boxTag: Box[Tags]) = {
+  def updateTag(boxTag: Box[Tags]): Unit = {
     boxTag match {
       case Full(tags) => newTags = tags
       case eb: EmptyBox =>
@@ -548,9 +549,9 @@ class DirectiveEditForm(
         formTracker.addFormError(error(failure.messageChain))
     }
   }
-  def tagsEditForm                 = new TagsEditForm(directive.tags, directive.id.uid.value)
+  def tagsEditForm = new TagsEditForm(directive.tags, directive.id.uid.value)
 
-  def showDeprecatedVersion(version: TechniqueVersion) = {
+  def showDeprecatedVersion(version: TechniqueVersion): String = {
     // here, we use default revision to get deprecation info, but we should likely have a per revision
     // deprecation message possible
     val deprecationInfo = techniques(version.withDefaultRev).deprecrationInfo match {
@@ -559,7 +560,7 @@ class DirectiveEditForm(
     }
     s"${version.serialize} ${deprecationInfo}"
   }
-  private[this] val globalOverrideText                 = globalMode.overridable match {
+  private[this] val globalOverrideText = globalMode.overridable match {
     case Always        =>
       <div>
         You may override the agent policy mode on this directive.
@@ -629,7 +630,7 @@ class DirectiveEditForm(
     }
   }
 
-  val versions = techniques.keys.map(v => (v, showDeprecatedVersion(v))).toSeq.sortBy(_._1)
+  val versions: Seq[(TechniqueVersion, String)] = techniques.keys.map(v => (v, showDeprecatedVersion(v))).toSeq.sortBy(_._1)
 
   private[this] val directiveVersion = {
     val attributes = ("id" -> "selectVersion") ::

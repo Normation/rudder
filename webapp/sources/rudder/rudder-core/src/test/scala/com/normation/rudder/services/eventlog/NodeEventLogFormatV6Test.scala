@@ -51,6 +51,7 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import scala.collection.mutable.ArrayBuffer
+import scala.xml.Elem
 
 /**
  *
@@ -64,13 +65,13 @@ import scala.collection.mutable.ArrayBuffer
 class NodeEventLogFormatV6Test extends Specification {
 
   // we only want to unserialize node properties - all these null, a piece of beauty
-  val eventDetails                   = new EventLogDetailsServiceImpl(null, null, null, null, null, null, null, null, null)
-  val event_32_NodeHeartbeatModified = <entry><node changeType="modify" fileFormat="6">
+  val eventDetails = new EventLogDetailsServiceImpl(null, null, null, null, null, null, null, null, null)
+  val event_32_NodeHeartbeatModified: Elem = <entry><node changeType="modify" fileFormat="6">
     <id>59e66fe7-7f0e-497d-8055-a103116b4a08</id>
     <heartbeat><from/><to><override>true</override><period>20</period></to></heartbeat>
   </node></entry>
 
-  val nodeHeartbeatModified = ModifyNodeDiff(
+  val nodeHeartbeatModified: ModifyNodeDiff = ModifyNodeDiff(
     NodeId("59e66fe7-7f0e-497d-8055-a103116b4a08"),
     modHeartbeat = Some(
       SimpleDiff(
@@ -85,7 +86,7 @@ class NodeEventLogFormatV6Test extends Specification {
     modKeyStatus = None
   )
 
-  val event_32_NodePropertiesModified = <entry><node changeType="modify" fileFormat="6">
+  val event_32_NodePropertiesModified: Elem = <entry><node changeType="modify" fileFormat="6">
     <id>root</id>
     <properties>
       <from><property><name>env_type</name><value>production</value></property><property><name>shell</name><value>/bin/sh</value></property></from>
@@ -96,7 +97,7 @@ class NodeEventLogFormatV6Test extends Specification {
     </properties>
   </node></entry>
 
-  val nodePropertiesModified = ModifyNodeDiff(
+  val nodePropertiesModified: ModifyNodeDiff = ModifyNodeDiff(
     NodeId("root"),
     modHeartbeat = None,
     modAgentRun = None,
@@ -123,7 +124,7 @@ class NodeEventLogFormatV6Test extends Specification {
     modKeyStatus = None
   )
 
-  val event_32_NodeAgentRunPeriodModified = <entry><node changeType="modify" fileFormat="6">
+  val event_32_NodeAgentRunPeriodModified: Elem = <entry><node changeType="modify" fileFormat="6">
     <id>dd702a09-6cf9-4d22-9f2d-a6e1f1df63ea</id>
     <agentRun>
       <from><override></override><interval>15</interval><startMinute>1</startMinute><startHour>0</startHour><splaytime>5</splaytime></from>
@@ -131,7 +132,7 @@ class NodeEventLogFormatV6Test extends Specification {
     </agentRun>
   </node></entry>
 
-  val nodeAgentRunPeriodModified = ModifyNodeDiff(
+  val nodeAgentRunPeriodModified: ModifyNodeDiff = ModifyNodeDiff(
     NodeId("dd702a09-6cf9-4d22-9f2d-a6e1f1df63ea"),
     modHeartbeat = None,
     modAgentRun = Some(

@@ -409,7 +409,7 @@ class StatusReportTest extends Specification {
   def buildComplianceLevelSets(
       nbSet:   Int,
       sizeSet: Int
-  ) = {
+  ): IndexedSeq[(Int, Seq[ReportType])] = {
     val sets = (1 to nbSet).toSeq
     val reportTypes: Seq[ReportType] =
       (1 to (sizeSet / 2)).map(_ => EnforceSuccess).toSeq ++ ((1 to (sizeSet / 2)).map(_ => EnforceRepaired).toSeq)

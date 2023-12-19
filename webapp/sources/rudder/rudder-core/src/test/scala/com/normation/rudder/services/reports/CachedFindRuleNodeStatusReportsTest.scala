@@ -68,20 +68,21 @@ import zio.syntax._
 @RunWith(classOf[JUnitRunner])
 class CachedFindRuleNodeStatusReportsTest extends Specification {
 
-  val expired = DateTime.now.minusMinutes(5)
-  val stillOk = DateTime.now.plusMinutes(5)
+  val expired: DateTime = DateTime.now.minusMinutes(5)
+  val stillOk: DateTime = DateTime.now.plusMinutes(5)
 
   // build one node by kind of reports, expired or not
-  def buildNode(id: String)                   = {
+  def buildNode(id: String):                   NodeInfo            = {
     val node1 = NodeConfigData.node1.node
     NodeConfigData.node1.copy(node = node1.copy(id = NodeId(id)))
   }
-  def run(id: String, info: RunAndConfigInfo) = NodeStatusReport(NodeId(id), info, RunComplianceInfo.OK, Nil, Set())
+  def run(id: String, info: RunAndConfigInfo): NodeStatusReport    =
+    NodeStatusReport(NodeId(id), info, RunComplianceInfo.OK, Nil, Set())
   // a list of node, on node by type of reports, in a triplet:
   // (node, expired report, still ok report)
-  def expected(id: String)                    = NodeExpectedReports(NodeId(id), NodeConfigId(id), null, null, null, Nil, Nil)
+  def expected(id: String):                    NodeExpectedReports = NodeExpectedReports(NodeId(id), NodeConfigId(id), null, null, null, Nil, Nil)
 
-  val nodes = List(
+  val nodes: List[(NodeInfo, NodeStatusReport, NodeStatusReport)] = List(
     (
       buildNode("n0"),
       run("n0", NoRunNoExpectedReport),
@@ -153,11 +154,11 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   class TestCache extends CachedFindRuleNodeStatusReports() {
     val batchSize = 3
     // what the backend will give to the cache
-    var reports   = Map[NodeId, NodeStatusReport]()
+    var reports: Map[NodeId, NodeStatusReport] = Map[NodeId, NodeStatusReport]()
     // store all updated nodes
-    var updated: List[NodeId] = Nil
+    var updated: List[NodeId]                  = Nil
 
-    override def defaultFindRuleNodeStatusReports = new DefaultFindRuleNodeStatusReports() {
+    override def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports = new DefaultFindRuleNodeStatusReports() {
       override def confExpectedRepo:                                                      FindExpectedReportRepository              = ???
       override def reportsRepository:                                                     ReportsRepository                         = ???
       override def agentRunRepository:                                                    RoReportsExecutionRepository              = ???
@@ -182,7 +183,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
 
       def findStatusReportsForDirective(directiveId: DirectiveId): IOResult[Map[NodeId, NodeStatusReport]] = ???
     }
-    override def nodeInfoService: NodeInfoService = testNodeInfoService
+    override def nodeInfoService:                  NodeInfoService                  = testNodeInfoService
 
     override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId):                 IOResult[Map[NodeId, NodeStatusReport]] = ???
     override def findNodeStatusReport(nodeId: NodeId):                                 Box[NodeStatusReport]                   = ???

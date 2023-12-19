@@ -74,7 +74,7 @@ object NodeKind       {
   final case object Relay extends NodeKind { val name = "relay"; val isPolicyServer = true }
   final case object Node  extends NodeKind { val name = "node"; val isPolicyServer = false }
 
-  def values = ca.mrvisser.sealerate.values[NodeKind]
+  def values: Set[NodeKind] = ca.mrvisser.sealerate.values[NodeKind]
 
   def parse(kind: String): Either[String, NodeKind] = {
     val lower = kind.toLowerCase()
@@ -206,7 +206,7 @@ final case class NodeInfo(
   }
 
   // kind: root, relay or simple node ?
-  val nodeKind = (id, isPolicyServer) match {
+  val nodeKind: NodeKind = (id, isPolicyServer) match {
     case (Constants.ROOT_POLICY_SERVER_ID, _) => NodeKind.Root
     case (_, true)                            => NodeKind.Relay
     case (_, false)                           => NodeKind.Node

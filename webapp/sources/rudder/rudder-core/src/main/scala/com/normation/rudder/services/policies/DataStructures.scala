@@ -50,6 +50,7 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.TrackerVariable
 import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.cfclerk.domain.Variable
+import com.normation.cfclerk.domain.VariableSpec
 import com.normation.errors._
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
@@ -276,15 +277,15 @@ final case class NodeConfiguration(
  */
 final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId, techniqueVersion: TechniqueVersion) {
 
-  val value = s"${ruleId.serialize}@@${directiveId.serialize}"
+  val value: String = s"${ruleId.serialize}@@${directiveId.serialize}"
 
   /**
    * Create the value of the Rudder Id from the Id of the Policy and
    * the serial
    */
-  def getReportId = value + "@@0" // as of Rudder 4.3, serial is always 0
+  def getReportId: String = value + "@@0" // as of Rudder 4.3, serial is always 0
 
-  lazy val getRudderUniqueId = (techniqueVersion.serialize + "_" + directiveId.serialize).replaceAll("""\W""", "_")
+  lazy val getRudderUniqueId: String = (techniqueVersion.serialize + "_" + directiveId.serialize).replaceAll("""\W""", "_")
 }
 
 /**
@@ -334,7 +335,8 @@ final case class PolicyTechnique(
 
   val templatesIds: Set[TechniqueResourceId] = agentConfig.templates.map(_.id).toSet
 
-  val getAllVariableSpecs = this.rootSection.getAllVariables ++ this.systemVariableSpecs :+ this.trackerVariableSpec
+  val getAllVariableSpecs: Seq[VariableSpec] =
+    this.rootSection.getAllVariables ++ this.systemVariableSpecs :+ this.trackerVariableSpec
 }
 
 object PolicyTechnique {
@@ -413,8 +415,8 @@ final case class Policy(
   // == map .values (keep order) ==> Iterator[List[Variable]]
   // == .toList (keep order)     ==> List[List[Variable]]
   // == flatten (keep order)     ==> List[Variable]
-  def expandedVars    = Policy.mergeVars(policyVars.map(_.expandedVars.values).toList.flatten)
-  val trackerVariable =
+  def expandedVars:    Map[String, Variable] = Policy.mergeVars(policyVars.map(_.expandedVars.values).toList.flatten)
+  val trackerVariable: TrackerVariable       =
     policyVars.head.trackerVariable.spec.cloneSetMultivalued.toVariable(policyVars.map(_.trackerVariable.values).toList.flatten)
 }
 
@@ -505,7 +507,7 @@ final case class ParsedPolicyDraft(
     directiveOrder: BundleOrder
 ) {
 
-  def toBoundedPolicyDraft(expandedVars: Map[ComponentId, Variable]) = {
+  def toBoundedPolicyDraft(expandedVars: Map[ComponentId, Variable]): BoundPolicyDraft = {
     BoundPolicyDraft(
       id = id,
       ruleName = ruleName,

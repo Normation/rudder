@@ -327,7 +327,7 @@ class ParameterApiService2(
     }
   }
 
-  def listParameters(req: Req) = {
+  def listParameters(req: Req): LiftResponse = {
     implicit val action   = "listParameters"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     readParameter.getAllGlobalParameters().toBox match {
@@ -339,7 +339,7 @@ class ParameterApiService2(
     }
   }
 
-  def createParameter(restParameter: Box[RestParameter], parameterName: String, req: Req) = {
+  def createParameter(restParameter: Box[RestParameter], parameterName: String, req: Req): LiftResponse = {
     implicit val action   = "createParameter"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor             = RestUtils.getActor(req)
@@ -368,7 +368,7 @@ class ParameterApiService2(
     }
   }
 
-  def parameterDetails(id: String, req: Req) = {
+  def parameterDetails(id: String, req: Req): LiftResponse = {
     implicit val action   = "parameterDetails"
     implicit val prettify = restExtractor.extractPrettify(req.params)
 
@@ -383,7 +383,7 @@ class ParameterApiService2(
     }
   }
 
-  def deleteParameter(id: String, req: Req) = {
+  def deleteParameter(id: String, req: Req): LiftResponse = {
     implicit val action   = "deleteParameter"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor             = RestUtils.getActor(req)
@@ -401,7 +401,7 @@ class ParameterApiService2(
     }
   }
 
-  def updateParameter(id: String, req: Req, restValues: Box[RestParameter]) = {
+  def updateParameter(id: String, req: Req, restValues: Box[RestParameter]): LiftResponse = {
     implicit val action   = "updateParameter"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor             = getActor(req)

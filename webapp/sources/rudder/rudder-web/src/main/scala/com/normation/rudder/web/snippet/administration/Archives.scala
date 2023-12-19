@@ -67,7 +67,7 @@ class Archives extends DispatchSnippet with Loggable {
 
   private[this] val noElements = NotArchivedElements(Seq(), Seq(), Seq())
 
-  def dispatch = {
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
     case "allForm"              => allForm
     case "rulesForm"            => rulesForm
     case "groupLibraryForm"     => groupLibraryForm

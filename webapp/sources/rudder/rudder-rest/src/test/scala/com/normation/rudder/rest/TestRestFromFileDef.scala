@@ -54,7 +54,7 @@ class TestRestFromFileDef extends TraitTestApiFromYamlFiles with AfterAll {
   restTestSetUp.updatePackageManagementRevision()
 
   // let's say that's /var/rudder/share
-  val tmpApiTemplate = restTestSetUp.baseTempDirectory / "apiTemplates"
+  val tmpApiTemplate: File = restTestSetUp.baseTempDirectory / "apiTemplates"
   tmpApiTemplate.createDirectories()
 
   // nodeXX appears at several places
@@ -78,7 +78,7 @@ class TestRestFromFileDef extends TraitTestApiFromYamlFiles with AfterAll {
     orig.replaceAll("VALID-REV", revision.rev.value)
   }
 
-  val transformations = Map(
+  val transformations: Map[String, String => String] = Map(
     ("api_revisions.yml" -> copyTransformApiRevision _)
   )
 

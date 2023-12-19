@@ -85,7 +85,7 @@ import scala.xml.NodeSeq
  * Utilities about rights
  */
 object Boot {
-  val redirection =
+  val redirection: RedirectState =
     RedirectState(() => (), "You are not authorized to access that page, please contact your administrator." -> NoticeType.Error)
 
   def userIsAllowed(redirectTo: String, requiredAuthz: AuthorizationType*): Box[LiftResponse] = {
@@ -109,7 +109,7 @@ object PluginsInfo {
 
   private[this] var _plugins = Map[PluginName, RudderPluginDef]()
 
-  def registerPlugin(plugin: RudderPluginDef) = {
+  def registerPlugin(plugin: RudderPluginDef): Unit = {
     _plugins = _plugins + (plugin.name -> plugin)
   }
 
@@ -140,7 +140,7 @@ object PluginsInfo {
 //////////
 object StaticResourceRewrite extends RestHelper {
   // prefix added to signal that the resource is cached
-  val prefix = s"cache-${RudderConfig.rudderFullVersion}"
+  val prefix:                                  String                 = s"cache-${RudderConfig.rudderFullVersion}"
   def headers(others: List[(String, String)]): List[(String, String)] = {
     ("Cache-Control", "max-age=31556926, public") ::
     ("Pragma", "") ::
@@ -149,7 +149,7 @@ object StaticResourceRewrite extends RestHelper {
   }
 
   // the resource directory we want to server that way
-  val resources = Set("javascript", "style", "images", "toserve")
+  val resources: Set[String] = Set("javascript", "style", "images", "toserve")
   serve {
     case Get(prefix :: resource :: tail, req) if (resources.contains(resource)) =>
       val resourcePath = req.uri.replaceFirst(prefix + "/", "")
@@ -178,15 +178,15 @@ object StaticResourceRewrite extends RestHelper {
  */
 object FatalException {
 
-  private[this] var fatalException  = Set[String]()
+  private[this] var fatalException = Set[String]()
   // need to be pre-allocated
-  private[this] val format          = org.joda.time.format.ISODateTimeFormat.dateTime()
+  private[this] val format         = org.joda.time.format.ISODateTimeFormat.dateTime()
   /*
    * Call that method with the list of fatal exception to set-up the
    * UncaughtExceptionHandler.
    * Termination should be () => System.exit(1) safe in tests.
    */
-  def init(exceptions: Set[String]) = {
+  def init(exceptions: Set[String]): Unit = {
     this.fatalException = exceptions + "java.lang.Error"
 
     Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {

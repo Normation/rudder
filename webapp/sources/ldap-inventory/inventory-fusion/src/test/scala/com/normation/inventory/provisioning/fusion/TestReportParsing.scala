@@ -76,8 +76,8 @@ class TestInventoryParsing extends Specification with Loggable {
     }
   }
 
-  val parser                            = new FusionInventoryParser(new StringUuidGeneratorImpl)
-  def parseRun(inventory: String)       = ZioRuntime.unsafeRun(parser.parse(inventory))
+  val parser = new FusionInventoryParser(new StringUuidGeneratorImpl)
+  def parseRun(inventory: String): Inventory = ZioRuntime.unsafeRun(parser.parse(inventory))
   def parseRunEither(inventory: String) = ZioRuntime.unsafeRun(parser.parse(inventory).either)
 
   // we are testing some error etc, so make the standard output cleaner:

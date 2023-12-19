@@ -278,7 +278,9 @@ object AclCheck {
  */
 object OldInternalApiAuthz {
   import com.normation.rudder.AuthorizationType._
-  def fail(implicit action: String) = Failure(s"User '${CurrentUser.actor.name}' is not authorized to access API '${action}")
+  def fail(implicit action: String): Failure = Failure(
+    s"User '${CurrentUser.actor.name}' is not authorized to access API '${action}"
+  )
 
   def withPerm(isAuthorized: Boolean, resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
     if (isAuthorized) resp

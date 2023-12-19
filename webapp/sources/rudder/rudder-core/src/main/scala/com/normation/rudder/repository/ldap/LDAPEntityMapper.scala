@@ -546,7 +546,7 @@ class LDAPEntityMapper(
   /**
    * children and items are ignored
    */
-  def activeTechniqueCategory2ldap(category: ActiveTechniqueCategory, parentDN: DN) = {
+  def activeTechniqueCategory2ldap(category: ActiveTechniqueCategory, parentDN: DN): LDAPEntry = {
     val entry = rudderDit.ACTIVE_TECHNIQUES_LIB.activeTechniqueCategoryModel(category.id.value, parentDN)
     entry.resetValuesTo(A_NAME, category.name)
     entry.resetValuesTo(A_DESCRIPTION, category.description)
@@ -659,7 +659,7 @@ class LDAPEntityMapper(
   /**
    * children and items are ignored
    */
-  def nodeGroupCategory2ldap(category: NodeGroupCategory, parentDN: DN) = {
+  def nodeGroupCategory2ldap(category: NodeGroupCategory, parentDN: DN): LDAPEntry = {
     val entry = rudderDit.GROUP.groupCategoryModel(category.id.value, parentDN)
     entry.resetValuesTo(A_NAME, category.name)
     entry.resetValuesTo(A_DESCRIPTION, category.description)
@@ -912,7 +912,7 @@ class LDAPEntityMapper(
   /**
    * children and items are ignored
    */
-  def ruleCategory2ldap(category: RuleCategory, parentDN: DN) = {
+  def ruleCategory2ldap(category: RuleCategory, parentDN: DN): LDAPEntry = {
     rudderDit.RULECATEGORY.ruleCategoryModel(category.id.value, parentDN, category.name, category.description, category.isSystem)
   }
 

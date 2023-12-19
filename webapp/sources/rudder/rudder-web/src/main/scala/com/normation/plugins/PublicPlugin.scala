@@ -40,6 +40,7 @@ package com.normation.plugins
 import bootstrap.liftweb.MenuUtils
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.PluginLogger
+import com.typesafe.config.Config
 import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigFactory
 import net.liftweb.sitemap.Menu
@@ -64,7 +65,7 @@ trait DefaultPluginDef extends RudderPluginDef {
 
   // get properties name for the plugin from "build.conf" file
   // have default string for errors (and avoid "missing prop exception"):
-  lazy val defaults = {
+  lazy val defaults: String = {
     val d1 = List(
       "plugin-name",
       "plugin-fullname",
@@ -85,9 +86,9 @@ trait DefaultPluginDef extends RudderPluginDef {
 
   // by convention, plugin "build.conf" and plugin-commons "main-build.conf" files are copied into path:
   // target/classes/com/normation/plugins/${project.artifactId}
-  lazy val buildConfPath     = basePackage.replaceAll("""\.""", "/") + "/build.conf"
-  lazy val mainBuildConfPath = basePackage.replaceAll("""\.""", "/") + "/main-build.conf"
-  lazy val buildConf         = {
+  lazy val buildConfPath:     String = basePackage.replaceAll("""\.""", "/") + "/build.conf"
+  lazy val mainBuildConfPath: String = basePackage.replaceAll("""\.""", "/") + "/main-build.conf"
+  lazy val buildConf:         Config = {
     try {
       val c1 = ConfigFactory.load(this.getClass.getClassLoader, buildConfPath).withFallback(ConfigFactory.parseString(defaults))
       ConfigFactory.load(this.getClass.getClassLoader, mainBuildConfPath).withFallback(c1)
@@ -98,14 +99,14 @@ trait DefaultPluginDef extends RudderPluginDef {
     }
   }
 
-  override lazy val name        = PluginName(buildConf.getString("plugin-fullname"))
-  override lazy val shortName   = buildConf.getString("plugin-name")
-  override lazy val displayName = buildConf.getString("plugin-title-description")
-  override lazy val version     = {
+  override lazy val name:        PluginName     = PluginName(buildConf.getString("plugin-fullname"))
+  override lazy val shortName:   String         = buildConf.getString("plugin-name")
+  override lazy val displayName: String         = buildConf.getString("plugin-title-description")
+  override lazy val version:     PluginVersion  = {
     val versionString = buildConf.getString("rudder-version") + "-" + buildConf.getString("plugin-version")
     PluginVersion.from(versionString).getOrElse(PluginVersion.PARSING_ERROR(versionString))
   }
-  override lazy val versionInfo = {
+  override lazy val versionInfo: Option[String] = {
     try {
       Some(buildConf.getString("version-info"))
     } catch {

@@ -52,6 +52,7 @@ import com.normation.rudder.rest.data.Creation.CreationError
 import com.normation.rudder.rest.data.NodeTemplate.AcceptedNodeTemplate
 import com.normation.rudder.rest.data.NodeTemplate.PendingNodeTemplate
 import com.typesafe.config.ConfigValue
+import java.util.regex.Pattern
 import net.liftweb.json.JArray
 import net.liftweb.json.JField
 import net.liftweb.json.JObject
@@ -281,60 +282,61 @@ object Validation {
     }
   }
   object Machine       {
-    case object MPhysical      extends Machine { val tpe = PhysicalMachineType               }
-    case object MUnknownVmType extends Machine { val tpe = VirtualMachineType(UnknownVmType) }
-    case object MSolarisZone   extends Machine { val tpe = VirtualMachineType(SolarisZone)   }
-    case object MVirtualBox    extends Machine { val tpe = VirtualMachineType(VirtualBox)    }
-    case object MVMWare        extends Machine { val tpe = VirtualMachineType(VMWare)        }
-    case object MQEmu          extends Machine { val tpe = VirtualMachineType(QEmu)          }
-    case object MXen           extends Machine { val tpe = VirtualMachineType(Xen)           }
-    case object MAixLPAR       extends Machine { val tpe = VirtualMachineType(AixLPAR)       }
-    case object MHyperV        extends Machine { val tpe = VirtualMachineType(HyperV)        }
-    case object MBSDJail       extends Machine { val tpe = VirtualMachineType(BSDJail)       }
+    case object MPhysical      extends Machine { val tpe = PhysicalMachineType                                   }
+    case object MUnknownVmType extends Machine { val tpe: VirtualMachineType = VirtualMachineType(UnknownVmType) }
+    case object MSolarisZone   extends Machine { val tpe: VirtualMachineType = VirtualMachineType(SolarisZone)   }
+    case object MVirtualBox    extends Machine { val tpe: VirtualMachineType = VirtualMachineType(VirtualBox)    }
+    case object MVMWare        extends Machine { val tpe: VirtualMachineType = VirtualMachineType(VMWare)        }
+    case object MQEmu          extends Machine { val tpe: VirtualMachineType = VirtualMachineType(QEmu)          }
+    case object MXen           extends Machine { val tpe: VirtualMachineType = VirtualMachineType(Xen)           }
+    case object MAixLPAR       extends Machine { val tpe: VirtualMachineType = VirtualMachineType(AixLPAR)       }
+    case object MHyperV        extends Machine { val tpe: VirtualMachineType = VirtualMachineType(HyperV)        }
+    case object MBSDJail       extends Machine { val tpe: VirtualMachineType = VirtualMachineType(BSDJail)       }
 
-    val values = ca.mrvisser.sealerate.values[Machine]
+    val values: Set[Machine] = ca.mrvisser.sealerate.values[Machine]
   }
 
   sealed trait NodeValidationError { def msg: String }
   object NodeValidationError       {
-    def names[T](values: Iterable[T])(show: T => String) = values.toSeq.map(show).sorted.mkString("'", ", ", "'")
+    def names[T](values: Iterable[T])(show: T => String): String = values.toSeq.map(show).sorted.mkString("'", ", ", "'")
     final case class UUID(x: String)          extends NodeValidationError {
-      val msg = s"Only ID matching the shape of an UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) are authorized but '${x}' provided"
+      val msg: String =
+        s"Only ID matching the shape of an UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) are authorized but '${x}' provided"
     }
     case object Hostname                      extends NodeValidationError { val msg = "Hostname can't be empty" }
     final case class Status(x: String)        extends NodeValidationError {
-      val msg = s"Node 'status' must be one of ${names(allStatus)(_.name)} but '${x}' provided"
+      val msg: String = s"Node 'status' must be one of ${names(allStatus)(_.name)} but '${x}' provided"
     }
     final case class PolicyMode(x: String)    extends NodeValidationError {
-      val msg = s"Node's policy mode must be one of ${names(PM.allModes)(_.name)} but '${x}' provided"
+      val msg: String = s"Node's policy mode must be one of ${names(PM.allModes)(_.name)} but '${x}' provided"
     }
     case object PolicyModeOnBadStatus         extends NodeValidationError {
-      val msg = s"Policy mode can not be specified when status=pending"
+      val msg: String = s"Policy mode can not be specified when status=pending"
     }
     final case class State(x: String)         extends NodeValidationError {
-      val msg = s"Node 'state' must be one of ${names(NodeState.values)(_.name)} but '${x}' provided"
+      val msg: String = s"Node 'state' must be one of ${names(NodeState.values)(_.name)} but '${x}' provided"
     }
     case object StateOnBadStatus              extends NodeValidationError {
-      val msg = s"Node 'state' can not be specified when status=pending"
+      val msg: String = s"Node 'state' can not be specified when status=pending"
     }
     final case class Ram(x: String)           extends NodeValidationError {
-      val msg = s"Provided RAM '${x}'can not be parsed as a memory amount"
+      val msg: String = s"Provided RAM '${x}'can not be parsed as a memory amount"
     }
     final case class MachineTpe(x: String)    extends NodeValidationError {
-      val msg = s"Machine type must be one of ${names(Machine.values)(_.name)} but '${x}' provided"
+      val msg: String = s"Machine type must be one of ${names(Machine.values)(_.name)} but '${x}' provided"
     }
     final case class Agent(x: String)         extends NodeValidationError {
-      val msg = s"Management technologie agent must be one of ${names(AgentType.allValues)(_.id)} but '${x}' provided"
+      val msg: String = s"Management technologie agent must be one of ${names(AgentType.allValues)(_.id)} but '${x}' provided"
     }
     final case class KeyStatus(x: String)     extends NodeValidationError {
-      val msg = s"Key status must be '${CertifiedKey.value}' or '${UndefinedKey.value}' but '${x}' provided"
+      val msg: String = s"Key status must be '${CertifiedKey.value}' or '${UndefinedKey.value}' but '${x}' provided"
     }
     final case class SecurityVal(msg: String) extends NodeValidationError
   }
 
   // only check shape alike bd645dfe-b4ce-4475-8d52-b7cfa106e333
   // but with any chars in [a-z0-9]
-  val idregex = """[a-z0-9]{8}-([a-z0-9]{4}-){3}[a-z0-9]{12}""".r.pattern
+  val idregex:             Pattern                                   = """[a-z0-9]{8}-([a-z0-9]{4}-){3}[a-z0-9]{12}""".r.pattern
   def checkId(id: String): ValidatedNel[NodeValidationError, NodeId] = {
     if (idregex.matcher(id).matches()) NodeId(id).validNel
     else NodeValidationError.UUID(id).invalidNel
@@ -407,7 +409,7 @@ object Validation {
   }
 
   // we only accept node in pending / accepted
-  val allStatus = Set(AcceptedInventory, PendingInventory)
+  val allStatus:                   Set[InventoryStatus]        = Set(AcceptedInventory, PendingInventory)
   def checkStatus(status: String): Validation[InventoryStatus] = checkFind(status, NodeValidationError.Status(status)) { x =>
     allStatus.find(_.name == x)
   }

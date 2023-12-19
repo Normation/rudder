@@ -596,7 +596,7 @@ class RwLDAPConnection(
   /**
    * Specialized version of applyMods for AddRequest modification type
    */
-  val applyAdds = applyMods[AddRequest](
+  val applyAdds: List[AddRequest] => LDAPIOResult.LDAPIOResult[Seq[LDIFChangeRecord]] = applyMods[AddRequest](
     "adds",
     (req: AddRequest) => req.toLDIFChangeRecord,
     (req: AddRequest) => backed.add(req),

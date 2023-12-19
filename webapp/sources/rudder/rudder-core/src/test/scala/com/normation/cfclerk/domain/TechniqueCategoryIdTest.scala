@@ -60,17 +60,17 @@ class TechniqueCategoryIdTest extends Specification {
    * The order is: A B C D E F G H I
    */
 
-  val a = RootTechniqueCategoryId / "A"
-  val b = a / "B"
-  val c = a / "B" / "C"
-  val d = a / "B" / "D"
-  val e = a / "B" / "D" / "E"
-  val f = a / "B" / "D" / "F"
-  val g = a / "G"
-  val h = a / "G" / "H"
-  val i = a / "G" / "H" / "I"
+  val a: SubTechniqueCategoryId = RootTechniqueCategoryId / "A"
+  val b: SubTechniqueCategoryId = a / "B"
+  val c: SubTechniqueCategoryId = a / "B" / "C"
+  val d: SubTechniqueCategoryId = a / "B" / "D"
+  val e: SubTechniqueCategoryId = a / "B" / "D" / "E"
+  val f: SubTechniqueCategoryId = a / "B" / "D" / "F"
+  val g: SubTechniqueCategoryId = a / "G"
+  val h: SubTechniqueCategoryId = a / "G" / "H"
+  val i: SubTechniqueCategoryId = a / "G" / "H" / "I"
 
-  val tree = Set(a, b, c, d, e, f, g, h, i)
+  val tree: Set[SubTechniqueCategoryId] = Set(a, b, c, d, e, f, g, h, i)
 
   "A string representation of a node" should {
     "be" in { a.toString === "/A" }

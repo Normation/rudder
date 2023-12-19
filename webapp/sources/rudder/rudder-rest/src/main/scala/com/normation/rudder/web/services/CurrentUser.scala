@@ -52,7 +52,7 @@ import org.springframework.security.core.context.SecurityContextHolder
  *
  */
 object CurrentUser extends User {
-  def get = {
+  def get: Option[RudderUserDetail] = {
     SecurityContextHolder.getContext.getAuthentication match {
       case null => None
       case auth =>

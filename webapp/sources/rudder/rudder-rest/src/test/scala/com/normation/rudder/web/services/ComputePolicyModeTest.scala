@@ -52,7 +52,7 @@ import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class ComputePolicyModeTest extends Specification with Loggable {
-  def directive(id: String, policyMode: Option[PolicyMode]) = {
+  def directive(id: String, policyMode: Option[PolicyMode]): Directive = {
     Directive(
       DirectiveId(DirectiveUid(id), GitVersion.DEFAULT_REV),
       TechniqueVersion.parse("1.0").getOrElse(throw new IllegalArgumentException(s"Bad technique version")),
@@ -64,7 +64,7 @@ class ComputePolicyModeTest extends Specification with Loggable {
     )
   }
 
-  val audit1 = directive("audit1", Some(PolicyMode.Audit))
+  val audit1: Directive = directive("audit1", Some(PolicyMode.Audit))
 
   "When everything is default" >> {
     "Empty everything leads to default" in {

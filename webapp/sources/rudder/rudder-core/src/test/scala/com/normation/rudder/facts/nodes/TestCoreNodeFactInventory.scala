@@ -91,8 +91,8 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
   // a fact storage that keeps a trace of all call to it, so that we can debug/set expectation
   object factStorage extends NodeFactStorage {
-    val backend   = MockLdapFactStorage.nodeFactStorage
-    val callStack = Ref.make(List.empty[String]).runNow
+    val backend = MockLdapFactStorage.nodeFactStorage
+    val callStack: Ref[List[String]] = Ref.make(List.empty[String]).runNow
 
     def clearCallStack: Unit = callStack.set(Nil).runNow
 
@@ -143,7 +143,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
   }
 
   implicit class RunThing[E, T](thing: ZIO[Any, E, T]) {
-    def testRun = ZioRuntime.unsafeRun(thing.either)
+    def testRun: Either[E, T] = ZioRuntime.unsafeRun(thing.either)
   }
 
   implicit class RunOptThing[A](thing: IOResult[Option[A]]) {
@@ -167,7 +167,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
   implicit def stringToNodeId(id: String): NodeId = NodeId(id)
 
-  val basePath = s"/tmp/test-rudder-nodefact/${DateFormaterService.gitTagFormat.print(DateTime.now())}"
+  val basePath: String = s"/tmp/test-rudder-nodefact/${DateFormaterService.gitTagFormat.print(DateTime.now())}"
 
   override def beforeAll(): Unit = {}
 
@@ -177,9 +177,9 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     }
   }
 
-  val callbackLog = Ref.make(Chunk.empty[NodeFactChangeEvent]).runNow
-  def resetLog    = callbackLog.set(Chunk.empty).runNow
-  def getLogName  = callbackLog.get.map(_.map(_.name)).runNow
+  val callbackLog: Ref[Chunk[NodeFactChangeEvent]] = Ref.make(Chunk.empty[NodeFactChangeEvent]).runNow
+  def resetLog:    Unit                            = callbackLog.set(Chunk.empty).runNow
+  def getLogName:  Chunk[String]                   = callbackLog.get.map(_.map(_.name)).runNow
 
   val nodeBySoftwareName = new SoftDaoGetNodesbySofwareName(
     new ReadOnlySoftwareDAOImpl(
@@ -189,7 +189,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     )
   )
 
-  val factRepo = {
+  val factRepo: CoreNodeFactRepository = {
     val trailCB = CoreNodeFactChangeEventCallback("trail", e => callbackLog.update(_.appended(e.event)))
 //   val logCB = CoreNodeFactChangeEventCallback("log", e => effectUioUnit(println(s"**** ${e.name}"))))
     CoreNodeFactRepository.make(factStorage, nodeBySoftwareName, Chunk(trailCB)).runNow
@@ -207,13 +207,13 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
   // - one mount point
   // - machine2 (physical)
   // - a bios
-  val node7id   = NodeId("node7")
-  val machineId = MachineUuid("machine2")
+  val node7id:   NodeId      = NodeId("node7")
+  val machineId: MachineUuid = MachineUuid("machine2")
 
   implicit val cc: ChangeContext = ChangeContext.newForRudder()
 
   // things that are empty on node7 because not defined
-  def node7UndefinedElements(n: NodeFact) = List(
+  def node7UndefinedElements(n: NodeFact): List[Chunk[Serializable]] = List(
     Chunk.fromIterable(n.swap),
     n.accounts,
     n.controllers,

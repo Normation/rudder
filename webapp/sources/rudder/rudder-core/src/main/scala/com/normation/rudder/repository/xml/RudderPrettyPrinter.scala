@@ -47,7 +47,7 @@ class RudderPrettyPrinter(width: Int, step: Int) {
 
   protected var cur = 0
 
-  protected def reset() = {
+  protected def reset(): Unit = {
     cur = 0
     items = Nil
   }
@@ -81,7 +81,7 @@ class RudderPrettyPrinter(width: Int, step: Int) {
 
   /** Try to make indented box, if possible, else para.
    */
-  protected def makeBox(ind: Int, s: String) = {
+  protected def makeBox(ind: Int, s: String): Unit = {
     if (cur + s.length > width) { // fits in this line
       items ::= Box(ind, s)
       cur += s.length
@@ -92,18 +92,18 @@ class RudderPrettyPrinter(width: Int, step: Int) {
   }
 
   // dont respect indent in para, but afterwards
-  protected def makePara(ind: Int, s: String) = {
+  protected def makePara(ind: Int, s: String): Unit = {
     items = Break :: Para(s) :: Break :: items
     cur = ind
   }
 
   // respect indent
-  protected def makeBreak() = { // using wrapping here...
+  protected def makeBreak(): Unit = { // using wrapping here...
     items = Break :: items
     cur = 0
   }
 
-  protected def leafTag(n: Node) = {
+  protected def leafTag(n: Node): String = {
     def mkLeaf(sb: StringBuilder): Unit = {
       sb append '<'
       n nameToString sb
@@ -126,7 +126,7 @@ class RudderPrettyPrinter(width: Int, step: Int) {
     (sbToString(mkStart), i)
   }
 
-  protected def endTag(n: Node) = {
+  protected def endTag(n: Node): String = {
     def mkEnd(sb: StringBuilder): Unit = {
       sb append "</"
       n nameToString sb
@@ -143,7 +143,7 @@ class RudderPrettyPrinter(width: Int, step: Int) {
     n.child forall isLeaf
   }
 
-  protected def fits(test: String) =
+  protected def fits(test: String): Boolean =
     test.length < width - cur
 
   private def doPreserve(node: Node) = true

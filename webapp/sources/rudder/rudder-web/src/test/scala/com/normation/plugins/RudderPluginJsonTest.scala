@@ -38,6 +38,7 @@
 package com.normation.plugins
 
 import com.normation.utils.ParseVersion
+import com.normation.utils.Version
 import com.normation.zio._
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
@@ -48,71 +49,71 @@ import org.specs2.runner.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class RudderPluginJsonTest extends Specification {
   implicit class ForceParse(s: String) {
-    def toVersion = ParseVersion.parse(s) match {
+    def toVersion: Version = ParseVersion.parse(s) match {
       case Left(err) => throw new IllegalArgumentException(s"Can not parse '${s}' as a version in test: ${err}")
       case Right(v)  => v
     }
   }
 
-  val index_json = """{
-                     |  "plugins": {
-                     |    "rudder-plugin-branding": {
-                     |      "files": [
-                     |        "/opt/rudder/share/plugins/",
-                     |        "/opt/rudder/share/plugins/branding/",
-                     |        "/opt/rudder/share/plugins/branding/branding.jar"
-                     |      ],
-                     |      "name": "rudder-plugin-branding",
-                     |      "jar-files": [
-                     |        "/opt/rudder/share/plugins/branding/branding.jar"
-                     |      ],
-                     |      "content": {
-                     |        "files.txz": "/opt/rudder/share/plugins"
-                     |      },
-                     |      "version": "5.0-1.3",
-                     |      "build-commit": "81edd3edf4f28c13821af8014da0520b72b9df94",
-                     |      "build-date": "2018-10-11T12:23:40+02:00",
-                     |      "type": "plugin"
-                     |    },
-                     |    "rudder-plugin-centreon": {
-                     |      "files": [
-                     |        "/opt/rudder//",
-                     |        "/opt/rudder//bin/",
-                     |        "/opt/rudder//bin/centreon-plugin",
-                     |        "/opt/rudder//share/",
-                     |        "/opt/rudder//share/python/",
-                     |        "/opt/rudder//share/python/centreonapi/",
-                     |        "/opt/rudder//share/python/centreonapi/__init__.py",
-                     |        "/opt/rudder//share/python/centreonapi/webservice/",
-                     |        "/opt/rudder//share/python/centreonapi/webservice/__init__.py",
-                     |        "/opt/rudder//share/python/centreonapi/webservice/configuration/",
-                     |        "/opt/rudder//share/python/centreonapi/webservice/configuration/__init__.py",
-                     |        "/opt/rudder//share/python/centreonapi/webservice/configuration/hostgroups.py",
-                     |        "/opt/rudder//share/python/centreonapi/webservice/configuration/service.py",
-                     |        "/opt/rudder//share/python/centreonapi/webservice/configuration/templates.py",
-                     |        "/opt/rudder//share/python/centreonapi/webservice/configuration/poller.py",
-                     |        "/opt/rudder//share/python/centreonapi/webservice/configuration/host.py",
-                     |        "/opt/rudder//share/python/centreonapi/centreon.py",
-                     |        "/opt/rudder//share/python/centreonapi/__init__.pyc",
-                     |        "/opt/rudder//share/python/ipaddress.py",
-                     |        "/opt/rudder//etc/",
-                     |        "/opt/rudder//etc/hooks.d/",
-                     |        "/opt/rudder//etc/hooks.d/node-pre-deletion/",
-                     |        "/opt/rudder//etc/hooks.d/node-pre-deletion/centreon-pre-deletion.sh",
-                     |        "/opt/rudder//etc/hooks.d/node-post-acceptance/",
-                     |        "/opt/rudder//etc/hooks.d/node-post-acceptance/centreon-post-acceptance.sh"
-                     |      ],
-                     |      "name": "rudder-plugin-centreon",
-                     |      "content": {
-                     |        "files.txz": "/opt/rudder/"
-                     |      },
-                     |      "version": "5.0-1.1",
-                     |      "build-commit": "5c4592d93912ef56de0c506295d22fb2a86146ac",
-                     |      "build-date": "2018-10-29T18:34:16+01:00",
-                     |      "type": "plugin"
-                     |    }
-                     |  }
-                     |}""".stripMargin
+  val index_json: String = """{
+                             |  "plugins": {
+                             |    "rudder-plugin-branding": {
+                             |      "files": [
+                             |        "/opt/rudder/share/plugins/",
+                             |        "/opt/rudder/share/plugins/branding/",
+                             |        "/opt/rudder/share/plugins/branding/branding.jar"
+                             |      ],
+                             |      "name": "rudder-plugin-branding",
+                             |      "jar-files": [
+                             |        "/opt/rudder/share/plugins/branding/branding.jar"
+                             |      ],
+                             |      "content": {
+                             |        "files.txz": "/opt/rudder/share/plugins"
+                             |      },
+                             |      "version": "5.0-1.3",
+                             |      "build-commit": "81edd3edf4f28c13821af8014da0520b72b9df94",
+                             |      "build-date": "2018-10-11T12:23:40+02:00",
+                             |      "type": "plugin"
+                             |    },
+                             |    "rudder-plugin-centreon": {
+                             |      "files": [
+                             |        "/opt/rudder//",
+                             |        "/opt/rudder//bin/",
+                             |        "/opt/rudder//bin/centreon-plugin",
+                             |        "/opt/rudder//share/",
+                             |        "/opt/rudder//share/python/",
+                             |        "/opt/rudder//share/python/centreonapi/",
+                             |        "/opt/rudder//share/python/centreonapi/__init__.py",
+                             |        "/opt/rudder//share/python/centreonapi/webservice/",
+                             |        "/opt/rudder//share/python/centreonapi/webservice/__init__.py",
+                             |        "/opt/rudder//share/python/centreonapi/webservice/configuration/",
+                             |        "/opt/rudder//share/python/centreonapi/webservice/configuration/__init__.py",
+                             |        "/opt/rudder//share/python/centreonapi/webservice/configuration/hostgroups.py",
+                             |        "/opt/rudder//share/python/centreonapi/webservice/configuration/service.py",
+                             |        "/opt/rudder//share/python/centreonapi/webservice/configuration/templates.py",
+                             |        "/opt/rudder//share/python/centreonapi/webservice/configuration/poller.py",
+                             |        "/opt/rudder//share/python/centreonapi/webservice/configuration/host.py",
+                             |        "/opt/rudder//share/python/centreonapi/centreon.py",
+                             |        "/opt/rudder//share/python/centreonapi/__init__.pyc",
+                             |        "/opt/rudder//share/python/ipaddress.py",
+                             |        "/opt/rudder//etc/",
+                             |        "/opt/rudder//etc/hooks.d/",
+                             |        "/opt/rudder//etc/hooks.d/node-pre-deletion/",
+                             |        "/opt/rudder//etc/hooks.d/node-pre-deletion/centreon-pre-deletion.sh",
+                             |        "/opt/rudder//etc/hooks.d/node-post-acceptance/",
+                             |        "/opt/rudder//etc/hooks.d/node-post-acceptance/centreon-post-acceptance.sh"
+                             |      ],
+                             |      "name": "rudder-plugin-centreon",
+                             |      "content": {
+                             |        "files.txz": "/opt/rudder/"
+                             |      },
+                             |      "version": "5.0-1.1",
+                             |      "build-commit": "5c4592d93912ef56de0c506295d22fb2a86146ac",
+                             |      "build-date": "2018-10-29T18:34:16+01:00",
+                             |      "type": "plugin"
+                             |    }
+                             |  }
+                             |}""".stripMargin
 
   val expected = List(
     JsonPluginDef(

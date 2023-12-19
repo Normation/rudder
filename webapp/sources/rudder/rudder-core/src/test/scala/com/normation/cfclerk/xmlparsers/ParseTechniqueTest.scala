@@ -53,12 +53,12 @@ import scala.xml._
 @RunWith(classOf[JUnitRunner])
 class ParseTechniqueTest extends Specification {
 
-  val techniqueParser = {
+  val techniqueParser: TechniqueParser = {
     val varParser = new VariableSpecParser
     new TechniqueParser(varParser, new SectionSpecParser(varParser), new SystemVariableSpecServiceImpl())
   }
 
-  val id = TechniqueId(TechniqueName("test"), TechniqueVersionHelper("1.0"))
+  val id: TechniqueId = TechniqueId(TechniqueName("test"), TechniqueVersionHelper("1.0"))
 
   "When a technique has both root bundles/tmls and a 'cfengine-community' agent block, parsing should fails" >> {
     techniqueParser.parseXml(readFile("parseTechnique/technique_one_default_one_agent_id.xml"), id) must

@@ -201,16 +201,16 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
 
     // method that check is an entry if of the given type
 
-    val rootCategoryId = ActiveTechniqueCategoryId(this.uuid)
+    val rootCategoryId: ActiveTechniqueCategoryId = ActiveTechniqueCategoryId(this.uuid)
 
-    def isACategory(e: LDAPEntry)         = e.isA(OC_TECHNIQUE_CATEGORY)
-    def isAnActiveTechnique(e: LDAPEntry) = e.isA(OC_ACTIVE_TECHNIQUE)
-    def isADirective(e: LDAPEntry)        = e.isA(OC_DIRECTIVE)
+    def isACategory(e: LDAPEntry):         Boolean = e.isA(OC_TECHNIQUE_CATEGORY)
+    def isAnActiveTechnique(e: LDAPEntry): Boolean = e.isA(OC_ACTIVE_TECHNIQUE)
+    def isADirective(e: LDAPEntry):        Boolean = e.isA(OC_DIRECTIVE)
 
     /**
      * From a DN of a category, return the value of the rdn (uuid)
      */
-    def getCategoryIdValue(dn: DN) = singleRdnValue(dn, activeTechniques.rdnAttribute._1)
+    def getCategoryIdValue(dn: DN): Box[String] = singleRdnValue(dn, activeTechniques.rdnAttribute._1)
 
     /**
      * From a DN of an active technique, return the value of the rdn (uuid)
@@ -261,7 +261,7 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
 
     def getRuleUid(dn: DN): Box[String] = singleRdnValue(dn, A_RULE_UUID)
 
-    def configRuleDN(id: RuleId) = RudderDit.buildDN(rules.dn, A_RULE_UUID, id.uid.value, id.rev)
+    def configRuleDN(id: RuleId): DN = RudderDit.buildDN(rules.dn, A_RULE_UUID, id.uid.value, id.rev)
 
     def ruleModel(id: RuleId, name: String, isEnabled: Boolean, isSystem: Boolean, category: String): LDAPEntry = {
       val mod = LDAPEntry(configRuleDN(id))
@@ -286,14 +286,14 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
       ) {
     ruleCategory =>
 
-    val rootCategoryId = RuleCategoryId(this.uuid)
+    val rootCategoryId: RuleCategoryId = RuleCategoryId(this.uuid)
 
-    def isACategory(e: LDAPEntry) = e.isA(OC_RULE_CATEGORY)
+    def isACategory(e: LDAPEntry): Boolean = e.isA(OC_RULE_CATEGORY)
 
     /**
      * From a DN of a category, return the value of the rdn (uuid)
      */
-    def getCategoryIdValue(dn: DN) = singleRdnValue(dn, ruleCategory.rdnAttribute._1)
+    def getCategoryIdValue(dn: DN): Box[String] = singleRdnValue(dn, ruleCategory.rdnAttribute._1)
 
     // def dnFromId(categoryId : RuleCategoryId) : DN = {
 
@@ -357,16 +357,16 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
       ) {
     private[this] def group = this
 
-    val rootCategoryId = NodeGroupCategoryId(this.uuid)
+    val rootCategoryId: NodeGroupCategoryId = NodeGroupCategoryId(this.uuid)
 
-    def isACategory(e: LDAPEntry)      = e.isA(OC_GROUP_CATEGORY)
-    def isAGroup(e: LDAPEntry)         = e.isA(OC_RUDDER_NODE_GROUP)
-    def isASpecialTarget(e: LDAPEntry) = e.isA(OC_SPECIAL_TARGET)
+    def isACategory(e: LDAPEntry):      Boolean = e.isA(OC_GROUP_CATEGORY)
+    def isAGroup(e: LDAPEntry):         Boolean = e.isA(OC_RUDDER_NODE_GROUP)
+    def isASpecialTarget(e: LDAPEntry): Boolean = e.isA(OC_SPECIAL_TARGET)
 
     /**
      * From a DN of a category, return the value of the rdn (uuid)
      */
-    def getCategoryIdValue(dn: DN) = singleRdnValue(dn, group.rdnAttribute._1)
+    def getCategoryIdValue(dn: DN): Box[String] = singleRdnValue(dn, group.rdnAttribute._1)
 
     /**
      * From a DN of a group, return the value of the rdn (uuid)

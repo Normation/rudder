@@ -65,6 +65,7 @@ import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonAST.JValue
 import org.joda.time.DateTime
+import scala.util.matching.Regex
 import zio.Chunk
 import zio.json._
 import zio.json.ast.Json
@@ -100,7 +101,7 @@ final case class RudderAgent(
     // agent capabilities are lower case string used as tags giving information about what agent can do
     capabilities:                 Chunk[AgentCapability]
 ) {
-  def toAgentInfo = AgentInfo(agentType, Some(version), securityToken, capabilities.toSet)
+  def toAgentInfo: AgentInfo = AgentInfo(agentType, Some(version), securityToken, capabilities.toSet)
 }
 
 // A security token for now is just a a list of tags denoting tenants
@@ -402,7 +403,7 @@ object NodeFact {
       .using(_.sortBy(_.name))
   }
 
-  def toMachineId(nodeId: NodeId) = MachineUuid("machine-for-" + nodeId.value)
+  def toMachineId(nodeId: NodeId): MachineUuid = MachineUuid("machine-for-" + nodeId.value)
 
   implicit class IterableToChunk[A](it: Iterable[A]) {
     def toChunk: Chunk[A] = Chunk.fromIterable(it)
@@ -450,7 +451,7 @@ object NodeFact {
   }
 
   implicit class ToCompat(node: NodeFact) {
-    def mask[A](s: SelectFactConfig[A]) = {
+    def mask[A](s: SelectFactConfig[A]): NodeFact = {
       s.mode match {
         case SelectMode.Retrieve => node
         case SelectMode.Ignore   => s.modify.setTo(s.zero)(node)
@@ -948,7 +949,7 @@ case class SelectFactConfig[A](
   def toRetrieve: SelectFactConfig[A] = this.copy(mode = SelectMode.Retrieve)
   def invertMode: SelectFactConfig[A] = if (this.mode == SelectMode.Ignore) toRetrieve else toIgnore
 
-  override def toString = this.mode.toString
+  override def toString: String = this.mode.toString
 }
 
 case class SelectFacts(
@@ -976,7 +977,7 @@ case class SelectFacts(
     videos:               SelectFactConfig[Chunk[Video]],
     vms:                  SelectFactConfig[Chunk[VirtualMachine]]
 ) {
-  def debugString =
+  def debugString: String =
     this.productElementNames.zip(this.productIterator).map { case (a, b) => s"${a}: ${b.toString}" }.mkString(", ")
 }
 
@@ -1021,7 +1022,7 @@ object SelectFacts {
 
   // format: off
   // there's perhaps a better way to do that, but `shrug` don't know about it
-  val none = SelectFacts(
+  val none: SelectFacts = SelectFacts(
     SelectFactConfig(SelectMode.Ignore,_.swap, modifyLens[NodeFact](_.swap), None),
     SelectFactConfig(SelectMode.Ignore,_.accounts, modifyLens[NodeFact](_.accounts), Chunk.empty),
     SelectFactConfig(SelectMode.Ignore,_.bios, modifyLens[NodeFact](_.bios), Chunk.empty),
@@ -1047,7 +1048,7 @@ object SelectFacts {
     SelectFactConfig(SelectMode.Ignore,_.vms, modifyLens[NodeFact](_.vms), Chunk.empty)
   )
 
-  val all = SelectFacts(
+  val all: SelectFacts = SelectFacts(
     none.swap.toRetrieve,
     none.accounts.toRetrieve,
     none.bios.toRetrieve,
@@ -1074,9 +1075,9 @@ object SelectFacts {
   )
   // format: on
 
-  val softwareOnly = none.copy(software = none.software.toRetrieve)
-  val noSoftware   = all.copy(software = all.software.toIgnore)
-  val default      = all.copy(processes = all.processes.toIgnore, software = all.software.toIgnore)
+  val softwareOnly: SelectFacts = none.copy(software = none.software.toRetrieve)
+  val noSoftware:   SelectFacts = all.copy(software = all.software.toIgnore)
+  val default:      SelectFacts = all.copy(processes = all.processes.toIgnore, software = all.software.toIgnore)
 
   // inventory elements, not carring for software
   def retrieveInventory(attrs: SelectFacts): Boolean = {
@@ -1232,10 +1233,10 @@ final case class NodeFact(
 ) extends MinimalNodeFactInterface {
   def machineId = machine.id
 
-  def isPolicyServer: Boolean = rudderSettings.kind != NodeKind.Node
-  def isSystem:       Boolean = isPolicyServer
-  def serverIps        = ipAddresses.map(_.inet).toList
-  def customProperties = properties.collect {
+  def isPolicyServer:   Boolean               = rudderSettings.kind != NodeKind.Node
+  def isSystem:         Boolean               = isPolicyServer
+  def serverIps:        List[String]          = ipAddresses.map(_.inet).toList
+  def customProperties: Chunk[CustomProperty] = properties.collect {
     case p if (p.provider == Some(NodeProperty.customPropertyProvider)) => CustomProperty(p.name, p.jsonValue)
   }
 }
@@ -1319,7 +1320,7 @@ object ChangeContext {
     def toQuery: QueryContext = QueryContext(cc.actor, cc.nodePerms)
   }
 
-  def newForRudder(msg: Option[String] = None, actorIp: Option[String] = None) = {
+  def newForRudder(msg: Option[String] = None, actorIp: Option[String] = None): ChangeContext = {
     ChangeContext(
       ModificationId(java.util.UUID.randomUUID.toString),
       eventlog.RudderEventActor,
@@ -1371,7 +1372,7 @@ object Tenant {
 
   // Tenant d can only be non empty alpha-num and hyphen. Check externally to avoid perf cost
   // at instantiation;
-  val checkTenantId = """^(\p{Alnum}[\p{Alnum}-_]*)$""".r
+  val checkTenantId: Regex = """^(\p{Alnum}[\p{Alnum}-_]*)$""".r
 
 }
 
@@ -1392,7 +1393,7 @@ object NodeSecurityContext       {
   // tenants, if can be seen. Be careful, it's really just non-empty interesting (so that adding
   // more tag here leads to more nodes, not less).
   final case class ByTenants(tenants: Chunk[Tenant]) extends NodeSecurityContext {
-    override val value = s"tags:[${tenants.mkString(", ")}]"
+    override val value: String = s"tags:[${tenants.mkString(", ")}]"
   }
 
   /*

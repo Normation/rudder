@@ -40,12 +40,12 @@ package com.normation.cfclerk.domain
 import scala.xml._
 
 final case class OperatingSystem(name: String = "", version: String = "") {
-  override def toString = if (version == "") name
+  override def toString: String = if (version == "") name
   else name + " " + version
 }
 
 final case class Agent(name: String = "", version: String = "") {
-  override def toString = if (version == "") name
+  override def toString: String = if (version == "") name
   else name + " " + version
 }
 
