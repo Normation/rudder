@@ -25,16 +25,7 @@ update msg model =
     GetHealthCheckResult res ->
       case res of
         Ok h ->
-          let
-            isWarningOrCritical =   (chooseHigherSecurityLevel h == Warning)
-                                 || (chooseHigherSecurityLevel h == Critical)
-          in
-            ( { model |
-                  healthcheck  = h
-                , showChecks   = isWarningOrCritical
-              }
-              , Cmd.none
-             )
+          ({ model | healthcheck  = h}, Cmd.none)
         Err err ->
           processApiError err model
     ChangeTabFocus newTab ->
@@ -42,11 +33,6 @@ update msg model =
         (model, Cmd.none)
       else
         ({model | tab = newTab}, Cmd.none)
-    CheckListDisplay ->
-       if model.showChecks then
-         ({model | showChecks = False}, Cmd.none)
-       else
-         ({model | showChecks = True}, Cmd.none)
 
 processApiError : Error -> Model -> ( Model, Cmd Msg )
 processApiError err model =
