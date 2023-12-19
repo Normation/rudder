@@ -87,6 +87,6 @@ trait PluginStatus {
  * Default "always enable" status
  */
 object AlwaysEnabledPluginStatus extends PluginStatus {
-  override val current   = PluginStatusInfo.EnabledNoLicense
-  override val isEnabled = true
+  override val current     = PluginStatusInfo.EnabledNoLicense
+  override def isEnabled() = true
 }
