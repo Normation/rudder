@@ -47,7 +47,7 @@ import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.utils.Control.sequence
+import com.normation.utils.Control.traverse
 import net.liftweb.common._
 
 /*
@@ -392,7 +392,7 @@ object MergePolicyService {
                 ) ?~! s"No agent defined for Node ${nodeInfo.hostname}, (id ${nodeInfo.id.value}), at least one should be defined"
       merged <- {
         val drafts = groupedDrafts.toMerge.toSeq
-        sequence(drafts) {
+        traverse(drafts) {
           case (name, seq) =>
             merge(nodeInfo, agent.agentType, mode, seq.toList)
         }

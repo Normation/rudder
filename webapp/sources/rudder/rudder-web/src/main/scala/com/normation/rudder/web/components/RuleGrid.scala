@@ -54,7 +54,7 @@ import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.services.JsTableData
 import com.normation.rudder.web.services.JsTableLine
-import com.normation.utils.Control.sequence
+import com.normation.utils.Control.traverse
 import com.normation.zio._
 import net.liftweb.common._
 import net.liftweb.http._
@@ -469,7 +469,7 @@ class RuleGrid(
 
     rules.map { rule =>
       val trackerVariables: Box[Seq[(Directive, ActiveTechnique, Technique)]] = {
-        sequence(rule.directiveIds.toSeq) { id =>
+        traverse(rule.directiveIds.toSeq) { id =>
           directivesLib.allDirectives.get(id) match {
             case Some((activeTechnique, directive)) =>
               techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName) match {
@@ -489,7 +489,7 @@ class RuleGrid(
         }
       }
 
-      val targetsInfo = sequence(rule.targets.toSeq) {
+      val targetsInfo = traverse(rule.targets.toSeq) {
         case json: CompositeRuleTarget =>
           val ruleTargetInfo = RuleTargetInfo(json, "", "", true, false)
           Full(ruleTargetInfo)

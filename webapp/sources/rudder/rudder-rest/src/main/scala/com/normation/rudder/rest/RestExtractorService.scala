@@ -315,17 +315,17 @@ final case class RestExtractorService(
   private[this] def toRuleTarget(parameters: Map[String, List[String]], key: String): Box[Option[RuleTarget]] = {
     parameters.get(key) match {
       case Some(values) =>
-        sequence(values)(value => RuleTarget.unser(value)).flatMap(mergeTarget)
+        traverse(values)(value => RuleTarget.unser(value)).flatMap(mergeTarget)
       case None         => Full(None)
     }
   }
 
   def toRuleTarget(json: JValue, key: String): Box[Option[RuleTarget]] = {
     for {
-      targets <- sequence((json \\ key).children) { child =>
+      targets <- traverse((json \\ key).children) { child =>
                    child match {
                      case JArray(values) =>
-                       sequence(values.children)(value => RuleTarget.unserJson(value)).flatMap(mergeTarget)
+                       traverse(values.children)(value => RuleTarget.unserJson(value)).flatMap(mergeTarget)
                      case x              => RuleTarget.unserJson(x).map(Some(_))
                    }
                  }
@@ -359,7 +359,7 @@ final case class RestExtractorService(
       // TODO: parse value correctly
       readDirective.getDirective(DirectiveUid(value)).notOptional(s"Directive '$value' not found").map(_.id).toBox
     }
-    sequence(values)(toDirectiveId).map(_.toSet)
+    traverse(values)(toDirectiveId).map(_.toSet)
   }
 
   private[this] def convertListToNodeId(values: List[String]): Box[List[NodeId]] = {
@@ -391,7 +391,7 @@ final case class RestExtractorService(
     def parseSections(section: JValue): Box[Map[String, Seq[SectionVal]]] = {
       section \ "sections" match {
         case JNothing         => Full(Map())
-        case JArray(sections) => (sequence(sections.toSeq)(parseSection)).map(_.groupMap(_._1)(_._2))
+        case JArray(sections) => (traverse(sections.toSeq)(parseSection)).map(_.groupMap(_._1)(_._2))
         case a                =>
           Failure(
             s"A 'sections' element in a section should either be empty (no child section), or an array of section element, you got: ${net.liftweb.json
@@ -421,7 +421,7 @@ final case class RestExtractorService(
     def parseSectionVars(section: JValue): Box[Map[String, String]] = {
       section \ "vars" match {
         case JNothing     => Full(Map())
-        case JArray(vars) => (sequence(vars)(parseVar)).map(_.toMap)
+        case JArray(vars) => (traverse(vars)(parseVar)).map(_.toMap)
         case a            =>
           Failure(
             s"A 'vars' element in a section should either be empty (no variable), or an array of var sections, you got: ${net.liftweb.json
@@ -586,7 +586,7 @@ final case class RestExtractorService(
       enabled          <- extractOneValue(params, "enabled")(toBoolean)
       directives       <- extractList(params, "directives")(convertListToDirectiveId)
       target           <- toRuleTarget(params, "targets")
-      tagsList         <- extractList(params, "tags")(sequence(_)(toTag))
+      tagsList         <- extractList(params, "tags")(traverse(_)(toTag))
       tags              = tagsList.map(t => Tags(t.toSet))
     } yield {
       RestRule(name, category, shortDescription, longDescription, directives, target.map(Set(_)), enabled, tags)
@@ -744,22 +744,22 @@ final case class RestExtractorService(
   }
 
   def extractNodePropertiesrFromJSON(json: JValue): Box[RestNodeProperties] = {
-    import com.normation.utils.Control.sequence
+    import com.normation.utils.Control.traverse
     for {
       props <- json \ "properties" match {
                  case JArray(props) => Full(props)
                  case x             => Failure(s"""Error: the given parameter is not a JSON object with a 'properties' key""")
                }
-      seq   <- sequence(props)(extractNodeProperty)
+      seq   <- traverse(props)(extractNodeProperty)
     } yield {
       RestNodeProperties(Some(seq))
     }
   }
 
   def extractNodePropertiesFromJSON(json: JValue): Box[Option[List[NodeProperty]]] = {
-    import com.normation.utils.Control.sequence
+    import com.normation.utils.Control.traverse
     json \ "properties" match {
-      case JArray(props) => sequence(props)(extractNodeProperty).map(x => Some(x.toList))
+      case JArray(props) => traverse(props)(extractNodeProperty).map(x => Some(x.toList))
       case JNothing      => Full(None)
       case x             => Failure(s"""Error: the given parameter is not a JSON object with a 'properties' key""")
     }
@@ -843,7 +843,7 @@ final case class RestExtractorService(
       techniqueName    <- extractOneValue(params, "techniqueName")(x => Full(TechniqueName(x)))
       techniqueVersion <- extractOneValue(params, "techniqueVersion")(x => TechniqueVersion.parse(x).toBox)
       policyMode       <- extractOneValue(params, "policyMode")(PolicyMode.parseDefault(_).toBox)
-      tagsList         <- extractList(params, "tags")(sequence(_)(toTag))
+      tagsList         <- extractList(params, "tags")(traverse(_)(toTag))
       tags              = tagsList.map(t => Tags(t.toSet))
     } yield {
       RestDirective(
@@ -906,8 +906,8 @@ final case class RestExtractorService(
         jobjects <- Box(value.extractOpt[List[JObject]]) ?~! s"Invalid JSON serialization for Tags ${value}"
         // be careful, we need to use JObject.obj to get the list even if there is duplicated keys,
         // which would be removed with JObject.values
-        pairs    <- Control.sequence(jobjects) { o =>
-                      Control.sequence(o.obj) {
+        pairs    <- Control.traverse(jobjects) { o =>
+                      Control.traverse(o.obj) {
                         case JField(key, v) =>
                           v match {
                             case JString(s) if (s.nonEmpty) => Full((key, s))
@@ -961,10 +961,10 @@ final case class RestExtractorService(
   }
 
   def extractGroupPropertiesFromJSON(json: JValue): Box[Option[Seq[GroupProperty]]] = {
-    import com.normation.utils.Control.sequence
+    import com.normation.utils.Control.traverse
     json \ "properties" match {
       case JArray(props) =>
-        sequence(props)(p => GroupProperty.unserializeLdapGroupProperty(GenericProperty.serializeJson(p)).toBox).map(Some(_))
+        traverse(props)(p => GroupProperty.unserializeLdapGroupProperty(GenericProperty.serializeJson(p)).toBox).map(Some(_))
       case JNothing      => Full(None)
       case x             => Failure(s"""Error: the given parameter is not a JSON object with a 'properties' key""")
     }

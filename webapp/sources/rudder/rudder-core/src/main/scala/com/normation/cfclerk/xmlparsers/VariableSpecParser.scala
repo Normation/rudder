@@ -346,7 +346,7 @@ class VariableSpecParser extends Loggable {
   private[this] def parseAlgoList(algos: String): Seq[HashAlgoConstraint] = {
     if (algos.trim.isEmpty) HashAlgoConstraint.sort(HashAlgoConstraint.algorithms)
     else {
-      Control.sequence(algos.split(",").toSeq)(algo => HashAlgoConstraint.fromString(algo.trim)) match {
+      Control.traverse(algos.split(",").toSeq)(algo => HashAlgoConstraint.fromString(algo.trim)) match {
         case Full(seq) => seq
         case eb: EmptyBox =>
           throw new ConstraintException((eb ?~! s"Error when parsing the list of password hash: '${algos}'").messageChain)

@@ -42,7 +42,7 @@ import com.normation.inventory.domain.Bsd
 import com.normation.inventory.domain.Linux
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.services.policies.NodeRunHook
-import com.normation.utils.Control.sequence
+import com.normation.utils.Control.traverse
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
@@ -163,7 +163,7 @@ class AgentRegister {
   def traverseMap[T](
       agentNodeProps: AgentNodeProperties
   )(default:          () => Box[List[T]], f: AgentSpecificGeneration => Box[List[T]]): Box[List[T]] = {
-    (sequence(pipeline) { handler =>
+    (traverse(pipeline) { handler =>
       if (handler.handle(agentNodeProps)) {
         f(handler)
       } else {

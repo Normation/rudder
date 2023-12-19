@@ -81,7 +81,7 @@ import com.normation.rudder.domain.workflows.NodeGroupChanges
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
-import com.normation.utils.Control.sequence
+import com.normation.utils.Control.traverse
 import net.liftweb.common._
 import net.liftweb.common.Box._
 import net.liftweb.common.Failure
@@ -113,7 +113,7 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
         for {
           name     <- (elt \ "@name").headOption ?~! ("Missing required attribute 'name' for <section>: " + elt)
           // Seq( (var name , var value ) )
-          vars     <- sequence(elt \ "var") { xmlVar =>
+          vars     <- traverse(elt \ "var") { xmlVar =>
                         for {
                           n <- (xmlVar \ "@name").headOption ?~! ("Missing required attribute 'name' for <var>: " + xmlVar)
                         } yield {
@@ -121,7 +121,7 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
                         }
                       }
           // Seq ( SectionVal )
-          sections <- sequence(elt \ "section")(sectionXml => recValParseSection(sectionXml))
+          sections <- traverse(elt \ "section")(sectionXml => recValParseSection(sectionXml))
         } yield {
           val s = sections.groupBy { case (n, s) => n }.map { case (n, seq) => (n, seq.map { case (_, section) => section }) }
           (name.text, SectionVal(s, vars.toMap))
@@ -268,7 +268,7 @@ class NodeGroupUnserialisationImpl(
       isSystem     <- (group \ "isSystem").headOption.flatMap(s =>
                         tryo(s.text.toBoolean)
                       ) ?~! ("Missing attribute 'isSystem' in entry type nodeGroup : " + entry)
-      properties   <- sequence((group \ "properties" \ "property").toList) {
+      properties   <- traverse((group \ "properties" \ "property").toList) {
                         case <property>{p @ _*}</property> =>
                           val name = (p \\ "name").text.trim
                           if (name.trim.isEmpty) {
@@ -328,7 +328,7 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
                           ("Missing attribute 'isEnabled' in entry type rule: " + entry)
       isSystem         <- (rule \ "isSystem").headOption.flatMap(s => tryo(s.text.toBoolean)) ?~!
                           ("Missing attribute 'isSystem' in entry type rule: " + entry)
-      targets          <- sequence((rule \ "targets" \ "target")) { t =>
+      targets          <- traverse((rule \ "targets" \ "target")) { t =>
                             RuleTarget.unser(t.text)
                           } ?~!
                           ("Invalid attribute in 'target' entry: " + entry)
@@ -441,7 +441,7 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
       isEnabled        <- (activeTechnique \ "isEnabled").headOption.flatMap(s =>
                             tryo(s.text.toBoolean)
                           ) ?~! ("Missing attribute 'isEnabled' in entry type policyLibraryTemplate : " + entry)
-      acceptationDates <- sequence(activeTechnique \ "versions" \ "version") { version =>
+      acceptationDates <- traverse(activeTechnique \ "versions" \ "version") { version =>
                             for {
                               ptVersionName   <-
                                 version
@@ -788,7 +788,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
     // mess up with authz
     import cats.implicits._
 
-    val authzs = sequence(entry \\ "authz") { e =>
+    val authzs = traverse(entry \\ "authz") { e =>
       for {
         pathStr <- e \@ "path" match {
                      case "" => Failure("Missing required attribute 'path' for element 'authz'")

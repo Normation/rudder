@@ -83,7 +83,7 @@ class FullQuickSearchService(implicit
                    s"User query for '${token}', parsed as user query: '${query.userToken}' on objects: " +
                    s"'${query.objectClass.mkString(", ")}' and attributes '${query.attributes.mkString(", ")}'"
                  )
-      results <- sequence(QSBackend.all.toSeq) { b =>
+      results <- traverse(QSBackend.all.toSeq) { b =>
                    val res = b.search(query)
                    res match {
                      case eb: EmptyBox =>
