@@ -1201,7 +1201,7 @@ class NodeApiService2(
         newNodeManager.refuse(ids, modId, actor, "").map(_.map(serializeServerInfo(_, "refused")))
 
       case DeleteNode =>
-        boxSequence(ids.map(actualNodeDeletion(_, modId, actor)))
+        sequence(ids.map(actualNodeDeletion(_, modId, actor)))
     }).map(_.toList)
   }
 

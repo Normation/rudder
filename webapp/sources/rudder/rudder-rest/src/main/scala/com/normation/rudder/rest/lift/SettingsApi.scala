@@ -66,7 +66,7 @@ import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.rudder.services.servers.RelaySynchronizationMethod._
 import com.normation.utils.Control.bestEffort
-import com.normation.utils.Control.sequence
+import com.normation.utils.Control.traverse
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio._
 import net.liftweb.common.Box
@@ -946,7 +946,7 @@ class SettingsApi(
         networks <- if (req.json_?) {
                       req.json.getOrElse(JNothing) \ "allowed_networks" match {
                         case JArray(values) =>
-                          sequence(values) {
+                          traverse(values) {
                             _ match {
                               case JString(s) => checkAllowedNetwork(s)
                               case x          => Failure(s"Error extracting a string from json: '${x}'")
@@ -1042,7 +1042,7 @@ class SettingsApi(
         _        <- if (json == JNothing) Failure(msg) else Full(())
         diff     <- try { Full(json.extract[AllowedNetDiff]) }
                     catch { case NonFatal(ex) => Failure(msg) }
-        _        <- sequence(diff.add)(checkAllowedNetwork)
+        _        <- traverse(diff.add)(checkAllowedNetwork)
         // for now, we use inet as the name, too
         nets      = diff.add.map(inet => AllowedNetwork(inet, inet))
         res      <- policyServerManagementService.updateAllowedNetworks(nodeId, nets, diff.delete, modificationId, actor).toBox

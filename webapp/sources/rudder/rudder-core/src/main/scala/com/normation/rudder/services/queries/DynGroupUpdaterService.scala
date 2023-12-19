@@ -113,7 +113,7 @@ class DynGroupUpdaterServiceImpl(
     for {
       allGroups <- roNodeGroupRepository.getAll().toBox
       dynGroups  = allGroups.filter(_.isDynamic)
-      result    <- com.normation.utils.Control.sequence(dynGroups) { group =>
+      result    <- com.normation.utils.Control.traverse(dynGroups) { group =>
                      for {
                        newGroup   <- computeDynGroup(group)
                        savedGroup <-

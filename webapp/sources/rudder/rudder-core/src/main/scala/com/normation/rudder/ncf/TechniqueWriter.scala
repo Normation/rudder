@@ -686,7 +686,7 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
             method_info              <- methods.get(call.methodId)
             (_, classParameterValue) <- call.parameters.find(_._1 == method_info.classParameter)
 
-            params <- Control.sequence(method_info.parameters) { p =>
+            params <- Control.traverse(method_info.parameters) { p =>
                         for {
                           (_, value) <- Box(call.parameters.find(_._1 == p.id))
                           escaped    <- parameterTypeService.translate(value, p.parameterType, AgentType.CfeCommunity).toBox
