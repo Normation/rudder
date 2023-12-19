@@ -117,7 +117,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
       }) &
       ".createParameter *" #> (if (CurrentUser.checkRights(AuthorizationType.Parameter.Write)) {
                                  ajaxButton(
-                                   "Create global property",
+                                   "Create",
                                    () => showPopup(GlobalParamModAction.Create, None),
                                    ("class", "btn btn-success new-icon space-bottom space-top")
                                  )

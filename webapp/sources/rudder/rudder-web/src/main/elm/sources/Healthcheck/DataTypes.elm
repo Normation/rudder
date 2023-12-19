@@ -22,11 +22,9 @@ type alias Model =
     { contextPath : String
     , healthcheck : List Check
     , tab         : TabMenu
-    , showChecks  : Bool
     }
 
 type Msg
     = GetHealthCheckResult (Result Error (List Check))
     | ChangeTabFocus TabMenu
     | CallApi (Model -> Cmd Msg)
-    | CheckListDisplay

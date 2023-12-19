@@ -11,7 +11,7 @@ subscriptions model =
 init : { contextPath : String } -> ( Model, Cmd Msg )
 init flags =
     let
-        initModel = Model flags.contextPath [] General False
+        initModel = Model flags.contextPath [] General
     in
     ( initModel
     , getHealthCheck initModel
