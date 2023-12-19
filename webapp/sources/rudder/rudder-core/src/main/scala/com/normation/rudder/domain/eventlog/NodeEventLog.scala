@@ -38,16 +38,16 @@
 package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog._
-sealed trait NodeEventLog extends EventLog { final override val eventLogCategory = NodeLogCategory }
+sealed trait NodeEventLog extends EventLog { final override val eventLogCategory: EventLogCategory = NodeLogCategory }
 
 final case class ModifyNode(
     override val eventDetails: EventLogDetails
 ) extends NodeEventLog {
-  override val eventType = ModifyNode.eventType
+  override val eventType: EventLogType = ModifyNode.eventType
 }
 
 object ModifyNode extends EventLogFilter {
-  override val eventType = ModifyNodeEventType
+  override val eventType: EventLogType = ModifyNodeEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ModifyNode = ModifyNode(x._2)
 }
@@ -55,23 +55,23 @@ object ModifyNode extends EventLogFilter {
 final case class PromoteNode(
     override val eventDetails: EventLogDetails
 ) extends NodeEventLog {
-  override val eventType = PromoteNode.eventType
+  override val eventType: EventLogType = PromoteNode.eventType
 }
 
 object PromoteNode extends EventLogFilter {
-  override val eventType = PromoteNodeToRelayEventType
-  override def apply(x: (EventLogType, EventLogDetails)): PromoteNode = PromoteNode(x._2)
+  override val eventType:                                 EventLogType = PromoteNodeToRelayEventType
+  override def apply(x: (EventLogType, EventLogDetails)): PromoteNode  = PromoteNode(x._2)
 }
 
 final case class DemoteRelay(
     override val eventDetails: EventLogDetails
 ) extends NodeEventLog {
-  override val eventType = DemoteRelay.eventType
+  override val eventType: EventLogType = DemoteRelay.eventType
 }
 
 object DemoteRelay extends EventLogFilter {
-  override val eventType = DemoteRelayToNodeEventType
-  override def apply(x: (EventLogType, EventLogDetails)): DemoteRelay = DemoteRelay(x._2)
+  override val eventType:                                 EventLogType = DemoteRelayToNodeEventType
+  override def apply(x: (EventLogType, EventLogDetails)): DemoteRelay  = DemoteRelay(x._2)
 }
 
 object NodeEventLogsFilter {

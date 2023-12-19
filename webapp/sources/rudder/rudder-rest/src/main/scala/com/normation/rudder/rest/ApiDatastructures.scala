@@ -269,9 +269,9 @@ trait StartsAtVersion19 extends EndpointSchema { val versions: ApiV.From = ApiV.
 trait StartsAtVersion20 extends EndpointSchema { val versions: ApiV.From = ApiV.From(20) }
 
 // utility extension trait to define the kind of API
-trait PublicApi   extends EndpointSchema { val kind = ApiKind.Public   }
-trait InternalApi extends EndpointSchema { val kind = ApiKind.Internal }
-trait GeneralApi  extends EndpointSchema { val kind = ApiKind.General  }
+trait PublicApi   extends EndpointSchema { val kind: ApiKind = ApiKind.Public   }
+trait InternalApi extends EndpointSchema { val kind: ApiKind = ApiKind.Internal }
+trait GeneralApi  extends EndpointSchema { val kind: ApiKind = ApiKind.General  }
 
 // An utility that compare a schema path and a provided one, and returns
 // exactly the number of asked elements.

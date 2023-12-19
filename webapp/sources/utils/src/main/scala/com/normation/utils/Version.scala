@@ -39,6 +39,7 @@ package com.normation.utils
 
 import java.nio.charset.Charset
 import java.nio.charset.CharsetEncoder
+import scala.annotation.nowarn
 import zio.Chunk
 
 /**
@@ -149,6 +150,7 @@ object PartType {
   final case class Beta(value: String)           extends PartType { def index = 3; def toVersionString: String = value          }
   final case class Milestone(value: String)      extends PartType { def index = 4; def toVersionString: String = value          }
   final case class RC(value: String)             extends PartType { def index = 5; def toVersionString: String = value          }
+  @nowarn
   final case class Numeric private (value: Long) extends PartType { def index = 6; def toVersionString: String = value.toString }
   final case class Chars(value: String)          extends PartType { def index = 7; def toVersionString: String = value          }
 

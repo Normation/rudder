@@ -38,24 +38,25 @@
 package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog.EventLog
+import com.normation.eventlog.EventLogCategory
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.EventLogType
 
 sealed trait UserEventLog extends EventLog {
-  final override val details          = EventLog.emptyDetails
-  final override val eventLogCategory = UserLogCategory
+  final override val details = EventLog.emptyDetails
+  final override val eventLogCategory: EventLogCategory = UserLogCategory
 }
 
 final case class LoginEventLog(
     override val eventDetails: EventLogDetails
 ) extends UserEventLog {
 
-  override val eventType = LoginEventLog.eventType
+  override val eventType: EventLogType = LoginEventLog.eventType
 }
 
 object LoginEventLog extends EventLogFilter {
-  override val eventType = LoginEventType
+  override val eventType: EventLogType = LoginEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): LoginEventLog = LoginEventLog(x._2)
 }
@@ -64,11 +65,11 @@ final case class BadCredentialsEventLog(
     override val eventDetails: EventLogDetails
 ) extends UserEventLog {
 
-  override val eventType = BadCredentialsEventLog.eventType
+  override val eventType: EventLogType = BadCredentialsEventLog.eventType
 }
 
 object BadCredentialsEventLog extends EventLogFilter {
-  override val eventType = BadCredentialsEventType
+  override val eventType: EventLogType = BadCredentialsEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): BadCredentialsEventLog = BadCredentialsEventLog(x._2)
 }
@@ -77,11 +78,11 @@ final case class LogoutEventLog(
     override val eventDetails: EventLogDetails
 ) extends UserEventLog {
 
-  override val eventType = LogoutEventLog.eventType
+  override val eventType: EventLogType = LogoutEventLog.eventType
 }
 
 object LogoutEventLog extends EventLogFilter {
-  override val eventType = LogoutEventType
+  override val eventType: EventLogType = LogoutEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): LogoutEventLog = LogoutEventLog(x._2)
 }
@@ -91,18 +92,18 @@ object LogoutEventLog extends EventLogFilter {
 ///////////////////////////////
 
 sealed trait APIAccountEventLog extends EventLog {
-  final override val eventLogCategory = APIAccountCategory
+  final override val eventLogCategory: EventLogCategory = APIAccountCategory
 }
 
 final case class CreateAPIAccountEventLog(
     override val eventDetails: EventLogDetails
 ) extends APIAccountEventLog {
 
-  override val eventType = CreateAPIAccountEventLog.eventType
+  override val eventType: EventLogType = CreateAPIAccountEventLog.eventType
 }
 
 object CreateAPIAccountEventLog extends EventLogFilter {
-  override val eventType = CreateAPIAccountEventType
+  override val eventType: EventLogType = CreateAPIAccountEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): CreateAPIAccountEventLog = CreateAPIAccountEventLog(x._2)
 }
@@ -111,11 +112,11 @@ final case class DeleteAPIAccountEventLog(
     override val eventDetails: EventLogDetails
 ) extends APIAccountEventLog {
 
-  override val eventType = DeleteAPIAccountEventLog.eventType
+  override val eventType: EventLogType = DeleteAPIAccountEventLog.eventType
 }
 
 object DeleteAPIAccountEventLog extends EventLogFilter {
-  override val eventType = DeleteAPIAccountEventType
+  override val eventType: EventLogType = DeleteAPIAccountEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): DeleteAPIAccountEventLog = DeleteAPIAccountEventLog(x._2)
 }
@@ -124,11 +125,11 @@ final case class ModifyAPIAccountEventLog(
     override val eventDetails: EventLogDetails
 ) extends APIAccountEventLog {
 
-  override val eventType = ModifyAPIAccountEventLog.eventType
+  override val eventType: EventLogType = ModifyAPIAccountEventLog.eventType
 }
 
 object ModifyAPIAccountEventLog extends EventLogFilter {
-  override val eventType = ModifyAPITokenEventType
+  override val eventType: EventLogType = ModifyAPITokenEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ModifyAPIAccountEventLog = ModifyAPIAccountEventLog(x._2)
 }

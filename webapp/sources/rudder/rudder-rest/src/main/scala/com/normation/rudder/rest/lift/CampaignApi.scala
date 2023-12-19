@@ -13,6 +13,7 @@ import com.normation.rudder.campaigns.CampaignSerializer._
 import com.normation.rudder.campaigns.CampaignStatusValue
 import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.rest.{CampaignApi => API}
+import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.OneParam
@@ -37,7 +38,7 @@ class CampaignApi(
     stringUuidGenerator:     StringUuidGenerator
 ) extends LiftApiModuleProvider[API] {
 
-  def schemas = API
+  def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => {
@@ -56,7 +57,7 @@ class CampaignApi(
     })
   }
   object GetCampaigns extends LiftApiModule0 {
-    val schema = API.GetCampaigns
+    val schema: API.GetCampaigns.type = API.GetCampaigns
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val campaignType     = req.params.get("campaignType").getOrElse(Nil).map(campaignSerializer.campaignType)
@@ -196,8 +197,8 @@ class CampaignApi(
   }
 
   object SaveCampaign extends LiftApiModule0 {
-    val schema = API.SaveCampaign
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.SaveCampaign.type = API.SaveCampaign
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse          = {
 
       // copied from `Req.forcedBodyAsJson`
       def r  = """; *charset=(.*)""".r
@@ -223,7 +224,7 @@ class CampaignApi(
   }
 
   object GetCampaignEvents extends LiftApiModule0 {
-    val schema = API.GetCampaignEvents
+    val schema: API.GetCampaignEvents.type = API.GetCampaignEvents
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val states       = req.params.get("state").getOrElse(Nil)

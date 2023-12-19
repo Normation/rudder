@@ -81,6 +81,7 @@ import com.normation.plugins.FilePluginSettingsService
 import com.normation.plugins.ReadPluginPackageInfo
 import com.normation.plugins.SnippetExtensionRegister
 import com.normation.plugins.SnippetExtensionRegisterImpl
+import com.normation.rudder.User
 import com.normation.rudder.UserService
 import com.normation.rudder.api._
 import com.normation.rudder.apidata.RestDataSerializer
@@ -1552,7 +1553,7 @@ object RudderConfigInit {
     lazy val tokenGenerator = new TokenGeneratorImpl(32)
 
     implicit lazy val userService = new UserService {
-      def getCurrentUser = CurrentUser
+      def getCurrentUser: User = CurrentUser
     }
 
     lazy val ncfTechniqueReader = new EditorTechniqueReaderImpl(
@@ -3318,7 +3319,8 @@ object RudderConfigInit {
         }
       }
 
-      override def default(id: String) = new TextField(id, () => configService.rudder_featureSwitch_directiveScriptEngine().toBox)
+      override def default(id: String): DirectiveField =
+        new TextField(id, () => configService.rudder_featureSwitch_directiveScriptEngine().toBox)
     }
 
     lazy val section2FieldService:       Section2FieldService   = {

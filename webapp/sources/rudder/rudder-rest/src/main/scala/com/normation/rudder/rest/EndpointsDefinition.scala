@@ -103,7 +103,7 @@ object CampaignApi       extends ApiModuleProvider[CampaignApi] {
     val z: Int = implicitly[Line].value
     val description    = "Delete a campaign"
     val (action, path) = DELETE / "campaigns" / "{id}"
-    val dataContainer  = None
+    val dataContainer: Option[String] = None
   }
   final case object GetCampaignEventsForModel extends CampaignApi with OneParam with StartsAtVersion16 with SortIndex  {
     val z: Int = implicitly[Line].value
@@ -121,7 +121,7 @@ object CampaignApi       extends ApiModuleProvider[CampaignApi] {
     val z: Int = implicitly[Line].value
     val description    = "Delete a campaign event"
     val (action, path) = DELETE / "campaigns" / "events" / "{id}"
-    val dataContainer  = None
+    val dataContainer: Option[String] = None
   }
   def endpoints: List[CampaignApi] = ca.mrvisser.sealerate.values[CampaignApi].toList.sortBy(_.z)
 }

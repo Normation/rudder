@@ -225,7 +225,7 @@ final case class UnexpectedNoVersion(
     expectedExpiration: DateTime,
     expirationDateTime: DateTime
 ) extends Unexpected with LastRunAvailable {
-  val lastRunConfigInfo = None
+  val lastRunConfigInfo: Option[NodeExpectedReports] = None
 }
 
 /**
@@ -241,7 +241,7 @@ final case class UnexpectedUnknownVersion(
     expectedExpiration: DateTime,
     expirationDateTime: DateTime
 ) extends Unexpected with LastRunAvailable {
-  val lastRunConfigInfo = None
+  val lastRunConfigInfo: Option[NodeExpectedReports] = None
 }
 
 final case class ComputeCompliance(
@@ -250,7 +250,7 @@ final case class ComputeCompliance(
     expirationDateTime: DateTime
 ) extends Ok with LastRunAvailable {
   val lastRunConfigId = expectedConfig.nodeConfigId
-  val lastRunConfigInfo: Some[NodeExpectedReports] = Some(expectedConfig)
+  val lastRunConfigInfo: Option[NodeExpectedReports] = Some(expectedConfig)
 }
 
 /*

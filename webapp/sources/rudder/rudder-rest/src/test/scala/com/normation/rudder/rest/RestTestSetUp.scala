@@ -42,6 +42,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.VariableSpec
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
+import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
@@ -156,6 +157,7 @@ import net.liftweb.http.SHtml
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.mockweb.MockWeb
+import net.liftweb.util.FieldError
 import net.liftweb.util.NamedPF
 import org.apache.commons.httpclient.methods.multipart.ByteArrayPartSource
 import org.apache.commons.httpclient.methods.multipart.FilePart
@@ -169,6 +171,7 @@ import org.specs2.matcher.MatchResult
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 import scala.xml.Elem
+import scala.xml.NodeSeq
 import zio._
 import zio.syntax._
 
@@ -189,18 +192,22 @@ import zio.syntax._
 class RestTestSetUp {
 
   implicit val userService: UserService = new UserService {
-    val user           = new User {
-      val account                              = RudderAccount.User("test-user", "pass")
+    val user = new User {
+      val account: RudderAccount = RudderAccount.User("test-user", "pass")
       def checkRights(auth: AuthorizationType) = true
-      def getApiAuthz                          = ApiAuthz.allAuthz
+      def getApiAuthz: ApiAuthz = ApiAuthz.allAuthz
     }
-    val getCurrentUser = user
+    val getCurrentUser: User = user
   }
 
   // Instantiate Service needed to feed System API constructor
 
   val fakeUpdatePTLibService: UpdateTechniqueLibrary = new UpdateTechniqueLibrary() {
-    def update(modId: ModificationId, actor: EventActor, reason: Option[String]) = {
+    def update(
+        modId:  ModificationId,
+        actor:  EventActor,
+        reason: Option[String]
+    ): Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = {
       Full(Map())
     }
     def registerCallback(callback: TechniquesLibraryUpdateNotification): Unit = {}
@@ -462,8 +469,8 @@ class RestTestSetUp {
   // all other apis
 
   class FakeClearCacheService extends ClearCacheService {
-    override def action(actor: EventActor)                                           = null
-    override def clearNodeConfigurationCache(storeEvent: Boolean, actor: EventActor) = null
+    override def action(actor: EventActor):                                           Box[String] = null
+    override def clearNodeConfigurationCache(storeEvent: Boolean, actor: EventActor): Box[Unit]   = null
   }
 
   val fakeNotArchivedElements: NotArchivedElements =
@@ -577,10 +584,10 @@ class RestTestSetUp {
   val fakeItemArchiveManager = new FakeItemArchiveManager
   val fakeClearCacheService = new FakeClearCacheService
   val fakePersonIndentService: PersonIdentService = new PersonIdentService {
-    override def getPersonIdentOrDefault(username: String) = ZIO.succeed(fakePersonIdent)
+    override def getPersonIdentOrDefault(username: String): IOResult[PersonIdent] = ZIO.succeed(fakePersonIdent)
   }
   val fakeScriptLauncher:      DebugInfoService   = new DebugInfoService {
-    override def launch() = DebugInfoScriptResult("test", new Array[Byte](42)).succeed
+    override def launch(): IOResult[DebugInfoScriptResult] = DebugInfoScriptResult("test", new Array[Byte](42)).succeed
   }
 
   val fakeUpdateDynamicGroups: UpdateDynamicGroups = {
@@ -657,21 +664,21 @@ class RestTestSetUp {
     override def default(withId: String):                      DirectiveField = new DirectiveField {
       self =>
       type ValueType = String
-      def manifest               = manifestOf[String]
-      lazy val id                = withId
-      def name                   = id
-      override val uniqueFieldId = Full(id)
-      protected var _x: String = getDefaultValue
-      def validate    = Nil
-      def validations = Nil
-      def setFilter   = Nil
-      def parseClient(s: String):                              Unit                   = if (null == s) _x = "" else _x = s
-      def toClient:                                            String                 = if (null == _x) "" else _x
-      def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None // not supported in the general cases
+      def manifest = manifestOf[String]
+      lazy val id  = withId
+      def name     = id
+      override val uniqueFieldId:                              Box[String]                      = Full(id)
+      protected var _x:                                        String                           = getDefaultValue
+      def validate:                                            List[FieldError]                 = Nil
+      def validations:                                         List[String => List[FieldError]] = Nil
+      def setFilter:                                           List[String => String]           = Nil
+      def parseClient(s: String):                              Unit                             = if (null == s) _x = "" else _x = s
+      def toClient:                                            String                           = if (null == _x) "" else _x
+      def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]]           = None // not supported in the general cases
       def getDefaultValue = ""
       def get             = _x
       def set(x: String)  = { if (null == x) _x = "" else _x = x; _x }
-      def toForm          = Full(SHtml.textarea("", s => parseClient(s)))
+      def toForm: Box[NodeSeq] = Full(SHtml.textarea("", s => parseClient(s)))
     }
   }
   val directiveEditorService = new DirectiveEditorServiceImpl(

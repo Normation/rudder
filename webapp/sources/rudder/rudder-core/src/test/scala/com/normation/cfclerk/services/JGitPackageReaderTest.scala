@@ -282,10 +282,10 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
  */
 @RunWith(classOf[JUnitRunner])
 class JGitPackageReader_SameRootTest extends JGitPackageReaderSpec {
-  lazy val gitRoot         = new File("/tmp/test-jgit-" + DateTime.now().toString())
-  lazy val ptLib           = gitRoot
-  lazy val relativePathArg = None
-  def postInitHook(): Unit = {}
+  lazy val gitRoot = new File("/tmp/test-jgit-" + DateTime.now().toString())
+  lazy val ptLib   = gitRoot
+  lazy val relativePathArg: Option[String] = None
+  def postInitHook():       Unit           = {}
 }
 
 /**

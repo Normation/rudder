@@ -132,7 +132,7 @@ object DisplayNodeGroupTree extends Loggable {
 
       val htmlId = s"jstree-${targetInfo.target.target.target}"
 
-      override def children = Nil
+      override def children: List[JsTreeNode] = Nil
 
       val classes = {
         val includedClass = if (included.contains(targetInfo.target.target)) { "included" }

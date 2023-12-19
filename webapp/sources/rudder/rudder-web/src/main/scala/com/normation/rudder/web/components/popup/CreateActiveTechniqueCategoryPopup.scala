@@ -54,7 +54,9 @@ import net.liftweb.http.SHtml
 import net.liftweb.http.js._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
+import net.liftweb.util.FieldError
 import net.liftweb.util.Helpers._
+
 import scala.xml._
 
 class CreateActiveTechniqueCategoryPopup(
@@ -107,7 +109,7 @@ class CreateActiveTechniqueCategoryPopup(
     override def setFilter      = notNull _ :: trim _ :: Nil
     override def inputField     = super.inputField % ("class" -> "form-control col-lg-12 col-sm-12 col-xs-12") % ("tabindex" -> "2")
     override def errorClassName = "col-lg-12 errors-container"
-    override def validations    = Nil
+    override def validations: List[String => List[FieldError]] = Nil
 
   }
 

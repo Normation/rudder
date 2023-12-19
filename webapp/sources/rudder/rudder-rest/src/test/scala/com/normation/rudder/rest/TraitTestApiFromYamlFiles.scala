@@ -110,12 +110,12 @@ object TraitTestApiFromYamlFiles {
     implicit val userServiceImp = userService match {
       case None    =>
         new UserService {
-          val user           = new User {
-            val account                              = RudderAccount.User("test-user", "pass")
+          val user = new User {
+            val account: RudderAccount = RudderAccount.User("test-user", "pass")
             def checkRights(auth: AuthorizationType) = true
-            def getApiAuthz                          = ApiAuthorization.allAuthz
+            def getApiAuthz: ApiAuthorization = ApiAuthorization.allAuthz
           }
-          val getCurrentUser = user
+          val getCurrentUser: User = user
         }
       case Some(u) => u
     }

@@ -116,7 +116,7 @@ class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
     doobie = doobie,
     batchSize = 2
   ) {
-    override val errorLogger = (f: Failure) => throw new MigEx102(f.messageChain)
+    override val errorLogger: Failure => Unit = (f: Failure) => throw new MigEx102(f.messageChain)
   }
 
   var logs5WithId: Map[String, MigrationTestLog] = null // init in initDb

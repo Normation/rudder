@@ -56,6 +56,7 @@ import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.repository.ItemArchiveManager
 import com.normation.rudder.rest.{SystemApi => API}
+import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.EndpointSchema
@@ -98,7 +99,7 @@ class SystemApi(
     rudderBuildTimestamp: String
 ) extends LiftApiModuleProvider[API] {
 
-  def schemas = API
+  def schemas: ApiModuleProvider[API] = API
 
   override def getLiftEndpoints(): List[LiftApiModule] = {
 
@@ -149,7 +150,7 @@ class SystemApi(
   }
 
   object Info extends LiftApiModule0 {
-    val schema        = API.Info
+    val schema: API.Info.type = API.Info
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -168,7 +169,7 @@ class SystemApi(
   }
 
   object Status extends LiftApiModule0 {
-    val schema        = API.Status
+    val schema: API.Status.type = API.Status
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -181,7 +182,7 @@ class SystemApi(
 
   object DebugInfo extends LiftApiModule0 {
 
-    val schema        = API.DebugInfo
+    val schema: API.DebugInfo.type = API.DebugInfo
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -194,7 +195,7 @@ class SystemApi(
   // Reload [techniques / dynamics groups] endpoint implementation
 
   object TechniquesReload extends LiftApiModule0 {
-    val schema        = API.TechniquesReload
+    val schema: API.TechniquesReload.type = API.TechniquesReload
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -203,7 +204,7 @@ class SystemApi(
   }
 
   object DyngroupsReload extends LiftApiModule0 {
-    val schema        = API.DyngroupsReload
+    val schema: API.DyngroupsReload.type = API.DyngroupsReload
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -212,7 +213,7 @@ class SystemApi(
   }
 
   object ReloadAll extends LiftApiModule0 {
-    val schema        = API.ReloadAll
+    val schema: API.ReloadAll.type = API.ReloadAll
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -223,7 +224,7 @@ class SystemApi(
   // Policies update and regenerate endpoint implementation
 
   object PoliciesUpdate extends LiftApiModule0 {
-    val schema        = API.PoliciesUpdate
+    val schema: API.PoliciesUpdate.type = API.PoliciesUpdate
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -232,7 +233,7 @@ class SystemApi(
   }
 
   object PoliciesRegenerate extends LiftApiModule0 {
-    val schema        = API.PoliciesRegenerate
+    val schema: API.PoliciesRegenerate.type = API.PoliciesRegenerate
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -243,7 +244,7 @@ class SystemApi(
   // Archives endpoint implementation
 
   object ArchivesGroupsList extends LiftApiModule0 {
-    val schema        = API.ArchivesGroupsList
+    val schema: API.ArchivesGroupsList.type = API.ArchivesGroupsList
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -252,7 +253,7 @@ class SystemApi(
   }
 
   object ArchivesDirectivesList extends LiftApiModule0 {
-    val schema        = API.ArchivesDirectivesList
+    val schema: API.ArchivesDirectivesList.type = API.ArchivesDirectivesList
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -261,7 +262,7 @@ class SystemApi(
   }
 
   object ArchivesRulesList extends LiftApiModule0 {
-    val schema        = API.ArchivesRulesList
+    val schema: API.ArchivesRulesList.type = API.ArchivesRulesList
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -270,7 +271,7 @@ class SystemApi(
   }
 
   object ArchivesParametersList extends LiftApiModule0 {
-    val schema        = API.ArchivesParametersList
+    val schema: API.ArchivesParametersList.type = API.ArchivesParametersList
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -279,7 +280,7 @@ class SystemApi(
   }
 
   object ArchivesFullList extends LiftApiModule0 {
-    val schema        = API.ArchivesFullList
+    val schema: API.ArchivesFullList.type = API.ArchivesFullList
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -288,7 +289,7 @@ class SystemApi(
   }
 
   object RestoreGroupsLatestArchive extends LiftApiModule0 {
-    val schema        = API.RestoreGroupsLatestArchive
+    val schema: API.RestoreGroupsLatestArchive.type = API.RestoreGroupsLatestArchive
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -297,7 +298,7 @@ class SystemApi(
   }
 
   object RestoreDirectivesLatestArchive extends LiftApiModule0 {
-    val schema        = API.RestoreDirectivesLatestArchive
+    val schema: API.RestoreDirectivesLatestArchive.type = API.RestoreDirectivesLatestArchive
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -306,7 +307,7 @@ class SystemApi(
   }
 
   object RestoreRulesLatestArchive extends LiftApiModule0 {
-    val schema        = API.RestoreRulesLatestArchive
+    val schema: API.RestoreRulesLatestArchive.type = API.RestoreRulesLatestArchive
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -315,7 +316,7 @@ class SystemApi(
   }
 
   object RestoreParametersLatestArchive extends LiftApiModule0 {
-    val schema        = API.RestoreParametersLatestArchive
+    val schema: API.RestoreParametersLatestArchive.type = API.RestoreParametersLatestArchive
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -324,7 +325,7 @@ class SystemApi(
   }
 
   object RestoreFullLatestArchive extends LiftApiModule0 {
-    val schema        = API.RestoreFullLatestArchive
+    val schema: API.RestoreFullLatestArchive.type = API.RestoreFullLatestArchive
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -333,7 +334,7 @@ class SystemApi(
   }
 
   object RestoreGroupsLatestCommit extends LiftApiModule0 {
-    val schema        = API.RestoreGroupsLatestCommit
+    val schema: API.RestoreGroupsLatestCommit.type = API.RestoreGroupsLatestCommit
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -342,7 +343,7 @@ class SystemApi(
   }
 
   object RestoreDirectivesLatestCommit extends LiftApiModule0 {
-    val schema        = API.RestoreDirectivesLatestCommit
+    val schema: API.RestoreDirectivesLatestCommit.type = API.RestoreDirectivesLatestCommit
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -351,7 +352,7 @@ class SystemApi(
   }
 
   object RestoreRulesLatestCommit extends LiftApiModule0 {
-    val schema        = API.RestoreRulesLatestCommit
+    val schema: API.RestoreRulesLatestCommit.type = API.RestoreRulesLatestCommit
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -360,7 +361,7 @@ class SystemApi(
   }
 
   object RestoreParametersLatestCommit extends LiftApiModule0 {
-    val schema        = API.RestoreParametersLatestCommit
+    val schema: API.RestoreParametersLatestCommit.type = API.RestoreParametersLatestCommit
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -369,7 +370,7 @@ class SystemApi(
   }
 
   object RestoreFullLatestCommit extends LiftApiModule0 {
-    val schema        = API.RestoreFullLatestCommit
+    val schema: API.RestoreFullLatestCommit.type = API.RestoreFullLatestCommit
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -378,7 +379,7 @@ class SystemApi(
   }
 
   object ArchiveGroups     extends LiftApiModule0 {
-    val schema        = API.ArchiveGroups
+    val schema: API.ArchiveGroups.type = API.ArchiveGroups
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -386,7 +387,7 @@ class SystemApi(
     }
   }
   object ArchiveDirectives extends LiftApiModule0 {
-    val schema        = API.ArchiveDirectives
+    val schema: API.ArchiveDirectives.type = API.ArchiveDirectives
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -395,7 +396,7 @@ class SystemApi(
   }
 
   object ArchiveRules extends LiftApiModule0 {
-    val schema        = API.ArchiveRules
+    val schema: API.ArchiveRules.type = API.ArchiveRules
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -404,7 +405,7 @@ class SystemApi(
   }
 
   object ArchiveParameters extends LiftApiModule0 {
-    val schema        = API.ArchiveParameters
+    val schema: API.ArchiveParameters.type = API.ArchiveParameters
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -413,7 +414,7 @@ class SystemApi(
   }
 
   object ArchiveAll extends LiftApiModule0 {
-    val schema        = API.ArchiveFull
+    val schema: API.ArchiveFull.type = API.ArchiveFull
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -582,7 +583,7 @@ class SystemApi(
   }
 
   object GetHealthcheckResult extends LiftApiModule0 {
-    val schema        = API.GetHealthcheckResult
+    val schema: API.GetHealthcheckResult.type = API.GetHealthcheckResult
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -591,7 +592,7 @@ class SystemApi(
   }
 
   object PurgeSoftware extends LiftApiModule0 {
-    val schema        = API.PurgeSoftware
+    val schema: API.PurgeSoftware.type = API.PurgeSoftware
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {

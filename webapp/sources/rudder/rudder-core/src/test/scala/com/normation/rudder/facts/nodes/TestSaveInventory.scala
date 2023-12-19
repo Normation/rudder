@@ -145,7 +145,7 @@ class TestSaveInventoryLdap extends TestSaveInventory {
   override def checkAcceptedNodeExists(id: String): Boolean = nodeExists(id, MockLdapFactStorage.acceptedDIT)
   override def getAcceptedNodeAsString(id: String): String  = nodeAsString(id, MockLdapFactStorage.acceptedDIT)
 
-  override lazy val factStorage = MockLdapFactStorage.nodeFactStorage
+  override lazy val factStorage: NodeFactStorage = MockLdapFactStorage.nodeFactStorage
 
   //////// for LDAP reposiotyr, in addition to main acceptation test, we are
   //////// checking properties around certificate validation

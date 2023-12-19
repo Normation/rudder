@@ -282,16 +282,16 @@ object Validation {
     }
   }
   object Machine       {
-    case object MPhysical      extends Machine { val tpe = PhysicalMachineType                                   }
-    case object MUnknownVmType extends Machine { val tpe: VirtualMachineType = VirtualMachineType(UnknownVmType) }
-    case object MSolarisZone   extends Machine { val tpe: VirtualMachineType = VirtualMachineType(SolarisZone)   }
-    case object MVirtualBox    extends Machine { val tpe: VirtualMachineType = VirtualMachineType(VirtualBox)    }
-    case object MVMWare        extends Machine { val tpe: VirtualMachineType = VirtualMachineType(VMWare)        }
-    case object MQEmu          extends Machine { val tpe: VirtualMachineType = VirtualMachineType(QEmu)          }
-    case object MXen           extends Machine { val tpe: VirtualMachineType = VirtualMachineType(Xen)           }
-    case object MAixLPAR       extends Machine { val tpe: VirtualMachineType = VirtualMachineType(AixLPAR)       }
-    case object MHyperV        extends Machine { val tpe: VirtualMachineType = VirtualMachineType(HyperV)        }
-    case object MBSDJail       extends Machine { val tpe: VirtualMachineType = VirtualMachineType(BSDJail)       }
+    case object MPhysical      extends Machine { val tpe: MachineType = PhysicalMachineType               }
+    case object MUnknownVmType extends Machine { val tpe: MachineType = VirtualMachineType(UnknownVmType) }
+    case object MSolarisZone   extends Machine { val tpe: MachineType = VirtualMachineType(SolarisZone)   }
+    case object MVirtualBox    extends Machine { val tpe: MachineType = VirtualMachineType(VirtualBox)    }
+    case object MVMWare        extends Machine { val tpe: MachineType = VirtualMachineType(VMWare)        }
+    case object MQEmu          extends Machine { val tpe: MachineType = VirtualMachineType(QEmu)          }
+    case object MXen           extends Machine { val tpe: MachineType = VirtualMachineType(Xen)           }
+    case object MAixLPAR       extends Machine { val tpe: MachineType = VirtualMachineType(AixLPAR)       }
+    case object MHyperV        extends Machine { val tpe: MachineType = VirtualMachineType(HyperV)        }
+    case object MBSDJail       extends Machine { val tpe: MachineType = VirtualMachineType(BSDJail)       }
 
     val values: Set[Machine] = ca.mrvisser.sealerate.values[Machine]
   }

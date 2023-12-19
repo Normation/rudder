@@ -471,7 +471,7 @@ class DirectiveEditForm(
       override def subContainerClassName = "col-xs-12"
       override def setFilter             = notNull _ :: trim _ :: Nil
       override val maxLen                = 255
-      override def validations           = Nil
+      override def validations: List[String => List[FieldError]] = Nil
     }
   }
 
@@ -512,7 +512,7 @@ class DirectiveEditForm(
       priorities,
       defaultValue = directive.priority
     ) {
-      val tooltipContent                 = {
+      val tooltipContent = {
         s"""
            |<div>
            |              <h4> Priority </h4>
@@ -525,7 +525,7 @@ class DirectiveEditForm(
            |            </div>
            |""".stripMargin
       }
-      override val displayHtml           = {
+      override val displayHtml: NodeSeq = {
         <div>
           <b>Priority</b>
           <span>

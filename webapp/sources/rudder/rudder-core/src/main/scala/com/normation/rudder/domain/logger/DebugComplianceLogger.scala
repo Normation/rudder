@@ -76,7 +76,7 @@ object ComplianceDebugLogger extends Logger {
     .expireAfterWrite(10, TimeUnit.MINUTES)
     .build(
       new CacheLoader[String, Logger]() {
-        def load(key: String) = {
+        def load(key: String): Logger = {
           new Logger() {
             override protected def _logger = LoggerFactory.getLogger(s"explain_compliance.${key}")
           }

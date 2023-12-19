@@ -10,6 +10,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.rest.{RuleInternalApi => API}
+import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestExtractorService
@@ -29,7 +30,7 @@ class RulesInternalApi(
     ruleInternalApiService: RuleInternalApiService
 ) extends LiftApiModuleProvider[API] {
 
-  def schemas = API
+  def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => {
@@ -40,7 +41,7 @@ class RulesInternalApi(
   }
 
   object GetRuleNodesAndDirectives extends LiftApiModuleString {
-    val schema = API.GetRuleNodesAndDirectives
+    val schema: API.GetRuleNodesAndDirectives.type = API.GetRuleNodesAndDirectives
 
     def process(
         version:    ApiVersion,

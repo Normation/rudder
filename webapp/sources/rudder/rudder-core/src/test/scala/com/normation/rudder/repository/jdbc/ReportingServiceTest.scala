@@ -205,8 +205,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
   lazy val dummyChangesCache: CachedNodeChangesServiceImpl = {
     new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepo), () => Full(true)) {
-      override def update(lowestId: Long, highestId: Long): Box[Unit] = Full(())
-      override def countChangesByRuleByInterval() = Empty
+      override def update(lowestId: Long, highestId: Long): Box[Unit]                  = Full(())
+      override def countChangesByRuleByInterval():          Box[(Long, ChangesByRule)] = Empty
     }
   }
 

@@ -306,7 +306,7 @@ object DisplayDirectiveTree extends Loggable {
       val agentTypes  = technique.toList.flatMap(_.agentConfigs.map(_.agentType))
       val agentCompat = AgentCompat(agentTypes)
 
-      override def children = Nil
+      override def children: List[JsTreeNode] = Nil
 
       val classes = {
         val includedClass = if (included.contains(directive.id.uid)) { "included" }
