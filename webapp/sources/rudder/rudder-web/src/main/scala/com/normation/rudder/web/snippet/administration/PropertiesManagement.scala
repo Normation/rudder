@@ -114,7 +114,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "generationHookTriggerNodeUpdate"    => generationHookTriggerNodeUpdate
   }
 
-  def changeMessageConfiguration: NodeSeq => NodeSeq = { xml: NodeSeq =>
+  def changeMessageConfiguration: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     // initial values
     var initEnabled     = configService.rudder_ui_changeMessage_enabled().toBox
     var initMandatory   = configService.rudder_ui_changeMessage_mandatory().toBox
@@ -236,7 +236,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     } &
 
     "#restoreExplanation " #> {
-      initExplanation.map { s: String =>
+      initExplanation.map { (s: String) =>
         ajaxButton(
           <span>Reset to default</span>,
           () => {
@@ -251,7 +251,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     } &
 
     "#mandatoryTooltip *" #> {
-      initMandatory.map { b: Boolean =>
+      initMandatory.map { (b: Boolean) =>
         <span data-bs-toggle="tooltip" title="If this option is enabled, users will be forced to enter a change audit log. Empty messages will not be accepted.">
             <span class="glyphicon glyphicon-info-sign info"></span>
           </span>
@@ -259,7 +259,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     } &
 
     "#explanationTooltip *" #> {
-      initExplanation.map { s: String =>
+      initExplanation.map { (s: String) =>
         <span data-bs-toggle="tooltip" title="Content of the text displayed to prompt the user to enter a change audit log.">
             <span class="glyphicon glyphicon-info-sign info"></span>
           </span>
@@ -271,7 +271,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }) apply (xml ++ Script(initJs(enabled)))
   }
 
-  def cfserverNetworkConfiguration: NodeSeq => NodeSeq = { xml: NodeSeq =>
+  def cfserverNetworkConfiguration: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     //  initial values, updated on successfull submit
     var initDenyBadClocks = configService.cfengine_server_denybadclocks().toBox
 
@@ -328,7 +328,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }) apply (xml ++ Script(check()))
   }
 
-  def relaySynchronizationMethodManagement: NodeSeq => NodeSeq = { xml: NodeSeq =>
+  def relaySynchronizationMethodManagement: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     //  initial values, updated on successfull submit
     var initRelaySyncMethod      = configService.relay_server_sync_method().toBox
     // Be careful, we store negative value
@@ -530,7 +530,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   def agentPolicyModeConfiguration: NodeSeq = agentPolicyModeEditForm.cfagentPolicyModeConfiguration(None)
   def complianceModeConfiguration = complianceModeEditForm.complianceModeConfiguration
 
-  def cfengineGlobalProps: NodeSeq => NodeSeq = { xml: NodeSeq =>
+  def cfengineGlobalProps: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     //  initial values, updated on successful submit
     var initModifiedFilesTtl = configService.cfengine_modified_files_ttl().toBox
     // form values
@@ -581,7 +581,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }) apply (xml ++ Script(check()))
   }
 
-  def loggingConfiguration: NodeSeq => NodeSeq = { xml: NodeSeq =>
+  def loggingConfiguration: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     //  initial values, updated on successfull submit
     var initCfengineOutputsTtl = configService.cfengine_outputs_ttl().toBox
     // form values
@@ -651,7 +651,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     else perms
   }
 
-  def generationHookCfpromise: NodeSeq => NodeSeq = { xml: NodeSeq =>
+  def generationHookCfpromise: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     {
       import better.files._
       val hook = File("/opt/rudder/etc/hooks.d/policy-generation-node-ready/10-cf-promise-check")
@@ -894,7 +894,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  def sendMetricsConfiguration: NodeSeq => NodeSeq = { xml: NodeSeq =>
+  def sendMetricsConfiguration: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     (configService.send_server_metrics().toBox match {
       case Full(value) =>
         var initSendMetrics    = value
@@ -942,7 +942,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }) apply (xml)
   }
 
-  def displayGraphsConfiguration: NodeSeq => NodeSeq = { xml: NodeSeq =>
+  def displayGraphsConfiguration: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     ((configService.display_changes_graph().toBox, configService.rudder_ui_display_ruleComplianceColumns().toBox) match {
       case (Full(valueGraphs), Full(valueColumns)) =>
         var initDisplayGraphs     = valueGraphs
@@ -1011,7 +1011,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }) apply (xml ++ Script(Run(s"""$$("#displayGraphsSubmit").attr("disabled",true);""")))
   }
 
-  def directiveScriptEngineConfiguration: NodeSeq => NodeSeq = { xml: NodeSeq =>
+  def directiveScriptEngineConfiguration: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     import com.normation.rudder.domain.appconfig.FeatureSwitch._
 
     (configService.rudder_featureSwitch_directiveScriptEngine().toBox match {
@@ -1069,7 +1069,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }) apply xml
   }
 
-  def nodeOnAcceptDefaultsConfiguration: NodeSeq => NodeSeq = { xml: NodeSeq =>
+  def nodeOnAcceptDefaultsConfiguration: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     val modes  = SelectableOption[Option[PolicyMode]](None, "Use global value") :: PolicyMode.allModes.map { x =>
       SelectableOption[Option[PolicyMode]](Some(x), x.name.capitalize)
     }.toList
@@ -1154,7 +1154,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ("#nodeOnAcceptDefaults" #> process).apply(xml)
   }
 
-  def unexpectedReportInterpretation: NodeSeq => NodeSeq = { xml: NodeSeq =>
+  def unexpectedReportInterpretation: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     import com.normation.rudder.services.reports.UnexpectedReportBehavior._
 
     (configService.rudder_compliance_unexpected_report_interpretation().toBox match {

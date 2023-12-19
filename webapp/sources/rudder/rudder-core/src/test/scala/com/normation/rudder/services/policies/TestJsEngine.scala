@@ -76,7 +76,7 @@ class TestJsEngine extends Specification {
   /**
    * A failure matcher utility that pattern matches the result message
    */
-  def beFailure[T](regex: Regex): Matcher[Either[RudderError, T]] = { b: Either[RudderError, T] =>
+  def beFailure[T](regex: Regex): Matcher[Either[RudderError, T]] = { (b: Either[RudderError, T]) =>
     (
       b match {
         case Left(err) if (regex.pattern.matcher(err.fullMsg).matches()) => true
@@ -86,17 +86,18 @@ class TestJsEngine extends Specification {
     )
   }
 
-  def beVariableValue[T](cond: String => Boolean): Matcher[Either[RudderError, Variable]] = { b: Either[RudderError, Variable] =>
-    (
-      b match {
-        case Right(v) if (v.values.size == 1 && cond(v.values(0))) => true
-        case Right(v)                                              => false
-        case Left(err)                                             =>
-          println(err.fullMsg)
-          false
-      },
-      s"${b} is not a Full(InputVariable) that matches condition ${cond} but a '${b}'"
-    )
+  def beVariableValue[T](cond: String => Boolean): Matcher[Either[RudderError, Variable]] = {
+    (b: Either[RudderError, Variable]) =>
+      (
+        b match {
+          case Right(v) if (v.values.size == 1 && cond(v.values(0))) => true
+          case Right(v)                                              => false
+          case Left(err)                                             =>
+            println(err.fullMsg)
+            false
+        },
+        s"${b} is not a Full(InputVariable) that matches condition ${cond} but a '${b}'"
+      )
   }
 
   def runSandboxed[T](maxThread: Int = 1)(script: SandboxedJsEngine => IOResult[T]): Either[RudderError, T] =

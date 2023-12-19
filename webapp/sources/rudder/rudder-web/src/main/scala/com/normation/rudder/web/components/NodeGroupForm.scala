@@ -151,8 +151,8 @@ class NodeGroupForm(
   setSearchNodeComponent
 
   def mainDispatch: Map[String, NodeSeq => NodeSeq] = Map(
-    "showForm"  -> { _: NodeSeq => showForm() },
-    "showGroup" -> { _: NodeSeq =>
+    "showForm"  -> { (_: NodeSeq) => showForm() },
+    "showGroup" -> { (_: NodeSeq) =>
       searchNodeComponent.get match {
         case Full(component) => component.buildQuery(true)
         case _               => <div>The component is not set</div>

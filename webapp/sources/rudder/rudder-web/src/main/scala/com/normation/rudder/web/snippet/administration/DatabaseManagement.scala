@@ -75,7 +75,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
         .radio(
           Seq("Archive", "Delete"),
           Full("Archive"),
-          { value: String =>
+          { (value: String) =>
             action = value match {
               case "Archive" => archiveAction
               case "Delete"  => deleteAction

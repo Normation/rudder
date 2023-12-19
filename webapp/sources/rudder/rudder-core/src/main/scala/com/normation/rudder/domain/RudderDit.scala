@@ -446,7 +446,7 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
       principal =>
 
       // get id from dn
-      def idFromDn(dn: DN): Option[ApiAccountId] = buildId(dn, principals.dn, { x: String => ApiAccountId(x) })
+      def idFromDn(dn: DN): Option[ApiAccountId] = buildId(dn, principals.dn, (x: String) => ApiAccountId(x))
 
       // build the dn from an UUID
       def dn(id: ApiAccountId) = new DN(this.rdn(id.value), principals.dn)

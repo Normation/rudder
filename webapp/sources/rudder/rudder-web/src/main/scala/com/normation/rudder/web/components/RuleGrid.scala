@@ -169,7 +169,7 @@ class RuleGrid(
   )
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    case "rulesGrid" => { _: NodeSeq => rulesGridWithUpdatedInfo(None, true, false) }
+    case "rulesGrid" => { (_: NodeSeq) => rulesGridWithUpdatedInfo(None, true, false) }
   }
 
   /**
