@@ -12,7 +12,10 @@ use rudder_commons::{canonify, methods::method::Agent};
 
 use crate::{
     backends::unix::{
-        cfengine::{bundle::Bundle, cfengine_canonify_condition, cfengine_escape, expanded, promise::Promise, quoted},
+        cfengine::{
+            bundle::Bundle, cfengine_canonify_condition, cfengine_escape, expanded,
+            promise::Promise, quoted,
+        },
         ncf::dry_run_mode,
     },
     ir::{
