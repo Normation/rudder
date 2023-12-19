@@ -64,6 +64,6 @@ trait JsTableLine extends Loggable {
  */
 final case class JsTableData[T <: JsTableLine](lines: List[T]) {
 
-  def json = JsArray(lines.map(_.json))
+  def json: JsArray = JsArray(lines.map(_.json))
 
 }

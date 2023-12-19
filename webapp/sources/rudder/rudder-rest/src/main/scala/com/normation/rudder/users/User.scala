@@ -90,10 +90,10 @@ object RudderAuthType {
   }
 
   case object User extends RudderAuthType {
-    override val grantedAuthorities = buildAuthority("ROLE_USER")
+    override val grantedAuthorities: Collection[GrantedAuthority] = buildAuthority("ROLE_USER")
   }
   case object Api  extends RudderAuthType {
-    override val grantedAuthorities = buildAuthority("ROLE_REMOTE")
+    override val grantedAuthorities: Collection[GrantedAuthority] = buildAuthority("ROLE_REMOTE")
 
     val apiRudderRights = Rights.NoRights
     val apiRudderRole: Set[Role] = Set(Role.NoRights)
@@ -115,7 +115,7 @@ case class RudderUserDetail(
     nodePerms: NodeSecurityContext
 ) extends UserDetails {
   // merge roles rights
-  val authz = Rights(roles.flatMap(_.rights.authorizationTypes))
+  val authz: Rights = Rights(roles.flatMap(_.rights.authorizationTypes))
 
   override val (getUsername, getPassword, getAuthorities) = account match {
     case RudderAccount.User(login, password) => (login, password, RudderAuthType.User.grantedAuthorities)
@@ -124,7 +124,7 @@ case class RudderUserDetail(
   override val isAccountNonExpired                        = true
   override val isAccountNonLocked                         = true
   override val isCredentialsNonExpired                    = true
-  override val isEnabled                                  = status == UserStatus.Active
+  override val isEnabled:                   Boolean = status == UserStatus.Active
   def checkRights(auth: AuthorizationType): Boolean = {
     if (authz.authorizationTypes.contains(AuthorizationType.NoRights)) false
     else if (authz.authorizationTypes.contains(AuthorizationType.AnyRights)) true
@@ -145,7 +145,7 @@ trait AuthenticatedUser {
   def account: RudderAccount
   def checkRights(auth: AuthorizationType): Boolean
   def getApiAuthz: ApiAuthorization
-  final def actor = EventActor(account match {
+  final def actor: EventActor = EventActor(account match {
     case RudderAccount.User(login, _) => login
     case RudderAccount.Api(api)       => api.name.value
   })

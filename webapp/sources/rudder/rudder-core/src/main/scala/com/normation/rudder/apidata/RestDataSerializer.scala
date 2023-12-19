@@ -597,7 +597,7 @@ final case class RestDataSerializerImpl(
       status:        WorkflowNodeId,
       isAcceptable:  Boolean,
       apiVersion:    ApiVersion
-  ) = {
+  ): JObject = {
 
     val changes: JValue = changeRequest match {
       case cr: ConfigurationChangeRequest =>
@@ -638,7 +638,7 @@ final case class RestDataSerializerImpl(
     (("name"      -> technique.techniqueName.value)
     ~ ("versions" -> technique.techniques.map(_._1.serialize)))
   }
-  def serializeTechnique(technique: Technique) = {
+  def serializeTechnique(technique: Technique):           Json   = {
     zio.json.ast.Json(
       ("name"    -> Str(technique.name)),
       ("id"      -> Str(technique.id.name.value)),

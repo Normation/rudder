@@ -64,7 +64,7 @@ class CampaignApiTest extends Specification with AfterAll with Loggable {
   ZioRuntime.unsafeRun(MainCampaignService.start(restTestSetUp.mockCampaign.mainCampaignService))
   val restTest      = new RestTest(restTestSetUp.liftRules)
 
-  val testDir = File(s"/tmp/test-rudder-campaign-${DateFormaterService.serialize(DateTime.now())}")
+  val testDir: File = File(s"/tmp/test-rudder-campaign-${DateFormaterService.serialize(DateTime.now())}")
   testDir.createDirectoryIfNotExists(true)
 
   override def afterAll(): Unit = {
@@ -76,13 +76,13 @@ class CampaignApiTest extends Specification with AfterAll with Loggable {
     }
   }
 
-  def children(f: File) = f.children.toList.map(_.name)
+  def children(f: File): List[String] = f.children.toList.map(_.name)
 
   // start service now, it takes sometime and is async, so we need to start it early to avoid flakiness
 
 //  org.slf4j.LoggerFactory.getLogger("campaign").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
 
-  val c0json = {
+  val c0json: String = {
     """{"info":{
       |"id":"c0",
       |"name":"first campaign",

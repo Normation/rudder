@@ -129,7 +129,7 @@ object VTypeConstraint {
     validTypes(r, algos).find(t => t.name == s)
   }
 
-  val allTypeNames = validTypes(None, Seq()).map(_.name).mkString(", ")
+  val allTypeNames: String = validTypes(None, Seq()).map(_.name).mkString(", ")
 
   def checkIsProperty(value: String, forField: String)(elsePart: String => PureResult[Unit]): PureResult[Unit] = {
     PropertyParser.parse(value) match {
@@ -161,20 +161,20 @@ final case class TextareaVType(regex: Option[RegexConstraint] = None)    extends
 
 sealed trait FixedRegexVType extends StringVType
 object IpVType               extends FixedRegexVType {
-  override val name  = "ip"
-  override val regex = Some(IpRegex)
+  override val name = "ip"
+  override val regex: Some[IpRegex.type] = Some(IpRegex)
 }
 object Ipv4VType             extends FixedRegexVType {
-  override val name  = "ipv4"
-  override val regex = Some(Ipv4Regex)
+  override val name = "ipv4"
+  override val regex: Some[Ipv4Regex.type] = Some(Ipv4Regex)
 }
 object Ipv6VType             extends FixedRegexVType {
-  override val name  = "ipv6"
-  override val regex = Some(Ipv6Regex)
+  override val name = "ipv6"
+  override val regex: Some[Ipv6Regex.type] = Some(Ipv6Regex)
 }
 object MailVType             extends FixedRegexVType {
-  override val name  = "mail"
-  override val regex = Some(MailRegex)
+  override val name = "mail"
+  override val regex: Some[MailRegex.type] = Some(MailRegex)
 }
 
 final case class IntegerVType(regex: Option[RegexConstraint] = None) extends VTypeConstraint with VTypeWithRegex {
@@ -246,12 +246,12 @@ final case class PasswordVType(authorizedHash: Seq[HashAlgoConstraint])       ex
   override val name = "password"
 }
 final case class MasterPasswordVType(authorizedHash: Seq[HashAlgoConstraint]) extends AbstactPassword {
-  override val name = s"masterPassword"
+  override val name: String = s"masterPassword"
 }
 
 sealed trait DerivedPasswordVType extends AbstactPassword {
   def tpe: HashAlgoConstraint.DerivedPasswordType
-  override lazy val name = s"derivedPassword:${tpe.name}"
+  override lazy val name: String = s"derivedPassword:${tpe.name}"
 }
 
 case object AixDerivedPasswordVType   extends DerivedPasswordVType {

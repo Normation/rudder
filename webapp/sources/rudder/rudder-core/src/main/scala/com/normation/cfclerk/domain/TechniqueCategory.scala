@@ -60,25 +60,25 @@ sealed abstract class TechniqueCategoryId(val name: TechniqueCategoryName) {
    * The toString of a SubTechniqueCategoryId is its path
    * from root with "/" as separator
    */
-  override lazy val toString = getPathFromRoot.tail.map(_.value).mkString("/", "/", "")
+  override lazy val toString: String = getPathFromRoot.tail.map(_.value).mkString("/", "/", "")
 
   /**
    * The list of category from root to that one
    * (including that one)
    */
-  lazy val getPathFromRoot   = TechniqueCategoryId.pathFrom(this).reverse
-  lazy val getIdPathFromRoot = TechniqueCategoryId.idPathFrom(this).reverse
+  lazy val getPathFromRoot:   List[TechniqueCategoryName] = TechniqueCategoryId.pathFrom(this).reverse
+  lazy val getIdPathFromRoot: List[TechniqueCategoryId]   = TechniqueCategoryId.idPathFrom(this).reverse
 
   /**
    * The list of category from root to the
    * parent of that one (son excluding that one)
    */
-  lazy val getParentPathFromRoot = this match {
+  lazy val getParentPathFromRoot: List[TechniqueCategoryName] = this match {
     case RootTechniqueCategoryId => Nil
     case s: SubTechniqueCategoryId => TechniqueCategoryId.pathFrom(s)
   }
 
-  lazy val getParentIdPathFromRoot = this match {
+  lazy val getParentIdPathFromRoot: List[TechniqueCategoryId] = this match {
     case RootTechniqueCategoryId => Nil
     case s: SubTechniqueCategoryId => TechniqueCategoryId.idPathFrom(s)
   }

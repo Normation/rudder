@@ -43,9 +43,11 @@ import com.normation.rudder.services.policies.write.CFEngineAgentSpecificGenerat
 import java.io.FileNotFoundException
 import org.joda.time.format._
 import org.junit.runner.RunWith
+import org.specs2.matcher.MatchResult
 import org.specs2.mutable._
 import org.specs2.runner._
 import org.xml.sax.SAXParseException
+import scala.collection.mutable
 import scala.xml._
 
 @RunWith(classOf[JUnitRunner])
@@ -53,7 +55,7 @@ class VariableTest extends Specification {
   def variableSpecParser = new VariableSpecParser()
 
   implicit class EitherToThrow[T](res: Either[LoadTechniqueError, T]) {
-    def orThrow = res match {
+    def orThrow: T = res match {
       case Right(value) => value
       case Left(error)  => throw new IllegalArgumentException(s"Variable error in test: ${error.fullMsg}")
     }
@@ -71,7 +73,7 @@ class VariableTest extends Specification {
   val rawValue  = """This is a test \ " \\ """
   val escapedTo = """This is a test \\ \" \\\\ """
 
-  val refItem = Seq(ValueLabel("value", "label"), ValueLabel("value2", "label2"))
+  val refItem: Seq[ValueLabel] = Seq(ValueLabel("value", "label"), ValueLabel("value2", "label2"))
 
   val unvalidValue = "bobby"
 
@@ -89,7 +91,7 @@ class VariableTest extends Specification {
   val rawVar             = "raw_type"
   val gui_only           = "gui_only"
 
-  val variables = {
+  val variables: mutable.Map[String, Variable] = {
     val doc = {
       try {
         XML.load(ClassLoader.getSystemResourceAsStream("testVariable.xml"))
@@ -354,7 +356,11 @@ class VariableTest extends Specification {
     }
   }
 
-  def testSpecVarFields(spec: VariableSpec, longDescription: String = "", defaultValue: Option[String] = None) = {
+  def testSpecVarFields(
+      spec:            VariableSpec,
+      longDescription: String = "",
+      defaultValue:    Option[String] = None
+  ): MatchResult[Serializable] = {
     spec.longDescription === longDescription and
     spec.constraint.default === defaultValue
   }

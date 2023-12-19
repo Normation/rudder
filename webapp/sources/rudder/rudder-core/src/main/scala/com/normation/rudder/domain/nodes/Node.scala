@@ -99,10 +99,10 @@ object NodeState       {
   final case object Initializing  extends NodeState { val name = "initializing"   }
   final case object PreparingEOL  extends NodeState { val name = "preparing-eol"  }
 
-  def values = ca.mrvisser.sealerate.values[NodeState]
+  def values: Set[NodeState] = ca.mrvisser.sealerate.values[NodeState]
 
   // human readable, sorted list of (state, label)
-  def labeledPairs = {
+  def labeledPairs: List[(NodeState, String)] = {
     val a = values.toList
     val b = a.map { x =>
       x match {
@@ -144,7 +144,7 @@ object NodeState       {
  * Denote a change on the heartbeat frequency.
  */
 object ModifyNodeHeartbeatDiff {
-  def apply(id: NodeId, modHeartbeat: Option[SimpleDiff[Option[HeartbeatConfiguration]]]) =
+  def apply(id: NodeId, modHeartbeat: Option[SimpleDiff[Option[HeartbeatConfiguration]]]): ModifyNodeDiff =
     ModifyNodeDiff(id, modHeartbeat, None, None, None, None, None)
 }
 
@@ -152,7 +152,7 @@ object ModifyNodeHeartbeatDiff {
  * Diff on a change on agent run period
  */
 object ModifyNodeAgentRunDiff {
-  def apply(id: NodeId, modAgentRun: Option[SimpleDiff[Option[AgentRunInterval]]]) =
+  def apply(id: NodeId, modAgentRun: Option[SimpleDiff[Option[AgentRunInterval]]]): ModifyNodeDiff =
     ModifyNodeDiff(id, None, modAgentRun, None, None, None, None)
 }
 
@@ -160,7 +160,7 @@ object ModifyNodeAgentRunDiff {
  * Diff on the list of properties
  */
 object ModifyNodePropertiesDiff {
-  def apply(id: NodeId, modProperties: Option[SimpleDiff[List[NodeProperty]]]) =
+  def apply(id: NodeId, modProperties: Option[SimpleDiff[List[NodeProperty]]]): ModifyNodeDiff =
     ModifyNodeDiff(id, None, None, modProperties, None, None, None)
 }
 

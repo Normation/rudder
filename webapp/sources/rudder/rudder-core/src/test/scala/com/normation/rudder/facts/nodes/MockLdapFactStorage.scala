@@ -59,13 +59,13 @@ import com.unboundid.ldap.sdk.DN
 
 object MockLdapFactStorage {
 
-  val tmp = File.newTemporaryDirectory("rudder-test-ldap-schema-files-")
+  val tmp: File = File.newTemporaryDirectory("rudder-test-ldap-schema-files-")
   tmp.deleteOnExit(true)
 
   val ldifLogger = new DefaultLDIFFileLogger("TestQueryProcessor", "/tmp/normation/rudder/ldif")
 
   // init of in memory LDAP directory
-  val schemaLDIFs    = {
+  val schemaLDIFs:    List[String] = {
     val schemaDir = tmp / "schema"
     schemaDir.createDirectories()
 
@@ -84,7 +84,7 @@ object MockLdapFactStorage {
       dest.pathAsString
     }
   }
-  val bootstrapLDIFs = {
+  val bootstrapLDIFs: List[String] = {
     val bootstrapDir = tmp / "bootstrap"
     bootstrapDir.createDirectories()
 
@@ -96,7 +96,7 @@ object MockLdapFactStorage {
     }
   }
 
-  val ldap = InMemoryDsConnectionProvider[RwLDAPConnection](
+  val ldap: InMemoryDsConnectionProvider[RwLDAPConnection] = InMemoryDsConnectionProvider[RwLDAPConnection](
     baseDNs = "cn=rudder-configuration" :: Nil,
     schemaLDIFPaths = schemaLDIFs,
     bootstrapLDIFPaths = bootstrapLDIFs,
@@ -107,7 +107,7 @@ object MockLdapFactStorage {
   def testServer = ldap.server
 
   // close your eyes for next line
-  val ldapRo = ldap.asInstanceOf[LDAPConnectionProvider[RoLDAPConnection]]
+  val ldapRo: LDAPConnectionProvider[RoLDAPConnection] = ldap.asInstanceOf[LDAPConnectionProvider[RoLDAPConnection]]
 
   val acceptedDIT = new InventoryDit(
     new DN("ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration"),

@@ -35,13 +35,13 @@ final case class LDIFNoopChangeRecord(dn: DN) extends LDIFChangeRecord(dn.toStri
 
   override val getChangeType = ChangeType.MODIFY
 
-  override def toLDIF(buffer: ByteStringBuffer, wrapColumn: Int) = {}
+  override def toLDIF(buffer: ByteStringBuffer, wrapColumn: Int): Unit = {}
 
-  override def toLDIF(i: Int) = Array()
+  override def toLDIF(i: Int): Array[String] = Array()
 
-  override def toLDIFString(buffer: java.lang.StringBuilder, wrapColumn: Int) = {}
+  override def toLDIFString(buffer: java.lang.StringBuilder, wrapColumn: Int): Unit = {}
 
-  override def toString(buffer: java.lang.StringBuilder) = {
+  override def toString(buffer: java.lang.StringBuilder): Unit = {
     buffer.append("NoopChangeRecord:").append(dn.toString)
     () // unit is expected
   }

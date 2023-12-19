@@ -63,7 +63,7 @@ object UnpublishedToasts extends SessionVar[List[ToastNotification]](Nil)
  */
 object RegisterToasts {
 
-  def register(toast: ToastNotification) = {
+  def register(toast: ToastNotification): List[ToastNotification] = {
     UnpublishedToasts(toast :: UnpublishedToasts.get)
   }
 }

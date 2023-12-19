@@ -79,7 +79,7 @@ object Utils {
 
   // text version of XmlUtils.getUniqueNode with a default value
   // The default value is also applied if node exists but its text is empty
-  def getUniqueNodeText(root: Node, nodeName: String, default: String) = {
+  def getUniqueNodeText(root: Node, nodeName: String, default: String): String = {
     getUniqueNode(root, nodeName).map(_.text.trim) match {
       case Left(_)  => default
       case Right(x) =>
@@ -90,7 +90,7 @@ object Utils {
     }
   }
 
-  def getAttributeText(node: Node, name: String, default: String) = {
+  def getAttributeText(node: Node, name: String, default: String): String = {
     val seq = node \ ("@" + name)
     if (seq.isEmpty) default else seq.head.text
   }

@@ -60,7 +60,7 @@ import zio.Chunk
 class TestSelectFacts extends Specification {
   import MockNodes._
 
-  val machine1 = MachineInventory(
+  val machine1: MachineInventory = MachineInventory(
     MachineUuid("machine1"),
     AcceptedInventory,
     VirtualMachineType(VmType.VirtualBox),
@@ -73,7 +73,7 @@ class TestSelectFacts extends Specification {
     List(Bios("bios"))
   )
 
-  val nodeFact1 = NodeFact.fromCompat(node1, Right(FullInventory(nodeInventory1, Some(machine1))), softwares)
+  val nodeFact1: NodeFact = NodeFact.fromCompat(node1, Right(FullInventory(nodeInventory1, Some(machine1))), softwares)
 
   "masking 1" >> {
     (SelectFacts.mask(nodeFact1)(SelectFacts.all) === nodeFact1) and

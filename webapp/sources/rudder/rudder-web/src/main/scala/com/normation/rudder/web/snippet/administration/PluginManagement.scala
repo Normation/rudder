@@ -47,7 +47,7 @@ import scala.xml.NodeSeq
 
 class PluginManagement extends DispatchSnippet with Loggable {
 
-  def dispatch = { case "display" => display _ }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "display" => display _ }
 
   def display(xml: NodeSeq): NodeSeq = {
     (

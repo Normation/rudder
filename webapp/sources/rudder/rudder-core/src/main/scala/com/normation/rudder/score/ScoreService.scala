@@ -164,7 +164,7 @@ class ScoreServiceManager(readScore: ScoreService) {
   val handlers: Ref[List[ScoreEventHandler]] =
     Ref.make(ComplianceScoreEventHandler :: SystemUpdateScoreHandler :: List.empty[ScoreEventHandler]).runNow
 
-  def registerHandler(handler: ScoreEventHandler) = {
+  def registerHandler(handler: ScoreEventHandler): UIO[Unit] = {
     handlers.update(handler :: _)
   }
 

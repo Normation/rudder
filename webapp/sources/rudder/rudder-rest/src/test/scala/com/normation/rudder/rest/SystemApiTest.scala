@@ -180,7 +180,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
 
   val dateTimeId = "1970-01-01_01-00-00.042"
 
-  val archive1 = JObject(
+  val archive1: JObject = JObject(
     List(
       JField("id", "path"),
       JField("date", "1970-01-01T010000"),
@@ -189,7 +189,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
     )
   )
 
-  val archives = List(archive1)
+  val archives: List[JObject] = List(archive1)
 
   "Testing archive groups listing of System Api" should {
     "match the response defined below" in {
@@ -359,7 +359,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
     }
   }
 
-  val archive2 = JObject(
+  val archive2: JObject = JObject(
     List(
       JField("committer", "test-user"),
       JField("gitCommit", "6d6b2ceb46adeecd845ad0c0812fee07e2727104"),
@@ -488,10 +488,10 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
    *  4. Compare the appropriate data
    */
 
-  val refCommit = restTestSetUp.mockGitRepo.gitRepo.db.findRef("master").toString
+  val refCommit: String = restTestSetUp.mockGitRepo.gitRepo.db.findRef("master").toString
 
   // I found no other way to get the commitId from a JGit ref object than parse its String representation
-  val commitId = refCommit.slice(refCommit.indexOf('=') + 1, refCommit.indexOf(']'))
+  val commitId: String = refCommit.slice(refCommit.indexOf('=') + 1, refCommit.indexOf(']'))
 
   // Init directory needed to temporary store archive data that zip API returns.
   // It will be cleared at the end of the test in "afterAll"

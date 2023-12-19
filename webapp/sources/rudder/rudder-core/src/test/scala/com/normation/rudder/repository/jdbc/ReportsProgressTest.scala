@@ -56,7 +56,7 @@ import zio.interop.catz._
 class ReportsProgressTest extends DBCommon with BoxSpecMatcher {
 
   // clean data base
-  def cleanTables() = {
+  def cleanTables(): Int = {
     transacRun(xa => sql"DELETE FROM ReportsExecution;".update.run.transact(xa))
   }
 

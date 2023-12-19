@@ -55,9 +55,9 @@ class TestXmlUtils {
   val subB_n = "subchild_B"
   val subC_n = "subchild_C"
 
-  def child_A(child: Node) = <child_A>{child}</child_A>
-  def child_B(child: Node) = <child_B>{child}</child_B>
-  val child_C              = <child_C></child_C>
+  def child_A(child: Node): Elem = <child_A>{child}</child_A>
+  def child_B(child: Node): Elem = <child_B>{child}</child_B>
+  val child_C:              Elem = <child_C></child_C>
 
   val sub_A: Node = <subchild_A></subchild_A>
   val sub_B: Node = <subchild_B></subchild_B>

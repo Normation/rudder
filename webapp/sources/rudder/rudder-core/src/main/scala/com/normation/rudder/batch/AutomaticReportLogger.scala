@@ -107,7 +107,7 @@ class AutomaticReportLogger(
       )
     }
 
-    override protected def messageHandler = {
+    override protected def messageHandler: PartialFunction[StartAutomaticReporting.type, Unit] = {
       case StartAutomaticReporting =>
         propertyRepository.getReportLoggerLastId match {
           // Report logger was not running before, try to log the last hundred reports and initialize lastId

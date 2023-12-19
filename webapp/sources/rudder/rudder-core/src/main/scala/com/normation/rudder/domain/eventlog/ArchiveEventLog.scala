@@ -104,7 +104,7 @@ object ExportGroupsArchive extends EventLogFilter {
 
   override def apply(x: (EventLogType, EventLogDetails)): ExportGroupsArchive = ExportGroupsArchive(x._2)
 
-  def buildDetails(gitArchiveId: GitArchiveId) =
+  def buildDetails(gitArchiveId: GitArchiveId): Elem =
     ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
 
   val tagName = "newGroupsArchive"
@@ -130,7 +130,7 @@ object ImportGroupsArchive extends EventLogFilter {
 
   override def apply(x: (EventLogType, EventLogDetails)): ImportGroupsArchive = ImportGroupsArchive(x._2)
 
-  def buildDetails(gitCommitId: GitCommitId) =
+  def buildDetails(gitCommitId: GitCommitId): Elem =
     ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
 
   val tagName = "restoreGroupsArchive"
@@ -156,7 +156,7 @@ object ExportTechniqueLibraryArchive extends EventLogFilter {
 
   override def apply(x: (EventLogType, EventLogDetails)): ExportTechniqueLibraryArchive = ExportTechniqueLibraryArchive(x._2)
 
-  def buildDetails(gitArchiveId: GitArchiveId) =
+  def buildDetails(gitArchiveId: GitArchiveId): Elem =
     ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
 
   val tagName = "newDirectivesArchive"
@@ -182,7 +182,7 @@ object ImportTechniqueLibraryArchive extends EventLogFilter {
 
   override def apply(x: (EventLogType, EventLogDetails)): ImportTechniqueLibraryArchive = ImportTechniqueLibraryArchive(x._2)
 
-  def buildDetails(gitCommitId: GitCommitId) =
+  def buildDetails(gitCommitId: GitCommitId): Elem =
     ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
 
   val tagName = "restoreDirectivesArchive"
@@ -208,7 +208,7 @@ object ExportRulesArchive extends EventLogFilter {
 
   override def apply(x: (EventLogType, EventLogDetails)): ExportRulesArchive = ExportRulesArchive(x._2)
 
-  def buildDetails(gitArchiveId: GitArchiveId) =
+  def buildDetails(gitArchiveId: GitArchiveId): Elem =
     ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
 
   val tagName = "newRulesArchive"
@@ -234,7 +234,7 @@ object ImportRulesArchive extends EventLogFilter {
 
   override def apply(x: (EventLogType, EventLogDetails)): ImportRulesArchive = ImportRulesArchive(x._2)
 
-  def buildDetails(gitCommitId: GitCommitId) =
+  def buildDetails(gitCommitId: GitCommitId): Elem =
     ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
 
   val tagName = "restoreRulesArchive"
@@ -260,7 +260,7 @@ object ExportParametersArchive extends EventLogFilter {
 
   override def apply(x: (EventLogType, EventLogDetails)): ExportParametersArchive = ExportParametersArchive(x._2)
 
-  def buildDetails(gitArchiveId: GitArchiveId) =
+  def buildDetails(gitArchiveId: GitArchiveId): Elem =
     ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
 
   val tagName = "newParametersArchive"
@@ -286,7 +286,7 @@ object ImportParametersArchive extends EventLogFilter {
 
   override def apply(x: (EventLogType, EventLogDetails)): ImportParametersArchive = ImportParametersArchive(x._2)
 
-  def buildDetails(gitCommitId: GitCommitId) =
+  def buildDetails(gitCommitId: GitCommitId): Elem =
     ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
 
   val tagName = "restoreParametersArchive"
@@ -312,7 +312,7 @@ object ExportFullArchive extends EventLogFilter {
 
   override def apply(x: (EventLogType, EventLogDetails)): ExportFullArchive = ExportFullArchive(x._2)
 
-  def buildDetails(gitArchiveId: GitArchiveId) =
+  def buildDetails(gitArchiveId: GitArchiveId): Elem =
     ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
 
   val tagName = "newFullArchive"
@@ -338,7 +338,7 @@ object ImportFullArchive extends EventLogFilter {
 
   override def apply(x: (EventLogType, EventLogDetails)): ImportFullArchive = ImportFullArchive(x._2)
 
-  def buildDetails(gitCommitId: GitCommitId) =
+  def buildDetails(gitCommitId: GitCommitId): Elem =
     ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
 
   val tagName = "restoreFullArchive"
@@ -370,7 +370,7 @@ object Rollback extends EventLogFilter {
 
   override def apply(x: (EventLogType, EventLogDetails)): Rollback = Rollback(x._2)
 
-  def buildDetails(rollbackedEvents: Seq[EventLog], targetEvent: EventLog, rollbackType: String) = {
+  def buildDetails(rollbackedEvents: Seq[EventLog], targetEvent: EventLog, rollbackType: String): Elem = {
     EventLog.withContent(
       new Elem(
         prefix = null,

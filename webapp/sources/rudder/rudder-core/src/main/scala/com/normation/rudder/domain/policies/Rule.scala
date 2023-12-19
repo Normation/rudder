@@ -93,5 +93,5 @@ final case class Rule(
     tags: Tags = Tags(Set())
 ) {
   // system object must ALWAYS be ENABLED.
-  def isEnabled = isSystem || (isEnabledStatus && !targets.isEmpty && !directiveIds.isEmpty)
+  def isEnabled: Boolean = isSystem || (isEnabledStatus && !targets.isEmpty && !directiveIds.isEmpty)
 }

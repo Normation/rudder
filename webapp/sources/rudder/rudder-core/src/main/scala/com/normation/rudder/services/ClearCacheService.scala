@@ -46,7 +46,7 @@ class ClearCacheServiceImpl(
     clearableCache:           Seq[CachedRepository]
 ) extends ClearCacheService with Loggable {
 
-  def clearNodeConfigurationCache(storeEvent: Boolean = true, actor: EventActor) = {
+  def clearNodeConfigurationCache(storeEvent: Boolean = true, actor: EventActor): Box[Unit] = {
     nodeConfigurationService.deleteAllNodeConfigurations() match {
       case eb: EmptyBox =>
         (eb ?~! "Error while clearing node configuration cache")
@@ -77,7 +77,7 @@ class ClearCacheServiceImpl(
     }
   }
 
-  def action(actor: EventActor) = {
+  def action(actor: EventActor): Box[String] = {
 
     S.clearCurrentNotices
     val modId = ModificationId(uuidGen.newUuid)

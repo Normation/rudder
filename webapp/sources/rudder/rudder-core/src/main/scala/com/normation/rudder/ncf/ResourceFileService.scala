@@ -38,9 +38,11 @@
 package com.normation.rudder.ncf
 
 import better.files.File
+import com.normation.errors
 import com.normation.errors.IOResult
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProvider
+import zio.ZIO
 
 /* Provide a Service to handle resource files of a Technique
  * And implementation based on file system and git is provided here
@@ -51,7 +53,7 @@ trait ResourceFileService {
   def getResourcesFromDir(resourcesPath: String, techniqueName: String, techniqueVersion: String): IOResult[List[ResourceFile]]
 }
 class GitResourceFileService(gitReposProvider: GitRepositoryProvider) extends ResourceFileService {
-  def getResources(technique: EditorTechnique) = {
+  def getResources(technique: EditorTechnique): ZIO[Any, errors.RudderError, List[ResourceFile]] = {
     getResourcesFromDir(
       s"techniques/${technique.category}/${technique.id.value}/${technique.version.value}/resources",
       technique.id.value,
@@ -60,7 +62,11 @@ class GitResourceFileService(gitReposProvider: GitRepositoryProvider) extends Re
 
   }
 
-  def getResourcesFromDir(resourcesPath: String, techniqueName: String, techniqueVersion: String) = {
+  def getResourcesFromDir(
+      resourcesPath:    String,
+      techniqueName:    String,
+      techniqueVersion: String
+  ): ZIO[Any, errors.RudderError, List[ResourceFile]] = {
 
     def getAllFiles(file: File): List[String] = {
       if (file.exists) {

@@ -1,5 +1,6 @@
 package com.normation.utils
 
+import com.normation.errors
 import com.normation.errors.PureResult
 import com.normation.errors.SystemError
 import cron4s.Cron
@@ -31,7 +32,7 @@ object CronParser {
      * A version of the parser that will interpret the special value
      * DISABLED as "do not parse"
      */
-    def toOptCron = {
+    def toOptCron: Either[errors.RudderError, Option[CronExpr]] = {
       s.toLowerCase() match {
         case DISABLED => Right(None)
         case cron     => cron.toCron.map(Some(_))
@@ -40,7 +41,7 @@ object CronParser {
   }
 
   implicit class CronConverter(c: CronExpr) {
-    def toSchedule = {
+    def toSchedule: Schedule[Any, Any, Any] = {
       new Schedule[Any, Any, Any] {
         type State = Unit
         def initial: Unit = ()

@@ -75,7 +75,7 @@ trait WriteNodeCertificatesPem {
  */
 class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends WriteNodeCertificatesPem {
 
-  val logger = NamedZioLogger(this.getClass.getName)
+  val logger: NamedZioLogger = NamedZioLogger(this.getClass.getName)
 
   override def writeCerticatesAsync(file: File, allNodeInfos: Map[NodeId, NodeInfo]): Unit = {
     ZioRuntime.runNow(writeCertificates(file, allNodeInfos).catchAll(e => logger.error(e.fullMsg)).forkDaemon)

@@ -210,7 +210,7 @@ sealed trait QSObject { def name: String; def attributes: Set[QSAttribute] }
 object QSObject {
   import QSAttribute._
 
-  val tagsAttribute = Set(Tags, TagKeys, TagValues)
+  val tagsAttribute: Set[QSAttribute] = Set(Tags, TagKeys, TagValues)
 
   case object Common extends QSObject {
     override val name = "common"
@@ -267,7 +267,7 @@ object QSObject {
   // - by type
   // - then by name
   implicit class QSObjectOrder(val o: QSObject) extends AnyVal {
-    def order = o match {
+    def order: Int = o match {
       case Common    => 0
       case Node      => 1
       case Group     => 2
@@ -292,7 +292,7 @@ object QSMapping {
    * Mapping between a string and actual objects.
    * We try to be kind with users: not case sensitive, not plural sensitive
    */
-  val objectNameMapping = {
+  val objectNameMapping: Map[String, QSObject] = {
     QSObject.all.map { obj =>
       val n = obj.name.toLowerCase
       (n -> obj) :: (n + "s" -> obj) :: Nil

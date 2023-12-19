@@ -44,15 +44,19 @@ import com.normation.rudder.users.CurrentUser
 import net.liftweb.common._
 import net.liftweb.http.CurrentReq
 import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds._
+import scala.xml.NodeSeq
 
 class SetupRedirect extends DispatchSnippet with Loggable {
 
   private[this] val configService = RudderConfig.configService
 
-  def dispatch = { case "display" => _ => WithNonce.scriptWithNonce(Script(display())) }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "display" => _ => WithNonce.scriptWithNonce(Script(display()))
+  }
 
-  def display() = {
+  def display(): JsCmd = {
 
     configService.rudder_setup_done().toBox match {
       case Full(false)

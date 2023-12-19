@@ -93,12 +93,12 @@ final case class NodeExpectedReports(
     overrides:           List[OverridenPolicy]
 ) {
 
-  def configInfo = NodeConfigIdInfo(nodeConfigId, beginDate, endDate)
+  def configInfo: NodeConfigIdInfo = NodeConfigIdInfo(nodeConfigId, beginDate, endDate)
 
   // for now, nodes don't override compliance mode
   def complianceMode = modes.globalComplianceMode
 
-  def policyMode = PolicyMode.computeMode(modes.globalPolicyMode, modes.nodePolicyMode)
+  def policyMode: PolicyMode = PolicyMode.computeMode(modes.globalPolicyMode, modes.nodePolicyMode)
 
   def agentRun: ResolvedAgentRunInterval = {
     if (nodeId == Constants.ROOT_POLICY_SERVER_ID) {
@@ -212,7 +212,7 @@ object ExpectedReportsSerialisation {
       overrides:           List[OverridenPolicy]
   )
 
-  val v0 = TechniqueVersion
+  val v0: TechniqueVersion = TechniqueVersion
     .parse("0.0")
     .getOrElse(throw new IllegalArgumentException(s"Initialisation error for default technique version in overrides"))
 
@@ -343,17 +343,17 @@ object ExpectedReportsSerialisation {
 
         st: Int // splay time
     ) {
-      def transform(over: Option[Boolean] = None) = AgentRunInterval(over, i, sm, sh, st)
+      def transform(over: Option[Boolean] = None): AgentRunInterval = AgentRunInterval(over, i, sm, sh, st)
     }
     implicit class _JsonAgentRun7_1(x: AgentRunInterval) {
-      def transform = JsonAgentRun7_1(x.interval, x.startMinute, x.startHour, x.splaytime)
+      def transform: JsonAgentRun7_1 = JsonAgentRun7_1(x.interval, x.startMinute, x.startHour, x.splaytime)
     }
 
     final case class JsonGlobalPolicyMode7_1(m: PolicyMode, o: PolicyModeOverrides) {
-      def transform = GlobalPolicyMode(m, o)
+      def transform: GlobalPolicyMode = GlobalPolicyMode(m, o)
     }
     implicit class _JsonGlobalPolicyMode7_1(x: GlobalPolicyMode)                    {
-      def transform = JsonGlobalPolicyMode7_1(x.mode, x.overridable)
+      def transform: JsonGlobalPolicyMode7_1 = JsonGlobalPolicyMode7_1(x.mode, x.overridable)
     }
 
     final case class JsonModes7_1( // modes
@@ -371,7 +371,7 @@ object ExpectedReportsSerialisation {
 
         nar: Option[JsonAgentRun7_1] // node agent run (interval)
     ) {
-      def transform = {
+      def transform: NodeModeConfig = {
         val overrideAgentRun = if (nar.isDefined) Some(true) else None
         NodeModeConfig(
           GlobalComplianceMode(gcm, ghp),
@@ -385,7 +385,7 @@ object ExpectedReportsSerialisation {
     }
 
     implicit class _JsonModes7_1(x: NodeModeConfig) {
-      def transform = JsonModes7_1(
+      def transform: JsonModes7_1 = JsonModes7_1(
         x.globalPolicyMode.transform,
         x.nodePolicyMode,
         x.globalComplianceMode.mode,
@@ -397,26 +397,26 @@ object ExpectedReportsSerialisation {
     }
 
     final case class JsonPolicy7_1(rid: RuleId, did: DirectiveId)  {
-      def transform = PolicyId(rid, did, v0)
+      def transform: PolicyId = PolicyId(rid, did, v0)
     }
     implicit class _JsonPolicy7_1(x: PolicyId)                     {
-      def transform = JsonPolicy7_1(x.ruleId, x.directiveId)
+      def transform: JsonPolicy7_1 = JsonPolicy7_1(x.ruleId, x.directiveId)
     }
 
     final case class JsonOverrides7_1(
         p:  JsonPolicy7_1,
         ob: JsonPolicy7_1
     ) {
-      def transform = OverridenPolicy(p.transform, ob.transform)
+      def transform: OverridenPolicy = OverridenPolicy(p.transform, ob.transform)
     }
     implicit class _JsonOverrides7_1(x: OverridenPolicy)           {
-      def transform = JsonOverrides7_1(x.policy.transform, x.overridenBy.transform)
+      def transform: JsonOverrides7_1 = JsonOverrides7_1(x.policy.transform, x.overridenBy.transform)
     }
     final case class JsonExpectedValueId7_1(id: String, v: String) {
-      def transform = ExpectedValueId(v, id)
+      def transform: ExpectedValueId = ExpectedValueId(v, id)
     }
     implicit class _JsonExpectedValueId7_1(x: ExpectedValueId)     {
-      def transform = JsonExpectedValueId7_1(x.id, x.value)
+      def transform: JsonExpectedValueId7_1 = JsonExpectedValueId7_1(x.id, x.value)
     }
 
     sealed trait JsonComponentExpectedReport7_1                                  {
@@ -432,7 +432,7 @@ object ExpectedReportsSerialisation {
         vid: String,
         vs:  List[Either[List[String], JsonExpectedValueId7_1]]
     ) extends JsonComponentExpectedReport7_1 {
-      def transform = ValueExpectedReport(
+      def transform: ValueExpectedReport = ValueExpectedReport(
         vid,
         vs.map {
           case Left(Nil)         => ExpectedValueMatch("None", "None")
@@ -443,7 +443,7 @@ object ExpectedReportsSerialisation {
       )
     }
     implicit class _JsonValueExpectedReport7_1(x: ValueExpectedReport)           {
-      def transform = JsonValueExpectedReport7_1(
+      def transform: JsonValueExpectedReport7_1 = JsonValueExpectedReport7_1(
         x.componentName,
         x.componentsValues.map {
           case ExpectedValueMatch(a, b) =>
@@ -463,7 +463,7 @@ object ExpectedReportsSerialisation {
         scs: List[JsonComponentExpectedReport7_1],
         id:  Option[String]
     ) extends JsonComponentExpectedReport7_1 {
-      def transform = BlockExpectedReport(bid, rl, scs.map(_.transform), id)
+      def transform: BlockExpectedReport = BlockExpectedReport(bid, rl, scs.map(_.transform), id)
     }
     implicit class _JsonBlockExpectedReport7_1(x: BlockExpectedReport)           {
       def transform = JsonBlockExpectedReport7_1(x.componentName, x.reportingLogic, x.subComponents.map(_.transform), x.id)
@@ -475,7 +475,7 @@ object ExpectedReportsSerialisation {
         s:   Option[Boolean],
         cs:  List[JsonComponentExpectedReport7_1]
     ) {
-      def transform = DirectiveExpectedReports(did, pm, s.getOrElse(false), cs.map(_.transform))
+      def transform: DirectiveExpectedReports = DirectiveExpectedReports(did, pm, s.getOrElse(false), cs.map(_.transform))
     }
     implicit class _JsonDirectiveExpectedReports7_1(x: DirectiveExpectedReports) {
       def transform = {
@@ -493,7 +493,7 @@ object ExpectedReportsSerialisation {
         rid: RuleId,
         ds:  List[JsonDirectiveExpectedReports7_1]
     ) {
-      def transform = RuleExpectedReports(rid, ds.map(_.transform))
+      def transform: RuleExpectedReports = RuleExpectedReports(rid, ds.map(_.transform))
     }
     implicit class _JsonRuleExpectedReports7_1(x: RuleExpectedReports)           {
       def transform = JsonRuleExpectedReports7_1(x.ruleId, x.directives.map(_.transform))
@@ -504,7 +504,7 @@ object ExpectedReportsSerialisation {
         rs: List[JsonRuleExpectedReports7_1],
         os: List[JsonOverrides7_1]
     ) extends JsonNodeExpectedReportV {
-      def transform = JsonNodeExpectedReports(ms.transform, rs.map(_.transform), os.map(_.transform))
+      def transform: JsonNodeExpectedReports = JsonNodeExpectedReports(ms.transform, rs.map(_.transform), os.map(_.transform))
     }
     implicit class _JsonNodeExpecteReports7_1(x: JsonNodeExpectedReports)        {
       def transform =

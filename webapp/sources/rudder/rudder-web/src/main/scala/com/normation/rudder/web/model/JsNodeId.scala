@@ -45,7 +45,7 @@ import com.normation.inventory.domain.NodeId
  * Use toString to get the id.
  */
 final case class JsNodeId(nodeId: NodeId, salt: String = "") {
-  override val toString = {
+  override val toString: String = {
     val uuid = nodeId.value.replaceAll("-", "")
     salt + uuid.substring(0, java.lang.Math.min(uuid.length, 6))
   }

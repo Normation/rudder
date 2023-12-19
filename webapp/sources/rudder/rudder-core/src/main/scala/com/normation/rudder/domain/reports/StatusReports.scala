@@ -81,7 +81,7 @@ final class RuleStatusReport private (
 }
 
 object RuleStatusReport {
-  def apply(ruleId: RuleId, reports: Iterable[RuleNodeStatusReport], overrides: List[OverridenPolicy]) = {
+  def apply(ruleId: RuleId, reports: Iterable[RuleNodeStatusReport], overrides: List[OverridenPolicy]): RuleStatusReport = {
     new RuleStatusReport(ruleId, AggregatedStatusReport(reports.toSet.filter(_.ruleId == ruleId)), overrides)
   }
 }
@@ -111,8 +111,8 @@ final class NodeStatusReport private (
     val reports:    Set[RuleNodeStatusReport]
 ) extends StatusReport {
   // here, reports is a set. Be careful to not loose compliance with map (b/c scala make a set of the result)
-  lazy val compliance = ComplianceLevel.sum(reports.iterator.map(_.compliance).iterator.to(Iterable))
-  lazy val byRules: Map[RuleId, AggregatedStatusReport] =
+  lazy val compliance: ComplianceLevel                     = ComplianceLevel.sum(reports.iterator.map(_.compliance).iterator.to(Iterable))
+  lazy val byRules:    Map[RuleId, AggregatedStatusReport] =
     reports.groupBy(_.ruleId).view.mapValues(AggregatedStatusReport(_)).toMap
 }
 
@@ -125,7 +125,7 @@ object NodeStatusReport {
       statusInfo: RunComplianceInfo,
       overrides:  List[OverridenPolicy],
       reports:    Set[RuleNodeStatusReport]
-  ) = {
+  ): NodeStatusReport = {
     assert(
       reports.forall(_.nodeId == nodeId),
       s"You can't build a NodeStatusReport with reports for other node than itself. Current node id: ${nodeId.value}; Wrong reports: ${reports
@@ -186,17 +186,17 @@ final class AggregatedStatusReport private (
     // by rule or node and we don't want to loose the weight
     DirectiveStatusReport.merge(reports.toList.flatMap(_.directives.values))
   }
-  lazy val compliance = ComplianceLevel.sum(directives.map(_._2.compliance))
+  lazy val compliance: ComplianceLevel                         = ComplianceLevel.sum(directives.map(_._2.compliance))
 }
 
 object AggregatedStatusReport {
 
-  def apply(reports: Iterable[RuleNodeStatusReport]) = {
+  def apply(reports: Iterable[RuleNodeStatusReport]): AggregatedStatusReport = {
     val merged = RuleNodeStatusReport.merge(reports)
     new AggregatedStatusReport(merged.values.toSet)
   }
 
-  def applyFromUniqueNode(reports: Set[RuleNodeStatusReport]) = {
+  def applyFromUniqueNode(reports: Set[RuleNodeStatusReport]): AggregatedStatusReport = {
     new AggregatedStatusReport(reports)
   }
 
@@ -206,7 +206,7 @@ object AggregatedStatusReport {
    * With this approach, we don't need to to the RuleNodeStatusReport merge, and performance are about 20 times better than
    * recreating and computing all data
    */
-  def applyFromAggregatedStatusReport(statusReport: AggregatedStatusReport, ruleIds: Set[RuleId]) = {
+  def applyFromAggregatedStatusReport(statusReport: AggregatedStatusReport, ruleIds: Set[RuleId]): AggregatedStatusReport = {
     new AggregatedStatusReport(statusReport.reports.filter(r => ruleIds.contains(r.ruleId)))
   }
 
@@ -222,13 +222,15 @@ final case class RuleNodeStatusReport(
     expirationDate: DateTime
 ) extends StatusReport {
 
-  override lazy val compliance = ComplianceLevel.sum(directives.map(_._2.compliance))
+  override lazy val compliance: ComplianceLevel = ComplianceLevel.sum(directives.map(_._2.compliance))
 
-  override def toString() = s"""[[${nodeId.value}: ${ruleId.serialize}; run: ${agentRunTime
-                                .getOrElse("no time")};${configId.map(_.value).getOrElse("no config id")}->${expirationDate}]
-                               |  compliance:${compliance}
-                               |  ${directives.values.toSeq.sortBy(_.directiveId.serialize).map(x => s"${x}").mkString("\n  ")}]
-                               |""".stripMargin('|')
+  override def toString(): String = {
+    s"""[[${nodeId.value}: ${ruleId.serialize}; run: ${agentRunTime
+        .getOrElse("no time")};${configId.map(_.value).getOrElse("no config id")}->${expirationDate}]
+       |  compliance:${compliance}
+       |  ${directives.values.toSeq.sortBy(_.directiveId.serialize).map(x => s"${x}").mkString("\n  ")}]
+       |""".stripMargin('|')
+  }
 
   def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(DirectiveId, String, ComponentValueStatusReport)] = {
     directives.values.flatMap(_.getValues(predicate)).toSeq
@@ -271,12 +273,12 @@ final case class DirectiveStatusReport(
 
     components: List[ComponentStatusReport]
 ) extends StatusReport {
-  override lazy val compliance = ComplianceLevel.sum(components.map(_.compliance))
+  override lazy val compliance:                                    ComplianceLevel                                        = ComplianceLevel.sum(components.map(_.compliance))
   def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(DirectiveId, String, ComponentValueStatusReport)] = {
     components.flatMap(_.getValues(predicate)).map { case v => (directiveId, v.componentValue, v) }
   }
 
-  override def toString() = s"""[${directiveId.serialize} =>
+  override def toString(): String = s"""[${directiveId.serialize} =>
                                |    ${components.sortBy(_.componentName).mkString("\n    ")}
                                |]"""
 
@@ -379,9 +381,9 @@ final case class ValueStatusReport(
     componentValues: List[ComponentValueStatusReport]
 ) extends ComponentStatusReport {
 
-  override def toString() = s"${componentName}:${componentValues.toSeq.sortBy(_.componentValue).mkString("[", ",", "]")}"
+  override def toString(): String = s"${componentName}:${componentValues.toSeq.sortBy(_.componentValue).mkString("[", ",", "]")}"
 
-  override lazy val compliance = ComplianceLevel.sum(componentValues.map(_.compliance))
+  override lazy val compliance:                                    ComplianceLevel                 = ComplianceLevel.sum(componentValues.map(_.compliance))
   /*
    * Get all values matching the predicate
    */
@@ -456,15 +458,15 @@ final case class ComponentValueStatusReport(
     messages:               List[MessageStatusReport]
 ) extends StatusReport {
 
-  override def toString() = s"${componentValue}(<-> ${expectedComponentValue}):${messages.mkString("[", ";", "]")}"
+  override def toString(): String = s"${componentValue}(<-> ${expectedComponentValue}):${messages.mkString("[", ";", "]")}"
 
-  override lazy val compliance = ComplianceLevel.compute(messages.map(_.reportType))
+  override lazy val compliance: ComplianceLevel = ComplianceLevel.compute(messages.map(_.reportType))
 
   /*
    * It can be argued that a status for a value may make sense,
    * even in the case where several nodes contributed to it
    */
-  lazy val status = ReportType.getWorseType(messages.map(_.reportType))
+  lazy val status: ReportType = ReportType.getWorseType(messages.map(_.reportType))
 }
 
 object ComponentValueStatusReport extends Loggable {
@@ -491,13 +493,13 @@ final case class MessageStatusReport(
     reportType: ReportType,
     message:    Option[String]
 ) {
-  override def toString() = reportType.severity + message.fold(":\"\"")(":\"" + _ + "\"")
-  def debugString         = toString()
+  override def toString(): String = reportType.severity + message.fold(":\"\"")(":\"" + _ + "\"")
+  def debugString:         String = toString()
 }
 
 object MessageStatusReport {
 
-  def apply(status: ReportType, message: String) = {
+  def apply(status: ReportType, message: String): MessageStatusReport = {
     val msg = message.trim match {
       case "" => None
       case s  => Some(s)
@@ -573,21 +575,21 @@ object NodeStatusReportSerialization {
   }
 
   implicit class RunComplianceInfoToJs(val x: (RunAndConfigInfo, RunComplianceInfo)) extends AnyVal {
-    def toJValue = {
+    def toJValue: JObject = {
       (
         ("run"      -> jsonRunInfo(x._1))
         ~ ("status" -> jsonStatusInfo(x._2))
       )
     }
 
-    def toJson        = prettyRender(toJValue)
-    def toCompactJson = compactRender(toJValue)
+    def toJson:        String = prettyRender(toJValue)
+    def toCompactJson: String = compactRender(toJValue)
   }
 
   implicit class AggregatedStatusReportToJs(val x: AggregatedStatusReport) extends AnyVal {
-    def toJValue: JValue = x.reports.toJValue
-    def toJson        = prettyRender(toJValue)
-    def toCompactJson = compactRender(toJValue)
+    def toJValue:      JValue = x.reports.toJValue
+    def toJson:        String = prettyRender(toJValue)
+    def toCompactJson: String = compactRender(toJValue)
   }
 
   implicit class SetRuleNodeStatusReportToJs(reports: Set[RuleNodeStatusReport]) {
@@ -638,7 +640,7 @@ object NodeStatusReportSerialization {
       }
     }
 
-    def toJson        = prettyRender(toJValue)
-    def toCompactJson = compactRender(toJValue)
+    def toJson:        String = prettyRender(toJValue)
+    def toCompactJson: String = compactRender(toJValue)
   }
 }

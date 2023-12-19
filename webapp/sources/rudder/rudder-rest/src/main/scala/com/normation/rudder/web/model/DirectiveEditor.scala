@@ -48,6 +48,7 @@ import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.BaseField
 import net.liftweb.util.Helpers
+import org.slf4j
 import org.slf4j.LoggerFactory
 import scala.xml._
 
@@ -122,8 +123,8 @@ trait DirectiveField extends BaseField with SectionChildField {
   def parseClient(s: String): Unit
 
   // reference to other fields used by that field
-  protected var _usedFields = Seq[DirectiveField]()
-  def usedFields_=(fields: Seq[DirectiveField]): Unit = {
+  protected var _usedFields:                     Seq[DirectiveField] = Seq[DirectiveField]()
+  def usedFields_=(fields: Seq[DirectiveField]): Unit                = {
     _usedFields = fields
   }
   def usedFields = _usedFields
@@ -162,9 +163,9 @@ trait DirectiveField extends BaseField with SectionChildField {
   def isReadOnly = readOnly
   def isReadOnly_=(s: Boolean): Unit = readOnly = s
 
-  override def displayHtml = Text(toClient)
+  override def displayHtml: Text = Text(toClient)
 
-  def tooltipElem = {
+  def tooltipElem: NodeSeq = {
     if (tooltip == "") {
       NodeSeq.Empty
     } else {
@@ -183,7 +184,7 @@ trait DirectiveField extends BaseField with SectionChildField {
     </tr>
   }
 
-  override def toFormNodeSeq = {
+  override def toFormNodeSeq: NodeSeq = {
     toForm match {
       case Failure(m, _, _) =>
         val errorMess = "Can not map field %s to an input, error message: %s"
@@ -199,7 +200,7 @@ trait DirectiveField extends BaseField with SectionChildField {
     }
   }
 
-  def toHtmlNodeSeq = display(displayValue)
+  def toHtmlNodeSeq: NodeSeq = display(displayValue)
 
   // This is only used when showing a PT, hence the values are the default values
   def displayValue: NodeSeq = {
@@ -211,7 +212,7 @@ trait DirectiveField extends BaseField with SectionChildField {
 }
 
 object DirectiveField {
-  val logger = LoggerFactory.getLogger(classOf[DirectiveField])
+  val logger: slf4j.Logger = LoggerFactory.getLogger(classOf[DirectiveField])
 }
 
 trait SectionField extends SectionChildField {
@@ -220,7 +221,7 @@ trait SectionField extends SectionChildField {
   def values:      Map[String, () => String]
   def mapValueSeq: Map[String, Seq[String]]
 
-  def displayHtml = Text(toClient)
+  def displayHtml: Text = Text(toClient)
 
   // A Section may be displayed or not-displayed by default
   // for the current user (we need to figure out
@@ -251,7 +252,7 @@ trait SectionField extends SectionChildField {
   // get all sub-variables
   def getAllVariables:       Map[String, DirectiveField] = collectVariables(false)
 
-  def isMultivalued = this match {
+  def isMultivalued: Boolean = this match {
     case _: MultivaluedSectionField => true
     case _ => false
   }
@@ -321,7 +322,7 @@ final case class SectionFieldImp(
     }
   }
 
-  override def toHtmlNodeSeq = {
+  override def toHtmlNodeSeq: NodeSeq = {
     val childrenXml = childFields map (f => f.toHtmlNodeSeq)
     if (childrenXml.isEmpty) NodeSeq.Empty
     else {
@@ -418,8 +419,8 @@ final case class MultivaluedSectionField(
     ()
   }
 
-  def size     = synchronized(allSections.size)
-  def iterator = synchronized(allSections.iterator)
+  def size:     Int                    = synchronized(allSections.size)
+  def iterator: Iterator[SectionField] = synchronized(allSections.iterator)
 
   /**
    * Return the Map of (variable name -> seq of values)
@@ -530,7 +531,7 @@ final case class MultivaluedSectionField(
     JsRaw("""initBsTooltips(); """)
   }
 
-  override def toHtmlNodeSeq = {
+  override def toHtmlNodeSeq: NodeSeq = {
     if (childFields.nonEmpty) {
       <tr><td colspan="2">
           <div class="directiveGroup">{

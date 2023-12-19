@@ -138,7 +138,7 @@ final private[checks] case class JsonParam(
     inheritMode: Option[String],
     provider:    Option[String]
 ) {
-  def toGlobalParam = {
+  def toGlobalParam: GlobalParameter = {
     GlobalParameter(
       name,
       GitVersion.DEFAULT_REV,

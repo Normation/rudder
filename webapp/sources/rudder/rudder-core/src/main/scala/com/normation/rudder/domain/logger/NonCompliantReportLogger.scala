@@ -39,13 +39,14 @@ package com.normation.rudder.domain.logger
 
 import com.normation.rudder.domain.reports._
 import net.liftweb.common.Logger
+import org.slf4j
 import org.slf4j.LoggerFactory
 
 /**
  * This logger is used to write non compliant reports in /var/log/rudder/compliance/non-compliant-reports.log
  */
 object AllReportLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("non-compliant-reports")
+  override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("non-compliant-reports")
 
   def FindLogger(reportType: String): ((=> AnyRef) => Unit) = {
     import Reports._

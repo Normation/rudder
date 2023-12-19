@@ -198,7 +198,7 @@ trait CleanFrequency {
    */
   def displayFrequency: Option[String]
 
-  override def toString = displayFrequency match {
+  override def toString: String = displayFrequency match {
     case Some(freq) => freq
     case None       => "Could not compute frequency"
   }
@@ -221,7 +221,7 @@ final case class Hourly(min: Int) extends CleanFrequency {
       checker(now).plusHours(1)
   }
 
-  def displayFrequency = Some("Every hour past %d minutes".format(min))
+  def displayFrequency: Some[String] = Some("Every hour past %d minutes".format(min))
 
 }
 
@@ -241,7 +241,7 @@ final case class Daily(hour: Int, min: Int) extends CleanFrequency {
       checker(now).plusDays(1)
   }
 
-  def displayFrequency = Some("Every day at %02d:%02d".format(hour, min))
+  def displayFrequency: Some[String] = Some("Every day at %02d:%02d".format(hour, min))
 
 }
 
@@ -261,7 +261,7 @@ final case class Weekly(day: Int, hour: Int, min: Int) extends CleanFrequency {
       checker(now).plusWeeks(1)
   }
 
-  def displayFrequency = {
+  def displayFrequency: Option[String] = {
     def expressWeekly(day: String) = Some("every %s at %02d:%02d".format(day, hour, min))
     day match {
       case DateTimeConstants.MONDAY    => expressWeekly("Monday")
@@ -350,7 +350,7 @@ class AutomaticReportsCleaning(
 
   // cleaning log info is special, it's not a cron but an "every NN minutes"
   val deleteLogReportPropertyName = "rudder.batch.reportsCleaner.deleteLogReport.TTL"
-  val deleteLogttl                = {
+  val deleteLogttl: ZIO[Any, Nothing, Int] = {
     def toInt(s: String, orig: String): Option[Int] = {
       try {
         Some(s.toInt)
@@ -485,7 +485,7 @@ class AutomaticReportsCleaning(
       }
     }
 
-    override protected def messageHandler = {
+    override protected def messageHandler: PartialFunction[DatabaseCleanerMessage, Unit] = {
       /*
        * Ask to check if need to be launched
        * If idle   => check

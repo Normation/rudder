@@ -90,7 +90,7 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
   implicit val decoderResourceFile:       JsonDecoder[ResourceFile]                = DeriveJsonDecoder.gen
   implicit val decoderTechnique:          JsonDecoder[EditorTechnique]             = DeriveJsonDecoder.gen
 
-  def serializeTechniqueMetadata(technique: ncf.EditorTechnique) = {
+  def serializeTechniqueMetadata(technique: ncf.EditorTechnique): String = {
     technique.toJson
   }
 

@@ -178,7 +178,7 @@ object WriteNodeCSV {
       directoryPath:  String,
       csvSeparator:   Char,
       fileDateFormat: String = "yyyy-MM"
-  ) = {
+  ): ZIO[Any, SystemError, WriteNodeCSV] = {
     val base = File(directoryPath)
 
     // Check parent directory exists (or can be created) and is writable
@@ -214,14 +214,14 @@ class WriteNodeCSV(
     fileDateFormat: DateTimeFormatter
 ) extends WriteLogService {
 
-  val csvFormat =
+  val csvFormat: CSVFormat =
     CSVFormat.DEFAULT.builder().setDelimiter(csvSeparator).setQuoteMode(QuoteMode.ALL).setRecordSeparator("").build()
 
   /**
    * We want to write to file node-YYYY-MM with local
    * date/time, so that the switches happens at midnight local hour
    */
-  def filename(date: DateTime) = "nodes-" + date.toString(fileDateFormat)
+  def filename(date: DateTime): String = "nodes-" + date.toString(fileDateFormat)
 
   /**
    * Format data in one line of CSV according to parameters.

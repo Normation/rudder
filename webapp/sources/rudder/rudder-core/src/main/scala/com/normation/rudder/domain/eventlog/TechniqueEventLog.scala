@@ -88,21 +88,21 @@ object ReloadTechniqueLibrary extends EventLogFilter {
 
 object TechniqueEventLog {
 
-  def xmlForDelete(name: TechniqueName, version: TechniqueVersion) = {
+  def xmlForDelete(name: TechniqueName, version: TechniqueVersion): Elem = {
     <deletedTechnique>
       <name>{name.value}</name>
       <version>{version.serialize}</version>
     </deletedTechnique>
   }
 
-  def xmlForAdd(name: TechniqueName, version: TechniqueVersion) = {
+  def xmlForAdd(name: TechniqueName, version: TechniqueVersion): Elem = {
     <addedTechnique>
       <name>{name.value}</name>
       <version>{version.serialize}</version>
     </addedTechnique>
   }
 
-  def xmlForUpdate(name: TechniqueName, version: TechniqueVersion) = {
+  def xmlForUpdate(name: TechniqueName, version: TechniqueVersion): Elem = {
     <modifiedTechnique>
       <name>{name.value}</name>
       <version>{version.serialize}</version>

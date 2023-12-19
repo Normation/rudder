@@ -58,14 +58,14 @@ class NodeStateForm(
 ) extends DispatchSnippet with Loggable {
 
   // Html template
-  val nodeStateTemplate = ChooseTemplate(
+  val nodeStateTemplate: NodeSeq = ChooseTemplate(
     List("templates-hidden", "components", "ComponentNodeState"),
     "node-state"
   )
 
-  def dispatch = { case "nodestate" => (xml) => nodeStateConfiguration }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "nodestate" => (xml) => nodeStateConfiguration }
 
-  val states = NodeState.values.map { s =>
+  val states: List[SelectableOption[NodeState]] = NodeState.values.map { s =>
     s match {
       case NodeState.Enabled       => (0, SelectableOption(s, "Enabled"))
       case NodeState.Initializing  => (1, SelectableOption(s, "Initializing"))

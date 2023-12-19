@@ -143,11 +143,11 @@ class GitTechniqueReader(
 ) extends TechniqueReader with Loggable {
 
   // semaphore to have consistent read
-  val semaphore = Semaphore.make(1).runNow
+  val semaphore: Semaphore = Semaphore.make(1).runNow
 
   // the path of the technique library relative to the git repos root path
   // without leading and trailing /.
-  val canonizedRelativePath = relativePathToGitRepos.flatMap { path =>
+  val canonizedRelativePath: Option[String] = relativePathToGitRepos.flatMap { path =>
     val p1 = path.trim
     val p2 = if (p1(0) == '/') p1.tail else p1
     val p3 = if (p2(p2.size - 1) == '/') p2.substring(0, p2.size - 1) else p2

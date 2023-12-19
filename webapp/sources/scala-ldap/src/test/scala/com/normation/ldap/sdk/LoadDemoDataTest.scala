@@ -53,7 +53,7 @@ import org.specs2.runner._
 @RunWith(classOf[JUnitRunner])
 class LoadDemoDataTest extends Specification {
 
-  val schemaLDIFs = (
+  val schemaLDIFs: List[String] = (
     "00-core" ::
       "01-pwpolicy" ::
       "04-rfc2307bis" ::
@@ -64,12 +64,12 @@ class LoadDemoDataTest extends Specification {
     this.getClass.getClassLoader.getResource("ldap-data/schema/" + name + ".ldif").toURI.getPath
   }
 
-  val baseDN         = "cn=rudder-configuration"
-  val bootstrapLDIFs = ("ldap-data/bootstrap.ldif" :: Nil) map { name =>
+  val baseDN = "cn=rudder-configuration"
+  val bootstrapLDIFs: List[String] = ("ldap-data/bootstrap.ldif" :: Nil) map { name =>
     this.getClass.getClassLoader.getResource(name).toURI.getPath
   }
 
-  val numEntries = bootstrapLDIFs.foldLeft(0) {
+  val numEntries: Int = bootstrapLDIFs.foldLeft(0) {
     case (x, path) =>
       val reader = new com.unboundid.ldif.LDIFReader(path)
       var i      = 0
@@ -77,11 +77,13 @@ class LoadDemoDataTest extends Specification {
       i + x
   }
 
-  val ldap = InMemoryDsConnectionProvider[RwLDAPConnection with RoLDAPConnection](
-    baseDNs = baseDN :: Nil,
-    schemaLDIFPaths = schemaLDIFs,
-    bootstrapLDIFPaths = bootstrapLDIFs
-  )
+  val ldap: InMemoryDsConnectionProvider[RwLDAPConnection with RoLDAPConnection] = {
+    InMemoryDsConnectionProvider[RwLDAPConnection with RoLDAPConnection](
+      baseDNs = baseDN :: Nil,
+      schemaLDIFPaths = schemaLDIFs,
+      bootstrapLDIFPaths = bootstrapLDIFs
+    )
+  }
 
   "The in memory LDAP directory" should {
 

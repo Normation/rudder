@@ -135,13 +135,13 @@ import zio.syntax._
 
 class MockSettings(wfservice: WorkflowLevelService, asyncWF: AsyncWorkflowInfo) {
 
-  val defaultPolicyServer = PolicyServers(
+  val defaultPolicyServer: PolicyServers = PolicyServers(
     PolicyServer(Constants.ROOT_POLICY_SERVER_ID, AllowedNetwork("192.168.2.0/32", "root") :: Nil),
     Nil
   )
 
   object policyServerManagementService extends PolicyServerManagementService {
-    val repo = Ref.make(defaultPolicyServer).runNow
+    val repo: Ref[PolicyServers] = Ref.make(defaultPolicyServer).runNow
 
     override def getPolicyServers(): IOResult[PolicyServers] = repo.get
 
@@ -169,7 +169,7 @@ class MockSettings(wfservice: WorkflowLevelService, asyncWF: AsyncWorkflowInfo) 
   }
 
   // a mock service that keep information in memory only
-  val configService = {
+  val configService: GenericConfigService = {
 
     object configRepo extends ConfigRepository {
       val configs = Ref.make(Map[String, RudderWebProperty]()).runNow
@@ -364,7 +364,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
     Rules R1 (applying to G1), R2 (applying to G1 but excluding G2), and R3 (applying to G2 and G3)
      */
 
-    val simpleStatusReports = Map(
+    val simpleStatusReports: Map[NodeId, NodeStatusReport] = Map(
       // R1, R2, R3 apply on N1
       nodeId(1) -> simpleNodeStatusReport(
         nodeId(1),
@@ -384,13 +384,13 @@ class MockCompliance(mockDirectives: MockDirectives) {
       )
     )
 
-    val g1 = NodeGroup(nodeGroupId(1), "G1", "", Nil, None, false, (1 to 2).map(nodeId).toSet, true)
+    val g1: NodeGroup = NodeGroup(nodeGroupId(1), "G1", "", Nil, None, false, (1 to 2).map(nodeId).toSet, true)
 
-    val g2 = NodeGroup(nodeGroupId(2), "G2", "", Nil, None, false, Set(nodeId(2)), true)
+    val g2: NodeGroup = NodeGroup(nodeGroupId(2), "G2", "", Nil, None, false, Set(nodeId(2)), true)
 
-    val g3 = NodeGroup(nodeGroupId(3), "G3", "", Nil, None, false, Set(nodeId(1)), true)
+    val g3: NodeGroup = NodeGroup(nodeGroupId(3), "G3", "", Nil, None, false, Set(nodeId(1)), true)
 
-    val r1 = Rule(
+    val r1: Rule = Rule(
       ruleId(1),
       "R1",
       RuleCategoryId("rulecat1"),
@@ -398,7 +398,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       Set(directives.fileTemplateDirecive1.id)
     )
 
-    val r2 = Rule(
+    val r2: Rule = Rule(
       ruleId(2),
       "R2",
       RuleCategoryId("rulecat1"),
@@ -408,7 +408,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       Set(directives.fileTemplateDirecive1.id)
     )
 
-    val r3 = Rule(
+    val r3: Rule = Rule(
       ruleId(3),
       "R3",
       RuleCategoryId("rulecat1"),
@@ -416,9 +416,9 @@ class MockCompliance(mockDirectives: MockDirectives) {
       Set(directives.fileTemplateDirecive1.id)
     )
 
-    val simpleCustomRules = List(r1, r2, r3)
+    val simpleCustomRules: List[Rule] = List(r1, r2, r3)
 
-    val simpleCustomNodeGroups = List(g1, g2, g3)
+    val simpleCustomNodeGroups: List[NodeGroup] = List(g1, g2, g3)
 
     private def nodeId(id: Int):      NodeId      = NodeId("n" + id)
     private def ruleId(id: Int):      RuleId      = RuleId(RuleUid("r" + id))
@@ -444,12 +444,12 @@ class MockCompliance(mockDirectives: MockDirectives) {
     - R6, which applies D4 to G6 (so we will have skipped on N4 and N5)
      */
 
-    val g1 = NodeGroup(nodeGroupId(1), "G1", "", Nil, None, false, Set(nodeId(1), nodeId(2)), true)
-    val g2 = NodeGroup(nodeGroupId(2), "G2", "", Nil, None, false, Set(nodeId(2)), true)
-    val g3 = NodeGroup(nodeGroupId(3), "G3", "", Nil, None, false, Set(nodeId(1)), true)
-    val g4 = NodeGroup(nodeGroupId(4), "G4", "", Nil, None, false, Set(nodeId(3), nodeId(4), nodeId(5)), true)
-    val g5 = NodeGroup(nodeGroupId(5), "G5", "", Nil, None, false, Set(nodeId(2), nodeId(3)), true)
-    val g6 = NodeGroup(nodeGroupId(6), "G6", "", Nil, None, false, Set(nodeId(4), nodeId(5)), true)
+    val g1: NodeGroup = NodeGroup(nodeGroupId(1), "G1", "", Nil, None, false, Set(nodeId(1), nodeId(2)), true)
+    val g2: NodeGroup = NodeGroup(nodeGroupId(2), "G2", "", Nil, None, false, Set(nodeId(2)), true)
+    val g3: NodeGroup = NodeGroup(nodeGroupId(3), "G3", "", Nil, None, false, Set(nodeId(1)), true)
+    val g4: NodeGroup = NodeGroup(nodeGroupId(4), "G4", "", Nil, None, false, Set(nodeId(3), nodeId(4), nodeId(5)), true)
+    val g5: NodeGroup = NodeGroup(nodeGroupId(5), "G5", "", Nil, None, false, Set(nodeId(2), nodeId(3)), true)
+    val g6: NodeGroup = NodeGroup(nodeGroupId(6), "G6", "", Nil, None, false, Set(nodeId(4), nodeId(5)), true)
 
     val d1 = directives.fileTemplateDirecive1
     val d2 = directives.fileTemplateVariables2
@@ -457,7 +457,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
     val d4 = directives.fileTemplateDirecive1
     val d5 = directives.fileTemplateVariables2
 
-    val r1 = Rule(
+    val r1: Rule = Rule(
       ruleId(1),
       "R1",
       RuleCategoryId("rulecat1"),
@@ -465,7 +465,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       Set(d1.id)
     )
 
-    val r2 = Rule(
+    val r2: Rule = Rule(
       ruleId(2),
       "R2",
       RuleCategoryId("rulecat1"),
@@ -475,7 +475,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       Set(d2.id)
     )
 
-    val r3 = Rule(
+    val r3: Rule = Rule(
       ruleId(3),
       "R3",
       RuleCategoryId("rulecat1"),
@@ -483,7 +483,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       Set(d3.id)
     )
 
-    val r4 = Rule(
+    val r4: Rule = Rule(
       ruleId(4),
       "R4",
       RuleCategoryId("rulecat1"),
@@ -491,7 +491,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       Set(d4.id)
     )
 
-    val r5 = Rule(
+    val r5: Rule = Rule(
       ruleId(5),
       "R5",
       RuleCategoryId("rulecat1"),
@@ -501,7 +501,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       Set(d5.id)
     )
 
-    val r6 = Rule(
+    val r6: Rule = Rule(
       ruleId(6),
       "R6",
       RuleCategoryId("rulecat1"),
@@ -509,7 +509,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       Set(d4.id)
     )
 
-    val complexStatusReports = Map(
+    val complexStatusReports: Map[NodeId, NodeStatusReport] = Map(
       // R1, R2, R3 apply on N1
       nodeId(1) -> simpleNodeStatusReport(
         nodeId(1),
@@ -570,9 +570,9 @@ class MockCompliance(mockDirectives: MockDirectives) {
       )
     )
 
-    val complexCustomRules = List(r1, r2, r3, r4, r5, r6)
+    val complexCustomRules: List[Rule] = List(r1, r2, r3, r4, r5, r6)
 
-    val complexCustomNodeGroups = List(g1, g2, g3, g4, g5, g6)
+    val complexCustomNodeGroups: List[NodeGroup] = List(g1, g2, g3, g4, g5, g6)
 
     // prefix all ids with "b" to avoid id collision with simpleExample
     private def nodeId(id: Int):      NodeId      = NodeId("bn" + id)

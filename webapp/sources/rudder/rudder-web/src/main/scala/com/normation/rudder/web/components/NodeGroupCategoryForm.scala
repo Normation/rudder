@@ -72,14 +72,14 @@ class NodeGroupCategoryForm(
     onFailureCallback: () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
 
-  var _nodeGroupCategory = nodeGroupCategory.copy()
+  var _nodeGroupCategory: NodeGroupCategory = nodeGroupCategory.copy()
 
   private[this] val roGroupCategoryRepository  = RudderConfig.roNodeGroupRepository
   private[this] val woGroupCategoryRepository  = RudderConfig.woNodeGroupRepository
   private[this] val uuidGen                    = RudderConfig.stringUuidGenerator
   private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
 
-  val categories = roGroupCategoryRepository.getAllNonSystemCategories().toBox match {
+  val categories: Seq[NodeGroupCategory] = roGroupCategoryRepository.getAllNonSystemCategories().toBox match {
     case eb: EmptyBox =>
       val f = eb ?~! "Can not get Group root category"
       logger.error(f.messageChain)
@@ -88,14 +88,14 @@ class NodeGroupCategoryForm(
     case Full(cats) => cats.filter(x => x.id != _nodeGroupCategory.id)
   }
 
-  val parentCategory = roGroupCategoryRepository.getParentGroupCategory(nodeGroupCategory.id).toBox
+  val parentCategory: Box[NodeGroupCategory] = roGroupCategoryRepository.getParentGroupCategory(nodeGroupCategory.id).toBox
 
-  val parentCategoryId = parentCategory match {
+  val parentCategoryId: String = parentCategory match {
     case Full(x) => x.id.value
     case _       => ""
   }
 
-  def dispatch = { case "showForm" => { _ => showForm() } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "showForm" => { _ => showForm() } }
 
   def showForm(): NodeSeq = {
     val html = SHtml.ajaxForm(

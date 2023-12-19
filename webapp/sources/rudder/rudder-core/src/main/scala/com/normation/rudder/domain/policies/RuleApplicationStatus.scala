@@ -59,7 +59,7 @@ object ApplicationStatus {
       targets:           Set[RuleTargetInfo],
       directives:        Set[(ActiveTechnique, Directive)],
       nodeIsEmpty:       Boolean
-  ) = {
+  ): (String, Option[String]) = {
     applicationStatus match {
       case FullyApplied          => ("In application", None)
       case PartiallyApplied(seq) =>

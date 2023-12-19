@@ -19,21 +19,22 @@ import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner._
+import scala.collection.MapView
 
 @RunWith(classOf[JUnitRunner])
 class RuleTargetTest extends Specification with Loggable {
 
-  val nodeIds = (for {
+  val nodeIds: Set[NodeId] = (for {
     i <- 0 to 10
   } yield {
     NodeId(s"${i}")
   }).toSet
 
-  def newNode(id: NodeId) =
+  def newNode(id: NodeId): Node =
     Node(id, "", "", NodeState.Enabled, false, false, DateTime.now, ReportingConfiguration(None, None, None), List(), None, None)
 
-  val allNodeIds = nodeIds + NodeId("root")
-  val nodes      = allNodeIds.map { id =>
+  val allNodeIds: Set[NodeId]           = nodeIds + NodeId("root")
+  val nodes:      Map[NodeId, NodeInfo] = allNodeIds.map { id =>
     (
       id,
       NodeInfo(
@@ -54,9 +55,9 @@ class RuleTargetTest extends Specification with Loggable {
     )
   }.toMap
 
-  val nodeArePolicyServers = nodes.map { case (id, n) => (id, n.isPolicyServer) }.view
+  val nodeArePolicyServers: MapView[NodeId, Boolean] = nodes.map { case (id, n) => (id, n.isPolicyServer) }.view
 
-  val g1 = NodeGroup(
+  val g1: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("1")),
     "Empty group",
     "",
@@ -66,7 +67,7 @@ class RuleTargetTest extends Specification with Loggable {
     Set(),
     true
   )
-  val g2 = NodeGroup(
+  val g2: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("2")),
     "only root",
     "",
@@ -76,7 +77,7 @@ class RuleTargetTest extends Specification with Loggable {
     Set(NodeId("root")),
     true
   )
-  val g3 = NodeGroup(
+  val g3: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("3")),
     "Even nodes",
     "",
@@ -86,7 +87,7 @@ class RuleTargetTest extends Specification with Loggable {
     nodeIds.filter(_.value.toInt == 2),
     true
   )
-  val g4 = NodeGroup(
+  val g4: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("4")),
     "Odd nodes",
     "",
@@ -96,7 +97,7 @@ class RuleTargetTest extends Specification with Loggable {
     nodeIds.filter(_.value.toInt != 2),
     true
   )
-  val g5 = NodeGroup(
+  val g5: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("5")),
     "Nodes id divided by 3",
     "",
@@ -106,7 +107,7 @@ class RuleTargetTest extends Specification with Loggable {
     nodeIds.filter(_.value.toInt == 3),
     true
   )
-  val g6 = NodeGroup(
+  val g6: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("6")),
     "Nodes id divided by 5",
     "",
@@ -117,11 +118,11 @@ class RuleTargetTest extends Specification with Loggable {
     true
   )
 
-  val groups = Set(g1, g2, g3, g4, g5, g6)
+  val groups: Set[NodeGroup] = Set(g1, g2, g3, g4, g5, g6)
 
-  val groupTargets = groups.map(g => (GroupTarget(g.id), g))
+  val groupTargets: Set[(GroupTarget, NodeGroup)] = groups.map(g => (GroupTarget(g.id), g))
 
-  val fullRuleTargetInfos = (groupTargets
+  val fullRuleTargetInfos: List[FullRuleTargetInfo] = (groupTargets
     .map(gt => {
       FullRuleTargetInfo(
         FullGroupTarget(gt._1, gt._2),
@@ -133,7 +134,7 @@ class RuleTargetTest extends Specification with Loggable {
     }))
     .toList
 
-  val unionTargets = groups
+  val unionTargets: Set[(TargetUnion, Set[NodeId])]        = groups
     .subsets()
     .map { gs =>
       val union      = TargetUnion(gs.map(g => GroupTarget(g.id)))
@@ -141,7 +142,7 @@ class RuleTargetTest extends Specification with Loggable {
       (union, serverList)
     }
     .toSet
-  val interTargets = groups
+  val interTargets: Set[(TargetIntersection, Set[NodeId])] = groups
     .subsets()
     .map { gs =>
       val inter      = TargetIntersection(gs.map(g => GroupTarget(g.id)))
@@ -152,7 +153,7 @@ class RuleTargetTest extends Specification with Loggable {
 
   val allComposite: Set[(TargetComposition, Set[NodeId])] = (unionTargets ++ interTargets).toSet
 
-  val allTargetExclusions = {
+  val allTargetExclusions: Set[(TargetExclusion, Set[NodeId])] = {
     allComposite.flatMap {
       case (include, includedNodes) =>
         allComposite.map {
@@ -162,7 +163,7 @@ class RuleTargetTest extends Specification with Loggable {
     }
   }.toSet
 
-  val fngc = FullNodeGroupCategory(
+  val fngc: FullNodeGroupCategory = FullNodeGroupCategory(
     NodeGroupCategoryId("test_root"),
     "",
     "",

@@ -73,7 +73,7 @@ class LogDisplayer(
     "logs-content"
   )
 
-  def ajaxRefresh(nodeId: NodeId, runDate: Option[DateTime], tableId: String) = {
+  def ajaxRefresh(nodeId: NodeId, runDate: Option[DateTime], tableId: String): GUIDJsExp = {
     runDate match {
       case Some(runDate) =>
         SHtml.ajaxInvoke(() => {
@@ -87,7 +87,7 @@ class LogDisplayer(
     }
   }
 
-  def asyncDisplay(nodeId: NodeId, runDate: Option[DateTime], tableId: String) = {
+  def asyncDisplay(nodeId: NodeId, runDate: Option[DateTime], tableId: String): JsCmd = {
     val id      = JsNodeId(nodeId)
     val refresh = ajaxRefresh(nodeId, runDate, tableId)
     def getEventsInterval(jsonInterval: String): JsCmd = {
@@ -156,7 +156,7 @@ class LogDisplayer(
   /**
    * find all reports for node passed as parameter and transform them into table data
    */
-  def getReportsLineForNode(nodeId: NodeId, reports: Seq[Reports]) = {
+  def getReportsLineForNode(nodeId: NodeId, reports: Seq[Reports]): JsTableData[ReportLine] = {
     val directiveMap = mutable.Map[DirectiveId, String]()
     val ruleMap      = mutable.Map[RuleId, String]()
 
@@ -248,7 +248,7 @@ final case class ReportLine(
       case Nil          => (severity, severity)
     }
   }
-  override val json = {
+  override val json:  JsObj            = {
 
     JsObj(
       ("executionDate", DateFormaterService.getDisplayDate(executionDate)),

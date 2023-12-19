@@ -293,7 +293,7 @@ class AppConfigAuth extends ApplicationContextAware {
   @Bean def restAuthenticationFilter =
     new RestAuthenticationFilter(RudderConfig.roApiAccountRepository, rudderUserDetailsService, SYSTEM_API_ACL)
 
-  @Bean def restAuthenticationEntryPoint = new AuthenticationEntryPoint() {
+  @Bean def restAuthenticationEntryPoint: AuthenticationEntryPoint = new AuthenticationEntryPoint() {
     override def commence(request: HttpServletRequest, response: HttpServletResponse, ex: AuthenticationException): Unit = {
       response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")
     }
@@ -445,9 +445,9 @@ trait AuthBackendsProvider {
 }
 
 final case class AuthenticationMethods(name: String) {
-  val path       = s"applicationContext-security-auth-${name}.xml"
-  val configFile = s"classpath:${path}"
-  val springBean = s"${name}AuthenticationProvider"
+  val path:       String = s"applicationContext-security-auth-${name}.xml"
+  val configFile: String = s"classpath:${path}"
+  val springBean: String = s"${name}AuthenticationProvider"
 }
 
 object AuthenticationMethods {

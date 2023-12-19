@@ -51,14 +51,14 @@ import scala.xml._
 @RunWith(classOf[JUnitRunner])
 class TechniqueTest extends Specification {
 
-  val techniqueParser = {
+  val techniqueParser: TechniqueParser = {
     val varParser = new VariableSpecParser
     new TechniqueParser(varParser, new SectionSpecParser(varParser), new SystemVariableSpecServiceImpl())
   }
 
-  val id = TechniqueId(TechniqueName("foo"), TechniqueVersionHelper("1.0"))
+  val id: TechniqueId = TechniqueId(TechniqueName("foo"), TechniqueVersionHelper("1.0"))
 
-  val technique = techniqueParser
+  val technique: Technique = techniqueParser
     .parseXml(readFile("testTechnique.xml"), id)
     .getOrElse(throw new IllegalArgumentException("Technique XML must be valid for test"))
 

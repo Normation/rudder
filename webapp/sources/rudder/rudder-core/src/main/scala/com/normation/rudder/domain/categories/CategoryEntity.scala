@@ -68,5 +68,5 @@ trait ItemCategory[CAT_ID, ITEM_ID] {
   def items:       List[ITEM_ID]
   def isSystem:    Boolean
 
-  override def toString() = "%s(%s)".format(name, id)
+  override def toString(): String = "%s(%s)".format(name, id)
 }

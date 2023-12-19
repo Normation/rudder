@@ -47,6 +47,7 @@ import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Logger
+import org.slf4j
 import org.slf4j.LoggerFactory
 import scala.util.control.NonFatal
 import zio._
@@ -79,13 +80,13 @@ final case class Hooks(basePath: String, hooksFile: List[(String, HookTimeout)])
  * Hook env are pairs of environment variable name <=> value
  */
 final case class HookEnvPair(name: String, value: String) {
-  def show = s"[${name}:${value}]"
+  def show: String = s"[${name}:${value}]"
 }
 final case class HookEnvPairs(values: List[HookEnvPair]) extends AnyVal {
   // shortcut to view envVariables as a Map[String, String]
-  def toMap = values.map(p => (p.name, p.value)).toMap
+  def toMap: Map[String, String] = values.map(p => (p.name, p.value)).toMap
 
-  def add(other: HookEnvPairs) = HookEnvPairs(this.values ::: other.values)
+  def add(other: HookEnvPairs): HookEnvPairs = HookEnvPairs(this.values ::: other.values)
 
   /**
    * Formatted string
@@ -95,9 +96,9 @@ final case class HookEnvPairs(values: List[HookEnvPair]) extends AnyVal {
 }
 
 object HookEnvPairs {
-  def toListPairs(values: (String, String)*) = values.map(p => HookEnvPair(p._1, p._2)).toList
+  def toListPairs(values: (String, String)*): List[HookEnvPair] = values.map(p => HookEnvPair(p._1, p._2)).toList
 
-  def build(values: (String, String)*) = {
+  def build(values: (String, String)*): HookEnvPairs = {
     HookEnvPairs(toListPairs(values: _*))
   }
 }
@@ -106,10 +107,10 @@ object HookEnvPairs {
  * Loggger for hooks
  */
 object HooksLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("hooks")
+  override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("hooks")
 
   object LongExecLogger extends Logger {
-    override protected def _logger = LoggerFactory.getLogger("hooks.longexecution")
+    override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("hooks.longexecution")
   }
 }
 

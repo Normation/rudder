@@ -41,7 +41,7 @@ import com.normation.inventory.domain.NodeId
 
 object Constants {
 
-  val ROOT_POLICY_SERVER_ID = NodeId("root")
+  val ROOT_POLICY_SERVER_ID: NodeId = NodeId("root")
 
   /////////// PATH for generated promises ///////////////
 

@@ -37,7 +37,9 @@
 package com.normation.rudder.services.policies.write
 
 import com.normation.errors.Inconsistency
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
+import com.normation.rudder.services.policies.NodeConfiguration
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -47,7 +49,8 @@ class PathComputerTest extends Specification {
 
   import com.normation.rudder.services.policies.NodeConfigData._
 
-  val allNodeConfig = Map(root.id -> rootNodeConfig, node1.id -> node1NodeConfig, node2.id -> node2NodeConfig)
+  val allNodeConfig: Map[NodeId, NodeConfiguration] =
+    Map(root.id -> rootNodeConfig, node1.id -> node1NodeConfig, node2.id -> node2NodeConfig)
 
   val pathComputer = new PathComputerImpl(
     Constants.NODE_PROMISES_PARENT_DIR_BASE,

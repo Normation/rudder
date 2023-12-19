@@ -48,7 +48,7 @@ package com.normation.inventory.domain
 sealed abstract class InventoryStatus(val name: String)
 
 object InventoryStatus {
-  def apply(name: String) = name.toLowerCase match {
+  def apply(name: String): Option[InventoryStatus] = name.toLowerCase match {
     case "accepted" => Some(AcceptedInventory)
     case "pending"  => Some(PendingInventory)
     case "removed"  => Some(RemovedInventory)

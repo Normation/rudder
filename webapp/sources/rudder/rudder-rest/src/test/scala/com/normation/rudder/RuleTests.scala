@@ -55,8 +55,8 @@ class RuleTest extends Specification with Loggable {
   val restTestSetUp = RestTestSetUp.newEnv
   val restTest      = new RestTest(restTestSetUp.liftRules)
 
-  val cat1   = RuleCategory(RuleCategoryId("cat1"), "", "", List.empty)
-  val cat4   = RuleCategory(
+  val cat1:   RuleCategory       = RuleCategory(RuleCategoryId("cat1"), "", "", List.empty)
+  val cat4:   RuleCategory       = RuleCategory(
     RuleCategoryId("cat4"),
     "",
     "",
@@ -71,7 +71,7 @@ class RuleTest extends Specification with Loggable {
       )
     )
   )
-  val subCat = {
+  val subCat: List[RuleCategory] = {
     List(
       cat1,
       RuleCategory(
@@ -86,7 +86,7 @@ class RuleTest extends Specification with Loggable {
     )
   }
 
-  val root = RuleCategory(
+  val root: RuleCategory = RuleCategory(
     RuleCategoryId("rootRuleCategory"),
     "Root category",
     "base root category",

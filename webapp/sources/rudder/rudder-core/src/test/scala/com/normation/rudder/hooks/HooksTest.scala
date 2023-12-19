@@ -60,7 +60,7 @@ import zio.{System => _, _}
 @RunWith(classOf[JUnitRunner])
 class HooksTest() extends Specification with AfterAll {
 
-  val tmp = File(s"/tmp/rudder-test-hook/${DateTime.now.toString(ISODateTimeFormat.dateTime())}")
+  val tmp: File = File(s"/tmp/rudder-test-hook/${DateTime.now.toString(ISODateTimeFormat.dateTime())}")
   tmp.createDirectoryIfNotExists(true)
 
   List("error10.sh", "success.sh", "warning50.sh", "echoCODE.sh", "timeout.sh", "timeout_ok.sh").foreach { i =>
@@ -69,7 +69,7 @@ class HooksTest() extends Specification with AfterAll {
     f.setPermissions(PosixFilePermissions.fromString("rwxr--r--").asScala.toSet)
   }
 
-  def runHooks(hooks: List[String], params: List[HookEnvPair]) = {
+  def runHooks(hooks: List[String], params: List[HookEnvPair]): HookReturnCode = {
     RunHooks.syncRun(
       Hooks(tmp.pathAsString, hooks.map(f => (f, HookTimeout(None, None)))),
       HookEnvPairs(params),

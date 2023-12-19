@@ -53,7 +53,8 @@ final case class TechniquesInfo(
     subCategories:          Map[SubTechniqueCategoryId, TechniqueCategory],
     directivesDefaultNames: Map[String, String]
 ) {
-  val allCategories = Map[TechniqueCategoryId, TechniqueCategory]() ++ subCategories + (rootCategory.id -> rootCategory)
+  val allCategories: Map[TechniqueCategoryId, TechniqueCategory] =
+    Map[TechniqueCategoryId, TechniqueCategory]() ++ subCategories + (rootCategory.id -> rootCategory)
 }
 
 //a mutable version of TechniquesInfo, for internal use only !

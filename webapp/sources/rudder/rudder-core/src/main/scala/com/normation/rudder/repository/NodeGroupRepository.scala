@@ -56,7 +56,7 @@ import zio.Chunk
  */
 object GroupCategoryRepositoryOrdering extends Ordering[List[NodeGroupCategoryId]] {
   type ID = NodeGroupCategoryId
-  override def compare(x: List[ID], y: List[ID]) = {
+  override def compare(x: List[ID], y: List[ID]): Int = {
     Utils.recTreeStringOrderingCompare(x.map(_.value), y.map(_.value))
 
   }
@@ -68,7 +68,7 @@ object GroupCategoryRepositoryOrdering extends Ordering[List[NodeGroupCategoryId
  */
 object NodeGroupCategoryOrdering extends Ordering[List[NodeGroupCategoryId]] {
   type ID = NodeGroupCategoryId
-  override def compare(x: List[ID], y: List[ID]) = {
+  override def compare(x: List[ID], y: List[ID]): Int = {
     Utils.recTreeStringOrderingCompare(x.map(_.value), y.map(_.value))
   }
 }
@@ -91,7 +91,7 @@ final case class FullNodeGroupCategory(
     isSystem:      Boolean = false
 ) {
 
-  def toNodeGroupCategory = NodeGroupCategory(
+  def toNodeGroupCategory: NodeGroupCategory = NodeGroupCategory(
     id = id,
     name = name,
     description = description,
@@ -134,7 +134,9 @@ final case class FullNodeGroupCategory(
     }
   }
 
-  val ownGroups = targetInfos.collect { case FullRuleTargetInfo(g: FullGroupTarget, _, _, _, _) => (g.nodeGroup.id, g) }.toMap
+  val ownGroups: Map[NodeGroupId, FullGroupTarget] = targetInfos.collect {
+    case FullRuleTargetInfo(g: FullGroupTarget, _, _, _, _) => (g.nodeGroup.id, g)
+  }.toMap
 
   val allGroups: Map[NodeGroupId, FullGroupTarget] = (
     ownGroups ++ subCategories.flatMap(_.allGroups)

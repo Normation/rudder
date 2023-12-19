@@ -69,7 +69,7 @@ object JsonSelect {
    * - We don't want ALWAYS_RETURN_LIST, because it blindly add an array
    *   around the value, even if the value is already an array.
    */
-  val config = Configuration.builder.build()
+  val config: Configuration = Configuration.builder.build()
 
   /*
    * Return the selection corresponding to path from the string.

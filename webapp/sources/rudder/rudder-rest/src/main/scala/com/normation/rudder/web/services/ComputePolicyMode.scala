@@ -45,7 +45,11 @@ import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 
 object ComputePolicyMode {
-  def ruleMode(globalMode: GlobalPolicyMode, directives: Set[Directive], nodeModes: Iterable[Option[PolicyMode]]) = {
+  def ruleMode(
+      globalMode: GlobalPolicyMode,
+      directives: Set[Directive],
+      nodeModes:  Iterable[Option[PolicyMode]]
+  ): (String, String) = {
     val mixed          =
       "This rule is applied on at least one node or directive that will <b class='text-Enforce'>enforces</b> configurations, and at least one that will <b class='text-Audit'>audits</b> them."
     val directivesMode = directives.map(_.policyMode)
@@ -63,7 +67,9 @@ object ComputePolicyMode {
 
   }
 
-  def directiveModeOnNode(nodeMode: Option[PolicyMode], globalMode: GlobalPolicyMode)(directiveMode: Option[PolicyMode]) = {
+  def directiveModeOnNode(nodeMode: Option[PolicyMode], globalMode: GlobalPolicyMode)(
+      directiveMode:                Option[PolicyMode]
+  ): (String, String) = {
     globalMode.overridable match {
       case PolicyModeOverrides.Unoverridable =>
         (
@@ -259,7 +265,9 @@ object ComputePolicyMode {
 
   // Used to computed mode applied on a Directive depending on it's mode and and all Nodes appliying it
   // Used in Node compliance table in Rule page
-  def directiveModeOnRule(nodeModes: Set[Option[PolicyMode]], globalMode: GlobalPolicyMode)(directiveMode: Option[PolicyMode]) = {
+  def directiveModeOnRule(nodeModes: Set[Option[PolicyMode]], globalMode: GlobalPolicyMode)(
+      directiveMode:                 Option[PolicyMode]
+  ): (String, String) = {
     val mixed =
       "This Directive is applied on at least one Node that will <b class='text-Enforce'>enforces</b> configurations, and at least one that will <b class='text-Audit'>audits</b> them."
     genericComputeMode(directiveMode, "Node", nodeModes, "Directives", globalMode, mixed)

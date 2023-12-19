@@ -145,7 +145,7 @@ class ComplianceModeEditForm[T <: ComplianceMode](
     "property-compliancemode"
   )
 
-  def dispatch = { case "complianceMode" => (xml) => complianceModeConfiguration }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "complianceMode" => (xml) => complianceModeConfiguration }
 
   val isNodePage: Boolean = p.isNodePage
 
@@ -154,7 +154,7 @@ class ComplianceModeEditForm[T <: ComplianceMode](
    */
   def parseJsonMode(s: String): Box[T] = p.parseJsonMode(s)
 
-  def submit(jsonMode: String) = {
+  def submit(jsonMode: String): JsRaw = {
     parseJsonMode(jsonMode) match {
       case eb: EmptyBox =>
         val e = eb ?~! s"Error when trying to parse user data: '${jsonMode}'"
@@ -178,7 +178,7 @@ class ComplianceModeEditForm[T <: ComplianceMode](
     }
   }
 
-  def toJs(mode: ComplianceMode) = {
+  def toJs(mode: ComplianceMode): String = {
     def json: JValue = {
       import net.liftweb.json.JsonDSL._
       val baseMode = {

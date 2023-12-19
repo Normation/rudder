@@ -49,6 +49,7 @@ import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.Status
 import org.eclipse.jgit.internal.storage.file.FileRepository
+import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
@@ -73,7 +74,7 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
   }
 
   // create a file with context = its name, creating its parent dir if needed
-  def mkfile(relativePath: String, name: String) = {
+  def mkfile(relativePath: String, name: String): Unit = {
     val d = new File(gitRoot, relativePath)
     d.mkdirs
     FileUtils.writeStringToFile(new File(d, name), name, StandardCharsets.UTF_8)
@@ -82,7 +83,7 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
   ////////// init test directory structure //////////
 
   // init the file layout
-  val all = {
+  val all: List[(String, String)] = {
     ("a", "root.txt") ::
     ("a", "root.pdf") ::
     ("a/a", "f.txt") ::
@@ -100,23 +101,24 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
       mkfile(path, file)
   }
 
-  val allPaths = all.map { case (d, f) => d + "/" + f }
-  val allPdf   = all.collect { case (d, f) if f.endsWith(".pdf") => d + "/" + f }
-  val allTxt   = all.collect { case (d, f) if f.endsWith(".txt") => d + "/" + f }
-  val allDirA  = all.collect { case (d, f) if d.startsWith("a") => d + "/" + f }
-  val allDirAA = all.collect { case (d, f) if d.startsWith("a/a") => d + "/" + f }
-  val allDirB  = all.collect { case (d, f) if d.startsWith("b") => d + "/" + f }
-  val allDirX  = List("x/f.txt/f.txt")
+  val allPaths: List[String] = all.map { case (d, f) => d + "/" + f }
+  val allPdf:   List[String] = all.collect { case (d, f) if f.endsWith(".pdf") => d + "/" + f }
+  val allTxt:   List[String] = all.collect { case (d, f) if f.endsWith(".txt") => d + "/" + f }
+  val allDirA:  List[String] = all.collect { case (d, f) if d.startsWith("a") => d + "/" + f }
+  val allDirAA: List[String] = all.collect { case (d, f) if d.startsWith("a/a") => d + "/" + f }
+  val allDirB:  List[String] = all.collect { case (d, f) if d.startsWith("b") => d + "/" + f }
+  val allDirX:  List[String] = List("x/f.txt/f.txt")
 
-  val db  = ((new FileRepositoryBuilder).setWorkTree(gitRoot).build).asInstanceOf[FileRepository]
+  val db: FileRepository = ((new FileRepositoryBuilder).setWorkTree(gitRoot).build).asInstanceOf[FileRepository]
   if (!db.getConfig.getFile.exists) {
     db.create()
   }
   val git = new Git(db)
   git.add.addFilepattern(".").call
-  val id  = ZioRuntime.runNow(GitFindUtils.findRevTreeFromRevString(db, git.commit.setMessage("initial commit").call.name))
+  val id: ObjectId =
+    ZioRuntime.runNow(GitFindUtils.findRevTreeFromRevString(db, git.commit.setMessage("initial commit").call.name))
 
-  def list(rootDirectories: List[String], endPaths: List[String]) =
+  def list(rootDirectories: List[String], endPaths: List[String]): Set[String] =
     ZioRuntime.runNow(GitFindUtils.listFiles(db, id, rootDirectories, endPaths))
 
   ////////// actual tests //////////

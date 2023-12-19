@@ -47,7 +47,7 @@ final case class DirectiveApplicationResult(
     completeCategory:   List[RuleCategoryId],
     incompleteCategory: List[RuleCategoryId]
 ) {
-  def addCategory(isComplete: Boolean, category: RuleCategoryId) = {
+  def addCategory(isComplete: Boolean, category: RuleCategoryId): DirectiveApplicationResult = {
     if (isComplete) {
       copy(completeCategory = category :: completeCategory)
     } else {
@@ -61,7 +61,7 @@ object DirectiveApplicationResult {
     DirectiveApplicationResult(List(rule), Nil, Nil)
   }
 
-  def mergeOne(that: DirectiveApplicationResult, into: DirectiveApplicationResult) = {
+  def mergeOne(that: DirectiveApplicationResult, into: DirectiveApplicationResult): DirectiveApplicationResult = {
     val newRules      = (that.rules ++ into.rules).distinct
     val newComplete   = (that.completeCategory ++ into.completeCategory).distinct
     // Filter complete from incomplete so there is no conflict (actions are building to end up with complete status, so if complete stauts is achieved in some there is no icomplete possibility)
@@ -69,7 +69,7 @@ object DirectiveApplicationResult {
     DirectiveApplicationResult(newRules, newComplete, newIncomplete)
   }
 
-  def merge(results: List[DirectiveApplicationResult]) = {
+  def merge(results: List[DirectiveApplicationResult]): DirectiveApplicationResult = {
     results match {
       case Nil         => DirectiveApplicationResult(Nil, Nil, Nil)
       case head :: Nil => head
@@ -144,7 +144,7 @@ final case class DirectiveApplicationManagement(
   private[this] var currentApplyingRules = applyingRulesbyCategory.withDefaultValue(Nil)
 
   // Get rules that needs to be updated , and divide them by those who are new application and those who don't apply the Directive annymore
-  def checkRulesToUpdate = {
+  def checkRulesToUpdate: (List[Rule], List[Rule]) = {
 
     // Need to get all Current application Rule, need to have them disctinct (we got them from a Map)
     val current = currentApplyingRules.values.toList.flatten.distinct
@@ -165,7 +165,7 @@ final case class DirectiveApplicationManagement(
   /*
    *  Check Functions, They will change the state inside the service
    */
-  def checkRule(id: RuleId, status: Boolean) = {
+  def checkRule(id: RuleId, status: Boolean): DirectiveApplicationResult = {
     def checkRule(id: RuleId, status: Boolean, category: CategoryId): DirectiveApplicationResult = {
       logger.debug(s"check for ${id.serialize}, in ${category.value}")
       // Get current state
@@ -197,12 +197,12 @@ final case class DirectiveApplicationManagement(
   }
 
   // Check a Lists of Rules, used when you try to apply several rules together
-  def checkRules(rules: List[RuleId], status: Boolean) = {
+  def checkRules(rules: List[RuleId], status: Boolean): DirectiveApplicationResult = {
     DirectiveApplicationResult.merge(rules.map(checkRule(_, status)))
   }
 
   // Check a Category
-  def checkCategory(id: CategoryId, status: Boolean) = {
+  def checkCategory(id: CategoryId, status: Boolean): DirectiveApplicationResult = {
     // Current application of that category
     val currentApplication  = currentApplyingRules(id)
     // All Rules contained in that category
@@ -232,7 +232,7 @@ final case class DirectiveApplicationManagement(
    * Check Status methods, here are functions to check whether a rule is considered apply the Directive or not
    */
   // Check status of rule
-  def ruleStatus(rule: Rule) = {
+  def ruleStatus(rule: Rule):     Boolean      = {
     currentApplyingRules.get(rule.categoryId).getOrElse(Nil).contains(rule.id)
   }
   // Check status of Rule, based on its Id
@@ -244,26 +244,26 @@ final case class DirectiveApplicationManagement(
   }
 
   // Check a list of Rules
-  def checkRules = {
+  def checkRules: (List[Rule], List[Rule]) = {
     rules.partition(ruleStatus)
   }
 
   // Check if a category is complete or not
-  def isCompletecategory(id: CategoryId) = {
+  def isCompletecategory(id: CategoryId): Boolean = {
     val currentApplication  = currentApplyingRules.get(id).getOrElse(Nil)
     val completeApplication = rulesByCategory(id)
     currentApplication.size > 0 && currentApplication == completeApplication
   }
 
   // Check if the category is in an indeterminate state
-  def isIndeterminateCategory(id: CategoryId) = {
+  def isIndeterminateCategory(id: CategoryId): Boolean = {
     val currentApplication  = currentApplyingRules.get(id).getOrElse(Nil)
     val completeApplication = rulesByCategory(id)
     currentApplication.size > 0 && currentApplication != completeApplication
   }
 
   // Check if the category is in empty
-  def isEmptyCategory(id: CategoryId) = {
+  def isEmptyCategory(id: CategoryId): Boolean = {
     val currentApplication = rulesByCategory.get(id).getOrElse(Nil)
     currentApplication.size > 0
   }

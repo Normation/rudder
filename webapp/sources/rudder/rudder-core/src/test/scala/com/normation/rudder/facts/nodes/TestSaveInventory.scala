@@ -68,11 +68,13 @@ import com.normation.zio.ZioRuntime
 import com.softwaremill.quicklens._
 import com.typesafe.config.ConfigValueFactory
 import cron4s.Cron
+import java.io.InputStream
 import java.security.Security
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTime
 import org.junit.runner._
+import org.specs2.matcher.MatchResult
 import org.specs2.mutable._
 import org.specs2.runner._
 import org.specs2.specification.BeforeAfterAll
@@ -94,20 +96,20 @@ import zio.syntax._
 @RunWith(classOf[JUnitRunner])
 class TestSaveInventoryGit extends TestSaveInventory {
 
-  val GIT_PENDING = basePath + "/fact-repo/nodes/pending"
+  val GIT_PENDING: String = basePath + "/fact-repo/nodes/pending"
 
-  def pendingNodeGitFile(id: String) = File(GIT_PENDING + "/" + id + ".json")
+  def pendingNodeGitFile(id: String): File = File(GIT_PENDING + "/" + id + ".json")
 
-  val GIT_ACCEPTED = basePath + "/fact-repo/nodes/accepted"
+  val GIT_ACCEPTED: String = basePath + "/fact-repo/nodes/accepted"
 
-  def acceptedNodeGitFile(id: String) = File(GIT_ACCEPTED + "/" + id + ".json")
+  def acceptedNodeGitFile(id: String): File = File(GIT_ACCEPTED + "/" + id + ".json")
 
   override def checkPendingNodeExists(id: String):  Boolean = pendingNodeGitFile(id).exists
   override def getPendingNodeAsString(id: String):  String  = pendingNodeGitFile(id).contentAsString
   override def checkAcceptedNodeExists(id: String): Boolean = acceptedNodeGitFile(id).exists
   override def getAcceptedNodeAsString(id: String): String  = acceptedNodeGitFile(id).contentAsString
 
-  override lazy val factStorage = {
+  override lazy val factStorage: GitNodeFactStorageImpl = {
     val cronSchedule        = Cron.parse("0 42 3 * * ?").toOption
     val gitFactRepoProvider = GitRepositoryProviderImpl
       .make(basePath + "/fact-repo")
@@ -149,13 +151,13 @@ class TestSaveInventoryLdap extends TestSaveInventory {
   //////// for LDAP reposiotyr, in addition to main acceptation test, we are
   //////// checking properties around certificate validation
 
-  val windows   = NodeId("b73ea451-c42a-420d-a540-47b445e58313")
-  val linuxKey  = NodeId("baded9c8-902e-4404-96c1-278acca64e3a")
-  val linuxCert = NodeId("67e00959-ccda-430d-b6c2-ad1f3e89276a")
+  val windows:   NodeId = NodeId("b73ea451-c42a-420d-a540-47b445e58313")
+  val linuxKey:  NodeId = NodeId("baded9c8-902e-4404-96c1-278acca64e3a")
+  val linuxCert: NodeId = NodeId("67e00959-ccda-430d-b6c2-ad1f3e89276a")
 
-  val exist = IOManaged.make(true)(_ => ())
+  val exist: IOManaged[Boolean] = IOManaged.make(true)(_ => ())
 
-  def asManagedStream(name: String) = IOManaged.make(Resource.getAsStream(name))(_.close())
+  def asManagedStream(name: String): IOManaged[InputStream] = IOManaged.make(Resource.getAsStream(name))(_.close())
 
   // LINUX
 
@@ -370,7 +372,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
   Security.addProvider(new BouncyCastleProvider())
 
   implicit class RunThing[E, T](thing: ZIO[Any, E, T])      {
-    def testRun = ZioRuntime.unsafeRun(thing.either)
+    def testRun: Either[E, T] = ZioRuntime.unsafeRun(thing.either)
   }
   implicit class RunOptThing[A](thing: IOResult[Option[A]]) {
     def testRunGet: A = ZioRuntime.unsafeRun(thing.either) match {
@@ -381,7 +383,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
   }
 
   implicit class TestIsOK[E, T](thing: ZIO[Any, E, T]) {
-    def isOK = thing.testRun must beRight
+    def isOK: MatchResult[Either[E, T]] = thing.testRun must beRight
   }
 
   implicit class ForceGetE[E, A](opt: Either[E, A]) {
@@ -400,19 +402,19 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
 
   implicit def stringToNodeId(id: String): NodeId = NodeId(id)
 
-  val basePath = s"/tmp/test-rudder-inventory/${DateFormaterService.gitTagFormat.print(DateTime.now())}"
+  val basePath: String = s"/tmp/test-rudder-inventory/${DateFormaterService.gitTagFormat.print(DateTime.now())}"
 
-  val INVENTORY_ROOT_DIR     = basePath + "/inventories"
-  val INVENTORY_DIR_INCOMING = INVENTORY_ROOT_DIR + "/incoming"
+  val INVENTORY_ROOT_DIR:     String = basePath + "/inventories"
+  val INVENTORY_DIR_INCOMING: String = INVENTORY_ROOT_DIR + "/incoming"
 
-  def incomingInventoryFile(name: String) = File(INVENTORY_DIR_INCOMING + "/" + name)
+  def incomingInventoryFile(name: String): File = File(INVENTORY_DIR_INCOMING + "/" + name)
 
-  val INVENTORY_DIR_FAILED   = INVENTORY_ROOT_DIR + "/failed"
-  val INVENTORY_DIR_RECEIVED = INVENTORY_ROOT_DIR + "/received"
+  val INVENTORY_DIR_FAILED:   String = INVENTORY_ROOT_DIR + "/failed"
+  val INVENTORY_DIR_RECEIVED: String = INVENTORY_ROOT_DIR + "/received"
 
-  def receivedInventoryFile(name: String) = File(INVENTORY_DIR_RECEIVED + "/" + name)
+  def receivedInventoryFile(name: String): File = File(INVENTORY_DIR_RECEIVED + "/" + name)
 
-  val INVENTORY_DIR_UPDATE = INVENTORY_ROOT_DIR + "/accepted-nodes-updates"
+  val INVENTORY_DIR_UPDATE: String = INVENTORY_ROOT_DIR + "/accepted-nodes-updates"
 
   override def beforeAll(): Unit = {
     List(basePath, INVENTORY_DIR_INCOMING, INVENTORY_DIR_FAILED, INVENTORY_DIR_RECEIVED, INVENTORY_DIR_UPDATE).foreach(f =>
@@ -433,9 +435,9 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
   import QueryContext.testQC
 
   // TODO WARNING POC: this can't work on a machine with lots of node
-  val callbackLog = Ref.make(Chunk.empty[NodeFactChangeEvent]).runNow
-  def resetLog    = callbackLog.set(Chunk.empty).runNow
-  def getLogName  = callbackLog.get.map(_.map(_.name)).runNow
+  val callbackLog: Ref[Chunk[NodeFactChangeEvent]] = Ref.make(Chunk.empty[NodeFactChangeEvent]).runNow
+  def resetLog:    Unit                            = callbackLog.set(Chunk.empty).runNow
+  def getLogName:  Chunk[String]                   = callbackLog.get.map(_.map(_.name)).runNow
 
   object noopNodeBySoftwareName extends GetNodesbySofwareName {
     override def apply(softName: String): IOResult[List[(NodeId, Software)]] = {
@@ -443,7 +445,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
     }
   }
 
-  val factRepo = {
+  val factRepo: CoreNodeFactRepository = {
     for {
       pending   <- Ref.make(Map[NodeId, CoreNodeFact]())
       accepted  <- Ref.make(Map[NodeId, CoreNodeFact]())
@@ -489,7 +491,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
     )
   }
 
-  lazy val inventoryProcessorInternal = {
+  lazy val inventoryProcessorInternal: InventoryProcessor = {
     new InventoryProcessor(
       pipelinedInventoryParser,
       inventorySaver,
@@ -502,7 +504,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
     )
   }
 
-  lazy val inventoryProcessor = {
+  lazy val inventoryProcessor: DefaultProcessInventoryService = {
     val mover = new InventoryMover(
       INVENTORY_DIR_RECEIVED,
       INVENTORY_DIR_FAILED,
@@ -518,11 +520,11 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
 
   sequential
 
-  val nodeId       = "86d9ec77-9db5-4ba3-bdca-f0baf3a5b477"
-  val nodeName     = s"node2-${nodeId}.ocs"
-  val nodeResource = s"inventories/7.2/${nodeName}"
-  val newfqdn      = "node42.fqdn"
-  val fqdn         = "node2.rudder.local"
+  val nodeId = "86d9ec77-9db5-4ba3-bdca-f0baf3a5b477"
+  val nodeName:     String = s"node2-${nodeId}.ocs"
+  val nodeResource: String = s"inventories/7.2/${nodeName}"
+  val newfqdn = "node42.fqdn"
+  val fqdn    = "node2.rudder.local"
 
   "Saving a new, unknown inventory" should {
     implicit val status = SelectNodeStatus.Pending
@@ -662,7 +664,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
 
 object Cert {
 
-  val KEY_CFE_OK = {
+  val KEY_CFE_OK: String = {
     """-----BEGIN RSA PUBLIC KEY-----
       |MIICCgKCAgEAtG20P906HK1MV0nSA2eWKqC+29tX8/TnHd0YGAVgg5+ODr+tbXXj
       |WgtEr0XaLxN12/Usu+DSQWcEAMAn6O3iUmxsIYLWRAU1mqqK0q2rxov3+jg/7sK9
@@ -678,7 +680,7 @@ object Cert {
       |-----END RSA PUBLIC KEY-----""".stripMargin
   }
 
-  val CERT_CFE_OK = {
+  val CERT_CFE_OK: String = {
     """-----BEGIN CERTIFICATE-----
       |MIIFqzCCA5OgAwIBAgIUCEizN6EaeHhk+WG88r0T+TKytzMwDQYJKoZIhvcNAQEL
       |BQAwNjE0MDIGCgmSJomT8ixkAQEMJDY3ZTAwOTU5LWNjZGEtNDMwZC1iNmMyLWFk
@@ -714,7 +716,7 @@ object Cert {
       |-----END CERTIFICATE-----""".stripMargin
   }
 
-  val CERT_WIN_OK = {
+  val CERT_WIN_OK: String = {
     """-----BEGIN CERTIFICATE-----
       |MIIFgTCCA2mgAwIBAgIUXpY2lv7l+hkx4mVP324d9O1qJh0wDQYJKoZIhvcNAQEL
       |BQAwUDEYMBYGA1UEAwwPV0lOLUdOR0RIUFZIVlROMTQwMgYKCZImiZPyLGQBAQwk
@@ -749,7 +751,7 @@ object Cert {
       |-----END CERTIFICATE-----""".stripMargin
   }
 
-  val CERT_WIN_NEW = {
+  val CERT_WIN_NEW: String = {
     """-----BEGIN CERTIFICATE-----
       |MIIFgTCCA2mgAwIBAgIUTOUJeR7kGBPch+AvEUcfL+fFP6wwDQYJKoZIhvcNAQEL
       |BQAwUDEYMBYGA1UEAwwPV0lOLUdOR0RIUFZIVlROMTQwMgYKCZImiZPyLGQBAQwk
@@ -784,7 +786,7 @@ object Cert {
       |-----END CERTIFICATE-----""".stripMargin
   }
 
-  val CERT_WIN_BAD = {
+  val CERT_WIN_BAD: String = {
     """-----BEGIN CERTIFICATE-----
       |MIIFZzCCA0+gAwIBAgIUDaKGG+AkW0CObOmayMKBhmvRDf0wDQYJKoZIhvcNAQEL
       |BQAwQzEYMBYGA1UEAwwPV0lOLUdOR0RIUFZIVlROMScwJQYKCZImiZPyLGQBAQwX

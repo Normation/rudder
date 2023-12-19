@@ -66,7 +66,7 @@ import zio.syntax._
  */
 object RuleCategoryOrdering extends Ordering[List[RuleCategoryId]] {
   type ID = RuleCategoryId
-  override def compare(x: List[ID], y: List[ID]) = {
+  override def compare(x: List[ID], y: List[ID]): Int = {
     Utils.recTreeStringOrderingCompare(x.map(_.value), y.map(_.value))
   }
 }
