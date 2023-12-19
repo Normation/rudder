@@ -108,6 +108,23 @@ limitations under the License.
     </extensions>
     <plugins>
       <plugin>
+        <groupId>io.github.evis</groupId>
+        <artifactId>scalafix-maven-plugin_2.13</artifactId>
+        <version>0.1.8_0.11.0</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-rewrites_2.13</artifactId>
+            <version>0.1.5</version>
+          </dependency>
+          <dependency>
+            <groupId>ch.epfl.scala</groupId>
+            <artifactId>scala3-migrate-rules_2.13</artifactId>
+            <version>0.6.2</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+      <plugin>
         <!-- Specify maven resources plugin version because to avoid this bug from plugin 3.2+ https://issues.apache.org/jira/browse/MRESOURCES-269
 	especially with maven 3.9 that uses version 3.3.0 of this plugin by default, see https://issues.rudder.io/issues/22403
 	-->
@@ -150,6 +167,13 @@ limitations under the License.
         <configuration>
           <scalaCompatVersion>${scala-binary-version}</scalaCompatVersion>
           <recompileMode>all</recompileMode>
+          <compilerPlugins>
+            <compilerPlugin>
+              <groupId>org.scalameta</groupId>
+              <artifactId>semanticdb-scalac_${scala-version}</artifactId>
+              <version>4.8.14</version>
+            </compilerPlugin>
+          </compilerPlugins>
           <args>
             <arg>-release:17</arg>
             <arg>-dependencyfile</arg>
