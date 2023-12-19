@@ -150,13 +150,6 @@ limitations under the License.
         <configuration>
           <scalaCompatVersion>${scala-binary-version}</scalaCompatVersion>
           <recompileMode>all</recompileMode>
-          <compilerPlugins>
-            <compilerPlugin>
-              <groupId>org.wartremover</groupId>
-              <artifactId>wartremover_2.13</artifactId>
-              <version>2.4.10</version>
-            </compilerPlugin>
-          </compilerPlugins>
           <args>
             <arg>-release:17</arg>
             <arg>-dependencyfile</arg>
@@ -192,8 +185,6 @@ limitations under the License.
             <arg>-Ybackend-parallelism</arg><arg>8</arg>         <!-- Enable parallelization — change to desired number! -->
             <arg>-Ycache-plugin-class-loader:last-modified</arg> <!-- Enables caching of classloaders for compiler plugins -->
             <arg>-Ycache-macro-class-loader:last-modified</arg>  <!-- and macro definitions. This can lead to performance improvements. -->
-<!--            <arg>-P:wartremover:only-warn-traverser:org.wartremover.warts.StringPlusAny</arg>-->
-<!--            <arg>-P:wartremover:only-warn-traverser:org.wartremover.warts.ToString</arg>-->
 
 <!--        fastparse 3.0.1 emits false unused warning. We must silence them on related files. See: https://github.com/com-lihaoyi/fastparse/issues/285-->
             <arg>-Wconf:cat=unused-nowarn&amp;src=com/normation/utils/Version.scala:s,cat=unused-nowarn&amp;src=com/normation/rudder/services/policies/InterpolatedValueCompiler.scala:s</arg>
