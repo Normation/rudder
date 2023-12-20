@@ -850,12 +850,14 @@ class ComplianceAPIService(
             ComplianceLevel.sum(reports.map(_.compliance)),
             byDirectives.map {
               case (directiveId, nodeDirectives) =>
-                ByRuleDirectiveCompliance(
+                ByNodeGroupByRuleDirectiveCompliance(
                   directiveId,
                   directiveLib.allDirectives.get(directiveId).map(_._2.name).getOrElse("Unknown directive"),
                   ComplianceLevel.sum(
                     nodeDirectives.map(_._2.compliance)
-                  ), // here we want the compliance by components of the directive.
+                  ),
+                  directiveLib.allDirectives.get(directiveId).flatMap(_._2.policyMode),
+                  // here we want the compliance by components of the directive.
                   // if level is high enough, get all components and group by their name
                   {
                     val byComponents: Map[String, immutable.Iterable[(NodeId, ComponentStatusReport)]] = if (computedLevel < 3) {
@@ -909,11 +911,12 @@ class ComplianceAPIService(
         case (nodeId, status) if currentGroupNodeIds.contains(nodeId) =>
           // For non global compliance, we only want the compliance for the rules in the group
           val reports = status.reports.filter(r => isGlobalCompliance || ruleIds.contains(r.ruleId)).toSeq
-          ByNodeNodeCompliance(
+          ByNodeGroupNodeCompliance(
             nodeId,
             nodeFacts.get(nodeId).map(_.fqdn).getOrElse("Unknown node"),
-            ComplianceLevel.sum(reports.map(_.compliance)),
             compliance.mode,
+            ComplianceLevel.sum(reports.map(_.compliance)),
+            nodeFacts.get(nodeId).flatMap(_.rudderSettings.policyMode),
             reports.map(r => {
               ByNodeRuleCompliance(
                 r.ruleId,

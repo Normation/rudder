@@ -94,6 +94,21 @@ input[disabled] + .save-tooltip {
   margin-bottom: 10px;
 }
 
+.id-label {
+  margin-top: 5px;
+}
+.id-value {
+ display:inline-block;
+}
+.clipboard-icon {
+  display:inline-block;
+  margin-left:15px;
+}
+.clipboard-icon:hover {
+  cursor: pointer;
+  color: #0366d6;
+}
+
 content-query{
   display:block;
 }

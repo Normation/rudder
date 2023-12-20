@@ -44,7 +44,9 @@ import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.reports.ComplianceLevelSerialisation
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.NodeGroupChangeRequest
@@ -98,12 +100,14 @@ class NodeGroupForm(
     onFailureCallback: () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with DefaultExtendableSnippet[NodeGroupForm] with Loggable {
   import NodeGroupForm._
+  implicit private[this] val qc: QueryContext = CurrentUser.queryContext
 
   private[this] val nodeFactRepo               = RudderConfig.nodeFactRepository
   private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
   private[this] val workflowLevelService       = RudderConfig.workflowLevelService
   private[this] val dependencyService          = RudderConfig.dependencyAndDeletionService
   private[this] val roNodeGroupRepository      = RudderConfig.roNodeGroupRepository
+  private[this] val complianceService          = RudderConfig.complianceService
 
   private[this] val nodeGroupCategoryForm = new LocalSnippet[NodeGroupCategoryForm]
   private[this] val nodeGroupForm         = new LocalSnippet[NodeGroupForm]
@@ -178,12 +182,36 @@ class NodeGroupForm(
         OnLoad(JsRaw("$('#GroupTabs').tabs( {active : 0 });"))
       )
 
-    (nodeGroup match {
-      case Left(target)                     => showFormTarget(target)
-      case Right(group) if (group.isSystem) => showFormTarget(GroupTarget(group.id))
+    nodeGroup match {
+      case Left(target)                     => showFormTarget(target)(html)
+      case Right(group) if (group.isSystem) => showFormTarget(GroupTarget(group.id))(html)
       case Right(group)                     =>
-        showFormNodeGroup(group)
-    })(html)
+        showFormNodeGroup(group)(html) ++
+        Script(
+          OnLoad(
+            JsRaw(s"""
+                     |var main = document.getElementById("groupComplianceApp")
+                     |var initValues = {
+                     |  groupId : "${group.id.uid.value}",
+                     |  contextPath : contextPath
+                     |};
+                     |var app = Elm.Groupcompliance.init({node: main, flags: initValues});
+                     |app.ports.errorNotification.subscribe(function(str) {
+                     |  createErrorNotification(str)
+                     |});
+                     |// Initialize tooltips
+                     |app.ports.initTooltips.subscribe(function(msg) {
+                     |  setTimeout(function(){
+                     |    initBsTooltips();
+                     |  }, 400);
+                     |});
+                     |$$("#complianceLinkTab").on("click", function (){
+                     |  app.ports.loadCompliance.send("");
+                     |});
+                     |""".stripMargin)
+          )
+        )
+    }
   }
 
   private[this] def showRulesForTarget(target: SimpleTarget): NodeSeq = {
@@ -196,7 +224,15 @@ class NodeGroupForm(
     t => rootCategory.allTargets.get(t).map(_.name).getOrElse(t.target),
     _.name
   )
-  private[this] def showFormNodeGroup(nodeGroup: NodeGroup):  CssSel  = {
+
+  private[this] def showComplianceForGroup(progressBarSelector: String, optComplianceArray: Option[JsArray]) = {
+    nodeGroup.toOption.map(g => {
+      val complianceHtml = optComplianceArray.map(js => s"buildComplianceBar(${js.toJsCmd})").getOrElse("\"No report\"")
+      Script(JsRaw(s"""$$("${progressBarSelector}").html(${complianceHtml});"""))
+    })
+  }
+
+  private[this] def showFormNodeGroup(nodeGroup: NodeGroup): CssSel = {
     val nodesSel = "#gridResult" #> NodeSeq.Empty
     val nodes    = nodesSel(searchNodeComponent.get match {
       case Full(req) => req.buildQuery(true)
@@ -206,11 +242,11 @@ class NodeGroupForm(
       "#group-name" #> groupNameString
       & "group-pendingchangerequest" #> PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml, nodeGroup.id)
       & "group-name" #> groupName.toForm_!
-      & "group-rudderid" #> <div class="form-group row">
+      & "group-rudderid" #> <div class="form-group">
                       <label class="wbBaseFieldLabel">Group ID</label>
                       <input readonly="" class="form-control" value={nodeGroup.id.serialize}/>
                     </div>
-      & "group-cfeclasses" #> <div class="form-group row">
+      & "group-cfeclasses" #> <div class="form-group">
                           <label class="wbBaseFieldLabel toggle-cond cond-hidden" onclick="$(this).toggleClass('cond-hidden')"><span class="text-fit">Agent conditions</span><i class="fa fa-chevron-down"></i></label>
                           <div class="well" id={s"cfe-${nodeGroup.id.serialize}"}>
                             {RuleTarget.toCFEngineClassName(nodeGroup.id.serialize)}<br/>
@@ -258,6 +294,15 @@ class NodeGroupForm(
         case eb: EmptyBox =>
           <span class="error">Error when retrieving the request, please try again</span>
       })
+      & ".groupGlobalComplianceProgressBar *" #> showComplianceForGroup(
+        ".groupGlobalComplianceProgressBar",
+        loadComplianceBar(true)
+      )
+      & ".groupTargetedComplianceProgressBar *" #> showComplianceForGroup(
+        ".groupTargetedComplianceProgressBar",
+        loadComplianceBar(false)
+      )
+      & ".id-value *" #> nodeGroup.id.serialize
     )
   }
 
@@ -269,7 +314,7 @@ class NodeGroupForm(
                            <li><a href="#groupParametersTab">Parameters</a></li>
                            <li><a href="#groupRulesTab">Related rules</a></li>
                          </ul>
-    & "group-rudderid" #> <div class="form-group row">
+    & "group-rudderid" #> <div>
                     <label class="wbBaseFieldLabel">Group ID</label>
                     <input readonly="" class="form-control" value={target.target}/>
                   </div>
@@ -289,7 +334,8 @@ class NodeGroupForm(
       case Full(req) => req.displayNodesTable
       case eb: EmptyBox =>
         <span class="error">Error when retrieving the request, please try again</span>
-    }))
+    })
+    & ".show-compliance" #> NodeSeq.Empty)
   }
 
   def showGroupProperties(group: NodeGroup): NodeSeq = {
@@ -352,6 +398,16 @@ class NodeGroupForm(
                                                      |""".stripMargin)))
   }
 
+  private def loadComplianceBar(isGlobalCompliance: Boolean): Option[JsArray] = {
+    for {
+      group      <- nodeGroup.toOption
+      compliance <-
+        complianceService.getNodeGroupCompliance(group.id, level = Some(1), isGlobalCompliance = isGlobalCompliance).toOption
+    } yield {
+      ComplianceLevelSerialisation.ComplianceLevelToJs(compliance.compliance).toJsArray
+    }
+  }
+
   ///////////// fields for category settings ///////////////////
 
   private[this] val groupName = {
@@ -374,9 +430,9 @@ class NodeGroupForm(
     new WBTextAreaField("Description", desc) {
       override def setFilter             = notNull _ :: trim _ :: Nil
       override def className             = "form-control"
-      override def labelClassName        = "row col-xs-12"
-      override def subContainerClassName = "row col-xs-12"
-      override def containerClassName    = "col-xs-6"
+      override def labelClassName        = "col-12"
+      override def subContainerClassName = "col-12"
+      override def containerClassName    = "col-6"
       override def errorClassName        = "field_errors paddscala"
       override def inputAttributes: Seq[(String, String)] = Seq(("rows", "15"))
       override def labelExtensions: NodeSeq               = {

@@ -51,36 +51,56 @@
       <li><a href="#groupCriteriaTab">Criteria</a></li>
       <li><a href="#groupRulesTab">Related rules</a></li>
       <li><a href="#groupPropertiesTab">Properties</a></li>
+      <li><a id="complianceLinkTab" href="#groupComplianceTab">Compliance</a></li>
     </ul>
   </div>
   <div class="main-details">
-    <div id="groupParametersTab" class="main-form">
-       <group-notifications ></group-notifications>
-       <group-pendingchangerequest></group-pendingchangerequest>
-       <group-name></group-name>
-      <div id="longDescriptionFieldMarkdownContainer" class="row form-group wbBaseFieldLabel">
-        <label class="wbBaseFieldLabel"><span class="text-fit">Description</span>
-          <lift:authz role="group_write">
-            <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Edit description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i>
-          </lift:authz>
-        </label>
-        <div class="markdown">
-          <div id="longDescriptionFieldMarkdown"></div>
-          <p id="longDescriptionFieldMarkdownEmpty" class="nodisplay half-opacity">No description defined, click on <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> to edit </p>
+    <div id="groupParametersTab" class="row">
+      <div class="col-12 col-sm-6 col-lg-7">
+        <div class="main-form">
+          <group-notifications ></group-notifications>
+          <group-pendingchangerequest></group-pendingchangerequest>
+          <group-name></group-name>
+          <div id="longDescriptionFieldMarkdownContainer" class="form-group">
+            <label class="wbBaseFieldLabel"><span class="text-fit">Description</span>
+              <lift:authz role="group_write">
+                <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Edit description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i>
+              </lift:authz>
+            </label>
+            <div class="markdown">
+              <div id="longDescriptionFieldMarkdown"></div>
+              <p id="longDescriptionFieldMarkdownEmpty" class="nodisplay half-opacity">No description defined, click on <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> to edit </p>
+            </div>
+          </div>
+          <div id="longDescriptionFieldContainer" class="nodisplay form-group">
+            <div id="longDescriptionField">
+              Here comes the longDescription field
+            </div>
+            <div id="longDescriptionFieldMarkdownPreviewContainer" class="col-6">
+              <label class="col-12 wbBaseFieldLabel"><span class="text-fit">Preview</span></label>
+              <div id="longDescriptionFieldPreviewMarkdown" class=" col-12 markdown"></div>
+            </div>
+          </div>
+          <group-rudderid></group-rudderid>
+          <group-container></group-container>
+          <group-cfeclasses></group-cfeclasses>
         </div>
       </div>
-      <div id="longDescriptionFieldContainer" class="nodisplay row form-group">
-        <div id="longDescriptionField">
-          Here comes the longDescription field
-        </div>
-        <div id="longDescriptionFieldMarkdownPreviewContainer" class="col-xs-6 row">
-          <label class="col-xs-12 row wbBaseFieldLabel"><span class="text-fit">Preview</span></label>
-          <div id="longDescriptionFieldPreviewMarkdown" class=" col-xs-12 row markdown"></div>
+      <div class="col-12 col-sm-6 col-lg-5">
+        <div class="form-group show-compliance">
+          <div id="groupComplianceSummary">
+            <label>Global compliance</label>
+            <div class="groupGlobalComplianceProgressBar"></div>
+            <label>Targeted compliance</label>
+            <div class="groupTargetedComplianceProgressBar"></div>
+          </div>
+          <label class="id-label">Group ID</label>
+          <div class="id-container">
+            <p class="id-value">The node group id</p>
+            <i class="ion ion-clipboard clipboard-icon"></i>
+          </div>
         </div>
       </div>
-      <group-rudderid></group-rudderid>
-      <group-container></group-container>
-      <group-cfeclasses></group-cfeclasses>
     </div>
     <div id="groupRulesTab" class="main-form">
       <div class="alert alert-info">
@@ -91,15 +111,18 @@
     <div id="groupPropertiesTab" class="main-form">
       <div id="groupPropertiesTabContent"></div>
     </div>
+    <div id="groupComplianceTab" class="main-form">
+      <div id="groupComplianceApp"></div>
+    </div>
     <div id="groupCriteriaTab" class="main-form">
       <group-static></group-static>
       <div id="SearchNodes">
         <group-showGroup ></group-showGroup>
       </div>
     </div>
-    <div class="table-container">
-      <div id="group-shownodestable" class="main-table"></div>
-    </div>
+  </div>
+  <div class="table-container">
+    <div id="group-shownodestable" class="main-table"></div>
   </div>
 </div>
 </component-body>

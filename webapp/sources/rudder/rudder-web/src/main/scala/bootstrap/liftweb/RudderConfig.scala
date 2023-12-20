@@ -1135,6 +1135,7 @@ object RudderConfig extends Loggable {
   val clearCacheService:                   ClearCacheService                          = rci.clearCacheService
   val cmdbQueryParser:                     CmdbQueryParser                            = rci.cmdbQueryParser
   val commitAndDeployChangeRequest:        CommitAndDeployChangeRequestService        = rci.commitAndDeployChangeRequest
+  val complianceService:                   ComplianceAPIService                       = rci.complianceService
   val configService:                       ReadConfigService with UpdateConfigService = rci.configService
   val configurationRepository:             ConfigurationRepository                    = rci.configurationRepository
   val databaseManager:                     DatabaseManager                            = rci.databaseManager
@@ -1284,6 +1285,7 @@ case class RudderServiceApi(
     eventLogRepository:                  EventLogRepository,
     eventLogDetailsService:              EventLogDetailsService,
     reportingService:                    ReportingService,
+    complianceService:                   ComplianceAPIService,
     asyncComplianceService:              AsyncComplianceService,
     debugScript:                         DebugInfoService,
     cmdbQueryParser:                     CmdbQueryParser,
@@ -3536,6 +3538,7 @@ object RudderConfigInit {
       eventLogRepository,
       eventLogDetailsServiceImpl,
       reportingServiceImpl,
+      complianceAPIService,
       asynComplianceService,
       scriptLauncher,
       queryParser,
