@@ -339,6 +339,9 @@ pub mod action {
             if libraries.len() > 1 {
                 bail!("Tests only support one library path containing a full 'ncf' library");
             }
+            if libraries.is_empty() {
+                bail!("One library path must be passed using the '--library' option");
+            }
             let run_log = match case.target {
                 Target::Unix => cf_agent(
                     &target_dir.join("technique.cf"),
