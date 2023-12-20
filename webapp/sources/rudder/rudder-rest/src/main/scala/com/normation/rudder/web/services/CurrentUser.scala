@@ -44,24 +44,22 @@ import com.normation.rudder.User
 import com.normation.rudder.api.ApiAuthorization
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.facts.nodes.QueryContext
-import org.springframework.security.core.context.SecurityContextHolder
+import net.liftweb.http.RequestVar
 
 /**
- * An utility class that get the currently logged user
- * (if any)
- *
+ * An utility class that stores the currently logged user (if any).
+ * We can't rely only on SecurityContextHolder because Lift async (comet, at least)
+ * uses a different thread local scope than the one used by spring/container to store
+ * that info.
+ * We can't use SessionVar because we sometimes need the info for stateless (before lift session
+ * exits) requests.
+ * We can't use ContainerVar because spring migrates jetty session and we don't want
+ * to impose a MigratingSession to everything just to that variable.
  */
-object CurrentUser extends User {
-  def get = {
-    SecurityContextHolder.getContext.getAuthentication match {
-      case null => None
-      case auth =>
-        auth.getPrincipal match {
-          case u: RudderUserDetail => Some(u)
-          case _ => None
-        }
-    }
-  }
+object CurrentUser extends RequestVar[Option[RudderUserDetail]](None) with User {
+  // it's ok if that request var is not read in all/most request - but it must be
+  // set in case it's needed.
+  override def logUnreadVal = false
 
   def getRights: Rights = this.get match {
     case Some(u) => u.authz
@@ -98,8 +96,6 @@ object CurrentUser extends User {
   }
 
   def queryContext: QueryContext = {
-
-    println(s"User: ${actor} nodePerms: ${nodePerms}")
     QueryContext(actor, nodePerms)
   }
 }

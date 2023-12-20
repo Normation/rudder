@@ -129,7 +129,7 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
                * On the other hand, if we are dealing with an actual API account, we need to check its kind more
                * precisely:
                * - a system account keep ACL eval (most likely equiv to RW)
-               * - a standard account get RO (we can broke third party app behovior but don't open too big security
+               * - a standard account get RO (we can broke third party app behavior but don't open too big security
                *   hole with updates)
                * - an user API account is disabled.
                */
