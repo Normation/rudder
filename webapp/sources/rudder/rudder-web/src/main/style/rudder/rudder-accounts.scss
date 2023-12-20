@@ -1,0 +1,101 @@
+/*
+*************************************************************************************
+* Copyright 2023 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+*
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+*
+*************************************************************************************
+*/
+
+.reload-token {
+  margin-right: 10px;
+}
+
+.rudder-template{
+  & >.one-col {
+    flex: 1;
+  }
+  .template-main {
+    flex-basis: initial !important;
+    flex: auto !important;
+  }
+  .token-txt {
+    font-family: var(--font-mono);
+    font-size: .9em;
+  }
+
+  .btn-goto {
+    padding: 3px 9px;
+    font-size: 1.4em;
+    position: relative;
+    top: 3px;
+
+    &.always {
+      opacity: 1;
+    }
+  }
+
+  .modal.modal-account.show{
+    display: block;
+  }
+}
+
+
+.btn.delete-button {
+  margin-left: 10px;
+}
+
+#newAccount-expiration {
+  margin-top: 6px;
+  margin-bottom: 12px;
+  width: 100%
+}
+
+.dataTable thead>tr>th:last-child,
+.dataTable tbody>tr>td:last-child {
+  width: 300px;
+}
+
+form.newAccount.datepicker-open {
+  padding-bottom: 220px;
+}
+
+.fa.hide-text {
+  font-size: .6em;
+  opacity: .8;
+  position: relative;
+  top: -1px;
+
+  &:before {
+    content: "\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069\f069";
+  }
+}
+
