@@ -81,6 +81,18 @@ $bar-stripped-gradient : linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, t
         }
       }
     }
+
+    &.placeholder-bar{
+       background: repeating-linear-gradient(
+         135deg,
+         #eef1f8,
+         #eef1f8 10px,
+         #f8f9fc 10px,
+         #f8f9fc 20px
+       );
+       box-shadow: inset 0 0 2px rgb(0 0 0 / 10%);
+       width: 100%;
+     }
   }
 
   .progress-bar-reportsdisabled,

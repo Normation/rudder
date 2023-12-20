@@ -85,6 +85,7 @@ $node-logo-size: 50px;
 #node_summary{
   display: flex;
   padding: 0 !important;
+  height: 100%;
 }
 
 .rudder-ui-tabs {
@@ -120,11 +121,14 @@ $node-logo-size: 50px;
   top: 2px;
 }
 #nodeGroups > h3 {
+  display: flex;
+  align-items: center;
   color: #041922;
   padding: 15px 15px 10px !important;
   margin: 0;
-  font-size: 20px;
-  background-color: #f7f7f7;
+  font-size: 1.3rem;
+  background-color: #F8F9FC;
+  border-bottom: 1px solid #D6DEEF;
 }
 
 .node-state{
@@ -208,14 +212,10 @@ $node-logo-size: 50px;
 .rudder-info   > h3,
 .status-info   > h3,
 .accounts-info > h3{
-  color: #0419228a;
-  padding: 5px 0 !important;
+  color: #041922;
   display: block;
   margin-bottom: 10px;
-  line-height: inherit;
-  border: 0;
-  border-bottom: 2px solid #d6deef;
-  font-size: 18px;
+  font-size: 1.3rem;
 }
 .rudder-info   > div,
 .status-info   > div,
@@ -226,9 +226,7 @@ $node-logo-size: 50px;
 .rudder-info   > div label,
 .status-info   > div label,
 .accounts-info > div label{
-  font-size: 14px;
-  display: inline-block;
-  margin-bottom: 0;
+  font-weight: bold;
 }
 .rudder-info .rudder-label {
   font-size: 12px;
@@ -370,6 +368,9 @@ $node-logo-size: 50px;
 pre.display-keys{
   padding: 12px;
   border-top-left-radius: 0;
+  border: 1px solid #D6DEEF;
+  border-radius: 0px 4px 4px 4px;
+  background-color: #F8F9FC;
 }
 pre.display-keys > label:first-child{
   margin-top:0;
