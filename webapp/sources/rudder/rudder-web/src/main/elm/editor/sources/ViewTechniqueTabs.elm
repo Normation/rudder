@@ -139,18 +139,7 @@ techniqueTab model technique creation ui =
   in
   case ui.tab of
     General -> div [ class "tab tab-general" ] [
-                         {-div [ class "col-xs-12" ] [
-                           div [ class "alert alert-warning" ] [ -- ng-if="conflictFlag">
-                             text """Your changes have been kept. If you save this Technique, your version will replace the current one.
-                                   You can still reset it or click on the following button to update it."""
-                           , div [ class "btn-group-alert" ] [
-                               button [ class "btn btn-sm btn-default" ] [-- ng-click="resetTechnique()">Update</button>
-                                 text "Update"
-                               ]
-                             ]
-                           ]
-                         ]
-                       ,-} div [ class "row form-group", style "margin-top" "15px" ] [
+                         div [ class "row form-group", style "margin-top" "15px" ] [
                            label [ for "techniqueName", class "col-xs-12" ]
                            [ text "Name"
                            , span [class "mandatory-param"] [text " *"]
@@ -173,20 +162,14 @@ techniqueTab model technique creation ui =
                            label [ for "techniqueDescription", class "col-xs-12 control-label" ] [
                              span [ class "text-fit" ] [ text "Documentation" ]
                            , img  [ class "markdown-icon tooltip-icon popover-bs",  src ( model.contextPath ++ "/images/markdown-mark-solid.svg" ) ] []
-                                     --data-toggle="popover"
-                                    -- data-trigger="hover"
-                                    -- data-container="body"
-                                    -- data-placement="right"
-                                    -- data-content="This content will be displayed as <b>Markdown</b> in <b>directives</b> using this technique"
-                                   --  data-html="true"
                            ]
                          , div [ class "col-sm-8" ] [
                              textarea [  readonly (not model.hasWriteRights), name "description",  class "form-control technique-description", id "techniqueDescription", rows  4, value technique.description, placeholder "documentation"
                              , onInput (\desc -> UpdateTechnique {technique | description = desc })
-                             ] []--msd-elastic
+                             ] []
                            ]
                          ]
-                       , div [ class "row form-group" ] [ -- show-errors>
+                       , div [ class "row form-group" ] [
                            label [ for "bundleName", class "col-xs-12 control-label"] [ text "Technique ID" ]
                          , div [ class "col-sm-8" ] [
                              input [ readonly True,  id "bundleName", name "bundle_name", class ("form-control" ++ classErrorInputId), value technique.id.value ] [] -- bundlename ng-model="selectedTechnique.bundle_name" ng-maxlength="252" ng-pattern="/^[^_].*$/">
@@ -206,11 +189,8 @@ techniqueTab model technique creation ui =
                                     ]
                                   else text ""
                          ]
-                       , div [ class "row form-group" ] [ -- show-errors>
-                           label [ for "category",  class "col-xs-12"]
-                           [ text "Category"
-                           , span [class "mandatory-param"] [text " *"]
-                           ]
+                       , div [ class "row form-group" ] [
+                           label [ for "category", class "col-xs-12 control-label"][ text "Category" ]
                          , div [ class "col-sm-8" ] [
                              disableCategory
                            -- Used to be a else on creation with a readonly input a tried a readonly select <input  ng-if="originalTechnique.bundle_name !== undefined" readonly id="category" bundlename name="category" class="form-control" ng-model="getCategory(selectedTechnique.category).value">
