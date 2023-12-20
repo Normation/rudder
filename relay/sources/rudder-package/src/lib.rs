@@ -80,8 +80,7 @@ pub fn run() -> Result<()> {
     // Ignore on error
     #[cfg(not(debug_assertions))]
     if let Ok(false) = am_i_root() {
-        error!("This program needs to run as root, aborting.");
-        return Err(());
+        bail!("This program needs to run as root, aborting.");
     }
 
     let r = run_inner(args);
