@@ -471,6 +471,15 @@ ul {
 .rudder-template .filters-container.hidden:before{
   content: initial;
 }
+.rudder-template .template-main-header .filters-container {
+  margin: 0;
+  padding: 15px;
+  border: 1px solid #d6deef;
+  border-radius: var(--bs-border-radius);
+}
+.rudder-template .template-main-header .filters-container:before {
+  right: 9px;
+}
 
 .rudder-template .filters-container .tags-container .btn-group .btn,
 .rudder-template .filters-container .btn.clear-tags{

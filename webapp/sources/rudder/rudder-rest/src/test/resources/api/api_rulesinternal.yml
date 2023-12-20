@@ -1,0 +1,192 @@
+---
+description: List all info of rules related to a group in a tree format
+method: GET
+url: /secure/api/rulesinternal/relatedtree
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getGroupRelatedRules",
+      "result" : "success",
+      "data" : {
+        "ruleCategories" : {
+          "id" : "rootRuleCategory",
+          "name" : "Rules",
+          "description" : "This is the main category of Rules",
+          "parent" : "rootRuleCategory",
+          "categories" : [
+            {
+              "id" : "category1",
+              "name" : "Category 1",
+              "description" : "description of category 1",
+              "parent" : "rootRuleCategory",
+              "categories" : [
+                {
+                  "id" : "d882961b-279a-4ba5-0001-5198eaf00d35",
+                  "name" : "category 3 update",
+                  "description" : "category 3",
+                  "parent" : "category1",
+                  "categories" : [],
+                  "rules" : []
+                },
+                {
+                  "id" : "d882961b-279a-4ba5-b755-5198eaf00d35",
+                  "name" : "category 2 update",
+                  "description" : "category 2",
+                  "parent" : "category1",
+                  "categories" : [],
+                  "rules" : []
+                }
+              ],
+              "rules" : []
+            }
+          ],
+          "rules" : [
+            {
+              "id" : "00000000-cb9d-4f7b-0001-ca38c5d643ea",
+              "displayName" : "clonefromapiof50-rule-technique-ncf",
+              "categoryId" : "rootRuleCategory",
+              "shortDescription" : "notandncftechniquerule",
+              "longDescription" : "Somelongdescription",
+              "enabled" : true,
+              "tags" : [
+                {
+                  "customer" : "MyCompany"
+                }
+              ]
+            },
+            {
+              "id" : "00000000-cb9d-4f7b-abda-ca38c5d643ea",
+              "displayName" : "clonefromapiof50-rule-technique-ncf",
+              "categoryId" : "rootRuleCategory",
+              "shortDescription" : "notandncftechniquerule",
+              "longDescription" : "Somelongdescription",
+              "enabled" : true,
+              "tags" : [
+                {
+                  "customer" : "MyCompany"
+                }
+              ]
+            },
+            {
+              "id" : "208716db-2675-43b9-ab57-bfbab84346aa",
+              "displayName" : "50-rule-technique-ncf",
+              "categoryId" : "rootRuleCategory",
+              "shortDescription" : "ncftechniquerule",
+              "longDescription" : "",
+              "enabled" : true,
+              "tags" : [
+                {
+                  "datacenter" : "Paris"
+                },
+                {
+                  "serverType" : "webserver"
+                }
+              ]
+            },
+            {
+              "id" : "ff44fb97-b65e-43c4-b8c2-000000000000",
+              "displayName" : "99-rule-technique-std-lib",
+              "categoryId" : "rootRuleCategory",
+              "shortDescription" : "updatedcopyofdefaultrule",
+              "longDescription" : "",
+              "enabled" : true,
+              "tags" : []
+            },
+            {
+              "id" : "ff44fb97-b65e-43c4-b8c2-0df8d5e8549f",
+              "displayName" : "60-rule-technique-std-lib",
+              "categoryId" : "rootRuleCategory",
+              "shortDescription" : "defaultrule",
+              "longDescription" : "",
+              "enabled" : true,
+              "tags" : []
+            },
+            {
+              "id" : "rule1",
+              "displayName" : "10.Globalconfigurationforallnodes",
+              "categoryId" : "rootRuleCategory",
+              "shortDescription" : "globalconfigforallnodes",
+              "longDescription" : "",
+              "enabled" : true,
+              "tags" : []
+            },
+            {
+              "id" : "rule2",
+              "displayName" : "50.DeployPLOPSTACK",
+              "categoryId" : "rootRuleCategory",
+              "shortDescription" : "globalconfigforallnodes",
+              "longDescription" : "",
+              "enabled" : true,
+              "tags" : []
+            },
+            {
+              "id" : "rulecopyGitFile",
+              "displayName" : "90-copy-git-file",
+              "categoryId" : "rootRuleCategory",
+              "shortDescription" : "ncftechniquerule",
+              "longDescription" : "",
+              "enabled" : true,
+              "tags" : []
+            }
+          ]
+        }
+      }
+    }
+---
+description: List all info of rules related to a group in a tree format with a filter
+method: GET
+url: /secure/api/rulesinternal/relatedtree?rules=rulecopyGitFile
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getGroupRelatedRules",
+      "result" : "success",
+      "data" : {
+        "ruleCategories" : {
+          "id" : "rootRuleCategory",
+          "name" : "Rules",
+          "description" : "This is the main category of Rules",
+          "parent" : "rootRuleCategory",
+          "categories" : [
+            {
+              "id" : "category1",
+              "name" : "Category 1",
+              "description" : "description of category 1",
+              "parent" : "rootRuleCategory",
+              "categories" : [
+                {
+                  "id" : "d882961b-279a-4ba5-0001-5198eaf00d35",
+                  "name" : "category 3 update",
+                  "description" : "category 3",
+                  "parent" : "category1",
+                  "categories" : [],
+                  "rules" : []
+                },
+                {
+                  "id" : "d882961b-279a-4ba5-b755-5198eaf00d35",
+                  "name" : "category 2 update",
+                  "description" : "category 2",
+                  "parent" : "category1",
+                  "categories" : [],
+                  "rules" : []
+                }
+              ],
+              "rules" : []
+            }
+          ],
+          "rules" : [
+            {
+              "id" : "rulecopyGitFile",
+              "displayName" : "90-copy-git-file",
+              "categoryId" : "rootRuleCategory",
+              "shortDescription" : "ncftechniquerule",
+              "longDescription" : "",
+              "enabled" : true,
+              "tags" : []
+            }
+          ]
+        }
+      }
+    }

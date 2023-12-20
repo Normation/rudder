@@ -1310,13 +1310,13 @@ class MockRules() {
       "rulecopyGitFile",
       "90-copy-git-file",
       rootRuleCategory.id,
-      Set(AllTarget),
+      Set(GroupTarget(NodeGroupId(NodeGroupUid("1111f5d3-8c61-4d20-88a7-bb947705ba8a")))), // g1 in MockNodeGroups
       Set(DirectiveId(DirectiveUid("directive-copyGitFile"))),
       "ncf technique rule",
       "",
       true,
       false,
-      NoTags() // long desc / enabled / system / tags
+      NoTags()                                                                             // long desc / enabled / system / tags
     )
 
     val gvd1Rule = Rule(

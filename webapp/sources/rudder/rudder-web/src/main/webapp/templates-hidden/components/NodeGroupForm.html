@@ -49,7 +49,7 @@
     <ul id="groupTabMenu">
       <li><a href="#groupParametersTab">Parameters</a></li>
       <li><a href="#groupCriteriaTab">Criteria</a></li>
-      <li><a href="#groupRulesTab">Related rules</a></li>
+      <li><a id="relatedRulesLinkTab" href="#groupRulesTab">Related rules</a></li>
       <li><a href="#groupPropertiesTab">Properties</a></li>
       <li><a id="complianceLinkTab" href="#groupComplianceTab">Compliance</a></li>
     </ul>
@@ -103,10 +103,7 @@
       </div>
     </div>
     <div id="groupRulesTab" class="main-form">
-      <div class="alert alert-info">
-        This group is used in following rule targets (either as a target or exception group):
-      </div>
-      <div id="groupRuleTabsContent"></div>
+      <div id="groupRelatedRulesApp"></div>
     </div>
     <div id="groupPropertiesTab" class="main-form">
       <div id="groupPropertiesTabContent"></div>

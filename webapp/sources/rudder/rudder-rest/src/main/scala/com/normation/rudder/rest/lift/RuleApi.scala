@@ -862,7 +862,7 @@ class RuleApiService14(
 ) {
 
   // this Id is special and use client side to identify missing rules
-  private val MISSING_RULE_CAT_ID = RuleCategoryId("ui-missing-rule-category")
+  val MISSING_RULE_CAT_ID = RuleCategoryId("ui-missing-rule-category")
 
   private def createChangeRequest(
       diff:      ChangeRequestRuleDiff,

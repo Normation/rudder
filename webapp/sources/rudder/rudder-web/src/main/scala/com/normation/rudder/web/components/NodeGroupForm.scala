@@ -42,6 +42,7 @@ import com.normation.box._
 import com.normation.errors.IOResult
 import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.apidata.implicits._
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.queries._
@@ -66,6 +67,8 @@ import net.liftweb.http.js.JsCmds._
 import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import scala.xml._
+import zio.ZIO
+import zio.json._
 import zio.syntax._
 
 object NodeGroupForm {
@@ -110,6 +113,7 @@ class NodeGroupForm(
   private[this] val dependencyService          = RudderConfig.dependencyAndDeletionService
   private[this] val roNodeGroupRepository      = RudderConfig.roNodeGroupRepository
   private[this] val complianceService          = RudderConfig.complianceService
+  private[this] val ruleRepository             = RudderConfig.roRuleRepository
 
   private[this] val nodeGroupCategoryForm = new LocalSnippet[NodeGroupCategoryForm]
   private[this] val nodeGroupForm         = new LocalSnippet[NodeGroupForm]
@@ -185,11 +189,12 @@ class NodeGroupForm(
       )
 
     nodeGroup match {
-      case Left(target)                     => showFormTarget(target)(html)
-      case Right(group) if (group.isSystem) => showFormTarget(GroupTarget(group.id))(html)
+      case Left(target)                     => showFormTarget(target)(html) ++ showRelatedRulesTree(target)
+      case Right(group) if (group.isSystem) =>
+        showFormTarget(GroupTarget(group.id))(html) ++ showRelatedRulesTree(GroupTarget(group.id))
       case Right(group)                     =>
         showFormNodeGroup(group)(html) ++
-        Script(
+        showRelatedRulesTree(GroupTarget(group.id)) ++ Script(
           OnLoad(
             JsRaw(s"""
                      |var main = document.getElementById("groupComplianceApp")
@@ -216,11 +221,44 @@ class NodeGroupForm(
     }
   }
 
-  private[this] def showRulesForTarget(target: SimpleTarget): NodeSeq = {
-    val displayCompliance = DisplayColumn.FromConfig
-    val ruleGrid          = new RuleGrid("rules_for_current_group", None, false, None, displayCompliance, displayCompliance)
-    val rules             = dependencyService.targetDependencies(target).map(_.rules.toSet.filter(!_.isSystem).map(_.id)).toOption
-    ruleGrid.rulesGridWithUpdatedInfo(None, false, false) ++ Script(OnLoad(ruleGrid.asyncDisplayAllRules(rules).applied))
+  private[this] def showRelatedRulesTree(target: RuleTarget): NodeSeq = {
+    val relatedRules                     = {
+      dependencyService
+        .targetDependencies(target)
+        .map(_.rules.toSet.filter(!_.isSystem).map(_.id))
+        .getOrElse(Set.empty[RuleId])
+    }
+    val (includingGroup, excludingGroup) = {
+      ZIO
+        .foreach(relatedRules)(ruleRepository.get)
+        .map(_.partition(r => RuleTarget.merge(r.targets).includes(target)))
+        .map { case (included, excluded) => (included.map(_.id), excluded.map(_.id)) }
+        .runNow
+    }
+    Script(
+      OnLoad(
+        JsRaw(s"""
+                 |var main = document.getElementById("groupRelatedRulesApp")
+                 |var initValues = {
+                 |  includedRules: ${includingGroup.toJson},
+                 |  excludedRules: ${excludingGroup.toJson},
+                 |  contextPath : contextPath
+                 |};
+                 |var app = Elm.Grouprelatedrules.init({node: main, flags: initValues});
+                 |app.ports.errorNotification.subscribe(function(str) {
+                 |  createErrorNotification(str);
+                 |});
+                 |app.ports.initTooltips.subscribe(function(msg) {
+                 |  setTimeout(function(){
+                 |    initBsTooltips();
+                 |  }, 400);
+                 |});
+                 |$$("#relatedRulesLinkTab").on("click", function (){
+                 |  app.ports.loadRelatedRulesTree.send(${relatedRules.toJson});
+                 |});
+                 |""".stripMargin)
+      )
+    )
   }
   private[this] val groupNameString = nodeGroup.fold(
     t => rootCategory.allTargets.get(t).map(_.name).getOrElse(t.target),
@@ -289,7 +327,6 @@ class NodeGroupForm(
         ("class" -> " btn btn-danger btn-icon")
       )
       & "group-notifications" #> updateAndDisplayNotifications()
-      & "#groupRuleTabsContent" #> showRulesForTarget(GroupTarget(nodeGroup.id))
       & "#groupPropertiesTabContent" #> showGroupProperties(nodeGroup)
       & "#group-shownodestable *" #> (searchNodeComponent.get match {
         case Full(req) => req.displayNodesTable
@@ -314,7 +351,7 @@ class NodeGroupForm(
     & "group-name" #> groupName.readOnlyValue
     & "#groupTabMenu" #> <ul id="groupTabMenu">
                            <li><a href="#groupParametersTab">Parameters</a></li>
-                           <li><a href="#groupRulesTab">Related rules</a></li>
+                           <li><a id="relatedRulesLinkTab" href="#groupRulesTab">Related rules</a></li>
                          </ul>
     & "group-rudderid" #> <div>
                     <label class="wbBaseFieldLabel">Group ID</label>
@@ -331,7 +368,6 @@ class NodeGroupForm(
     & "group-save" #> NodeSeq.Empty
     & "group-delete" #> NodeSeq.Empty
     & "group-notifications" #> NodeSeq.Empty
-    & "#groupRuleTabsContent" #> showRulesForTarget(target)
     & "#group-shownodestable *" #> (searchNodeComponent.get match {
       case Full(req) => req.displayNodesTable
       case eb: EmptyBox =>

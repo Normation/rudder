@@ -750,6 +750,15 @@ object RuleInternalApi       extends ApiModuleProvider[RuleInternalApi]         
     val (action, path)         = GET / "rulesinternal" / "nodesanddirectives" / "{id}"
     override def dataContainer = None
   }
+
+  // For group page
+  final case object GetGroupRelatedRules extends RuleInternalApi with ZeroParam with StartsAtVersion14 with SortIndex {
+    val z                      = implicitly[Line].value
+    val description            = "List all info of rules in a tree format"
+    val (action, path)         = GET / "rulesinternal" / "relatedtree"
+    override def dataContainer = None
+  }
+
   def endpoints = ca.mrvisser.sealerate.values[RuleInternalApi].toList.sortBy(_.z)
 
 }

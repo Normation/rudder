@@ -126,12 +126,12 @@ response:
             "shortDescription":"ncf technique rule",
             "longDescription":"",
             "directives":["directive-copyGitFile"],
-            "targets":["special:all"],
+            "targets":["group:1111f5d3-8c61-4d20-88a7-bb947705ba8a"],
             "enabled":true,
             "system":false,
             "tags":[],
             "policyMode":"enforce",
-            "status":{"value":"Not applied","details":"Directive 'directive-copyGitFile' disabled"}
+            "status":{"value":"Not applied","details":"Empty groups, Directive 'directive-copyGitFile' disabled"}
           }
         ]
       }
@@ -827,19 +827,19 @@ response:
               "tags":[],
               "policyMode":"enforce",
               "status":{"value":"Not applied","details":"Directive 'directive2' disabled"}
-            },{
-              "id":"rulecopyGitFile",
+          },{
+            "id":"rulecopyGitFile",
               "displayName":"90-copy-git-file",
               "categoryId":"rootRuleCategory",
               "shortDescription":"ncf technique rule",
               "longDescription":"",
               "directives":["directive-copyGitFile"],
-              "targets":["special:all"],
+              "targets":["group:1111f5d3-8c61-4d20-88a7-bb947705ba8a"],
               "enabled":true,
               "system":false,
               "tags":[],
               "policyMode":"enforce",
-              "status":{"value":"Not applied","details":"Directive 'directive-copyGitFile' disabled"}
+              "status":{"value":"Not applied","details":"Empty groups, Directive 'directive-copyGitFile' disabled"}
             }
           ]
         }

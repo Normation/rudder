@@ -102,6 +102,8 @@ import com.normation.rudder.repository._
 import com.normation.rudder.rest.data.Creation
 import com.normation.rudder.rest.data.Creation.CreationError
 import com.normation.rudder.rest.data.NodeSetup
+import com.normation.rudder.rest.internal.RuleInternalApiService
+import com.normation.rudder.rest.internal.RulesInternalApi
 import com.normation.rudder.rest.lift._
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.rule.category.RuleCategoryService
@@ -633,14 +635,14 @@ class RestTestSetUp {
     restDataSerializer
   )
 
-  val ruleCategoryService = new RuleCategoryService()
-  val ruleApiService6     = new RuleApiService6(
+  val ruleCategoryService    = new RuleCategoryService()
+  val ruleApiService6        = new RuleApiService6(
     mockRules.ruleCategoryRepo,
     mockRules.ruleRepo,
     mockRules.ruleCategoryRepo,
     restDataSerializer
   )
-  val ruleApiService14    = new RuleApiService14(
+  val ruleApiService14       = new RuleApiService14(
     mockRules.ruleRepo,
     mockRules.ruleRepo,
     mockConfigRepo.configurationRepository,
@@ -654,6 +656,12 @@ class RestTestSetUp {
     mockNodes.nodeFactRepo,
     () => GlobalPolicyMode(Enforce, Always).succeed,
     new RuleApplicationStatusServiceImpl()
+  )
+  val ruleInternalApiService = new RuleInternalApiService(
+    mockRules.ruleRepo,
+    mockNodeGroups.groupsRepo,
+    mockRules.ruleCategoryRepo,
+    mockNodes.nodeFactRepo
   )
 
   val fieldFactory           = new DirectiveFieldFactory {
@@ -908,6 +916,7 @@ class RestTestSetUp {
       directiveApiService14
     ),
     new RuleApi(restExtractorService, zioJsonExtractor, ruleApiService2, ruleApiService6, ruleApiService14, uuidGen),
+    new RulesInternalApi(ruleInternalApiService, ruleApiService14),
     new NodeApi(
       restExtractorService,
       restDataSerializer,
