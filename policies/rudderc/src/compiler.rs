@@ -179,7 +179,10 @@ fn check_method(method: &mut Method) -> Result<()> {
                 method.params.insert(p.name.clone(), "".to_string());
             }
             _ => {
-                error!("Missing parameter in '{}': '{}'", method.name, p.name);
+                error!(
+                    "Missing parameter '{}' in method call '{}' for method '{}'",
+                    p.name, method.name, method.method
+                );
                 user_error()
             }
         }
@@ -189,9 +192,10 @@ fn check_method(method: &mut Method) -> Result<()> {
         let value = method.params.get(&p.name).unwrap();
         if !value.contains("${") {
             let res = p.constraints.is_valid(value).context(format!(
-                "Invalid parameter in '{}': '{}'",
+                "Invalid parameter '{}' in method call '{}' for method '{}'",
+                p.name.clone(),
                 method.name.clone(),
-                p.name.clone()
+                method.method
             ));
             if let Err(e) = res {
                 error!("{:?}", e);
