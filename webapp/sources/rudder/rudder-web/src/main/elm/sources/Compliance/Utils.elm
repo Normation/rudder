@@ -274,6 +274,8 @@ getComplianceStatusTitle id =
    "noReport"                   -> "No report"
    _ -> ""
 
+defaultComplianceFilter : ComplianceFilters
+defaultComplianceFilter = ComplianceFilters False False []
 
 filterCompliance : ComplianceDetails -> ComplianceFilters -> ComplianceDetails
 filterCompliance complianceDetails complianceFilters =
@@ -375,7 +377,6 @@ filterReportsByCompliance filter = \i ->
     i.reports
     |> List.any (filterReports filter)
   )
-
 
 displayComplianceFilters : ComplianceFilters -> (ComplianceFilters -> msg) -> Html msg
 displayComplianceFilters complianceFilters updateAction =

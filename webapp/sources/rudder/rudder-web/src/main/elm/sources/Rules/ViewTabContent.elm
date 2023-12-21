@@ -17,7 +17,7 @@ import Rules.DataTypes exposing (..)
 import Rules.ViewRepairedReports
 import Rules.ViewUtils exposing (..)
 import Compliance.DataTypes exposing (..)
-import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance, buildComplianceBar)
+import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance, buildComplianceBar, defaultComplianceFilter)
 
 
 --
@@ -81,7 +81,7 @@ informationTab model details =
     compliance =
       case getRuleCompliance model rule.id of
        Just co ->
-          buildComplianceBar (ComplianceFilters False False [] ) co.complianceDetails
+          buildComplianceBar defaultComplianceFilter co.complianceDetails
        Nothing -> text "No report"
     rightCol =
       if isNewRule then

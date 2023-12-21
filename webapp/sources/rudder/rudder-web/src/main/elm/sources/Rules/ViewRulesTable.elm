@@ -13,7 +13,7 @@ import Rules.DataTypes exposing (..)
 import Rules.ViewUtils exposing (..)
 
 import Compliance.DataTypes exposing (..)
-import Compliance.Utils exposing (getAllComplianceValues, buildComplianceBar)
+import Compliance.Utils exposing (getAllComplianceValues, buildComplianceBar, defaultComplianceFilter)
 
 --
 -- This file contains all methods to display the Rules table
@@ -84,7 +84,7 @@ buildRulesTable model rules =
         compliance   =
           case getRuleCompliance model r.id of
             Just co ->
-              buildComplianceBar (ComplianceFilters False False []) co.complianceDetails
+              buildComplianceBar defaultComplianceFilter co.complianceDetails
             Nothing -> text "No report"
 
         changes = text (String.fromFloat (countRecentChanges r.id model.changes))

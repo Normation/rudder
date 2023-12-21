@@ -48,17 +48,12 @@ import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.NodeKind
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
-import com.normation.rudder.domain.reports.ComplianceLevel
-import com.normation.rudder.domain.reports.ComplianceLevelSerialisation
-import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
-import com.normation.rudder.services.reports.NoReportInInterval
-import com.normation.rudder.services.reports.Pending
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.snippet.RegisterToasts
@@ -99,49 +94,10 @@ object DisplayNode extends Loggable {
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
   private[this] val linkUtil             = RudderConfig.linkUtil
-  private[this] val reportingService     = RudderConfig.reportingService
 
   private def escapeJs(in: String):   JsExp   = Str(escape(in))
   private def escapeHTML(in: String): NodeSeq = Text(escape(in))
   private def ?(in: Option[String]):  NodeSeq = in.map(escapeHTML).getOrElse(NodeSeq.Empty)
-
-  private def loadComplianceBar(nodeId: NodeId): Option[JsArray] = {
-    for {
-      userNodeStatusReport <- reportingService.findUserNodeStatusReport(nodeId)(CurrentUser.queryContext)
-      nodeCompliance        = makeComplianceFromNodeStatusReport(userNodeStatusReport)
-    } yield {
-      ComplianceLevelSerialisation.ComplianceLevelToJs(nodeCompliance).toJsArray
-    }
-  }
-
-  // this method will transform the compliance for case when there's not rules applied
-  // a node with pending status and no rules will be converted to "pending=1"
-  // a node with no report status and no rules will be converted to "no report=1"
-  // anything else with no rules will stay 0 compliance
-  private def makeComplianceFromNodeStatusReport(nodeStatusReport: NodeStatusReport): ComplianceLevel = {
-    val compliance = nodeStatusReport.compliance
-    // different case given the status
-    nodeStatusReport.runInfo match {
-      case Pending(_, _, _) =>
-        // if there are no reports at all because no rule is applied, we say one is pending
-        if (compliance.total == 0) {
-          compliance.copy(pending = 1)
-        } else {
-          compliance
-        }
-
-      case NoReportInInterval(_, _) =>
-        // if there are no reports at all because no rule is applied, we say one is missing
-        if (compliance.total == 0) {
-          compliance.copy(missing = 1)
-        } else {
-          compliance
-        }
-
-      case _ => // nothing to do in this case
-        nodeStatusReport.compliance
-    }
-  }
 
   private def loadSoftware(jsId: JsNodeId)(nodeId: String): JsCmd = {
     implicit val attrs = SelectFacts.none.copy(software = SelectFacts.none.software.toRetrieve)
@@ -487,7 +443,6 @@ object DisplayNode extends Loggable {
       isDisplayingInPopup: Boolean = false
   )(implicit qr:           QueryContext): NodeSeq = {
 
-    val compliance     = loadComplianceBar(nodeFact.id).getOrElse(JsArray())
     val nodePolicyMode = {
       (globalMode.overridable, nodeFact.rudderSettings.policyMode) match {
         case (Always, Some(mode)) =>
@@ -500,10 +455,40 @@ object DisplayNode extends Loggable {
           (globalMode.mode, "<p>This mode is the globally defined default. You can change it in <i><b>Settings</b></i>.</p>")
       }
     }
-
+    val complianceScoreApp = {
+      <div id="nodecompliance-app"></div> ++
+      Script(OnLoad(JsRaw(s"""
+                             |var main = document.getElementById("nodecompliance-app")
+                             |var initValues = {
+                             |  item : "node",
+                             |  id : "${nodeFact.id.value}",
+                             |  contextPath : contextPath,
+                             |};
+                             |var app = Elm.Compliancescore.init({node: main, flags: initValues});
+                             |app.ports.errorNotification.subscribe(function(str) {
+                             |  createErrorNotification(str)
+                             |});
+                             |""".stripMargin)))
+    }
+    val nodeApp            = {
+      <div id="node-app"></div> ++
+      Script(OnLoad(JsRaw(s"""
+                             |var main = document.getElementById("node-app")
+                             |var initValues = {
+                             |  id : "${nodeFact.id.value}",
+                             |  contextPath : contextPath,
+                             |};
+                             |var app = Elm.Node.init({node: main, flags: initValues});
+                             |app.ports.errorNotification.subscribe(function(str) {
+                             |  createErrorNotification(str)
+                             |});
+                             |""".stripMargin)))
+    }
     <div id="nodeDetails">
+      {complianceScoreApp}
       <div class="row">
         <div class="rudder-info col-lg-6 col-sm-7 col-xs-12">
+          {nodeApp}
           <h3>Rudder information</h3>
           <div>
             {
@@ -598,7 +583,6 @@ object DisplayNode extends Loggable {
 
         <div class="status-info col-lg-6 col-sm-5 col-xs-12">
           <h3>Monitoring</h3>
-          <div class="node-compliance-bar"></div>
           <div>
             <label>Inventory created (node local time):</label>  {
       nodeFact.lastInventoryDate.map(DateFormaterService.getDisplayDate(_)).getOrElse("Unknown")
@@ -614,9 +598,7 @@ object DisplayNode extends Loggable {
           </div>
         </div>
       </div>
-    </div> ++ Script(OnLoad(JsRaw(s"""
-        $$(".node-compliance-bar").html(buildComplianceBar(${compliance.toJsCmd}))
-      """)))
+    </div>
   }
 
   private def htmlId(jsId: JsNodeId, prefix: String):   String = prefix + jsId.toString

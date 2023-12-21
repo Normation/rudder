@@ -12,6 +12,8 @@ import Tuple
 
 import Rules.DataTypes exposing (..)
 import Compliance.DataTypes exposing (..)
+import Compliance.JsonDecoder exposing (decodeComplianceDetails)
+
 
 -- GENERAL
 decodeGetPolicyMode : Decoder String
@@ -246,23 +248,6 @@ decodeNodeCompliance =
     |> required "complianceDetails" decodeComplianceDetails
     |> required "values" decodeValues
 
-decodeComplianceDetails : Decoder ComplianceDetails
-decodeComplianceDetails =
-  succeed ComplianceDetails
-    |> optional "successNotApplicable"       (map Just float) Nothing
-    |> optional "successAlreadyOK"           (map Just float) Nothing
-    |> optional "successRepaired"            (map Just float) Nothing
-    |> optional "error"                      (map Just float) Nothing
-    |> optional "auditCompliant"             (map Just float) Nothing
-    |> optional "auditNonCompliant"          (map Just float) Nothing
-    |> optional "auditError"                 (map Just float) Nothing
-    |> optional "auditNotApplicable"         (map Just float) Nothing
-    |> optional "unexpectedUnknownComponent" (map Just float) Nothing
-    |> optional "unexpectedMissingComponent" (map Just float) Nothing
-    |> optional "noReport"                   (map Just float) Nothing
-    |> optional "reportsDisabled"            (map Just float) Nothing
-    |> optional "applying"                   (map Just float) Nothing
-    |> optional "badPolicyMode"              (map Just float) Nothing
 
 -- DIRECTIVES TAB
 decodeGetTechniques : Decoder (List Technique)

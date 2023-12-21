@@ -209,9 +209,7 @@ $node-logo-size: 50px;
 .accounts-info{
   margin-bottom: 15px;
 }
-.rudder-info   > h3,
-.status-info   > h3,
-.accounts-info > h3{
+#nodeDetails h3{
   color: #041922;
   display: block;
   margin-bottom: 10px;
@@ -379,15 +377,6 @@ pre.display-keys > label{
   display:block;
   margin-top:12px;
   font-weight:bold;
-}
-.node-compliance-bar .progress{
-  margin        : 0px;
-  border-radius : 3px;
-  height        : 25px;
-}
-.node-compliance-bar .progress-bar span{
-  vertical-align  : middle;
-  horizontal-align: middle;
 }
 
 #filterLogs {
