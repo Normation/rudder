@@ -20,7 +20,7 @@ use crate::{
     config::{Configuration, Credentials},
     signature::{SignatureVerifier, VerificationSuccess},
     webapp::Webapp,
-    LICENSES_FOLDER, REPOSITORY_INDEX_PATH,
+    CONFIG_PATH, LICENSES_FOLDER, REPOSITORY_INDEX_PATH,
 };
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
@@ -79,11 +79,24 @@ impl Repository {
         let res = req.send()?;
 
         // Special error messages for common errors
+        let error_conf_msg = format!("Please check your configuration in {}", CONFIG_PATH);
         match res.status() {
-            StatusCode::UNAUTHORIZED => bail!("Received an HTTP 401 Unauthorized error when trying to get {}. Please check your credentials in the configuration.", path),
-            StatusCode::FORBIDDEN => bail!("Received an HTTP 403 Forbidden error when trying to get {}. Please check your credentials in the configuration.", path),
-            StatusCode::NOT_FOUND => bail!("Received an HTTP 404 Not found error when trying to get {}. Please check your configuration.", path),
-            _ => ()
+            StatusCode::UNAUTHORIZED => bail!(
+                "Received an HTTP 401 Unauthorized error when trying to get {}. {}.",
+                path,
+                error_conf_msg
+            ),
+            StatusCode::FORBIDDEN => bail!(
+                "Received an HTTP 403 Forbidden error when trying to get {}. {}.",
+                path,
+                error_conf_msg
+            ),
+            StatusCode::NOT_FOUND => bail!(
+                "Received an HTTP 404 Not found error when trying to get {}. {}.",
+                path,
+                error_conf_msg
+            ),
+            _ => (),
         }
 
         Ok(res.error_for_status()?)
