@@ -63,6 +63,9 @@ decodeCategoryDetails =
 decodeGetRulesTree =
   at [ "data" , "ruleCategories" ] (decodeCategory "id" "categories" "rules" decodeRule)
 
+decodeGetRules =
+  at [ "data" ] (list decodeRule)
+
 decodeGetRuleDetails : Decoder Rule
 decodeGetRuleDetails =
   at [ "data" , "rules" ] (index 0 decodeRule)

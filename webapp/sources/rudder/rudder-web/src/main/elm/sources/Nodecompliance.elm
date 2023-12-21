@@ -115,6 +115,24 @@ update msg model =
           Err err ->
             processApiError "Getting node compliance" err newModel
 
+    GetRulesInfo res ->
+      case res of
+        Ok rules ->
+          ( { model | rulesInfo = rules }
+            , Cmd.none
+          )
+        Err err ->
+          processApiError "Getting rules list" err model
+
+    GetDirectivesInfo res ->
+      case res of
+        Ok directives ->
+          ( { model | directivesInfo = directives }
+            , Cmd.none
+          )
+        Err err ->
+          processApiError "Getting directives list" err model
+
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =
   let

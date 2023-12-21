@@ -4,6 +4,7 @@ import Dict exposing (Dict)
 import Http exposing (Error)
 
 import Compliance.DataTypes exposing (..)
+import Rules.DataTypes exposing (Rule, Directive)
 
 --
 -- All our data types
@@ -54,12 +55,14 @@ type alias UI =
   }
 
 type alias Model =
-  { nodeId : NodeId
-  , contextPath : String
-  , policyMode  : String
-  , ui          : UI
+  { nodeId         : NodeId
+  , contextPath    : String
+  , policyMode     : String
+  , ui             : UI
   , nodeCompliance : Maybe NodeCompliance
-  , onlySystem : Bool
+  , onlySystem     : Bool
+  , rulesInfo      : List Rule
+  , directivesInfo : List Directive
   }
 
 type Msg
@@ -71,6 +74,8 @@ type Msg
   | ToggleRowSort       String String SortOrder
   | GetPolicyModeResult (Result Error String)
   | GetNodeComplianceResult (Result Error NodeCompliance)
+  | GetRulesInfo (Result Error (List Rule))
+  | GetDirectivesInfo (Result Error (List Directive))
   | CallApi            (Model -> Cmd Msg)
   | Refresh
 

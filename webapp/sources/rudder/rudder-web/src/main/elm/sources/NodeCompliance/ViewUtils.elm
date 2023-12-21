@@ -14,6 +14,7 @@ import NaturalOrdering as N exposing (compare)
 
 import NodeCompliance.ApiCalls exposing (..)
 import NodeCompliance.DataTypes exposing (..)
+import Rules.DataTypes exposing (Rule, Directive)
 import Compliance.DataTypes exposing (..)
 import Compliance.Utils exposing (..)
 
@@ -29,6 +30,19 @@ onCustomClick msg =
 --
 -- DATATABLES & TREES
 --
+
+getDirectivePolicyMode : RuleId -> List Directive -> String
+getDirectivePolicyMode id directives =
+  case List.Extra.find (\d -> d.id == id) directives of
+    Just d  -> d.policyMode
+    Nothing -> "unknown"
+
+getRulePolicyMode : RuleId -> List Rule -> String
+getRulePolicyMode id rules =
+  case List.Extra.find (\r -> r.id == id) rules of
+    Just r  -> r.policyMode
+    Nothing -> "unknown"
+
 badgePolicyMode : String -> String -> Html Msg
 badgePolicyMode globalPolicyMode policyMode =
   let
@@ -143,7 +157,7 @@ byRuleCompliance mod complianceFilters =
         |> List.sortWith sortFunction
     )
     (\m i -> i)
-    [ ("Rule", (\r -> span[][ text r.name, if (mod.onlySystem) then text "" else goToBtn (getRuleLink mod.contextPath r.ruleId) ]), (\r1 r2 -> N.compare r1.name r2.name))
+    [ ("Rule", (\r -> span[][ (badgePolicyMode mod.policyMode (getRulePolicyMode r.ruleId mod.rulesInfo)), text r.name, if (mod.onlySystem) then text "" else goToBtn (getRuleLink mod.contextPath r.ruleId) ]), (\r1 r2 -> N.compare r1.name r2.name))
     , ("Compliance", .complianceDetails >> buildComplianceBar complianceFilters,  (\r1 r2 -> Basics.compare r1.compliance r2.compliance))
     ]
     (.ruleId >> .value)
@@ -166,7 +180,7 @@ byDirectiveCompliance model subFun complianceFilters =
       |> List.sortWith sortFunction
     )
     (\m i ->  i )
-    [ ("Directive", \i  -> span [] [ text i.name, if (model.onlySystem) then text "" else goToBtn (getDirectiveLink contextPath i.directiveId) ],  (\d1 d2 -> N.compare d1.name d2.name ))
+    [ ("Directive", \i  -> span [] [ (badgePolicyMode model.policyMode (getDirectivePolicyMode i.directiveId model.directivesInfo)), text i.name, if (model.onlySystem) then text "" else goToBtn (getDirectiveLink contextPath i.directiveId) ],  (\d1 d2 -> N.compare d1.name d2.name ))
     , ("Compliance", \i -> buildComplianceBar complianceFilters  i.complianceDetails,  (\(d1) (d2) -> Basics.compare d1.compliance d2.compliance ))
     ]
     (.directiveId >> .value)
