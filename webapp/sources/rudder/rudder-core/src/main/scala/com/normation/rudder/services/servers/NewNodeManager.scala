@@ -885,15 +885,6 @@ class AcceptHostnameAndIp(
    * Only return existing hostname (and so again, we want that to be empty)
    */
   private[this] def queryForDuplicateHostname(hostnames: Seq[String]): Box[Unit] = {
-    def failure(duplicates: Seq[String], name: String) = {
-      Failure(
-        "There is already a node with %s %s in database. You can not add it again.".format(
-          name,
-          duplicates.mkString("'", "' or '", "'")
-        )
-      )
-    }
-
     val hostnameCriterion = hostnames.toList.map { h =>
       CriterionLine(
         objectType = objectType,
@@ -909,13 +900,9 @@ class AcceptHostnameAndIp(
       // if not, we don't group them that the duplicate appears in the list
       noDuplicatesH <- if (duplicatesH.isEmpty) Full({})
                        else {
-                         // get the hostname from nodeInfoService
-                         for {
-                           nodesInfo <- nodeInfoService.getNodeInfosSeq(duplicatesH).toBox
-                           hostnames  = nodesInfo.map(ni => ni.hostname)
-                         } yield {
-                           failure(hostnames, "Hostname")
-                         }
+                         Failure(
+                           s"There is already a ${duplicatesH.size} node(s) with hostname '${name}' in Rudder. You can not add it again."
+                         )
                        }
     } yield {}
   }
