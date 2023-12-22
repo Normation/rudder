@@ -15,9 +15,9 @@ import Compliance.Utils exposing (buildComplianceBar, defaultComplianceFilter)
 view : Model -> Html Msg
 view model =
   div[ class "compliance-score d-flex flex-column mb-4" ]
-  ( case model.complianceScore of
-    Just complianceScore ->
-      [ div[class "global-score d-flex"]
+  [ div[class "global-score d-flex"]
+    ( case model.complianceScore of
+      Just complianceScore ->
         [ div[class "score-badge"]
           [ getScoreBadge complianceScore.value [] False
           ]
@@ -28,6 +28,23 @@ view model =
         , div[class "score-explanation ps-3 flex-grow-1"]
           ( Markdown.toHtml Nothing complianceScore.message )
         ]
-      ]
-    Nothing -> [] -- Pas de score de compliance | Badge grisé + Message d'avertissement
-  )
+      Nothing ->
+        let
+          noComplianceMsg = "There is no compliance score" ++
+            ( case model.item of
+              Just item -> case item of
+                Node _ -> " for this node"
+                Rule _ -> " for this rule"
+              Nothing -> ""
+            )
+        in
+          [ div[class "score-badge sm "]
+            [ getScoreBadge X [] False
+            ]
+          , div[class "no-compliance d-flex flex-grow-1 align-items-center ps-4"]
+            [ i[class "fa fa-warning"][]
+            , text noComplianceMsg
+            ]
+          ]
+      )
+  ]

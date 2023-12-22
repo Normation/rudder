@@ -270,6 +270,17 @@ $small-prefix : "sm-";
 
     }
   }
+
+  .no-compliance{
+    color: #72829D;
+    font-size: 1.2em;
+    font-weight: bold;
+
+    .fa {
+      font-size: 1.1em;
+      margin-right: 6px;
+    }
+  }
 }
 
 .score-details{
