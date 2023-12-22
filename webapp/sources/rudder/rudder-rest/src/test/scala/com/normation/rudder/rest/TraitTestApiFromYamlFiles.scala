@@ -55,20 +55,26 @@ import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.lift.LiftApiProcessingLogger
 import com.normation.rudder.rest.lift.LiftHandler
+import com.normation.rudder.web.services.CurrentUser
+import com.normation.rudder.web.services.RudderUserDetail
 import com.normation.zio._
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.nio.file.Paths
 import net.liftweb.common.Box
+import net.liftweb.common.Empty
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.LiftRules
+import net.liftweb.http.LiftSession
+import net.liftweb.http.S
 import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.StringHelpers
 import org.specs2.matcher.Matcher
 import org.specs2.mutable._
 import org.specs2.specification.core.Fragment
@@ -156,6 +162,10 @@ trait TraitTestApiFromYamlFiles extends Specification with BoxSpecMatcher with J
 
   // the liftRules to use for API
   def liftRules: LiftRules
+
+  // the user which will be used in the test. Defaults to no specific user (which will have not rights)
+  // Override to use a specific user (e.g. to execute all tests by doTest with a user with specific roles, authz, etc)
+  def currentUser: Option[RudderUserDetail] = None
 
   // we have two kinds of files:
   // - yml files directly under /api are considered "use as it" (no post processing)
@@ -315,6 +325,9 @@ trait TraitTestApiFromYamlFiles extends Specification with BoxSpecMatcher with J
       if (semanticJson) equalsJsonSemantic(s) else equalsJson(s)
     def equalsBoxJson(s: String)(name: String):    Matcher[Box[String]] = equalsBox(compareJson(s))(name)
 
+    // A session to execute the request with currentUser
+    val session = new LiftSession("", StringHelpers.randomString(20), Empty)
+
     Fragments.foreach(files) {
       case (name, yamls) =>
         // "." are breaking description, we need to remove it from file name
@@ -345,12 +358,16 @@ trait TraitTestApiFromYamlFiles extends Specification with BoxSpecMatcher with J
                   mockReq.parameters = mockReq.parameters ++ test.params
                   mockReq.contentType = mockReq.headers.get("Content-Type").flatMap(_.headOption).getOrElse("text/plain")
 
-                  restTest.execRequestResponse(mockReq)(response => {
-                    val responseBox = response.map(cleanResponse(_))
-                    responseBox.map(_._1) must equalsBoxStrict(test.responseCode)("response code") and (
-                      responseBox.map(_._2) must equalsBoxJson(test.responseContent)("response content")
-                    )
-                  })
+                  S.initIfUninitted(session) {
+                    CurrentUser.set(currentUser)
+
+                    restTest.execRequestResponse(mockReq)(response => {
+                      val responseBox = response.map(cleanResponse(_))
+                      responseBox.map(_._1) must equalsBoxStrict(test.responseCode)("response code") and (
+                        responseBox.map(_._2) must equalsBoxJson(test.responseContent)("response content")
+                      )
+                    })
+                  }
                 }
             }
           }
