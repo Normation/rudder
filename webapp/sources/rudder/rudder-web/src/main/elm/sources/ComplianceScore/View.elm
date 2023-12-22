@@ -30,7 +30,7 @@ view model =
         ]
       Nothing ->
         let
-          noComplianceMsg = "There is no compliance score" ++
+          noComplianceMsg = "There is no score" ++
             ( case model.item of
               Just item -> case item of
                 Node _ -> " for this node"
