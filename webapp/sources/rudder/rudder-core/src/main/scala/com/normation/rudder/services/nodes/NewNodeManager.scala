@@ -427,13 +427,7 @@ class AcceptHostnameAndIp(
    * search in database nodes having the same hostname as one provided.
    * Only return existing hostname (and so again, we want that to be empty)
    */
-  private[this] def queryForDuplicateHostname(hostnames: Seq[String])(implicit qc: QueryContext): IOResult[Unit] = {
-    def failure(duplicates: Seq[String], name: String) = {
-      Inconsistency(
-        s"There is already a node with ${name} ${duplicates.mkString("'", "' or '", "'")} in database. You can not add it again."
-      ).fail
-    }
-
+  private[this] def queryForDuplicateHostname(hostnames: Seq[String]): IOResult[Unit] = {
     val hostnameCriterion = hostnames.toList.map { h =>
       CriterionLine(
         objectType = objectType,
@@ -444,18 +438,18 @@ class AcceptHostnameAndIp(
     }
 
     for {
-      duplicatesH   <- BoxToIO(
-                         queryProcessor.process(Query(NodeReturnType, Or, ResultTransformation.Identity, hostnameCriterion))
-                       ).toIO
+      duplicatesH   <- queryProcessor.process(Query(NodeReturnType, Or, ResultTransformation.Identity, hostnameCriterion)).toIO
       // here, all nodes found are duplicate-in-being. They should be unique, but
       // if not, we don't group them that the duplicate appears in the list
       noDuplicatesH <- if (duplicatesH.isEmpty) ZIO.unit
                        else {
-                         // get the hostname from nodeFactRepo
-                         nodeFactRepo
-                           .getAll()
-                           .map(_.collect { case (_, n) if (duplicatesH.contains(n.id)) => n.fqdn }.toSeq)
-                           .flatMap(failure(_, "Hostname"))
+                         val startMessage = {
+                           if (duplicatesH.size >= 2) s"There are already ${duplicatesH.size} nodes"
+                           else "There is already a node"
+                         }
+                         Inconsistency(
+                           s"${startMessage} with hostname '${name}' in Rudder. You can not add it again."
+                         ).fail
                        }
     } yield ()
   }
@@ -470,7 +464,7 @@ class AcceptHostnameAndIp(
       _                  <- ZIO.when(!acceptDuplicated) {
                               for {
                                 noDuplicateHostnames <- checkDuplicateString(List(cnf.fqdn), "hostname")
-                                noDuplicateInDB      <- queryForDuplicateHostname(List(cnf.fqdn))(cc.toQuery)
+                                noDuplicateInDB      <- queryForDuplicateHostname(List(cnf.fqdn))
                               } yield ()
                             }
     } yield ()
