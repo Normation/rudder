@@ -3049,11 +3049,11 @@ object RudderConfigInit {
     lazy val newNodeManagerImpl = {
       // the sequence of unit process to accept a new inventory
       val unitAcceptors = {
+        acceptHostnameAndIp ::
         historizeNodeStateOnChoice ::
         updateFactRepoOnChoice ::
         acceptNodeAndMachineInNodeOu ::
         acceptInventory ::
-        acceptHostnameAndIp ::
         Nil
       }
 
