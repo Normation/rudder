@@ -585,7 +585,7 @@ ul {
 .rudder-template .main-navbar ul > li > a .badge,
 .rudder-template .template-main .main-details .badge,
 .rudder-template .badge{
-  background-color: #b1bbcb !important;
+  background-color: #b1bbcb;
   color: #fff;
   font-weight: 1000;
   margin-left: 4px;

@@ -172,3 +172,163 @@ $bar-stripped-gradient : linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, t
     }
   }
 }
+
+// COMPLIANCE SCORE
+$badge-size : 135px;
+$badge-breakdown-size : 75px;
+$small-prefix : "sm-";
+
+@mixin badge-url($score, $size) {
+  background-image: url("../../images/score-badges/rudder-score-badge-" + $size + $score + ".svg");
+}
+
+.badge-compliance-score{
+  display: inline-block;
+  height: $badge-size;
+  width: $badge-size;
+  background-size: contain;
+
+  &.A {
+    @include badge-url("A", "");
+    &.sm{
+      @include badge-url("A", $small-prefix);
+    }
+  }
+  &.B {
+    @include badge-url("B", "");
+    &.sm{
+      @include badge-url("B", $small-prefix);
+    }
+  }
+  &.C {
+    @include badge-url("C", "");
+    &.sm{
+      @include badge-url("C", $small-prefix);
+    }
+  }
+  &.D {
+    @include badge-url("D", "");
+    &.sm{
+      @include badge-url("D", $small-prefix);
+    }
+  }
+  &.E {
+    @include badge-url("E", "");
+    &.sm{
+      @include badge-url("E", $small-prefix);
+    }
+  }
+  &.F {
+    @include badge-url("F", "");
+    &.sm{
+      @include badge-url("F", $small-prefix);
+    }
+  }
+  &.X {
+    @include badge-url("X", "");
+    &.sm{
+      @include badge-url("X", $small-prefix);
+    }
+  }
+}
+.compliance-score {
+  label{
+    color: #72829D;
+    font-weight: bold;
+  }
+  .score-breakdown {
+    .badge-compliance-score{
+      height: $badge-breakdown-size;
+      width: $badge-breakdown-size;
+    }
+  }
+
+  .score-explanation {
+    border-left: 2px solid #D6DEEF;
+    position: relative;
+
+    &:before {
+      height: 14px;
+      width: 14px;
+      background-color: #fff;
+      border-top: 2px solid #D6DEEF;
+      border-right: 2px solid #D6DEEF;
+      transform: rotate(-135deg);
+      content: "";
+      display: inline-block;
+      left: -8px;
+      position: absolute;
+      top: 20px;
+    }
+
+    p {
+      margin-bottom: .6rem;
+    }
+
+    ul{
+      list-style : disc;
+
+    }
+  }
+
+  .no-compliance{
+    color: #72829D;
+    font-size: 1.2em;
+    font-weight: bold;
+
+    .fa {
+      font-size: 1.1em;
+      margin-right: 6px;
+    }
+  }
+}
+
+.score-details{
+  label{
+    min-width: 125px;
+    padding-right: 15px;
+    color: #72829D;
+    font-weight: bold;
+
+    & + * {
+      flex-grow : 1;
+    }
+  }
+
+  .progress.progress-flex {
+    margin: 0;
+    height: 24px;
+    font-size: 1em;
+    font-weight: bold;
+  }
+
+  .badge-systemupdates{
+    height: 28px;
+    cursor: help;
+  }
+}
+
+.badge-systemupdates{
+  font-size: 1em;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0;
+  margin-right: 8px;
+
+  &.security{
+    background-color: #DA291C !important;
+  }
+  &.bugfix{
+    background-color: #EF9600 !important;
+  }
+  &.enhancement{
+    background-color: #13BEB7 !important;
+  }
+  &.update{
+    background-color: #72829D !important;
+  }
+
+  & > i{
+    margin-right: 4px;
+  }
+}

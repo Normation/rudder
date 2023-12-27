@@ -170,45 +170,6 @@ body{
   color: #e78f08;
 }
 
-.content-wrapper .nav > li > a:hover .badge, .content-wrapper .nav > li > a:focus .badge,
-.content-wrapper .nav li.dropdown > a:hover .badge, .content-wrapper .nav li.dropdown > a:focus .badge {
-  background-color: #2e2d2d;
-}
-
-.content-wrapper .badge {
-  background-color: #2e2d2d;
-}
-
-.content-wrapper .badge a {
-  color: #e78f08;
-  font-weight:bold;
-}
-
-.content-wrapper a .badge .glyphicon{
-  color: #eee;
-  font-size:12px;
-}
-
-.content-wrapper a .badge .glyphicon.glyphicon-ok{
-  color:#4f8a10;
-}
-
-.content-wrapper a .badge .glyphicon.glyphicon-remove{
-  color:#d8000c;
-}
-
-.content-wrapper .nav li.dropdown > a:hover .badge .glyphicon, .content-wrapper .nav li.dropdown > a:focus .badge .glyphicon {
-  color: #eee;
-}
-
-.content-wrapper .nav li.dropdown > a:hover .badge .glyphicon.glyphicon-ok, .content-wrapper .nav li.dropdown > a:focus .badge .glyphicon.glyphicon-ok {
-  color: #4f8a10;
-}
-
-.content-wrapper .nav li.dropdown > a:hover .badge .glyphicon.glyphicon-remove, .content-wrapper .nav li.dropdown > a:focus .badge .glyphicon.glyphicon-remove {
-  color: #d8000c;
-}
-
 .content-wrapper .form-control {
   font-size:12px;
 }

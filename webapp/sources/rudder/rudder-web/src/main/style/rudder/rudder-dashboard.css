@@ -64,7 +64,7 @@
   align-items: center;
 }
 .stats li > a .badge{
-  background-color: #213640;
+  background-color: #b1bbcb;
   opacity:.5;
   display: inline-flex;
   justify-content: center;
@@ -73,7 +73,7 @@
   font-size: 1em;
 }
 .stats li>a:hover .badge{
-  background-color: #213640;
+  background-color: #72829D;
   opacity:1;
 }
 
