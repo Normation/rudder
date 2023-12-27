@@ -1,15 +1,12 @@
-module ComplianceScore.ViewUtils exposing (..)
+module Score.ViewUtils exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import List
-import List.Extra
 import String.Extra
-import Markdown
 
-import ComplianceScore.DataTypes exposing (..)
-import NodeCompliance.DataTypes exposing (NodeId)
-import Compliance.Utils exposing (buildComplianceBar, defaultComplianceFilter, buildTooltipContent)
+import Score.DataTypes exposing (..)
+import Compliance.Utils exposing (buildTooltipContent)
 
 scoreLabel : ScoreValue -> String
 scoreLabel score =
@@ -37,7 +34,7 @@ getScoreBadge score tooltipAttributes smallSize =
       tooltipAttributes
     )[]
 
-scoreBreakdownList : List GlobalScoreDetails -> List (Html Msg)
+scoreBreakdownList : List Score -> List (Html Msg)
 scoreBreakdownList scoreDetails = scoreDetails
   |> List.map(\sD ->
     div[class "d-flex flex-column pe-5 align-items-center"]
@@ -46,15 +43,9 @@ scoreBreakdownList scoreDetails = scoreDetails
     ]
   )
 
-buildComplianceScoreDetails : ComplianceScoreDetails -> Html msg
-buildComplianceScoreDetails complianceScoreDetails =
-  div[class "d-flex mb-3 align-items-center"]
-  [ label[class "text-end"][text "Compliance"]
-  , buildComplianceBar defaultComplianceFilter complianceScoreDetails.details
-  ]
-
-buildSystemUpdatesScoreDetails : Maybe SystemUpdatesScoreDetails -> Html msg
-buildSystemUpdatesScoreDetails systemUpdatesScoreDetails =
+{--
+buildSystemUpdatesScoreDetails : DetailedScore -> Maybe (Html Msg) -> Html msg
+buildSystemUpdatesScoreDetails score details =
   let
     toBadge : String -> String -> Maybe Int -> Html msg
     toBadge id iconClass value =
@@ -64,7 +55,7 @@ buildSystemUpdatesScoreDetails systemUpdatesScoreDetails =
             valueTxt = String.fromInt v
             titleTxt = (String.Extra.humanize id) ++ ": " ++ valueTxt
           in
-            span[class ("badge badge-systemupdates " ++ id), title titleTxt][i[class ("fa fa-" ++ iconClass)][], text valueTxt]
+            span[class ("badge badge-" ++ id), title titleTxt][i[class ("fa fa-" ++ iconClass)][], text valueTxt]
         Nothing -> text ""
   in
     case systemUpdatesScoreDetails of
@@ -79,3 +70,4 @@ buildSystemUpdatesScoreDetails systemUpdatesScoreDetails =
           ]
         ]
       Nothing -> text ""
+      --}

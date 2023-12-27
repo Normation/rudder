@@ -461,29 +461,49 @@ object DisplayNode extends Loggable {
       Script(OnLoad(JsRaw(s"""
                              |var main = document.getElementById("nodecompliance-app")
                              |var initValues = {
-                             |  item : "node",
                              |  id : "${nodeFact.id.value}",
                              |  contextPath : contextPath,
                              |};
-                             |var app = Elm.Compliancescore.init({node: main, flags: initValues});
-                             |app.ports.errorNotification.subscribe(function(str) {
+                             |var globalScoreApp = Elm.Score.init({node: main, flags: initValues});
+                             |globalScoreApp.ports.errorNotification.subscribe(function(str) {
                              |  createErrorNotification(str)
                              |});
                              |""".stripMargin)))
     }
     val nodeApp            = {
+      <div id="compliance-app"></div> ++
       <div id="node-app"></div> ++
-      Script(OnLoad(JsRaw(s"""
-                             |var main = document.getElementById("node-app")
-                             |var initValues = {
-                             |  id : "${nodeFact.id.value}",
-                             |  contextPath : contextPath,
-                             |};
-                             |var app = Elm.Node.init({node: main, flags: initValues});
-                             |app.ports.errorNotification.subscribe(function(str) {
-                             |  createErrorNotification(str)
-                             |});
-                             |""".stripMargin)))
+      Script(
+        OnLoad(JsRaw(s"""
+                        |var complianceScoreMain = document.getElementById("compliance-app");
+                        |var complianceAppScore = Elm.ComplianceScore.init({node: complianceScoreMain, flags : {}});
+                        |scoreDetailsDispatcher["compliance"] = function(value){ complianceAppScore.ports.getValue.send(value) };
+                        |var main = document.getElementById("node-app")
+                        |var initValues = {
+                        |  id : "${nodeFact.id.value}",
+                        |  contextPath : contextPath,
+                        |};
+                        |var scoreDetailsApp = Elm.Node.init({node: main, flags: initValues});
+                        |scoreDetailsApp.ports.errorNotification.subscribe(function(str) {
+                        |  createErrorNotification(str)
+                        |});
+                        |scoreDetailsApp.ports.getDetails.subscribe(function(data) {
+                        |  var name = data.name
+                        |  var value = data.details
+                        |  var detailsHandler = scoreDetailsDispatcher[name];
+                        |  if (detailsHandler !== undefined) {
+                        |    detailsHandler(value)
+                        |  }
+                        |});
+                        |complianceAppScore.ports.sendHtml.subscribe(function(html) {
+                        |  scoreDetailsApp.ports.receiveDetails.send({name : "compliance",html : html});
+                        |});
+                        |complianceAppScore.ports.errorNotification.subscribe(function(str) {
+                        |  createErrorNotification(str)
+                        |});
+                        |
+                        |""".stripMargin))
+      )
     }
     <div id="nodeDetails">
       {complianceScoreApp}
@@ -498,7 +518,7 @@ object DisplayNode extends Loggable {
           <label>Policy mode:</label><span id="badge-apm"></span> ++
           Script(OnLoad(JsRaw(s"""
                 $$('#badge-apm').append(createBadgeAgentPolicyMode('node',"${mode}","${explanation}"));
-                initBsTooltips(getNodeInfo);
+                //initBsTooltips(getNodeInfo);
               """)))
       }
     }

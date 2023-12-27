@@ -1,3 +1,5 @@
+var scoreDetailsDispatcher = {} ;
+
 var appNode, appNotif, createSuccessNotification, createErrorNotification, createInfoNotification;
 
 $(document).ready(function(){

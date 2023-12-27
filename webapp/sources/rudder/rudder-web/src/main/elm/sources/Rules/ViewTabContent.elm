@@ -17,7 +17,8 @@ import Rules.DataTypes exposing (..)
 import Rules.ViewRepairedReports
 import Rules.ViewUtils exposing (..)
 import Compliance.DataTypes exposing (..)
-import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance, buildComplianceBar, defaultComplianceFilter)
+import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance, defaultComplianceFilter)
+import Compliance.Html exposing (buildComplianceBar)
 
 
 --
