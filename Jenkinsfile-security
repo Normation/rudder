@@ -173,6 +173,43 @@ pipeline {
                 }
             }
         }
+        stage('sbom') {
+            //when { not { changeRequest() } }
+            agent {
+                dockerfile {
+                    filename 'sbom/Dockerfile'
+                    additionalBuildArgs "--build-arg USER_ID=${JENKINS_UID}"
+                    // mount cache
+                    args '-v /srv/cache/cargo:/usr/local/cargo/registry'
+                }
+            }
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    dir('sbom') {
+                        sh script: './sbom.sh -v 8.0.4', label: 'create SBOM'
+                    }
+                }
+            }
+            post {
+                failure {
+                    script {
+                        errors.add("relay")
+                        failedBuild = true
+                        slackSend(channel: slackResponse.threadId, message: "SBOM creation error - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
+                        //notifier.notifyResult("rust-team")
+                    }
+                }
+                cleanup {
+                    script {
+                        running.remove("sbom")
+                        updateSlack(errors, running, slackResponse, version, changeUrl)
+                    }
+                }
+                always {
+                    archiveArtifacts artifacts: 'sbom/*.cdx.*'
+                }
+            }
+        }
         stage('End') {
             steps {
                 script {
