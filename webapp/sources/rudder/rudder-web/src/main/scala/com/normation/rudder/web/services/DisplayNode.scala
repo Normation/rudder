@@ -443,7 +443,7 @@ object DisplayNode extends Loggable {
       isDisplayingInPopup: Boolean = false
   )(implicit qr:           QueryContext): NodeSeq = {
 
-    val nodePolicyMode = {
+    val nodePolicyMode     = {
       (globalMode.overridable, nodeFact.rudderSettings.policyMode) match {
         case (Always, Some(mode)) =>
           (mode, "<p>This mode is an override applied to this node. You can change it in the <i><b>node settings</b></i>.</p>")
