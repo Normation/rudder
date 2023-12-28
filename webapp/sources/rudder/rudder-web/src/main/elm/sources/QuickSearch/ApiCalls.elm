@@ -1,7 +1,8 @@
 module QuickSearch.ApiCalls exposing (..)
 
 
-import Http exposing (expectJson, get, request)
+import Http exposing (get)
+import Http.Detailed as Detailed
 import Json.Decode exposing (at, list)
 import QuickSearch.Datatypes exposing (..)
 import QuickSearch.JsonDecoder exposing (decoderResult)
@@ -24,7 +25,7 @@ getSearchResult model search =
     req =
       get
         { url     = getUrl model search
-        , expect  = expectJson GetResults (at ["data"] (list decoderResult))
+        , expect  = Detailed.expectJson GetResults (at ["data"] (list decoderResult))
         }
   in
     req
