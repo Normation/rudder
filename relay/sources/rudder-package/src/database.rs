@@ -98,6 +98,7 @@ impl Database {
         index: Option<&RepoIndex>,
         webapp: &mut Webapp,
     ) -> Result<()> {
+        info!("Installing {}", package);
         let rpkg_path = if Path::new(&package).exists() && package.ends_with(".rpkg") {
             package.to_string()
         } else {
