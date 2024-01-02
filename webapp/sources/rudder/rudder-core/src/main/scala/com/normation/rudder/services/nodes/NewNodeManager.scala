@@ -43,7 +43,6 @@ import com.normation.errors.IOResult
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core.LDAPConstants._
-import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.DitQueryData
@@ -396,22 +395,8 @@ class AcceptHostnameAndIp(
     override val name:        String,
     queryProcessor:           QueryProcessor,
     ditQueryData:             DitQueryData,
-    policyServerNet:          PolicyServerManagementService,
-    nodeFactRepo:             NodeFactRepository,
     acceptDuplicateHostnames: IOResult[Boolean]
 ) extends UnitCheckAcceptInventory {
-
-  // return the list of ducplicated hostname from user input - we want that to be empty
-  private[this] def checkDuplicateString(attributes: Seq[String], attributeName: String): IOResult[Unit] = {
-    val duplicates = attributes.groupBy(x => x).collect { case (k, v) if v.size > 1 => v.head }.toSeq.sorted
-    ZIO
-      .when(duplicates.nonEmpty) {
-        Inconsistency(
-          s"You can not accept two nodes with the same ${attributeName}: ${duplicates.mkString("'", "', ", "'")}"
-        ).fail
-      }
-      .unit
-  }
 
   // some constant data for the query about hostname on node
   private[this] val objectType       = ditQueryData.criteriaMap(OC_NODE)
@@ -438,35 +423,28 @@ class AcceptHostnameAndIp(
     }
 
     for {
-      duplicatesH   <- queryProcessor.process(Query(NodeReturnType, Or, ResultTransformation.Identity, hostnameCriterion)).toIO
+      duplicatesH <- queryProcessor.process(Query(NodeReturnType, Or, ResultTransformation.Identity, hostnameCriterion)).toIO
       // here, all nodes found are duplicate-in-being. They should be unique, but
       // if not, we don't group them that the duplicate appears in the list
-      noDuplicatesH <- if (duplicatesH.isEmpty) ZIO.unit
-                       else {
-                         val startMessage = {
-                           if (duplicatesH.size >= 2) s"There are already ${duplicatesH.size} nodes"
-                           else "There is already a node"
-                         }
-                         Inconsistency(
-                           s"${startMessage} with hostname '${name}' in Rudder. You can not add it again."
-                         ).fail
-                       }
+      _           <- if (duplicatesH.isEmpty) ZIO.unit
+                     else {
+                       val startMessage =
+                         if (duplicatesH.size >= 2) "There are already ${duplicatesH.size} nodes" else "There is already a node"
+                       Inconsistency(
+                         s"${startMessage} with hostname '${name}' in Rudder. You can not add it again."
+                       ).fail
+                     }
     } yield ()
   }
 
   override def preAccept(cnf: CoreNodeFact)(implicit cc: ChangeContext): IOResult[Unit] = {
     for {
-      authorizedNetworks <-
-        policyServerNet
-          .getAllowedNetworks(Constants.ROOT_POLICY_SERVER_ID)
-          .chainError("Can not get authorized networks: check their configuration, and that rudder-init was done")
-      acceptDuplicated   <- acceptDuplicateHostnames
-      _                  <- ZIO.when(!acceptDuplicated) {
-                              for {
-                                noDuplicateHostnames <- checkDuplicateString(List(cnf.fqdn), "hostname")
-                                noDuplicateInDB      <- queryForDuplicateHostname(List(cnf.fqdn))
-                              } yield ()
-                            }
+      acceptDuplicated <- acceptDuplicateHostnames
+      _                <- ZIO.when(!acceptDuplicated) {
+                            for {
+                              _ <- queryForDuplicateHostname(List(cnf.fqdn))
+                            } yield ()
+                          }
     } yield ()
   }
 }

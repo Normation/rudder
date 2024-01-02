@@ -95,6 +95,7 @@ checksDisplay model h =
   div [class "checklist-container"]
     [ div [class "checklist"] content ]
 
+
 view : Model -> Html Msg
 view model =
   div []

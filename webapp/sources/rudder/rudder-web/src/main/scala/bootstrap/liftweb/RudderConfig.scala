@@ -2517,8 +2517,6 @@ object RudderConfigInit {
       "accept_new_server:check_hostname_unicity",
       queryProcessor,
       ditQueryDataImpl,
-      psMngtService,
-      nodeFactRepository,
       configService.node_accept_duplicated_hostname()
     )
 
