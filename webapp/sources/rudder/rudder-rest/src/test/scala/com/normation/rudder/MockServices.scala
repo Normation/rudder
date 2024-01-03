@@ -222,6 +222,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
 
     def getNodeGroupCategory(id: NodeGroupId):                 IOResult[NodeGroupCategory]                                          = ???
     def getAll():                                              IOResult[Seq[NodeGroup]]                                             = ???
+    def getAllByIds(ids: Seq[NodeGroupId]):                    IOResult[Seq[NodeGroup]]                                             = ???
     def getAllNodeIds():                                       IOResult[Map[NodeGroupId, Set[NodeId]]]                              = ???
     def getGroupsByCategory(includeSystem: Boolean):           IOResult[SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]] = ???
     def findGroupWithAnyMember(nodeIds: Seq[NodeId]):          IOResult[Seq[NodeGroupId]]                                           = ???

@@ -429,6 +429,23 @@ class RoLDAPNodeGroupRepository(
     }
   }
 
+  def getAllByIds(ids: Seq[NodeGroupId]): IOResult[Seq[NodeGroup]] = {
+    for {
+      con     <- ldap
+      // for each directive entry, map it. if one fails, all fails
+      entries <-
+        groupLibMutex.readLock(con.searchSub(rudderDit.GROUP.dn, OR(ids.map(id => EQ(A_NODE_GROUP_UUID, id.serialize)): _*)))
+      groups  <- ZIO.foreach(entries)(groupEntry => {
+                   mapper
+                     .entry2NodeGroup(groupEntry)
+                     .toIO
+                     .chainError(s"Error when transforming LDAP entry into a Group instance. Entry: ${groupEntry}")
+                 })
+    } yield {
+      groups
+    }
+  }
+
   def getAllNodeIds(): IOResult[Map[NodeGroupId, Set[NodeId]]] = {
     for {
       con     <- ldap

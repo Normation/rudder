@@ -186,6 +186,14 @@ object ComplianceApi       extends ApiModuleProvider[ComplianceApi] {
     val dataContainer: Some[String] = Some("directivesCompliance")
   }
 
+  final case object GetNodeGroupComplianceSummary
+      extends ComplianceApi with GeneralApi with ZeroParam with StartsAtVersion17 with SortIndex {
+    val z              = implicitly[Line].value
+    val description    = "Get a node group's compliance summary"
+    val (action, path) = GET / "compliance" / "summary" / "groups"
+    val dataContainer  = Some("groupCompliance")
+  }
+
   final case object GetNodeGroupComplianceId
       extends ComplianceApi with GeneralApi with OneParam with StartsAtVersion17 with SortIndex {
     val z: Int = implicitly[Line].value

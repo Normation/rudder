@@ -236,6 +236,11 @@ trait RoNodeGroupRepository {
   def getAll(): IOResult[Seq[NodeGroup]]
 
   /**
+   * Get all node groups by ids
+   */
+  def getAllByIds(ids: Seq[NodeGroupId]): IOResult[Seq[NodeGroup]]
+
+  /**
    * Get all the node group id and the set of ndoes within
    * Goal is to be more efficient
    */
