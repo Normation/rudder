@@ -62,7 +62,7 @@ class CheckTableUsers(
         id             text PRIMARY KEY NOT NULL CHECK (id <> '')
       , creationDate   timestamp with time zone NOT NULL
       , status         text NOT NULL
-      , managedBy   text NOT NULL CHECK (managedBy <> '')
+      , managedBy      text NOT NULL CHECK (managedBy <> '')
       , name           text
       , email          text
       , lastLogin      timestamp with time zone
@@ -76,12 +76,13 @@ class CheckTableUsers(
     , creationDate timestamp with time zone NOT NULL
     , authMethod   text
     , permissions  text[]
+    , tenants      text
     , endDate      timestamp with time zone
     , endCause     text
     );"""
 
     transactIOResult(s"Error with 'Users' table creation")(xa => sql1.update.run.transact(xa)).unit *>
-    transactIOResult(s"Error with 'v' table creation")(xa => sql2.update.run.transact(xa)).unit
+    transactIOResult(s"Error with 'UserSessions' table creation")(xa => sql2.update.run.transact(xa)).unit
   }
 
   override def checks(): Unit = {

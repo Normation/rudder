@@ -224,14 +224,14 @@ trait UserRepositoryTest extends Specification with Loggable {
       (
         // Alice logged but not since date2
         repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, List("alice"), EventTrace(actor, date1)) *>
-        repo.logStartSession("alice", List("role1"), SessionId("sessionAlice1"), AUTH_PLUGIN_NAME_LOCAL, date2) *>
+        repo.logStartSession("alice", List("role1"), "all", SessionId("sessionAlice1"), AUTH_PLUGIN_NAME_LOCAL, date2) *>
         // Bob created at date1 but never logged since
         repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, List("alice", "bob"), EventTrace(actor, date1)) *>
         // same for Charlie from OIDC
         repo.setExistingUsers(AUTH_PLUGIN_NAME_REMOTE, List("charlie"), EventTrace(actor, date1)) *>
         // David created on date1 and logged recently
         repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, List("alice", "bob", "david"), EventTrace(actor, date1)) *>
-        repo.logStartSession("david", List("role1"), SessionId("sessionDavid1"), AUTH_PLUGIN_NAME_LOCAL, date4)
+        repo.logStartSession("david", List("role1"), "all", SessionId("sessionDavid1"), AUTH_PLUGIN_NAME_LOCAL, date4)
       ).runNow
 
       val users = repo.getAll().runNow

@@ -65,6 +65,7 @@ trait UserRepository {
   def logStartSession(
       userId:            String,
       permissions:       List[String],
+      tenants:           String, // this is the serialisation of tenants (ie nodePerms.value)
       sessionId:         SessionId,
       authenticatorName: String,
       date:              DateTime
@@ -284,11 +285,12 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
   override def logStartSession(
       userId:            String,
       permissions:       List[String],
+      tenants:           String,
       sessionId:         SessionId,
       authenticatorName: String,
       date:              DateTime
   ): IOResult[Unit] = {
-    sessionBase.update(UserSession(userId, sessionId, date, authenticatorName, permissions.sorted, None, None) :: _) *>
+    sessionBase.update(UserSession(userId, sessionId, date, authenticatorName, permissions.sorted, tenants, None, None) :: _) *>
     userBase.update(_.map { case (k, v) => if (k == userId) (k, v.modify(_.lastLogin).setTo(Some(date))) else (k, v) })
   }
 
@@ -508,6 +510,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
  *   creationDate timestamp with time zone NOT NULL
  *   authMethod   text
  *   permissions  text[]
+ *   tenants      text
  *   endDate      timestamp with time zone
  *   endCause     text
  */
@@ -552,13 +555,14 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
   override def logStartSession(
       userId:            String,
       permissions:       List[String],
+      tenants:           String,
       sessionId:         SessionId,
       authenticatorName: String,
       date:              DateTime
   ): IOResult[Unit] = {
     val session   = {
-      sql"""insert into usersessions (sessionid, userid, creationdate, authmethod, permissions)
-            values (${sessionId}, ${userId}, ${date}, ${authenticatorName}, ${permissions.sorted})"""
+      sql"""insert into usersessions (sessionid, userid, creationdate, authmethod, permissions, tenants)
+            values (${sessionId}, ${userId}, ${date}, ${authenticatorName}, ${permissions.sorted}, ${tenants})"""
     }
     val lastLogin = {
       sql"""update users set lastlogin = ${date} where id = ${userId}"""
