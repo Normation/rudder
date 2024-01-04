@@ -39,11 +39,12 @@ package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box._
+import com.normation.errors.IOResult
 import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.queries._
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.services.workflows.DGModAction
@@ -60,9 +61,10 @@ import net.liftweb.http.LocalSnippet
 import net.liftweb.http.js._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
-import net.liftweb.util.CssSel
+import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import scala.xml._
+import zio.syntax._
 
 object NodeGroupForm {
   val templatePath = "templates-hidden" :: "components" :: "NodeGroupForm" :: Nil
@@ -466,32 +468,135 @@ class NodeGroupForm(
             logger.error(f.messageChain)
         }
 
+        val optContainer = {
+          val c = NodeGroupCategoryId(groupContainer.get)
+          if (c == parentCategoryId) None
+          else Some(c)
+        }
+
+        // submit can be done only for node group, not system one
+        val newGroup = savedGroup.copy(
+          name = groupName.get,
+          description = groupDescription.get, // , container = container
+
+          isDynamic = groupStatic.get match { case "dynamic" => true; case _ => false },
+          query = query,
+          serverList = srvList.getOrElse(Set()).map(_.id).toSet
+        )
+
+        /*
+         * - If a group changes from dynamic to static, we must ensure that it does not refer
+         *   any dynamic subgroup, else raise an error
+         * See https://issues.rudder.io/issues/18952
+         */
+        if (savedGroup.isDynamic == true && newGroup.isDynamic == false) {
+          hasDynamicSubgroups(newGroup.query).either.runNow match {
+            case Left(err)        =>
+              formTracker.addFormError(Text("Error when saving group"))
+              logger.error(
+                s"Error when getting group information for consistency check on static change status: ${err.fullMsg}"
+              )
+            case Right(Some(msg)) =>
+              val m = s"Error when getting group information for consistency check on static change status: you can't change " +
+                s"the nature of current group to static because it uses following dynamic groups as a subgroup criteria: ${msg}"
+              formTracker.addFormError(Text(m))
+              logger.error(m)
+            case Right(None)      => // ok
+          }
+        }
+
+        /*
+         * - If a group changes from static to dynamic, we must ensure that it is not referred in any static
+         *   group target, else raise an error
+         * See https://issues.rudder.io/issues/18952
+         */
+        if (savedGroup.isDynamic == false && newGroup.isDynamic == true) {
+          getDependingGroups(newGroup.id, onlyStatic = true).either.runNow match {
+            case Left(err)        =>
+              formTracker.addFormError(Text("Error when saving group"))
+              logger.error(
+                s"Error when getting group information for consistency check on static change status: ${err.fullMsg}"
+              )
+            case Right(Some(msg)) =>
+              val m = s"Error when getting group information for consistency check on static change status: you " +
+                s"can't make that group dynamic since groups ${msg} are static and use it as a subgroup target."
+              formTracker.addFormError(Text(m))
+              logger.error(m)
+            case Right(None)      => // ok
+          }
+        }
+
+        if (newGroup == savedGroup && optContainer.isEmpty) {
+          formTracker.addFormError(Text("There are no modifications to save"))
+        }
+
         if (formTracker.hasErrors) {
           onFailure & onFailureCallback()
         } else {
-          val optContainer = {
-            val c = NodeGroupCategoryId(groupContainer.get)
-            if (c == parentCategoryId) None
-            else Some(c)
+          // don't warn on mod of a group for impact on depending groups
+          displayConfirmationPopup(DGModAction.Update, newGroup, optContainer, None)
+        }
+    }
+  }
+
+  // find used subgroup in the query (wherever their place is) if any
+  private[components] def hasDynamicSubgroups(query: Option[Query]): IOResult[Option[String]] = {
+    query match {
+      case None    => None.succeed
+      case Some(q) =>
+        val subgroups = q.criteria.collect {
+          case CriterionLine(_, a, _, value) if (a.cType.isInstanceOf[SubGroupComparator]) => NodeGroupId(NodeGroupUid(value))
+        }
+
+        for {
+          groups <- roNodeGroupRepository.getFullGroupLibrary()
+        } yield {
+          val depending = subgroups.flatMap { gid =>
+            groups.allGroups.get(gid) match {
+              case None    => // ? ignore, it's strange but that does not change things
+                None
+              case Some(g) =>
+                if (g.nodeGroup.isDynamic) { Some(g) }
+                else { None }
+            }
           }
-
-          // submit can be done only for node group, not system one
-          val newGroup = savedGroup.copy(
-            name = groupName.get,
-            description = groupDescription.get, // , container = container
-
-            isDynamic = groupStatic.get match { case "dynamic" => true; case _ => false },
-            query = query,
-            serverList = srvList.getOrElse(Set()).map(_.id).toSet
-          )
-
-          if (newGroup == savedGroup && optContainer.isEmpty) {
-            formTracker.addFormError(Text("There are no modifications to save"))
-            onFailure & onFailureCallback()
-          } else {
-            displayConfirmationPopup(DGModAction.Update, newGroup, optContainer)
+          depending match {
+            case Nil  =>
+              None
+            case list =>
+              val gs = list.map(g => s"'${g.nodeGroup.name}' [${g.nodeGroup.id.serialize}]").mkString(", ")
+              Some(gs)
           }
         }
+    }
+
+  }
+
+  // get the list of group that use that group as a target (optionally: only the static ones)
+  // The returned value is a message with the list of dep groups that can be used in form error or warning pop-up.
+  // If none, no dependent group were found.
+  private[components] def getDependingGroups(id: NodeGroupId, onlyStatic: Boolean): IOResult[Option[String]] = {
+    def queryTargetsSubgroup(query: Option[Query], id: NodeGroupId): Boolean = {
+      query match {
+        case None    => false
+        case Some(q) =>
+          q.criteria.find {
+            case CriterionLine(_, a, _, value) => a.cType.isInstanceOf[SubGroupComparator] && value == id.serialize
+          }.nonEmpty
+      }
+    }
+    def checkStatic(isDynamic: Boolean, onlyStatic: Boolean) = !onlyStatic || !isDynamic
+
+    roNodeGroupRepository.getFullGroupLibrary().map { groups =>
+      val dependingGroups = groups.allGroups.collect {
+        case (_, g) if (checkStatic(g.nodeGroup.isDynamic, onlyStatic) && queryTargetsSubgroup(g.nodeGroup.query, id)) =>
+          g.nodeGroup
+      }.toList
+      if (dependingGroups.nonEmpty) {
+        val gs = dependingGroups.map(g => s"'${g.name}' [${g.id.serialize}]}").mkString(", ")
+
+        Some(gs)
+      } else None
     }
   }
 
@@ -499,7 +604,12 @@ class NodeGroupForm(
     nodeGroup match {
       case Left(_)   => Noop
       case Right(ng) =>
-        displayConfirmationPopup(DGModAction.Delete, ng, None)
+        getDependingGroups(ng.id, onlyStatic = false).either.runNow match {
+          case Left(err)  =>
+            onFailure & onFailureCallback()
+          case Right(msg) =>
+            displayConfirmationPopup(DGModAction.Delete, ng, None, msg)
+        }
     }
   }
 
@@ -508,9 +618,10 @@ class NodeGroupForm(
    */
 
   private[this] def displayConfirmationPopup(
-      action:      DGModAction,
-      newGroup:    NodeGroup,
-      newCategory: Option[NodeGroupCategoryId]
+      action:             DGModAction,
+      newGroup:           NodeGroup,
+      newCategory:        Option[NodeGroupCategoryId],
+      dependingSubgroups: Option[String] // if Some, string contains a message with the groups
   ): JsCmd = {
 
     val optOriginal = nodeGroup.toOption
@@ -546,12 +657,22 @@ class NodeGroupForm(
           )
         }
 
-        popup.popupWarningMessages match {
-          case None    =>
-            popup.onSubmit()
-          case Some(_) =>
-            SetHtml("confirmUpdateActionDialog", popup.popupContent()) &
-            JsRaw("""createPopup("confirmUpdateActionDialog")""")
+        if (popup.popupWarningMessages.isEmpty && dependingSubgroups.isEmpty) {
+          popup.onSubmit()
+        } else {
+          val html: NodeSeq = dependingSubgroups match {
+            case None      => popup.popupContent()
+            case Some(msg) =>
+              val cssSel: CssSel = "#explanationMessageZone *+" #>
+                <div id="dialogSubgroupWarning" class="col-lg-12 col-sm-12 col-xs-12 alert alert-warning text-center">
+                  This group is used as a subgroups of group {msg}. If you delete it, they will be impacted.
+                </div>
+
+              cssSel(popup.popupContent())
+          }
+
+          SetHtml("confirmUpdateActionDialog", html) &
+          JsRaw("""createPopup("confirmUpdateActionDialog")""")
         }
     }
   }
