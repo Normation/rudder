@@ -119,7 +119,7 @@ displayModals model =
               , account.authorisationType == "acl"
               )
   in
-    div [class ("modal fade " ++ modalClass)]
+    div [class ("modal modal-account fade " ++ modalClass)]
     [ div [class "modal-backdrop fade show", onClick (ToggleEditPopup NoModal)][]
     , div [class "modal-dialog"]
       [ div [class "modal-content"]
