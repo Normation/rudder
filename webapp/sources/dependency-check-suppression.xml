@@ -50,4 +50,27 @@
    <packageUrl regex="true">^pkg:maven/org\.eclipse\.jgit/org\.eclipse\.jgit@.*$</packageUrl>
    <cve>CVE-2023-4759</cve>
 </suppress>
+<!-- False positive b/c the scanner believes we use icu4j 23.1.1 while it's graalvm version shadowing an icu4j -->
+<suppress>
+   <notes><![CDATA[
+   file name: icu4j-23.1.1.jar
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/org\.graalvm\.shadowed\.icu4j.*$</packageUrl>
+   <cve>CVE-2011-4599</cve>
+   <cve>CVE-2014-7923</cve>
+   <cve>CVE-2014-7926</cve>
+   <cve>CVE-2014-7940</cve>
+   <cve>CVE-2014-8147</cve>
+   <cve>CVE-2014-9654</cve>
+   <cve>CVE-2014-9911</cve>
+   <cve>CVE-2014-8146</cve>
+   <cve>CVE-2015-5922</cve>
+   <cve>CVE-2016-6293</cve>
+   <cve>CVE-2016-7415</cve>
+   <cve>CVE-2017-7867</cve>
+   <cve>CVE-2017-7868</cve>
+   <cve>CVE-2017-14952</cve>
+   <cve>CVE-2017-17484</cve>
+   <cve>CVE-2020-10531</cve>
+</suppress>
 </suppressions>
