@@ -333,7 +333,7 @@ class CachedNodeChangesServiceImpl(
         } yield ()
       } else {
         ReportLoggerPure.Changes
-          .warn(s"Not updating changes by rule - disabled by configuration setting 'rudder_compute_changes' (set by REST API)")
+          .debug(s"Not updating changes by rule - disabled by configuration setting 'rudder_compute_changes' (set by REST API)")
       }
     }
   }
@@ -368,7 +368,7 @@ class CachedNodeChangesServiceImpl(
                        )
           } yield ()).chainError("An error occurred when trying to update the cache of last changes")
         } else {
-          ReportLoggerPure.Changes.warn(
+          ReportLoggerPure.Changes.debug(
             s"Not updating changes by rule - disabled by configuration setting 'rudder_compute_changes' (set by REST API)"
           )
         }
