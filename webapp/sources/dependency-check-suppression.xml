@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
-<!-- wrong version detection, only version before 08-12-2014 are vulnerable -->
 <suppress>
+   <!-- that version of jgit is explicitly the one correcting CVE-2023-4759 in https://nvd.nist.gov/vuln/detail/CVE-2023-4759 report -->
    <notes><![CDATA[
-   file name: org.eclipse.jgit-5.9.0.202009080501-r.jar
+   file name: org.eclipse.jgit-6.7.0.202309050840-r.jar
    ]]></notes>
    <packageUrl regex="true">^pkg:maven/org\.eclipse\.jgit/org\.eclipse\.jgit@.*$</packageUrl>
-   <cve>CVE-2014-9390</cve>
+   <cve>CVE-2023-4759</cve>
 </suppress>
 <!-- YUI embeded in liftweb is not used -->
 <suppress>
