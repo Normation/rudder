@@ -262,14 +262,20 @@ body > .modal-backdrop.fade.in{
   background-color: #fff;
   border-color: #d6deef;
 }
-.content-wrapper .btn-success,.content-wrapper .btn-success[disabled]:hover ,
-.modal .btn-success,.modal .btn-success[disabled]:hover {
+.modal .btn-success,
+.modal .btn-success[disabled]:hover,
+.content-wrapper .btn-success,
+.content-wrapper .btn-success[disabled]:hover ,
+.content-wrapper .open > .dropdown-toggle.btn-success{
   background-color: #13BEB7;
   border-color: #109f9a;
   background-image: none !important;
 }
+.modal .btn-success:hover,
+.modal .btn-success:focus:hover,
 .content-wrapper .btn-success:hover,.content-wrapper .btn-success:focus:hover  ,
-.modal .btn-success:hover,.modal .btn-success:focus:hover  {
+.content-wrapper .open > .dropdown-toggle.btn-success:focus,
+.content-wrapper .open > .dropdown-toggle.btn-success:hover{
   background-color: #11b0a9;
   border-color: #108f8b;
 }
