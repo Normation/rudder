@@ -61,6 +61,10 @@ import com.normation.rudder.reports._
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.zio._
+import java.nio.charset.StandardCharsets
+import java.time.Duration
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
@@ -249,11 +253,14 @@ class SystemVariableServiceImpl(
 
     val varAllowedNetworks = systemVariableSpecService.get("ALLOWED_NETWORKS").toVariable(allowedNetworks)
 
-    val agentRunParams = {
+    val agentRunParams: PureResult[(AgentRunInterval, LocalTime, String)] = {
       if (nodeInfo.rudderSettings.isPolicyServer) {
+        // a triplet of agent run, start hour, the string schedule in cfengine format
         val policyServerSchedule =
           """ "Min00", "Min05", "Min10", "Min15", "Min20", "Min25", "Min30", "Min35", "Min40", "Min45", "Min50", "Min55" """
-        Right((AgentRunInterval(Some(false), 5, 0, 0, 0), policyServerSchedule))
+        // root server has no splaytime
+        val startHour            = LocalTime.of(0, 0)
+        Right((AgentRunInterval(Some(false), 5, 0, 0, 0), startHour, policyServerSchedule))
       } else {
         val runInterval = nodeInfo.rudderSettings.reportingConfiguration.agentRunInterval match {
           case Some(nodeRunInterval) if nodeRunInterval.overrides.getOrElse(false) =>
@@ -262,15 +269,17 @@ class SystemVariableServiceImpl(
             globalAgentRun
         }
         for {
-          schedule <- ComputeSchedule
-                        .computeSchedule(
-                          runInterval.startHour,
-                          runInterval.startMinute,
-                          runInterval.interval
-                        )
-                        .chainError(s"Could not compute the run schedule for node ${nodeInfo.id.value}")
+          res <- ComputeSchedule
+                   .computeSchedule(runInterval.startHour, runInterval.startMinute, runInterval.interval)
+                   .chainError(s"Could not compute the run schedule for node ${nodeInfo.id.value}")
         } yield {
-          (runInterval, schedule)
+          val (startTime, schedule) = res
+          val splayedStartTime      = ComputeSchedule.getSplayedStartTime(
+            nodeInfo.id.value,
+            startTime,
+            Duration.ofMinutes(runInterval.interval.toLong)
+          )
+          (runInterval, splayedStartTime, schedule)
         }
       }
     }
@@ -296,7 +305,7 @@ class SystemVariableServiceImpl(
     }
 
     val agentRunVariables = (agentRunParams.map {
-      case (runInterval, schedule) =>
+      case (runInterval, startTime, schedule) =>
         // The heartbeat should be strictly shorter than the run execution, otherwise they may be skipped
         val heartbeat = runInterval.interval * heartBeatFrequency - 1
         val vars      = {
@@ -305,6 +314,7 @@ class SystemVariableServiceImpl(
           systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable(Seq(schedule)) ::
           systemVariableSpecService.get("RUDDER_HEARTBEAT_INTERVAL").toVariable(Seq(heartbeat.toString)) ::
           systemVariableSpecService.get("RUDDER_REPORT_MODE").toVariable(Seq(globalComplianceMode.name)) ::
+          systemVariableSpecService.get("AGENT_RUN_STARTTIME").toVariable(Seq(ComputeSchedule.formatStartTime(startTime))) ::
           Nil
         }
         vars.map(v => v.spec.name -> v).toMap
@@ -582,7 +592,7 @@ class SystemVariableServiceImpl(
     }
 
     import net.liftweb.json.{prettyRender, JObject, JString, JField}
-    // Utilitaty method to convert NodeInfo to JSON
+    // Utility method to convert NodeInfo to JSON
     def nodeInfoToJson(nodeInfo: NodeInfo): List[JField] = {
       JField("hostname", JString(nodeInfo.hostname)) ::
       JField("policyServerId", JString(nodeInfo.policyServerId.value)) ::
@@ -661,11 +671,15 @@ class SystemVariableServiceImpl(
 }
 
 object ComputeSchedule {
+  /*
+   * Compute agent schedule. Return the actual real start hour/minute based on the execution interval
+   * and the run string in CFEngine format
+   */
   def computeSchedule(
       startHour:         Int,
       startMinute:       Int,
       executionInterval: Int
-  ): PureResult[String] = {
+  ): PureResult[(java.time.LocalTime, String)] = {
 
     val minutesFreq = executionInterval % 60
     val hoursFreq: Int = executionInterval / 60
@@ -684,16 +698,49 @@ object ComputeSchedule {
         val actualStartMinute = startMinute % minutesFreq
         val mins              = Range(actualStartMinute, 60, minutesFreq) // range doesn't return the end range
         // val mins = for ( min <- 0 to 59; if ((min%minutesFreq) == actualStartMinute) ) yield { min }
-        Right(mins.map("\"Min" + "%02d".format(_) + "\"").mkString(", "))
+        Right((LocalTime.of(0, actualStartMinute), mins.map("\"Min" + "%02d".format(_) + "\"").mkString(", ")))
 
       case _ =>
         // hour is not 0, then we don't have minutes
         val actualStartHour = startHour % hoursFreq
         val hours           = Range(actualStartHour, 24, hoursFreq)
         val minutesFormat   = "Min" + "%02d".format(startMinute)
-        Right(hours.map("\"Hr" + "%02d".format(_) + "." + minutesFormat + "\"").mkString(", "))
+        Right(
+          (
+            LocalTime.of(actualStartHour, startMinute),
+            hours.map("\"Hr" + "%02d".format(_) + "." + minutesFormat + "\"").mkString(", ")
+          )
+        )
     }
 
+  }
+
+  /*
+   * An algorithm to get a splaytime in seconds from a node ID and a execution interval.
+   *
+   * There is no guarantee about the distribution of splay, and you must use random input
+   * to have a change to get something barely random (uuids are ok for that, and it's the
+   * use case).
+   */
+  def computeSplayTime(nodeId: String, interval: Duration): Duration = {
+    if (nodeId.isEmpty) Duration.ofSeconds(0)
+    else {
+      val bigInt       = BigInt.apply(nodeId.getBytes(StandardCharsets.UTF_8))
+      val secondPerDay = 86400
+      Duration.ofSeconds(bigInt.mod(interval.getSeconds).mod(secondPerDay).toLong)
+    }
+  }
+
+  /*
+   * Convert an agent schedule into the starttime string which include the splaytime
+   */
+  def getSplayedStartTime(nodeId: String, startTime: LocalTime, interval: Duration): LocalTime = {
+    startTime.plus(computeSplayTime(nodeId, interval))
+  }
+
+  def formatStartTime(startTime: LocalTime): String = {
+    // the withNano(0) is to only print "hh:mm:ss", not "hh:mm:ss.sss"
+    startTime.withNano(0).format(DateTimeFormatter.ISO_TIME)
   }
 
 }

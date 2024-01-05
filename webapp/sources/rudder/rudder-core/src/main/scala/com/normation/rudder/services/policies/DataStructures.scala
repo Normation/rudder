@@ -157,17 +157,16 @@ final case class ParamInterpolationContext(
 final case class InterpolationContext(
     nodeInfo:         NodeInfo,
     policyServerInfo: NodeInfo,
-    globalPolicyMode: GlobalPolicyMode,          // environment variable for that server
+    globalPolicyMode: GlobalPolicyMode,
+    // environment variable for that server
     // must be a case insensitive Map !!!!
-
-    nodeContext:      TreeMap[String, Variable], // parameters for this node
+    nodeContext:      TreeMap[String, Variable],
+    // parameters for this node
     // must be a case SENSITIVE Map !!!!
-
-    parameters:       Map[String, ConfigValue],  // the depth of the interpolation context evaluation
+    parameters:       Map[String, ConfigValue], // the depth of the interpolation context evaluation
     // used as a lazy, trivial, mostly broken way to detect cycle in interpretation
     // for ex: param a => param b => param c => ..... => param a
     // should not be evaluated
-
     depth:            Int
 ) extends GenericInterpolationContext[ConfigValue]
 
@@ -251,13 +250,13 @@ final case class NodeRunHook(
 )
 
 final case class NodeConfiguration(
-    nodeInfo:    NodeInfo,
-    modesConfig: NodeModeConfig, // sorted list of policies for the node.
-
-    policies: List[Policy], // the merged pre-/post-run hooks
-
-    runHooks: List[NodeRunHook], // environment variable for that server
-
+    nodeInfo:     NodeInfo,
+    modesConfig:  NodeModeConfig,
+    // sorted list of policies for the node.
+    policies:     List[Policy],
+    // the merged pre-/post-run hooks
+    runHooks:     List[NodeRunHook],
+    // environment variable for that server
     nodeContext:  Map[String, Variable],
     parameters:   Set[ParameterForConfiguration],
     isRootServer: Boolean = false
