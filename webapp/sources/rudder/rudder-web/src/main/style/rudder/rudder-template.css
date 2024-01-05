@@ -229,10 +229,11 @@ ul {
   border-bottom-color: #ccc;
 }
 
-.header-buttons .dropdown-toggle{
+.header-buttons .dropdown-toggle:not(.btn-success){
   border: 1px solid #ccc;
 }
-.header-buttons .dropdown-toggle:hover, .btn.btn-default:hover{
+.header-buttons .dropdown-toggle:not(.btn-success):hover,
+.btn.btn-default:hover{
   background-color: #eeeaea;
 }
 .header-buttons .dropdown-menu{
