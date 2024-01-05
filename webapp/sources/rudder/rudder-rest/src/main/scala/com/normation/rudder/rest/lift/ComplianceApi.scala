@@ -46,6 +46,8 @@ import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.BlockStatusReport
@@ -56,6 +58,7 @@ import com.normation.rudder.domain.reports.DirectiveStatusReport
 import com.normation.rudder.domain.reports.ValueStatusReport
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.repository.FullActiveTechnique
+import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
@@ -66,6 +69,7 @@ import com.normation.rudder.rest.RestUtils._
 import com.normation.rudder.rest.data._
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.reports.ReportingService
+import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.zio.currentTimeMillis
 import net.liftweb.common._
 import net.liftweb.http.LiftResponse
@@ -412,12 +416,13 @@ class ComplianceApi(
  * compliance for all rules/nodes/directives.
  */
 class ComplianceAPIService(
-    rulesRepo:                   RoRuleRepository,
-    nodeInfoService:             NodeInfoService,
-    nodeGroupRepo:               RoNodeGroupRepository,
-    reportingService:            ReportingService,
-    directiveRepo:               RoDirectiveRepository,
-    val getGlobalComplianceMode: () => Box[GlobalComplianceMode]
+    rulesRepo:               RoRuleRepository,
+    nodeInfoService:         NodeInfoService,
+    nodeGroupRepo:           RoNodeGroupRepository,
+    reportingService:        ReportingService,
+    directiveRepo:           RoDirectiveRepository,
+    getGlobalComplianceMode: () => Box[GlobalComplianceMode],
+    getGlobalPolicyMode:     () => IOResult[GlobalPolicyMode]
 ) {
 
   private[this] def components(
@@ -737,6 +742,7 @@ class ComplianceAPIService(
     for {
       rules        <- getRules
       allGroups    <- nodeGroupRepo.getAllNodeIds()
+      groupLib     <- nodeGroupRepo.getFullGroupLibrary()
       directiveLib <- directiveRepo.getFullDirectiveLibrary().map(_.allDirectives)
       allNodeInfos <- nodeInfoService.getAll()
       nodeInfos    <- onlyNode match {
@@ -747,6 +753,7 @@ class ComplianceAPIService(
                             .map(info => Map(id -> info))
                             .notOptional(s"The node with ID '${id.value}' is not known on Rudder")
                       }
+      globalMode   <- getGlobalPolicyMode()
       compliance   <- getGlobalComplianceMode().toIO
       reports      <- reportingService
                         .findRuleNodeStatusReports(
@@ -762,6 +769,9 @@ class ComplianceAPIService(
       val ruleMap = rules.map(r => (r.id, r)).toMap
       // get an empty-initialized array of compliances to be used
       // as defaults
+
+      val getPolicyModeByRule = getRulePolicyMode(_, groupLib, directiveLib, nodeInfos, globalMode)
+
       val initializedCompliances: Map[NodeId, ByNodeNodeCompliance] = {
         nodeInfos.map {
           case (nodeId, nodeInfo) =>
@@ -779,11 +789,13 @@ class ComplianceAPIService(
                     rule.id,
                     rule.name,
                     ComplianceLevel(noAnswer = rule.directiveIds.size),
+                    getPolicyModeByRule(rule),
                     rule.directiveIds.map { rid =>
                       ByNodeDirectiveCompliance(
                         rid,
                         directiveLib.get(rid).map(_._2.name).getOrElse("Unknown Directive"),
                         ComplianceLevel(noAnswer = 1),
+                        directiveLib.get(rid).flatMap(_._2.policyMode),
                         Nil
                       )
                     }.toSeq
@@ -810,10 +822,12 @@ class ComplianceAPIService(
                   r.ruleId,
                   ruleMap.get(r.ruleId).map(_.name).getOrElse("Unknown rule"),
                   r.compliance,
+                  ruleMap.get(r.ruleId).flatMap(getPolicyModeByRule),
                   r.directives.toSeq.map {
                     case (_, directiveReport) =>
                       ByNodeDirectiveCompliance(
                         directiveReport,
+                        directiveLib.get(directiveReport.directiveId).flatMap(_._2.policyMode),
                         directiveLib.get(directiveReport.directiveId).map(_._2.name).getOrElse("Unknown Directive")
                       )
                   }
@@ -828,6 +842,19 @@ class ComplianceAPIService(
       (initializedCompliances ++ nonEmptyNodes).values.toSeq
 
     }
+  }
+
+  private[this] def getRulePolicyMode(
+      rule:          Rule,
+      groupLib:      FullNodeGroupCategory,
+      allDirectives: Map[DirectiveId, (FullActiveTechnique, Directive)],
+      nodesLib:      Map[NodeId, NodeInfo],
+      globalMode:    GlobalPolicyMode
+  ) = {
+    val directives = rule.directiveIds.flatMap(allDirectives.get(_)).map(_._2)
+    val nodesIds   = groupLib.getNodeIds(rule.targets, nodesLib)
+    val nodes      = nodesLib.view.filterKeys(x => nodesIds.contains(x)).values
+    PolicyMode.parse(ComputePolicyMode.ruleMode(globalMode, directives, nodes.map(_.policyMode))._1).toOption
   }
 
   def getNodeCompliance(nodeId: NodeId, onlySystems: Boolean): Box[ByNodeNodeCompliance] = {
