@@ -311,7 +311,8 @@
 .id-card .card-img.windows2012r2,
 .id-card .card-img.windows2016,
 .id-card .card-img.windows2016r2,
-.id-card .card-img.windows2019{
+.id-card .card-img.windows2019,
+.id-card .card-img.windows2022{
   background-image: url(../../images/os/windows-2012-logo.svg);
 }
 .id-card .card-img.aix{
