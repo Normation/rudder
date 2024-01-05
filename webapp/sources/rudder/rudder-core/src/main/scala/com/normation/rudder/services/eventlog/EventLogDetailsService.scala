@@ -75,7 +75,7 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.marshalling._
 import com.normation.rudder.services.marshalling.TestFileFormat
 import com.normation.rudder.services.queries.CmdbQueryParser
-import com.normation.utils.Control.sequence
+import com.normation.utils.Control.traverse
 import com.typesafe.config.ConfigValue
 import net.liftweb.common._
 import net.liftweb.common.Box._
@@ -633,7 +633,7 @@ class EventLogDetailsServiceImpl(
       entry              <- getEntryContent(xml)
       details            <- (entry \ "reloadTechniqueLibrary").headOption ?~! ("Entry type is not a techniqueReloaded: " + entry.toString())
       fileFormatOk       <- TestFileFormat(details)
-      activeTechniqueIds <- sequence((details \ "modifiedTechnique")) { technique =>
+      activeTechniqueIds <- traverse((details \ "modifiedTechnique")) { technique =>
                               for {
                                 name    <- (technique \ "name").headOption.map(
                                              _.text
@@ -788,7 +788,7 @@ class EventLogDetailsServiceImpl(
 
   def getRollbackDetails(xml: NodeSeq): Box[RollbackInfo] = {
     def getEvents(xml: Elem): Box[Seq[RollbackedEvent]] = {
-      sequence(xml \ "rollbackedEvent") { entry =>
+      traverse(xml \ "rollbackedEvent") { entry =>
         for {
           id      <- (entry \ "id").headOption.map(_.text.toInt) ?~! s"rollbacked event details does not have an id: ${entry}"
           evtType <- (entry \ "type").headOption.map(_.text) ?~! s"rollbacked event details does not have a type: ${entry}"
@@ -1015,7 +1015,7 @@ class EventLogDetailsServiceImpl(
     if (details.isEmpty) Full(Seq())
     else {
       for {
-        properties <- sequence((details \ "property").toSeq) { prop =>
+        properties <- traverse((details \ "property").toSeq) { prop =>
                         for {
                           name    <-
                             (prop \ "name").headOption.map(_.text) ?~! s"Missing attribute 'name' in entry type node : '${xml}'"
@@ -1039,7 +1039,7 @@ class EventLogDetailsServiceImpl(
   private[this] def extractTags(entryType: String)(details: NodeSeq): Box[Tags] = {
     if (details.isEmpty) Full(Tags(Set()))
     else {
-      val tags = sequence(details \\ "tag") { prop =>
+      val tags = traverse(details \\ "tag") { prop =>
         for {
           name  <-
             (prop \ "@name").headOption.map(_.text) ?~! s"Missing attribute 'name' in entry type $entryType : '$details'"

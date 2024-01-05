@@ -1917,7 +1917,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
    * plugins hooks
    */
   override def beforeDeploymentSync(generationTime: DateTime): Box[Unit] = {
-    sequence(codeHooks.toSeq)(_.beforeDeploymentSync(generationTime)).map(_ => ())
+    traverse(codeHooks.toSeq)(_.beforeDeploymentSync(generationTime)).map(_ => ())
   }
 
   /*

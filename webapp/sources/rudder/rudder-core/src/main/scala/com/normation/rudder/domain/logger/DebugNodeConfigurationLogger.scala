@@ -39,7 +39,7 @@ package com.normation.rudder.domain.logger
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.policies.NodeConfiguration
-import com.normation.utils.Control.sequence
+import com.normation.utils.Control.traverse
 import java.io.File
 import java.io.PrintWriter
 import net.liftweb.common._
@@ -97,7 +97,7 @@ class NodeConfigurationLoggerImpl(
     if (logger.isDebugEnabled) {
       for {
         logTime <- writeIn(new File(path, "lastWritenTime"))(printWriter => Full(printWriter.write(DateTime.now.toString())))
-        configs <- (sequence(nodeConfiguration) { config =>
+        configs <- (traverse(nodeConfiguration) { config =>
                      val logFile = new File(path, config.nodeInfo.hostname + "_" + config.nodeInfo.id.value)
 
                      writeIn(logFile) { printWriter =>

@@ -209,7 +209,7 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
           }
         }
 
-        boxSequence(migrationResults) match {
+        sequence(migrationResults) match {
           case Full(seq) =>
             val numberMigrated = seq.collect { case MigrationSuccess(i) => i }.sum
             migrationEventLogRepository.setMigrationFileFormat(id, toVersion.toLong, DateTime.now)

@@ -41,7 +41,7 @@ import cats.implicits._
 import com.normation.box._
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.services.queries.CmdbQueryParser._
-import com.normation.utils.Control.sequence
+import com.normation.utils.Control.traverse
 import net.liftweb.common._
 import net.liftweb.json._
 import net.liftweb.json.JsonParser.ParseException
@@ -119,7 +119,7 @@ trait DefaultStringQueryParser extends StringQueryParser {
                  case None    => Full(ResultTransformation.Identity)
                  case Some(x) => ResultTransformation.parse(x).toBox
                }
-      lines <- sequence(query.criteria)(parseLine)
+      lines <- traverse(query.criteria)(parseLine)
     } yield {
       Query(query.returnType, comp, trans, lines.toList)
     }

@@ -40,7 +40,7 @@ package com.normation.rudder.domain.policies
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.utils.Control.sequence
+import com.normation.utils.Control.traverse
 import net.liftweb.common._
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
@@ -375,13 +375,13 @@ object RuleTarget extends Loggable {
           Full(TargetUnion())
         case JObject(JField("or", JArray(content)) :: Nil)  =>
           for {
-            targets <- sequence(content)(unserJson)
+            targets <- traverse(content)(unserJson)
           } yield {
             TargetUnion(targets.toSet)
           }
         case JObject(JField("and", JArray(content)) :: Nil) =>
           for {
-            targets <- sequence(content)(unserJson)
+            targets <- traverse(content)(unserJson)
           } yield {
             TargetIntersection(targets.toSet)
           }

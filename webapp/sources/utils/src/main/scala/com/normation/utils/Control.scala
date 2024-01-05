@@ -20,6 +20,7 @@
 
 package com.normation.utils
 
+import cats.Applicative
 import net.liftweb.common._
 
 /**
@@ -29,35 +30,27 @@ import net.liftweb.common._
  */
 object Control {
 
+  import cats.syntax.traverse._
+
+  implicit private val boxApplicative: Applicative[Box] = new Applicative[Box] {
+    override def pure[A](x: A): Box[A] = Full(x)
+
+    override def ap[A, B](ff: Box[A => B])(fa: Box[A]): Box[B] = ff.flatMap(f => fa.map(f))
+  }
+
   /**
    * Instance of the application function to Iterable and Box.
    * Transform a TraversableOnce[Box] into a Box[Iterable]
    * note: I don't how to say T<:TravesableOnce , T[Box[U]] => Box[T[U]]
    */
-  def boxSequence[U](seq: Seq[Box[U]]): Box[Seq[U]] = {
-    val buf = scala.collection.mutable.Buffer[U]()
-    seq.foreach {
-      case Full(u) => buf += u
-      case e: EmptyBox => return e
-    }
-    Full(buf.toSeq)
-  }
+  def sequence[U](seq: Seq[Box[U]]): Box[Seq[U]] = seq.sequence
 
   /**
    * Iter on all elements of seq, applying f to each one of them.
-   * If the result of f is Full, continue, else abort the procesing,
+   * If the result of f is Full, continue, else abort the processing,
    * returning the Empty or Failure.
    */
-  def sequence[U, T](seq: Seq[U])(f: U => Box[T]): Box[Seq[T]] = {
-    val buf = scala.collection.mutable.Buffer[T]()
-    seq.foreach { u =>
-      f(u) match {
-        case e: EmptyBox => return e
-        case Full(x) => buf += x
-      }
-    }
-    Full(buf.toSeq)
-  }
+  def traverse[U, T](seq: Seq[U])(f: U => Box[T]): Box[Seq[T]] = seq.traverse(f)
 
   /**
    * A version of sequence that will try to reach the end and accumulate

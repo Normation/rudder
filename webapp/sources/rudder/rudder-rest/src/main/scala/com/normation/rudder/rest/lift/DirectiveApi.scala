@@ -529,7 +529,7 @@ class DirectiveApiService2(
       _ <- (for {
              // Two step process, could be simplified
              paramEditor       <- editorService.get(technique.id, newDirective.id.uid, newDirective.parameters)
-             checkedParameters <- sequence(paramEditor.mapValueSeq.toSeq)(checkParameters(paramEditor))
+             checkedParameters <- traverse(paramEditor.mapValueSeq.toSeq)(checkParameters(paramEditor))
            } yield { checkedParameters.toMap }) ?~ (s"Error with directive Parameters")
 
       saveDiff <- writeDirective
@@ -670,7 +670,7 @@ class DirectiveApiService2(
       newParameters   <- (for {
                            // Two step process, could be simplified
                            paramEditor       <- editorService.get(updatedTechniqueId, directiveId, updatedDirective.parameters)
-                           checkedParameters <- sequence(paramEditor.mapValueSeq.toSeq)(checkParameters(paramEditor))
+                           checkedParameters <- traverse(paramEditor.mapValueSeq.toSeq)(checkParameters(paramEditor))
                          } yield { checkedParameters.toMap }) ?~ (s"Error with directive Parameters")
     } yield {
       val beforeState = DirectiveState(oldTechnique, oldDirective)
@@ -809,7 +809,7 @@ class DirectiveApiService14(
         _     <- (for {
                    // Two step process, could be simplified
                    paramEditor       <- editorService.get(technique.id, newDirective.id.uid, newDirective.parameters)
-                   checkedParameters <- sequence(paramEditor.mapValueSeq.toSeq)(checkParameters(paramEditor))
+                   checkedParameters <- traverse(paramEditor.mapValueSeq.toSeq)(checkParameters(paramEditor))
                  } yield { checkedParameters.toMap }).toIO.chainError(s"Error with directive Parameters")
         saved <- writeDirective
                    .saveDirective(activeTechnique.id, newDirective, modId, actor, params.reason)
