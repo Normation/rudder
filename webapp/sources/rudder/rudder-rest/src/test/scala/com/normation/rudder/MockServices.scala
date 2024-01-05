@@ -577,7 +577,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       nodeGroupsRepo(customNodeGroups),
       reportingService(statusesReports),
       mockDirectives.directiveRepo,
-      GlobalComplianceMode(FullCompliance, 0).succeed
+      GlobalComplianceMode(FullCompliance, 0).succeed,
+      GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always).succeed
     )
   }
 

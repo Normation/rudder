@@ -365,6 +365,7 @@ final case class ByNodeRuleCompliance(
     name: String, // compliance by directive (by nodes)
 
     compliance: ComplianceLevel,
+    policyMode: Option[PolicyMode],
     directives: Seq[ByNodeDirectiveCompliance]
 )
 
@@ -372,13 +373,14 @@ final case class ByNodeDirectiveCompliance(
     id:         DirectiveId,
     name:       String,
     compliance: ComplianceLevel,
+    policyMode: Option[PolicyMode],
     components: List[ComponentStatusReport]
 )
 
 object ByNodeDirectiveCompliance {
 
-  def apply(d: DirectiveStatusReport, directiveName: String): ByNodeDirectiveCompliance = {
-    new ByNodeDirectiveCompliance(d.directiveId, directiveName, d.compliance, d.components)
+  def apply(d: DirectiveStatusReport, policyMode: Option[PolicyMode], directiveName: String): ByNodeDirectiveCompliance = {
+    new ByNodeDirectiveCompliance(d.directiveId, directiveName, d.compliance, policyMode, d.components)
   }
 }
 
@@ -1031,6 +1033,7 @@ object JsonCompliance {
             ("id"                  -> rule.id.serialize)
             ~ ("name"              -> rule.name)
             ~ ("compliance"        -> rule.compliance.complianceWithoutPending(precision))
+            ~ ("policyMode"        -> rule.policyMode.map(_.name).getOrElse("default"))
             ~ ("complianceDetails" -> percents(rule.compliance, precision))
             ~ ("directives"        -> directives(rule.directives, level, precision))
           )
@@ -1050,6 +1053,7 @@ object JsonCompliance {
             ("id"                  -> directive.id.serialize)
             ~ ("name"              -> directive.name)
             ~ ("compliance"        -> directive.compliance.complianceWithoutPending(precision))
+            ~ ("policyMode"        -> directive.policyMode.map(_.name).getOrElse("default"))
             ~ ("complianceDetails" -> percents(directive.compliance, precision))
             ~ ("components"        -> components(directive.components, level, precision))
           )
