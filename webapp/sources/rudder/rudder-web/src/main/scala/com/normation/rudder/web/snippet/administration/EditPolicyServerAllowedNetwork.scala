@@ -48,7 +48,7 @@ import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.eventlog.AuthorizedNetworkModification
 import com.normation.rudder.domain.eventlog.UpdatePolicyServer
 import com.normation.rudder.services.servers.AllowedNetwork
-import com.normation.rudder.web.services.CurrentUser
+import com.normation.rudder.users.CurrentUser
 import com.normation.zio._
 import net.liftweb._
 import net.liftweb.common._

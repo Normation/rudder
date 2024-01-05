@@ -366,7 +366,6 @@ class ItemArchiveManagerImpl(
                          modId
                        )
       } yield {
-
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
         archiveId
       }

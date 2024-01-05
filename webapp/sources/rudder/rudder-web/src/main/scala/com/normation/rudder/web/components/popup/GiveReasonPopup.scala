@@ -43,10 +43,10 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBTextAreaField
-import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.services.ReasonBehavior._
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet

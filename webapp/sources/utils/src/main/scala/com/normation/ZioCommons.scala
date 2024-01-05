@@ -460,6 +460,11 @@ object zio {
   }
 }
 
+// needed for calling from java
+object JZioRuntime {
+  def runNow[A](io: IOResult[A]) = zio.ZioRuntime.runNow(io)
+}
+
 /*
  * Implicit classes to change IO and Either TOWARDS box
  */

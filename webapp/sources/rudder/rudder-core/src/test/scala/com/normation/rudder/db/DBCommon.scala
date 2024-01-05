@@ -67,7 +67,7 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     """Set JAVA property 'test.postgres' to false to ignore that test, for example from maven with: mvn -DargLine="-Dtest.postgres=false" test"""
   )
 
-  val doDatabaseConnection = java.lang.System.getProperty("test.postgres", "").toLowerCase match {
+  lazy val doDatabaseConnection = java.lang.System.getProperty("test.postgres", "").toLowerCase match {
     case "true" | "1" => true
     case _            => false
   }

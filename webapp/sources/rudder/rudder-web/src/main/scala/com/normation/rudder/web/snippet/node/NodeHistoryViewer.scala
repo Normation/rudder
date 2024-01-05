@@ -41,8 +41,8 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.box._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.JsNodeId
-import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.services.DisplayNode
 import net.liftweb.common._
 import net.liftweb.http._

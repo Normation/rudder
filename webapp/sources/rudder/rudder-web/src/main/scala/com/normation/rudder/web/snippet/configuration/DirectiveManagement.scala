@@ -54,9 +54,9 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.DirectiveEditForm
 import com.normation.rudder.web.services.AgentCompat
-import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.services.DisplayDirectiveTree
 import com.normation.utils.DateFormaterService
 import com.normation.zio._

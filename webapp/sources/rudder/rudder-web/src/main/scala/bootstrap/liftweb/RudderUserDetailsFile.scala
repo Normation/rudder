@@ -44,13 +44,13 @@ import com.normation.errors.SystemError
 import com.normation.errors.Unexpected
 import com.normation.rudder._
 import com.normation.rudder.api._
+import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
-import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.facts.nodes.Tenant
 import com.normation.rudder.rest.RoleApiMapping
-import com.normation.rudder.web.services.RudderUserDetail
+import com.normation.rudder.users._
 import com.normation.zio._
 import java.io.File
 import java.io.FileInputStream
@@ -58,12 +58,10 @@ import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.security.SecureRandom
-import java.util.Collection
 import org.bouncycastle.util.encoders.Hex
-import org.springframework.security.core.GrantedAuthority
+import org.joda.time.DateTime
 import org.xml.sax.SAXParseException
 import scala.collection.immutable.SortedMap
-import scala.jdk.CollectionConverters._
 import scala.xml.Elem
 import zio._
 import zio.syntax._
@@ -247,21 +245,12 @@ object ValidatedUserList {
               seq.sortBy(_.path)(AclPath.orderingaAclPath).sortBy(_.path.parts.head.value)
           }
           .toList
-        RudderUserDetail(user, roles.toSet, ApiAuthorization.ACL(acls), nodeSecurityContext)
+        // init status to deleted, it will be set correctly latter on
+        RudderUserDetail(user, UserStatus.Deleted, roles.toSet, ApiAuthorization.ACL(acls), nodeSecurityContext)
     }
     val filteredUsers = filterByCaseSensitivity(userDetails.toList, accountConfig.isCaseSensitive)
     ValidatedUserList(accountConfig.encoder, accountConfig.isCaseSensitive, accountConfig.customRoles, filteredUsers)
   }
-}
-
-/**
- * This is the class that defines the user management level.
- * Without the plugin, by default only "admin" role is know.
- * A user with an unknown role has no rights.
- */
-trait UserAuthorisationLevel {
-  def userAuthEnabled: Boolean
-  def name:            String
 }
 
 /*
@@ -269,18 +258,20 @@ trait UserAuthorisationLevel {
  */
 final case class RudderAuthorizationFileReloadCallback(name: String, exec: ValidatedUserList => IOResult[Unit])
 
-// and default implementation is: no
-class DefaultUserAuthorisationLevel() extends UserAuthorisationLevel {
-  // Alternative level provider
-  private[this] var level: Option[UserAuthorisationLevel] = None
-
-  def overrideLevel(l: UserAuthorisationLevel): Unit    = {
-    PluginLogger.info(s"Update User Authorisations level to '${l.name}'")
-    level = Some(l)
-  }
-  override def userAuthEnabled:                 Boolean = level.map(_.userAuthEnabled).getOrElse(false)
-
-  override def name: String = level.map(_.name).getOrElse("Default implementation (only 'admin' right)")
+/*
+ * A callback that is in charge of updating the list of UserInfo managed by the file authenticator.
+ */
+object UserRepositoryUpdateOnFileReload {
+  def createCallback(userRepository: UserRepository) = RudderAuthorizationFileReloadCallback(
+    "update-pg-users-on-xml-file-reload",
+    userList => {
+      userRepository.setExistingUsers(
+        DefaultAuthBackendProvider.FILE,
+        userList.users.keys.toList,
+        EventTrace(RudderEventActor, DateTime.now(), "Updating users because `rudder-users.xml` was reloaded")
+      )
+    }
+  )
 }
 
 trait UserDetailListProvider {
@@ -343,38 +334,6 @@ final class FileUserDetailListProvider(roleApiMapping: RoleApiMapping, authorisa
 
   override def authConfig: ValidatedUserList = cache.get.runNow
 
-}
-
-/**
- * We don't use at all Spring Authority to implements
- * our authorizations.
- * That because we want something more typed than String for
- * authority, and as a bonus, that allows to be able to switch
- * from Spring more easily
- *
- * So we have one Authority type known by Spring Security for
- * authenticated user: ROLE_USER
- * And one other for API accounts: ROLE_REMOTE
- */
-sealed trait RudderAuthType {
-  def grantedAuthorities: Collection[GrantedAuthority]
-}
-
-object RudderAuthType {
-  // build a GrantedAuthority from the string
-  private def buildAuthority(s: String): Collection[GrantedAuthority] = {
-    Seq(new GrantedAuthority { override def getAuthority: String = s }).asJavaCollection
-  }
-
-  case object User extends RudderAuthType {
-    override val grantedAuthorities = buildAuthority("ROLE_USER")
-  }
-  case object Api  extends RudderAuthType {
-    override val grantedAuthorities = buildAuthority("ROLE_REMOTE")
-
-    val apiRudderRights = Rights.NoRights
-    val apiRudderRole: Set[Role] = Set(Role.NoRights)
-  }
 }
 
 object UserFileProcessing {

@@ -42,12 +42,12 @@ import com.normation.box._
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField
-import com.normation.rudder.web.services.CurrentUser
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.SHtml
