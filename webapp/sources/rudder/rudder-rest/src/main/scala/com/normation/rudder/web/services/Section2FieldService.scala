@@ -40,7 +40,7 @@ package com.normation.rudder.web.services
 import com.normation.cfclerk.domain._
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.web.model._
-import com.normation.utils.Control.sequence
+import com.normation.utils.Control.traverse
 import net.liftweb.common._
 
 /**
@@ -101,7 +101,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
         case None       => Full("ok")
         case Some(used) =>
           (for {
-            fields <- sequence(used) { id =>
+            fields <- traverse(used) { id =>
                         Box(
                           allFields.get(id)
                         ) ?~! s"Variable '${id}' used by variable '${f.id}' was not found - are you sure all dependant fields are on the same section of the technique?"

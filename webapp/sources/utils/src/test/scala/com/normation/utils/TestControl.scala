@@ -20,7 +20,7 @@
 
 package com.normation.utils
 
-import Control.sequence
+import Control.traverse
 import net.liftweb.common._
 import org.junit._
 import org.junit.runner.RunWith
@@ -34,13 +34,13 @@ class TestControl {
 
   @Test
   def stopSequenceInOrder(): Unit = {
-    val res = sequence(l)(i => if (i % 4 == 0) Failure(msg(i)) else Full(i))
+    val res = traverse(l)(i => if (i % 4 == 0) Failure(msg(i)) else Full(i))
     assert(res == Failure(msg(4)), "Non parallele sequence traversal should process element in order and failed on first error")
   }
 
   @Test
   def validSequenceKeepOrder(): Unit = {
-    val res = sequence(l)(i => Full(i + 10))
+    val res = traverse(l)(i => Full(i + 10))
     l.zip(res.openOrThrowException("Should succeed!")).foreach {
       case (i, j) => assert(i + 10 == j, s"Non parallele sequence traversal should keep order, but ${i}+10 != ${j}")
     }

@@ -122,7 +122,7 @@ trait JsonExtractorUtils[A[_]] {
     json \ key match {
       case JArray(values) =>
         (for {
-          strings   <- sequence(values) {
+          strings   <- traverse(values) {
                          _ match {
                            case JString(s) => Full(s)
                            case x          => Failure(s"Error extracting a string from json: '${x}'")
@@ -143,7 +143,7 @@ trait JsonExtractorUtils[A[_]] {
     trueJson match {
       case JArray(values) =>
         for {
-          converted <- sequence(values)(convertTo(_))
+          converted <- traverse(values)(convertTo(_))
         } yield {
           monad.point(converted.toList)
         }

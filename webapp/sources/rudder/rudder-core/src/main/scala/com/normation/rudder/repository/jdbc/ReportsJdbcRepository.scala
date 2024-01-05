@@ -488,10 +488,10 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     */
 
   override def countChangeReportsByBatch(intervals: List[Interval]): Box[(Long, Map[RuleId, Map[Interval, Int]])] = {
-    import com.normation.utils.Control.sequence
+    import com.normation.utils.Control.traverse
     logger.debug(s"Fetching all changes for intervals ${intervals.mkString(",")}")
     val beginTime = System.currentTimeMillis()
-    val box: Box[Seq[Vector[(RuleId, Interval, Int, Long)]]] = sequence(intervals) { interval =>
+    val box: Box[Seq[Vector[(RuleId, Interval, Int, Long)]]] = traverse(intervals) { interval =>
       (transactRunBox(xa => {
         query[(RuleId, Int, Long)](
           s"""select ruleid, count(*) as number, max(id)

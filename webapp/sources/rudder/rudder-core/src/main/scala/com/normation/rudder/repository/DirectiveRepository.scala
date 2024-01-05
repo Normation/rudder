@@ -699,7 +699,7 @@ class InitDirectivesTree(
                                                  toParentCat.id.value
                                                )
                            // now, add items and subcategories, in a "try to do the max you can" way
-                           fullRes          <- boxSequence(
+                           fullRes          <- sequence(
                                                  // Techniques
                                                  bestEffort(fromCat.techniqueIds.groupBy(id => id.name).toSeq) {
                                                    case (name, ids) =>

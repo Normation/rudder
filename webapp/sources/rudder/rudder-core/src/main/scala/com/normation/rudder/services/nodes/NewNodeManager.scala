@@ -96,7 +96,7 @@ import com.normation.rudder.services.reports.CacheComplianceQueueAction.Expected
 import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.reports.CacheExpectedReportAction.InsertNodeInCache
 import com.normation.rudder.services.reports.InvalidateCache
-import com.normation.utils.Control.sequence
+import com.normation.utils.Control.traverse
 import com.softwaremill.quicklens._
 import net.liftweb.common.Box
 import net.liftweb.common.Empty
@@ -539,7 +539,7 @@ class ComposedNewNodeManager[A](
 
     // validate pre acceptance for a Node, if an error occurs, stop everything on that node.
     def passPreAccept(inventory: FullInventory) = {
-      sequence(unitAcceptors)(unitAcceptor => {
+      traverse(unitAcceptors)(unitAcceptor => {
         unitAcceptor.preAccept(Seq(inventory), modId, actor) match {
           case Full(seq) => // ok, cool
             NodeLogger.PendingNode.debug(s"Pre acceptance phase: '${unitAcceptor.name}' OK")
@@ -559,7 +559,7 @@ class ComposedNewNodeManager[A](
 
     // accept one node
     def acceptOne(sm: FullInventory, modId: ModificationId, actor: EventActor): Box[FullInventory] = {
-      (sequence(unitAcceptors) { unitAcceptor =>
+      (traverse(unitAcceptors) { unitAcceptor =>
         try {
           unitAcceptor.acceptOne(sm, modId, actor) ?~! "Error when executing accept node process named %s".format(
             unitAcceptor.name
@@ -583,7 +583,7 @@ class ComposedNewNodeManager[A](
 
     // validate post acceptance for a Node, if an error occurs, Rollback the node acceptance
     def passPostAccept(inventory: FullInventory) = {
-      sequence(unitAcceptors)(unitAcceptor => {
+      traverse(unitAcceptors)(unitAcceptor => {
         unitAcceptor.postAccept(Seq(inventory), modId, actor) match {
           case Full(seq) => // ok, cool
             NodeLogger.PendingNode.debug(s"Post acceptance phase: '${unitAcceptor.name}' OK")

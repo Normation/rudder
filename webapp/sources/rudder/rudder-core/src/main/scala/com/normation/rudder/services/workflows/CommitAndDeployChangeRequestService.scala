@@ -268,15 +268,15 @@ class CommitAndDeployChangeRequestServiceImpl(
     } yield {
       if (cond) {
         (for {
-          directivesOk  <- sequence(changeRequest.directives.values.toSeq) { changes =>
+          directivesOk  <- traverse(changeRequest.directives.values.toSeq) { changes =>
                              // Only check the directive for now
                              CheckDirective(changes).check(changes.changes.initialState.map(_._2))
                            }
-          groupsOk      <- sequence(changeRequest.nodeGroups.values.toSeq) { changes =>
+          groupsOk      <- traverse(changeRequest.nodeGroups.values.toSeq) { changes =>
                              CheckGroup.check(changes.changes.initialState)
                            }
-          rulesOk       <- sequence(changeRequest.rules.values.toSeq)(changes => CheckRule.check(changes.changes.initialState))
-          globalParamOk <- sequence(changeRequest.globalParams.values.toSeq) { changes =>
+          rulesOk       <- traverse(changeRequest.rules.values.toSeq)(changes => CheckRule.check(changes.changes.initialState))
+          globalParamOk <- traverse(changeRequest.globalParams.values.toSeq) { changes =>
                              CheckGlobalParameter.check(changes.changes.initialState)
                            }
         } yield {

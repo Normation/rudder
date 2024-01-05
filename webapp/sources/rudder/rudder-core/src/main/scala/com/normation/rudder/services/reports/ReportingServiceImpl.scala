@@ -59,7 +59,7 @@ import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository._
 import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.utils.Control.sequence
+import com.normation.utils.Control.traverse
 import com.normation.zio._
 import net.liftweb.common._
 import org.joda.time._
@@ -995,7 +995,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
     var u1, u2 = 0L
 
     val batchedRunsInfos = runInfos.grouped(jdbcMaxBatchSize).toSeq
-    val result           = sequence(batchedRunsInfos) { runBatch =>
+    val result           = traverse(batchedRunsInfos) { runBatch =>
       val t0          = System.nanoTime()
       /*
        * We want to optimize and only query reports for nodes that we
