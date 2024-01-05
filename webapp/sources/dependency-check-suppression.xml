@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
-<!-- wrong version detection, only version before 08-12-2014 are vulnerable -->
 <!-- YUI embeded in liftweb is not used -->
 <suppress>
    <notes><![CDATA[
