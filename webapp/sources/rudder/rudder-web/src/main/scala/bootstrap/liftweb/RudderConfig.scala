@@ -1853,7 +1853,8 @@ object RudderConfigInit {
       roNodeGroupRepository,
       reportingService,
       roDirectiveRepository,
-      () => globalComplianceModeService.getGlobalComplianceMode
+      () => globalComplianceModeService.getGlobalComplianceMode,
+      () => configService.rudder_global_policy_mode()
     )
 
     lazy val techniqueArchiver = new TechniqueArchiverImpl(
