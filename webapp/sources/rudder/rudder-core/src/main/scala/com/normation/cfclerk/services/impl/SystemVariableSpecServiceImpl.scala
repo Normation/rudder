@@ -272,6 +272,16 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
       multivalued = false,
       constraint = Constraint(typeName = IntegerVType())
     ),
+    // see https://issues.rudder.io/issues/23956
+    // This variable contains a pre-computed real agent first run time, including
+    // a pre-computed splay-time derived from the UUID, and stable given an UUID and
+    // a rudder version (but still opaque)
+    SystemVariableSpec(
+      "AGENT_RUN_STARTTIME",
+      "The pre-computed time at which agent should start running, including a precomputed random splaytime",
+      multivalued = false,
+      constraint = Constraint(typeName = BasicStringVType())
+    ),
     SystemVariableSpec(
       "AGENT_RUN_SCHEDULE",
       "Schedule for the executor daemon",
