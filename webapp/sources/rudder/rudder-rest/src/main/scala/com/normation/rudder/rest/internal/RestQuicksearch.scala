@@ -37,6 +37,7 @@
 
 package com.normation.rudder.rest.internal
 
+import com.normation.box._
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.RuleUid
@@ -95,9 +96,9 @@ class RestQuicksearch(
           // Should not happen, but for now make one token from it, maybe we should only take head ?
           case Some(values)       => values.mkString("")
         }
-        quicksearch.search(token)(CurrentUser.queryContext) match {
+        quicksearch.search(token)(CurrentUser.queryContext).toBox match {
           case eb: EmptyBox =>
-            val e = eb ?~! s"Error when looking for object containing ${token}"
+            val e = eb ?~! s"Error when looking for object containing '${token}'"
             toJsonError(None, e.messageChain)
 
           case Full(results) =>

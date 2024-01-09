@@ -29,4 +29,7 @@ $(document).ready(function(){
     node  : appNode,
     flags : flags
   });
+  appQuicksearch.ports.errorNotification.subscribe(function (str) {
+    createErrorNotification(str);
+  });
 });

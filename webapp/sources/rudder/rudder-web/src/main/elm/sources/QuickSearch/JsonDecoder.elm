@@ -2,6 +2,9 @@ module QuickSearch.JsonDecoder exposing (..)
 
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
+import List exposing (drop, head)
+import String exposing (join, split)
+
 import QuickSearch.Datatypes exposing (..)
 
 
@@ -41,3 +44,17 @@ decoderType =
           _ -> fail ("'" ++ v ++ "' is not valid quicksearch result type")
       )
 
+
+decodeErrorDetails : String -> (String, String)
+decodeErrorDetails json =
+  let
+    errorMsg = decodeString (Json.Decode.at ["errorDetails"] string) json
+    msg = case errorMsg of
+      Ok s -> s
+      Err e -> "fail to process errorDetails"
+    errors = split "<-" msg
+    title = head errors
+  in
+  case title of
+    Nothing -> ("" , "")
+    Just s -> (s , (join " \n " (drop 1 (List.map (\err -> "\t ‣ " ++ err) errors))))

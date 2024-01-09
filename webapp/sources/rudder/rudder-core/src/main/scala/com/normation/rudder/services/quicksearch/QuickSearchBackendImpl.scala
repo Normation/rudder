@@ -37,7 +37,7 @@
 
 package com.normation.rudder.services.quicksearch
 
-import com.normation.box._
+import com.normation.errors.IOResult
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.ldap.sdk.BuildFilter._
 import com.normation.ldap.sdk.LDAPBoolean
@@ -60,7 +60,6 @@ import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.unboundid.ldap.sdk.Attribute
 import com.unboundid.ldap.sdk.Filter
 import java.util.regex.Pattern
-import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import scala.util.control.NonFatal
@@ -86,6 +85,7 @@ object QSNodeFactBackend extends Loggable {
   import QSAttribute.{NodeId => QSNodeId, _}
   import QSObject.{Node => QSNode}
   import QuickSearchResultId.QRNodeId
+  import zio.syntax._
 
   /*
    * The filter that allows to know if a couple (activeTechnique, directive) match
@@ -95,7 +95,7 @@ object QSNodeFactBackend extends Loggable {
   /**
    * Lookup directives
    */
-  def search(query: Query)(implicit repo: NodeFactRepository, qc: QueryContext): Box[Seq[QuickSearchResult]] = {
+  def search(query: Query)(implicit repo: NodeFactRepository, qc: QueryContext): IOResult[Seq[QuickSearchResult]] = {
 
     // only search if query is on Directives and attributes contains
     // DirectiveId, DirectiveVarName, DirectiveVarValue, TechniqueName, TechniqueVersion
@@ -106,9 +106,8 @@ object QSNodeFactBackend extends Loggable {
       repo
         .getAll()
         .map(_.flatMap { case (_, n) => attributes.flatMap(a => a.find(n, query.userToken)) }.toSeq)
-        .toBox
     } else {
-      Full(Seq())
+      Seq().succeed
     }
   }
 
@@ -190,6 +189,7 @@ object QSDirectiveBackend extends Loggable {
   import QuickSearchResultId.QRDirectiveId
   import com.normation.rudder.domain.policies.Directive
   import com.normation.rudder.repository.FullActiveTechnique
+  import zio.syntax._
 
   /*
    * The filter that allows to know if a couple (activeTechnique, directive) match
@@ -199,7 +199,7 @@ object QSDirectiveBackend extends Loggable {
   /**
    * Lookup directives
    */
-  def search(query: Query)(implicit repo: RoDirectiveRepository): Box[Seq[QuickSearchResult]] = {
+  def search(query: Query)(implicit repo: RoDirectiveRepository): IOResult[Seq[QuickSearchResult]] = {
 
     // only search if query is on Directives and attributes contains
     // DirectiveId, DirectiveVarName, DirectiveVarValue, TechniqueName, TechniqueVersion
@@ -208,7 +208,7 @@ object QSDirectiveBackend extends Loggable {
 
     if (query.objectClass.contains(QSDirective) && attributes.nonEmpty) {
       for {
-        directiveLib <- repo.getFullDirectiveLibrary().toBox
+        directiveLib <- repo.getFullDirectiveLibrary()
       } yield {
         (for {
           (at, dir) <- directiveLib.allDirectives.values
@@ -219,7 +219,7 @@ object QSDirectiveBackend extends Loggable {
         }).flatten.toSeq
       }
     } else {
-      Full(Seq())
+      Seq().succeed
     }
   }
 
@@ -312,7 +312,7 @@ object QSLdapBackend {
   def search(query: Query)(implicit
       ldap:         LDAPConnectionProvider[RoLDAPConnection],
       rudderDit:    RudderDit
-  ): Box[Seq[QuickSearchResult]] = {
+  ): IOResult[Seq[QuickSearchResult]] = {
     // the filter for attribute and for attributes must be non empty, else return nothing
     val ocFilter           = query.objectClass.map(_.filter).flatten.toSeq
     val attrFilter         = query.attributes.map(_.filter(query.userToken)).flatten.toSeq
@@ -340,7 +340,7 @@ object QSLdapBackend {
         entries.flatMap(_.toResult(query))
       }
     }
-  }.toBox
+  }
 
   /**
    * Mapping between attribute and their ldap name

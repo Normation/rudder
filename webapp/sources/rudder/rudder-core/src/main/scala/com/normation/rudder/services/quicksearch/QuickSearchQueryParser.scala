@@ -98,8 +98,8 @@ object QSRegexQueryParser {
         val in = filters.collect { case FilterAttr(set) => set }.flatten
 
         (for {
-          o <- getObjects(is.toSet) chainError ("Check 'is' filters")
-          a <- getAttributes(in.toSet) chainError ("Check 'in' filters")
+          o <- getObjects(is.toSet) chainError ("The 'is' filter(s) contain unknown value(s)")
+          a <- getAttributes(in.toSet) chainError ("The 'in' filter(s) contain unknown value(s)")
         } yield {
           val (objs, oKeys)  = o
           val (attrs, aKeys) = a
@@ -115,13 +115,7 @@ object QSRegexQueryParser {
             if (attrs.isEmpty) { QSAttribute.all }
             else { attrs }
           )
-        }) chainError {
-          val allNames = (
-            QSMapping.objectNameMapping.keys.map(_.capitalize)
-              ++ QSMapping.attributeNameMapping.keys
-          ).toSeq.sorted.mkString("', '")
-          s"Query containts unknown filter. Please choose among '${allNames}'"
-        }
+        })
     }
   }
 
@@ -233,7 +227,9 @@ object QSRegexQueryParser {
     if (keys == names) {
       Right((values, keys))
     } else {
-      Left(Unexpected(s"Some filters are not know: ${names -- keys}"))
+      Left(Unexpected(s"These filters are not known: [${(names -- keys).mkString("', '")}]")) chainError {
+        s"Please choose among: '${map.keys.mkString("', '")}'"
+      }
     }
   }
 

@@ -37,7 +37,8 @@
 
 package com.normation.rudder.services.quicksearch
 
-import com.normation.box._
+import com.normation.NamedZioLogger
+import com.normation.errors._
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RoLDAPConnection
@@ -46,11 +47,7 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.utils.Control._
-import net.liftweb.common.Box
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
-import net.liftweb.common.Loggable
+import zio.ZIO
 
 /**
  * This class allow to return a list of Rudder object given a string.
@@ -66,9 +63,10 @@ class FullQuickSearchService(implicit
     val rudderDit:      RudderDit,
     val directiveRepo:  RoDirectiveRepository,
     val nodeInfos:      NodeFactRepository
-) extends Loggable {
+) {
 
   import QuickSearchService._
+  val logger = FullQuickSearchServiceLoggerPure
 
   /**
    * Search in nodes, groups, directives, rules, parameters for the object
@@ -76,23 +74,18 @@ class FullQuickSearchService(implicit
    * The results are raw: they are not sorted, and may be not unique for
    * a given id (i.e, we can have to answer for the node id "root").
    */
-  def search(token: String)(implicit qc: QueryContext): Box[Set[QuickSearchResult]] = {
+  def search(token: String)(implicit qc: QueryContext): IOResult[Set[QuickSearchResult]] = {
     for {
       query   <- token.parse()
-      _        = logger.debug(
+      _       <- logger.debug(
                    s"User query for '${token}', parsed as user query: '${query.userToken}' on objects: " +
                    s"'${query.objectClass.mkString(", ")}' and attributes '${query.attributes.mkString(", ")}'"
                  )
-      results <- traverse(QSBackend.all.toSeq) { b =>
-                   val res = b.search(query)
-                   res match {
-                     case eb: EmptyBox =>
-                       logger.error((eb ?~! s"Error with quicksearch bachend ${b}").messageChain)
-                     case Full(results) =>
-                       logger.debug(s"  - [${b}] found ${results.size} results")
-                   }
-                   res
-                 }
+      results <- ZIO.foreach(QSBackend.all.toSeq)(b => {
+                   b.search(query)
+                     .tap(results => logger.debug(s"  - [${b}] found ${results.size} results"))
+                     .chainError(s"Error with quicksearch bachend ${b}")
+                 })
     } yield {
       results.toSet.flatten
     }
@@ -100,10 +93,14 @@ class FullQuickSearchService(implicit
 
 }
 
+object FullQuickSearchServiceLoggerPure extends NamedZioLogger {
+  override def loggerName = "com.normation.rudder.services.quicksearch.FullQuickSearchService"
+}
+
 object QuickSearchService {
 
   implicit class QSParser(val query: String) extends AnyVal {
-    def parse(): Box[Query] = QSRegexQueryParser.parse(query).toBox
+    def parse(): IOResult[Query] = QSRegexQueryParser.parse(query).toIO
   }
 
   implicit class QSBackendImpl(b: QSBackend)(implicit
@@ -117,11 +114,12 @@ object QuickSearchService {
 
     import QSBackend._
 
-    def search(query: Query)(implicit qc: QueryContext): Box[Seq[QuickSearchResult]] = b match {
+    def search(query: Query)(implicit qc: QueryContext): IOResult[Seq[QuickSearchResult]] = b match {
       case LdapBackend      => QSLdapBackend.search(query)
       case DirectiveBackend => QSDirectiveBackend.search(query)
       case NodeFactBackend  => QSNodeFactBackend.search(query)
     }
 
   }
+
 }
