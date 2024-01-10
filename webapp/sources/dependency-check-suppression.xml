@@ -49,4 +49,11 @@
    <packageUrl regex="true">^pkg:maven/org\.eclipse\.jgit/org\.eclipse\.jgit@.*$</packageUrl>
    <cve>CVE-2023-4759</cve>
 </suppress>
+<suppress>
+   <notes><![CDATA[
+   file name: json-path-2.8.0.jar
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/com\.jayway\.jsonpath/json\-path@2.8.0$</packageUrl>
+   <cve>CVE-2023-51074</cve>
+</suppress>
 </suppressions>
