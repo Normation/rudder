@@ -1150,7 +1150,7 @@ form .tooltip-content p {
 /* --- WARNING --- */
 .callout-fade.callout-warning{
   border-left-color: #EF9600;
-  background-color: #ef960008;
+  background-color: #fefcf7;
 }
 .callout-fade.callout-warning h4,.callout-fade.callout-warning b{
   color: #EF9600;

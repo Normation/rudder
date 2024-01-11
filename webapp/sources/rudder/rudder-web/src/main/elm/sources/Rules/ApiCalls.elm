@@ -5,6 +5,8 @@ import Time.Iso8601
 import Time.ZonedDateTime exposing (ZonedDateTime)
 import Url
 import Url.Builder exposing (QueryParameter, int, string)
+import Maybe.Extra exposing (isJust)
+import List.Extra exposing (find)
 
 import Rules.DataTypes exposing (..)
 import Rules.JsonDecoder exposing (..)
@@ -260,14 +262,40 @@ getNodesList model =
 saveRuleDetails : Rule -> Bool -> Model -> Cmd Msg
 saveRuleDetails ruleDetails creation model =
   let
+    groupsList = getAllElems model.groupsTree
+    (newRuleDetails, unknwonTargetsMsg) =
+      let
+        (targets, sendMsg) = case ruleDetails.targets of
+          [Composition (Or include) (Or exclude)] ->
+            let
+              checkExistingTarget : RuleTarget -> Bool
+              checkExistingTarget target =
+                case target of
+                  NodeGroupId id -> isJust (find (\g -> g.id == id ) groupsList)
+                  _ -> True
+              newInclude = include
+                |> List.filter checkExistingTarget
+              newExclude = exclude
+                |> List.filter checkExistingTarget
+            in
+              ( [Composition (Or newInclude) (Or newExclude)]
+              , (List.length include /= List.length newInclude) || (List.length exclude /= List.length newExclude)
+              )
+          _ ->
+            ( ruleDetails.targets
+            , False
+            )
+      in
+        ({ruleDetails | targets = targets}, sendMsg)
+
     (method, url) = if creation then ("PUT",["rules"]) else ("POST", ["rules", ruleDetails.id.value])
     req =
       request
         { method  = method
         , headers = []
         , url     = getUrl model url (changeRequestParameters model.ui.crSettings)
-        , body    = encodeRuleDetails ruleDetails |> jsonBody
-        , expect  = expectJson SaveRuleDetails decodeGetRuleDetails
+        , body    = encodeRuleDetails newRuleDetails |> jsonBody
+        , expect  = expectJson (SaveRuleDetails unknwonTargetsMsg) decodeGetRuleDetails
         , timeout = Nothing
         , tracker = Nothing
         }
