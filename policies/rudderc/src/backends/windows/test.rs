@@ -59,7 +59,7 @@ pub fn win_agent(
     let params = case
         .parameters
         .iter()
-        .map(|(n, v)| format!("-{} \"{}\"", n, filters::escape_double_quotes(v).unwrap()))
+        .map(|(n, v)| format!("-{} '{}'", n, filters::escape_single_quotes(v).unwrap()))
         .collect::<Vec<String>>()
         .join(" ");
 

@@ -62,9 +62,9 @@ pub mod filters {
     use std::fmt::Display;
 
     use anyhow::Error;
-    use rudder_commons::{regex_comp, Escaping, PolicyMode, Target};
+    use rudder_commons::{Escaping, PolicyMode, Target};
 
-    use crate::ir::value::Expression;
+    use crate::ir::{technique, value::Expression};
 
     fn uppercase_first_letter(s: &str) -> String {
         let mut c = s.chars();
@@ -80,12 +80,22 @@ pub mod filters {
     }
 
     /// Format an expression to be evaluated by the agent
-    pub fn value_fmt<T: Display>(s: T) -> askama::Result<String> {
+    pub fn value_fmt<T: Display>(
+        s: T,
+        t_id: &&str,
+        t_params: &Vec<technique::Parameter>,
+    ) -> askama::Result<String> {
         let expr: Expression = s
             .to_string()
             .parse()
             .map_err(|e: Error| askama::Error::Custom(e.into()))?;
-        Ok(expr.fmt(Target::Windows))
+        let simplified_expr = expr
+            .simplify_using_context(Target::Windows, t_id, t_params.to_owned())
+            .map_err(|e: Error| askama::Error::Custom(e.into()))?;
+        match simplified_expr {
+            Expression::Scalar(_) => Ok(format!("'{}'", simplified_expr.fmt(Target::Windows))),
+            _ => Ok(simplified_expr.fmt(Target::Windows)),
+        }
     }
 
     /// `my_method` -> `My-Method`
@@ -106,33 +116,80 @@ pub mod filters {
             .join(""))
     }
 
-    pub fn escape_double_quotes<T: Display>(s: T) -> askama::Result<String> {
-        Ok(s.to_string().replace('\"', "`\""))
+    pub fn escape_single_quotes<T: Display>(s: T) -> askama::Result<String> {
+        Ok(s.to_string().replace('\'', "`\'"))
     }
 
+    pub fn canonify_condition_with_context<T: Display>(
+        s: T,
+        t_id: &&str,
+        t_params: &Vec<technique::Parameter>,
+    ) -> askama::Result<String> {
+        let s = s.to_string();
+        if !s.contains("${") {
+            Ok(format!("\"{s}\""))
+        } else {
+            let canonify_stub = "([Rudder.Condition]::canonify(";
+            let expr: Expression = s
+                .to_string()
+                .parse()
+                .map_err(|e: Error| askama::Error::Custom(e.into()))?;
+            let simplified_expr = expr
+                .simplify_using_context(Target::Windows, t_id, t_params.to_owned())
+                .map_err(|e: Error| askama::Error::Custom(e.into()))?;
+            match simplified_expr {
+                Expression::Scalar(_) => Ok(format!(
+                    "{}@'\n{}\n'@))",
+                    canonify_stub,
+                    simplified_expr.fmt(Target::Windows)
+                )),
+                Expression::Empty => Ok("''".to_string()),
+                _ => Ok(format!(
+                    "{}{}))",
+                    canonify_stub,
+                    simplified_expr.fmt(Target::Windows)
+                )),
+            }
+        }
+    }
     pub fn canonify_condition<T: Display>(s: T) -> askama::Result<String> {
         let s = s.to_string();
         if !s.contains("${") {
             Ok(format!("\"{s}\""))
         } else {
-            // TODO: does not handle nested vars, we need a parser for this.
-            let var = regex_comp!(r"(\$\{[^\}]*})");
-            // Format expression for Windows too
-            value_fmt(format!(
-                "\"{}\"",
-                var.replace_all(&s, r#"" + ([Rudder.Condition]::canonify($1)) + ""#)
-            ))
+            let canonify_stub = "([Rudder.Condition]::canonify(";
+            let expr: Expression = s
+                .to_string()
+                .parse()
+                .map_err(|e: Error| askama::Error::Custom(e.into()))?;
+            match expr {
+                Expression::Scalar(_) => Ok(format!(
+                    "{}@'\n{}\n'@))",
+                    canonify_stub,
+                    expr.fmt(Target::Windows)
+                )),
+                Expression::Empty => Ok("''".to_string()),
+                _ => Ok(format!("{}{}))", canonify_stub, expr.fmt(Target::Windows))),
+            }
         }
     }
 
     pub fn parameter_fmt(p: &&(String, String, Escaping)) -> askama::Result<String> {
-        // Format expression for Windows
-        let value = value_fmt(&p.1)?;
-        // Then display depending on the type
         Ok(match p.2 {
-            Escaping::String => format!("\"{}\"", escape_double_quotes(value)?),
-            Escaping::HereString => format!("@'\n{value}\n'@"),
-            Escaping::Raw => value,
+            Escaping::String => {
+                let expr: Expression =
+                    p.1.to_string()
+                        .parse()
+                        .map_err(|e: Error| askama::Error::Custom(e.into()))?;
+                match expr {
+                    Expression::Scalar(_) => format!("@'\n{}\n'@", expr.fmt(Target::Windows)),
+                    Expression::Empty => "''".to_string(),
+                    _ => expr.fmt(Target::Windows),
+                }
+            }
+            // HereString are not exapanded at all
+            Escaping::HereString => format!("@'\n{}\n'@", p.1),
+            Escaping::Raw => p.1.clone(),
         })
     }
 
@@ -296,7 +353,7 @@ mod tests {
         assert_eq!(res, r);
 
         let c = "${var}";
-        let r = "\"\" + ([Rudder.Condition]::canonify(${var})) + \"\"";
+        let r = "([Rudder.Condition]::canonify([Nustache.Core.Render]::StringToString('{{' + 'var' + '}}', $data, $mustacheOptions))";
         let res = canonify_condition(c).unwrap();
         assert_eq!(res, r);
 
