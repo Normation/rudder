@@ -11,42 +11,42 @@
   <div class="homePage">
     <div class="row">
       <div class="col-lg-2 col-md-6">
-        <div class="panel panel-default stats">
-          <div class="panel-heading">Statistics</div>
+        <div class="card stats">
+          <h5 class="card-title py-2 px-3 mb-0">Statistics</h5>
           <div data-lift="lazy-load?template=lazy-load-spinner">
-            <ul class="nav nav-pills nav-stacked navbar-rudder">
-              <li>
-                <a href="/secure/nodeManager/nodes">
+            <ul class="list-group list-group-flush fs-6">
+              <li class="list-group-item border-0 p-0">
+                <a href="/secure/nodeManager/nodes" class="d-flex justify-content-between py-2 px-3">
                   Nodes
                   <span class="badge"><div data-lift="HomePage.acceptedNodes"></div></span>
                 </a>
               </li>
-              <li>
-                <a href="/secure/nodeManager/manageNewNode">
+              <li class="list-group-item border-0 p-0">
+                <a href="/secure/nodeManager/manageNewNode" class="d-flex justify-content-between py-2 px-3">
                   Pending nodes
                   <span class="badge"><div data-lift="HomePage.pendingNodes"></div></span>
                 </a>
               </li>
-              <li>
-                <a href="/secure/configurationManager/ruleManagement">
+              <li class="list-group-item border-0 p-0">
+                <a href="/secure/configurationManager/ruleManagement" class="d-flex justify-content-between py-2 px-3">
                   Rules
                   <span class="badge"><div data-lift="HomePage.rules"></div></span>
                 </a>
               </li>
-              <li>
-                <a href="/secure/configurationManager/directiveManagement">
+              <li class="list-group-item border-0 p-0">
+                <a href="/secure/configurationManager/directiveManagement" class="d-flex justify-content-between py-2 px-3">
                   Directives
                   <span class="badge"><div data-lift="HomePage.directives"></div></span>
                 </a>
               </li>
-              <li>
-                <a href="/secure/nodeManager/groups">
+              <li class="list-group-item border-0 p-0">
+                <a href="/secure/nodeManager/groups" class="d-flex justify-content-between py-2 px-3">
                   Groups
                   <span class="badge"><div data-lift="HomePage.groups"></div></span>
                 </a>
               </li>
-              <li>
-                <a href="/secure/administration/techniqueLibraryManagement">
+              <li class="list-group-item border-0 p-0">
+                <a href="/secure/administration/techniqueLibraryManagement" class="d-flex justify-content-between py-2 px-3">
                   Techniques
                   <span class="badge"><div data-lift="HomePage.techniques"></div></span>
                 </a>
@@ -54,67 +54,69 @@
             </ul>
           </div>
        </div>
-    </div>
+      </div>
 
-    <div class="col-lg-4 col-md-6">
-      <div class="panel panel-default global-compliance">
-        <div class="panel-heading">
-          Global compliance
+      <div class="col-lg-4 col-md-6">
+        <div class="card global-compliance">
+          <h5 class="card-title py-2 px-3 mb-0">Global compliance</h5>
+          <div class="card-body text-center">
+            <canvas id="complianceGauge" width="360" height="150" class=""></canvas>
+            <span id="gauge-value"></span>
+          </div>
         </div>
-        <div class="text-center">
-          <canvas id="complianceGauge" width="360" height="150" class=""></canvas>
-          <span id="gauge-value"></span>
+      </div>
+
+      <div class="col-lg-6 col-md-12">
+        <div class="card global-compliance-details">
+          <h5 class="card-title py-2 px-3 mb-0">Global compliance details</h5>
+          <div class="card-body">
+            <div id="globalCompliance"></div>
+            <h5 class="text-center" id="globalComplianceStats"></h5>
+          </div>
         </div>
       </div>
     </div>
 
-     <div class="col-lg-6 col-md-12">
-       <div class="panel panel-default global-compliance-details">
-         <div class="panel-heading">Global compliance details</div>
-         <div id="globalCompliance"></div>
-         <h3 class="text-center" id="globalComplianceStats"></h3>
-       </div>
-     </div>
-    </div>
-
     <div class="row">
-     <div class="col-lg-4 col-md-4">
-       <div id="nodeOverview" class="panel panel-default">
-         <div class="panel-heading">Nodes by overall compliance</div>
-           <div class="node-compliance-chart">
-             <canvas id="nodeCompliance" ></canvas>
-             <div  id="nodeCompliance-legend"></div>
-           </div>
-           <div style="clear: both;"></div>
-         <div data-lift="lazy-load?template=lazy-load-spinner"> <div data-lift="HomePage.getAllCompliance"></div> </div>
-       </div>
-     </div>
-
-     <div class="col-lg-8 col-md-8" id="nodeBreakdown">
-         <div class="panel panel-default">
-           <div class="panel-heading">Node breakdown</div>
-           <div class="node-charts">
-             <div class="node-chart">
-               <h4 class="text-center">By machine type</h4>
-               <canvas id="nodeMachine" > </canvas>
-               <div  id="nodeMachine-legend"></div>
-             </div>
-             <div class="node-chart">
-               <h4 class="text-center">By OS</h4>
-               <canvas id="nodeOs"></canvas>
-               <div  id="nodeOs-legend"></div>
-               <div data-lift="lazy-load?template=lazy-load-spinner"> <div data-lift="HomePage.inventoryInfo" > </div></div>
-             </div>
-             <div class="node-chart">
-               <h4 class="text-center">By agent version</h4>
-               <canvas id="nodeAgents" > </canvas>
-               <div  id="nodeAgents-legend"></div>
-                 <div data-lift="lazy-load?template=lazy-load-spinner"> <div data-lift="HomePage.rudderAgentVersion"></div></div>
-             </div>
-           </div>
-           <div style="clear: both;"></div>
+      <div class="col-lg-4 col-md-4">
+        <div id="nodeOverview" class="card">
+          <h5 class="card-title py-2 px-3 mb-0">Nodes by overall compliance</h5>
+          <div class="card-body text-center">
+            <div class="node-compliance-chart">
+              <canvas id="nodeCompliance"></canvas>
+              <div  id="nodeCompliance-legend"></div>
+            </div>
+            <div data-lift="lazy-load?template=lazy-load-spinner"><div data-lift="HomePage.getAllCompliance"></div></div>
+          </div>
         </div>
-     </div>
+      </div>
+
+      <div class="col-lg-8 col-md-8" id="nodeBreakdown">
+        <div class="card">
+          <h5 class="card-title py-2 px-3 mb-0">Node breakdown</h5>
+          <div class="card-body text-center">
+            <div class="node-charts">
+              <div class="node-chart">
+                <h4 class="text-center">By machine type</h4>
+                <canvas id="nodeMachine" > </canvas>
+                <div  id="nodeMachine-legend"></div>
+              </div>
+              <div class="node-chart">
+                <h4 class="text-center">By OS</h4>
+                <canvas id="nodeOs"></canvas>
+                <div  id="nodeOs-legend"></div>
+                <div data-lift="lazy-load?template=lazy-load-spinner"> <div data-lift="HomePage.inventoryInfo" > </div></div>
+              </div>
+              <div class="node-chart">
+                <h4 class="text-center">By agent version</h4>
+                <canvas id="nodeAgents" > </canvas>
+                <div  id="nodeAgents-legend"></div>
+                <div data-lift="lazy-load?template=lazy-load-spinner"> <div data-lift="HomePage.rudderAgentVersion"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>

@@ -17,7 +17,8 @@
 
 /* === PANEL === */
 
-.rudder-template .homePage .panel{
+.rudder-template .homePage .panel,
+.rudder-template .homePage .card{
   margin-bottom: 30px;
   border-radius: 12px;
   box-shadow: 0 10px 20px 6px #dce3ef63;
@@ -40,47 +41,34 @@
   color: #041922;
   font-weight:700;
 }
-.content-wrapper .progress {
-  margin: 3px 5px;
-  border-radius:0;
-}
 .node-chart h4 {
   color: #36474E;
   margin-bottom: 15px;
   font-size: 1.3em;
 }
 /* Statistics */
-.stats ul{
-  margin-bottom: 10px;
-}
-.stats li > a{
-  display: flex;
-  justify-content: space-between;
-  font-weight:300;
-  border-radius: 0px;
-  color: #041922;
-  font-size: 15px;
-  padding: 5px 15px;
-  align-items: center;
-}
-.stats li > a .badge{
-  background-color: #b1bbcb;
-  opacity:.5;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  padding: 5px 10px;
-  font-size: 1em;
-}
-.stats li>a:hover .badge{
-  background-color: #72829D;
-  opacity:1;
-}
+.stats li {
+  &:hover{
+    background-color: #f2f8fe;
+  }
+  & > a {
+    .badge{
+      background-color: #b1bbcb;
+      opacity:.5;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      padding: 5px 10px;
+      font-size: .8em;
+    }
 
-.content-wrapper .nav > li > a:hover, .content-wrapper .nav > li > a:focus, .content-wrapper .nav li.dropdown > a:hover, .content-wrapper .nav li.dropdown > a:focus {
-  background-color: #f2f8fe;
-  color: #041922;
-  text-decoration: none;
+    &:hover {
+      & .badge{
+         background-color: #72829D;
+         opacity:1;
+       }
+    }
+  }
 }
 
 /* Global Compliance */
@@ -89,7 +77,6 @@
 }
 #globalCompliance .progress {
   height: 80px;
-  margin: 30px;
   border-radius: 8px;
 }
 
