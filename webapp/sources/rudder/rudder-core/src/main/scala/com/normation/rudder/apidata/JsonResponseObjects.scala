@@ -517,6 +517,7 @@ object JsonResponseObjects {
   // when returning a root category, we have a "data":{"ruleCategories":{.... }}. Seems like a bug, though
   final case class JRCategoriesRootEntryFull(ruleCategories: JRFullRuleCategory)
   final case class JRCategoriesRootEntrySimple(ruleCategories: JRSimpleRuleCategory)
+  final case class JRCategoriesRootEntryInfo(ruleCategories: JRRuleCategoryInfo)
 
   final case class JRSimpleRuleCategory(
       id:          String,
@@ -534,6 +535,57 @@ object JsonResponseObjects {
         .withFieldConst(_.parent, parent)
         .withFieldComputed(_.categories, _.childs.map(_.id.value).sorted)
         .withFieldConst(_.rules, rules)
+        .transform
+    }
+  }
+
+  final case class JRRuleCategoryInfo(
+      id:          String,
+      name:        String,
+      description: String,
+      parent:      Option[String],
+      categories:  List[JRRuleCategoryInfo],
+      rules:       List[JRRuleInfo]
+  )
+  object JRRuleCategoryInfo   {
+    def fromCategory(
+        cat:      RuleCategory,
+        allRules: Map[RuleCategoryId, Seq[Rule]],
+        parent:   Option[String]
+    ): JRRuleCategoryInfo = {
+      cat
+        .into[JRRuleCategoryInfo]
+        .withFieldConst(_.parent, parent)
+        .withFieldComputed(
+          _.categories,
+          _.childs.map(c => JRRuleCategoryInfo.fromCategory(c, allRules, Some(cat.id.value))).sortBy(_.id)
+        )
+        .withFieldConst(
+          _.rules,
+          allRules.get(cat.id).getOrElse(Nil).map(JRRuleInfo.fromRule).toList.sortBy(_.id)
+        )
+        .transform
+    }
+  }
+
+  final case class JRRuleInfo(
+      id:               String,
+      displayName:      String,
+      categoryId:       String,
+      shortDescription: String,
+      longDescription:  String,
+      enabled:          Boolean,
+      tags:             List[Map[String, String]]
+  )
+  object JRRuleInfo           {
+    def fromRule(rule: Rule): JRRuleInfo = {
+      rule
+        .into[JRRuleInfo]
+        .enableBeanGetters
+        .withFieldComputed(_.id, _.id.serialize)
+        .withFieldRenamed(_.name, _.displayName)
+        .withFieldComputed(_.categoryId, _.categoryId.value)
+        .withFieldComputed(_.tags, x => JRTags.fromTags(rule.tags))
         .transform
     }
   }
@@ -807,11 +859,14 @@ trait RudderJsonEncoders {
   implicit val hookEncoder: JsonEncoder[JRHooks] = DeriveJsonEncoder.gen
 
   implicit val ruleNodesDirectiveEncoder: JsonEncoder[JRRuleNodesDirectives] = DeriveJsonEncoder.gen
+  implicit val ruleInfoEncoder:           JsonEncoder[JRRuleInfo]            = DeriveJsonEncoder.gen
 
   implicit val simpleCategoryEncoder:    JsonEncoder[JRSimpleRuleCategory]        = DeriveJsonEncoder.gen
   implicit lazy val fullCategoryEncoder: JsonEncoder[JRFullRuleCategory]          = DeriveJsonEncoder.gen
+  implicit lazy val infoCategoryEncoder: JsonEncoder[JRRuleCategoryInfo]          = DeriveJsonEncoder.gen
   implicit val rootCategoryEncoder1:     JsonEncoder[JRCategoriesRootEntryFull]   = DeriveJsonEncoder.gen
   implicit val rootCategoryEncoder2:     JsonEncoder[JRCategoriesRootEntrySimple] = DeriveJsonEncoder.gen
+  implicit val rootCategoryEncoder3:     JsonEncoder[JRCategoriesRootEntryInfo]   = DeriveJsonEncoder.gen
 
   implicit val rulesEncoder: JsonEncoder[JRRules] = DeriveJsonEncoder.gen
 

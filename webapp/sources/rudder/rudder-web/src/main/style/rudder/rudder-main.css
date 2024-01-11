@@ -1073,6 +1073,12 @@ form .tooltip-content p {
 .content-wrapper .rudder-label.label-overriden + .tooltip b, .content-wrapper .label-text.label-overriden:after, .content-wrapper .label-text.label-overriden  + .tooltip b, .text-overriden {
   color: #eda800;
 }
+.content-wrapper .rudder-label.label-included:before,.content-wrapper .label-text.label-included:after{
+  content: "Included";
+}
+.content-wrapper .rudder-label.label-excluded:before,.content-wrapper .label-text.label-excluded:after{
+  content: "Excluded";
+}
 
 .content-wrapper .label-text{
   color: #999;

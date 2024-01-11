@@ -1837,7 +1837,8 @@ object RudderConfigInit {
       deprecated.softwareService
     )
 
-    lazy val ruleInternalApiService = new RuleInternalApiService(roRuleRepository, roNodeGroupRepository, nodeFactRepository)
+    lazy val ruleInternalApiService =
+      new RuleInternalApiService(roRuleRepository, roNodeGroupRepository, roRuleCategoryRepository, nodeFactRepository)
 
     lazy val complianceAPIService = new ComplianceAPIService(
       roRuleRepository,
@@ -2184,7 +2185,7 @@ object RudderConfigInit {
         new InventoryApi(restExtractorService, inventoryWatcher, better.files.File(INVENTORY_DIR_INCOMING)),
         new PluginApi(restExtractorService, pluginSettingsService),
         new RecentChangesAPI(recentChangesService, restExtractorService),
-        new RulesInternalApi(ruleInternalApiService),
+        new RulesInternalApi(ruleInternalApiService, ruleApiService13),
         campaignApi,
         new HookApi(hookApiService),
         archiveApi
