@@ -54,7 +54,7 @@
    <notes><![CDATA[
    file name: icu4j-23.1.1.jar
    ]]></notes>
-   <packageUrl regex="true">^pkg:maven/org\.graalvm\.shadowed\.icu4j.*$</packageUrl>
+   <packageUrl regex="true">^pkg:maven/org\.graalvm\.shadowed/icu4j@.*$</packageUrl>
    <cve>CVE-2011-4599</cve>
    <cve>CVE-2014-7923</cve>
    <cve>CVE-2014-7926</cve>
