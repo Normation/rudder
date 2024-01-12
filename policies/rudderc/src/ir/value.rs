@@ -826,34 +826,46 @@ node.inventory.os.fullName
             Expression::Scalar("b".to_string()),
         ]);
         assert_eq!(b.fmt(Target::Unix), "${node.properties[a][b]}");
-        assert_eq!(b.fmt(Target::Windows), r#"[Nustache.Core.Render]::StringToString('{{' + @'
+        assert_eq!(
+            b.fmt(Target::Windows),
+            r#"[Nustache.Core.Render]::StringToString('{{' + @'
 node.properties.a.b
-'@ + '}}', $data, $mustacheOptions)"#);
+'@ + '}}', $data, $mustacheOptions)"#
+        );
 
         let c: Expression = Expression::Sys(vec![Expression::Scalar("host".to_string())]);
         assert_eq!(c.fmt(Target::Unix), "${sys.host}");
-        assert_eq!(c.fmt(Target::Windows), r#"[Nustache.Core.Render]::StringToString('{{' + @'
+        assert_eq!(
+            c.fmt(Target::Windows),
+            r#"[Nustache.Core.Render]::StringToString('{{' + @'
 sys.host
-'@ + '}}', $data, $mustacheOptions)"#);
+'@ + '}}', $data, $mustacheOptions)"#
+        );
 
         let cc: Expression = Expression::Sequence(vec![Expression::Scalar("host".to_string())]);
         assert_eq!(cc.fmt(Target::Unix), "host");
-        assert_eq!(cc.fmt(Target::Windows), r#"@'
+        assert_eq!(
+            cc.fmt(Target::Windows),
+            r#"@'
 host
-'@"#);
+'@"#
+        );
 
         let d = Expression::NodeProperty(vec![Expression::Sequence(vec![
             Expression::Scalar("inner".to_string()),
             Expression::Sys(vec![Expression::Scalar("host".to_string())]),
         ])]);
         assert_eq!(d.fmt(Target::Unix), "${node.properties[inner${sys.host}]}");
-        assert_eq!(d.fmt(Target::Windows), r#"[Nustache.Core.Render]::StringToString('{{' + @'
+        assert_eq!(
+            d.fmt(Target::Windows),
+            r#"[Nustache.Core.Render]::StringToString('{{' + @'
 node.properties.
 '@ + @'
 inner
 '@ + ([Nustache.Core.Render]::StringToString('{{' + @'
 sys.host
-'@ + '}}', $data, $mustacheOptions)) + '}}', $data, $mustacheOptions)"#);
+'@ + '}}', $data, $mustacheOptions)) + '}}', $data, $mustacheOptions)"#
+        );
 
         let dd = Expression::NodeProperty(vec![Expression::Sequence(vec![
             Expression::Scalar("inner".to_string()),
@@ -861,7 +873,9 @@ sys.host
                 "host".to_string(),
             )])]),
         ])]);
-        assert_eq!(dd.fmt(Target::Windows), r#"[Nustache.Core.Render]::StringToString('{{' + @'
+        assert_eq!(
+            dd.fmt(Target::Windows),
+            r#"[Nustache.Core.Render]::StringToString('{{' + @'
 node.properties.
 '@ + @'
 inner
@@ -869,7 +883,8 @@ inner
 sys.
 '@ + @'
 host
-'@ + '}}', $data, $mustacheOptions)) + '}}', $data, $mustacheOptions)"#);
+'@ + '}}', $data, $mustacheOptions)) + '}}', $data, $mustacheOptions)"#
+        );
         assert_eq!(dd.fmt(Target::Unix), "${node.properties[inner${sys.host}]}");
 
         let ee = Expression::NodeProperty(vec![
@@ -877,7 +892,9 @@ host
             Expression::Sequence(vec![Expression::Scalar("eth0".to_string())]),
         ]);
         assert_eq!(ee.fmt(Target::Unix), "${node.properties[interfaces][eth0]}");
-        assert_eq!(ee.fmt(Target::Windows), r#"[Nustache.Core.Render]::StringToString('{{' + @'
+        assert_eq!(
+            ee.fmt(Target::Windows),
+            r#"[Nustache.Core.Render]::StringToString('{{' + @'
 node.properties.
 '@ + @'
 interfaces
@@ -885,7 +902,8 @@ interfaces
 .
 '@ + @'
 eth0
-'@ + '}}', $data, $mustacheOptions)"#);
+'@ + '}}', $data, $mustacheOptions)"#
+        );
 
         let e = Expression::NodeProperty(vec![
             Expression::Sequence(vec![Expression::NodeProperty(vec![Expression::Sequence(
@@ -926,7 +944,8 @@ eth0
 .
 '@ + @'
 tutu
-'@ + '}}', $data, $mustacheOptions)"#);
+'@ + '}}', $data, $mustacheOptions)"#
+        );
         assert_eq!(
             e.fmt(Target::Unix),
             "${node.properties[${node.properties[inner${sys.host}${sys.interfaces[eth0]}]}][tutu]}"
@@ -937,20 +956,28 @@ tutu
                 "host".to_string(),
             )])]),
         ])])]);
-        assert_eq!(e.fmt(Target::Windows), r#"([Nustache.Core.Render]::StringToString('{{' + @'
+        assert_eq!(
+            e.fmt(Target::Windows),
+            r#"([Nustache.Core.Render]::StringToString('{{' + @'
 sys.
 '@ + ([Nustache.Core.Render]::StringToString('{{' + @'
 
 '@ + @'
 host
-'@ + '}}', $data, $mustacheOptions)) + '}}', $data, $mustacheOptions))"#.to_string());
+'@ + '}}', $data, $mustacheOptions)) + '}}', $data, $mustacheOptions))"#
+                .to_string()
+        );
         let e = Expression::GenericVar(vec![
             Expression::Scalar("bundle.plouf".to_string()),
             Expression::Scalar("key".to_string()),
         ]);
-        assert_eq!(e.fmt(Target::Windows), r#"[Nustache.Core.Render]::StringToString('{{' + @'
+        assert_eq!(
+            e.fmt(Target::Windows),
+            r#"[Nustache.Core.Render]::StringToString('{{' + @'
 bundle.plouf.key
-'@ + '}}', $data, $mustacheOptions)"#.to_string());
+'@ + '}}', $data, $mustacheOptions)"#
+                .to_string()
+        );
         assert_eq!(e.fmt(Target::Unix), "${bundle.plouf[key]}".to_string());
     }
 

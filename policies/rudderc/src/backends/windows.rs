@@ -123,7 +123,7 @@ pub mod filters {
     pub fn escape_double_quotes<T: Display>(s: T) -> askama::Result<String> {
         Ok(s.to_string().replace('\"', "`\""))
     }
-    
+
     pub fn canonify_condition_with_context<T: Display>(
         s: T,
         t_id: &&str,
