@@ -120,6 +120,10 @@ pub mod filters {
         Ok(s.to_string().replace('\'', "`\'"))
     }
 
+    pub fn escape_double_quotes<T: Display>(s: T) -> askama::Result<String> {
+        Ok(s.to_string().replace('\"', "`\""))
+    }
+    
     pub fn canonify_condition_with_context<T: Display>(
         s: T,
         t_id: &&str,
@@ -353,12 +357,22 @@ mod tests {
         assert_eq!(res, r);
 
         let c = "${var}";
-        let r = "([Rudder.Condition]::canonify([Nustache.Core.Render]::StringToString('{{' + 'var' + '}}', $data, $mustacheOptions))";
+        let r = "([Rudder.Condition]::canonify([Nustache.Core.Render]::StringToString('{{' + @'\n\
+                var\n\
+                '@ + '}}', $data, $mustacheOptions)))";
         let res = canonify_condition(c).unwrap();
         assert_eq!(res, r);
 
         let c = "${my_cond}.debian|${sys.${plouf}}";
-        let r = r#""" + ([Rudder.Condition]::canonify(${my_cond})) + ".debian|" + ([Rudder.Condition]::canonify(${sys.${plouf})) + "}""#;
+        let r = r#"([Rudder.Condition]::canonify(([Nustache.Core.Render]::StringToString('{{' + @'
+my_cond
+'@ + '}}', $data, $mustacheOptions)) + @'
+.debian|
+'@ + ([Nustache.Core.Render]::StringToString('{{' + @'
+sys.
+'@ + [Nustache.Core.Render]::StringToString('{{' + @'
+plouf
+'@ + '}}', $data, $mustacheOptions) + '}}', $data, $mustacheOptions))))"#;
         let res = canonify_condition(c).unwrap();
         assert_eq!(res, r);
     }
