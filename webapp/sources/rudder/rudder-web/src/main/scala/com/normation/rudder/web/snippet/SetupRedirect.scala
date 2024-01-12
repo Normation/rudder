@@ -50,7 +50,7 @@ class SetupRedirect extends DispatchSnippet with Loggable {
 
   private[this] val configService = RudderConfig.configService
 
-  def dispatch = { case "display" => _ => Script(display()) }
+  def dispatch = { case "display" => _ => WithNonce.scriptWithNonce(Script(display())) }
 
   def display() = {
 

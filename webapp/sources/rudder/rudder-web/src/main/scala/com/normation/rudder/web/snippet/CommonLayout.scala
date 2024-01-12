@@ -4,6 +4,10 @@ import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.users.CurrentUser
 import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.util._
+import net.liftweb.util.CanBind._
 import scala.xml.NodeSeq
 
 class CommonLayout extends DispatchSnippet with DefaultExtendableSnippet[CommonLayout] {
@@ -21,6 +25,26 @@ class CommonLayout extends DispatchSnippet with DefaultExtendableSnippet[CommonL
       case None    => ApplicationLogger.warn("Authz.init called but user not authenticated")
       case Some(_) => // expected
     }
-    xml
+
+    display(xml) ++ WithNonce.scriptWithNonce(
+      Script(
+        OnLoad(
+          JsRaw(
+            """$('body').toggleClass('sidebar-collapse');"""
+          )
+        )
+      )
+    )
+  }
+
+  def display: CssSel = {
+    "#toggleMenuButton" #> toggleMenuElement
+  }
+
+  val toggleMenuElement = {
+    <a href="#" class="sidebar-toggle p-3" role="button">
+      <i class="fa fa-bars"></i>
+      <span class="visually-hidden">Toggle navigation</span>
+    </a>
   }
 }

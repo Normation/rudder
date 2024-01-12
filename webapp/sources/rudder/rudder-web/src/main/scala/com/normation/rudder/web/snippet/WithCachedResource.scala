@@ -107,12 +107,14 @@ object WithCachedResource extends DispatchSnippet {
 
   def render(xhtml: NodeSeq): NodeSeq = {
     xhtml flatMap (_ match {
-      case e: Elem if e.label == "link"                         =>
+      case e: Elem if e.label == "link"     =>
         updateUrl(e, "href") openOr e
-      case e: Elem if (e.label == "script" || e.label == "img") =>
+      case e: Elem if e.label == "script"   =>
+        WithNonce.scriptWithNonce(updateUrl(e, "src") openOr e)
+      case e: Elem if e.label == "img"      =>
         updateUrl(e, "src") openOr e
       // iframe is speciale in the way we update the url
-      case e: Elem if (e.label == "iframe")                     =>
+      case e: Elem if (e.label == "iframe") =>
         attrStr(e.attributes, "src") map { src =>
           e.copy(attributes = {
             MetaData.update(

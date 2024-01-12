@@ -55,8 +55,10 @@ class BaseUrl {
    * We still need to have a base url for some javascript
    * But now we use it as a javascript variable
    */
-  def display: NodeSeq = Script(
-    JsRaw(s"""var contextPath = '${S.contextPath}'; var resourcesPath = '${S.contextPath}/${StaticResourceRewrite.prefix}'""")
+  def display: NodeSeq = WithNonce.scriptWithNonce(
+    Script(
+      JsRaw(s"""var contextPath = '${S.contextPath}'; var resourcesPath = '${S.contextPath}/${StaticResourceRewrite.prefix}'""")
+    )
   )
 
   /*I keep the old base url as a reminder <base href={(urlService.baseUrl getOrElse S.hostAndPath)+"/"} />*/

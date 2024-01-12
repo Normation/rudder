@@ -63,6 +63,7 @@ import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.web.snippet.WithCachedResource
+import com.normation.rudder.web.snippet.WithNonce
 import com.normation.zio._
 import java.net.URI
 import java.net.URLConnection
@@ -77,6 +78,7 @@ import net.liftweb.sitemap.Loc.LocGroup
 import net.liftweb.sitemap.Loc.TestAccess
 import net.liftweb.sitemap.Menu
 import net.liftweb.util.TimeHelpers._
+import net.liftweb.util.Vendor
 import org.joda.time.DateTime
 import org.reflections.Reflections
 import org.springframework.security.core.context.SecurityContextHolder
@@ -88,6 +90,98 @@ import scala.xml.NodeSeq
  * Utilities about rights
  */
 object Boot {
+
+  object RequestHeadersFactoryVendor {
+
+    /**
+     * A list of uris to match against when deciding whether to add a nonce to the CSP header for strict CSP
+     * (see level 3 specification section for nonce : https://www.w3.org/TR/CSP3/#framework-directive-source-list).
+     * 
+     * This will apply our custom CSP headers for all html tags within the page with the `with-nonce` snippet directive.
+     */
+    val customCSPUrisRegexList = List(
+      "^.*/secure/utilities/healthcheck$" // healthcheck: main page
+    ).map(_.r)
+
+  }
+
+  /**
+    * A vendor for our custom headers. 
+    * We use it as default vendor for headers with our custom routing logic of CSP headers for instance.
+    */
+  final class RequestHeadersFactoryVendor(csp: ContentSecurityPolicy) extends Vendor[List[(String, String)]] {
+    import RequestHeadersFactoryVendor._
+
+    LiftRules.registerInjection(this)
+
+    implicit override def make: Box[List[(String, String)]] = Empty // never used in LiftRules.supplementalHeaders, see `vend`
+
+    implicit override def vend: List[(String, String)] = addCspHeaders(defaultHeaders)
+
+    // Prevent search engine indexation
+    val defaultHeaders = ("X-Robots-Tag", "noindex, nofollow") :: LiftRules.securityRules().headers
+
+    private val cspHeaderNames = List("Content-Security-Policy", "X-Content-Security-Policy")
+
+    /**
+      * Returns all headers depending on page url, using current request nonce and add all other initial CSP directives
+      */
+    private def addCspHeaders(allHeaders: List[(String, String)]): List[(String, String)] = {
+      S.uri match {
+        case uri if customCSPUrisRegexList.exists(_.matches(uri)) => {
+          val nonce         = WithNonce.getCurrentNonce
+          val newCspHeaders = csp
+            .headers()
+            .collect {
+              // replace all content security policies directives
+              case (header, _) if cspHeaderNames.contains(header) =>
+                val replacedScript =
+                  replaceCSPRestrictionDirectives("script-src", s"'nonce-${nonce}' 'strict-dynamic'")(cspDirectives)
+                val replacedObject = replaceCSPRestrictionDirectives("object-src", "'none'")(replacedScript)
+                val addedBaseUri   = replacedObject :+ ("base-uri" -> "'none'")
+                cspHeaderNames.map(_ -> compileCSPHeader(addedBaseUri))
+            }
+            .flatten
+          newCspHeaders ++ allHeaders.filterNot(h => cspHeaderNames.contains(h._1))
+        }
+        case _                                                    =>
+          allHeaders // no headers to override
+      }
+    }
+
+    val cspDirectives = List( // copied from lift ContentSecurityPolicy source
+      "default-src" -> csp.defaultSources,
+      "connect-src" -> csp.connectSources,
+      "font-src"    -> csp.fontSources,
+      "frame-src"   -> csp.frameSources,
+      "img-src"     -> csp.imageSources,
+      "media-src"   -> csp.mediaSources,
+      "object-src"  -> csp.objectSources,
+      "script-src"  -> csp.scriptSources,
+      "style-src"   -> csp.styleSources
+    ).map { case (key, value) => key -> value.map(_.sourceRestrictionString).mkString(" ") }
+
+    /**
+      * Returns all headers depending on page url, using current request nonce and add all other initial CSP directives
+      */
+    private def replaceCSPRestrictionDirectives(key: String, value: String)(
+        directives:                                  List[(String, String)]
+    ): List[(String, String)] = {
+      directives.map {
+        case (k, _) if key == k => key -> value
+        case o                  => o
+      }
+    }
+
+    // Assembles directives, separated by ";" and ommits empty directives
+    private def compileCSPHeader(directives: List[(String, String)]): String = {
+      directives.collect { // copied also from lift header generation
+        case (category, restrictions) if restrictions.nonEmpty =>
+          category + " " + restrictions
+      }.mkString("; ")
+    }
+  }
+
   val redirection =
     RedirectState(() => (), "You are not authorized to access that page, please contact your administrator." -> NoticeType.Error)
 
@@ -405,6 +499,7 @@ class Boot extends Loggable {
         ContentSourceRestriction.Self :: ContentSourceRestriction.UnsafeInline :: ContentSourceRestriction.UnsafeEval :: Nil
     )
 
+    LiftRules.snippetDispatch.append(Map("with-nonce" -> WithNonce))
     LiftRules.securityRules = () => {
       SecurityRules(
         https = hsts,
@@ -420,12 +515,9 @@ class Boot extends Loggable {
       )
     }
 
-    // Override to remove X-Lift-Version header
-    LiftRules.supplementalHeaders.default.set(
-      // Prevent search engine indexation
-      ("X-Robots-Tag", "noindex, nofollow") ::
-      LiftRules.securityRules().headers
-    )
+    // We need an override of the default factory. Somehow the LiftRules.supplementalHeaders.request value is reset too often
+    val requestHeadersFactory = new Boot.RequestHeadersFactoryVendor(csp)
+    LiftRules.supplementalHeaders.default.set(requestHeadersFactory)
 
     // By default Lift redirects to login page when a comet request's session changes
     // which happens when there is a connection to the same server in another tab.
