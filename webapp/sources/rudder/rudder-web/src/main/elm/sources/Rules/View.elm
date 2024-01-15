@@ -1,7 +1,7 @@
 module Rules.View exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (checked, class, disabled, for, href, id, placeholder, style, tabindex, type_, value)
+import Html.Attributes exposing (checked, class, disabled, for, href, id, placeholder, style, tabindex, type_, value, attribute)
 import Html.Events exposing (onClick, onInput)
 import List
 import List.Extra
@@ -173,6 +173,7 @@ view model =
               div [ class "modal-content" ] [
                 div [ class "modal-header ng-scope" ] [
                   h5 [ class "modal-title" ] [ text "Delete Rule"]
+                , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
                 ]
               , div [ class "modal-body" ]
                 [ h4 [class "text-center"][text ("Are you sure you want to Delete rule '"++ rule.name ++"'?")]
@@ -209,6 +210,7 @@ view model =
               div [ class "modal-content" ]  [
                 div [ class "modal-header ng-scope" ] [
                   h5[ class "modal-title" ] [ text (txtDisable ++" Rule")]
+                , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
                 ]
               , div [ class "modal-body" ]
                 [ h4 [class "text-center"][text ("Are you sure you want to "++ String.toLower txtDisable ++" rule '"++ rule.name ++"'?")]
@@ -234,6 +236,7 @@ view model =
              div [ class "modal-content" ] [
                div [ class "modal-header ng-scope" ] [
                  h5 [ class "modal-title" ] [ text "Delete category"]
+               , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
                ]
              , div [ class "modal-body" ] [
                  h4 [class "text-center"][text ("Are you sure you want to delete category '"++ category.name ++"'?")]
@@ -259,6 +262,7 @@ view model =
             [ div [ class "modal-content" ]
               [ div [ class "modal-header ng-scope" ]
                 [ h5 [ class "modal-title" ] [ text (action ++" Rule")]
+                , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
                 ]
               , div [ class "modal-body" ]
                 [ h4 [class "text-center"]

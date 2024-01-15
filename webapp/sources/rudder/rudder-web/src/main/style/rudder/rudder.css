@@ -546,16 +546,6 @@ div#navigation {
 #opener:hover {
    text-decoration: none;
 }
-#openerAccount {
-   border: none;
-   background: none;
-   text-decoration: underline;
-   color: #f79d10;
-   cursor: pointer;
-}
-#openerAccount:hover {
-   text-decoration: none;
-}
 
 /**************************************
 Home portlet

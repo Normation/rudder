@@ -919,7 +919,7 @@ header.main-header .logo-lg img{
 }
 .notifications-menu .rudder-badge::before {
   content: "";
-  left: -9px;
+  left: -11px;
   top: 4px;
   color: transparent;
   width: 0;
@@ -975,10 +975,11 @@ header.main-header .logo-lg img{
 }
 .navbar-nav .dropdown-menu > li > a .label {
   font-size: 90%;
-  background-color: #041922;
-  opacity: 0.4;
-  position: absolute;
-  right: 10px;
+  background-color: #738195;
+  color: #fff;
+  font-weight: bold;
+  padding: 1px 6px;
+  border-radius: 4px;
 }
 .navbar-nav li .dropdown-menu {
   margin-top: 0;

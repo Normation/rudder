@@ -147,7 +147,7 @@ techniqueTab model technique creation ui =
         _      -> "Error: unknown category name"
     disableCategory =
       if creation then
-        select [class "form-control", name "category", id "category", value technique.category, onInput (\s -> UpdateTechnique {technique | category = s}) ]
+        select [class "form-select", name "category", id "category", value technique.category, onInput (\s -> UpdateTechnique {technique | category = s}) ]
           (buildListCategoriesWithoutRoot "" technique.category model.categories)
       else
         input [readonly True, class "form-control", id "category", value categoryName][]

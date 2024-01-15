@@ -99,13 +99,13 @@ view model =
             , div [class "globalConf"]
               [ div [class "form-group"]
                 [ label [for "runInterval", class "control-label"][text "Run agent every "]
-                , select [class "form-control input-sm schedule", id "runInterval", disabled disableForm, onInput (\i -> UpdateSchedule {selectedSettings | interval = Maybe.withDefault 0 (String.toInt i)})]
+                , select [class "form-select input-sm schedule", id "runInterval", disabled disableForm, onInput (\i -> UpdateSchedule {selectedSettings | interval = Maybe.withDefault 0 (String.toInt i)})]
                   ( intervalOptions )
                 ]
               , div [class "form-group inline-input-group"]
                 [ label [class "control-label"][text "First run time"]
                 , div [class "input-group input-group-sm"]
-                  [ select [class "form-control input-sm", id "startHour", onInput (\h -> UpdateSchedule {selectedSettings | startHour = Maybe.withDefault 0 (String.toInt h)}), disabled (disableForm || List.length (hourOptions selectedStartH) <= 1) ]
+                  [ select [class "form-select input-sm", id "startHour", onInput (\h -> UpdateSchedule {selectedSettings | startHour = Maybe.withDefault 0 (String.toInt h)}), disabled (disableForm || List.length (hourOptions selectedStartH) <= 1) ]
                    (hourOptions selectedStartH)
                   , span [class "input-group-addon"][text ("Hour" ++ if selectedSettings.startHour > 1 then "s" else "")]
                   , select [class "pull-left form-control input-sm", id "startMinute", onInput (\m -> UpdateSchedule {selectedSettings | startMinute = Maybe.withDefault 0 (String.toInt m)}), disabled disableForm ]
@@ -116,7 +116,7 @@ view model =
               , div [class "form-group inline-input-group"]
                 [ label [class "control-label"][text "Maximum delay"]
                 , div [class "input-group input-group-sm"]
-                  [ select [class "form-control input-sm", id "splayHour", onInput (\h -> UpdateSchedule {selectedSettings | splayHour = Maybe.withDefault 0 (String.toInt h)}), disabled (disableForm || List.length (hourOptions selectedSplayH) <= 1) ]
+                  [ select [class "form-select input-sm", id "splayHour", onInput (\h -> UpdateSchedule {selectedSettings | splayHour = Maybe.withDefault 0 (String.toInt h)}), disabled (disableForm || List.length (hourOptions selectedSplayH) <= 1) ]
                     (hourOptions selectedSplayH)
                   , span [class "input-group-addon"][text ("Hour" ++ if selectedSettings.splayHour > 1 then "s" else "")]
                   , select [class "pull-left form-control input-sm", id "splayMinute", onInput (\m -> UpdateSchedule {selectedSettings | splayMinute = Maybe.withDefault 0 (String.toInt m)}), disabled disableForm ]

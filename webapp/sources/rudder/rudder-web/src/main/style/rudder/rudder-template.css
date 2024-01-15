@@ -200,6 +200,7 @@ ul {
 }
 .rudder-template .header-buttons {
   white-space: nowrap;
+  align-self: flex-start;
 }
 .rudder-template .header-buttons .btn {
   margin-left: 10px;
@@ -230,11 +231,11 @@ ul {
 }
 
 .header-buttons .dropdown-toggle:not(.btn-success){
-  border: 1px solid #ccc;
+  border: 1px solid #D6DEEF;
 }
 .header-buttons .dropdown-toggle:not(.btn-success):hover,
 .btn.btn-default:hover{
-  background-color: #eeeaea;
+  background-color: #eef1f9;
 }
 .header-buttons .dropdown-menu{
   padding: 0;
