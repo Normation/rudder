@@ -18,6 +18,7 @@ import Rules.ChangeRequest exposing (ChangeRequestSettings)
 import Rules.DataTypes exposing (..)
 import Compliance.DataTypes exposing (..)
 import Compliance.Utils exposing (..)
+import Compliance.Html exposing (buildComplianceBar)
 
 onCustomClick : msg -> Html.Attribute msg
 onCustomClick msg =

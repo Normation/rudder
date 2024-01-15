@@ -1,14 +1,17 @@
-module Compliancescore exposing (..)
+module Score exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
 import Http exposing (..)
 import Result
 
-import ComplianceScore.DataTypes exposing (..)
-import ComplianceScore.Init exposing (init, subscriptions, errorNotification)
-import ComplianceScore.View exposing (view)
+import Score.ApiCalls exposing (getScoreDetails)
+import Score.DataTypes exposing (..)
+import Score.Init exposing (init, subscriptions, errorNotification)
+import Score.View exposing (view)
 import NodeCompliance.DataTypes exposing (NodeId)
+
+
 
 main =
   Browser.element
@@ -24,14 +27,14 @@ main =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
-    GetComplianceScore res ->
+    GetScore res ->
       case res of
         Ok complianceScore ->
           ( { model | complianceScore = Just complianceScore }
           , Cmd.none
           )
         Err err ->
-          processApiError "Getting compliance score" err model
+          processApiError "Getting global score" err model
 
 processApiError : String -> Http.Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =

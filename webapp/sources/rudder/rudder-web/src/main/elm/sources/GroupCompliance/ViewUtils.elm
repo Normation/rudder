@@ -1,23 +1,22 @@
 module GroupCompliance.ViewUtils exposing (..)
 
+import Compliance.Html exposing (buildComplianceBar)
 import Dict exposing (Dict)
 import Either exposing (Either(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput, custom)
+import Html.Events exposing (onClick, custom)
 import List.Extra
 import List
 import Maybe.Extra
-import String exposing (fromFloat)
+import String
 import Json.Decode as Decode
 import Tuple3
-import NaturalOrdering as N exposing (compare)
+import NaturalOrdering as N
 
-import GroupCompliance.ApiCalls exposing (..)
 import GroupCompliance.DataTypes exposing (..)
 import Compliance.DataTypes exposing (..)
 import Compliance.Utils exposing (..)
-import Tags.DataTypes exposing (Tag)
 
 isGlobalCompliance : Model -> Bool
 isGlobalCompliance model =
