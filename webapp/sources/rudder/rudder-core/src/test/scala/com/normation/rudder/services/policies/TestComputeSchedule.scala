@@ -143,30 +143,45 @@ class TestComputeSchedule extends Specification {
     val uuid2Splay = Duration.ofSeconds(61)
 
     "be 0 when nodeId is empty" in {
-      ComputeSchedule.computeSplayTime("", fiveMinutes) must beEqualTo(Duration.ofSeconds(0))
+      ComputeSchedule.computeSplayTime("", fiveMinutes, fiveMinutes) must beEqualTo(Duration.ofSeconds(0))
     }
 
     "be stable for a given uuid" in {
-      val d1 = ComputeSchedule.computeSplayTime(uuid1, fiveMinutes)
-      val d2 = ComputeSchedule.computeSplayTime(uuid1, fiveMinutes)
+      val d1 = ComputeSchedule.computeSplayTime(uuid1, fiveMinutes, fiveMinutes)
+      val d2 = ComputeSchedule.computeSplayTime(uuid1, fiveMinutes, fiveMinutes)
 
       (d1 === uuid1Splay) and (d2 === uuid1Splay)
     }
 
-    "adapt to bigger interval" in {
-      ComputeSchedule.computeSplayTime(uuid1, Duration.ofHours(6)) === uuid1Splay6h
+    "adapt to bigger interval and bigger splay time" in {
+      ComputeSchedule.computeSplayTime(uuid1, Duration.ofHours(6), Duration.ofHours(6)) === uuid1Splay6h
     }
 
     "be different for different uuids" in {
-      val d1 = ComputeSchedule.computeSplayTime(uuid1, fiveMinutes)
-      val d2 = ComputeSchedule.computeSplayTime(uuid2, fiveMinutes)
+      val d1 = ComputeSchedule.computeSplayTime(uuid1, fiveMinutes, fiveMinutes)
+      val d2 = ComputeSchedule.computeSplayTime(uuid2, fiveMinutes, fiveMinutes)
 
       (d1 === uuid1Splay) and (d2 === uuid2Splay)
     }
 
     "leads to the correct string" in {
-      ComputeSchedule.formatStartTime(ComputeSchedule.getSplayedStartTime(uuid1, LocalTime.of(3, 0), fiveMinutes)) === "03:02:08"
+      ComputeSchedule.formatStartTime(
+        ComputeSchedule.getSplayedStartTime(uuid1, LocalTime.of(3, 0), fiveMinutes, fiveMinutes)
+      ) === "03:02:08"
     }
 
+    "if max splaytime is 0, then we return then start hour" in {
+      ComputeSchedule.formatStartTime(
+        ComputeSchedule.getSplayedStartTime(uuid1, LocalTime.of(3, 0), fiveMinutes, Duration.ofSeconds(0))
+      ) === "03:00:00"
+    }
+
+    "if the splay time is bigger than the interval, then the interval length is taken" in {
+      ComputeSchedule.computeSplayTime(uuid1, fiveMinutes, Duration.ofMinutes(10)) === uuid1Splay
+    }
+
+    "if the splay time is shorter than the interval, then the splay time length is taken" in {
+      ComputeSchedule.computeSplayTime(uuid1, Duration.ofMinutes(10), fiveMinutes) === uuid1Splay
+    }
   }
 }

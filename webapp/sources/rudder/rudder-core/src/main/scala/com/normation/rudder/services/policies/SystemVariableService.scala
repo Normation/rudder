@@ -277,7 +277,8 @@ class SystemVariableServiceImpl(
           val splayedStartTime      = ComputeSchedule.getSplayedStartTime(
             nodeInfo.id.value,
             startTime,
-            Duration.ofMinutes(runInterval.interval.toLong)
+            Duration.ofMinutes(runInterval.interval.toLong),
+            Duration.ofMinutes(runInterval.splaytime.toLong)
           )
           (runInterval, splayedStartTime, schedule)
         }
@@ -716,26 +717,30 @@ object ComputeSchedule {
   }
 
   /*
-   * An algorithm to get a splaytime in seconds from a node ID and a execution interval.
+   * An algorithm to get a splaytime in seconds from a node ID, execution interval and max splay time wanted.
+   *
+   * If the splay time is more than the interval, then the value of the interval will be taken. Else, the value of
+   * the splay time.
    *
    * There is no guarantee about the distribution of splay, and you must use random input
    * to have a change to get something barely random (uuids are ok for that, and it's the
    * use case).
    */
-  def computeSplayTime(nodeId: String, interval: Duration): Duration = {
-    if (nodeId.isEmpty) Duration.ofSeconds(0)
+  def computeSplayTime(nodeId: String, interval: Duration, maxSplaytime: Duration): Duration = {
+    if (nodeId.isEmpty || maxSplaytime.isZero || interval.isZero) Duration.ofSeconds(0)
     else {
+      val splay        = if (maxSplaytime.compareTo(interval) > 0) interval else maxSplaytime
       val bigInt       = BigInt.apply(nodeId.getBytes(StandardCharsets.UTF_8))
       val secondPerDay = 86400
-      Duration.ofSeconds(bigInt.mod(interval.getSeconds).mod(secondPerDay).toLong)
+      Duration.ofSeconds(bigInt.mod(splay.getSeconds).mod(secondPerDay).toLong)
     }
   }
 
   /*
    * Convert an agent schedule into the starttime string which include the splaytime
    */
-  def getSplayedStartTime(nodeId: String, startTime: LocalTime, interval: Duration): LocalTime = {
-    startTime.plus(computeSplayTime(nodeId, interval))
+  def getSplayedStartTime(nodeId: String, startTime: LocalTime, interval: Duration, maxSplaytime: Duration): LocalTime = {
+    startTime.plus(computeSplayTime(nodeId, interval, maxSplaytime))
   }
 
   def formatStartTime(startTime: LocalTime): String = {
