@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2016 Normation SAS
+* Copyright 2024 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -149,7 +149,10 @@ pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
 pre.json-beautify code.elmsh {
   background: transparent !important;
 }
-/* - MODAL 4.0 - */
+/* - MODALS - */
+.modal.show .modal-dialog{
+  z-index: 1060;
+}
 .modal .modal-content {
   border-radius: 0;
   border: none;
