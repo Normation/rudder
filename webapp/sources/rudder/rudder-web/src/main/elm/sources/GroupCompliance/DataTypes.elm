@@ -25,6 +25,7 @@ type alias RuleCompliance value =
   { ruleId            : RuleId
   , name              : String
   , compliance        : Float
+  , policyMode        : String
   , complianceDetails : ComplianceDetails
   , directives        : List (DirectiveCompliance value)
   }
@@ -42,6 +43,7 @@ type alias NodeValueCompliance =
   { nodeId            : NodeId
   , name              : String
   , compliance        : Float
+  , policyMode        : String
   , complianceDetails : ComplianceDetails
   , values : List ValueCompliance
   }

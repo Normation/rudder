@@ -62,6 +62,8 @@ import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.AddRuleDiff
 import com.normation.rudder.domain.policies.DeleteRuleDiff
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.FullGroupTarget
+import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.ModifyRuleDiff
@@ -205,7 +207,19 @@ class MockCompliance(mockDirectives: MockDirectives) {
       nodeGroups.find(_.id == id).map((_, NodeGroupCategoryId("cat1"))).succeed
     }
 
-    def getFullGroupLibrary():                                 IOResult[FullNodeGroupCategory]                                      = ???
+    def getFullGroupLibrary(): IOResult[FullNodeGroupCategory] = {
+      FullNodeGroupCategory(
+        NodeGroupCategoryId("GroupRoot"),
+        "GroupRoot",
+        "root of group categories",
+        Nil,
+        nodeGroups.map(g => {
+          FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, g.description, g.isEnabled, g.isSystem)
+        }),
+        true
+      ).succeed
+    }
+
     def getNodeGroupCategory(id: NodeGroupId):                 IOResult[NodeGroupCategory]                                          = ???
     def getAll():                                              IOResult[Seq[NodeGroup]]                                             = ???
     def getAllNodeIds():                                       IOResult[Map[NodeGroupId, Set[NodeId]]]                              = ???
