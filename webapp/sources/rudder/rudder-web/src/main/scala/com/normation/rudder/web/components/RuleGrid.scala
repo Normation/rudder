@@ -167,12 +167,14 @@ class RuleGrid(
     "reports-report"
   )
 
-  def dispatch = { case "rulesGrid" => { _: NodeSeq => rulesGridWithUpdatedInfo(None, true, false) } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "rulesGrid" => { (_: NodeSeq) => rulesGridWithUpdatedInfo(None, true, false) }
+  }
 
   /**
    * Display all the rules. All data are charged asynchronously.
    */
-  def asyncDisplayAllRules(onlyRules: Option[Set[RuleId]]) = {
+  def asyncDisplayAllRules(onlyRules: Option[Set[RuleId]]): AnonFunc = {
     AnonFunc(
       SHtml.ajaxCall(
         JsNull,
@@ -725,7 +727,7 @@ final case class RuleLine(
 ) extends JsTableLine {
 
   /* Would love to have a reflexive way to generate that map ...  */
-  override val json = {
+  override val json: JsObj = {
 
     val reasonField = reasons.map(r => ("reasons" -> escapeHTML(r)))
 

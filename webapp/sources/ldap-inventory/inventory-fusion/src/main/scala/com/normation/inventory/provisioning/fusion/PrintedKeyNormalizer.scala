@@ -47,9 +47,9 @@ import java.util.regex.Pattern
 
 class PrintedKeyNormalizer {
 
-  val start            = Pattern.compile("""-----begin[ a-z]*-----""", Pattern.CASE_INSENSITIVE)
-  val end              = Pattern.compile("""-----end[ a-z]*-----""", Pattern.CASE_INSENSITIVE)
-  def apply(s: String) = {
+  val start:            Pattern = Pattern.compile("""-----begin[ a-z]*-----""", Pattern.CASE_INSENSITIVE)
+  val end:              Pattern = Pattern.compile("""-----end[ a-z]*-----""", Pattern.CASE_INSENSITIVE)
+  def apply(s: String): String  = {
     var res = s
     res = start.matcher(s).replaceAll("")
     res = end.matcher(res).replaceAll("")

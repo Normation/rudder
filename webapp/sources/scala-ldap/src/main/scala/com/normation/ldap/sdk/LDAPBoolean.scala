@@ -41,7 +41,7 @@ trait LDAPBoolean {
 }
 
 object LDAPBoolean {
-  def apply(b: Boolean) = if (b) TRUE else FALSE
+  def apply(b: Boolean): LDAPBoolean = if (b) TRUE else FALSE
 }
 
 case object TRUE extends LDAPBoolean {

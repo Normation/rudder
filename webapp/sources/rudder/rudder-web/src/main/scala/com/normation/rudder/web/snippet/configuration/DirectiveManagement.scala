@@ -45,12 +45,14 @@ import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueGenerationMode._
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.errors
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
@@ -96,7 +98,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private[this] val configService       = RudderConfig.configService
   private[this] val configRepo          = RudderConfig.configurationRepository
 
-  def dispatch = {
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
     case "head"                 => { _ => head() }
     case "userLibrary"          => { _ => displayDirectiveLibrary() }
     case "showDirectiveDetails" => { _ => initDirectiveDetails() }
@@ -114,13 +116,13 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
   // we specify here what is the technique we are working on
   // technique version must be in the map of techniques in the fullActiveTechnique
-  var currentTechnique = Option.empty[(FullActiveTechnique, TechniqueVersion)]
+  var currentTechnique: Option[(FullActiveTechnique, TechniqueVersion)] = None
 
   // the state of the directive library.
   // must be reloaded "updateDirectiveLibrary()"
   // when information change (directive added/removed/modified, etc)
-  var directiveLibrary = getDirectiveLib()
-  var rules            = getRules()
+  var directiveLibrary: errors.IOResult[FullActiveTechniqueCategory] = getDirectiveLib()
+  var rules:            errors.IOResult[Seq[Rule]]                   = getRules()
 
   private[this] val directiveId: Box[String] = S.param("directiveId")
 
@@ -542,7 +544,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   def updateDirectiveForm(
       directiveInfo: Either[Directive, DirectiveId],
       oldDirective:  Option[Directive]
-  ) = {
+  ): JsCmd = {
     val directiveId = directiveInfo match {
       case Left(directive)    => directive.id
       case Right(directiveId) => directiveId

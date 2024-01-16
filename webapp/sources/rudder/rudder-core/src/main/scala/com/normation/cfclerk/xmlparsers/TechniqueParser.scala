@@ -44,6 +44,7 @@ import com.normation.cfclerk.domain.implicits._
 import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
 import com.normation.inventory.domain.AgentType
+import scala.util.matching.Regex
 import scala.xml._
 
 /**
@@ -477,7 +478,7 @@ class TechniqueParser(
 
 object TechniqueParser {
 
-  val authorizedCharInId = """([a-zA-Z0-9\-_]+)""".r
+  val authorizedCharInId: Regex = """([a-zA-Z0-9\-_]+)""".r
 
   def isValidId(s: String): Boolean = s match {
     case authorizedCharInId(_) => true

@@ -80,17 +80,17 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
   implicit val charset = StandardCharsets.UTF_8
   val setupRepos       = new TestNodeConfiguration()
 
-  val fsRepos       = setupRepos.techniqueRepository
-  val git           = setupRepos.repo.git
-  val techniqueRoot = File(setupRepos.repo.db.getWorkTree.getAbsolutePath, "techniques")
+  val fsRepos = setupRepos.techniqueRepository
+  val git     = setupRepos.repo.git
+  val techniqueRoot: File = File(setupRepos.repo.db.getWorkTree.getAbsolutePath, "techniques")
 
   val modid = new ModificationId("test")
   val actor = new EventActor("test")
 
   object testCallback extends TechniquesLibraryUpdateNotification() {
 
-    var techniques = Map.empty[TechniqueName, TechniquesLibraryUpdateType]
-    var categories = Set.empty[TechniqueCategoryModType]
+    var techniques: Map[TechniqueName, TechniquesLibraryUpdateType] = Map.empty[TechniqueName, TechniquesLibraryUpdateType]
+    var categories: Set[TechniqueCategoryModType]                   = Set.empty[TechniqueCategoryModType]
 
     override def name:  String = "test-callback"
     override def order: Int    = 0
@@ -110,10 +110,10 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
 
   // a repos just to check what methods are called
   object ldapRepo extends RoDirectiveRepository with WoDirectiveRepository {
-    var added             = List.empty[String]                           // only the category id
-    var moved             = List.empty[(String, String, Option[String])] // (what, where, new name)
-    var deleted           = List.empty[String]
-    var updatedTechniques = List.empty[String]
+    var added:             List[String]                           = Nil // only the category id
+    var moved:             List[(String, String, Option[String])] = Nil // (what, where, new name)
+    var deleted:           List[String]                           = Nil
+    var updatedTechniques: List[String]                           = Nil
 
     override def addActiveTechniqueCategory(
         that:           ActiveTechniqueCategory,
@@ -268,7 +268,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
    * Add a switch to be able to see tmp files (not clean themps) with
    * -Dtests.clean.tmp=false
    */
-  override def afterAll() = {
+  override def afterAll(): Unit = {
     if (java.lang.System.getProperty("tests.clean.tmp") != "false") {
       logger.info("Deleting directory " + setupRepos.abstractRoot.getAbsolutePath)
       FileUtils.deleteDirectory(setupRepos.abstractRoot)

@@ -39,7 +39,7 @@ object BuildFilter {
    *
    * @return  The created AND search filter.
    */
-  def AND(andComponents: Filter*) = createANDFilter(andComponents: _*)
+  def AND(andComponents: Filter*): Filter = createANDFilter(andComponents: _*)
 
   /**
    * Creates a new OR search filter with the provided components.
@@ -49,7 +49,7 @@ object BuildFilter {
    *
    * @return  The created OR search filter.
    */
-  def OR(orComponents: Filter*) = createORFilter(orComponents: _*)
+  def OR(orComponents: Filter*): Filter = createORFilter(orComponents: _*)
 
   /**
    * Creates a new NOT search filter with the provided component.
@@ -59,7 +59,7 @@ object BuildFilter {
    *
    * @return  The created NOT search filter.
    */
-  def NOT(notComponent: Filter) = createNOTFilter(notComponent)
+  def NOT(notComponent: Filter): Filter = createNOTFilter(notComponent)
 
   /**
    * Creates a new equality search filter with the provided information.
@@ -71,7 +71,7 @@ object BuildFilter {
    *
    * @return  The created equality search filter.
    */
-  def EQ(attributeName: String, assertionValue: String) = createEqualityFilter(attributeName, assertionValue)
+  def EQ(attributeName: String, assertionValue: String): Filter = createEqualityFilter(attributeName, assertionValue)
 
   /**
    * Creates a new equality search filter with the provided information.
@@ -83,12 +83,12 @@ object BuildFilter {
    *
    * @return  The created equality search filter.
    */
-  def EQ(attributeName: String, assertionValue: Array[Byte]) = createEqualityFilter(attributeName, assertionValue)
+  def EQ(attributeName: String, assertionValue: Array[Byte]): Filter = createEqualityFilter(attributeName, assertionValue)
 
   /**
    * A special case of EQ for object class
    */
-  def IS(assertionValue: String) = createEqualityFilter("objectClass", assertionValue)
+  def IS(assertionValue: String): Filter = createEqualityFilter("objectClass", assertionValue)
 
   /**
    * Creates a new substring search filter with the provided information.  At
@@ -104,7 +104,7 @@ object BuildFilter {
    *
    * @return  The created substring search filter.
    */
-  def SUB(attributeName: String, subInitial: String, subAny: Array[String], subFinal: String) =
+  def SUB(attributeName: String, subInitial: String, subAny: Array[String], subFinal: String): Filter =
     createSubstringFilter(attributeName, subInitial, subAny, subFinal)
 
   /**
@@ -121,7 +121,7 @@ object BuildFilter {
    *
    * @return  The created substring search filter.
    */
-  def SUB(attributeName: String, subInitial: Array[Byte], subAny: Array[Array[Byte]], subFinal: Array[Byte]) =
+  def SUB(attributeName: String, subInitial: Array[Byte], subAny: Array[Array[Byte]], subFinal: Array[Byte]): Filter =
     createSubstringFilter(attributeName, subInitial, subAny, subFinal)
 
   /**
@@ -134,7 +134,7 @@ object BuildFilter {
    *
    * @return  The created greater-or-equal search filter.
    */
-  def GTEQ(attributeName: String, assertionValue: String) = createGreaterOrEqualFilter(attributeName, assertionValue)
+  def GTEQ(attributeName: String, assertionValue: String): Filter = createGreaterOrEqualFilter(attributeName, assertionValue)
 
   /**
    * Creates a new greater-or-equal search filter with the provided information.
@@ -146,7 +146,7 @@ object BuildFilter {
    *
    * @return  The created greater-or-equal search filter.
    */
-  def GTEQ(attributeName: String, assertionValue: Array[Byte]) = createGreaterOrEqualFilter(attributeName, assertionValue)
+  def GTEQ(attributeName: String, assertionValue: Array[Byte]): Filter = createGreaterOrEqualFilter(attributeName, assertionValue)
 
   /**
    * Creates a new less-or-equal search filter with the provided information.
@@ -158,7 +158,7 @@ object BuildFilter {
    *
    * @return  The created less-or-equal search filter.
    */
-  def LTEQ(attributeName: String, assertionValue: String) = createLessOrEqualFilter(attributeName, assertionValue)
+  def LTEQ(attributeName: String, assertionValue: String): Filter = createLessOrEqualFilter(attributeName, assertionValue)
 
   /**
    * Creates a new less-or-equal search filter with the provided information.
@@ -170,7 +170,7 @@ object BuildFilter {
    *
    * @return  The created less-or-equal search filter.
    */
-  def LTEQ(attributeName: String, assertionValue: Array[Byte]) = createLessOrEqualFilter(attributeName, assertionValue)
+  def LTEQ(attributeName: String, assertionValue: Array[Byte]): Filter = createLessOrEqualFilter(attributeName, assertionValue)
 
   /**
    * Creates a new presence search filter with the provided information.
@@ -180,7 +180,7 @@ object BuildFilter {
    *
    * @return  The created presence search filter.
    */
-  def HAS(attributeName: String) = createPresenceFilter(attributeName)
+  def HAS(attributeName: String): Filter = createPresenceFilter(attributeName)
 
   /**
    * Creates a new approximate match search filter with the provided
@@ -193,7 +193,7 @@ object BuildFilter {
    *
    * @return  The created approximate match search filter.
    */
-  def MATCH(attributeName: String, assertionValue: String) = createApproximateMatchFilter(attributeName, assertionValue)
+  def MATCH(attributeName: String, assertionValue: String): Filter = createApproximateMatchFilter(attributeName, assertionValue)
 
   /**
    * Creates a new approximate match search filter with the provided
@@ -206,7 +206,8 @@ object BuildFilter {
    *
    * @return  The created approximate match search filter.
    */
-  def MATCH(attributeName: String, assertionValue: Array[Byte]) = createApproximateMatchFilter(attributeName, assertionValue)
+  def MATCH(attributeName: String, assertionValue: Array[Byte]): Filter =
+    createApproximateMatchFilter(attributeName, assertionValue)
 
   /**
    * Creates a new extensible match search filter with the provided
@@ -224,7 +225,7 @@ object BuildFilter {
    *
    * @return  The created extensible match search filter.
    */
-  def MATCHEX(attributeName: String, matchingRuleID: String, dnAttributes: Boolean, assertionValue: Array[Byte]) =
+  def MATCHEX(attributeName: String, matchingRuleID: String, dnAttributes: Boolean, assertionValue: Array[Byte]): Filter =
     createExtensibleMatchFilter(attributeName, matchingRuleID, dnAttributes, assertionValue)
 
   /**
@@ -238,6 +239,6 @@ object BuildFilter {
    * @throws  LDAPException  If the provided string cannot be decoded as a valid
    *                         LDAP search filter.
    */
-  def apply(filterString: String) = create(filterString)
+  def apply(filterString: String): Filter = create(filterString)
 
 }

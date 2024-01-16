@@ -19,7 +19,7 @@ final case class ModifyGlobalPropertyEventFilter(eventType: ModifyGlobalProperty
 
 object ModifyGlobalPropertyEventLogsFilter {
 
-  val eventTypes = {
+  val eventTypes: List[ModifyGlobalPropertyEventType] = {
     ModifySendServerMetricsEventType ::
     ModifyComplianceModeEventType ::
     ModifyHeartbeatPeriodEventType ::

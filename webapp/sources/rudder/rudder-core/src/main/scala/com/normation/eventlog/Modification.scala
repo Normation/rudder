@@ -49,6 +49,6 @@ package com.normation.eventlog
 final case class ModificationId(value: String) extends AnyVal
 
 object ModificationId {
-  val dummy = ModificationId("dummy-modification-id")
+  val dummy: ModificationId = ModificationId("dummy-modification-id")
 
 }

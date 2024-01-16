@@ -62,7 +62,7 @@ class CheckAddSpecialTargetAllPolicyServers(
   val all_policyServersDN = new DN(
     s"ruleTarget=special:all_policyServers,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration"
   )
-  val all_policyServers   = {
+  val all_policyServers: LDAPEntry = {
     val entry = LDAPEntry(all_policyServersDN)
     entry.resetValuesTo(A_OC, OC.objectClassNames(OC_SPECIAL_TARGET).toSeq: _*)
     entry.resetValuesTo(A_RULE_TARGET, "special:all_policyServers")

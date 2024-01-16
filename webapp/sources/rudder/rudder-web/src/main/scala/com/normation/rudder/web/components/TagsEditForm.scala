@@ -14,12 +14,12 @@ import scala.xml.NodeSeq
 
 class TagsEditForm(tags: Tags, objectId: String) extends Loggable {
 
-  val templatePath = List("templates-hidden", "components", "ComponentTags")
-  def tagsTemplate: NodeSeq = ChooseTemplate(templatePath, "tags-form")
+  val templatePath: List[String] = List("templates-hidden", "components", "ComponentTags")
+  def tagsTemplate: NodeSeq      = ChooseTemplate(templatePath, "tags-form")
 
   def editTagsTemplate: NodeSeq = ChooseTemplate(templatePath, "tags-editform")
 
-  val jsTags = net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(tags))
+  val jsTags: String = net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(tags))
 
   def parseResult(s: String): Box[Tags] = CompleteJson.unserializeTags(s)
 

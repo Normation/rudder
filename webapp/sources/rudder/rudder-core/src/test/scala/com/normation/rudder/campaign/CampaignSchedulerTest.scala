@@ -56,7 +56,7 @@ import org.specs2.runner.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class CampaignSchedulerTest extends Specification {
 
-  val now = DateTime.now()
+  val now: DateTime = DateTime.now()
   "A monthly campaign schedule set during december" should {
 
     // With bug, it was 2023/01/05 12:00 and end on 2023/01/09 18:00 instead of both date on 02/01/2023

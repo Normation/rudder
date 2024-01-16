@@ -38,31 +38,32 @@ package com.normation.rudder.domain.logger
 
 import com.normation.NamedZioLogger
 import net.liftweb.common.Logger
+import org.slf4j
 import org.slf4j.LoggerFactory
 
 /**
  * Applicative log of for policy generation
  */
 object PolicyGenerationLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("policy.generation")
+  override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("policy.generation")
 
   // async deployment agent
   object manager extends Logger {
-    override protected def _logger = LoggerFactory.getLogger("policy.generation.manager")
+    override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("policy.generation.manager")
   }
 
   object expectedReports extends Logger {
-    override protected def _logger = LoggerFactory.getLogger("policy.generation.expected_reports")
+    override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("policy.generation.expected_reports")
   }
 
   object update extends Logger {
-    override protected def _logger = LoggerFactory.getLogger("policy.generation.update")
+    override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("policy.generation.update")
   }
 
   object timing extends Logger {
-    override protected def _logger = LoggerFactory.getLogger("policy.generation.timing")
+    override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("policy.generation.timing")
     object buildNodeConfig extends Logger {
-      override protected def _logger = LoggerFactory.getLogger("policy.generation.timing.buildNodeConfig")
+      override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("policy.generation.timing.buildNodeConfig")
     }
   }
 

@@ -69,13 +69,13 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
   }
 
   implicit class ForceGet[A](b: Box[A]) {
-    def forceGet = b match {
+    def forceGet: A = b match {
       case Full(a) => a
       case eb      => throw new IllegalArgumentException(s"Error in text, expected in a Full(x), got: " + eb)
     }
   }
 
-  val root = File(s"/tmp/rudder-test-config-hashes/${new DateTime().toString(ISODateTimeFormat.dateTimeNoMillis())}")
+  val root: File = File(s"/tmp/rudder-test-config-hashes/${new DateTime().toString(ISODateTimeFormat.dateTimeNoMillis())}")
 
   root.createDirectories()
 
@@ -92,9 +92,9 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
   val d0 = new DateTime(100)
   val d1 = new DateTime(500)
 
-  val h0_0 = NodeConfigurationHash(NodeId("node0"), d0, 0, 0, 0, Set())
+  val h0_0: NodeConfigurationHash = NodeConfigurationHash(NodeId("node0"), d0, 0, 0, 0, Set())
 
-  val h1_0 = NodeConfigurationHash(
+  val h1_0: NodeConfigurationHash = NodeConfigurationHash(
     NodeId("node1"),
     d0,
     0,
@@ -112,7 +112,7 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
     )
   )
 
-  val h2_0 = NodeConfigurationHash(
+  val h2_0: NodeConfigurationHash = NodeConfigurationHash(
     NodeId("node2"),
     d0,
     0,
@@ -126,7 +126,7 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
     )
   )
 
-  val h1_1 = NodeConfigurationHash(
+  val h1_1: NodeConfigurationHash = NodeConfigurationHash(
     NodeId("node1"),
     d1,
     0,
@@ -144,7 +144,7 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
     )
   )
 
-  val h3_0 = NodeConfigurationHash(
+  val h3_0: NodeConfigurationHash = NodeConfigurationHash(
     NodeId("node3"),
     d1,
     0,
@@ -158,7 +158,7 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
     )
   )
 
-  val s1 = Set(h1_0, h0_0, h2_0)
+  val s1: Set[NodeConfigurationHash] = Set(h1_0, h0_0, h2_0)
 
   sequential
 

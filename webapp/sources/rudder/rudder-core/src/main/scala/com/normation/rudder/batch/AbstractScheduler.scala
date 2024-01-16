@@ -136,7 +136,7 @@ trait AbstractScheduler {
       }
     }
 
-    override protected def messageHandler = {
+    override protected def messageHandler: PartialFunction[AbstractActorUpdateMessage, Unit] = {
 
       // --------------------------------------------
       // Ask for a new process
@@ -195,7 +195,7 @@ trait AbstractScheduler {
 
     private[this] object TaskProcessor extends SpecializedLiftActor[StartProcessing] {
 
-      override protected def messageHandler = {
+      override protected def messageHandler: PartialFunction[StartProcessing, Unit] = {
         // --------------------------------------------
         // Process a start process
         // --------------------------------------------

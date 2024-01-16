@@ -46,7 +46,7 @@ import net.liftweb.common.Full
 final case class RudderWebPropertyName(value: String) extends AnyVal
 
 object RudderWebPropertyName {
-  val patternName = Pattern.compile("[a-zA-Z0-9_]+");
+  val patternName: Pattern = Pattern.compile("[a-zA-Z0-9_]+");
 }
 
 /**

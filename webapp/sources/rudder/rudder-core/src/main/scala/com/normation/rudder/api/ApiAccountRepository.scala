@@ -103,7 +103,7 @@ final class RoLDAPApiAccountRepository(
 
   val tokenSize = 32
 
-  val systemAPIAccount = {
+  val systemAPIAccount: ApiAccount = {
     ApiAccount(
       ApiAccountId("rudder-system-api-account"),
       ApiAccountKind.System,
@@ -189,7 +189,7 @@ final class WoLDAPApiAccountRepository(
    * We want to make all API account modification purely exclusive.
    * The action is rare, so there is no contention/scalling problem here.
    */
-  val semaphore = Semaphore.make(1).runNow
+  val semaphore: Semaphore = Semaphore.make(1).runNow
 
   override def save(
       principal: ApiAccount,

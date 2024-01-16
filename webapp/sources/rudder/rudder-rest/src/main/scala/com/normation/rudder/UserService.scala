@@ -61,7 +61,7 @@ trait User {
   def account: RudderAccount
   def checkRights(auth: AuthorizationType): Boolean
   def getApiAuthz: ApiAuthorization
-  final def actor = EventActor(account match {
+  final def actor: EventActor = EventActor(account match {
     case RudderAccount.User(login, _) => login
     case RudderAccount.Api(api)       => api.name.value
   })

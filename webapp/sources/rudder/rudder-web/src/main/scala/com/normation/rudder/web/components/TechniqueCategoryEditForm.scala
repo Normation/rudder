@@ -69,7 +69,7 @@ class TechniqueCategoryEditForm(
   private[this] val activeTechniqueCategoryRepository = RudderConfig.woDirectiveRepository
   private[this] val uuidGen                           = RudderConfig.stringUuidGenerator
 
-  def dispatch = { case "showForm" => { _ => showForm() } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "showForm" => { _ => showForm() } }
 
   private[this] var currentCategory = givenCategory
   def getCategory                   = currentCategory
@@ -141,13 +141,13 @@ class TechniqueCategoryEditForm(
 
   /////////////////////  Category Details Form  /////////////////////
 
-  val categoryName = new WBTextField("Category name", currentCategory.name) {
+  val categoryName: WBTextField = new WBTextField("Category name", currentCategory.name) {
     override def setFilter   = notNull _ :: trim _ :: Nil
     override def validations =
       valMinLen(1, "Name must not be empty") _ :: Nil
   }
 
-  val categoryDescription = new WBTextAreaField("Category description", currentCategory.description.toString) {
+  val categoryDescription: WBTextAreaField = new WBTextAreaField("Category description", currentCategory.description.toString) {
     override def setFilter  = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField % ("style" -> "height:10em")
 
@@ -176,7 +176,7 @@ class TechniqueCategoryEditForm(
 
   val categorFormTracker = new FormTracker(categoryName, categoryDescription)
 
-  var categoryNotifications = List.empty[NodeSeq]
+  var categoryNotifications: List[NodeSeq] = Nil
 
   private[this] def categoryDetailsForm: NodeSeq = {
     val html = SHtml.ajaxForm(<div id={htmlId_categoryDetailsForm}>

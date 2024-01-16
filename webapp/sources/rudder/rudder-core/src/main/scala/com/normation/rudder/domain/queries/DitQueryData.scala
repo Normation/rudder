@@ -140,7 +140,7 @@ class DitQueryData(dit: InventoryDit, nodeDit: NodeDit, rudderDit: RudderDit, ge
     )
   );
 
-  protected val criteriaSet = Set(
+  protected val criteriaSet: Set[ObjectCriterion] = Set(
     ObjectCriterion(
       OC_MACHINE,
       Seq(
@@ -352,7 +352,7 @@ class DitQueryData(dit: InventoryDit, nodeDit: NodeDit, rudderDit: RudderDit, ge
 
   // template query for each object type
 
-  def objectTypes = {
+  def objectTypes: Map[String, LDAPObjectType] = {
     def LAOT  = LDAPObjectType
     def LAOTF = LDAPObjectTypeFilter
     Map(
@@ -383,7 +383,7 @@ class DitQueryData(dit: InventoryDit, nodeDit: NodeDit, rudderDit: RudderDit, ge
   }
 
   // We only know how to query NODES for now: special word for it.
-  val nodeObjectTypes = objectTypes("node")
+  val nodeObjectTypes: LDAPObjectType = objectTypes("node")
 
   // "kind" of each object type
   val objectDnTypes: Map[String, DnType] = {
@@ -416,7 +416,7 @@ class DitQueryData(dit: InventoryDit, nodeDit: NodeDit, rudderDit: RudderDit, ge
   // special attribute: dn ( rdn, parentdn ?)
   // Entries MUST NOT HAVE attributes named with a special name (dn...)
   // Join attribute MUST BE DNs
-  val joinAttributes = Map(
+  val joinAttributes: Map[String, LDAPJoinElement] = Map(
     "software"                       -> DNJoin,
     "node"                           -> DNJoin,
     "rudderNode"                     -> DNJoin,
@@ -442,7 +442,7 @@ class DitQueryData(dit: InventoryDit, nodeDit: NodeDit, rudderDit: RudderDit, ge
 
   // how do you create a filter from a DN,
   // when you want to query such an object
-  val nodeJoinFilters = Map[DnType, DN => Filter](
+  val nodeJoinFilters: Map[DnType, DN => Filter] = Map[DnType, DN => Filter](
     QueryNodeDn     -> ((dn: DN) => (EQ(A_NODE_UUID, dn.getRDN.getAttributeValues()(0)))),
     QuerySoftwareDn -> ((dn: DN) => (EQ(A_SOFTWARE_DN, dn.toString))),
     QueryMachineDn  -> ((dn: DN) => (EQ(A_CONTAINER_DN, dn.toString)))

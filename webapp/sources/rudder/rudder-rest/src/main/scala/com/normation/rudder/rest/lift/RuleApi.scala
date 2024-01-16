@@ -595,7 +595,7 @@ class RuleApiService2(
     }
   }
 
-  def listRules(req: Req) = {
+  def listRules(req: Req): LiftResponse = {
     implicit val action   = "listRules"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     readRule.getAll(false).toBox match {
@@ -607,7 +607,9 @@ class RuleApiService2(
     }
   }
 
-  def actualRuleCreation(change: RuleChangeRequest)(actor: EventActor, modId: ModificationId, reason: Option[String]) = {
+  def actualRuleCreation(
+      change: RuleChangeRequest
+  )(actor:    EventActor, modId: ModificationId, reason: Option[String]): Box[JArray] = {
     (for {
       _ <- writeRule.create(change.newRule, modId, actor, reason).toBox
     } yield {
@@ -673,7 +675,7 @@ class RuleApiService2(
   }
 
   // only used in old API, don't care about revision
-  def ruleDetails(id: String, req: Req) = {
+  def ruleDetails(id: String, req: Req): LiftResponse = {
     implicit val action   = "ruleDetails"
     implicit val prettify = restExtractor.extractPrettify(req.params)
 
@@ -688,7 +690,7 @@ class RuleApiService2(
     }
   }
 
-  def deleteRule(id: String, req: Req) = {
+  def deleteRule(id: String, req: Req): LiftResponse = {
     implicit val action   = "deleteRule"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor             = RestUtils.getActor(req)
@@ -707,7 +709,7 @@ class RuleApiService2(
     }
   }
 
-  def updateRule(id: String, req: Req, restValues: Box[RestRule]) = {
+  def updateRule(id: String, req: Req, restValues: Box[RestRule]): LiftResponse = {
     implicit val action   = "updateRule"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor             = getActor(req)
@@ -744,7 +746,7 @@ class RuleApiService6(
     restDataSerializer: RestDataSerializer
 ) extends Loggable {
 
-  def getCategoryInformations(category: RuleCategory, parent: RuleCategoryId, detail: DetailLevel) = {
+  def getCategoryInformations(category: RuleCategory, parent: RuleCategoryId, detail: DetailLevel): Box[JValue] = {
     for {
       rules <- readRule.getAll()
 
@@ -753,7 +755,7 @@ class RuleApiService6(
     }
   }.toBox
 
-  def getCategoryTree = {
+  def getCategoryTree: Box[JValue] = {
     for {
       root       <- readRuleCategory.getRootCategory().toBox
       categories <- getCategoryInformations(root, root.id, FullDetails)
@@ -762,7 +764,7 @@ class RuleApiService6(
     }
   }
 
-  def getCategoryDetails(id: RuleCategoryId) = {
+  def getCategoryDetails(id: RuleCategoryId): Box[JValue] = {
     for {
       root              <- readRuleCategory.getRootCategory().toBox
       found             <- root.find(id)
@@ -773,7 +775,7 @@ class RuleApiService6(
     }
   }
 
-  def deleteCategory(id: RuleCategoryId)(actor: EventActor, modId: ModificationId, reason: Option[String]) = {
+  def deleteCategory(id: RuleCategoryId)(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     for {
       root              <- readRuleCategory.getRootCategory()
       found             <- root.find(id).toIO
@@ -792,7 +794,7 @@ class RuleApiService6(
   def updateCategory(
       id:       RuleCategoryId,
       restData: RestRuleCategory
-  )(actor:      EventActor, modId: ModificationId, reason: Option[String]) = {
+  )(actor:      EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     logger.info(restData)
     for {
       root              <- readRuleCategory.getRootCategory()
@@ -817,7 +819,7 @@ class RuleApiService6(
   def createCategory(
       restData:  RestRuleCategory,
       defaultId: () => RuleCategoryId
-  )(actor:       EventActor, modId: ModificationId, reason: Option[String]) = {
+  )(actor:       EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     for {
       name     <- restData.name.notOptional("Could not create Rule Category, cause name is not defined").toBox
       update    = RuleCategory(restData.id.getOrElse(defaultId()), name, restData.description.getOrElse(""), Nil)

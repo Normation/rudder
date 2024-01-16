@@ -269,7 +269,7 @@ class NoWorkflowServiceImpl(
     commit: CommitAndDeployChangeRequestService
 ) extends WorkflowService with Loggable {
 
-  val noWorfkflow = WorkflowNodeId("No Workflow")
+  val noWorfkflow: WorkflowNodeId = WorkflowNodeId("No Workflow")
 
   val name = "no-changes-validation-workflow"
 

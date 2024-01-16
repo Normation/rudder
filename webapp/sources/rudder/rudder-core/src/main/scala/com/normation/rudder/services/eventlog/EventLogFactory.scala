@@ -470,7 +470,7 @@ class EventLogFactoryImpl(
       creationDate:        DateTime = DateTime.now(),
       severity:            Int = 100,
       reason:              Option[String]
-  ) = {
+  ): AddDirective = {
     val details = EventLog.withContent(
       DirectiveXmlSerializer.serialise(
         addDiff.techniqueName,
@@ -500,7 +500,7 @@ class EventLogFactoryImpl(
       creationDate:        DateTime = DateTime.now(),
       severity:            Int = 100,
       reason:              Option[String]
-  ) = {
+  ): DeleteDirective = {
     val details = EventLog.withContent(
       DirectiveXmlSerializer.serialise(
         deleteDiff.techniqueName,
@@ -529,7 +529,7 @@ class EventLogFactoryImpl(
       creationDate:   DateTime = DateTime.now(),
       severity:       Int = 100,
       reason:         Option[String]
-  ) = {
+  ): ModifyDirective = {
     val details = EventLog.withContent {
       scala.xml.Utility.trim(
         <directive changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
@@ -836,7 +836,7 @@ class EventLogFactoryImpl(
       creationDate:   DateTime = DateTime.now(),
       severity:       Int = 100,
       reason:         Option[String]
-  ) = {
+  ): ChangeRequestEventLog = {
 
     def eventlogDetails(xml: Elem): EventLogDetails = {
       EventLogDetails(
@@ -879,7 +879,7 @@ class EventLogFactoryImpl(
       creationDate:   DateTime = DateTime.now(),
       severity:       Int = 100,
       reason:         Option[String]
-  ) = {
+  ): WorkflowStepChanged = {
     val xml     = {
       <workflowStep>
         <changeRequestId>{step.id}</changeRequestId>
@@ -933,7 +933,7 @@ class EventLogFactoryImpl(
       creationDate:   DateTime = DateTime.now(),
       severity:       Int = 100,
       reason:         Option[String]
-  ) = {
+  ): ModifyAPIAccountEventLog = {
     val details = EventLog.withContent {
       scala.xml.Utility.trim(<apiAccount changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <id>{diff.id.value}</id>{

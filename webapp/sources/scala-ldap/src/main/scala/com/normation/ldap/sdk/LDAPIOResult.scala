@@ -47,7 +47,7 @@ object LDAPRudderError {
 
   // accumulated errors from multiple independent action
   final case class Accumulated(errors: NonEmptyList[RudderError]) extends LDAPRudderError {
-    def msg = s"Several errors encountered: ${errors.toList.map(_.fullMsg).mkString("; ")}"
+    def msg: String = s"Several errors encountered: ${errors.toList.map(_.fullMsg).mkString("; ")}"
   }
 }
 
@@ -63,7 +63,7 @@ object LDAPIOResult {
 
   // transform an Option[T] into an error
   implicit class StrictOption[T](opt: LDAPIOResult[Option[T]]) {
-    def notOptional(msg: String) = opt.flatMap(_ match {
+    def notOptional(msg: String): ZIO[Any, LDAPRudderError, T] = opt.flatMap(_ match {
       case Some(x) => x.succeed
       case None    => LDAPRudderError.Consistancy(msg).fail
     })
@@ -71,7 +71,7 @@ object LDAPIOResult {
 
   // same than above for a Rudder error from a string
   implicit class ToFailureMsg(e: String) {
-    def fail = ZIO.fail(LDAPRudderError.Consistancy(e))
+    def fail: IO[LDAPRudderError.Consistancy, Nothing] = ZIO.fail(LDAPRudderError.Consistancy(e))
   }
 
   implicit class ValidatedToLdapError[T](res: ZIO[Any, NonEmptyList[LDAPRudderError], List[T]]) {

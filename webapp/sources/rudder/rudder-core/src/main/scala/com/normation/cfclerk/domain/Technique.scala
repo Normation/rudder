@@ -48,7 +48,7 @@ import com.normation.utils.Utils._
  *
  */
 final case class TechniqueName(value: String) extends AnyVal with Ordered[TechniqueName] {
-  override def compare(that: TechniqueName) = this.value.compare(that.value)
+  override def compare(that: TechniqueName): Int = this.value.compare(that.value)
 
   // to avoid compat error
   @deprecated(s"Please call `.value` in place of toString()", "7.0")
@@ -62,10 +62,10 @@ final case class TechniqueName(value: String) extends AnyVal with Ordered[Techni
  */
 final case class TechniqueId(name: TechniqueName, version: TechniqueVersion) extends Ordered[TechniqueId] {
   // intended for debug/log, not serialization
-  def debugString    = serialize
+  def debugString = serialize
   // a technique
-  def serialize      = name.value + "/" + version.serialize
-  def withDefaultRev = TechniqueId(name, version.withDefaultRev)
+  def serialize:      String      = name.value + "/" + version.serialize
+  def withDefaultRev: TechniqueId = TechniqueId(name, version.withDefaultRev)
 
   override def compare(that: TechniqueId): Int = {
     val c = this.name.compare(that.name)
@@ -168,7 +168,7 @@ object TechniqueGenerationMode {
     override val name = "separated-with-parameters"
   }
 
-  def allValues = ca.mrvisser.sealerate.values[TechniqueGenerationMode]
+  def allValues: Set[TechniqueGenerationMode] = ca.mrvisser.sealerate.values[TechniqueGenerationMode]
 
   def parse(value: String): Option[TechniqueGenerationMode] = {
     val v = value.toLowerCase
@@ -216,7 +216,8 @@ final case class Technique(
    */
   val templatesIds: Set[TechniqueResourceId] = agentConfigs.flatMap(cfg => cfg.templates.map(_.id)).toSet
 
-  val getAllVariableSpecs = this.rootSection.getAllVariables ++ this.systemVariableSpecs :+ this.trackerVariableSpec
+  val getAllVariableSpecs: Seq[VariableSpec] =
+    this.rootSection.getAllVariables ++ this.systemVariableSpecs :+ this.trackerVariableSpec
 
   // Escape the description, so that text cannot be used to inject anything in display
   def escapedDescription: String = {

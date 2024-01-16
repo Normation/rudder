@@ -160,7 +160,7 @@ class RuleCompliance(
     )
   }
 
-  def refresh() = {
+  def refresh(): JsCmd = {
     // we want to be able to see at least one if the other fails
     SHtml.ajaxInvoke(() => refreshCompliance()) &
     SHtml.ajaxInvoke(() => refreshGraphChanges()) &

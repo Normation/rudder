@@ -566,7 +566,10 @@ final case class RestExtractorService(
     }
   }
 
-  def checkTechniqueVersion(techniqueName: TechniqueName, techniqueVersion: Option[TechniqueVersion]) = {
+  def checkTechniqueVersion(
+      techniqueName:    TechniqueName,
+      techniqueVersion: Option[TechniqueVersion]
+  ): Box[Option[TechniqueVersion]] = {
     techniqueVersion match {
       case Some(version) =>
         techniqueRepository.getTechniqueVersions(techniqueName).find(_ == version) match {
@@ -877,7 +880,7 @@ final case class RestExtractorService(
     }
   }
 
-  def toTagJson(json: JValue) = {
+  def toTagJson(json: JValue): Box[Tag] = {
     import Tag._
     json match {
       case JObject(JField(name, JString(value)) :: Nil) => Full(Tag(name, value))
@@ -1292,7 +1295,7 @@ final case class RestExtractorService(
     }
   }
 
-  def extractId[T](req: Req)(fun: String => Box[T]) = extractString("id")(req)(fun)
+  def extractId[T](req: Req)(fun: String => Box[T]): Box[Option[T]] = extractString("id")(req)(fun)
 
   def extractEditorTechnique(
       json:             JValue,

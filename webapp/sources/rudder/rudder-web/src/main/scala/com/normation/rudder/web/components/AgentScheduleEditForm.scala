@@ -64,9 +64,9 @@ class AgentScheduleEditForm(
     "schedule-agentschedule"
   )
 
-  def dispatch = { case "cfagentSchedule" => (xml) => cfagentScheduleConfiguration }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "cfagentSchedule" => (xml) => cfagentScheduleConfiguration }
 
-  def submit(jsonSchedule: String) = {
+  def submit(jsonSchedule: String): JsRaw = {
     parseJsonSchedule(jsonSchedule) match {
       case eb: EmptyBox =>
         val e = eb ?~! s"Error when trying to parse user data: '${jsonSchedule}'"

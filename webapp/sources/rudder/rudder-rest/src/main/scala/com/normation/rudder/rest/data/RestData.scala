@@ -85,7 +85,7 @@ final case class RestRuleCategory(
     id:          Option[RuleCategoryId] = None
 ) {
 
-  def update(ruleCategory: RuleCategory) = {
+  def update(ruleCategory: RuleCategory): RuleCategory = {
     val updateName        = name.getOrElse(ruleCategory.name)
     val updateDescription = description.getOrElse(ruleCategory.description)
     ruleCategory.copy(
@@ -102,7 +102,7 @@ final case class RestGroupCategory(
     parent:      Option[NodeGroupCategoryId] = None
 ) {
 
-  def update(category: FullNodeGroupCategory) = {
+  def update(category: FullNodeGroupCategory): FullNodeGroupCategory = {
     val updateId          = id.getOrElse(category.id)
     val updateName        = name.getOrElse(category.name)
     val updateDescription = description.getOrElse(category.description)
@@ -144,7 +144,7 @@ final case class RestDirective(
     tags:             Option[Tags]
 ) {
 
-  val onlyName = name.isDefined &&
+  val onlyName: Boolean = name.isDefined &&
     shortDescription.isEmpty &&
     longDescription.isEmpty &&
     enabled.isEmpty &&
@@ -155,7 +155,7 @@ final case class RestDirective(
     policyMode.isEmpty &&
     tags.isEmpty
 
-  def updateDirective(directive: Directive) = {
+  def updateDirective(directive: Directive): Directive = {
     val updateName             = name.getOrElse(directive.name)
     val updateShort            = shortDescription.getOrElse(directive.shortDescription)
     val updateLong             = longDescription.getOrElse(directive.longDescription)
@@ -202,7 +202,7 @@ final case class RestGroup(
     category:    Option[NodeGroupCategoryId] = None
 ) {
 
-  val onlyName = name.isDefined &&
+  val onlyName: Boolean = name.isDefined &&
     description.isEmpty &&
     query.isEmpty &&
     isDynamic.isEmpty &&
@@ -251,7 +251,7 @@ final case class RestParameter(
     inheritMode: Option[InheritMode] = None
 ) {
 
-  def updateParameter(parameter: GlobalParameter) = {
+  def updateParameter(parameter: GlobalParameter): GlobalParameter = {
     val updateValue = (p: GlobalParameter) => (value.map(x => p.withValue(x))).getOrElse(p)
     val updateDesc  = (p: GlobalParameter) => (description.map(x => p.withDescription(x))).getOrElse(p)
     val updateMode  = (p: GlobalParameter) => (inheritMode.map(x => p.withMode(x))).getOrElse(p)
@@ -271,7 +271,7 @@ final case class RestRule(
     tags:             Option[Tags] = None
 ) {
 
-  val onlyName = name.isDefined &&
+  val onlyName: Boolean = name.isDefined &&
     category.isEmpty &&
     shortDescription.isEmpty &&
     longDescription.isEmpty &&
@@ -280,7 +280,7 @@ final case class RestRule(
     enabled.isEmpty &&
     tags.isEmpty
 
-  def updateRule(rule: Rule) = {
+  def updateRule(rule: Rule): Rule = {
     val updateName       = name.getOrElse(rule.name)
     val updateCategory   = category.getOrElse(rule.categoryId)
     val updateShort      = shortDescription.getOrElse(rule.shortDescription)

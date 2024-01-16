@@ -60,6 +60,7 @@ import com.unboundid.ldap.sdk.DereferencePolicy.NEVER
 import java.util.regex.Pattern
 import net.liftweb.common._
 import net.liftweb.util.Helpers
+import org.slf4j
 import org.slf4j.LoggerFactory
 import zio.{System => _, _}
 import zio.syntax._
@@ -212,7 +213,7 @@ class AcceptedNodesLDAPQueryProcessor(
  * the json path and check on node properties.
  */
 object PostFilterNodeFromInfoService {
-  val logger = LoggerFactory.getLogger("com.normation.rudder.services.queries")
+  val logger: slf4j.Logger = LoggerFactory.getLogger("com.normation.rudder.services.queries")
   def getLDAPNodeInfo(
       foundNodeInfos: Seq[NodeInfo],
       predicates:     Seq[NodeInfoMatcher],
@@ -890,7 +891,7 @@ class InternalLDAPQueryProcessor(
       composition,
       debugId
     ).flatMap { results =>
-      val res = (results.flatMap { e: LDAPEntry =>
+      val res = (results.flatMap { (e: LDAPEntry) =>
         joinType match {
           case DNJoin       => Some(e.dn)
           case ParentDNJoin => Some(e.dn.getParent)

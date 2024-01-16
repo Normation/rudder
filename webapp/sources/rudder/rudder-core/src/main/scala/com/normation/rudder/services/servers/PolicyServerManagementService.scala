@@ -337,7 +337,7 @@ class PolicyServerManagementServiceImpl(
    * The lock is global to all policy server, so avoid changing
    * their allowed networks in parallel.
    */
-  val lock = Semaphore.make(1).runNow
+  val lock: Semaphore = Semaphore.make(1).runNow
 
   private def getDefaultSettingEntryIfMissing = {
     val entry = dit.APPCONFIG.propertyModel(RudderWebPropertyName(PROP_NAME))
@@ -547,7 +547,7 @@ object PolicyServerConfigurationObjects {
     .getOrElse(throw new RuntimeException(s"Error in default version data, this is likely a bug. Please report it."))
 
   implicit class ToDirective(id: String) {
-    def toDirective = Directive(
+    def toDirective: Directive = Directive(
       DirectiveId(DirectiveUid(id)),
       v1_0,
       Map(),
@@ -562,10 +562,11 @@ object PolicyServerConfigurationObjects {
     )
   }
 
-  val relayTechniques = List("server-common", "rudder-service-apache", "rudder-service-relayd")
-  val rootTechniques  = List("rudder-service-postgresql", "rudder-service-slapd", "rudder-service-webapp") ::: relayTechniques
+  val relayTechniques: List[String] = List("server-common", "rudder-service-apache", "rudder-service-relayd")
+  val rootTechniques:  List[String] =
+    List("rudder-service-postgresql", "rudder-service-slapd", "rudder-service-webapp") ::: relayTechniques
 
-  def directiveCommonHasPolicyServer(nodeId: NodeId) = {
+  def directiveCommonHasPolicyServer(nodeId: NodeId): (TechniqueName, Directive) = {
     TechniqueName("common") ->
     s"common-hasPolicyServer-${nodeId.value}".toDirective
       .modify(_.parameters)
@@ -583,7 +584,7 @@ object PolicyServerConfigurationObjects {
       .setTo(s"Common policy for nodes with '${nodeId.value}' for policy server")
   }
 
-  def directiveServerCommon(nodeId: NodeId) = {
+  def directiveServerCommon(nodeId: NodeId): (TechniqueName, Directive) = {
     TechniqueName("server-common") ->
     s"server-common-${nodeId.value}".toDirective
       .modify(_.name)
@@ -592,7 +593,7 @@ object PolicyServerConfigurationObjects {
       .setTo(s"Common policy for policy server with '${nodeId.value}'")
   }
 
-  def directiveServices(nodeId: NodeId) = {
+  def directiveServices(nodeId: NodeId): List[(TechniqueName, Directive)] = {
     List("apache", "postgresql", "relayd", "slapd", "webapp").map(name => {
       TechniqueName(s"rudder-service-${name}") ->
       s"rudder-service-${name}-${nodeId.value}".toDirective
@@ -603,7 +604,7 @@ object PolicyServerConfigurationObjects {
     })
   }
 
-  def groupHasPolicyServer(nodeId: NodeId) = {
+  def groupHasPolicyServer(nodeId: NodeId): NodeGroup = {
     val objectType = ObjectCriterion(
       "node",
       Seq(Criterion("policyServerId", StringComparator, None), Criterion("agentName", AgentComparator, None))
@@ -630,7 +631,7 @@ object PolicyServerConfigurationObjects {
     )
   }
 
-  def ruleCommonHasPolicyServer(nodeId: NodeId) = {
+  def ruleCommonHasPolicyServer(nodeId: NodeId): Rule = {
     Rule(
       RuleId(RuleUid(s"hasPolicyServer-${nodeId.value}")),
       s"Rudder system policy: basic setup (common) - ${nodeId.value}",
@@ -644,7 +645,7 @@ object PolicyServerConfigurationObjects {
     )
   }
 
-  def rulePolicyServer(nodeId: NodeId, techniques: List[String]) = {
+  def rulePolicyServer(nodeId: NodeId, techniques: List[String]): Rule = {
     Rule(
       RuleId(RuleUid(s"policy-server-${nodeId.value}")),
       s"Rule for policy server ${nodeId.value}",

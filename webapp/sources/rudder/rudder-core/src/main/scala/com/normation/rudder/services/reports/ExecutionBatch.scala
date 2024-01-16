@@ -54,6 +54,7 @@ import net.liftweb.common.Loggable
 import org.apache.commons.lang3.StringUtils
 import org.joda.time._
 import scala.annotation.tailrec
+import scala.util.matching.Regex
 
 /*
  *  we want to retrieve for each node the expected reports that matches it LAST
@@ -248,8 +249,8 @@ final case class ComputeCompliance(
     expectedConfig:     NodeExpectedReports,
     expirationDateTime: DateTime
 ) extends Ok with LastRunAvailable {
-  val lastRunConfigId   = expectedConfig.nodeConfigId
-  val lastRunConfigInfo = Some(expectedConfig)
+  val lastRunConfigId = expectedConfig.nodeConfigId
+  val lastRunConfigInfo: Some[NodeExpectedReports] = Some(expectedConfig)
 }
 
 /*
@@ -282,22 +283,24 @@ object UnexpectedReportBehavior {
 final case class UnexpectedReportInterpretation(options: Set[UnexpectedReportBehavior]) {
 
   // true if the set of option contains `option`
-  def isSet(opt: UnexpectedReportBehavior) = options.contains(opt)
+  def isSet(opt: UnexpectedReportBehavior): Boolean = options.contains(opt)
 
   // check if ALL the provided options are set
-  def allSet(opts: UnexpectedReportBehavior*) = {
+  def allSet(opts: UnexpectedReportBehavior*): Boolean = {
     val o = opts.toSet
     options.intersect(o) == o
   }
 
   // check if AT LEAST ONE of provided options is set
-  def anySet(opts: UnexpectedReportBehavior*) = options.intersect(opts.toSet).nonEmpty
+  def anySet(opts: UnexpectedReportBehavior*): Boolean = options.intersect(opts.toSet).nonEmpty
 
   // return a copy of that interpretation with the given value set
-  def set(opt: UnexpectedReportBehavior) = UnexpectedReportInterpretation(options + opt)
+  def set(opt: UnexpectedReportBehavior): UnexpectedReportInterpretation = UnexpectedReportInterpretation(options + opt)
 
   // return a copy of that interpretation with the given value removed
-  def unset(opt: UnexpectedReportBehavior) = UnexpectedReportInterpretation(options.filter(_ != opt))
+  def unset(opt: UnexpectedReportBehavior): UnexpectedReportInterpretation = UnexpectedReportInterpretation(
+    options.filter(_ != opt)
+  )
 }
 
 /**
@@ -309,7 +312,7 @@ object ExecutionBatch extends Loggable {
   // these patterns must be reluctant matches to avoid strange things
   // when two variables are presents, or something like: ${foo}xxxxxx}.
   // Note: the method checkExpectedVariable expects that a $ is in the pattern
-  final val matchCFEngineVars           = """.*\$(\{.+?\}|\(.+?\)).*""".r
+  final val matchCFEngineVars: Regex = """.*\$(\{.+?\}|\(.+?\)).*""".r
   final private val replaceCFEngineVars = """\$\{.+?\}|\$\(.+?\)"""
 
   /**
@@ -335,7 +338,7 @@ object ExecutionBatch extends Loggable {
    * That notion only makes sens for the compliance mode, as it is expected to
    * NOT receive report in the changes-only mode.
    */
-  final val GRACE_TIME_PENDING = Duration.standardMinutes(5)
+  final val GRACE_TIME_PENDING: Duration = Duration.standardMinutes(5)
 
   /**
    * Then end of times, used to denote report which are not expiring
@@ -1676,7 +1679,7 @@ object ExecutionBatch extends Loggable {
   implicit class ToMessageStatusReport(val r: Reports) extends AnyVal {
     // build the resulting reportType from a report, checking that the
     // policy mode is the one expected
-    def toMessageStatusReport(mode: PolicyMode) = {
+    def toMessageStatusReport(mode: PolicyMode): MessageStatusReport = {
       ReportType(r, mode) match {
         case BadPolicyMode =>
           MessageStatusReport(

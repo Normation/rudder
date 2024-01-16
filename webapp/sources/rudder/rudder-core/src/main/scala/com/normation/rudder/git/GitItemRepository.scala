@@ -109,7 +109,7 @@ trait GitItemRepository {
 
   // better.files.File.pathAsString is normalized without an ending slash, an Git path are relative to "/"
   // *without* the leading slash.
-  def toGitPath(fsPath: File) = fsPath.getPath.replace(gitRepo.rootDirectory.pathAsString + "/", "")
+  def toGitPath(fsPath: File): String = fsPath.getPath.replace(gitRepo.rootDirectory.pathAsString + "/", "")
 
   /**
    * Files in gitPath are added.

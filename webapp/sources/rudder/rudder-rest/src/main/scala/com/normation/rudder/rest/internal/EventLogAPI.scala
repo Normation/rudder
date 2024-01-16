@@ -56,6 +56,7 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.S
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JValue
 import net.liftweb.util.Helpers.tryo
@@ -83,14 +84,14 @@ class EventLogAPI(
     ~ ("hasDetails"  -> (if (event.details != <entry></entry>) true else false)))
   }
 
-  def errorFormatter(errorMessage: String) = {
+  def errorFormatter(errorMessage: String):                                                     JsonAST.JObject = {
     (("draw"             -> 0)
     ~ ("recordsTotal"    -> 0)
     ~ ("recordsFiltered" -> 0)
     ~ ("data"            -> "")
     ~ ("error"           -> errorMessage))
   }
-  def responseFormater(draw: Int, totalRecord: Long, totalFiltered: Long, logs: Seq[EventLog]): JValue = {
+  def responseFormater(draw: Int, totalRecord: Long, totalFiltered: Long, logs: Seq[EventLog]): JValue          = {
     (("draw"             -> draw)
     ~ ("recordsTotal"    -> totalRecord)
     ~ ("recordsFiltered" -> totalFiltered)

@@ -76,14 +76,14 @@ class NodeInfoServiceCachedTest extends Specification {
 
   sequential
 
-  def DN(rdn: String, parent: DN)      = new DN(new RDN(rdn), parent)
-  val LDAP_BASEDN                      = new DN("cn=rudder-configuration")
-  val LDAP_INVENTORIES_BASEDN          = DN("ou=Inventories", LDAP_BASEDN)
+  def DN(rdn: String, parent: DN) = new DN(new RDN(rdn), parent)
+  val LDAP_BASEDN                 = new DN("cn=rudder-configuration")
+  val LDAP_INVENTORIES_BASEDN: DN = DN("ou=Inventories", LDAP_BASEDN)
   val LDAP_INVENTORIES_SOFTWARE_BASEDN = LDAP_INVENTORIES_BASEDN
 
-  val rudderDit    = new RudderDit(DN("ou=Rudder", LDAP_BASEDN))
-  val nodeDit      = new NodeDit(new DN("cn=rudder-configuration"))
-  val inventoryDit = InventoryDit(
+  val rudderDit = new RudderDit(DN("ou=Rudder", LDAP_BASEDN))
+  val nodeDit   = new NodeDit(new DN("cn=rudder-configuration"))
+  val inventoryDit: InventoryDit = InventoryDit(
     DN("ou=Accepted Inventories", DN("ou=Inventories", LDAP_BASEDN)),
     LDAP_INVENTORIES_SOFTWARE_BASEDN,
     "Accepted inventories"

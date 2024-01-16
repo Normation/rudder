@@ -50,6 +50,7 @@ import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.Helpers._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
+import org.joda.time.format.DateTimeFormatter
 import scala.xml._
 
 class DatabaseManagement extends DispatchSnippet with Loggable {
@@ -57,15 +58,15 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
   private[this] val databaseManager = RudderConfig.databaseManager
   private[this] val dbCleaner       = RudderConfig.automaticReportsCleaning
 
-  private[this] var from: String = ""
-  val archiveAction = ArchiveAction(databaseManager, dbCleaner)
-  val deleteAction  = DeleteAction(databaseManager, dbCleaner)
+  private[this] var from:   String            = ""
+  val archiveAction:        ArchiveAction     = ArchiveAction(databaseManager, dbCleaner)
+  val deleteAction:         DeleteAction      = DeleteAction(databaseManager, dbCleaner)
   private[this] var action: CleanReportAction = archiveAction
 
   val DATETIME_FORMAT = "yyyy-MM-dd"
-  val DATETIME_PARSER = DateTimeFormat.forPattern(DATETIME_FORMAT)
+  val DATETIME_PARSER: DateTimeFormatter = DateTimeFormat.forPattern(DATETIME_FORMAT)
 
-  def dispatch = { case "display" => display }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "display" => display }
 
   def display(xml: NodeSeq): NodeSeq = {
 
@@ -74,7 +75,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
         .radio(
           Seq("Archive", "Delete"),
           Full("Archive"),
-          { value: String =>
+          { (value: String) =>
             action = value match {
               case "Archive" => archiveAction
               case "Delete"  => deleteAction
@@ -112,7 +113,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  def updateValue = {
+  def updateValue: JsCmd = {
     val reportsInterval         = databaseManager.getReportsInterval()
     val archivedReportsInterval = databaseManager.getArchivedReportsInterval()
 
@@ -150,7 +151,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     updateAutomaticCleaner
   }
 
-  def updateAutomaticCleaner = {
+  def updateAutomaticCleaner: JsCmd = {
     SetHtml("autoArchiveStatus", if (dbCleaner.archivettl > 0) Text("Enabled") else Text("Disabled")) & {
       if (dbCleaner.archivettl > 1)
         SetHtml("autoArchiveDays", Text("%d".format(dbCleaner.archivettl)))

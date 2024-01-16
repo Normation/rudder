@@ -61,7 +61,7 @@ object ApplicationStatus {
       targets:           Set[RuleTargetInfo],
       directives:        Set[(ActiveTechnique, Directive)],
       nodes:             Iterable[NodeInfo]
-  ) = {
+  ): (String, Option[String]) = {
     applicationStatus match {
       case FullyApplied          => ("In application", None)
       case PartiallyApplied(seq) =>

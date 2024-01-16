@@ -43,6 +43,7 @@ import com.normation.eventlog.EventLog
 import doobie._
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
+import scala.xml.NodeSeq
 
 class EventLogsViewer extends DispatchSnippet with Loggable {
   private[this] val repos     = RudderConfig.eventLogRepository
@@ -52,6 +53,6 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
     repos.getEventLogByCriteria(None, Some(1000), List(Fragment.const("id DESC"))).toBox
   }
 
-  def dispatch = { case "display" => _ => eventList.display(() => getLastEvents) }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "display" => _ => eventList.display(() => getLastEvents) }
 
 }

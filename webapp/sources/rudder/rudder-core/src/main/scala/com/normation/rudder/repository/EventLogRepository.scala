@@ -82,7 +82,12 @@ trait EventLogRepository {
    */
   def saveEventLog(modId: ModificationId, eventLog: EventLog): IOResult[EventLog]
 
-  def saveAddRule(modId: ModificationId, principal: EventActor, addDiff: AddRuleDiff, reason: Option[String]) = {
+  def saveAddRule(
+      modId:     ModificationId,
+      principal: EventActor,
+      addDiff:   AddRuleDiff,
+      reason:    Option[String]
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getAddRuleFromDiff(
@@ -93,7 +98,12 @@ trait EventLogRepository {
     )
   }
 
-  def saveDeleteRule(modId: ModificationId, principal: EventActor, deleteDiff: DeleteRuleDiff, reason: Option[String]) = {
+  def saveDeleteRule(
+      modId:      ModificationId,
+      principal:  EventActor,
+      deleteDiff: DeleteRuleDiff,
+      reason:     Option[String]
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getDeleteRuleFromDiff(
@@ -104,7 +114,12 @@ trait EventLogRepository {
     )
   }
 
-  def saveModifyRule(modId: ModificationId, principal: EventActor, modifyDiff: ModifyRuleDiff, reason: Option[String]) = {
+  def saveModifyRule(
+      modId:      ModificationId,
+      principal:  EventActor,
+      modifyDiff: ModifyRuleDiff,
+      reason:     Option[String]
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getModifyRuleFromDiff(
@@ -121,7 +136,7 @@ trait EventLogRepository {
       addDiff:             AddDirectiveDiff,
       varsRootSectionSpec: SectionSpec,
       reason:              Option[String]
-  ) = {
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getAddDirectiveFromDiff(
@@ -139,7 +154,7 @@ trait EventLogRepository {
       deleteDiff:          DeleteDirectiveDiff,
       varsRootSectionSpec: SectionSpec,
       reason:              Option[String]
-  ) = {
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getDeleteDirectiveFromDiff(
@@ -156,7 +171,7 @@ trait EventLogRepository {
       principal:  EventActor,
       modifyDiff: ModifyDirectiveDiff,
       reason:     Option[String]
-  ) = {
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getModifyDirectiveFromDiff(
@@ -167,7 +182,12 @@ trait EventLogRepository {
     )
   }
 
-  def saveAddNodeGroup(modId: ModificationId, principal: EventActor, addDiff: AddNodeGroupDiff, reason: Option[String]) = {
+  def saveAddNodeGroup(
+      modId:     ModificationId,
+      principal: EventActor,
+      addDiff:   AddNodeGroupDiff,
+      reason:    Option[String]
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getAddNodeGroupFromDiff(
@@ -183,7 +203,7 @@ trait EventLogRepository {
       principal:  EventActor,
       deleteDiff: DeleteNodeGroupDiff,
       reason:     Option[String]
-  ) = {
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getDeleteNodeGroupFromDiff(
@@ -199,7 +219,7 @@ trait EventLogRepository {
       principal:  EventActor,
       modifyDiff: ModifyNodeGroupDiff,
       reason:     Option[String]
-  ) = {
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getModifyNodeGroupFromDiff(
@@ -210,7 +230,12 @@ trait EventLogRepository {
     )
   }
 
-  def saveAddTechnique(modId: ModificationId, principal: EventActor, addDiff: AddTechniqueDiff, reason: Option[String]) = {
+  def saveAddTechnique(
+      modId:     ModificationId,
+      principal: EventActor,
+      addDiff:   AddTechniqueDiff,
+      reason:    Option[String]
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getAddTechniqueFromDiff(
@@ -226,7 +251,7 @@ trait EventLogRepository {
       principal:  EventActor,
       modifyDiff: ModifyTechniqueDiff,
       reason:     Option[String]
-  ) = {
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getModifyTechniqueFromDiff(
@@ -242,7 +267,7 @@ trait EventLogRepository {
       principal:  EventActor,
       deleteDiff: DeleteTechniqueDiff,
       reason:     Option[String]
-  ) = {
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getDeleteTechniqueFromDiff(
@@ -253,7 +278,12 @@ trait EventLogRepository {
     )
   }
 
-  def saveChangeRequest(modId: ModificationId, principal: EventActor, diff: ChangeRequestDiff, reason: Option[String]) = {
+  def saveChangeRequest(
+      modId:     ModificationId,
+      principal: EventActor,
+      diff:      ChangeRequestDiff,
+      reason:    Option[String]
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getChangeRequestFromDiff(
@@ -264,7 +294,12 @@ trait EventLogRepository {
     )
   }
 
-  def saveWorkflowStep(modId: ModificationId, principal: EventActor, step: WorkflowStepChange, reason: Option[String]) = {
+  def saveWorkflowStep(
+      modId:     ModificationId,
+      principal: EventActor,
+      step:      WorkflowStepChange,
+      reason:    Option[String]
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getWorkFlowEventFromStepChange(
@@ -280,7 +315,7 @@ trait EventLogRepository {
       principal: EventActor,
       addDiff:   AddGlobalParameterDiff,
       reason:    Option[String]
-  ) = {
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getAddGlobalParameterFromDiff(
@@ -296,7 +331,7 @@ trait EventLogRepository {
       principal:  EventActor,
       deleteDiff: DeleteGlobalParameterDiff,
       reason:     Option[String]
-  ) = {
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getDeleteGlobalParameterFromDiff(
@@ -312,7 +347,7 @@ trait EventLogRepository {
       principal:  EventActor,
       modifyDiff: ModifyGlobalParameterDiff,
       reason:     Option[String]
-  ) = {
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getModifyGlobalParameterFromDiff(
@@ -326,7 +361,12 @@ trait EventLogRepository {
   /**
    * Save an API Account
    */
-  def saveCreateApiAccount(modId: ModificationId, principal: EventActor, addDiff: AddApiAccountDiff, reason: Option[String]) = {
+  def saveCreateApiAccount(
+      modId:     ModificationId,
+      principal: EventActor,
+      addDiff:   AddApiAccountDiff,
+      reason:    Option[String]
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getCreateApiAccountFromDiff(
@@ -342,7 +382,7 @@ trait EventLogRepository {
       principal:  EventActor,
       modifyDiff: ModifyApiAccountDiff,
       reason:     Option[String]
-  ) = {
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getModifyApiAccountFromDiff(
@@ -358,7 +398,7 @@ trait EventLogRepository {
       principal:  EventActor,
       deleteDiff: DeleteApiAccountDiff,
       reason:     Option[String]
-  ) = {
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getDeleteApiAccountFromDiff(
@@ -376,7 +416,7 @@ trait EventLogRepository {
       newProperty:  RudderWebProperty,
       eventLogType: ModifyGlobalPropertyEventType,
       reason:       Option[String]
-  ) = {
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getModifyGlobalPropertyFromDiff(
@@ -397,7 +437,7 @@ trait EventLogRepository {
       principal:  EventActor,
       modifyDiff: ModifyNodeDiff,
       reason:     Option[String]
-  ) = {
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getModifyNodeFromDiff(
@@ -413,7 +453,7 @@ trait EventLogRepository {
       principal:    EventActor,
       promotedNode: NodeInfo,
       reason:       Option[String]
-  ) = {
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getPromoteToRelayFromDiff(
@@ -428,7 +468,7 @@ trait EventLogRepository {
       principal:    EventActor,
       demotedRelay: NodeInfo,
       reason:       Option[String]
-  ) = {
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getDemoteToNodeFromDiff(
@@ -445,7 +485,7 @@ trait EventLogRepository {
       oldSecret: Secret,
       newSecret: Secret,
       reason:    Option[String]
-  ) = {
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getModifySecretFromDiff(
@@ -457,7 +497,7 @@ trait EventLogRepository {
     )
   }
 
-  def saveAddSecret(modId: ModificationId, principal: EventActor, secret: Secret, reason: Option[String]) = {
+  def saveAddSecret(modId: ModificationId, principal: EventActor, secret: Secret, reason: Option[String]): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getAddSecretFromDiff(
@@ -468,7 +508,12 @@ trait EventLogRepository {
     )
   }
 
-  def saveDeleteSecret(modId: ModificationId, principal: EventActor, secret: Secret, reason: Option[String]) = {
+  def saveDeleteSecret(
+      modId:     ModificationId,
+      principal: EventActor,
+      secret:    Secret,
+      reason:    Option[String]
+  ): IOResult[EventLog] = {
     saveEventLog(
       modId,
       eventLogFactory.getDeleteSecretFromDiff(

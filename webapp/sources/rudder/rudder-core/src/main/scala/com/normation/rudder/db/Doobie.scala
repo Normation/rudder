@@ -52,6 +52,7 @@ import doobie.implicits.javasql._
 import doobie.postgres.implicits._
 import doobie.util.log.ExecFailure
 import doobie.util.log.ProcessingFailure
+import doobie.util.transactor
 import java.sql.SQLXML
 import javax.sql.DataSource
 import net.liftweb.common._
@@ -75,7 +76,7 @@ import zio.json.ast.Json
  */
 class Doobie(datasource: DataSource) {
 
-  val xa = (for {
+  val xa: transactor.Transactor.Aux[Task, DataSource] = (for {
     // zio.interop.catz._ provides a `zioContextShift`
     // our transaction EC: wait for aquire/release connections, must accept blocking operations
     te <- ZIO.blockingExecutor.map(_.asExecutionContext)
@@ -148,14 +149,14 @@ object Doobie {
     case Right(a) => Full(a)
   }
   implicit class XorToBox[A](val res: Either[Throwable, A]) extends AnyVal {
-    def box = xorToBox(res)
+    def box: Box[A] = xorToBox(res)
   }
   implicit def xorBoxToBox[A](res: Either[Throwable, Box[A]]): Box[A] = res match {
     case Left(e)  => Failure(e.getMessage, Full(e), Empty)
     case Right(a) => a
   }
   implicit class XorBoxToBox[A](val res: Either[Throwable, Box[A]]) extends AnyVal {
-    def box = xorBoxToBox(res)
+    def box: Box[A] = xorBoxToBox(res)
   }
 
   /*

@@ -8,7 +8,7 @@ import scala.xml.NodeSeq
 
 class CommonLayout extends DispatchSnippet with DefaultExtendableSnippet[CommonLayout] {
 
-  def mainDispatch = Map(
+  def mainDispatch: Map[String, NodeSeq => NodeSeq] = Map(
     "display" -> init
   )
 

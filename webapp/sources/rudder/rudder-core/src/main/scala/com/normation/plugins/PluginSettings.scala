@@ -38,8 +38,10 @@
 package com.normation.plugins
 
 import better.files.File
+import com.normation.errors
 import com.normation.errors.IOResult
 import java.util.Properties
+import zio.ZIO
 
 case class PluginSettings(
     url:           String,
@@ -59,7 +61,7 @@ class FilePluginSettingsService(
     pluginConfFile: File
 ) extends PluginSettingsService {
 
-  def readPluginSettings() = {
+  def readPluginSettings(): ZIO[Any, errors.RudderError, PluginSettings] = {
 
     val p = new Properties()
     for {

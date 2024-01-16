@@ -68,11 +68,11 @@ sealed trait ComplianceLevelPieChart {
   def label: String
   def value: Int
 
-  def jsValue = {
+  def jsValue: JsArray = {
     JsArray(label, value)
   }
 
-  def jsColor = {
+  def jsColor: (String, Str) = {
     (label -> Str(color))
   }
 }
@@ -365,7 +365,7 @@ class HomePage extends Loggable {
     }
   }
 
-  def rudderAgentVersion() = {
+  def rudderAgentVersion(): Node = {
 
     val n4     = System.currentTimeMillis
     val agents = getRudderAgentVersion() match {

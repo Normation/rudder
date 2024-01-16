@@ -146,6 +146,7 @@ import net.liftweb.json.JValue
 import org.joda.time.DateTime
 import scalaj.http.Http
 import scalaj.http.HttpOptions
+import scalaj.http.HttpRequest
 import zio.{System => _, _}
 import zio.syntax._
 
@@ -692,7 +693,7 @@ class NodeApiService12(
     restSerializer:    RestDataSerializer
 ) {
 
-  def deleteNode(id: NodeId, actor: EventActor, prettify: Boolean, mode: DeleteMode) = {
+  def deleteNode(id: NodeId, actor: EventActor, prettify: Boolean, mode: DeleteMode): LiftResponse = {
     implicit val p      = prettify
     implicit val action = "deleteNode"
     val modId           = ModificationId(uuidGen.newUuid)
@@ -978,7 +979,7 @@ class NodeApiService13(
     ~ ("inheritedProperties" -> JObject(inheritedProperties.map(s => JField(s.prop.name, s.toApiJsonRenderParents)))))
   }
 
-  def listNodes(req: Req) = {
+  def listNodes(req: Req): Box[JArray] = {
     import com.normation.box._
     val n1 = System.currentTimeMillis
 
@@ -1074,7 +1075,7 @@ class NodeApiService13(
     }
   }
 
-  def software(req: Req, software: String) = {
+  def software(req: Req, software: String): Box[LiftResponse] = {
     import com.normation.box._
 
     for {
@@ -1094,7 +1095,7 @@ class NodeApiService13(
     }
   }
 
-  def property(req: Req, property: String, inheritedValue: Boolean) = {
+  def property(req: Req, property: String, inheritedValue: Boolean): Box[LiftResponse] = {
     for {
       optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson)
       nodes      <- optNodeIds match {
@@ -1132,7 +1133,7 @@ class NodeApiService2(
 ) extends Loggable {
 
   import restSerializer._
-  def listAcceptedNodes(req: Req) = {
+  def listAcceptedNodes(req: Req): LiftResponse = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action   = "listAcceptedNodes"
     nodeInfoService.getAll().toBox match {
@@ -1146,7 +1147,7 @@ class NodeApiService2(
     }
   }
 
-  def acceptedNodeDetails(req: Req, id: NodeId) = {
+  def acceptedNodeDetails(req: Req, id: NodeId): LiftResponse = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action   = "acceptedNodeDetails"
     nodeInfoService.getNodeInfo(id).toBox match {
@@ -1161,7 +1162,7 @@ class NodeApiService2(
     }
   }
 
-  def pendingNodeDetails(nodeId: NodeId, prettifyStatus: Boolean) = {
+  def pendingNodeDetails(nodeId: NodeId, prettifyStatus: Boolean): LiftResponse = {
     implicit val prettify = prettifyStatus
     implicit val action   = "pendingNodeDetails"
     newNodeManager.listNewNodes match {
@@ -1183,7 +1184,7 @@ class NodeApiService2(
     }
   }
 
-  def listPendingNodes(req: Req) = {
+  def listPendingNodes(req: Req): LiftResponse = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action   = "listPendingNodes"
     newNodeManager.listNewNodes match {
@@ -1231,7 +1232,7 @@ class NodeApiService2(
       nodeStatusAction: Box[NodeStatusAction],
       actor:            EventActor,
       prettifyStatus:   Boolean
-  ) = {
+  ): LiftResponse = {
     implicit val prettify = prettifyStatus
     implicit val action   = "changePendingNodeStatus"
     val modId             = ModificationId(uuidGen.newUuid)
@@ -1331,7 +1332,7 @@ class NodeApiService4(
       state:       InventoryStatus,
       version:     ApiVersion,
       req:         Req
-  ) = {
+  ): LiftResponse = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action   = s"${state.name}NodeDetails"
     getNodeDetails(nodeId, detailLevel, state, version).either.runNow match {
@@ -1351,7 +1352,7 @@ class NodeApiService4(
     }
   }
 
-  def nodeDetailsGeneric(nodeId: NodeId, detailLevel: NodeDetailLevel, version: ApiVersion, req: Req) = {
+  def nodeDetailsGeneric(nodeId: NodeId, detailLevel: NodeDetailLevel, version: ApiVersion, req: Req): LiftResponse = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action   = "nodeDetails"
     (for {
@@ -1400,7 +1401,7 @@ class NodeApiService6(
   import restSerializer._
   def listNodes(state:   InventoryStatus, detailLevel: NodeDetailLevel, nodeFilter: Option[Seq[NodeId]], version: ApiVersion)(
       implicit prettify: Boolean
-  ) = {
+  ): LiftResponse = {
     implicit val action = s"list${state.name.capitalize}Nodes"
 
     (for {
@@ -1471,7 +1472,7 @@ class NodeApiService6(
 
   def queryNodes(query: QueryTrait, state: InventoryStatus, detailLevel: NodeDetailLevel, version: ApiVersion)(implicit
       prettify:         Boolean
-  ) = {
+  ): LiftResponse = {
     implicit val action = s"list${state.name.capitalize}Nodes"
     (for {
       nodeIds <- state match {
@@ -1554,7 +1555,7 @@ class NodeApiService8(
     }
   }
 
-  def remoteRunRequest(nodeId: NodeId, classes: List[String], keepOutput: Boolean, asynchronous: Boolean) = {
+  def remoteRunRequest(nodeId: NodeId, classes: List[String], keepOutput: Boolean, asynchronous: Boolean): HttpRequest = {
     val url     = s"${relayApiEndpoint}/remote-run/nodes/${nodeId.value}"
 //    val url = s"http://localhost/rudder/relay-api/remote-run/nodes/${nodeId.value}"
     val params  = {

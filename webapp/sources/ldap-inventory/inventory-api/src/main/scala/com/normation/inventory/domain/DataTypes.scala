@@ -71,7 +71,7 @@ sealed trait SecurityToken {
 }
 
 case object SecurityToken {
-  def kind(token: SecurityToken) = {
+  def kind(token: SecurityToken): String = {
     token match {
       case _: PublicKey   => PublicKey.kind
       case _: Certificate => Certificate.kind
@@ -134,7 +134,7 @@ object Certificate {
 final case class PublicKey(value: String) extends SecurityToken {
 
   // Value of the key may be stored (with old fusion inventory version) as one line and without rsa header and footer, we should add them if missing and format the key
-  val key = {
+  val key:       String                            = {
     if (value.startsWith("-----BEGIN RSA PUBLIC KEY-----")) {
       value
     } else {
@@ -159,7 +159,7 @@ final case class PublicKey(value: String) extends SecurityToken {
 final case class Certificate(value: String) extends SecurityToken {
 
   // Value of the key may be stored (with old fusion inventory version) as one line and without rsa header and footer, we should add them if missing and format the key
-  val key = {
+  val key:  String                                    = {
     if (value.startsWith("-----BEGIN CERTIFICATE-----")) {
       value
     } else {
@@ -196,7 +196,7 @@ final case class Certificate(value: String) extends SecurityToken {
  * Comparison are really important in Version
  */
 final class Version(val value: String) extends AnyVal {
-  override def toString() = "[%s]".format(value)
+  override def toString(): String = "[%s]".format(value)
 }
 object Version {
   implicit val ord: Ordering[Version] = _.value compareTo _.value
@@ -217,7 +217,7 @@ object InventoryError {
 
   final case class Crypto(msg: String)                         extends InventoryError
   final case class CryptoEx(hint: String, ex: Throwable)       extends InventoryError {
-    def msg = hint + "; root exception was: " + ex.getMessage()
+    def msg: String = hint + "; root exception was: " + ex.getMessage()
   }
   final case class AgentType(msg: String)                      extends InventoryError
   final case class SecurityToken(msg: String)                  extends InventoryError

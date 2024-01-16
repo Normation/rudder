@@ -65,7 +65,7 @@ class CheckInventoryUpdate(
   // we need to store the time of last modification we saw so that is someone else update the cache
   // (for example, a user is using the UI), then even if the cache is upToDate, we now we have to start
   // a policy generation.
-  val lastUpdate = Ref.make(new DateTime(0)).runNow
+  val lastUpdate: Ref[DateTime] = Ref.make(new DateTime(0)).runNow
 
   val logger = ScheduledJobLoggerPure
   // start batch

@@ -41,6 +41,7 @@ import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.NodeInventory
 import com.normation.inventory.domain.NodeSummary
 import com.normation.rudder.NodeDetails
+import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.zio._
 import net.liftweb.common.Full
 import net.liftweb.http.InMemoryResponse
@@ -62,11 +63,12 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
     .getLogger("com.normation.rudder.rest.RestUtils")
     .asInstanceOf[ch.qos.logback.classic.Logger]
     .setLevel(ch.qos.logback.classic.Level.OFF)
-  val env     = RestTestSetUp.newEnv
+  val env = RestTestSetUp.newEnv
   import com.softwaremill.quicklens._
-  val myNode  = env.mockNodes.node1.modify(_.node.id.value).setTo("my+node").modify(_.hostname).setTo("my+node.rudder.local")
-  val nodeCom = env.mockNodes.node1.modify(_.node.id.value).setTo("node@domain.com")
-  override def beforeAll(): Unit = {
+  val myNode:               NodeInfo =
+    env.mockNodes.node1.modify(_.node.id.value).setTo("my+node").modify(_.hostname).setTo("my+node.rudder.local")
+  val nodeCom:              NodeInfo = env.mockNodes.node1.modify(_.node.id.value).setTo("node@domain.com")
+  override def beforeAll(): Unit     = {
     val inventory = NodeInventory(
       NodeSummary(
         myNode.id,

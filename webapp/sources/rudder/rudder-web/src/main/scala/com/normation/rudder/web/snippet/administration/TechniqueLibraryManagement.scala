@@ -98,7 +98,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   // Technique Library to Active Technique Library
   private[this] val giveReasonPopup = new LocalSnippet[GiveReasonPopup]
 
-  def dispatch = {
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
     case "head"                   => { _ => head() }
     case "systemLibrary"          => { _ => systemLibrary() }
     case "userLibrary"            => { _ => userLibrary() }

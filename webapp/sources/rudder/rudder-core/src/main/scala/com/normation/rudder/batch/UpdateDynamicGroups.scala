@@ -118,7 +118,7 @@ class UpdateDynamicGroups(
     laUpdateDyngroupManager ! GroupUpdateMessage.ForceStartUpdate
   }
 
-  def isIdle() = laUpdateDyngroupManager.isIdle()
+  def isIdle(): Boolean = laUpdateDyngroupManager.isIdle()
 
   ////////////////////////////////////////////////////////////////
   //////////////////// implementation details ////////////////////
@@ -151,7 +151,7 @@ class UpdateDynamicGroups(
       }
     }
 
-    def isIdle() = currentState == IdleGroupUpdater
+    def isIdle(): Boolean = currentState == IdleGroupUpdater
 
     private[this] def processUpdate(force: Boolean) = {
       val need = dynGroupService.changesSince(lastUpdateTime).getOrElse(true)
@@ -206,7 +206,7 @@ class UpdateDynamicGroups(
       }
     }
 
-    override protected def messageHandler = {
+    override protected def messageHandler: PartialFunction[GroupUpdateMessage, Unit] = {
 
       //
       // Ask for a new dynamic group update
@@ -293,7 +293,7 @@ class UpdateDynamicGroups(
 
     private[this] object LAUpdateDyngroup extends SpecializedLiftActor[StartDynamicUpdate] {
 
-      override protected def messageHandler = {
+      override protected def messageHandler: PartialFunction[StartDynamicUpdate, Unit] = {
         //
         // Process a dynamic group update
         //

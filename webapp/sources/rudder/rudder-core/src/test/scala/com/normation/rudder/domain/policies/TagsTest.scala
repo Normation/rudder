@@ -53,14 +53,14 @@ class TagsTest extends Specification with Loggable {
     Tag(name, name + "-value")
   }
 
-  val tag1 = createTag("tag1")
-  val tag2 = createTag("tag2")
-  val tag3 = createTag("tag3")
+  val tag1: Tag = createTag("tag1")
+  val tag2: Tag = createTag("tag2")
+  val tag3: Tag = createTag("tag3")
 
-  val simpleTags           = Tags(Set[Tag](tag1, tag2, tag3))
-  val simpleSerialization  =
+  val simpleTags: Tags = Tags(Set[Tag](tag1, tag2, tag3))
+  val simpleSerialization =
     """[{"key":"tag1","value":"tag1-value"},{"key":"tag2","value":"tag2-value"},{"key":"tag3","value":"tag3-value"}]"""
-  val jsonSimple           = {
+  val jsonSimple: JArray = {
     JArray(
       JObject(JField("key", JString("tag1")), JField("value", JString("tag1-value"))) ::
       JObject(JField("key", JString("tag2")), JField("value", JString("tag2-value"))) ::

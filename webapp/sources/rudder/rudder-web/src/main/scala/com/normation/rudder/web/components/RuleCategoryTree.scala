@@ -81,7 +81,7 @@ class RuleCategoryTree(
 
   private[this] var selectedCategoryId = rootCategory.id
 
-  def getSelected = {
+  def getSelected: RuleCategoryId = {
     if (root.contains(selectedCategoryId)) {
       selectedCategoryId
     } else {
@@ -90,12 +90,12 @@ class RuleCategoryTree(
     }
   }
 
-  def getRoot       = {
+  def getRoot:       RuleCategory = {
     root
   }
-  def resetSelected = selectedCategoryId = rootCategory.id
+  def resetSelected: Unit         = selectedCategoryId = rootCategory.id
 
-  def dispatch = { case "tree" => { _ => tree() } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "tree" => { _ => tree() } }
 
   def refreshTree(newRoot: Box[RuleCategory]): JsCmd = {
     val html = newRoot match {
@@ -116,7 +116,7 @@ class RuleCategoryTree(
   }
 
   // Update selected category and select it in the tree (trigger its function)
-  def updateSelectedCategory(newSelection: RuleCategoryId) = {
+  def updateSelectedCategory(newSelection: RuleCategoryId): JsCmd = {
     selectedCategoryId = newSelection
     // Select the new node, boolean flag to true to respect select limitation
     JsRaw(s"""
@@ -126,7 +126,7 @@ class RuleCategoryTree(
   }
 
   // Perform category selection, filter in the dataTable and display the name of the category
-  def selectCategory()                     = {
+  def selectCategory(): JsCmd = {
     (for {
       rootCategory <- roRuleCategoryRepository.getRootCategory().toBox
       fqdn         <- ruleCategoryService.bothFqdn(rootCategory, selectedCategoryId, true)

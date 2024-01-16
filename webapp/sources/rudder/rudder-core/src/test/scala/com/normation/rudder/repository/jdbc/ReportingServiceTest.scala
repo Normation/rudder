@@ -97,7 +97,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   self =>
 
   // clean data base
-  def cleanTables() = {
+  def cleanTables(): Int = {
     transacRun(xa => sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa))
   }
 
@@ -131,8 +131,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     }
   }
 
-  val directivesLib   = NodeConfigData.directives
-  val directivesRepos = new RoDirectiveRepository() {
+  val directivesLib = NodeConfigData.directives
+  val directivesRepos: RoDirectiveRepository = new RoDirectiveRepository() {
     def getFullDirectiveLibrary():                                                           IOResult[FullActiveTechniqueCategory]                     = directivesLib.succeed
     def getDirective(directiveId: DirectiveUid):                                             IOResult[Option[Directive]]                               = ???
     def getDirectiveWithContext(directiveId: DirectiveUid):                                  IOResult[Option[(Technique, ActiveTechnique, Directive)]] = ???
@@ -154,14 +154,15 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
   }
 
-  val rulesRepos = new RoRuleRepository {
+  val rulesRepos: RoRuleRepository = new RoRuleRepository {
     def getOpt(ruleId: RuleId):                IOResult[Option[Rule]] = ???
     def getAll(includeSytem: Boolean = false): IOResult[Seq[Rule]]    = ???
     def getIds(includeSytem: Boolean = false): IOResult[Set[RuleId]]  = ???
 
   }
 
-  val dummyComplianceCache = new CachedFindRuleNodeStatusReports {
+  val dummyComplianceCache: dummyComplianceCache = new dummyComplianceCache
+  class dummyComplianceCache extends CachedFindRuleNodeStatusReports {
     def defaultFindRuleNodeStatusReports:                        DefaultFindRuleNodeStatusReports        = null
     def nodeInfoService:                                         NodeInfoService                         = self.nodeInfoService
     def nodeConfigrationService:                                 NodeConfigurationService                = null
@@ -190,7 +191,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   lazy val nodeConfigService     = new NodeConfigurationServiceImpl(findExpected)
   lazy val updateExpected        = new UpdateExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
 
-  lazy val agentRunService = new AgentRunIntervalService() {
+  lazy val agentRunService: AgentRunIntervalService = new AgentRunIntervalService() {
     private[this] val interval = Duration.standardMinutes(5)
     private[this] val nodes    = Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), ResolvedAgentRunInterval(interval, 1))).toMap
     def getGlobalAgentRun():                                  Box[AgentRunInterval]                      = Full(AgentRunInterval(None, interval.toStandardMinutes.getMinutes, 0, 0, 0))
@@ -202,18 +203,20 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   lazy val woAgentRun = new WoReportsExecutionRepositoryImpl(doobie)
   lazy val roAgentRun = new RoReportsExecutionRepositoryImpl(doobie, woAgentRun, nodeConfigService, pgIn, 200)
 
-  lazy val dummyChangesCache = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepo), () => Full(true)) {
-    override def update(lowestId: Long, highestId: Long): Box[Unit] = Full(())
-    override def countChangesByRuleByInterval() = Empty
+  lazy val dummyChangesCache: CachedNodeChangesServiceImpl = {
+    new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepo), () => Full(true)) {
+      override def update(lowestId: Long, highestId: Long): Box[Unit] = Full(())
+      override def countChangesByRuleByInterval() = Empty
+    }
   }
 
-  lazy val dummyComplianceRepos = new ComplianceRepository() {
+  lazy val dummyComplianceRepos: ComplianceRepository = new ComplianceRepository() {
     override def saveRunCompliance(reports: List[NodeStatusReport]): IOResult[Unit] = {
       ZIO.unit
     }
   }
 
-  lazy val updateRuns = {
+  lazy val updateRuns: ReportsExecutionService = {
     new ReportsExecutionService(
       reportsRepo,
       new LastProcessedReportRepositoryImpl(doobie),
@@ -228,10 +231,10 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   // help differentiate run number with the millis
   // perfect case: generation are followe by runs one minute latter
 
-  lazy val gen1 = DateTime.now.minusMinutes(5 * 2).withMillisOfSecond(1)
-  lazy val run1 = gen1.plusMinutes(1).withMillisOfSecond(2)
-  lazy val gen2 = gen1.plusMinutes(5).withMillisOfSecond(3)
-  lazy val run2 = gen2.plusMinutes(1).withMillisOfSecond(4)
+  lazy val gen1: DateTime = DateTime.now.minusMinutes(5 * 2).withMillisOfSecond(1)
+  lazy val run1: DateTime = gen1.plusMinutes(1).withMillisOfSecond(2)
+  lazy val gen2: DateTime = gen1.plusMinutes(5).withMillisOfSecond(3)
+  lazy val run2: DateTime = gen2.plusMinutes(1).withMillisOfSecond(4)
   // now
 //  val gen3 = gen2.plusMinutes(5).withMillisOfSecond(3)
 //  val run3 = gen3.minusMinutes(1)
@@ -261,12 +264,12 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   // BE CAREFUL: we don't compare on expiration dates!
   val EXPIRATION_DATE = new DateTime(0)
 
-  val allNodes_t1 =
+  val allNodes_t1: Map[NodeId, NodeConfigIdInfo] =
     Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), NodeConfigIdInfo(NodeConfigId(n + "_t1"), gen1, Some(gen2)))).toMap
-  val allNodes_t2 =
+  val allNodes_t2: Map[NodeId, NodeConfigIdInfo] =
     Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), NodeConfigIdInfo(NodeConfigId(n + "_t2"), gen2, None))).toMap
 
-  val allConfigs = (allNodes_t1.toSeq ++ allNodes_t2).groupMap(_._1)(_._2)
+  val allConfigs: Map[NodeId, Seq[NodeConfigIdInfo]] = (allNodes_t1.toSeq ++ allNodes_t2).groupMap(_._1)(_._2)
 
   // this need to be NodeConfiguration (ex in NodeConfigData)
 
@@ -288,7 +291,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //    )
 //  )
 
-  val reports = (
+  val reports: Map[String, Seq[Reports]] = (
     Map[String, Seq[Reports]]()
       + node("n0")(
         // no run
