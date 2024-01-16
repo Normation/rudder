@@ -220,7 +220,7 @@ class AcceptNode extends Loggable {
     if (serverList.isEmpty) {
       Alert("You didn't select any nodes")
     } else {
-      SetHtml("", listNode(serverList, template)) & OnLoad(
+      SetHtml("manageNewNode", listNode(serverList, template)) & OnLoad(
         JsRaw("""
           /* Set the table layout */
           $('#pendingNodeConfirm').dataTable({
