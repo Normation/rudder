@@ -154,8 +154,7 @@ class NodeGroupForm(
   }
 
   private[this] def saveButtonCallBack(searchStatus: Boolean, query: Option[Query]): JsCmd = {
-    JsRaw(s"""$$('#${saveButtonId}').button();
-        $$('#${saveButtonId}').button("option", "disabled", ${searchStatus});""")
+    JsRaw(s"""$$('#${saveButtonId}').prop("disabled", ${searchStatus})""")
   }
 
   setSearchNodeComponent
