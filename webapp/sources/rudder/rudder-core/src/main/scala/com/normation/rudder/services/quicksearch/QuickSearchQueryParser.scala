@@ -37,7 +37,7 @@
 
 package com.normation.rudder.services.quicksearch
 
-import com.normation.errors._
+import com.normation.errors.*
 
 /**
  * This file contains an implementation of the query parser
@@ -49,8 +49,8 @@ object QSRegexQueryParser {
    * In our parser, whitespace are relevant, but only in the query string,
    * not as a separator of different tokens.
    */
-  import fastparse._
-  import fastparse.SingleLineWhitespace._
+  import fastparse.*
+  import fastparse.SingleLineWhitespace.*
 
   /*
    *  parse a string like:
@@ -185,13 +185,13 @@ object QSRegexQueryParser {
   /////
 
   // deal with filters: they all start with "in:"
-  private[this] def filter[A: P]:     P[Filter] = P(filterAttr | filterType)
+  private[this] def filter[A:     P]: P[Filter] = P(filterAttr | filterType)
   private[this] def filterType[A: P]: P[Filter] = P(IgnoreCase("is:") ~ filterKeys) map { FilterType }
   private[this] def filterAttr[A: P]: P[Filter] = P(IgnoreCase("in:") ~ filterKeys) map { FilterAttr }
 
   // the keys part
   private[this] def filterKeys[A: P]: P[Set[String]] = P(filterKey.rep(sep = ",")) map { l => l.toSet }
-  private[this] def filterKey[A: P]:  P[String]      = P(CharsWhileIn("""\\-._a-zA-Z0-9""").!)
+  private[this] def filterKey[A:  P]: P[String]      = P(CharsWhileIn("""\\-._a-zA-Z0-9""").!)
 
   /////
   ///// simple elements: query string
@@ -199,7 +199,7 @@ object QSRegexQueryParser {
 
   // we need to case, because regex are bad to look-ahead and see if there is still filter after. .+? necessary to stop at first filter
   private[this] def queryInMiddle[A: P]: P[QueryString] = P((!("in:" | "is:") ~ AnyChar).rep(1).!) map { x => CharSeq(x.trim) }
-  private[this] def queryAtEnd[A: P]:    P[QueryString] = P(AnyChar.rep(1).!) map { x => CharSeq(x.trim) }
+  private[this] def queryAtEnd[A:    P]: P[QueryString] = P(AnyChar.rep(1).!) map { x => CharSeq(x.trim) }
 
   /////
   ///// utility methods
@@ -245,7 +245,7 @@ object QSRegexQueryParser {
    * inputs
    */
   private[this] def getObjects(names: Set[String]): PureResult[(Set[QSObject], Set[String])] = {
-    import QSMapping._
+    import QSMapping.*
     getMapping(names, objectNameMapping)
   }
 
@@ -254,7 +254,7 @@ object QSRegexQueryParser {
    * We try to be kind with users: not case sensitive, not plural sensitive
    */
   private[this] def getAttributes(names: Set[String]): PureResult[(Set[QSAttribute], Set[String])] = {
-    import QSMapping._
+    import QSMapping.*
     getMapping(names, attributeNameMapping).map {
       case (attrs, keys) =>
         (attrs.flatten, keys)

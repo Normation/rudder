@@ -37,11 +37,11 @@
 
 package com.normation.inventory.services.provisioning
 
-import com.normation.errors._
-import com.normation.inventory.domain._
-import net.liftweb.common._
-import zio._
-import zio.syntax._
+import com.normation.errors.*
+import com.normation.inventory.domain.*
+import net.liftweb.common.*
+import zio.*
+import zio.syntax.*
 
 /*
  * Implementation of IdFinderAction that is pipelinable

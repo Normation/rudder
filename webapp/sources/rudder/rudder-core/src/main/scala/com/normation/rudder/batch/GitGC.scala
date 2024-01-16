@@ -40,12 +40,12 @@ package com.normation.rudder.batch
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.logger.GitRepositoryLogger
 import com.normation.rudder.git.GitRepositoryProvider
-import com.normation.utils.CronParser._
-import com.normation.zio._
+import com.normation.utils.CronParser.*
+import com.normation.zio.*
 import cron4s.CronExpr
 import org.eclipse.jgit.lib.ProgressMonitor
 import org.joda.time.Duration
-import zio._
+import zio.*
 
 /**
  * A scheduler which run a git gc every day.

@@ -1,21 +1,21 @@
 package com.normation.rudder.rest
 
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.api._
-import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
+import com.normation.rudder.api.*
+import com.normation.rudder.api.ApiAuthorization as ApiAuthz
 import com.normation.rudder.api.RoApiAccountRepository
 import com.normation.rudder.api.WoApiAccountRepository
-import com.normation.rudder.apidata.ApiAccountSerialisation._
-import com.normation.rudder.rest.RestUtils._
+import com.normation.rudder.apidata.ApiAccountSerialisation.*
+import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.users.UserService
 import com.normation.utils.StringUuidGenerator
-import com.normation.zio._
-import net.liftweb.common._
+import com.normation.zio.*
+import net.liftweb.common.*
 import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JArray
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonDSL.*
 import org.joda.time.DateTime
 
 class RestApiAccounts(

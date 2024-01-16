@@ -44,11 +44,11 @@ import com.normation.cfclerk.domain.TechniqueVersionHelper
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.inventory.domain.AgentType
 import java.io.FileNotFoundException
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import org.xml.sax.SAXParseException
-import scala.xml._
+import scala.xml.*
 
 @RunWith(classOf[JUnitRunner])
 class ParseTechniqueTest extends Specification {

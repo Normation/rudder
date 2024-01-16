@@ -38,7 +38,7 @@
 package com.normation.inventory.domain
 
 import com.normation.NamedZioLogger
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.InventoryError.CryptoEx
 import com.normation.inventory.services.provisioning.ParsedSecurityToken
 import java.io.StringReader
@@ -47,8 +47,8 @@ import org.bouncycastle.cert.X509CertificateHolder
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
 import org.bouncycastle.openssl.PEMParser
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  * A file that contains all the simple data types, like Version,

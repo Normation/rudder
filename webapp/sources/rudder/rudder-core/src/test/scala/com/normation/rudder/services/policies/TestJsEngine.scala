@@ -44,17 +44,17 @@ import com.normation.errors.IOResult
 import com.normation.errors.RudderError
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.services.policies.JsEngine.SandboxedJsEngine
-import com.normation.zio._
-import org.junit.runner._
+import com.normation.zio.*
+import org.junit.runner.*
 import org.specs2.matcher.Matcher
 import org.specs2.matcher.MatchResult
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import scala.annotation.nowarn
 import scala.concurrent.duration.FiniteDuration
 import scala.util.matching.Regex
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /*
  * This class test the JsEngine.

@@ -53,7 +53,7 @@ trait JsTableLine extends Loggable {
   // this is needed because DataTable doesn't escape HTML element when using table.rows.add
   def escapeHTML(s: String): JsExp = JsExp.strToJsExp(xml.Utility.escape(s))
 
-  import com.normation.rudder.domain.reports.ComplianceLevelSerialisation._
+  import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.*
   def jsCompliance(compliance: ComplianceLevel) = compliance.toJsArray
 
 }

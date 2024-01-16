@@ -38,22 +38,22 @@
 package com.normation.rudder.web.snippet.configuration
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
+import com.normation.box.*
 import com.normation.plugins.DefaultExtendableSnippet
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.web.components.DisplayColumn
 import com.normation.rudder.web.components.RuleDisplayer
 import com.normation.rudder.web.components.RuleEditForm
 import com.normation.rudder.web.components.popup.CreateOrCloneRulePopup
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.LocalSnippet
 import net.liftweb.http.SHtml
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
-import scala.xml._
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
+import scala.xml.*
 
 /**
  * Snippet for managing Rules.
@@ -62,7 +62,7 @@ import scala.xml._
  * and add new ones.
  */
 class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleManagement] with Loggable {
-  import RuleManagement._
+  import RuleManagement.*
 
   private[this] val ruleRepository = RudderConfig.roRuleRepository
 
@@ -177,7 +177,7 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
    */
   private[this] def parseJsArg(changeMsgEnabled: Boolean)(): JsCmd = {
     def displayDetails(ruleData: String) = {
-      import net.liftweb.json._
+      import net.liftweb.json.*
       val json = parse(ruleData)
       json \ "ruleId" match {
         case JString(ruleId) =>

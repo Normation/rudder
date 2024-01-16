@@ -41,13 +41,13 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports._
+import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.reports.ComplianceModeName
 import java.lang
-import net.liftweb.json._
+import net.liftweb.json.*
 import net.liftweb.json.JsonAST
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonDSL.*
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.QuoteMode
 import scala.collection.immutable
@@ -392,7 +392,7 @@ object CsvCompliance {
       // csvFormat take care of the line separator
       val out      = new lang.StringBuilder()
       csvFormat.printRecord(out, "Rule", "Block", "Component", "Node", "Value", "Status", "Message")
-      csvLines.foreach(l => csvFormat.printRecord(out, l: _*))
+      csvLines.foreach(l => csvFormat.printRecord(out, l*))
       out.toString
     }
   }
@@ -878,7 +878,7 @@ object JsonCompliance {
   }
 
   def statusDisplayName(r: ReportType): String = {
-    import ReportType._
+    import ReportType.*
 
     r match {
       case EnforceNotApplicable => "successNotApplicable"
@@ -906,7 +906,7 @@ object JsonCompliance {
    *
    */
   private[this] def percents(c: ComplianceLevel, precision: CompliancePrecision): Map[String, Double] = {
-    import ReportType._
+    import ReportType.*
 
     // we want at most `precision` decimals
     val pc = CompliancePercent.fromLevels(c, precision)

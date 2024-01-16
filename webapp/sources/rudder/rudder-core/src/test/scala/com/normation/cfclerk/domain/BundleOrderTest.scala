@@ -39,8 +39,8 @@ package com.normation.cfclerk.domain
 
 import com.normation.rudder.services.policies.BundleOrder
 import org.junit.runner.RunWith
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 @RunWith(classOf[JUnitRunner])
 class BundleOrderTest extends Specification {

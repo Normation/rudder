@@ -40,16 +40,16 @@ package com.normation.rudder.services.policies
 import ca.mrvisser.sealerate
 import com.normation.cfclerk.domain.AbstactPassword
 import com.normation.cfclerk.domain.AixPasswordHashAlgo
-import com.normation.cfclerk.domain.HashAlgoConstraint._
+import com.normation.cfclerk.domain.HashAlgoConstraint.*
 import com.normation.cfclerk.domain.Variable
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.logger.JsDirectiveParamLogger
 import com.normation.rudder.domain.logger.JsDirectiveParamLoggerPure
-import com.normation.rudder.services.policies.HashOsType._
-import com.normation.rudder.services.policies.JsEngine._
+import com.normation.rudder.services.policies.HashOsType.*
+import com.normation.rudder.services.policies.JsEngine.*
 import java.security.NoSuchAlgorithmException
-import java.util.concurrent._
+import java.util.concurrent.*
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeoutException
@@ -62,8 +62,8 @@ import org.graalvm.polyglot.HostAccess
 import org.graalvm.polyglot.proxy.ProxyObject
 import scala.annotation.nowarn
 import scala.concurrent.duration.FiniteDuration
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 sealed trait HashOsType
 
@@ -90,9 +90,9 @@ abstract class ImplicitGetBytes {
 @HostAccess.Export
 class JsLibHash() extends ImplicitGetBytes {
   @HostAccess.Export
-  def md5(s: String):    String = MD5.hash(s)
+  def md5(s:    String): String = MD5.hash(s)
   @HostAccess.Export
-  def sha1(s: String):   String = SHA1.hash(s)
+  def sha1(s:   String): String = SHA1.hash(s)
   @HostAccess.Export
   def sha256(s: String): String = SHA256.hash(s)
   @HostAccess.Export
@@ -105,14 +105,14 @@ trait JsLibPassword extends ImplicitGetBytes {
   /// Standard Unix (crypt) specific
 
   @HostAccess.Export
-  def cryptMd5(s: String):    String = Md5Crypt.md5Crypt(s)
+  def cryptMd5(s:    String): String = Md5Crypt.md5Crypt(s)
   @HostAccess.Export
   def cryptSha256(s: String): String = Sha2Crypt.sha256Crypt(s)
   @HostAccess.Export
   def cryptSha512(s: String): String = Sha2Crypt.sha512Crypt(s)
 
   @HostAccess.Export
-  def cryptMd5(s: String, salt: String):    String = Md5Crypt.md5Crypt(s, salt)
+  def cryptMd5(s:    String, salt: String): String = Md5Crypt.md5Crypt(s, salt)
   @HostAccess.Export
   def cryptSha256(s: String, salt: String): String = Sha2Crypt.sha256Crypt(s, "$5$" + salt)
   @HostAccess.Export
@@ -121,14 +121,14 @@ trait JsLibPassword extends ImplicitGetBytes {
   /// Aix specific
 
   @HostAccess.Export
-  def aixMd5(s: String):    String = AixPasswordHashAlgo.smd5(s)
+  def aixMd5(s:    String): String = AixPasswordHashAlgo.smd5(s)
   @HostAccess.Export
   def aixSha256(s: String): String = AixPasswordHashAlgo.ssha256(s)
   @HostAccess.Export
   def aixSha512(s: String): String = AixPasswordHashAlgo.ssha512(s)
 
   @HostAccess.Export
-  def aixMd5(s: String, salt: String):    String = AixPasswordHashAlgo.smd5(s, Some(salt))
+  def aixMd5(s:    String, salt: String): String = AixPasswordHashAlgo.smd5(s, Some(salt))
   @HostAccess.Export
   def aixSha256(s: String, salt: String): String = AixPasswordHashAlgo.ssha256(s, Some(salt))
   @HostAccess.Export
@@ -269,7 +269,7 @@ trait JsLibPassword extends ImplicitGetBytes {
  *   * unix generated Unix crypt password compatible hashes (Linux, BSD, ...)
  *   * aix generates AIX password compatible hashes
  */
-import org.graalvm.polyglot._
+import org.graalvm.polyglot.*
 final class JsRudderLibImpl(
     hashKind: HashOsType
 ) extends ProxyObject {
@@ -283,14 +283,14 @@ final class JsRudderLibImpl(
       new JsLibPassword() {
         /// method accessible from JS
         @HostAccess.Export
-        def md5(s: String):    String = super.cryptMd5(s)
+        def md5(s:    String): String = super.cryptMd5(s)
         @HostAccess.Export
         def sha256(s: String): String = super.cryptSha256(s)
         @HostAccess.Export
         def sha512(s: String): String = super.cryptSha512(s)
 
         @HostAccess.Export
-        def md5(s: String, salt: String):    String = super.cryptMd5(s, salt)
+        def md5(s:    String, salt: String): String = super.cryptMd5(s, salt)
         @HostAccess.Export
         def sha256(s: String, salt: String): String = super.cryptSha256(s, salt)
         @HostAccess.Export
@@ -301,14 +301,14 @@ final class JsRudderLibImpl(
       new JsLibPassword() {
         /// method accessible from JS
         @HostAccess.Export
-        def md5(s: String):    String = super.aixMd5(s)
+        def md5(s:    String): String = super.aixMd5(s)
         @HostAccess.Export
         def sha256(s: String): String = super.aixSha256(s)
         @HostAccess.Export
         def sha512(s: String): String = super.aixSha512(s)
 
         @HostAccess.Export
-        def md5(s: String, salt: String):    String = super.aixMd5(s, salt)
+        def md5(s:    String, salt: String): String = super.aixMd5(s, salt)
         @HostAccess.Export
         def sha256(s: String, salt: String): String = super.aixSha256(s, salt)
         @HostAccess.Export
@@ -327,11 +327,11 @@ final class JsRudderLibImpl(
     ("hash", hash)
   )
 
-  override def getMember(key: String):               AnyRef  =
+  override def getMember(key: String): AnyRef =
     members.get(key).getOrElse(s"Requested access to unknown member '${key}' in JS proxy object")
-  override def getMemberKeys:                        AnyRef  = members.keys.toArray
-  override def hasMember(key: String):               Boolean = members.isDefinedAt(key)
-  override def putMember(key: String, value: Value): Unit    = ()
+  override def getMemberKeys:          AnyRef = members.keys.toArray
+  override def hasMember(key: String): Boolean = members.isDefinedAt(key)
+  override def putMember(key: String, value: Value): Unit = ()
 }
 
 sealed trait JsRudderLibBinding {
@@ -341,7 +341,7 @@ sealed trait JsRudderLibBinding {
 
 object JsRudderLibBinding {
 
-  import java.util.{HashMap => JHMap}
+  import java.util.HashMap as JHMap
   import javax.script.SimpleBindings
 
   private[this] def toBindings(k: String, v: JsRudderLibImpl): Bindings = {
@@ -389,7 +389,7 @@ object JsEngineProvider {
    *
    */
   def withNewEngine[T](feature: FeatureSwitch, maxThread: Int = 1, timeout: FiniteDuration)(
-      script:                   JsEngine => IOResult[T]
+      script: JsEngine => IOResult[T]
   ): IOResult[T] = {
     feature match {
       case FeatureSwitch.Enabled  =>
@@ -399,7 +399,7 @@ object JsEngineProvider {
         res.foldZIO(
           err =>
             (if (JsDirectiveParamLogger.isDebugEnabled) {
-               import scala.util.{Properties => P}
+               import scala.util.Properties as P
                JsDirectiveParamLoggerPure.debug(
                  s"Error when trying to use the JS script engine in a directive. Java version: '${P.javaVersion}'; JVM info: '${P.javaVmInfo}'; name: '${P.javaVmName}'; version: : '${P.javaVmVersion}'; vendor: '${P.javaVmVendor}';"
                ) *>
@@ -527,7 +527,7 @@ object JsEngine {
      * So you should minimize the number of time it is done.
      */
     def sandboxed[T](maxThread: Int = 1, timeout: FiniteDuration = DEFAULT_MAX_EVAL_DURATION)(
-        script:                 SandboxedJsEngine => IOResult[T]
+        script: SandboxedJsEngine => IOResult[T]
     ): IOResult[T] = {
       final case class ManagedJsEnv(pool: ExecutorService, engine: SandboxedJsEngine)
 

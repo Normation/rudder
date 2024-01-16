@@ -44,7 +44,7 @@ import com.normation.rudder.services.servers.RemoveNodeService
 import com.normation.zio.ZioRuntime
 import org.joda.time.DateTime
 import scala.concurrent.duration.FiniteDuration
-import zio._
+import zio.*
 
 /**
  * A naive scheduler which checks every N days if old inventories are purged from LDAP "removed" tree.
@@ -85,7 +85,7 @@ class PurgeDeletedInventories(
             val error = Chained(s"Error when purging deleted nodes inventories older than ${TTL} days", err)
             ScheduledJobLoggerPure.error(error.fullMsg)
         })
-      import zio.Duration.{fromScala => zduration}
+      import zio.Duration.fromScala as zduration
       ZioRuntime.unsafeRun(prog.delay(zduration(updateInterval)).repeat(Schedule.spaced(zduration(updateInterval))).forkDaemon)
     }
   }

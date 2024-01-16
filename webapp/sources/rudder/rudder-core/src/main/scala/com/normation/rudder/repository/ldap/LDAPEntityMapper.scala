@@ -37,35 +37,35 @@
 
 package com.normation.rudder.repository.ldap
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.GitVersion
 import com.normation.GitVersion.ParseRev
 import com.normation.GitVersion.Revision
 import com.normation.NamedZioLogger
-import com.normation.cfclerk.domain._
-import com.normation.errors._
-import com.normation.inventory.domain._
-import com.normation.inventory.ldap.core.{InventoryMappingRudderError => Err}
+import com.normation.cfclerk.domain.*
+import com.normation.errors.*
+import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryMapper
-import com.normation.inventory.ldap.core.InventoryMappingResult._
+import com.normation.inventory.ldap.core.InventoryMappingResult.*
 import com.normation.inventory.ldap.core.InventoryMappingRudderError
 import com.normation.inventory.ldap.core.InventoryMappingRudderError.MalformedDN
 import com.normation.inventory.ldap.core.InventoryMappingRudderError.UnexpectedObject
+import com.normation.inventory.ldap.core.InventoryMappingRudderError as Err
 import com.normation.inventory.ldap.core.LDAPConstants
-import com.normation.inventory.ldap.core.LDAPConstants._
-import com.normation.ldap.sdk._
-import com.normation.ldap.sdk.syntax._
-import com.normation.rudder.api._
+import com.normation.inventory.ldap.core.LDAPConstants.*
+import com.normation.ldap.sdk.*
+import com.normation.ldap.sdk.syntax.*
+import com.normation.rudder.api.*
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.nodes.Node
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GlobalParameter
@@ -73,23 +73,23 @@ import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
-import com.normation.rudder.reports._
+import com.normation.rudder.reports.*
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
-import com.normation.rudder.services.queries._
+import com.normation.rudder.services.queries.*
 import com.unboundid.ldap.sdk.DN
-import net.liftweb.json._
+import net.liftweb.json.*
 import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonDSL.*
 import org.joda.time.DateTime
 import scala.util.control.NonFatal
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 object NodeStateEncoder {
-  implicit def enc(state: NodeState): String                       = state.name
-  implicit def dec(state: String):    Either[Throwable, NodeState] = {
+  implicit def enc(state: NodeState): String = state.name
+  implicit def dec(state: String): Either[Throwable, NodeState] = {
     NodeState.values.find(state.toLowerCase() == _.name) match {
       case Some(s) => Right(s)
       case None    => Left(new IllegalArgumentException(s"'${state}' can not be decoded to a NodeState"))
@@ -114,7 +114,7 @@ class LDAPEntityMapper(
   //////////////////////////////    Node    //////////////////////////////
 
   def nodeToEntry(node: Node): LDAPEntry = {
-    import NodeStateEncoder._
+    import NodeStateEncoder.*
     val entry = {
       if (node.isPolicyServer) {
         nodeDit.NODES.NODE.policyServerNodeModel(node.id)
@@ -142,13 +142,13 @@ class LDAPEntityMapper(
     // because we don't want to store them there.
     entry.resetValuesTo(
       A_NODE_PROPERTY,
-      node.properties.collect { case p if (p.provider != Some(NodeProperty.customPropertyProvider)) => p.toData }: _*
+      node.properties.collect { case p if (p.provider != Some(NodeProperty.customPropertyProvider)) => p.toData }*
     )
 
     node.nodeReportingConfiguration.heartbeatConfiguration match {
       case Some(heatbeatConfiguration) =>
         val json = {
-          import net.liftweb.json.JsonDSL._
+          import net.liftweb.json.JsonDSL.*
           ("overrides"       -> heatbeatConfiguration.overrides) ~
           ("heartbeatPeriod" -> heatbeatConfiguration.heartbeatPeriod)
         }
@@ -172,14 +172,14 @@ class LDAPEntityMapper(
   }
 
   def unserializeAgentRunInterval(value: String): AgentRunInterval = {
-    import net.liftweb.json.JsonParser._
+    import net.liftweb.json.JsonParser.*
     implicit val formats: Formats = DefaultFormats
 
     parse(value).extract[AgentRunInterval]
   }
 
   def unserializeNodeHeartbeatConfiguration(value: String): HeartbeatConfiguration = {
-    import net.liftweb.json.JsonParser._
+    import net.liftweb.json.JsonParser.*
     implicit val formats: Formats = DefaultFormats
 
     parse(value).extract[HeartbeatConfiguration]
@@ -431,7 +431,7 @@ class LDAPEntityMapper(
    * Build the ActiveTechniqueCategoryId from the given DN
    */
   def dn2ActiveTechniqueCategoryId(dn: DN): ActiveTechniqueCategoryId = {
-    import net.liftweb.common._
+    import net.liftweb.common.*
     rudderDit.ACTIVE_TECHNIQUES_LIB.getCategoryIdValue(dn) match {
       case Full(value) => ActiveTechniqueCategoryId(value)
       case e: EmptyBox =>
@@ -440,7 +440,7 @@ class LDAPEntityMapper(
   }
 
   def dn2ActiveTechniqueId(dn: DN): ActiveTechniqueId = {
-    import net.liftweb.common._
+    import net.liftweb.common.*
     rudderDit.ACTIVE_TECHNIQUES_LIB.getActiveTechniqueId(dn) match {
       case Full(value) => ActiveTechniqueId(value)
       case e: EmptyBox =>
@@ -452,7 +452,7 @@ class LDAPEntityMapper(
    * Build the Group Category Id from the given DN
    */
   def dn2NodeGroupCategoryId(dn: DN): NodeGroupCategoryId = {
-    import net.liftweb.common._
+    import net.liftweb.common.*
     rudderDit.GROUP.getCategoryIdValue(dn) match {
       case Full(value) => NodeGroupCategoryId(value)
       case e: EmptyBox =>
@@ -464,7 +464,7 @@ class LDAPEntityMapper(
    * Build the Node Group Category Id from the given DN
    */
   def dn2NodeGroupId(dn: DN): NodeGroupId = {
-    import net.liftweb.common._
+    import net.liftweb.common.*
     rudderDit.GROUP.getGroupId(dn) match {
       case Full(value) =>
         NodeGroupId.parse(value) match {
@@ -479,7 +479,7 @@ class LDAPEntityMapper(
    * Build the Rule Category Id from the given DN
    */
   def dn2RuleCategoryId(dn: DN): RuleCategoryId = {
-    import net.liftweb.common._
+    import net.liftweb.common.*
     rudderDit.RULECATEGORY.getCategoryIdValue(dn) match {
       case Full(value) => RuleCategoryId(value)
       case e: EmptyBox =>
@@ -488,7 +488,7 @@ class LDAPEntityMapper(
   }
 
   def dn2LDAPDirectiveUid(dn: DN): DirectiveUid = {
-    import net.liftweb.common._
+    import net.liftweb.common.*
     rudderDit.ACTIVE_TECHNIQUES_LIB.getLDAPDirectiveUid(dn) match {
       case Full(value) => DirectiveUid(value)
       case e: EmptyBox =>
@@ -497,7 +497,7 @@ class LDAPEntityMapper(
   }
 
   def dn2RuleUid(dn: DN): RuleUid = {
-    import net.liftweb.common._
+    import net.liftweb.common.*
     rudderDit.RULES.getRuleUid(dn) match {
       case Full(value) => RuleUid(value)
       case e: EmptyBox => throw new RuntimeException("The dn %s is not a valid Rule UID. Error was: %s".format(dn, e.toString))
@@ -553,7 +553,7 @@ class LDAPEntityMapper(
   def unserializeAcceptations(value: String): PureResult[Map[TechniqueVersion, DateTime]] = {
     import net.liftweb.json.JsonAST.JField
     import net.liftweb.json.JsonAST.JString
-    import net.liftweb.json.JsonParser._
+    import net.liftweb.json.JsonParser.*
 
     parse(value) match {
       case JObject(fields) =>
@@ -764,7 +764,7 @@ class LDAPEntityMapper(
         s"Some properties from group '${group.name}' (${group.id.serialize}) were ignored because their name was blank and it's forbidden"
       )
     }
-    entry.resetValuesTo(A_JSON_PROPERTY, props: _*)
+    entry.resetValuesTo(A_JSON_PROPERTY, props*)
     entry
   }
 
@@ -869,7 +869,7 @@ class LDAPEntityMapper(
       parentDN
     )
 
-    entry.resetValuesTo(A_DIRECTIVE_VARIABLES, policyVariableToSeq(directive.parameters): _*)
+    entry.resetValuesTo(A_DIRECTIVE_VARIABLES, policyVariableToSeq(directive.parameters)*)
     entry.resetValuesTo(A_NAME, directive.name)
     entry.resetValuesTo(A_DESCRIPTION, directive.shortDescription)
     entry.resetValuesTo(A_LONG_DESCRIPTION, directive.longDescription.toString)
@@ -986,8 +986,8 @@ class LDAPEntityMapper(
       rule.categoryId.value
     )
 
-    entry.resetValuesTo(A_RULE_TARGET, rule.targets.map(_.target).toSeq:            _*)
-    entry.resetValuesTo(A_DIRECTIVE_UUID, rule.directiveIds.map(_.serialize).toSeq: _*)
+    entry.resetValuesTo(A_RULE_TARGET, rule.targets.map(_.target).toSeq*)
+    entry.resetValuesTo(A_DIRECTIVE_UUID, rule.directiveIds.map(_.serialize).toSeq*)
     entry.resetValuesTo(A_DESCRIPTION, rule.shortDescription)
     entry.resetValuesTo(A_LONG_DESCRIPTION, rule.longDescription.toString)
     entry.resetValuesTo(A_SERIALIZED_TAGS, net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(rule.tags)))
@@ -998,15 +998,15 @@ class LDAPEntityMapper(
   //////////////////////////////    API Accounts    //////////////////////////////
 
   def serApiAcl(authz: List[ApiAclElement]): String                              = {
-    import net.liftweb.json.Serialization._
-    import net.liftweb.json._
+    import net.liftweb.json.Serialization.*
+    import net.liftweb.json.*
     implicit val formats: Formats = DefaultFormats
     val toSerialize = JsonApiAcl(acl = authz.map(a => JsonApiAuthz(path = a.path.value, actions = a.actions.toList.map(_.name))))
     write[JsonApiAcl](toSerialize)
   }
   def unserApiAcl(s: String):                Either[String, List[ApiAclElement]] = {
-    import cats.implicits._
-    import net.liftweb.json._
+    import cats.implicits.*
+    import net.liftweb.json.*
     implicit val formats = net.liftweb.json.DefaultFormats
     for {
       json <- parseOpt(s).toRight(s"The following string can not be parsed as a JSON object for API ACL: ${s}")
@@ -1123,7 +1123,7 @@ class LDAPEntityMapper(
 
   def apiAccount2Entry(principal: ApiAccount): LDAPEntry = {
     val mod = LDAPEntry(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(principal.id))
-    mod.resetValuesTo(A_OC, OC.objectClassNames(OC_API_ACCOUNT).toSeq: _*)
+    mod.resetValuesTo(A_OC, OC.objectClassNames(OC_API_ACCOUNT).toSeq*)
     mod.resetValuesTo(A_API_UUID, principal.id.value)
     mod.resetValuesTo(A_NAME, principal.name.value)
     mod.resetValuesTo(A_CREATION_DATETIME, GeneralizedTime(principal.creationDate).toString)
@@ -1157,7 +1157,7 @@ class LDAPEntityMapper(
    * (and we remove it for 6.1 and above).
    */
   def entry2Parameter(e: LDAPEntry): InventoryMappingPure[GlobalParameter] = {
-    import com.normation.rudder.domain.properties.GenericProperty._
+    import com.normation.rudder.domain.properties.GenericProperty.*
     if (e.isA(OC_PARAMETER)) {
       // OK, translate
       for {
@@ -1181,7 +1181,7 @@ class LDAPEntityMapper(
   }
 
   def parameter2Entry(parameter: GlobalParameter): LDAPEntry = {
-    import com.normation.rudder.domain.properties.GenericProperty._
+    import com.normation.rudder.domain.properties.GenericProperty.*
     val entry = rudderDit.PARAMETERS.parameterModel(
       parameter.name
     )

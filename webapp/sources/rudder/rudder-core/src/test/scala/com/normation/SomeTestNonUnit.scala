@@ -24,13 +24,13 @@
 
 package com.normation
 
-import _root_.zio._
-import com.normation.box._
+import _root_.zio.*
+import com.normation.box.*
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.services.policies.TestNodeConfiguration
-import com.normation.zio._
+import com.normation.zio.*
 import java.io.File
 import net.liftweb.actor.LAScheduler
 

@@ -37,6 +37,7 @@
 
 package com.normation.cfclerk.domain
 
+import com.normation.cfclerk.domain.HashAlgoConstraint.DerivedPasswordType
 import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
 import com.normation.rudder.services.policies.PropertyParser
@@ -250,15 +251,15 @@ final case class MasterPasswordVType(authorizedHash: Seq[HashAlgoConstraint]) ex
 }
 
 sealed trait DerivedPasswordVType extends AbstactPassword {
-  def tpe: HashAlgoConstraint.DerivedPasswordType
+  def tpe:                HashAlgoConstraint.DerivedPasswordType
   override lazy val name: String = s"derivedPassword:${tpe.name}"
 }
 
 case object AixDerivedPasswordVType   extends DerivedPasswordVType {
-  override val tpe = HashAlgoConstraint.DerivedPasswordType.AIX
+  override val tpe: DerivedPasswordType.AIX.type = HashAlgoConstraint.DerivedPasswordType.AIX
 }
 case object LinuxDerivedPasswordVType extends DerivedPasswordVType {
-  override val tpe = HashAlgoConstraint.DerivedPasswordType.Linux
+  override val tpe: DerivedPasswordType.Linux.type = HashAlgoConstraint.DerivedPasswordType.Linux
 }
 
 case object BooleanVType extends VTypeConstraint with STBoolean {

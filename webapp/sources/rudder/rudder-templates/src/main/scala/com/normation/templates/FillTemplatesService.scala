@@ -43,15 +43,15 @@ package com.normation.templates
  */
 
 import com.normation.NamedZioLogger
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.stringtemplate.language.NormationAmpersandTemplateLexer
-import com.normation.zio._
+import com.normation.zio.*
 import com.normation.zio.ZioRuntime
 import org.antlr.stringtemplate.StringTemplate
 import org.apache.commons.lang3.StringUtils
 import scala.collection.immutable.ArraySeq
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  * A "string template variable" is a variable destinated to be

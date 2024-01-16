@@ -37,7 +37,7 @@
 
 package com.normation.rudder.rule.category
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 

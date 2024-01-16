@@ -37,16 +37,16 @@
 
 package com.normation.inventory.ldap.provisioning
 
-import com.normation.errors._
-import com.normation.inventory.domain._
-import com.normation.inventory.ldap.core._
-import com.normation.inventory.ldap.core.LDAPConstants._
-import com.normation.inventory.services.provisioning._
-import com.normation.ldap.sdk._
-import com.normation.ldap.sdk.BuildFilter._
+import com.normation.errors.*
+import com.normation.inventory.domain.*
+import com.normation.inventory.ldap.core.*
+import com.normation.inventory.ldap.core.LDAPConstants.*
+import com.normation.inventory.services.provisioning.*
+import com.normation.ldap.sdk.*
+import com.normation.ldap.sdk.BuildFilter.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import zio._
+import zio.*
 
 object NameAndVersionIdFinder {
   val logger: Logger = LoggerFactory.getLogger(classOf[NameAndVersionIdFinder])
@@ -78,7 +78,7 @@ class NameAndVersionIdFinder(
       }
 
       AND(nameFilter, versionFilter)
-    }.toSeq: _*)
+    }.toSeq*)
 
     // get potential entries, and only get the one with a A_SOFTWARE_UUID
     // return the list of A_SOFTWARE_UUID sorted

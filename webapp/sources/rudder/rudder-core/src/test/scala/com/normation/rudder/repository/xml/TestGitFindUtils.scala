@@ -37,10 +37,10 @@
 
 package com.normation.rudder.repository.xml
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.ZipUtils
-import com.normation.zio._
+import com.normation.zio.*
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.util.zip.ZipFile
@@ -127,31 +127,31 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
 
   "the walk" should {
     "return all results when no filter provided" in {
-      list(Nil, Nil) must contain(exactly(allPaths: _*))
+      list(Nil, Nil) must contain(exactly(allPaths*))
     }
 
     "return all results when all dir are provided as filter" in {
-      list(List("a", "b", "x"), Nil) must contain(exactly(allPaths: _*))
+      list(List("a", "b", "x"), Nil) must contain(exactly(allPaths*))
     }
 
     "return all results when all extension are provided" in {
-      list(Nil, List("pdf", "txt", "plop")) must contain(exactly(allPaths: _*))
+      list(Nil, List("pdf", "txt", "plop")) must contain(exactly(allPaths*))
     }
 
     "return only files under a when filter for 'a'" in {
-      list(List("a"), Nil) must contain(exactly(allDirA: _*))
+      list(List("a"), Nil) must contain(exactly(allDirA*))
     }
 
     "return only files under a when filter for a/" in {
-      list(List("a/"), Nil) must contain(exactly(allDirA: _*))
+      list(List("a/"), Nil) must contain(exactly(allDirA*))
     }
 
     "return only files under a when filter for a/a" in {
-      list(List("a/a"), Nil) must contain(exactly(allDirAA: _*))
+      list(List("a/a"), Nil) must contain(exactly(allDirAA*))
     }
 
     "return only files under a when filter for 'b'" in {
-      list(List("b"), Nil) must contain(exactly(allDirB: _*))
+      list(List("b"), Nil) must contain(exactly(allDirB*))
     }
 
     "return both files under 'a' and 'b'" in {
@@ -159,7 +159,7 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
     }
 
     "return all .txt" in {
-      list(Nil, List(".txt")) must contain(exactly(allTxt: _*))
+      list(Nil, List(".txt")) must contain(exactly(allTxt*))
     }
 
     "return all .txt and .pdf" in {
@@ -167,7 +167,7 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
     }
 
     "return x/f.txt/f.txt" in {
-      list(List("x"), List(".txt")) must contain(exactly(allDirX: _*))
+      list(List("x"), List(".txt")) must contain(exactly(allDirX*))
     }
 
     "return nothing" in {
@@ -175,11 +175,11 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
     }
 
     "ignore empty path" in {
-      list(List("x", ""), Nil) must contain(exactly(allDirX: _*))
+      list(List("x", ""), Nil) must contain(exactly(allDirX*))
     }
 
     "ignore empty extension" in {
-      list(Nil, List("txt", "")) must contain(exactly(allTxt: _*))
+      list(Nil, List("txt", "")) must contain(exactly(allTxt*))
     }
 
   }
@@ -202,7 +202,7 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
 
   // all modification
   def allModif(s: Status): List[String] = {
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
     List(
       s.getAdded,
       s.getChanged,

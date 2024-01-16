@@ -36,13 +36,13 @@
  */
 package com.normation.rudder.services.eventlog
 
-import com.normation.box._
-import com.normation.eventlog._
-import com.normation.rudder.domain.eventlog._
-import com.normation.rudder.domain.workflows._
+import com.normation.box.*
+import com.normation.eventlog.*
+import com.normation.rudder.domain.eventlog.*
+import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.utils.StringUuidGenerator
-import net.liftweb.common._
+import net.liftweb.common.*
 
 trait WorkflowEventLogService {
 

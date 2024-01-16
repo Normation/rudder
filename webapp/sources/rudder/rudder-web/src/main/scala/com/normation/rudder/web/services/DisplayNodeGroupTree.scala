@@ -49,7 +49,7 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.web.model.JsTreeNode
 import net.liftweb.common.Loggable
 import net.liftweb.http.SHtml
-import net.liftweb.http.js._
+import net.liftweb.http.js.*
 import net.liftweb.util.Helpers
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
@@ -137,7 +137,7 @@ object DisplayNodeGroupTree extends Loggable {
 
       val htmlId = s"jstree-${targetInfo.target.target.target}"
 
-      override def children = Nil
+      override def children: List[JsTreeNode] = Nil
 
       val classes = {
         val includedClass = if (included.contains(targetInfo.target.target)) { "included" }

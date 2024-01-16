@@ -40,12 +40,12 @@ package com.normation.rudder.web.components
 import bootstrap.liftweb.RudderConfig
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
-import com.normation.box._
+import com.normation.box.*
 import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
@@ -62,17 +62,18 @@ import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField
 import com.normation.rudder.web.services.DisplayDirectiveTree
 import com.normation.rudder.web.services.DisplayNodeGroupTree
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
 import net.liftweb.http.SHtml
 import net.liftweb.http.SHtml.ElemAttr.pairToBasic
-import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmd
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.json._
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.json.*
 import net.liftweb.util.ClearClearable
-import net.liftweb.util.Helpers._
+import net.liftweb.util.FieldError
+import net.liftweb.util.Helpers.*
 import scala.xml.NodeSeq
 import scala.xml.Text
 
@@ -142,7 +143,7 @@ class RuleEditForm(
     onFailureCallback: () => JsCmd = { () => Noop },
     onCloneCallback:   (Rule) => JsCmd = { (r: Rule) => Noop }
 ) extends DispatchSnippet with DefaultExtendableSnippet[RuleEditForm] with Loggable {
-  import RuleEditForm._
+  import RuleEditForm.*
 
   private[this] val htmlId_save     = htmlId_rule + "Save"
   private[this] val htmlId_EditZone = "editRuleZone"
@@ -279,7 +280,7 @@ class RuleEditForm(
     // in the tree, so there's just the existing id to find back
     val maptarget = {
       // information given to the "selectedDirective" list
-      import net.liftweb.json._
+      import net.liftweb.json.*
       import net.liftweb.json.Serialization.write
       implicit val formats = Serialization.formats(NoTypeHints)
       val map              = (for {
@@ -308,7 +309,7 @@ class RuleEditForm(
 
     val selectedDirectives = {
       // information given to the "selectedDirective" list
-      import net.liftweb.json._
+      import net.liftweb.json.*
       import net.liftweb.json.Serialization.write
       implicit val formats = Serialization.formats(NoTypeHints)
       // here, we want to display a "broken directive" message in the UI if we don't have it in lib
@@ -573,7 +574,7 @@ class RuleEditForm(
       override def subContainerClassName = "col-xs-12"
       override def setFilter             = notNull _ :: trim _ :: Nil
       override val maxLen                = 255
-      override def validations           = Nil
+      override def validations: List[String => List[FieldError]] = Nil
     }
   }
 
@@ -682,7 +683,7 @@ class RuleEditForm(
   }
 
   private[this] def workflowCallBack(workflowEnabled: Boolean, action: RuleModAction)(
-      returns:                                        Either[Rule, ChangeRequestId]
+      returns: Either[Rule, ChangeRequestId]
   ): JsCmd = {
     if ((!workflowEnabled) & (action == RuleModAction.Delete)) {
       JsRaw("""

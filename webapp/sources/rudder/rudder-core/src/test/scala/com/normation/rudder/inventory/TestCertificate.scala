@@ -51,22 +51,22 @@ import com.normation.inventory.domain.SecurityToken.kind
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.provisioning.fusion.FusionInventoryParser
 import com.normation.inventory.services.core.FullInventoryRepository
-import com.normation.inventory.services.provisioning._
+import com.normation.inventory.services.provisioning.*
 import com.normation.utils.StringUuidGeneratorImpl
-import com.normation.zio._
+import com.normation.zio.*
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldif.LDIFChangeRecord
 import java.io.InputStream
 import java.security.Security
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import scala.annotation.nowarn
 import scala.collection.mutable
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 @nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
@@ -119,21 +119,21 @@ class TestCertificate extends Specification with Loggable {
     override def get(id: NodeId): IOResult[Option[FullInventory]] = repository.get(id).succeed
 
     override def get(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Option[FullInventory]] = get(id)
-    override def save(serverAndMachine: FullInventory):             IOResult[Seq[LDIFChangeRecord]] = IOResult
+    override def save(serverAndMachine: FullInventory): IOResult[Seq[LDIFChangeRecord]] = IOResult
       .attempt(
         repository += ((serverAndMachine.node.main.id, serverAndMachine))
       )
       .map(_ => Nil)
 
-    override def getMachineId(id: NodeId, inventoryStatus: InventoryStatus):             IOResult[Option[(MachineUuid, InventoryStatus)]] =
+    override def getMachineId(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Option[(MachineUuid, InventoryStatus)]] =
       ???
-    override def getAllInventories(inventoryStatus: InventoryStatus):                    IOResult[Map[NodeId, FullInventory]]             = ???
-    override def getInventories(inventoryStatus: InventoryStatus, nodeIds: Set[NodeId]): IOResult[Map[NodeId, FullInventory]]             =
+    override def getAllInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, FullInventory]] = ???
+    override def getInventories(inventoryStatus: InventoryStatus, nodeIds: Set[NodeId]): IOResult[Map[NodeId, FullInventory]] =
       ???
-    override def getAllNodeInventories(inventoryStatus: InventoryStatus):                IOResult[Map[NodeId, NodeInventory]]             = ???
-    override def delete(id: NodeId, inventoryStatus: InventoryStatus):                   IOResult[Seq[LDIFChangeRecord]]                  = ???
-    override def move(id: NodeId, from: InventoryStatus, into: InventoryStatus):         IOResult[Seq[LDIFChangeRecord]]                  = ???
-    override def moveNode(id: NodeId, from: InventoryStatus, into: InventoryStatus):     IOResult[Seq[LDIFChangeRecord]]                  = ???
+    override def getAllNodeInventories(inventoryStatus: InventoryStatus): IOResult[Map[NodeId, NodeInventory]] = ???
+    override def delete(id:                             NodeId, inventoryStatus: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
+    override def move(id:                               NodeId, from:            InventoryStatus, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
+    override def moveNode(id:                           NodeId, from:            InventoryStatus, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
   }
 
   val processor = new InventoryProcessor(

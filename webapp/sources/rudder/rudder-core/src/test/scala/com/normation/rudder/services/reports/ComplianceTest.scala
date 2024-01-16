@@ -52,9 +52,9 @@ import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import org.joda.time.format.DateTimeFormatter
 import org.joda.time.format.DateTimeFormatterBuilder
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import scala.io.Source
 
 /**

@@ -36,9 +36,9 @@
 
 package com.normation.rudder.services.policies
 
-import cats.data._
+import cats.data.*
 import cats.kernel.Order
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.RunHook
 import com.normation.cfclerk.domain.TechniqueGenerationMode
 import com.normation.cfclerk.domain.TechniqueName
@@ -48,7 +48,7 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.utils.Control.traverse
-import net.liftweb.common._
+import net.liftweb.common.*
 
 /*
  * This file contains all the logic that allows to build a List of policies, for a node,
@@ -253,7 +253,7 @@ object MergePolicyService {
             s"'${nodeInfo.id.value}' WITH DIFFERENT PARAMETERS VALUE. It's a bug, please report it. Taking one set of parameter " +
             s"at random for the policy generation."
           )
-          import net.liftweb.json._
+          import net.liftweb.json.*
           implicit val formats: Formats = DefaultFormats
           def r(j: JValue) = if (j == JNothing) "{}" else prettyRender(j)
 
@@ -399,7 +399,7 @@ object MergePolicyService {
       }
       // now change remaining BoundPolicyDraft to Policy, managing tracking variable values
       others <- {
-        import cats.implicits._
+        import cats.implicits.*
         (keptUniqueDraft ++ deduplicatedMultiDirective).toList.traverse(_.toPolicy(agent.agentType))
       }
     } yield {

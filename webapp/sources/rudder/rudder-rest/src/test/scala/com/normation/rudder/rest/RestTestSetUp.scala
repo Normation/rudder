@@ -37,11 +37,12 @@
 
 package com.normation.rudder.rest
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.VariableSpec
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
+import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
@@ -51,12 +52,12 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.NodeInventory
-import com.normation.rudder._
-import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
+import com.normation.rudder.*
+import com.normation.rudder.api.ApiAuthorization as ApiAuthz
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.RestDataSerializerImpl
 import com.normation.rudder.apidata.ZioJsonExtractor
-import com.normation.rudder.batch._
+import com.normation.rudder.batch.*
 import com.normation.rudder.batch.PolicyGenerationTrigger.AllGeneration
 import com.normation.rudder.campaigns.CampaignSerializer
 import com.normation.rudder.domain.appconfig.FeatureSwitch
@@ -93,11 +94,11 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.reports.execution.AgentRunWithoutCompliance
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
-import com.normation.rudder.repository._
+import com.normation.rudder.repository.*
 import com.normation.rudder.rest.data.Creation
 import com.normation.rudder.rest.data.Creation.CreationError
 import com.normation.rudder.rest.data.NodeSetup
-import com.normation.rudder.rest.lift._
+import com.normation.rudder.rest.lift.*
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.rule.category.RuleCategoryService
 import com.normation.rudder.services.ClearCacheService
@@ -131,7 +132,7 @@ import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestServi
 import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestServiceImpl
 import com.normation.rudder.services.workflows.DefaultWorkflowLevel
 import com.normation.rudder.services.workflows.NoWorkflowServiceImpl
-import com.normation.rudder.users._
+import com.normation.rudder.users.*
 import com.normation.rudder.web.model.DirectiveField
 import com.normation.rudder.web.services.DirectiveEditorServiceImpl
 import com.normation.rudder.web.services.DirectiveFieldFactory
@@ -139,8 +140,8 @@ import com.normation.rudder.web.services.Section2FieldService
 import com.normation.rudder.web.services.StatelessUserPropertyService
 import com.normation.rudder.web.services.Translator
 import com.normation.utils.StringUuidGeneratorImpl
-import com.normation.zio._
-import doobie._
+import com.normation.zio.*
+import doobie.*
 import java.nio.charset.StandardCharsets
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
@@ -154,6 +155,7 @@ import net.liftweb.http.SHtml
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.mockweb.MockWeb
+import net.liftweb.util.FieldError
 import net.liftweb.util.NamedPF
 import org.apache.commons.httpclient.methods.multipart.ByteArrayPartSource
 import org.apache.commons.httpclient.methods.multipart.FilePart
@@ -167,8 +169,9 @@ import org.specs2.matcher.MatchResult
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 import scala.xml.Elem
-import zio._
-import zio.syntax._
+import scala.xml.NodeSeq
+import zio.*
+import zio.syntax.*
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.
@@ -189,9 +192,9 @@ class RestTestSetUp {
   implicit val userService: userService = new userService
   class userService extends UserService {
     val user: AuthenticatedUser = new AuthenticatedUser {
-      val account                              = RudderAccount.User("test-user", "pass")
+      val account: RudderAccount.User = RudderAccount.User("test-user", "pass")
       def checkRights(auth: AuthorizationType) = true
-      def getApiAuthz                          = ApiAuthz.allAuthz
+      def getApiAuthz: ApiAuthz = ApiAuthz.allAuthz
     }
     val getCurrentUser = user
   }
@@ -199,7 +202,11 @@ class RestTestSetUp {
   // Instantiate Service needed to feed System API constructor
 
   val fakeUpdatePTLibService: UpdateTechniqueLibrary = new UpdateTechniqueLibrary() {
-    def update(modId: ModificationId, actor: EventActor, reason: Option[String]) = {
+    def update(
+        modId:  ModificationId,
+        actor:  EventActor,
+        reason: Option[String]
+    ): Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = {
       Full(Map())
     }
     def registerCallback(callback: TechniquesLibraryUpdateNotification): Unit = {}
@@ -220,7 +227,7 @@ class RestTestSetUp {
     new DynGroupUpdaterServiceImpl(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, mockNodes.queryProcessor)
 
   object dynGroupService extends DynGroupService {
-    override def getAllDynGroups():                Box[Seq[NodeGroup]] = {
+    override def getAllDynGroups(): Box[Seq[NodeGroup]] = {
       mockNodeGroups.groupsRepo
         .getFullGroupLibrary()
         .map(_.allGroups.collect {
@@ -228,7 +235,7 @@ class RestTestSetUp {
         }.toSeq)
         .toBox
     }
-    override def changesSince(lastTime: DateTime): Box[Boolean]        = Full(false)
+    override def changesSince(lastTime: DateTime): Box[Boolean] = Full(false)
 
     override def getAllDynGroupsWithandWithoutDependencies(): Box[(Seq[NodeGroupId], Seq[NodeGroupId])] = ???
   }
@@ -239,15 +246,15 @@ class RestTestSetUp {
   val eventLogRepo:                  EventLogRepository            = new EventLogRepository {
     override def saveEventLog(modId: ModificationId, eventLog: EventLog): IOResult[EventLog] = eventLog.succeed
 
-    override def eventLogFactory:                                                                EventLogFactory                                       = ???
+    override def eventLogFactory: EventLogFactory = ???
     override def getEventLogByCriteria(
         criteria:       Option[Fragment],
         limit:          Option[Int],
         orderBy:        List[Fragment],
         extendedFilter: Option[Fragment]
     ): IOResult[Seq[EventLog]] = ???
-    override def getEventLogById(id: Long):                                                      IOResult[EventLog]                                    = ???
-    override def getEventLogCount(criteria: Option[Fragment], extendedFilter: Option[Fragment]): IOResult[Long]                                        = ???
+    override def getEventLogById(id: Long): IOResult[EventLog] = ???
+    override def getEventLogCount(criteria:       Option[Fragment], extendedFilter: Option[Fragment]): IOResult[Long] = ???
     override def getEventLogByChangeRequest(
         changeRequest:   ChangeRequestId,
         xpath:           String,
@@ -255,7 +262,7 @@ class RestTestSetUp {
         orderBy:         Option[String],
         eventTypeFilter: List[EventLogFilter]
     ): IOResult[Vector[EventLog]] = ???
-    override def getEventLogWithChangeRequest(id: Int):                                          IOResult[Option[(EventLog, Option[ChangeRequestId])]] = ???
+    override def getEventLogWithChangeRequest(id: Int): IOResult[Option[(EventLog, Option[ChangeRequestId])]] = ???
     override def getLastEventByChangeRequest(
         xpath:           String,
         eventTypeFilter: List[EventLogFilter]
@@ -286,34 +293,34 @@ class RestTestSetUp {
     override def getLastDeployement(): Box[CurrentDeploymentStatus] = Full(NoStatus)
   }
   val policyGeneration:              PromiseGenerationService      = new PromiseGenerationService {
-    override def deploy():                                                                     Box[Set[NodeId]]                        = Full(Set())
-    override def getAllNodeInfos():                                                            Box[Map[NodeId, NodeInfo]]              = ???
-    override def getDirectiveLibrary(ids: Set[DirectiveId]):                                   Box[FullActiveTechniqueCategory]        = ???
-    override def getGroupLibrary():                                                            Box[FullNodeGroupCategory]              = ???
-    override def getAllGlobalParameters:                                                       Box[Seq[GlobalParameter]]               = ???
-    override def getAllInventories():                                                          Box[Map[NodeId, NodeInventory]]         = ???
-    override def getGlobalComplianceMode():                                                    Box[GlobalComplianceMode]               = ???
-    override def getGlobalAgentRun():                                                          Box[AgentRunInterval]                   = ???
-    override def getScriptEngineEnabled:                                                       () => Box[FeatureSwitch]                = ???
-    override def getGlobalPolicyMode:                                                          () => Box[GlobalPolicyMode]             = ???
-    override def getComputeDynGroups:                                                          () => Box[Boolean]                      = ???
-    override def getMaxParallelism:                                                            () => Box[String]                       = ???
-    override def getJsTimeout:                                                                 () => Box[Int]                          = ???
-    override def getGenerationContinueOnError:                                                 () => Box[Boolean]                      = ???
-    override def writeCertificatesPem(allNodeInfos: Map[NodeId, NodeInfo]):                    Unit                                    = ???
-    override def triggerNodeGroupUpdate():                                                     Box[Unit]                               = ???
-    override def beforeDeploymentSync(generationTime: DateTime):                               Box[Unit]                               = ???
-    override def HOOKS_D:                                                                      String                                  = ???
-    override def HOOKS_IGNORE_SUFFIXES:                                                        List[String]                            = ???
-    override def UPDATED_NODE_IDS_PATH:                                                        String                                  = ???
-    override def GENERATION_FAILURE_MSG_PATH:                                                  String                                  = ???
+    override def deploy():          Box[Set[NodeId]]           = Full(Set())
+    override def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]] = ???
+    override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory] = ???
+    override def getGroupLibrary():            Box[FullNodeGroupCategory]      = ???
+    override def getAllGlobalParameters:       Box[Seq[GlobalParameter]]       = ???
+    override def getAllInventories():          Box[Map[NodeId, NodeInventory]] = ???
+    override def getGlobalComplianceMode():    Box[GlobalComplianceMode]       = ???
+    override def getGlobalAgentRun():          Box[AgentRunInterval]           = ???
+    override def getScriptEngineEnabled:       () => Box[FeatureSwitch]        = ???
+    override def getGlobalPolicyMode:          () => Box[GlobalPolicyMode]     = ???
+    override def getComputeDynGroups:          () => Box[Boolean]              = ???
+    override def getMaxParallelism:            () => Box[String]               = ???
+    override def getJsTimeout:                 () => Box[Int]                  = ???
+    override def getGenerationContinueOnError: () => Box[Boolean]              = ???
+    override def writeCertificatesPem(allNodeInfos: Map[NodeId, NodeInfo]): Unit = ???
+    override def triggerNodeGroupUpdate(): Box[Unit] = ???
+    override def beforeDeploymentSync(generationTime: DateTime): Box[Unit] = ???
+    override def HOOKS_D:                     String                                  = ???
+    override def HOOKS_IGNORE_SUFFIXES:       List[String]                            = ???
+    override def UPDATED_NODE_IDS_PATH:       String                                  = ???
+    override def GENERATION_FAILURE_MSG_PATH: String                                  = ???
     override def getAppliedRuleIds(
         rules:        Seq[Rule],
         groupLib:     FullNodeGroupCategory,
         directiveLib: FullActiveTechniqueCategory,
         allNodeInfos: Map[NodeId, NodeInfo]
     ): Set[RuleId] = ???
-    override def findDependantRules():                                                         Box[Seq[Rule]]                          = ???
+    override def findDependantRules():        Box[Seq[Rule]]                          = ???
     override def buildRuleVals(
         activesRules: Set[RuleId],
         rules:        Seq[Rule],
@@ -330,7 +337,7 @@ class RestTestSetUp {
         globalComplianceMode: ComplianceMode,
         globalPolicyMode:     GlobalPolicyMode
     ): Box[NodesContextResult] = ???
-    override def getFilteredTechnique():                                                       Map[NodeId, List[TechniqueName]]        = ???
+    override def getFilteredTechnique():      Map[NodeId, List[TechniqueName]]        = ???
     override def buildNodeConfigurations(
         activeNodeIds:             Set[NodeId],
         ruleVals:                  Seq[RuleVal],
@@ -343,8 +350,8 @@ class RestTestSetUp {
         jsTimeout:                 FiniteDuration,
         generationContinueOnError: Boolean
     ): Box[NodeConfigurations] = ???
-    override def forgetOtherNodeConfigurationState(keep: Set[NodeId]):                         Box[Set[NodeId]]                        = ???
-    override def getNodeConfigurationHash():                                                   Box[Map[NodeId, NodeConfigurationHash]] = ???
+    override def forgetOtherNodeConfigurationState(keep: Set[NodeId]): Box[Set[NodeId]] = ???
+    override def getNodeConfigurationHash():  Box[Map[NodeId, NodeConfigurationHash]] = ???
     override def getNodesConfigVersion(
         allNodeConfigs: Map[NodeId, NodeConfiguration],
         hashes:         Map[NodeId, NodeConfigurationHash],
@@ -365,8 +372,8 @@ class RestTestSetUp {
         generationTime:        DateTime,
         allNodeModes:          Map[NodeId, NodeModeConfig]
     ): List[NodeExpectedReports] = ???
-    override def saveExpectedReports(expectedReports: List[NodeExpectedReports]):              Box[Seq[NodeExpectedReports]]           = ???
-    override def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs):               Box[Unit]                               = ???
+    override def saveExpectedReports(expectedReports: List[NodeExpectedReports]): Box[Seq[NodeExpectedReports]] = ???
+    override def runPreHooks(generationTime:        DateTime, systemEnv: HookEnvPairs): Box[Unit] = ???
     override def runPostHooks(
         generationTime:    DateTime,
         endTime:           DateTime,
@@ -381,7 +388,7 @@ class RestTestSetUp {
         errorMessage:     String,
         errorMessagePath: String
     ): Box[Unit] = ???
-    override def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit]                          = ???
+    override def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = ???
   }
   val bootGuard:                     Promise[Nothing, Unit]        = (for {
     p <- Promise.make[Nothing, Unit]
@@ -397,8 +404,8 @@ class RestTestSetUp {
   )
 
   val findDependencies: FindDependencies = new FindDependencies { // never find any dependencies
-    override def findRulesForDirective(id: DirectiveUid): IOResult[Seq[Rule]] = Nil.succeed
-    override def findRulesForTarget(target: RuleTarget):  IOResult[Seq[Rule]] = Nil.succeed
+    override def findRulesForDirective(id:  DirectiveUid): IOResult[Seq[Rule]] = Nil.succeed
+    override def findRulesForTarget(target: RuleTarget):   IOResult[Seq[Rule]] = Nil.succeed
   }
   val dependencyService = new DependencyAndDeletionServiceImpl(
     findDependencies,
@@ -462,8 +469,8 @@ class RestTestSetUp {
   // all other apis
 
   class FakeClearCacheService extends ClearCacheService {
-    override def action(actor: EventActor)                                           = null
-    override def clearNodeConfigurationCache(storeEvent: Boolean, actor: EventActor) = null
+    override def action(actor:                           EventActor): Box[String] = null
+    override def clearNodeConfigurationCache(storeEvent: Boolean, actor: EventActor): Box[Unit] = null
   }
 
   val fakeNotArchivedElements: NotArchivedElements =
@@ -577,10 +584,10 @@ class RestTestSetUp {
   val fakeItemArchiveManager = new FakeItemArchiveManager
   val fakeClearCacheService = new FakeClearCacheService
   val fakePersonIndentService: PersonIdentService = new PersonIdentService {
-    override def getPersonIdentOrDefault(username: String) = ZIO.succeed(fakePersonIdent)
+    override def getPersonIdentOrDefault(username: String): ZIO[Any, Nothing, PersonIdent] = ZIO.succeed(fakePersonIdent)
   }
   val fakeScriptLauncher:      DebugInfoService   = new DebugInfoService {
-    override def launch() = DebugInfoScriptResult("test", new Array[Byte](42)).succeed
+    override def launch(): ZIO[Any, Nothing, DebugInfoScriptResult] = DebugInfoScriptResult("test", new Array[Byte](42)).succeed
   }
   val nodeInfoService = new NodeInfoServiceCachedImpl(
     null,
@@ -664,24 +671,23 @@ class RestTestSetUp {
 
   val fieldFactory:         DirectiveFieldFactory = new DirectiveFieldFactory {
     override def forType(fieldType: VariableSpec, id: String): DirectiveField = default(id)
-    override def default(withId: String):                      DirectiveField = new DirectiveField {
-      self =>
-      type ValueType = String
-      def manifest               = manifestOf[String]
-      lazy val id                = withId
-      def name                   = id
-      override val uniqueFieldId = Full(id)
-      protected var _x: String = getDefaultValue
-      def validate    = Nil
-      def validations = Nil
-      def setFilter   = Nil
-      def parseClient(s: String):                              Unit                   = if (null == s) _x = "" else _x = s
-      def toClient:                                            String                 = if (null == _x) "" else _x
+    override def default(withId: String): DirectiveField = new DirectiveField {
+      self => type ValueType = String
+      def manifest = manifestOf[String]
+      lazy val id  = withId
+      def name     = id
+      override val uniqueFieldId: Box[String]                      = Full(id)
+      protected var _x:           String                           = getDefaultValue
+      def validate:               List[FieldError]                 = Nil
+      def validations:            List[String => List[FieldError]] = Nil
+      def setFilter:              List[String => String]           = Nil
+      def parseClient(s: String): Unit = if (null == s) _x = "" else _x = s
+      def toClient: String = if (null == _x) "" else _x
       def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None // not supported in the general cases
       def getDefaultValue = ""
       def get             = _x
-      def set(x: String)  = { if (null == x) _x = "" else _x = x; _x }
-      def toForm          = Full(SHtml.textarea("", s => parseClient(s)))
+      def set(x: String) = { if (null == x) _x = "" else _x = x; _x }
+      def toForm: Box[NodeSeq] = Full(SHtml.textarea("", s => parseClient(s)))
     }
   }
   val directiveEditorService = new DirectiveEditorServiceImpl(
@@ -802,7 +808,7 @@ class RestTestSetUp {
           nodes.get(id) match {
             case None    => CreationError.OnSaveNode(s"Can not merge node: missing").fail
             case Some(n) =>
-              import com.softwaremill.quicklens._
+              import com.softwaremill.quicklens.*
               val res = n.modify(_.info.node).using(x => mergeNodeSetup(x, setup))
 
               (nodes + ((id, res))).succeed
@@ -893,11 +899,11 @@ class RestTestSetUp {
 
     val translator = new CampaignSerializer()
     translator.addJsonTranslater(mockCampaign.dumbCampaignTranslator)
-    import mockCampaign._
+    import mockCampaign.*
     val api        = new CampaignApi(repo, translator, dumbCampaignEventRepository, mainCampaignService, restExtractorService, uuidGen)
   }
 
-  val apiModules: List[LiftApiModuleProvider[_ <: EndpointSchema with SortIndex]] = List(
+  val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema with SortIndex]] = List(
     systemApi,
     new ParameterApi(restExtractorService, zioJsonExtractor, parameterApiService2, parameterApiService14),
     new TechniqueApi(
@@ -1057,7 +1063,7 @@ class RestTest(liftRules: LiftRules) {
     mockReq
   }
   def GET(path: String): MockHttpServletRequest = mockRequest(path, "GET")
-  def POST(path: String):   MockHttpServletRequest = mockRequest(path, "POST")
+  def POST(path:   String): MockHttpServletRequest = mockRequest(path, "POST")
   def DELETE(path: String): MockHttpServletRequest = mockRequest(path, "DELETE")
 
   private[this] def mockJsonRequest(path: String, method: String, data: JValue) = {

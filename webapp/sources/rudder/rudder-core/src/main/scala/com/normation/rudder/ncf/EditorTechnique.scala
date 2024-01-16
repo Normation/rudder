@@ -62,7 +62,7 @@ import zio.ZIO
 sealed trait NcfId {
   def value:        String
   def validDscName: String
-  def canonify: String = value.replaceAll("[^a-zA-Z0-9_]", "_")
+  def canonify:     String = value.replaceAll("[^a-zA-Z0-9_]", "_")
 }
 final case class BundleName(value: String) extends NcfId {
   val validDscName: String = value.split("_").map(_.capitalize).mkString("-")
@@ -156,8 +156,8 @@ final case class GenericMethod(
       String
     ], // New name of the method replacing this method, may be defined only if deprecated is defined. Maybe we should have a deprecation info object
 
-    renameTo:    Option[String],
-    renameParam: Seq[(String, String)]
+    renameTo:       Option[String],
+    renameParam:    Seq[(String, String)]
 )
 
 final case class MethodParameter(
@@ -245,8 +245,8 @@ object ParameterType {
       }
     }
 
-    def addNewParameterService(service: ParameterTypeService): Unit                       = innerServices = service :: innerServices
-    private[this] var innerServices:                           List[ParameterTypeService] = new BasicParameterTypeService :: Nil
+    def addNewParameterService(service: ParameterTypeService): Unit = innerServices = service :: innerServices
+    private[this] var innerServices: List[ParameterTypeService] = new BasicParameterTypeService :: Nil
   }
 }
 
@@ -332,7 +332,7 @@ object Constraint {
 
 object CheckConstraint {
   def check(constraint: List[Constraint.Constraint], value: String): CheckResult = {
-    import Constraint._
+    import Constraint.*
 
     constraint.map(_.check(value)).foldRight(OK: CheckResult) {
       case (OK, OK)           => OK
@@ -345,7 +345,7 @@ object CheckConstraint {
 
 class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
 
-  import net.liftweb.json.JsonDSL._
+  import net.liftweb.json.JsonDSL.*
 
   def serializeTechniqueMetadata(technique: ncf.EditorTechnique, methods: Map[BundleName, GenericMethod]): JValue = {
 
@@ -364,7 +364,7 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
     }
 
     def serializeCompositionRule(reportingLogic: ReportingLogic): JValue = {
-      import ReportingLogic._
+      import ReportingLogic.*
 
       reportingLogic match {
         case FocusReport(component) => ("type" -> FocusReport.key) ~ ("value" -> component)
@@ -495,8 +495,8 @@ class ResourceFileService(gitReposProvider: GitRepositoryProvider) {
       }
     }
 
-    import scala.jdk.CollectionConverters._
-    import ResourceFileState._
+    import scala.jdk.CollectionConverters.*
+    import ResourceFileState.*
 
     def toResource(resourcesPath: String)(fullPath: String, state: ResourceFileState): Option[ResourceFile] = {
       // workaround https://issues.rudder.io/issues/17977 - if the fullPath does not start by resourcePath,

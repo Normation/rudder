@@ -60,7 +60,7 @@ import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
 import com.normation.rudder.rest.lift.CheckArchiveServiceImpl
 import com.normation.rudder.rest.lift.MergePolicy
 import com.normation.utils.DateFormaterService
-import com.normation.zio._
+import com.normation.zio.*
 import java.io.FileOutputStream
 import java.nio.charset.StandardCharsets
 import java.util.zip.ZipFile
@@ -543,8 +543,8 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
    * anymore.
    */
   "correctly build an archive with past revision items" >> {
-    import zio.json._
-    import com.normation.rudder.apidata.implicits._
+    import zio.json.*
+    import com.normation.rudder.apidata.implicits.*
 
     val initRev = {
       val head   = restTestSetUp.mockGitRepo.gitRepo.db.exactRef("refs/heads/master")

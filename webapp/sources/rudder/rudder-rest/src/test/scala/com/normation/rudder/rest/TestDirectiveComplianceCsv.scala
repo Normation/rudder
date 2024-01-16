@@ -54,7 +54,7 @@ import com.normation.rudder.rest.data.ByRuleNodeCompliance
 import com.normation.rudder.rest.data.ByRuleValueCompliance
 import com.normation.rudder.rest.data.CsvCompliance
 import org.junit.runner.RunWith
-import org.specs2.mutable._
+import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])

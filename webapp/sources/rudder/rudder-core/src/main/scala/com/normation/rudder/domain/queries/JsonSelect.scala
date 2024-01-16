@@ -142,7 +142,7 @@ object JsonSelect {
     //   lead to a mess of quoted strings
     // - just parsing as JSONAware fails on string, int, etc.
 
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
 
     for {
       jsonValue <- try {

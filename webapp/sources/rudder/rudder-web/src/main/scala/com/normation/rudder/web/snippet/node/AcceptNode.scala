@@ -38,7 +38,7 @@
 package com.normation.rudder.web.snippet.node
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
+import com.normation.box.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
@@ -48,17 +48,17 @@ import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.popup.ExpectedPolicyPopup
 import com.normation.utils.DateFormaterService
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.json._
-import net.liftweb.util.Helpers._
+import net.liftweb.common.*
+import net.liftweb.http.*
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.json.*
+import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
-import scala.xml._
+import scala.xml.*
 
 /**
  * Check for server in the pending repository and propose to
@@ -232,7 +232,7 @@ class AcceptNode extends Loggable {
       "#server_os *" #> srv.osFullName)(serverLine)
     }
 
-    serverSummaryService.find(pendingNodeDit, listNode: _*) match {
+    serverSummaryService.find(pendingNodeDit, listNode*) match {
       case Full(servers) =>
         val lines: NodeSeq = servers.flatMap(displayServerLine)
         ("#server_lines" #> lines).apply(

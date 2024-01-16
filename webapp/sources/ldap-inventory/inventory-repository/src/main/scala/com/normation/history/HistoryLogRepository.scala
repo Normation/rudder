@@ -20,7 +20,7 @@
 
 package com.normation.history
 
-import com.normation.errors._
+import com.normation.errors.*
 import org.joda.time.DateTime
 
 trait WriteOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID, V, T]] {

@@ -4,16 +4,17 @@ import com.normation.errors.EitherToIoResult
 import com.normation.errors.IOResult
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonResponseObjects.JRRuleNodesDirectives
-import com.normation.rudder.apidata.implicits._
+import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.rest.{RuleInternalApi => API}
+import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.implicits._
+import com.normation.rudder.rest.RuleInternalApi as API
+import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rest.lift.DefaultParams
 import com.normation.rudder.rest.lift.LiftApiModule
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
@@ -22,14 +23,14 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.zio.currentTimeMillis
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import zio.syntax._
+import zio.syntax.*
 
 class RulesInternalApi(
     restExtractorService:   RestExtractorService,
     ruleInternalApiService: RuleInternalApiService
 ) extends LiftApiModuleProvider[API] {
 
-  def schemas = API
+  def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => {
@@ -40,7 +41,7 @@ class RulesInternalApi(
   }
 
   object GetRuleNodesAndDirectives extends LiftApiModuleString {
-    val schema = API.GetRuleNodesAndDirectives
+    val schema: API.GetRuleNodesAndDirectives.type = API.GetRuleNodesAndDirectives
 
     def process(
         version:    ApiVersion,

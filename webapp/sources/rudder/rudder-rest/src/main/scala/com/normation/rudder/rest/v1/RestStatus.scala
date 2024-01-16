@@ -37,8 +37,8 @@
 
 package com.normation.rudder.rest.v1
 
-import net.liftweb.http._
-import net.liftweb.http.rest._
+import net.liftweb.http.*
+import net.liftweb.http.rest.*
 
 /**
  * A rest api that handle url /api/status

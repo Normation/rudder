@@ -36,34 +36,34 @@
 
 package com.normation.rudder.services.queries
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.NamedZioLogger
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.errors.RudderError
-import com.normation.inventory.domain._
-import com.normation.inventory.ldap.core._
-import com.normation.inventory.ldap.core.LDAPConstants._
-import com.normation.ldap.sdk._
-import com.normation.ldap.sdk.BuildFilter._
-import com.normation.ldap.sdk.LDAPIOResult._
-import com.normation.ldap.sdk.syntax._
-import com.normation.rudder.domain._
+import com.normation.inventory.domain.*
+import com.normation.inventory.ldap.core.*
+import com.normation.inventory.ldap.core.LDAPConstants.*
+import com.normation.ldap.sdk.*
+import com.normation.ldap.sdk.BuildFilter.*
+import com.normation.ldap.sdk.LDAPIOResult.*
+import com.normation.ldap.sdk.syntax.*
+import com.normation.rudder.domain.*
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.queries._
+import com.normation.rudder.domain.queries.*
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.NodeInfoServiceCached
 import com.normation.zio.currentTimeMillis
-import com.unboundid.ldap.sdk.{LDAPConnection => _, SearchScope => _, _}
+import com.unboundid.ldap.sdk.{LDAPConnection as _, SearchScope as _, *}
 import com.unboundid.ldap.sdk.DereferencePolicy.NEVER
 import java.util.regex.Pattern
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.util.Helpers
 import org.slf4j
 import org.slf4j.LoggerFactory
-import zio.{System => _, _}
-import zio.syntax._
+import zio.{System as _, *}
+import zio.syntax.*
 
 /*
  * We have two type of filters:
@@ -354,7 +354,7 @@ class InternalLDAPQueryProcessor(
     limits: RequestLimits = DefaultRequestLimits
 ) {
 
-  import ditQueryData._
+  import ditQueryData.*
   val logPure = InternalLDAPQueryProcessorLoggerPure
 
   /**
@@ -496,20 +496,20 @@ class InternalLDAPQueryProcessor(
                 Some(
                   NOT(HAS(A_OC))
                 ) // means that we don't have any ldap filter, only extended one, so select no nodes, see #19538
-              } else Some(OR((filterSeqSet.foldLeft(ldapFilters)(_ union _)).toSeq: _*))
+              } else Some(OR((filterSeqSet.foldLeft(ldapFilters)(_ union _)).toSeq*))
             case And => // if returnFilter is None, just and other filter, else add it. TODO : may it be empty ?
               val seqFilter = ldapFilters.toSeq ++ filterSeqSet.flatMap(s => {
                 s.size match {
                   case n if n < 1 => None
                   case 1          => Some(s.head)
-                  case _          => Some(OR(s.toSeq: _*))
+                  case _          => Some(OR(s.toSeq*))
                 }
               })
 
               seqFilter.size match {
                 case x if x < 1 => None
                 case 1          => Some(seqFilter.head)
-                case _          => Some(AND(seqFilter: _*))
+                case _          => Some(AND(seqFilter*))
               }
           }
           (finalLdapFilter, specialFilters)
@@ -696,8 +696,8 @@ class InternalLDAPQueryProcessor(
                         case 1 => Some(ldapFilters.head)
                         case n =>
                           query.composition match {
-                            case And => Some(AND(ldapFilters.toSeq: _*))
-                            case Or  => Some(OR(ldapFilters.toSeq: _*))
+                            case And => Some(AND(ldapFilters.toSeq*))
+                            case Or  => Some(OR(ldapFilters.toSeq*))
                           }
                       }
 
@@ -790,7 +790,7 @@ class InternalLDAPQueryProcessor(
           limits.subRequestTimeLimit,
           false,
           finalFilter,
-          params._2.toSeq: _*
+          params._2.toSeq*
         )
       }
     }

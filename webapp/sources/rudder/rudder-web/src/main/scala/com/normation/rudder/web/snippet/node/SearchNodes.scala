@@ -38,7 +38,7 @@
 package com.normation.rudder.web.snippet.node
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
+import com.normation.box.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -50,7 +50,7 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.web.components.SearchNodeComponent
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.LocalSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.SHtml.ElemAttr.pairToBasic
@@ -58,7 +58,7 @@ import net.liftweb.http.StatefulSnippet
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JE.JsVar
 import net.liftweb.http.js.JsCmd
-import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js.JsCmds.*
 import scala.xml.Elem
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq

@@ -37,17 +37,17 @@
 
 package com.normation.rudder.rule.category
 
-import cats.implicits._
-import com.normation.errors._
+import cats.implicits.*
+import com.normation.errors.*
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.archives.RuleCategoryArchiveId
-import com.normation.rudder.repository.ldap._
+import com.normation.rudder.repository.ldap.*
 import com.unboundid.ldap.sdk.DN
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import zio._
+import zio.*
 
 trait ImportRuleCategoryLibrary {
 

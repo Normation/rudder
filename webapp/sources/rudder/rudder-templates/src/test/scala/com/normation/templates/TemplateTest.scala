@@ -37,9 +37,9 @@
 
 package com.normation.templates
 
-import com.normation.stringtemplate.language._
-import org.antlr.stringtemplate._
-import org.junit.Assert._
+import com.normation.stringtemplate.language.*
+import org.antlr.stringtemplate.*
+import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner

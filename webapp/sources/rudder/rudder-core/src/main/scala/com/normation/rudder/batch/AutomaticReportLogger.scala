@@ -37,7 +37,7 @@
 
 package com.normation.rudder.batch
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.AllReportLogger
 import com.normation.rudder.domain.logger.ScheduledJobLogger
@@ -51,9 +51,9 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.RudderPropertiesRepository
 import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.zio._
-import net.liftweb.actor._
-import net.liftweb.common._
+import com.normation.zio.*
+import net.liftweb.actor.*
+import net.liftweb.common.*
 
 /**
  * This object will be used as message for the non compliant reports logger
@@ -246,7 +246,7 @@ class AutomaticReportLogger(
       // don't blow the stack
       def maxTry(tried: Int): Unit = {
         propertyRepository.updateReportLoggerLastId(newId) match {
-          case f:  Full[_]  =>
+          case f:  Full[?]  =>
           // ok, nothing to do
           case eb: EmptyBox =>
             if (tried >= 5) {

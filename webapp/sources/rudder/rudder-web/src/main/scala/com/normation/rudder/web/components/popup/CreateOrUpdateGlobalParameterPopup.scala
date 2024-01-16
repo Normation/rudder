@@ -38,7 +38,7 @@ package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.GitVersion
-import com.normation.box._
+import com.normation.box.*
 import com.normation.errors.PureResult
 import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.rudder.domain.properties.AddGlobalParameterDiff
@@ -54,18 +54,19 @@ import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.users.CurrentUser
-import com.normation.rudder.web.model._
+import com.normation.rudder.web.model.*
 import com.typesafe.config.ConfigValue
 import com.typesafe.config.ConfigValueType
 import java.util.regex.Pattern
-import net.liftweb.common._
-import net.liftweb.http._
+import net.liftweb.common.*
+import net.liftweb.http.*
 import net.liftweb.http.DispatchSnippet
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.util.Helpers._
-import scala.xml._
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.util.FieldError
+import net.liftweb.util.Helpers.*
+import scala.xml.*
 
 class CreateOrUpdateGlobalParameterPopup(
     change:            GlobalParamChangeRequest,
@@ -116,7 +117,7 @@ class CreateOrUpdateGlobalParameterPopup(
   }
 
   private def parseValue(value: String, jsonRequired: Boolean): PureResult[ConfigValue] = {
-    import GenericProperty._
+    import GenericProperty.*
     for {
       // in case of string, we need to force parse as string
       v <- if (jsonRequired) GenericProperty.parseValue(value) else Right(value.toConfigValue)
@@ -260,7 +261,7 @@ class CreateOrUpdateGlobalParameterPopup(
         case _                           => super.inputField
       }) % ("style" -> "height:4em") % ("tabindex" -> "2")
       override def errorClassName = "col-lg-12 errors-container"
-      override def validations    = Nil
+      override def validations: List[String => List[FieldError]] = Nil
     }
   }
 
@@ -272,7 +273,7 @@ class CreateOrUpdateGlobalParameterPopup(
         case _                           => super.inputField
       }) % ("tabindex" -> "3")
       override def errorClassName = "col-lg-12 errors-container"
-      override def validations    = Nil
+      override def validations: List[String => List[FieldError]] = Nil
     }
   }
 
@@ -285,8 +286,8 @@ class CreateOrUpdateGlobalParameterPopup(
         case _                           => super.inputField
       }) % ("tabindex" -> "4"))
       override def errorClassName = "col-lg-12 errors-container"
-      override def validations    = Nil
-      override val helpAsHtml     = Full(
+      override def validations: List[String => List[FieldError]] = Nil
+      override val helpAsHtml:  Box[NodeSeq]                     = Full(
         <div class="text-muted small">Define inheritance behavior for the value with 3 chars: first for
       json object (m=merge, o=override), 2nd for array and 3rd for string (o=override, a=append, p=prepend). Default to 'moo'.</div>
       )
@@ -313,7 +314,7 @@ class CreateOrUpdateGlobalParameterPopup(
   val parameterOverridable = true
 
   private[this] val paramReasons = {
-    import com.normation.rudder.web.services.ReasonBehavior._
+    import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
       case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))

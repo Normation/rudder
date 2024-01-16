@@ -37,12 +37,12 @@
 
 package com.normation.rudder.repository.json
 
-import cats._
-import cats.implicits._
+import cats.*
+import cats.implicits.*
 import com.normation.rudder.domain.policies.JsonTagExtractor
-import com.normation.utils.Control._
-import net.liftweb.common._
-import net.liftweb.json._
+import com.normation.utils.Control.*
+import net.liftweb.common.*
+import net.liftweb.json.*
 
 trait JsonExtractorUtils[A[_]] {
 
@@ -171,15 +171,15 @@ object DataExtractor {
 
   object OptionnalJson extends DataExtractor[Option] {
     def monad = implicitly
-    def emptyValue[T](id: String):                  Box[Option[T]] = Full(None)
-    def getOrElse[T](value: Option[T], default: T): T              = value.getOrElse(default)
+    def emptyValue[T](id:   String): Box[Option[T]] = Full(None)
+    def getOrElse[T](value: Option[T], default: T): T = value.getOrElse(default)
   }
 
   type Id[X] = X
 
   object CompleteJson extends DataExtractor[Id] {
     def monad = implicitly
-    def emptyValue[T](id: String): Box[Id[T]] = Failure(s"parameter '${id}' cannot be empty")
+    def emptyValue[T](id:   String): Box[Id[T]] = Failure(s"parameter '${id}' cannot be empty")
     def getOrElse[T](value: T, default: T) = value
   }
 }

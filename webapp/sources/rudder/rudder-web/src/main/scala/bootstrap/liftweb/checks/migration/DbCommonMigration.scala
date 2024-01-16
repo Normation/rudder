@@ -1,7 +1,7 @@
 package bootstrap.liftweb.checks.migration
 
 import doobie.ConnectionIO
-import doobie.syntax.string._
+import doobie.syntax.string.*
 
 /**
  * Mixin that provides set of utils for SQL migration

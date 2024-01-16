@@ -37,12 +37,12 @@
 
 package com.normation.inventory.ldap.provisioning
 
-import com.normation.errors._
-import com.normation.inventory.domain._
+import com.normation.errors.*
+import com.normation.inventory.domain.*
 import com.normation.inventory.domain.Inventory
 import com.normation.inventory.ldap.core.InventoryMapper
-import com.normation.inventory.services.provisioning._
-import zio.syntax._
+import com.normation.inventory.services.provisioning.*
+import zio.syntax.*
 
 /**
  * Check OS Type.

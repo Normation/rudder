@@ -38,15 +38,15 @@
 package com.normation.rudder.services.system
 
 import com.normation.NamedZioLogger
-import com.normation.errors._
-import com.normation.rudder.hooks._
-import com.normation.zio._
+import com.normation.errors.*
+import com.normation.rudder.hooks.*
+import com.normation.zio.*
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
-import scala.jdk.CollectionConverters._
-import zio._
-import zio.syntax._
+import scala.jdk.CollectionConverters.*
+import zio.*
+import zio.syntax.*
 
 final case class DebugInfoScriptResult(
     serverName: String,

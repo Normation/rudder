@@ -37,15 +37,15 @@
 
 package com.normation.rudder.services.servers
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.errors.IOResult
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryDitService
-import com.normation.ldap.sdk._
+import com.normation.ldap.sdk.*
 import com.normation.rudder.domain.servers.Srv
-import net.liftweb.common._
-import zio._
+import net.liftweb.common.*
+import zio.*
 
 trait NodeSummaryService {
 
@@ -55,8 +55,8 @@ trait NodeSummaryService {
   def find(dit: InventoryDit, id: NodeId*): Box[Seq[Srv]]
 }
 
-import com.normation.inventory.ldap.core._
-import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.inventory.ldap.core.*
+import com.normation.rudder.domain.RudderLDAPConstants.*
 import org.joda.time.DateTime
 
 class NodeSummaryServiceImpl(
@@ -103,7 +103,7 @@ class NodeSummaryServiceImpl(
   override def find(dit: InventoryDit, ids: NodeId*): Box[Seq[Srv]] = {
     for {
       con        <- ldap
-      optEntries <- ZIO.foreach(ids)(id => con.get(dit.NODES.NODE.dn(id), Srv.ldapAttributes.toSeq: _*))
+      optEntries <- ZIO.foreach(ids)(id => con.get(dit.NODES.NODE.dn(id), Srv.ldapAttributes.toSeq*))
       srvs       <- ZIO.foreach(optEntries.flatten)(e => makeSrv(e))
     } yield {
       srvs

@@ -37,7 +37,7 @@
 
 package com.normation.plugins
 
-import net.liftweb.http._
+import net.liftweb.http.*
 import scala.reflect.ClassTag
 import scala.xml.NodeSeq
 

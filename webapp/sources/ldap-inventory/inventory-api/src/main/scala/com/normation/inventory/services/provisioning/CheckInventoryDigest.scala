@@ -36,8 +36,8 @@
 
 package com.normation.inventory.services.provisioning
 
-import com.normation.errors._
-import com.normation.inventory.domain.{PublicKey => AgentKey, _}
+import com.normation.errors.*
+import com.normation.inventory.domain.{PublicKey as AgentKey, *}
 import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
 import java.io.InputStream
 import java.security.PublicKey
@@ -45,8 +45,8 @@ import java.security.Signature
 import java.util.Properties
 import org.apache.commons.io.IOUtils
 import org.bouncycastle.util.encoders.Hex
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  * We are using a simple date structure that handle the digest file
@@ -83,7 +83,7 @@ class ParseInventoryDigestFileV1 extends ParseInventoryDigestFile {
 
     for {
       loaded <- ZIO.attempt {
-                  import scala.jdk.CollectionConverters._
+                  import scala.jdk.CollectionConverters.*
                   properties.load(is)
                   properties.asInstanceOf[java.util.Map[String, String]].asScala.toMap
                 } mapError { ex =>

@@ -38,8 +38,8 @@
 package com.normation.rudder.web.snippet.node
 
 import bootstrap.liftweb.RudderConfig
-import net.liftweb.common._
-import net.liftweb.http._
+import net.liftweb.common.*
+import net.liftweb.http.*
 import scala.xml.NodeSeq
 class Nodes extends StatefulSnippet with Loggable {
   val srvGrid = RudderConfig.srvGrid

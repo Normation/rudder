@@ -37,12 +37,12 @@
 
 package com.normation.rudder.apidata
 
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 import com.normation.rudder.domain.logger.ApiLogger
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.utils.DateFormaterService
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.*
+import net.liftweb.json.JsonDSL.*
 import org.joda.time.DateTime
 
 sealed trait NodeDetailLevel {
@@ -365,8 +365,8 @@ object NodeDetailLevel {
     }
 
     val softwareUpdate: FullInventory => JValue = {
-      import com.normation.inventory.domain.JsonSerializers.implicits._
-      import com.normation.json._
+      import com.normation.inventory.domain.JsonSerializers.implicits.*
+      import com.normation.json.*
       (inv: FullInventory) =>
         JArray(inv.node.softwareUpdates.flatMap { su =>
           su.toLiftJson match {

@@ -20,18 +20,18 @@
 
 package com.normation.ldap.sdk
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.ldap.ldif.DefaultLDIFFileLogger
 import com.normation.ldap.ldif.LDIFFileLogger
-import com.normation.ldap.sdk.LDAPIOResult._
-import com.normation.ldap.sdk.syntax._
+import com.normation.ldap.sdk.LDAPIOResult.*
+import com.normation.ldap.sdk.syntax.*
 import com.normation.zio.ZioRuntime
 import com.unboundid.ldap.sdk.LDAPConnection
 import com.unboundid.ldap.sdk.LDAPConnectionOptions
 import com.unboundid.ldap.sdk.LDAPConnectionPool
 import com.unboundid.ldap.sdk.LDAPException
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  * A LDAP connection manager.
@@ -106,7 +106,7 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] {
    * display in log message (for example).
    * Implementations: DO NOT provide sensitive information here.
    */
-  override def toString: String = toConnectionString
+  override def toString:  String = toConnectionString
   def toConnectionString: String
 
   /*
@@ -200,7 +200,7 @@ trait OneConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionProv
     } yield ())
   }
 
-  protected def getInternalConnection:                               LDAPIOResult[LDAP] = {
+  protected def getInternalConnection: LDAPIOResult[LDAP] = {
     semaphore.withPermit(for {
       c <- connection.get
       n <- (c match {
@@ -217,8 +217,8 @@ trait OneConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionProv
       n
     })
   }
-  override protected def releaseInternalConnection(con: LDAP):       UIO[Unit]          = ZIO.unit
-  override protected def releaseDefuncInternalConnection(con: LDAP): UIO[Unit]          = ZIO.unit
+  override protected def releaseInternalConnection(con: LDAP): UIO[Unit] = ZIO.unit
+  override protected def releaseDefuncInternalConnection(con: LDAP): UIO[Unit] = ZIO.unit
 }
 
 /**

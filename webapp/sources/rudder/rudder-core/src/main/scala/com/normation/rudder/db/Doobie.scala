@@ -38,31 +38,31 @@
 package com.normation.rudder.db
 
 import cats.Show
-import cats.data._
-import com.normation.box._
-import com.normation.errors._
+import cats.data.*
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports._
+import com.normation.rudder.domain.reports.*
 import com.normation.rudder.services.reports.RunAndConfigInfo
-import com.normation.zio._
-import doobie._
-import doobie.implicits.javasql._
-import doobie.postgres.implicits._
+import com.normation.zio.*
+import doobie.*
+import doobie.implicits.javasql.*
+import doobie.postgres.implicits.*
 import doobie.util.log.ExecFailure
 import doobie.util.log.ProcessingFailure
 import doobie.util.transactor
 import java.sql.SQLXML
 import javax.sql.DataSource
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.joda.time.DateTime
 import org.postgresql.util.PGobject
 import org.slf4j.LoggerFactory
 import scala.xml.Elem
 import scala.xml.XML
-import zio._
-import zio.interop.catz._
+import zio.*
+import zio.interop.catz.*
 import zio.interop.catz.implicits.rts
 import zio.json.JsonDecoder
 import zio.json.JsonEncoder
@@ -220,7 +220,7 @@ object Doobie {
    * Do not use that one for extraction, only to save NodeExpectedReports
    */
   implicit val SerializeNodeExpectedReportsWrite: Write[NodeExpectedReports] = {
-    import ExpectedReportsSerialisation._
+    import ExpectedReportsSerialisation.*
     Write[(NodeId, NodeConfigId, DateTime, Option[DateTime], String)].contramap(ner =>
       (ner.nodeId, ner.nodeConfigId, ner.beginDate, ner.endDate, ner.toCompactJson)
     )
@@ -231,7 +231,7 @@ object Doobie {
    * at each format update. We need to enforce that.
    */
   implicit val DeserializeNodeExpectedReportsRead: Read[Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]] = {
-    import ExpectedReportsSerialisation._
+    import ExpectedReportsSerialisation.*
     Read[(NodeId, NodeConfigId, DateTime, Option[DateTime], String)].map(tuple => {
       parseJsonNodeExpectedReports(tuple._5) match {
         case Full(x) =>
@@ -243,23 +243,23 @@ object Doobie {
   }
 
   implicit val CompliancePercentWrite: Write[CompliancePercent] = {
-    import ComplianceLevelSerialisation._
-    import net.liftweb.json._
+    import ComplianceLevelSerialisation.*
+    import net.liftweb.json.*
     Write[String].contramap(x => compactRender(x.toJson))
   }
 
   implicit val ComplianceRunInfoComposite: Write[(RunAndConfigInfo, RunComplianceInfo)] = {
-    import NodeStatusReportSerialization._
+    import NodeStatusReportSerialization.*
     Write[String].contramap(_.toCompactJson)
   }
 
   implicit val AggregatedStatusReportComposite: Write[AggregatedStatusReport] = {
-    import NodeStatusReportSerialization._
+    import NodeStatusReportSerialization.*
     Write[String].contramap(_.toCompactJson)
   }
 
   implicit val SetRuleNodeStatusReportComposite: Write[Set[RuleNodeStatusReport]] = {
-    import NodeStatusReportSerialization._
+    import NodeStatusReportSerialization.*
     Write[String].contramap(_.toCompactJson)
   }
 
@@ -288,7 +288,7 @@ package object json {
 
 trait JsonInstances {
 
-  import doobie.util._
+  import doobie.util.*
   import zio.json.DecoderOps
   import zio.json.EncoderOps
   import zio.json.ast.Json.Null

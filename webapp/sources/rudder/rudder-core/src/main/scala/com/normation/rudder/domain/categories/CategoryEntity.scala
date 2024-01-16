@@ -37,7 +37,7 @@
 
 package com.normation.rudder.domain.categories
 
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 
 /**
  * A category in the LDAP.

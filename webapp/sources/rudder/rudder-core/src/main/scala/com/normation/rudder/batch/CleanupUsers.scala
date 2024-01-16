@@ -39,13 +39,13 @@ package com.normation.rudder.batch
 
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
-import com.normation.rudder.users._
-import com.normation.utils.CronParser._
+import com.normation.rudder.users.*
+import com.normation.utils.CronParser.*
 import com.normation.utils.DateFormaterService
-import com.normation.zio._
+import com.normation.zio.*
 import cron4s.CronExpr
 import org.joda.time.DateTime
-import zio._
+import zio.*
 
 /**
  * A scheduler which runs user accounts and user sessions clean-up:

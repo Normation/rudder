@@ -50,8 +50,8 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.properties.GlobalParameter
-import com.normation.rudder.domain.workflows._
-import net.liftweb.common._
+import com.normation.rudder.domain.workflows.*
+import net.liftweb.common.*
 
 case object WorkflowUpdate
 

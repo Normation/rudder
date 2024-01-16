@@ -42,12 +42,12 @@ import com.normation.rudder.rest.v1.RestStatus
 import java.io.File
 import java.nio.file.Files
 import java.util.zip.ZipFile
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.PlainTextResponse
 import net.liftweb.http.Req
-import net.liftweb.json.JsonAST._
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonAST.*
+import net.liftweb.json.JsonDSL.*
 import org.apache.commons.io.FileUtils
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
@@ -526,7 +526,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
           .haveSameFilesAs(restTestSetUp.mockGitRepo.configurationRepositoryRoot.toJava)
           .withFilter(filterGeneratedFile _)
       case Full(JsonResponsePrettify(json, _, _, code, _)) =>
-        import net.liftweb.http.js.JsExp._
+        import net.liftweb.http.js.JsExp.*
         (code must beEqualTo(500)) and
         (json.toJsCmd must beMatching(
           ".*Error when trying to get archive as a Zip: SystemError: Error when retrieving commit revision.*"

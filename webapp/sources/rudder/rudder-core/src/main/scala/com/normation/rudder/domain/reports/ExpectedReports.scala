@@ -39,7 +39,7 @@ package com.normation.rudder.domain.reports
 
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.policies.DirectiveId
@@ -60,7 +60,7 @@ import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import org.joda.time.DateTime
 import org.joda.time.Duration
-import zio.json._
+import zio.json.*
 import zio.json.internal.Write
 
 final case class NodeModeConfig(
@@ -389,7 +389,7 @@ object ExpectedReportsSerialisation {
         extends JsonComponentExpectedReport7_0                                  {
       def toJsonValueExpectedReport7_0: JsonValueExpectedReport7_0 =
         JsonValueExpectedReport7_0(componentName, values.zip(unexpanded).map { case (a, b) => JsonExpectedValueMatch7_0(a, b) })
-      def transform = toJsonValueExpectedReport7_0.transform
+      def transform:                    ValueExpectedReport        = toJsonValueExpectedReport7_0.transform
     }
 
     final case class JsonDirectiveExpecteReports7_0(
@@ -761,7 +761,7 @@ object ExpectedReportsSerialisation {
 
       // invariance is complicated
       def toRight(x: JsonExpectedValueId7_1): Either[List[String], JsonExpectedValueId7_1] = Right(x)
-      def toLeft(x: List[String]):            Either[List[String], JsonExpectedValueId7_1] = Left(x)
+      def toLeft(x:  List[String]):           Either[List[String], JsonExpectedValueId7_1] = Left(x)
 
       JsonDecoder[List[String]].map(toLeft).orElse(decodeJsonExpectedValueId7_1.map(toRight))
     }
@@ -817,7 +817,7 @@ object ExpectedReportsSerialisation {
          */
         value match {
           case ".modes(missing)" =>
-            import Version7_1._
+            import Version7_1.*
             s.fromJson[JsonNodeExpectedReports7_1] match {
               case Left(value)  => Failure(value)
               case Right(value) => Full(value.transform) // should not happen
@@ -835,14 +835,14 @@ object ExpectedReportsSerialisation {
    * We always serialise to 7.1 format
    */
   implicit class JNodeToJson(val n: JsonNodeExpectedReports) extends AnyVal {
-    import Version7_1._
+    import Version7_1.*
     private def toJson7_1 = n.transform
     def toJson            = toJson7_1.toJsonPretty
     def toCompactJson     = toJson7_1.toJson
   }
 
   implicit class NodeToJson(val n: NodeExpectedReports) extends AnyVal {
-    import Version7_1._
+    import Version7_1.*
     private def toJson7_1 = {
       JsonNodeExpectedReports(n.modes, n.ruleExpectedReports, n.overrides).transform
     }
@@ -853,7 +853,7 @@ object ExpectedReportsSerialisation {
 
 object NodeConfigIdSerializer {
 
-  import net.liftweb.json._
+  import net.liftweb.json.*
   import org.joda.time.format.ISODateTimeFormat
 
   // date are ISO format
@@ -868,7 +868,7 @@ object NodeConfigIdSerializer {
    */
 
   def serialize(ids: Vector[NodeConfigIdInfo]): String = {
-    import net.liftweb.json.JsonDSL._
+    import net.liftweb.json.JsonDSL.*
 
     // be careful, we can have several time the same id with different creation date
     // we want an array of { begin : id }

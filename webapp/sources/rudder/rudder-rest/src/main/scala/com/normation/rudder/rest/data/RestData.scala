@@ -62,9 +62,9 @@ import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.domain.workflows.ChangeRequestInfo
 import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.rule.category._
+import com.normation.rudder.rule.category.*
 import com.typesafe.config.ConfigValue
-import net.liftweb.common._
+import net.liftweb.common.*
 
 final case class APIChangeRequestInfo(
     name:        Option[String],

@@ -37,14 +37,14 @@
 
 package com.normation.rudder.services.eventlog
 
-import com.normation.box._
-import com.normation.eventlog._
+import com.normation.box.*
+import com.normation.eventlog.*
 import com.normation.rudder.domain.eventlog.ChangeRequestDiff
 import com.normation.rudder.domain.eventlog.ChangeRequestEventLog
 import com.normation.rudder.domain.eventlog.ChangeRequestLogsFilter
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.EventLogRepository
-import net.liftweb.common._
+import net.liftweb.common.*
 
 /**
  * Allow to query relevant information about change request

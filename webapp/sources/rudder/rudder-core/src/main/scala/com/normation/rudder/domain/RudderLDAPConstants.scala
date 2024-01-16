@@ -38,7 +38,7 @@
 package com.normation.rudder.domain
 
 import com.normation.cfclerk.domain.Variable
-import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.utils.Utils
 import net.liftweb.common.Loggable
@@ -284,7 +284,7 @@ object RudderLDAPConstants extends Loggable {
      */
     def toPartial[A, B](f: A => Option[B]) = new PartialFunction[A, B] {
       override def isDefinedAt(x: A) = f(x).isDefined
-      override def apply(x: A)       = f(x).get
+      override def apply(x:       A) = f(x).get
     }
 
     variables

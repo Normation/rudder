@@ -37,19 +37,19 @@
 
 package com.normation.inventory.provisioning.fusion
 
-import com.normation.errors._
-import com.normation.inventory.domain._
-import com.normation.inventory.domain.AgentType._
+import com.normation.errors.*
+import com.normation.inventory.domain.*
+import com.normation.inventory.domain.AgentType.*
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.ZioRuntime
 import java.io.File
-import net.liftweb.common._
-import net.liftweb.json.JsonAST._
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import net.liftweb.common.*
+import net.liftweb.json.JsonAST.*
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import scala.annotation.nowarn
-import zio._
+import zio.*
 
 /**
  * A simple test class to check that the demo data file is up to date
@@ -77,7 +77,7 @@ class TestInventoryParsing extends Specification with Loggable {
   }
 
   val parser = new FusionInventoryParser(new StringUuidGeneratorImpl)
-  def parseRun(inventory: String):       Inventory                      = ZioRuntime.unsafeRun(parser.parse(inventory))
+  def parseRun(inventory:       String): Inventory                      = ZioRuntime.unsafeRun(parser.parse(inventory))
   def parseRunEither(inventory: String): Either[RudderError, Inventory] = ZioRuntime.unsafeRun(parser.parse(inventory).either)
 
   // we are testing some error etc, so make the standard output cleaner:

@@ -37,11 +37,11 @@
 
 package com.normation.rudder.domain.queries
 
-import com.normation.errors._
-import com.normation.inventory.ldap.core._
-import com.normation.inventory.ldap.core.LDAPConstants._
-import com.normation.ldap.sdk._
-import com.normation.ldap.sdk.BuildFilter._
+import com.normation.errors.*
+import com.normation.inventory.ldap.core.*
+import com.normation.inventory.ldap.core.LDAPConstants.*
+import com.normation.ldap.sdk.*
+import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_GROUP_UUID

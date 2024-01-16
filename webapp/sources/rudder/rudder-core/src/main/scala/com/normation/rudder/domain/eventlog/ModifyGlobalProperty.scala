@@ -1,15 +1,15 @@
 package com.normation.rudder.domain.eventlog
 
-import com.normation.eventlog._
+import com.normation.eventlog.*
 
 final case class ModifyGlobalProperty(
     eventType:    ModifyGlobalPropertyEventType,
     eventDetails: EventLogDetails
 ) extends EventLog {
-  final override val eventLogCategory = GlobalPropertyEventLogCategory
+  final override val eventLogCategory: EventLogCategory = GlobalPropertyEventLogCategory
 
-  override val cause = None
-  val propertyName   = eventType.propertyName
+  override val cause: Option[Int] = None
+  val propertyName = eventType.propertyName
 }
 
 final case class ModifyGlobalPropertyEventFilter(eventType: ModifyGlobalPropertyEventType) extends EventLogFilter {

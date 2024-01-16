@@ -40,8 +40,8 @@ package com.normation.rudder.users
 import com.normation.eventlog.EventActor
 import com.normation.utils.DateFormaterService
 import org.joda.time.DateTime
-import zio.json._
-import zio.json.ast._
+import zio.json.*
+import zio.json.ast.*
 
 /*
  * Base data structures about users and everything related to their authentication: user information, user session.

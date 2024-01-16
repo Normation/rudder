@@ -39,15 +39,15 @@ package com.normation.rudder.domain.properties
 
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.services.policies.ParameterEntry
-import com.typesafe.config._
+import com.typesafe.config.*
 import java.util.regex.Pattern
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.*
+import net.liftweb.json.JsonDSL.*
 
 /*
  * A property provider is the thing responsible for that property.
@@ -98,7 +98,7 @@ object InheritMode {
     final case object Override extends ObjectMode { override val value = 'o' }
     final case object Merge    extends ObjectMode { override val value = 'm' }
 
-    def all:            List[ObjectMode]   = ca.mrvisser.sealerate.values[ObjectMode].toList
+    def all: List[ObjectMode] = ca.mrvisser.sealerate.values[ObjectMode].toList
     def parse(c: Char): Option[ObjectMode] = all.find(c == _.value)
   }
   sealed trait ArrayMode       { def value: Char }
@@ -107,7 +107,7 @@ object InheritMode {
     final case object Append   extends ArrayMode { override val value = 'a' }
     final case object Prepend  extends ArrayMode { override val value = 'p' }
 
-    def all:            List[ArrayMode]   = ca.mrvisser.sealerate.values[ArrayMode].toList
+    def all: List[ArrayMode] = ca.mrvisser.sealerate.values[ArrayMode].toList
     def parse(c: Char): Option[ArrayMode] = all.find(c == _.value)
   }
   sealed trait StringMode      { def value: Char }
@@ -116,7 +116,7 @@ object InheritMode {
     final case object Append   extends StringMode { override val value = 'a' }
     final case object Prepend  extends StringMode { override val value = 'p' }
 
-    def all:            List[StringMode]   = ca.mrvisser.sealerate.values[StringMode].toList
+    def all: List[StringMode] = ca.mrvisser.sealerate.values[StringMode].toList
     def parse(c: Char): Option[StringMode] = all.find(c == _.value)
   }
 
@@ -163,8 +163,8 @@ final case class PatchProperty(
  * Provider, if not provided will return None
  * This trait provides update methods for generic processing (since we don't have case class compiler support).
  */
-sealed trait GenericProperty[P <: GenericProperty[_]] {
-  import GenericProperty._
+sealed trait GenericProperty[P <: GenericProperty[?]] {
+  import GenericProperty.*
 
   def config: Config
   def fromConfig(v: Config): P
@@ -194,13 +194,13 @@ sealed trait GenericProperty[P <: GenericProperty[_]] {
     GenericProperty.getMode(config)
   }
 
-  final def withName(name: String):            P      = patch(PatchProperty(name = Some(name)))
-  final def withValue(value: ConfigValue):     P      = patch(PatchProperty(value = Some(value)))
-  final def withValue(value: String):          P      = patch(PatchProperty(value = Some(value.toConfigValue)))
-  final def withProvider(p: PropertyProvider): P      = patch(PatchProperty(provider = Some(p)))
-  final def withDescription(d: String):        P      = patch(PatchProperty(description = Some(d)))
-  final def withMode(m: InheritMode):          P      = patch(PatchProperty(inheritMode = Some(m)))
-  final def patch(p: PatchProperty):           P      = {
+  final def withName(name:     String):           P = patch(PatchProperty(name = Some(name)))
+  final def withValue(value:   ConfigValue):      P = patch(PatchProperty(value = Some(value)))
+  final def withValue(value:   String):           P = patch(PatchProperty(value = Some(value.toConfigValue)))
+  final def withProvider(p:    PropertyProvider): P = patch(PatchProperty(provider = Some(p)))
+  final def withDescription(d: String):           P = patch(PatchProperty(description = Some(d)))
+  final def withMode(m:        InheritMode):      P = patch(PatchProperty(inheritMode = Some(m)))
+  final def patch(p: PatchProperty): P      = {
     def patchOne[A](key: String, update: Option[A], toValue: A => ConfigValue)(c: Config): Config = {
       update match {
         case None    => c
@@ -218,7 +218,7 @@ sealed trait GenericProperty[P <: GenericProperty[_]] {
       ).foldLeft(config) { case (c, patchStep) => patchStep(c) }
     )
   }
-  override def toString:                       String =
+  override def toString:             String =
     this.getClass.getSimpleName + "(" + this.config.root.render(ConfigRenderOptions.defaults()) + ")"
 }
 
@@ -316,12 +316,12 @@ object GenericProperty {
    * Merge two json values, overriding or merging recursively
    */
   def mergeValues(oldValue: ConfigValue, newValue: ConfigValue, mode: InheritMode): ConfigValue = {
-    import ConfigValueType._
-    import InheritMode._
+    import ConfigValueType.*
+    import InheritMode.*
 
-    import java.util.{List => juList}
-    import java.util.{Map => juMap}
-    import scala.jdk.CollectionConverters._
+    import java.util.List as juList
+    import java.util.Map as juMap
+    import scala.jdk.CollectionConverters.*
 
     def stringPlus(a: ConfigValue, b: ConfigValue):                 ConfigValue = {
       ConfigValueFactory.fromAnyRef(a.unwrapped().asInstanceOf[String] + b.unwrapped().asInstanceOf[String])
@@ -485,7 +485,7 @@ object GenericProperty {
    * Parse a JSON JValue to ConfigValue. It always succeeds.
    */
   def fromJsonValue(value: JValue):          ConfigValue = {
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
     value match {
       case JNothing | JNull => ConfigValueFactory.fromAnyRef("")
       case JString(s)       => ConfigValueFactory.fromAnyRef(s)
@@ -501,9 +501,9 @@ object GenericProperty {
     }
   }
   def fromZioJson(value: zio.json.ast.Json): ConfigValue = {
-    import zio.json.ast.Json._
+    import zio.json.ast.Json.*
 
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
     value match {
       case Null     => ConfigValueFactory.fromAnyRef("")
       case Str(s)   =>
@@ -606,7 +606,7 @@ object GenericProperty {
     }
   }
 
-  implicit class RenderProperty(val p: GenericProperty[_]) extends AnyVal {
+  implicit class RenderProperty(val p: GenericProperty[?]) extends AnyVal {
     // get the json string for the property, what you likely want
     def valueAsString:      String = GenericProperty.serializeToJson(p.value)
     // get the Hocon string, with comments if any
@@ -631,18 +631,18 @@ object GenericProperty {
     def toConfigValue: ConfigValue = ConfigValueFactory.fromAnyRef(x.value)
   }
   implicit class IterableToConfig[T](val x: Iterable[T])      extends AnyVal {
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
     def toConfigValue: ConfigValue = ConfigValueFactory.fromIterable(x.asJava)
   }
   implicit class MapToConfig[T](val x: Map[String, T])        extends AnyVal {
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
     def toConfigValue: ConfigValue = ConfigValueFactory.fromMap(x.asJava)
   }
 
   /*
    * Implicit class to render properties to JSON
    */
-  implicit class PropertyToJson(val x: GenericProperty[_]) extends AnyVal {
+  implicit class PropertyToJson(val x: GenericProperty[?]) extends AnyVal {
     def toJson: JObject = (
       ("name"            -> x.name)
         ~ ("value"       -> parse(x.value.render(ConfigRenderOptions.concise())))
@@ -653,8 +653,8 @@ object GenericProperty {
     def toData: String = x.config.root().render(ConfigRenderOptions.concise().setComments(true))
   }
 
-  implicit class JsonProperties(val props: Seq[GenericProperty[_]]) extends AnyVal {
-    implicit def formats = DefaultFormats
+  implicit class JsonProperties(val props: Seq[GenericProperty[?]]) extends AnyVal {
+    implicit def formats: DefaultFormats.type = DefaultFormats
 
     def toApiJson: JArray = {
       JArray(props.map(_.toJson).toList)
@@ -746,7 +746,7 @@ object GroupProperty {
 }
 
 object CompareProperties {
-  import cats.implicits._
+  import cats.implicits.*
 
   /**
    * Update a set of properties with the map:
@@ -850,8 +850,8 @@ object ParentProperty {
  */
 object JsonPropertySerialisation {
 
-  import net.liftweb.json._
-  import net.liftweb.json.JsonDSL._
+  import net.liftweb.json.*
+  import net.liftweb.json.JsonDSL.*
 
   implicit class ParentPropertyToJSon(val p: ParentProperty) extends AnyVal {
     def toJson: JValue = {
@@ -874,7 +874,7 @@ object JsonPropertySerialisation {
   }
 
   implicit class JsonNodePropertyHierarchy(val prop: NodePropertyHierarchy) extends AnyVal {
-    implicit def formats = DefaultFormats
+    implicit def formats: DefaultFormats.type = DefaultFormats
 
     private def buildHierarchy(displayParents: List[ParentProperty] => JValue): JObject = {
       val (parents, origval) = prop.hierarchy match {
@@ -908,7 +908,7 @@ object JsonPropertySerialisation {
   }
 
   implicit class JsonNodePropertiesHierarchy(val props: List[NodePropertyHierarchy]) extends AnyVal {
-    implicit def formats = DefaultFormats
+    implicit def formats: DefaultFormats.type = DefaultFormats
 
     def toApiJson: JArray = {
       JArray(props.sortBy(_.prop.name).map(p => p.toApiJson))
@@ -928,7 +928,7 @@ object JsonPropertySerialisation {
   }
 
   implicit class JsonParameters(val parameters: Set[ParameterEntry]) extends AnyVal {
-    implicit def formats = DefaultFormats
+    implicit def formats: DefaultFormats.type = DefaultFormats
 
     def dataJson(x: ParameterEntry): JField = {
       JField(x.parameterName, x.escapedValue)

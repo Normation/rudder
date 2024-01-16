@@ -38,7 +38,7 @@
 package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
@@ -47,15 +47,15 @@ import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBTextAreaField
-import com.normation.rudder.web.services.ReasonBehavior._
-import net.liftweb.common._
+import com.normation.rudder.web.services.ReasonBehavior.*
+import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.SHtml
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.util.Helpers._
-import scala.xml._
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.util.Helpers.*
+import scala.xml.*
 
 class GiveReasonPopup(
     onSuccessCallback:        (ActiveTechniqueId) => JsCmd = { (ActiveTechniqueId) => Noop },

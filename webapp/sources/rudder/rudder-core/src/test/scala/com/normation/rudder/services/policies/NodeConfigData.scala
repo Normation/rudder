@@ -115,7 +115,7 @@ import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.git.SimpleGitRevisionProvider
-import com.normation.rudder.reports._
+import com.normation.rudder.reports.*
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
@@ -127,7 +127,7 @@ import com.normation.rudder.services.servers.PolicyServers
 import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 import com.normation.utils.StringUuidGeneratorImpl
-import com.normation.zio._
+import com.normation.zio.*
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.FileSystemNotFoundException
@@ -142,7 +142,7 @@ import net.liftweb.common.Full
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
 import scala.collection.SortedMap
-import zio.syntax._
+import zio.syntax.*
 
 /*
  * This file is a container for testing data that are a little boring to
@@ -188,7 +188,7 @@ object NodeConfigData {
     val uri  = this.getClass.getClassLoader.getResource(name).toURI
     val path = uri.getScheme match {
       case "jar"  =>
-        import scala.jdk.CollectionConverters._
+        import scala.jdk.CollectionConverters.*
         // yes, pur side effecting
         try {
           FileSystems.getFileSystem(uri)
@@ -567,18 +567,18 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
    *                         Some directives
    *   ************************************************************************
    */
-  implicit def toATID(s: String):           ActiveTechniqueId   = ActiveTechniqueId(s)
-  implicit def toTV(s: String):             TechniqueVersion    = TechniqueVersionHelper(s)
-  implicit def toTN(s: String):             TechniqueName       = TechniqueName(s)
-  implicit def toTID(id: (String, String)): TechniqueId         = TechniqueId(id._1, id._2)
-  implicit def toDID(id: String):           DirectiveId         = DirectiveId(DirectiveUid(id), GitVersion.DEFAULT_REV)
-  implicit def toRID(id: String):           RuleId              = RuleId(RuleUid(id))
-  implicit def toRCID(id: String):          RuleCategoryId      = RuleCategoryId(id)
-  val t1:                                   Technique           = Technique(("t1", "1.0"), "t1", "t1", Nil, TrackerVariableSpec(None, None), SectionSpec("root"), None)
-  val d1:                                   Directive           = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1", None)
-  val d2:                                   Directive           = Directive("d2", "1.0", Map("foo2" -> Seq("bar2")), "d2", "d2", Some(PolicyMode.Enforce))
-  val d3:                                   Directive           = Directive("d3", "1.0", Map("foo3" -> Seq("bar3")), "d3", "d3", Some(PolicyMode.Audit))
-  val fat1:                                 FullActiveTechnique = FullActiveTechnique(
+  implicit def toATID(s:  String):           ActiveTechniqueId = ActiveTechniqueId(s)
+  implicit def toTV(s:    String):           TechniqueVersion  = TechniqueVersionHelper(s)
+  implicit def toTN(s:    String):           TechniqueName     = TechniqueName(s)
+  implicit def toTID(id:  (String, String)): TechniqueId       = TechniqueId(id._1, id._2)
+  implicit def toDID(id:  String):           DirectiveId       = DirectiveId(DirectiveUid(id), GitVersion.DEFAULT_REV)
+  implicit def toRID(id:  String):           RuleId            = RuleId(RuleUid(id))
+  implicit def toRCID(id: String):           RuleCategoryId    = RuleCategoryId(id)
+  val t1:   Technique           = Technique(("t1", "1.0"), "t1", "t1", Nil, TrackerVariableSpec(None, None), SectionSpec("root"), None)
+  val d1:   Directive           = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1", None)
+  val d2:   Directive           = Directive("d2", "1.0", Map("foo2" -> Seq("bar2")), "d2", "d2", Some(PolicyMode.Enforce))
+  val d3:   Directive           = Directive("d3", "1.0", Map("foo3" -> Seq("bar3")), "d3", "d3", Some(PolicyMode.Audit))
+  val fat1: FullActiveTechnique = FullActiveTechnique(
     "d1",
     "t1",
     SortedMap(toTV("1.0") -> DateTime.parse("2016-01-01T12:00:00.000+00:00")),
@@ -729,13 +729,13 @@ class TestNodeConfiguration(
       ).succeed
     }
 
-    override def savePolicyServers(policyServers: PolicyServers):  IOResult[PolicyServers] = ???
+    override def savePolicyServers(policyServers:         PolicyServers): IOResult[PolicyServers] = ???
     override def updatePolicyServers(
         commands: List[PolicyServersUpdateCommand],
         modId:    ModificationId,
         actor:    EventActor
     ): IOResult[PolicyServers] = ???
-    override def deleteRelaySystemObjects(policyServerId: NodeId): IOResult[Unit]          = ???
+    override def deleteRelaySystemObjects(policyServerId: NodeId):        IOResult[Unit]          = ???
   }
   val t7:                     Long                          = System.currentTimeMillis()
   NodeConfigData.logger.trace(s"Policy Server Management: ${t7 - t6} ms")

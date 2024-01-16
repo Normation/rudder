@@ -38,11 +38,11 @@
 package com.normation.rudder.services.policies.nodeconfig
 
 import better.files.File
-import cats.implicits._
-import com.normation.box._
+import cats.implicits.*
+import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.Variable
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPEntry
@@ -57,18 +57,18 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.PolicyId
-import com.normation.zio._
+import com.normation.zio.*
 import java.nio.charset.StandardCharsets
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.*
+import net.liftweb.json.JsonDSL.*
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.util.control.NonFatal
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 final case class PolicyHash(
     draftId:    PolicyId,
@@ -516,7 +516,7 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
   }
 
   private def nonAtomicWrite(hashes: NodeConfigurationHashes): IOResult[Unit] = {
-    import java.nio.file.StandardOpenOption._
+    import java.nio.file.StandardOpenOption.*
     IOResult.attempt(
       hashesFile.writeText(NodeConfigurationHashes.toJson(hashes))(Seq(WRITE, CREATE, TRUNCATE_EXISTING), StandardCharsets.UTF_8)
     )
@@ -628,7 +628,7 @@ class LdapNodeConfigurationHashRepository(
   private[this] def toLdap(nodeConfigs: Set[NodeConfigurationHash]): LDAPEntry = {
     val caches = nodeConfigs.map(x => NodeConfigurationHash.toJson(x))
     val entry  = rudderDit.NODE_CONFIGS.model
-    entry.resetValuesTo(A_NODE_CONFIG, caches.toSeq: _*)
+    entry.resetValuesTo(A_NODE_CONFIG, caches.toSeq*)
     entry
   }
 

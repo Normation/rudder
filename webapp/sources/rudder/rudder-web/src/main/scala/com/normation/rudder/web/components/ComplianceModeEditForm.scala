@@ -42,21 +42,21 @@ import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.NodeComplianceMode
 import com.normation.rudder.web.ChooseTemplate
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
 import net.liftweb.http.SHtml
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.json.JsonAST._
-import net.liftweb.util.Helpers._
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.json.JsonAST.*
+import net.liftweb.util.Helpers.*
 import scala.xml.NodeSeq
 
 /**
  * Component to display and configure the compliance Mode (and it's heartbeat)
  */
 sealed trait ParseComplianceMode[T <: ComplianceMode] {
-  def isNodePage: Boolean
+  def isNodePage:                       Boolean
   def parseOverride(jsonMode: JObject): Box[Boolean] = {
     jsonMode.values.get("overrides") match {
       case Some(JBool(bool))             => Full(bool)
@@ -136,7 +136,7 @@ class ComplianceModeEditForm[T <: ComplianceMode](
     saveConfigureCallback:    Function1[T, Box[Unit]],
     startNewPolicyGeneration: () => Unit,
     getGlobalConfiguration:   Box[GlobalComplianceMode]
-)(implicit p:                 ParseComplianceMode[T])
+)(implicit p: ParseComplianceMode[T])
     extends DispatchSnippet with Loggable {
 
   // Html template
@@ -180,7 +180,7 @@ class ComplianceModeEditForm[T <: ComplianceMode](
 
   def toJs(mode: ComplianceMode): String = {
     def json: JValue = {
-      import net.liftweb.json.JsonDSL._
+      import net.liftweb.json.JsonDSL.*
       val baseMode = {
         ("name"            -> mode.name) ~
         ("heartbeatPeriod" -> mode.heartbeatPeriod)

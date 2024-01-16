@@ -39,10 +39,10 @@ package com.normation.rudder.batch
 
 import com.normation.inventory.ldap.core.SoftwareService
 import com.normation.rudder.domain.logger.ScheduledJobLogger
-import com.normation.zio._
+import com.normation.zio.*
 import scala.annotation.nowarn
 import scala.concurrent.duration.FiniteDuration
-import zio._
+import zio.*
 
 /**
  * A naive scheduler which checks every updateInterval if software needs to be deleted
@@ -63,7 +63,7 @@ class PurgeUnreferencedSoftwares(
       s"[purge unreferenced software] starting batch that purge unreferenced softwares, every ${updateInterval.toString()}"
     )
     val prog = softwareService.deleteUnreferencedSoftware()
-    import zio.Duration.{fromScala => zduration}
+    import zio.Duration.fromScala as zduration
     ZioRuntime.unsafeRun(
       prog.delay(1.hour).repeat(Schedule.spaced(zduration(updateInterval))).forkDaemon
     ): @nowarn(

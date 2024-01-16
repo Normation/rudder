@@ -51,7 +51,7 @@ import com.normation.cfclerk.domain.TrackerVariable
 import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.domain.VariableSpec
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
@@ -179,19 +179,19 @@ object InterpolationContext {
   def apply(
       nodeInfo:         NodeInfo,
       policyServerInfo: NodeInfo,
-      globalPolicyMode: GlobalPolicyMode, // environment variable for that server
+      globalPolicyMode: GlobalPolicyMode,         // environment variable for that server
       // must be a case insensitive Map !!!!
 
-      nodeContext: Map[String, Variable], // parameters for this node
+      nodeContext:      Map[String, Variable],    // parameters for this node
       // must be a case SENSITIVE Map !!!!
 
-      parameters: Map[String, ConfigValue], // the depth of the interpolation context evaluation
+      parameters:       Map[String, ConfigValue], // the depth of the interpolation context evaluation
       // used as a lazy, trivial, mostly broken way to detect cycle in interpretation
       // for ex: param a => param b => param c => ..... => param a
       // should not be evaluated
 
-      depth: Int = 0
-  ) = new InterpolationContext(nodeInfo, policyServerInfo, globalPolicyMode, TreeMap(nodeContext.toSeq: _*), parameters, depth)
+      depth:            Int = 0
+  ) = new InterpolationContext(nodeInfo, policyServerInfo, globalPolicyMode, TreeMap(nodeContext.toSeq*), parameters, depth)
 }
 
 final case class ParameterForConfiguration(

@@ -37,7 +37,7 @@
 
 package com.normation.rudder.domain.queries
 
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 
 final case class GroupCategoryUuid(val value: String) extends AnyVal with Uuid
 //  val attrName = A_GROUP_CATEGORY_UUID

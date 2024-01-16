@@ -37,16 +37,16 @@
 
 package com.normation.rudder.web.services
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueCategory
 import com.normation.cfclerk.domain.TechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
-import com.normation.rudder.repository._
-import net.liftweb.common._
+import com.normation.rudder.repository.*
+import net.liftweb.common.*
 
 /**
  * An utility service for Directive* trees.

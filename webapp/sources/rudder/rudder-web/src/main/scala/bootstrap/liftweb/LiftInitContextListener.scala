@@ -40,14 +40,14 @@ package bootstrap.liftweb
 import bootstrap.liftweb.RudderProperties.config
 import com.normation.errors.SystemError
 import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.zio._
+import com.normation.zio.*
 import com.typesafe.config.ConfigException
 import java.io.File
 import java.net.URL
 import javax.servlet.ServletContextEvent
-import net.liftweb.common._
-import org.springframework.core.io.{ClassPathResource => CPResource}
-import org.springframework.core.io.{FileSystemResource => FSResource}
+import net.liftweb.common.*
+import org.springframework.core.io.ClassPathResource as CPResource
+import org.springframework.core.io.FileSystemResource as FSResource
 import org.springframework.web.context.ContextLoaderListener
 import org.springframework.web.context.support.WebApplicationContextUtils
 

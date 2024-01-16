@@ -37,8 +37,8 @@
 
 package com.normation.rudder.services.policies
 
-import com.normation.cfclerk.domain._
-import com.normation.errors._
+import com.normation.cfclerk.domain.*
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.DirectiveId
@@ -47,9 +47,9 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.utils.Control.bestEffort
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.joda.time.DateTime
-import zio.syntax._
+import zio.syntax.*
 
 trait RuleValService {
   def buildRuleVal(

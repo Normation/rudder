@@ -37,7 +37,7 @@
 
 package com.normation.rudder.services.quicksearch
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RoLDAPConnection
@@ -45,7 +45,7 @@ import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.utils.Control._
+import com.normation.utils.Control.*
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -67,7 +67,7 @@ class FullQuickSearchService(implicit
     val nodeInfos:      NodeInfoService
 ) extends Loggable {
 
-  import QuickSearchService._
+  import QuickSearchService.*
 
   /**
    * Search in nodes, groups, directives, rules, parameters for the object
@@ -106,15 +106,15 @@ object QuickSearchService {
   }
 
   implicit class QSBackendImpl(b: QSBackend)(implicit
-      directiveRepo:              RoDirectiveRepository,
-      ldap:                       LDAPConnectionProvider[RoLDAPConnection],
-      inventoryDit:               InventoryDit,
-      nodeDit:                    NodeDit,
-      rudderDit:                  RudderDit,
-      nodeInfos:                  NodeInfoService
+      directiveRepo: RoDirectiveRepository,
+      ldap:          LDAPConnectionProvider[RoLDAPConnection],
+      inventoryDit:  InventoryDit,
+      nodeDit:       NodeDit,
+      rudderDit:     RudderDit,
+      nodeInfos:     NodeInfoService
   ) {
 
-    import QSBackend._
+    import QSBackend.*
 
     def search(query: Query): Box[Iterable[QuickSearchResult]] = b match {
       case LdapBackend      => QSLdapBackend.search(query)

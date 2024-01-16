@@ -38,23 +38,23 @@
 package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
-import com.normation.errors._
-import com.normation.rudder.domain.policies._
+import com.normation.box.*
+import com.normation.errors.*
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.reports.NodeChanges
 import com.normation.rudder.services.reports.ReportingServiceUtils
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.services.ChangeLine
 import com.normation.rudder.web.services.ComplianceData
-import com.normation.zio._
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.http.js.JE._
+import com.normation.zio.*
+import net.liftweb.common.*
+import net.liftweb.http.*
+import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmd
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.util.Helpers._
-import scala.xml._
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.util.Helpers.*
+import scala.xml.*
 
 object RuleCompliance {
   private def details: NodeSeq = ChooseTemplate(
@@ -84,7 +84,7 @@ class RuleCompliance(
   private[this] val getAllNodeInfos     = RudderConfig.nodeInfoService.getAll _
   private[this] val getGroups           = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
 
-  import RuleCompliance._
+  import RuleCompliance.*
 
   def tagsEditForm = new TagsEditForm(rule.tags, rule.id.serialize)
   def display: NodeSeq = {

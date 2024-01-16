@@ -37,13 +37,13 @@
 
 package com.normation.rudder.repository
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.SecurityToken
-import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.nodes.*
 
 /**
  * Node Repository

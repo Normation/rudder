@@ -37,21 +37,21 @@
 
 package com.normation.templates.cli
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.templates.FillTemplatesService
 import com.normation.templates.FillTemplateTimer
 import com.normation.templates.STVariable
-import com.normation.zio._
+import com.normation.zio.*
 import java.io.File
 import java.nio.charset.StandardCharsets
-import net.liftweb.common._
-import net.liftweb.json._
+import net.liftweb.common.*
+import net.liftweb.json.*
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import scala.collection.immutable.ArraySeq
 import scopt.OptionParser
-import zio.{System => _, _}
-import zio.syntax._
+import zio.{System as _, *}
+import zio.syntax.*
 
 /**
  * The configuration object for our CLI.
@@ -216,7 +216,7 @@ object TemplateCli {
    * inputExtension is replaced by outputExtension.
    */
   def fill(variables: Seq[STVariable], outDir: File, inputExtension: String, outputExtension: String, timer: FillTemplateTimer)(
-      template:       File
+      template: File
   ): IOResult[String] = {
     for {
       ok      <- if (template.getName.endsWith(inputExtension)) { ZIO.unit }
@@ -241,7 +241,7 @@ object TemplateCli {
    * Same as fill, but print everything to stdout
    */
   def fillToStdout(variables: Seq[STVariable], inputExtension: String, timer: FillTemplateTimer)(
-      template:               File
+      template: File
   ): IOResult[String] = {
     for {
       ok      <- if (template.getName.endsWith(inputExtension)) { ZIO.unit }

@@ -39,7 +39,7 @@ package com.normation.rudder.inventory
 
 import better.files.File
 import com.normation.box.IOManaged
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.Chained
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.CertifiedKey
@@ -57,18 +57,18 @@ import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.PureHooksLogger
 import com.normation.rudder.hooks.RunHooks
 import com.normation.utils.DateFormaterService
-import com.normation.zio._
+import com.normation.zio.*
 import com.normation.zio.ZioRuntime
 import com.unboundid.ldif.LDIFChangeRecord
 import java.io.InputStream
 import java.nio.file.NoSuchFileException
-import java.security.{PublicKey => JavaSecPubKey}
+import java.security.PublicKey as JavaSecPubKey
 import org.joda.time.DateTime
 import org.joda.time.Duration
 import org.joda.time.format.PeriodFormat
 import scala.annotation.nowarn
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /*
  * The interface between whatever event and the actual saving process.
@@ -329,11 +329,11 @@ class InventoryFailedHook(
     HOOKS_D:               String,
     HOOKS_IGNORE_SUFFIXES: List[String]
 ) {
-  import scala.jdk.CollectionConverters._
+  import scala.jdk.CollectionConverters.*
 
   def runHooks(file: File): UIO[Unit] = {
     (for {
-      systemEnv <- IOResult.attempt(java.lang.System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq: _*))
+      systemEnv <- IOResult.attempt(java.lang.System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq*))
       hooks     <- RunHooks.getHooksPure(HOOKS_D + "/node-inventory-received-failed", HOOKS_IGNORE_SUFFIXES)
       _         <- for {
                      timeHooks0 <- currentTimeMillis
@@ -398,7 +398,7 @@ class InventoryMover(
    *  - nodeXXX-uuid.ocs.sign
    */
   def writeErrorLogFile(failedInventoryPath: File, result: InventoryProcessStatus): UIO[Unit] = {
-    import com.normation.rudder.inventory.StatusLog._
+    import com.normation.rudder.inventory.StatusLog.*
     val date       = DateFormaterService.serialize(DateTime.now())
     val rejectPath = failedInventoryPath.pathAsString + s".reject-${date}.log"
 

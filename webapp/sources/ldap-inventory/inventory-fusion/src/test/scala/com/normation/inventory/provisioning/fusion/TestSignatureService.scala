@@ -36,22 +36,22 @@
 
 package com.normation.inventory.provisioning.fusion
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.Inventory
 import com.normation.inventory.domain.InventoryError
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.SecurityToken
-import com.normation.inventory.services.provisioning._
+import com.normation.inventory.services.provisioning.*
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.ZioRuntime
 import java.io.InputStream
 import java.security.Security
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
-import zio._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
+import zio.*
 
 @RunWith(classOf[JUnitRunner])
 class TestSignatureService extends Specification with Loggable {
