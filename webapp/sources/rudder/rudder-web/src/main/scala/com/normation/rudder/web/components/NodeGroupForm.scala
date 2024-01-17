@@ -212,7 +212,7 @@ class NodeGroupForm(
                      |  }, 400);
                      |});
                      |$$("#complianceLinkTab").on("click", function (){
-                     |  app.ports.loadCompliance.send("");
+                     |  app.ports.loadCompliance.send(null);
                      |});
                      |""".stripMargin)
           )

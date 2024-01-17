@@ -3,13 +3,7 @@ port module Groupcompliance exposing (..)
 import Browser
 import Browser.Navigation as Nav
 import Dict
-import Dict.Extra
 import Http exposing (..)
-import Result
-import String exposing (replace)
-import File
-import File.Download
-import File.Select
 
 import GroupCompliance.ApiCalls exposing (..)
 import GroupCompliance.DataTypes exposing (..)
@@ -20,7 +14,7 @@ import GroupCompliance.View exposing (view)
 -- PORTS / SUBSCRIPTIONS
 port errorNotification   : String -> Cmd msg
 port initTooltips        : String -> Cmd msg
-port loadCompliance      : (String -> msg) -> Sub msg
+port loadCompliance      : (() -> msg) -> Sub msg
 
 
 subscriptions : Model -> Sub Msg
@@ -136,16 +130,15 @@ update msg model =
     LoadCompliance complianceScope ->
       let
         ui = model.ui
-        shouldReload = ui.loaded && complianceScope == model.complianceScope
+        shouldReload = not ui.loaded || complianceScope /= model.complianceScope
         getCompliance = case complianceScope of
           GlobalCompliance -> getGlobalGroupCompliance
           TargetedCompliance -> getTargetedGroupCompliance
-        actions = if not shouldReload then
-          Cmd.none
+        actions =
+          if shouldReload then 
+            Cmd.batch [ getCompliance model ]
           else
-          Cmd.batch
-          [ getCompliance model
-          ]
+            Cmd.none
         newModel = {model | complianceScope = complianceScope, ui = {ui | loading = shouldReload, loaded = True}}
       in
       ( newModel
