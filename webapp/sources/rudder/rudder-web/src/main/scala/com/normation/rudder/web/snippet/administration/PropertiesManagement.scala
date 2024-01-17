@@ -252,7 +252,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     "#mandatoryTooltip *" #> {
       initMandatory.map { b: Boolean =>
         <span data-bs-toggle="tooltip" title="If this option is enabled, users will be forced to enter a change audit log. Empty messages will not be accepted.">
-            <span class="glyphicon glyphicon-info-sign info"></span>
+            <span class="fa fa-info-circle info"></span>
           </span>
       }.getOrElse(NodeSeq.Empty)
     } &
@@ -260,7 +260,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     "#explanationTooltip *" #> {
       initExplanation.map { s: String =>
         <span data-bs-toggle="tooltip" title="Content of the text displayed to prompt the user to enter a change audit log.">
-            <span class="glyphicon glyphicon-info-sign info"></span>
+            <span class="fa fa-info-circle info"></span>
           </span>
       }.getOrElse(NodeSeq.Empty)
     } &
@@ -315,7 +315,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       initDenyBadClocks match {
         case Full(_) =>
           <span data-bs-toggle="tooltip" title="By default, copying configuration policy to nodes requires system clocks to be synchronized to within an hour. Disabling this will bypass this check, but may open a window for replay attacks.">
-              <span class="glyphicon glyphicon-info-sign info"></span>
+              <span class="fa fa-info-circle info"></span>
             </span>
 
         case _ => NodeSeq.Empty
@@ -437,7 +437,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           case Full(_) =>
             <span data-bs-toggle="tooltip" title="If this is checked, when rsync synchronization method is used, folder /var/rudder/share will be synchronized using rsync.
               If this is not checked, you'll have to synchronize yourself this folder">
-              <span><span class="glyphicon glyphicon-info-sign info"></span></span>
+              <span><span class="fa fa-info-circle info"></span></span>
             </span>
 
           case _ => NodeSeq.Empty
@@ -462,7 +462,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           case Full(_) =>
             <span data-bs-toggle="tooltip" title="If this is checked, when rsync synchronization method is used, folder /var/rudder/configuration-repository/shared-files will be synchronized using rsync.
               If this is not checked, you'll have to synchronize yourself this folder">
-              <span><span class="glyphicon glyphicon-info-sign info"></span></span>
+              <span><span class="fa fa-info-circle info"></span></span>
             </span>
           case _       => NodeSeq.Empty
         }

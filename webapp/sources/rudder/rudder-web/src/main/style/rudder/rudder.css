@@ -1307,7 +1307,7 @@ button.buttonMargin {
   opacity : 1;
 }
 
-#generation-status .glyphicon {
+#generation-status .fa {
   top: 0;
   font-size : 11px;
 }
@@ -1328,10 +1328,6 @@ label span.text-fit{
 #node-compliance-intro {
   padding: 10px 15px;
   margin: 10px 0;
-}
-#generation-status .glyphicon {
-  top: 0;
-  font-size : 11px;
 }
 
 .jstree {

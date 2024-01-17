@@ -423,7 +423,7 @@ td.listclose:after {
 #nodePropertiesTab .is-edited .action-icon{
   top: 6px;
 }
-#nodePropertiesTab .action-icon.glyphicon{
+#nodePropertiesTab .action-icon{
   font-size: 17px;
   padding-bottom: 2px;
 }

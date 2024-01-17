@@ -247,7 +247,7 @@ class AutoCompleteAutoSubmit {
           {Script(onLoad)}
         </head>
         <label class="input-group-addon" for={id}>
-          <span class="glyphicon glyphicon-search"></span>
+          <span class="fa fa-search"></span>
         </label>
         {
           attrs.foldLeft(<input type="text" id={id} value={start} />)(_ % _)

@@ -89,7 +89,7 @@ $navbar-hover-color : #F4F4F4;
   }
 }
 
-.navbar .navbar-nav>li.user>a > .fa,.navbar .navbar-nav>li.user>a > .glyphicon,.navbar .navbar-nav>li.user>a > .ion {
+.navbar .navbar-nav>li.user>a > .fa, .navbar .navbar-nav>li.user>a > .ion {
   margin-right: 5px
 }
 .navbar .navbar-nav>li>a > .label {
@@ -247,7 +247,7 @@ header.main-header .logo-lg img{
   position: relative;
   line-height: 20px;
 }
-.sidebar-menu>li>a > .fa,.sidebar-menu>li>a > .glyphicon,.sidebar-menu>li>a > .ion {
+.sidebar-menu>li>a > .fa, .sidebar-menu>li>a > .ion {
   width: 20px
 }
 .sidebar-menu>li .badge,.sidebar-menu>li .label {
@@ -289,7 +289,7 @@ header.main-header .logo-lg img{
   display: block;
   font-size: 14px
 }
-.sidebar-menu .treeview-menu>li>a > .fa,.sidebar-menu .treeview-menu>li>a > .glyphicon,.sidebar-menu .treeview-menu>li>a > .ion {
+.sidebar-menu .treeview-menu>li>a > .fa, .sidebar-menu .treeview-menu>li>a > .ion {
   width: 20px
 }
 .sidebar-menu .treeview-menu>li>a > .fa-angle-down,.sidebar-menu .treeview-menu>li>a > .fa-angle-left {
@@ -387,7 +387,7 @@ header.main-header .logo-lg img{
 .dropdown-menu>li>a {
   color: #777
 }
-.dropdown-menu>li>a > .fa,.dropdown-menu>li>a > .glyphicon,.dropdown-menu>li>a > .ion {
+.dropdown-menu>li>a > .fa, .dropdown-menu>li>a > .ion {
   margin-right: 10px
 }
 .dropdown-menu>li>a:hover {
@@ -474,7 +474,7 @@ header.main-header .logo-lg img{
   white-space: nowrap;
   padding: 10px
 }
-.navbar-nav .notifications-menu>.dropdown-menu > li > a > .fa,.navbar-nav .notifications-menu>.dropdown-menu > li > a > .glyphicon,.navbar-nav .notifications-menu>.dropdown-menu > li > a > .ion {
+.navbar-nav .notifications-menu>.dropdown-menu > li > a > .fa, .navbar-nav .notifications-menu>.dropdown-menu > li > a > .ion {
   width: 20px
 }
 
@@ -725,14 +725,14 @@ header.main-header .logo-lg img{
 .treeview-menu>li>a.active {
   color: #fff;
 }
-.treeview-menu>li>a .fa,.treeview-menu>li>a .glyphicon {
+.treeview-menu>li>a .fa {
   visibility:hidden;
   color: #13beb7;
   position:relative;
   color: #13beb7;
   left:-2px;
 }
-.treeview-menu>li>a.active .fa,.treeview-menu>li>a.active .glyphicon {
+.treeview-menu>li>a.active .fa {
   visibility:visible;
 }
 
@@ -1106,9 +1106,7 @@ header.main-header .logo-lg img{
 .no-click{
   cursor:default !important;
 }
-.content-wrapper .nav > li > a:hover .glyphicon, .content-wrapper .nav > li > a:focus .glyphicon, .content-wrapper .nav li.dropdown > a:hover .glyphicon, .content-wrapper .nav li.dropdown > a:focus .glyphicon {
-  color: #FFFFFF;
-}
+
 /* ----- </DROPDOWN MENU>  ----- */
 
 /* === PLUGIN WARNING ===*/

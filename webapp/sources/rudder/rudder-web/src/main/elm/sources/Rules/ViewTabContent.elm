@@ -87,7 +87,7 @@ informationTab model details =
     rightCol =
       if isNewRule then
         div [class "callout-fade callout-info"]
-        [ div [class "marker"][span [class "glyphicon glyphicon-info-sign"][]]
+        [ div [class "marker"][span [class "fa fa-info-circle"][]]
         , div []
           [ p[][text "You are creating a new rule. You may already want to apply directives and groups to it."]
           , p[][text "To do so, please go to their corresponding tab, or use the shortcuts below:"]

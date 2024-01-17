@@ -181,7 +181,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
 
     val dialog = {
       <div class="callout-fade callout-info">
-        <div class="marker"><span class="glyphicon glyphicon-exclamation-sign"></span></div>
+        <div class="marker"><span class="fa fa-exclamation-triangle"></span></div>
         Are you sure you want to
         <b>{action.name}</b>
         reports older than

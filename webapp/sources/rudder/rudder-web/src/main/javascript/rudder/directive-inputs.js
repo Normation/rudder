@@ -452,9 +452,9 @@ function updatePasswordFormView(formId){
   formContainer.find(".reveal-password").each(function(){
     var data = $(this).attr("data-reveal");
     var reveal    = data === "current" ? passwordForm.current.show : passwordForm.newPassword.show
-    var iconClass = reveal ? "glyphicon glyphicon-eye-close" : "glyphicon glyphicon-eye-open"
+    var iconClass = reveal ? "fa fa-eye-slash" : "fa fa-eye"
     var inputType = reveal ? "text" : "password";
-    $(this).find(".glyphicon").attr("class", iconClass);
+    $(this).find(".fa").attr("class", iconClass);
     if(data === "current"){
       formContainer.find("input.input-current-passwd").attr("type", inputType);
     }else{
