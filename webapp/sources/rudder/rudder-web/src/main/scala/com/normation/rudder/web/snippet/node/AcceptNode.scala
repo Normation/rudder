@@ -332,7 +332,7 @@ class AcceptNode extends Loggable {
             Text("Directive"),
             { e =>
               SHtml.ajaxButton(
-                <span><i class="glyphicon glyphicon-search"></i></span>,
+                <span><i class="fa fa-search"></i></span>,
                 () => showExpectedPolicyPopup(e),
                 ("class", "smallButton")
               )

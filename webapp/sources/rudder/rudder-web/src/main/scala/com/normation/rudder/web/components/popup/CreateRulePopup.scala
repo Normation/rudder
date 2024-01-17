@@ -111,7 +111,7 @@ class CreateOrCloneRulePopup(
           if (clonedRule.isDefined) {
             <hr class="css-fix"/>
             <div class="alert alert-info text-center">
-                <span class="glyphicon glyphicon-info-sign"></span>
+                <span class="fa fa-info-circle"></span>
                 The new rule will be disabled.
             </div>
           } else {

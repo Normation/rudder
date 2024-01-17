@@ -176,7 +176,7 @@ draftsItem model draft =
                 span [ class "cursor-help popover-bs", attribute "data-bs-toggle"  "popover", attribute "data-trigger" "hover"
                      , attribute "data-bs-container" "body", attribute  "data-bs-placement" "right", attribute "data-title" draft.technique.name
                      , attribute "data-bs-content" "<div>This technique uses <b>deprecated</b> generic methods.</div>"
-                     , attribute "data-bs-html" "true" ] [ i [ class "glyphicon glyphicon-info-sign deprecated-icon" ] [] ]
+                     , attribute "data-bs-html" "true" ] [ i [ class "fa fa-info-circle deprecated-icon" ] [] ]
               else
                 text ""
             ]
@@ -219,7 +219,7 @@ techniqueItem model technique =
                 span [ class "cursor-help popover-bs", attribute "data-bs-toggle"  "popover", attribute "data-trigger" "hover"
                      , attribute "data-bs-container" "body", attribute  "data-bs-placement" "right", attribute "data-title" technique.name
                      , attribute "data-bs-content" "<div>This technique uses <b>deprecated</b> generic methods.</div>"
-                     , attribute "data-bs-html" "true" ] [ i [ class "glyphicon glyphicon-info-sign deprecated-icon" ] [] ]
+                     , attribute "data-bs-html" "true" ] [ i [ class "fa fa-info-circle deprecated-icon" ] [] ]
               else
                 text ""
             , if hasUnknownMethod  then

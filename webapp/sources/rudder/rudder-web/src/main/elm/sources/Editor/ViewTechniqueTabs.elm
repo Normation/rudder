@@ -216,7 +216,7 @@ techniqueTab model technique creation ui =
                                                       ) errors)
                              _ -> if String.length technique.id.value > 100 then
                                     span [ class "rudder-text-warning col-sm-8 col-sm-offset-3" ] [
-                                      b [] [ span [ class "glyphicon glyphicon-exclamation-sign" ] [] ]
+                                      b [] [ span [ class "fa fa-exclamation-triangle" ] [] ]
                                     , text "Technique IDs longer than 100 characters may not work on some filesystems (Windows, in particular)."
                                     ]
                                   else text ""

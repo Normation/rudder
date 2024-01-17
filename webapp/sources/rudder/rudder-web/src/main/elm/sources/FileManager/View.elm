@@ -71,7 +71,7 @@ bar model =
   , div [class "fm-bar-actions"]
     [ div [class "btn-group"]
       [ button [attribute "data-bs-toggle" "dropdown", id "dropDownMenuSearch", type_ "button", class "btn btn-flat btn-sm dropdown-toggle"]
-        [ i [class "glyphicon glyphicon-search mr2"][]
+        [ i [class "fa fa-search mr2"][]
         ]
       , ul [class "dropdown-menu search-dropdown pull-right"]
         [ li[]
@@ -80,16 +80,16 @@ bar model =
       ]
     , ( if model.viewMode == GridView then
       button [class "btn btn-flat btn-sm", onClick (ChangeViewMode ListView)]
-      [ i [class "glyphicon glyphicon-th-list"][]
+      [ i [class "fa fa-list"][]
       ]
       else
       button [class "btn btn-flat btn-sm", onClick (ChangeViewMode GridView)]
-      [ i [class "glyphicon glyphicon-th-large" ][]
+      [ i [class "fa fa-th-large" ][]
       ]
       )
     , div [class "btn-group"]
       [ button [attribute "data-bs-toggle" "dropdown", id "more", type_ "button", class "btn btn-flat btn-sm dropdown-toggle"]
-        [ i [class "glyphicon glyphicon-option-vertical"][]
+        [ i [class "fa fa-ellipsis-v"][]
         ]
       , mainContextMenu
       ]
@@ -346,13 +346,13 @@ mainContextMenu =
   ul[class "dropdown-menu pull-right"]
   [ li[]
     [ a [ onClick (OpenNameDialog (NewDir "")) ]
-      [ i [class "glyphicon glyphicon-plus"][]
+      [ i [class "fa fa-plus"][]
       , text "New folder"
       ]
     ]
   , li[]
     [ a [ onClick ChooseFiles ]
-      [ i [class "glyphicon glyphicon-cloud-upload"][]
+      [ i [class "fa fa-cloud-upload-alt"][]
       , text "Upload files"
       ]
     ]

@@ -420,7 +420,7 @@ class DirectiveEditForm(
     if (isADirectiveCreation) {
       <div class="callout-fade callout-info">
         <div class="marker">
-          <span class="glyphicon glyphicon-info-sign"></span>
+          <span class="fa fa-info-circle"></span>
         </div>
         <div class="">
           <p>You are creating a new Directive. You must set its parameters before saving.</p>
@@ -528,7 +528,7 @@ class DirectiveEditForm(
         <div>
           <b>Priority</b>
           <span>
-            <span class="ruddericon glyphicon glyphicon-question-sign" data-bs-toggle="tooltip" title={tooltipContent}></span>
+            <span class="ruddericon fa fa-question-circle" data-bs-toggle="tooltip" title={tooltipContent}></span>
           </span>
         </div>
       }
@@ -594,7 +594,7 @@ class DirectiveEditForm(
     <label class="wbBaseFieldLabel">
       <b>Policy mode</b>
       <span>
-        <span class="ruddericon glyphicon glyphicon-question-sign" data-bs-toggle="tooltip" title={tooltipContent}></span>
+        <span class="ruddericon fa fa-question-circle" data-bs-toggle="tooltip" title={tooltipContent}></span>
       </span>
     </label>
   }

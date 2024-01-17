@@ -235,7 +235,7 @@ displayNodePropertyRow model =
               ]
             , td [class "text-center edit-actions is-edited" ]
               [ div []
-                [ span [ class "action-icon glyphicon glyphicon-share-alt cancel-icon", title "Cancel", onClick (ToggleEditProperty p.name eP False)][]
+                [ span [ class "action-icon fa fa-share-square cancel-icon", title "Cancel", onClick (ToggleEditProperty p.name eP False)][]
                 , span [ class "action-icon fa fa-check text-success", title "Save", onClick (ToggleEditProperty p.name eP True)][]
                 ]
               ]

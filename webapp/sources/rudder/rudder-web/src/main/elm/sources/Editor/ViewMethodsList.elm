@@ -188,7 +188,7 @@ showCategory  category allDeprecated =
                  , attribute "data-bs-placement" "bottom", attribute "data-title" category
                  , attribute "data-bs-content" "<div>All generic methods in this category are <b>deprecated</b>.</div>"
                  , attribute "data-bs-html" "true"
-                 ] [ i [ class "glyphicon glyphicon-info-sign deprecated-icon" ] []]
+                 ] [ i [ class "fa fa-info-circle deprecated-icon" ] []]
           ]
         else []
       )

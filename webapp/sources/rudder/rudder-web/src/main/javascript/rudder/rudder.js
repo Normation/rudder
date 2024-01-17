@@ -449,7 +449,7 @@ function createTextAgentPolicyMode(isNode, currentPolicyMode, explanation){
   var policyMode = currentPolicyMode.toLowerCase();
   var nodeOrDirective = isNode ? "node" : "directive";
   var labelType = "label-"+policyMode;
-  var span = "<span class='label-text " + labelType + " glyphicon glyphicon-question-sign' data-bs-toggle='tooltip' data-bs-placement='top' title=''></span>"
+  var span = "<span class='label-text " + labelType + " fa fa-question-circle' data-bs-toggle='tooltip' data-bs-placement='top' title=''></span>"
   var badge = $(span).get(0);
   var tooltip = policyModeTooltip(nodeOrDirective, policyMode, explanation);
   badge.setAttribute("title", tooltip);

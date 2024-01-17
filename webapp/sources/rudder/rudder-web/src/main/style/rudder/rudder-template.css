@@ -810,7 +810,7 @@ ul {
   color: #ef9600;
 }
 .rudder-template .dataTable td.empty .fa:first-child,
-.rudder-template .callout-fade .fa:first-child,
+.rudder-template .callout-fade :not(.marker) .fa:first-child,
 .rudder-template .callout-fade .rudder-label:first-child,
 .rudder-template .alert .fa:first-child{
   margin-right: 6px;
