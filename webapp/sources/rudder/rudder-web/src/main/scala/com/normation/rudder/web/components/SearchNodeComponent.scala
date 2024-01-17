@@ -642,7 +642,7 @@ object SearchNodeComponent {
       }),
       ("id", "ot_" + i),
       ("onchange", ajaxAttr(lines, i)._2.toJsCmd),
-      ("class", "selectField form-control input-sm")
+      ("class", "selectField form-select input-sm")
     )
   }
 
@@ -657,7 +657,7 @@ object SearchNodeComponent {
       }),
       ("id", "at_" + i),
       ("onchange", ajaxComp(lines, i)._2.toJsCmd),
-      ("class", "selectField form-control input-sm")
+      ("class", "selectField form-select input-sm")
     )
   }
 
@@ -678,7 +678,7 @@ object SearchNodeComponent {
       }),
       ("id", "ct_" + i),
       ("onchange", ajaxVal(lines, i)._2.toJsCmd),
-      ("class", "selectComparator form-control input-sm")
+      ("class", "selectComparator form-select input-sm")
     )
   }
 

@@ -122,7 +122,7 @@
   display:inline-block;
   float:right;
 }
-.input-group-addon.addon-json{
+.input-group-text.addon-json{
   border-left: none;
   border-right: none;
   background: #F8F9FC;

@@ -357,7 +357,7 @@ class Archives extends DispatchSnippet with Loggable {
         Full(selectedCommitId),
         id => selectedCommitId = id,
         ("id" -> archiveDateSelectId),
-        ("class", "form-control")
+        ("class", "form-select")
       )
     } &
     ("#" + restoreButtonId) #> {

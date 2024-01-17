@@ -80,7 +80,7 @@ techniqueParameter model technique param opened =
     , div [ class "param" ] [
         div [ class "input-group form-group" ] [
           input [readonly (not model.hasWriteRights), type_ "text",  class ("form-control " ++ invalidNameClass), value param.description, placeholder "Parameter name", onInput (\s -> TechniqueParameterModified param.id {param | description = s }), required True] []
-        , label [ class "input-group-addon", for checkboxId]
+        , label [ class "input-group-text", for checkboxId]
           [ input[type_ "checkbox", id checkboxId, checked (not param.mayBeEmpty), onCheck (\c -> (TechniqueParameterModified param.id {param | mayBeEmpty = not c }))][]
           , span [][text " Required "]
           , span
@@ -95,10 +95,8 @@ techniqueParameter model technique param opened =
       , invalidNameElem
       , div [ class "input-group" ] [
            input [readonly (not model.hasWriteRights), type_ "text",  class ("form-control "++invalidParamClass), value param.name, placeholder (if (String.isEmpty param.description) then "Variable name" else (canonifyString param.description)) , onInput (\s -> TechniqueParameterModified param.id {param | name = s }), required True] []
-        , div [ class "input-group-btn" ] [
-            button [ class "btn btn-outline-secondary clipboard", title "Copy to clipboard" , onClick (Copy ("${" ++ param_var_name ++ "}")) ] [
-              i [ class "ion ion-clipboard" ] []
-            ]
+        , button [ class "btn btn-outline-secondary clipboard", title "Copy to clipboard" , onClick (Copy ("${" ++ param_var_name ++ "}")) ] [
+            i [ class "ion ion-clipboard" ] []
           ]
         ]
       , invalidParamElem

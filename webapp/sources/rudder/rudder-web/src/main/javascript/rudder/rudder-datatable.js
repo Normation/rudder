@@ -1481,12 +1481,12 @@ function createNodeTable(gridId, refresh) {
       $(this).toggleClass("btn-success").toggleClass("btn-default").toggleHtml(confirmTxt, editTxt)
     });
     $("#edit-columns").append(editColBtn)
-    var select = "<div class='form-inline-flex'> <div> <select placeholder='Select column to add' class='form-control'>"
+    var select = "<div class='form-inline-flex'> <div> <select placeholder='Select column to add' class='form-select'>"
     for (var key in dynColumns) {
       value = dynColumns[key]
       select += "<option value='"+value+"'>"+value+"</option>"
     }
-    select += "</select></div><div><input class='form-control' id='colValue' type='text'></div><label for='colCheckbox' class='input-group'><span class='input-group-addon'><input id='colCheckbox' type='checkbox'></span><div class='form-control'>Show inherited properties</div></label><button id='add-column' class='btn btn-default btn-icon'>Add column <i class='fa fa-plus-circle'></i></button><button id='reset-columns' class='btn btn-default btn-icon'>Reset columns <i class='fa fa-rotate-left'></i></button></div>"
+    select += "</select></div><div><input class='form-control' id='colValue' type='text'></div><label for='colCheckbox' class='input-group'><span class='input-group-text'><input id='colCheckbox' type='checkbox'></span><div class='form-control'>Show inherited properties</div></label><button id='add-column' class='btn btn-default btn-icon'>Add column <i class='fa fa-plus-circle'></i></button><button id='reset-columns' class='btn btn-default btn-icon'>Reset columns <i class='fa fa-rotate-left'></i></button></div>"
     editOpen ? $("#select-columns").show() : $("#select-columns").hide()
     $("#select-columns").html(select)
     var selectedColumns =""

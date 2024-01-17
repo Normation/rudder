@@ -58,7 +58,7 @@ view model =
                     ][]
                   ]
                 , td []
-                  [ span [class "input-group-addon addon-json"][text "="]
+                  [ span [class "input-group-text addon-json"][text "="]
                   ]
                 , td [class ("form-group" ++ if ((checkEmptyVal && checkPristineVal) || checkFormatVal) then " has-error" else "")]
                   [ textarea

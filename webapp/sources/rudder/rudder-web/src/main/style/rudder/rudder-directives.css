@@ -145,7 +145,7 @@
   float:left;
   padding:0 0 0 15px;
 }
-.version-group select.form-control{
+.version-group select.form-select{
   margin-right:5px;
 }
 .btn.new-icon.no-icon:after{
@@ -311,7 +311,7 @@
   min-height: initial !important;
 }
 
-.rudder-template .template-sidebar + .template-main .main-details .input-group-btn .dropdown-toggle {
+.rudder-template .template-sidebar + .template-main .main-details .input-group .dropdown-toggle {
   height: 31px;
 }
 

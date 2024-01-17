@@ -141,7 +141,7 @@ class RuleDisplayer(
     <ul class="form-group list-sm">
       <li class="rudder-form">
         <div class="input-group">
-          <label for="includeCheckbox" class="input-group-addon" id="includeSubCategory">
+          <label for="includeCheckbox" class="input-group-text" id="includeSubCategory">
             {includeSubCategory}
             <label class="label-radio" for="includeCheckbox">
               <span class="ion ion-checkmark-round"></span>
@@ -237,7 +237,7 @@ class RuleDisplayer(
                         <div>
                           <div class="filterTag">
                             <div class="input-group search-addon">
-                              <label for="searchStr" class="input-group-addon search-addon"><span class="ion ion-search"></span></label>
+                              <label for="searchStr" class="input-group-text search-addon"><span class="ion ion-search"></span></label>
                               <input type="text" id="searchStr" class="input-sm form-control" placeholder="Filter" ng-model="strSearch" ng-keyup="filterGlobal(strSearch)"/>
                             </div>
                             <div class="form-group">
@@ -248,17 +248,15 @@ class RuleDisplayer(
                                      remote-url-data-field="data" title-field="value" input-class="form-control input-sm input-key"
                                      match-class="highlight" input-changed="updateTag" override-suggestions="true">
                                 </div>
-                                <span class="input-group-addon addon-json">=</span>
+                                <span class="input-group-text addon-json">=</span>
                                 <div id="ruleFilterValueInput" angucomplete-alt="" placeholder="value" minlength="1" maxlength="100"
                                      pause="500" selected-object="selectValue" remote-url="{{contextPath}}/secure/api/completion/tags/rule/value/{{newTag.key}}/"
                                      remote-url-data-field="data" title-field="value" input-class="form-control input-sm input-value" match-class="highlight"
                                      input-changed="updateValue" override-suggestions="true">
                                 </div>
-                                <span class="input-group-btn">
-                                 <button type="button" ng-click="addTag(newTag)" class="btn btn-default btn-sm" ng-disabled=" (isEmptyOrBlank(newTag.key) &amp;&amp; isEmptyOrBlank(newTag.value)); ">
-                                    <span class="fa fa-plus"></span>
-                                  </button>
-                                </span>
+                                <button type="button" ng-click="addTag(newTag)" class="btn btn-default btn-sm" ng-disabled=" (isEmptyOrBlank(newTag.key) &amp;&amp; isEmptyOrBlank(newTag.value)); ">
+                                  <span class="fa fa-plus"></span>
+                                </button>
                               </div>
                             </div>
                             <div class="only-tags">

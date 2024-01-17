@@ -93,10 +93,8 @@ methodsList model =
          , div [ class "header-filter" ] [
              div [ class "input-group" ] [
                input [ class "form-control",  type_ "text",  placeholder "Filter", value filter.name, onInput (\s -> UpdateMethodFilter { filter | name = s  }) ] []
-             , div [ class "input-group-btn" ] [
-                 button [ class "btn btn-outline-secondary btn-toggle-filters" , onClick ToggleFilter] [ --ng-click="ui.showMethodsFilter=!ui.showMethodsFilter">
-                   i [ class "ion ion-android-options"] []
-                 ]
+             , button [ class "btn btn-outline-secondary btn-toggle-filters" , onClick ToggleFilter] [ --ng-click="ui.showMethodsFilter=!ui.showMethodsFilter">
+                 i [ class "ion ion-android-options"] []
                ]
              ]
            ]
@@ -114,7 +112,7 @@ methodsList model =
                ]
              ]
            , div [ class "input-group" ] [
-               label [ for "showDeprecated", class "input-group-addon" ] [
+               label [ for "showDeprecated", class "input-group-text" ] [
                  input [ id "showDeprecated",  type_ "checkbox", checked filter.showDeprecated, onCheck (\b -> UpdateMethodFilter { filter | showDeprecated = b}) ]  []
                ]
              , label [ for "showDeprecated",  class "form-control label-checkbox" ][

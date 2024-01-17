@@ -395,7 +395,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
               }
               <li class="rudder-form">
                   <div class="input-group">
-                    <label class="input-group-addon" for={inputId}>
+                    <label class="input-group-text" for={inputId}>
                      {inputCheck}
                       <label for={inputId} class="label-radio">
                         <span class="ion ion-record"></span>

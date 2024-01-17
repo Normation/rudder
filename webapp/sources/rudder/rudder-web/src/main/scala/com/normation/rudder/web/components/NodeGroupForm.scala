@@ -513,7 +513,7 @@ class NodeGroupForm(
     (categoryHierarchyDisplayer.getCategoriesHierarchy(rootCategory, None).map { case (id, name) => (id.value -> name) }),
     parentCategoryId.value
   ) {
-    override def className             = "form-control"
+    override def className             = "form-select"
     override def labelClassName        = ""
     override def subContainerClassName = ""
   }

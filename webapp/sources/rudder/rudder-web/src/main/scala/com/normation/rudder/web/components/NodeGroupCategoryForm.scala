@@ -263,7 +263,7 @@ class NodeGroupCategoryForm(
         _nodeGroupCategory.id.value,
         Seq("disabled"                  -> "true")
       ) {
-        override def className             = "form-control"
+        override def className             = "form-select"
         override def labelClassName        = ""
         override def subContainerClassName = ""
         override def validations           =
@@ -277,7 +277,7 @@ class NodeGroupCategoryForm(
         },
         parentCategoryId
       ) {
-        override def className             = "form-control"
+        override def className             = "form-select"
         override def labelClassName        = ""
         override def subContainerClassName = ""
         override def validations           =

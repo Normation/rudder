@@ -155,9 +155,7 @@ label.rule-info + div{
   border-bottom: 1px solid #d6deef;
   background-color: #F7F8F7;
 }
-#directiveFilters .search-addon > .input-group-btn:first-child .btn{
-  border-right: none !important;
-}
+
 .modal .jstree ul > li a.jstree-anchor{
   margin-top: 1px;
   border: 1px solid transparent;
