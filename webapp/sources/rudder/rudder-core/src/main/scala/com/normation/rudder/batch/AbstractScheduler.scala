@@ -83,10 +83,10 @@ trait AbstractScheduler {
   type T
   private val schedulerMinimumIntervalTime: Duration = 1.second
   private val schedulerMaximumIntervalTime: Duration = 5.minutes
-  def updateInterval: Duration
-  def executeTask:    Long => Box[T]
-  def displayName:    String
-  def propertyName:   String
+  def updateInterval:                       Duration
+  def executeTask:                          Long => Box[T]
+  def displayName:                          String
+  def propertyName:                         String
 
   val logger = ScheduledJobLogger
 

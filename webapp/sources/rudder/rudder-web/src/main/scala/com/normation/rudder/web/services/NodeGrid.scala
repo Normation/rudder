@@ -96,7 +96,7 @@ final class NodeGrid(
       aoColumns:  String = "",
       searchable: Boolean = true,
       paginate:   Boolean = true
-  )(implicit qr:  QueryContext): NodeSeq = {
+  )(implicit qr: QueryContext): NodeSeq = {
     display(servers, tableId, columns, aoColumns) ++
     Script(initJs(tableId, columns, aoColumns, searchable, paginate))
   }
@@ -114,7 +114,7 @@ final class NodeGrid(
       aoColumns:  String = "",
       searchable: Boolean,
       paginate:   Boolean
-  )(implicit qr:  QueryContext): JsCmd = {
+  )(implicit qr: QueryContext): JsCmd = {
 
     JsRaw(s"""
         var ${jsVarNameForId(tableId)};
@@ -222,7 +222,7 @@ final class NodeGrid(
         (if (isEmpty(server.hostname)) "(Missing host name) " + server.id.value else escape(server.hostname))
       } &
       ".fullos *" #> escape(server.osFullName) &
-      ".ips *" #> ((server.ips.flatMap { ip => <div class="ip">{escape(ip)}</div> }): NodeSeq) & // TODO : enhance this
+      ".ips *" #> ((server.ips.flatMap(ip => <div class="ip">{escape(ip)}</div>)):             NodeSeq) & // TODO : enhance this
       ".other" #> ((columns flatMap { c => <td style="overflow:hidden">{c._2(server)}</td> }): NodeSeq) &
       ".nodetr [jsuuid]" #> { server.id.value.replaceAll("-", "") } &
       ".nodetr [nodeid]" #> { server.id.value } &

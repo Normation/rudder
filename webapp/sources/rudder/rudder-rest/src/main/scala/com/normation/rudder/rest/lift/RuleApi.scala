@@ -123,12 +123,12 @@ class RuleApi(
   }
 
   def actionResponse(
-      function:      Box[ActionType],
-      req:           Req,
-      errorMessage:  String,
-      id:            Option[String],
-      actor:         EventActor,
-      dataName:      String
+      function:     Box[ActionType],
+      req:          Req,
+      errorMessage: String,
+      id:           Option[String],
+      actor:        EventActor,
+      dataName:     String
   )(implicit action: String): LiftResponse = {
     RestUtils.actionResponse2(restExtractorService, dataName, uuidGen, id)(function, req, errorMessage)(action, actor)
   }
@@ -565,16 +565,16 @@ class RuleApiService2(
     workflowLevelService: WorkflowLevelService,
     restExtractor:        RestExtractorService,
     restDataSerializer:   RestDataSerializer
-)(implicit userService:   UserService) {
+)(implicit userService: UserService) {
 
   import restDataSerializer.{serializeRule => serialize}
 
   private[this] def createChangeRequestAndAnswer(
-      id:            String,
-      diff:          ChangeRequestRuleDiff,
-      change:        RuleChangeRequest,
-      actor:         EventActor,
-      req:           Req
+      id:     String,
+      diff:   ChangeRequestRuleDiff,
+      change: RuleChangeRequest,
+      actor:  EventActor,
+      req:    Req
   )(implicit action: String, prettify: Boolean) = {
     (for {
       workflow <- workflowLevelService.getForRule(actor, change)
@@ -621,7 +621,7 @@ class RuleApiService2(
 
   def actualRuleCreation(
       change: RuleChangeRequest
-  )(actor:    EventActor, modId: ModificationId, reason: Option[String]): Box[JArray] = {
+  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JArray] = {
     (for {
       _ <- writeRule.create(change.newRule, modId, actor, reason).toBox
     } yield {
@@ -806,7 +806,7 @@ class RuleApiService6(
   def updateCategory(
       id:       RuleCategoryId,
       restData: RestRuleCategory
-  )(actor:      EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
+  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     logger.info(restData)
     for {
       root              <- readRuleCategory.getRootCategory()
@@ -831,7 +831,7 @@ class RuleApiService6(
   def createCategory(
       restData:  RestRuleCategory,
       defaultId: () => RuleCategoryId
-  )(actor:       EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
+  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     for {
       name     <- restData.name.notOptional("Could not create Rule Category, cause name is not defined").toBox
       update    = RuleCategory(restData.id.getOrElse(defaultId()), name, restData.description.getOrElse(""), Nil)
@@ -867,10 +867,10 @@ class RuleApiService14(
   val MISSING_RULE_CAT_ID: RuleCategoryId = RuleCategoryId("ui-missing-rule-category")
 
   private def createChangeRequest(
-      diff:      ChangeRequestRuleDiff,
-      change:    RuleChangeRequest,
-      params:    DefaultParams,
-      actor:     EventActor
+      diff:   ChangeRequestRuleDiff,
+      change: RuleChangeRequest,
+      params: DefaultParams,
+      actor:  EventActor
   )(implicit qc: QueryContext) = {
     for {
       workflow     <- workflowLevelService.getForRule(actor, change).toIO
@@ -940,11 +940,11 @@ class RuleApiService14(
   }
 
   def createRule(
-      restRule:  JQRule,
-      ruleId:    RuleId,
-      clone:     Option[RuleId],
-      params:    DefaultParams,
-      actor:     EventActor
+      restRule: JQRule,
+      ruleId:   RuleId,
+      clone:    Option[RuleId],
+      params:   DefaultParams,
+      actor:    EventActor
   )(implicit qc: QueryContext): IOResult[JRRule] = {
     // decide if we should create a new rule or clone an existing one
     // Return the source rule to use in each case.

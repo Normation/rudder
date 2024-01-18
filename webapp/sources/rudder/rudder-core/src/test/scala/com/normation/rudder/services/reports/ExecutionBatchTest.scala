@@ -68,9 +68,9 @@ import scala.annotation.nowarn
 @RunWith(classOf[JUnitRunner])
 class ExecutionBatchTest extends Specification {
   implicit private def str2directiveId(s: String): DirectiveId = DirectiveId(DirectiveUid(s))
-  implicit private def str2ruleId(s: String):      RuleId      = RuleId(RuleUid(s))
-  implicit private def str2nodeId(s: String):      NodeId      = NodeId(s)
-  implicit private def str2ruleUid(s: String):     RuleUid     = RuleUid(s)
+  implicit private def str2ruleId(s:      String): RuleId      = RuleId(RuleUid(s))
+  implicit private def str2nodeId(s:      String): NodeId      = NodeId(s)
+  implicit private def str2ruleUid(s:     String): RuleUid     = RuleUid(s)
 
   // a logger for timing information
   val logger: Logger = org.slf4j.LoggerFactory.getLogger("timing-test").asInstanceOf[ch.qos.logback.classic.Logger]

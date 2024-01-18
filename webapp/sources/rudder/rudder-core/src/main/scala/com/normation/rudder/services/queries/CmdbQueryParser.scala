@@ -181,8 +181,8 @@ trait JsonQueryLexer extends QueryLexer {
       Failure("Parsing failed when processing query: " + s, Full(e), Empty)
   }
 
-  def failureMissing(s: String):             Failure = Failure("Missing expected '%s' query parameter".format(s))
-  def failureEmpty(param: String):           Failure = Failure("Parameter '%s' must be non empty in query".format(OBJECT))
+  def failureMissing(s:   String): Failure = Failure("Missing expected '%s' query parameter".format(s))
+  def failureEmpty(param: String): Failure = Failure("Parameter '%s' must be non empty in query".format(OBJECT))
   def failureBadFormat(obj: String, f: Any): Failure = Failure(
     "Bad query format for '%s' parameter. Expecting a string, found '%s'".format(obj, f)
   )

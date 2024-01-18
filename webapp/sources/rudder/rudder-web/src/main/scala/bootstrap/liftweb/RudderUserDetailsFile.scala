@@ -118,7 +118,7 @@ object PasswordEncoder {
   }
 
   val PlainText: PasswordEncoder = new PasswordEncoder() {
-    override def encode(rawPassword: CharSequence):                           String  = rawPassword.toString
+    override def encode(rawPassword:  CharSequence): String = rawPassword.toString
     override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = rawPassword.toString == encodedPassword
   }
   // Unsalted hash functions :

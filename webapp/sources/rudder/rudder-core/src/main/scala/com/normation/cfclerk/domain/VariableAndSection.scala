@@ -402,7 +402,7 @@ object Variable {
 
   // define our own alternatives of matchCopy because we want v.values to be the default
   // values
-  def matchCopy(v: Variable):                          Variable = matchCopy(v, false)
+  def matchCopy(v: Variable): Variable = matchCopy(v, false)
   def matchCopy(v: Variable, setMultivalued: Boolean): Variable = matchCopy(v, v.values, setMultivalued)
 
   def matchCopy(v: Variable, values: Seq[String], setMultivalued: Boolean = false): Variable = {

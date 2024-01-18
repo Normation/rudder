@@ -119,10 +119,10 @@ class DummyTechniqueRepository(policies: Seq[Technique] = Seq()) extends Techniq
 
   def this() = this(Seq()) // Spring need that...
 
-  override def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => IOResult[T]): IOResult[T]                 = ???
-  override def getTemplateContent[T](id: TechniqueResourceId)(useIt: Option[InputStream] => IOResult[T]):  IOResult[T]                 = ???
-  override def getFileContent[T](id: TechniqueResourceId)(useIt: Option[InputStream] => IOResult[T]):      IOResult[T]                 = ???
-  override def getAll():                                                                                   Map[TechniqueId, Technique] = { policyMap }
+  override def getMetadataContent[T](techniqueId: TechniqueId)(useIt:         Option[InputStream] => IOResult[T]): IOResult[T] = ???
+  override def getTemplateContent[T](id:          TechniqueResourceId)(useIt: Option[InputStream] => IOResult[T]): IOResult[T] = ???
+  override def getFileContent[T](id:              TechniqueResourceId)(useIt: Option[InputStream] => IOResult[T]): IOResult[T] = ???
+  override def getAll(): Map[TechniqueId, Technique] = { policyMap }
 
   override def get(policyName: TechniqueId): Option[Technique] = {
     policyMap.get(policyName)
@@ -142,9 +142,9 @@ class DummyTechniqueRepository(policies: Seq[Technique] = Seq()) extends Techniq
 
   override def getTechniqueVersions(name: TechniqueName): SortedSet[TechniqueVersion] = SortedSet.empty[TechniqueVersion]
 
-  override def getTechniqueLibrary:                                      RootTechniqueCategory       = null
-  override def getTechniqueCategory(id: TechniqueCategoryId):            IOResult[TechniqueCategory] = null
-  override def getParentTechniqueCategory_forTechnique(id: TechniqueId): IOResult[TechniqueCategory] = null
+  override def getTechniqueLibrary: RootTechniqueCategory = null
+  override def getTechniqueCategory(id:                    TechniqueCategoryId): IOResult[TechniqueCategory] = null
+  override def getParentTechniqueCategory_forTechnique(id: TechniqueId):         IOResult[TechniqueCategory] = null
 
   override def getAllCategories: Map[TechniqueCategoryId, TechniqueCategory] = ???
 }

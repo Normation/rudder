@@ -176,7 +176,7 @@ object errors {
   trait BaseChainError[E <: RudderError] extends RudderError {
     def cause: E
     def hint:  String
-    def msg: String = s"${hint}; cause was: ${cause.fullMsg}"
+    def msg:   String = s"${hint}; cause was: ${cause.fullMsg}"
   }
 
   final case class Chained[E <: RudderError](hint: String, cause: E) extends BaseChainError[E] {
@@ -451,9 +451,9 @@ object zio {
    * When porting a class is too hard
    */
   implicit class UnsafeRun[A](io: IOResult[A]) {
-    def runNow:                                      A    = ZioRuntime.runNow(io)
+    def runNow: A = ZioRuntime.runNow(io)
     def runNowLogError(logger: RudderError => Unit): Unit = ZioRuntime.runNowLogError(logger)(io)
-    def runOrDie(throwEx: RudderError => Throwable): A    = ZioRuntime.runNow(io.either) match {
+    def runOrDie(throwEx: RudderError => Throwable): A = ZioRuntime.runNow(io.either) match {
       case Right(a)  => a
       case Left(err) => throw throwEx(err)
     }
@@ -544,9 +544,9 @@ trait ZioLogger {
 
   final def trace(msg: => String): UIO[Unit] = ZIO.when(logEffect.isTraceEnabled())(logAndForgetResult(_.trace(msg))).unit
   final def debug(msg: => String): UIO[Unit] = ZIO.when(logEffect.isDebugEnabled())(logAndForgetResult(_.debug(msg))).unit
-  final def info(msg: => String):  UIO[Unit] = ZIO.when(logEffect.isInfoEnabled())(logAndForgetResult(_.info(msg))).unit
+  final def info(msg:  => String): UIO[Unit] = ZIO.when(logEffect.isInfoEnabled())(logAndForgetResult(_.info(msg))).unit
   final def error(msg: => String): UIO[Unit] = ZIO.when(logEffect.isErrorEnabled())(logAndForgetResult(_.error(msg))).unit
-  final def warn(msg: => String):  UIO[Unit] = ZIO.when(logEffect.isWarnEnabled())(logAndForgetResult(_.warn(msg))).unit
+  final def warn(msg:  => String): UIO[Unit] = ZIO.when(logEffect.isWarnEnabled())(logAndForgetResult(_.warn(msg))).unit
 
   final def trace(msg: => String, t: Throwable): UIO[Unit] =
     ZIO.when(logEffect.isTraceEnabled())(logAndForgetResult(_.trace(msg, t))).unit
@@ -561,8 +561,8 @@ trait ZioLogger {
 
   final def ifTraceEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(logEffect.isTraceEnabled())(action).unit
   final def ifDebugEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(logEffect.isDebugEnabled())(action).unit
-  final def ifInfoEnabled[T](action: UIO[T]):  UIO[Unit] = ZIO.when(logEffect.isInfoEnabled())(action).unit
-  final def ifWarnEnabled[T](action: UIO[T]):  UIO[Unit] = ZIO.when(logEffect.isErrorEnabled())(action).unit
+  final def ifInfoEnabled[T](action:  UIO[T]): UIO[Unit] = ZIO.when(logEffect.isInfoEnabled())(action).unit
+  final def ifWarnEnabled[T](action:  UIO[T]): UIO[Unit] = ZIO.when(logEffect.isErrorEnabled())(action).unit
   final def ifErrorEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(logEffect.isWarnEnabled())(action).unit
 }
 

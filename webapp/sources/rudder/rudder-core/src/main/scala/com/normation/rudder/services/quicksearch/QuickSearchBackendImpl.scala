@@ -115,8 +115,8 @@ object QSNodeFactBackend extends Loggable {
 
     private[this] def toMatch(node: CoreNodeFact): Option[Set[(String, String)]] = {
 
-      def someSet(v: String)        = Some(Set((v, v)))
-      def optSet(v: Option[String]) = v.map(x => Set((x, x)))
+      def someSet(v: String)         = Some(Set((v, v)))
+      def optSet(v:  Option[String]) = v.map(x => Set((x, x)))
 
       /*
        * A set of value to check against / value to return to the user
@@ -310,8 +310,8 @@ object QSLdapBackend {
    * The actual search logic, everything else is just glue to make it works.
    */
   def search(query: Query)(implicit
-      ldap:         LDAPConnectionProvider[RoLDAPConnection],
-      rudderDit:    RudderDit
+      ldap:      LDAPConnectionProvider[RoLDAPConnection],
+      rudderDit: RudderDit
   ): IOResult[Seq[QuickSearchResult]] = {
     // the filter for attribute and for attributes must be non empty, else return nothing
     val ocFilter           = query.objectClass.map(_.filter).flatten.toSeq
@@ -525,15 +525,15 @@ object QSLdapBackend {
 
       a match {
         case Tags      =>
-          def matcher(t: Tag)     = pattern.matcher(t.name.value).matches || pattern.matcher(t.value.value).matches
+          def matcher(t:     Tag) = pattern.matcher(t.name.value).matches || pattern.matcher(t.value.value).matches
           def transform(tag: Tag) = s"${tag.name.value}=${tag.value.value}"
           parseTag(value, matcher, transform)
         case TagKeys   =>
-          def matcher(t: Tag)     = pattern.matcher(t.name.value).matches
+          def matcher(t:     Tag) = pattern.matcher(t.name.value).matches
           def transform(tag: Tag) = tag.name.value
           parseTag(value, matcher, transform)
         case TagValues =>
-          def matcher(t: Tag)     = pattern.matcher(t.value.value).matches
+          def matcher(t:     Tag) = pattern.matcher(t.value.value).matches
           def transform(tag: Tag) = tag.value.value
           parseTag(value, matcher, transform)
 
@@ -547,7 +547,7 @@ object QSLdapBackend {
    * Build LDAP filter for a QSObject
    */
   implicit final class QSObjectLDAPFilter(obj: QSObject)(implicit
-      rudderDit:                               RudderDit
+      rudderDit: RudderDit
   ) {
 
     def filter: List[Filter] = obj match {

@@ -340,7 +340,7 @@ class PolicyWriterServiceImpl(
    */
   def parallelSequence[U, T](
       seq: Seq[U]
-  )(f:     U => IOResult[T])(implicit timeout: Duration, maxParallelism: Int): IOResult[Seq[T]] = {
+  )(f: U => IOResult[T])(implicit timeout: Duration, maxParallelism: Int): IOResult[Seq[T]] = {
     (seq
       .accumulateParN(maxParallelism)(f))
       .timeoutFail(
@@ -351,7 +351,7 @@ class PolicyWriterServiceImpl(
   // a version for Hook with a nicer message accumulation
   def parallelSequenceNodeHook(
       seq: Seq[AgentNodeConfiguration]
-  )(f:     AgentNodeConfiguration => IOResult[HookReturnCode])(implicit timeout: Duration, maxParallelism: Int): IOResult[Unit] = {
+  )(f: AgentNodeConfiguration => IOResult[HookReturnCode])(implicit timeout: Duration, maxParallelism: Int): IOResult[Unit] = {
 
     // a dedicated error for hooks
     final case class HookError(nodeId: NodeId, errorCode: HookReturnCode.Error) extends RudderError {
@@ -724,9 +724,9 @@ class PolicyWriterServiceImpl(
    * Note: just making traverse for prepared technique/writePromisesFiles parallel increase latency by x5
    */
   private[this] def writePolicies(
-      preparedTemplates:     Seq[AgentNodeWritableConfiguration],
-      writeTimer:            WriteTimer,
-      fillTimer:             FillTemplateTimer
+      preparedTemplates: Seq[AgentNodeWritableConfiguration],
+      writeTimer:        WriteTimer,
+      fillTimer:         FillTemplateTimer
   )(implicit maxParallelism: Int, timeout: Duration): IOResult[Unit] = {
     /*
      * Idea: sort template by content (ie what is cached). Put each unique cache in a seq with the corresponding list of
@@ -809,7 +809,7 @@ class PolicyWriterServiceImpl(
       writeTimer:        WriteTimer,
       globalPolicyMode:  GlobalPolicyMode,
       resources:         Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo]
-  )(implicit timeout:    Duration, maxParallelism: Int): IOResult[Unit] = {
+  )(implicit timeout: Duration, maxParallelism: Int): IOResult[Unit] = {
     parallelSequence(preparedTemplates) { prepared =>
       val isRootServer   = prepared.agentNodeProps.nodeId == Constants.ROOT_POLICY_SERVER_ID
       val writeResources = ZIO.foreachDiscard(prepared.preparedTechniques) { preparedTechnique =>

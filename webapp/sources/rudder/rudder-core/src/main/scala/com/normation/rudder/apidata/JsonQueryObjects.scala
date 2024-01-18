@@ -120,7 +120,7 @@ object JsonQueryObjects {
         List[Map[String, JQDirectiveSection]]
       ], // Map is necessary b/c of the "var" in {"vars": [ {"var": { "name":..., "value":... }}}
 
-      vars: Option[List[Map[String, JQDirectiveSectionVar]]]
+      vars:     Option[List[Map[String, JQDirectiveSectionVar]]]
   ) {
     def toSectionVal: (String, SectionVal) = {
       (
@@ -465,7 +465,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
    * Utilities to extract values from params Map
    */
   implicit class Extract(params: Map[String, List[String]]) {
-    def optGet(key: String):                                               Option[String]        = params.get(key).flatMap(_.headOption)
+    def optGet(key: String): Option[String] = params.get(key).flatMap(_.headOption)
     def parse[A](key: String, decoder: JsonDecoder[A]):                    PureResult[Option[A]] = {
       optGet(key) match {
         case None    => Right(None)

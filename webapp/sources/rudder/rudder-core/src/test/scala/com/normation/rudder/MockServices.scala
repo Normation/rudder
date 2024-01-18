@@ -302,8 +302,8 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     ).succeed
     override def getPolicyServers():                         IOResult[PolicyServers]        = ???
 
-    override def savePolicyServers(policyServers: PolicyServers):  IOResult[PolicyServers]                     = ???
-    override def getAllAllowedNetworks():                          IOResult[Map[NodeId, List[AllowedNetwork]]] = ???
+    override def savePolicyServers(policyServers: PolicyServers): IOResult[PolicyServers] = ???
+    override def getAllAllowedNetworks(): IOResult[Map[NodeId, List[AllowedNetwork]]] = ???
     override def updatePolicyServers(
         commands: List[PolicyServersUpdateCommand],
         modId:    ModificationId,
@@ -322,7 +322,7 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
         modId:          ModificationId,
         actor:          EventActor
     ): IOResult[List[AllowedNetwork]] = ???
-    override def deleteRelaySystemObjects(policyServerId: NodeId): IOResult[Unit]                              = ???
+    override def deleteRelaySystemObjects(policyServerId: NodeId): IOResult[Unit] = ???
   }
 
   val systemVariableService = new SystemVariableServiceImpl(
@@ -2879,7 +2879,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
 class MockLdapQueryParsing(mockGit: MockGitConfigRepo, mockNodeGroups: MockNodeGroups) {
   ///// query parsing ////
   def DN(rdn: String, parent: DN) = new DN(new RDN(rdn), parent)
-  val LDAP_BASEDN                 = new DN("cn=rudder-configuration")
+  val LDAP_BASEDN = new DN("cn=rudder-configuration")
   val LDAP_INVENTORIES_BASEDN: DN = DN("ou=Inventories", LDAP_BASEDN)
   val LDAP_INVENTORIES_SOFTWARE_BASEDN = LDAP_INVENTORIES_BASEDN
 
@@ -2914,7 +2914,7 @@ class MockLdapQueryParsing(mockGit: MockGitConfigRepo, mockNodeGroups: MockNodeG
     new NodeGroupCategoryUnserialisationImpl(),
     new NodeGroupUnserialisationImpl(new CmdbQueryParser {
       override def parse(query: StringQuery): Box[Query]       = ???
-      override def lex(query: String):        Box[StringQuery] = ???
+      override def lex(query:   String):      Box[StringQuery] = ???
     }),
     mockGit.gitRepo,
     xmlEntityMigration,

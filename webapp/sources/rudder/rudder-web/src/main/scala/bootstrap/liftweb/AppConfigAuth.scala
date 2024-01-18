@@ -582,9 +582,9 @@ object DefaultAuthBackendProvider extends AuthBackendsProvider {
   val FILE       = "file"
   val ROOT_ADMIN = "rootAdmin"
 
-  override def authenticationBackends:            Set[String] = Set(FILE, ROOT_ADMIN)
-  override def name:                              String      = s"Default authentication backends provider: '${authenticationBackends.mkString("','")}"
-  override def allowedToUseBackend(name: String): Boolean     = true // always enable - ie we never want to skip them
+  override def authenticationBackends: Set[String] = Set(FILE, ROOT_ADMIN)
+  override def name:                   String      = s"Default authentication backends provider: '${authenticationBackends.mkString("','")}"
+  override def allowedToUseBackend(name: String): Boolean = true // always enable - ie we never want to skip them
 }
 
 // and default implementation: provides 'file', 'rootAdmin'
@@ -678,7 +678,7 @@ class RestAuthenticationFilter(
     systemApiAcl:       ApiAuthorization,
     apiTokenHeaderName: String = "X-API-Token"
 ) extends Filter with Loggable {
-  def destroy():                  Unit = {}
+  def destroy(): Unit = {}
   def init(config: FilterConfig): Unit = {}
 
   private[this] val not_authenticated_api = List(

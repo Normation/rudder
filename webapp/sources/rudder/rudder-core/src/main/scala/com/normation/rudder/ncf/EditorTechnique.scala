@@ -183,8 +183,8 @@ final case class GenericMethod(
       String
     ], // New name of the method replacing this method, may be defined only if deprecated is defined. Maybe we should have a deprecation info object
 
-    renameTo:    Option[String],
-    renameParam: Seq[(String, String)]
+    renameTo:       Option[String],
+    renameParam:    Seq[(String, String)]
 )
 
 final case class MethodParameter(
@@ -274,8 +274,8 @@ object ParameterType {
       }
     }
 
-    def addNewParameterService(service: ParameterTypeService): Unit                       = innerServices = service :: innerServices
-    private[this] var innerServices:                           List[ParameterTypeService] = new BasicParameterTypeService :: Nil
+    def addNewParameterService(service: ParameterTypeService): Unit = innerServices = service :: innerServices
+    private[this] var innerServices: List[ParameterTypeService] = new BasicParameterTypeService :: Nil
   }
 }
 

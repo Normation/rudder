@@ -89,8 +89,8 @@ object RunNuCommand {
   object SilentLogger extends BasePosixProcess(null) {
     import java.util.logging._
     override def start(command: util.List[String], environment: Array[String], cwd: Path): NuProcess = null
-    override def run(command: util.List[String], environment: Array[String], cwd: Path):   Unit      = {}
-    def silent():                                                                          Unit      = {
+    override def run(command:   util.List[String], environment: Array[String], cwd: Path): Unit      = {}
+    def silent(): Unit = {
       BasePosixProcess.LOGGER.setLevel(java.util.logging.Level.WARNING)
       BasePosixProcess.LOGGER.setUseParentHandlers(false)
       val h = new ConsoleHandler()

@@ -149,7 +149,7 @@ trait AuthenticatedUser {
     case RudderAccount.User(login, _) => login
     case RudderAccount.Api(api)       => api.name.value
   })
-  def nodePerms: NodeSecurityContext
+  def nodePerms:   NodeSecurityContext
 
   def queryContext: QueryContext = {
     QueryContext(actor, nodePerms)

@@ -127,7 +127,7 @@ trait PostNodeDeleteAction {
   // or zero (if only some things remain)
   // and if can optionnally have a nodeInfo
   def run(nodeId: NodeId, mode: DeleteMode, info: Option[CoreNodeFact], status: Set[InventoryStatus])(implicit
-      cc:         ChangeContext
+      cc: ChangeContext
   ): UIO[Unit]
 }
 
@@ -469,10 +469,10 @@ class RemoveNodeFromGroups(
 ) extends PostNodeDeleteAction {
 
   override def run(
-      nodeId:    NodeId,
-      mode:      DeleteMode,
-      info:      Option[CoreNodeFact],
-      status:    Set[InventoryStatus]
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[CoreNodeFact],
+      status: Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
     (for {
       _            <- NodeLoggerPure.Delete.debug(s"  - remove node ${nodeId.value} from his groups")
@@ -504,10 +504,10 @@ class RemoveNodeFromGroups(
  */
 class CloseNodeConfiguration(expectedReportsRepository: UpdateExpectedReportsRepository) extends PostNodeDeleteAction {
   override def run(
-      nodeId:    NodeId,
-      mode:      DeleteMode,
-      info:      Option[CoreNodeFact],
-      status:    Set[InventoryStatus]
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[CoreNodeFact],
+      status: Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
     for {
       _ <- NodeLoggerPure.Delete.debug(s"  - close expected reports for '${nodeId.value}'")
@@ -523,10 +523,10 @@ class CloseNodeConfiguration(expectedReportsRepository: UpdateExpectedReportsRep
 // when the node is a policy server, delete directive/rule/group related to it
 class DeletePolicyServerPolicies(policyServerManagement: PolicyServerManagementService) extends PostNodeDeleteAction {
   override def run(
-      nodeId:    NodeId,
-      mode:      DeleteMode,
-      info:      Option[CoreNodeFact],
-      status:    Set[InventoryStatus]
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[CoreNodeFact],
+      status: Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
     // we can avoid to do LDAP requests if we are sure the node wasn't a policy server
     info.map(_.rudderSettings.isPolicyServer) match {
@@ -548,10 +548,10 @@ class DeletePolicyServerPolicies(policyServerManagement: PolicyServerManagementS
 // clean up certification key status (only in move mode, not erase)
 class ResetKeyStatus(ldap: LDAPConnectionProvider[RwLDAPConnection], deletedDit: InventoryDit) extends PostNodeDeleteAction {
   override def run(
-      nodeId:    NodeId,
-      mode:      DeleteMode,
-      info:      Option[CoreNodeFact],
-      status:    Set[InventoryStatus]
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[CoreNodeFact],
+      status: Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
     if (mode == DeleteMode.MoveToRemoved) {
       NodeLoggerPure.Delete.debug(s"  - reset node key certification status for '${nodeId.value}'") *>
@@ -573,10 +573,10 @@ class ResetKeyStatus(ldap: LDAPConnectionProvider[RwLDAPConnection], deletedDit:
 // clean-up cfengine key - only possible if we still have an inventory
 class CleanUpCFKeys extends PostNodeDeleteAction {
   override def run(
-      nodeId:    NodeId,
-      mode:      DeleteMode,
-      info:      Option[CoreNodeFact],
-      status:    Set[InventoryStatus]
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[CoreNodeFact],
+      status: Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
     info match {
       case Some(i) =>
@@ -636,10 +636,10 @@ class CleanUpNodePolicyFiles(varRudderShare: String) extends PostNodeDeleteActio
   import better.files.File._
 
   override def run(
-      nodeId:    NodeId,
-      mode:      DeleteMode,
-      info:      Option[CoreNodeFact],
-      status:    Set[InventoryStatus]
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[CoreNodeFact],
+      status: Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
     NodeLoggerPure.Delete.debug(s"  - clean-up node '${nodeId.value}' policy files in /var/rudder/share") *>
     cleanPoliciesRec(nodeId, File(varRudderShare)).runDrain.catchAll(err => {

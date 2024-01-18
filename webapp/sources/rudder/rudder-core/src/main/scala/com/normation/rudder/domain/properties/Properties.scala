@@ -99,7 +99,7 @@ object InheritMode {
     final case object Override extends ObjectMode { override val value = 'o' }
     final case object Merge    extends ObjectMode { override val value = 'm' }
 
-    def all:            List[ObjectMode]   = ca.mrvisser.sealerate.values[ObjectMode].toList
+    def all: List[ObjectMode] = ca.mrvisser.sealerate.values[ObjectMode].toList
     def parse(c: Char): Option[ObjectMode] = all.find(c == _.value)
   }
   sealed trait ArrayMode       { def value: Char }
@@ -108,7 +108,7 @@ object InheritMode {
     final case object Append   extends ArrayMode { override val value = 'a' }
     final case object Prepend  extends ArrayMode { override val value = 'p' }
 
-    def all:            List[ArrayMode]   = ca.mrvisser.sealerate.values[ArrayMode].toList
+    def all: List[ArrayMode] = ca.mrvisser.sealerate.values[ArrayMode].toList
     def parse(c: Char): Option[ArrayMode] = all.find(c == _.value)
   }
   sealed trait StringMode      { def value: Char }
@@ -117,7 +117,7 @@ object InheritMode {
     final case object Append   extends StringMode { override val value = 'a' }
     final case object Prepend  extends StringMode { override val value = 'p' }
 
-    def all:            List[StringMode]   = ca.mrvisser.sealerate.values[StringMode].toList
+    def all: List[StringMode] = ca.mrvisser.sealerate.values[StringMode].toList
     def parse(c: Char): Option[StringMode] = all.find(c == _.value)
   }
 
@@ -195,13 +195,13 @@ sealed trait GenericProperty[P <: GenericProperty[_]] {
     GenericProperty.getMode(config)
   }
 
-  final def withName(name: String):            P      = patch(PatchProperty(name = Some(name)))
-  final def withValue(value: ConfigValue):     P      = patch(PatchProperty(value = Some(value)))
-  final def withValue(value: String):          P      = patch(PatchProperty(value = Some(value.toConfigValue)))
-  final def withProvider(p: PropertyProvider): P      = patch(PatchProperty(provider = Some(p)))
-  final def withDescription(d: String):        P      = patch(PatchProperty(description = Some(d)))
-  final def withMode(m: InheritMode):          P      = patch(PatchProperty(inheritMode = Some(m)))
-  final def patch(p: PatchProperty):           P      = {
+  final def withName(name:     String):           P = patch(PatchProperty(name = Some(name)))
+  final def withValue(value:   ConfigValue):      P = patch(PatchProperty(value = Some(value)))
+  final def withValue(value:   String):           P = patch(PatchProperty(value = Some(value.toConfigValue)))
+  final def withProvider(p:    PropertyProvider): P = patch(PatchProperty(provider = Some(p)))
+  final def withDescription(d: String):           P = patch(PatchProperty(description = Some(d)))
+  final def withMode(m:        InheritMode):      P = patch(PatchProperty(inheritMode = Some(m)))
+  final def patch(p: PatchProperty): P      = {
     def patchOne[A](key: String, update: Option[A], toValue: A => ConfigValue)(c: Config): Config = {
       update match {
         case None    => c
@@ -219,7 +219,7 @@ sealed trait GenericProperty[P <: GenericProperty[_]] {
       ).foldLeft(config) { case (c, patchStep) => patchStep(c) }
     )
   }
-  override def toString:                       String =
+  override def toString:             String =
     this.getClass.getSimpleName + "(" + this.config.root.render(ConfigRenderOptions.defaults()) + ")"
 }
 

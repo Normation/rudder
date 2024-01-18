@@ -81,9 +81,9 @@ class ReportsTest extends DBCommon {
   sequential
 
   implicit def toReport(t: (DateTime, String, String, String, String, String, String, DateTime, String, String)): Reports = {
-    implicit def toRuleId(s: String)      = RuleId(RuleUid(s))
+    implicit def toRuleId(s:      String) = RuleId(RuleUid(s))
     implicit def toDirectiveId(s: String) = DirectiveId(DirectiveUid(s))
-    implicit def toNodeId(s: String)      = NodeId(s)
+    implicit def toNodeId(s:      String) = NodeId(s)
 
     Reports(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10)
   }

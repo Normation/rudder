@@ -46,7 +46,7 @@ object CronParser {
         type State = Unit
         def initial: Unit = ()
         def step(now: OffsetDateTime, in: Any, state: Unit)(implicit
-            trace:    Trace
+            trace: Trace
         ): ZIO[Any, Nothing, (Unit, Any, Schedule.Decision)] = {
           ZIO.succeed((c.next(now))).map {
             case Some(next) => (initial, in, Schedule.Decision.Continue(Schedule.Interval.after(next)))

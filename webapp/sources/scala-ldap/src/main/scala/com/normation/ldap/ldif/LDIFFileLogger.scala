@@ -67,9 +67,9 @@ trait LDIFFileLogger {
 class DummyLDIFFileLogger extends LDIFFileLogger {
   def loggerName       = "dummy logger - no output"
   val ldifTraceRootDir = "no a real ldifTraceRootDir"
-  def tree(tree: LDAPTree):                                              Unit = {}
-  def record(LDIFRecord: => LDIFRecord, comment: Option[String] = None): Unit = {}
-  def records(LDIFRecords: => Seq[LDIFRecord]):                          Unit = {}
+  def tree(tree:           LDAPTree): Unit = {}
+  def record(LDIFRecord:   => LDIFRecord, comment: Option[String] = None): Unit = {}
+  def records(LDIFRecords: => Seq[LDIFRecord]): Unit = {}
 }
 
 /**
@@ -88,9 +88,9 @@ class DefaultLDIFFileLogger(
     override val loggerName:       String = DefaultLDIFFileLogger.defaultLoggerName,
     override val ldifTraceRootDir: String = DefaultLDIFFileLogger.defaultTraceDir
 ) extends Slf4jLDIFLogger {
-  override def isLogLevel:                    Boolean = logger.isTraceEnabled
-  override def log(s: String):                Unit    = logger.trace(s)
-  override def logE(s: String, e: Exception): Unit    = logger.trace(s, e)
+  override def isLogLevel: Boolean = logger.isTraceEnabled
+  override def log(s:  String): Unit = logger.trace(s)
+  override def logE(s: String, e: Exception): Unit = logger.trace(s, e)
 }
 
 /**

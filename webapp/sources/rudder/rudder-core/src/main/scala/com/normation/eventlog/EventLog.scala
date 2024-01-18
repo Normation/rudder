@@ -193,7 +193,7 @@ object UnspecializedEventLog extends EventLogFilter {
 
 object EventLog {
   def withContent(nodes: NodeSeq): Elem = <entry>{nodes}</entry>
-  val emptyDetails:                Elem = withContent(NodeSeq.Empty)
+  val emptyDetails: Elem = withContent(NodeSeq.Empty)
 }
 
 case object UnknownEventLogType extends NoRollbackEventLogType {

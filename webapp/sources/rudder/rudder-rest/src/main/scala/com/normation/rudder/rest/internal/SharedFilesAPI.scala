@@ -99,7 +99,7 @@ class SharedFilesAPI(
 ) extends RestHelper with Loggable {
 
   private def checkPathAndContinue(path: String, baseFolder: File)(
-      fun:                               File => IOResult[LiftResponse]
+      fun: File => IOResult[LiftResponse]
   ): IOResult[LiftResponse] = {
     sanitizePath(path, baseFolder).flatMap(fun)
   }

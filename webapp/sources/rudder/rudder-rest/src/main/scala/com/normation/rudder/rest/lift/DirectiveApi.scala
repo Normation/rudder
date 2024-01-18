@@ -108,26 +108,26 @@ class DirectiveApi(
   def schemas: ApiModuleProvider[API] = API
 
   def response(function: Box[JValue], req: Req, errorMessage: String, id: Option[String])(implicit
-      action:            String
+      action: String
   ): LiftResponse = {
     RestUtils.response(restExtractorService, dataName, id)(function, req, errorMessage)
   }
 
   type ActionType = RestUtils.ActionType
   def actionResponse(function: Box[ActionType], req: Req, errorMessage: String, id: Option[String], actor: EventActor)(implicit
-      action:                  String
+      action: String
   ): LiftResponse = {
     RestUtils.actionResponse2(restExtractorService, dataName, uuidGen, id)(function, req, errorMessage)(action, actor)
   }
 
   type WorkflowType = RestUtils.WorkflowType
   def workflowResponse(
-      function:      Box[WorkflowType],
-      req:           Req,
-      errorMessage:  String,
-      id:            Option[String],
-      defaultName:   String,
-      actor:         EventActor
+      function:     Box[WorkflowType],
+      req:          Req,
+      errorMessage: String,
+      id:           Option[String],
+      defaultName:  String,
+      actor:        EventActor
   )(implicit action: String): LiftResponse = {
     RestUtils.workflowResponse2(restExtractorService, dataName, uuidGen, id)(function, req, errorMessage, defaultName)(
       action,
@@ -450,7 +450,7 @@ class DirectiveApiService2(
       directive:       Directive,
       initialState:    Option[Directive],
       action:          DGModAction
-  )(actor:             EventActor, reason: Option[String], crName: String, crDescription: String): Box[JValue] = {
+  )(actor: EventActor, reason: Option[String], crName: String, crDescription: String): Box[JValue] = {
     val change = DirectiveChangeRequest(
       action,
       technique.id.name,
@@ -510,7 +510,7 @@ class DirectiveApiService2(
       baseDirective:   Directive,
       activeTechnique: ActiveTechnique,
       technique:       Technique
-  )(actor:             EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
+  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     val newDirective = restDirective.updateDirective(baseDirective)
     val modId        = ModificationId(uuidGen.newUuid)
     for {

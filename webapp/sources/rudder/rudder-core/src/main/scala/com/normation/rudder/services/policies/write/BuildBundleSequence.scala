@@ -355,7 +355,7 @@ class BuildBundleSequence(
       agentType:        AgentType,
       globalPolicyMode: GlobalPolicyMode,
       nodePolicyMode:   Option[PolicyMode]
-  )(policy:             Policy): PureResult[TechniqueBundles] = {
+  )(policy: Policy): PureResult[TechniqueBundles] = {
     // naming things to make them clear
     val name = Promiser(policy.ruleName + "/" + policy.directiveName)
 

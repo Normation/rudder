@@ -127,7 +127,7 @@ final case class AddTechnique(
 }
 
 object AddTechnique extends EventLogFilter {
-  override val eventType:                                 EventLogType = AddTechniqueEventType
+  override val eventType: EventLogType = AddTechniqueEventType
   override def apply(x: (EventLogType, EventLogDetails)): AddTechnique = AddTechnique(x._2)
 }
 
@@ -139,7 +139,7 @@ final case class ModifyTechnique(
 }
 
 object ModifyTechnique extends EventLogFilter {
-  override val eventType:                                 EventLogType    = ModifyTechniqueEventType
+  override val eventType: EventLogType = ModifyTechniqueEventType
   override def apply(x: (EventLogType, EventLogDetails)): ModifyTechnique = ModifyTechnique(x._2)
 }
 
@@ -151,6 +151,6 @@ final case class DeleteTechnique(
 }
 
 object DeleteTechnique extends EventLogFilter {
-  override val eventType:                                 EventLogType    = DeleteTechniqueEventType
+  override val eventType: EventLogType = DeleteTechniqueEventType
   override def apply(x: (EventLogType, EventLogDetails)): DeleteTechnique = DeleteTechnique(x._2)
 }

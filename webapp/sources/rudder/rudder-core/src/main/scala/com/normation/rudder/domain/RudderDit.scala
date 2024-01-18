@@ -203,9 +203,9 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
 
     val rootCategoryId: ActiveTechniqueCategoryId = ActiveTechniqueCategoryId(this.uuid)
 
-    def isACategory(e: LDAPEntry):         Boolean = e.isA(OC_TECHNIQUE_CATEGORY)
+    def isACategory(e:         LDAPEntry): Boolean = e.isA(OC_TECHNIQUE_CATEGORY)
     def isAnActiveTechnique(e: LDAPEntry): Boolean = e.isA(OC_ACTIVE_TECHNIQUE)
-    def isADirective(e: LDAPEntry):        Boolean = e.isA(OC_DIRECTIVE)
+    def isADirective(e:        LDAPEntry): Boolean = e.isA(OC_DIRECTIVE)
 
     /**
      * From a DN of a category, return the value of the rdn (uuid)
@@ -244,7 +244,7 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
       mod
     }
 
-    def buildRDN(rdn: String):         RDN = new RDN(A_ACTIVE_TECHNIQUE_UUID, rdn)
+    def buildRDN(rdn:         String): RDN = new RDN(A_ACTIVE_TECHNIQUE_UUID, rdn)
     def buildCategoryRDN(rdn: String): RDN = new RDN(A_TECHNIQUE_CATEGORY_UUID, rdn)
 
     def directiveModel(uuid: DirectiveUid, rev: Revision, techniqueVersion: TechniqueVersion, parentDN: DN): LDAPEntry = {
@@ -359,8 +359,8 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
 
     val rootCategoryId: NodeGroupCategoryId = NodeGroupCategoryId(this.uuid)
 
-    def isACategory(e: LDAPEntry):      Boolean = e.isA(OC_GROUP_CATEGORY)
-    def isAGroup(e: LDAPEntry):         Boolean = e.isA(OC_RUDDER_NODE_GROUP)
+    def isACategory(e:      LDAPEntry): Boolean = e.isA(OC_GROUP_CATEGORY)
+    def isAGroup(e:         LDAPEntry): Boolean = e.isA(OC_RUDDER_NODE_GROUP)
     def isASpecialTarget(e: LDAPEntry): Boolean = e.isA(OC_SPECIAL_TARGET)
 
     /**

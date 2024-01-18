@@ -274,21 +274,21 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
 
   // check validity of xml file written by rudderc
   def checkXML(
-      status:          OutputFileStatus
+      status: OutputFileStatus
   )(implicit compiler: TechniqueCompilerWithFallback, technique: EditorTechnique): MatchResult[Any] = {
     checkOutput(compiler, "metadata.xml", technique.id.value, Content.ruddercMetadata, status)
   }
 
   // check validity of .cf file written by rudderc
   def checkCFE(
-      status:          OutputFileStatus
+      status: OutputFileStatus
   )(implicit compiler: TechniqueCompilerWithFallback, technique: EditorTechnique): MatchResult[Any] = {
     checkOutput(compiler, "technique.cf", technique.id.value, Content.ruddercCFE, status)
   }
 
   // check validity of .ps1 file written by rudderc
   def checkPS1(
-      status:          OutputFileStatus
+      status: OutputFileStatus
   )(implicit compiler: TechniqueCompilerWithFallback, technique: EditorTechnique): MatchResult[Any] = {
     checkOutput(compiler, "technique.ps1", technique.id.value, Content.ruddercPS1, status)
   }

@@ -231,7 +231,7 @@ trait SectionField extends SectionChildField {
   // - the user may not have choosen anything, so the default applied
   // - the user want to have the section displayed
   // - the user want to have the section hidden
-  var displayed: Option[Boolean] = Option.empty[Boolean]
+  var displayed:          Option[Boolean] = Option.empty[Boolean]
 
   def collectVariables(onlyDirect: Boolean): Map[String, DirectiveField] = {
     childFields.flatMap { x =>

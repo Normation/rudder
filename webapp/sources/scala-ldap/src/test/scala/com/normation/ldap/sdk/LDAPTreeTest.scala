@@ -46,8 +46,7 @@ class LDAPTreeTest extends Specification {
       override val root = LDAPEntry(dn1)
 
       val c1 = new LDAPTree() {
-        tree_c1 =>
-        override val root = LDAPEntry(dn2)
+        tree_c1 => override val root = LDAPEntry(dn2)
 
         top.addChild(tree_c1)
       }

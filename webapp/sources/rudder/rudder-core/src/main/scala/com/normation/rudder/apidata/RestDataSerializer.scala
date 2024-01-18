@@ -95,20 +95,20 @@ trait RestDataSerializer {
 
   def serializeGroup(group: NodeGroup, cat: Option[NodeGroupCategoryId], crId: Option[ChangeRequestId]): JValue
   def serializeGroupCategory(
-      category:             FullNodeGroupCategory,
-      parent:               NodeGroupCategoryId,
-      detailLevel:          DetailLevel,
-      apiVersion:           ApiVersion
+      category:    FullNodeGroupCategory,
+      parent:      NodeGroupCategoryId,
+      detailLevel: DetailLevel,
+      apiVersion:  ApiVersion
   ): JValue
 
   def serializeParameter(parameter: GlobalParameter, crId: Option[ChangeRequestId]): JValue
 
   def serializeRule(rule: Rule, crId: Option[ChangeRequestId]): JValue
   def serializeRuleCategory(
-      category:           RuleCategory,
-      parent:             RuleCategoryId,
-      rules:              Map[RuleCategoryId, Seq[Rule]],
-      detailLevel:        DetailLevel
+      category:    RuleCategory,
+      parent:      RuleCategoryId,
+      rules:       Map[RuleCategoryId, Seq[Rule]],
+      detailLevel: DetailLevel
   ): JValue
 
   def serializeServerInfo(srv: Srv, status: String): JValue
@@ -361,7 +361,7 @@ final case class RestDataSerializerImpl(
 
     def serializeRuleDiff(diff: ModifyRuleDiff, initialState: Rule): JValue = {
       def convertDirectives(dl: Set[DirectiveId]): JValue = dl.map(d => JString(d.serialize)).toList
-      def convertTargets(t: Set[RuleTarget]):      JValue = t.map(_.target).toList
+      def convertTargets(t:     Set[RuleTarget]):  JValue = t.map(_.target).toList
 
       val name:             JValue = diff.modName.map(displaySimpleDiff(_)).getOrElse(initialState.name)
       val shortDescription: JValue = diff.modShortDescription.map(displaySimpleDiff(_)).getOrElse(initialState.shortDescription)
@@ -459,8 +459,8 @@ final case class RestDataSerializerImpl(
 
     def serializeNodeGroupDiff(diff: ModifyNodeGroupDiff, initialState: NodeGroup): JValue = {
       implicit def convert[T](value: GroupProperty): JValue = value.toJson
-      def convertNodeList(nl: Set[NodeId]):          JValue = nl.map(_.value).toList
-      def convertQuery(q: Option[Query]):            JValue = q.map(_.toString)
+      def convertNodeList(nl:        Set[NodeId]):   JValue = nl.map(_.value).toList
+      def convertQuery(q:            Option[Query]): JValue = q.map(_.toString)
 
       val name:        JValue = diff.modName.map(displaySimpleDiff(_)).getOrElse(initialState.name)
       val description: JValue = diff.modDescription.map(displaySimpleDiff(_)).getOrElse(initialState.description)
@@ -521,17 +521,17 @@ final case class RestDataSerializerImpl(
       // This is in a try/catch because directiveValToSectionVal may fail (it can throw exceptions, so we need to catch them)
       try {
         def convertParameters(sv: SectionVal): JValue = serializeSectionVal(sv)
-        val name:                              JValue = diff.modName.map(displaySimpleDiff(_)).getOrElse(initialState.name)
-        val shortDescription:                  JValue = diff.modShortDescription.map(displaySimpleDiff(_)).getOrElse(initialState.shortDescription)
-        val longDescription:                   JValue = diff.modLongDescription.map(displaySimpleDiff(_)).getOrElse(initialState.longDescription)
-        val techniqueVersion:                  JValue =
+        val name:             JValue = diff.modName.map(displaySimpleDiff(_)).getOrElse(initialState.name)
+        val shortDescription: JValue = diff.modShortDescription.map(displaySimpleDiff(_)).getOrElse(initialState.shortDescription)
+        val longDescription:  JValue = diff.modLongDescription.map(displaySimpleDiff(_)).getOrElse(initialState.longDescription)
+        val techniqueVersion: JValue =
           diff.modTechniqueVersion.map(displaySimpleDiff(_)(_.serialize)).getOrElse(initialState.techniqueVersion.serialize)
-        val priority:                          JValue = diff.modPriority.map(displaySimpleDiff(_)).getOrElse(initialState.priority)
-        val enabled:                           JValue = diff.modIsActivated.map(displaySimpleDiff(_)).getOrElse(initialState.isEnabled)
-        val initialParams:                     JValue = serializeSectionVal(
+        val priority:         JValue = diff.modPriority.map(displaySimpleDiff(_)).getOrElse(initialState.priority)
+        val enabled:          JValue = diff.modIsActivated.map(displaySimpleDiff(_)).getOrElse(initialState.isEnabled)
+        val initialParams:    JValue = serializeSectionVal(
           SectionVal.directiveValToSectionVal(initialRootSection, initialState.parameters)
         )
-        val parameters:                        JValue = diff.modParameters.map(displaySimpleDiff(_)(convertParameters)).getOrElse(initialParams)
+        val parameters:       JValue = diff.modParameters.map(displaySimpleDiff(_)(convertParameters)).getOrElse(initialParams)
         Full(
           ("id"                 -> initialState.id.serialize)
           ~ ("displayName"      -> name)

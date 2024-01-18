@@ -1166,8 +1166,8 @@ class EventLogDetailsGenerator(
   ): Option[NodeSeq] = diff.map(value => displayFormDiff(value, name))
 
   private[this] def displayFormDiff[T](
-      diff:       SimpleDiff[T],
-      name:       String
+      diff: SimpleDiff[T],
+      name: String
   )(implicit fun: T => String = (t: T) => t.toString): NodeSeq = {
     <pre style="width:200px;" id={s"before${name}"}
          class="nodisplay">{fun(diff.oldValue)}</pre>

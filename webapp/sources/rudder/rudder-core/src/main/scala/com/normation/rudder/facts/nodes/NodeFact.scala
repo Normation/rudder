@@ -1407,15 +1407,15 @@ object SelectFacts {
 }
 
 final case class NodeFact(
-    id:             NodeId,
-    description:    Option[String],
+    id:                NodeId,
+    description:       Option[String],
     @jsonField("hostname")
-    fqdn:           String,
-    os:             OsDetails,
-    machine:        MachineInfo,
-    rudderSettings: RudderSettings,
-    rudderAgent:    RudderAgent,
-    properties:     Chunk[NodeProperty],
+    fqdn:              String,
+    os:                OsDetails,
+    machine:           MachineInfo,
+    rudderSettings:    RudderSettings,
+    rudderAgent:       RudderAgent,
+    properties:        Chunk[NodeProperty],
 // what the point ? Derive from RudderAgent ? At least details.
 //    managementTechnology:        Chunk[ManagementTechnology],
 //    managementTechnologyDetails: ManagementTechnologyDetails,

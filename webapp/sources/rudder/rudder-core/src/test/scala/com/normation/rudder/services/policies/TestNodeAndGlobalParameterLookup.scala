@@ -142,7 +142,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
   def lookup(
       variables: Seq[Variable],
       pContext:  ParamInterpolationContext
-  )(test:        Seq[Seq[String]] => org.specs2.execute.Result): org.specs2.execute.Result = {
+  )(test: Seq[Seq[String]] => org.specs2.execute.Result): org.specs2.execute.Result = {
     lookupParam(variables, pContext).either.runNow match {
       case Left(err)  => failure("Error in test: " + err.fullMsg)
       case Right(res) => test(res.values.map(_.values).toSeq)

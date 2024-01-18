@@ -124,8 +124,8 @@ object DisplayDirectiveTree extends Loggable {
    * keep. By default, display everything.
    */
   def displayTree(
-      directiveLib: FullActiveTechniqueCategory,
-      globalMode:   GlobalPolicyMode, // set of all directives at least used by one rule
+      directiveLib:     FullActiveTechniqueCategory,
+      globalMode:       GlobalPolicyMode, // set of all directives at least used by one rule
       // the int is the number of rule which used it
 
       usedDirectiveIds: Seq[(DirectiveUid, Int)],

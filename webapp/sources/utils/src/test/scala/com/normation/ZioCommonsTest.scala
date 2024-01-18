@@ -327,7 +327,7 @@ object TestZioSemantic {
     def apply(s: String): UIO[Unit]
   }
   def makeLog: Task[LOG] = ZIO.attempt(new LOG {
-    val zero             = java.lang.System.currentTimeMillis()
+    val zero = java.lang.System.currentTimeMillis()
     def apply(s: String) = ZIO.succeed(println(s"[${java.lang.System.currentTimeMillis() - zero}] $s"))
   })
 

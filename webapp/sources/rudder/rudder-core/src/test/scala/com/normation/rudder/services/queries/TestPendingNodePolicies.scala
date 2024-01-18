@@ -111,7 +111,7 @@ class TestPendingNodePolicies extends Specification {
   // a query line for sub group
   def sub(g: NodeGroup): CriterionLine = CriterionLine(groupCriterion, groupCriterion.criteria.head, Equals, g.id.serialize)
   // a random query that will be added as dummy content - query checker will returns pre-defined things
-  val cl:                CriterionLine = CriterionLine(
+  val cl: CriterionLine = CriterionLine(
     ObjectCriterion(
       OC_MACHINE,
       Seq(Criterion(A_MACHINE_UUID, StringComparator, NodeCriterionMatcherString(n => Chunk(n.machine.id.value))))
@@ -124,11 +124,11 @@ class TestPendingNodePolicies extends Specification {
   // the node that we will try to accept
   val node: NodeId = NodeId("node")
 
-  def orQuery(g: NodeGroup):      Query = Query(null, Or, Identity, List(cl, sub(g), cl))
-  def andQuery(g: NodeGroup):     Query = Query(null, And, Identity, List(cl, sub(g), cl))
+  def orQuery(g:      NodeGroup): Query = Query(null, Or, Identity, List(cl, sub(g), cl))
+  def andQuery(g:     NodeGroup): Query = Query(null, And, Identity, List(cl, sub(g), cl))
   def onlySubQuery(g: NodeGroup): Query = Query(null, And, Identity, List(sub(g)))
-  val dummyQuery0:                Query = Query(null, And, Identity, List(cl)) // will return 0 node
-  val dummyQuery1:                Query = Query(null, Or, Identity, List(cl))  // will return 1 node
+  val dummyQuery0: Query = Query(null, And, Identity, List(cl)) // will return 0 node
+  val dummyQuery1: Query = Query(null, Or, Identity, List(cl))  // will return 1 node
 
   def ng(id: String, q: Query, dyn: Boolean = true): NodeGroup =
     NodeGroup(NodeGroupId(NodeGroupUid(id)), id, id, Nil, Some(q), dyn, Set(), true, false)
@@ -177,7 +177,7 @@ class TestPendingNodePolicies extends Specification {
     )
 
     def getAllDynGroupsWithandWithoutDependencies(): Box[(Seq[NodeGroupId], Seq[NodeGroupId])] = ???
-    override def changesSince(lastTime: DateTime):   Box[Boolean]                              = Full(true)
+    override def changesSince(lastTime: DateTime): Box[Boolean] = Full(true)
   }
 
   // a fake query checker

@@ -149,12 +149,12 @@ trait LiftApiModuleProvider[A <: EndpointSchema] {
 }
 
 object LiftApiProcessingLogger extends Log {
-  protected def _logger:     Logger = ApiLogger
-  def trace(msg: => String): Unit   = _logger.trace(msg)
-  def debug(msg: => String): Unit   = _logger.debug(msg)
-  def info(msg: => String):  Unit   = _logger.info(msg)
-  def warn(msg: => String):  Unit   = _logger.warn(msg)
-  def error(msg: => String): Unit   = _logger.error(msg)
+  protected def _logger: Logger = ApiLogger
+  def trace(msg: => String): Unit = _logger.trace(msg)
+  def debug(msg: => String): Unit = _logger.debug(msg)
+  def info(msg:  => String): Unit = _logger.info(msg)
+  def warn(msg:  => String): Unit = _logger.warn(msg)
+  def error(msg: => String): Unit = _logger.error(msg)
 }
 
 class LiftHandler(

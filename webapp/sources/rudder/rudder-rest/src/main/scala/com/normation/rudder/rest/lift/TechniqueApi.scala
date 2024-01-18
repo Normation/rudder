@@ -114,7 +114,7 @@ class TechniqueApi(
   }
 
   def actionResp(function: Box[ActionType], req: Req, errorMessage: String, actor: EventActor)(implicit
-      action:              String
+      action: String
   ): LiftResponse = {
     // implementation copied from RestUtils#actionResponse2
     // but changed to never fail on reason message extraction

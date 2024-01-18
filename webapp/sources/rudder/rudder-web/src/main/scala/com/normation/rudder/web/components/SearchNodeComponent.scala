@@ -84,7 +84,7 @@ class SearchNodeComponent(
       Noop
     }, // this callback is used when a research is done and the state of the Search button changes
 
-    saveButtonId: String = "", // the id of the save button, that gets disabled when one change the form
+    saveButtonId:     String = "", // the id of the save button, that gets disabled when one change the form
 
     groupPage: Boolean
 ) extends DispatchSnippet with Loggable {
@@ -592,7 +592,7 @@ object SearchNodeComponent {
 
   // how to present the first select box
   val otOptions: List[(String, String)] = {
-    val opts                             = Buffer[(String, String)]()
+    val opts = Buffer[(String, String)]()
     def add(s: String, pre: String = "") = opts += ((s, pre + S.?("ldap.object." + s)))
 
     add(OC_NODE)
@@ -639,7 +639,7 @@ object SearchNodeComponent {
     SHtml.untrustedSelect(
       otOptions,
       Full(ot.objectType),
-      ({ x =>
+      (x => {
         ditQueryData.criteriaMap.get(x) foreach { o => if (i >= 0 && i < lines.size) lines(i) = lines(i).copy(objectType = o) }
       }),
       ("id", "ot_" + i),

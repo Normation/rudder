@@ -203,7 +203,7 @@ trait EndpointSchema {
   // ACTION+PATH couple.
   // typically, several version of the same API will have the
   // same name, but not the same path.
-  def name: String = {
+  def name:   String = {
     val n = this.getClass.getSimpleName()
     n(0).toLower.toString + n.substring(1, n.size - 1) // also remove the last '$'
   }
@@ -241,7 +241,7 @@ object EndpointSchema {
       def /(s: String) = (action, ApiPath.of(s))
     }
     implicit class AddPath(val pair: (HttpAction, ApiPath)) extends AnyVal {
-      def /(s: String)     = (pair._1, pair._2 / s)
+      def /(s:    String)  = (pair._1, pair._2 / s)
       def /(path: ApiPath) = (pair._1, ApiPath(pair._2.parts.concatNel(path.parts)))
     }
   }

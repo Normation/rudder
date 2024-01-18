@@ -95,7 +95,7 @@ class FullInventoryFileParser(
 }
 
 object NodeIdConverter extends IdToFilenameConverter[NodeId] {
-  override def idToFilename(id: NodeId):   String = id.value
+  override def idToFilename(id:   NodeId): String = id.value
   override def filenameToId(name: String): NodeId = NodeId(name)
 }
 

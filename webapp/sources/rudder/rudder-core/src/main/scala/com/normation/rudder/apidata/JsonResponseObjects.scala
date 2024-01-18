@@ -143,10 +143,10 @@ object JsonResponseObjects {
       value: String
   )
   final case class JRDirectiveSection(
-      name: String, // we have one more "var" indirection level between a var and its details:
+      name:     String, // we have one more "var" indirection level between a var and its details:
       // { vars":[ { "var":{ "name": .... } }, { "var": { ... }} ]
 
-      vars: Option[
+      vars:     Option[
         List[Map[String, JRDirectiveSectionVar]]
       ], // we have one more "section" indirection level between a section and its details:
       // { sections":[ { "section":{ "name": .... } }, { "section": { ... }} ]
@@ -601,7 +601,7 @@ object JsonResponseObjects {
 
   object JRGlobalParameter {
     import GenericProperty._
-    def empty(name: String):                                                    JRGlobalParameter = JRGlobalParameter(None, name, "".toConfigValue, "", None, None)
+    def empty(name: String): JRGlobalParameter = JRGlobalParameter(None, name, "".toConfigValue, "", None, None)
     def fromGlobalParameter(p: GlobalParameter, crId: Option[ChangeRequestId]): JRGlobalParameter = {
       JRGlobalParameter(crId.map(_.value.toString), p.name, p.value, p.description, p.inheritMode, p.provider)
     }

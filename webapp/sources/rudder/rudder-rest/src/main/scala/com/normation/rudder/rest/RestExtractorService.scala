@@ -127,7 +127,7 @@ final case class RestExtractorService(
    */
 
   private[this] def extractOneValue[T](params: Map[String, List[String]], key: String)(
-      to:                                      (String) => Box[T] = ((value: String) => Full(value))
+      to: (String) => Box[T] = ((value: String) => Full(value))
   ) = {
     params.get(key) match {
       case None               => Full(None)
@@ -137,7 +137,7 @@ final case class RestExtractorService(
   }
 
   private[this] def extractList[T](params: Map[String, List[String]], key: String)(
-      to:                                  (List[String]) => Box[T]
+      to: (List[String]) => Box[T]
   ): Box[Option[T]] = {
     params.get(key) match {
       case None       => Full(None)
@@ -1208,10 +1208,10 @@ final case class RestExtractorService(
   }
 
   def extractMap[T, U](key: String)(req: Req)(
-      keyFun:               String => T,
-      jsonValueFun:         JValue => U,
-      paramValueFun:        String => U,
-      paramMapSepartor:     String
+      keyFun:           String => T,
+      jsonValueFun:     JValue => U,
+      paramValueFun:    String => U,
+      paramMapSepartor: String
   ): Box[Option[Map[T, U]]] = {
     req.json match {
       case Full(json) =>

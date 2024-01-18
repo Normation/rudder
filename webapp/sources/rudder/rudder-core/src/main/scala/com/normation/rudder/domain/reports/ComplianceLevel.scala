@@ -89,7 +89,7 @@ final case class CompliancePercent(
     nonCompliant:       Double = 0,
     auditError:         Double = 0,
     badPolicyMode:      Double = 0
-)(val precision:        CompliancePrecision = Level0) {
+)(val precision: CompliancePrecision = Level0) {
   val compliance: Double = success + repaired + notApplicable + compliant + auditNotApplicable
 }
 
@@ -415,7 +415,7 @@ final case class ComplianceLevel(
     )
   }
 
-  def +(report: ReportType):            ComplianceLevel = this + ComplianceLevel.compute(Seq(report))
+  def +(report:  ReportType):           ComplianceLevel = this + ComplianceLevel.compute(Seq(report))
   def +(reports: Iterable[ReportType]): ComplianceLevel = this + ComplianceLevel.compute(reports)
 }
 

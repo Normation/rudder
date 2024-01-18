@@ -283,19 +283,19 @@ class ParameterApiService2(
     workflowLevelService: WorkflowLevelService,
     restExtractor:        RestExtractorService,
     restDataSerializer:   RestDataSerializer
-)(implicit userService:   UserService)
+)(implicit userService: UserService)
     extends Loggable {
 
   import restDataSerializer.{serializeParameter => serialize}
 
   private[this] def createChangeRequestAndAnswer(
-      id:            String,
-      diff:          ChangeRequestGlobalParameterDiff,
-      parameter:     GlobalParameter,
-      initialState:  Option[GlobalParameter],
-      actor:         EventActor,
-      req:           Req,
-      act:           GlobalParamModAction
+      id:           String,
+      diff:         ChangeRequestGlobalParameterDiff,
+      parameter:    GlobalParameter,
+      initialState: Option[GlobalParameter],
+      actor:        EventActor,
+      req:          Req,
+      act:          GlobalParamModAction
   )(implicit action: String, prettify: Boolean) = {
 
     val change = GlobalParamChangeRequest(act, initialState)

@@ -192,7 +192,7 @@ class FileHistoryLogRepository[ID: ClassTag, T](
 }
 
 object FileHistoryLogRepository {
-  private val formatter               = ISODateTimeFormat.dateTime()
+  private val formatter = ISODateTimeFormat.dateTime()
   private def vToS(version: DateTime) = formatter.print(version)
   private def sToV(version: String): Option[DateTime] = {
     try {

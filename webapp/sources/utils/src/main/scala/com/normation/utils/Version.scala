@@ -83,9 +83,9 @@ final case class Version(epoch: Long, head: PartType, parts: List[VersionPart]) 
 
 object Version {
   // create a list of default value, ie a list of ".0", of the given size
-  def defaultList(size: Int):                                                                  List[VersionPart.After] = List.fill(size)(VersionPart.After(Separator.Dot, PartType.Numeric(0)))
+  def defaultList(size: Int): List[VersionPart.After] = List.fill(size)(VersionPart.After(Separator.Dot, PartType.Numeric(0)))
   @scala.annotation.tailrec
-  def compareList(a: List[VersionPart], aInitSize: Int, b: List[VersionPart], bInitSize: Int): Int                     = {
+  def compareList(a: List[VersionPart], aInitSize: Int, b: List[VersionPart], bInitSize: Int): Int = {
     (a, b) match {
       case (Nil, Nil)           =>
         aInitSize - bInitSize
@@ -96,7 +96,7 @@ object Version {
         if (h == 0) compareList(t1, aInitSize, t2, bInitSize) else h
     }
   }
-  def compare(a: Version, b: Version):                                                         Int                     = {
+  def compare(a: Version, b: Version):                                                         Int = {
     val e = a.epoch - b.epoch
     if (e == 0L) {
       val h = PartType.compare(a.head, b.head)
@@ -155,8 +155,8 @@ object PartType {
   object Numeric {
     // with software in node, we have zillion of duplication of numeric of low ran, so we store them here:
     val cacheSize = 100
-    val numCache:       Chunk[Numeric] = Chunk.fromIterable((0 until cacheSize).map(i => new Numeric(i.toLong)))
-    def apply(n: Long): Numeric        = if (n < cacheSize) numCache(n.toInt) else new Numeric(n)
+    val numCache: Chunk[Numeric] = Chunk.fromIterable((0 until cacheSize).map(i => new Numeric(i.toLong)))
+    def apply(n: Long): Numeric = if (n < cacheSize) numCache(n.toInt) else new Numeric(n)
   }
   def compare(a: PartType, b: PartType): Int = {
     val d = a.index - b.index
@@ -174,8 +174,8 @@ sealed trait VersionPart extends ToVersionString with Ordered[VersionPart] {
   def separator: Separator
   def value:     PartType
 
-  override def toVersionString:             String = separator.toVersionString + value.toVersionString
-  override def compare(other: VersionPart): Int    = VersionPart.compare(this, other)
+  override def toVersionString: String = separator.toVersionString + value.toVersionString
+  override def compare(other: VersionPart): Int = VersionPart.compare(this, other)
 }
 
 object VersionPart {
@@ -196,13 +196,13 @@ object ParseVersion {
   import fastparse._
   import fastparse.NoWhitespace._
 
-  def ascii:                  CharsetEncoder = Charset.forName("US-ASCII").newEncoder()
+  def ascii:                CharsetEncoder = Charset.forName("US-ASCII").newEncoder()
   // chars allowed in a version. Only ascii, non control, non space, non separator - including ":" used for epoch
-  def versionChar(c: Char):   Boolean        =
+  def versionChar(c: Char): Boolean        =
     ascii.canEncode(c) && !(c.isDigit || c.isControl || c.isSpaceChar || separatorChar(c) || c == ':')
-  def separatorChar(c: Char): Boolean        = List('~', '+', ',', '-', '.').contains(c)
+  def separatorChar(c: Char): Boolean = List('~', '+', ',', '-', '.').contains(c)
 
-  def num[A: P]:   P[Long]     = P(CharIn("0-9").rep(1).!.map(_.toLong))
+  def num[A: P]: P[Long] = P(CharIn("0-9").rep(1).!.map(_.toLong))
   def chars[A: P]: P[PartType] = P(CharsWhile(versionChar).rep(1).!).map { s =>
     import PartType._
     s.toLowerCase match {
@@ -216,8 +216,8 @@ object ParseVersion {
     }
   }
 
-  def epoch[A: P]:          P[Long]                  = P(num ~ ":")
-  def toSeparator(c: Char): Separator                = {
+  def epoch[A: P]: P[Long] = P(num ~ ":")
+  def toSeparator(c: Char): Separator = {
     c match {
       case '~' => Separator.Tilde
       case '-' => Separator.Minus
@@ -226,7 +226,7 @@ object ParseVersion {
       case '.' => Separator.Dot
     }
   }
-  def separators[A: P]:     P[IndexedSeq[Separator]] = P(CharsWhile(separatorChar).!).map((s: String) => s.toSeq.map(toSeparator))
+  def separators[A: P]: P[IndexedSeq[Separator]] = P(CharsWhile(separatorChar).!).map((s: String) => s.toSeq.map(toSeparator))
 
   def listOfSepToPart(list: List[Separator]): List[VersionPart]    = {
     list.map {

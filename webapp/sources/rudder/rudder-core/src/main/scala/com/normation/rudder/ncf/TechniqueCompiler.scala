@@ -726,7 +726,7 @@ class ClassicTechniqueWriter(
   // We need to add a reporting bundle for this method to generate a na report for any method with a condition != any/cfengine (which ~= true
   def truthyCondition(condition: String): Boolean = condition.isEmpty || condition == "any" || condition == "cfengine-community"
   def methodCallNeedReporting(methods: Map[BundleName, GenericMethod], parentBlock: List[MethodBlock])(
-      call:                            MethodCall
+      call: MethodCall
   ): Boolean = {
     val condition = formatCondition(call, parentBlock)
     methods
@@ -736,7 +736,7 @@ class ClassicTechniqueWriter(
   }
 
   def elemNeedReportingBundle(methods: Map[BundleName, GenericMethod], parentBlock: List[MethodBlock])(
-      elem:                            MethodElem
+      elem: MethodElem
   ): Boolean = {
     elem match {
       case c: MethodCall  => methodCallNeedReporting(methods, parentBlock)(c)
@@ -1148,7 +1148,7 @@ class DSCTechniqueWriter(
     s"${getTechniqueRelativePath(technique)}}/${filename}"
 
   def formatDscMethodBlock(techniqueName: String, methods: Map[BundleName, GenericMethod], parentBlocks: List[MethodBlock])(
-      method:                             MethodElem
+      method: MethodElem
   ): PureResult[List[String]] = {
     method match {
       case c: MethodCall =>

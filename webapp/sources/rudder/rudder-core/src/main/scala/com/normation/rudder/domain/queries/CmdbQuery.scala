@@ -142,7 +142,7 @@ object NodePropertyMatcherUtils {
 
 sealed trait ComparatorList {
 
-  def comparators: Seq[CriterionComparator]
+  def comparators:                    Seq[CriterionComparator]
   def comparatorForString(s: String): Option[CriterionComparator] = {
     for (comp <- comparators) {
       if (s.equalsIgnoreCase(comp.id)) return Some(comp)
@@ -165,9 +165,9 @@ sealed trait CriterionType extends ComparatorList {
    * for the field.
    * DO NOT FORGET TO USE attrs ! (especially 'id')
    */
-  def toForm(value: String, func: String => Any, attrs: (String, String)*): Elem               = SHtml.text(value, func, attrs: _*)
-  def initForm(formId: String):                                             JsCmd              = Noop
-  def destroyForm(formId: String):                                          JsCmd              = {
+  def toForm(value:    String, func: String => Any, attrs: (String, String)*): Elem = SHtml.text(value, func, attrs: _*)
+  def initForm(formId: String): JsCmd = Noop
+  def destroyForm(formId: String):               JsCmd              = {
     OnLoad(
       JsRaw(
         """$('#%s').datepicker( "destroy" );""".format(formId)
@@ -175,7 +175,7 @@ sealed trait CriterionType extends ComparatorList {
     )
   }
   // Base validation, subclass only have to define validateSubCase
-  def validate(value: String, compName: String):                            PureResult[String] = comparatorForString(compName) match {
+  def validate(value: String, compName: String): PureResult[String] = comparatorForString(compName) match {
     case Some(c) =>
       c match {
         case Exists | NotExists => Right(value) // ok, just ignored it
@@ -220,7 +220,7 @@ object NodeInfoMatcher {
   // default builder: it will evaluated each time, sufficient if all parts of the matcher uses NodeInfo
   def apply(s: String, f: NodeInfo => Boolean): NodeInfoMatcher = {
     new NodeInfoMatcher {
-      override val debugString:             String  = s
+      override val debugString: String = s
       override def matches(node: NodeInfo): Boolean = f(node)
     }
   }
@@ -487,7 +487,7 @@ sealed trait LDAPCriterionType extends CriterionType {
   // transform the given value to its LDAP string value
   def toLDAP(value: String): PureResult[String]
 
-  def buildRegex(attribute: String, value: String):    PureResult[RegexFilter]    = Right(SimpleRegexFilter(attribute, value))
+  def buildRegex(attribute:    String, value: String): PureResult[RegexFilter]    = Right(SimpleRegexFilter(attribute, value))
   def buildNotRegex(attribute: String, value: String): PureResult[NotRegexFilter] = Right(SimpleNotRegexFilter(attribute, value))
 
   // build the ldap filter for given attribute name and comparator
@@ -512,7 +512,7 @@ sealed trait LDAPCriterionType extends CriterionType {
 //a comparator type with undefined comparators
 final case class BareComparator(override val comparators: CriterionComparator*) extends LDAPCriterionType {
   override protected def validateSubCase(v: String, comparator: CriterionComparator): PureResult[String] = Right(v)
-  override def toLDAP(value: String):                                                 PureResult[String] = Right(value)
+  override def toLDAP(value:                String): PureResult[String] = Right(value)
 }
 
 sealed trait TStringComparator extends LDAPCriterionType {
@@ -526,7 +526,7 @@ sealed trait TStringComparator extends LDAPCriterionType {
       }
     }
   }
-  override def toLDAP(value: String):                                                 PureResult[String] = Right(value)
+  override def toLDAP(value: String): PureResult[String] = Right(value)
 
   protected def escapedFilter(attributeName: String, value: String): Filter = {
     BuildFilter(attributeName + "=" + Filter.encodeValue(value))
@@ -583,20 +583,20 @@ case object DateComparator extends LDAPCriterionType {
     s"Invalid date: '${value}', expected format is: '${fmt}'. Error was: ${e.getMessage}"
   )
 
-  override protected def validateSubCase(v: String, comparator: CriterionComparator): PureResult[String]          = try {
+  override protected def validateSubCase(v: String, comparator: CriterionComparator): PureResult[String] = try {
     Right(frenchFmt.parseDateTime(v).toString)
   } catch {
     case e: Exception =>
       Left(error(v, e))
   }
   // init a jquery datepicker
-  override def initForm(formId: String):                                              JsCmd                       = OnLoad(JsRaw("""var init = $.datepicker.regional['en'];
+  override def initForm(formId: String):                                              JsCmd              = OnLoad(JsRaw("""var init = $.datepicker.regional['en'];
        init['showOn'] = 'focus';
        init['dateFormat'] = 'dd/mm/yy';
        $('#%s').datepicker(init);
        """.format(formId)))
-  override def destroyForm(formId: String):                                           JsCmd                       = OnLoad(JsRaw("""$('#%s').datepicker( "destroy" );""".format(formId)))
-  override def toLDAP(value: String):                                                 Either[RudderError, String] = parseDate(value).map(GeneralizedTime(_).toString)
+  override def destroyForm(formId: String): JsCmd                       = OnLoad(JsRaw("""$('#%s').datepicker( "destroy" );""".format(formId)))
+  override def toLDAP(value:       String): Either[RudderError, String] = parseDate(value).map(GeneralizedTime(_).toString)
 
   private[this] def parseDate(value: String): PureResult[DateTime] = try {
     val date = frenchFmt.parseDateTime(value)
@@ -777,7 +777,7 @@ case object AgentComparator extends LDAPCriterionType {
   override protected def validateSubCase(v: String, comparator: CriterionComparator): PureResult[String]  = {
     if (null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
   }
-  override def toLDAP(value: String):                                                 PureResult[String]  = Right(value)
+  override def toLDAP(value: String): PureResult[String] = Right(value)
 
   /*
    * We need compatibility for < 4.2 inventory
@@ -833,7 +833,7 @@ case object EditorComparator extends LDAPCriterionType {
       attrs: _*
     )
   }
-  override def toLDAP(value: String):                                                 PureResult[String] = Right(value)
+  override def toLDAP(value: String): PureResult[String] = Right(value)
 }
 
 /*

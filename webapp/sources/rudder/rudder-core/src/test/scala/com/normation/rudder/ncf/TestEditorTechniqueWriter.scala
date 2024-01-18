@@ -304,24 +304,24 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   }
 
   def techRepo: TechniqueRepository = new TechniqueRepository {
-    override def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => IOResult[T]): IOResult[T]                                 = ???
+    override def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => IOResult[T]): IOResult[T] = ???
     override def getTemplateContent[T](techniqueResourceId: TechniqueResourceId)(
-        useIt:                                              Option[InputStream] => IOResult[T]
+        useIt: Option[InputStream] => IOResult[T]
     ): IOResult[T] = ???
     override def getFileContent[T](techniqueResourceId: TechniqueResourceId)(
-        useIt:                                          Option[InputStream] => IOResult[T]
+        useIt: Option[InputStream] => IOResult[T]
     ): IOResult[T] = ???
-    override def getTechniquesInfo():                                                                        TechniquesInfo                              = ???
-    override def getAll():                                                                                   Map[TechniqueId, domain.Technique]          = ???
-    override def get(techniqueId: TechniqueId):                                                              Option[domain.Technique]                    = ???
-    override def getLastTechniqueByName(techniqueName: TechniqueName):                                       Option[domain.Technique]                    = ???
-    override def getByIds(techniqueIds: Seq[TechniqueId]):                                                   Seq[domain.Technique]                       = ???
-    override def getTechniqueVersions(name: TechniqueName):                                                  SortedSet[TechniqueVersion]                 = ???
-    override def getByName(name: TechniqueName):                                                             Map[TechniqueVersion, domain.Technique]     = ???
-    override def getTechniqueLibrary:                                                                        RootTechniqueCategory                       = ???
-    override def getTechniqueCategory(id: TechniqueCategoryId):                                              IOResult[TechniqueCategory]                 = ???
-    override def getParentTechniqueCategory_forTechnique(id: TechniqueId):                                   IOResult[TechniqueCategory]                 = ???
-    override def getAllCategories:                                                                           Map[TechniqueCategoryId, TechniqueCategory] = ???
+    override def getTechniquesInfo(): TechniquesInfo = ???
+    override def getAll(): Map[TechniqueId, domain.Technique] = ???
+    override def get(techniqueId:                      TechniqueId):      Option[domain.Technique]                = ???
+    override def getLastTechniqueByName(techniqueName: TechniqueName):    Option[domain.Technique]                = ???
+    override def getByIds(techniqueIds:                Seq[TechniqueId]): Seq[domain.Technique]                   = ???
+    override def getTechniqueVersions(name:            TechniqueName):    SortedSet[TechniqueVersion]             = ???
+    override def getByName(name:                       TechniqueName):    Map[TechniqueVersion, domain.Technique] = ???
+    override def getTechniqueLibrary: RootTechniqueCategory = ???
+    override def getTechniqueCategory(id:                    TechniqueCategoryId): IOResult[TechniqueCategory] = ???
+    override def getParentTechniqueCategory_forTechnique(id: TechniqueId):         IOResult[TechniqueCategory] = ???
+    override def getAllCategories: Map[TechniqueCategoryId, TechniqueCategory] = ???
   }
 
   val propertyEngineService = new PropertyEngineServiceImpl(List.empty)

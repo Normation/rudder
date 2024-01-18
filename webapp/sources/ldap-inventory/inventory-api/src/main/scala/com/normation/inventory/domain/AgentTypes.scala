@@ -114,9 +114,9 @@ object AgentType {
     override def displayName  = "Rudder"
     override def toRulesPath  = "/cfengine-community"
     override def inventoryAgentNames: Set[String] = Set("cfengine-community", "community")
-    override val inventorySoftwareName                           = "rudder-agent"
+    override val inventorySoftwareName = "rudder-agent"
     override def toAgentVersionName(softwareVersionName: String) = softwareVersionName
-    override val defaultPolicyExtension                          = ".cf"
+    override val defaultPolicyExtension = ".cf"
   }
 
   final case object Dsc extends AgentType {
@@ -125,9 +125,9 @@ object AgentType {
     override def displayName  = "Rudder Windows"
     override def toRulesPath  = "/dsc"
     override def inventoryAgentNames: Set[String] = Set("dsc")
-    override val inventorySoftwareName                           = "Rudder agent (DSC)"
+    override val inventorySoftwareName = "Rudder agent (DSC)"
     override def toAgentVersionName(softwareVersionName: String) = softwareVersionName
-    override val defaultPolicyExtension                          =
+    override val defaultPolicyExtension =
       "" // no extension - .ps1 extension is already in the template name (more by convention than anything else)
   }
 

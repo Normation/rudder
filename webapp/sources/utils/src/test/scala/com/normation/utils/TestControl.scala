@@ -29,8 +29,8 @@ import org.junit.runners.BlockJUnit4ClassRunner
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TestControl {
 
-  def msg(i: Int): String    = s"failed for ${i}"
-  val l:           List[Int] = List(1, 2, 3, 4, 5, 6, 7, 8, 9)
+  def msg(i: Int): String = s"failed for ${i}"
+  val l: List[Int] = List(1, 2, 3, 4, 5, 6, 7, 8, 9)
 
   @Test
   def stopSequenceInOrder(): Unit = {

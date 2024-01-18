@@ -66,7 +66,7 @@ import zio.syntax._
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TestNodeFactQueryProcessor {
-  implicit def StringToNodeId(s: String):  NodeId      = NodeId(s)
+  implicit def StringToNodeId(s:  String): NodeId      = NodeId(s)
   implicit def StringToGroupId(s: String): NodeGroupId = NodeGroupId(NodeGroupUid(s))
 
   val logger: NamedZioLogger = NamedZioLogger(this.getClass.getPackageName + "." + this.getClass.getSimpleName)
@@ -1296,7 +1296,7 @@ class TestNodeFactQueryProcessor {
   @Test def nodePropertiesFailingReq(): Unit = {
     def forceParse(q: String) = parser(q).openOrThrowException("Parsing the request must be ok for that test")
     // Failing request, see #10570
-    val failingRegexRequests  = {
+    val failingRegexRequests = {
       """
       { "select":"node", "where":[
         { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"f{o}o" }

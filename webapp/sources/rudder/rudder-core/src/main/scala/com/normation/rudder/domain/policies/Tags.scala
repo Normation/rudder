@@ -46,7 +46,7 @@ import net.liftweb.common._
  */
 
 object Tag {
-  implicit def tagName(value: String):  TagName  = TagName(value)
+  implicit def tagName(value:  String): TagName  = TagName(value)
   implicit def tagValue(value: String): TagValue = TagValue(value)
 }
 

@@ -91,9 +91,9 @@ abstract class ImplicitGetBytes {
 @HostAccess.Export
 class JsLibHash() extends ImplicitGetBytes {
   @HostAccess.Export
-  def md5(s: String):    String = MD5.hash(s)
+  def md5(s:    String): String = MD5.hash(s)
   @HostAccess.Export
-  def sha1(s: String):   String = SHA1.hash(s)
+  def sha1(s:   String): String = SHA1.hash(s)
   @HostAccess.Export
   def sha256(s: String): String = SHA256.hash(s)
   @HostAccess.Export
@@ -106,14 +106,14 @@ trait JsLibPassword extends ImplicitGetBytes {
   /// Standard Unix (crypt) specific
 
   @HostAccess.Export
-  def cryptMd5(s: String):    String = Md5Crypt.md5Crypt(s)
+  def cryptMd5(s:    String): String = Md5Crypt.md5Crypt(s)
   @HostAccess.Export
   def cryptSha256(s: String): String = Sha2Crypt.sha256Crypt(s)
   @HostAccess.Export
   def cryptSha512(s: String): String = Sha2Crypt.sha512Crypt(s)
 
   @HostAccess.Export
-  def cryptMd5(s: String, salt: String):    String = Md5Crypt.md5Crypt(s, salt)
+  def cryptMd5(s:    String, salt: String): String = Md5Crypt.md5Crypt(s, salt)
   @HostAccess.Export
   def cryptSha256(s: String, salt: String): String = Sha2Crypt.sha256Crypt(s, "$5$" + salt)
   @HostAccess.Export
@@ -122,14 +122,14 @@ trait JsLibPassword extends ImplicitGetBytes {
   /// Aix specific
 
   @HostAccess.Export
-  def aixMd5(s: String):    String = AixPasswordHashAlgo.smd5(s)
+  def aixMd5(s:    String): String = AixPasswordHashAlgo.smd5(s)
   @HostAccess.Export
   def aixSha256(s: String): String = AixPasswordHashAlgo.ssha256(s)
   @HostAccess.Export
   def aixSha512(s: String): String = AixPasswordHashAlgo.ssha512(s)
 
   @HostAccess.Export
-  def aixMd5(s: String, salt: String):    String = AixPasswordHashAlgo.smd5(s, Some(salt))
+  def aixMd5(s:    String, salt: String): String = AixPasswordHashAlgo.smd5(s, Some(salt))
   @HostAccess.Export
   def aixSha256(s: String, salt: String): String = AixPasswordHashAlgo.ssha256(s, Some(salt))
   @HostAccess.Export
@@ -284,14 +284,14 @@ final class JsRudderLibImpl(
       new JsLibPassword() {
         /// method accessible from JS
         @HostAccess.Export
-        def md5(s: String):    String = super.cryptMd5(s)
+        def md5(s:    String): String = super.cryptMd5(s)
         @HostAccess.Export
         def sha256(s: String): String = super.cryptSha256(s)
         @HostAccess.Export
         def sha512(s: String): String = super.cryptSha512(s)
 
         @HostAccess.Export
-        def md5(s: String, salt: String):    String = super.cryptMd5(s, salt)
+        def md5(s:    String, salt: String): String = super.cryptMd5(s, salt)
         @HostAccess.Export
         def sha256(s: String, salt: String): String = super.cryptSha256(s, salt)
         @HostAccess.Export
@@ -302,14 +302,14 @@ final class JsRudderLibImpl(
       new JsLibPassword() {
         /// method accessible from JS
         @HostAccess.Export
-        def md5(s: String):    String = super.aixMd5(s)
+        def md5(s:    String): String = super.aixMd5(s)
         @HostAccess.Export
         def sha256(s: String): String = super.aixSha256(s)
         @HostAccess.Export
         def sha512(s: String): String = super.aixSha512(s)
 
         @HostAccess.Export
-        def md5(s: String, salt: String):    String = super.aixMd5(s, salt)
+        def md5(s:    String, salt: String): String = super.aixMd5(s, salt)
         @HostAccess.Export
         def sha256(s: String, salt: String): String = super.aixSha256(s, salt)
         @HostAccess.Export
@@ -328,11 +328,11 @@ final class JsRudderLibImpl(
     ("hash", hash)
   )
 
-  override def getMember(key: String):               AnyRef  =
+  override def getMember(key: String): AnyRef =
     members.get(key).getOrElse(s"Requested access to unknown member '${key}' in JS proxy object")
-  override def getMemberKeys:                        AnyRef  = members.keys.toArray
-  override def hasMember(key: String):               Boolean = members.isDefinedAt(key)
-  override def putMember(key: String, value: Value): Unit    = ()
+  override def getMemberKeys:          AnyRef = members.keys.toArray
+  override def hasMember(key: String): Boolean = members.isDefinedAt(key)
+  override def putMember(key: String, value: Value): Unit = ()
 }
 
 sealed trait JsRudderLibBinding {
@@ -390,7 +390,7 @@ object JsEngineProvider {
    *
    */
   def withNewEngine[T](feature: FeatureSwitch, maxThread: Int = 1, timeout: FiniteDuration)(
-      script:                   JsEngine => IOResult[T]
+      script: JsEngine => IOResult[T]
   ): IOResult[T] = {
     feature match {
       case FeatureSwitch.Enabled  =>
@@ -528,7 +528,7 @@ object JsEngine {
      * So you should minimize the number of time it is done.
      */
     def sandboxed[T](maxThread: Int = 1, timeout: FiniteDuration = DEFAULT_MAX_EVAL_DURATION)(
-        script:                 SandboxedJsEngine => IOResult[T]
+        script: SandboxedJsEngine => IOResult[T]
     ): IOResult[T] = {
       final case class ManagedJsEnv(pool: ExecutorService, engine: SandboxedJsEngine)
 

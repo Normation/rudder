@@ -55,7 +55,7 @@ class SectionTest extends Specification {
     .asInstanceOf[ch.qos.logback.classic.Logger]
     .setLevel(ch.qos.logback.classic.Level.OFF)
 
-  val doc:                          Elem = readFile("testSections.xml")
+  val doc: Elem = readFile("testSections.xml")
   def sectionsTag(example: String): Node = (doc \\ "examples" \ example \ "SECTIONS").head
 
   val sectionSpecParser = new SectionSpecParser(new VariableSpecParser)

@@ -217,14 +217,14 @@ object AuthorizationType {
    */
   def allKind: Set[AuthorizationType] = allKindsMap
 
-  private[this] var allKindsMap:                     Set[AuthorizationType] = {
+  private[this] var allKindsMap: Set[AuthorizationType] = {
     Set(
       AnyRights
     ) ++ Administration.values ++ Compliance.values ++ Configuration.values ++ Deployer.values ++ Deployment.values ++
     Directive.values ++ Group.values ++ Node.values ++ Rule.values ++ Parameter.values ++ Technique.values ++
     UserAccount.values ++ Validator.values
   }
-  def addAuthKind(newKinds: Set[AuthorizationType]): Unit                   = allKindsMap = allKindsMap ++ newKinds
+  def addAuthKind(newKinds: Set[AuthorizationType]): Unit = allKindsMap = allKindsMap ++ newKinds
 
   /*
    * Parse a right string (ie: object_operation) as a set of authorization type, taking care of the special keyword "all"
@@ -331,8 +331,8 @@ object Rights {
  * make sense from a rudder usage point of view.
  */
 sealed trait Role {
-  def name:   String
-  def rights: Rights
+  def name:        String
+  def rights:      Rights
   def debugString: String = name
 }
 object Role       {
@@ -402,7 +402,7 @@ object Role       {
     ).map(r => (r._name, r)).toMap
   }
 
-  def forRight(right: AuthorizationType):        Custom = Custom(Rights.forAuthzs(right))
+  def forRight(right:   AuthorizationType):      Custom = Custom(Rights.forAuthzs(right))
   def forRights(rights: Set[AuthorizationType]): Custom = Custom(Rights(rights))
 
   // this is the named custom roles defined in <custom-roles> tag

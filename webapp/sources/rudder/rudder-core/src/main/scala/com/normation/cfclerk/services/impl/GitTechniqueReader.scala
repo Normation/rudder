@@ -413,7 +413,7 @@ class GitTechniqueReader(
   }
 
   override def getResourceContent[T](techniqueResourceId: TechniqueResourceId, postfixName: Option[String])(
-      useIt:                                              Option[InputStream] => IOResult[T]
+      useIt: Option[InputStream] => IOResult[T]
   ): IOResult[T] = {
     // build a treewalk with the path, given by TechniqueTemplateId
     // here, we don't use rev in path, it will be used (if necessary) during walk

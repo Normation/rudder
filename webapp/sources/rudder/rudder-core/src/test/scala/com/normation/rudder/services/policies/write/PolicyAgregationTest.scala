@@ -60,8 +60,8 @@ import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class PolicyAgregationTest extends Specification {
-  implicit def str2pId(id: String):      TechniqueId = TechniqueId(TechniqueName(id), TechniqueVersionHelper("1.0"))
-  implicit def str2PolicyId(id: String): PolicyId    =
+  implicit def str2pId(id: String): TechniqueId = TechniqueId(TechniqueName(id), TechniqueVersionHelper("1.0"))
+  implicit def str2PolicyId(id: String): PolicyId =
     PolicyId(RuleId(RuleUid("r_" + id)), DirectiveId(DirectiveUid("d_" + id)), TechniqueVersionHelper("1.0"))
 
   // we are testing error cases, so we don't want to output error log for them

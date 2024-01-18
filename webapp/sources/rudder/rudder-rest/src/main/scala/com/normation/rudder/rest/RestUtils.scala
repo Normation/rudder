@@ -219,7 +219,7 @@ object RestUtils extends Loggable {
       restExtractor: RestExtractorService,
       dataName:      String,
       id:            Option[String]
-  )(function:        Box[JValue], req: Req, errorMessage: String)(implicit action: String): LiftResponse = {
+  )(function: Box[JValue], req: Req, errorMessage: String)(implicit action: String): LiftResponse = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     function match {
       case Full(category: JValue) =>
@@ -234,17 +234,17 @@ object RestUtils extends Loggable {
 
   type ActionType = (EventActor, ModificationId, Option[String]) => Box[JValue]
   def actionResponse(restExtractor: RestExtractorService, dataName: String, uuidGen: StringUuidGenerator, id: Option[String])(
-      function:                     Box[ActionType],
-      req:                          Req,
-      errorMessage:                 String
-  )(implicit action:                String, userService:            UserService): LiftResponse = {
+      function:     Box[ActionType],
+      req:          Req,
+      errorMessage: String
+  )(implicit action: String, userService: UserService): LiftResponse = {
     actionResponse2(restExtractor, dataName, uuidGen, id)(function, req, errorMessage)(action, RestUtils.getActor(req))
   }
   def actionResponse2(restExtractor: RestExtractorService, dataName: String, uuidGen: StringUuidGenerator, id: Option[String])(
-      function:                      Box[ActionType],
-      req:                           Req,
-      errorMessage:                  String
-  )(implicit action:                 String, actor:                  EventActor): LiftResponse = {
+      function:     Box[ActionType],
+      req:          Req,
+      errorMessage: String
+  )(implicit action: String, actor: EventActor): LiftResponse = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
 
     (for {
@@ -264,22 +264,22 @@ object RestUtils extends Loggable {
 
   type WorkflowType = (EventActor, Option[String], String, String) => Box[JValue]
   def workflowResponse(restExtractor: RestExtractorService, dataName: String, uuidGen: StringUuidGenerator, id: Option[String])(
-      function:                       Box[WorkflowType],
-      req:                            Req,
-      errorMessage:                   String,
-      defaultName:                    String
-  )(implicit action:                  String, userService:            UserService): LiftResponse = {
+      function:     Box[WorkflowType],
+      req:          Req,
+      errorMessage: String,
+      defaultName:  String
+  )(implicit action: String, userService: UserService): LiftResponse = {
     workflowResponse2(restExtractor, dataName, uuidGen, id)(function, req, errorMessage, defaultName)(
       action,
       RestUtils.getActor(req)
     )
   }
   def workflowResponse2(restExtractor: RestExtractorService, dataName: String, uuidGen: StringUuidGenerator, id: Option[String])(
-      function:                        Box[WorkflowType],
-      req:                             Req,
-      errorMessage:                    String,
-      defaultName:                     String
-  )(implicit action:                   String, actor:                  EventActor): LiftResponse = {
+      function:     Box[WorkflowType],
+      req:          Req,
+      errorMessage: String,
+      defaultName:  String
+  )(implicit action: String, actor: EventActor): LiftResponse = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
 
     (for {

@@ -192,20 +192,20 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
 
   //////  Methods to retrieve the first value of attribute in typed way  //////
 
-  def getAsBoolean(attributeName: String): Option[Boolean]         = _backed.getAttributeValueAsBoolean(attributeName) match {
+  def getAsBoolean(attributeName: String): Option[Boolean]        = _backed.getAttributeValueAsBoolean(attributeName) match {
     case null => None
     case b    => Some(b.booleanValue)
   }
-  def getAsDate(attributeName: String):    Option[java.util.Date]  = _backed.getAttributeValueAsDate(attributeName) match {
+  def getAsDate(attributeName: String):    Option[java.util.Date] = _backed.getAttributeValueAsDate(attributeName) match {
     case null => None
     case x    => Some(x)
   }
-  def getAsGTime(attributeName: String):   Option[GeneralizedTime] = apply(attributeName) flatMap { x => GeneralizedTime.parse(x) }
-  def getAsDn(attributeName: String):      Option[DN]              = _backed.getAttributeValueAsDN(attributeName) match {
+  def getAsGTime(attributeName: String): Option[GeneralizedTime] = apply(attributeName) flatMap { x => GeneralizedTime.parse(x) }
+  def getAsDn(attributeName: String):      Option[DN]             = _backed.getAttributeValueAsDN(attributeName) match {
     case null => None
     case x    => Some(x)
   }
-  def getAsInt(attributeName: String):     Option[Int]             = _backed.getAttributeValueAsInteger(attributeName) match {
+  def getAsInt(attributeName: String):     Option[Int]            = _backed.getAttributeValueAsInteger(attributeName) match {
     case null => None
     case x    => Some(x.intValue)
   }
@@ -260,9 +260,9 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
   //////  Standard methods (toString/equal etc) and LDIF method  //////
 
   override def toString() = _backed.toString
-  def toLDIFString(sb: java.lang.StringBuilder): Unit       = _backed.toLDIFString(sb)
-  def toLDIFString():                            String     = _backed.toLDIFString()
-  def toLDIFRecord:                              LDIFRecord = _backed
+  def toLDIFString(sb: java.lang.StringBuilder): Unit = _backed.toLDIFString(sb)
+  def toLDIFString(): String     = _backed.toLDIFString()
+  def toLDIFRecord:   LDIFRecord = _backed
 
   /*
    * A set which take an option, and remove the given attribute
@@ -294,9 +294,9 @@ object LDAPEntry {
    */
   val logger: Logger = LoggerFactory.getLogger(classOf[LDAPEntry])
 
-  def apply(e: UnboundidEntry):                                                                LDAPEntry = new LDAPEntry(e.duplicate()) // val e = LDAPEntry(unboundidEntry)
-  def apply(dn: DN, attributes: Attribute*):                                                   LDAPEntry = LDAPEntry(new UnboundidEntry(dn, attributes: _*))
-  def apply(dn: DN, attributes: Iterable[Attribute]):                                          LDAPEntry = LDAPEntry(new UnboundidEntry(dn, attributes.toSeq: _*))
+  def apply(e:  UnboundidEntry): LDAPEntry = new LDAPEntry(e.duplicate()) // val e = LDAPEntry(unboundidEntry)
+  def apply(dn: DN, attributes: Attribute*):          LDAPEntry = LDAPEntry(new UnboundidEntry(dn, attributes: _*))
+  def apply(dn: DN, attributes: Iterable[Attribute]): LDAPEntry = LDAPEntry(new UnboundidEntry(dn, attributes.toSeq: _*))
   def apply(rdnAttribute: String, rdnValue: String, parentDn: String, attributes: Attribute*): LDAPEntry = {
     require(rdnValue != null && rdnValue.nonEmpty)
     apply(new DN(s"${rdnAttribute}=${rdnValue},${parentDn}"), attributes)

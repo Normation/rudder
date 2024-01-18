@@ -76,7 +76,7 @@ object QSBackend {
  * parameter
  */
 sealed trait QSAttribute {
-  def name: String
+  def name:    String
   def display: String = name.capitalize.replace("_", " ")
 }
 object QSAttribute       {

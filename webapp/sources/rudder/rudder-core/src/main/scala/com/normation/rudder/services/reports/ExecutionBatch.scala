@@ -407,7 +407,7 @@ object ExecutionBatch extends Loggable {
       // If exists, the last run received for these nodes is coupled with the
       // corresponding expected node configuration for that run, which will allow to know what
       // config option to apply.
-      runs: Map[NodeId, Option[AgentRunWithNodeConfig]], // the current expected node configurations for all nodes.
+      runs:               Map[NodeId, Option[AgentRunWithNodeConfig]], // the current expected node configurations for all nodes.
       // This is useful for nodes without runs (ex in no-report mode), node with a run not for the
       // last config (show diff etc). It may be none for ex. when a node was added since last generation
 
@@ -735,7 +735,7 @@ object ExecutionBatch extends Loggable {
    *  It returns a properly merged NodeStatusReports
    */
   def getNodeStatusReports(
-      nodeId: NodeId, // run info: if we have a run, we have a datetime for it
+      nodeId:  NodeId,           // run info: if we have a run, we have a datetime for it
       // and perhaps a configId
 
       runInfo: RunAndConfigInfo, // reports we get on the last know run
@@ -980,7 +980,7 @@ object ExecutionBatch extends Loggable {
   }
 
   private[reports] def getComplianceForRule(
-      mergeInfo: MergeInfo, // only report for that ruleId, for that nodeid, of type ResultReports,
+      mergeInfo:                MergeInfo, // only report for that ruleId, for that nodeid, of type ResultReports,
       // for the correct run, for the correct version
 
       reportsForThatNodeRule:   Seq[ResultReports],
@@ -1120,7 +1120,7 @@ object ExecutionBatch extends Loggable {
    *
    */
   private[reports] def getComplianceForRun(
-      mergeInfo: MergeInfo, // only report for that nodeid, of type ResultReports,
+      mergeInfo:                MergeInfo, // only report for that nodeid, of type ResultReports,
       // for the correct run, for the correct version
 
       executionReports:         Seq[ResultReports],
@@ -1200,7 +1200,7 @@ object ExecutionBatch extends Loggable {
    * to the "serial" of rule.
    */
   private[reports] def mergeCompareByRule(
-      mergeInfo: MergeInfo, // only report for that nodeid, of type ResultReports,
+      mergeInfo:                MergeInfo, // only report for that nodeid, of type ResultReports,
       // for the correct run, for the correct version
 
       executionReports:         Seq[ResultReports],

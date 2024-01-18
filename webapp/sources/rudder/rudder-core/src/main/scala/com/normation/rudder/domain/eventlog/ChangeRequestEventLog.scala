@@ -59,7 +59,7 @@ object ChangeRequestLogsFilter {
  * Event log on change request
  */
 sealed trait ChangeRequestDiff {
-  def changeRequest: ChangeRequest
+  def changeRequest:   ChangeRequest
   def diffName:        Option[SimpleDiff[String]] = None
   def diffDescription: Option[SimpleDiff[String]] = None
 }

@@ -322,11 +322,11 @@ object NoopFactStorage extends NodeFactStorage {
   override def delete(nodeId: NodeId)(implicit attrs: SelectFacts):                         IOResult[StorageChangeEventDelete] =
     StorageChangeEventDelete.Noop(nodeId).succeed
   @nowarn("msg=parameter attrs in method getAllPending is never used")
-  override def getAllPending()(implicit attrs: SelectFacts = SelectFacts.default):          IOStream[NodeFact]                 = ZStream.empty
+  override def getAllPending()(implicit attrs:  SelectFacts = SelectFacts.default): IOStream[NodeFact] = ZStream.empty
   @nowarn("msg=parameter attrs in method getAllAccepted is never used")
-  override def getAllAccepted()(implicit attrs: SelectFacts = SelectFacts.default):         IOStream[NodeFact]                 = ZStream.empty
-  override def getPending(nodeId: NodeId)(implicit attrs: SelectFacts):                     IOResult[Option[NodeFact]]         = None.succeed
-  override def getAccepted(nodeId: NodeId)(implicit attrs: SelectFacts):                    IOResult[Option[NodeFact]]         = None.succeed
+  override def getAllAccepted()(implicit attrs: SelectFacts = SelectFacts.default): IOStream[NodeFact] = ZStream.empty
+  override def getPending(nodeId:               NodeId)(implicit attrs: SelectFacts): IOResult[Option[NodeFact]] = None.succeed
+  override def getAccepted(nodeId:              NodeId)(implicit attrs: SelectFacts): IOResult[Option[NodeFact]] = None.succeed
 }
 
 /*

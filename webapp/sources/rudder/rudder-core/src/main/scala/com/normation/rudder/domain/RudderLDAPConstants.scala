@@ -286,7 +286,7 @@ object RudderLDAPConstants extends Loggable {
      */
     def toPartial[A, B](f: A => Option[B]) = new PartialFunction[A, B] {
       override def isDefinedAt(x: A) = f(x).isDefined
-      override def apply(x: A)       = f(x).get
+      override def apply(x:       A) = f(x).get
     }
 
     variables

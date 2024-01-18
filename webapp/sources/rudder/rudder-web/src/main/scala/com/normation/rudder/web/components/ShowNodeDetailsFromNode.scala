@@ -194,7 +194,7 @@ class ShowNodeDetailsFromNode(
   }
 
   private[this] def privateDisplay(withinPopup: Boolean, displayDetailsMode: DisplayDetailsMode)(implicit
-      qr:                                       QueryContext
+      qr: QueryContext
   ): NodeSeq = {
     nodeFactRepo.get(nodeId).toBox match {
       case Full(None) =>
@@ -264,7 +264,7 @@ class ShowNodeDetailsFromNode(
       withinPopup: Boolean,
       globalMode:  GlobalPolicyMode,
       globalScore: GlobalScore
-  )(implicit qr:   QueryContext): NodeSeq = {
+  )(implicit qr: QueryContext): NodeSeq = {
     val id   = JsNodeId(nodeFact.id)
     val sm   = nodeFact.toFullInventory
     val node = nodeFact.toCore

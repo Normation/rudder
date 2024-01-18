@@ -45,7 +45,7 @@ import scala.xml.NodeSeq
 import scala.xml.Utility
 
 sealed trait ToastNotification {
-  def in: String
+  def in:      String
   def message: String = Utility.escape(in).replaceAll("""\n""", " ")
 }
 

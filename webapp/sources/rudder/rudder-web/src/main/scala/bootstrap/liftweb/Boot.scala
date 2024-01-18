@@ -181,7 +181,7 @@ object Boot {
       * Returns all headers depending on page url, using current request nonce and add all other initial CSP directives
       */
     private def replaceCSPRestrictionDirectives(key: String, value: String)(
-        directives:                                  List[(String, String)]
+        directives: List[(String, String)]
     ): List[(String, String)] = {
       directives.map {
         case (k, _) if key == k => key -> value

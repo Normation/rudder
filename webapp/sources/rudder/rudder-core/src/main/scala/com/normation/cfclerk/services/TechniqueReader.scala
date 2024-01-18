@@ -112,7 +112,7 @@ trait TechniqueReader {
    * stream and any I/O exception.
    */
   def getResourceContent[T](techniqueResourceId: TechniqueResourceId, postfixName: Option[String])(
-      useIt:                                     Option[InputStream] => IOResult[T]
+      useIt: Option[InputStream] => IOResult[T]
   ): IOResult[T]
 
   /**

@@ -293,6 +293,7 @@ limitations under the License.
             </excludes>
 
             <scalafmt>
+              <version>3.7.17</version>
               <file>.scalafmt.conf</file>
             </scalafmt>
 

@@ -258,7 +258,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
   }
 
   private[this] def workflowCallBack(action: GlobalParamModAction, workflowEnabled: Boolean)(
-      returns:                               Either[GlobalParameter, ChangeRequestId]
+      returns: Either[GlobalParameter, ChangeRequestId]
   ): JsCmd = {
     if ((!workflowEnabled) & (action == GlobalParamModAction.Delete)) {
       closePopup() & onSuccessDeleteCallback()

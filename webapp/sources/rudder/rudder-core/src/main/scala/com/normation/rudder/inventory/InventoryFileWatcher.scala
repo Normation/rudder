@@ -98,7 +98,7 @@ object InventoryProcessingUtils {
   def makeManagedStream(file: File, kind: String = "inventory"): IOManaged[InputStream] = IOManaged.makeM[InputStream] {
     IOResult.attempt(s"Error when trying to read ${kind} file '${file.name}'")(file.newInputStream)
   }(_.close())
-  def makeFileExists(file: File):                                IOManaged[Boolean]     = IOManaged.make[Boolean](file.exists)(_ => ())
+  def makeFileExists(file: File): IOManaged[Boolean] = IOManaged.make[Boolean](file.exists)(_ => ())
 }
 
 /**

@@ -56,7 +56,7 @@ import scala.xml.NodeSeq
  * Component to display and configure the compliance Mode (and it's heartbeat)
  */
 sealed trait ParseComplianceMode[T <: ComplianceMode] {
-  def isNodePage: Boolean
+  def isNodePage:                       Boolean
   def parseOverride(jsonMode: JObject): Box[Boolean] = {
     jsonMode.values.get("overrides") match {
       case Some(JBool(bool))             => Full(bool)
@@ -136,7 +136,7 @@ class ComplianceModeEditForm[T <: ComplianceMode](
     saveConfigureCallback:    Function1[T, Box[Unit]],
     startNewPolicyGeneration: () => Unit,
     getGlobalConfiguration:   Box[GlobalComplianceMode]
-)(implicit p:                 ParseComplianceMode[T])
+)(implicit p: ParseComplianceMode[T])
     extends DispatchSnippet with Loggable {
 
   // Html template

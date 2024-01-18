@@ -96,9 +96,9 @@ object DisplayNode extends Loggable {
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
   private[this] val linkUtil             = RudderConfig.linkUtil
 
-  private def escapeJs(in: String):   JsExp   = Str(escape(in))
-  private def escapeHTML(in: String): NodeSeq = Text(escape(in))
-  private def ?(in: Option[String]):  NodeSeq = in.map(escapeHTML).getOrElse(NodeSeq.Empty)
+  private def escapeJs(in:   String):         JsExp   = Str(escape(in))
+  private def escapeHTML(in: String):         NodeSeq = Text(escape(in))
+  private def ?(in:          Option[String]): NodeSeq = in.map(escapeHTML).getOrElse(NodeSeq.Empty)
 
   private def loadSoftware(jsId: JsNodeId)(nodeId: String): JsCmd = {
     implicit val attrs = SelectFacts.none.copy(software = SelectFacts.none.software.toRetrieve)
@@ -380,7 +380,7 @@ object DisplayNode extends Loggable {
       nodeFact:   NodeFact,
       globalMode: GlobalPolicyMode,
       salt:       String = ""
-  )(implicit qc:  QueryContext): NodeSeq = {
+  )(implicit qc: QueryContext): NodeSeq = {
     val jsId      = JsNodeId(nodeFact.id, salt)
     val detailsId = htmlId(jsId, "details_")
     val sm        = nodeFact.toFullInventory
@@ -521,7 +521,7 @@ object DisplayNode extends Loggable {
       creationDate:        Option[DateTime],
       salt:                String = "",
       isDisplayingInPopup: Boolean = false
-  )(implicit qr:           QueryContext): NodeSeq = {
+  )(implicit qr: QueryContext): NodeSeq = {
 
     val nodePolicyMode     = {
       (globalMode.overridable, nodeFact.rudderSettings.policyMode) match {
@@ -722,7 +722,7 @@ object DisplayNode extends Loggable {
     </div>
   }
 
-  private def htmlId(jsId: JsNodeId, prefix: String):   String = prefix + jsId.toString
+  private def htmlId(jsId:   JsNodeId, prefix: String): String = prefix + jsId.toString
   private def htmlId_#(jsId: JsNodeId, prefix: String): String = "#" + prefix + jsId.toString
 
   // Display the role of the node
@@ -791,7 +791,7 @@ object DisplayNode extends Loggable {
   }
 
   private def displayTabGrid[T](
-      jsId:  JsNodeId
+      jsId: JsNodeId
   )(eltName: String, optSeq: Box[Seq[T]], title: Option[String] = None)(columns: List[(String, T => NodeSeq)]) = {
     <div id={htmlId(jsId, "sd_" + eltName + "_")} class="sInventory tab-pane">{
       optSeq match {
@@ -910,10 +910,10 @@ object DisplayNode extends Loggable {
   private def displayTabNetworks(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
     displayTabGrid(jsId)("net", Full(sm.node.networks)) {
       ("Interface", { (x: Network) => escapeHTML(x.name) }) ::
-      ("IP address", { (x: Network) => (x.ifAddresses.map { y => (<div>{escapeHTML(y.getHostAddress)}</div>) }): NodeSeq }) ::
-      ("Mask", { (x: Network) => (x.ifMask.map { y => (<div>{escapeHTML(y.getHostAddress)}</div>) }): NodeSeq }) ::
-      ("Network", { (x: Network) => (x.ifSubnet.map { y => (<div>{escapeHTML(y.getHostAddress)}</div>) }): NodeSeq }) ::
-      ("Gateway", { (x: Network) => (x.ifGateway.map { y => (<div>{escapeHTML(y.getHostAddress)}</div>) }): NodeSeq }) ::
+      ("IP address", { (x: Network) => (x.ifAddresses.map(y => (<div>{escapeHTML(y.getHostAddress)}</div>))): NodeSeq }) ::
+      ("Mask", { (x: Network) => (x.ifMask.map(y => (<div>{escapeHTML(y.getHostAddress)}</div>))): NodeSeq }) ::
+      ("Network", { (x: Network) => (x.ifSubnet.map(y => (<div>{escapeHTML(y.getHostAddress)}</div>))): NodeSeq }) ::
+      ("Gateway", { (x: Network) => (x.ifGateway.map(y => (<div>{escapeHTML(y.getHostAddress)}</div>))): NodeSeq }) ::
       ("DHCP server", { (x: Network) => escapeHTML(x.ifDhcp.map(_.getHostAddress).mkString(", ")) }) ::
       ("MAC address", { (x: Network) => ?(x.macAddress) }) ::
       ("Type", { (x: Network) => ?(x.ifType) }) ::

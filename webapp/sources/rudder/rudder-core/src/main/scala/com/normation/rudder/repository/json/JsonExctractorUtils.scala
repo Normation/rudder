@@ -171,15 +171,15 @@ object DataExtractor {
 
   object OptionnalJson extends DataExtractor[Option] {
     def monad = implicitly
-    def emptyValue[T](id: String):                  Box[Option[T]] = Full(None)
-    def getOrElse[T](value: Option[T], default: T): T              = value.getOrElse(default)
+    def emptyValue[T](id:   String): Box[Option[T]] = Full(None)
+    def getOrElse[T](value: Option[T], default: T): T = value.getOrElse(default)
   }
 
   type Id[X] = X
 
   object CompleteJson extends DataExtractor[Id] {
     def monad = implicitly
-    def emptyValue[T](id: String): Box[Id[T]] = Failure(s"parameter '${id}' cannot be empty")
+    def emptyValue[T](id:   String): Box[Id[T]] = Failure(s"parameter '${id}' cannot be empty")
     def getOrElse[T](value: T, default: T) = value
   }
 }

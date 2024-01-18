@@ -160,27 +160,27 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
       ActiveTechnique(ActiveTechniqueId("empty"), techniqueName, Map()).succeed
     }
     // ALL the following methods are useless for our test
-    override def getFullDirectiveLibrary():                                                   IOResult[FullActiveTechniqueCategory]                     =
+    override def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] =
       FullActiveTechniqueCategory(ActiveTechniqueCategoryId("Active Techniques"), "", "", Nil, Nil, true).succeed
-    override def getDirective(directiveId: DirectiveUid):                                     IOResult[Option[Directive]]                               = ???
-    override def getDirectiveWithContext(directiveId: DirectiveUid):                          IOResult[Option[(Technique, ActiveTechnique, Directive)]] =
+    override def getDirective(directiveId: DirectiveUid): IOResult[Option[Directive]] = ???
+    override def getDirectiveWithContext(directiveId: DirectiveUid): IOResult[Option[(Technique, ActiveTechnique, Directive)]] =
       ???
-    override def getActiveTechniqueAndDirective(id: DirectiveId):                             IOResult[Option[(ActiveTechnique, Directive)]]            = ???
-    override def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean): IOResult[Seq[Directive]]                                  = ???
+    override def getActiveTechniqueAndDirective(id:      DirectiveId): IOResult[Option[(ActiveTechnique, Directive)]] = ???
+    override def getDirectives(activeTechniqueId:        ActiveTechniqueId, includeSystem: Boolean): IOResult[Seq[Directive]] = ???
     override def getActiveTechniqueByCategory(
         includeSystem: Boolean
     ): IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
-    override def getActiveTechniqueByActiveTechnique(id: ActiveTechniqueId):                  IOResult[Option[ActiveTechnique]]                         = ???
-    override def getActiveTechnique(techniqueName: TechniqueName):                            IOResult[Option[ActiveTechnique]]                         = ???
-    override def activeTechniqueBreadCrump(id: ActiveTechniqueId):                            IOResult[List[ActiveTechniqueCategory]]                   = ???
-    override def getActiveTechniqueLibrary:                                                   IOResult[ActiveTechniqueCategory]                         = ???
-    override def getAllActiveTechniqueCategories(includeSystem: Boolean):                     IOResult[Seq[ActiveTechniqueCategory]]                    = ???
-    override def getActiveTechniqueCategory(id: ActiveTechniqueCategoryId):                   IOResult[Option[ActiveTechniqueCategory]]                 = ???
-    override def getParentActiveTechniqueCategory(id: ActiveTechniqueCategoryId):             IOResult[ActiveTechniqueCategory]                         = ???
-    override def getParentsForActiveTechniqueCategory(id: ActiveTechniqueCategoryId):         IOResult[List[ActiveTechniqueCategory]]                   =
+    override def getActiveTechniqueByActiveTechnique(id: ActiveTechniqueId): IOResult[Option[ActiveTechnique]] = ???
+    override def getActiveTechnique(techniqueName:       TechniqueName): IOResult[Option[ActiveTechnique]] = ???
+    override def activeTechniqueBreadCrump(id:           ActiveTechniqueId): IOResult[List[ActiveTechniqueCategory]] = ???
+    override def getActiveTechniqueLibrary: IOResult[ActiveTechniqueCategory] = ???
+    override def getAllActiveTechniqueCategories(includeSystem: Boolean):                   IOResult[Seq[ActiveTechniqueCategory]]    = ???
+    override def getActiveTechniqueCategory(id:                 ActiveTechniqueCategoryId): IOResult[Option[ActiveTechniqueCategory]] = ???
+    override def getParentActiveTechniqueCategory(id:           ActiveTechniqueCategoryId): IOResult[ActiveTechniqueCategory]         = ???
+    override def getParentsForActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[List[ActiveTechniqueCategory]] =
       ???
-    override def getParentsForActiveTechnique(id: ActiveTechniqueId):                         IOResult[ActiveTechniqueCategory]                         = ???
-    override def containsDirective(id: ActiveTechniqueCategoryId):                            UIO[Boolean]                                              = ???
+    override def getParentsForActiveTechnique(id: ActiveTechniqueId):         IOResult[ActiveTechniqueCategory] = ???
+    override def containsDirective(id:            ActiveTechniqueCategoryId): UIO[Boolean]                      = ???
     override def saveActiveTechniqueCategory(
         category:       ActiveTechniqueCategory,
         modificationId: ModificationId,

@@ -651,7 +651,7 @@ class SystemApiService11(
     itemArchiveManager:   ItemArchiveManager,
     personIdentService:   PersonIdentService,
     repo:                 GitRepositoryProvider
-)(implicit userService:   UserService)
+)(implicit userService: UserService)
     extends Loggable {
 
   // The private methods are the internal behavior of the API.

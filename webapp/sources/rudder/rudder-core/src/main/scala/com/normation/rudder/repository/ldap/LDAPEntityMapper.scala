@@ -91,8 +91,8 @@ import zio.json._
 import zio.syntax._
 
 object NodeStateEncoder {
-  implicit def enc(state: NodeState): String                       = state.name
-  implicit def dec(state: String):    Either[Throwable, NodeState] = {
+  implicit def enc(state: NodeState): String = state.name
+  implicit def dec(state: String): Either[Throwable, NodeState] = {
     NodeState.values.find(state.toLowerCase() == _.name) match {
       case Some(s) => Right(s)
       case None    => Left(new IllegalArgumentException(s"'${state}' can not be decoded to a NodeState"))

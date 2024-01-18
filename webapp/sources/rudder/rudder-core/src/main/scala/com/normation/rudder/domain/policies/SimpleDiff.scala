@@ -53,10 +53,10 @@ object SimpleDiff {
     )
   }
 
-  def stringToXml(eltTag: Elem, diff: SimpleDiff[String]):   NodeSeq = toXml[String](eltTag, diff)(s => Text(s))
+  def stringToXml(eltTag:  Elem, diff: SimpleDiff[String]):  NodeSeq = toXml[String](eltTag, diff)(s => Text(s))
   def booleanToXml(eltTag: Elem, diff: SimpleDiff[Boolean]): NodeSeq = toXml[Boolean](eltTag, diff)(s => Text(s.toString))
-  def intToXml(eltTag: Elem, diff: SimpleDiff[Int]):         NodeSeq = toXml[Int](eltTag, diff)(s => Text(s.toString))
-  def floatToXml(eltTag: Elem, diff: SimpleDiff[Float]):     NodeSeq = toXml[Float](eltTag, diff)(s => Text(s.toString))
-  def longToXml(eltTag: Elem, diff: SimpleDiff[Long]):       NodeSeq = toXml[Long](eltTag, diff)(s => Text(s.toString))
-  def doubleToXml(eltTag: Elem, diff: SimpleDiff[Double]):   NodeSeq = toXml[Double](eltTag, diff)(s => Text(s.toString))
+  def intToXml(eltTag:     Elem, diff: SimpleDiff[Int]):     NodeSeq = toXml[Int](eltTag, diff)(s => Text(s.toString))
+  def floatToXml(eltTag:   Elem, diff: SimpleDiff[Float]):   NodeSeq = toXml[Float](eltTag, diff)(s => Text(s.toString))
+  def longToXml(eltTag:    Elem, diff: SimpleDiff[Long]):    NodeSeq = toXml[Long](eltTag, diff)(s => Text(s.toString))
+  def doubleToXml(eltTag:  Elem, diff: SimpleDiff[Double]):  NodeSeq = toXml[Double](eltTag, diff)(s => Text(s.toString))
 }

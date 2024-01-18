@@ -310,7 +310,7 @@ object Validation {
   }
 
   sealed trait Machine {
-    def tpe: MachineType
+    def tpe:        MachineType
     final def name: String = tpe match {
       case PhysicalMachineType               => "physical"
       case VirtualMachineType(UnknownVmType) => "vm"

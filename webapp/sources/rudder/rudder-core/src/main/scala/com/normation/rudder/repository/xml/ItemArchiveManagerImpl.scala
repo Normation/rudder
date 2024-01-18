@@ -642,7 +642,7 @@ trait ArchiveMode extends Any {
  * To be counted as a directory the last character have to be a /.
  */
 final case class PartialArchive(directory: String) extends AnyVal with ArchiveMode {
-  def configureRm(rmCmd: RmCommand):             RmCommand       = rmCmd.addFilepattern(directory)
+  def configureRm(rmCmd:       RmCommand):       RmCommand       = rmCmd.addFilepattern(directory)
   def configureCheckout(coCmd: CheckoutCommand): CheckoutCommand = coCmd.addPath(directory)
 }
 
@@ -657,7 +657,7 @@ object PartialArchive {
 import com.normation.rudder.repository.xml.PartialArchive._
 
 case object TechniqueLibraryArchive extends ArchiveMode {
-  def configureRm(rmCmd: RmCommand):             RmCommand       = directiveArchive.configureRm(ncfArchive.configureRm(rmCmd))
+  def configureRm(rmCmd: RmCommand): RmCommand = directiveArchive.configureRm(ncfArchive.configureRm(rmCmd))
   def configureCheckout(coCmd: CheckoutCommand): CheckoutCommand =
     directiveArchive.configureCheckout(ncfArchive.configureCheckout(coCmd))
 }

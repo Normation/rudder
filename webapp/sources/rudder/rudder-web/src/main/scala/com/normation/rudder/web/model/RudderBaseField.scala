@@ -230,8 +230,8 @@ class WBTextField(override val name: String, override val defaultValue: String =
 
   def inputField: Elem = SHtml.text(value, set _)
 
-  protected def valueTypeToBoxString(in: ValueType): Box[String] = Full(in)
-  protected def boxStrToValType(in: Box[String]):    ValueType   = in openOr ("")
+  protected def valueTypeToBoxString(in: ValueType):   Box[String] = Full(in)
+  protected def boxStrToValType(in:      Box[String]): ValueType   = in openOr ("")
 
   def maxLen: Int = 50
 }
@@ -242,8 +242,8 @@ class WBTextAreaField(override val name: String, override val defaultValue: Stri
 
   def inputField: Elem = SHtml.textarea(value, set _)
 
-  protected def valueTypeToBoxString(in: ValueType): Box[String] = Full(in)
-  protected def boxStrToValType(in: Box[String]):    ValueType   = in openOr ("")
+  protected def valueTypeToBoxString(in: ValueType):   Box[String] = Full(in)
+  protected def boxStrToValType(in:      Box[String]): ValueType   = in openOr ("")
 
   def maxLen: Int = 150
 }
@@ -276,9 +276,9 @@ class WBSelectField(
 
   def inputField: Elem = SHtml.select(opts, defaultVal, set _, attrs: _*)
 
-  protected def valueTypeToBoxString(in: ValueType): Box[String] = Full(in)
-  protected def boxStrToValType(in: Box[String]):    ValueType   = in openOr ("")
-  def maxLen:                                        Int         = 150
+  protected def valueTypeToBoxString(in: ValueType):   Box[String] = Full(in)
+  protected def boxStrToValType(in:      Box[String]): ValueType   = in openOr ("")
+  def maxLen: Int = 150
 
 }
 
@@ -337,7 +337,7 @@ class WBRadioField(
   </div>
   }
 
-  protected def valueTypeToBoxString(in: ValueType): Box[String] = Full(in)
-  protected def boxStrToValType(in: Box[String]):    ValueType   = in openOr ("")
-  def maxLen:                                        Int         = 50
+  protected def valueTypeToBoxString(in: ValueType):   Box[String] = Full(in)
+  protected def boxStrToValType(in:      Box[String]): ValueType   = in openOr ("")
+  def maxLen: Int = 50
 }

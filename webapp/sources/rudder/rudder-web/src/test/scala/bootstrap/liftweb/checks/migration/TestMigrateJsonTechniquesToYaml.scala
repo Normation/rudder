@@ -152,8 +152,8 @@ class TestMigrateJsonTechniquesToYaml extends Specification with ContentMatchers
     gitMock.gitRepo,
     xmlPrettyPrinter,
     new GitModificationRepository {
-      override def getCommits(modificationId: ModificationId):            IOResult[Option[GitCommitId]] = None.succeed
-      override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin]    =
+      override def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]] = None.succeed
+      override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin] =
         DB.GitCommitJoin(commit, modId).succeed
     },
     new TrivialPersonIdentService(),

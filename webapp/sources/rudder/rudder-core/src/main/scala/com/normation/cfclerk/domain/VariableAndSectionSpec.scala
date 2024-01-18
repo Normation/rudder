@@ -230,8 +230,8 @@ final case class SystemVariableSpec(
 
   override type T = SystemVariableSpec
   override type V = SystemVariable
-  override def cloneSetMultivalued:            SystemVariableSpec = this.copy(multivalued = true)
-  def toVariable(values: Seq[String] = Seq()): SystemVariable     = SystemVariable(this, values)
+  override def cloneSetMultivalued: SystemVariableSpec = this.copy(multivalued = true)
+  def toVariable(values: Seq[String] = Seq()): SystemVariable = SystemVariable(this, values)
 }
 
 /**
@@ -257,8 +257,8 @@ final case class TrackerVariableSpec(
 
   override val multivalued     = true
   override val longDescription = ""
-  override def cloneSetMultivalued:                               TrackerVariableSpec = this.copy()
-  def toVariable(values: Seq[String] = constraint.default.toSeq): TrackerVariable     = TrackerVariable(this, values)
+  override def cloneSetMultivalued: TrackerVariableSpec = this.copy()
+  def toVariable(values: Seq[String] = constraint.default.toSeq): TrackerVariable = TrackerVariable(this, values)
 }
 
 /**
@@ -295,8 +295,8 @@ final case class SelectVariableSpec(
 
   override type T = SelectVariableSpec
   override type V = SelectVariable
-  override def cloneSetMultivalued:                               SelectVariableSpec = this.copy(multivalued = true)
-  def toVariable(values: Seq[String] = constraint.default.toSeq): SelectVariable     = SelectVariable(this, values)
+  override def cloneSetMultivalued: SelectVariableSpec = this.copy(multivalued = true)
+  def toVariable(values: Seq[String] = constraint.default.toSeq): SelectVariable = SelectVariable(this, values)
 }
 
 /**
@@ -316,8 +316,8 @@ final case class SelectOneVariableSpec(
 
   override type T = SelectOneVariableSpec
   override type V = SelectOneVariable
-  override def cloneSetMultivalued:                               SelectOneVariableSpec = this.copy(multivalued = true)
-  def toVariable(values: Seq[String] = constraint.default.toSeq): SelectOneVariable     = SelectOneVariable(this, values)
+  override def cloneSetMultivalued: SelectOneVariableSpec = this.copy(multivalued = true)
+  def toVariable(values: Seq[String] = constraint.default.toSeq): SelectOneVariable = SelectOneVariable(this, values)
 }
 
 /**
@@ -367,8 +367,8 @@ final case class InputVariableSpec(
 
   override type T = InputVariableSpec
   override type V = InputVariable
-  override def cloneSetMultivalued:                               InputVariableSpec = this.copy(multivalued = true)
-  def toVariable(values: Seq[String] = constraint.default.toSeq): InputVariable     = InputVariable(this, values)
+  override def cloneSetMultivalued: InputVariableSpec = this.copy(multivalued = true)
+  def toVariable(values: Seq[String] = constraint.default.toSeq): InputVariable = InputVariable(this, values)
 }
 
 /**

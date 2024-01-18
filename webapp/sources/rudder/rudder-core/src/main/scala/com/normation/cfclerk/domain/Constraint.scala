@@ -251,7 +251,7 @@ final case class MasterPasswordVType(authorizedHash: Seq[HashAlgoConstraint]) ex
 }
 
 sealed trait DerivedPasswordVType extends AbstactPassword {
-  def tpe: HashAlgoConstraint.DerivedPasswordType
+  def tpe:                HashAlgoConstraint.DerivedPasswordType
   override lazy val name: String = s"derivedPassword:${tpe.name}"
 }
 

@@ -2028,7 +2028,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
    */
   def writeNodeIdsForHook(path: String, sortedNodeIds: SortedNodeIds, start: DateTime, end: DateTime): IOResult[Unit] = {
     // format of date in the file
-    def date(d: DateTime)           = d.toString(ISODateTimeFormat.basicDateTime())
+    def date(d:        DateTime)    = d.toString(ISODateTimeFormat.basicDateTime())
     // how to format a list of ids in the file
     def formatIds(ids: Seq[String]) = "(" + ids.mkString("\n", "\n", "\n") + ")"
 

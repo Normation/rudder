@@ -246,7 +246,7 @@ object AixPasswordHashAlgo extends Loggable {
   final protected[domain] def doSsha(
       sha: ShaSpec,
       skf: SecretKeyFactory
-  )(pwd:   String, salt: Option[String], cost: Int): String = {
+  )(pwd: String, salt: Option[String], cost: Int): String = {
     val rounds = 2 << (cost - 1)
     val s      = salt.getOrElse(getRandomSalt(16)).getBytes("UTF-8")
     val spec: PBEKeySpec = new PBEKeySpec(pwd.toCharArray, s, rounds, 8 * sha.byteNumber)

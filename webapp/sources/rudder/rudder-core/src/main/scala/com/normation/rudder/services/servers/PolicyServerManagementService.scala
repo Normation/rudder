@@ -472,7 +472,7 @@ class PolicyServerManagementServiceImpl(
         Inconsistency("Root server configuration elements can't be deleted").fail
       } else { // we don't have specific validation to do: if the node is not a policy server, nothing will be done
         def DN(child: String, parentDN: DN) = new DN(child + "," + parentDN.toString)
-        val id                              = policyServerId.value
+        val id = policyServerId.value
 
         for {
           con <- ldap

@@ -54,12 +54,12 @@ trait CampaignEventRepository {
   def saveCampaignEvent(c:                 CampaignEvent):   IOResult[CampaignEvent]
   def numberOfEventsByCampaign(campaignId: CampaignId):      IOResult[Int]
   def deleteEvent(
-      id:                                  Option[CampaignEventId] = None,
-      states:                              List[String] = Nil,
-      campaignType:                        Option[CampaignType] = None,
-      campaignId:                          Option[CampaignId] = None,
-      afterDate:                           Option[DateTime] = None,
-      beforeDate:                          Option[DateTime] = None
+      id:           Option[CampaignEventId] = None,
+      states:       List[String] = Nil,
+      campaignType: Option[CampaignType] = None,
+      campaignId:   Option[CampaignId] = None,
+      afterDate:    Option[DateTime] = None,
+      beforeDate:   Option[DateTime] = None
   ): IOResult[Unit]
 
   /*

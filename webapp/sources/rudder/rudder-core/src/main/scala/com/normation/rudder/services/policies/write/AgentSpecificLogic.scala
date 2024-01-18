@@ -162,7 +162,7 @@ class AgentRegister {
    */
   def traverseMap[T](
       agentNodeProps: AgentNodeProperties
-  )(default:          () => Box[List[T]], f: AgentSpecificGeneration => Box[List[T]]): Box[List[T]] = {
+  )(default: () => Box[List[T]], f: AgentSpecificGeneration => Box[List[T]]): Box[List[T]] = {
     (traverse(pipeline) { handler =>
       if (handler.handle(agentNodeProps)) {
         f(handler)

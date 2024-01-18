@@ -76,7 +76,7 @@ class MigrateChangeValidationEnforceSchema(
 
   // we need the table fragment to be the class method that can be overriden (e.g. for tests)
   private def transactMigration(table: String, tableFragment: Fragment, column: String)(implicit
-      xa:                              Transactor[Task]
+      xa: Transactor[Task]
   ): Task[Unit] = {
     val columnFragment = Fragment.const(column)
     for {

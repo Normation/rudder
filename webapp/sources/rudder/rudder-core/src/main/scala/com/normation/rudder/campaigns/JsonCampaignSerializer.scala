@@ -93,8 +93,8 @@ class CampaignSerializer {
 
   def addJsonTranslater(c: JSONTranslateCampaign): Unit = tranlaters = c :: tranlaters
 
-  def serialize(campaign: Campaign): IOResult[String]   = getJson(campaign).map(_.toJsonPretty)
-  def parse(string: String):         IOResult[Campaign] = {
+  def serialize(campaign: Campaign): IOResult[String] = getJson(campaign).map(_.toJsonPretty)
+  def parse(string: String):        IOResult[Campaign] = {
     for {
       baseInfo <- string.fromJson[CampaignParsingInfo].toIO
       res      <- tranlaters.map(_.read()).fold(readBase) { case (a, b) => b orElse a }((string, baseInfo))
@@ -102,7 +102,7 @@ class CampaignSerializer {
       res
     }
   }
-  def campaignType(string: String):  CampaignType       =
+  def campaignType(string: String): CampaignType       =
     tranlaters.map(_.campaignType()).fold(campaignTypeBase) { case (a, b) => b orElse a }(string)
 
 }

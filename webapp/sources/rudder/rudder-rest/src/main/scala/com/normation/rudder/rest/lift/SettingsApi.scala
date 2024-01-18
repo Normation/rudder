@@ -283,7 +283,7 @@ class SettingsApi(
         toJson(value)
       }
     }.toBox
-    def set: (T, EventActor, Option[String]) => IOResult[Unit]
+    def set:     (T, EventActor, Option[String]) => IOResult[Unit]
     def parseJson(json:   JValue): Box[T]
     def parseParam(param: String): Box[T]
     type t = T
@@ -352,22 +352,22 @@ class SettingsApi(
   case object RestPolicyMode extends RestSetting[PolicyMode] {
     val key                   = "global_policy_mode"
     val startPolicyGeneration = true
-    def get:                       IOResult[PolicyMode]                                       = configService.rudder_policy_mode_name()
-    def set:                       (PolicyMode, EventActor, Option[String]) => IOResult[Unit] = configService.set_rudder_policy_mode_name _
-    def toJson(value: PolicyMode): JValue                                                     = value.name
-    def parseJson(json: JValue):   Box[PolicyMode]                                            = {
+    def get: IOResult[PolicyMode]                                       = configService.rudder_policy_mode_name()
+    def set: (PolicyMode, EventActor, Option[String]) => IOResult[Unit] = configService.set_rudder_policy_mode_name _
+    def toJson(value: PolicyMode): JValue = value.name
+    def parseJson(json: JValue):   Box[PolicyMode] = {
       json match {
         case JString(value) => PolicyMode.parse(value).toBox
         case x              => Failure("Invalid value " + x)
       }
     }
-    def parseParam(param: String): Box[PolicyMode]                                            = {
+    def parseParam(param: String): Box[PolicyMode] = {
       PolicyMode.parse(param)
     }.toBox
   }
 
   trait RestBooleanSetting extends RestSetting[Boolean] {
-    def toJson(value: Boolean):    JValue       = value
+    def toJson(value: Boolean): JValue = value
     def parseJson(json: JValue):   Box[Boolean] = {
       json match {
         case JBool(value) => Full(value)
@@ -384,7 +384,7 @@ class SettingsApi(
   }
 
   trait RestStringSetting extends RestSetting[String] {
-    def toJson(value: String):     JValue       = value
+    def toJson(value: String): JValue = value
     def parseJson(json: JValue):   Box[String]  = {
       json match {
         case JString(value) => Full(value)
@@ -397,7 +397,7 @@ class SettingsApi(
   }
 
   trait RestIntSetting extends RestSetting[Int] {
-    def toJson(value: Int):        JValue   = value
+    def toJson(value: Int): JValue = value
     def parseJson(json: JValue):   Box[Int] = {
       json match {
         case JInt(value) => Full(value.toInt)
@@ -461,26 +461,26 @@ class SettingsApi(
   case object RestReportingMode               extends RestSetting[ComplianceModeName]         {
     val key                   = "reporting_mode"
     val startPolicyGeneration = true
-    def get:                               ZIO[Any, RudderError, ComplianceModeName]                          = for {
+    def get:                       ZIO[Any, RudderError, ComplianceModeName]                          = for {
       name <- configService.rudder_compliance_mode_name()
       mode <- ComplianceModeName.parse(name).toIO
     } yield {
       mode
     }
-    def set:                               (ComplianceModeName, EventActor, Option[String]) => IOResult[Unit] = {
+    def set:                       (ComplianceModeName, EventActor, Option[String]) => IOResult[Unit] = {
       (value: ComplianceModeName, actor: EventActor, reason: Option[String]) =>
         configService.set_rudder_compliance_mode_name(value.name, actor, reason)
     }
-    def parseJson(json: JValue):           Box[ComplianceModeName]                                            = {
+    def parseJson(json: JValue):   Box[ComplianceModeName]                                            = {
       json match {
         case JString(value) => ComplianceModeName.parse(value)
         case x              => Failure("Invalid value " + x)
       }
     }
-    def parseParam(param: String):         Box[ComplianceModeName]                                            = {
+    def parseParam(param: String): Box[ComplianceModeName]                                            = {
       ComplianceModeName.parse(param)
     }
-    def toJson(value: ComplianceModeName): JValue                                                             = value.name
+    def toJson(value: ComplianceModeName): JValue = value.name
   }
   case object RestHeartbeat                   extends RestIntSetting                          {
     val startPolicyGeneration = true
@@ -540,17 +540,17 @@ class SettingsApi(
   case object RestRelaySyncMethod             extends RestSetting[RelaySynchronizationMethod] {
     val key                   = "relay_server_synchronization_method"
     val startPolicyGeneration = true
-    def get:                                       IOResult[RelaySynchronizationMethod]                                       = configService.relay_server_sync_method()
-    def set:                                       (RelaySynchronizationMethod, EventActor, Option[String]) => IOResult[Unit] =
+    def get:                       IOResult[RelaySynchronizationMethod]                                       = configService.relay_server_sync_method()
+    def set:                       (RelaySynchronizationMethod, EventActor, Option[String]) => IOResult[Unit] =
       (value: RelaySynchronizationMethod, _, _) => configService.set_relay_server_sync_method(value)
-    def toJson(value: RelaySynchronizationMethod): JValue                                                                     = value.value
-    def parseJson(json: JValue):                   Box[RelaySynchronizationMethod]                                            = {
+    def toJson(value: RelaySynchronizationMethod): JValue = value.value
+    def parseJson(json: JValue):   Box[RelaySynchronizationMethod]                                            = {
       json match {
         case JString(value) => parseParam(value.toLowerCase())
         case x              => Failure("Invalid value " + x)
       }
     }
-    def parseParam(param: String):                 Box[RelaySynchronizationMethod]                                            = {
+    def parseParam(param: String): Box[RelaySynchronizationMethod]                                            = {
       param.toLowerCase() match {
         case Classic.value  => Full(Classic)
         case Rsync.value    => Full(Rsync)
@@ -577,17 +577,17 @@ class SettingsApi(
   case object RestReportProtocolDefault extends RestSetting[AgentReportingProtocol] {
     var key                   = "rudder_report_protocol_default"
     val startPolicyGeneration = false
-    def get:                                   IOResult[AgentReportingProtocol]                                       = configService.rudder_report_protocol_default()
-    def set:                                   (AgentReportingProtocol, EventActor, Option[String]) => IOResult[Unit] = (value: AgentReportingProtocol, _, _) =>
+    def get: IOResult[AgentReportingProtocol]                                       = configService.rudder_report_protocol_default()
+    def set: (AgentReportingProtocol, EventActor, Option[String]) => IOResult[Unit] = (value: AgentReportingProtocol, _, _) =>
       configService.set_rudder_report_protocol_default(value)
-    def toJson(value: AgentReportingProtocol): JValue                                                                 = value.value
-    def parseJson(json: JValue):               Box[AgentReportingProtocol]                                            = {
+    def toJson(value: AgentReportingProtocol): JValue = value.value
+    def parseJson(json: JValue):   Box[AgentReportingProtocol] = {
       json match {
         case JString(value) => parseParam(value.toUpperCase())
         case x              => Failure("Invalid value " + x)
       }
     }
-    def parseParam(param: String):             Box[AgentReportingProtocol]                                            = {
+    def parseParam(param: String): Box[AgentReportingProtocol] = {
       param.toUpperCase() match {
         case AgentReportingHTTPS.value => Full(AgentReportingHTTPS)
         case _                         => Failure(s"Invalid value '${param}' for default reporting method")
@@ -637,14 +637,14 @@ class SettingsApi(
 
   case object RestJSEngine extends RestSetting[FeatureSwitch] {
     val startPolicyGeneration = true
-    def toJson(value: FeatureSwitch): JValue             = value.name
-    def parseJson(json: JValue):      Box[FeatureSwitch] = {
+    def toJson(value: FeatureSwitch): JValue = value.name
+    def parseJson(json: JValue):   Box[FeatureSwitch] = {
       json match {
         case JString(value) => FeatureSwitch.parse(value)
         case x              => Failure("Invalid value " + x)
       }
     }
-    def parseParam(param: String):    Box[FeatureSwitch] = {
+    def parseParam(param: String): Box[FeatureSwitch] = {
       FeatureSwitch.parse(param)
     }
     val key = "enable_javascript_directives"
@@ -655,45 +655,45 @@ class SettingsApi(
 
   case object RestOnAcceptPolicyMode extends RestSetting[Option[PolicyMode]] {
     val startPolicyGeneration = false
-    def parseParam(value: String):         Box[Option[PolicyMode]]                                            = {
+    def parseParam(value: String): Box[Option[PolicyMode]] = {
       Full(PolicyMode.allModes.find(_.name == value))
     }
-    def toJson(value: Option[PolicyMode]): JValue                                                             = JString(value.map(_.name).getOrElse("default"))
-    def parseJson(json: JValue):           Box[Option[PolicyMode]]                                            = {
+    def toJson(value: Option[PolicyMode]): JValue = JString(value.map(_.name).getOrElse("default"))
+    def parseJson(json: JValue): Box[Option[PolicyMode]]                                            = {
       json match {
         case JString(value) => parseParam(value)
         case x              => Failure("Invalid value " + x)
       }
     }
     val key = "node_onaccept_default_policyMode"
-    def get:                               IOResult[Option[PolicyMode]]                                       = configService.rudder_node_onaccept_default_policy_mode()
-    def set:                               (Option[PolicyMode], EventActor, Option[String]) => IOResult[Unit] = (value: Option[PolicyMode], _, _) =>
+    def get:                     IOResult[Option[PolicyMode]]                                       = configService.rudder_node_onaccept_default_policy_mode()
+    def set:                     (Option[PolicyMode], EventActor, Option[String]) => IOResult[Unit] = (value: Option[PolicyMode], _, _) =>
       configService.set_rudder_node_onaccept_default_policy_mode(value)
   }
 
   case object RestOnAcceptNodeState extends RestSetting[NodeState] {
     val startPolicyGeneration = false
-    def parseParam(value: String): Box[NodeState]                                            = {
+    def parseParam(value: String): Box[NodeState] = {
       Full(NodeState.values.find(_.name == value).getOrElse(NodeState.Enabled))
     }
-    def toJson(value: NodeState):  JValue                                                    = value.name
-    def parseJson(json: JValue):   Box[NodeState]                                            = {
+    def toJson(value: NodeState): JValue = value.name
+    def parseJson(json: JValue): Box[NodeState]                                            = {
       json match {
         case JString(value) => parseParam(value)
         case x              => Failure("Invalid value " + x)
       }
     }
     val key = "node_onaccept_default_state"
-    def get:                       IOResult[NodeState]                                       = configService.rudder_node_onaccept_default_state()
-    def set:                       (NodeState, EventActor, Option[String]) => IOResult[Unit] = (value: NodeState, _, _) =>
+    def get:                     IOResult[NodeState]                                       = configService.rudder_node_onaccept_default_state()
+    def set:                     (NodeState, EventActor, Option[String]) => IOResult[Unit] = (value: NodeState, _, _) =>
       configService.set_rudder_node_onaccept_default_state(value)
   }
 
   trait RestChangeUnexpectedReportInterpretation extends RestBooleanSetting {
     def prop: UnexpectedReportBehavior
-    def get: ZIO[Any, RudderError, Boolean]                                       =
+    def get:  ZIO[Any, RudderError, Boolean]                                       =
       configService.rudder_compliance_unexpected_report_interpretation().map(_.isSet(prop))
-    def set: (Boolean, EventActor, Option[String]) => ZIO[Any, RudderError, Unit] = (value: Boolean, _, _) => {
+    def set:  (Boolean, EventActor, Option[String]) => ZIO[Any, RudderError, Unit] = (value: Boolean, _, _) => {
       for {
         config  <- configService.rudder_compliance_unexpected_report_interpretation()
         newConf  = if (value) {
@@ -720,7 +720,7 @@ class SettingsApi(
   }
 
   def response(function: Box[JValue], req: Req, errorMessage: String, id: Option[String])(implicit
-      action:            String
+      action: String
   ): LiftResponse = {
     RestUtils.response(restExtractorService, kind, id)(function, req, errorMessage)
   }
@@ -767,15 +767,15 @@ class SettingsApi(
   case object RestGenerationDelay extends RestSetting[Duration] {
     val startPolicyGeneration = false
     val key                   = "rudder_generation_delay"
-    def get:                       IOResult[Duration]                                       = configService.rudder_generation_delay()
-    def set:                       (Duration, EventActor, Option[String]) => IOResult[Unit] = (value: Duration, _, _) =>
+    def get: IOResult[Duration]                                       = configService.rudder_generation_delay()
+    def set: (Duration, EventActor, Option[String]) => IOResult[Unit] = (value: Duration, _, _) =>
       configService.set_rudder_generation_delay(value)
-    def toJson(value: Duration):   JValue                                                   = JString(value.toString)
-    def parseJson(json: JValue):   Box[Duration]                                            = json match {
+    def toJson(value: Duration): JValue = JString(value.toString)
+    def parseJson(json: JValue):   Box[Duration] = json match {
       case JString(jstring) => parseParam(jstring)
       case _                => Failure(s"Could not extract a valid duration from ${net.liftweb.json.compactRender(json)}")
     }
-    def parseParam(param: String): Box[Duration]                                            = net.liftweb.util.ControlHelpers.tryo(Duration(param)) match {
+    def parseParam(param: String): Box[Duration] = net.liftweb.util.ControlHelpers.tryo(Duration(param)) match {
       case eb: EmptyBox => eb ?~! s"Could not extract a valid duration from ${param}"
       case res => res
     }
@@ -784,15 +784,15 @@ class SettingsApi(
   case object RestPolicyGenerationTrigger extends RestSetting[PolicyGenerationTrigger] {
     val startPolicyGeneration = false
     val key                   = "rudder_generation_policy"
-    def get:                                    IOResult[PolicyGenerationTrigger]                                       = configService.rudder_generation_trigger()
-    def set:                                    (PolicyGenerationTrigger, EventActor, Option[String]) => IOResult[Unit] = (value: PolicyGenerationTrigger, _, _) =>
+    def get: IOResult[PolicyGenerationTrigger]                                       = configService.rudder_generation_trigger()
+    def set: (PolicyGenerationTrigger, EventActor, Option[String]) => IOResult[Unit] = (value: PolicyGenerationTrigger, _, _) =>
       configService.set_rudder_generation_trigger(value)
-    def toJson(value: PolicyGenerationTrigger): JValue                                                                  = JString(PolicyGenerationTrigger.serialize(value))
-    def parseJson(json: JValue):                Box[PolicyGenerationTrigger]                                            = json match {
+    def toJson(value: PolicyGenerationTrigger): JValue = JString(PolicyGenerationTrigger.serialize(value))
+    def parseJson(json: JValue):   Box[PolicyGenerationTrigger] = json match {
       case JString(jstring) => parseParam(jstring)
       case _                => Failure(s"Could not extract a valid generation policy from ${net.liftweb.json.compactRender(json)}")
     }
-    def parseParam(value: String):              Box[PolicyGenerationTrigger]                                            = {
+    def parseParam(value: String): Box[PolicyGenerationTrigger] = {
       PolicyGenerationTrigger(value).toBox
     }
   }

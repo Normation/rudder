@@ -13,10 +13,10 @@ import org.joda.time.DateTime
  */
 
 sealed trait CleanReportAction {
-  def name:     String
-  def past:     String
-  def continue: String
-  def actor:    DatabaseCleanerActor
+  def name:        String
+  def past:        String
+  def continue:    String
+  def actor:       DatabaseCleanerActor
   def actorIsIdle: Boolean = actor.isIdle
   def progress:    String  = if (actor.isIdle) "idle" else "in progress"
   def act(reports: DeleteCommand.Reports, complianceLevel: Option[DeleteCommand.ComplianceLevel]): Box[Int]

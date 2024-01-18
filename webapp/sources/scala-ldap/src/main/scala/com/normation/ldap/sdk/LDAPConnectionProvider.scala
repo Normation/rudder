@@ -106,7 +106,7 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] {
    * display in log message (for example).
    * Implementations: DO NOT provide sensitive information here.
    */
-  override def toString: String = toConnectionString
+  override def toString:  String = toConnectionString
   def toConnectionString: String
 
   /*
@@ -200,7 +200,7 @@ trait OneConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionProv
     } yield ())
   }
 
-  protected def getInternalConnection:                               LDAPIOResult[LDAP] = {
+  protected def getInternalConnection: LDAPIOResult[LDAP] = {
     semaphore.withPermit(for {
       c <- connection.get
       n <- (c match {
@@ -217,8 +217,8 @@ trait OneConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionProv
       n
     })
   }
-  override protected def releaseInternalConnection(con: LDAP):       UIO[Unit]          = ZIO.unit
-  override protected def releaseDefuncInternalConnection(con: LDAP): UIO[Unit]          = ZIO.unit
+  override protected def releaseInternalConnection(con: LDAP): UIO[Unit] = ZIO.unit
+  override protected def releaseDefuncInternalConnection(con: LDAP): UIO[Unit] = ZIO.unit
 }
 
 /**

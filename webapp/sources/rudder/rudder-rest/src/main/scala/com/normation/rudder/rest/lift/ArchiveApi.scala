@@ -898,17 +898,17 @@ class ZipArchiveReaderImpl(
     }
   }
   def parseDirectives(arch: PolicyArchiveUnzip, directives: Chunk[(String, Array[Byte])])(implicit
-      dec:                  JsonDecoder[JRDirective]
+      dec: JsonDecoder[JRDirective]
   ): IOResult[PolicyArchiveUnzip] = {
     parseSimpleFile(arch, directives, modifyLens[PolicyArchiveUnzip](_.policies.directives), parseDirective)
   }
   def parseGroups(arch: PolicyArchiveUnzip, groups: Chunk[(String, Array[Byte])])(implicit
-      dec:              JsonDecoder[JRGroup]
+      dec: JsonDecoder[JRGroup]
   ): IOResult[PolicyArchiveUnzip] = {
     parseSimpleFile(arch, groups, modifyLens[PolicyArchiveUnzip](_.policies.groups), parseGroup)
   }
   def parseRules(arch: PolicyArchiveUnzip, rules: Chunk[(String, Array[Byte])])(implicit
-      dec:             JsonDecoder[JRRule]
+      dec: JsonDecoder[JRRule]
   ): IOResult[PolicyArchiveUnzip] = {
     parseSimpleFile(arch, rules, modifyLens[PolicyArchiveUnzip](_.policies.rules), parseRule)
   }

@@ -569,7 +569,7 @@ class ComplianceAPIService(
 
   private[this] def components(
       nodeFacts: MapView[NodeId, CoreNodeFact]
-  )(name:        String, nodeComponents: List[(NodeId, ComponentStatusReport)]): List[ByRuleComponentCompliance] = {
+  )(name: String, nodeComponents: List[(NodeId, ComponentStatusReport)]): List[ByRuleComponentCompliance] = {
 
     val (groupsComponents, uniqueComponents) = nodeComponents.partitionMap {
       case (a, b: BlockStatusReport) => Left((a, b))
@@ -616,7 +616,7 @@ class ComplianceAPIService(
       directives:    Seq[Directive],
       allDirectives: Map[DirectiveId, (FullActiveTechnique, Directive)], // to compute policy mode for each rule
       level:         Option[Int]
-  )(implicit qc:     QueryContext): IOResult[Seq[ByDirectiveCompliance]] = {
+  )(implicit qc: QueryContext): IOResult[Seq[ByDirectiveCompliance]] = {
     val computedLevel = level.getOrElse(10)
 
     for {
@@ -728,7 +728,7 @@ class ComplianceAPIService(
    * level 4 includes the nodes
    */
   private[this] def getByRulesCompliance(rules: Seq[Rule], level: Option[Int])(implicit
-      qc:                                       QueryContext
+      qc: QueryContext
   ): IOResult[Seq[ByRuleRuleCompliance]] = {
     val computedLevel = level.getOrElse(10)
 
@@ -880,14 +880,14 @@ class ComplianceAPIService(
       nodeGroupComplianceId: String,
       nodeGroupName:         String,
       serverList:            Set[NodeId],
-      allDirectives:         Map[DirectiveId, (FullActiveTechnique, Directive)],
-      nodeFacts:             MapView[NodeId, CoreNodeFact],
-      nodeSettings:          Map[NodeId, RudderSettings],
-      rules:                 Seq[Rule],
-      allRuleInfos:          Map[RuleId, (Chunk[NodeId], Option[PolicyMode])],
-      level:                 Option[Int],
-      isGlobalCompliance:    Boolean
-  )(implicit qc:             QueryContext): IOResult[ByNodeGroupCompliance] = {
+      allDirectives:      Map[DirectiveId, (FullActiveTechnique, Directive)],
+      nodeFacts:          MapView[NodeId, CoreNodeFact],
+      nodeSettings:       Map[NodeId, RudderSettings],
+      rules:              Seq[Rule],
+      allRuleInfos:       Map[RuleId, (Chunk[NodeId], Option[PolicyMode])],
+      level:              Option[Int],
+      isGlobalCompliance: Boolean
+  )(implicit qc: QueryContext): IOResult[ByNodeGroupCompliance] = {
     val ruleMap = rules.map(r => (r.id, r)).toMap
     val ruleIds = ruleMap.keySet
 
@@ -1069,7 +1069,7 @@ class ComplianceAPIService(
       target:             SimpleTarget,
       level:              Option[Int],
       isGlobalCompliance: Boolean = true
-  )(implicit qc:          QueryContext): Box[ByNodeGroupCompliance] = {
+  )(implicit qc: QueryContext): Box[ByNodeGroupCompliance] = {
     for {
       t1          <- currentTimeMillis
       nodeFacts   <- nodeFactRepos.getAll()
@@ -1327,8 +1327,8 @@ class ComplianceAPIService(
     rulesRepo.getAll()
   }
   private[this] def getByNodesCompliance(
-      onlyNode:  Option[NodeId],
-      getRules:  => IOResult[Seq[Rule]]
+      onlyNode: Option[NodeId],
+      getRules: => IOResult[Seq[Rule]]
   )(implicit qc: QueryContext): IOResult[Seq[ByNodeNodeCompliance]] = {
 
     for {

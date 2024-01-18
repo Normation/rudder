@@ -102,8 +102,8 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
     override def xmlPrettyPrinter = new RudderPrettyPrinter(Int.MaxValue, 2)
     override def encoding:                  String                    = "UTF-8"
     override def gitModificationRepository: GitModificationRepository = new GitModificationRepository {
-      override def getCommits(modificationId: ModificationId):            IOResult[Option[GitCommitId]] = None.succeed
-      override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin]    =
+      override def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]] = None.succeed
+      override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin] =
         DB.GitCommitJoin(commit, modId).succeed
     }
 

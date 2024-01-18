@@ -2307,7 +2307,7 @@ object RudderConfigInit {
     )
     lazy val propertyEngineService = propertyEngineServiceImpl
 
-    def DN(rdn: String, parent: DN)           = new DN(new RDN(rdn), parent)
+    def DN(rdn: String, parent: DN) = new DN(new RDN(rdn), parent)
     lazy val LDAP_BASEDN                      = new DN("cn=rudder-configuration")
     lazy val LDAP_INVENTORIES_BASEDN          = DN("ou=Inventories", LDAP_BASEDN)
     lazy val LDAP_INVENTORIES_SOFTWARE_BASEDN = LDAP_INVENTORIES_BASEDN

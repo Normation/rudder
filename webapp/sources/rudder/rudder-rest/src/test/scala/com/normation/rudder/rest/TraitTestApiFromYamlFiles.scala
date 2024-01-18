@@ -305,13 +305,13 @@ trait TraitTestApiFromYamlFiles extends Specification with BoxSpecMatcher with J
       readYamlFiles(yamlSourceDirectory, yamlDestTmpDirectory, f => limitToFiles.exists(n => f.endsWith(n))).runNow
     }
 
-    def equalsBox[A](m: Matcher[A])(name: String): Matcher[Box[A]]      = (_: Box[A]).mustMatch(m, name)
+    def equalsBox[A](m:       Matcher[A])(name: String): Matcher[Box[A]] = (_: Box[A]).mustMatch(m, name)
     // Full(1) must equalsBoxStrict(1)
-    def equalsBoxStrict[A](a: A)(name: String):    Matcher[Box[A]]      = equalsBox[A](be_==(a))(name)
+    def equalsBoxStrict[A](a: A)(name:          String): Matcher[Box[A]] = equalsBox[A](be_==(a))(name)
     // Full("[3,4]") must equalsBoxJson("[3, 4]")
-    def compareJson(s: String):                    Matcher[String]      =
+    def compareJson(s: String): Matcher[String] =
       if (semanticJson) equalsJsonSemantic(s) else equalsJson(s)
-    def equalsBoxJson(s: String)(name: String):    Matcher[Box[String]] = equalsBox(compareJson(s))(name)
+    def equalsBoxJson(s: String)(name: String): Matcher[Box[String]] = equalsBox(compareJson(s))(name)
 
     Fragments.foreach(files) {
       case (name, yamls) =>

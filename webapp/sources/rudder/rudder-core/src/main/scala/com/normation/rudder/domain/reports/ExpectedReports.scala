@@ -532,7 +532,7 @@ object ExpectedReportsSerialisation {
 
       // invariance is complicated
       def toRight(x: JsonExpectedValueId7_1): Either[List[String], JsonExpectedValueId7_1] = Right(x)
-      def toLeft(x: List[String]):            Either[List[String], JsonExpectedValueId7_1] = Left(x)
+      def toLeft(x:  List[String]):           Either[List[String], JsonExpectedValueId7_1] = Left(x)
 
       JsonDecoder[List[String]].map(toLeft).orElse(decodeJsonExpectedValueId7_1.map(toRight))
     }

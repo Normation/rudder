@@ -73,7 +73,7 @@ class TestPreParsing extends Specification {
           }
           url.openStream()
         }
-      }(is => effectUioUnit(is.close)) { is => fromXml("check", is).flatMap[Any, RudderError, NodeSeq](pre.apply) }).either.runNow
+      }(is => effectUioUnit(is.close))(is => fromXml("check", is).flatMap[Any, RudderError, NodeSeq](pre.apply))).either.runNow
     }
   }
   val post = new PreInventoryParserCheckConsistency

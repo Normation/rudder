@@ -510,7 +510,7 @@ class RwLDAPConnection(
       toLDIFChangeRecord: MOD => LDIFChangeRecord,
       backendAction:      MOD => LDAPResult,
       onlyReportThat:     ResultCode => Boolean
-  )(reqs:                 List[MOD]): LDAPIOResult[Seq[LDIFChangeRecord]] = {
+  )(reqs: List[MOD]): LDAPIOResult[Seq[LDIFChangeRecord]] = {
     if (reqs.isEmpty) ZIO.succeed(Seq())
     else {
       ZIO.succeed(ldifFileLogger.records(reqs map (toLDIFChangeRecord(_)))) *>
@@ -533,7 +533,7 @@ class RwLDAPConnection(
       toLDIFChangeRecord: MOD => LDIFChangeRecord,
       backendAction:      MOD => LDAPResult,
       onlyReportThat:     ResultCode => Boolean
-  )(req:                  MOD): LDAPIOResult[LDIFChangeRecord] = {
+  )(req: MOD): LDAPIOResult[LDIFChangeRecord] = {
     val record = toLDIFChangeRecord(req)
     ZIO
       .blocking(blocking {

@@ -105,7 +105,7 @@ class TechniqueParser(
             }
             otherAgents        <- (xml \ "AGENT").toList.traverse(agent => parseAgentConfig(id, agent)).map(_.flatten)
             agentConfigs        = (compatibilityAgent ++ otherAgents
-                                  // we need to filter back for totally empty agent (most likely default one added for nothing)
+                                    // we need to filter back for totally empty agent (most likely default one added for nothing)
                                   ).filter(a => !List(a.templates, a.files, a.bundlesequence, a.runHooks).forall(_.isEmpty))
             _                  <- { // all agent config types must be different
               val duplicated =

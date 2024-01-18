@@ -268,13 +268,13 @@ class GroupsApi(
   import net.liftweb.json._
 
   def response(function: Box[JValue], req: Req, errorMessage: String, id: Option[String])(implicit
-      action:            String
+      action: String
   ): LiftResponse = {
     RestUtils.response(restExtractorService, "groupCategories", id)(function, req, errorMessage)
   }
 
   def actionResponse(function: Box[ActionType], req: Req, errorMessage: String, id: Option[String], actor: EventActor)(implicit
-      action:                  String
+      action: String
   ): LiftResponse = {
     RestUtils.actionResponse2(restExtractorService, "groupCategories", uuidGen, id)(function, req, errorMessage)(action, actor)
   }
@@ -705,22 +705,22 @@ class GroupApiService2(
     restExtractor:        RestExtractorService,
     queryProcessor:       QueryProcessor,
     restDataSerializer:   RestDataSerializer
-)(implicit userService:   UserService)
+)(implicit userService: UserService)
     extends Loggable {
 
   import RestUtils._
   import restDataSerializer._
 
   private[this] def createChangeRequestAndAnswer(
-      id:            String,
-      diff:          ChangeRequestNodeGroupDiff,
-      group:         NodeGroup,
-      initialState:  Option[NodeGroup],
-      newCategory:   Option[NodeGroupCategoryId],
-      actor:         EventActor,
-      req:           Req,
-      act:           DGModAction,
-      apiVersion:    ApiVersion
+      id:           String,
+      diff:         ChangeRequestNodeGroupDiff,
+      group:        NodeGroup,
+      initialState: Option[NodeGroup],
+      newCategory:  Option[NodeGroupCategoryId],
+      actor:        EventActor,
+      req:          Req,
+      act:          DGModAction,
+      apiVersion:   ApiVersion
   )(implicit action: String, prettify: Boolean) = {
 
     val change = NodeGroupChangeRequest(act, group, newCategory, initialState)
@@ -1006,7 +1006,7 @@ class GroupApiService6(
   def deleteCategory(
       id:         NodeGroupCategoryId,
       apiVersion: ApiVersion
-  )(actor:        EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
+  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     for {
       root     <- readGroup.getFullGroupLibrary().toBox
       category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
@@ -1021,7 +1021,7 @@ class GroupApiService6(
       id:         NodeGroupCategoryId,
       restData:   RestGroupCategory,
       apiVersion: ApiVersion
-  )(actor:        EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
+  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     for {
       root      <- readGroup.getFullGroupLibrary().toBox
       category  <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
@@ -1039,7 +1039,7 @@ class GroupApiService6(
       defaultId:  () => NodeGroupCategoryId,
       restData:   RestGroupCategory,
       apiVersion: ApiVersion
-  )(actor:        EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
+  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     for {
       update  <- restData.create(defaultId)
       category = update.toNodeGroupCategory
@@ -1267,7 +1267,7 @@ class GroupApiService14(
   def deleteCategory(
       id:         NodeGroupCategoryId,
       apiVersion: ApiVersion
-  )(actor:        EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
+  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     for {
       root     <- readGroup.getFullGroupLibrary().toBox
       category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
@@ -1282,7 +1282,7 @@ class GroupApiService14(
       id:         NodeGroupCategoryId,
       restData:   RestGroupCategory,
       apiVersion: ApiVersion
-  )(actor:        EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
+  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     for {
       root      <- readGroup.getFullGroupLibrary().toBox
       category  <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
@@ -1300,7 +1300,7 @@ class GroupApiService14(
       defaultId:  () => NodeGroupCategoryId,
       restData:   RestGroupCategory,
       apiVersion: ApiVersion
-  )(actor:        EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
+  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     for {
       update  <- restData.create(defaultId)
       category = update.toNodeGroupCategory

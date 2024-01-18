@@ -104,12 +104,12 @@ object QuickSearchService {
   }
 
   implicit class QSBackendImpl(b: QSBackend)(implicit
-      directiveRepo:              RoDirectiveRepository,
-      ldap:                       LDAPConnectionProvider[RoLDAPConnection],
-      inventoryDit:               InventoryDit,
-      nodeDit:                    NodeDit,
-      rudderDit:                  RudderDit,
-      nodeFactRepo:               NodeFactRepository
+      directiveRepo: RoDirectiveRepository,
+      ldap:          LDAPConnectionProvider[RoLDAPConnection],
+      inventoryDit:  InventoryDit,
+      nodeDit:       NodeDit,
+      rudderDit:     RudderDit,
+      nodeFactRepo:  NodeFactRepository
   ) {
 
     import QSBackend._

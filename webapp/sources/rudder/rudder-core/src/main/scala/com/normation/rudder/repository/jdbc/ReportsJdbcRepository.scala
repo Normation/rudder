@@ -73,9 +73,9 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
   // just an utility to remove multiple spaces in query so that we can vertically align them an see what part are changing - the use
   // of greek p is to discurage use elsewhere
   private[this] def þ(s: String) = s.replaceAll("""\s+""", " ")
-  private[this] val baseQuery    = þ(s"select     ${common_reports_column} from RudderSysEvents         where 1=1 ")
-  private[this] val typedQuery   = þ(s"select     ${typed_reports_column}  from RudderSysEvents         where 1=1 ")
-  private[this] val idQuery      = þ(s"select id, ${common_reports_column} from ruddersysevents         where 1=1 ")
+  private[this] val baseQuery  = þ(s"select     ${common_reports_column} from RudderSysEvents         where 1=1 ")
+  private[this] val typedQuery = þ(s"select     ${typed_reports_column}  from RudderSysEvents         where 1=1 ")
+  private[this] val idQuery    = þ(s"select id, ${common_reports_column} from ruddersysevents         where 1=1 ")
 
   // We assume that this method is called with a limited list of runs
   override def getExecutionReports(
