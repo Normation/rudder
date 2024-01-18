@@ -37,7 +37,7 @@
 
 package com.normation.rudder.campaigns
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
@@ -48,7 +48,7 @@ import scala.annotation.nowarn
 import zio.Duration
 import zio.Queue
 import zio.ZIO
-import zio.syntax._
+import zio.syntax.*
 
 trait CampaignHandler {
   def handle(mainCampaignService: MainCampaignService, event: CampaignEvent): PartialFunction[Campaign, IOResult[CampaignEvent]]

@@ -20,17 +20,17 @@
 
 package com.normation.rudder.services.nodes.history.impl
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.RudderError
 import com.normation.zio.ZioRuntime
 import java.io.File
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
-import org.junit._
-import org.junit.Assert._
+import org.junit.*
+import org.junit.Assert.*
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-import zio._
+import zio.*
 
 final case class SystemError(cause: Throwable) extends RudderError {
   def msg = "Error in test"
@@ -50,7 +50,7 @@ object StringId extends IdToFilenameConverter[String] {
   override def filenameToId(name: String): String = name
 }
 
-import TestFileHistoryLogRepository._
+import TestFileHistoryLogRepository.*
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TestFileHistoryLogRepository {

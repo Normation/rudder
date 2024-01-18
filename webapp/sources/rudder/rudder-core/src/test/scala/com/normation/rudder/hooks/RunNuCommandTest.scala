@@ -37,8 +37,8 @@
 
 package com.normation.rudder.hooks
 
-import com.normation.errors._
-import com.normation.zio._
+import com.normation.errors.*
+import com.normation.zio.*
 import java.io.File
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
@@ -46,8 +46,8 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import scala.annotation.nowarn
-import scala.jdk.CollectionConverters._
-import zio.{System => _, _}
+import scala.jdk.CollectionConverters.*
+import zio.{System as _, *}
 
 /**
  * Test properties about NuProcess command, especially about

@@ -37,7 +37,7 @@
 
 package com.normation.rudder.domain.eventlog
 
-import com.normation.eventlog._
+import com.normation.eventlog.*
 sealed trait PromiseEventLog extends EventLog { final override val eventLogCategory: EventLogCategory = DeploymentLogCategory }
 
 final case class AutomaticStartDeployement(

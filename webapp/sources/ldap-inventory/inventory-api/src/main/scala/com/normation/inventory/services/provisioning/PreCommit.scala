@@ -37,7 +37,7 @@
 
 package com.normation.inventory.services.provisioning
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.Inventory
 
 /**

@@ -38,8 +38,8 @@
 package com.normation.rudder.hooks
 
 import com.normation.NamedZioLogger
-import com.normation.errors._
-import com.normation.zio._
+import com.normation.errors.*
+import com.normation.zio.*
 import com.zaxxer.nuprocess.NuProcess
 import com.zaxxer.nuprocess.NuProcessBuilder
 import com.zaxxer.nuprocess.codec.NuAbstractCharsetHandler
@@ -49,9 +49,9 @@ import java.nio.charset.CoderResult
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.util
-import zio._
+import zio.*
 import zio.Duration.Infinity
-import zio.syntax._
+import zio.syntax.*
 
 /*
  * The goal of that file is to give a simple abstraction to run hooks in
@@ -87,7 +87,7 @@ object RunNuCommand {
   // we don't want NuCommand to log with its format which is totally broken along our, so we redefined it.
   // we don't really use that class but need that trick to be able to access protected fields.
   object SilentLogger extends BasePosixProcess(null) {
-    import java.util.logging._
+    import java.util.logging.*
     override def start(command: util.List[String], environment: Array[String], cwd: Path): NuProcess = null
     override def run(command:   util.List[String], environment: Array[String], cwd: Path): Unit      = {}
     def silent(): Unit = {
@@ -168,7 +168,7 @@ object RunNuCommand {
      *
      *
      */
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
     val errorMsg = s"Error when executing command ${cmd.display}"
 
     (for {

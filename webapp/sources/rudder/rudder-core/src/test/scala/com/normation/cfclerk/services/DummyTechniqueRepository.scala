@@ -37,8 +37,8 @@
 
 package com.normation.cfclerk.services
 
-import com.normation.cfclerk.domain._
-import com.normation.errors._
+import com.normation.cfclerk.domain.*
+import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import java.io.InputStream
 import scala.collection.SortedSet

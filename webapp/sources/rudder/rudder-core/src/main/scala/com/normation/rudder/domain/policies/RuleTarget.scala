@@ -41,9 +41,9 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.utils.Control.traverse
-import net.liftweb.common._
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
+import net.liftweb.common.*
+import net.liftweb.json.*
+import net.liftweb.json.JsonDSL.*
 import scala.collection.MapView
 import scala.util.matching.Regex
 import zio.Chunk

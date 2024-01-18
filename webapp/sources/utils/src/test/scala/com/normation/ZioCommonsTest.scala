@@ -24,16 +24,16 @@
 
 package com.normation
 
-import _root_.zio._
-import _root_.zio.syntax._
-import com.normation.errors._
+import _root_.zio.*
+import _root_.zio.syntax.*
+import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
-import com.normation.zio._
+import com.normation.zio.*
 import com.normation.zio.ZioRuntime
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.junit.runner.RunWith
-import org.specs2.mutable._
+import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
 import scala.annotation.nowarn
 
@@ -72,11 +72,11 @@ class ZioCommonsTest extends Specification {
 }
 
 object TestImplicits {
-  import _root_.zio._
-  import _root_.zio.syntax._
+  import _root_.zio.*
+  import _root_.zio.syntax.*
 
   object module1 {
-    import com.normation.errors._
+    import com.normation.errors.*
     sealed trait M_1_Error extends RudderError
     object M_1_Error {
       final case class Some(msg: String)                                 extends M_1_Error
@@ -91,7 +91,7 @@ object TestImplicits {
   }
 
   object module2 {
-    import com.normation.errors._
+    import com.normation.errors.*
     sealed trait M_2_Error extends RudderError
     object M_2_Error  {
       final case class Some(msg: String)                                 extends M_2_Error
@@ -107,9 +107,9 @@ object TestImplicits {
   }
 
   object testModule {
-    import com.normation.errors._
-    import module1._
-    import module2._
+    import com.normation.errors.*
+    import module1.*
+    import module2.*
     sealed trait M_3_Error extends RudderError
     object M_3_Error  {
       final case class Some(msg: String)                                 extends M_3_Error
@@ -407,7 +407,7 @@ Process finished with exit code 0
  * Testing accumulation
  */
 object TestAccumulate {
-  import cats.implicits._
+  import cats.implicits.*
 
   def main(args: Array[String]): Unit = {
 

@@ -64,14 +64,14 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
-import com.softwaremill.quicklens._
+import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import scala.collection.MapView
 import scala.collection.SortedMap
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /*
  * This class test the JsEngine. 6.0
@@ -91,7 +91,7 @@ class TestBuildNodeConfiguration extends Specification {
 
   val t0: Long = System.currentTimeMillis()
 
-  import NodeConfigData._
+  import NodeConfigData.*
   val data = new TestNodeConfiguration()
   val t0_1: Long = System.currentTimeMillis()
   logger.trace(s"Test node configuration   : ${t0_1 - t0} ms")

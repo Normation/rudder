@@ -49,14 +49,14 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.TechniquesInfo
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.cfclerk.xmlparsers.TechniqueParser
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventMetadata
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonResponseObjects.JRDirective
 import com.normation.rudder.apidata.JsonResponseObjects.JRGroup
 import com.normation.rudder.apidata.JsonResponseObjects.JRRule
-import com.normation.rudder.apidata.implicits._
+import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.configuration.ConfigurationRepository
@@ -86,15 +86,15 @@ import com.normation.rudder.repository.WoRuleRepository
 import com.normation.rudder.repository.xml.TechniqueArchiverImpl
 import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
-import com.normation.rudder.rest.{ArchiveApi => API}
 import com.normation.rudder.rest.ApiPath
+import com.normation.rudder.rest.ArchiveApi as API
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RudderJsonResponse
 import com.normation.rudder.rest.RudderJsonResponse.ResponseSchema
-import com.normation.rudder.rest.implicits._
-import com.normation.rudder.rest.lift.ImportAnswer._
+import com.normation.rudder.rest.implicits.*
+import com.normation.rudder.rest.lift.ImportAnswer.*
 import com.normation.rudder.services.queries.CmdbQueryParser
-import com.normation.zio._
+import com.normation.zio.*
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.io.OutputStream
@@ -108,9 +108,9 @@ import net.liftweb.http.OutputStreamResponse
 import net.liftweb.http.Req
 import scala.util.matching.Regex
 import scala.xml.XML
-import zio._
-import zio.json._
-import zio.syntax._
+import zio.*
+import zio.json.*
+import zio.syntax.*
 
 /*
  * Machinery to enable/disable the API given the value of the feature switch in config service.
@@ -336,7 +336,7 @@ class ArchiveApi(
  */
 object ImportAnswer {
 
-  import zio.json._
+  import zio.json.*
 
   case class JRArchiveImported(success: Boolean)
 
@@ -512,7 +512,7 @@ class ZipArchiveBuilderService(
   ): IOResult[Chunk[Zippable]] = {
     // normalize to no slash at end
     val root                 = rootDirName.strip().replaceAll("""/$""", "")
-    import ArchiveScope._
+    import ArchiveScope.*
     val includeDepTechniques = scopes.intersect(Set(AllDep, Techniques)).nonEmpty
     // scope is transitive, techniques implies directives
     val includeDepDirectives = includeDepTechniques || scopes.intersect(Set(AllDep, Directives)).nonEmpty
@@ -725,7 +725,7 @@ class ZipArchiveReaderImpl(
     cmdbQueryParser: CmdbQueryParser,
     techniqueParser: TechniqueParser
 ) extends ZipArchiveReader {
-  import com.softwaremill.quicklens._
+  import com.softwaremill.quicklens.*
 
   // we must avoid to eagerly match "ncf_techniques" as "techniques" but still accept when it starts by "techniques" without /
   val techniqueRegex: Regex = """(.*/|)techniques/(.+)""".r
@@ -774,9 +774,9 @@ class ZipArchiveReaderImpl(
         name:     String,
         content:  Array[Byte]
     ): IOResult[(String, Array[Byte])] = {
-      import YamlTechniqueSerializer._
-      import com.normation.rudder.ncf.yaml.{Technique => YTechnique}
-      import zio.json.yaml._
+      import YamlTechniqueSerializer.*
+      import com.normation.rudder.ncf.yaml.Technique as YTechnique
+      import zio.json.yaml.*
 
       // when the technique is a YAML technique, we need to check that technique ID matches technique path
       def checkYamlIdMatchesPath(path: String, tech: YTechnique, id: TechniqueId): IOResult[Unit] = {
@@ -969,7 +969,7 @@ class ZipArchiveReaderImpl(
     }
 
     // now, parse everything and collect errors
-    import com.normation.rudder.apidata.JsonResponseObjectDecodes._
+    import com.normation.rudder.apidata.JsonResponseObjectDecodes.*
     for {
       _              <- ApplicationLoggerPure.Archive.debug(
                           s"Processing archive '${archiveName}': techniques: '${techniqueUnzips.keys.mkString("', '")}'"
@@ -990,7 +990,7 @@ class ZipArchiveReaderImpl(
       // aggregate errors
       policies       <- withRules.errors.toList match {
                           case Nil       => withRules.policies.succeed
-                          case h :: tail => Accumulated(NonEmptyList.of(h, tail: _*)).fail
+                          case h :: tail => Accumulated(NonEmptyList.of(h, tail*)).fail
                         }
     } yield policies
   }

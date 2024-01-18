@@ -37,11 +37,11 @@
 
 package com.normation.rudder.services.eventlog
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.rudder.domain.eventlog.InventoryEventLog
 import com.normation.rudder.repository.EventLogRepository
-import doobie._
-import net.liftweb.common._
+import doobie.*
+import net.liftweb.common.*
 
 class InventoryEventLogServiceImpl(
     repository: EventLogRepository

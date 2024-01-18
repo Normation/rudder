@@ -80,8 +80,8 @@ class GitResourceFileService(gitReposProvider: GitRepositoryProvider) extends Re
       }
     }
 
-    import scala.jdk.CollectionConverters._
-    import ResourceFileState._
+    import scala.jdk.CollectionConverters.*
+    import ResourceFileState.*
 
     def toResource(resourcesPath: String)(fullPath: String, state: ResourceFileState): Option[ResourceFile] = {
       // workaround https://issues.rudder.io/issues/17977 - if the fullPath does not start by resourcePath,

@@ -4,8 +4,8 @@ import com.normation.errors
 import com.normation.eventlog.EventActor
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.db.Doobie
-import com.normation.zio._
-import com.softwaremill.quicklens._
+import com.normation.zio.*
+import com.softwaremill.quicklens.*
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone

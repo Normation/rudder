@@ -37,8 +37,8 @@
 
 package com.normation.rudder.batch
 
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants.DYNGROUP_MINIMUM_UPDATE_INTERVAL
@@ -46,13 +46,13 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.DynamicGroupLoggerPure
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.services.queries._
+import com.normation.rudder.services.queries.*
 import com.normation.rudder.utils.ParseMaxParallelism
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Utils.DateToIsoString
-import net.liftweb.actor._
-import net.liftweb.common._
-import org.joda.time._
+import net.liftweb.actor.*
+import net.liftweb.common.*
+import org.joda.time.*
 //Message to send to the updater manager to start a new update of all dynamic groups or get results
 sealed trait GroupUpdateMessage
 

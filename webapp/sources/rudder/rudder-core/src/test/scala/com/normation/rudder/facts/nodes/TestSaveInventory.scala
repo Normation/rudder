@@ -37,12 +37,12 @@
 
 package com.normation.rudder.facts.nodes
 
-import better.files._
+import better.files.*
 import com.normation.box.IOManaged
-import com.normation.errors._
-import com.normation.inventory.domain._
+import com.normation.errors.*
+import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.inventory.ldap.provisioning._
+import com.normation.inventory.ldap.provisioning.*
 import com.normation.inventory.provisioning.fusion.FusionInventoryParser
 import com.normation.inventory.provisioning.fusion.PreInventoryParserCheckConsistency
 import com.normation.inventory.services.provisioning.DefaultInventoryParser
@@ -64,9 +64,9 @@ import com.normation.rudder.inventory.SaveInventoryInfo
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGeneratorImpl
-import com.normation.zio._
+import com.normation.zio.*
 import com.normation.zio.ZioRuntime
-import com.softwaremill.quicklens._
+import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigValueFactory
 import cron4s.Cron
 import java.io.InputStream
@@ -74,15 +74,15 @@ import java.security.Security
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTime
-import org.junit.runner._
+import org.junit.runner.*
 import org.specs2.matcher.MatchResult
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import org.specs2.specification.BeforeAfterAll
 import scala.annotation.nowarn
-import zio._
+import zio.*
 import zio.concurrent.ReentrantLock
-import zio.syntax._
+import zio.syntax.*
 
 /**
  *

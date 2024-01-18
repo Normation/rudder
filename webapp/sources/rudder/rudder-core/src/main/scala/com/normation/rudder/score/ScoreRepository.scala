@@ -44,11 +44,11 @@ import doobie.Fragments
 import doobie.Meta
 import doobie.Read
 import doobie.Write
-import doobie.implicits._
+import doobie.implicits.*
 import doobie.implicits.toSqlInterpolator
 import doobie.postgres.implicits.pgEnumString
 import doobie.util.invariant.InvalidEnum
-import zio.interop.catz._
+import zio.interop.catz.*
 import zio.json.ast.Json
 
 trait ScoreRepository {
@@ -63,7 +63,7 @@ trait ScoreRepository {
 
 class ScoreRepositoryImpl(doobie: Doobie) extends ScoreRepository {
 
-  import com.normation.rudder.db.json.implicits._
+  import com.normation.rudder.db.json.implicits.*
 
   implicit val scoreMeta: Meta[ScoreValue] = {
     def getValue(value: String) = {
@@ -93,7 +93,7 @@ class ScoreRepositoryImpl(doobie: Doobie) extends ScoreRepository {
     }
   }
 
-  import doobie._
+  import doobie.*
   override def getAll(): IOResult[Map[NodeId, List[Score]]] = {
     val q = sql"select nodeId, scoreId, score, message, details from scoreDetails "
     transactIOResult(s"error when getting scores for node")(xa => q.query[(NodeId, Score)].to[List].transact(xa))

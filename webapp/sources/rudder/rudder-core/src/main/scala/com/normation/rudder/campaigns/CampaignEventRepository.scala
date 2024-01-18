@@ -43,11 +43,11 @@ import doobie.Fragments
 import doobie.Meta
 import doobie.Read
 import doobie.Write
-import doobie.implicits._
-import doobie.implicits.javasql._
+import doobie.implicits.*
+import doobie.implicits.javasql.*
 import doobie.implicits.toSqlInterpolator
 import org.joda.time.DateTime
-import zio.interop.catz._
+import zio.interop.catz.*
 
 trait CampaignEventRepository {
   def get(campaignEventId:                 CampaignEventId): IOResult[Option[CampaignEvent]]
@@ -82,10 +82,10 @@ trait CampaignEventRepository {
 
 class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSerializer) extends CampaignEventRepository {
 
-  import CampaignSerializer._
+  import CampaignSerializer.*
   import Doobie.DateTimeMeta
-  import com.normation.rudder.db.json.implicits._
-  import doobie._
+  import com.normation.rudder.db.json.implicits.*
+  import doobie.*
 
   implicit val stateWrite: Meta[CampaignEventState] = new Meta(pgDecoderGet, pgEncoderPut)
 
@@ -129,7 +129,7 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
       asc:          Option[String]
   ): IOResult[List[CampaignEvent]] = {
 
-    import cats.syntax.list._
+    import cats.syntax.list.*
     val campaignIdQuery   = campaignId.map(c => fr"campaignId = ${c.value}")
     val campaignTypeQuery = campaignType.toNel.map(c => Fragments.in(fr"campaignType", c))
     val stateQuery        = states.toNel.map(s => Fragments.in(fr"state->>'value'", s))
@@ -161,7 +161,7 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
   }
 
   def saveCampaignEvent(c: CampaignEvent): IOResult[CampaignEvent] = {
-    import doobie._
+    import doobie.*
     val query = {
       sql"""insert into CampaignEvents  (eventId, campaignId, name, state, startDate, endDate, campaignType) values (${c})
            |  ON CONFLICT (eventId) DO UPDATE
@@ -180,7 +180,7 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
       beforeDate:   Option[DateTime] = None
   ): IOResult[Unit] = {
 
-    import cats.syntax.list._
+    import cats.syntax.list.*
     val eventIdQuery      = id.map(c => fr"eventId = ${c.value}")
     val campaignIdQuery   = campaignId.map(c => fr"campaignId = ${c.value}")
     val campaignTypeQuery = campaignType.map(c => fr"campaignType = ${c.value}")

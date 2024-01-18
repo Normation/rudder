@@ -37,7 +37,7 @@
 
 package com.normation.rudder.web.model
 
-import com.normation.cfclerk.domain._
+import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.domain.HashAlgoConstraint.PLAIN
 import com.normation.cfclerk.domain.HashAlgoConstraint.PreHashed
 import com.normation.rudder.domain.appconfig.FeatureSwitch
@@ -45,23 +45,23 @@ import com.normation.rudder.domain.appconfig.FeatureSwitch.Disabled
 import com.normation.rudder.domain.appconfig.FeatureSwitch.Enabled
 import com.normation.rudder.services.policies.JsEngine
 import com.normation.rudder.web.ChooseTemplate
-import com.normation.utils.Utils._
+import com.normation.utils.Utils.*
 import java.io.File
-import net.liftweb.common._
-import net.liftweb.http._
+import net.liftweb.common.*
+import net.liftweb.http.*
 import net.liftweb.http.SHtml.ChoiceHolder
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.CssSel
 import net.liftweb.util.FieldError
 import net.liftweb.util.Helpers
-import net.liftweb.util.Helpers._
+import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import org.joda.time.LocalDate
 import org.joda.time.LocalTime
 import org.joda.time.Period
 import org.joda.time.format.DateTimeFormatter
-import scala.xml._
+import scala.xml.*
 
 /**
  * This field is a simple input text, without any
@@ -143,7 +143,7 @@ class ReadOnlyTextField(val id: String) extends DirectiveField {
   def set(x: String): String = { if (null == x) _x = "" else _x = x; _x }
   def toForm:   Full[Elem]       = {
     val attrs = if (isReadOnly) Seq(("readonly" -> "readonly")) else Seq()
-    Full(SHtml.text(toClient, x => parseClient(x), attrs: _*))
+    Full(SHtml.text(toClient, x => parseClient(x), attrs*))
   }
   def manifest: Manifest[String] = manifestOf[String]
 
@@ -709,7 +709,7 @@ class PasswordField(
    *
    */
   def parseClient(s: String): Unit   = {
-    import net.liftweb.json._
+    import net.liftweb.json.*
     errors = Nil
     val json = parse(s)
     (for {
@@ -792,7 +792,7 @@ class PasswordField(
   // add a mapping between algo names and what is displayed, because having
   // linux-... or aix-... does not make sense in that context
   implicit class AlgoToDisplayName(a: HashAlgoConstraint) {
-    import com.normation.cfclerk.domain.HashAlgoConstraint._
+    import com.normation.cfclerk.domain.HashAlgoConstraint.*
 
     def name: String = a match {
       case PLAIN                         => "Plain text"
@@ -809,11 +809,11 @@ class PasswordField(
   }
 
   def toForm: Full[NodeSeq] = {
-    val hashes                                  = JsObj(algos.filterNot(x => x == PLAIN || x == PreHashed).map(a => (a.prefix, Str(a.name))): _*)
+    val hashes                                  = JsObj(algos.filterNot(x => x == PLAIN || x == PreHashed).map(a => (a.prefix, Str(a.name)))*)
     val formId                                  = Helpers.nextFuncName
     val valueInput                              = SHtml.text("", s => parseClient(s), ("class", "input-result"))
     val otherPasswords                          =
-      if (slavesValues().size == 0) "undefined" else JsObj(slavesValues().view.mapValues(Str(_)).toSeq: _*).toJsCmd
+      if (slavesValues().size == 0) "undefined" else JsObj(slavesValues().view.mapValues(Str(_)).toSeq*).toJsCmd
     val (scriptEnabled, isScript, currentValue) = scriptSwitch().getOrElse(Disabled) match {
       case Disabled => (false, false, currentHash)
       case Enabled  =>

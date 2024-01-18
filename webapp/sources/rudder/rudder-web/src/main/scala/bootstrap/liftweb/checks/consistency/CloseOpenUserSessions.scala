@@ -39,8 +39,8 @@ package bootstrap.liftweb.checks.consistency
 
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
-import com.normation.rudder.users._
-import com.normation.zio._
+import com.normation.rudder.users.*
+import com.normation.zio.*
 import javax.servlet.UnavailableException
 import org.joda.time.DateTime
 

@@ -37,7 +37,7 @@
 
 package com.normation.rudder.domain.policies
 
-import scala.xml._
+import scala.xml.*
 
 /**
  * Define a "simple diff value holder", a container for the

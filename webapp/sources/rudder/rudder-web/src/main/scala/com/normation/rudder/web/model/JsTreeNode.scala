@@ -37,8 +37,8 @@
 
 package com.normation.rudder.web.model
 
-import net.liftweb.util.Helpers._
-import scala.xml._
+import net.liftweb.util.Helpers.*
+import scala.xml.*
 
 /**
  * Something that is displayable as a tree node.

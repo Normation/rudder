@@ -41,18 +41,18 @@ import bootstrap.liftweb.FindCurrentUser
 import bootstrap.liftweb.RudderConfig
 import bootstrap.liftweb.RudderConfig.clearCacheService
 import com.normation.rudder.AuthorizationType
-import com.normation.rudder.batch._
+import com.normation.rudder.batch.*
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.utils.DateFormaterService
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
+import net.liftweb.common.*
+import net.liftweb.http.*
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
 import org.joda.time.DateTime
 import scala.util.matching.Regex
-import scala.xml._
+import scala.xml.*
 
 class AsyncDeployment extends CometActor with CometListener with Loggable {
 

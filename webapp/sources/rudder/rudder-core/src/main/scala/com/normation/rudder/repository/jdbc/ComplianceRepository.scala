@@ -37,12 +37,12 @@
 
 package com.normation.rudder.repository.jdbc
 
-import cats.implicits._
-import com.normation.errors._
+import cats.implicits.*
+import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
-import com.normation.rudder.db.Doobie._
+import com.normation.rudder.db.Doobie.*
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.CompliancePercent
@@ -50,13 +50,13 @@ import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.reports.RuleNodeStatusReport
 import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.repository.ComplianceRepository
-import com.normation.rudder.services.reports._
-import doobie._
-import doobie.implicits._
+import com.normation.rudder.services.reports.*
+import doobie.*
+import doobie.implicits.*
 import net.liftweb.common.Box
 import org.joda.time.DateTime
-import zio.interop.catz._
-import zio.syntax._
+import zio.interop.catz.*
+import zio.syntax.*
 
 final case class RunCompliance(
     nodeId:       NodeId,
@@ -86,7 +86,7 @@ class ComplianceJdbcRepository(
     getSaveComplianceDetails: () => Box[Boolean],
     getSaveComplianceLevels:  () => Box[Boolean]
 ) extends ComplianceRepository {
-  import doobie._
+  import doobie.*
 
   val logger = ReportLogger
 

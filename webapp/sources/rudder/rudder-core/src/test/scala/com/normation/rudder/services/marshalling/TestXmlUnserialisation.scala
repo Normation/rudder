@@ -15,9 +15,9 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.SectionVal
 import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.domain.properties.GroupProperty
-import com.normation.rudder.domain.queries._
+import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.queries.ObjectCriterion
-import com.normation.rudder.domain.queries.ResultTransformation._
+import com.normation.rudder.domain.queries.ResultTransformation.*
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.DefaultStringQueryParser

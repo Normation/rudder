@@ -37,12 +37,12 @@
 
 package com.normation.rudder.git
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.rudder.domain.logger.GitRepositoryLogger
-import com.normation.zio._
+import com.normation.zio.*
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.revwalk.RevWalk
-import zio._
+import zio.*
 
 /**
  * A service that allows to know what is the

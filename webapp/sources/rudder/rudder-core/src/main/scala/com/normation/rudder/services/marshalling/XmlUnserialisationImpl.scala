@@ -39,7 +39,7 @@ package com.normation.rudder.services.marshalling
 
 import com.normation.GitVersion
 import com.normation.GitVersion.ParseRev
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
@@ -47,14 +47,14 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.eventlog.EventActor
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.api._
+import com.normation.rudder.api.*
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.batch.ErrorStatus
 import com.normation.rudder.batch.NoStatus
 import com.normation.rudder.batch.SuccessStatus
-import com.normation.rudder.domain.Constants._
-import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.Constants.*
+import com.normation.rudder.domain.nodes.*
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
@@ -74,7 +74,7 @@ import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.ModifyToGlobalParameterDiff
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.secret.Secret
-import com.normation.rudder.domain.workflows._
+import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.domain.workflows.DirectiveChangeItem
 import com.normation.rudder.domain.workflows.DirectiveChanges
 import com.normation.rudder.domain.workflows.NodeGroupChanges
@@ -83,17 +83,17 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.utils.Control.traverse
-import net.liftweb.common._
-import net.liftweb.common.Box._
+import net.liftweb.common.*
+import net.liftweb.common.Box.*
 import net.liftweb.common.Failure
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringEscapeUtils
 import org.joda.time.format.ISODateTimeFormat
 import scala.annotation.nowarn
-import scala.util.{Failure => Catch}
+import scala.util.Failure as Catch
 import scala.util.Success
 import scala.util.Try
-import scala.xml.{Node => XNode}
+import scala.xml.Node as XNode
 import scala.xml.NodeSeq
 import scala.xml.Text
 
@@ -287,7 +287,7 @@ class NodeGroupUnserialisationImpl(
                               )
                               .toBox
                           }
-                        case xml                           => Failure(s"Found unexpected xml under <properties> tag: ${xml}")
+                        case xml                       => Failure(s"Found unexpected xml under <properties> tag: ${xml}")
                       }
     } yield {
       NodeGroup(
@@ -787,7 +787,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
   private def unserAcl(entry: XNode): Box[ApiAuthorization.ACL] = {
     // at that point, any error is an grave error: we don't want to
     // mess up with authz
-    import cats.implicits._
+    import cats.implicits.*
 
     val authzs = traverse(entry \\ "authz") { e =>
       for {
@@ -848,14 +848,14 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                             // because the event was saved < Rudder 4.3. Use a "nil" ACL
                             Full(ApiAuthorization.None)
 
-                          case Some(Text(ApiAuthorizationKind.RO.name))      =>
+                          case Some(Text(ApiAuthorizationKind.RO.name))  =>
                             Full(ApiAuthorization.RO)
-                          case Some(Text(ApiAuthorizationKind.RW.name))      =>
+                          case Some(Text(ApiAuthorizationKind.RW.name))  =>
                             Full(ApiAuthorization.RW)
                           case Some(<acl>{xml @ _*}</acl>) if (xml.nonEmpty) =>
                             unserAcl(xml.head)
                           // all other case: serialization pb => None
-                          case _                                             => Full(ApiAuthorization.None)
+                          case _                                         => Full(ApiAuthorization.None)
                         }
       accountType     = (apiAccount \ "kind").headOption.map(_.text) match {
                           case None    => ApiAccountType.PublicApi

@@ -78,7 +78,7 @@ import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.UndefinedKey
 import com.normation.inventory.domain.Version
 import com.normation.inventory.domain.VirtualMachineType
-import com.normation.inventory.domain.VmType._
+import com.normation.inventory.domain.VmType.*
 import com.normation.inventory.domain.Windows
 import com.normation.inventory.domain.Windows2012
 import com.normation.rudder.domain.Constants
@@ -119,7 +119,7 @@ import com.normation.rudder.facts.nodes.RudderSettings
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.git.SimpleGitRevisionProvider
-import com.normation.rudder.reports._
+import com.normation.rudder.reports.*
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
@@ -133,8 +133,8 @@ import com.normation.rudder.services.servers.PolicyServers
 import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 import com.normation.utils.StringUuidGeneratorImpl
-import com.normation.zio._
-import com.softwaremill.quicklens._
+import com.normation.zio.*
+import com.softwaremill.quicklens.*
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.FileSystemNotFoundException
@@ -151,7 +151,7 @@ import org.joda.time.DateTime
 import scala.collection.MapView
 import scala.collection.SortedMap
 import zio.Chunk
-import zio.syntax._
+import zio.syntax.*
 
 /*
  * This file is a container for testing data that are a little boring to
@@ -197,7 +197,7 @@ object NodeConfigData {
     val uri  = this.getClass.getClassLoader.getResource(name).toURI
     val path = uri.getScheme match {
       case "jar"  =>
-        import scala.jdk.CollectionConverters._
+        import scala.jdk.CollectionConverters.*
         // yes, pur side effecting
         try {
           FileSystems.getFileSystem(uri)

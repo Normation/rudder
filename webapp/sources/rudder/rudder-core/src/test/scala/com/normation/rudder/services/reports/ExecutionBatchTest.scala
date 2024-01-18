@@ -47,7 +47,7 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
-import com.normation.rudder.domain.reports._
+import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.DirectiveExpectedReports
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.FullCompliance
@@ -59,9 +59,9 @@ import com.normation.rudder.services.reports.ExecutionBatch.MergeInfo
 import com.normation.rudder.services.reports.UnexpectedReportBehavior.UnboundVarValues
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import scala.annotation.nowarn
 
 @nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
@@ -82,7 +82,7 @@ class ExecutionBatchTest extends Specification {
     .asInstanceOf[ch.qos.logback.classic.Logger]
     .setLevel(ch.qos.logback.classic.Level.OFF)
 
-  import ReportType._
+  import ReportType.*
 
   val strictUnexpectedInterpretation: UnexpectedReportInterpretation = UnexpectedReportInterpretation(Set())
   val executionTimestamp = new DateTime()

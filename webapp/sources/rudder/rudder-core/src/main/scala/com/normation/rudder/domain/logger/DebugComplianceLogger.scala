@@ -47,7 +47,7 @@ import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ResolvedAgentRunInterval
-import com.normation.rudder.services.reports._
+import com.normation.rudder.services.reports.*
 import com.normation.utils.Utils.DateToIsoString
 import java.util.concurrent.TimeUnit
 import net.liftweb.common.Logger

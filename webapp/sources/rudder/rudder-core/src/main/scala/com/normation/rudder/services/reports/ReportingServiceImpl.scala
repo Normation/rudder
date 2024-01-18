@@ -37,8 +37,8 @@
 
 package com.normation.rudder.services.reports
 
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.logger.ReportLoggerPure
@@ -48,7 +48,7 @@ import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports._
+import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.reports.RuleStatusReport
 import com.normation.rudder.facts.nodes.NodeFactRepository
@@ -59,15 +59,15 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ReportsDisabled
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
-import com.normation.rudder.repository._
+import com.normation.rudder.repository.*
 import com.normation.rudder.score.ComplianceScoreEvent
 import com.normation.rudder.score.ScoreServiceManager
 import com.normation.utils.Control.traverse
-import com.normation.zio._
-import net.liftweb.common._
-import org.joda.time._
-import zio.{System => _, _}
-import zio.syntax._
+import com.normation.zio.*
+import net.liftweb.common.*
+import org.joda.time.*
+import zio.{System as _, *}
+import zio.syntax.*
 
 object ReportingServiceUtils {
 
@@ -416,8 +416,8 @@ trait CachedFindRuleNodeStatusReports
    * All actions must have *exactly* the *same* type
    */
   private[this] def performAction(actions: Chunk[CacheComplianceQueueAction]): IOResult[Unit] = {
-    import CacheComplianceQueueAction._
-    import CacheExpectedReportAction._
+    import CacheComplianceQueueAction.*
+    import CacheExpectedReportAction.*
 
     // get type of action
     (actions.headOption match {

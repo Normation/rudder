@@ -41,9 +41,9 @@ import com.normation.ldap.ldif.DummyLDIFFileLogger
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.ldap.sdk.RwLDAPConnection
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 /**
  * A simple test class to check that the demo data file is up to date

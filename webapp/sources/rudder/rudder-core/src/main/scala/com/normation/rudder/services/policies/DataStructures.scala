@@ -51,7 +51,7 @@ import com.normation.cfclerk.domain.TrackerVariable
 import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.domain.VariableSpec
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
@@ -191,7 +191,7 @@ object InterpolationContext {
       // should not be evaluated
 
       depth:            Int = 0
-  ) = new InterpolationContext(nodeInfo, policyServerInfo, globalPolicyMode, TreeMap(nodeContext.toSeq: _*), parameters, depth)
+  ) = new InterpolationContext(nodeInfo, policyServerInfo, globalPolicyMode, TreeMap(nodeContext.toSeq*), parameters, depth)
 }
 
 final case class ParameterForConfiguration(

@@ -45,16 +45,16 @@ import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.popup.CreateOrUpdateGlobalParameterPopup
-import net.liftweb.common._
-import net.liftweb.http._
+import net.liftweb.common.*
+import net.liftweb.http.*
 import net.liftweb.http.DispatchSnippet
-import net.liftweb.http.SHtml._
-import net.liftweb.http.js._
+import net.liftweb.http.SHtml.*
+import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.JsRaw
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.util._
-import net.liftweb.util.Helpers._
-import scala.xml._
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.util.*
+import net.liftweb.util.Helpers.*
+import scala.xml.*
 
 class ParameterManagement extends DispatchSnippet with Loggable {
 

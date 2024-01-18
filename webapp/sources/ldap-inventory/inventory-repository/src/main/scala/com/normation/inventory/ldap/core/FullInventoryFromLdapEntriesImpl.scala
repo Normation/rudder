@@ -37,12 +37,12 @@
 
 package com.normation.inventory.ldap.core
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.FullInventory
 import com.normation.ldap.sdk.LDAPEntry
 import com.normation.ldap.sdk.LDAPTree
 import scala.collection.mutable.Buffer
-import zio.syntax._
+import zio.syntax.*
 
 class FullInventoryFromLdapEntriesImpl(
     inventoryDitService: InventoryDitService,

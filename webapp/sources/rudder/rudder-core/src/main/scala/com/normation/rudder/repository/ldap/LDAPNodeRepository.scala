@@ -37,7 +37,7 @@
 package com.normation.rudder.repository.ldap
 
 import com.normation.NamedZioLogger
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentInfo
@@ -47,19 +47,19 @@ import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.SecurityToken
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
-import com.normation.ldap.sdk._
-import com.normation.ldap.sdk.LDAPIOResult._
+import com.normation.ldap.sdk.*
+import com.normation.ldap.sdk.LDAPIOResult.*
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.NodeDit
-import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.WoNodeRepository
 import com.normation.rudder.services.reports.CacheComplianceQueueAction
 import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.reports.InvalidateCache
 import org.joda.time.DateTime
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 class WoLDAPNodeRepository(
     nodeDit:      NodeDit,
@@ -77,12 +77,12 @@ class WoLDAPNodeRepository(
   override def loggerName: String = this.getClass.getName
 
   def updateNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = {
-    import com.normation.rudder.services.nodes.NodeInfoService.{nodeInfoAttributes => attrs}
+    import com.normation.rudder.services.nodes.NodeInfoService.nodeInfoAttributes as attrs
     nodeLibMutex.writeLock(
       for {
         con           <- ldap
         existingEntry <- con
-                           .get(nodeDit.NODES.NODE.dn(node.id.value), attrs: _*)
+                           .get(nodeDit.NODES.NODE.dn(node.id.value), attrs*)
                            .notOptional(s"Cannot update node with id ${node.id.value} : there is no node with that id")
         oldNode       <-
           mapper
@@ -152,9 +152,9 @@ class WoLDAPNodeRepository(
         dn             = acceptedDit.NODES.NODE.dn(nodeId.value)
         result        <- if (agentsInfo == newInfo) LDIFNoopChangeRecord(dn).succeed
                          else {
-                           import com.normation.inventory.domain.AgentInfoSerialisation._
+                           import com.normation.inventory.domain.AgentInfoSerialisation.*
                            val e = LDAPEntry(dn)
-                           e.addValues(A_AGENTS_NAME, newInfo._1.map(_.toJsonString): _*)
+                           e.addValues(A_AGENTS_NAME, newInfo._1.map(_.toJsonString)*)
                            e.addValues(A_KEY_STATUS, newInfo._2.value)
 
                            con.save(e).chainError(s"Error when saving node entry in repository: ${e}")
@@ -177,8 +177,8 @@ class WoLDAPNodeRepository(
    */
   def checkNodeModification(oldNode: Node, newNode: Node): IOResult[Unit] = {
     // use cats validation
-    import cats.data._
-    import cats.implicits._
+    import cats.data.*
+    import cats.implicits.*
 
     type ValidationResult = ValidatedNel[String, Unit]
     val ok = ().validNel

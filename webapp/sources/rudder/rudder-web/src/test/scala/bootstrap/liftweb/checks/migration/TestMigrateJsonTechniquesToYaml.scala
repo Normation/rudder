@@ -62,13 +62,13 @@ import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.repository.xml.TechniqueArchiverImpl
 import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.services.user.TrivialPersonIdentService
-import com.normation.zio._
-import org.junit.runner._
+import com.normation.zio.*
+import org.junit.runner.*
 import org.specs2.matcher.ContentMatchers
-import org.specs2.mutable._
-import org.specs2.runner._
-import zio._
-import zio.syntax._
+import org.specs2.mutable.*
+import org.specs2.runner.*
+import zio.*
+import zio.syntax.*
 
 /**
  * A simple test class to check that the demo data file is up to date

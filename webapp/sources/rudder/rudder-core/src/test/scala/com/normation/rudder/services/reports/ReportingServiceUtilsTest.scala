@@ -52,10 +52,10 @@ import com.normation.rudder.domain.reports.RuleStatusReport
 import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.services.policies.PolicyId
 import org.joda.time.DateTime
-import org.junit.runner._
+import org.junit.runner.*
 import org.specs2.matcher.MatchResult
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 @RunWith(classOf[JUnitRunner])
 class ReportingServiceUtilsTest extends Specification {

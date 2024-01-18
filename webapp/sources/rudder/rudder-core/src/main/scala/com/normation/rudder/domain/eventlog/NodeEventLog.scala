@@ -37,7 +37,7 @@
 
 package com.normation.rudder.domain.eventlog
 
-import com.normation.eventlog._
+import com.normation.eventlog.*
 sealed trait NodeEventLog extends EventLog { final override val eventLogCategory: EventLogCategory = NodeLogCategory }
 
 final case class ModifyNode(

@@ -37,13 +37,13 @@
 
 package com.normation.inventory.services.provisioning
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.Inventory
 import com.normation.inventory.domain.InventoryError
 import java.io.InputStream
-import scala.xml._
-import zio._
-import zio.syntax._
+import scala.xml.*
+import zio.*
+import zio.syntax.*
 
 /**
  * General interface to process inventory files

@@ -52,7 +52,7 @@ import com.normation.cfclerk.services.TechniquesInfo
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType
@@ -87,8 +87,8 @@ import com.normation.rudder.services.workflows.NodeGroupChangeRequest
 import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.services.workflows.WorkflowService
-import com.normation.zio._
-import java.io.{File => JFile}
+import com.normation.zio.*
+import java.io.File as JFile
 import java.io.InputStream
 import net.liftweb.common.Box
 import net.liftweb.common.Full
@@ -102,8 +102,8 @@ import org.specs2.runner.JUnitRunner
 import org.specs2.specification.BeforeAfterAll
 import scala.collection.SortedMap
 import scala.collection.SortedSet
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 @RunWith(classOf[JUnitRunner])
 class TestEditorTechniqueWriter extends Specification with ContentMatchers with Loggable with BeforeAfterAll {
@@ -328,7 +328,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   val valueCompiler         = new InterpolatedValueCompilerImpl(propertyEngineService)
   val parameterTypeService: PlugableParameterTypeService = new PlugableParameterTypeService
 
-  import ParameterType._
+  import ParameterType.*
   val defaultConstraint: List[Constraint.Constraint]    =
     Constraint.AllowEmpty(false) :: Constraint.AllowWhiteSpace(false) :: Constraint.MaxLength(16384) :: Nil
   val methods:           Map[BundleName, GenericMethod] = (GenericMethod(

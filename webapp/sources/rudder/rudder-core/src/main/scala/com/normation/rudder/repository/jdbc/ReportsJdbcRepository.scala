@@ -37,28 +37,28 @@
 
 package com.normation.rudder.repository.jdbc
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
-import com.normation.rudder.db.Doobie._
+import com.normation.rudder.db.Doobie.*
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports._
+import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.repository.ReportsRepository
-import doobie._
-import doobie.implicits._
+import doobie.*
+import doobie.implicits.*
 import java.sql.Timestamp
-import net.liftweb.common._
-import org.joda.time._
+import net.liftweb.common.*
+import org.joda.time.*
 import org.joda.time.format.ISODateTimeFormat
-import zio.interop.catz._
+import zio.interop.catz.*
 
 class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Loggable {
-  import doobie._
+  import doobie.*
 
   val reports      = "ruddersysevents"
   val archiveTable = "archivedruddersysevents"

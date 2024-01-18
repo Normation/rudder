@@ -37,22 +37,22 @@
 
 package com.normation.rudder.rest.lift
 
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.FullDetails
-import com.normation.rudder.apidata.JsonQueryObjects._
-import com.normation.rudder.apidata.JsonResponseObjects._
+import com.normation.rudder.apidata.JsonQueryObjects.*
+import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.MinimalDetails
 import com.normation.rudder.apidata.RenderInheritedProperties
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
-import com.normation.rudder.apidata.implicits._
+import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.properties.ParentProperty
 import com.normation.rudder.facts.nodes.NodeFactRepository
@@ -61,26 +61,26 @@ import com.normation.rudder.repository.CategoryAndNodeGroup
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
-import com.normation.rudder.rest._
-import com.normation.rudder.rest.{GroupApi => API}
+import com.normation.rudder.rest.*
+import com.normation.rudder.rest.GroupApi as API
 import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils._
-import com.normation.rudder.rest.data._
-import com.normation.rudder.rest.implicits._
+import com.normation.rudder.rest.RestUtils.*
+import com.normation.rudder.rest.data.*
+import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.services.nodes.MergeNodeProperties
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.QueryProcessor
-import com.normation.rudder.services.workflows._
+import com.normation.rudder.services.workflows.*
 import com.normation.rudder.users.UserService
 import com.normation.utils.StringUuidGenerator
-import com.normation.zio._
-import net.liftweb.common._
+import com.normation.zio.*
+import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.*
+import net.liftweb.json.JsonDSL.*
 import zio.ZIO
-import zio.syntax._
+import zio.syntax.*
 
 class GroupsApi(
     readGroup:            RoNodeGroupRepository,
@@ -264,8 +264,8 @@ class GroupsApi(
     }
   }
 
-  import RestUtils._
-  import net.liftweb.json._
+  import RestUtils.*
+  import net.liftweb.json.*
 
   def response(function: Box[JValue], req: Req, errorMessage: String, id: Option[String])(implicit
       action: String
@@ -681,7 +681,7 @@ class GroupApiInheritedProperties(
       params     <- paramRepo.getAllGlobalParameters()
       properties <- MergeNodeProperties.forGroup(groupId, allGroups, params.map(p => (p.name, p)).toMap).toIO
     } yield {
-      import com.normation.rudder.domain.properties.JsonPropertySerialisation._
+      import com.normation.rudder.domain.properties.JsonPropertySerialisation.*
       val rendered = renderInHtml match {
         case RenderInheritedProperties.HTML => properties.toApiJsonRenderParents
         case RenderInheritedProperties.JSON => properties.toApiJson
@@ -708,8 +708,8 @@ class GroupApiService2(
 )(implicit userService: UserService)
     extends Loggable {
 
-  import RestUtils._
-  import restDataSerializer._
+  import RestUtils.*
+  import restDataSerializer.*
 
   private[this] def createChangeRequestAndAnswer(
       id:           String,

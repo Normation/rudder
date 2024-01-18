@@ -37,23 +37,23 @@
 
 package com.normation.rudder.services.policies
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.cfclerk.domain.InputVariable
 import com.normation.cfclerk.domain.InputVariableSpec
 import com.normation.cfclerk.domain.Variable
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.services.nodes.EngineOption
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
 import com.normation.rudder.services.nodes.RudderPropertyEngine
-import com.normation.zio._
+import com.normation.zio.*
 import com.typesafe.config.ConfigValue
 import net.liftweb.common.Box
 import net.liftweb.common.Empty
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
-import net.liftweb.json._
+import net.liftweb.json.*
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonAST.JValue
 import org.junit.runner.RunWith
@@ -63,8 +63,8 @@ import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import scala.util.matching.Regex
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  * Test how parametrized variables are replaced for
@@ -106,7 +106,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
 
   def getError[A](e: PureResult[A]): String = e.swap.getOrElse(throw new RuntimeException("ERROR")).fullMsg
 
-  import NodeConfigData._
+  import NodeConfigData.*
   // null is for RuleValService, only used in
   // rule lookup, node tested here.
   val propertyEngineService = new PropertyEngineServiceImpl(
@@ -212,7 +212,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
   val dangerousChars: ParameterForConfiguration = ParameterForConfiguration("danger", badChars)
 
   def p(params: ParameterForConfiguration*): Map[String, ParamInterpolationContext => IOResult[String]] = {
-    import cats.implicits._
+    import cats.implicits.*
     params.toList.traverse { param =>
       for {
         p <- compiler
@@ -221,18 +221,18 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       } yield {
         (param.name, p)
       }
-    }.map(seq => Map(seq: _*)).chainError("Error when parsing parameters for interpolated variables") match {
+    }.map(seq => Map(seq*)).chainError("Error when parsing parameters for interpolated variables") match {
       case Left(err)  => throw new RuntimeException(err.fullMsg)
       case Right(res) => res
     }
   }
 
-  import PropertyParser._
-  import PropertyParserTokens._
-  import fastparse._
+  import PropertyParser.*
+  import PropertyParserTokens.*
+  import fastparse.*
 
   // in case of success, test for the result
-  def test[T](p: P[_] => P[T], value: String, result: Any): MatchResult[Any] = {
+  def test[T](p: P[?] => P[T], value: String, result: Any): MatchResult[Any] = {
     fastparse.parse(value, p(_)) match {
       case Parsed.Success(x, index) => x === result
       case f: Parsed.Failure => ko(f.trace().longAggregateMsg)
@@ -1238,7 +1238,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
     val json = """{  "Europe" : {  "France"  : "Paris" }   }"""
 
     "not be able to replace parameter when no properties" in {
-      compare("${node.properties[plop]}", ("datacenter", "some data center") :: Nil) must haveClass[Left[_, _]]
+      compare("${node.properties[plop]}", ("datacenter", "some data center") :: Nil) must haveClass[Left[?, ?]]
     }
 
     "correctly get the value even if not in JSON for 1-deep-length path" in {
@@ -1248,11 +1248,11 @@ class TestNodeAndGlobalParameterLookup extends Specification {
     }
 
     "not be able to replace a parameter with a 2-deep length path in non-json value" in {
-      compare("${node.properties[datacenter][Europe]}", ("datacenter", "some data center") :: Nil) must haveClass[Left[_, _]]
+      compare("${node.properties[datacenter][Europe]}", ("datacenter", "some data center") :: Nil) must haveClass[Left[?, ?]]
     }
 
     "not be able to replace a parameter with a 2-deep length path in a json value without the asked path" in {
-      compare("${node.properties[datacenter][Asia]}", ("datacenter", json) :: Nil) must haveClass[Left[_, _]]
+      compare("${node.properties[datacenter][Asia]}", ("datacenter", json) :: Nil) must haveClass[Left[?, ?]]
     }
 
     "correclty return the compacted json string for 1-length" in {
@@ -1356,8 +1356,8 @@ class TestNodeAndGlobalParameterLookup extends Specification {
         i(c).either.runNow
       }
 
-      compare("DataCenter", "datacenter") must haveClass[Left[_, _]]
-      compare("datacenter", "DataCenter") must haveClass[Left[_, _]]
+      compare("DataCenter", "datacenter") must haveClass[Left[?, ?]]
+      compare("datacenter", "DataCenter") must haveClass[Left[?, ?]]
       compare("datacenter", "datacenter") must beEqualTo(Right(GenericProperty.serializeToJson(value)))
     }
 

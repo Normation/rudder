@@ -37,7 +37,7 @@
 
 package net.liftweb.http
 
-import net.liftweb.common._
+import net.liftweb.common.*
 import scala.reflect.ClassTag
 
 /**

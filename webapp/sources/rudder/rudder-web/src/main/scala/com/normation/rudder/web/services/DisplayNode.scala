@@ -39,15 +39,15 @@ package com.normation.rudder.web
 package services
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.HashAlgoConstraint.SHA1
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.NodeKind
 import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.PolicyModeOverrides._
+import com.normation.rudder.domain.policies.PolicyModeOverrides.*
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
@@ -60,20 +60,20 @@ import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.snippet.RegisterToasts
 import com.normation.rudder.web.snippet.ToastNotification
 import com.normation.utils.DateFormaterService
-import com.normation.zio._
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.http.js._
+import com.normation.zio.*
+import net.liftweb.common.*
+import net.liftweb.http.*
+import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.JsArray
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JE.JsVar
 import net.liftweb.http.js.JE.Str
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.json.JsonDSL._
-import net.liftweb.util._
-import net.liftweb.util.Helpers._
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.json.JsonDSL.*
+import net.liftweb.util.*
+import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
-import scala.xml._
+import scala.xml.*
 import scala.xml.Utility.escape
 
 /**
@@ -115,7 +115,7 @@ object DisplayNode extends Loggable {
           escapeJs(x.version.map(_.value).getOrElse("")),
           escapeJs(x.description.getOrElse(""))
         )
-      }: _*)
+      }*)
     ) & JsRaw(s"""
           $$('#${htmlId(jsId, gridId + "_")}').dataTable({
             "aaData":${gridDataId},

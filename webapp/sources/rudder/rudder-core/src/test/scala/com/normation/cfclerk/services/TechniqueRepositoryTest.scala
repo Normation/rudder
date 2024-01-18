@@ -38,8 +38,8 @@
 package com.normation.cfclerk.services
 
 import better.files.File
-import com.normation.cfclerk.domain._
-import com.normation.errors._
+import com.normation.cfclerk.domain.*
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.ActiveTechnique
@@ -60,7 +60,7 @@ import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.utils.StringUuidGeneratorImpl
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
@@ -69,8 +69,8 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import scala.collection.SortedMap
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 @RunWith(classOf[JUnitRunner])
 class TechniqueRepositoryTest extends Specification with Loggable with AfterAll {

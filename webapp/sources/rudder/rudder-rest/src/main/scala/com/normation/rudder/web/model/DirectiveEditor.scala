@@ -40,17 +40,17 @@ package com.normation.rudder.web.model
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.VariableSpec
 import com.normation.rudder.domain.policies.DirectiveUid
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.common.Box
-import net.liftweb.http._
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.*
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.BaseField
 import net.liftweb.util.Helpers
 import org.slf4j
 import org.slf4j.LoggerFactory
-import scala.xml._
+import scala.xml.*
 
 /**
  * A displayable field has 2 methods :
@@ -356,7 +356,7 @@ final case class MultivaluedSectionField(
 
   private val htmlId = Helpers.nextFuncName
 
-  private def logError(box: Box[_]): Unit = box match {
+  private def logError(box: Box[?]): Unit = box match {
     case Failure(m, _, _) => logger.error(m)
     case Empty            => logger.error("Empty value was returned")
     case _                => // ok
@@ -429,7 +429,7 @@ final case class MultivaluedSectionField(
    * to the same iteration of listname.
    */
   def mapValueSeq: Map[String, Seq[String]] = {
-    import scala.collection.mutable.{Buffer, Map => MutMap}
+    import scala.collection.mutable.{Buffer, Map as MutMap}
     val map = MutMap[String, Buffer[String]]()
     for {
       sect           <- allSections
@@ -517,7 +517,7 @@ final case class MultivaluedSectionField(
             // refresh UI - all item of that group
             SetHtml(htmlId, this.content) & postModificationJS()
           },
-          attr: _*
+          attr*
         )
       }
     }</div>

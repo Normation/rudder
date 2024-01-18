@@ -37,8 +37,8 @@
 
 package com.normation.rudder.rest.lift
 
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.TimingDebugLogger
@@ -74,25 +74,25 @@ import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.rest._
-import com.normation.rudder.rest.{ComplianceApi => API}
+import com.normation.rudder.rest.*
+import com.normation.rudder.rest.ComplianceApi as API
 import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils._
-import com.normation.rudder.rest.data._
+import com.normation.rudder.rest.RestUtils.*
+import com.normation.rudder.rest.data.*
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.zio.currentTimeMillis
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.PlainTextResponse
 import net.liftweb.http.Req
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.*
+import net.liftweb.json.JsonDSL.*
 import scala.collection.MapView
 import scala.collection.immutable
 import zio.Chunk
 import zio.ZIO
-import zio.syntax._
+import zio.syntax.*
 
 class ComplianceApi(
     restExtractorService: RestExtractorService,
@@ -100,8 +100,8 @@ class ComplianceApi(
     readDirective:        RoDirectiveRepository
 ) extends LiftApiModuleProvider[API] {
 
-  import CsvCompliance._
-  import JsonCompliance._
+  import CsvCompliance.*
+  import JsonCompliance.*
 
   def schemas: ApiModuleProvider[API] = API
 

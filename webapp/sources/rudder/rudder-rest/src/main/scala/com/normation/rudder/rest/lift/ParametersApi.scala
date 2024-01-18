@@ -38,8 +38,8 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.GitVersion
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.rudder.api.ApiVersion
@@ -47,23 +47,23 @@ import com.normation.rudder.apidata.JsonQueryObjects.JQGlobalParameter
 import com.normation.rudder.apidata.JsonResponseObjects.JRGlobalParameter
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
-import com.normation.rudder.apidata.implicits._
-import com.normation.rudder.domain.properties._
+import com.normation.rudder.apidata.implicits.*
+import com.normation.rudder.domain.properties.*
 import com.normation.rudder.domain.properties.ChangeRequestGlobalParameterDiff
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
-import com.normation.rudder.rest.{ParameterApi => API}
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
+import com.normation.rudder.rest.ParameterApi as API
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.RestUtils.getActor
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.data.RestParameter
-import com.normation.rudder.rest.implicits._
+import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
@@ -77,9 +77,9 @@ import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JArray
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonDSL.*
 import net.liftweb.json.JString
-import zio.syntax._
+import zio.syntax.*
 
 class ParameterApi(
     restExtractorService: RestExtractorService,
@@ -286,7 +286,7 @@ class ParameterApiService2(
 )(implicit userService: UserService)
     extends Loggable {
 
-  import restDataSerializer.{serializeParameter => serialize}
+  import restDataSerializer.serializeParameter as serialize
 
   private[this] def createChangeRequestAndAnswer(
       id:           String,
@@ -347,7 +347,7 @@ class ParameterApiService2(
 
     restParameter match {
       case Full(restParameter) =>
-        import GenericProperty._
+        import GenericProperty.*
         val parameter =
           restParameter.updateParameter(GlobalParameter(parameterName, GitVersion.DEFAULT_REV, "".toConfigValue, None, "", None))
 
@@ -477,7 +477,7 @@ class ParameterApiService14(
   }
 
   def createParameter(restParameter: JQGlobalParameter, params: DefaultParams, actor: EventActor): IOResult[JRGlobalParameter] = {
-    import GenericProperty._
+    import GenericProperty.*
     val baseParameter = GlobalParameter.apply("", GitVersion.DEFAULT_REV, "".toConfigValue, None, "", None)
     val parameter     = restParameter.updateParameter(baseParameter)
     val diff          = AddGlobalParameterDiff(parameter)

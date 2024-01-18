@@ -37,7 +37,7 @@
 package com.normation.appconfig
 
 import com.normation.NamedZioLogger
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.rudder.batch.AsyncWorkflowInfo
 import com.normation.rudder.batch.PolicyGenerationTrigger
@@ -54,9 +54,9 @@ import com.normation.rudder.domain.eventlog.ModifySendServerMetricsEventType
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.domain.policies.PolicyMode._
+import com.normation.rudder.domain.policies.PolicyMode.*
 import com.normation.rudder.domain.policies.PolicyModeOverrides
-import com.normation.rudder.reports._
+import com.normation.rudder.reports.*
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.FullCompliance
@@ -64,7 +64,7 @@ import com.normation.rudder.services.policies.SendMetrics
 import com.normation.rudder.services.reports.UnexpectedReportBehavior
 import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
-import com.normation.rudder.services.servers.RelaySynchronizationMethod._
+import com.normation.rudder.services.servers.RelaySynchronizationMethod.*
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.services.workflows.WorkflowUpdate
 import com.typesafe.config.Config
@@ -72,8 +72,8 @@ import com.typesafe.config.ConfigFactory
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import scala.concurrent.duration.Duration
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  * A service that Read mutable (runtime) configuration properties

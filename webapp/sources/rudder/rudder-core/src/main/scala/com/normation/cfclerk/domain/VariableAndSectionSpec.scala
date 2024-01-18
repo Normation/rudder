@@ -37,8 +37,8 @@
 
 package com.normation.cfclerk.domain
 
-import cats.implicits._
-import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
+import cats.implicits.*
+import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.*
 import com.normation.cfclerk.xmlparsers.EmptyReportKeysValue
 import com.normation.errors.PureResult
 import com.normation.errors.Unexpected

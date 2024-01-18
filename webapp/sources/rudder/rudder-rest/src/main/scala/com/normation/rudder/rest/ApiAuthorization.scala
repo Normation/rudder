@@ -37,23 +37,23 @@
 
 package com.normation.rudder.rest
 
-import cats.data._
-import cats.implicits._
-import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
+import cats.data.*
+import cats.implicits.*
 import com.normation.rudder.api.AclPath
 import com.normation.rudder.api.AclPathSegment
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAccountKind
 import com.normation.rudder.api.ApiAclElement
+import com.normation.rudder.api.ApiAuthorization as ApiAuthz
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.domain.logger.ApiLogger
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.RudderAccount
 import com.normation.rudder.users.UserService
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonDSL.*
 
 /*
  * This trait allows to check for authorisation on a given boundedendpoint
@@ -259,8 +259,8 @@ object AclCheck {
    */
   def matches(aclPath: AclPath, path: ApiPath): Boolean = {
     def recMatches(p1: List[AclPathSegment], p2: List[ApiPathSegment]): Boolean = {
-      import AclPathSegment.{DoubleWildcard, Wildcard, Segment => AclSegment}
-      import ApiPathSegment.{Segment => ApiSegment}
+      import AclPathSegment.{DoubleWildcard, Wildcard, Segment as AclSegment}
+      import ApiPathSegment.Segment as ApiSegment
 
       (p1, p2) match {
         case (Nil, Nil)                                   => true
@@ -281,7 +281,7 @@ object AclCheck {
  * we must check rights by hand;
  */
 object OldInternalApiAuthz {
-  import com.normation.rudder.AuthorizationType._
+  import com.normation.rudder.AuthorizationType.*
   def fail(implicit action: String): Failure = Failure(
     s"User '${CurrentUser.actor.name}' is not authorized to access API '${action}"
   )

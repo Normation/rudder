@@ -38,7 +38,7 @@
 package com.normation.cfclerk.domain
 
 import com.normation.inventory.domain.AgentType
-import com.normation.utils.Utils._
+import com.normation.utils.Utils.*
 
 /**
  * A name, used as an identifier, for a policy.

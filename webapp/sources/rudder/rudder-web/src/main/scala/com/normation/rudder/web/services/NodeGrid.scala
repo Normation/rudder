@@ -38,8 +38,8 @@
 package com.normation.rudder.web.services
 
 import com.normation.appconfig.ReadConfigService
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.servers.Srv
@@ -49,16 +49,16 @@ import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.utils.Utils.isEmpty
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.json._
-import net.liftweb.util.Helpers._
+import net.liftweb.common.*
+import net.liftweb.http.*
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.json.*
+import net.liftweb.util.Helpers.*
 import org.slf4j
 import org.slf4j.LoggerFactory
-import scala.xml._
+import scala.xml.*
 
 object NodeGrid {
   val logger: slf4j.Logger = LoggerFactory.getLogger(classOf[NodeGrid])
@@ -251,7 +251,7 @@ final class NodeGrid(
    * status: the node status (pending, accecpted)
    */
   private def details(jsonArg: String)(implicit qc: QueryContext): JsCmd = {
-    import net.liftweb.common.Box._
+    import net.liftweb.common.Box.*
     implicit val formats = DefaultFormats
 
     (for {

@@ -49,9 +49,9 @@ import com.normation.rudder.api.ApiAuthorization
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.batch.ErrorStatus
 import com.normation.rudder.batch.SuccessStatus
-import com.normation.rudder.domain.Constants._
+import com.normation.rudder.domain.Constants.*
 import com.normation.rudder.domain.appconfig.RudderWebProperty
-import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.AddDirectiveDiff
@@ -74,14 +74,14 @@ import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.ModifyToGlobalParameterDiff
 import com.normation.rudder.domain.secret.Secret
-import com.normation.rudder.domain.workflows._
+import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.marshalling.MarshallingUtil.createTrimedElem
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.joda.time.format.ISODateTimeFormat
-import scala.xml.{Node => XNode, _}
+import scala.xml.{Node as XNode, *}
 import scala.xml.NodeSeq
 
 //serialize / deserialize tags

@@ -74,7 +74,7 @@ import scala.util.Random
  * Hope this decription may help other people find there way to generate AIX hash string.
  */
 object AixPasswordHashAlgo extends Loggable {
-  import java.lang.{StringBuilder => JStringBuilder}
+  import java.lang.StringBuilder as JStringBuilder
 
   /**
    * Table with characters for Sha-Crypt Base64 transformation,

@@ -158,7 +158,7 @@ trait DefaultPluginDef extends RudderPluginDef {
               PluginLogger.error(s"There is already a menu with id (${newMenu.loc.name}, please contact Plugin team")
               m
             } else {
-              Menu(l, (m.kids :+ newMenu).sortBy(_.loc.name): _*)
+              Menu(l, (m.kids :+ newMenu).sortBy(_.loc.name)*)
             }
           case m                                     => m
         }

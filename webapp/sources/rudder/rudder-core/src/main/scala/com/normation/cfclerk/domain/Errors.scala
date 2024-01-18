@@ -38,7 +38,7 @@
 package com.normation.cfclerk.domain
 
 import cats.data.NonEmptyList
-import com.normation.errors._
+import com.normation.errors.*
 
 sealed trait LoadTechniqueError extends RudderError
 

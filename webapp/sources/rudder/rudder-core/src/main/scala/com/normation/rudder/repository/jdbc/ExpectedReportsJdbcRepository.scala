@@ -38,27 +38,27 @@
 package com.normation.rudder.repository.jdbc
 
 import cats.free.Free
-import cats.implicits._
+import cats.implicits.*
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
-import com.normation.rudder.db.Doobie._
+import com.normation.rudder.db.Doobie.*
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.logger.TimingDebugLogger
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.reports._
+import com.normation.rudder.domain.policies.*
+import com.normation.rudder.domain.reports.*
 import com.normation.rudder.repository.FindExpectedReportRepository
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.utils.Control.traverse
-import doobie._
+import doobie.*
 import doobie.free.connection
-import doobie.implicits._
-import net.liftweb.common._
-import net.liftweb.json._
+import doobie.implicits.*
+import net.liftweb.common.*
+import net.liftweb.json.*
 import org.joda.time.DateTime
-import zio.interop.catz._
-import zio.syntax._
+import zio.interop.catz.*
+import zio.syntax.*
 
 class PostgresqlInClause(
     // max number of element to switch from in (...) to in(values(...)) clause
@@ -103,8 +103,8 @@ class FindExpectedReportsJdbcRepository(
     jdbcMaxBatchSize: Int
 ) extends FindExpectedReportRepository with Loggable {
 
-  import doobie._
-  import pgInClause._
+  import doobie.*
+  import pgInClause.*
 
   /*
    * Retrieve the expected reports by config version of the nodes.
@@ -254,8 +254,8 @@ class UpdateExpectedReportsJdbcRepository(
     jdbcMaxBatchSize: Int
 ) extends UpdateExpectedReportsRepository {
 
-  import Doobie._
-  import doobie._
+  import Doobie.*
+  import doobie.*
 
   val logger = ReportLogger
 
@@ -266,7 +266,7 @@ class UpdateExpectedReportsJdbcRepository(
   }
 
   def saveNodeExpectedReports(configs: List[NodeExpectedReports]): Box[Seq[NodeExpectedReports]] = {
-    import cats.implicits._
+    import cats.implicits.*
     PolicyGenerationLogger.expectedReports.debug(s"Saving ${configs.size} nodes expected reports")
     configs match {
       case Nil       => Full(Nil)
@@ -357,7 +357,7 @@ class UpdateExpectedReportsJdbcRepository(
       configInfos: Map[NodeId, Vector[NodeConfigIdInfo]]
   ): Either[Throwable, Free[connection.ConnectionOp, List[NodeExpectedReports]]] = {
 
-    import Doobie._
+    import Doobie.*
 
     val currentConfigs = configs.map(c => (c.nodeId, (c.nodeConfigId, c.beginDate))).toMap
 

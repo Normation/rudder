@@ -37,7 +37,7 @@
 
 package com.normation.rudder.services.queries
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.InventoryStatus
@@ -48,15 +48,15 @@ import com.normation.rudder.domain.logger.FactQueryProcessorLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.nodes.NodeKind
-import com.normation.rudder.domain.queries._
+import com.normation.rudder.domain.queries.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectNodeStatus
-import com.normation.zio._
+import com.normation.zio.*
 import net.liftweb.common.Box
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /*
  * A NodeFactMatcher is the transformation of a query into a method that is able to

@@ -43,11 +43,11 @@ import com.normation.errors.RudderError
 import com.normation.rudder.db.Doobie
 import com.normation.zio.UnsafeRun
 import doobie.Transactor
-import doobie.implicits._
+import doobie.implicits.*
 import doobie.util.fragment.Fragment
 import doobie.util.update.Update0
-import zio._
-import zio.interop.catz._
+import zio.*
+import zio.interop.catz.*
 
 /*
  * Ths migration applies a change in the schema of the change requests and workflow table :
@@ -58,7 +58,7 @@ class MigrateChangeValidationEnforceSchema(
     doobie: Doobie
 ) extends BootstrapChecks with DbCommonMigration {
 
-  import doobie._
+  import doobie.*
 
   val msg: String = "change requests and workflow columns that should be not null (id, state, content)"
 

@@ -37,7 +37,7 @@
 
 package com.normation.rudder.campaigns
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.utils.DateFormaterService
@@ -50,7 +50,7 @@ import zio.json.EncoderOps
 import zio.json.JsonDecoder
 import zio.json.JsonEncoder
 import zio.json.ast.Json
-import zio.syntax._
+import zio.syntax.*
 
 trait JSONTranslateCampaign {
 
@@ -68,7 +68,7 @@ trait JSONTranslateCampaign {
 class CampaignSerializer {
 
   private[this] var tranlaters: List[JSONTranslateCampaign] = Nil
-  import CampaignSerializer._
+  import CampaignSerializer.*
 
   def getJson(campaign: Campaign): ZIO[Any, RudderError, Json] = {
     tranlaters.map(_.getRawJson()).fold(Jsonbase) { case (a, b) => b orElse a }(campaign).flatMap { json =>
@@ -120,7 +120,7 @@ object CampaignSerializer {
       case SecondLast => -2
     }
   })
-  import scala.concurrent.duration._
+  import scala.concurrent.duration.*
   implicit val durationEncoder:         JsonEncoder[Duration]                = JsonEncoder[Long].contramap(_.toMillis)
   implicit val statusInfoEncoder:       JsonEncoder[CampaignStatus]          = DeriveJsonEncoder.gen
   implicit val dayTime:                 JsonEncoder[DayTime]                 = DeriveJsonEncoder.gen

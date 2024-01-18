@@ -38,16 +38,16 @@
 package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.rudder.domain.RudderLDAPConstants
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.policies.PolicyMode._
+import com.normation.rudder.domain.policies.*
+import com.normation.rudder.domain.policies.PolicyMode.*
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
-import com.normation.rudder.domain.workflows._
+import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
@@ -55,15 +55,15 @@ import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup
 import com.normation.rudder.web.components.popup.ModificationValidationPopup
-import com.normation.rudder.web.model._
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.util._
-import net.liftweb.util.Helpers._
-import scala.xml._
+import com.normation.rudder.web.model.*
+import net.liftweb.common.*
+import net.liftweb.http.*
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.util.*
+import net.liftweb.util.Helpers.*
+import scala.xml.*
 
 object DirectiveEditForm {
 
@@ -99,7 +99,7 @@ class DirectiveEditForm(
     onRemoveSuccessCallBack: () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
 
-  import DirectiveEditForm._
+  import DirectiveEditForm.*
 
   val currentDirectiveSettingForm = new LocalSnippet[DirectiveEditForm]
 

@@ -37,7 +37,7 @@
 
 package com.normation.rudder.web.services
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.TechniqueCategoryModType
@@ -47,7 +47,7 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
-import com.normation.utils.Control._
+import com.normation.utils.Control.*
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable

@@ -37,17 +37,17 @@
 
 package com.normation.rudder.web.model
 
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.SHtml
-import net.liftweb.http.SHtml._
-import net.liftweb.http.SHtml.ElemAttr._
+import net.liftweb.http.SHtml.*
+import net.liftweb.http.SHtml.ElemAttr.*
 import net.liftweb.util.BaseField
 import net.liftweb.util.FieldContainer
 import net.liftweb.util.FieldError
 import net.liftweb.util.Helpers
-import net.liftweb.util.Helpers._
+import net.liftweb.util.Helpers.*
 import net.liftweb.util.StringValidators
-import scala.xml._
+import scala.xml.*
 
 /**
  * A simple class that allows to register error information
@@ -255,7 +255,7 @@ class WBCheckboxField(
 ) extends RudderBaseField {
   type ValueType = Boolean
 
-  def inputField: Elem = <span>{SHtml.checkbox(value, set _, (attrs: Seq[ElemAttr]): _*)}</span>
+  def inputField: Elem = <span>{SHtml.checkbox(value, set _, (attrs: Seq[ElemAttr])*)}</span>
 }
 
 class WBSelectField(
@@ -274,7 +274,7 @@ class WBSelectField(
     }
   }
 
-  def inputField: Elem = SHtml.select(opts, defaultVal, set _, attrs: _*)
+  def inputField: Elem = SHtml.select(opts, defaultVal, set _, attrs*)
 
   protected def valueTypeToBoxString(in: ValueType):   Box[String] = Full(in)
   protected def boxStrToValType(in:      Box[String]): ValueType   = in openOr ("")
@@ -297,7 +297,7 @@ class WBSelectObjField[T](
       Empty
   }
 
-  def inputField: Elem = SHtml.selectObj[T](opts, defaultVal, set _, attrs: _*)
+  def inputField: Elem = SHtml.selectObj[T](opts, defaultVal, set _, attrs*)
 }
 
 class WBRadioField(
@@ -322,7 +322,7 @@ class WBRadioField(
     }
   }
 
-  def choiceHolder: ChoiceHolder[String] = SHtml.radio(opts, Full(value), set _, parameters: _*)
+  def choiceHolder: ChoiceHolder[String] = SHtml.radio(opts, Full(value), set _, parameters*)
 
   def inputField: Elem = {
     <div>

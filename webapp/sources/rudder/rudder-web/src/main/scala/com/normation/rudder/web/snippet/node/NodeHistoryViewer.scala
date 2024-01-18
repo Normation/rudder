@@ -38,20 +38,20 @@
 package com.normation.rudder.web.snippet.node
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
+import com.normation.box.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.services.DisplayNode
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.http.js._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.util.Helpers._
+import net.liftweb.common.*
+import net.liftweb.http.*
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import scala.xml._
+import scala.xml.*
 
 /**
  * A simple service that displays a NodeDetail widget from

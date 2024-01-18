@@ -46,10 +46,10 @@ import com.normation.inventory.domain.Manufacturer
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.domain.VmType
 import com.normation.rudder.MockNodes
-import com.softwaremill.quicklens._
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import com.softwaremill.quicklens.*
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import zio.Chunk
 
 /*
@@ -58,7 +58,7 @@ import zio.Chunk
 //@silent("a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class TestSelectFacts extends Specification {
-  import MockNodes._
+  import MockNodes.*
 
   val machine1: MachineInventory = MachineInventory(
     MachineUuid("machine1"),

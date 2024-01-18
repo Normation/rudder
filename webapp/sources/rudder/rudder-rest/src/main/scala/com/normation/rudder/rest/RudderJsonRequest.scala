@@ -40,7 +40,7 @@ package com.normation.rudder.rest
 import com.normation.errors.PureResult
 import com.normation.rudder.apidata.ZioJsonExtractor
 import net.liftweb.http.Req
-import zio.json._
+import zio.json.*
 
 /**
   * This class exposes utility methods regarding JSON requests.

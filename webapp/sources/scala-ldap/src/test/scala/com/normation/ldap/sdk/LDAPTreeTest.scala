@@ -20,12 +20,12 @@
 
 package com.normation.ldap.sdk
 
-import com.normation.zio._
+import com.normation.zio.*
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.DN.NULL_DN
 import com.unboundid.ldap.sdk.RDN
 import org.junit.runner.RunWith
-import org.specs2.mutable._
+import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
 import scala.annotation.nowarn
 

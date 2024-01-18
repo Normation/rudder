@@ -37,10 +37,10 @@
 
 package com.normation.cfclerk.domain
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.errors.Accumulated
 import com.normation.errors.PureResult
-import scala.xml._
+import scala.xml.*
 
 /* A SectionChild is either a Variable or a Section*/
 sealed trait SectionChild
@@ -72,7 +72,7 @@ sealed trait Variable {
    */
 
   def getValidatedValue(escape: String => String): PureResult[Seq[Any]] = {
-    import cats.implicits._
+    import cats.implicits.*
 
     val accumulated = values.toList.traverse(x => castValue(x, escape).toValidatedNel)
     accumulated.fold(

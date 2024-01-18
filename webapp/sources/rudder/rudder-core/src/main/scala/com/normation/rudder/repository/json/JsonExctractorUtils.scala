@@ -37,12 +37,12 @@
 
 package com.normation.rudder.repository.json
 
-import cats._
-import cats.implicits._
+import cats.*
+import cats.implicits.*
 import com.normation.rudder.domain.policies.JsonTagExtractor
-import com.normation.utils.Control._
-import net.liftweb.common._
-import net.liftweb.json._
+import com.normation.utils.Control.*
+import net.liftweb.common.*
+import net.liftweb.json.*
 
 trait JsonExtractorUtils[A[_]] {
 

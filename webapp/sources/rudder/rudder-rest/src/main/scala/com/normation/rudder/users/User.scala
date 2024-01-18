@@ -50,7 +50,7 @@ import net.liftweb.http.RequestVar
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /*
  * User related data structures related to authentication and bridging with Spring-security.

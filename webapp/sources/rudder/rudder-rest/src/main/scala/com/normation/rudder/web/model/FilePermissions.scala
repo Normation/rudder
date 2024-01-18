@@ -87,7 +87,7 @@ package com.normation.rudder.web.model
  * for the reader ;)
  */
 
-import Perm._
+import Perm.*
 import com.normation.utils.Utils.isEmpty
 import scala.collection.BitSet
 

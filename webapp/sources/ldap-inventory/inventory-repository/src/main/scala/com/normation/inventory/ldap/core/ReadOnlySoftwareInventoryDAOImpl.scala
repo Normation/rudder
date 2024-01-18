@@ -38,19 +38,19 @@
 package com.normation.inventory.ldap.core
 
 import com.normation.NamedZioLogger
-import com.normation.errors._
-import com.normation.inventory.domain._
-import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.errors.*
+import com.normation.inventory.domain.*
+import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.inventory.services.core.WriteOnlySoftwareDAO
-import com.normation.ldap.sdk._
+import com.normation.ldap.sdk.*
 import com.normation.ldap.sdk.BuildFilter.EQ
 import com.normation.ldap.sdk.BuildFilter.IS
 import com.normation.ldap.sdk.BuildFilter.OR
-import com.normation.zio._
+import com.normation.zio.*
 import com.unboundid.ldap.sdk.DN
-import zio.{System => _, _}
-import zio.syntax._
+import zio.{System as _, *}
+import zio.syntax.*
 
 object TimingDebugLoggerPure extends NamedZioLogger {
   override def loggerName: String = "debug_timing"
@@ -121,11 +121,11 @@ class ReadOnlySoftwareDAOImpl(
   override def getSoftwareByNode(nodeIds: Set[NodeId], status: InventoryStatus): IOResult[Map[NodeId, Seq[Software]]] = {
 
     val dit      = inventoryDitService.getDit(status)
-    val orFilter = BuildFilter.OR(nodeIds.toSeq.map(x => EQ(A_NODE_UUID, x.value)): _*)
+    val orFilter = BuildFilter.OR(nodeIds.toSeq.map(x => EQ(A_NODE_UUID, x.value))*)
     (for {
       con         <- ldap
       n3          <- currentTimeMillis
-      nodeEntries <- con.searchOne(dit.NODES.dn, orFilter, Seq(A_NODE_UUID, A_SOFTWARE_DN): _*)
+      nodeEntries <- con.searchOne(dit.NODES.dn, orFilter, Seq(A_NODE_UUID, A_SOFTWARE_DN)*)
       n4          <- currentTimeMillis
       _           <- TimingDebugLoggerPure.debug(s"Fetching ${nodeEntries.size} nodes entries in ${n4 - n3} ms")
 
@@ -204,7 +204,7 @@ class ReadOnlySoftwareDAOImpl(
                                           }
                                t2      <- currentTimeMillis
                                ids     <- {
-                                 val orFilter = BuildFilter.OR(nodeIds.map(x => EQ(A_NODE_UUID, x.value)): _*)
+                                 val orFilter = BuildFilter.OR(nodeIds.map(x => EQ(A_NODE_UUID, x.value))*)
                                  for {
                                    softwareEntry <- con.searchSub(nodeBaseSearch, orFilter, A_SOFTWARE_DN)
                                  } yield {

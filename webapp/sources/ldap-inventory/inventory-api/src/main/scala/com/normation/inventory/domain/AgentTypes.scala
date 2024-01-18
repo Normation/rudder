@@ -37,9 +37,9 @@
 
 package com.normation.inventory.domain
 
-import com.normation.errors._
-import zio._
-import zio.syntax._
+import com.normation.errors.*
+import zio.*
+import zio.syntax.*
 
 /**
  * The enumeration holding the values for the agent
@@ -162,9 +162,9 @@ final case class AgentInfo(
 )
 
 object AgentInfoSerialisation {
-  import com.normation.inventory.domain.AgentType._
-  import net.liftweb.json._
-  import net.liftweb.json.JsonDSL._
+  import com.normation.inventory.domain.AgentType.*
+  import net.liftweb.json.*
+  import net.liftweb.json.JsonDSL.*
 
   implicit class ToJson(val agent: AgentInfo) extends AnyVal {
 

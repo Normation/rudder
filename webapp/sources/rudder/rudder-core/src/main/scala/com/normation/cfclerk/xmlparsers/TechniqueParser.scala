@@ -37,15 +37,15 @@
 
 package com.normation.cfclerk.xmlparsers
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.NamedZioLogger
-import com.normation.cfclerk.domain._
-import com.normation.cfclerk.domain.implicits._
+import com.normation.cfclerk.domain.*
+import com.normation.cfclerk.domain.implicits.*
 import com.normation.cfclerk.services.SystemVariableSpecService
-import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
+import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.*
 import com.normation.inventory.domain.AgentType
 import scala.util.matching.Regex
-import scala.xml._
+import scala.xml.*
 
 /**
  * Parse a technique (metadata.xml file)

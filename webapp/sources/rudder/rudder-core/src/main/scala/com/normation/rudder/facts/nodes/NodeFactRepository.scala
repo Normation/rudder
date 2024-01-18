@@ -37,20 +37,20 @@
 
 package com.normation.rudder.facts.nodes
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.IOResult
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.tenants.TenantService
-import com.softwaremill.quicklens._
+import com.softwaremill.quicklens.*
 import scala.collection.MapView
-import zio._
+import zio.*
 import zio.concurrent.ReentrantLock
 import zio.stream.ZStream
-import zio.syntax._
+import zio.syntax.*
 
 /*
  * NodeFactRepository is the main interface between Rudder user space and nodes. It manages
@@ -346,7 +346,7 @@ class CoreNodeFactRepository(
     lock:           ReentrantLock,
     cbTimeout:      zio.Duration = 5.seconds
 ) extends NodeFactRepository {
-  import NodeFactChangeEvent._
+  import NodeFactChangeEvent.*
 
   // debug log
 //  (for {
@@ -554,8 +554,8 @@ class CoreNodeFactRepository(
 
   private[nodes] def checkRootProperties(node: NodeFact): IOResult[Unit] = {
     // use cats validation
-    import cats.data._
-    import cats.implicits._
+    import cats.data.*
+    import cats.implicits.*
 
     type ValidationResult = ValidatedNel[String, Unit]
     val ok = ().validNel

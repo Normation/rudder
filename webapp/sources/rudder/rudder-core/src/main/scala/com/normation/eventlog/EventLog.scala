@@ -22,7 +22,7 @@ package com.normation.eventlog
 
 import com.normation.utils.StringUuidGeneratorImpl
 import org.joda.time.DateTime
-import scala.xml._
+import scala.xml.*
 
 final case class EventActor(name: String) extends AnyVal
 

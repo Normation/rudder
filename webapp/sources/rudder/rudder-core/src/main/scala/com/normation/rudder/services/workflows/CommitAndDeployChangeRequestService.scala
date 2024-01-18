@@ -37,10 +37,10 @@
 
 package com.normation.rudder.services.workflows
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AsyncDeploymentActor
@@ -51,20 +51,20 @@ import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.properties._
-import com.normation.rudder.domain.workflows._
-import com.normation.rudder.repository._
+import com.normation.rudder.domain.policies.*
+import com.normation.rudder.domain.properties.*
+import com.normation.rudder.domain.workflows.*
+import com.normation.rudder.repository.*
 import com.normation.rudder.services.marshalling.XmlSerializer
 import com.normation.rudder.services.marshalling.XmlUnserializer
 import com.normation.rudder.services.policies.DependencyAndDeletionService
 import com.normation.rudder.services.queries.DynGroupUpdaterService
-import com.normation.utils.Control._
+import com.normation.utils.Control.*
 import com.normation.utils.StringUuidGenerator
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
-import net.liftweb.common._
-import scala.xml._
+import net.liftweb.common.*
+import scala.xml.*
 
 /**
  * A service responsible to actually commit a change request,

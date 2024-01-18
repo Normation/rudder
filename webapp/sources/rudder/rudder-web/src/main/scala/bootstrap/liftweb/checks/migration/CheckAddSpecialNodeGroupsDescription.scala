@@ -38,16 +38,16 @@
 package bootstrap.liftweb.checks.migration
 
 import bootstrap.liftweb.BootstrapChecks
-import com.normation.errors._
-import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.errors.*
+import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.logger.MigrationLoggerPure
-import com.normation.zio._
+import com.normation.zio.*
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
-import zio._
+import zio.*
 
 /*
  * This migration check looks if we need modify name and description

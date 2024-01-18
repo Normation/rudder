@@ -38,8 +38,8 @@
 package com.normation.rudder.repository.jdbc
 
 import com.normation.rudder.db.DBCommon
-import com.normation.rudder.domain.eventlog._
-import doobie._
+import com.normation.rudder.domain.eventlog.*
+import doobie.*
 import doobie.specs2.analysisspec.IOChecker
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification

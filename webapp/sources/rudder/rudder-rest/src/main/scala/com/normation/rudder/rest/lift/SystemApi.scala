@@ -37,9 +37,9 @@
 
 package com.normation.rudder.rest.lift
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.ldap.core.SoftwareService
@@ -54,7 +54,6 @@ import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.repository.ItemArchiveManager
-import com.normation.rudder.rest.{SystemApi => API}
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
@@ -65,6 +64,7 @@ import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.RestUtils.getActor
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
+import com.normation.rudder.rest.SystemApi as API
 import com.normation.rudder.services.ClearCacheService
 import com.normation.rudder.services.healthcheck.HealthcheckNotificationService
 import com.normation.rudder.services.healthcheck.HealthcheckService
@@ -74,21 +74,21 @@ import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.users.UserService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
-import com.normation.zio._
-import net.liftweb.common._
+import com.normation.zio.*
+import net.liftweb.common.*
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JsonAST.JArray
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonDSL.*
 import org.eclipse.jgit.lib.PersonIdent
 import org.eclipse.jgit.revwalk.RevWalk
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatterBuilder
-import zio._
+import zio.*
 
 class SystemApi(
     restExtractorService: RestExtractorService,

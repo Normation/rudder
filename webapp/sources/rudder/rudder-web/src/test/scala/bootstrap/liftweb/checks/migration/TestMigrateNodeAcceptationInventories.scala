@@ -39,7 +39,7 @@ package bootstrap.liftweb.checks.migration
 
 import better.files.File
 import bootstrap.liftweb.BootstrapLogger
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.NodeId
@@ -64,19 +64,19 @@ import com.normation.rudder.services.nodes.history.impl.InventoryHistoryLogRepos
 import com.normation.rudder.services.nodes.history.impl.NodeDeleteEvent
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.utils.DateFormaterService
-import com.normation.zio._
+import com.normation.zio.*
 import com.unboundid.ldap.sdk.DN
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormatter
 import org.joda.time.format.ISODateTimeFormat
-import org.junit.runner._
+import org.junit.runner.*
 import org.specs2.matcher.MatchResult
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import org.specs2.specification.AfterAll
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  * Check that historical inventories are correctly migrated.
@@ -170,8 +170,8 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
    * Store migrated inventories under rootDir/migrated as a nodeid/date.json files
    */
   object fileFactLog extends HistoryLogRepository[NodeId, DateTime, FactLogData, FactLog] with InventoryHistoryDelete {
-    import com.normation.rudder.facts.nodes.NodeFactSerialisation._
-    import zio.json._
+    import com.normation.rudder.facts.nodes.NodeFactSerialisation.*
+    import zio.json.*
 
     val root: File = testDir / "migrated"
     root.createDirectories()
@@ -251,7 +251,7 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
   // fb0096f3-a928-454d-9776-e8079d48cdd8 => deleted, age ok
   // fb0096f4-a928-454d-9776-e8079d48cdd8 => deleted, too old
   object nodeInfoService extends NodeInfoService {
-    import com.softwaremill.quicklens._
+    import com.softwaremill.quicklens.*
     val n = NodeConfigData.node1
     def success(nodeId: NodeId): ZIO[Any, Nothing, Some[NodeInfo]] = Some(n.modify(_.node.id).setTo(nodeId)).succeed
 

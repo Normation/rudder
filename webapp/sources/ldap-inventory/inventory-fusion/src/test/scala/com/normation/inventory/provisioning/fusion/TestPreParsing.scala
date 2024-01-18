@@ -36,16 +36,16 @@
 
 package com.normation.inventory.provisioning.fusion
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.services.provisioning.PreInventoryParser
-import com.normation.zio._
+import com.normation.zio.*
 import java.io.InputStream
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import scala.xml.NodeSeq
 import scala.xml.XML
-import zio._
+import zio.*
 
 /**
  * A simple test class to check that the demo data file is up to date

@@ -62,10 +62,10 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeKind
 import com.normation.rudder.repository.WoNodeRepository
 import com.normation.rudder.services.nodes.NodeInfoService
-import com.softwaremill.quicklens._
+import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /*
  * This service is only used in InventoryProcessor. It is not so much a proxy than an actual implementation,

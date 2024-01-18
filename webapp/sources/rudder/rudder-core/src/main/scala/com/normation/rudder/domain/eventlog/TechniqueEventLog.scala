@@ -37,17 +37,17 @@
 
 package com.normation.rudder.domain.eventlog
 
-import com.normation.cfclerk.domain._
+import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.services.TechniqueDeleted
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.cfclerk.services.TechniqueUpdated
 import com.normation.cfclerk.services.VersionAdded
 import com.normation.cfclerk.services.VersionDeleted
 import com.normation.cfclerk.services.VersionUpdated
-import com.normation.eventlog._
+import com.normation.eventlog.*
 import com.normation.eventlog.EventLogDetails
 import com.normation.rudder.domain.Constants
-import scala.xml._
+import scala.xml.*
 
 sealed trait TechniqueEventLog extends EventLog { final override val eventLogCategory: EventLogCategory = TechniqueLogCategory }
 

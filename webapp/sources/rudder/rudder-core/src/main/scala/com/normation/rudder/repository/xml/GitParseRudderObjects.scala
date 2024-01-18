@@ -47,7 +47,7 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.xmlparsers.TechniqueParser
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.rudder.configuration.DirectiveRevisionRepository
 import com.normation.rudder.configuration.GroupAndCat
 import com.normation.rudder.configuration.GroupRevisionRepository
@@ -70,7 +70,7 @@ import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.migration.XmlEntityMigration
-import com.normation.rudder.repository._
+import com.normation.rudder.repository.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.marshalling.ActiveTechniqueCategoryUnserialisation
 import com.normation.rudder.services.marshalling.ActiveTechniqueUnserialisation
@@ -82,14 +82,14 @@ import com.normation.rudder.services.marshalling.RuleCategoryUnserialisation
 import com.normation.rudder.services.marshalling.RuleUnserialisation
 import com.normation.utils.UuidRegex
 import com.normation.utils.Version
-import com.softwaremill.quicklens._
+import com.softwaremill.quicklens.*
 import java.io.InputStream
 import java.nio.file.Paths
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.treewalk.TreeWalk
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 final case class GitRootCategory(
     root: String

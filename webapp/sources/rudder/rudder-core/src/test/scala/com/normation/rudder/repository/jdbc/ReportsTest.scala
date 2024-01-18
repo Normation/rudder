@@ -37,7 +37,7 @@
 
 package com.normation.rudder.repository.jdbc
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.DB
 import com.normation.rudder.db.DBCommon
@@ -49,12 +49,12 @@ import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.reports.execution.AgentRunId
-import doobie.implicits._
-import net.liftweb.common._
+import doobie.implicits.*
+import net.liftweb.common.*
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import zio.interop.catz._
+import zio.interop.catz.*
 
 /**
  *
@@ -204,7 +204,7 @@ class ReportsTest extends DBCommon {
       val checkInsert = transacRun(xa => sql"""select id from ruddersysevents""".query[Long].to[Vector].transact(xa)).size
 
       (checkInsert must beEqualTo(14)) and
-      (res._1 must contain(exactly(expected: _*)))
+      (res._1 must contain(exactly(expected*)))
     }
 
   }

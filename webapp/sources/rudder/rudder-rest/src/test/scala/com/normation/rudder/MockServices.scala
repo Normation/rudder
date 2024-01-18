@@ -124,10 +124,10 @@ import net.liftweb.common.Full
 import org.joda.time.DateTime
 import scala.collection.MapView
 import scala.collection.immutable.SortedMap
-import zio._
-import zio.{System => _}
-import zio.{Tag => _}
-import zio.syntax._
+import zio.*
+import zio.System as _
+import zio.Tag as _
+import zio.syntax.*
 
 /*
  * Mock services for test, especially repositories, and provides
@@ -353,8 +353,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
   }
 
   val complianceAPIService: ComplianceAPIService = {
-    import simpleExample._
-    import complexExample._
+    import simpleExample.*
+    import complexExample.*
     buildComplianceService(
       simpleCustomRules ++ complexCustomRules,
       simpleCustomNodeGroups ++ complexCustomNodeGroups,

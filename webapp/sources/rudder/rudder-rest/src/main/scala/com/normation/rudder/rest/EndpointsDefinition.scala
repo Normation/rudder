@@ -37,8 +37,8 @@
 
 package com.normation.rudder.rest
 
-import com.normation.rudder.api.HttpAction._
-import com.normation.rudder.rest.EndpointSchema.syntax._
+import com.normation.rudder.api.HttpAction.*
+import com.normation.rudder.rest.EndpointSchema.syntax.*
 import sourcecode.Line
 
 /*

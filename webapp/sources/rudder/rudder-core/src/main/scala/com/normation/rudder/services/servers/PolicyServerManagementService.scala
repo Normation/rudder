@@ -41,7 +41,7 @@ import ca.mrvisser.sealerate
 import cats.data.NonEmptyList
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.ModificationId
@@ -82,17 +82,17 @@ import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.domain.queries.StringComparator
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.rule.category.RuleCategoryId
-import com.normation.rudder.services.servers.json._
-import com.normation.zio._
-import com.softwaremill.quicklens._
+import com.normation.rudder.services.servers.json.*
+import com.normation.zio.*
+import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
-import zio._
-import zio.json._
-import zio.syntax._
+import zio.*
+import zio.json.*
+import zio.syntax.*
 
 /**
  * This service allows to manage properties linked to the root policy server,

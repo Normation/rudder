@@ -39,12 +39,12 @@ package com.normation.rudder.services.policies
 
 import better.files.File
 import cats.data.NonEmptyList
-import cats.implicits._
-import com.normation.box._
+import cats.implicits.*
+import com.normation.box.*
 import com.normation.cfclerk.domain.ReportingLogic.FocusReport
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.AixOS
 import com.normation.inventory.domain.MemorySize
 import com.normation.inventory.domain.NodeId
@@ -58,9 +58,9 @@ import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeState
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.properties._
-import com.normation.rudder.domain.properties.GenericProperty._
+import com.normation.rudder.domain.policies.*
+import com.normation.rudder.domain.properties.*
+import com.normation.rudder.domain.properties.GenericProperty.*
 import com.normation.rudder.domain.reports.BlockExpectedReport
 import com.normation.rudder.domain.reports.ComponentExpectedReport
 import com.normation.rudder.domain.reports.DirectiveExpectedReports
@@ -85,7 +85,7 @@ import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ComplianceModeService
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.HeartbeatConfiguration
-import com.normation.rudder.repository._
+import com.normation.rudder.repository.*
 import com.normation.rudder.services.nodes.MergeNodeProperties
 import com.normation.rudder.services.policies.nodeconfig.FileBasedNodeConfigurationHashRepository
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
@@ -95,11 +95,11 @@ import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.reports.CachedNodeConfigurationService
 import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.utils.ParseMaxParallelism
-import com.normation.utils.Control._
-import com.softwaremill.quicklens._
+import com.normation.utils.Control.*
+import com.softwaremill.quicklens.*
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.json.JsonAST.JArray
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JString
@@ -111,8 +111,8 @@ import org.joda.time.format.PeriodFormatterBuilder
 import scala.collection.MapView
 import scala.collection.immutable.Map
 import scala.concurrent.duration.FiniteDuration
-import zio.{System => _, _}
-import zio.syntax._
+import zio.{System as _, *}
+import zio.syntax.*
 
 /**
  * A deployment hook is a class that accept callbacks.
@@ -164,8 +164,8 @@ trait PromiseGenerationService {
     val rootNodeId     = Constants.ROOT_POLICY_SERVER_ID
     // we need to add the current environment variables to the script context
     // plus the script environment variables used as script parameters
-    import scala.jdk.CollectionConverters._
-    val systemEnv      = HookEnvPairs.build(System.getenv.asScala.toSeq: _*)
+    import scala.jdk.CollectionConverters.*
+    val systemEnv      = HookEnvPairs.build(System.getenv.asScala.toSeq*)
 
     /*
      * The computation of dynamic group is a workaround inconsistencies after importing definition
@@ -2092,7 +2092,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
                          }
       _               <- RunHooks.asyncRun(
                            postHooks,
-                           HookEnvPairs.build(envParams: _*),
+                           HookEnvPairs.build(envParams*),
                            systemEnv
                          )
 
@@ -2156,7 +2156,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
                         :: Nil)
       _            <- RunHooks.asyncRun(
                         failureHooks,
-                        HookEnvPairs.build(envParams: _*),
+                        HookEnvPairs.build(envParams*),
                         systemEnv
                       )
     } yield ()

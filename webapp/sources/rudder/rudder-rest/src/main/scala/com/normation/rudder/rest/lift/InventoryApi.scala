@@ -37,26 +37,26 @@
 
 package com.normation.rudder.rest.lift
 
-import better.files._
-import com.normation.errors._
+import better.files.*
+import com.normation.errors.*
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.inventory.InventoryFileWatcher
-import com.normation.rudder.rest.{InventoryApi => API}
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
+import com.normation.rudder.rest.InventoryApi as API
 import com.normation.rudder.rest.RestError
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils.effectiveResponse
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
-import com.normation.rudder.rest.implicits._
+import com.normation.rudder.rest.implicits.*
 import net.liftweb.http.FileParamHolder
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json.JsonDSL._
-import zio._
-import zio.syntax._
+import net.liftweb.json.JsonDSL.*
+import zio.*
+import zio.syntax.*
 
 class InventoryApi(
     restExtractorService: RestExtractorService,

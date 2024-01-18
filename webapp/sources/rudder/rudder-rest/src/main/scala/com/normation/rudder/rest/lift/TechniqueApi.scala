@@ -38,42 +38,42 @@
 package com.normation.rudder.rest.lift
 
 import better.files.File
-import com.normation.box._
-import com.normation.cfclerk.domain._
+import com.normation.box.*
+import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
-import com.normation.rudder.apidata.JsonResponseObjects._
+import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.RestDataSerializer
-import com.normation.rudder.apidata.implicits._
+import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.domain.logger.ApiLoggerPure
 import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.ncf._
+import com.normation.rudder.ncf.*
 import com.normation.rudder.ncf.BundleName
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
-import com.normation.rudder.rest.{TechniqueApi => API, _}
+import com.normation.rudder.rest.{TechniqueApi as API, *}
 import com.normation.rudder.rest.RestUtils.ActionType
 import com.normation.rudder.rest.RestUtils.response
-import com.normation.rudder.rest.implicits._
+import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rest.lift.TechniqueApi.QueryFormat
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Version
 import java.nio.charset.StandardCharsets
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json.JsonAST._
+import net.liftweb.json.JsonAST.*
 import scala.collection.SortedMap
-import zio._
+import zio.*
 import zio.json.ast.Json
 import zio.json.ast.Json.Str
-import zio.json.yaml._
-import zio.syntax._
+import zio.json.yaml.*
+import zio.syntax.*
 
 object TechniqueApi {
   sealed trait QueryFormat
@@ -103,9 +103,9 @@ class TechniqueApi(
     configRepoPath:       String
 ) extends LiftApiModuleProvider[API] {
 
-  import TechniqueApi._
-  import zio.json._
-  import zio.json.yaml._
+  import TechniqueApi.*
+  import zio.json.*
+  import zio.json.yaml.*
   def schemas: ApiModuleProvider[API] = API
 
   val dataName = "techniques"
@@ -119,7 +119,7 @@ class TechniqueApi(
     // implementation copied from RestUtils#actionResponse2
     // but changed to never fail on reason message extraction
     implicit val prettify = restExtractorService.extractPrettify(req.params)
-    import net.liftweb.json.JsonDSL._
+    import net.liftweb.json.JsonDSL.*
     import net.liftweb.common.EmptyBox
 
     (
@@ -179,8 +179,8 @@ class TechniqueApi(
         authzToken:    AuthzToken
     ): LiftResponse = {
 
-      import net.liftweb.json.JsonDSL._
-      import zio.syntax._
+      import net.liftweb.json.JsonDSL.*
+      import zio.syntax.*
 
       def serializeResourceWithState(resource: ResourceFile) = {
         (("path" -> resource.path) ~ ("state" -> resource.state.value))
@@ -234,7 +234,7 @@ class TechniqueApi(
           force <- restExtractorService.extractBoolean("force")(req)(identity) map (_.getOrElse(false))
           _     <- techniqueWriter.deleteTechnique(techniqueInfo._1, techniqueInfo._2, force, modId, authzToken.qc.actor).toBox
         } yield {
-          import net.liftweb.json.JsonDSL._
+          import net.liftweb.json.JsonDSL.*
           (("id"       -> techniqueInfo._1)
           ~ ("version" -> techniqueInfo._2))
         }
@@ -256,7 +256,7 @@ class TechniqueApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       val modId = ModificationId(uuidGen.newUuid)
-      import techniqueSerializer._
+      import techniqueSerializer.*
 
       def charset: String = RestUtils.getCharset(req)
       // end copy
@@ -325,7 +325,7 @@ class TechniqueApi(
 
   object UpdateTechniques extends LiftApiModule0 {
 
-    import techniqueSerializer._
+    import techniqueSerializer.*
 
     val schema: API.UpdateTechniques.type = API.UpdateTechniques
     val restExtractor = restExtractorService
@@ -386,7 +386,7 @@ class TechniqueApi(
 
   object CreateTechnique extends LiftApiModule0 {
 
-    import techniqueSerializer._
+    import techniqueSerializer.*
 
     def moveRessources(technique: EditorTechnique, internalId: String): IO[SystemError, String] = {
       val workspacePath = s"workspace/${internalId}/${technique.version.value}/resources"
@@ -496,20 +496,20 @@ class TechniqueApi(
           technique <- {
             input match {
               case QueryFormat.Yaml =>
-                import YamlTechniqueSerializer._
+                import YamlTechniqueSerializer.*
                 content.fromYaml[EditorTechnique].toIO
               case QueryFormat.Json =>
-                import techniqueSerializer._
+                import techniqueSerializer.*
                 content.fromJson[EditorTechnique].toIO
             }
           }
           response  <- {
             output match {
               case QueryFormat.Yaml =>
-                import YamlTechniqueSerializer._
+                import YamlTechniqueSerializer.*
                 technique.toYaml().map(yaml => Json(("output", Str(yaml)))).toIO
               case QueryFormat.Json =>
-                import techniqueSerializer._
+                import techniqueSerializer.*
                 technique.toJsonAST.toIO
             }
           }
@@ -848,11 +848,11 @@ class TechniqueAPIService14(
   }
 
   def getTechniqueJson(editorTechnique: EditorTechnique): IOResult[Json] = {
-    import techniqueSerializer._
-    import zio.json._
+    import techniqueSerializer.*
+    import zio.json.*
     import zio.json.yaml.DecoderYamlOps
     import TechniqueCompilationIO.codecTechniqueCompilationOutput
-    import com.normation.zio._
+    import com.normation.zio.*
     val outputFile = techniqueCompiler.getCompilationOutputFile(editorTechnique)
     val json       = (for {
       content <- IOResult.attempt("error when reading compilation output")(outputFile.contentAsString(StandardCharsets.UTF_8))
@@ -897,7 +897,7 @@ class TechniqueAPIService14(
                     case Some(editorTechnique) =>
                       format match {
                         case QueryFormat.Yaml =>
-                          import YamlTechniqueSerializer._
+                          import YamlTechniqueSerializer.*
                           editorTechnique.toYaml().map(s => Json(("content", Str(s)))).toIO
                         case QueryFormat.Json =>
                           getTechniqueJson(editorTechnique)

@@ -38,30 +38,30 @@
 package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
-import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.box.*
+import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.queries._
+import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.queries.And
 import com.normation.rudder.domain.queries.CriterionComposition
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Or
 import com.normation.rudder.web.ChooseTemplate
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.GUIDJsExp
 import net.liftweb.http.S
 import net.liftweb.http.SHtml
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.util.Helpers._
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.util.Helpers.*
 import scala.collection.mutable
-import scala.collection.mutable.{Map => MutMap}
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.Buffer
-import scala.xml._
+import scala.collection.mutable.Map as MutMap
+import scala.xml.*
 
 /**
  * The Search Nodes component
@@ -88,7 +88,7 @@ class SearchNodeComponent(
 
     groupPage: Boolean
 ) extends DispatchSnippet with Loggable {
-  import SearchNodeComponent._
+  import SearchNodeComponent.*
 
   // our local copy of things we work on
   private[this] var query   = _query.map(x => x.copy())
@@ -233,7 +233,7 @@ class SearchNodeComponent(
       val inputAttributes = ("id", "v_" + index) :: ("class", "queryInputValue form-control form-control-sm") :: {
         if (cl.comparator.hasValue) Nil else ("disabled", "disabled") :: Nil
       }
-      val input           = cl.attribute.cType.toForm(cl.value, (x => lines(index) = lines(index).copy(value = x)), inputAttributes: _*)
+      val input           = cl.attribute.cType.toForm(cl.value, (x => lines(index) = lines(index).copy(value = x)), inputAttributes*)
       (".removeLine *" #> {
         if (addRemove)
           SHtml.ajaxSubmit("-", () => removeLine(index), ("class", "btn btn-danger btn-sm fw-bold"))

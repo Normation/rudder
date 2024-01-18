@@ -41,16 +41,16 @@ import com.normation.BoxSpecMatcher
 import com.normation.GitVersion
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.DB
 import com.normation.rudder.db.DBCommon
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports._
+import com.normation.rudder.domain.reports.*
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.NoopFactStorage
@@ -60,7 +60,7 @@ import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ResolvedAgentRunInterval
-import com.normation.rudder.reports.execution._
+import com.normation.rudder.reports.execution.*
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.ComplianceRepository
 import com.normation.rudder.repository.FullActiveTechniqueCategory
@@ -77,9 +77,9 @@ import com.normation.rudder.services.reports.NodeConfigurationServiceImpl
 import com.normation.rudder.services.reports.ReportingServiceImpl
 import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 import com.normation.rudder.tenants.DefaultTenantService
-import com.normation.zio._
-import com.softwaremill.quicklens._
-import doobie.implicits._
+import com.normation.zio.*
+import com.softwaremill.quicklens.*
+import doobie.implicits.*
 import net.liftweb.common.Box
 import net.liftweb.common.Empty
 import net.liftweb.common.Full
@@ -90,9 +90,9 @@ import org.specs2.runner.JUnitRunner
 import scala.annotation.nowarn
 import scala.collection.SortedMap
 import scala.concurrent.duration.FiniteDuration
-import zio._
-import zio.interop.catz._
-import zio.syntax._
+import zio.*
+import zio.interop.catz.*
+import zio.syntax.*
 
 /**
  *

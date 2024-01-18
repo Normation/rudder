@@ -37,20 +37,20 @@
 
 package com.normation.rudder.facts.nodes
 
-import com.normation.errors._
-import com.normation.inventory.domain._
+import com.normation.errors.*
+import com.normation.inventory.domain.*
 import com.normation.inventory.services.core.FullInventoryRepository
 import com.normation.rudder.tenants.DefaultTenantService
-import com.normation.zio._
+import com.normation.zio.*
 import com.normation.zio.ZioRuntime
-import com.softwaremill.quicklens._
+import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
-import zio._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
+import zio.*
 import zio.concurrent.ReentrantLock
-import zio.syntax._
+import zio.syntax.*
 
 final case class SystemError(cause: Throwable) extends RudderError {
   def msg = "Error in test"
@@ -382,8 +382,8 @@ class TestFullInventoryRepoProxy extends Specification {
         s"""{"name":"app2","version":"1-24-RELEASE-64","arch":"x86_64","from":"apt","kind":"security","source":"security-backports","severity":"backport","ids":["${id1}"]}"""
       ).mkString("[", ",", "]")
 
-      import zio.json._
-      import JsonSerializers.implicits._
+      import zio.json.*
+      import JsonSerializers.implicits.*
 
       updates.toJson === jsonString
     }

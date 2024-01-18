@@ -37,11 +37,11 @@
 
 package com.normation.rudder.inventory
 
-import better.files._
+import better.files.*
 import com.normation.box.IOManaged
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.InventoryProcessingLogger
-import com.normation.zio._
+import com.normation.zio.*
 import com.normation.zio.ZioRuntime
 import java.io.FileNotFoundException
 import java.io.InputStream
@@ -54,8 +54,8 @@ import org.apache.commons.io.filefilter.TrueFileFilter
 import org.joda.time.DateTime
 import scala.annotation.nowarn
 import scala.concurrent.ExecutionContext
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /*
  * This file manage incoming inventories, but not their processing.
@@ -268,7 +268,7 @@ object Watchers                                                   {
           }
         }
 
-        override def onUnknownEvent(event: file.WatchEvent[_]): Unit = {
+        override def onUnknownEvent(event: file.WatchEvent[?]): Unit = {
           event.kind() match {
             case StandardWatchEventKinds.OVERFLOW =>
               tempoOverflow.offer(()).runNow
@@ -395,7 +395,7 @@ class CheckExistingInventoryFilesImpl(
   // - then, we delete all inventories files older than our threshold
   // - and the one that are not in pair (if older than waitingSignatureTime
   def filterFiles(maxAgeGlobal: DateTime, maxAgeOrphan: DateTime, files: List[File]): FilteredFiles = {
-    import com.softwaremill.quicklens._
+    import com.softwaremill.quicklens.*
     val (filtered, pairs) = files.foldLeft((FilteredFiles(Nil, Nil, Nil), Map[String, List[File]]())) {
       case ((filteredFiles, pairs), file) =>
         if (hasValidExtension(file)) {
@@ -458,7 +458,7 @@ class CheckExistingInventoryFilesImpl(
    * See: https://issues.rudder.io/issues/19268
    */
   def listFiles(d: Duration): UIO[List[File]] = {
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
     (for {
       // if that fails, just exit
       ageLimit <- IOResult.attempt(DateTime.now().minusMillis(d.toMillis.toInt))
@@ -712,7 +712,7 @@ class ProcessFile(
    * touched, or inotify event emission not what we thought)
    */
   val saveInventoryBufferProcessing: ZIO[Any, Nothing, Unit] = {
-    import com.normation.rudder.inventory.StatusLog._
+    import com.normation.rudder.inventory.StatusLog.*
     for {
       fst  <- saveInventoryBuffer.take
       // deduplicate and prioritize file in 'incoming', which are new inventories. TakeAll is not blocking

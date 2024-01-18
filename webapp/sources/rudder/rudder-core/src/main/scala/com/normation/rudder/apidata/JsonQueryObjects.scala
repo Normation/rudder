@@ -42,13 +42,13 @@ import com.normation.GitVersion.ParseRev
 import com.normation.GitVersion.Revision
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.PureResult
 import com.normation.errors.Unexpected
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.CompareProperties
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GlobalParameter
@@ -66,10 +66,10 @@ import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.services.queries.StringCriterionLine
 import com.normation.rudder.services.queries.StringQuery
 import com.typesafe.config.ConfigValue
-import io.scalaland.chimney.dsl._
-import net.liftweb.common._
+import io.scalaland.chimney.dsl.*
+import net.liftweb.common.*
 import net.liftweb.http.Req
-import zio.json._
+import zio.json.*
 
 /*
  * This class deals with everything serialisation related for API.
@@ -338,9 +338,9 @@ object JsonQueryObjects {
 }
 
 trait RudderJsonDecoders {
-  import JsonQueryObjects._
-  import JsonResponseObjects._
-  import JsonResponseObjects.JRRuleTarget._
+  import JsonQueryObjects.*
+  import JsonResponseObjects.*
+  import JsonResponseObjects.JRRuleTarget.*
 
   // JRRuleTarget
   object JRRuleTargetDecoder {
@@ -366,7 +366,7 @@ trait RudderJsonDecoders {
     }
   }
   def extractRuleTargetJson(s: String):    Either[String, JRRuleTarget]             = {
-    import zio.json._
+    import zio.json.*
     s.fromJson[JRRuleTarget]
       .orElse(RuleTarget.unserOne(s) match {
         case None    => Left(s"Error: the following string can't not be decoded as a rule target: '${s}''")
@@ -393,7 +393,7 @@ trait RudderJsonDecoders {
   implicit val techniqueVersionDecoder:    JsonDecoder[TechniqueVersion] = JsonDecoder[String].mapOrFail(TechniqueVersion.parse(_))
   implicit lazy val ruleCategoryIdDecoder: JsonDecoder[RuleCategoryId]   = JsonDecoder[String].map(RuleCategoryId.apply)
   implicit lazy val directiveIdsDecoder:   JsonDecoder[Set[DirectiveId]] = {
-    import cats.implicits._
+    import cats.implicits.*
     JsonDecoder[List[String]].mapOrFail(list => list.traverse(x => DirectiveId.parse(x)).map(_.toSet))
   }
   implicit val ruleIdIdDecoder:            JsonDecoder[RuleId]           = JsonDecoder[String].mapOrFail(x => RuleId.parse(x))
@@ -456,10 +456,10 @@ object ZioJsonExtractor {
  * We want to get ride of RestExtractorService but for now, we keep it for the parameter parts.
  */
 class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
-  import JsonQueryObjects._
-  import JsonResponseObjects._
+  import JsonQueryObjects.*
+  import JsonResponseObjects.*
   import ZioJsonExtractor.parseJson
-  import implicits._
+  import implicits.*
 
   /**
    * Utilities to extract values from params Map

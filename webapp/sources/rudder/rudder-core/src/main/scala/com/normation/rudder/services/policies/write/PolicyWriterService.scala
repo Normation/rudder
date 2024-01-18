@@ -37,16 +37,16 @@
 
 package com.normation.rudder.services.policies.write
 
-import better.files._
+import better.files.*
 import cats.data.NonEmptyList
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.SystemVariable
 import com.normation.cfclerk.domain.TechniqueFile
 import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.cfclerk.domain.TechniqueTemplate
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
@@ -69,7 +69,7 @@ import com.normation.templates.FillTemplatesService
 import com.normation.templates.FillTemplateThreadUnsafe
 import com.normation.templates.FillTemplateTimer
 import com.normation.templates.STVariable
-import com.normation.zio._
+import com.normation.zio.*
 import java.nio.charset.Charset
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.FileAlreadyExistsException
@@ -80,14 +80,14 @@ import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.PosixFilePermission
 import java.util.concurrent.TimeUnit
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonAST.JValue
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
-import zio._
+import zio.*
 import zio.Duration
-import zio.syntax._
+import zio.syntax.*
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -112,7 +112,7 @@ trait PolicyWriterService {
 }
 
 object PolicyWriterServiceImpl {
-  import PosixFilePermission._
+  import PosixFilePermission.*
   // we want: /bin/chmod u-x,u+rwX,g-wx,g+rX,o-rwx ... for nodes other than root
   val defaultFilePerms:      Set[PosixFilePermission] = Set[PosixFilePermission](OWNER_READ, OWNER_WRITE, GROUP_READ)
   val defaultDirectoryPerms: Set[PosixFilePermission] =
@@ -238,7 +238,7 @@ class PolicyWriterServiceImpl(
     implicit val charset:       Charset,
     groupOwner:                 Option[String]
 ) extends PolicyWriterService {
-  import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl._
+  import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.*
 
   val clock        = ZioRuntime.environment
   val timingLogger = PolicyGenerationLoggerPure.timing
@@ -259,7 +259,7 @@ class PolicyWriterServiceImpl(
         (groupOwner, defaultFilePerms, defaultDirectoryPerms)
       }
     }
-    import StandardOpenOption._
+    import StandardOpenOption.*
     // open file mode for create or overwrite mode
     def createParentsAndWrite(text: String, isRootServer: Boolean): IO[SystemError, Unit]                                                = IOResult.attempt {
       val (optGroupOwner, filePerms, dirPerms) = getPerms(isRootServer)
@@ -279,7 +279,7 @@ class PolicyWriterServiceImpl(
   private[this] def writeNodePropertiesFile(agentNodeConfig: AgentNodeConfiguration) = {
 
     def generateNodePropertiesJson(properties: Seq[NodeProperty]): JValue = {
-      import net.liftweb.json.JsonDSL._
+      import net.liftweb.json.JsonDSL.*
       ("properties" -> properties.toDataJson)
     }
 
@@ -299,8 +299,8 @@ class PolicyWriterServiceImpl(
 
   private[this] def writeRudderParameterFile(agentNodeConfig: AgentNodeConfiguration): IOResult[Unit] = {
     def generateParametersJson(parameters: Set[ParameterEntry]): JValue = {
-      import com.normation.rudder.domain.properties.JsonPropertySerialisation._
-      import net.liftweb.json.JsonDSL._
+      import com.normation.rudder.domain.properties.JsonPropertySerialisation.*
+      import net.liftweb.json.JsonDSL.*
       ("parameters" -> parameters.toDataJson)
     }
 
@@ -496,7 +496,7 @@ class PolicyWriterServiceImpl(
       _                    <- logNodeConfigurations
       systemEnv            <- System.envs.foldZIO(
                                 err => SystemError("error when accessing environment variable to run hooks", err).fail,
-                                vars => HookEnvPairs.build(vars.toSeq: _*).succeed
+                                vars => HookEnvPairs.build(vars.toSeq*).succeed
                               )
       readTemplateTime1    <- currentTimeMillis
       configAndPaths       <-
@@ -1084,7 +1084,7 @@ class PolicyWriterServiceImpl(
                         val dest   = File(paths.newFolder, filepaths.POLICY_SERVER_CERT)
                         // we can't overwrite a file with a symlink, so erase existing one
                         if (dest.exists) { dest.delete() }
-                        Files.createSymbolicLink(dest.path, source, File.Attributes.default: _*)
+                        Files.createSymbolicLink(dest.path, source, File.Attributes.default*)
                         dest
                       }
                   }
@@ -1095,7 +1095,7 @@ class PolicyWriterServiceImpl(
 
   private[this] def systemVariableToJson(vars: Map[String, Variable]): String = {
     // only keep system variables, sort them by name
-    import net.liftweb.json._
+    import net.liftweb.json.*
 
     // remove these system vars (perhaps they should not even be there, in fact)
     val filterOut = Set(

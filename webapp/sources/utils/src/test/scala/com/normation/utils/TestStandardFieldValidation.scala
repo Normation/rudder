@@ -20,9 +20,9 @@
 
 package com.normation.utils
 
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 @RunWith(classOf[JUnitRunner])
 class TestStandardFieldValidation extends Specification {

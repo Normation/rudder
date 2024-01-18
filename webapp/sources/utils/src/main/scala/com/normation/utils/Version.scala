@@ -193,8 +193,8 @@ object VersionPart {
 }
 
 object ParseVersion {
-  import fastparse._
-  import fastparse.NoWhitespace._
+  import fastparse.*
+  import fastparse.NoWhitespace.*
 
   def ascii:                CharsetEncoder = Charset.forName("US-ASCII").newEncoder()
   // chars allowed in a version. Only ascii, non control, non space, non separator - including ":" used for epoch
@@ -204,7 +204,7 @@ object ParseVersion {
 
   def num[A: P]: P[Long] = P(CharIn("0-9").rep(1).!.map(_.toLong))
   def chars[A: P]: P[PartType] = P(CharsWhile(versionChar).rep(1).!).map { s =>
-    import PartType._
+    import PartType.*
     s.toLowerCase match {
       case "snapshot"  => Snapshot(s)
       case "nightly"   => Nightly(s)

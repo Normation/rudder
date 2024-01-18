@@ -37,19 +37,19 @@
 
 package com.normation.inventory.provisioning.fusion
 
-import com.normation.errors._
-import com.normation.inventory.domain._
-import com.normation.inventory.domain.AgentType._
+import com.normation.errors.*
+import com.normation.inventory.domain.*
+import com.normation.inventory.domain.AgentType.*
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.ZioRuntime
 import java.io.File
-import net.liftweb.common._
-import net.liftweb.json.JsonAST._
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import net.liftweb.common.*
+import net.liftweb.json.JsonAST.*
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import scala.annotation.nowarn
-import zio._
+import zio.*
 
 /**
  * A simple test class to check that the demo data file is up to date
@@ -514,7 +514,7 @@ class TestInventoryParsing extends Specification with Loggable {
   }
   "Virtuozzo VM should be correctly parsed" in {
     val inventory = parseRun("fusion-inventories/virtuozzo.ocs")
-    import com.normation.inventory.domain.VmType._
+    import com.normation.inventory.domain.VmType.*
     (inventory.machine.machineType must beEqualTo(VirtualMachineType(Virtuozzo))) and
     (inventory.node.main.osDetails must beEqualTo(
       Linux(Debian, "Debian GNU/Linux 9.5 (stretch)", new Version("9.5"), None, new Version("4.9.0-7-amd64"))

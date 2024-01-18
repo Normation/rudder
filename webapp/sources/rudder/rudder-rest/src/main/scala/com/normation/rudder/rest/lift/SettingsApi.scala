@@ -39,8 +39,8 @@ package com.normation.rudder.rest.lift
 
 import com.normation.appconfig.ReadConfigService
 import com.normation.appconfig.UpdateConfigService
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
@@ -51,37 +51,37 @@ import com.normation.rudder.batch.PolicyGenerationTrigger
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.reports._
-import com.normation.rudder.rest.{SettingsApi => API}
+import com.normation.rudder.reports.*
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.OneParam
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
+import com.normation.rudder.rest.SettingsApi as API
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.SendMetrics
 import com.normation.rudder.services.reports.UnexpectedReportBehavior
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
-import com.normation.rudder.services.servers.RelaySynchronizationMethod._
+import com.normation.rudder.services.servers.RelaySynchronizationMethod.*
 import com.normation.utils.Control.bestEffort
 import com.normation.utils.Control.traverse
 import com.normation.utils.StringUuidGenerator
-import com.normation.zio._
+import com.normation.zio.*
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.*
+import net.liftweb.json.JsonDSL.*
 import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 class SettingsApi(
     val restExtractorService:          RestExtractorService,
@@ -92,7 +92,7 @@ class SettingsApi(
     val nodeInfoService:               NodeInfoService
 ) extends LiftApiModuleProvider[API] {
 
-  val allSettings_v10: List[RestSetting[_]] = {
+  val allSettings_v10: List[RestSetting[?]] = {
     RestPolicyMode ::
     RestPolicyModeOverridable ::
     RestRunFrequency ::
@@ -134,9 +134,9 @@ class SettingsApi(
     Nil
   }
 
-  val allSettings_v12: List[RestSetting[_]] = RestReportProtocolDefault :: allSettings_v10
+  val allSettings_v12: List[RestSetting[?]] = RestReportProtocolDefault :: allSettings_v10
 
-  def allSettings(version: ApiVersion): List[RestSetting[_]] = {
+  def allSettings(version: ApiVersion): List[RestSetting[?]] = {
     if (version.value <= 10) {
       allSettings_v10
     } else {
@@ -265,7 +265,7 @@ class SettingsApi(
   /////////////// Utility function and definition for each setting
   ///////////////
 
-  def settingFromKey(key: String, modules: List[RestSetting[_]]): Box[RestSetting[_]] = {
+  def settingFromKey(key: String, modules: List[RestSetting[?]]): Box[RestSetting[?]] = {
     modules.find(_.key == key) match {
       case Some(setting) => Full(setting)
       case None          => Failure(s"'$key' is not a valid settings key")
@@ -860,7 +860,7 @@ class SettingsApi(
           case (_, ("root", _)) => false
           case ((a, _), (b, _)) => a < b
         }
-        import net.liftweb.json.JsonDSL._
+        import net.liftweb.json.JsonDSL.*
         JArray(toKeep.toList.map {
           case (nodeid, networks) =>
             ("id" -> nodeid) ~ ("allowed_networks" -> networks.toList.sorted)

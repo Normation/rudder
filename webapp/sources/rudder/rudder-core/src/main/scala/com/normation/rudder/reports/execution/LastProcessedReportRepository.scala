@@ -37,15 +37,15 @@
 
 package com.normation.rudder.reports.execution
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.rudder.db.DB
 import com.normation.rudder.db.Doobie
-import com.normation.rudder.db.Doobie._
-import doobie._
-import doobie.implicits._
-import net.liftweb.common._
+import com.normation.rudder.db.Doobie.*
+import doobie.*
+import doobie.implicits.*
+import net.liftweb.common.*
 import org.joda.time.DateTime
-import zio.interop.catz._
+import zio.interop.catz.*
 
 /**
  * Manage the status of the fetching of execution date per node
@@ -66,7 +66,7 @@ trait LastProcessedReportRepository {
 class LastProcessedReportRepositoryImpl(
     db: Doobie
 ) extends LastProcessedReportRepository with Loggable {
-  import db._
+  import db.*
 
   val PROP_EXECUTION_STATUS = "executionStatus"
 

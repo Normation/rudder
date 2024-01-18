@@ -42,14 +42,14 @@ import com.normation.GitVersion.Revision
 import com.normation.GitVersion.RevisionInfo
 import com.normation.NamedZioLogger
 import com.normation.box.IOManaged
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.rudder.git.ZipUtils.Zippable
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.Status
-import org.eclipse.jgit.lib.{Constants => JConstants}
+import org.eclipse.jgit.lib.Constants as JConstants
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.ObjectStream
 import org.eclipse.jgit.lib.Repository
@@ -58,8 +58,8 @@ import org.eclipse.jgit.treewalk.TreeWalk
 import org.eclipse.jgit.treewalk.filter.PathFilter
 import org.eclipse.jgit.treewalk.filter.TreeFilter
 import org.joda.time.DateTime
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  * Utility trait to find/list/get content
@@ -145,7 +145,7 @@ object GitFindUtils extends NamedZioLogger {
    * Retrieve revisions for the given path
    */
   def findRevFromPath(git: Git, path: String): IOResult[Iterable[RevisionInfo]] = {
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
     IOResult.attemptZIO(s"Error when looking for revisions changes in '${path}'") {
       ZIO.foreach(git.log().addPath(path).call().asScala) { commit =>
         RevisionInfo(

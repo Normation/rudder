@@ -39,12 +39,12 @@ package com.normation.rudder.rest.lift
 
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.HttpAction
-import com.normation.rudder.rest._
-import com.normation.rudder.rest.{InfoApi => API}
+import com.normation.rudder.rest.*
+import com.normation.rudder.rest.InfoApi as API
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.*
+import net.liftweb.json.JsonDSL.*
 
 /*
  * Information about the API

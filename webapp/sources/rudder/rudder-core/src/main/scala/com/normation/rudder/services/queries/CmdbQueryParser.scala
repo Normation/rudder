@@ -37,13 +37,13 @@
 
 package com.normation.rudder.services.queries
 
-import cats.implicits._
-import com.normation.box._
-import com.normation.rudder.domain.queries._
-import com.normation.rudder.services.queries.CmdbQueryParser._
+import cats.implicits.*
+import com.normation.box.*
+import com.normation.rudder.domain.queries.*
+import com.normation.rudder.services.queries.CmdbQueryParser.*
 import com.normation.utils.Control.traverse
-import net.liftweb.common._
-import net.liftweb.json._
+import net.liftweb.common.*
+import net.liftweb.json.*
 import net.liftweb.json.JsonParser.ParseException
 
 /**
@@ -215,7 +215,7 @@ trait JsonQueryLexer extends QueryLexer {
   def parseCriterionLine(json: JObject): Box[List[StringCriterionLine]] = {
     json.values.get(CRITERIA) match {
       case None               => Full(List[StringCriterionLine]())
-      case Some(arr: List[_]) =>
+      case Some(arr: List[?]) =>
         // try to parse all lines. On the first parsing error (parseCrtierion returns Failure),
         // stop and return a Failure
         // if all parsing are OK, return a Full(list(criterionLine)
@@ -271,7 +271,7 @@ trait JsonQueryLexer extends QueryLexer {
       Failure("Bad query format for '%s' parameter in line '%s'. Expecting a string, found '%s'".format(OBJECT, line, x))
 
     json match {
-      case l: Map[_, _] =>
+      case l: Map[?, ?] =>
         l.head match {
           case (x: String, y: String) =>
             val line = l.asInstanceOf[Map[String, String]] // is map always homogenous ?

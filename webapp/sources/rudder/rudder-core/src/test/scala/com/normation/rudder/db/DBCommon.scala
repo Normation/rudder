@@ -37,15 +37,15 @@
 
 package com.normation.rudder.db
 
-import cats.implicits._
-import com.normation.rudder.db.Doobie._
+import cats.implicits.*
+import com.normation.rudder.db.Doobie.*
 import com.normation.rudder.migration.MigrableEntity
 import com.normation.rudder.migration.MigrationEventLogRepository
 import com.normation.rudder.migration.MigrationTestLog
 import com.normation.rudder.repository.jdbc.RudderDatasourceProvider
-import doobie._
-import doobie.implicits._
-import doobie.implicits.javasql._
+import doobie.*
+import doobie.implicits.*
+import doobie.implicits.javasql.*
 import java.io.Closeable
 import java.util.Properties
 import javax.sql.DataSource
@@ -54,8 +54,8 @@ import org.joda.time.DateTime
 import org.specs2.mutable.Specification
 import org.specs2.specification.BeforeAfterAll
 import scala.io.Source
-import zio._
-import zio.interop.catz._
+import zio.*
+import zio.interop.catz.*
 
 /**
  * Here we manage all the initialisation of services and database

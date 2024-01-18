@@ -37,11 +37,11 @@
 
 package com.normation.rudder.domain.eventlog
 
-import com.normation.eventlog._
+import com.normation.eventlog.*
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
-import scala.xml._
+import scala.xml.*
 sealed trait ImportExportEventLog extends EventLog {
   final override val eventLogCategory: EventLogCategory = ImportExportItemsLogCategory
 }
@@ -64,7 +64,7 @@ object ImportExportEventLog {
           <commit>{gitArchiveId.commit.value}</commit>
           <commiterName>{gitArchiveId.commiter.getName}</commiterName>
           <commiterEmail>{gitArchiveId.commiter.getEmailAddress}</commiterEmail>
-        ): _*
+        )*
       )
     )
   }
@@ -79,7 +79,7 @@ object ImportExportEventLog {
         minimizeEmpty = false,
         child = (
           <commit>{gitCommitId.value}</commit>
-        ): _*
+        )*
       )
     )
   )
@@ -403,7 +403,7 @@ object Rollback extends EventLogFilter {
             </main>
           }
           events ++ main
-        }: _*
+        }*
       )
     )
   }

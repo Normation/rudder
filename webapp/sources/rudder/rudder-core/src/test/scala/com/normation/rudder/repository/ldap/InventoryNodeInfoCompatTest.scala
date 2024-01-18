@@ -54,12 +54,12 @@ import com.normation.rudder.domain.queries.ObjectCriterion
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.DefaultStringQueryParser
 import com.normation.rudder.services.queries.JsonQueryLexer
-import com.normation.zio._
+import com.normation.zio.*
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Entry
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 /**
  * A test to check that an node inventory entry
@@ -209,7 +209,7 @@ class InventoryNodeInfoCompatTest extends Specification {
   }
 
   def node(ldif: String): NodeInfo = {
-    val nodeEntry = new LDAPEntry(new Entry(ldif.split("\n").toSeq: _*))
+    val nodeEntry = new LDAPEntry(new Entry(ldif.split("\n").toSeq*))
     mapper.convertEntriesToSpecialNodeInfos(nodeEntry, None).runNow
   }
 

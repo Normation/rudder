@@ -42,7 +42,7 @@ import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.DitQueryData
@@ -62,10 +62,10 @@ import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.services.queries.QueryProcessor
-import com.normation.zio._
-import com.softwaremill.quicklens._
-import zio.{System => _, _}
-import zio.syntax._
+import com.normation.zio.*
+import com.softwaremill.quicklens.*
+import zio.{System as _, *}
+import zio.syntax.*
 
 /**
  * A newNodeManager hook is a class that accept callbacks.
@@ -139,8 +139,8 @@ class PostNodeAcceptanceHookScripts(
 
   override def run(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Unit] = {
     val systemEnv = {
-      import scala.jdk.CollectionConverters._
-      HookEnvPairs.build(System.getenv.asScala.toSeq: _*)
+      import scala.jdk.CollectionConverters.*
+      HookEnvPairs.build(System.getenv.asScala.toSeq*)
     }
 
     HooksLogger.debug(s"Executing post-node-acceptance hooks for node with id '${nodeId.value}'")

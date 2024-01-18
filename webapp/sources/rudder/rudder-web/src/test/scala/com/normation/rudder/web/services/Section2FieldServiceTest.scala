@@ -60,7 +60,7 @@ import com.normation.rudder.web.model.TextField
 import com.normation.rudder.web.model.UploadedFileField
 import net.liftweb.common.Full
 import org.junit.runner.RunWith
-import org.specs2.mutable._
+import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.core.Fragment
 

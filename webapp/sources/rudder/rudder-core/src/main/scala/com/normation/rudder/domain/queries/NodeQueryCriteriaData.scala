@@ -37,10 +37,10 @@
 
 package com.normation.rudder.domain.queries
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.inventory.ldap.core.LDAPConstants.A_PROCESS
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_GROUP_UUID
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
@@ -48,8 +48,8 @@ import com.normation.rudder.domain.RudderLDAPConstants.A_STATE
 import com.normation.rudder.domain.logger.FactQueryProcessorLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.properties.NodeProperty
-import com.normation.rudder.domain.queries.{KeyValueComparator => KVC}
 import com.normation.rudder.domain.queries.KeyValueComparator.HasKey
+import com.normation.rudder.domain.queries.KeyValueComparator as KVC
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.repository.RoNodeGroupRepository
@@ -60,8 +60,8 @@ import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import scala.collection.SortedMap
 import scala.util.Try
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 trait SubGroupComparatorRepository {
   def getNodeIds(groupId: NodeGroupId): IOResult[Chunk[NodeId]]

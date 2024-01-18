@@ -374,7 +374,7 @@ object Constraint {
 
 object CheckConstraint {
   def check(constraint: List[Constraint.Constraint], value: String): CheckResult = {
-    import Constraint._
+    import Constraint.*
 
     constraint.map(_.check(value)).foldRight(OK: CheckResult) {
       case (OK, OK)           => OK

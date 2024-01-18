@@ -37,7 +37,7 @@
 
 package com.normation.rudder.services.policies.write
 
-import com.normation.cfclerk.domain._
+import com.normation.cfclerk.domain.*
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid

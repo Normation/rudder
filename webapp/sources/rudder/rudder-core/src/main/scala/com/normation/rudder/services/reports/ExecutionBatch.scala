@@ -39,20 +39,20 @@ package com.normation.rudder.services.reports
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
-import com.normation.rudder.domain.logger.ComplianceDebugLogger._
+import com.normation.rudder.domain.logger.ComplianceDebugLogger.*
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports._
+import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.ReportType.BadPolicyMode
-import com.normation.rudder.reports._
+import com.normation.rudder.reports.*
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import java.util.regex.Pattern
 import net.liftweb.common.Loggable
 import org.apache.commons.lang3.StringUtils
-import org.joda.time._
+import org.joda.time.*
 import scala.annotation.tailrec
 import scala.util.matching.Regex
 

@@ -37,24 +37,24 @@
 
 package com.normation.rudder.web.services
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ComplianceLevel
-import com.normation.rudder.domain.reports.ComplianceLevelSerialisation._
+import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.*
 import com.normation.rudder.domain.reports.RuleNodeStatusReport
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.users.CurrentUser
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.common.Box
 import net.liftweb.http.SHtml
-import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmd
-import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.TimeSpan
-import scala.concurrent._
+import scala.concurrent.*
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class AsyncComplianceService(

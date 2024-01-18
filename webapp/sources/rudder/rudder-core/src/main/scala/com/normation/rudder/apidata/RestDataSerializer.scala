@@ -37,25 +37,25 @@
 
 package com.normation.rudder.apidata
 
-import com.normation.cfclerk.domain._
+import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.ApiAccount
-import com.normation.rudder.api.ApiAccountKind.{PublicApi => PublicApiAccount}
+import com.normation.rudder.api.ApiAccountKind.PublicApi as PublicApiAccount
 import com.normation.rudder.api.ApiAccountKind.System
 import com.normation.rudder.api.ApiAccountKind.User
-import com.normation.rudder.api.ApiAuthorization.{None => NoAccess}
 import com.normation.rudder.api.ApiAuthorization.ACL
+import com.normation.rudder.api.ApiAuthorization.None as NoAccess
 import com.normation.rudder.api.ApiAuthorization.RO
 import com.normation.rudder.api.ApiAuthorization.RW
 import com.normation.rudder.api.ApiVersion
-import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.properties._
+import com.normation.rudder.domain.nodes.*
+import com.normation.rudder.domain.policies.*
+import com.normation.rudder.domain.properties.*
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.servers.Srv
-import com.normation.rudder.domain.workflows._
+import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategory
@@ -66,9 +66,9 @@ import com.normation.rudder.services.healthcheck.HealthcheckResult.Ok
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Warning
 import com.normation.rudder.services.modification.DiffService
 import com.normation.utils.DateFormaterService
-import net.liftweb.common._
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
+import net.liftweb.common.*
+import net.liftweb.json.*
+import net.liftweb.json.JsonDSL.*
 import org.joda.time.DateTime
 import zio.json.ast.Json
 import zio.json.ast.Json.Str

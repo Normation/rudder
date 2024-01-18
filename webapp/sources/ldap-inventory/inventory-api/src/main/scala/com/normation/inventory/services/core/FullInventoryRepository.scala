@@ -37,8 +37,8 @@
 
 package com.normation.inventory.services.core
 
-import com.normation.errors._
-import com.normation.inventory.domain._
+import com.normation.errors.*
+import com.normation.inventory.domain.*
 
 trait ReadOnlyMachineRepository {
 

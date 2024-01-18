@@ -38,24 +38,24 @@
 package com.normation.cfclerk.services.impl
 
 import com.normation.GitVersion
-import com.normation.cfclerk.domain._
-import com.normation.cfclerk.services._
-import com.normation.cfclerk.services.impl.GitTechniqueReader._
+import com.normation.cfclerk.domain.*
+import com.normation.cfclerk.services.*
+import com.normation.cfclerk.services.impl.GitTechniqueReader.*
 import com.normation.cfclerk.xmlparsers.TechniqueParser
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.rudder.domain.logger.TechniqueReaderLoggerPure
 import com.normation.rudder.git.ExactFileTreeFilter
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.repository.xml.TechniqueFiles
-import com.normation.zio._
+import com.normation.zio.*
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.io.IOException
 import java.nio.charset.StandardCharsets
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.eclipse.jgit.diff.DiffEntry.ChangeType
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.errors.MissingObjectException
@@ -65,11 +65,11 @@ import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.treewalk.TreeWalk
 import org.xml.sax.SAXParseException
 import scala.collection.immutable.SortedMap
-import scala.collection.mutable.{Map => MutMap}
-import scala.jdk.CollectionConverters._
-import scala.xml._
-import zio._
-import zio.syntax._
+import scala.collection.mutable.Map as MutMap
+import scala.jdk.CollectionConverters.*
+import scala.xml.*
+import zio.*
+import zio.syntax.*
 
 /**
  *
@@ -595,7 +595,7 @@ class GitTechniqueReader(
         }
       }
     }
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
     prop.asScala.toMap
 
   }
@@ -874,10 +874,10 @@ class GitTechniqueReader(
 
   // techniqueRelativePath is the path of the technique relative to /techniques/, not to git repo root.
   def checkTechniqueIdMatchesYaml(techniqueRelativePath: File, techniqueId: TechniqueId): Task[Unit] = {
-    import zio._
-    import zio.json.yaml._
-    import com.normation.rudder.ncf.yaml.{Technique => YamlTechnique}
-    import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer._
+    import zio.*
+    import zio.json.yaml.*
+    import com.normation.rudder.ncf.yaml.Technique as YamlTechnique
+    import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer.*
 
     // looking at descriptor on file path, because it's what TechniqueCompiler will look at
     val descriptor =

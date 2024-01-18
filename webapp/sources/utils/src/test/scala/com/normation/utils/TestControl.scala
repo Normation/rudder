@@ -21,8 +21,8 @@
 package com.normation.utils
 
 import Control.traverse
-import net.liftweb.common._
-import org.junit._
+import net.liftweb.common.*
+import org.junit.*
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
 

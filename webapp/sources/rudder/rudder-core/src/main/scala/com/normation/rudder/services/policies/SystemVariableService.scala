@@ -37,7 +37,7 @@
 
 package com.normation.rudder.services.policies
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.SystemVariable
 import com.normation.cfclerk.domain.SystemVariableSpec
 import com.normation.cfclerk.domain.Variable
@@ -57,10 +57,10 @@ import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.RudderAgent
-import com.normation.rudder.reports._
+import com.normation.rudder.reports.*
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
-import com.normation.zio._
+import com.normation.zio.*
 import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.time.LocalTime
@@ -145,7 +145,7 @@ class SystemVariableServiceImpl(
     getReportProtocolDefault: () => Box[AgentReportingProtocol]
 ) extends SystemVariableService with Loggable {
 
-  import SystemVariableService._
+  import SystemVariableService.*
 
   // get the Rudder reports DB (postgres) database name from URI
   val reportsDbName: String = {
@@ -188,7 +188,7 @@ class SystemVariableServiceImpl(
 
     val varServerVersion = systemVariableSpecService.get("SERVER_VERSION").toVariable(Seq(serverVersion))
 
-    import SendMetrics._
+    import SendMetrics.*
     val sendMetricsValue = getSendMetrics().getOrElse(None) match {
       case None                  => "no"
       case Some(NoMetrics)       => "no"

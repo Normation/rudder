@@ -38,7 +38,7 @@
 package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.ModificationId
@@ -49,8 +49,8 @@ import com.normation.rudder.domain.nodes.ChangeRequestNodeGroupDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.workflows._
+import com.normation.rudder.domain.policies.*
+import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
@@ -60,16 +60,16 @@ import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.DisplayColumn
 import com.normation.rudder.web.components.RuleGrid
-import com.normation.rudder.web.model._
-import net.liftweb.common._
+import com.normation.rudder.web.model.*
+import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.SHtml
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.FieldError
-import net.liftweb.util.Helpers._
-import scala.xml._
+import net.liftweb.util.Helpers.*
+import scala.xml.*
 
 /**
  * Validation pop-up for modification on group and directive.
@@ -202,7 +202,7 @@ class ModificationValidationPopup(
     parentFormTracker:       FormTracker
 ) extends DispatchSnippet with Loggable {
 
-  import ModificationValidationPopup._
+  import ModificationValidationPopup.*
 
   private[this] val userPropertyService   = RudderConfig.userPropertyService
   private[this] val dependencyService     = RudderConfig.dependencyAndDeletionService
@@ -256,7 +256,7 @@ class ModificationValidationPopup(
 
   // must be here because used in val popupWarningMessages
   private[this] val crReasons = {
-    import com.normation.rudder.web.services.ReasonBehavior._
+    import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
       case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))

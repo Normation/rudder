@@ -37,23 +37,23 @@
 
 package com.normation.rudder.services.reports
 
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.rudder.domain.logger.ReportLoggerPure
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ResultRepairedReport
 import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.repository.ReportsRepository
-import com.normation.zio._
-import net.liftweb.common._
+import com.normation.zio.*
+import net.liftweb.common.*
 import net.liftweb.common.Box
 import net.liftweb.common.Loggable
 import net.liftweb.http.js
-import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JE.*
 import org.joda.time.DateTime
 import org.joda.time.Interval
-import zio.{System => _, _}
-import zio.syntax._
+import zio.{System as _, *}
+import zio.syntax.*
 
 /**
  * This service is responsible to make available node changes for nodes.
@@ -223,7 +223,7 @@ class CachedNodeChangesServiceImpl(
       updates.headOption match {
         case None    => current
         case Some(h) =>
-          import ChangesUpdate._
+          import ChangesUpdate.*
           val c = (h, current) match {
             case (Init, Init)           => Init
             case (Init, For(a, b))      => For(a, b)

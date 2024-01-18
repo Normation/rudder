@@ -42,14 +42,14 @@ import com.normation.GitVersion.RevisionInfo
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.apidata.JsonResponseObjects.JRPropertyHierarchy.JRPropertyHierarchyHtml
 import com.normation.rudder.apidata.JsonResponseObjects.JRPropertyHierarchy.JRPropertyHierarchyJson
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.GroupProperty
@@ -73,16 +73,16 @@ import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.StringCriterionLine
 import com.normation.rudder.services.queries.StringQuery
 import com.normation.utils.DateFormaterService
-import com.softwaremill.quicklens._
+import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.config.ConfigValue
-import io.scalaland.chimney.dsl._
-import zio._
-import zio.{Tag => _}
-import zio.json._
+import io.scalaland.chimney.dsl.*
+import zio.*
+import zio.Tag as _
+import zio.json.*
 import zio.json.DeriveJsonEncoder
 import zio.json.internal.Write
-import zio.syntax._
+import zio.syntax.*
 
 /*
  * This class deals with everything serialisation related for API.
@@ -600,7 +600,7 @@ object JsonResponseObjects {
   )
 
   object JRGlobalParameter {
-    import GenericProperty._
+    import GenericProperty.*
     def empty(name: String): JRGlobalParameter = JRGlobalParameter(None, name, "".toConfigValue, "", None, None)
     def fromGlobalParameter(p: GlobalParameter, crId: Option[ChangeRequestId]): JRGlobalParameter = {
       JRGlobalParameter(crId.map(_.value.toString), p.name, p.value, p.description, p.inheritMode, p.provider)
@@ -905,8 +905,8 @@ object JsonResponseObjects {
 //////////////////////////// zio-json encoders ////////////////////////////
 
 trait RudderJsonEncoders {
-  import JsonResponseObjects._
-  import JsonResponseObjects.JRRuleTarget._
+  import JsonResponseObjects.*
+  import JsonResponseObjects.JRRuleTarget.*
 
   implicit lazy val stringTargetEnc: JsonEncoder[JRRuleTargetString]          = JsonEncoder[String].contramap(_.r.target)
   implicit lazy val andTargetEnc:    JsonEncoder[JRRuleTargetComposition.or]  = JsonEncoder[List[JRRuleTarget]].contramap(_.list)
@@ -1004,7 +1004,7 @@ trait RudderJsonEncoders {
  * Decoders for JsonResponse object, when you need to read back something that they serialized.
  */
 object JsonResponseObjectDecodes extends RudderJsonDecoders {
-  import JsonResponseObjects._
+  import JsonResponseObjects.*
 
   implicit lazy val decodeJRParentProperty:          JsonDecoder[JRParentProperty]          = DeriveJsonDecoder.gen
   implicit lazy val decodeJRPropertyHierarchy:       JsonDecoder[JRPropertyHierarchy]       = DeriveJsonDecoder.gen

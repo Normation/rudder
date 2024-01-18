@@ -37,7 +37,7 @@
 
 package com.normation.cfclerk.domain
 
-import scala.xml._
+import scala.xml.*
 
 final case class OperatingSystem(name: String = "", version: String = "") {
   override def toString: String = if (version == "") name

@@ -38,12 +38,12 @@
 package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
+import com.normation.box.*
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
-import com.normation.rudder.repository._
+import com.normation.rudder.repository.*
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.FormTracker
@@ -51,16 +51,16 @@ import com.normation.rudder.web.model.WBRadioField
 import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
 import net.liftweb.http.SHtml
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.FieldError
-import net.liftweb.util.Helpers._
-import scala.xml._
+import net.liftweb.util.Helpers.*
+import scala.xml.*
 
 /**
  * Create a group or a category
@@ -311,7 +311,7 @@ class CreateCategoryOrGroupPopup(
   }
 
   private[this] val piReasons = {
-    import com.normation.rudder.web.services.ReasonBehavior._
+    import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
       case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))

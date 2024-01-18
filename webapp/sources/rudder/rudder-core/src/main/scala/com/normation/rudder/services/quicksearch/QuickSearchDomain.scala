@@ -208,7 +208,7 @@ object QSAttribute       {
 sealed trait QSObject { def name: String; def attributes: Set[QSAttribute] }
 
 object QSObject {
-  import QSAttribute._
+  import QSAttribute.*
 
   val tagsAttribute: Set[QSAttribute] = Set(Tags, TagKeys, TagValues)
 
@@ -301,7 +301,7 @@ object QSMapping {
 
   // set of names by attribute
   val attributeNames: Map[QSAttribute, Set[String]] = {
-    import QSAttribute._
+    import QSAttribute.*
     val descriptions = Set(Description, LongDescription).map(_.name) ++ Set("descriptions")
     val properties   = Set(Properties, GroupProperties, CustomProperties).map(_.name) ++
       Set("node.props", "nodeprops", "node_properties", "nodeproperties") ++
@@ -388,7 +388,7 @@ object QSMapping {
 sealed trait QuickSearchResultId extends Any { def value: String; def tpe: QSObject }
 
 object QuickSearchResultId {
-  import QSObject._
+  import QSObject.*
 
   final case class QRNodeId(value: String)      extends AnyVal with QuickSearchResultId { override def tpe: QSObject.Node.type = Node }
   final case class QRGroupId(value: String)     extends AnyVal with QuickSearchResultId {

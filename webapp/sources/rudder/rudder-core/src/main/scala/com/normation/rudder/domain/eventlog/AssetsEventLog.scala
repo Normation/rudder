@@ -37,7 +37,7 @@
 
 package com.normation.rudder.domain.eventlog
 
-import com.normation.eventlog._
+import com.normation.eventlog.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeInfo

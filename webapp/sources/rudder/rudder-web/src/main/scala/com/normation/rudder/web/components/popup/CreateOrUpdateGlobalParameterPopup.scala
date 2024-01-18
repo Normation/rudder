@@ -38,7 +38,7 @@ package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.GitVersion
-import com.normation.box._
+import com.normation.box.*
 import com.normation.errors.PureResult
 import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.rudder.domain.properties.AddGlobalParameterDiff
@@ -54,19 +54,19 @@ import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.users.CurrentUser
-import com.normation.rudder.web.model._
+import com.normation.rudder.web.model.*
 import com.typesafe.config.ConfigValue
 import com.typesafe.config.ConfigValueType
 import java.util.regex.Pattern
-import net.liftweb.common._
-import net.liftweb.http._
+import net.liftweb.common.*
+import net.liftweb.http.*
 import net.liftweb.http.DispatchSnippet
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.FieldError
-import net.liftweb.util.Helpers._
-import scala.xml._
+import net.liftweb.util.Helpers.*
+import scala.xml.*
 
 class CreateOrUpdateGlobalParameterPopup(
     change:            GlobalParamChangeRequest,
@@ -117,7 +117,7 @@ class CreateOrUpdateGlobalParameterPopup(
   }
 
   private def parseValue(value: String, jsonRequired: Boolean): PureResult[ConfigValue] = {
-    import GenericProperty._
+    import GenericProperty.*
     for {
       // in case of string, we need to force parse as string
       v <- if (jsonRequired) GenericProperty.parseValue(value) else Right(value.toConfigValue)
@@ -314,7 +314,7 @@ class CreateOrUpdateGlobalParameterPopup(
   val parameterOverridable = true
 
   private[this] val paramReasons = {
-    import com.normation.rudder.web.services.ReasonBehavior._
+    import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
       case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))

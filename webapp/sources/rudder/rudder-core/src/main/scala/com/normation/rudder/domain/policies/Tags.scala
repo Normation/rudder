@@ -38,7 +38,7 @@ package com.normation.rudder.domain.policies
 
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.repository.json.JsonExtractorUtils
-import net.liftweb.common._
+import net.liftweb.common.*
 
 /**
  * Tags that apply on Rules and Directives
@@ -73,8 +73,8 @@ object Tags {
 
 object JsonTagSerialisation {
 
-  import net.liftweb.json._
-  import net.liftweb.json.JsonDSL._
+  import net.liftweb.json.*
+  import net.liftweb.json.JsonDSL.*
 
   def serializeTags(tags: Tags): JValue = {
 
@@ -89,7 +89,7 @@ object JsonTagSerialisation {
 }
 
 trait JsonTagExtractor[M[_]] extends JsonExtractorUtils[M] {
-  import net.liftweb.json._
+  import net.liftweb.json.*
 
   def unserializeTags(value: String): Box[M[Tags]] = {
     parseOpt(value) match {

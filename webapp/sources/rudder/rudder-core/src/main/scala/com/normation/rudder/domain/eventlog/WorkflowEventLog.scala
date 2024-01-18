@@ -1,6 +1,6 @@
 package com.normation.rudder.domain.eventlog
 
-import com.normation.eventlog._
+import com.normation.eventlog.*
 sealed trait WorkflowEventLog extends EventLog { final override val eventLogCategory: EventLogCategory = WorkflowLogCategory }
 
 final case class WorkflowStepChanged(

@@ -37,8 +37,8 @@
 
 package com.normation.rudder.rest
 
-import cats.data._
-import cats.implicits._
+import cats.data.*
+import cats.implicits.*
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.HttpAction
@@ -158,7 +158,7 @@ object ApiPath {
       case Nil    =>
         Left("The given is empty, it can't be a Rudder API path")
       case h :: t =>
-        Right(ApiPath.of(h, t: _*))
+        Right(ApiPath.of(h, t*))
     }
   }
 
@@ -166,7 +166,7 @@ object ApiPath {
   // Path are compatible when all subpath elements are equals, and when they are of the same size
   // (resource elements act as joker
   def compatible(p1: ApiPath, p2: ApiPath): Boolean = {
-    import ApiPathSegment._
+    import ApiPathSegment.*
     (p1.parts.size == p2.parts.size) && (p1.parts.toList.lazyZip(p2.parts.toList)).forall {
       case (Segment(a), Segment(b)) => a == b
       case (Resource(_), _)         => true

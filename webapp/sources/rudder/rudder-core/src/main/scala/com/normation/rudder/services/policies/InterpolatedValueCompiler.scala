@@ -37,19 +37,19 @@
 
 package com.normation.rudder.services.policies
 
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.services.nodes.EngineOption
 import com.normation.rudder.services.nodes.PropertyEngineService
-import com.normation.rudder.services.policies.PropertyParserTokens._
+import com.normation.rudder.services.policies.PropertyParserTokens.*
 import com.typesafe.config.ConfigFactory
 import com.typesafe.config.ConfigValue
-import net.liftweb.common._
-import zio._
-import zio.syntax._
+import net.liftweb.common.*
+import zio.*
+import zio.syntax.*
 
 /**
  * A parser that handle parameterized value of
@@ -483,8 +483,8 @@ class InterpolatedValueCompilerImpl(p: PropertyEngineService) extends Interpolat
 
 object PropertyParser {
 
-  import fastparse._
-  import fastparse.NoWhitespace._
+  import fastparse.*
+  import fastparse.NoWhitespace.*
 
   def parse(value: String): PureResult[List[Token]] = {
     (fastparse.parse(value, all(_)): @unchecked) match {

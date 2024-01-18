@@ -38,22 +38,22 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.GitVersion
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
-import com.normation.rudder.apidata.JsonQueryObjects._
-import com.normation.rudder.apidata.JsonResponseObjects._
+import com.normation.rudder.apidata.JsonQueryObjects.*
+import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.JRDirective
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
-import com.normation.rudder.apidata.implicits._
+import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.configuration.ConfigurationRepository
@@ -69,30 +69,30 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
-import com.normation.rudder.rest._
-import com.normation.rudder.rest.{DirectiveApi => API}
+import com.normation.rudder.rest.*
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
+import com.normation.rudder.rest.DirectiveApi as API
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
-import com.normation.rudder.rest.data._
-import com.normation.rudder.rest.implicits._
+import com.normation.rudder.rest.data.*
+import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.web.model.DirectiveEditor
 import com.normation.rudder.web.services.DirectiveEditorService
-import com.normation.utils.Control._
+import com.normation.utils.Control.*
 import com.normation.utils.StringUuidGenerator
-import com.softwaremill.quicklens._
-import net.liftweb.common._
+import com.softwaremill.quicklens.*
+import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonAST.JValue
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 class DirectiveApi(
     readDirective:        RoDirectiveRepository,

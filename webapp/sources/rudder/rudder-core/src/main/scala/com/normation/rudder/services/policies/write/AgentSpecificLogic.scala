@@ -66,7 +66,7 @@ trait AgentSpecificStringEscape {
 
 //how do we write bundle sequence / input files system variable for the agent?
 trait AgentFormatBundleVariables {
-  import BuildBundleSequence._
+  import BuildBundleSequence.*
   def getBundleVariables(
       systemInputs: List[InputFile],
       sytemBundles: List[TechniqueBundles],

@@ -61,8 +61,8 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /*
  * Easier te manage data

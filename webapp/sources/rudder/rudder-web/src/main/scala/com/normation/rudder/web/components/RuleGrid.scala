@@ -38,15 +38,15 @@
 package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.Technique
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.TimingDebugLogger
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.repository._
+import com.normation.rudder.repository.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.reports.NodeChanges
 import com.normation.rudder.users.CurrentUser
@@ -55,25 +55,25 @@ import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.rudder.web.services.JsTableData
 import com.normation.rudder.web.services.JsTableLine
 import com.normation.utils.Control.traverse
-import com.normation.zio._
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
+import com.normation.zio.*
+import net.liftweb.common.*
+import net.liftweb.http.*
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JE.AnonFunc
-import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json.JArray
 import net.liftweb.json.JField
 import net.liftweb.json.JObject
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonParser
 import net.liftweb.json.JString
-import net.liftweb.util.Helpers._
+import net.liftweb.util.Helpers.*
 import org.joda.time.Interval
 import scala.collection.MapView
-import scala.concurrent._
+import scala.concurrent.*
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.xml._
+import scala.xml.*
 
 /**
  * An ADT to denote if a column should be display or not,
@@ -154,7 +154,7 @@ class RuleGrid(
    * Validate Change |                                       |
    * ---------------------------------------------------------
    */
-  import DisplayColumn._
+  import DisplayColumn.*
   private[this] val showComplianceAndChangesColumn = columnCompliance match {
     case Force(display) => display
     case FromConfig     => configService.rudder_ui_display_ruleComplianceColumns().toBox.openOr(true)
@@ -698,7 +698,7 @@ class RuleGrid(
     val t5 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: callback: ${t5 - t4}ms")
 
-    val tags          = JsObj(line.rule.tags.map(tag => (tag.name.value, Str(tag.value.value))).toList: _*).toJsCmd
+    val tags          = JsObj(line.rule.tags.map(tag => (tag.name.value, Str(tag.value.value))).toList*).toJsCmd
     val tagsDisplayed = JsonTagSerialisation.serializeTags(line.rule.tags)
     RuleLine(
       line.rule.name,
@@ -777,6 +777,6 @@ final case class RuleLine(
       ("tagsDisplayed", tagsDisplayed)
     )
 
-    base +* JsObj(optFields: _*)
+    base +* JsObj(optFields*)
   }
 }

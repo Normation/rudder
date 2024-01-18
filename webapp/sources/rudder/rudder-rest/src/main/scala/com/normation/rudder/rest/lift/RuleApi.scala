@@ -38,20 +38,20 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.GitVersion
-import com.normation.box._
-import com.normation.errors._
-import com.normation.eventlog._
+import com.normation.box.*
+import com.normation.errors.*
+import com.normation.eventlog.*
 import com.normation.eventlog.EventActor
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.DetailLevel
 import com.normation.rudder.apidata.FullDetails
-import com.normation.rudder.apidata.JsonQueryObjects._
-import com.normation.rudder.apidata.JsonResponseObjects._
+import com.normation.rudder.apidata.JsonQueryObjects.*
+import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.MinimalDetails
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
-import com.normation.rudder.apidata.implicits._
+import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.configuration.ConfigurationRepository
@@ -73,8 +73,7 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.WoRuleRepository
-import com.normation.rudder.rest._
-import com.normation.rudder.rest.{RuleApi => API}
+import com.normation.rudder.rest.*
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestExtractorService
@@ -82,9 +81,10 @@ import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.RestUtils.getActor
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
-import com.normation.rudder.rest.data._
-import com.normation.rudder.rest.implicits._
-import com.normation.rudder.rule.category._
+import com.normation.rudder.rest.RuleApi as API
+import com.normation.rudder.rest.data.*
+import com.normation.rudder.rest.implicits.*
+import com.normation.rudder.rule.category.*
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.policies.RuleApplicationStatusService
 import com.normation.rudder.services.workflows.ChangeRequestService
@@ -100,12 +100,12 @@ import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json._
+import net.liftweb.json.*
 import net.liftweb.json.JArray
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonDSL.*
 import scala.collection.MapView
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 class RuleApi(
     restExtractorService: RestExtractorService,
@@ -116,7 +116,7 @@ class RuleApi(
     uuidGen:              StringUuidGenerator
 ) extends LiftApiModuleProvider[API] {
 
-  import RestUtils._
+  import RestUtils.*
 
   def response(function: Box[JValue], req: Req, errorMessage: String, dataName: String)(implicit action: String): LiftResponse = {
     RestUtils.response(restExtractorService, dataName, None)(function, req, errorMessage)
@@ -567,7 +567,7 @@ class RuleApiService2(
     restDataSerializer:   RestDataSerializer
 )(implicit userService: UserService) {
 
-  import restDataSerializer.{serializeRule => serialize}
+  import restDataSerializer.serializeRule as serialize
 
   private[this] def createChangeRequestAndAnswer(
       id:     String,
@@ -1179,7 +1179,7 @@ class RuleApiService14(
     def recFind(root: RuleCategory, id: RuleCategoryId): Option[(RuleCategory, RuleCategory)] = {
       root.childs.foldLeft(Option.empty[(RuleCategory, RuleCategory)]) {
         case (None, cat)     => if (cat.id == id) Some((root, cat)) else recFind(cat, id)
-        case (x: Some[_], _) => x
+        case (x: Some[?], _) => x
       }
     }
     for {

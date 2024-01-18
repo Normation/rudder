@@ -40,7 +40,7 @@ package com.normation.rudder.domain.reports
 import com.normation.rudder.domain.reports.ComplianceLevel.PERCENT_PRECISION
 import com.normation.rudder.domain.reports.CompliancePrecision.Level0
 import com.normation.rudder.domain.reports.CompliancePrecision.Level2
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.js.JE
 import net.liftweb.http.js.JE.JsArray
 import net.liftweb.json.JsonAST.JInt
@@ -135,7 +135,7 @@ object CompliancePercent {
 
   // a correspondance array between worse order in `ReportType` and the order of fields in `ComplianceLevel`
   val WORSE_ORDER: Array[Int] = {
-    import ReportType._
+    import ReportType.*
     Array(
       Pending,
       EnforceSuccess,
@@ -447,7 +447,7 @@ object ComplianceLevel           {
   def PERCENT_PRECISION = Level2
 
   def compute(reports: Iterable[ReportType]): ComplianceLevel = {
-    import ReportType._
+    import ReportType.*
     if (reports.isEmpty) {
       ComplianceLevel(notApplicable = 1)
     } else {
@@ -559,7 +559,7 @@ object ComplianceLevel           {
 }
 
 object ComplianceLevelSerialisation {
-  import net.liftweb.json.JsonDSL._
+  import net.liftweb.json.JsonDSL.*
 
   // utility class to alway have the same names in JSON,
   // even if we are refactoring ComplianceLevel at some point
@@ -667,7 +667,7 @@ object ComplianceLevelSerialisation {
     }
 
     def toJson: JObject = {
-      import compliance._
+      import compliance.*
       toJObject(
         pending,
         success,
@@ -694,7 +694,7 @@ object ComplianceLevelSerialisation {
   // new fields.
   implicit class CompliancePercentToJs(val c: CompliancePercent) extends AnyVal {
     def toJson: JObject = {
-      import c._
+      import c.*
       toJObject(
         pending,
         success,

@@ -21,8 +21,8 @@
 package com.normation.rudder.repository.ldap
 
 import com.normation.NamedZioLogger
-import com.normation.errors._
-import com.normation.zio._
+import com.normation.errors.*
+import com.normation.zio.*
 import zio.ZIO
 import zio.stm.TReentrantLock
 

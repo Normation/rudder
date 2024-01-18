@@ -4,12 +4,12 @@ import com.normation.rudder.domain.policies.JsonTagSerialisation
 import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.web.ChooseTemplate
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.SHtml
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.CssSel
-import net.liftweb.util.Helpers._
+import net.liftweb.util.Helpers.*
 import scala.xml.NodeSeq
 
 class TagsEditForm(tags: Tags, objectId: String) extends Loggable {

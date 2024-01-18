@@ -38,10 +38,10 @@
 package com.normation.rudder.web.snippet.node
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
+import com.normation.box.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.web.components.ShowNodeDetailsFromNode
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.S
 import net.liftweb.http.StatefulSnippet
 

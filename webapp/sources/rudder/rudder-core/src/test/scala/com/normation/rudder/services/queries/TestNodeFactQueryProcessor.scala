@@ -38,24 +38,24 @@
 package com.normation.rudder.services.queries
 
 import com.normation.NamedZioLogger
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.Software
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
-import com.normation.rudder.domain.queries._
-import com.normation.rudder.facts.nodes._
+import com.normation.rudder.domain.queries.*
+import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.tenants.DefaultTenantService
-import com.normation.zio._
-import com.softwaremill.quicklens._
+import com.normation.zio.*
+import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import net.liftweb.common.Failure
-import org.junit._
+import org.junit.*
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /*
  * Test query parsing.
@@ -128,7 +128,7 @@ class TestNodeFactQueryProcessor {
   }
 
   val internalLDAPQueryProcessor: InternalLDAPQueryProcessor = {
-    import MockLdapFactStorage._
+    import MockLdapFactStorage.*
     val rudderDit    = new RudderDit(new DN("ou=Rudder, cn=rudder-configuration"))
     val ditQueryData = new DitQueryData(acceptedDIT, nodeDit, rudderDit, queryData)
     new InternalLDAPQueryProcessor(ldapRo, acceptedDIT, nodeDit, ditQueryData, ldapMapper)

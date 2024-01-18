@@ -37,12 +37,12 @@
 
 package com.normation.rudder.services.marshalling
 
-import scala.xml._
+import scala.xml.*
 
 object MarshallingUtil {
 
   def createElem(label: String, fileFormat: String)(children: NodeSeq): Elem = {
-    Elem(null, label, new UnprefixedAttribute("fileFormat", fileFormat, Null), TopScope, false, children: _*)
+    Elem(null, label, new UnprefixedAttribute("fileFormat", fileFormat, Null), TopScope, false, children*)
   }
 
   def createTrimedElem(label: String, fileFormat: String)(children: NodeSeq): Elem = {

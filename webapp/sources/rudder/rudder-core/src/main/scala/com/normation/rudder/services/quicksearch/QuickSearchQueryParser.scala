@@ -37,7 +37,7 @@
 
 package com.normation.rudder.services.quicksearch
 
-import com.normation.errors._
+import com.normation.errors.*
 
 /**
  * This file contains an implementation of the query parser
@@ -49,8 +49,8 @@ object QSRegexQueryParser {
    * In our parser, whitespace are relevant, but only in the query string,
    * not as a separator of different tokens.
    */
-  import fastparse._
-  import fastparse.SingleLineWhitespace._
+  import fastparse.*
+  import fastparse.SingleLineWhitespace.*
 
   /*
    *  parse a string like:
@@ -241,7 +241,7 @@ object QSRegexQueryParser {
    * inputs
    */
   private[this] def getObjects(names: Set[String]): PureResult[(Set[QSObject], Set[String])] = {
-    import QSMapping._
+    import QSMapping.*
     getMapping(names, objectNameMapping)
   }
 
@@ -250,7 +250,7 @@ object QSRegexQueryParser {
    * We try to be kind with users: not case sensitive, not plural sensitive
    */
   private[this] def getAttributes(names: Set[String]): PureResult[(Set[QSAttribute], Set[String])] = {
-    import QSMapping._
+    import QSMapping.*
     getMapping(names, attributeNameMapping).map {
       case (attrs, keys) =>
         (attrs.flatten, keys)

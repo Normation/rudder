@@ -38,11 +38,11 @@
 package com.normation.cfclerk.xmlparsers
 
 import com.normation.cfclerk.domain.LoadTechniqueError
-import org.junit.Assert._
+import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-import scala.xml._
+import scala.xml.*
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TestXmlUtils {

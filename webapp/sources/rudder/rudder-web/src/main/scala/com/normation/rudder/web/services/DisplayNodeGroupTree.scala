@@ -49,7 +49,7 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.web.model.JsTreeNode
 import net.liftweb.common.Loggable
 import net.liftweb.http.SHtml
-import net.liftweb.http.js._
+import net.liftweb.http.js.*
 import net.liftweb.util.Helpers
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq

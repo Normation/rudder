@@ -38,10 +38,10 @@
 package com.normation.rudder.services.nodes
 
 import com.normation.errors.IOResult
-import com.normation.inventory.domain._
-import com.normation.inventory.ldap.core.LDAPConstants._
-import com.normation.ldap.sdk._
-import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.inventory.domain.*
+import com.normation.inventory.ldap.core.LDAPConstants.*
+import com.normation.ldap.sdk.*
+import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
 import org.joda.time.DateTime

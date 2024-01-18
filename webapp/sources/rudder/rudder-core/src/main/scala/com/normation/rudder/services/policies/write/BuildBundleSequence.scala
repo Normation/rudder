@@ -37,14 +37,14 @@
 
 package com.normation.rudder.services.policies.write
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.cfclerk.domain.BundleName
 import com.normation.cfclerk.domain.RunHook
 import com.normation.cfclerk.domain.SystemVariable
 import com.normation.cfclerk.domain.TechniqueGenerationMode
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.services.SystemVariableSpecService
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
@@ -56,7 +56,7 @@ import com.normation.rudder.services.policies.NodeRunHook
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.PolicyId
 import scala.collection.immutable.ListMap
-import zio._
+import zio.*
 
 /**
  * This file groups together everything related to building the bundle sequence and
@@ -235,7 +235,7 @@ class BuildBundleSequence(
     systemVariableSpecService:  SystemVariableSpecService,
     writeAllAgentSpecificFiles: WriteAllAgentSpecificFiles
 ) {
-  import BuildBundleSequence._
+  import BuildBundleSequence.*
 
   /*
    * The main entry point of the object: for each variable related to
@@ -432,7 +432,7 @@ class BuildBundleSequence(
 //////////////////////////////////////////////////////////////////////
 
 object CfengineBundleVariables {
-  import BuildBundleSequence._
+  import BuildBundleSequence.*
 
   def getBundleVariables(
       escape:        String => String,
@@ -566,12 +566,12 @@ object CfengineBundleVariables {
    * }
    */
   def getBundleForHook(hook: NodeRunHook): (String, List[Bundle]) = {
-    import JsonRunHookSer._
+    import JsonRunHookSer.*
     val promiser = hook.kind match {
       case RunHook.Kind.Pre  => "pre-run-hook"
       case RunHook.Kind.Post => "post-run-hook"
     }
-    import BundleParam._
+    import BundleParam.*
     (promiser, Bundle(None, BundleName(hook.bundle), List(SimpleQuote(hook.jsonParam, "hook_param"))) :: Nil)
   }
 
@@ -617,10 +617,10 @@ final case class JsonRunHook(
 
 object JsonRunHookSer {
   implicit class ToJson(private val h: NodeRunHook) extends AnyVal {
-    import net.liftweb.json._
+    import net.liftweb.json.*
     def jsonParam: String = {
       val jh = JsonRunHook(
-        ListMap(h.parameters.map(p => (p.name, p.value)): _*),
+        ListMap(h.parameters.map(p => (p.name, p.value))*),
         h.reports.map(r =>
           JsonRunHookReport(r.id.getReportId, r.mode.name, r.technique, r.report.name, r.report.value.getOrElse("None"))
         )

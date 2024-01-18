@@ -36,18 +36,18 @@
  */
 package com.normation.rudder.services.servers
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.RemovedInventory
 import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
-import com.normation.ldap.sdk._
-import com.normation.ldap.sdk.BuildFilter._
+import com.normation.ldap.sdk.*
+import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.services.nodes.NodeInfoService.A_MOD_TIMESTAMP
 import org.joda.time.DateTime
-import zio.{System => _, _}
+import zio.{System as _, *}
 
 trait PurgeDeletedNodes {
 

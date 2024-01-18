@@ -37,10 +37,10 @@
 
 package com.normation.rudder.domain.properties
 
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.junit.runner.RunWith
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 /*
  * Our internal representation of node properties must correctly serialize/unserialise to JSON

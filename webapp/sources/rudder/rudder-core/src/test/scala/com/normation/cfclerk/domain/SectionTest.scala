@@ -37,14 +37,14 @@
 
 package com.normation.cfclerk.domain
 
-import com.normation.cfclerk.xmlparsers._
-import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
+import com.normation.cfclerk.xmlparsers.*
+import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.*
 import java.io.FileNotFoundException
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import org.xml.sax.SAXParseException
-import scala.xml._
+import scala.xml.*
 
 @RunWith(classOf[JUnitRunner])
 class SectionTest extends Specification {

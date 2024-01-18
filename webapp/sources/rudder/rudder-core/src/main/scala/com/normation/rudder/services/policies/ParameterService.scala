@@ -37,16 +37,16 @@
 
 package com.normation.rudder.services.policies
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.rudder.domain.properties._
+import com.normation.rudder.domain.properties.*
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
-import net.liftweb.common._
+import net.liftweb.common.*
 
 trait RoParameterService {
 

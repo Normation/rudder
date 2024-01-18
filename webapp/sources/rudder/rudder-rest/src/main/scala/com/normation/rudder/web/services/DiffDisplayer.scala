@@ -37,7 +37,7 @@
 
 package com.normation.rudder.web.services
 
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId

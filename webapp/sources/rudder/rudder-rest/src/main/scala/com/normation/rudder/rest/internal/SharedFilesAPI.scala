@@ -37,14 +37,14 @@
 
 package com.normation.rudder.rest.internal
 
-import better.files._
-import com.normation.box._
-import com.normation.errors._
+import better.files.*
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.internal.SharedFilesAPI.sanitizePath
-import com.normation.zio._
+import com.normation.zio.*
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.NoSuchFileException
@@ -67,9 +67,9 @@ import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonAST.JValue
 import org.joda.time.DateTime
 import org.joda.time.Instant
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import zio.ZIO
-import zio.syntax._
+import zio.syntax.*
 
 object SharedFilesAPI {
   def sanitizePath(path: String, baseFolder: File): IOResult[File] = {
@@ -105,9 +105,9 @@ class SharedFilesAPI(
   }
 
   def serialize(file: File):             IOResult[JValue]       = {
-    import net.liftweb.json.JsonDSL._
+    import net.liftweb.json.JsonDSL.*
     IOResult.attempt(s"Error when serializing file ${file.name}") {
-      val date = new DateTime(Instant.ofEpochMilli(Files.getLastModifiedTime(file.path, File.LinkOptions.noFollow: _*).toMillis))
+      val date = new DateTime(Instant.ofEpochMilli(Files.getLastModifiedTime(file.path, File.LinkOptions.noFollow*).toMillis))
       (("name"    -> file.name)
       ~ ("size"   -> (try { file.size }
       catch { case _: NoSuchFileException => 0L }))
@@ -117,7 +117,7 @@ class SharedFilesAPI(
     }
   }
   def errorResponse(message: String):    LiftResponse           = {
-    import net.liftweb.json.JsonDSL._
+    import net.liftweb.json.JsonDSL.*
     val content = {
       (("success" -> false)
       ~ ("error"  -> message))
@@ -125,7 +125,7 @@ class SharedFilesAPI(
     JsonResponse(content, Nil, Nil, 500)
   }
   val basicSuccessResponse:              LiftResponse           = {
-    import net.liftweb.json.JsonDSL._
+    import net.liftweb.json.JsonDSL.*
     val content = {
       (("success" -> true)
       ~ ("error"  -> JNull))
@@ -174,7 +174,7 @@ class SharedFilesAPI(
     IOResult.attemptZIO {
       if (file.exists) {
         if (file.isRegularFile) {
-          import net.liftweb.json.JsonDSL._
+          import net.liftweb.json.JsonDSL.*
           val result = JObject(List(JField("result", file.contentAsString(StandardCharsets.UTF_8))))
           JsonResponse(result, List(), List(), 200).succeed
         } else {

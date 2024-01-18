@@ -37,7 +37,7 @@
 
 package com.normation.rudder.web.services
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.PredefinedValuesVariableSpec
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.Variable
@@ -45,7 +45,7 @@ import com.normation.cfclerk.domain.VariableSpec
 import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.web.model.DirectiveEditor
-import net.liftweb.common._
+import net.liftweb.common.*
 
 trait DirectiveEditorService {
 

@@ -38,18 +38,18 @@
 package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.Technique
 import com.normation.errors
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.services.policies._
+import com.normation.rudder.services.policies.*
 import com.normation.rudder.web.model.JsTreeNode
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
-import scala.xml._
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
+import scala.xml.*
 
 /**
  * A component to display a tree based on a

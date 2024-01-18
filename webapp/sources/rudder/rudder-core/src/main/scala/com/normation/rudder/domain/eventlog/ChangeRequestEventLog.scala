@@ -1,6 +1,6 @@
 package com.normation.rudder.domain.eventlog
 
-import com.normation.eventlog._
+import com.normation.eventlog.*
 import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.domain.workflows.ChangeRequest
 

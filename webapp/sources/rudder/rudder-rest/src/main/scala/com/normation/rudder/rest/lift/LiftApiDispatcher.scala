@@ -37,13 +37,13 @@
 
 package com.normation.rudder.rest.lift
 
-import cats.data._
+import cats.data.*
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.domain.logger.ApiLogger
-import com.normation.rudder.rest._
-import net.liftweb.common._
-import net.liftweb.http._
+import com.normation.rudder.rest.*
+import net.liftweb.common.*
+import net.liftweb.http.*
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.JString
 import scala.util.control.NonFatal
@@ -209,7 +209,7 @@ class LiftHandler(
 
   def getRequestInfo(req: Req, supportedVersions: List[ApiVersion]): Either[ApiError, RequestInfo] = {
     def getAction() = {
-      import HttpAction._
+      import HttpAction.*
       req.requestType match {
         case GetRequest    => Right(GET)
         case PostRequest   => Right(POST)

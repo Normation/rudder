@@ -36,9 +36,9 @@
  */
 package com.normation.rudder.services.policies.nodeconfig
 
-import better.files._
+import better.files.*
 import com.normation.GitVersion
-import com.normation.cfclerk.domain._
+import com.normation.cfclerk.domain.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
@@ -51,9 +51,9 @@ import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import org.specs2.specification.AfterAll
 
 @RunWith(classOf[JUnitRunner])

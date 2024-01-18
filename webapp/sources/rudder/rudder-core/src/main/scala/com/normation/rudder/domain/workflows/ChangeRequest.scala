@@ -41,8 +41,8 @@ import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.nodes.*
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.ChangeRequestGlobalParameterDiff
 import com.normation.rudder.domain.properties.GlobalParameter
 import net.liftweb.common.Box
@@ -142,10 +142,10 @@ final case class ConfigurationChangeRequest(
 
     // To get the owner of the change request we need to get the actor of oldest change associated to change request
     // We have to regroup all changes in one sequence then find the oldest change in them
-    val changes: Seq[Changes[_, _, _ <: ChangeItem[_]]] =
+    val changes: Seq[Changes[?, ?, ? <: ChangeItem[?]]] =
       (directives.values ++ rules.values ++ nodeGroups.values ++ globalParams.values).toSeq
-    val change:  Seq[Change[_, _, _ <: ChangeItem[_]]]  = changes.map(_.changes)
-    val firsts:  Seq[ChangeItem[_]]                     = change.map(_.firstChange)
+    val change:  Seq[Change[?, ?, ? <: ChangeItem[?]]]  = changes.map(_.changes)
+    val firsts:  Seq[ChangeItem[?]]                     = change.map(_.firstChange)
     firsts.sortWith((a, b) => a.creationDate isAfter b.creationDate).headOption.map(_.actor.name).getOrElse("No One")
   }
 }

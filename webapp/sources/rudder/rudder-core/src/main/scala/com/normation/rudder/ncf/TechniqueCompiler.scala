@@ -38,9 +38,9 @@
 package com.normation.rudder.ncf
 
 import better.files.File
-import cats.implicits._
-import com.normation.box._
-import com.normation.errors._
+import cats.implicits.*
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
 import com.normation.inventory.domain.AgentType
@@ -67,12 +67,12 @@ import java.nio.file.StandardCopyOption
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
-import scala.xml.{Node => XmlNode}
+import scala.xml.Node as XmlNode
 import scala.xml.NodeSeq
-import zio._
-import zio.json._
-import zio.json.yaml._
-import zio.syntax._
+import zio.*
+import zio.json.*
+import zio.json.yaml.*
+import zio.syntax.*
 
 /*
  * This file deals with the technique compilation by rudderc and the fallback logic (services and data types
@@ -95,7 +95,7 @@ trait TechniqueCompiler {
   // compile based on absolute path of techniqueId/1.0 directory. If the technique is not yaml, it's an error.
   // If you have a json technique, you need to migrate it first.
   def compileAtPath(techniqueBaseDirectory: File): IOResult[TechniqueCompilationOutput] = {
-    import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer._
+    import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer.*
     val yamlFile = techniqueBaseDirectory / TechniqueFiles.yaml
     for {
       yaml <- IOResult.attempt(s"Error when reading technique metadata '${yamlFile}'") {
@@ -474,7 +474,7 @@ class TechniqueCompilerWithFallback(
    * read the compilation.yml file to see if user asked for webapp
    */
   def readCompilationConfigFile(technique: EditorTechnique): IOResult[TechniqueCompilationConfig] = {
-    import TechniqueCompilationIO._
+    import TechniqueCompilationIO.*
 
     for {
       content <- IOResult.attempt(s"Error when writing compilation file for technique '${getTechniqueRelativePath(technique)}'") {
@@ -496,7 +496,7 @@ class TechniqueCompilerWithFallback(
    * If compilation had error, or if we fallbacked, we need to write the compilation file.
    */
   def writeCompilationOutputFile(technique: EditorTechnique, comp: TechniqueCompilationOutput): IOResult[Unit] = {
-    import TechniqueCompilationIO._
+    import TechniqueCompilationIO.*
     for {
       value <- comp.toYaml().toIO
       _     <- IOResult.attempt(getCompilationOutputFile(technique).write(value))
@@ -924,8 +924,8 @@ class ClassicTechniqueWriter(
     val methodCalls   = bundleAndMethodCallsList.map(_._2).mkString("\n")
 
     val content = {
-      import net.liftweb.json._
-      import net.liftweb.json.JsonDSL._
+      import net.liftweb.json.*
+      import net.liftweb.json.JsonDSL.*
 
       s"""# @name ${technique.name}
          |# @description ${technique.description.replaceAll("\\R", "\n# ")}

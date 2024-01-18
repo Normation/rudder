@@ -36,14 +36,14 @@
  */
 package com.normation.rudder.repository.ldap
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.ldap.sdk._
-import com.normation.ldap.sdk.BuildFilter._
-import com.normation.ldap.sdk.LDAPIOResult._
+import com.normation.ldap.sdk.*
+import com.normation.ldap.sdk.BuildFilter.*
+import com.normation.ldap.sdk.LDAPIOResult.*
 import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.archives.ParameterArchiveId
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.properties.AddGlobalParameterDiff
@@ -52,14 +52,14 @@ import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.properties.PropertyProvider
-import com.normation.rudder.repository._
+import com.normation.rudder.repository.*
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.services.user.PersonIdentService
 import com.unboundid.ldif.LDIFChangeRecord
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 class RoLDAPParameterRepository(
     val rudderDit:  RudderDit,
@@ -120,7 +120,7 @@ class WoLDAPParameterRepository(
 ) extends WoParameterRepository {
   repo =>
 
-  import roLDAPParameterRepository._
+  import roLDAPParameterRepository.*
 
   def saveParameter(
       parameter: GlobalParameter,

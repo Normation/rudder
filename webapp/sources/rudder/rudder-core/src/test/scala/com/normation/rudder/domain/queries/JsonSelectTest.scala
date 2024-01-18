@@ -38,10 +38,10 @@
 package com.normation.rudder.domain.queries
 
 import com.normation.BoxSpecMatcher
-import net.liftweb.common._
-import net.liftweb.json._
+import net.liftweb.common.*
+import net.liftweb.json.*
 import org.junit.runner.RunWith
-import org.specs2.mutable._
+import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])

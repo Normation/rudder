@@ -37,12 +37,12 @@
 
 package com.normation.cfclerk.xmlparsers
 
-import com.normation.cfclerk.domain._
+import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.domain.HashAlgoConstraint.DerivedPasswordType
-import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
+import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.*
 import com.normation.utils.Control
-import net.liftweb.common._
-import scala.xml._
+import net.liftweb.common.*
+import scala.xml.*
 
 object Utils {
 
@@ -96,7 +96,7 @@ object Utils {
   }
 }
 
-import Utils._
+import Utils.*
 
 final case class EmptyReportKeysValue(sectionName: String) extends Exception(
       s"In '${sectionName}', the element ${REPORT_KEYS} must have a non empty list of provided values: <${REPORT_KEYS}><${REPORT_KEYS_VALUE}>val foo</${REPORT_KEYS_VALUE}><${REPORT_KEYS_VALUE}>..."

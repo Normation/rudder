@@ -39,24 +39,24 @@ package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.GitVersion
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.users.CurrentUser
-import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup._
+import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup.*
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.SHtml
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.FieldError
-import net.liftweb.util.Helpers._
-import scala.xml._
+import net.liftweb.util.Helpers.*
+import scala.xml.*
 
 object CreateCloneDirectivePopup {
   val htmlId_popupContainer = "createCloneDirectiveContainer"
@@ -125,7 +125,7 @@ class CreateCloneDirectivePopup(
   ///////////// fields for category settings ///////////////////
 
   private[this] val reasons = {
-    import com.normation.rudder.web.services.ReasonBehavior._
+    import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
       case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))

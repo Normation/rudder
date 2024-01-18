@@ -40,11 +40,11 @@ package com.normation.rudder.score
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
-import doobie.implicits._
+import doobie.implicits.*
 import doobie.implicits.toSqlInterpolator
 import doobie.postgres.implicits.pgEnumString
 import doobie.util.invariant.InvalidEnum
-import zio.interop.catz._
+import zio.interop.catz.*
 
 trait GlobalScoreRepository {
   def getAll(): IOResult[Map[NodeId, GlobalScore]]
@@ -55,9 +55,9 @@ trait GlobalScoreRepository {
 
 object GlobalScoreRepositoryImpl {
 
-  import ScoreSerializer._
-  import com.normation.rudder.db.json.implicits._
-  import doobie._
+  import ScoreSerializer.*
+  import com.normation.rudder.db.json.implicits.*
+  import doobie.*
 
   implicit val scoreMeta: Meta[ScoreValue] = {
     def getValue(value: String) = {
@@ -93,8 +93,8 @@ object GlobalScoreRepositoryImpl {
 }
 
 class GlobalScoreRepositoryImpl(doobie: Doobie) extends GlobalScoreRepository {
-  import GlobalScoreRepositoryImpl._
-  import doobie._
+  import GlobalScoreRepositoryImpl.*
+  import doobie.*
 
   def save(nodeId: NodeId, globalScore: GlobalScore): IOResult[(NodeId, GlobalScore)] = {
     val query = {

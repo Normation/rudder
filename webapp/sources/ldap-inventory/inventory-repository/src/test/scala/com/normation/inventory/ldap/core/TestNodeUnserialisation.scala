@@ -37,14 +37,14 @@
 
 package com.normation.inventory.ldap.core
 
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 import com.normation.ldap.sdk.LDAPEntry
 import com.normation.zio.ZioRuntime
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Entry
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 /**
  * Test node unserialisation frome entries, in particular
@@ -244,7 +244,7 @@ class TestNodeUnserialisation extends Specification {
   }
 
   def node(ldif: String): NodeInventory = {
-    val nodeEntry = new LDAPEntry(new Entry(ldif.split("\n").toSeq: _*))
+    val nodeEntry = new LDAPEntry(new Entry(ldif.split("\n").toSeq*))
     ZioRuntime.unsafeRun(mapper.nodeFromEntry(nodeEntry).either).getOrElse(throw new Exception("Error when getting node"))
   }
 

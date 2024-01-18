@@ -23,7 +23,7 @@ package com.normation.ldap.ldif
 import com.normation.ldap.sdk.LDAPTree
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Entry
-import com.unboundid.ldif._
+import com.unboundid.ldif.*
 import java.io.File
 import java.util.regex.Pattern
 import org.slf4j.Logger

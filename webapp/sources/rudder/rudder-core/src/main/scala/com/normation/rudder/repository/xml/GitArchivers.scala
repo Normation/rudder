@@ -44,7 +44,7 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.xmlparsers.TechniqueParser
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType
@@ -56,7 +56,7 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitArchiverFullCommitUtils
@@ -66,18 +66,18 @@ import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
 import com.normation.rudder.ncf.TechniqueCompiler
-import com.normation.rudder.repository._
-import com.normation.rudder.services.marshalling._
+import com.normation.rudder.repository.*
+import com.normation.rudder.services.marshalling.*
 import com.normation.rudder.services.user.PersonIdentService
 import java.io.File
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
 import scala.collection.mutable.Buffer
 import scala.xml.Source
 import scala.xml.XML
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 class GitRuleArchiverImpl(
     override val gitRepo: GitRepositoryProvider,

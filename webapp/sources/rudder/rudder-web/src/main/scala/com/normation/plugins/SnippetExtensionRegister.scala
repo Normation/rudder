@@ -60,7 +60,7 @@ trait SnippetExtensionRegister {
    */
   def getAfterRenderExtension[T](plugAt: SnippetExtensionKey): Seq[SnippetExtensionPoint[T]]
 
-  def register[T <: ExtendableSnippet[_]](extension: SnippetExtensionPoint[T]): Unit
+  def register[T <: ExtendableSnippet[?]](extension: SnippetExtensionPoint[T]): Unit
 
 }
 
@@ -73,16 +73,16 @@ trait SnippetExtensionRegister {
  */
 class SnippetExtensionRegisterImpl extends SnippetExtensionRegister {
 
-  private[this] val extendsBefore = scala.collection.mutable.Map.empty[SnippetExtensionKey, Seq[SnippetExtensionPoint[_]]]
+  private[this] val extendsBefore = scala.collection.mutable.Map.empty[SnippetExtensionKey, Seq[SnippetExtensionPoint[?]]]
 
-  private[this] val extendsAfter = scala.collection.mutable.Map.empty[SnippetExtensionKey, Seq[SnippetExtensionPoint[_]]]
+  private[this] val extendsAfter = scala.collection.mutable.Map.empty[SnippetExtensionKey, Seq[SnippetExtensionPoint[?]]]
 
   /**
    * register the given extension. The extension is added
    * as the last extension to be applied (and so at
    * the head of the sequence of extensions)
    */
-  def register[T <: ExtendableSnippet[_]](extension: SnippetExtensionPoint[T]): Unit = {
+  def register[T <: ExtendableSnippet[?]](extension: SnippetExtensionPoint[T]): Unit = {
     ApplicationLogger.debug("Registering the extension: " + extension.extendsAt)
     extendsAfter.get(extension.extendsAt) match {
       case None       => extendsAfter += (extension.extendsAt -> Seq(extension))
@@ -95,7 +95,7 @@ class SnippetExtensionRegisterImpl extends SnippetExtensionRegister {
    * as the last extension to be applied (and so at
    * the head of the sequence of extensions)
    */
-  def registerBefore(extension: SnippetExtensionPoint[ExtendableSnippet[_]]): Unit = {
+  def registerBefore(extension: SnippetExtensionPoint[ExtendableSnippet[?]]): Unit = {
     ApplicationLogger.debug("Registering the extension: " + extension.extendsAt)
     extendsBefore.get(extension.extendsAt) match {
       case None       => extendsBefore += (extension.extendsAt -> Seq(extension))

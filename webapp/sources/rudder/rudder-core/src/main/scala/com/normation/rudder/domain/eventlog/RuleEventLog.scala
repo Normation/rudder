@@ -37,7 +37,7 @@
 
 package com.normation.rudder.domain.eventlog
 
-import com.normation.eventlog._
+import com.normation.eventlog.*
 sealed trait RuleEventLog extends EventLog { final override val eventLogCategory: EventLogCategory = RuleLogCategory }
 
 final case class AddRule(

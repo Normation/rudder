@@ -38,9 +38,9 @@
 package com.normation.rudder.migration
 
 import com.normation.rudder.db.DBCommon
-import com.normation.rudder.db.Doobie._
-import doobie.implicits._
-import doobie.implicits.javasql._
+import com.normation.rudder.db.Doobie.*
+import doobie.implicits.*
+import doobie.implicits.javasql.*
 import java.sql.Connection
 import java.sql.Timestamp
 import net.liftweb.common.Failure
@@ -49,7 +49,7 @@ import org.specs2.matcher.XmlMatchers
 import org.specs2.runner.JUnitRunner
 import scala.annotation.nowarn
 import scala.xml.Elem
-import zio.interop.catz._
+import zio.interop.catz.*
 
 final case class MigEx102(msg: String) extends Exception(msg)
 

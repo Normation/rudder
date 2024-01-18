@@ -51,7 +51,7 @@ import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.repository.xml.XmlArchiverUtils
-import com.normation.zio._
+import com.normation.zio.*
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
@@ -64,8 +64,8 @@ import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import scala.annotation.nowarn
 import scala.util.Random
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  * Details of tests executed in each instances of

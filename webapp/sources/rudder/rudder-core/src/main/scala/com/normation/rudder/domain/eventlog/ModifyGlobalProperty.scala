@@ -1,6 +1,6 @@
 package com.normation.rudder.domain.eventlog
 
-import com.normation.eventlog._
+import com.normation.eventlog.*
 
 final case class ModifyGlobalProperty(
     eventType:    ModifyGlobalPropertyEventType,

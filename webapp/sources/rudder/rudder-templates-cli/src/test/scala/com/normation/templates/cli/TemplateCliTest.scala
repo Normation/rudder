@@ -37,7 +37,7 @@
 
 package com.normation.templates.cli
 
-import com.normation.zio._
+import com.normation.zio.*
 import java.io.File
 import java.io.FileInputStream
 import java.io.PrintStream

@@ -41,7 +41,7 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import net.liftweb.actor.LAPinger
 import net.liftweb.actor.SpecializedLiftActor
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.concurrent.duration.Duration

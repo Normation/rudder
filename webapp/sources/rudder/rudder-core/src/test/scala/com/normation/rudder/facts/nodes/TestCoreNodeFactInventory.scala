@@ -37,11 +37,11 @@
 
 package com.normation.rudder.facts.nodes
 
-import better.files._
-import com.normation.errors._
+import better.files.*
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.ReadOnlySoftwareDAOImpl
 import com.normation.rudder.domain.Constants
@@ -49,21 +49,21 @@ import com.normation.rudder.domain.nodes.MachineInfo
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
-import com.normation.zio._
+import com.normation.zio.*
 import com.normation.zio.ZioRuntime
-import com.softwaremill.quicklens._
+import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.SearchScope
 import java.security.Security
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTime
-import org.junit.runner._
+import org.junit.runner.*
 import org.specs2.matcher.MatchResult
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import org.specs2.specification.BeforeAfterAll
 import scala.annotation.nowarn
-import zio._
+import zio.*
 
 /**
  *
@@ -292,7 +292,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       ) and
       (node.software.size === 1) and
       (node.software.head === SoftwareFact("Software 0", new Version("1.0.0"))) and
-      (node7UndefinedElements(node) must contain((x: Chunk[_]) => x must beEmpty).foreach)
+      (node7UndefinedElements(node) must contain((x: Chunk[?]) => x must beEmpty).foreach)
 
     }
 
@@ -318,7 +318,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       (node.fileSystems.size === 0) and
       (node.software.size === 1) and
       (node.software.head === SoftwareFact("Software 0", new Version("1.0.0"))) and
-      (node7UndefinedElements(node) must contain((x: Chunk[_]) => x must beEmpty).foreach)
+      (node7UndefinedElements(node) must contain((x: Chunk[?]) => x must beEmpty).foreach)
     }
 
     // for now, we can't selectively choose what sub element of inventory we retrieve. It could be done if needed
@@ -340,7 +340,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       ) and
       (node.fileSystems.size === 0) and
       (node.software.size === 0) and
-      (node7UndefinedElements(node) must contain((x: Chunk[_]) => x must beEmpty).foreach)
+      (node7UndefinedElements(node) must contain((x: Chunk[?]) => x must beEmpty).foreach)
     }
   }
 

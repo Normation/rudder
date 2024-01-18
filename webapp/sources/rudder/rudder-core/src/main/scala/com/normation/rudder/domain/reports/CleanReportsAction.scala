@@ -1,10 +1,10 @@
 package com.normation.rudder.domain.reports
 
-import com.normation.rudder.batch._
+import com.normation.rudder.batch.*
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.services.system.DatabaseManager
 import com.normation.rudder.services.system.DeleteCommand
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.joda.time.DateTime
 
 /*
