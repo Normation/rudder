@@ -133,7 +133,7 @@ class RuleApi(
     RestUtils.actionResponse2(restExtractorService, dataName, uuidGen, id)(function, req, errorMessage)(action, actor)
   }
 
-  def schemas = API
+  def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => {
@@ -155,7 +155,7 @@ class RuleApi(
   }
 
   object ListRules extends LiftApiModule0 {
-    val schema        = API.ListRules
+    val schema: API.ListRules.type = API.ListRules
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       serviceV2.listRules(req)
@@ -163,7 +163,7 @@ class RuleApi(
   }
 
   object CreateRule extends LiftApiModule0 {
-    val schema        = API.CreateRule
+    val schema: API.CreateRule.type = API.CreateRule
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       var action = "createRule"
@@ -185,7 +185,7 @@ class RuleApi(
   }
 
   object RuleDetails extends LiftApiModuleString {
-    val schema        = API.RuleDetails
+    val schema: API.RuleDetails.type = API.RuleDetails
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -200,7 +200,7 @@ class RuleApi(
   }
 
   object DeleteRule extends LiftApiModuleString {
-    val schema        = API.DeleteRule
+    val schema: API.DeleteRule.type = API.DeleteRule
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -215,7 +215,7 @@ class RuleApi(
   }
 
   object UpdateRule extends LiftApiModuleString {
-    val schema        = API.UpdateRule
+    val schema: API.UpdateRule.type = API.UpdateRule
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -241,7 +241,7 @@ class RuleApi(
   }
 
   object GetRuleTree extends LiftApiModule0 {
-    val schema        = API.GetRuleTree
+    val schema: API.GetRuleTree.type = API.GetRuleTree
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       response(
@@ -254,7 +254,7 @@ class RuleApi(
   }
 
   object GetRuleCategoryDetails extends LiftApiModuleString {
-    val schema        = API.GetRuleCategoryDetails
+    val schema: API.GetRuleCategoryDetails.type = API.GetRuleCategoryDetails
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -274,7 +274,7 @@ class RuleApi(
   }
 
   object DeleteRuleCategory extends LiftApiModuleString {
-    val schema        = API.DeleteRuleCategory
+    val schema: API.DeleteRuleCategory.type = API.DeleteRuleCategory
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -296,7 +296,7 @@ class RuleApi(
   }
 
   object UpdateRuleCategory extends LiftApiModuleString {
-    val schema        = API.UpdateRuleCategory
+    val schema: API.UpdateRuleCategory.type = API.UpdateRuleCategory
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -334,7 +334,7 @@ class RuleApi(
   }
 
   object CreateRuleCategory extends LiftApiModule0 {
-    val schema        = API.CreateRuleCategory
+    val schema: API.CreateRuleCategory.type = API.CreateRuleCategory
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val restData = if (req.json_?) {
@@ -363,15 +363,15 @@ class RuleApi(
   //////////////////// new API using only zio_json ////////////////////
 
   object ListRulesV14 extends LiftApiModule0 {
-    val schema = API.ListRules
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.ListRules.type = API.ListRules
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse       = {
       implicit val qc: QueryContext = authzToken.qc
       serviceV14.listRules().toLiftResponseList(params, schema)
     }
   }
 
   object RuleDetailsV14 extends LiftApiModuleString {
-    val schema = API.RuleDetails
+    val schema: API.RuleDetails.type = API.RuleDetails
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -389,7 +389,7 @@ class RuleApi(
   }
 
   object CreateRuleV14 extends LiftApiModule0 {
-    val schema = API.CreateRule
+    val schema: API.CreateRule.type = API.CreateRule
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
@@ -410,7 +410,7 @@ class RuleApi(
   }
 
   object UpdateRuleV14 extends LiftApiModuleString {
-    val schema = API.UpdateRule
+    val schema: API.UpdateRule.type = API.UpdateRule
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -431,7 +431,7 @@ class RuleApi(
   }
 
   object DeleteRuleV14 extends LiftApiModuleString {
-    val schema = API.DeleteRule
+    val schema: API.DeleteRule.type = API.DeleteRule
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -450,7 +450,7 @@ class RuleApi(
   }
 
   object GetRuleTreeV14 extends LiftApiModule0 {
-    val schema = API.GetRuleTree
+    val schema: API.GetRuleTree.type = API.GetRuleTree
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
@@ -459,7 +459,7 @@ class RuleApi(
   }
 
   object GetRuleCategoryDetailsV14 extends LiftApiModuleString {
-    val schema = API.GetRuleCategoryDetails
+    val schema: API.GetRuleCategoryDetails.type = API.GetRuleCategoryDetails
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -473,8 +473,8 @@ class RuleApi(
   }
 
   object CreateRuleCategoryV14 extends LiftApiModule0 {
-    val schema = API.CreateRuleCategory
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.CreateRuleCategory.type = API.CreateRuleCategory
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                = {
       (for {
         cat <- zioJsonExtractor.extractRuleCategory(req).toIO
         res <- serviceV14.createCategory(cat, () => uuidGen.newUuid, params, authzToken.qc.actor)
@@ -485,7 +485,7 @@ class RuleApi(
   }
 
   object UpdateRuleCategoryV14 extends LiftApiModuleString {
-    val schema = API.UpdateRuleCategory
+    val schema: API.UpdateRuleCategory.type = API.UpdateRuleCategory
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -504,7 +504,7 @@ class RuleApi(
   }
 
   object DeleteRuleCategoryV14 extends LiftApiModuleString {
-    val schema = API.DeleteRuleCategory
+    val schema: API.DeleteRuleCategory.type = API.DeleteRuleCategory
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -520,7 +520,7 @@ class RuleApi(
   }
 
   object LoadRuleRevisionForGeneration extends LiftApiModuleString {
-    val schema = API.LoadRuleRevisionForGeneration
+    val schema: API.LoadRuleRevisionForGeneration.type = API.LoadRuleRevisionForGeneration
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -539,7 +539,7 @@ class RuleApi(
   }
 
   object UnloadRuleRevisionForGeneration extends LiftApiModuleString {
-    val schema = API.UnloadRuleRevisionForGeneration
+    val schema: API.UnloadRuleRevisionForGeneration.type = API.UnloadRuleRevisionForGeneration
     def process(
         version:    ApiVersion,
         path:       ApiPath,

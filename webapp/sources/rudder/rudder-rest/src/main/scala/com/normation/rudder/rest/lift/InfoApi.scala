@@ -56,7 +56,7 @@ class InfoApi(
 ) extends LiftApiModuleProvider[API] {
   api =>
 
-  def schemas = API
+  def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints
@@ -136,7 +136,7 @@ class InfoApi(
   }
 
   object ApiGeneralInformations extends LiftApiModule0 {
-    val schema        = API.ApiGeneralInformations
+    val schema: API.ApiGeneralInformations.type = API.ApiGeneralInformations
     val restExtractor = api.restExtractor
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val json = list(None)

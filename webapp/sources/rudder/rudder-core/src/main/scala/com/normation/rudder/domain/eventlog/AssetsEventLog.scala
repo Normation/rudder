@@ -56,7 +56,7 @@ final case class InventoryLogDetails(
     actorIp:          String
 )
 
-sealed trait AssetEventLog extends EventLog { final override val eventLogCategory = AssetLogCategory }
+sealed trait AssetEventLog extends EventLog { final override val eventLogCategory: EventLogCategory = AssetLogCategory }
 
 sealed trait InventoryEventLog extends AssetEventLog
 
@@ -90,7 +90,7 @@ final case class AcceptNodeEventLog(
 }
 
 object AcceptNodeEventLog extends EventLogFilter {
-  override val eventType = AcceptNodeEventType
+  override val eventType: EventLogType = AcceptNodeEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): AcceptNodeEventLog = AcceptNodeEventLog(x._2)
 
@@ -121,7 +121,7 @@ final case class RefuseNodeEventLog(
 
 object RefuseNodeEventLog extends EventLogFilter {
 
-  override val eventType = RefuseNodeEventType
+  override val eventType: EventLogType = RefuseNodeEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): RefuseNodeEventLog = RefuseNodeEventLog(x._2)
 
@@ -158,7 +158,7 @@ final case class DeleteNodeEventLog(
 }
 
 object DeleteNodeEventLog extends EventLogFilter {
-  override val eventType = DeleteNodeEventType
+  override val eventType: EventLogType = DeleteNodeEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): DeleteNodeEventLog = DeleteNodeEventLog(x._2)
 

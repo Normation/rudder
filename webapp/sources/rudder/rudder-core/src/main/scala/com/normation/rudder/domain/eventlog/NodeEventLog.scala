@@ -38,7 +38,7 @@
 package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog._
-sealed trait NodeEventLog extends EventLog { final override val eventLogCategory = NodeLogCategory }
+sealed trait NodeEventLog extends EventLog { final override val eventLogCategory: EventLogCategory = NodeLogCategory }
 
 final case class ModifyNode(
     override val eventDetails: EventLogDetails
@@ -47,7 +47,7 @@ final case class ModifyNode(
 }
 
 object ModifyNode extends EventLogFilter {
-  override val eventType = ModifyNodeEventType
+  override val eventType: EventLogType = ModifyNodeEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ModifyNode = ModifyNode(x._2)
 }
@@ -59,8 +59,8 @@ final case class PromoteNode(
 }
 
 object PromoteNode extends EventLogFilter {
-  override val eventType = PromoteNodeToRelayEventType
-  override def apply(x: (EventLogType, EventLogDetails)): PromoteNode = PromoteNode(x._2)
+  override val eventType:                                 EventLogType = PromoteNodeToRelayEventType
+  override def apply(x: (EventLogType, EventLogDetails)): PromoteNode  = PromoteNode(x._2)
 }
 
 final case class DemoteRelay(
@@ -70,8 +70,8 @@ final case class DemoteRelay(
 }
 
 object DemoteRelay extends EventLogFilter {
-  override val eventType = DemoteRelayToNodeEventType
-  override def apply(x: (EventLogType, EventLogDetails)): DemoteRelay = DemoteRelay(x._2)
+  override val eventType:                                 EventLogType = DemoteRelayToNodeEventType
+  override def apply(x: (EventLogType, EventLogDetails)): DemoteRelay  = DemoteRelay(x._2)
 }
 
 object NodeEventLogsFilter {

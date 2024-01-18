@@ -38,17 +38,17 @@
 package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog._
-sealed trait NodeGroupEventLog extends EventLog { final override val eventLogCategory = NodeGroupLogCategory }
+sealed trait NodeGroupEventLog extends EventLog { final override val eventLogCategory: EventLogCategory = NodeGroupLogCategory }
 
 final case class AddNodeGroup(
     override val eventDetails: EventLogDetails
 ) extends NodeGroupEventLog {
-  override val cause     = None
+  override val cause: Option[Int] = None
   override val eventType = AddNodeGroup.eventType
 }
 
 object AddNodeGroup extends EventLogFilter {
-  override val eventType = AddNodeGroupEventType
+  override val eventType: EventLogType = AddNodeGroupEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): AddNodeGroup = AddNodeGroup(x._2)
 }
@@ -56,12 +56,12 @@ object AddNodeGroup extends EventLogFilter {
 final case class DeleteNodeGroup(
     override val eventDetails: EventLogDetails
 ) extends NodeGroupEventLog {
-  override val cause     = None
+  override val cause: Option[Int] = None
   override val eventType = DeleteNodeGroup.eventType
 }
 
 object DeleteNodeGroup extends EventLogFilter {
-  override val eventType = DeleteNodeGroupEventType
+  override val eventType: EventLogType = DeleteNodeGroupEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): DeleteNodeGroup = DeleteNodeGroup(x._2)
 }
@@ -69,12 +69,12 @@ object DeleteNodeGroup extends EventLogFilter {
 final case class ModifyNodeGroup(
     override val eventDetails: EventLogDetails
 ) extends NodeGroupEventLog {
-  override val cause     = None
+  override val cause: Option[Int] = None
   override val eventType = ModifyNodeGroup.eventType
 }
 
 object ModifyNodeGroup extends EventLogFilter {
-  override val eventType = ModifyNodeGroupEventType
+  override val eventType: EventLogType = ModifyNodeGroupEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ModifyNodeGroup = ModifyNodeGroup(x._2)
 }

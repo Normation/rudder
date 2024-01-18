@@ -514,39 +514,39 @@ trait NodeCriterionOrderedValueMatcher[A] extends NodeCriterionMatcher {
 
 final case class NodeCriterionMatcherString(extractor: CoreNodeFact => Chunk[String])
     extends NodeCriterionOrderedValueMatcher[String] {
-  override def parseNum(value: String): Option[String] = Some(value)
-  override def serialise(a: String):    String         = a
-  val order = Ordering.String
+  override def parseNum(value: String): Option[String]   = Some(value)
+  override def serialise(a: String):    String           = a
+  val order:                            Ordering[String] = Ordering.String
 }
 
 final case class NodeCriterionMatcherInt(extractor: CoreNodeFact => Chunk[Int]) extends NodeCriterionOrderedValueMatcher[Int] {
-  override def parseNum(value: String): Option[Int] = try { Some(Integer.parseInt(value)) }
+  override def parseNum(value: String): Option[Int]   = try { Some(Integer.parseInt(value)) }
   catch { case ex: NumberFormatException => None }
-  override def serialise(a: Int):       String      = a.toString
-  val order = Ordering.Int
+  override def serialise(a: Int):       String        = a.toString
+  val order:                            Ordering[Int] = Ordering.Int
 }
 
 final case class NodeCriterionMatcherLong(extractor: CoreNodeFact => Chunk[Long]) extends NodeCriterionOrderedValueMatcher[Long] {
-  override def parseNum(value: String): Option[Long] = try { Some(java.lang.Long.parseLong(value)) }
+  override def parseNum(value: String): Option[Long]   = try { Some(java.lang.Long.parseLong(value)) }
   catch { case ex: NumberFormatException => None }
-  override def serialise(a: Long):      String       = a.toString
-  val order = Ordering.Long
+  override def serialise(a: Long):      String         = a.toString
+  val order:                            Ordering[Long] = Ordering.Long
 }
 
 final case class NodeCriterionMatcherFloat(extractor: CoreNodeFact => Chunk[Float])
     extends NodeCriterionOrderedValueMatcher[Float] {
-  override def parseNum(value: String): Option[Float] = try { Some(java.lang.Float.parseFloat(value)) }
+  override def parseNum(value: String): Option[Float]   = try { Some(java.lang.Float.parseFloat(value)) }
   catch { case ex: NumberFormatException => None }
-  override def serialise(a: Float):     String        = a.toString
-  val order = Ordering.Float.TotalOrdering
+  override def serialise(a: Float):     String          = a.toString
+  val order:                            Ordering[Float] = Ordering.Float.TotalOrdering
 }
 
 final case class NodeCriterionMatcherDouble(extractor: CoreNodeFact => Chunk[Double])
     extends NodeCriterionOrderedValueMatcher[Double] {
-  override def parseNum(value: String): Option[Double] = try { Some(java.lang.Double.parseDouble(value)) }
+  override def parseNum(value: String): Option[Double]   = try { Some(java.lang.Double.parseDouble(value)) }
   catch { case ex: NumberFormatException => None }
-  override def serialise(a: Double):    String         = a.toString
-  val order = Ordering.Double.TotalOrdering
+  override def serialise(a: Double):    String           = a.toString
+  val order:                            Ordering[Double] = Ordering.Double.TotalOrdering
 }
 
 final case class NodeCriterionMatcherDate(extractorNode: CoreNodeFact => Chunk[DateTime])

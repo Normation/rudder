@@ -633,7 +633,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       val agentTypes  = technique.agentConfigs.map(_.agentType).toSet
       val agentCompat = AgentCompat(agentTypes)
 
-      override def body = {
+      override def body: NodeSeq = {
 
         val tooltipContent = s"""
           <h3>${technique.name}</h3>
@@ -649,8 +649,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
           }>{agentCompat.icon}{technique.name}</span>
         )
       }
-      override def children = Nil
-      override val attrs    = {
+      override def children: List[JsTreeNode] = Nil
+      override val attrs = {
         ("data-jstree"       -> """{ "type" : "template" }""") ::
         ("id"                -> ("ref-technique-" + technique.id.name.value)) ::
         ("activeTechniqueId" -> technique.id.name.value) ::
@@ -660,7 +660,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
     new JsTreeNode {
       // actually transform a technique category to jsTree nodes:
-      override def body     = {
+      override def body: NodeSeq = {
         val tooltipContent = s"<h3>${category.name}</h3\n<div>${category.description}</div>"
         <a href="#">
           <span class="treeActiveTechniqueCategoryName" data-bs-toggle="tooltip" title={tooltipContent}>{
@@ -716,7 +716,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       optTechnique match {
         case Some(technique) =>
           new JsTreeNode {
-            override def body     = {
+            override def body:     NodeSeq          = {
               val tooltipContent = s"""<h3>${technique.name}</h3><div>
                 <p>${technique.escapedDescription}</p>
                 ${agentCompat.techniqueText}
@@ -739,8 +739,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                 )
               )
             }
-            override def children = Nil
-            override val attrs    = {
+            override def children: List[JsTreeNode] = Nil
+            override val attrs = {
               ("data-jstree"       -> """{ "type" : "template" }""") ::
               ("activeTechniqueId" -> technique.id.name.value) ::
               Nil :::
@@ -769,7 +769,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
           }
 
           new JsTreeNode {
-            override def body     = {
+            override def body:     NodeSeq          = {
               val tooltipContent =
                 s"<h3>Missing technique ${activeTechnique.techniqueName.value}</h3>\n<div>The technique is missing on the repository. Active technique based on it are disable until the technique is putted back on the repository</div>"
               SHtml.a(
@@ -779,8 +779,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                 }</span>
               )
             }
-            override def children = Nil
-            override val attrs    = {
+            override def children: List[JsTreeNode] = Nil
+            override val attrs = {
               ("data-jstree"       -> """{ "type" : "template" }""") ::
               ("activeTechniqueId" -> activeTechnique.techniqueName.value) ::
               Nil :::
@@ -814,7 +814,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         ("catId"       -> category.id.value) ::
         Nil
       }
-      override def body     = {
+      override def body: NodeSeq = {
         val tooltipContent = s"<h3>${category.name}</h3>\n<div>${category.description}</div>"
         SHtml.a(
           onClickUserCategory _,

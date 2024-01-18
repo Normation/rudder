@@ -46,6 +46,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.db.DB
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitConfigItemRepository
+import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
@@ -96,8 +97,8 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
 
   val repo:    GitRepositoryProviderImpl                     = GitRepositoryProviderImpl.make(gitRoot.pathAsString).runNow
   val archive: GitConfigItemRepository with XmlArchiverUtils = new GitConfigItemRepository with XmlArchiverUtils {
-    override val gitRepo = repo
-    override def relativePath: String = ""
+    override val gitRepo:      GitRepositoryProvider = repo
+    override def relativePath: String                = ""
     override def xmlPrettyPrinter = new RudderPrettyPrinter(Int.MaxValue, 2)
     override def encoding:                  String                    = "UTF-8"
     override def gitModificationRepository: GitModificationRepository = new GitModificationRepository {

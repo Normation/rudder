@@ -42,7 +42,9 @@ import com.normation.rudder.domain.Constants
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import scala.xml._
-sealed trait ImportExportEventLog extends EventLog { final override val eventLogCategory = ImportExportItemsLogCategory }
+sealed trait ImportExportEventLog extends EventLog {
+  final override val eventLogCategory: EventLogCategory = ImportExportItemsLogCategory
+}
 
 sealed trait ImportEventLog extends ImportExportEventLog
 sealed trait ExportEventLog extends ImportExportEventLog
@@ -100,7 +102,7 @@ final case class ExportGroupsArchive(
 }
 
 object ExportGroupsArchive extends EventLogFilter {
-  override val eventType = ExportGroupsEventType
+  override val eventType: EventLogType = ExportGroupsEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ExportGroupsArchive = ExportGroupsArchive(x._2)
 
@@ -126,7 +128,7 @@ final case class ImportGroupsArchive(
 }
 
 object ImportGroupsArchive extends EventLogFilter {
-  override val eventType = ImportGroupsEventType
+  override val eventType: EventLogType = ImportGroupsEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ImportGroupsArchive = ImportGroupsArchive(x._2)
 
@@ -152,7 +154,7 @@ final case class ExportTechniqueLibraryArchive(
 }
 
 object ExportTechniqueLibraryArchive extends EventLogFilter {
-  override val eventType = ExportTechniqueLibraryEventType
+  override val eventType: EventLogType = ExportTechniqueLibraryEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ExportTechniqueLibraryArchive = ExportTechniqueLibraryArchive(x._2)
 
@@ -178,7 +180,7 @@ final case class ImportTechniqueLibraryArchive(
 }
 
 object ImportTechniqueLibraryArchive extends EventLogFilter {
-  override val eventType = ImportTechniqueLibraryEventType
+  override val eventType: EventLogType = ImportTechniqueLibraryEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ImportTechniqueLibraryArchive = ImportTechniqueLibraryArchive(x._2)
 
@@ -204,7 +206,7 @@ final case class ExportRulesArchive(
 }
 
 object ExportRulesArchive extends EventLogFilter {
-  override val eventType = ExportRulesEventType
+  override val eventType: EventLogType = ExportRulesEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ExportRulesArchive = ExportRulesArchive(x._2)
 
@@ -230,7 +232,7 @@ final case class ImportRulesArchive(
 }
 
 object ImportRulesArchive extends EventLogFilter {
-  override val eventType = ImportRulesEventType
+  override val eventType: EventLogType = ImportRulesEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ImportRulesArchive = ImportRulesArchive(x._2)
 
@@ -256,7 +258,7 @@ final case class ExportParametersArchive(
 }
 
 object ExportParametersArchive extends EventLogFilter {
-  override val eventType = ExportParametersEventType
+  override val eventType: EventLogType = ExportParametersEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ExportParametersArchive = ExportParametersArchive(x._2)
 
@@ -282,7 +284,7 @@ final case class ImportParametersArchive(
 }
 
 object ImportParametersArchive extends EventLogFilter {
-  override val eventType = ImportParametersEventType
+  override val eventType: EventLogType = ImportParametersEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ImportParametersArchive = ImportParametersArchive(x._2)
 
@@ -308,7 +310,7 @@ final case class ExportFullArchive(
 }
 
 object ExportFullArchive extends EventLogFilter {
-  override val eventType = ExportFullArchiveEventType
+  override val eventType: EventLogType = ExportFullArchiveEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ExportFullArchive = ExportFullArchive(x._2)
 
@@ -334,7 +336,7 @@ final case class ImportFullArchive(
 }
 
 object ImportFullArchive extends EventLogFilter {
-  override val eventType = ImportFullArchiveEventType
+  override val eventType: EventLogType = ImportFullArchiveEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ImportFullArchive = ImportFullArchive(x._2)
 
@@ -347,7 +349,7 @@ object ImportFullArchive extends EventLogFilter {
 final case class Rollback(
     override val eventDetails: EventLogDetails
 ) extends ImportEventLog {
-  override val eventType = RollbackEventType
+  override val eventType: EventLogType = RollbackEventType
 
   def this(
       actor:           EventActor,
@@ -366,7 +368,7 @@ final case class Rollback(
 }
 
 object Rollback extends EventLogFilter {
-  override val eventType = RollbackEventType
+  override val eventType: EventLogType = RollbackEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): Rollback = Rollback(x._2)
 

@@ -3076,11 +3076,11 @@ class ExecutionBatchTest extends Specification {
   "Compliance for cfengine vars and reports" should {
 
     sealed trait Kind { def tpe: ReportType }
-    case object Success    extends Kind { val tpe = EnforceSuccess        }
-    case object Repaired   extends Kind { val tpe = EnforceRepaired       }
-    case object Error      extends Kind { val tpe = EnforceError          }
-    case object Missing    extends Kind { val tpe = ReportType.Missing    }
-    case object Unexpected extends Kind { val tpe = ReportType.Unexpected }
+    case object Success    extends Kind { val tpe: ReportType = EnforceSuccess        }
+    case object Repaired   extends Kind { val tpe: ReportType = EnforceRepaired       }
+    case object Error      extends Kind { val tpe: ReportType = EnforceError          }
+    case object Missing    extends Kind { val tpe: ReportType = ReportType.Missing    }
+    case object Unexpected extends Kind { val tpe: ReportType = ReportType.Unexpected }
 
     /*
      * Values are expected values with the corresponding status list

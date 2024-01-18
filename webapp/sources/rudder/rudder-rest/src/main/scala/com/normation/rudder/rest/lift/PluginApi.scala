@@ -41,6 +41,7 @@ import com.normation.plugins.PluginSettings
 import com.normation.plugins.PluginSettingsService
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.rest.{PluginApi => API}
+import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestExtractorService
@@ -55,7 +56,7 @@ class PluginApi(
     pluginSettingsService: PluginSettingsService
 ) extends LiftApiModuleProvider[API] {
 
-  def schemas = API
+  def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => {
@@ -67,7 +68,7 @@ class PluginApi(
   }
 
   object GetPluginSettings extends LiftApiModule0 {
-    val schema        = API.GetPluginsSettings
+    val schema: API.GetPluginsSettings.type = API.GetPluginsSettings
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       import com.normation.box._
@@ -97,7 +98,7 @@ class PluginApi(
   }
 
   object UpdatePluginSettings extends LiftApiModule0 {
-    val schema        = API.UpdatePluginsSettings
+    val schema: API.UpdatePluginsSettings.type = API.UpdatePluginsSettings
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       import com.normation.box._

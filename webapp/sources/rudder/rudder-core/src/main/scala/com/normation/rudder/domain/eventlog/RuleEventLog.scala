@@ -38,7 +38,7 @@
 package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog._
-sealed trait RuleEventLog extends EventLog { final override val eventLogCategory = RuleLogCategory }
+sealed trait RuleEventLog extends EventLog { final override val eventLogCategory: EventLogCategory = RuleLogCategory }
 
 final case class AddRule(
     override val eventDetails: EventLogDetails
@@ -47,7 +47,7 @@ final case class AddRule(
 }
 
 object AddRule extends EventLogFilter {
-  override val eventType = AddRuleEventType
+  override val eventType: EventLogType = AddRuleEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): AddRule = AddRule(x._2)
 }
@@ -59,7 +59,7 @@ final case class DeleteRule(
 }
 
 object DeleteRule extends EventLogFilter {
-  override val eventType = DeleteRuleEventType
+  override val eventType: EventLogType = DeleteRuleEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): DeleteRule = DeleteRule(x._2)
 }
@@ -71,7 +71,7 @@ final case class ModifyRule(
 }
 
 object ModifyRule extends EventLogFilter {
-  override val eventType = ModifyRuleEventType
+  override val eventType: EventLogType = ModifyRuleEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ModifyRule = ModifyRule(x._2)
 }

@@ -55,6 +55,7 @@ import net.liftweb.http.SHtml
 import net.liftweb.http.js._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
+import net.liftweb.util.FieldError
 import net.liftweb.util.Helpers._
 import scala.xml._
 
@@ -248,8 +249,8 @@ class NodeGroupCategoryForm(
     override def className             = "form-control"
     override def labelClassName        = ""
     override def subContainerClassName = ""
-    override def validations           = Nil
-    override def errorClassName        = "field_errors paddscala"
+    override def validations: List[String => List[FieldError]] = Nil
+    override def errorClassName = "field_errors paddscala"
   }
 
   /**

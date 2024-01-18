@@ -43,7 +43,7 @@ import net.liftweb.http.ListenerManager
 
 class AsyncWorkflowInfo extends LiftActor with ListenerManager {
 
-  def createUpdate = WorkflowUpdate
+  def createUpdate: WorkflowUpdate.type = WorkflowUpdate
 
   override protected def lowPriority: PartialFunction[Any, Unit] = { case WorkflowUpdate => updateListeners() }
 }

@@ -123,7 +123,7 @@ class SimpleGitRevisionProvider(refPath: String, repo: GitRepositoryProvider) ex
     }
   }
 
-  override def currentRevTreeId = currentId.get
+  override def currentRevTreeId: UIO[ObjectId] = currentId.get
 
   override def setCurrentRevTreeId(id: ObjectId): IOResult[Unit] = {
     currentId.set(id)

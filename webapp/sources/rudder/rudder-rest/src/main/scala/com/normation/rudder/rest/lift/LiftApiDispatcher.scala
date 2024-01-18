@@ -164,14 +164,14 @@ class LiftHandler(
     val forceVersion:      Option[ApiVersion] // always behave as if that version is passed in header parameter
 ) extends BuildHandler[Req, Full[LiftResponse], AuthzToken, DefaultParams] {
 
-  val logger = LiftApiProcessingLogger
+  val logger: Log = LiftApiProcessingLogger
 
   private[this] var _apis = List.empty[LiftApiModule]
-  def apis()              = _apis
-  def addModule(module: LiftApiModule):         Unit = {
+  def apis():                                   List[LiftApiModule] = _apis
+  def addModule(module: LiftApiModule):         Unit                = {
     _apis = _apis :+ module
   }
-  def addModules(modules: List[LiftApiModule]): Unit = {
+  def addModules(modules: List[LiftApiModule]): Unit                = {
     _apis = _apis ::: modules
   }
 
@@ -299,7 +299,7 @@ trait LiftApiModuleN[R]                                              extends Lif
 }
 
 final case class ChooseApiN[R](old: LiftApiModuleN[R], current: LiftApiModuleN[R]) extends LiftApiModule {
-  override val schema = old.schema
+  override val schema: EndpointSchema = old.schema
   override def process(
       version:    ApiVersion,
       path:       ApiPath,

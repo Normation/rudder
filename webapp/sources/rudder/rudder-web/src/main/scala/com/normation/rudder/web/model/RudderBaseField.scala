@@ -61,7 +61,7 @@ class FormTracker(private[this] var _fields: List[RudderBaseField] = Nil) extend
 
   private[this] var _formErrors = List.empty[FormError]
 
-  override def allFields = _fields.toList
+  override def allFields: List[RudderBaseField] = _fields.toList
 
   def register(field: RudderBaseField): Unit = _fields ::= field
 

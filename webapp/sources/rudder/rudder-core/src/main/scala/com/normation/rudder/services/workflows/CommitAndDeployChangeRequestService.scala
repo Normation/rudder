@@ -212,8 +212,8 @@ class CommitAndDeployChangeRequestServiceImpl(
       def failureMessage(rule: Rule)                  = s"Rule ${rule.name} (id: ${rule.id.serialize})"
       def getCurrentValue(rule: Rule)                 = roRuleRepository.get(rule.id).toBox
       def compareMethod(initial: Rule, current: Rule) = CheckDivergenceForMerge.compareRules(initial, current)
-      def xmlSerialize(rule: Rule)                    = Full(xmlSerializer.rule.serialise(rule))
-      def xmlUnserialize(xml: Node)                   = xmlUnserializer.rule.unserialise(xml)
+      def xmlSerialize(rule: Rule): Box[Node] = Full(xmlSerializer.rule.serialise(rule))
+      def xmlUnserialize(xml: Node) = xmlUnserializer.rule.unserialise(xml)
     }
 
     // For now we only check the Directive, not the SectionSpec and the TechniqueName.
@@ -246,8 +246,8 @@ class CommitAndDeployChangeRequestServiceImpl(
       def failureMessage(group: NodeGroup)                      = s"Group ${group.name} (id: ${group.id.serialize})"
       def getCurrentValue(group: NodeGroup)                     = roNodeGroupRepo.getNodeGroup(group.id).map(_._1).toBox
       def compareMethod(initial: NodeGroup, current: NodeGroup) = CheckDivergenceForMerge.compareGroups(initial, current)
-      def xmlSerialize(group: NodeGroup)                        = Full(xmlSerializer.group.serialise(group))
-      def xmlUnserialize(xml: Node)                             = xmlUnserializer.group.unserialise(xml)
+      def xmlSerialize(group: NodeGroup): Box[Node] = Full(xmlSerializer.group.serialise(group))
+      def xmlUnserialize(xml: Node) = xmlUnserializer.group.unserialise(xml)
     }
 
     case object CheckGlobalParameter extends CheckChanges[GlobalParameter] {
@@ -256,8 +256,8 @@ class CommitAndDeployChangeRequestServiceImpl(
         roParameterRepository.getGlobalParameter(param.name).notOptional(s"Parameter '${param.name}' was not found").toBox
       def compareMethod(initial: GlobalParameter, current: GlobalParameter) =
         CheckDivergenceForMerge.compareGlobalParameter(initial, current)
-      def xmlSerialize(param: GlobalParameter)                              = Full(xmlSerializer.globalParam.serialise(param))
-      def xmlUnserialize(xml: Node)                                         = xmlUnserializer.globalParam.unserialise(xml)
+      def xmlSerialize(param: GlobalParameter): Box[Node] = Full(xmlSerializer.globalParam.serialise(param))
+      def xmlUnserialize(xml: Node) = xmlUnserializer.globalParam.unserialise(xml)
     }
 
     /*

@@ -105,7 +105,7 @@ class DirectiveApi(
 
   private val dataName = "directives"
 
-  def schemas = API
+  def schemas: ApiModuleProvider[API] = API
 
   def response(function: Box[JValue], req: Req, errorMessage: String, id: Option[String])(implicit
       action:            String
@@ -153,7 +153,7 @@ class DirectiveApi(
   }
 
   object ListDirective extends LiftApiModule0 {
-    val schema        = API.ListDirectives
+    val schema: API.ListDirectives.type = API.ListDirectives
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action = "listDirectives"
@@ -162,7 +162,7 @@ class DirectiveApi(
   }
 
   object DirectiveDetails extends LiftApiModuleString {
-    val schema        = API.DirectiveDetails
+    val schema: API.DirectiveDetails.type = API.DirectiveDetails
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -178,7 +178,7 @@ class DirectiveApi(
   }
 
   object CreateDirective extends LiftApiModule0 {
-    val schema        = API.CreateDirective
+    val schema: API.CreateDirective.type = API.CreateDirective
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       var action   = "createDirective"
@@ -203,7 +203,7 @@ class DirectiveApi(
   }
 
   object DeleteDirective extends LiftApiModuleString {
-    val schema        = API.DeleteDirective
+    val schema: API.DeleteDirective.type = API.DeleteDirective
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -226,7 +226,7 @@ class DirectiveApi(
   }
 
   object CheckDirective extends LiftApiModuleString {
-    val schema        = API.CheckDirective
+    val schema: API.CheckDirective.type = API.CheckDirective
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -249,7 +249,7 @@ class DirectiveApi(
   }
 
   object UpdateDirective extends LiftApiModuleString {
-    val schema        = API.UpdateDirective
+    val schema: API.UpdateDirective.type = API.UpdateDirective
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -280,14 +280,14 @@ class DirectiveApi(
   }
 
   object ListDirectiveV14 extends LiftApiModule0 {
-    val schema = API.ListDirectives
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.ListDirectives.type = API.ListDirectives
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse            = {
       serviceV14.listDirectives().toLiftResponseList(params, schema)
     }
   }
   object DirectiveTree    extends LiftApiModule0 {
-    val schema = API.DirectiveTree
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.DirectiveTree.type = API.DirectiveTree
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse           = {
       (for {
         includeSystem <- restExtractorService.extractBoolean("includeSystem")(req)(identity).toIO
         res           <- serviceV14.directiveTree(includeSystem.getOrElse(false))
@@ -298,7 +298,7 @@ class DirectiveApi(
   }
 
   object DirectiveDetailsV14 extends LiftApiModuleString {
-    val schema = API.DirectiveDetails
+    val schema: API.DirectiveDetails.type = API.DirectiveDetails
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -315,7 +315,7 @@ class DirectiveApi(
   }
 
   object DirectiveRevisionsV14 extends LiftApiModuleString {
-    val schema = API.DirectiveRevisions
+    val schema: API.DirectiveRevisions.type = API.DirectiveRevisions
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -329,8 +329,8 @@ class DirectiveApi(
   }
 
   object CreateDirectiveV14 extends LiftApiModule0 {
-    val schema = API.CreateDirective
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.CreateDirective.type = API.CreateDirective
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse             = {
 
       (for {
         restDirective <-
@@ -351,7 +351,7 @@ class DirectiveApi(
   }
 
   object UpdateDirectiveV14 extends LiftApiModuleString {
-    val schema = API.UpdateDirective
+    val schema: API.UpdateDirective.type = API.UpdateDirective
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -371,7 +371,7 @@ class DirectiveApi(
   }
 
   object DeleteDirectiveV14 extends LiftApiModuleString {
-    val schema = API.DeleteDirective
+    val schema: API.DeleteDirective.type = API.DeleteDirective
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -385,7 +385,7 @@ class DirectiveApi(
   }
 
   object CheckDirectiveV14 extends LiftApiModuleString {
-    val schema = API.CheckDirective
+    val schema: API.CheckDirective.type = API.CheckDirective
     def process(
         version:    ApiVersion,
         path:       ApiPath,

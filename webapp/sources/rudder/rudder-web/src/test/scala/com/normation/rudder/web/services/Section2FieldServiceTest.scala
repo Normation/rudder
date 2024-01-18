@@ -199,7 +199,7 @@ object ConfigSection2FieldService {
       }
     }
 
-    override def default(id: String) = new TextField(id, () => Full(Disabled))
+    override def default(id: String): DirectiveField = new TextField(id, () => Full(Disabled))
   }
 
   def section2FieldService: Section2FieldService = {

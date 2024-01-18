@@ -390,11 +390,17 @@ sealed trait QuickSearchResultId extends Any { def value: String; def tpe: QSObj
 object QuickSearchResultId {
   import QSObject._
 
-  final case class QRNodeId(value: String)      extends AnyVal with QuickSearchResultId { override def tpe = Node      }
-  final case class QRGroupId(value: String)     extends AnyVal with QuickSearchResultId { override def tpe = Group     }
-  final case class QRDirectiveId(value: String) extends AnyVal with QuickSearchResultId { override def tpe = Directive }
-  final case class QRParameterId(value: String) extends AnyVal with QuickSearchResultId { override def tpe = Parameter }
-  final case class QRRuleId(value: String)      extends AnyVal with QuickSearchResultId { override def tpe = Rule      }
+  final case class QRNodeId(value: String)      extends AnyVal with QuickSearchResultId { override def tpe: QSObject.Node.type = Node }
+  final case class QRGroupId(value: String)     extends AnyVal with QuickSearchResultId {
+    override def tpe: QSObject.Group.type = Group
+  }
+  final case class QRDirectiveId(value: String) extends AnyVal with QuickSearchResultId {
+    override def tpe: QSObject.Directive.type = Directive
+  }
+  final case class QRParameterId(value: String) extends AnyVal with QuickSearchResultId {
+    override def tpe: QSObject.Parameter.type = Parameter
+  }
+  final case class QRRuleId(value: String)      extends AnyVal with QuickSearchResultId { override def tpe: QSObject.Rule.type = Rule }
 }
 
 final case class QuickSearchResult(

@@ -70,7 +70,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     }
   }
 
-  override def registerWith = asyncDeploymentAgent
+  override def registerWith: AsyncDeploymentActor = asyncDeploymentAgent
 
   override val defaultHtml = NodeSeq.Empty
 

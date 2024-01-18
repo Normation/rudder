@@ -49,17 +49,17 @@ import com.normation.eventlog.EventLogDetails
 import com.normation.rudder.domain.Constants
 import scala.xml._
 
-sealed trait TechniqueEventLog extends EventLog { final override val eventLogCategory = TechniqueLogCategory }
+sealed trait TechniqueEventLog extends EventLog { final override val eventLogCategory: EventLogCategory = TechniqueLogCategory }
 
 final case class ReloadTechniqueLibrary(
     override val eventDetails: EventLogDetails
 ) extends TechniqueEventLog {
-  override val cause     = None
+  override val cause: Option[Int] = None
   override val eventType = ReloadTechniqueLibrary.eventType
 }
 
 object ReloadTechniqueLibrary extends EventLogFilter {
-  override val eventType = ReloadTechniqueLibraryType
+  override val eventType: EventLogType = ReloadTechniqueLibraryType
 
   override def apply(x: (EventLogType, EventLogDetails)): ReloadTechniqueLibrary = ReloadTechniqueLibrary(x._2)
 
@@ -122,35 +122,35 @@ object TechniqueEventLogsFilter {
 final case class AddTechnique(
     override val eventDetails: EventLogDetails
 ) extends TechniqueEventLog {
-  override val cause     = None
+  override val cause: Option[Int] = None
   override val eventType = AddTechnique.eventType
 }
 
 object AddTechnique extends EventLogFilter {
-  override val eventType = AddTechniqueEventType
+  override val eventType:                                 EventLogType = AddTechniqueEventType
   override def apply(x: (EventLogType, EventLogDetails)): AddTechnique = AddTechnique(x._2)
 }
 
 final case class ModifyTechnique(
     override val eventDetails: EventLogDetails
 ) extends TechniqueEventLog {
-  override val cause     = None
+  override val cause: Option[Int] = None
   override val eventType = ModifyTechnique.eventType
 }
 
 object ModifyTechnique extends EventLogFilter {
-  override val eventType = ModifyTechniqueEventType
+  override val eventType:                                 EventLogType    = ModifyTechniqueEventType
   override def apply(x: (EventLogType, EventLogDetails)): ModifyTechnique = ModifyTechnique(x._2)
 }
 
 final case class DeleteTechnique(
     override val eventDetails: EventLogDetails
 ) extends TechniqueEventLog {
-  override val cause     = None
+  override val cause: Option[Int] = None
   override val eventType = DeleteTechnique.eventType
 }
 
 object DeleteTechnique extends EventLogFilter {
-  override val eventType = DeleteTechniqueEventType
+  override val eventType:                                 EventLogType    = DeleteTechniqueEventType
   override def apply(x: (EventLogType, EventLogDetails)): DeleteTechnique = DeleteTechnique(x._2)
 }
