@@ -9,11 +9,13 @@ import GroupCompliance.ApiCalls exposing (..)
 import GroupCompliance.DataTypes exposing (..)
 import GroupCompliance.Init exposing (init)
 import GroupCompliance.View exposing (view)
+import Editor exposing (clearTooltips)
 
 
 -- PORTS / SUBSCRIPTIONS
 port errorNotification   : String -> Cmd msg
 port initTooltips        : String -> Cmd msg
+port clearTooltips       : String -> Cmd msg
 port loadCompliance      : (() -> msg) -> Sub msg
 
 
@@ -136,9 +138,9 @@ update msg model =
           TargetedCompliance -> getTargetedGroupCompliance
         actions =
           if shouldReload then 
-            Cmd.batch [ getCompliance model ]
+            Cmd.batch [ clearTooltips "", getCompliance model, initTooltips "" ]
           else
-            Cmd.none
+            Cmd.batch [ clearTooltips "", initTooltips "" ]
         newModel = {model | complianceScope = complianceScope, ui = {ui | loading = shouldReload, loaded = True}}
       in
       ( newModel

@@ -2,7 +2,7 @@ module GroupCompliance.ViewRulesCompliance exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (onClick)
 import List
 import List.Extra
 import Tuple3
@@ -11,7 +11,7 @@ import Dict
 import GroupCompliance.ApiCalls exposing (..)
 import GroupCompliance.DataTypes exposing (..)
 import GroupCompliance.ViewUtils exposing (..)
-import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance)
+import Compliance.Utils exposing (filterDetailsByCompliance)
 
 displayRulesComplianceTable : Model -> Html Msg
 displayRulesComplianceTable model =
@@ -38,36 +38,12 @@ displayRulesComplianceTable model =
     sort =   case List.Extra.find (Tuple3.first >> (==) sortId) fun.rows of
       Just (_,_,sortFun) -> (\i1 i2 -> sortFun (fun.data model i1) (fun.data model i2))
       Nothing -> (\_ _ -> EQ)
-    isGlobalMode = isGlobalCompliance model
   in
     ( if model.ui.loading then
       generateLoadingTable
       else
-      div[][ div [class "table-header extra-filters"]
-      [ div [class "d-inline-flex align-items-baseline pb-3 w-25"]
-        [
-          div [class "btn-group yesno"]
-          [ label [class ("btn btn-default" ++ if isGlobalMode then " active" else ""), style "box-shadow" (if isGlobalMode then "inset 0 3px 5px rgba(0,0,0,.125)" else "none"), onClick (LoadCompliance GlobalCompliance)]
-            [text "Global"]
-          , label [class ("btn btn-default" ++ if isGlobalMode then "" else " active"), style "box-shadow" (if isGlobalMode then "none" else "inset 0 3px 5px rgba(0,0,0,.125)"), onClick (LoadCompliance TargetedCompliance)]
-            [text "Targeted"]
-          ]
-          , span [class "mx-3"]
-            [text "Compliance"]
-        ]
-      , div [class "main-filters"]
-        [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value filters.filter
-          , onInput (\s -> (UpdateFilters {filters | filter = s} ))][]
-        , button [class "btn btn-default btn-sm btn-icon", onClick (UpdateComplianceFilters {complianceFilters | showComplianceFilters = not complianceFilters.showComplianceFilters}), style "min-width" "170px"]
-          [ text ((if complianceFilters.showComplianceFilters then "Hide " else "Show ") ++ "compliance filters")
-          , i [class ("fa " ++ (if complianceFilters.showComplianceFilters then "fa-minus" else "fa-plus"))][]
-          ]
-        --TODO later : export csv
-        -- , button [class "btn btn-sm btn-primary btn-export", onClick (CallApi getCSVExport) ]
-        --   [ text "Export " , i [ class "fa fa-download" ] [] ]
-        ]
-      , displayComplianceFilters complianceFilters UpdateComplianceFilters
-      ]
+      div[][ 
+        filtersView model
       , div[class "table-container"]
         [ table [class "dataTable compliance-table"]
           [ thead []
