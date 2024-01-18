@@ -42,7 +42,7 @@ class CommonLayout extends DispatchSnippet with DefaultExtendableSnippet[CommonL
   }
 
   val toggleMenuElement = {
-    <a href="#" class="sidebar-toggle p-3" role="button">
+    <a onclick="$('body').toggleClass('sidebar-collapse')" class="sidebar-toggle p-3" role="button">
       <i class="fa fa-bars"></i>
       <span class="visually-hidden">Toggle navigation</span>
     </a>

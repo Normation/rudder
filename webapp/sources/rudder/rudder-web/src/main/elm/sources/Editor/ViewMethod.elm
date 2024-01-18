@@ -498,7 +498,7 @@ callBody model ui techniqueUi call pid =
 --}
     condition = element "div"
                 |> addClass "method-condition flex-form"
-                |> addClassConditional "hidden" (call.condition.os == Nothing && call.condition.advanced == "")
+                |> addClassConditional "visually-hidden" (call.condition.os == Nothing && call.condition.advanced == "")
                 |> appendChildList
                    [ element "label"
                      |> appendText "Condition:"
