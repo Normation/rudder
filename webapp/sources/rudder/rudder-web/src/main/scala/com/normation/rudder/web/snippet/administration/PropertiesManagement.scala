@@ -410,7 +410,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
                 </li>
             }
             (<ul id="relaySyncMethod">{
-              RelaySynchronizationMethod.all.map(radioHtml)
+              RelaySynchronizationMethod.values.map(radioHtml)
             }
               </ul>: NodeSeq) ++ Script(OnLoad(setRelaySyncMethodJs(value.value)))
           case eb: EmptyBox =>
@@ -1070,13 +1070,13 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   }
 
   def nodeOnAcceptDefaultsConfiguration: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
-    val modes  = SelectableOption[Option[PolicyMode]](None, "Use global value") :: PolicyMode.allModes.map { x =>
+    val modes  = SelectableOption[Option[PolicyMode]](None, "Use global value") :: PolicyMode.values.map { x =>
       SelectableOption[Option[PolicyMode]](Some(x), x.name.capitalize)
     }.toList
     // node states, sorted [init, enable, other]
     val states = NodeState.labeledPairs.map {
       case (x, label) =>
-        SelectableOption[NodeState](x, label)
+        SelectableOption[NodeState](x, S.?(label))
     }
 
     val process = (for {

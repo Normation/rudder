@@ -46,6 +46,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>${rudder-version}</version>
     </dependency>
     <dependency>
+      <groupId>com.normation</groupId>
+      <artifactId>utils</artifactId>
+      <version>${rudder-version}</version>
+      <type>test-jar</type>
+    </dependency>
+    <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-${bouncycastle-compat}</artifactId>
     </dependency>

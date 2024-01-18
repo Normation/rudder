@@ -36,11 +36,14 @@
  */
 package com.normation.rudder.domain.policies
 
-import ca.mrvisser.sealerate.values
 import com.normation.errors.*
+import enumeratum.*
 
-sealed trait PolicyMode { def name: String }
-object PolicyMode       {
+sealed trait PolicyMode extends EnumEntry {
+  def name: String
+}
+
+object PolicyMode extends Enum[PolicyMode] {
 
   // value which corresponds to a default policy mode, its value depending on context
   val defaultValue: String = "default"
@@ -48,15 +51,15 @@ object PolicyMode       {
   final case object Audit   extends PolicyMode { val name = "audit"   }
   final case object Enforce extends PolicyMode { val name = "enforce" }
 
-  def allModes: Set[PolicyMode] = values[PolicyMode]
+  val values: IndexedSeq[PolicyMode] = findValues
 
   // get from string, case insensitive
   def parse(value: String): Either[RudderError, PolicyMode] = {
-    allModes.find(_.name == value.toLowerCase()) match {
+    values.find(_.name == value.toLowerCase()) match {
       case None       =>
         Left(
           Unexpected(
-            s"Unable to parse policy mode name '${value}'. was expecting ${allModes.map(_.name).mkString("'", "' or '", "'")}."
+            s"Unable to parse policy mode name '${value}'. was expecting ${values.map(_.name).mkString("'", "' or '", "'")}."
           )
         )
       case Some(mode) =>

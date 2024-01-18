@@ -38,13 +38,14 @@
 package com.normation.inventory.domain
 
 import com.normation.errors.*
+import enumeratum.*
 import zio.*
 import zio.syntax.*
 
 /**
  * The enumeration holding the values for the agent
  */
-sealed trait AgentType {
+sealed trait AgentType extends EnumEntry {
   /*
    * this is the default agent identifier, the main name, used in:
    * - in hooks: RUDDER_AGENT_TYPE: dsc (cfengine-community, cfengine-nova)
@@ -95,7 +96,7 @@ sealed trait AgentType {
   def defaultPolicyExtension: String
 }
 
-object AgentType {
+object AgentType extends Enum[AgentType] {
 
   final case object CfeEnterprise extends AgentType {
     override def id           = "cfengine-nova"
@@ -131,7 +132,7 @@ object AgentType {
       "" // no extension - .ps1 extension is already in the template name (more by convention than anything else)
   }
 
-  def allValues: Set[AgentType] = ca.mrvisser.sealerate.values[AgentType]
+  def values: IndexedSeq[AgentType] = findValues
 
   def fromValue(value: String): Either[InventoryError.AgentType, AgentType] = {
     // Check if the value is correct compared to the agent tag name (fusion > 2.3) or its toString value (added by CFEngine)
@@ -139,7 +140,7 @@ object AgentType {
       agent.inventoryAgentNames.contains(value.toLowerCase)
     }
 
-    allValues.find(checkValue) match {
+    values.find(checkValue) match {
       case None        => Left(InventoryError.AgentType(s"Wrong type of value for the agent '${value}'"))
       case Some(agent) => Right(agent)
     }
@@ -293,7 +294,7 @@ object AgentInfoSerialisation {
                        .toIO
                        .chainError(
                          s"Error when mapping '${s}' to an agent info. We are expecting either " +
-                         s"an agentType with allowed values in ${AgentType.allValues.mkString(", ")}" +
+                         s"an agentType with allowed values in ${AgentType.values.mkString(", ")}" +
                          s" or " +
                          s"a json like {'agentType': type, 'version': opt_version, 'securityToken': ...} but we get: ${jsonError}"
                        )

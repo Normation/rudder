@@ -81,7 +81,7 @@ class FullQuickSearchService(implicit
                    s"User query for '${token}', parsed as user query: '${query.userToken}' on objects: " +
                    s"'${query.objectClass.mkString(", ")}' and attributes '${query.attributes.mkString(", ")}'"
                  )
-      results <- ZIO.foreach(QSBackend.all.toSeq)(b => {
+      results <- ZIO.foreach(QSBackend.values)(b => {
                    b.search(query)
                      .tap(results => logger.debug(s"  - [${b}] found ${results.size} results"))
                      .chainError(s"Error with quicksearch bachend ${b}")

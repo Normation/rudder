@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.servers
 
-import ca.mrvisser.sealerate
 import cats.data.NonEmptyList
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
@@ -86,6 +85,7 @@ import com.normation.rudder.services.servers.json.*
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
+import enumeratum.*
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
@@ -505,8 +505,8 @@ class PolicyServerManagementServiceImpl(
   }
 }
 
-sealed trait RelaySynchronizationMethod { def value: String }
-object RelaySynchronizationMethod       {
+sealed trait RelaySynchronizationMethod extends EnumEntry                        { def value: String }
+object RelaySynchronizationMethod       extends Enum[RelaySynchronizationMethod] {
 
   final case object Classic extends RelaySynchronizationMethod { val value = "classic" }
 
@@ -514,7 +514,7 @@ object RelaySynchronizationMethod       {
 
   final case object Disabled extends RelaySynchronizationMethod { val value = "disabled" }
 
-  final val all: Set[RelaySynchronizationMethod] = sealerate.values[RelaySynchronizationMethod]
+  final val values: IndexedSeq[RelaySynchronizationMethod] = findValues
 
   def parse(value: String): Box[RelaySynchronizationMethod] = {
     value match {
@@ -526,7 +526,7 @@ object RelaySynchronizationMethod       {
           case Rsync.value    => Full(Rsync)
           case _              =>
             Failure(
-              s"Cannot parse the given value as a valid relay synchronization method: '${value}'. Authorised values are: '${all.map(_.value).mkString(", ")}'"
+              s"Cannot parse the given value as a valid relay synchronization method: '${value}'. Authorised values are: '${values.map(_.value).mkString(", ")}'"
             )
         }
     }

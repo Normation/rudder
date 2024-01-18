@@ -132,7 +132,7 @@ class TechniqueParser(
 
             // 4.3: does the technique support generation without directive merge (i.e mutli directive)
             generationMode      = nonEmpty((xml \ TECHNIQUE_GENERATION_MODE).text)
-                                    .flatMap(TechniqueGenerationMode.parse)
+                                    .flatMap(name => TechniqueGenerationMode.parse(name).toOption)
                                     .getOrElse(TechniqueGenerationMode.MergeDirectives)
 
             technique = Technique(

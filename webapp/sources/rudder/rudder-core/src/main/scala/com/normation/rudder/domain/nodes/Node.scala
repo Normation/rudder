@@ -49,7 +49,7 @@ import com.normation.rudder.facts.nodes.SecurityTag
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.reports.ReportingConfiguration
-import net.liftweb.http.S
+import enumeratum.*
 import org.joda.time.DateTime
 
 /**
@@ -90,44 +90,37 @@ case object Node {
   }
 }
 
-sealed trait NodeState { def name: String }
-object NodeState       {
+sealed abstract class NodeState(override val entryName: String) extends EnumEntry {
+  def name: String = entryName
+}
 
-  final case object Enabled       extends NodeState { val name = "enabled"        }
-  final case object Ignored       extends NodeState { val name = "ignored"        }
-  final case object EmptyPolicies extends NodeState { val name = "empty-policies" }
-  final case object Initializing  extends NodeState { val name = "initializing"   }
-  final case object PreparingEOL  extends NodeState { val name = "preparing-eol"  }
+object NodeState extends Enum[NodeState] {
 
-  def values: Set[NodeState] = ca.mrvisser.sealerate.values[NodeState]
+  final case object Initializing  extends NodeState("initializing")
+  final case object Enabled       extends NodeState("enabled")
+  final case object EmptyPolicies extends NodeState("empty-policies")
+  final case object Ignored       extends NodeState("ignored")
+  final case object PreparingEOL  extends NodeState("preparing-eol")
 
-  // human readable, sorted list of (state, label)
+  def values: IndexedSeq[NodeState] = findValues
+
+  // sorted list of (state, label)
   def labeledPairs: List[(NodeState, String)] = {
-    val a = values.toList
-    val b = a.map { x =>
-      x match {
-        case NodeState.Initializing  => (0, x, S.?("node.states.initializing"))
-        case NodeState.Enabled       => (1, x, S.?("node.states.enabled"))
-        case NodeState.EmptyPolicies => (2, x, S.?("node.states.empty-policies"))
-        case NodeState.Ignored       => (3, x, S.?("node.states.ignored"))
-        case NodeState.PreparingEOL  => (4, x, S.?("node.states.preparing-eol"))
-      }
-    }
-
-    b.sortBy(_._1).map {
-      case (_, x, label) =>
-        (x, label)
+    values.toList.map {
+      case NodeState.Initializing  => NodeState.Initializing  -> "node.states.initializing"
+      case NodeState.Enabled       => NodeState.Enabled       -> "node.states.enabled"
+      case NodeState.EmptyPolicies => NodeState.EmptyPolicies -> "node.states.empty-policies"
+      case NodeState.Ignored       => NodeState.Ignored       -> "node.states.ignored"
+      case NodeState.PreparingEOL  => NodeState.PreparingEOL  -> "node.states.preparing-eol"
     }
   }
 
   def parse(s: String): Either[String, NodeState] = {
-    values.find(_.name == s.toLowerCase) match {
-      case None    =>
-        Left(s"Value '${s}' is not recognized as node state. Accepted values are: '${values.map(_.name).mkString("', '")}'")
-      case Some(x) => Right(x)
-    }
+    withNameInsensitiveOption(s)
+      .toRight(
+        s"Value '${s}' is not recognized as node state. Accepted values are: '${values.map(_.entryName).mkString("', '")}'"
+      )
   }
-
 }
 
 /**

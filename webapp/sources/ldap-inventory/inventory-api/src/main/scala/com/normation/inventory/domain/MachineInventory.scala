@@ -37,6 +37,7 @@
 
 package com.normation.inventory.domain
 
+import enumeratum.*
 import org.joda.time.DateTime
 
 sealed trait PhysicalElement {
@@ -138,8 +139,10 @@ final case class Video(
  * (de)serialization to string, of as a key
  * for the VM type. They should be lower case only.
  */
-sealed abstract class VmType(val name: String)
-object VmType {
+sealed abstract class VmType(override val entryName: String) extends EnumEntry    {
+  def name: String = entryName
+}
+object VmType                                                extends Enum[VmType] {
   case object UnknownVmType extends VmType("unknown")
   case object SolarisZone   extends VmType("solariszone")
   case object VirtualBox    extends VmType("vbox")
@@ -153,8 +156,13 @@ object VmType {
   case object OpenVZ        extends VmType("openvz")
   case object LXC           extends VmType("lxc")
 
-  def all: Set[VmType] = ca.mrvisser.sealerate.values[VmType]
-  def parse(s: String): VmType = all.find(_.name == s.toLowerCase).getOrElse(UnknownVmType)
+  def values:           IndexedSeq[VmType]     = findValues
+  def parse(s: String): Either[String, VmType] = {
+    withNameInsensitiveOption(s)
+      .toRight(
+        s"Value '${s}' is not recognized as VmType. Accepted values are: '${values.map(_.entryName).mkString("', '")}'"
+      )
+  }
 }
 
 /**

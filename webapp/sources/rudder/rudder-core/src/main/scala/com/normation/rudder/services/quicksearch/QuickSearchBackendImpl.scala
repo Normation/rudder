@@ -385,7 +385,7 @@ object QSLdapBackend {
       TagValues         -> A_SERIALIZED_TAGS
     )
 
-    if (m.size != QSAttribute.all.size) {
+    if (m.size != QSAttribute.values.size) {
       throw new IllegalArgumentException(
         "Be carefull, it seems that the list of attributes in QSAttribute was modified, but not the list of name mapping" +
         s"Please check for '${(m.keySet.diff(QSAttribute.all) ++ QSAttribute.all.diff(m.keySet)).mkString("', '")}'"

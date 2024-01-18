@@ -39,9 +39,13 @@ package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
+import com.normation.inventory.domain.BsdType
+import com.normation.inventory.domain.LinuxType
+import com.normation.inventory.domain.OsType
 import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.queries.And
 import com.normation.rudder.domain.queries.CriterionComposition
@@ -228,12 +232,12 @@ class SearchNodeComponent(
 
       lines.append(cl)
 
-      val initJs = cl.attribute.cType.initForm("v_" + index)
-
-      val inputAttributes = ("id", "v_" + index) :: ("class", "queryInputValue form-control form-control-sm") :: {
+      val form            = asForm(cl.attribute.cType)
+      val initJs          = form.initForm("v_" + index)
+      val inputAttributes = ("id", "v_" + index) :: ("class", "queryInputValue form-control input-sm") :: {
         if (cl.comparator.hasValue) Nil else ("disabled", "disabled") :: Nil
       }
-      val input           = cl.attribute.cType.toForm(cl.value, (x => lines(index) = lines(index).copy(value = x)), inputAttributes*)
+      val input           = form.toForm(cl.value, (x => lines(index) = lines(index).copy(value = x)), inputAttributes*)
       (".removeLine *" #> {
         if (addRemove)
           SHtml.ajaxSubmit("-", () => removeLine(index), ("class", "btn btn-danger btn-sm fw-bold"))
@@ -500,10 +504,11 @@ object SearchNodeComponent {
         }
       case Nil    => ""
     }
-    val newForm      = comp.toForm(v_old, func, ("id" -> v_eltid), ("class" -> "queryInputValue form-control form-control-sm"))
-    comp.destroyForm(v_eltid) &
+    val form         = asForm(comp)
+    val newForm      = form.toForm(v_old, func, ("id" -> v_eltid), ("class" -> "queryInputValue form-control input-sm"))
+    form.destroyForm(v_eltid) &
     JsCmds.Replace(v_eltid, newForm) &
-    comp.initForm(v_eltid) &
+    form.initForm(v_eltid) &
     JsCmds.ReplaceOptions(c_eltid, comparators, Full(selectedComp)) &
     setIsEnableFor(selectedComp, v_eltid) &
     OnLoad(JsVar("""
@@ -700,5 +705,176 @@ object SearchNodeComponent {
       comparator = ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.comparators(0),
       value = "Linux"
     )
+  }
+
+  private trait AsForm {
+    /*
+     * validate the value and returns a normalized one
+     * for the field.
+     * DO NOT FORGET TO USE attrs ! (especially 'id')
+     */
+    def toForm(value:    String, func: String => Any, attrs: (String, String)*): Elem = SHtml.text(value, func, attrs*)
+    def initForm(formId: String): JsCmd = Noop
+    def destroyForm(formId: String): JsCmd = {
+      OnLoad(
+        JsRaw(
+          """$('#%s').datepicker( "destroy" );""".format(formId)
+        )
+      )
+    }
+  }
+
+  private object AsForm {
+
+    val default:                                                                     AsForm = new AsForm {}
+    def apply(toFormFunc: ((String, String => Any, Seq[(String, String)])) => Elem): AsForm = {
+      new AsForm {
+        override def toForm(value: String, func: String => Any, attrs: (String, String)*): Elem = toFormFunc((value, func, attrs))
+      }
+    }
+  }
+
+  private def asForm(criterionType: CriterionType): AsForm = {
+    criterionType match {
+      case NodeStateComparator  =>
+        val nodeStates: List[(String, String)] = NodeState.labeledPairs.map { case (x, label) => (x.name, S.?(label)) }
+
+        AsForm {
+          case (value, func, attrs) =>
+            SHtml.select(nodeStates, Box(nodeStates.find(_._1 == value).map(_._1)), func, attrs*)
+        }
+      case NodeOstypeComparator =>
+        import NodeOstypeComparator.*
+        AsForm {
+          case (value, func, attrs) =>
+            SHtml.select(
+              (osTypes map (e => (e, e))).toSeq,
+              if (osTypes.contains(value)) Full(value) else Empty,
+              func,
+              attrs*
+            )
+        }
+
+      case NodeOsNameComparator =>
+        AsForm {
+          case (value, func, attrs) =>
+            import NodeOsNameComparator.*
+
+            def distribName(x: OsType): String = {
+              x match {
+                // add linux: for linux
+                case _: LinuxType => "Linux - " + S.?("os.name." + x.name)
+                case _: BsdType   => "BSD - " + S.?("os.name." + x.name)
+                // nothing special for windows, Aix and Solaris
+                case _ => S.?("os.name." + x.name)
+              }
+            }
+
+            SHtml.select(
+              osNames.map(e => (e.name, distribName(e))).toSeq,
+              osNames.find(x => x.name == value).map(_.name),
+              func,
+              attrs*
+            )
+        }
+
+      case SubGroupComparator(subGroupComparatorRepo) =>
+        import com.normation.zio.*
+        import net.liftweb.http.SHtml.SelectableOption
+        import com.normation.rudder.domain.logger.ApplicationLogger
+
+        AsForm {
+          case (value, func, attrs) =>
+            // we need to query for the list of groups here
+            val subGroups: Seq[SelectableOption[String]] = {
+              (for {
+                res <- subGroupComparatorRepo().getGroups
+              } yield {
+                val g = res.map { case SubGroupChoice(id, name) => SelectableOption(id.serialize, name) }
+                // if current value is defined but not in the list, add it with a "missing group" label
+                if (value != "") {
+                  g.find(_.value == value) match {
+                    case None    => SelectableOption(value, "Missing group") +: g
+                    case Some(_) => g
+                  }
+                } else {
+                  g
+                }
+              }).either.runNow match {
+                case Right(list) => list.sortBy(_.label)
+                case Left(error) => // if an error occure, log and display the error in place of the label
+                  ApplicationLogger.error(
+                    s"An error happens when trying to find the list of groups to use in sub-groups: ${error.fullMsg}"
+                  )
+                  SelectableOption(value, "Error when looking for available groups") :: Nil
+              }
+            }
+
+            SHtml.selectObj[String](
+              subGroups,
+              Box(subGroups.find(_.value == value).map(_.value)),
+              func,
+              attrs*
+            )
+        }
+      case DateComparator                             =>
+        new AsForm {
+
+          // init a jquery datepicker
+          override def initForm(formId: String):    JsCmd = OnLoad(JsRaw("""var init = $.datepicker.regional['en'];
+       init['showOn'] = 'focus';
+       init['dateFormat'] = 'dd/mm/yy';
+       $('#%s').datepicker(init);
+       """.format(formId)))
+          override def destroyForm(formId: String): JsCmd = OnLoad(
+            JsRaw("""$('#%s').datepicker( "destroy" );""".format(formId))
+          )
+        }
+      case MachineComparator                          =>
+        import MachineComparator.*
+        AsForm {
+          case (value, func, attrs) =>
+            SHtml.select(
+              (machineTypes map (e => (e, e))).toSeq,
+              if (machineTypes.contains(value)) Full(value) else Empty,
+              func,
+              attrs*
+            )
+        }
+      case VmTypeComparator                           =>
+        import VmTypeComparator.*
+        AsForm {
+          case (value, func, attrs) =>
+            SHtml.select(
+              (vmTypes map (e => (e._1, e._2))),
+              Box(vmTypes.find(_._1 == value).map(_._1)),
+              func,
+              attrs*
+            )
+        }
+      case AgentComparator                            =>
+        import AgentComparator.*
+        AsForm {
+          case (value, func, attrs) =>
+            SHtml.select(
+              agentTypes,
+              Box(agentTypes.find(_._1 == value)).map(_._1),
+              func,
+              attrs*
+            )
+        }
+      case EditorComparator                           =>
+        import EditorComparator.*
+        AsForm {
+          case (value, func, attrs) =>
+            SHtml.select(
+              (editors map (e => (e, e))).toSeq,
+              if (editors.contains(value)) Full(value) else Empty,
+              func,
+              attrs*
+            )
+        }
+      case _                                          => AsForm.default
+    }
   }
 }

@@ -656,7 +656,7 @@ class SettingsApi(
   case object RestOnAcceptPolicyMode extends RestSetting[Option[PolicyMode]] {
     val startPolicyGeneration = false
     def parseParam(value: String): Box[Option[PolicyMode]] = {
-      Full(PolicyMode.allModes.find(_.name == value))
+      Full(PolicyMode.values.find(_.name == value))
     }
     def toJson(value: Option[PolicyMode]): JValue = JString(value.map(_.name).getOrElse("default"))
     def parseJson(json: JValue): Box[Option[PolicyMode]]                                            = {
