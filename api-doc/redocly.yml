@@ -29,6 +29,8 @@ theme:
     expandResponses: '200,201'
     # More readable in central column
     pathInMiddlePanel: true
+    # Nested objects in exemples should be allowed
+    generatedPayloadSamplesMaxDepth: 100
     # Rudder 7 theme
     theme:
       logo:

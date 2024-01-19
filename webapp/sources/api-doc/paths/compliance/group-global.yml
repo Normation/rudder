@@ -1,0 +1,114 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2024 Normation SAS
+get:
+  summary: Compliance details by group (global)
+  description: Get compliance of a group with all rules that apply to a node within the group.
+  operationId: getNodeGroupComplianceId
+  parameters:
+    - $ref: ../../components/parameters/compliance-level.yml
+    - $ref: ../../components/parameters/compliance-percent-precision.yml
+    - $ref: ../../components/parameters/node-group-id.yml
+  responses:
+    "200":
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+                example: success
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getNodeGroupComplianceId
+              data:
+                type: object
+                required:
+                  - nodeGroups
+                properties:
+                  nodeGroups:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - mode
+                        - compliance
+                        - complianceDetails
+                        - rules
+                        - nodes
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          description: id of the group
+                          example: 47e3f2c0-0b1a-4b1a-9b0a-9e9e9e9e9e9e
+                        mode:
+                          type: string
+                          enum:
+                            - full-compliance
+                            - changes-only
+                            - reports-disabled
+                        compliance:
+                          type: number
+                          format: float
+                          description: Group compliance level
+                          example: 57.43
+                        complianceDetails:
+                          type: object
+                          properties:
+                            successAlreadyOK:
+                              type: number
+                              format: float
+                              example: 48.68
+                            noReport:
+                              type: number
+                              format: float
+                              example: 36.18
+                            successNotApplicable:
+                              type: number
+                              format: float
+                              example: 5.92
+                            unexpectedMissingComponent:
+                              type: number
+                              format: float
+                              example: 2.63
+                            error:
+                              type: number
+                              format: float
+                              example: 1.32
+                            unexpectedUnknownComponent:
+                              type: number
+                              format: float
+                              example: 2.63
+                            successRepaired:
+                              type: number
+                              format: float
+                              example: 2.63
+                        rules:
+                          type: array
+                          items:
+                            $ref: ../../components/schemas/group-rule-compliance.yml
+                        nodes:
+                          type: array
+                          items:
+                            $ref: ../../components/schemas/group-node-compliance.yml
+  tags:
+    - Compliance
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/compliance/group-global.sh
+                        
+

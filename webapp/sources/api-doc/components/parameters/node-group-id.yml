@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2024 Normation SAS
+name: "nodeGroupId"
+in: path
+required: true
+description: Id of the node group
+schema:
+  type: string
+  format: uuid or string
+  example: 47e3f2c0-0b1a-4b1a-9b0a-9e9e9e9e9e9e
