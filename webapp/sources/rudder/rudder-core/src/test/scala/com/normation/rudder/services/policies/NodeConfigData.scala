@@ -58,7 +58,7 @@ import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AcceptedInventory
-import com.normation.inventory.domain.AgentType.CfeCommunity
+import com.normation.inventory.domain.AgentType.{CfeCommunity, Dsc}
 import com.normation.inventory.domain.AgentVersion
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.Debian
@@ -132,6 +132,7 @@ import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio._
 import com.softwaremill.quicklens._
+
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.FileSystemNotFoundException
@@ -145,6 +146,7 @@ import java.nio.file.attribute.BasicFileAttributes
 import net.liftweb.common.Full
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
+
 import scala.collection.MapView
 import scala.collection.SortedMap
 import zio.Chunk
@@ -392,7 +394,7 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
       rootId,
       None
     ),
-    RudderAgent(CfeCommunity, admin1, AgentVersion("7.0.0"), Certificate("windows-node-dsc-certificate"), Chunk.empty),
+    RudderAgent(Dsc, admin1, AgentVersion("7.0.0"), Certificate("windows-node-dsc-certificate"), Chunk.empty),
     Chunk.empty,
     DateTime.now,
     DateTime.now,

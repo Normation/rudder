@@ -66,9 +66,10 @@ import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.filepaths
 import com.normation.templates.FillTemplatesService
 import com.normation.zio._
+
 import java.io.File
 import java.nio.charset.StandardCharsets
-import net.liftweb.common.Loggable
+import net.liftweb.common.{EmptyBox, Full, Loggable}
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
@@ -79,6 +80,7 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import org.specs2.text.LinesContent
+
 import scala.collection.MapView
 import zio.syntax._
 
@@ -173,8 +175,11 @@ class TestSystemData {
 
   def policies(nodeInfo: NodeInfo, drafts: List[BoundPolicyDraft]): List[Policy] = {
     MergePolicyService
-      .buildPolicy(nodeInfo, globalPolicyMode, drafts)
-      .getOrElse(throw new RuntimeException("We must be able to build policies from draft in tests!"))
+      .buildPolicy(nodeInfo, globalPolicyMode, drafts) match {
+      case Full(l) => l
+      case eb: EmptyBox =>
+        throw new RuntimeException (s"We must be able to build policies from draft in tests! details ${(eb ?~! "error when getting policy").messageChain}")
+    }
   }
 
   /// For root, we are using the same system variable and base root node config
