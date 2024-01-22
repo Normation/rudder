@@ -44,6 +44,14 @@ code, kbd, pre, samp, .code {
 a{
   text-decoration: none !important;
 }
+
+/* BOOTSTRAP 5 COMPATIBILITY */
+.form-group{
+  margin-bottom: 5px;
+}
+.form-group label{
+  font-weight: bold;
+}
 /*=== FONT AWESOME 5 MISSING ICONS FIX ===*/
 .fa{
   font-weight: bold;
