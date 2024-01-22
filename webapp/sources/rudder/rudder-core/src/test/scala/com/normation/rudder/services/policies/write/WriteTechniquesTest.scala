@@ -68,6 +68,8 @@ import com.normation.templates.FillTemplatesService
 import com.normation.zio._
 import java.io.File
 import java.nio.charset.StandardCharsets
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
@@ -173,8 +175,13 @@ class TestSystemData {
 
   def policies(nodeInfo: NodeInfo, drafts: List[BoundPolicyDraft]): List[Policy] = {
     MergePolicyService
-      .buildPolicy(nodeInfo, globalPolicyMode, drafts)
-      .getOrElse(throw new RuntimeException("We must be able to build policies from draft in tests!"))
+      .buildPolicy(nodeInfo, globalPolicyMode, drafts) match {
+      case Full(l) => l
+      case eb: EmptyBox =>
+        throw new RuntimeException(
+          s"We must be able to build policies from draft in tests! details ${(eb ?~! "error when getting policy").messageChain}"
+        )
+    }
   }
 
   /// For root, we are using the same system variable and base root node config

@@ -40,6 +40,7 @@ package com.normation.rudder.services.policies
 import com.normation.errors.Inconsistency
 import java.time.Duration
 import java.time.LocalTime
+import java.util.UUID
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -183,5 +184,14 @@ class TestComputeSchedule extends Specification {
     "if the splay time is shorter than the interval, then the splay time length is taken" in {
       ComputeSchedule.computeSplayTime(uuid1, Duration.ofMinutes(10), fiveMinutes) === uuid1Splay
     }
+
+    "Check that the splaytime is strictly smaller that it's duration" in {
+      val ids    = List.fill(100)(UUID.randomUUID().toString)
+      val splays = ids.map(id => ComputeSchedule.computeSplayTime(id, fiveMinutes, fiveMinutes))
+      val starts = ids.map(id => ComputeSchedule.getSplayedStartTime(id, LocalTime.of(0, 0), fiveMinutes, fiveMinutes))
+      (splays must (contain((beLessThan(fiveMinutes)))).foreach) and
+      (starts must (contain(beLessThan(LocalTime.of(0, 5)))))
+    }
+
   }
 }
