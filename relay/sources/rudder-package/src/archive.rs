@@ -17,7 +17,7 @@ use crate::{
     database::{Database, InstalledPlugin},
     plugin::Metadata,
     webapp::Webapp,
-    PACKAGES_FOLDER,
+    PACKAGES_FOLDER, PACKAGE_SCRIPTS_ARCHIVE,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
@@ -86,7 +86,7 @@ impl Rpkg {
 
     fn get_txz_dst(&self, txz_name: &str) -> PathBuf {
         // Build the destination path
-        if txz_name == "scripts.txz" {
+        if txz_name == PACKAGE_SCRIPTS_ARCHIVE {
             return PathBuf::from(PACKAGES_FOLDER).join(self.metadata.name.clone());
         }
         return PathBuf::from(self.metadata.content.get(txz_name).unwrap().to_string());
@@ -94,7 +94,7 @@ impl Rpkg {
 
     fn get_archive_installed_files(&self) -> Result<Vec<String>> {
         let mut txz_names = self.get_txz_list()?;
-        txz_names.retain(|x| x != "scripts.txz");
+        txz_names.retain(|x| x != PACKAGE_SCRIPTS_ARCHIVE);
         let f = txz_names
             .iter()
             .map(|x| self.get_absolute_file_list_of_txz(x))
@@ -207,7 +207,7 @@ impl Rpkg {
             }
         }
         // Extract package scripts
-        self.unpack_embedded_txz("scripts.txz", PathBuf::from(PACKAGES_FOLDER))?;
+        self.unpack_embedded_txz(PACKAGE_SCRIPTS_ARCHIVE, PathBuf::from(PACKAGES_FOLDER))?;
         // Run preinst if any
         let arg = if is_upgrade {
             PackageScriptArg::Upgrade
