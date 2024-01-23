@@ -62,6 +62,7 @@ import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.RudderUserDetail
+import com.normation.rudder.web.snippet.CustomPageJs
 import com.normation.rudder.web.snippet.WithCachedResource
 import com.normation.rudder.web.snippet.WithNonce
 import com.normation.zio._
@@ -518,6 +519,24 @@ class Boot extends Loggable {
     // We need an override of the default factory. Somehow the LiftRules.supplementalHeaders.request value is reset too often
     val requestHeadersFactory = new Boot.RequestHeadersFactoryVendor(csp)
     LiftRules.supplementalHeaders.default.set(requestHeadersFactory)
+
+    // We need to replace duplicate lift scripts because our custom page js may override the lift.js script (with nonce attributes)
+    LiftRules.beforeSend.append {
+      case (basicResponse, httpResponse, headers, reqBox) =>
+        if (CustomPageJs.hasDuplicateLiftScripts) {
+          basicResponse match {
+            case res: InMemoryResponse =>
+              val sanitizedData = CustomPageJs.liftPageScriptRegex.replaceFirstIn(res.data.map(_.toChar).mkString, "")
+              // replace some substrings in the response byte array, which is mutated (content takes less bytes than initial response)
+              System.arraycopy(sanitizedData.getBytes, 0, res.data, 0, sanitizedData.length)
+              // we should zero the rest of the array otherwise it make an invalid html page
+              for (i <- sanitizedData.length until res.data.length) {
+                res.data(i) = 0
+              }
+            case _ => ()
+          }
+        }
+    }
 
     // By default Lift redirects to login page when a comet request's session changes
     // which happens when there is a connection to the same server in another tab.
