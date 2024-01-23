@@ -51,11 +51,4 @@ object WithNonce extends StatefulSnippet {
     nonce.get
   }
 
-  /**
-    * Check if a nonce was defined within the lifetime of the current request.
-    */
-  def hasCurrentNonce: Boolean = {
-    getCurrentNonce != defaultValue
-  }
-
 }
