@@ -207,7 +207,7 @@ impl Rpkg {
             }
         }
         // Extract package scripts
-        self.unpack_embedded_txz("script.txz", PathBuf::from(PACKAGES_FOLDER))?;
+        self.unpack_embedded_txz("scripts.txz", PathBuf::from(PACKAGES_FOLDER))?;
         // Run preinst if any
         let arg = if is_upgrade {
             PackageScriptArg::Upgrade
