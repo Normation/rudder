@@ -32,6 +32,9 @@
 -->
 
 <!--
+  The username is case-sensitive by default, if you want to change this behaviour, you can
+  change the parameter 'case-sensitivity' to 'false'
+
   The "authentication" tag should have a "hash" attribute, with these allowed values:
     "bcrypt", "md5", "sha1", "sha256", "sha-256", "sha512", "sha-512"
 
@@ -39,7 +42,7 @@
   releases, you need to reset all the passwords to bcrypt hashes and change the authentication tag.
 
   Not specifying the "hash" attribute means using plain text passwords, which is not
-  adviseable for security reasons.
+  advisable for security reasons.
 
   To create a bcrypt hash of your password, please run this command:
     htpasswd -nBC 12 "" | tr -d ':\n'
@@ -54,7 +57,7 @@
   "authentication" can be omitted.
 
   The "roles" tag must contain one or more of these values (comma separated), depending
-  on the what the user should be allowed to do:
+  on what the user should be allowed to do:
     "administrator" (all rights), "administration_only" (administration tab), "user"
     (all nodes, configuration tab), "configuration" (configuration tab), "read_only"
     (read everything), "compliance" (read rules, read nodes), "inventory" (read nodes), "validator"
@@ -68,7 +71,7 @@
   Example: "node_read" (can read nodes), "validator_all" (same as validator).
 
   If the extended authorisations feature is enable, you can define custom roles. They are introduced by the `custom-roles`
-  tag and they allow to define new role name for set of roles or authorisations.
+  tag, and they allow to define new role name for set of roles or authorisations.
   A custom role is defined with the `<role>` tag with the attribute "name" (case-insensitive name of the role) and
   "roles" (same as for an user).
   Ex:
