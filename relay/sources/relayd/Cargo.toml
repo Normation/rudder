@@ -54,6 +54,11 @@ walkdir = "2"
 warp = { version = "0.3", default-features = false }
 # Use rust implementation
 zip = { version = "0.6", default-features = false, features = ["deflate"] }
+pq-sys = { version = "0.4.8", features = ["bundled"] }
+
+[patch.crates-io]
+# bundled feature still not published
+pq-sys = { git = "https://github.com/sgrif/pq-sys", rev = "f8d1f4a" }
 
 [dev-dependencies]
 criterion = "0.4"
