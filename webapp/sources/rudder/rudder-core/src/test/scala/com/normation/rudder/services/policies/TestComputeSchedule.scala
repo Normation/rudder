@@ -185,7 +185,7 @@ class TestComputeSchedule extends Specification {
       ComputeSchedule.computeSplayTime(uuid1, Duration.ofMinutes(10), fiveMinutes) === uuid1Splay
     }
 
-    "Check that the splaytime is strictly smaller that it's duration" in {
+    "Check that the splaytime is strictly smaller than its duration" in {
       val ids    = List.fill(100)(UUID.randomUUID().toString)
       val splays = ids.map(id => ComputeSchedule.computeSplayTime(id, fiveMinutes, fiveMinutes))
       val starts = ids.map(id => ComputeSchedule.getSplayedStartTime(id, LocalTime.of(0, 0), fiveMinutes, fiveMinutes))
