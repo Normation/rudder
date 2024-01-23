@@ -270,7 +270,7 @@ class CreateCloneGroupPopup(
     new WBSelectField("Parent category", (categories.toBox.getOrElse(Seq()).map(x => (x.id.value -> x.name))), parentCategoryId) {
       override def inputField =
         super.inputField % ("onkeydown" -> "return processKey(event , 'createCOGSaveButton')") % ("tabindex" -> "2")
-      override def className   = "col-lg-12 col-sm-12 col-xs-12  form-control"
+      override def className   = "col-lg-12 col-sm-12 col-xs-12  form-select"
       override def validations =
         valMinLen(1, "Please select a category") _ :: Nil
     }

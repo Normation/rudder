@@ -645,10 +645,10 @@ ul {
 .rudder-template .template-main .main-form{
   flex: 4;
 }
-.rudder-template .template-main .main-form select.form-control{
+.rudder-template .template-main .main-form select.form-select{
   width: auto;
 }
-.rudder-template .template-main .main-form .searchNodes select.form-control {
+.rudder-template .template-main .main-form .searchNodes select.form-select {
   width: 100%;
 }
 .rudder-template .template-main .main-table{
@@ -902,14 +902,14 @@ ul {
   background-color: transparent;
   transition-duration: .1s;
 }
-.rudder-template .one-col .sidebar-left ul.nav > li.active > a:before {
+.rudder-template .one-col .sidebar-left ul.nav > li > a.active:before {
   background-color: #1295c2;
 }
-.rudder-template .one-col .sidebar-left ul.nav > li.active > a {
+.rudder-template .one-col .sidebar-left ul.nav > li > a.active  {
   opacity: 1;
   color: #041922;
 }
-.rudder-template .one-col .sidebar-left ul.nav > li > a:hover {
+.rudder-template .one-col .sidebar-left ul.nav > li > a:not(.active):hover {
   opacity: 1;
   color: #1295c2;
 }

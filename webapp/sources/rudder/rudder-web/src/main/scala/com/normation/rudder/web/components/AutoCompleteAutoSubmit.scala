@@ -246,7 +246,7 @@ class AutoCompleteAutoSubmit {
           <script type="text/javascript" src={"/" + LiftRules.resourceServerPath + "/autocomplete/jquery.autocomplete.js"} />
           {Script(onLoad)}
         </head>
-        <label class="input-group-addon" for={id}>
+        <label class="input-group-text" for={id}>
           <span class="fa fa-search"></span>
         </label>
         {

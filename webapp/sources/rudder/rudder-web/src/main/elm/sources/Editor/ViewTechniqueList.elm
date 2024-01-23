@@ -108,9 +108,7 @@ techniqueList model techniques =
       , div [ class "header-filter" ] [
           div [class "input-group"] [
             input [ class "form-control",  type_ "text",  placeholder "Filter", onInput (\s -> UpdateTechniqueFilter {modelTechniqueFilter | filter = s}) , value model.techniqueFilter.filter]  []
-          , div [class "input-group-btn"] [
-              button [class "btn btn-default", type_ "button", onClick (UpdateTechniqueFilter {modelTechniqueFilter | filter = ""})][span [class "fa fa-times"][]]
-            ]
+          , button [class "btn btn-default", type_ "button", onClick (UpdateTechniqueFilter {modelTechniqueFilter | filter = ""})][span [class "fa fa-times"][]]
           ]
         ]
       ]

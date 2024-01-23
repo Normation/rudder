@@ -217,7 +217,7 @@ class CreateCategoryOrGroupPopup(
     selectedCategory.map(_.value).getOrElse("")
   ) {
     override def errorClassName = "col-lg-12 errors-container"
-    override def className      = "col-lg-12 col-sm-12 col-xs-12 form-control"
+    override def className      = "col-lg-12 col-sm-12 col-xs-12 form-select"
     override def inputField     =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createCOGSaveButton')") % ("tabindex" -> "3")
     override def validations =

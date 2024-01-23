@@ -180,7 +180,7 @@ class CreateOrCloneRulePopup(
       categoryHierarchyDisplayer.getRuleCategoryHierarchy(rootRuleCategory, None).map { case (id, name) => (id.value -> name) },
       selectedCategory.value
     ) {
-      override def className   = "form-control col-lg-12 col-sm-12 col-xs-12"
+      override def className   = "form-select col-lg-12 col-sm-12 col-xs-12"
       override def validations =
         valMinLen(1, "Please select a category") _ :: Nil
     }

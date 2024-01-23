@@ -532,7 +532,7 @@ class DirectiveEditForm(
           </span>
         </div>
       }
-      override def className             = "form-control"
+      override def className             = "form-select"
       override def labelClassName        = "col-xs-12"
       override def subContainerClassName = "col-xs-12"
     }
@@ -646,7 +646,7 @@ class DirectiveEditForm(
       attributes
     ) {
 
-      override def className = "form-control"
+      override def className = "form-select"
 
       override def labelClassName = "col-xs-12 text-bold"
 

@@ -49,9 +49,13 @@ a{
 /* BOOTSTRAP 5 COMPATIBILITY */
 .form-group{
   margin-bottom: 5px;
+  label{
+    font-weight: bold;
+  }
 }
-.form-group label{
-  font-weight: bold;
+
+ul {
+  padding-left: 0;
 }
 /*=== FONT AWESOME 5 MISSING ICONS FIX ===*/
 .fa{
@@ -479,7 +483,7 @@ pre.json-beautify code.elmsh {
 .search-addon{
   margin-bottom:6px;
 }
-.search-addon > .input-group-addon{
+.search-addon > .input-group-text{
   border-top-left-radius: 4px !important;
   border-bottom-left-radius: 4px !important;
   background-color: #F8F9FC !important;
@@ -791,7 +795,7 @@ pre.json-beautify code.elmsh {
   padding-left:  20px;
   padding-right: 20px;
 }
-#priority select.form-control,#version select.form-control{
+#priority select.form-select,#version select.form-select{
   width: auto;
 }
 .text-bold .text-fit{
@@ -1501,7 +1505,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   color: #fff;
 }
 
-.group-help .input-group-btn .btn-check{
+.group-help .btn-check{
   width: 40px;
   position: relative;
   top: 7px;
@@ -2060,13 +2064,21 @@ ul.list-sm{
 ul.list-sm .rudder-form  input[type=checkbox] + .label-radio + .check-icon{
   font-size:12px;
 }
-ul > li.rudder-form:first-child > .input-group label.form-control,#denyBadClocksForm ul > li:first-child > .input-group .input-group-addon,ul > li.rudder-form:first-child > .input-group .input-group-addon{
+ul > li.rudder-form > .input-group > .input-group-text:first-child{
+  border-radius:0;
+}
+
+ul > li.rudder-form:first-child > .input-group label.form-control,
+#denyBadClocksForm ul > li:first-child > .input-group .input-group-text,
+ul > li.rudder-form:first-child > .input-group .input-group-text{
   border-top:1px solid #d6deef;
 }
-#denyBadClocksForm ul > li:first-child > .input-group .input-group-addon,ul > li.rudder-form:first-child > .input-group .input-group-addon{
+#denyBadClocksForm ul > li:first-child > .input-group .input-group-text,
+ul > li.rudder-form:first-child > .input-group .input-group-text{
   border-top-left-radius:4px;
 }
-#denyBadClocksForm ul > li:last-child > .input-group .input-group-addon,ul > li.rudder-form:last-child > .input-group .input-group-addon{
+#denyBadClocksForm ul > li:last-child > .input-group .input-group-text,
+ul > li.rudder-form:last-child > .input-group .input-group-text{
   border-bottom-left-radius:4px;
 }
 ul > li.rudder-form:first-child > .input-group label.form-control{
@@ -2090,12 +2102,12 @@ ul.list-sm > li.rudder-form > .input-group label.form-control,#directiveRulesTab
   min-height: 34px;
   font-size: 12px;
 }
-ul > li.rudder-form > .input-group .input-group-addon{
+ul > li.rudder-form > .input-group .input-group-text{
   padding: 3px 11px;
   background-color: #F8F9FC;
   min-width: 30px;
 }
-ul > li.rudder-form.form-sm > .input-group .input-group-addon{
+ul > li.rudder-form.form-sm > .input-group .input-group-text{
   padding: 8px;
 }
 ul > li.rudder-form.form-sm > .input-group label.form-control{
@@ -2103,19 +2115,19 @@ ul > li.rudder-form.form-sm > .input-group label.form-control{
   color: #041922;
   font-size: 12px;
 }
-ul.list-sm > li.rudder-form > .input-group .input-group-addon{
+ul.list-sm > li.rudder-form > .input-group .input-group-text{
   padding: 0 11px;
 }
 ul > li.rudder-form:last-child > .input-group label.form-control{
   border-bottom-right-radius:4px;
 }
-ul > li.rudder-form > .input-group label.form-control,#denyBadClocksForm ul > li > .input-group .input-group-addon,ul > li.rudder-form > .input-group .input-group-addon{
+ul > li.rudder-form > .input-group label.form-control,#denyBadClocksForm ul > li > .input-group .input-group-text,ul > li.rudder-form > .input-group .input-group-text{
   border-top:none;
 }
 ul > li.rudder-form > .input-group label.form-control{
   padding-right: 40px;
 }
-ul > li.rudder-form > .input-group.disabled label.form-control,ul > li.rudder-form > .input-group.disabled .input-group-addon{
+ul > li.rudder-form > .input-group.disabled label.form-control,ul > li.rudder-form > .input-group.disabled .input-group-text{
   background-color: #eeeeee;
   cursor:no-drop;
 }
