@@ -22,7 +22,6 @@ class CommonLayout extends DispatchSnippet with DefaultExtendableSnippet[CommonL
    * the session var just after login.
    */
   def init(xml: NodeSeq): NodeSeq = {
-    println("displaying common layout")
     CurrentUser.get match {
       case None    => ApplicationLogger.warn("Authz.init called but user not authenticated")
       case Some(_) => // expected
