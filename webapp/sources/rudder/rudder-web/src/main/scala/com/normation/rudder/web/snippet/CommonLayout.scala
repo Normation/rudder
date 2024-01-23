@@ -13,7 +13,8 @@ import scala.xml.NodeSeq
 class CommonLayout extends DispatchSnippet with DefaultExtendableSnippet[CommonLayout] {
 
   def mainDispatch = Map(
-    "display" -> init
+    "display" -> init,
+    "scripts" -> (_ => menuScript)
   )
 
   /*
@@ -21,28 +22,35 @@ class CommonLayout extends DispatchSnippet with DefaultExtendableSnippet[CommonL
    * the session var just after login.
    */
   def init(xml: NodeSeq): NodeSeq = {
+    println("displaying common layout")
     CurrentUser.get match {
       case None    => ApplicationLogger.warn("Authz.init called but user not authenticated")
       case Some(_) => // expected
     }
 
-    display(xml) ++ WithNonce.scriptWithNonce(
-      Script(
-        OnLoad(
-          JsRaw(
-            """$('body').toggleClass('sidebar-collapse');"""
-          )
-        )
-      )
-    )
+    display(xml)
   }
 
   def display: CssSel = {
     "#toggleMenuButton" #> toggleMenuElement
   }
 
+  val menuScript = WithNonce.scriptWithNonce(
+    Script(
+      OnLoad(
+        JsRaw( // Toggle menu
+          """$('body').toggleClass('sidebar-collapse');
+            $('#toggleMenuButton').click(function() {
+              $('body').toggleClass('sidebar-collapse');
+            });
+            """
+        )
+      )
+    )
+  )
+
   val toggleMenuElement = {
-    <a onclick="$('body').toggleClass('sidebar-collapse')" class="sidebar-toggle p-3" role="button">
+    <a id="toggleMenuButton" class="sidebar-toggle p-3" role="button">
       <i class="fa fa-bars"></i>
       <span class="visually-hidden">Toggle navigation</span>
     </a>
