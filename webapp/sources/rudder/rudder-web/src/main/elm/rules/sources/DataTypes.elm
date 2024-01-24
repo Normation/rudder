@@ -4,7 +4,7 @@ import Dict exposing (Dict)
 import Http exposing (Error)
 import Time.ZonedDateTime exposing (ZonedDateTime)
 
-import ChangeRequest exposing (ChangeRequestSettings)
+import ChangeRequest exposing (ChangeRequestSettings, ChangeRequest)
 --
 -- All our data types
 --
@@ -320,6 +320,7 @@ type Msg
   | GetRuleDetailsResult     (Result Error Rule)
   | GetPolicyModeResult      (Result Error String)
   | GetChangeRequestSettings (Result Error ChangeRequestSettings)
+  | GetPendingChangeRequests (Result Error (List ChangeRequest))
   | GetCategoryDetailsResult (Result Error (Category Rule))
   | GetRulesComplianceResult (Result Error (List RuleComplianceGlobal))
   | GetRuleNodesDirectivesResult RuleId (Result Error RuleNodesDirectives)
