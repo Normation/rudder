@@ -158,10 +158,31 @@ To update the technique, repeat the import steps.
 
 We provide a [JSON schema](https://raw.githubusercontent.com/Normation/rudder/master/policies/rudderc/src/technique.schema.json)
 for Rudder YAML techniques.
-Depending on the editor, it provides various handy features,
-like property name completion, or technique structure linting.
-You need to import the schema in you editor
-([Visual Studio Code](https://code.visualstudio.com/docs/languages/json#_json-schemas-and-settings),
-[JetBrains Editor](https://www.jetbrains.com/help/idea/json.html#ws_json_schema_add_custom),
-[vim](https://github.com/Quramy/vison), etc.
-).
+This schema can be automatically used for all your techniques files in most editors,
+as it's part of [JSON Schema Store](https://www.schemastore.org/json/).
+
+### Visual Studio Code
+
+You need to install the `YAML` plugin in the extension manager:
+
+![The YAML plugin in Visual Studio Code](images/vscode-yaml.png)
+
+You're all set! Now, when you open any technique file, the schema will be applied automatically
+as shown in the file type indicating "Rudder technique".
+
+![The Rudder techniques type](images/vscode-type.png)
+
+You now have access to basic linting and autocompletion on technique fields:
+
+![The Rudder techniques type](images/vscode-auto.png)
+
+![The Rudder techniques type](images/vscode-lint.png)
+
+### Other editors
+
+You can also use:
+
+* All JetBrains editors (IntelliJ IDEA, PyCharm, etc.) work without any configuration
+* All editors using the [YAML language server](https://github.com/redhat-developer/yaml-language-server)
+  (Helix after installing `yaml-language-server`, SublimeText with the `LSP-yaml` plugin, etc.)
+* NeoVim using the [SchemaStore](https://github.com/b0o/SchemaStore.nvim) plugin
