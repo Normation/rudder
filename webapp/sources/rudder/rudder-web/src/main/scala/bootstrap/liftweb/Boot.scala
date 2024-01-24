@@ -62,6 +62,7 @@ import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.RudderUserDetail
+import com.normation.rudder.web.snippet.CustomPageJs
 import com.normation.rudder.web.snippet.WithCachedResource
 import com.normation.rudder.web.snippet.WithNonce
 import com.normation.zio._
@@ -84,6 +85,8 @@ import org.reflections.Reflections
 import org.springframework.security.core.context.SecurityContextHolder
 import scala.concurrent.duration.DAYS
 import scala.concurrent.duration.Duration
+import scala.xml.Elem
+import scala.xml.Node
 import scala.xml.NodeSeq
 
 /*
@@ -518,6 +521,33 @@ class Boot extends Loggable {
     // We need an override of the default factory. Somehow the LiftRules.supplementalHeaders.request value is reset too often
     val requestHeadersFactory = new Boot.RequestHeadersFactoryVendor(csp)
     LiftRules.supplementalHeaders.default.set(requestHeadersFactory)
+
+    // allow to use inline javascript in our html without having to write separate scripts for CSP
+    LiftRules.extractInlineJavaScript = true
+
+    // We need to replace duplicate lift scripts because our custom page js may override the lift.js script (with nonce attributes)
+    val defaultConvertResponse = LiftRules.convertResponse
+    LiftRules.convertResponse = {
+      case (r: XhtmlResponse, _, _, _) if CustomPageJs.hasDuplicateLiftScripts => {
+        // Create scala.xml.transform rule to remove last script tag in html having a src attribute ending with "lift"
+        val filter: Node => Boolean = n => {
+          val src      = n \@ "src"
+          val hasNonce = n \@ "nonce" != ""
+          !hasNonce && (src.contains(CustomPageJs.liftJsScriptSrc) || src.contains(CustomPageJs.pageJsScriptSrc))
+        }
+        val rule = new scala.xml.transform.RewriteRule {
+          override def transform(n: Node): Seq[Node] = {
+            n match {
+              case e: Elem if e.label == "script" && filter(e) => Nil
+              case _ => n
+            }
+          }
+        }
+        val transformer = new scala.xml.transform.RuleTransformer(rule)
+        r.copy(out = transformer(r.out))
+      }
+      case o                                                                   => defaultConvertResponse(o)
+    }
 
     // By default Lift redirects to login page when a comet request's session changes
     // which happens when there is a connection to the same server in another tab.

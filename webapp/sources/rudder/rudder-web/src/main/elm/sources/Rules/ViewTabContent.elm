@@ -16,6 +16,7 @@ import Tuple3
 import Rules.DataTypes exposing (..)
 import Rules.ViewRepairedReports
 import Rules.ViewUtils exposing (..)
+import Rules.ChangeRequest exposing (toLabel)
 import Compliance.DataTypes exposing (..)
 import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance, defaultComplianceFilter)
 import Compliance.Html exposing (buildComplianceBar)
@@ -73,7 +74,6 @@ buildTagsContainer rule editMode details =
 
 informationTab: Model -> RuleDetails  -> Html Msg
 informationTab model details =
-
   let
     isNewRule = Maybe.Extra.isNothing details.originRule
     rule       = details.rule
@@ -216,9 +216,58 @@ informationTab model details =
           ]
         ]
       )
+
+    pendingCrWarning = case model.ui.crSettings of
+      Just settings ->
+        if settings.enableChangeRequest && not (List.isEmpty settings.pendingChangeRequests) then
+          div [class "col-sm-12"]
+          [ div[class ("callout-fade callout-info callout-cr" ++ if settings.collapsePending then " list-hidden" else ""), id "accordionCR"]
+            [ p[]
+              [ b[]
+                [ i[class "fa fa-info-circle"][]
+                , text "Pending change requests"
+                ]
+              , span[class "fa fa-chevron-down", onClick (UpdateCrSettings {settings | collapsePending = not settings.collapsePending})][]
+              ]
+            , div[]
+              [ p[][text "The following pending change requests affect this rule, you should check that your modification is not already pending:"]
+              , ul[]
+                ( settings.pendingChangeRequests
+                  |> List.map (\cr ->
+                    let
+                      statusBadge = span[class "badge"][text (toLabel cr.status)]
+                      tooltip =
+                        if String.isEmpty cr.description then
+                          text ""
+                        else
+                          span
+                          [ class "bs-tooltip fa fa-question-circle icon-info"
+                          , attribute "data-toggle" "tooltip"
+                          , attribute "data-placement" "top"
+                          , attribute "data-container" "body"
+                          , attribute "data-html" "true"
+                          , attribute "data-original-title" (buildTooltipContent "Description" cr.description)
+                          ][]
+                    in
+                      li[]
+                      [ a[href (model.contextPath ++ "/secure/plugins/changes/changeRequest/" ++ (String.fromInt cr.id))]
+                        [ statusBadge
+                        , text cr.name
+                        , tooltip
+                        ]
+                      ]
+                    )
+                )
+              ]
+            ]
+          ]
+        else
+          text ""
+      Nothing -> text ""
   in
     div[class "row"]
-    [ ruleForm
+    [ pendingCrWarning
+    , ruleForm
     , div [class "col-xs-12 col-sm-6 col-lg-5"][ rightCol ]
     ]
 
