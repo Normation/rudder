@@ -246,8 +246,8 @@ class AutoCompleteAutoSubmit {
           <script type="text/javascript" src={"/" + LiftRules.resourceServerPath + "/autocomplete/jquery.autocomplete.js"} />
           {Script(onLoad)}
         </head>
-        <label class="input-group-addon" for={id}>
-          <span class="glyphicon glyphicon-search"></span>
+        <label class="input-group-text" for={id}>
+          <span class="fa fa-search"></span>
         </label>
         {
           attrs.foldLeft(<input type="text" id={id} value={start} />)(_ % _)

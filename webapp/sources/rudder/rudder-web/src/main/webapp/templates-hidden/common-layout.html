@@ -19,9 +19,8 @@
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder.css" media="screen" />
 
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/libs/bootstrap.min.css" media="screen" />
-    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/bootstrap/bootstrap-toggle-2.2.2.min.css" media="screen" />
+
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-compliance.css" media="screen" />
-    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-bootstrap.css" media="screen" />
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-quicksearch.css" media="screen" />
 
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/datatables/rowGroup-bootstrap-1.2.0.min.css" media="screen" />
@@ -70,7 +69,7 @@
       <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-notifications.js"></script>
       <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-quicksearch.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/rudder-elm.js"></script>
-    <script>
+    <script data-lift="with-nonce">
     (function($) {
        $.fn.hasScrollBar = function() {
             return this.get(0) ? this.get(0).scrollHeight > this.innerHeight() : false;
@@ -93,7 +92,7 @@
     </script>
     <script data-lift="SetupRedirect.display" ></script>
     <script data-lift="RegisterToasts.display"></script>
-    <script type="text/javascript">
+    <script type="text/javascript" data-lift="with-nonce">
       // <![CDATA[
       $(document).ready(function() {
         $("a", "form").click(function() { return false; });
@@ -117,17 +116,13 @@
         <nav class="navbar navbar-expand">
           <div class="container-fluid ps-0 pe-0">
             <div class="d-flex align-items-center">
-              <!-- Toggle menu button -->
-              <a href="#" class="sidebar-toggle p-3" role="button" onclick="$('body').toggleClass('sidebar-collapse')">
-                <i class="fa fa-bars"></i>
-                <span class="visually-hidden">Toggle navigation</span>
-              </a>
-
+              <!-- Toggle menu button rendered by server -->
+              <a id="toggleMenuButton"></a>
               <!-- Quick search -->
               <rudder-quicksearch></rudder-quicksearch>
             </div>
 
-            <ul class="navbar-nav align-items-center">
+            <ul id="rudder-navbar" class="navbar-nav align-items-center">
               <!-- Plugin license warning -->
               <li data-lift="PluginExpirationInfo.render"></li>
 
@@ -232,7 +227,7 @@
           <div class="modal-footer">
             <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
             <span data-lift="UserInformation.logout">
-              <a href="/logout" class="btn btn-danger">Log out</a>
+              <button id="userInformationLogoutButton" class="btn btn-danger">Log out</button>
             </span>
           </div>
         </div>
@@ -268,4 +263,5 @@
       </div>
     </div>
   </body>
+  <div data-lift="CustomPageJs.pageScript"></div>
 </html>

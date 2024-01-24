@@ -339,46 +339,69 @@ object DirectiveApi       extends ApiModuleProvider[DirectiveApi]               
 }
 
 sealed trait NodeApi extends EndpointSchema with SortIndex {
-  override def dataContainer = Some("nodes")
+  override def dataContainer: Option[String] = Some("nodes")
 }
 object NodeApi       extends ApiModuleProvider[NodeApi]    {
 
-  final case object ListAcceptedNodes       extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion2 with SortIndex  {
+  final case object ListAcceptedNodes  extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion2 with SortIndex  {
     val z              = implicitly[Line].value
     val description    = "List all accepted nodes with configurable details level"
     val (action, path) = GET / "nodes"
   }
-  final case object GetNodesStatus          extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion13 with SortIndex {
+  final case object GetNodesStatus     extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion13 with SortIndex {
     val z              = implicitly[Line].value
     val description    = "Get the status (pending, accepted, unknown) of the comma separated list of nodes given by `ids` parameter"
     val (action, path) = GET / "nodes" / "status"
   }
-  final case object ListPendingNodes        extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion2 with SortIndex  {
+  final case object ListPendingNodes   extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion2 with SortIndex  {
     val z              = implicitly[Line].value
     val description    = "List all pending nodes with configurable details level"
     val (action, path) = GET / "nodes" / "pending"
   }
-  final case object PendingNodeDetails      extends NodeApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex   {
+  final case object PendingNodeDetails extends NodeApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex   {
     val z              = implicitly[Line].value
     val description    = "Get information about the given pending node"
     val (action, path) = GET / "nodes" / "pending" / "{id}"
   }
-  final case object NodeDetails             extends NodeApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex   {
+  final case object NodeDetails        extends NodeApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex   {
     val z              = implicitly[Line].value
     val description    = "Get information about the given accepted node"
     val (action, path) = GET / "nodes" / "{id}"
   }
-  final case object NodeInheritedProperties extends NodeApi with GeneralApi with OneParam with StartsAtVersion11 with SortIndex  {
+
+  final case object NodeInheritedProperties extends NodeApi with GeneralApi with OneParam with StartsAtVersion11 with SortIndex {
     val z              = implicitly[Line].value
-    val description    = "Get all proporeties for that node, included inherited ones"
+    val description    = "Get all propreties for that node, included inherited ones"
     val (action, path) = GET / "nodes" / "{id}" / "inheritedProperties"
   }
-  final case object ApplyPolicyAllNodes     extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion8 with SortIndex  {
+
+  final case object NodeGlobalScore extends NodeApi with InternalApi with OneParam with StartsAtVersion19 with SortIndex {
+    val z                      = implicitly[Line].value
+    val description            = "Get global score for a Node"
+    val (action, path)         = GET / "nodes" / "{id}" / "score"
+    override def dataContainer = None
+  }
+
+  final case object NodeScoreDetails extends NodeApi with InternalApi with OneParam with StartsAtVersion19 with SortIndex {
+    val z                      = implicitly[Line].value
+    val description            = "Get all score details for a Node"
+    val (action, path)         = GET / "nodes" / "{id}" / "score" / "details"
+    override def dataContainer = None
+  }
+
+  final case object NodeScoreDetail extends NodeApi with InternalApi with TwoParam with StartsAtVersion19 with SortIndex {
+    val z                      = implicitly[Line].value
+    val description            = "Get a score details for a Node"
+    val (action, path)         = GET / "nodes" / "{id}" / "score" / "details" / "{name}"
+    override def dataContainer = Some("score")
+  }
+
+  final case object ApplyPolicyAllNodes     extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion8 with SortIndex {
     val z              = implicitly[Line].value
     val description    = "Ask all nodes to start a run with the given policy"
     val (action, path) = POST / "nodes" / "applyPolicy"
   }
-  final case object ChangePendingNodeStatus extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion2 with SortIndex  {
+  final case object ChangePendingNodeStatus extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion2 with SortIndex {
     val z              = implicitly[Line].value
     val description    = "Accept or refuse pending nodes"
     val (action, path) = POST / "nodes" / "pending"

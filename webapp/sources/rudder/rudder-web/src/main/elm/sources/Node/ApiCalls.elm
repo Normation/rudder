@@ -5,7 +5,7 @@ import Url.Builder exposing (QueryParameter)
 
 import Node.DataTypes exposing (..)
 
-import ComplianceScore.JsonDecoder exposing (decodeGetScoreDetails)
+import Score.JsonDecoder exposing (decodeGetDetails)
 
 
 --
@@ -25,7 +25,7 @@ getScoreDetails model =
         , headers = []
         , url     = getUrl model ["nodes" , model.nodeId.value, "score" , "details"] []
         , body    = emptyBody
-        , expect  = expectJson GetScoreDetails decodeGetScoreDetails
+        , expect  = expectJson GetScoreDetails decodeGetDetails
         , timeout = Nothing
         , tracker = Nothing
         }

@@ -3,7 +3,7 @@
 <input-text>
   <div class="directive-input-group">
     <div class="input-group input-group-sm text-section col-xs-12">
-      <div class="input-group-btn input-feature">
+      <div class="input-feature">
         <button class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown" type="button"> <span class="prefix-selected">Text</span> <span class="caret"></span></button>
         <ul class="dropdown-menu">
           <li><a onclick="updatePrefix(this, '')"        >Text </a></li>
@@ -32,12 +32,10 @@
 
 <input-shared>
   <div class="directive-input-group">
-    <div class="input-group col-xs-12 rect-padding">
-      <span class="input-group-btn">
-        <button class="btn btn-default btn-sm browserFile" type="button" id="browserFile" onclick="">
-          <span class="glyphicon glyphicon-folder-open"></span>
-        </button>
-      </span>
+    <div class="input-group input-group-sm col-xs-12 rect-padding">
+      <button class="btn btn-default browserFile" type="button" id="browserFile" onclick="">
+        <span class="fa fa-folder-open"></span>
+      </button>
     </div>
   </div>
 </input-shared>

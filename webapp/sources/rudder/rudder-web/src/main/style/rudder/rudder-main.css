@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2016 Normation SAS
+* Copyright 2024 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -37,12 +37,25 @@
 
 body {
   font-family: var(--font-sans);
+  font-size: 14px;
 }
 code, kbd, pre, samp, .code {
   font-family: var(--font-mono);
 }
 a{
   text-decoration: none !important;
+}
+
+/* BOOTSTRAP 5 COMPATIBILITY */
+.form-group{
+  margin-bottom: 5px;
+  label{
+    font-weight: bold;
+  }
+}
+
+ul {
+  padding-left: 0;
 }
 /*=== FONT AWESOME 5 MISSING ICONS FIX ===*/
 .fa{
@@ -149,7 +162,10 @@ pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
 pre.json-beautify code.elmsh {
   background: transparent !important;
 }
-/* - MODAL 4.0 - */
+/* - MODALS - */
+.modal.show .modal-dialog{
+  z-index: 1060;
+}
 .modal .modal-content {
   border-radius: 0;
   border: none;
@@ -343,7 +359,7 @@ pre.json-beautify code.elmsh {
   min-height:6em;
 }
 /* ICON INFO */
-.glyphicon.info{
+.fa.info{
   top: -2px;
   margin-left: 10px;
   font-size: 16px;
@@ -351,7 +367,7 @@ pre.json-beautify code.elmsh {
   cursor: help;
   transition-duration:.2s;
 }
-.glyphicon.info:hover{
+.fa.info:hover{
   color:#738195;
 }
 .no-hpadding{
@@ -393,7 +409,7 @@ pre.json-beautify code.elmsh {
 .navbar-nav > li > a {
   padding: 15px;
 }
-.navbar-nav a .glyphicon,.navbar-nav a:hover .glyphicon,.navbar-nav a:focus .glyphicon {
+.navbar-nav a .fa, .navbar-nav a:focus .fa {
   color: #36474E;
 }
 .navbar-nav a .fa-sign-out{
@@ -425,7 +441,7 @@ pre.json-beautify code.elmsh {
 .sidebar-collapse .sidebar-menu>li>.treeview-menu {
   margin-top: -2px;
 }
-.sidebar-menu>li>a>span>span>.fa, .sidebar-menu>li>a>span>span>.glyphicon, .sidebar-menu>li>a>span>span>.ion {
+.sidebar-menu>li>a>span>span>.fa, .sidebar-menu>li>a>span>span>.ion {
   width: 20px;
 }
 .rudder_col>.portlet,.rudder_col>.content-wrapper >.ui-widget-content {
@@ -467,7 +483,7 @@ pre.json-beautify code.elmsh {
 .search-addon{
   margin-bottom:6px;
 }
-.search-addon > .input-group-addon{
+.search-addon > .input-group-text{
   border-top-left-radius: 4px !important;
   border-bottom-left-radius: 4px !important;
   background-color: #F8F9FC !important;
@@ -522,10 +538,6 @@ pre.json-beautify code.elmsh {
   display: inline-block;
 }
 /* --- ACCEPT NEW NODES --- */
-.tabInform .glyphicon{
-  margin: 0 6px 0 4px;
-  transform: scale(1.2);
-}
 .action-btns{
   float: left;
   width: 100%;
@@ -783,7 +795,7 @@ pre.json-beautify code.elmsh {
   padding-left:  20px;
   padding-right: 20px;
 }
-#priority select.form-control,#version select.form-control{
+#priority select.form-select,#version select.form-select{
   width: auto;
 }
 .text-bold .text-fit{
@@ -1136,7 +1148,7 @@ form .tooltip-content p {
   line-height: 96px;
   transform: rotate(45deg);
 }
-.callout-fade div.marker span.glyphicon,.callout-fade div.marker span.fa{
+.callout-fade div.marker span.fa{
   transform:rotate(-45deg);
   transition-duration:.2s;
 }
@@ -1493,7 +1505,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   color: #fff;
 }
 
-.group-help .input-group-btn .btn-check{
+.group-help .btn-check{
   width: 40px;
   position: relative;
   top: 7px;
@@ -1569,7 +1581,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
 .rudder-form .button-group-success{
   margin-top: 15px;
 }
-.close-message.glyphicon {
+.close-message {
   color: rgba(0, 0, 0, .3);
   top: 2px;
   left: 2px;
@@ -2052,13 +2064,21 @@ ul.list-sm{
 ul.list-sm .rudder-form  input[type=checkbox] + .label-radio + .check-icon{
   font-size:12px;
 }
-ul > li.rudder-form:first-child > .input-group label.form-control,#denyBadClocksForm ul > li:first-child > .input-group .input-group-addon,ul > li.rudder-form:first-child > .input-group .input-group-addon{
+ul > li.rudder-form > .input-group > .input-group-text:first-child{
+  border-radius:0;
+}
+
+ul > li.rudder-form:first-child > .input-group label.form-control,
+#denyBadClocksForm ul > li:first-child > .input-group .input-group-text,
+ul > li.rudder-form:first-child > .input-group .input-group-text{
   border-top:1px solid #d6deef;
 }
-#denyBadClocksForm ul > li:first-child > .input-group .input-group-addon,ul > li.rudder-form:first-child > .input-group .input-group-addon{
+#denyBadClocksForm ul > li:first-child > .input-group .input-group-text,
+ul > li.rudder-form:first-child > .input-group .input-group-text{
   border-top-left-radius:4px;
 }
-#denyBadClocksForm ul > li:last-child > .input-group .input-group-addon,ul > li.rudder-form:last-child > .input-group .input-group-addon{
+#denyBadClocksForm ul > li:last-child > .input-group .input-group-text,
+ul > li.rudder-form:last-child > .input-group .input-group-text{
   border-bottom-left-radius:4px;
 }
 ul > li.rudder-form:first-child > .input-group label.form-control{
@@ -2082,12 +2102,12 @@ ul.list-sm > li.rudder-form > .input-group label.form-control,#directiveRulesTab
   min-height: 34px;
   font-size: 12px;
 }
-ul > li.rudder-form > .input-group .input-group-addon{
+ul > li.rudder-form > .input-group .input-group-text{
   padding: 3px 11px;
   background-color: #F8F9FC;
   min-width: 30px;
 }
-ul > li.rudder-form.form-sm > .input-group .input-group-addon{
+ul > li.rudder-form.form-sm > .input-group .input-group-text{
   padding: 8px;
 }
 ul > li.rudder-form.form-sm > .input-group label.form-control{
@@ -2095,22 +2115,19 @@ ul > li.rudder-form.form-sm > .input-group label.form-control{
   color: #041922;
   font-size: 12px;
 }
-ul.list-sm > li.rudder-form > .input-group .input-group-addon{
+ul.list-sm > li.rudder-form > .input-group .input-group-text{
   padding: 0 11px;
-}
-ul > li.rudder-form > .input-group label.form-control .glyphicon.info{
-  top:3px;
 }
 ul > li.rudder-form:last-child > .input-group label.form-control{
   border-bottom-right-radius:4px;
 }
-ul > li.rudder-form > .input-group label.form-control,#denyBadClocksForm ul > li > .input-group .input-group-addon,ul > li.rudder-form > .input-group .input-group-addon{
+ul > li.rudder-form > .input-group label.form-control,#denyBadClocksForm ul > li > .input-group .input-group-text,ul > li.rudder-form > .input-group .input-group-text{
   border-top:none;
 }
 ul > li.rudder-form > .input-group label.form-control{
   padding-right: 40px;
 }
-ul > li.rudder-form > .input-group.disabled label.form-control,ul > li.rudder-form > .input-group.disabled .input-group-addon{
+ul > li.rudder-form > .input-group.disabled label.form-control,ul > li.rudder-form > .input-group.disabled .input-group-text{
   background-color: #eeeeee;
   cursor:no-drop;
 }
@@ -2281,7 +2298,7 @@ h3.box-title {
   margin-top:6px;
   margin-bottom:6px;
 }
-.box-header>.fa, .box-header>.glyphicon, .box-header>.ion, .box-header .box-title{
+.box-header>.fa, .box-header>.ion, .box-header .box-title{
   color:#041922;
 }
 .box .box-title .fa{
@@ -2358,7 +2375,7 @@ h3.box-title {
   padding: 5px 10px !important;
   background-color: #fff !important;
 }
-.box-tools > .btn > .fa,.box-tools > .btn > .glyphicon,.box-tools > .btn > .ion{
+.box-tools > .btn > .fa,.box-tools > .btn > .ion{
   margin-left: 6px;
 }
 .btn.new-icon:after{

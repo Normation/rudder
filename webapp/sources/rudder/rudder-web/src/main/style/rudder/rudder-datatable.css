@@ -423,7 +423,7 @@ td.listclose:after {
 #nodePropertiesTab .is-edited .action-icon{
   top: 6px;
 }
-#nodePropertiesTab .action-icon.glyphicon{
+#nodePropertiesTab .action-icon{
   font-size: 17px;
   padding-bottom: 2px;
 }
@@ -575,7 +575,7 @@ td.greyBackground, th.greyBackground {
   cursor: pointer;
   margin-bottom: 0;
 }
-#select-columns .form-inline-flex label.input-group > .input-group-addon{
+#select-columns .form-inline-flex label.input-group > .input-group-text{
   border-top-left-radius: 4px;
   border-bottom-left-radius: 4px;
   background-color: #f7F7F7;

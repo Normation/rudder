@@ -330,39 +330,33 @@ showMethodTab model method parentId call uiInfo=
         ]
       , div [ class "form-horizontal editForm result-class" ] [
           div [ class "input-group result-success" ] [
-            div [ class "input-group-addon" ] [
+            div [ class "input-group-text" ] [
               text "Success"
             ]
           , input [ readonly True, type_ "text", class "form-control",  value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_kept")
                    , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)) , stopPropagationOn "click" (Json.Decode.succeed (DisableDragDrop, True)) ] []
-          , span [ class "input-group-btn" ] [
-              button [ class "btn btn-outline-secondary clipboard", type_ "button", title "Copy to clipboard", onClick (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_kept")) ] [
-                i [ class "ion ion-clipboard" ] []
-              ]
+          , button [ class "btn btn-outline-secondary clipboard", type_ "button", title "Copy to clipboard", onClick (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_kept")) ] [
+              i [ class "ion ion-clipboard" ] []
             ]
           ]
         , div [ class "input-group result-repaired" ] [
-            div [ class "input-group-addon" ] [
+            div [ class "input-group-text" ] [
               text "Repaired"
             ]
           , input [ readonly True, type_ "text", class "form-control",  value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_repaired")
                    , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)) , stopPropagationOn "click" (Json.Decode.succeed (DisableDragDrop, True)) ] []
-          , span [ class "input-group-btn" ] [
-              button [ class "btn btn-outline-secondary clipboard", type_ "button" , title "Copy to clipboard" , onClick (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_repaired")) ] [
-                i [ class "ion ion-clipboard" ] []
-              ]
+          , button [ class "btn btn-outline-secondary clipboard", type_ "button" , title "Copy to clipboard" , onClick (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_repaired")) ] [
+              i [ class "ion ion-clipboard" ] []
             ]
           ]
         , div [ class "input-group result-error" ] [
-            div [ class "input-group-addon" ] [
+            div [ class "input-group-text" ] [
               text "Error"
             ]
           , input [ readonly True, type_ "text", class "form-control",  value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_error")
                    , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)) , stopPropagationOn "click" (Json.Decode.succeed (DisableDragDrop, True)) ] []
-          , span [ class "input-group-btn" ] [
-              button [ class "btn btn-outline-secondary clipboard", type_ "button", title "Copy to clipboard", onClick (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_error")) ] [
-                i [ class "ion ion-clipboard" ] []
-              ]
+          , button [ class "btn btn-outline-secondary clipboard", type_ "button", title "Copy to clipboard", onClick (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_error")) ] [
+              i [ class "ion ion-clipboard" ] []
             ]
           ]
         ]
@@ -498,7 +492,7 @@ callBody model ui techniqueUi call pid =
 --}
     condition = element "div"
                 |> addClass "method-condition flex-form"
-                |> addClassConditional "hidden" (call.condition.os == Nothing && call.condition.advanced == "")
+                |> addClassConditional "visually-hidden" (call.condition.os == Nothing && call.condition.advanced == "")
                 |> appendChildList
                    [ element "label"
                      |> appendText "Condition:"
@@ -567,7 +561,7 @@ callBody model ui techniqueUi call pid =
                                              |> addClass "title-input-name"
                                              |> appendText "Policy mode"
                                            , element "select"
-                                             |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, name "policyMode", class "form-control" ]
+                                             |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, name "policyMode", class "form-select" ]
                                              |> addChangeHandler  (\s -> MethodCallModified (Call pid {call  | policyMode = if (s == "audit") then Just Audit else if (s == "enforce") then Just Enforce else Nothing }))
                                              |> appendChildList [
                                                element "option" |> addAttributeList [ selected (call.policyMode == Nothing), value "default"] |> appendText "Default"

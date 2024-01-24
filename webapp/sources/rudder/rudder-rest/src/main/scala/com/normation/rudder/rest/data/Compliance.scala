@@ -144,6 +144,7 @@ final case class ByNodeGroupRuleCompliance(
     id:         RuleId,
     name:       String,
     compliance: ComplianceLevel,
+    policyMode: Option[PolicyMode],
     directives: Seq[ByNodeGroupByRuleDirectiveCompliance]
 )
 
@@ -828,6 +829,7 @@ object JsonCompliance {
           (("id"                 -> rule.id.serialize)
           ~ ("name"              -> rule.name)
           ~ ("compliance"        -> rule.compliance.complianceWithoutPending(precision))
+          ~ ("policyMode"        -> rule.policyMode.map(_.name).getOrElse("default"))
           ~ ("complianceDetails" -> percents(rule.compliance, precision))
           ~ ("directives"        -> directives(rule.directives, level, precision)))
         })
@@ -865,6 +867,7 @@ object JsonCompliance {
             ("id"                  -> rule.id.serialize)
             ~ ("name"              -> rule.name)
             ~ ("compliance"        -> rule.compliance.complianceWithoutPending(precision))
+            ~ ("policyMode"        -> rule.policyMode.map(_.name).getOrElse("default"))
             ~ ("complianceDetails" -> percents(rule.compliance, precision))
             ~ ("directives"        -> byNodeDirectives(rule.directives, level, precision))
           )
@@ -884,6 +887,7 @@ object JsonCompliance {
             ("id"                  -> directive.id.serialize)
             ~ ("name"              -> directive.name)
             ~ ("compliance"        -> directive.compliance.complianceWithoutPending(precision))
+            ~ ("policyMode"        -> directive.policyMode.map(_.name).getOrElse("default"))
             ~ ("complianceDetails" -> percents(directive.compliance, precision))
             ~ ("components"        -> byNodeComponents(directive.components, level, precision))
           )
@@ -969,6 +973,7 @@ object JsonCompliance {
             ("id"                  -> node.id.value)
             ~ ("name"              -> node.name)
             ~ ("compliance"        -> node.compliance.complianceWithoutPending(precision))
+            ~ ("policyMode"        -> node.mode.map(_.name).getOrElse("default"))
             ~ ("complianceDetails" -> percents(node.compliance, precision))
             ~ ("values"            -> values(node.values, level))
           )

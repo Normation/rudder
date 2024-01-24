@@ -139,10 +139,10 @@ function homePage (
   gauge.animationSpeed = 14; // set animation speed (32 is default value)
 
   if(globalGauge < 0) { //put placeholder texte
-    $("#globalCompliance").html('<div class="placeholder-bar progress"></div>');
+    $("#globalCompliance").html('<div class="placeholder-bar progress m-0 mb-3"></div>');
     $("#globalComplianceStats").html(
-      "<h4>You only have system rules. They are ignored in global compliance.</h4>"+
-      "<h4>Please go to <a href='/rudder/secure/configurationManager/ruleManagement'>rule management</a> to define your rules.</h4>"
+      "<p>You only have system rules. They are ignored in global compliance.</p>"+
+      "<p>Please go to <a href='/rudder/secure/configurationManager/ruleManagement'>rule management</a> to define your rules.</p>"
     )
 
     var complianceGauge = document.getElementById('complianceGauge');

@@ -222,7 +222,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
               val id = "network_" + i
 
               (
-                ".deleteNetwork" #> SHtml.ajaxButton(<span class="glyphicon glyphicon-minus"></span>, () => delete(i)) &
+                ".deleteNetwork" #> SHtml.ajaxButton(<span class="fa fa-minus"></span>, () => delete(i)) &
                 "#errorNetworkField" #> <div><span class={
                   "lift:Msg?errorClass=bs-text-danger;id=errornetwork_" + i
                 }>[error]</span></div> &
@@ -236,7 +236,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
           }
         } &
         "#addNetworkButton" #> SHtml.ajaxButton(
-          <span class="glyphicon glyphicon-plus"></span>,
+          <span class="fa fa-plus"></span>,
           add _,
           ("id", s"addNetworkButton${policyServerId.value}")
         ) &

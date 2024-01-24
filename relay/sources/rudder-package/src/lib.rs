@@ -49,6 +49,7 @@ const PACKAGES_FOLDER: &str = "/var/rudder/packages";
 const LICENSES_FOLDER: &str = "/opt/rudder/etc/plugins/licenses";
 const WEBAPP_XML_PATH: &str = "/opt/rudder/share/webapps/rudder.xml";
 const PACKAGES_DATABASE_PATH: &str = "/var/rudder/packages/index.json";
+const PACKAGE_SCRIPTS_ARCHIVE: &str = "scripts.txz";
 const CONFIG_PATH: &str = "/opt/rudder/etc/rudder-pkg/rudder-pkg.conf";
 const SIGNATURE_KEYRING_PATH: &str = "/opt/rudder/etc/rudder-pkg/rudder_plugins_key.gpg";
 const RUDDER_VERSION_PATH: &str = "/opt/rudder/share/versions/rudder-server-version";
@@ -103,13 +104,12 @@ pub fn run_inner(args: Args) -> Result<()> {
     let webapp_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
     let mut webapp = Webapp::new(PathBuf::from(WEBAPP_XML_PATH), webapp_version);
     let mut db = Database::read(Path::new(PACKAGES_DATABASE_PATH))?;
-    let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
-    let licenses = Licenses::from_path(Path::new(LICENSES_FOLDER))?;
 
     create_dir_all(TMP_PLUGINS_FOLDER).context("Create temporary directory")?;
 
     match args.command {
         Command::Install { force, package } => {
+            let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
             let mut errors = false;
             for p in &long_names(package) {
                 if let Err(e) = db.install(force, p, &repo, index.as_ref(), &mut webapp) {
@@ -142,6 +142,7 @@ pub fn run_inner(args: Args) -> Result<()> {
             package,
             all_postinstall,
         } => {
+            let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
             if all_postinstall {
                 let mut errors = false;
                 for p in db.plugins.values() {
@@ -196,8 +197,12 @@ pub fn run_inner(args: Args) -> Result<()> {
             all,
             enabled,
             format,
-        } => ListOutput::new(all, enabled, &licenses, &db, index.as_ref(), &webapp)?
-            .display(format)?,
+        } => {
+            let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
+            let licenses = Licenses::from_path(Path::new(LICENSES_FOLDER))?;
+            ListOutput::new(all, enabled, &licenses, &db, index.as_ref(), &webapp)?
+        }
+        .display(format)?,
         Command::Show { package } => {
             for p in long_names(package) {
                 println!(
@@ -320,7 +325,11 @@ pub fn run_inner(args: Args) -> Result<()> {
                 info!("Plugins successfully disabled");
             }
         }
-        Command::Info {} => display_info(&licenses, &repo, index.as_ref()),
+        Command::Info {} => {
+            let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
+            let licenses = Licenses::from_path(Path::new(LICENSES_FOLDER))?;
+            display_info(&licenses, &repo, index.as_ref())
+        }
     }
     // Restart if needed
     webapp.apply_changes()?;

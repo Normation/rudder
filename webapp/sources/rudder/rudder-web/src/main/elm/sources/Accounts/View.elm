@@ -65,7 +65,7 @@ view model =
                           )][]
                         ]
                       , div [class "form-group"]
-                        [ select [class "form-control" , onInput (\authType ->
+                        [ select [class "form-select" , onInput (\authType ->
                           let
                             tableFilters = model.ui.tableFilters
                           in

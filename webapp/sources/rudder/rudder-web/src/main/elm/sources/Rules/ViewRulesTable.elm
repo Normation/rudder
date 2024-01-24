@@ -1,19 +1,17 @@
 module Rules.ViewRulesTable exposing (..)
 
-import Dict
 import Html exposing (Html, text,  tr, td, i, span)
 import Html.Attributes exposing (class, colspan, attribute, title)
 import Html.Events exposing (onClick)
-import List.Extra
 import List
 import String
-import NaturalOrdering exposing (compareOn)
+import NaturalOrdering
 
 import Rules.DataTypes exposing (..)
 import Rules.ViewUtils exposing (..)
 
-import Compliance.DataTypes exposing (..)
-import Compliance.Utils exposing (getAllComplianceValues, buildComplianceBar, defaultComplianceFilter)
+import Compliance.Utils exposing (getAllComplianceValues, defaultComplianceFilter)
+import Compliance.Html exposing (buildComplianceBar)
 
 --
 -- This file contains all methods to display the Rules table

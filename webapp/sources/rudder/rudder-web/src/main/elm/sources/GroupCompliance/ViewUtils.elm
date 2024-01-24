@@ -1,23 +1,22 @@
 module GroupCompliance.ViewUtils exposing (..)
 
+import Compliance.Html exposing (buildComplianceBar)
 import Dict exposing (Dict)
 import Either exposing (Either(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput, custom)
+import Html.Events exposing (onClick, custom)
 import List.Extra
 import List
 import Maybe.Extra
-import String exposing (fromFloat)
+import String
 import Json.Decode as Decode
 import Tuple3
-import NaturalOrdering as N exposing (compare)
+import NaturalOrdering as N
 
-import GroupCompliance.ApiCalls exposing (..)
 import GroupCompliance.DataTypes exposing (..)
 import Compliance.DataTypes exposing (..)
 import Compliance.Utils exposing (..)
-import Tags.DataTypes exposing (Tag)
 
 isGlobalCompliance : Model -> Bool
 isGlobalCompliance model =
@@ -155,7 +154,7 @@ byRuleCompliance model subFun complianceFilters =
       |> List.sortWith sortFunction
     )
     (\_ i ->  i )
-    [ ("Rule", \i  -> span [] [ (badgePolicyMode model.policyMode "default"), text i.name , goToBtn (getRuleLink contextPath i.ruleId) ],  (\r1 r2 -> N.compare r1.name r2.name ))
+    [ ("Rule", \i  -> span [] [ (badgePolicyMode model.policyMode i.policyMode), text i.name , goToBtn (getRuleLink contextPath i.ruleId) ],  (\r1 r2 -> N.compare r1.name r2.name ))
     , ("Compliance", \i -> buildComplianceBar complianceFilters  i.complianceDetails,  (\(r1) (r2) -> Basics.compare r1.compliance r2.compliance ))
     ]
     (.ruleId >> .value)
@@ -198,7 +197,7 @@ nodeValueCompliance mod complianceFilters =
         |> List.sortWith sortFunction
     )
     (\_ i -> i)
-    [ ("Node", (\nId -> span[][text nId.name, goToBtn (getNodeLink mod.contextPath nId.nodeId.value)]),  (\d1 d2 -> N.compare d1.name d2.name))
+    [ ("Node", (\nId -> span[][ (badgePolicyMode mod.policyMode nId.policyMode), text nId.name, goToBtn (getNodeLink mod.contextPath nId.nodeId.value) ]),  (\d1 d2 -> N.compare d1.name d2.name))
     , ("Compliance", .complianceDetails >> buildComplianceBar complianceFilters ,  (\d1 d2 -> Basics.compare d1.compliance d2.compliance))
     ]
     (.nodeId >> .value)

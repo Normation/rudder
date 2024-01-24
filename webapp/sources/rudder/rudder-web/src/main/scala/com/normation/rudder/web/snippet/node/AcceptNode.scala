@@ -220,7 +220,7 @@ class AcceptNode extends Loggable {
     if (serverList.isEmpty) {
       Alert("You didn't select any nodes")
     } else {
-      SetHtml("", listNode(serverList, template)) & OnLoad(
+      SetHtml("manageNewNode", listNode(serverList, template)) & OnLoad(
         JsRaw("""
           /* Set the table layout */
           $('#pendingNodeConfirm').dataTable({
@@ -332,7 +332,7 @@ class AcceptNode extends Loggable {
             Text("Directive"),
             { e =>
               SHtml.ajaxButton(
-                <span><i class="glyphicon glyphicon-search"></i></span>,
+                <span><i class="fa fa-search"></i></span>,
                 () => showExpectedPolicyPopup(e),
                 ("class", "smallButton")
               )

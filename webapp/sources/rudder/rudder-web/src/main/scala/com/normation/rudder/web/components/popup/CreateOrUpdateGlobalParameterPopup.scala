@@ -94,7 +94,7 @@ class CreateOrUpdateGlobalParameterPopup(
       <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Request</h4>
               <hr class="css-fix"/>
               <div class="text-center alert alert-info">
-                <span class="glyphicon glyphicon-info-sign"></span>
+                <span class="fa fa-info-circle"></span>
                 Workflows are enabled, your change has to be validated in a Change request
               </div>
     case false => NodeSeq.Empty

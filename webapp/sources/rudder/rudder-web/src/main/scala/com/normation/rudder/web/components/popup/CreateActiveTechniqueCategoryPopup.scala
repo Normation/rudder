@@ -113,7 +113,7 @@ class CreateActiveTechniqueCategoryPopup(
 
   private[this] val categoryContainer = {
     new WBSelectField("Parent category: ", (categories.getOrElse(Seq()).map(x => (x.id.value -> x.name))), "") {
-      override def className   = "form-control col-lg-12 col-sm-12 col-xs-12"
+      override def className   = "form-select col-lg-12 col-sm-12 col-xs-12"
       override def validations =
         valMinLen(1, "Please select a category") _ :: Nil
     }

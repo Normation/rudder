@@ -131,6 +131,7 @@ import com.normation.rudder.inventory.InventoryMover
 import com.normation.rudder.inventory.InventoryProcessor
 import com.normation.rudder.inventory.PostCommitInventoryHooks
 import com.normation.rudder.inventory.ProcessFile
+import com.normation.rudder.inventory.TriggerInventoryScorePostCommit
 import com.normation.rudder.metrics._
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.ncf
@@ -163,6 +164,11 @@ import com.normation.rudder.rest.internal._
 import com.normation.rudder.rest.lift
 import com.normation.rudder.rest.lift._
 import com.normation.rudder.rule.category._
+import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
+import com.normation.rudder.score.GlobalScoreRepositoryImpl
+import com.normation.rudder.score.ScoreRepositoryImpl
+import com.normation.rudder.score.ScoreServiceImpl
+import com.normation.rudder.score.ScoreServiceManager
 import com.normation.rudder.services._
 import com.normation.rudder.services.eventlog._
 import com.normation.rudder.services.eventlog.EventLogFactoryImpl
@@ -1421,7 +1427,8 @@ case class RudderServiceApi(
     gitModificationRepository:           GitModificationRepository,
     inventorySaver:                      NodeFactInventorySaver,
     inventoryDitService:                 InventoryDitService,
-    nodeFactRepository:                  NodeFactRepository
+    nodeFactRepository:                  NodeFactRepository,
+    scoreServiceManager:                 ScoreServiceManager
 )
 
 /*
@@ -1784,7 +1791,8 @@ object RudderConfigInit {
       queryProcessor,
       inventoryQueryChecker,
       () => configService.rudder_global_policy_mode().toBox,
-      RUDDER_RELAY_API
+      RUDDER_RELAY_API,
+      scoreService
     )
 
     lazy val parameterApiService2  = {
@@ -1971,6 +1979,7 @@ object RudderConfigInit {
 //      new FactRepositoryPostCommit[Unit](factRepo, nodeFactInfoService)
         // deprecated: we use fact repo now
 //      :: new PostCommitLogger(ldifInventoryLogger)
+        new TriggerInventoryScorePostCommit[Unit](scoreServiceManager) ::
         new PostCommitInventoryHooks[Unit](HOOKS_D, HOOKS_IGNORE_SUFFIXES)
         // removed: this is done as a callback of CoreNodeFactRepos
         // :: new TriggerPolicyGenerationPostCommit[Unit](asyncDeploymentAgent, uuidGen)
@@ -3003,6 +3012,13 @@ object RudderConfigInit {
       )
     }
 
+    /// score ///
+
+    lazy val globalScoreRepository = new GlobalScoreRepositoryImpl(doobie)
+    lazy val scoreRepository       = new ScoreRepositoryImpl(doobie)
+    lazy val scoreService          = new ScoreServiceImpl(globalScoreRepository, scoreRepository)
+    lazy val scoreServiceManager: ScoreServiceManager = new ScoreServiceManager(scoreService)
+
     /////// reporting ///////
 
     lazy val nodeConfigurationHashRepo: NodeConfigurationHashRepository = {
@@ -3030,7 +3046,8 @@ object RudderConfigInit {
         nodeFactRepository,
         RUDDER_JDBC_BATCH_MAX_SIZE, // use same size as for SQL requests
 
-        complianceRepositoryImpl
+        complianceRepositoryImpl,
+        scoreServiceManager
       )
       // to avoid a StackOverflowError, we set the compliance cache once it'z ready,
       // and can construct the nodeconfigurationservice without the comlpince cache
@@ -3689,7 +3706,8 @@ object RudderConfigInit {
       gitModificationRepository,
       inventorySaver,
       inventoryDitService,
-      nodeFactRepository
+      nodeFactRepository,
+      scoreServiceManager
     )
 
     // need to be done here to avoid cyclic dependencies

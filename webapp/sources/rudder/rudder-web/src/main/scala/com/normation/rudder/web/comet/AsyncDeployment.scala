@@ -150,7 +150,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
                       <div class="panel-heading" role="tab" id="collapseListGroupHeading1">
                         <h4 class="panel-title">
                           Show technical details
-                          <span id="showhidetechnicalerrors" class="glyphicon glyphicon-chevron-up up"></span>
+                          <span id="showhidetechnicalerrors" class="fa fa-chevron-up up"></span>
                         </h4>
                       </div>
                     </a>

@@ -1,7 +1,7 @@
 module Rules.View exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (checked, class, disabled, for, href, id, placeholder, style, tabindex, type_, value)
+import Html.Attributes exposing (checked, class, disabled, for, href, id, placeholder, style, tabindex, type_, value, attribute)
 import Html.Events exposing (onClick, onInput)
 import List
 import List.Extra
@@ -173,6 +173,7 @@ view model =
               div [ class "modal-content" ] [
                 div [ class "modal-header ng-scope" ] [
                   h5 [ class "modal-title" ] [ text "Delete Rule"]
+                , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
                 ]
               , div [ class "modal-body" ]
                 [ h4 [class "text-center"][text ("Are you sure you want to Delete rule '"++ rule.name ++"'?")]
@@ -209,6 +210,7 @@ view model =
               div [ class "modal-content" ]  [
                 div [ class "modal-header ng-scope" ] [
                   h5[ class "modal-title" ] [ text (txtDisable ++" Rule")]
+                , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
                 ]
               , div [ class "modal-body" ]
                 [ h4 [class "text-center"][text ("Are you sure you want to "++ String.toLower txtDisable ++" rule '"++ rule.name ++"'?")]
@@ -234,6 +236,7 @@ view model =
              div [ class "modal-content" ] [
                div [ class "modal-header ng-scope" ] [
                  h5 [ class "modal-title" ] [ text "Delete category"]
+               , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
                ]
              , div [ class "modal-body" ] [
                  h4 [class "text-center"][text ("Are you sure you want to delete category '"++ category.name ++"'?")]
@@ -259,6 +262,7 @@ view model =
             [ div [ class "modal-content" ]
               [ div [ class "modal-header ng-scope" ]
                 [ h5 [ class "modal-title" ] [ text (action ++" Rule")]
+                , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
                 ]
               , div [ class "modal-body" ]
                 [ h4 [class "text-center"]
@@ -306,13 +310,9 @@ view model =
           ]
         , div [class "header-filter"]
           [ div [class "input-group"]
-            [ div [class "input-group-btn"]
-              [ button [class "btn btn-default", type_ "button", onClick (FoldAllCategories model.ui.ruleFilters) ][span [class "fa fa-folder fa-folder-open"][]]
-              ]
+            [ button [class "btn btn-default", type_ "button", onClick (FoldAllCategories model.ui.ruleFilters) ][span [class "fa fa-folder fa-folder-open"][]]
             , input[type_ "text", value model.ui.ruleFilters.treeFilters.filter ,placeholder "Filter", class "form-control", onInput (\s -> UpdateRuleFilters {ruleFilters | treeFilters = {treeFilters | filter = s}})][]
-            , div [class "input-group-btn"]
-              [ button [class "btn btn-default", type_ "button", onClick (UpdateRuleFilters {ruleFilters | treeFilters = {treeFilters | filter = ""}})] [span [class "fa fa-times"][]]
-              ]
+            , button [class "btn btn-default", type_ "button", onClick (UpdateRuleFilters {ruleFilters | treeFilters = {treeFilters | filter = ""}})] [span [class "fa fa-times"][]]
             ]
           , label [class "btn btn-default more-filters", for "toggle-filters"][]
           ]
@@ -323,16 +323,14 @@ view model =
             [ label[for "tag-key"][text "Tags"]
             , div [class "input-group"]
               [ input[type_ "text", value model.ui.ruleFilters.treeFilters.newTag.key, placeholder "key", class "form-control", id "tag-key", onInput (\s -> UpdateRuleFilters {ruleFilters | treeFilters = {treeFilters | newTag = {newTag | key = s}}})][]
-              , span [class "input-group-addon addon-json"][text " = "]
+              , span [class "input-group-text addon-json"][text " = "]
               , input[type_ "text", value model.ui.ruleFilters.treeFilters.newTag.value, placeholder "value", class "form-control", onInput (\s -> UpdateRuleFilters {ruleFilters | treeFilters = {treeFilters | newTag = {newTag | value = s}}})][]
-              , span [class "input-group-btn"]
-                [ button
-                  [ type_ "button"
-                  , class "btn btn-default"
-                  , onClick ( UpdateRuleFilters {ruleFilters | treeFilters = {treeFilters | tags = ( Tag (String.trim newTag.key) (String.trim newTag.value) ) :: treeFilters.tags , newTag = Tag "" ""}})
-                  , disabled ((String.isEmpty newTag.key && String.isEmpty newTag.value) || List.member newTag treeFilters.tags)
-                  ] [ span[class "fa fa-plus"][]] ]
-              ]
+              , button
+                [ type_ "button"
+                , class "btn btn-default"
+                , onClick ( UpdateRuleFilters {ruleFilters | treeFilters = {treeFilters | tags = ( Tag (String.trim newTag.key) (String.trim newTag.value) ) :: treeFilters.tags , newTag = Tag "" ""}})
+                , disabled ((String.isEmpty newTag.key && String.isEmpty newTag.value) || List.member newTag treeFilters.tags)
+                ] [ span[class "fa fa-plus"][]] ]
             ]
           , (if List.isEmpty treeFilters.tags then
             text ""

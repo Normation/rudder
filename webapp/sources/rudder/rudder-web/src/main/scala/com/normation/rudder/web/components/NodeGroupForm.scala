@@ -154,8 +154,7 @@ class NodeGroupForm(
   }
 
   private[this] def saveButtonCallBack(searchStatus: Boolean, query: Option[Query]): JsCmd = {
-    JsRaw(s"""$$('#${saveButtonId}').button();
-        $$('#${saveButtonId}').button("option", "disabled", ${searchStatus});""")
+    JsRaw(s"""$$('#${saveButtonId}').prop("disabled", ${searchStatus})""")
   }
 
   setSearchNodeComponent
@@ -213,7 +212,7 @@ class NodeGroupForm(
                      |  }, 400);
                      |});
                      |$$("#complianceLinkTab").on("click", function (){
-                     |  app.ports.loadCompliance.send("");
+                     |  app.ports.loadCompliance.send(null);
                      |});
                      |""".stripMargin)
           )
@@ -514,7 +513,7 @@ class NodeGroupForm(
     (categoryHierarchyDisplayer.getCategoriesHierarchy(rootCategory, None).map { case (id, name) => (id.value -> name) }),
     parentCategoryId.value
   ) {
-    override def className             = "form-control"
+    override def className             = "form-select"
     override def labelClassName        = ""
     override def subContainerClassName = ""
   }

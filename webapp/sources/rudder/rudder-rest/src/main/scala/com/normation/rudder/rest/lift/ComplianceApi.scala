@@ -792,6 +792,10 @@ class ComplianceAPIService(
       t6    <- currentTimeMillis
       _     <- TimingDebugLoggerPure.trace(s"getByNodeGroupCompliance - getAllRules in ${t6 - t5} ms")
 
+      groupLib <- nodeGroupRepo.getFullGroupLibrary()
+      t7       <- currentTimeMillis
+      _        <- TimingDebugLoggerPure.trace(s"getByNodeGroupCompliance - getFullGroupLibrary in ${t7 - t6} ms")
+
       // - global compliance : does the group contain a node that any rule applied to ? yes: include the rule in the compliance, and only nodes that belong to group
       // - targeted compliance : does the rule target the group directly (for group targets : includes it, and not in exclude) ? yes: same
 
@@ -826,8 +830,8 @@ class ComplianceAPIService(
                          )
                          .toIO
       globalMode    <- getGlobalPolicyMode
-      t7            <- currentTimeMillis
-      _             <- TimingDebugLoggerPure.trace(s"getByNodeGroupCompliance - findRuleNodeStatusReports in ${t7 - t6} ms")
+      t8            <- currentTimeMillis
+      _             <- TimingDebugLoggerPure.trace(s"getByNodeGroupCompliance - findRuleNodeStatusReports in ${t8 - t7} ms")
 
       reportsByRule = reportsByNode.flatMap {
                         case (_, status) =>
@@ -839,6 +843,8 @@ class ComplianceAPIService(
 
     } yield {
       val computedLevel = level.getOrElse(10)
+
+      val getPolicyModeByRule = getRulePolicyMode(_, groupLib, directiveLib.allDirectives, nodeFacts, globalMode)
 
       // Same as 'getByRuleCompliance' implementation, but nodes in the group have been prefiltered, and the result is a list of ByNodeGroupRuleCompliance
       val nonEmptyRules = reportsByRule.toSeq.map {
@@ -854,6 +860,7 @@ class ComplianceAPIService(
             ruleId,
             ruleMap.get(ruleId).map(_.name).getOrElse("Unknown rule"),
             ComplianceLevel.sum(reports.map(_.compliance)),
+            ruleMap.get(ruleId).flatMap(getPolicyModeByRule),
             byDirectives.map {
               case (directiveId, nodeDirectives) =>
                 ByNodeGroupByRuleDirectiveCompliance(
@@ -880,8 +887,8 @@ class ComplianceAPIService(
             }.toSeq
           )
       }
-      val t8            = System.currentTimeMillis()
-      TimingDebugLoggerPure.logEffect.trace(s"getByRulesCompliance - Compute non empty rules in ${t8 - t7} ms")
+      val t9            = System.currentTimeMillis()
+      TimingDebugLoggerPure.logEffect.trace(s"getByRulesCompliance - Compute non empty rules in ${t9 - t8} ms")
 
       // if any rules is in the list in parameter an not in the nonEmptyRules, then it means
       // there's no compliance for it, so it's empty
@@ -897,21 +904,22 @@ class ComplianceAPIService(
               rule.id,
               rule.name,
               ComplianceLevel(noAnswer = nodeIds.size),
+              getPolicyModeByRule(rule),
               Seq.empty
             )
         }
       }
 
-      val t9 = System.currentTimeMillis()
+      val t10 = System.currentTimeMillis()
       TimingDebugLoggerPure.logEffect.trace(
-        s"getByNodeGroupCompliance - Compute ${initializedCompliances.size} empty rules in ${t9 - t8} ms"
+        s"getByNodeGroupCompliance - Compute ${initializedCompliances.size} empty rules in ${t10 - t9} ms"
       )
 
       // return the full list
       val byRuleCompliance = nonEmptyRules ++ initializedCompliances
 
-      val t10 = System.currentTimeMillis()
-      TimingDebugLoggerPure.logEffect.trace(s"getByNodeGroupCompliance - Compute result in ${t10 - t9} ms")
+      val t11 = System.currentTimeMillis()
+      TimingDebugLoggerPure.logEffect.trace(s"getByNodeGroupCompliance - Compute result in ${t11 - t10} ms")
 
       val byNodeCompliance = reportsByNode.toList.collect {
         case (nodeId, status) if currentGroupNodeIds.contains(nodeId) =>

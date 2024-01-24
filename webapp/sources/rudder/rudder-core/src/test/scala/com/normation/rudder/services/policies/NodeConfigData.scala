@@ -59,6 +59,7 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.AgentType.CfeCommunity
+import com.normation.inventory.domain.AgentType.Dsc
 import com.normation.inventory.domain.AgentVersion
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.Debian
@@ -392,7 +393,7 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
       rootId,
       None
     ),
-    RudderAgent(CfeCommunity, admin1, AgentVersion("7.0.0"), Certificate("windows-node-dsc-certificate"), Chunk.empty),
+    RudderAgent(Dsc, admin1, AgentVersion("7.0.0"), Certificate("windows-node-dsc-certificate"), Chunk.empty),
     Chunk.empty,
     DateTime.now,
     DateTime.now,

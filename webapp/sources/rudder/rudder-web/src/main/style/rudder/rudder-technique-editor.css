@@ -253,12 +253,12 @@ body > .ng-toast {
   padding: 10px;
 }
 
-.col-methods .filters-container .input-group > .input-group-addon:first-child{
+.col-methods .filters-container .input-group > .input-group-text:first-child{
   border-top-left-radius : 4px;
   border-bottom-left-radius : 4px;
   background-color: #ededed;
 }
-.col-methods .filters-container .input-group > .input-group-addon + .form-control {
+.col-methods .filters-container .input-group > .input-group-text + .form-control {
   display: flex;
   align-items: center;
 }
@@ -635,7 +635,7 @@ ul.files-list.parameters > li > .param{
   padding: 10px 10px 10px 12px;
   flex: 1;
 }
-ul.files-list.parameters > li > .param .input-group > label.input-group-addon{
+ul.files-list.parameters > li > .param .input-group > label.input-group-text{
   border-left: none;
   border-color: #D6DEEF;
   background: #F8F9FC;
@@ -876,7 +876,7 @@ button.btn.clipboard:hover {
   font-family: var(--font-mono);
   font-size: 14px;
 }
-.method-details select.form-control:not([size]):not([multiple]) {
+.method-details select.form-select:not([size]):not([multiple]) {
   height: auto;
   padding: 6px;
 }
@@ -1373,20 +1373,20 @@ ul li.hide-method {
 .result-class .input-group{
   margin-bottom : 10px;
 }
-.result-class .input-group-addon:first-child{
+.result-class .input-group-text:first-child{
   border-left-width: 4px;
   border-left-style: solid;
   min-width: 90px;
   text-align: left;
   background-color: #eceef1;
 }
-.result-class .result-success .input-group-addon:first-child{
+.result-class .result-success .input-group-text:first-child{
   border-left-color: #8fb92a;
 }
-.result-class .result-repaired .input-group-addon:first-child{
+.result-class .result-repaired .input-group-text:first-child{
   border-left-color: #ffd715;
 }
-.result-class .result-error .input-group-addon:first-child{
+.result-class .result-error .input-group-text:first-child{
   border-left-color: #C80004;
 }
 .result-class .clipboard{

@@ -108,7 +108,7 @@ displayModals model =
                   ]
                 , div [class "form-group"]
                   [ label [for "newAccount-access"][text "Access level"]
-                  , select [id "newAccount-access", class "form-control", onInput (\s -> UpdateAccountForm {account | authorisationType = s} )]
+                  , select [id "newAccount-access", class "form-select", onInput (\s -> UpdateAccountForm {account | authorisationType = s} )]
                     [ option [value "ro"  , selected (account.authorisationType == "ro"   )] [ text "Read only"   ]
                     , option [value "rw"  , selected (account.authorisationType == "rw"   )] [ text "Full access" ]
                     , option [value "acl" , selected (account.authorisationType == "acl"  ), disabled (not model.aclPluginEnabled) ] [ text ("Custom ACL" ++ if model.aclPluginEnabled then "" else " (Plugin needed)") ]

@@ -111,7 +111,7 @@ class CreateOrCloneRulePopup(
           if (clonedRule.isDefined) {
             <hr class="css-fix"/>
             <div class="alert alert-info text-center">
-                <span class="glyphicon glyphicon-info-sign"></span>
+                <span class="fa fa-info-circle"></span>
                 The new rule will be disabled.
             </div>
           } else {
@@ -180,7 +180,7 @@ class CreateOrCloneRulePopup(
       categoryHierarchyDisplayer.getRuleCategoryHierarchy(rootRuleCategory, None).map { case (id, name) => (id.value -> name) },
       selectedCategory.value
     ) {
-      override def className   = "form-control col-lg-12 col-sm-12 col-xs-12"
+      override def className   = "form-select col-lg-12 col-sm-12 col-xs-12"
       override def validations =
         valMinLen(1, "Please select a category") _ :: Nil
     }

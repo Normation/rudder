@@ -4,19 +4,19 @@ import Dict exposing (Dict)
 import Either exposing (Either(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput, custom)
+import Html.Events exposing (onClick, custom)
 import List.Extra
 import List
 import Maybe.Extra
-import String exposing (fromFloat)
+import String
 import Json.Decode as Decode
 import Tuple3
-import NaturalOrdering as N exposing (compare)
+import NaturalOrdering as N
 
-import DirectiveCompliance.ApiCalls exposing (..)
 import DirectiveCompliance.DataTypes exposing (..)
 import Compliance.DataTypes exposing (..)
 import Compliance.Utils exposing (..)
+import Compliance.Html exposing (buildComplianceBar)
 
 onCustomClick : msg -> Html.Attribute msg
 onCustomClick msg =

@@ -449,7 +449,7 @@ function createTextAgentPolicyMode(isNode, currentPolicyMode, explanation){
   var policyMode = currentPolicyMode.toLowerCase();
   var nodeOrDirective = isNode ? "node" : "directive";
   var labelType = "label-"+policyMode;
-  var span = "<span class='label-text " + labelType + " glyphicon glyphicon-question-sign' data-bs-toggle='tooltip' data-bs-placement='top' title=''></span>"
+  var span = "<span class='label-text " + labelType + " fa fa-question-circle' data-bs-toggle='tooltip' data-bs-placement='top' title=''></span>"
   var badge = $(span).get(0);
   var tooltip = policyModeTooltip(nodeOrDirective, policyMode, explanation);
   badge.setAttribute("title", tooltip);
@@ -763,12 +763,12 @@ function buildScrollSpyNav(){
       linkText = $(this).text();
       tmp      = linkText.replace(regex, "-");
       $(this).attr('id', tmp);
-      link     = $("<a>");
+      link     = $("<a class='nav-link'>");
       listItem = $("<li>");
       var targetLink = '#'+tmp;
       var subClass = $(this).hasClass("page-subtitle") ? "subtitle" : ""
       link.attr("href","#"+tmp).text(linkText).addClass(subClass).on('click',function(event){navScroll(event, targetLink, '.main-details')});
-      listItem.addClass("ui-tabs-tab").append(link);
+      listItem.addClass("nav-item").append(link);
       $("#navbar-scrollspy > ul").append(listItem);
     });
 }

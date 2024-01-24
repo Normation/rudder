@@ -5,8 +5,6 @@
   <style>
     .template-sidebar.sidebar-left{
       box-shadow : none !important;
-      flex-basis : initial !important;
-      flex: initial !important;
     }
     .template-main{
       flex-basis : initial !important;
@@ -50,7 +48,7 @@
 
       <div class="template-main">
         <div class="main-container">
-          <div class="main-details" data-spy="scroll" data-bs-target="#navbar-scrollspy">
+          <div class="main-details" data-bs-spy="scroll" data-bs-target="#navbar-scrollspy">
             <div role="tabpanel" class="inner-portlet" id="allowed-networks">
               <h3 class="page-title">Allowed networks</h3>
               <div class="portlet-content">
@@ -74,13 +72,11 @@
                       <div class="row">
                         <div id="allowNetworkFields" class="networkFieldsContainer">
                           <div class="network-group col-lg-4 col-sm-6 col-xs-12">
-                            <div class="input-group">
-                              <input name="network" class="networkField form-control input-sm"/>
-                              <span class="input-group-btn">
+                            <div class="input-group input-group-sm">
+                              <input name="network" class="networkField form-control"/>
                               <lift:authz role="administration_write">
                                 <button class="deleteNetwork btn btn-danger btn-sm" type="submit" title="Remove this network"></button>
                               </lift:authz>
-                            </span>
                             </div>
                             <div id="errorNetworkField"></div>
                             <div class="warningNetworkField" style="display:none;">Invalid IP address.</div>
@@ -89,11 +85,9 @@
                         <lift:authz role="administration_write">
                           <div class="col-xs-12">
                             <label>Add a network</label>
-                            <div class="input-group" id="addNetwork">
-                              <input class="form-control input-sm" id="addaNetworkfield"/>
-                              <span class="input-group-btn">
-                              <button class="btn btn-success btn-sm" id="addNetworkButton" disabled type="submit" title="Add a network"></button>
-                            </span>
+                            <div class="input-group input-group-sm" id="addNetwork">
+                              <input class="form-control" id="addaNetworkfield"/>
+                              <button class="btn btn-success" id="addNetworkButton" disabled type="submit" title="Add a network"></button>
                             </div>
                             <div id="warningNetworkField" class="warningNetworkField" style="display:none;">Invalid IP address.</div>
                             <input id="submitAllowedNetwork" type="submit" value="Submit"/>
@@ -113,7 +107,7 @@
                   <ul>
                     <li class="rudder-form">
                       <div class="input-group">
-                        <label class="input-group-addon" for="denyBadClocks">
+                        <label class="input-group-text" for="denyBadClocks">
                           <input id="denyBadClocks" type="checkbox">
                           <label for="denyBadClocks" class="label-radio">
                             <span class="ion ion-checkmark-round"></span>
@@ -160,7 +154,7 @@
                     <ul>
                       <li class="rudder-form">
                         <div class="input-group">
-                          <label class="input-group-addon" for="relaySyncPromises">
+                          <label class="input-group-text" for="relaySyncPromises">
                             <input id="relaySyncPromises" type="checkbox">
                             <label for="relaySyncPromises" class="label-radio">
                               <span class="ion ion-checkmark-round"></span>
@@ -175,7 +169,7 @@
                       </li>
                       <li class="rudder-form">
                         <div class="input-group">
-                          <label class="input-group-addon" for="relaySyncSharedFiles">
+                          <label class="input-group-text" for="relaySyncSharedFiles">
                             <input id="relaySyncSharedFiles" type="checkbox">
                             <label for="relaySyncSharedFiles" class="label-radio">
                               <span class="ion ion-checkmark-round"></span>
@@ -239,7 +233,7 @@
                     <ul>
                       <li class="rudder-form">
                         <div class="input-group">
-                          <label class="input-group-addon" for="unboundVarValues">
+                          <label class="input-group-text" for="unboundVarValues">
                             <input id="unboundVarValues" type="checkbox">
                             <label for="unboundVarValues" class="label-radio">
                               <span class="ion ion-checkmark-round"></span>
@@ -275,20 +269,20 @@
                       <ul>
                         <li class="rudder-form">
                           <div class="input-group col-xs-12">
-                            <label class="input-group-addon" for="nodeOnAcceptState">
+                            <label class="input-group-text" for="nodeOnAcceptState">
                               Node default state
                             </label>
-                            <input id="nodeOnAcceptState" type="select" class="form-control">
+                            <input id="nodeOnAcceptState" type="select" class="form-select">
                           </div>
                         </li>
                       </ul>
                       <ul>
                         <li class="rudder-form">
                           <div class="input-group space-bottom col-xs-12">
-                            <label class="input-group-addon" for="nodeOnAcceptPolicyMode">
+                            <label class="input-group-text" for="nodeOnAcceptPolicyMode">
                               Node default policy mode
                             </label>
-                            <input id="nodeOnAcceptPolicyMode" type="select" class="form-control">
+                            <input id="nodeOnAcceptPolicyMode" type="select" class="form-select">
                           </div>
                         </li>
                       </ul>
@@ -362,7 +356,7 @@
                     <ul>
                       <li class="rudder-form">
                         <div class="input-group">
-                          <label class="input-group-addon" for="enabled">
+                          <label class="input-group-text" for="enabled">
                             <input id="enabled" type="checkbox">
                             <label for="enabled" class="label-radio">
                               <span class="ion ion-checkmark-round"></span>
@@ -376,7 +370,7 @@
                       </li>
                       <li class="rudder-form">
                         <div class="input-group">
-                          <label class="input-group-addon" for="mandatory">
+                          <label class="input-group-text" for="mandatory">
                             <input id="mandatory" type="checkbox">
                             <label for="mandatory" class="label-radio">
                               <span class="ion ion-checkmark-round"></span>
@@ -395,9 +389,7 @@
                       <div class="input-group">
                         <input id="explanation" type="text"/>
                         <lift:authz role="administration_write">
-                        <span class="input-group-btn">
                           <input id="restoreExplanation" type="button"/>
-                        </span>
                         </lift:authz>
                       </div>
                     </div>
@@ -424,7 +416,7 @@
                     <ul>
                       <li class="rudder-form">
                         <div class="input-group">
-                          <label class="input-group-addon" for="displayGraphsCheckbox">
+                          <label class="input-group-text" for="displayGraphsCheckbox">
                             <input id="displayGraphsCheckbox" type="checkbox">
                             <label for="displayGraphsCheckbox" class="label-radio">
                               <span class="ion ion-checkmark-round"></span>
@@ -448,7 +440,7 @@
                     <ul>
                       <li class="rudder-form">
                         <div class="input-group">
-                          <label class="input-group-addon" for="displayColumnsCheckbox">
+                          <label class="input-group-text" for="displayColumnsCheckbox">
                             <input id="displayColumnsCheckbox" type="checkbox">
                             <label for="displayColumnsCheckbox" class="label-radio">
                               <span class="ion ion-checkmark-round"></span>
@@ -483,7 +475,7 @@
                     <ul>
                       <li class="rudder-form">
                         <div class="input-group">
-                          <label class="input-group-addon" for="directiveScriptEngineCheckbox">
+                          <label class="input-group-text" for="directiveScriptEngineCheckbox">
                             <input id="directiveScriptEngineCheckbox" type="checkbox">
                             <label for="directiveScriptEngineCheckbox" class="label-radio">
                               <span class="ion ion-checkmark-round"></span>
@@ -524,7 +516,7 @@
                     <ul>
                       <li class="rudder-form">
                         <div class="input-group">
-                          <label class="input-group-addon" for="generationHookCfpromiseCheckbox">
+                          <label class="input-group-text" for="generationHookCfpromiseCheckbox">
                             <input id="generationHookCfpromiseCheckbox" type="checkbox">
                             <label for="generationHookCfpromiseCheckbox" class="label-radio">
                               <span class="ion ion-checkmark-round"></span>
@@ -588,7 +580,7 @@
                       <ul>
                         <li class="rudder-form">
                           <div class="input-group">
-                            <label class="input-group-addon" for="generationHookTriggerNodeUpdateCheckbox">
+                            <label class="input-group-text" for="generationHookTriggerNodeUpdateCheckbox">
                               <input id="generationHookTriggerNodeUpdateCheckbox" type="checkbox">
                               <label for="generationHookTriggerNodeUpdateCheckbox" class="label-radio">
                                 <span class="ion ion-checkmark-round"></span>
@@ -663,10 +655,10 @@
                     <ul>
                       <li class="rudder-form">
                         <div class="input-group col-xs-12">
-                          <label class="input-group-addon" for="sendMetricsCheckbox">
+                          <label class="input-group-text" for="sendMetricsCheckbox">
                             Send anonymous usage statistics
                           </label>
-                          <input id="sendMetricsCheckbox" type="select" class="form-control">
+                          <input id="sendMetricsCheckbox" type="select" class="form-select">
                         </div>
                       </li>
                     </ul>

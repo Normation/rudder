@@ -60,6 +60,8 @@ import com.normation.rudder.reports.ReportsDisabled
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository._
+import com.normation.rudder.score.ComplianceScoreEvent
+import com.normation.rudder.score.ScoreServiceManager
 import com.normation.utils.Control.traverse
 import com.normation.zio._
 import net.liftweb.common._
@@ -147,7 +149,8 @@ class CachedReportingServiceImpl(
     val defaultFindRuleNodeStatusReports: ReportingServiceImpl,
     val nodeFactRepository:               NodeFactRepository,
     val batchSize:                        Int,
-    val complianceRepository:             ComplianceRepository
+    val complianceRepository:             ComplianceRepository,
+    val scoreServiceManager:              ScoreServiceManager
 ) extends ReportingService with RuleOrNodeReportingServiceImpl with CachedFindRuleNodeStatusReports {
   val confExpectedRepo = defaultFindRuleNodeStatusReports.confExpectedRepo
   val directivesRepo   = defaultFindRuleNodeStatusReports.directivesRepo
@@ -352,6 +355,7 @@ trait CachedFindRuleNodeStatusReports
   def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports
   def nodeFactRepository:               NodeFactRepository
   def batchSize:                        Int
+  def scoreServiceManager:              ScoreServiceManager
 
   /**
    * The cache is managed node by node.
@@ -414,7 +418,6 @@ trait CachedFindRuleNodeStatusReports
     import CacheComplianceQueueAction._
     import CacheExpectedReportAction._
 
-    ReportLoggerPure.Cache.debug(s"Performing action ${actions.headOption}") *>
     // get type of action
     (actions.headOption match {
       case None    => ReportLoggerPure.Cache.debug("Nothing to do")
@@ -424,15 +427,21 @@ trait CachedFindRuleNodeStatusReports
             ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${actions.map(_.nodeId.value).mkString(", ")}") *>
             // all action should be homogeneous, but still, fails on other cases
             (for {
-              updates <- ZIO.foreach(actions) {
-                           case a =>
-                             a match {
-                               case x: UpdateCompliance => (x.nodeId, x.nodeCompliance).succeed
-                               case x =>
-                                 Inconsistency(s"Error: found an action of incorrect type in an 'update' for cache: ${x}").fail
-                             }
-                         }
-              _       <- IOResult.attempt { cache = cache ++ updates }
+              updates      <- ZIO.foreach(actions) {
+                                case a =>
+                                  a match {
+                                    case x: UpdateCompliance => (x.nodeId, x.nodeCompliance).succeed
+                                    case x =>
+                                      Inconsistency(s"Error: found an action of incorrect type in an 'update' for cache: ${x}").fail
+                                  }
+                              }
+              scoreUpdates <- ZIO.foreach(updates) {
+                                case (nodeId, compliance) =>
+                                  val cp    = compliance.compliance.computePercent()
+                                  val event = ComplianceScoreEvent(nodeId, cp)
+                                  scoreServiceManager.handleEvent(event)
+                              }
+              _            <- IOResult.attempt { cache = cache ++ updates }
             } yield ())
 
           case ExpectedReportAction((RemoveNodeInCache(_))) =>
@@ -454,15 +463,21 @@ trait CachedFindRuleNodeStatusReports
             for {
               x <- ZIO.foreach(impactedNodeIds.grouped(batchSize).to(Seq)) { updatedNodes =>
                      for {
-                       updated <- defaultFindRuleNodeStatusReports
-                                    .findRuleNodeStatusReports(updatedNodes.toSet, Set())(QueryContext.systemQC)
-                                    .toIO
-                       _       <- IOResult.attempt {
-                                    cache = cache ++ updated
-                                  }
-                       _       <- ReportLoggerPure.Cache.debug(
-                                    s"Compliance cache recomputed for nodes: ${updated.keys.map(_.value).mkString(", ")}"
-                                  )
+                       updated      <- defaultFindRuleNodeStatusReports
+                                         .findRuleNodeStatusReports(updatedNodes.toSet, Set())(QueryContext.systemQC)
+                                         .toIO
+                       scoreUpdates <- ZIO.foreach(updated.toList) {
+                                         case (nodeId, compliance) =>
+                                           val cp    = compliance.compliance.computePercent()
+                                           val event = ComplianceScoreEvent(nodeId, cp)
+                                           scoreServiceManager.handleEvent(event)
+                                       }
+                       _            <- IOResult.attempt {
+                                         cache = cache ++ updated
+                                       }
+                       _            <- ReportLoggerPure.Cache.debug(
+                                         s"Compliance cache recomputed for nodes: ${updated.keys.map(_.value).mkString(", ")}"
+                                       )
                      } yield ()
                    }
             } yield ()
@@ -964,9 +979,8 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
 
       // compute the status
       nodeStatusReports <- buildNodeStatusReports(uncomputedRuns, Set(), Set(), complianceMode.mode, unexpectedMode)
-
-      t2 = System.currentTimeMillis
-      _  = TimingDebugLogger.debug(s"Compliance: compute compliance reports: ${t2 - t1}ms")
+      t2                 = System.currentTimeMillis
+      _                  = TimingDebugLogger.debug(s"Compliance: compute compliance reports: ${t2 - t1}ms")
     } yield {
       nodeStatusReports
     }

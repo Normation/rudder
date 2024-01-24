@@ -17,7 +17,8 @@ import Rules.DataTypes exposing (..)
 import Rules.ViewRepairedReports
 import Rules.ViewUtils exposing (..)
 import Compliance.DataTypes exposing (..)
-import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance, buildComplianceBar, defaultComplianceFilter)
+import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance, defaultComplianceFilter)
+import Compliance.Html exposing (buildComplianceBar)
 
 
 --
@@ -86,7 +87,7 @@ informationTab model details =
     rightCol =
       if isNewRule then
         div [class "callout-fade callout-info"]
-        [ div [class "marker"][span [class "glyphicon glyphicon-info-sign"][]]
+        [ div [class "marker"][span [class "fa fa-info-circle"][]]
         , div []
           [ p[][text "You are creating a new rule. You may already want to apply directives and groups to it."]
           , p[][text "To do so, please go to their corresponding tab, or use the shortcuts below:"]
@@ -150,7 +151,7 @@ informationTab model details =
           [ label[for "rule-category"][text "Category"]
           , msgMissingCat
           , div[]
-            [ select[ id "rule-category", class "form-control", onInput (\s -> UpdateRuleForm {details | rule = {rule | categoryId = s}} ) ]
+            [ select[ id "rule-category", class "form-select", onInput (\s -> UpdateRuleForm {details | rule = {rule | categoryId = s}} ) ]
                ( defaultOptForMissingCatRule :: (buildListCategories "" "" rule.categoryId model.rulesTree ))
             ]
           ]
@@ -159,9 +160,9 @@ informationTab model details =
           , div[class "form-group"]
             [ div[class "input-group"]
               [ input[ id "rule-tags-key", type_ "text", placeholder "key", class "form-control", onInput (\s -> UpdateRuleForm {details | ui = {ui | newTag = {newTag | key = s}}} ), value newTag.key][]
-              , span [ class "input-group-addon addon-json"][ text "=" ]
+              , span [ class "input-group-text addon-json"][ text "=" ]
               , input[ type_ "text", placeholder "value", class "form-control", onInput (\s -> UpdateRuleForm {details | ui = {ui | newTag = {newTag | value = s}}}), value newTag.value][]
-              , span [ class "input-group-btn"][ button [ class "btn btn-default", type_ "button", onClick  (UpdateRuleForm {details | rule = {rule |  tags = newTag :: rule.tags }, ui = {ui | newTag = Tag "" ""}}), disabled (String.isEmpty details.ui.newTag.key || String.isEmpty details.ui.newTag.value) ][ span[class "fa fa-plus"][]] ]
+              , button [ class "btn btn-default", type_ "button", onClick  (UpdateRuleForm {details | rule = {rule |  tags = newTag :: rule.tags }, ui = {ui | newTag = Tag "" ""}}), disabled (String.isEmpty details.ui.newTag.key || String.isEmpty details.ui.newTag.value) ][ span[class "fa fa-plus"][]]
               ]
             ]
           , buildTagsContainer rule True details
@@ -595,16 +596,12 @@ directivesTab model details =
                   ]
                 , div [class "header-filter"]
                   [ div [class "input-group"]
-                    [ div [class "input-group-btn"]
-                      [ button [class "btn btn-default", type_ "button"][span [class "fa fa-folder fa-folder-open"][]]
-                      ]
+                    [ button [class "btn btn-default", type_ "button"][span [class "fa fa-folder fa-folder-open"][]]
                     , input[type_ "text", placeholder "Filter", class "form-control"
                       , onInput (\s -> UpdateDirectiveFilters {directiveFilters | treeFilters = {treeFilters | filter = s}} )][]
-                    , div [class "input-group-btn"]
-                      [ button [class "btn btn-default", type_ "button"
-                      , onClick ( UpdateDirectiveFilters {directiveFilters | treeFilters = {treeFilters | filter = ""}} )]
-                        [span [class "fa fa-times"][]]
-                      ]
+                    , button [class "btn btn-default", type_ "button"
+                    , onClick ( UpdateDirectiveFilters {directiveFilters | treeFilters = {treeFilters | filter = ""}} )]
+                      [span [class "fa fa-times"][]]
                     ]
                   ]
                 , div [class "jstree jstree-default"]
@@ -911,9 +908,7 @@ groupsTab model details =
               ]
               , div [class "header-filter"]
                 [ div [class "input-group"]
-                  [ div [class "input-group-btn"]
-                    [ button [class "btn btn-default", type_ "button"][span [class "fa fa-folder fa-folder-open"][]]
-                    ]
+                  [ button [class "btn btn-default", type_ "button"][span [class "fa fa-folder fa-folder-open"][]]
                   , input [type_ "text", placeholder "Filter", class "form-control", value model.ui.groupFilters.treeFilters.filter
                     , onInput (\s ->
                       let
@@ -922,17 +917,14 @@ groupsTab model details =
                       in
                         UpdateGroupFilters {groupFilters | treeFilters = {treeFilters | filter = s}}
                     )][]
-                  , div [class "input-group-btn"]
-                    [ button [class "btn btn-default", type_ "button"
-                    , onClick (
+                  , button [class "btn btn-default", type_ "button" , onClick (
                       let
                         groupFilters = model.ui.groupFilters
                         treeFilters  = groupFilters.treeFilters
                       in
                         UpdateGroupFilters {groupFilters | treeFilters = {treeFilters | filter = ""}}
                     )]
-                      [span [class "fa fa-times"][]]
-                    ]
+                    [span [class "fa fa-times"][]]
                   ]
                 ]
             , div [class "jstree jstree-default jstree-groups"]

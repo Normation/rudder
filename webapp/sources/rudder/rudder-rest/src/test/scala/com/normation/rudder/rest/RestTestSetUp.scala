@@ -765,7 +765,8 @@ class RestTestSetUp {
     mockNodes.queryProcessor,
     null,
     () => Full(GlobalPolicyMode(Audit, PolicyModeOverrides.Always)),
-    "relay"
+    "relay",
+    null
   ) {
     implicit val testCC: ChangeContext = {
       ChangeContext(

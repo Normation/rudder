@@ -66,6 +66,7 @@ import com.normation.rudder.repository.ComplianceRepository
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
+import com.normation.rudder.score.ScoreServiceManager
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
@@ -176,6 +177,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
     override def batchSize: Int = 5000
 
+    override def scoreServiceManager: ScoreServiceManager = null
   }
 
   val RUDDER_JDBC_BATCH_MAX_SIZE = 5000

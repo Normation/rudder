@@ -47,6 +47,8 @@ import com.normation.zio._
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.js._
+import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.Helpers._
 import org.springframework.security.core.context.SecurityContextHolder
 import scala.xml.NodeSeq
@@ -86,20 +88,26 @@ class UserInformation extends DispatchSnippet with DefaultExtendableSnippet[User
   }
 
   def logout = {
-    "*" #> SHtml.ajaxButton(
-      "Log out",
-      JE.Call("logout"),
-      { () =>
-        S.session match {
-          case Full(session) => // we have a session, try to know who is login out
-            UserLogout.cleanUpSession(session, "User asked for logout")
-          case e: EmptyBox => // no session ? Strange, but ok, nobody is login
-            ApplicationLogger.debug("Logout called for a non existing session, nothing more done")
+    val onclick: JsCmd = {
+      val func = SHtml.ajaxCall(
+        JsNull,
+        _ => {
+          S.session match {
+            case Full(session) => // we have a session, try to know who is login out
+              UserLogout.cleanUpSession(session, "User asked for logout")
+            case e: EmptyBox => // no session ? Strange, but ok, nobody is login
+              ApplicationLogger.debug("Logout called for a non existing session, nothing more done")
+          }
+          JsCmds.RedirectTo("/")
         }
-        JsCmds.RedirectTo("/")
-      },
-      ("class", "btn btn-danger")
-    )
+      )
+      JE.Call("logout", AnonFunc(func))
+    }
+    "#userInformationLogoutButton" #> ((<button id="userInformationLogoutButton" class="btn btn-danger">Log out</button>) ++ WithNonce
+      .scriptWithNonce(
+        Script(OnLoad(JsRaw(s"$$('#userInformationLogoutButton').click(function(){${onclick.toJsCmd}});")))
+      ))
+
   }
 
 }

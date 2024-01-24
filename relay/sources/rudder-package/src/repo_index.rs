@@ -5,6 +5,7 @@ use std::{collections::HashSet, fs, path::Path};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use tracing::error;
 
 use crate::{plugin, versions::RudderVersion};
 
@@ -20,13 +21,20 @@ impl RepoIndex {
     pub fn from_path(path: &str) -> Result<Option<Self>, anyhow::Error> {
         if Path::new(path).exists() {
             let data = fs::read_to_string(path)?;
-            let index: Vec<Plugin> = serde_json::from_str(&data)?;
-            let modified = fs::metadata(path)?.modified()?;
-            let latest_update: DateTime<Utc> = modified.into();
-            Ok(Some(Self {
-                index,
-                latest_update,
-            }))
+            match serde_json::from_str(&data) {
+                Ok(index) => {
+                    let modified = fs::metadata(path)?.modified()?;
+                    let latest_update: DateTime<Utc> = modified.into();
+                    Ok(Some(Self {
+                        index,
+                        latest_update,
+                    }))
+                }
+                Err(e) => {
+                    error!("Could not parse index from repository: {:?}", e);
+                    Ok(None)
+                }
+            }
         } else {
             Ok(None)
         }

@@ -22,7 +22,7 @@ displayTechniqueRow model =
         [ text technique.version
         , ( if technique.isDeprecated then
           span
-          [ class "glyphicon glyphicon-info-sign text-danger deprecatedTechniqueIcon"
+          [ class "fa fa-info-circle text-danger deprecatedTechniqueIcon"
           , attribute "data-bs-toggle" "tooltip"
           , attribute "data-bs-placement" "top"
           , attribute "data-bs-html" "true"

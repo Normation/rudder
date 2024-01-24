@@ -456,37 +456,78 @@ object DisplayNode extends Loggable {
           (globalMode.mode, "<p>This mode is the globally defined default. You can change it in <i><b>Settings</b></i>.</p>")
       }
     }
-    val complianceScoreApp = {
-      <div id="nodecompliance-app"></div> ++
+    val globalScoreApp     = {
+      <div id="global-score-app"></div> ++
       Script(OnLoad(JsRaw(s"""
-                             |var main = document.getElementById("nodecompliance-app")
+                             |var main = document.getElementById("global-score-app")
                              |var initValues = {
-                             |  item : "node",
                              |  id : "${nodeFact.id.value}",
                              |  contextPath : contextPath,
                              |};
-                             |var app = Elm.Compliancescore.init({node: main, flags: initValues});
-                             |app.ports.errorNotification.subscribe(function(str) {
+                             |var globalScoreApp = Elm.Score.init({node: main, flags: initValues});
+                             |globalScoreApp.ports.errorNotification.subscribe(function(str) {
                              |  createErrorNotification(str)
                              |});
                              |""".stripMargin)))
+    }
+    val complianceScoreApp = {
+      <div id="compliance-app"></div> ++
+      Script(
+        OnLoad(JsRaw("""var complianceScoreMain = document.getElementById("compliance-app");
+                       |var complianceAppScore = Elm.ComplianceScore.init({node: complianceScoreMain, flags : {}});
+                       |scoreDetailsDispatcher["compliance"] = function(value){ complianceAppScore.ports.getValue.send(value) };
+                       |complianceAppScore.ports.sendHtml.subscribe(function(html) {
+                       |  scoreDetailsApp.ports.receiveDetails.send({name : "compliance",html : html});
+                       |});
+                       |complianceAppScore.ports.errorNotification.subscribe(function(str) {
+                       |  createErrorNotification(str)
+                       |});""".stripMargin))
+      )
+    }
+    val systemUpdateApp    = {
+      <div id="system-updates-app"></div> ++
+      Script(
+        OnLoad(
+          JsRaw("""var systemUpdatesMain = document.getElementById("system-updates-app");
+                  |var systemUpdatesAppScore = Elm.SystemUpdateScore.init({node: systemUpdatesMain, flags : {}});
+                  |scoreDetailsDispatcher["system-updates"] = function(value){ systemUpdatesAppScore.ports.getValue.send(value) };
+                  |systemUpdatesAppScore.ports.sendHtml.subscribe(function(html) {
+                  |  scoreDetailsApp.ports.receiveDetails.send({name : "system-updates",html : html});
+                  |});
+                  |systemUpdatesAppScore.ports.errorNotification.subscribe(function(str) {
+                  |  createErrorNotification(str)
+                  |});""".stripMargin)
+        )
+      )
     }
     val nodeApp            = {
+      <div id="system-updates-app"></div> ++
       <div id="node-app"></div> ++
-      Script(OnLoad(JsRaw(s"""
-                             |var main = document.getElementById("node-app")
-                             |var initValues = {
-                             |  id : "${nodeFact.id.value}",
-                             |  contextPath : contextPath,
-                             |};
-                             |var app = Elm.Node.init({node: main, flags: initValues});
-                             |app.ports.errorNotification.subscribe(function(str) {
-                             |  createErrorNotification(str)
-                             |});
-                             |""".stripMargin)))
+      Script(
+        OnLoad(
+          JsRaw(s"""
+                   |var main = document.getElementById("node-app")
+                   |var initValues = {
+                   |  id : "${nodeFact.id.value}",
+                   |  contextPath : contextPath,
+                   |};
+                   |scoreDetailsApp = Elm.Node.init({node: main, flags: initValues});
+                   |scoreDetailsApp.ports.errorNotification.subscribe(function(str) {
+                   |  createErrorNotification(str)
+                   |});
+                   |scoreDetailsApp.ports.getDetails.subscribe(function(data) {
+                   |  var name = data.name
+                   |  var value = data.details
+                   |  var detailsHandler = scoreDetailsDispatcher[name];
+                   |  if (detailsHandler !== undefined) {
+                   |    detailsHandler(value)
+                   |  }
+                   |});""".stripMargin)
+        )
+      )
     }
     <div id="nodeDetails">
-      {complianceScoreApp}
+      {globalScoreApp ++ complianceScoreApp ++ systemUpdateApp}
       <div class="row">
         <div class="rudder-info col-lg-6 col-sm-7 col-xs-12">
           {nodeApp}
@@ -498,7 +539,7 @@ object DisplayNode extends Loggable {
           <label>Policy mode:</label><span id="badge-apm"></span> ++
           Script(OnLoad(JsRaw(s"""
                 $$('#badge-apm').append(createBadgeAgentPolicyMode('node',"${mode}","${explanation}"));
-                initBsTooltips(getNodeInfo);
+                //initBsTooltips(getNodeInfo);
               """)))
       }
     }
