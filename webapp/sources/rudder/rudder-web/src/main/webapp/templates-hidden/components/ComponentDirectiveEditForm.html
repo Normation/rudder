@@ -101,15 +101,16 @@
     <div id="isDisabled"></div>
     <div class="main-details">
       <lift:authz role="directive_edit">
-        <div class="explanation-text" id="pendingChangeRequestNotification">
-          <div class="marker">
-            <span class="fa fa-info-circle"></span>
+        <div class="row">
+          <div class="col">
+            <div class="callout-fade callout-info callout-cr" id="pendingChangeRequestNotification">
+              <p><b><i class="fa fa-info-circle"></i>Pending change requests</b><span class="fa fa-chevron-down" onclick="$('#pendingChangeRequestNotification').toggleClass('list-hidden')"></span></p>
+              <div>
+                <p>The following pending change requests affect this Directive, you should check that your modification is not already pending:</p>
+                <ul id="changeRequestList"></ul>
+              </div>
+            </div>
           </div>
-          <h4>Pending change requests</h4>
-          <p>
-            The following pending change requests affect this Directive, you should check that your modification is not already pending:
-          </p>
-          <ul id="changeRequestList"></ul>
         </div>
       </lift:authz>
       <div class="tab-content">

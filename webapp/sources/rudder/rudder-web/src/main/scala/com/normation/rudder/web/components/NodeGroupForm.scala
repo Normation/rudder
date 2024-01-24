@@ -170,15 +170,13 @@ class NodeGroupForm(
   )
 
   val pendingChangeRequestXml = {
-    <div id="pendingChangeRequestNotification">
-      <div class="row">
-        <i class="fa fa-exclamation-triangle warnicon" aria-hidden="true"></i>
-        <div class="col-md-10">
-          The following pending change requests affect this Group, you should check that your modification is not already pending:
-          <ul id="changeRequestList"/>
+    <div class="callout-fade callout-info callout-cr" id="pendingChangeRequestNotification">
+        <p><b><i class="fa fa-info-circle"></i>Pending change requests</b><span class="fa fa-chevron-down" onclick="$('#pendingChangeRequestNotification').toggleClass('list-hidden')"></span></p>
+        <div>
+          <p>The following pending change requests affect this Group, you should check that your modification is not already pending:</p>
+          <ul id="changeRequestList"></ul>
         </div>
       </div>
-    </div>
   }
 
   def showForm(): NodeSeq = {
