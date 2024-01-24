@@ -34,6 +34,14 @@
    <cve>CVE-2020-11022</cve>
    <cve>CVE-2020-11023</cve>
 </suppress>
+<!-- extjs embeded in liftweb is not used -->
+<suppress>
+   <notes><![CDATA[
+   file name: lift-webkit_2.13-3.5.x.jar: ext-core-debug.js
+   ]]></notes>
+   <packageUrl regex="true">^pkg:javascript/ExtJS@3.1.0</packageUrl>
+   <cve>CVE-2007-2285</cve>
+</suppress>
 <!-- jquery embeded in scala-compiler is not used -->
 <suppress>
    <notes><![CDATA[
