@@ -522,6 +522,9 @@ class Boot extends Loggable {
     val requestHeadersFactory = new Boot.RequestHeadersFactoryVendor(csp)
     LiftRules.supplementalHeaders.default.set(requestHeadersFactory)
 
+    // allow to use inline javascript in our html without having to write separate scripts for CSP
+    LiftRules.extractInlineJavaScript = true
+
     // We need to replace duplicate lift scripts because our custom page js may override the lift.js script (with nonce attributes)
     val defaultConvertResponse = LiftRules.convertResponse
     LiftRules.convertResponse = {

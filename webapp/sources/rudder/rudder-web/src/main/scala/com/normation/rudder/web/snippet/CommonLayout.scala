@@ -13,8 +13,7 @@ import scala.xml.NodeSeq
 class CommonLayout extends DispatchSnippet with DefaultExtendableSnippet[CommonLayout] {
 
   def mainDispatch = Map(
-    "display" -> init,
-    "scripts" -> (_ => menuScript)
+    "display" -> init
   )
 
   /*
@@ -27,29 +26,23 @@ class CommonLayout extends DispatchSnippet with DefaultExtendableSnippet[CommonL
       case Some(_) => // expected
     }
 
-    display(xml)
+    display(xml) ++ WithNonce.scriptWithNonce(
+      Script(
+        OnLoad(
+          JsRaw(
+            """$('body').toggleClass('sidebar-collapse');"""
+          )
+        )
+      )
+    )
   }
 
   def display: CssSel = {
     "#toggleMenuButton" #> toggleMenuElement
   }
 
-  val menuScript = WithNonce.scriptWithNonce(
-    Script(
-      OnLoad(
-        JsRaw( // Toggle menu
-          """$('body').toggleClass('sidebar-collapse');
-            $('#toggleMenuButton').click(function() {
-              $('body').toggleClass('sidebar-collapse');
-            });
-            """
-        )
-      )
-    )
-  )
-
   val toggleMenuElement = {
-    <a id="toggleMenuButton" class="sidebar-toggle p-3" role="button">
+    <a onclick="$('body').toggleClass('sidebar-collapse')" class="sidebar-toggle p-3" role="button">
       <i class="fa fa-bars"></i>
       <span class="visually-hidden">Toggle navigation</span>
     </a>
