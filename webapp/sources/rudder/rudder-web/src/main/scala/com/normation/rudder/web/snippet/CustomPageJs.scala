@@ -54,7 +54,6 @@ object CustomPageJs extends DispatchSnippet {
 
   def pageJsScriptSrc = s"${S.contextPath}/${LiftRules.liftContextRelativePath}/page/${S.renderVersion}.js"
 
-  // Match the lift.js script tag followed by lift's page js script tag in the Html page
   def dispatch: DispatchIt = { case "pageScript" => _ => pageScript }
 
   def pageScript = {
