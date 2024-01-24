@@ -217,7 +217,7 @@ displayAccountDescription a =
       , attribute "data-container" "body"
       , attribute "data-html" "true"
       , attribute "data-original-title" (buildTooltipContent "Description" a.description)
-      ][ i[class "fa fa-"][] ]
+      ][]
 
 
 -- WARNING:

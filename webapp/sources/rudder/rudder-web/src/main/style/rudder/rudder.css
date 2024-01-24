@@ -1171,15 +1171,6 @@ fieldset {
 /**
  * Pending change request
  */
-
-#changeRequestList {
-  padding-left: 15px;
-}
-
-#changeRequestList li {
-  list-style-type: disc;
-}
-
 img.targetRemove {
   margin : 0 0 -3px 5px;
   float  : none;
