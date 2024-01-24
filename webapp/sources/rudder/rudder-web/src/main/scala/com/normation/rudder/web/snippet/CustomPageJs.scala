@@ -37,7 +37,6 @@
 
 package com.normation.rudder.web.snippet
 
-import java.util.regex.Pattern
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.LiftRules
 import net.liftweb.http.RequestVar
@@ -51,16 +50,11 @@ object CustomPageJs extends DispatchSnippet {
 
   private object hasCustomPageScript extends RequestVar(false)
 
-  val liftJsScript =
-    s"""<script src="${S.contextPath}/${LiftRules.resourceServerPath}/lift.js" type="text/javascript"></script>"""
+  val liftJsScriptSrc = s"${S.contextPath}/${LiftRules.resourceServerPath}/lift.js"
 
-  def pageJsScript =
-    s"""<script type="text/javascript" src="${S.contextPath}/${LiftRules.liftContextRelativePath}/page/${S.renderVersion}.js"></script>"""
+  def pageJsScriptSrc = s"${S.contextPath}/${LiftRules.liftContextRelativePath}/page/${S.renderVersion}.js"
 
   // Match the lift.js script tag followed by lift's page js script tag in the Html page
-  def liftPageScriptRegex =
-    s"""${Pattern.quote(liftJsScript)}\\s*${Pattern.quote(pageJsScript)}""".r
-
   def dispatch: DispatchIt = { case "pageScript" => _ => pageScript }
 
   def pageScript = {
