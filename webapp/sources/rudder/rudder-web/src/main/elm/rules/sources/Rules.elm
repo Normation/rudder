@@ -493,7 +493,7 @@ update msg model =
             action = if creation then "Create" else "Update"
             newCrSettings = { crSettings | changeRequestName = (action ++ " Rule '" ++ rd.rule.name ++ "'")}
           in
-            ( { model | ui = {ui | modal = SaveAuditMsg creation rule rd.originRule newCrSettings}} , Cmd.none )
+            ( { model | ui = {ui | modal = SaveAuditMsg creation rule rd.originRule newCrSettings, crSettings = (Just newCrSettings)}} , Cmd.none )
         _ -> (model, Cmd.none)
 
     ClosePopup callback ->

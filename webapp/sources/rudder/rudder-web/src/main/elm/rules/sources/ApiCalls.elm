@@ -265,7 +265,7 @@ saveRuleDetails ruleDetails creation model =
       request
         { method  = method
         , headers = []
-        , url     = getUrl model url  (changeRequestParameters model.ui.crSettings)
+        , url     = getUrl model url (changeRequestParameters model.ui.crSettings)
         , body    = encodeRuleDetails ruleDetails |> jsonBody
         , expect  = expectJson SaveRuleDetails decodeGetRuleDetails
         , timeout = Nothing
