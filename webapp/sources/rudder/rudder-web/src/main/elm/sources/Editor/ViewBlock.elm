@@ -12,6 +12,7 @@ import Editor.DataTypes exposing (..)
 import Editor.MethodConditions exposing (..)
 import Editor.ViewMethod exposing (showMethodCall)
 import Editor.MethodElemUtils exposing (..)
+import Maybe.Extra
 
 
 appendNodeConditional : Html msg -> Bool -> Element msg -> Element msg
@@ -393,6 +394,7 @@ blockBody model parentId block ui techniqueUi =
                   |> appendChild removeIcon
     condition = element "div"
                 |> addClass "method-condition flex-form"
+                |> addClassConditional "visually-hidden" (block.condition.os == Nothing && block.condition.advanced == "")
                 |> appendChildList
                    [ element "label"
                      |> appendText "Condition:"
@@ -400,6 +402,73 @@ blockBody model parentId block ui techniqueUi =
                      |> appendText (conditionStr block.condition)
                      |> addActionStopPropagation ("mousedown" ,DisableDragDrop )
                   ]
+    policyModeLabel =
+        case block.policyMode of
+          Nothing -> "gm-label-default"
+          Just Audit -> "label-audit"
+          Just Enforce -> "label-enforce"
+
+
+
+    appendLeftLabels = appendChild
+                         ( element "div"
+                           |> addClass ("gm-labels left")
+                           |> appendChild
+                              ( element "div"
+                                |> addClass ("gm-label rudder-label gm-label-name ")
+                                |> appendText "Block"
+                              )
+                         )
+    appendRightLabels = appendChild
+      ( case ui.mode of
+          Closed -> element "div"
+                      |> addClass ("gm-labels")
+                      |> appendChildConditional
+                        ( element "div"
+                          |> addClass ("gm-label rudder-label " ++ policyModeLabel)
+                        )
+                        (Maybe.Extra.isJust block.policyMode)
+
+          Opened -> element "div"
+                      |> addClass ("gm-labels ")
+                      |> appendChild
+                          ( element "div" |> addClass "gm-label rudder-label gm-label-label" |> appendText "Policy mode:")
+                      |> appendChild
+                         ( element "div"
+                           |> addClass "btn-group"
+                           |> appendChildList
+                             [ element "button"
+                               |> addClass ("btn dropdown-toggle rudder-label gm-label " ++ policyModeLabel)
+                               |> addAttribute (attribute  "data-bs-toggle" "dropdown")
+                               |> appendText (case block.policyMode of
+                                               Nothing -> "Default"
+                                               Just Enforce -> " "
+                                               Just Audit -> " "
+                                             )
+                             , element "ul"
+                               |> addClass "dropdown-menu"
+                               |> appendChildList [
+                                  element "li"
+                                   |> appendChild
+                                      (element "a"
+                                        |> addAction ("click",  MethodCallModified (Block parentId {block | policyMode = Nothing }) )
+                                        |> appendText "Default"
+                                      )
+                                 , element "li"
+                                   |> appendChild
+                                      (element "a"
+                                        |> addAction ("click",  MethodCallModified (Block parentId {block | policyMode = Just Audit }) )
+                                        |> appendText "Audit"
+                                      )
+                                 , element "li"
+                                   |> appendChild
+                                      (element "a"
+                                        |> addAction ("click",  MethodCallModified (Block parentId {block | policyMode = Just Enforce }) )
+                                        |> appendText "Enforce"
+                                      )
+                                  ]
+                               ])
+      )
     methodName = case ui.mode of
                    Opened -> element "div"
                              |> addClass "method-name"
@@ -412,12 +481,9 @@ blockBody model parentId block ui techniqueUi =
                                          |> appendChildList
                                            [ element "div"
                                              |> addClass "title-input-name"
-                                             |> appendText "Block name"
+                                             |> appendText "Name"
                                            , element "input"
-                                             |> addAttributeList [ readonly (not model.hasWriteRights), onFocus DisableDragDrop , type_ "text"
-                                                                 , name "component", class "form-control"
-                                                                 , value block.component,  placeholder "A friendly name for this component" ]
-                                             |> addActionStopPropagation ("mousedown" ,DisableDragDrop )
+                                             |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, type_ "text", name "component", style "width" "100%", class "form-control", value block.component,  placeholder "A friendly name for this component" ]
                                              |> addInputHandler  (\s -> MethodCallModified (Block parentId {block  | component = s }))
                                            ]
                                        )
@@ -434,31 +500,6 @@ blockBody model parentId block ui techniqueUi =
                                   |> addActionStopPropagation ("mouseover" , HoverMethod Nothing)
                                 )
 
-    methodMode = case ui.mode of
-                   Opened -> element "div"
-                             |> addClass "method-name"
-                             |> appendChild
-                                ( element "div"
-                                    |> addClass ("component-name-wrapper")
-                                    |> appendChildList
-                                       [ element "div"
-                                         |> addClass "form-group"
-                                         |> appendChildList
-                                           [ element "div"
-                                             |> addClass "title-input-name"
-                                             |> appendText "Policy mode"
-                                           , element "select"
-                                             |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, name "policyMode", class "form-control" ]
-                                             |> addChangeHandler  (\s -> MethodCallModified (Block parentId {block  | policyMode = if (s == "audit") then Just Audit else if (s == "enforce") then Just Enforce else Nothing }))
-                                             |> appendChildList [
-                                               element "option" |> addAttributeList [ selected (block.policyMode == Nothing), value "default"] |> appendText "Default"
-                                             , element "option" |> addAttributeList [ selected (block.policyMode == Just Audit), value "audit"] |> appendText "Audit"
-                                             , element "option" |> addAttributeList [ selected (block.policyMode == Just Enforce), value "enforce"] |> appendText "Enforce"
-                                             ]
-                                           ]
-                                       ]
-                                )
-                   Closed -> element "div"
     currentDrag = case DragDrop.currentlyDraggedObject model.dnd of
                     Just (Move x) -> getId x == block.id
                     Nothing -> False
@@ -478,6 +519,8 @@ blockBody model parentId block ui techniqueUi =
        |> addClass ("method-info" ++ if (block.condition.os /= Nothing || block.condition.advanced /= "") then " condition" else "")
        |> addClassConditional ("closed") (ui.mode == Closed)
        |> addAction ("click", UIBlockAction block.id {ui | mode = Opened})
+       |> appendRightLabels
+       |> appendLeftLabels
        |> appendChildList
           [ element "div"
             |> addClass "btn-holder"
@@ -489,9 +532,8 @@ blockBody model parentId block ui techniqueUi =
                ]
           , element "div"
             |> addClass "flex-column block-name-container"
-            |> appendChildConditional condition  (block.condition.os /= Nothing || block.condition.advanced /= "")
+            |> appendChild condition -- (block.condition.os /= Nothing || block.condition.advanced /= "")
             |> appendChild methodName
-            |> appendChild methodMode
          ]
        |> appendChildConditional
          (blockDetail block parentId ui techniqueUi model )

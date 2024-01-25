@@ -509,27 +509,95 @@ callBody model ui techniqueUi call pid =
         "gm-label-unknown-name"
       else
         ""
+
+    policyModeLabel =
+        case call.policyMode of
+          Nothing -> "gm-label-default"
+          Just Audit -> "label-audit"
+          Just Enforce -> "label-enforce"
+
+    appendLeftLabels = appendChild
+                         ( element "div"
+                           |> addClass ("gm-labels left")
+                           |> appendChild
+                              ( element "div"
+                                |> addClass ("gm-label rudder-label gm-label-name ")
+                                |> appendText "Method"
+                              )
+                           |> appendChild
+                              ( element "div"
+                                |> addClass ("gm-label rudder-label gm-label-name " ++ methodNameLabelClass)
+                                |> appendText method.name
+                              )
+                         )
+    appendRightLabels = appendChild
+      ( case ui.mode of
+          Closed -> element "div"
+                      |> addClass ("gm-labels")
+                      |> appendChildConditional
+                        ( element "div"
+                          |> addClass ("gm-label rudder-label " ++ policyModeLabel)
+                        )
+                        (Maybe.Extra.isJust call.policyMode)
+
+          Opened -> element "div"
+                      |> addClass ("gm-labels " ++ methodNameLabelClass)
+                      |> appendChild
+                          ( element "div" |> addClass "gm-label rudder-label gm-label-label" |> appendText "Policy mode:")
+                      |> appendChild
+                         ( element "div"
+                           |> addClass "btn-group"
+                           |> appendChildList
+                             [ element "button"
+                               |> addClass ("btn dropdown-toggle rudder-label gm-label " ++ policyModeLabel)
+                               |> addAttribute (attribute  "data-bs-toggle" "dropdown")
+                               |> appendText (case call.policyMode of
+                                               Nothing -> "Default"
+                                               Just Enforce -> " "
+                                               Just Audit -> " "
+                                             )
+                             , element "ul"
+                               |> addClass "dropdown-menu"
+                               |> appendChildList [
+                                  element "li"
+                                   |> appendChild
+                                      (element "a"
+                                        |> addAction ("click",  MethodCallModified (Call pid {call  | policyMode = Nothing }) )
+                                        |> appendText "Default"
+                                      )
+                                 , element "li"
+                                   |> appendChild
+                                      (element "a"
+                                        |> addAction ("click",  MethodCallModified (Call pid {call  | policyMode = Just Audit }) )
+                                        |> appendText "Audit"
+                                      )
+                                 , element "li"
+                                   |> appendChild
+                                      (element "a"
+                                        |> addAction ("click",  MethodCallModified (Call pid {call  | policyMode = Just Enforce }) )
+                                        |> appendText "Enforce"
+                                      )
+                                  ]
+                               ])
+      )
     methodName = case ui.mode of
                    Opened -> element "div"
                              |> addClass "method-name"
                              |> appendChild
                                 ( element "div"
                                     |> addClass ("component-name-wrapper")
-                                    |> appendChildList
-                                       [ element "div"
-                                         |> addClass ("gm-label-name " ++ methodNameLabelClass)
-                                         |> appendText method.name
-                                       , element "div"
+                                    |> appendChild
+                                       ( element "div"
                                          |> addClass "form-group"
                                          |> appendChildList
                                            [ element "div"
                                              |> addClass "title-input-name"
-                                             |> appendText "Method name"
+                                             |> appendText "Name"
                                            , element "input"
                                              |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, type_ "text", name "component", style "width" "100%", class "form-control", value call.component,  placeholder "A friendly name for this component" ]
                                              |> addInputHandler  (\s -> MethodCallModified (Call pid {call  | component = s }))
                                            ]
-                                       ]
+                                       )
                                 )
                    Closed -> element "div"
                              |> addClass "method-name"
@@ -541,43 +609,7 @@ callBody model ui techniqueUi call pid =
                                   |> addActionStopPropagation ("click" , DisableDragDrop)
                                   |> addActionStopPropagation ("mouseover" , HoverMethod Nothing)
                                 )
-                             |> appendChild
-                                ( element "div"
-                                  |> addClass ("gm-label-name " ++ methodNameLabelClass)
-                                  |> appendText method.name
-                                )
 
-    methodMode = case ui.mode of
-                   Opened -> element "div"
-                             |> addClass "method-name"
-                             |> appendChild
-                                ( element "div"
-                                    |> addClass ("component-name-wrapper")
-                                    |> appendChildList
-                                       [ element "div"
-                                         |> addClass "form-group"
-                                         |> appendChildList
-                                           [ element "div"
-                                             |> addClass "title-input-name"
-                                             |> appendText "Policy mode"
-                                           , element "select"
-                                             |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, name "policyMode", class "form-select" ]
-                                             |> addChangeHandler  (\s -> MethodCallModified (Call pid {call  | policyMode = if (s == "audit") then Just Audit else if (s == "enforce") then Just Enforce else Nothing }))
-                                             |> appendChildList [
-                                               element "option" |> addAttributeList [ selected (call.policyMode == Nothing), value "default"] |> appendText "Default"
-                                             , element "option" |> addAttributeList [ selected (call.policyMode == Just Audit), value "audit"] |> appendText "Audit"
-                                             , element "option" |> addAttributeList [ selected (call.policyMode == Just Enforce), value "enforce"] |> appendText "Enforce"
-                                             ]
-                                           ]
-                                       ]
-                                )
-                   Closed -> element "div"
-
-    methodNameId = case ui.mode of
-                     Opened -> element "span" |> appendText method.name
-                                    |> addActionStopPropagation ("mousedown" , DisableDragDrop)
-                                    |> addActionStopPropagation ("click" , DisableDragDrop)
-                     Closed -> element ""
     methodContent = element "div"
                     |> addClass  "method-param flex-form"
                     |> appendChildList
@@ -632,9 +664,10 @@ callBody model ui techniqueUi call pid =
           , element "div"
             |> addClass "flex-column"
             |> addAction ("click",  UIMethodAction call.id {ui | mode = Opened})
-            |> appendChild condition
+            |> appendLeftLabels
+            |> appendRightLabels
+            |> appendChild condition-- (call.condition.os /= Nothing || call.condition.advanced /= "")
             |> appendChild methodName
-            |> appendChild methodMode
             --|> appendChild methodNameId
             |> appendChildConditional methodContent (ui.mode == Closed)
             |> appendChildConditional

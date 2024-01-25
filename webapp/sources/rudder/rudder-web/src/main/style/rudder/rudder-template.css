@@ -240,7 +240,8 @@ ul {
 .header-buttons .dropdown-menu{
   padding: 0;
 }
-.header-buttons .dropdown-menu > li > a{
+.header-buttons .dropdown-menu > li > a,
+.gm-labels .dropdown-menu > li > a {
   font-size: 14px;
   padding: 10px 14px;
   transition-duration: .2s;
@@ -248,45 +249,56 @@ ul {
   color: #738195;
   background-color: #fff;
 }
-.header-buttons .dropdown-menu > li > a:hover{
+.header-buttons .dropdown-menu > li > a:hover,
+.gm-labels .dropdown-menu > li > a:hover {
   color: #041922;
   background-color: #f8f9fc;
 }
-.header-buttons .dropdown-menu > li > a.action-success{
+.header-buttons .dropdown-menu > li > a.action-success,
+.gm-labels .dropdown-menu > li > a.action-success {
   color: #13BEB7;
 }
-.header-buttons .dropdown-menu > li > a.action-success:hover{
+.header-buttons .dropdown-menu > li > a.action-success:hover,
+.gm-labels .dropdown-menu > li > a.action-success:hover {
   color: #fff;
   background-color: #13BEB7;
   border-color: #109f9a;
 }
-.header-buttons .dropdown-menu > li > a.action-primary{
+.header-buttons .dropdown-menu > li > a.action-primary,
+.gm-labels .dropdown-menu > li > a.action-primary {
   color: #337ab7;
 }
-.header-buttons .dropdown-menu > li > a.action-primary:hover{
+.header-buttons .dropdown-menu > li > a.action-primary:hover,
+.gm-labels .dropdown-menu > li > a.action-primary:hover {
   color: #fff;
   background-color: #337ab7;
   border-color: #2e6da4;
 }
-.header-buttons .dropdown-menu > li > a.action-danger{
+.header-buttons .dropdown-menu > li > a.action-danger,
+.gm-labels .dropdown-menu > li > a.action-danger {
   color: #DA291C;
 }
-.header-buttons .dropdown-menu > li > a.action-danger:hover{
+.header-buttons .dropdown-menu > li > a.action-danger:hover,
+.gm-labels .dropdown-menu > li > a.action-danger:hover {
   color: #fff;
   background-color: #DA291C;
   border-color: #DA291C;
 }
-.header-buttons .dropdown-menu > li > a.disabled{
+.header-buttons .dropdown-menu > li > a.disabled,
+.gm-labels .dropdown-menu > li > a.disabled {
   opacity: .6;
   cursor: not-allowed;
 }
-.header-buttons .dropdown-menu > li > a > i{
+.header-buttons .dropdown-menu > li > a > i,
+.gm-labels .dropdown-menu > li > a > i {
   margin-left: 6px;
 }
-.header-buttons .dropdown-menu > li > a > i:first-child{
+.header-buttons .dropdown-menu > li > a > i:first-child,
+.gm-labels .dropdown-menu > li > a > i:first-child {
   margin-left: 0;
 }
-.header-buttons .dropdown-menu .divider{
+.header-buttons .dropdown-menu .divider,
+.gm-labels .dropdown-menu .divider {
   margin: 0px;
 }
 
