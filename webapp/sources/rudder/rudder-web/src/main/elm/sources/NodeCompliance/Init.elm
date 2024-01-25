@@ -6,7 +6,6 @@ import NodeCompliance.ApiCalls exposing (..)
 import NodeCompliance.DataTypes exposing (..)
 import Compliance.DataTypes exposing (..)
 
-
 init : { nodeId : String, contextPath : String, onlySystem : Bool} -> ( Model, Cmd Msg )
 init flags =
   let

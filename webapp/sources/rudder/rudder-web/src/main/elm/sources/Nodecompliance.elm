@@ -3,9 +3,7 @@ port module Nodecompliance exposing (..)
 import Browser
 import Browser.Navigation as Nav
 import Dict
-import Dict.Extra
 import Http exposing (..)
-import Result
 
 import NodeCompliance.ApiCalls exposing (..)
 import NodeCompliance.DataTypes exposing (..)
