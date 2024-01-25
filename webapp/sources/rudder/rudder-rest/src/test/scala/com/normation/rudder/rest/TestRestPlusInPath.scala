@@ -62,9 +62,10 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
     .getLogger("com.normation.rudder.rest.RestUtils")
     .asInstanceOf[ch.qos.logback.classic.Logger]
     .setLevel(ch.qos.logback.classic.Level.OFF)
-  val env    = RestTestSetUp.newEnv
+  val env     = RestTestSetUp.newEnv
   import com.softwaremill.quicklens._
-  val myNode = env.mockNodes.node1.modify(_.node.id.value).setTo("my+node").modify(_.hostname).setTo("my+node.rudder.local")
+  val myNode  = env.mockNodes.node1.modify(_.node.id.value).setTo("my+node").modify(_.hostname).setTo("my+node.rudder.local")
+  val nodeCom = env.mockNodes.node1.modify(_.node.id.value).setTo("node@domain.com")
   override def beforeAll(): Unit = {
     val inventory = NodeInventory(
       NodeSummary(
@@ -77,8 +78,13 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
         myNode.keyStatus
       )
     )
-    val details   = NodeDetails(myNode, inventory, None)
-    ZioRuntime.unsafeRun(env.mockNodes.nodeInfoService.nodeBase.updateZIO(nodes => (nodes + (myNode.id -> details)).succeed))
+    val details1  = NodeDetails(myNode, inventory, None)
+    val details2  = NodeDetails(nodeCom, inventory, None)
+    ZioRuntime.unsafeRun(
+      env.mockNodes.nodeInfoService.nodeBase.updateZIO(nodes =>
+        (nodes + (myNode.id -> details1) + (nodeCom.id -> details2)).succeed
+      )
+    )
   }
 
   override def afterAll(): Unit = {
@@ -100,7 +106,7 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
     mockReq.headers = Map()
     mockReq.contentType = "text/plain"
 
-    // authorize space in response formating
+    // authorize space in response formatting
     val expected = {
       """{"action":"nodeDetails","id":"my+node","result":"success","data":""" +
       """{"nodes":[{"id":"my+node","hostname":"my+node.rudder.local","status":"accepted"}]}}"""
@@ -115,4 +121,27 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
 
   }
 
+  "A .com at the end should be retrieved in the path" >> {
+    val mockReq = new MockHttpServletRequest("http://localhost:8080")
+    mockReq.method = "GET"
+    mockReq.path = "/api/latest/nodes/node@domain.com" // should be kept
+    mockReq.queryString = "include=minimal"
+    mockReq.body = ""
+    mockReq.headers = Map()
+    mockReq.contentType = "text/plain"
+
+    // authorize space in response formatting
+    val expected = {
+      """{"action":"nodeDetails","id":"node@domain.com","result":"success","data":""" +
+      """{"nodes":[{"id":"node@domain.com","hostname":"node1.localhost","status":"accepted"}]}}"""
+    }
+
+    test.execRequestResponse(mockReq)(response => {
+      response.map { r =>
+        val rr = r.toResponse.asInstanceOf[InMemoryResponse]
+        (rr.code, new String(rr.data, "UTF-8"))
+      } must beEqualTo(Full((200, expected)))
+    })
+
+  }
 }
