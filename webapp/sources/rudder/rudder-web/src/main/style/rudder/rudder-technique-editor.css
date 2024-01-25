@@ -51,6 +51,10 @@
   color: #EF9600 !important;
   opacity: 1 !important;
 }
+.filters-container .deprecated-icon{
+  margin-left :4px;
+}
+
 .ion.ion-edit {
   font-size: 18px;
 }
@@ -256,13 +260,14 @@ body > .ng-toast {
   transition-timing-function: ease;
 }
 .col-methods .filters-container{
+  flex-direction: column;
   padding: 10px;
 }
-
 .col-methods .filters-container .input-group > .input-group-addon:first-child{
   border-top-left-radius : 4px;
   border-bottom-left-radius : 4px;
   background-color: #ededed;
+  border-color: #D6DEEF;
 }
 .col-methods .filters-container .input-group > .input-group-addon + .form-control {
   display: flex;
