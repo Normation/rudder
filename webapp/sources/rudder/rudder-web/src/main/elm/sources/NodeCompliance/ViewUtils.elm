@@ -29,6 +29,7 @@ onCustomClick msg =
 --
 -- DATATABLES & TREES
 --
+
 badgePolicyMode : String -> String -> Html Msg
 badgePolicyMode globalPolicyMode policyMode =
   let
@@ -143,7 +144,7 @@ byRuleCompliance mod complianceFilters =
         |> List.sortWith sortFunction
     )
     (\m i -> i)
-    [ ("Rule", (\r -> span[][ text r.name, if (mod.onlySystem) then text "" else goToBtn (getRuleLink mod.contextPath r.ruleId) ]), (\r1 r2 -> N.compare r1.name r2.name))
+    [ ("Rule", (\r -> span[][ (badgePolicyMode mod.policyMode r.policyMode), text r.name, if (mod.onlySystem) then text "" else goToBtn (getRuleLink mod.contextPath r.ruleId) ]), (\r1 r2 -> N.compare r1.name r2.name))
     , ("Compliance", .complianceDetails >> buildComplianceBar complianceFilters,  (\r1 r2 -> Basics.compare r1.compliance r2.compliance))
     ]
     (.ruleId >> .value)
@@ -166,7 +167,7 @@ byDirectiveCompliance model subFun complianceFilters =
       |> List.sortWith sortFunction
     )
     (\m i ->  i )
-    [ ("Directive", \i  -> span [] [ text i.name, if (model.onlySystem) then text "" else goToBtn (getDirectiveLink contextPath i.directiveId) ],  (\d1 d2 -> N.compare d1.name d2.name ))
+    [ ("Directive", \i  -> span [] [ (badgePolicyMode model.policyMode i.policyMode), text i.name, if (model.onlySystem) then text "" else goToBtn (getDirectiveLink contextPath i.directiveId) ],  (\d1 d2 -> N.compare d1.name d2.name ))
     , ("Compliance", \i -> buildComplianceBar complianceFilters  i.complianceDetails,  (\(d1) (d2) -> Basics.compare d1.compliance d2.compliance ))
     ]
     (.directiveId >> .value)
