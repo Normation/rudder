@@ -131,7 +131,7 @@ trait LiftApiModuleProvider[A <: EndpointSchema] {
   def getLiftEndpoints(): List[LiftApiModule]
 
   /*
-   * Helps debugging bad mapping between a shema and its implementation.
+   * Helps debugging bad mapping between a schema and its implementation.
    * Will throw an exception at boot time in a schema / implem mismatch.
    * In case you don't get it, look for the corresponding implementation how the
    * API / implem is done, or if the "def schema = ... " in implem is correct
@@ -226,9 +226,15 @@ class LiftHandler(
       // that changes "+" into " " will it should not, see
       // https://issues.rudder.io/issues/20943
       // https://stackoverflow.com/questions/1634271/url-encoding-the-space-character-or-20/29948396#29948396
-      (req.path.partPath.map { e =>
-        // change back spaces into "+"
-        ApiPathSegment.Segment(e.replaceAll(" ", "+"))
+      // We also need to add back the suffix in last part, see https://issues.rudder.io/issues/24036
+      (req.path.partPath.zipWithIndex.map {
+        case (e, i) =>
+          // add back suffix
+          val suffix = if (i == req.path.partPath.length - 1 && req.path.suffix.nonEmpty) {
+            "." + req.path.suffix
+          } else { "" }
+          // change back spaces into "+"
+          ApiPathSegment.Segment(e.replaceAll(" ", "+") + suffix)
       }) match {
         case h :: t => Right(ApiPath(NonEmptyList(h, t)))
         case _      => Left(ApiError.BadRequest(s"API does not support request on root URL", "unknown"))
