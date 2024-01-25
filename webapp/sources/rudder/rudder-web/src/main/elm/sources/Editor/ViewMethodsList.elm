@@ -100,15 +100,17 @@ methodsList model =
            ]
          , if (filter.state == FilterOpened) then
            div [ class "filters-container" ]
-           [ label [ class "label-btn-group align-self-center" ]
-             [ text "Agent type: "
-             ]
-           , div [ class "btn-group space-left" ] [
-               button [ class ("btn btn-default" ++ (if filter.agent == Nothing then " active" else "")), onClick (UpdateMethodFilter {filter | agent = Nothing })  ] [text "All"]
-             , button [ class ("btn btn-default" ++ (if filter.agent == Just Cfengine then " active" else "")), onClick (UpdateMethodFilter {filter | agent = Just Cfengine }) ] [text "Linux"]
-             , button [ class ("btn btn-default" ++ (if filter.agent == Just Dsc then " active" else "")), onClick (UpdateMethodFilter {filter | agent = Just Dsc }) ] [
-                 text "Windows "
-               , span [ class "dsc-icon" ] []
+           [ div[class "form-group"]
+             [ label [ class "label-btn-group align-self-center" ]
+               [ text "Agent type: "
+               ]
+             , div [ class "btn-group space-left" ] [
+                 button [ class ("btn btn-default" ++ (if filter.agent == Nothing then " active" else "")), onClick (UpdateMethodFilter {filter | agent = Nothing })  ] [text "All"]
+               , button [ class ("btn btn-default" ++ (if filter.agent == Just Cfengine then " active" else "")), onClick (UpdateMethodFilter {filter | agent = Just Cfengine }) ] [text "Linux"]
+               , button [ class ("btn btn-default" ++ (if filter.agent == Just Dsc then " active" else "")), onClick (UpdateMethodFilter {filter | agent = Just Dsc }) ] [
+                   text "Windows "
+                 , span [ class "dsc-icon" ] []
+                 ]
                ]
              ]
            , div [ class "input-group" ] [
