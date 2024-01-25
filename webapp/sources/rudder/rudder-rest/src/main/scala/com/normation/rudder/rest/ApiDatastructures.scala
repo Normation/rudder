@@ -351,7 +351,7 @@ trait TwoParam  extends EndpointSchema  {
 //////////
 
 /**
- * This algbra describe how an endpoint maybe serve a request.
+ * This algebra describes how an endpoint maybe serve a request.
  * It maybe serve because we need to check if the endpoint does handle a request before serving it.
  */
 
@@ -648,7 +648,7 @@ trait BuildHandler[REQ, RESP, T, P] {
 
           ///// END OF EVAL FOR ALL WEBAPP REQUESTS /////
 
-          // handle the optionnality and so the fact that API may not handle that path
+          // handle the optionality and so the fact that API may not handle that path
           optEndpoint match {
             case None           => Option.empty[() => RESP]
             case Some(endpoint) =>
