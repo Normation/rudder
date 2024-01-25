@@ -38,8 +38,12 @@
 package com.normation.rudder.rest
 
 import com.normation.GitVersion.Revision
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.NodeFact
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.zio._
 import net.liftweb.common.Full
 import net.liftweb.http.InMemoryResponse
@@ -70,7 +74,14 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
   val test = new RestTest(env.liftRules)
 
   override def beforeAll(): Unit = {
-    ZioRuntime.unsafeRun(env.mockRules.ruleRepo.rulesMap.update(_ + (rule.id -> rule)))
+
+    val nodeCom = NodeFact.fromMinimal(
+      env.mockNodes.nodeFactRepo.get(NodeId("node1"))(QueryContext.testQC).runNow.get.modify(_.id.value).setTo("node@domain.com")
+    )
+    ZioRuntime.unsafeRun {
+      env.mockNodes.nodeFactRepo.save(nodeCom)(ChangeContext.newForRudder()) *>
+      env.mockRules.ruleRepo.rulesMap.update(_ + (rule.id -> rule))
+    }
   }
 
   override def afterAll(): Unit = {}
@@ -114,4 +125,27 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
 
   }
 
+  "A .com at the end should be retrieved in the path" >> {
+    val mockReq = new MockHttpServletRequest("http://localhost:8080")
+    mockReq.method = "GET"
+    mockReq.path = "/api/latest/nodes/node@domain.com" // should be kept
+    mockReq.queryString = "include=minimal"
+    mockReq.body = ""
+    mockReq.headers = Map()
+    mockReq.contentType = "text/plain"
+
+    // authorize space in response formatting
+    val expected = {
+      """{"action":"nodeDetails","id":"node@domain.com","result":"success","data":""" +
+      """{"nodes":[{"id":"node@domain.com","hostname":"node1.localhost","status":"accepted"}]}}"""
+    }
+
+    test.execRequestResponse(mockReq)(response => {
+      response.map { r =>
+        val rr = r.toResponse.asInstanceOf[InMemoryResponse]
+        (rr.code, new String(rr.data, "UTF-8"))
+      } must beEqualTo(Full((200, expected)))
+    })
+
+  }
 }
