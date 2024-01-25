@@ -257,8 +257,8 @@ informationTab model details =
             ]
           ]
         else
-          text "1"
-      Nothing -> text "2"
+          text ""
+      Nothing -> text ""
   in
     div[class "row"]
     [ pendingCrWarning
