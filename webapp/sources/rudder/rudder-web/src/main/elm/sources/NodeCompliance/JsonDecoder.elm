@@ -33,6 +33,7 @@ decodeRuleCompliance =
     |> required "id"         (map NodeId string)
     |> required "name"       string
     |> required "compliance" float
+    |> required "policyMode" string
     |> required "complianceDetails" decodeComplianceDetails
     |> required "directives" (list (decodeDirectiveCompliance "values" decodeValueCompliance ))
 
@@ -42,6 +43,7 @@ decodeDirectiveCompliance elem decoder =
     |> required "id"         (map DirectiveId string)
     |> required "name"       string
     |> required "compliance" float
+    |> required "policyMode" string
     |> required "complianceDetails" decodeComplianceDetails
     |> required "components" (list (decodeComponentCompliance elem decoder ))
 

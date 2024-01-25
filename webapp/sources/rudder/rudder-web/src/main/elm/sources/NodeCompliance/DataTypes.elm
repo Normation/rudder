@@ -4,6 +4,7 @@ import Dict exposing (Dict)
 import Http exposing (Error)
 
 import Compliance.DataTypes exposing (..)
+import Rules.DataTypes exposing (Rule, Directive)
 
 --
 -- All our data types
@@ -27,6 +28,7 @@ type alias RuleCompliance =
   { ruleId            : RuleId
   , name              : String
   , compliance        : Float
+  , policyMode        : String
   , complianceDetails : ComplianceDetails
   , directives        : List (DirectiveCompliance ValueCompliance)
   }
@@ -35,6 +37,7 @@ type alias DirectiveCompliance value =
   { directiveId       : DirectiveId
   , name              : String
   , compliance        : Float
+  , policyMode        : String
   , complianceDetails : ComplianceDetails
   , components        : List (ComponentCompliance value)
   }
@@ -54,12 +57,12 @@ type alias UI =
   }
 
 type alias Model =
-  { nodeId : NodeId
-  , contextPath : String
-  , policyMode  : String
-  , ui          : UI
+  { nodeId         : NodeId
+  , contextPath    : String
+  , policyMode     : String
+  , ui             : UI
   , nodeCompliance : Maybe NodeCompliance
-  , onlySystem : Bool
+  , onlySystem     : Bool
   }
 
 type Msg
