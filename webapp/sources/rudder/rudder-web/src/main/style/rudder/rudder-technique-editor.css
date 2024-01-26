@@ -993,13 +993,6 @@ button.btn.clipboard:hover {
   display: none !important;
 }
 /* =====  BLOCK  ===== */
-.method-info .block-name-container{
-  padding: 10px 100px 0 0;
-}
-.method-info.closed .block-name-container{
-  padding-left: 0;
-  padding-top: 0;
-}
 /* =====  METHOD  ===== */
 ul.list-unstyled > li{
   margin-bottom: 10px;
@@ -1112,11 +1105,15 @@ ul li.hide-method {
 }
 .name-content {
   cursor: text;
-  padding-top: 6px;
+  padding-top: 25px;
   display: inline-block;
 }
 .method-condition + .method-name .name-content {
   padding-top: 0;
+}
+
+.method-condition + .method-name .gm-labels {
+  top: -47px;
 }
 
 .method .method-param{
@@ -1166,8 +1163,8 @@ ul li.hide-method {
   padding-left: 10px;
 }
 .method .method-info .method-condition:not(.hidden),
-.method .method-info .method-condition.hidden ~ .method-name{
-  padding-top: 6px;
+.method .method-info .method-condition.visually-hidden ~ .method-name{
+  padding-top: 25px;
 }
 .method .method-info.closed .method-param{
   padding-left: 15px;
@@ -1583,26 +1580,65 @@ ul li.hide-method {
 .title-input-name {
   font-size: 14px;
   font-weight: bold;
-  margin-top: 14px;
 }
-.gm-label-name {
+
+.component-name-wrapper .gm-labels {
+  top: -14px
+}
+
+.gm-labels {
   font-size:11px;
   opacity:0.9;
   display: inline-block;
-  padding-left: 10px;
-  padding-right: 10px;
   height: 25px;
-  background-color:#e1e5eb;
+  z-index:10;
+  position: absolute;
+  right: 135px;
+}
+
+
+.gm-labels.left {
+  left: 15px;
+  right: 0;
+}
+.gm-labels .gm-label.rudder-label.btn {
+  cursor: pointer;
+}
+.gm-labels .gm-label.rudder-label {
+  font-size:11px;
+  opacity:0.9;
+  display: inline-block;
+  padding: 0 10px;
+  height: 25px;
   text-align: center;
   vertical-align: middle;
   line-height: 25px;
   border-radius: 0 0 5px 5px;
   z-index:10;
-  margin: 0;
-  position: absolute;
-  top: -20px;
-  right: 135px;
+  margin: 0 0 0 5px;
+  font-weight:500;
+  min-width: 0px;
+  cursor: default;
 }
+
+.gm-labels.left .gm-label.rudder-label {
+  margin: 0 5px 0 0px;
+}
+
+.gm-labels .gm-label.gm-label-name,
+.gm-labels .gm-label.gm-label-default{
+  color: #041922;
+  background-color:#e1e5eb;
+}
+
+
+.gm-labels .gm-label.gm-label-label {
+  color: #041922;
+  background-color:#fff;
+  font-weight:bold;
+  padding: 0;
+}
+
 .card-method.active .gm-label-name{
   right: 120px;
 }
