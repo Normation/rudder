@@ -50,12 +50,9 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.rest.data.Creation.CreationError
 import com.normation.rudder.rest.data.NodeTemplate.AcceptedNodeTemplate
 import com.normation.rudder.rest.data.NodeTemplate.PendingNodeTemplate
+import com.softwaremill.quicklens._
 import com.typesafe.config.ConfigValue
-import net.liftweb.json.JArray
-import net.liftweb.json.JField
-import net.liftweb.json.JObject
-import net.liftweb.json.JString
-import net.liftweb.json.JValue
+import net.liftweb.json._
 
 /**
  * Applicative log of interest for Rudder ops.
@@ -85,13 +82,25 @@ object Rest {
 
   final case class NodeProp(name: String, value: ConfigValue)
 
+  // machine creation doesn't have an ID
+  final case class MachineCreate(
+      `type`:       String,
+      provider:     Option[String],
+      manufacturer: Option[String],
+      serialNumber: Option[String]
+  )
+
+  /*
+   * We can have two kinds of node where machine or machine type is given
+   */
   final case class NodeDetails(
       id:             String,
       hostname:       String,
       status:         String,
       os:             OS,
       policyServerId: Option[String],
-      machineType:    String,
+      machineType:    Option[String],
+      machine:        Option[MachineCreate],
       state:          Option[String],
       policyMode:     Option[String],
       agentKey:       Option[AgentKey],
@@ -118,11 +127,12 @@ object Rest {
       JsonDecoder[Json].map(json => GenericProperty.fromZioJson(json))
     )
 
-    implicit val codecAgentKey:     JsonCodec[AgentKey]     = DeriveJsonCodec.gen
-    implicit val codecOS:           JsonCodec[OS]           = DeriveJsonCodec.gen
-    implicit val codecNodeTimezone: JsonCodec[NodeTimezone] = DeriveJsonCodec.gen
-    implicit val codecNodeProp:     JsonCodec[NodeProp]     = DeriveJsonCodec.gen
-    implicit val codecNodeDetails:  JsonCodec[NodeDetails]  = DeriveJsonCodec.gen
+    implicit val codecAgentKey:      JsonCodec[AgentKey]      = DeriveJsonCodec.gen
+    implicit val codecOS:            JsonCodec[OS]            = DeriveJsonCodec.gen
+    implicit val codecNodeTimezone:  JsonCodec[NodeTimezone]  = DeriveJsonCodec.gen
+    implicit val codecNodeProp:      JsonCodec[NodeProp]      = DeriveJsonCodec.gen
+    implicit val codecMachineCreate: JsonCodec[MachineCreate] = DeriveJsonCodec.gen
+    implicit val codecNodeDetails:   JsonCodec[NodeDetails]   = DeriveJsonCodec.gen
   }
 }
 
@@ -242,7 +252,20 @@ object Validation {
 
     (checkId(nodeDetails.id.toLowerCase), checkStatus(nodeDetails.status)).mapN(Tuple2(_, _)) andThen {
       case (id, status) =>
-        val machine = getMachine(id, PendingInventory, nodeDetails.machineType)
+        val machine = {
+          val tpe = (nodeDetails.machineType, nodeDetails.machine) match {
+            case (None, None)     => "physical"
+            // make the machine structure more privileged
+            case (_, Some(m))     => m.provider.getOrElse(m.`type`)
+            case (Some(mt), None) => mt
+          }
+
+          getMachine(id, status, tpe)
+            .modify(_.manufacturer)
+            .setToIfDefined(nodeDetails.machine.map(_.manufacturer.map(Manufacturer)))
+            .modify(_.systemSerialNumber)
+            .setToIfDefined(nodeDetails.machine.map(_.serialNumber))
+        }
 
         (
           checkSummary(nodeDetails, id, PendingInventory, os),
@@ -322,7 +345,7 @@ object Validation {
       val msg = s"Machine type must be one of ${names(Machine.values)(_.name)} but '${x}' provided"
     }
     final case class Agent(x: String)         extends NodeValidationError {
-      val msg = s"Management technologie agent must be one of ${names(AgentType.allValues)(_.id)} but '${x}' provided"
+      val msg = s"Agent's management technology must be one of ${names(AgentType.allValues)(_.id)} but '${x}' provided"
     }
     final case class KeyStatus(x: String)     extends NodeValidationError {
       val msg = s"Key status must be '${CertifiedKey.value}' or '${UndefinedKey.value}' but '${x}' provided"
@@ -362,7 +385,10 @@ object Validation {
 
   def getMachine(id: NodeId, status: InventoryStatus, machineType: String): MachineInventory = {
     val machineId = MachineUuid(IdGenerator.md5Hash(id.value))
-    val machine   = machineType.toLowerCase
+    val machine   = machineType.toLowerCase match {
+      case "virtual" => "vm"
+      case x         => x
+    }
     MachineInventory(
       machineId,
       status,
