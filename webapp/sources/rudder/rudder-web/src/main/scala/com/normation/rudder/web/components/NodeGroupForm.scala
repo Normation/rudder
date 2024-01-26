@@ -483,11 +483,11 @@ class NodeGroupForm(
         )
 
         /*
-         * - If a group changes from dynamic to static, we must ensure that it does not refer
+         * - If a group changes from dynamic to static, or is static, we must ensure that it does not refer
          *   any dynamic subgroup, else raise an error
          * See https://issues.rudder.io/issues/18952
          */
-        if (savedGroup.isDynamic == true && newGroup.isDynamic == false) {
+        if (newGroup.isDynamic == false) {
           hasDynamicSubgroups(newGroup.query).either.runNow match {
             case Left(err)        =>
               formTracker.addFormError(Text("Error when saving group"))
@@ -495,8 +495,10 @@ class NodeGroupForm(
                 s"Error when getting group information for consistency check on static change status: ${err.fullMsg}"
               )
             case Right(Some(msg)) =>
-              val m = s"Error when getting group information for consistency check on static change status: you can't change " +
-                s"the nature of current group to static because it uses following dynamic groups as a subgroup criteria: ${msg}"
+              val m = {
+                s"Error when getting group information for consistency check on static/dynamic status:" +
+                s"current group can not be static because it uses following dynamic groups as a subgroup criteria: ${msg}"
+              }
               formTracker.addFormError(Text(m))
               logger.error(m)
             case Right(None)      => // ok
