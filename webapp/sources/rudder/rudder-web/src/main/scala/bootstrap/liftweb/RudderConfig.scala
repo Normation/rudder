@@ -50,6 +50,7 @@ import bootstrap.liftweb.checks.consistency.CheckRudderGlobalParameter
 import bootstrap.liftweb.checks.consistency.CloseOpenUserSessions
 import bootstrap.liftweb.checks.migration.CheckAddSpecialNodeGroupsDescription
 import bootstrap.liftweb.checks.migration.CheckRemoveRuddercSetting
+import bootstrap.liftweb.checks.migration.CheckTableScore
 import bootstrap.liftweb.checks.migration.CheckTableUsers
 import bootstrap.liftweb.checks.migration.MigrateChangeValidationEnforceSchema
 import bootstrap.liftweb.checks.migration.MigrateEventLogEnforceSchema
@@ -3255,6 +3256,7 @@ object RudderConfigInit {
 
     lazy val allBootstrapChecks = new SequentialImmediateBootStrapChecks(
       new CheckConnections(dataSourceProvider, rwLdap),
+      new CheckTableScore(doobie),
       new CheckTableUsers(doobie),
       new MigrateEventLogEnforceSchema(doobie),
       new MigrateChangeValidationEnforceSchema(doobie),
