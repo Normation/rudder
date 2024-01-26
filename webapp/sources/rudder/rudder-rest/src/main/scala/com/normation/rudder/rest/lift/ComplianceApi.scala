@@ -58,7 +58,6 @@ import com.normation.rudder.domain.reports.DirectiveStatusReport
 import com.normation.rudder.domain.reports.ValueStatusReport
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.repository.FullActiveTechnique
-import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
@@ -471,8 +470,9 @@ class ComplianceAPIService(
   }
 
   private[this] def getByDirectivesCompliance(
-      directives: Seq[Directive],
-      level:      Option[Int]
+      directives:    Seq[Directive],
+      allDirectives: Map[DirectiveId, (FullActiveTechnique, Directive)], // to compute policy mode for each rule
+      level:         Option[Int]
   ): IOResult[Seq[ByDirectiveCompliance]] = {
     val computedLevel = level.getOrElse(10)
 
@@ -504,11 +504,28 @@ class ComplianceAPIService(
       t5            <- currentTimeMillis
       _             <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - findRuleNodeStatusReports in ${t5 - t4} ms")
 
+      allGroups <- nodeGroupRepo.getAllNodeIdsChunk()
+      t6        <- currentTimeMillis
+      _         <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - nodeGroupRepo.getAllNodeIdsChunk in ${t6 - t5} ms")
+
+      globalPolicyMode <- getGlobalPolicyMode()
+
+      reportsByRule = reportsByNode.flatMap { case (_, status) => status.reports }.groupBy(_.ruleId)
+      t7           <- currentTimeMillis
+      _            <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - group reports by rules in ${t7 - t6} ms")
+
+      policyModeByRules = rules.map { rule =>
+                            val nodeIds = RoNodeGroupRepository.getNodeIdsChunk(allGroups, rule.targets, nodeInfos).toSet
+                            (
+                              rule.id,
+                              getRulePolicyMode(rule, allDirectives, nodeIds.toSet, nodeInfos, globalPolicyMode)
+                            )
+                          }.toMap
+
+      t8 <- currentTimeMillis
+      _  <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - Compute policy mode by rules in ${t8 - t7} ms")
     } yield {
 
-      val reportsByRule = reportsByNode.flatMap { case (_, status) => status.reports }.groupBy(_.ruleId)
-      val t6            = System.currentTimeMillis()
-      TimingDebugLoggerPure.logEffect.trace(s"getByRulesCompliance - group reports by rules in ${t6 - t5} ms")
       for {
         // We will now compute compliance for each directive we want
         directive <- directives
@@ -537,6 +554,7 @@ class ComplianceAPIService(
             ruleId,
             ruleName,
             ComplianceLevel.sum(componentsCompliance.map(_.compliance)),
+            policyModeByRules.get(ruleId).flatten,
             componentsDetails
           )
         }
@@ -566,9 +584,9 @@ class ComplianceAPIService(
 
     for {
       t1        <- currentTimeMillis
-      allGroups <- nodeGroupRepo.getAllNodeIds()
+      allGroups <- nodeGroupRepo.getAllNodeIdsChunk()
       t2        <- currentTimeMillis
-      _         <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - nodeGroupRepo.getAllNodeIds in ${t2 - t1} ms")
+      _         <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - nodeGroupRepo.getAllNodeIdsChunk in ${t2 - t1} ms")
 
       // this can be optimized, as directive only happen for level=2
       directives <- if (computedLevel >= 2) {
@@ -597,6 +615,16 @@ class ComplianceAPIService(
       t6            <- currentTimeMillis
       _             <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - findRuleNodeStatusReports in ${t6 - t5} ms")
 
+      globalPolicyMode <- getGlobalPolicyMode()
+
+      nodeAndPolicyModeByRules = rules.map { rule =>
+                                   val nodeIds = RoNodeGroupRepository.getNodeIdsChunk(allGroups, rule.targets, nodeInfos)
+                                   (
+                                     rule.id,
+                                     (nodeIds, getRulePolicyMode(rule, directives, nodeIds.toSet, nodeInfos, globalPolicyMode))
+                                   )
+                                 }.toMap
+
     } yield {
 
       val reportsByRule = reportsByNode.flatMap { case (_, status) => status.reports }.groupBy(_.ruleId)
@@ -619,6 +647,7 @@ class ComplianceAPIService(
             ruleObjects.get(ruleId).map(_.name).getOrElse("Unknown rule"),
             ComplianceLevel.sum(reports.map(_.compliance)),
             compliance.mode,
+            nodeAndPolicyModeByRules.get(ruleId).flatMap(_._2),
             byDirectives.map {
               case (directiveId, nodeDirectives) =>
                 ByRuleDirectiveCompliance(
@@ -626,7 +655,9 @@ class ComplianceAPIService(
                   directives.get(directiveId).map(_._2.name).getOrElse("Unknown directive"),
                   ComplianceLevel.sum(
                     nodeDirectives.map(_._2.compliance)
-                  ), // here we want the compliance by components of the directive.
+                  ),
+                  directives.get(directiveId).flatMap(_._2.policyMode),
+                  // here we want the compliance by components of the directive.
                   // if level is high enough, get all components and group by their name
                   {
                     val byComponents: Map[String, immutable.Iterable[(NodeId, ComponentStatusReport)]] = if (computedLevel < 3) {
@@ -657,13 +688,14 @@ class ComplianceAPIService(
         } else {
           rulesWithoutCompliance.toSeq.map {
             case ruleId =>
-              val rule    = ruleObjects(ruleId) // we know by construct that it exists
-              val nodeIds = RoNodeGroupRepository.getNodeIds(allGroups, rule.targets, nodeInfos)
+              val rule                  = ruleObjects(ruleId) // we know by construct that it exists
+              val (nodeIds, policyMode) = nodeAndPolicyModeByRules.getOrElse(ruleId, (Set.empty, None))
               ByRuleRuleCompliance(
                 rule.id,
                 rule.name,
                 ComplianceLevel(noAnswer = nodeIds.size),
                 compliance.mode,
+                policyMode,
                 Seq()
               )
           }
@@ -695,17 +727,21 @@ class ComplianceAPIService(
   }.toBox
 
   def getDirectiveCompliance(directive: Directive, level: Option[Int]): Box[ByDirectiveCompliance] = {
-    getByDirectivesCompliance(Seq(directive), level)
-      .flatMap(
-        _.find(_.id == directive.id).notOptional(s"No reports were found for directive with ID '${directive.id.serialize}'")
-      )
-      .toBox
-  }
+    for {
+      directiveLib <- directiveRepo.getFullDirectiveLibrary()
+      reports      <- getByDirectivesCompliance(Seq(directive), directiveLib.allDirectives, level)
+      report       <-
+        reports.find(_.id == directive.id).notOptional(s"No reports were found for directive with ID '${directive.id.serialize}'")
+    } yield {
+      report
+    }
+  }.toBox
 
   def getDirectivesCompliance(level: Option[Int]): Box[Seq[ByDirectiveCompliance]] = {
     for {
-      directives <- directiveRepo.getFullDirectiveLibrary().map(_.allDirectives.values.map(_._2))
-      reports    <- getByDirectivesCompliance(directives.toSeq, level)
+      directiveLib <- directiveRepo.getFullDirectiveLibrary()
+      directives    = directiveLib.allDirectives.values.map(_._2).toSeq
+      reports      <- getByDirectivesCompliance(directives, directiveLib.allDirectives, level)
     } yield {
       reports
     }
@@ -741,11 +777,11 @@ class ComplianceAPIService(
 
     for {
       rules        <- getRules
-      allGroups    <- nodeGroupRepo.getAllNodeIds()
+      allGroups    <- nodeGroupRepo.getAllNodeIdsChunk()
       groupLib     <- nodeGroupRepo.getFullGroupLibrary()
       directiveLib <- directiveRepo.getFullDirectiveLibrary().map(_.allDirectives)
       allNodeInfos <- nodeInfoService.getAll()
-      nodeInfos    <- onlyNode match {
+      nodeTmpInfos <- onlyNode match {
                         case None     => allNodeInfos.succeed
                         case Some(id) =>
                           allNodeInfos
@@ -757,49 +793,68 @@ class ComplianceAPIService(
       compliance   <- getGlobalComplianceMode().toIO
       reports      <- reportingService
                         .findRuleNodeStatusReports(
-                          nodeInfos.keySet,
+                          nodeTmpInfos.keySet,
                           rules.map(_.id).toSet
                         )
                         .toIO
     } yield {
 
-      // get nodeIds by rules
-      val nodeByRules = rules.map(rule => (rule, RoNodeGroupRepository.getNodeIds(allGroups, rule.targets, allNodeInfos)))
+      // A map to access the node fqdn and settings
+      val nodeInfos = nodeTmpInfos.view.mapValues(n => (n.name, n)).toMap
+
+      val nodeAndPolicyModeByRules = rules
+        .map(rule => {
+          val nodeIds    =
+            RoNodeGroupRepository.getNodeIdsChunk(allGroups, rule.targets, nodeTmpInfos).toSet
+          val policyMode = {
+            getRulePolicyMode(
+              rule,
+              directiveLib,
+              nodeIds,
+              nodeInfos.map { case (id, (_, settings)) => (id, settings) },
+              globalMode
+            )
+          }
+          (rule, nodeIds -> policyMode)
+        })
+        .toMap
 
       val ruleMap = rules.map(r => (r.id, r)).toMap
       // get an empty-initialized array of compliances to be used
       // as defaults
 
-      val getPolicyModeByRule = getRulePolicyMode(_, groupLib, directiveLib, nodeInfos, globalMode)
-
       val initializedCompliances: Map[NodeId, ByNodeNodeCompliance] = {
         nodeInfos.map {
-          case (nodeId, nodeInfo) =>
-            val rulesForNode = nodeByRules.collect { case (rule, nodeIds) if (nodeIds.contains(nodeId)) => rule }
+          case (nodeId, (fqdn, nodeSettings)) =>
+            val rulesForNode = nodeAndPolicyModeByRules.collect {
+              case (rule, (nodeIds, policyMode)) if (nodeIds.contains(nodeId)) => (rule, policyMode)
+            }.toList
 
             (
               nodeId,
               ByNodeNodeCompliance(
                 nodeId,
-                nodeInfos.get(nodeId).map(_.hostname).getOrElse("Unknown node"),
+                fqdn,
                 ComplianceLevel(noAnswer = rulesForNode.size),
                 compliance.mode,
-                (rulesForNode.map { rule =>
-                  ByNodeRuleCompliance(
-                    rule.id,
-                    rule.name,
-                    ComplianceLevel(noAnswer = rule.directiveIds.size),
-                    getPolicyModeByRule(rule),
-                    rule.directiveIds.map { rid =>
-                      ByNodeDirectiveCompliance(
-                        rid,
-                        directiveLib.get(rid).map(_._2.name).getOrElse("Unknown Directive"),
-                        ComplianceLevel(noAnswer = 1),
-                        directiveLib.get(rid).flatMap(_._2.policyMode),
-                        Nil
-                      )
-                    }.toSeq
-                  )
+                nodeSettings.policyMode, // Add this line to include node policy mode
+                (rulesForNode.map {
+                  case (rule, policyMode) =>
+                    ByNodeRuleCompliance(
+                      rule.id,
+                      rule.name,
+                      ComplianceLevel(noAnswer = rule.directiveIds.size),
+                      policyMode,
+                      rule.directiveIds.map { rid =>
+                        ByNodeDirectiveCompliance(
+                          rid,
+                          directiveLib.get(rid).map(_._2.name).getOrElse("Unknown Directive"),
+                          ComplianceLevel(noAnswer = 1),
+                          directiveLib.get(rid).flatMap(_._2.policyMode),
+                          Nil
+                        )
+                      }.toSeq
+                    )
                 })
               )
             )
@@ -814,15 +869,16 @@ class ComplianceAPIService(
             nodeId,
             ByNodeNodeCompliance(
               nodeId,
-              nodeInfos.get(nodeId).map(_.hostname).getOrElse("Unknown node"),
+              nodeInfos.get(nodeId).map(_._1).getOrElse("Unknown node"),
               ComplianceLevel.sum(status.reports.map(_.compliance)),
-              compliance.mode,
+              compliance.mode, // Add this line to include no
+              nodeInfos.get(nodeId).flatMap(_._2.policyMode),
               status.reports.toSeq.map(r => {
                 ByNodeRuleCompliance(
                   r.ruleId,
                   ruleMap.get(r.ruleId).map(_.name).getOrElse("Unknown rule"),
                   r.compliance,
-                  ruleMap.get(r.ruleId).flatMap(getPolicyModeByRule),
+                  ruleMap.get(r.ruleId).flatMap(nodeAndPolicyModeByRules.get(_).flatMap(_._2)),
                   r.directives.toSeq.map {
                     case (_, directiveReport) =>
                       ByNodeDirectiveCompliance(
@@ -846,15 +902,14 @@ class ComplianceAPIService(
 
   private[this] def getRulePolicyMode(
       rule:          Rule,
-      groupLib:      FullNodeGroupCategory,
       allDirectives: Map[DirectiveId, (FullActiveTechnique, Directive)],
-      nodesLib:      Map[NodeId, NodeInfo],
+      nodesIds:      Set[NodeId],
+      nodeSettings:  Map[NodeId, NodeInfo],
       globalMode:    GlobalPolicyMode
   ) = {
     val directives = rule.directiveIds.flatMap(allDirectives.get(_)).map(_._2)
-    val nodesIds   = groupLib.getNodeIds(rule.targets, nodesLib)
-    val nodes      = nodesLib.view.filterKeys(x => nodesIds.contains(x)).values
-    PolicyMode.parse(ComputePolicyMode.ruleMode(globalMode, directives, nodes.map(_.policyMode))._1).toOption
+    val nodeModes  = nodeSettings.collect { case (id, rudderSettings) if (nodesIds.contains(id)) => rudderSettings.policyMode }
+    PolicyMode.parse(ComputePolicyMode.ruleMode(globalMode, directives, nodeModes)._1).toOption
   }
 
   def getNodeCompliance(nodeId: NodeId, onlySystems: Boolean): Box[ByNodeNodeCompliance] = {

@@ -40,6 +40,7 @@ package com.normation.rudder.rest
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
+import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.ComplianceLevel
@@ -101,6 +102,7 @@ class TestDirectiveComplianceCsv extends Specification {
           RuleId(RuleUid("r1")),
           "Basic hardening on all systems",
           notUsed,
+          Some(PolicyMode.Enforce),
           Seq(
             ByRuleBlockCompliance(
               "Check Cipher TLS_RSA_WITH_DES_CBC_SHA",

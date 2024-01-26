@@ -83,6 +83,7 @@ final case class ByRuleRuleCompliance(
 
     compliance: ComplianceLevel,
     mode:       ComplianceModeName,
+    policyMode: Option[PolicyMode],
     directives: Seq[ByRuleDirectiveCompliance]
 ) {
   lazy val nodes = GroupComponentCompliance.fromDirective(directives).toSeq
@@ -103,6 +104,7 @@ final case class ByDirectiveByRuleCompliance(
     id:         RuleId,
     name:       String,
     compliance: ComplianceLevel,
+    policyMode: Option[PolicyMode],
     components: Seq[ByRuleComponentCompliance]
 )
 
@@ -118,6 +120,7 @@ final case class ByDirectiveByNodeRuleCompliance(
     id:         RuleId,
     name:       String,
     compliance: ComplianceLevel,
+    policyMode: Option[PolicyMode],
     components: Seq[ByRuleByNodeByDirectiveByComponentCompliance]
 )
 
@@ -125,6 +128,7 @@ final case class ByRuleDirectiveCompliance(
     id:         DirectiveId,
     name:       String,
     compliance: ComplianceLevel,
+    policyMode: Option[PolicyMode],
     components: Seq[ByRuleComponentCompliance]
 )
 
@@ -148,7 +152,7 @@ final case class ByRuleValueCompliance(
 final case class ByRuleNodeCompliance(
     id:         NodeId,
     name:       String,
-    mode:       Option[PolicyMode],
+    policyMode: Option[PolicyMode],
     compliance: ComplianceLevel,
     values:     Seq[ComponentValueStatusReport]
 )
@@ -166,6 +170,7 @@ final case class GroupComponentCompliance(
     id:         NodeId,
     name:       String,
     compliance: ComplianceLevel,
+    policyMode: Option[PolicyMode],
     directives: Seq[ByRuleByNodeByDirectiveCompliance]
 )
 
@@ -173,6 +178,7 @@ final case class ByRuleByNodeByDirectiveCompliance(
     id:         DirectiveId,
     name:       String,
     compliance: ComplianceLevel,
+    policyMode: Option[PolicyMode],
     components: Seq[ByRuleByNodeByDirectiveByComponentCompliance]
 )
 
@@ -224,7 +230,7 @@ object GroupComponentCompliance {
           // You get all reports that were for a Node matching our value, regroup these report for our node in the structure)
           // Node name should be the same for all items, take the first one. We need to send it to upper structure, link it with id
           (
-            (nodeId, data.map(_.name).headOption.getOrElse(nodeId.value), data.map(_.mode).headOption.getOrElse(None)),
+            (nodeId, data.map(_.name).headOption.getOrElse(nodeId.value), data.map(_.policyMode).headOption.getOrElse(None)),
             ByRuleByNodeByDirectiveByValueCompliance(
               v.name,
               ComplianceLevel.sum(data.map(_.compliance)),
@@ -255,7 +261,13 @@ object GroupComponentCompliance {
                               // Rebuild a Directtive compliance for a Node
                               (
                                 nodeId,
-                                ByRuleByNodeByDirectiveCompliance(d.id, d.name, ComplianceLevel.sum(subs.map(_.compliance)), subs)
+                                ByRuleByNodeByDirectiveCompliance(
+                                  d.id,
+                                  d.name,
+                                  ComplianceLevel.sum(subs.map(_.compliance)),
+                                  d.policyMode,
+                                  subs
+                                )
                               )
                           }
 
@@ -263,7 +275,7 @@ object GroupComponentCompliance {
     } yield {
       // All Directive were regrouped by Nodes (_._1), rebuild a strucutre containing all Directives
       val subs = data.map(_._2)
-      GroupComponentCompliance(nodeId._1, nodeId._2, ComplianceLevel.sum(subs.map(_.compliance)), subs)
+      GroupComponentCompliance(nodeId._1, nodeId._2, ComplianceLevel.sum(subs.map(_.compliance)), nodeId._3, subs)
     }
   }
 
@@ -287,7 +299,13 @@ object GroupComponentCompliance {
                               // Rebuild a Directtive compliance for a Node
                               (
                                 nodeId,
-                                ByDirectiveByNodeRuleCompliance(d.id, d.name, ComplianceLevel.sum(subs.map(_.compliance)), subs)
+                                ByDirectiveByNodeRuleCompliance(
+                                  d.id,
+                                  d.name,
+                                  ComplianceLevel.sum(subs.map(_.compliance)),
+                                  d.policyMode,
+                                  subs
+                                )
                               )
                           }
 
@@ -314,6 +332,7 @@ final case class ByNodeNodeCompliance(
     name:            String,
     compliance:      ComplianceLevel,
     mode:            ComplianceModeName,
+    policyMode:      Option[PolicyMode],
     nodeCompliances: Seq[ByNodeRuleCompliance]
 )
 
@@ -424,6 +443,7 @@ object JsonCompliance {
       ("id"                    -> directive.id.serialize)
         ~ ("name"              -> directive.name)
         ~ ("compliance"        -> directive.compliance.complianceWithoutPending())
+        ~ ("policyMode"        -> directive.policyMode.map(_.name).getOrElse("default"))
         ~ ("complianceDetails" -> percents(directive.compliance, CompliancePrecision.Level2))
         ~ ("rules"             -> rules(directive.rules, 10, CompliancePrecision.Level2))
         ~ ("nodes"             -> byNodes(directive.nodes, 10, CompliancePrecision.Level2))
@@ -471,6 +491,7 @@ object JsonCompliance {
             ("id"                  -> rule.id.uid.value)
             ~ ("name"              -> rule.name)
             ~ ("compliance"        -> rule.compliance.complianceWithoutPending(precision))
+            ~ ("policyMode"        -> rule.policyMode.map(_.name).getOrElse("default"))
             ~ ("complianceDetails" -> percents(rule.compliance, precision))
             ~ ("components"        -> byNodeByDirectiveByComponents(rule.components, level, precision))
           )
@@ -536,6 +557,7 @@ object JsonCompliance {
             ("id"                  -> rule.id.uid.value)
             ~ ("name"              -> rule.name)
             ~ ("compliance"        -> rule.compliance.complianceWithoutPending(precision))
+            ~ ("policyMode"        -> rule.policyMode.map(_.name).getOrElse("default"))
             ~ ("complianceDetails" -> percents(rule.compliance, precision))
             ~ ("components"        -> components(rule.components, level, precision))
           )
@@ -593,7 +615,7 @@ object JsonCompliance {
           (
             ("id"                  -> node.id.value)
             ~ ("name"              -> node.name)
-            ~ ("policyMode"        -> node.mode.map(_.name).getOrElse("default"))
+            ~ ("policyMode"        -> node.policyMode.map(_.name).getOrElse("default"))
             ~ ("compliance"        -> node.compliance.complianceWithoutPending(precision))
             ~ ("complianceDetails" -> percents(node.compliance, precision))
             ~ ("values"            -> values(node.values, level))
@@ -610,6 +632,7 @@ object JsonCompliance {
       ("id"                    -> rule.id.serialize)
         ~ ("name"              -> rule.name)
         ~ ("compliance"        -> rule.compliance.complianceWithoutPending())
+        ~ ("policyMode"        -> rule.policyMode.map(_.name).getOrElse("default"))
         ~ ("complianceDetails" -> percents(rule.compliance, CompliancePrecision.Level2))
         ~ ("directives"        -> directives(rule.directives, 10, CompliancePrecision.Level2))
     )
@@ -627,6 +650,7 @@ object JsonCompliance {
         ~ ("name"              -> rule.name)
         ~ ("compliance"        -> rule.compliance.complianceWithoutPending(precision))
         ~ ("mode"              -> rule.mode.name)
+        ~ ("policyMode"        -> rule.policyMode.map(_.name).getOrElse("default"))
         ~ ("complianceDetails" -> percents(rule.compliance, precision))
         ~ ("directives"        -> directives(rule.directives, level, precision))
         ~ ("nodes"             -> byNodes(rule.nodes, level, precision))
@@ -644,6 +668,7 @@ object JsonCompliance {
             ("id"                  -> directive.id.serialize)
             ~ ("name"              -> directive.name)
             ~ ("compliance"        -> directive.compliance.complianceWithoutPending(precision))
+            ~ ("policyMode"        -> directive.policyMode.map(_.name).getOrElse("default"))
             ~ ("complianceDetails" -> percents(directive.compliance, precision))
             ~ ("components"        -> components(directive.components, level, precision))
           )
@@ -662,6 +687,7 @@ object JsonCompliance {
             ("id"                  -> node.id.value)
             ~ ("name"              -> node.name)
             ~ ("compliance"        -> node.compliance.complianceWithoutPending(precision))
+            ~ ("policyMode"        -> node.policyMode.map(_.name).getOrElse("default"))
             ~ ("complianceDetails" -> percents(node.compliance, precision))
             ~ ("directives"        -> byNodesByDirectives(node.directives, level, precision))
           )
@@ -681,6 +707,7 @@ object JsonCompliance {
             ("id"                  -> directive.id.serialize)
             ~ ("name"              -> directive.name)
             ~ ("compliance"        -> directive.compliance.complianceWithoutPending(precision))
+            ~ ("policyMode"        -> directive.policyMode.map(_.name).getOrElse("default"))
             ~ ("complianceDetails" -> percents(directive.compliance, precision))
             ~ ("components"        -> byNodeByDirectiveByComponents(directive.components, level, precision))
           )
@@ -761,6 +788,7 @@ object JsonCompliance {
             ("id"                  -> node.id.value)
             ~ ("name"              -> node.name)
             ~ ("compliance"        -> node.compliance.complianceWithoutPending(precision))
+            ~ ("policyMode"        -> node.policyMode.map(_.name).getOrElse("default"))
             ~ ("complianceDetails" -> percents(node.compliance, precision))
             ~ ("values"            -> values(node.values, level))
           )
@@ -775,6 +803,7 @@ object JsonCompliance {
     def toJsonV6 = (
       ("id"                    -> n.id.value)
         ~ ("compliance"        -> n.compliance.complianceWithoutPending())
+        ~ ("policyMode"        -> n.policyMode.map(_.name).getOrElse("default"))
         ~ ("complianceDetails" -> percents(n.compliance, CompliancePrecision.Level2))
         ~ ("rules"             -> rules(n.nodeCompliances, 10, CompliancePrecision.Level2))
     )
@@ -793,6 +822,7 @@ object JsonCompliance {
         ~ ("name"              -> n.name)
         ~ ("compliance"        -> n.compliance.complianceWithoutPending(precision))
         ~ ("mode"              -> n.mode.name)
+        ~ ("policyMode"        -> n.policyMode.map(_.name).getOrElse("default"))
         ~ ("complianceDetails" -> percents(n.compliance, precision))
         ~ ("rules"             -> rules(n.nodeCompliances, level, precision))
     )

@@ -22,7 +22,7 @@ decodeNodeCompliance =
     |> required "id"         (map NodeId string)
     |> required "name"       string
     |> required "compliance" float
-    |> required "mode"       string
+    |> required "policyMode" string
     |> required "complianceDetails" decodeComplianceDetails
     |> required "rules"      (list decodeRuleCompliance)
 
