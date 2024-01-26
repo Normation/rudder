@@ -12,6 +12,7 @@ type alias Flags =
   , downloadsUrl: String
   , dir: String
   , hasWriteRights : Bool
+  , initRun : Bool
   }
 
 type ViewMode = ListView | GridView

@@ -16,7 +16,7 @@ import FileManager.Env exposing (handleEnvMsg)
 import FileManager.Util exposing (getDirPath, processApiError)
 
 init : Flags -> (Model, Cmd Msg)
-init flags = (initModel flags, let { api, dir } = flags in listDirectory api [dir] )
+init flags = (initModel flags, let { api, dir, initRun } = flags in if initRun then listDirectory api [dir] else Cmd.none )
 
 initModel : Flags -> Model
 initModel { api, thumbnailsUrl, downloadsUrl, dir, hasWriteRights } =
