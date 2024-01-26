@@ -98,8 +98,8 @@ update msg model =
         Ok settings ->
           let
             ui = model.ui
-            getPendingCR = case model.mode of
-              RuleForm details -> getPendingChangeRequests model details.rule.id
+            getPendingCR = case (model.mode, settings.enableChangeRequest) of
+              (RuleForm details, True) -> getPendingChangeRequests model details.rule.id
               _ -> Cmd.none
           in
             ( { model | ui = { ui | crSettings = Just settings } }
