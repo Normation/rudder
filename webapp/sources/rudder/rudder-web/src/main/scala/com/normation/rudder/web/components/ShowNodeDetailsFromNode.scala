@@ -52,6 +52,9 @@ import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.score.ComplianceScore
+import com.normation.rudder.score.GlobalScore
+import com.normation.rudder.score.ScoreValue.NoScore
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.JsNodeId
@@ -96,6 +99,7 @@ class ShowNodeDetailsFromNode(
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private[this] val configService        = RudderConfig.configService
+  private[this] val scoreService         = RudderConfig.rci.scoreService
 
   def agentPolicyModeEditForm = new AgentPolicyModeEditForm()
 
@@ -219,9 +223,10 @@ class ShowNodeDetailsFromNode(
             def htmlId(jsId: JsNodeId, prefix: String): String = prefix + jsId.toString
             val detailsId = htmlId(jsId, "details_")
 
+            val globalScore = scoreService.getGlobalScore(nodeId).toBox.getOrElse(GlobalScore(NoScore, "", Nil))
             configService.rudder_global_policy_mode().toBox match {
               case Full(globalMode) =>
-                bindNode(nf, withinPopup, globalMode) ++ Script(
+                bindNode(nf, withinPopup, globalMode, globalScore) ++ Script(
                   DisplayNode.jsInit(node.id, "") &
                   JsRaw(s"""
                     $$( "#${detailsId}" ).tabs({ active : ${tab} } );
@@ -260,7 +265,8 @@ class ShowNodeDetailsFromNode(
   private def bindNode(
       nodeFact:    NodeFact,
       withinPopup: Boolean,
-      globalMode:  GlobalPolicyMode
+      globalMode:  GlobalPolicyMode,
+      globalScore: GlobalScore
   )(implicit qr:   QueryContext): NodeSeq = {
     val id   = JsNodeId(nodeFact.id)
     val sm   = nodeFact.toFullInventory
@@ -305,7 +311,11 @@ class ShowNodeDetailsFromNode(
     "#node_parameters -*" #> agentPolicyModeEditForm.cfagentPolicyModeConfiguration(Some(node.id)) &
     "#node_parameters -*" #> (if (node.rudderSettings.isPolicyServer) NodeSeq.Empty
                               else agentScheduleEditForm(node).cfagentScheduleConfiguration) &
-    "#node_tabs [id]" #> s"details_${id}").apply(serverDetailsTemplate)
+    "#node_tabs [id]" #> s"details_${id}" &
+    "href=#node_summary -*" #> <span class={s"badge-compliance-score ${globalScore.value.value} sm"}></span> &
+    "href=#node_reports -*" #> <span class={
+      s"badge-compliance-score ${globalScore.details.find(_.scoreId == ComplianceScore.scoreId).map(_.value).getOrElse(NoScore).value} sm"
+    }></span>).apply(serverDetailsTemplate)
   }
 
   /**

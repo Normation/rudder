@@ -167,6 +167,7 @@ import com.normation.rudder.rule.category._
 import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
 import com.normation.rudder.score.GlobalScoreRepositoryImpl
 import com.normation.rudder.score.ScoreRepositoryImpl
+import com.normation.rudder.score.ScoreService
 import com.normation.rudder.score.ScoreServiceImpl
 import com.normation.rudder.score.ScoreServiceManager
 import com.normation.rudder.services._
@@ -1428,7 +1429,8 @@ case class RudderServiceApi(
     inventorySaver:                      NodeFactInventorySaver,
     inventoryDitService:                 InventoryDitService,
     nodeFactRepository:                  NodeFactRepository,
-    scoreServiceManager:                 ScoreServiceManager
+    scoreServiceManager:                 ScoreServiceManager,
+    scoreService:                        ScoreService
 )
 
 /*
@@ -3707,7 +3709,8 @@ object RudderConfigInit {
       inventorySaver,
       inventoryDitService,
       nodeFactRepository,
-      scoreServiceManager
+      scoreServiceManager,
+      scoreService
     )
 
     // need to be done here to avoid cyclic dependencies

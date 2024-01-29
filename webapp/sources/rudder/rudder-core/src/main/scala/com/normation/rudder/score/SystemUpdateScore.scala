@@ -50,6 +50,10 @@ import zio.json.DeriveJsonEncoder
 import zio.json.EncoderOps
 import zio.json.JsonEncoder
 
+object SystemUpdateScore {
+  val scoreId = "system-updates"
+}
+
 case class SystemUpdateStats(
     nbPackages:  Int,
     security:    Option[Int],
@@ -86,8 +90,8 @@ object SystemUpdateScoreHandler extends ScoreEventHandler {
         (for {
           stats <- s.toJsonAST
         } yield {
-          val scoreId = "system-updates"
-          val score   = if (security == 0 && sum < 50) {
+          import SystemUpdateScore.scoreId
+          val score = if (security == 0 && sum < 50) {
             Score(scoreId, A, "Node has no security updates and less than 50 updates available", stats)
           } else if (security < 5) {
             Score(scoreId, B, s"Node has ${security} security updates available (less than 5)", stats)

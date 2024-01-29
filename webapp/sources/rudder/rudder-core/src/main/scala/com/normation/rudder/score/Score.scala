@@ -53,11 +53,12 @@ sealed trait ScoreValue {
 }
 
 object ScoreValue {
-  case object A extends ScoreValue { val value = "A" }
-  case object B extends ScoreValue { val value = "B" }
-  case object C extends ScoreValue { val value = "C" }
-  case object D extends ScoreValue { val value = "D" }
-  case object E extends ScoreValue { val value = "E" }
+  case object A       extends ScoreValue { val value = "A" }
+  case object B       extends ScoreValue { val value = "B" }
+  case object C       extends ScoreValue { val value = "C" }
+  case object D       extends ScoreValue { val value = "D" }
+  case object E       extends ScoreValue { val value = "E" }
+  case object NoScore extends ScoreValue { val value = "-" }
 
   val allValues: Set[ScoreValue] = ca.mrvisser.sealerate.values
 

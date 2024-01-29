@@ -50,6 +50,10 @@ import zio.json.DeriveJsonEncoder
 import zio.json.EncoderOps
 import zio.json.JsonEncoder
 
+object ComplianceScore {
+  val scoreId = "compliance"
+}
+
 object ComplianceScoreEventHandler extends ScoreEventHandler {
   implicit val compliancePercentEncoder: JsonEncoder[ComplianceSerializable]     = DeriveJsonEncoder.gen
   def handle(event: ScoreEvent):         PureResult[List[(NodeId, List[Score])]] = {
@@ -59,8 +63,8 @@ object ComplianceScoreEventHandler extends ScoreEventHandler {
         (for {
           p <- ComplianceSerializable.fromPercent(percent).toJsonAST
         } yield {
-          val scoreId = "compliance"
-          val score   = if (percent.compliance >= 100) {
+          import ComplianceScore.scoreId
+          val score = if (percent.compliance >= 100) {
             Score(scoreId, A, "Node is compliant at 100%", p)
           } else if (percent.compliance >= 75) {
             Score(scoreId, B, "Node is compliant at least at 75%", p)
