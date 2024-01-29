@@ -12,14 +12,14 @@ response:
         "settings":{
           "allowed_networks":[
             {
-              "id":"node-dsc",
-              "allowed_networks":[]
-            },
-            {
               "id":"root",
               "allowed_networks":[
                 "192.168.2.0/32"
               ]
+            },
+            {
+              "id":"node-dsc",
+              "allowed_networks":[]
             }
           ],
           "change_message_prompt":"Please enter a reason explaining this change.",
