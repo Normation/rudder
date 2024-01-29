@@ -822,7 +822,11 @@ class SettingsApi(
         servers         <- nodeInfoService.getAllSystemNodeIds()
         allowedNetworks <- policyServerManagementService.getAllAllowedNetworks()
       } yield {
-        val toKeep = servers.map(id => (id.value, allowedNetworks.getOrElse(id, Nil).map(_.inet)))
+        val toKeep = servers.map(id => (id.value, allowedNetworks.getOrElse(id, Nil).map(_.inet))).sortWith {
+          case (("root", _), _) => true
+          case (_, ("root", _)) => false
+          case ((a, _), (b, _)) => a < b
+        }
         import net.liftweb.json.JsonDSL._
         JArray(toKeep.toList.map {
           case (nodeid, networks) =>
