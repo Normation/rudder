@@ -58,20 +58,45 @@ encodeResource resource =
     )
   ]
 
+encodeSelectOption : SelectOption -> Value
+encodeSelectOption option =
+    object [
+      ("value", string option.value)
+    , ("name", string (Maybe.withDefault option.value option.name))
+    ]
+
+
+encodeTechniqueConstraint : Constraint -> Value
+encodeTechniqueConstraint constraint =
+  let
+    allowEmpty = constraint.allowEmpty |> Maybe.map ( \v -> [ ("allow_empty_string", bool v) ]) |> Maybe.withDefault []
+    allowWp = constraint.allowWhiteSpace |> Maybe.map ( \v -> [ ("allow_whitespace_string", bool v) ]) |> Maybe.withDefault []
+    max = constraint.maxLength |> Maybe.map ( \v -> [ ("max_length", int v) ]) |> Maybe.withDefault []
+    min = constraint.minLength |> Maybe.map ( \v -> [ ("min_length", int v) ]) |> Maybe.withDefault []
+    regex = constraint.matchRegex |> Maybe.map ( \v -> [ ("regex", string v) ]) |> Maybe.withDefault []
+    notRegex = constraint.notMatchRegex |> Maybe.map ( \v -> [ ("not_regex", string v) ]) |> Maybe.withDefault []
+    select = constraint.select |> Maybe.map ( \v -> [ ("select", list encodeSelectOption v) ]) |> Maybe.withDefault []
+  in
+    object (List.concat [ allowEmpty, allowWp, max, min, regex, notRegex, select ])
+
+
 encodeTechniqueParameters: TechniqueParameter -> Value
 encodeTechniqueParameters param =
   let
-    doc =  ( case param.documentation of
-                 Nothing -> []
-                 Just s -> [ ( "documentation", string s)]
-           )
+    doc = case param.documentation of
+               Nothing -> []
+               Just s -> [ ( "documentation", string s)]
+    constraint = if (param.constraints == defaultConstraint) then
+                   []
+                 else
+                   [ ("constraints", encodeTechniqueConstraint param.constraints) ]
     base = [ ("id"         , string param.id.value)
            , ("name"       , string (if (String.isEmpty param.name) then (canonifyString param.description) else param.name))
            , ("description", string param.description)
            , ("mayBeEmpty" , bool   param.mayBeEmpty)
            ]
   in
-    object (List.append base doc )
+    object (List.concat [ base, doc, constraint ] )
 
 
 appendPolicyMode: Maybe PolicyMode -> List (String, Value) -> Value

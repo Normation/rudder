@@ -25,20 +25,28 @@ type alias Draft = { technique : Technique, origin : Maybe Technique, id : Strin
 
 type AgentValue = Value String | Variable (List AgentValue)
 
-type Constraint =
-    AllowEmpty Bool
-  | AllowWhiteSpace Bool
-  | MaxLength Int
-  | MinLength Int
-  | MatchRegex String
-  | NotMatchRegex String
-  | Select (List String)
+type alias Constraint =
+  { allowEmpty : Maybe Bool
+  , allowWhiteSpace:  Maybe Bool
+  , maxLength: Maybe Int
+  ,  minLength: Maybe Int
+  , matchRegex: Maybe String
+  , notMatchRegex: Maybe String
+  , select: Maybe (List SelectOption)
+  }
+
+type alias SelectOption =
+  { value : String
+  , name : Maybe String
+  }
+
+defaultConstraint = Constraint Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 type alias MethodParameter =
   { name        : ParameterId
   , description : String
   , type_       : String
-  , constraints : List Constraint
+  , constraints : Constraint
   }
 
 type Agent = Cfengine | Dsc
@@ -112,12 +120,15 @@ type alias CallParameter =
   , value : List AgentValue
   }
 
+type ParameterType = StringParameter | SelectParameter (List String)
+
 type alias TechniqueParameter =
   { id          : ParameterId
   , name        : String
   , description : String
   , documentation : Maybe String
   , mayBeEmpty  : Bool
+  , constraints : Constraint
   }
 
 type alias TechniqueCategory =
@@ -217,7 +228,6 @@ type alias TechniqueUiInfo =
   , nameState        : ValidationState TechniqueNameError
   , idState          : ValidationState TechniqueIdError
   , enableDragDrop   : Maybe CallId
-
   }
 
 type alias TechniqueEditInfo =
