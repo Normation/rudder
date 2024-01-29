@@ -9,7 +9,8 @@ items:
     - status
     - os
   #  - policyServerId [Optional, by default "root"]
-    - machineType
+  #  - machineType [Optional, default "physical"]
+  #  - machine [Optional, default "physical"]
   #  - state [Optional, by default "enable"]
   #  - policyMode [Optional, by default global mode]
   #  - agentKey [Optional]
@@ -41,15 +42,48 @@ items:
       type: string
       description: The kind of machine for the node (use vm for a generic VM)
       enum:
-        - vmware
         - physical
         - vm
-        - solariszone
-        - qemu
-        - xen
         - aixlpar
-        - hyperv
         - bsdjail
+        - hyperv
+        - qemu
+        - solariszone
+        - vbox
+        - vmware
+        - xen
+    machine:
+      type: object
+      description: The kind of machine for the node (use vm for a generic VM)
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          description: list of groups to include in rule application
+          enum:
+            - Physical
+            - Virtual
+        provider:
+          type: string
+          description: The kind of virtual machine for the node
+          enum:
+            - aixlpar
+            - bsdjail
+            - hyperv
+            - qemu
+            - solariszone
+            - vbox
+            - vmware
+            - xen
+        manufacturer: 
+          type: string
+          description: Manufacturer of the machine
+          example: "corp inc."
+        serialNumber: 
+          type: string
+          description: Manufacturer of the machine
+          example: ece12459-2b90-49c9-ab1e-72e38f797421
     state:
       type: string
       description: Node lifecycle state. Can only be specified when status=accepted. If not specified, enable is used
