@@ -102,7 +102,7 @@ response:
       }
     }
 ---
-description: List node with select and include managementTechnologie
+description: List node with select and include managementTechnology
 method: GET
 url: /api/latest/nodes?include=minimal,managementTechnologyDetails&select=nodeAndPolicyServer&where=[{"objectType":"node","attribute":"nodeHostname","comparator":"eq","value":"node1.localhost"}]
 response:
@@ -118,6 +118,149 @@ response:
             "hostname":"node1.localhost",
             "status":"accepted",
             "managementTechnologyDetails":{"cfengineKeys":[],"cfengineUser":"root"}
+          }
+        ]
+      }
+    }
+---
+description: Create a node without a manufacturer, old style
+method: PUT
+url: /api/latest/nodes
+headers:
+  - "Content-Type: application/json"
+body: >-
+  [
+    {
+      "id": "378740d3-c4a9-4474-8485-478e7e52db52",
+      "hostname": "node1.hostname.local",
+      "status": "accepted",
+      "os": {
+        "type": "linux",
+        "name": "debian",
+        "version": "9.5",
+        "fullName": "Debian GNU/Linux 9 (stretch)",
+        "servicePack": "string"
+      },
+      "policyServerId": "root",
+      "machineType": "vmware",
+      "state": "enabled",
+      "policyMode": "enforce",
+      "agentKey": {
+        "value": "-----BEGIN CERTIFICATE-----\nMIIFqDCC[...]3tALNn\n-----END CERTIFICATE-----",
+        "status": "certified"
+      },
+      "properties": [
+        {
+          "name": "datacenter",
+          "value": "AMS2"
+        }
+      ],
+      "ipAddresses": [
+        "192.168.180.90"
+      ],
+      "timezone": {
+        "name": "CEST",
+        "offset": "+0200"
+      }
+    }
+  ]
+response:
+  code: 200
+  content: >-
+    {
+      "action":"createNodes",
+      "result":"success",
+      "data":{
+        "created":[
+          "378740d3-c4a9-4474-8485-478e7e52db52"
+        ],
+        "failed":[]
+      }
+    }
+---
+description: Create a node with a manufacturer, new style
+method: PUT
+url: /api/latest/nodes
+headers:
+  - "Content-Type: application/json"
+body: >-
+  [
+    {
+      "id": "378740d3-c4a9-4474-8485-478e7e52db53",
+      "hostname": "node2.hostname.local",
+      "status": "accepted",
+      "os": {
+        "type": "linux",
+        "name": "debian",
+        "version": "9.5",
+        "fullName": "Debian GNU/Linux 9 (stretch)",
+        "servicePack": "string"
+      },
+      "policyServerId": "root",
+      "machine": {
+        "type":"Virtual",
+        "provider":"vmware",
+        "manufacturer":"corp inc.",
+        "serialNumber": "ece12459-2b90-49c9-ab1e-72e38f797421"
+      },
+      "state": "enabled",
+      "policyMode": "enforce",
+      "agentKey": {
+        "value": "-----BEGIN CERTIFICATE-----\nMIIFqDCC[...]3tALNn\n-----END CERTIFICATE-----",
+        "status": "certified"
+      },
+      "properties": [
+        {
+          "name": "datacenter",
+          "value": "AMS2"
+        }
+      ],
+      "ipAddresses": [
+        "192.168.180.90"
+      ],
+      "timezone": {
+        "name": "CEST",
+        "offset": "+0200"
+      }
+    }
+  ]
+response:
+  code: 200
+  content: >-
+    {
+      "action":"createNodes",
+      "result":"success",
+      "data":{
+        "created":[
+          "378740d3-c4a9-4474-8485-478e7e52db53"
+        ],
+        "failed":[]
+      }
+    }
+---
+description: Check that the new node has a manufacturer
+method: GET
+url: /api/latest/nodes/378740d3-c4a9-4474-8485-478e7e52db53?include=minimal,machine
+response:
+  code: 200
+  content: >-
+    {
+      "action":"nodeDetails",
+      "id":"378740d3-c4a9-4474-8485-478e7e52db53",
+      "result":"success",
+      "data":{
+        "nodes":[
+          {
+            "id":"378740d3-c4a9-4474-8485-478e7e52db53",
+            "hostname":"node2.hostname.local",
+            "status":"accepted",
+            "machine": {
+              "id":"45f70964-7ec9-ed75-61a5-ed7acbde17f4",
+              "type":"Virtual",
+              "provider":"vmware",
+              "manufacturer":"corp inc.",
+              "serialNumber": "ece12459-2b90-49c9-ab1e-72e38f797421"
+            }
           }
         ]
       }
