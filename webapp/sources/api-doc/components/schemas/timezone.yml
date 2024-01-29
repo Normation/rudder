@@ -13,4 +13,4 @@ properties:
   offset:
     type: string
     description: Timezone offset compared to UTC, in +/-HHMM format
-    example: +0200
+    example: "+0200"
