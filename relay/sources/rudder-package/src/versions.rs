@@ -74,10 +74,9 @@ impl FromStr for RudderVersionMode {
     type Err = Error;
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         // If the mode is empty, it is a "plain" release
-        let alpha_regex = Regex::new(r"^~alpha(?<version>\d+).*")?;
-        let beta_regex = Regex::new(r"^~beta(?<version>\d+).*")?;
-        let rc_regex = Regex::new(r"^~rc(?<version>\d+).*")?;
-        let git_regex = Regex::new(r"^~git(?<version>\d+)")?;
+        let alpha_regex = Regex::new(r"^[~\.]alpha(?<version>\d+).*")?;
+        let beta_regex = Regex::new(r"^[~\.]beta(?<version>\d+).*")?;
+        let rc_regex = Regex::new(r"^[~\.]rc(?<version>\d+).*")?;
         if s.is_empty() {
             return Ok(RudderVersionMode::Final);
         }
@@ -105,11 +104,6 @@ impl FromStr for RudderVersionMode {
                 return Ok(RudderVersionMode::Rc { version });
             }
         };
-        // Test if git
-        match git_regex.captures(s) {
-            None => (),
-            Some(_) => return Ok(RudderVersionMode::Final),
-        };
         bail!("Unparsable Rudder version mode '{}'", s)
     }
 }
@@ -122,11 +116,17 @@ pub struct RudderVersion {
     pub minor: u32,
     pub patch: u32,
     pub mode: RudderVersionMode,
+    pub nightly: Option<String>,
 }
 
 impl RudderVersion {
-    pub fn is_compatible(&self, webapp_version: &RudderVersion) -> bool {
-        self == webapp_version
+    pub fn is_compatible(&self, plugin_version: &ArchiveVersion) -> bool {
+        self.major == plugin_version.rudder_version.major
+            && self.minor == plugin_version.rudder_version.minor
+            && self.patch == plugin_version.rudder_version.patch
+            && self.mode == plugin_version.rudder_version.mode
+            // The Rudder version in archive name never contains the nightly tag, use the one from plugin version
+            && self.nightly.is_some() == plugin_version.plugin_version.nightly
     }
 
     pub fn from_path(path: &str) -> Result<Self, Error> {
@@ -151,7 +151,7 @@ impl FromStr for RudderVersion {
     type Err = Error;
 
     fn from_str(raw: &str) -> Result<Self, Self::Err> {
-        let re = Regex::new(r"^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(?<mode>.*)$")?;
+        let re = Regex::new(r"^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(?<spec>.*)$")?;
         let caps = match re.captures(raw) {
             None => bail!("Unparsable Rudder version '{}'", raw),
             Some(c) => c,
@@ -159,20 +159,37 @@ impl FromStr for RudderVersion {
         let major: u32 = caps["major"].parse()?;
         let minor: u32 = caps["minor"].parse()?;
         let patch: u32 = caps["patch"].parse()?;
-        let mode: RudderVersionMode = RudderVersionMode::from_str(&caps["mode"])?;
+
+        // spec contains the version type, plus the nightly tag if relevant
+        let (raw_mode, nightly) = if caps["spec"].contains("~git") {
+            let s: Vec<&str> = caps["spec"].split("~git").collect();
+            (s[0], Some(s[1].to_string()))
+        } else {
+            (&caps["spec"], None)
+        };
+        let mode: RudderVersionMode = RudderVersionMode::from_str(raw_mode)?;
 
         Ok(RudderVersion {
             major,
             minor,
             patch,
             mode,
+            nightly,
         })
     }
 }
 
 impl Display for RudderVersion {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = format!("{}.{}.{}{}", self.major, self.minor, self.patch, self.mode);
+        let nightly = self
+            .nightly
+            .as_ref()
+            .map(|s| format!("~git{}", s))
+            .unwrap_or("".to_string());
+        let s = format!(
+            "{}.{}.{}{}{}",
+            self.major, self.minor, self.patch, self.mode, nightly
+        );
         write!(f, "{}", s)
     }
 }
@@ -253,22 +270,45 @@ mod tests {
     }
 
     #[rstest]
-    #[case("7.0.0~alpha2", 7, 0, 0, "~alpha2")]
-    #[case("7.0.0", 7, 0, 0, "")]
-    #[case("8.0.1~rc1", 8, 0, 1, "~rc1")]
+    #[case("7.0.0~alpha2", 7, 0, 0, "~alpha2", "")]
+    #[case("7.0.0", 7, 0, 0, "", "")]
+    #[case("8.0.1~rc1", 8, 0, 1, "~rc1", "")]
+    #[case("8.0.1~rc1~git2024", 8, 0, 1, "~rc1", "2024")]
+    #[case("8.0.1~git2024", 8, 0, 1, "", "2024")]
     fn test_rudder_version_parsing(
         #[case] raw: &str,
         #[case] e_major: u32,
         #[case] e_minor: u32,
         #[case] e_patch: u32,
         #[case] e_mode: &str,
+        #[case] e_nightly: &str,
     ) {
         let v = RudderVersion::from_str(raw).unwrap();
         assert_eq!(v.major, e_major);
         assert_eq!(v.minor, e_minor);
         assert_eq!(v.patch, e_patch);
         assert_eq!(v.mode, RudderVersionMode::from_str(e_mode).unwrap());
+        assert_eq!(v.nightly.clone().unwrap_or("".to_string()), e_nightly);
         assert_eq!(v.to_string(), raw);
+    }
+
+    #[rstest]
+    #[case("8.0.1.rc1~git2024", 8, 0, 1, "~rc1", "2024")]
+    fn test_bogus_rudder_version_parsing(
+        #[case] raw: &str,
+        #[case] e_major: u32,
+        #[case] e_minor: u32,
+        #[case] e_patch: u32,
+        #[case] e_mode: &str,
+        #[case] e_nightly: &str,
+    ) {
+        // Don't compare raw and to_string as they will be different
+        let v = RudderVersion::from_str(raw).unwrap();
+        assert_eq!(v.major, e_major);
+        assert_eq!(v.minor, e_minor);
+        assert_eq!(v.patch, e_patch);
+        assert_eq!(v.mode, RudderVersionMode::from_str(e_mode).unwrap());
+        assert_eq!(v.nightly.clone().unwrap_or("".to_string()), e_nightly);
     }
 
     #[rstest]
@@ -438,7 +478,8 @@ mod tests {
     }
 
     #[rstest]
-    #[case("8.0.1-2.9-nightly", "8.0.1", true)]
+    #[case("8.0.1-2.9-nightly", "8.0.1~git2024", true)]
+    #[case("8.0.1-2.9-nightly", "8.0.1", false)]
     #[case("8.0.1-2.9-nightly", "8.0.0", false)]
     #[case("8.0.1~rc3-2.9", "8.0.1", false)]
     #[case("8.0.1~rc3-2.9", "8.0.1~rc3", true)]
@@ -447,8 +488,9 @@ mod tests {
     #[case("8.0.2~alpha1-2.9", "8.0.2~alpha1", true)]
     #[case("8.0.2~alpha1-2.9", "8.0.2~beta1", false)]
     #[case("8.0.2~beta1-2.9", "8.0.2~beta1", true)]
-    #[case("8.0.2-2.9", "8.0.2~git12345", true)]
+    #[case("8.0.2-2.9", "8.0.2~git12345", false)]
     #[case("8.0.2~alpha1.2-2.9", "8.0.2~git12345", false)]
+    #[case("8.0.2~alpha1.2-2.9", "8.0.2~alpha2~git12345", false)]
     fn test_rpkg_compatibility(
         #[case] metadata_version: &str,
         #[case] webapp_version: &str,
@@ -456,9 +498,9 @@ mod tests {
     ) {
         let m = ArchiveVersion::from_str(metadata_version).unwrap();
         assert_eq!(
-            m.rudder_version
-                .clone()
-                .is_compatible(&RudderVersion::from_str(webapp_version).unwrap()),
+            RudderVersion::from_str(webapp_version)
+                .unwrap()
+                .is_compatible(&m),
             is_compatible,
             "Unexpected compatibility checkfor webapp version '{}' and metadata version {:?}'",
             webapp_version,
