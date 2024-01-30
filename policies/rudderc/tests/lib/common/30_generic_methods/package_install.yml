@@ -23,4 +23,5 @@ parameter:
       allow_empty_string: false
       allow_whitespace_string: false
       max_length: 16384
+      min_length: 0
     type: string
