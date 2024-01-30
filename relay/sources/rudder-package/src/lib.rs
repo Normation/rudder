@@ -291,11 +291,7 @@ pub fn run_inner(args: Args) -> Result<()> {
             } else if incompatible {
                 db.plugins
                     .iter()
-                    .filter(|(_, p)| {
-                        !webapp
-                            .version
-                            .is_compatible(&p.metadata.version.rudder_version)
-                    })
+                    .filter(|(_, p)| !webapp.version.is_compatible(&p.metadata.version))
                     .map(|(p, _)| p.to_string())
                     .collect()
             } else {

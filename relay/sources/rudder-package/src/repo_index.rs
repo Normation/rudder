@@ -53,7 +53,7 @@ impl RepoIndex {
         let names = self
             .index
             .iter()
-            .filter(|p| webapp_version.is_compatible(&p.metadata.version.rudder_version))
+            .filter(|p| webapp_version.is_compatible(&p.metadata.version))
             .map(|p| &p.metadata.name)
             .collect::<HashSet<&String>>();
         names
@@ -70,8 +70,7 @@ impl RepoIndex {
         self.index
             .iter()
             .filter(|p| {
-                plugin_name == p.metadata.name
-                    && webapp_version.is_compatible(&p.metadata.version.rudder_version)
+                plugin_name == p.metadata.name && webapp_version.is_compatible(&p.metadata.version)
             })
             .max_by_key(|p| &p.metadata.version)
     }

@@ -85,7 +85,7 @@ Build-commit: {}",
 
 impl Metadata {
     pub fn is_compatible(&self, webapp_version: &RudderVersion) -> bool {
-        self.version.rudder_version.is_compatible(webapp_version)
+        webapp_version.is_compatible(&self.version)
     }
 
     pub fn is_webapp(&self) -> bool {
