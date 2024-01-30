@@ -74,9 +74,9 @@ impl FromStr for RudderVersionMode {
     type Err = Error;
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         // If the mode is empty, it is a "plain" release
-        let alpha_regex = Regex::new(r"^~alpha(?<version>\d+).*")?;
-        let beta_regex = Regex::new(r"^~beta(?<version>\d+).*")?;
-        let rc_regex = Regex::new(r"^~rc(?<version>\d+).*")?;
+        let alpha_regex = Regex::new(r"^[~\.]alpha(?<version>\d+).*")?;
+        let beta_regex = Regex::new(r"^[~\.]beta(?<version>\d+).*")?;
+        let rc_regex = Regex::new(r"^[~\.]rc(?<version>\d+).*")?;
         if s.is_empty() {
             return Ok(RudderVersionMode::Final);
         }
@@ -290,6 +290,25 @@ mod tests {
         assert_eq!(v.mode, RudderVersionMode::from_str(e_mode).unwrap());
         assert_eq!(v.nightly.clone().unwrap_or("".to_string()), e_nightly);
         assert_eq!(v.to_string(), raw);
+    }
+
+    #[rstest]
+    #[case("8.0.1.rc1~git2024", 8, 0, 1, "~rc1", "2024")]
+    fn test_bogus_rudder_version_parsing(
+        #[case] raw: &str,
+        #[case] e_major: u32,
+        #[case] e_minor: u32,
+        #[case] e_patch: u32,
+        #[case] e_mode: &str,
+        #[case] e_nightly: &str,
+    ) {
+        // Don't compare raw and to_string as they will be different
+        let v = RudderVersion::from_str(raw).unwrap();
+        assert_eq!(v.major, e_major);
+        assert_eq!(v.minor, e_minor);
+        assert_eq!(v.patch, e_patch);
+        assert_eq!(v.mode, RudderVersionMode::from_str(e_mode).unwrap());
+        assert_eq!(v.nightly.clone().unwrap_or("".to_string()), e_nightly);
     }
 
     #[rstest]
