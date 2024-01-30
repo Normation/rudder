@@ -202,10 +202,10 @@ object ResultHolder {
 
     def errorToJson(error: CreationError): JValue = {
       error match {
-        case CreationError.OnAcceptation(msg)   => JString(s"[accept] ${msg}")
-        case CreationError.OnSaveInventory(msg) => JString(s"[save inventory] ${msg}")
-        case CreationError.OnSaveNode(msg)      => JString(s"[save node] ${msg}")
-        case CreationError.OnValidation(nel)    => JArray(nel.map(e => JString(s"[validation] ${e.msg}")).toList)
+        case x: CreationError.OnAcceptation   => JString(x.errorMsg)
+        case x: CreationError.OnSaveInventory => JString(x.errorMsg)
+        case x: CreationError.OnSaveNode      => JString(x.errorMsg)
+        case CreationError.OnValidation(nel) => JArray(nel.map(e => JString(s"[validation] ${e.msg}")).toList)
       }
     }
   }
@@ -213,14 +213,24 @@ object ResultHolder {
 
 object Creation {
 
-  sealed trait CreationError
+  sealed trait CreationError {
+    def errorMsg: String
+  }
 
   object CreationError {
 
-    final case class OnValidation(validations: NonEmptyList[Validation.NodeValidationError]) extends CreationError
-    final case class OnSaveInventory(message: String)                                        extends CreationError
-    final case class OnSaveNode(message: String)                                             extends CreationError
-    final case class OnAcceptation(message: String)                                          extends CreationError
+    final case class OnValidation(validations: NonEmptyList[Validation.NodeValidationError]) extends CreationError {
+      override def errorMsg: String = s"[validation] ${validations.map(_.msg).toList.mkString("; ")}"
+    }
+    final case class OnSaveInventory(message: String)                                        extends CreationError {
+      override def errorMsg: String = s"[save inventory] ${message}"
+    }
+    final case class OnSaveNode(message: String)                                             extends CreationError {
+      override def errorMsg: String = s"[save node] ${message}"
+    }
+    final case class OnAcceptation(message: String)                                          extends CreationError {
+      override def errorMsg: String = s"[accept] ${message}"
+    }
   }
 
 }
@@ -261,7 +271,7 @@ object Validation {
             case (Some(mt), None) => mt
           }
 
-          getMachine(id, status, tpe)
+          getMachine(id, tpe)
             .modify(_.manufacturer)
             .setToIfDefined(nodeDetails.machine.map(_.manufacturer.map(Manufacturer)))
             .modify(_.systemSerialNumber)
@@ -385,7 +395,7 @@ object Validation {
     ).mapN(NodeSummary(id, status, root, _, os, _, _))
   }
 
-  def getMachine(id: NodeId, status: InventoryStatus, machineType: String): MachineInventory = {
+  def getMachine(id: NodeId, machineType: String): MachineInventory = {
     val machineId = MachineUuid(IdGenerator.md5Hash(id.value))
     val machine   = machineType.toLowerCase match {
       case "virtual" => "vm"
@@ -393,7 +403,7 @@ object Validation {
     }
     MachineInventory(
       machineId,
-      status,
+      PendingInventory, // machine and node are created in Pending, then accepted is requested status is Accepted
       Machine.values.find(_.name == machine).getOrElse(Machine.MPhysical).tpe,
       Some(machineId.value)
     )
