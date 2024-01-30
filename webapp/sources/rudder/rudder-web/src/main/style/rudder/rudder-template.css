@@ -1495,7 +1495,7 @@ ul.applied-list > li > .border{
   width: 4px;
   transition-duration: .2s;
 }
-ul.applied-list > li:hover > .border{
+ul.applied-list > li:not(.unknown):hover > .border{
   background-color: #ccc;
 }
 ul.applied-list > li > .target-remove:hover + .border{
@@ -1506,6 +1506,13 @@ ul.applied-list > li.new {
 }
 ul.applied-list > li.new > .border{
   background-color: #13BEB7AA;
+}
+ul.applied-list > li.unknown {
+  background-color: #ef960008;
+  color: #EF9600;
+}
+ul.applied-list > li.unknown > .border{
+  background-color: #EF9600;
 }
 ul.applied-list > li.new:hover > .border{
   background-color: #13BEB7;
@@ -1542,7 +1549,10 @@ ul.applied-list > li > span.fa{
   color: #aaa;
   margin-right: 6px;
 }
-
+ul.applied-list > li.unknown > span.fa,
+ul.applied-list > li.unknown > a{
+  color: #EF9600;
+}
 ul.applied-list > li .rudder-label{
   margin-right: 4px;
 }
