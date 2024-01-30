@@ -36,7 +36,6 @@
  */
 
 package bootstrap.liftweb
-
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogDetails
@@ -85,6 +84,7 @@ import org.reflections.Reflections
 import org.springframework.security.core.context.SecurityContextHolder
 import scala.concurrent.duration.DAYS
 import scala.concurrent.duration.Duration
+import scala.util.chaining._
 import scala.xml.Elem
 import scala.xml.Node
 import scala.xml.NodeSeq
@@ -132,19 +132,26 @@ object Boot {
     private def addCspHeaders(allHeaders: List[(String, String)]): List[(String, String)] = {
       S.uri match {
         case uri if customCSPUrisRegexList.exists(_.matches(uri)) => {
-          val nonce         = WithNonce.getCurrentNonce
+          val nonce = WithNonce.getCurrentNonce
+
+          val cspHeader     = compileCSPHeader(
+            cspDirectives
+              .pipe(
+                replaceCSPRestrictionDirectives("script-src", s"'nonce-${nonce}' 'strict-dynamic'")(_)
+              )
+              .pipe(
+                replaceCSPRestrictionDirectives("object-src", "'none'")(_)
+              )
+              .pipe(
+                _ :+ ("base-uri" -> "'none'") :+ ("report-uri" -> s"${S.contextPath}/${LiftRules.liftContextRelativePath}/content-security-policy-report")
+              )
+          )
           val newCspHeaders = csp
             .headers()
             .collect {
               // replace all content security policies directives
-              case (header, _) if cspHeaderNames.contains(header) =>
-                val replacedScript =
-                  replaceCSPRestrictionDirectives("script-src", s"'nonce-${nonce}' 'strict-dynamic'")(cspDirectives)
-                val replacedObject = replaceCSPRestrictionDirectives("object-src", "'none'")(replacedScript)
-                val addedBaseUri   = replacedObject :+ ("base-uri" -> "'none'")
-                cspHeaderNames.map(_ -> compileCSPHeader(addedBaseUri))
+              case (header, _) if cspHeaderNames.contains(header) => header -> cspHeader
             }
-            .flatten
           newCspHeaders ++ allHeaders.filterNot(h => cspHeaderNames.contains(h._1))
         }
         case _                                                    =>
