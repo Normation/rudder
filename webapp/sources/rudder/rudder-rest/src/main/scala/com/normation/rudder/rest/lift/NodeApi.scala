@@ -214,12 +214,21 @@ class NodeApi(
       (for {
         json  <- (if (req.json_?) req.body else Failure("This API only Accept JSON request")).toIO
         nodes <- new String(json, StandardCharsets.UTF_8).fromJson[List[NodeDetails]].toIO
+        _     <- NodeLoggerPure.info(s"API request for creating nodes: [${nodes.map(n => s"${n.id} (${n.status})").mkString("; ")}]")
         res   <- ZIO.foldLeft(nodes)(ResultHolder(Nil, Nil)) {
                    case (res, node) =>
                      nodeApiService.saveNode(node, authzToken.qc.actor, req.remoteAddr).either.map {
                        case Right(id) => res.modify(_.created).using(_ :+ id)
                        case Left(err) => res.modify(_.failed).using(_ :+ ((node.id, err)))
                      }
+                 }
+        _     <- ZIO.when(res.created.nonEmpty) {
+                   NodeLoggerPure.info(s"Nodes successfully created by API: ${res.created.map(_.value).mkString("; ")}")
+                 }
+        _     <- ZIO.when(res.failed.nonEmpty) {
+                   NodeLoggerPure.error(
+                     s"Error when creating nodes by API: ${res.failed.map(e => s"${e._1}: ${e._2.errorMsg}").mkString(" ; ")}"
+                   )
                  }
       } yield res).toBox match {
         case Full(resultHolder) =>
@@ -812,10 +821,14 @@ class NodeApiService(
     )
 
     for {
+      _         <- NodeLoggerPure.debug(s"Create node API: validate node template for '${nodeDetails.id}''")
       validated <- toCreationError(Validation.toNodeTemplate(nodeDetails))
       _         <- checkUuid(validated.inventory.node.main.id)
+      _         <- NodeLoggerPure.debug(s"Create node API: saving inventory for node ${validated.inventory.node.main.id}")
       created   <- saveInventory(validated.inventory)
+      _         <- NodeLoggerPure.debug(s"Create node API: node status should be ${nodeDetails.status}")
       nodeSetup <- accept(validated)
+      _         <- NodeLoggerPure.debug(s"Create node API: update node properties and setting if needed")
       nodeId    <- saveRudderNode(validated.inventory.node.main.id, nodeSetup)
     } yield {
       nodeId

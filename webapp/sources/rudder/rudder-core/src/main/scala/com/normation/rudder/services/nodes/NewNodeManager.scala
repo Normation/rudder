@@ -429,9 +429,9 @@ class AcceptHostnameAndIp(
       _           <- if (duplicatesH.isEmpty) ZIO.unit
                      else {
                        val startMessage =
-                         if (duplicatesH.size >= 2) "There are already ${duplicatesH.size} nodes" else "There is already a node"
+                         if (duplicatesH.size >= 2) s"There are already ${duplicatesH.size} nodes" else "There is already a node"
                        Inconsistency(
-                         s"${startMessage} with hostname '${name}' in Rudder. You can not add it again."
+                         s"${startMessage} with hostname '${hostnames.mkString(", ")}' in Rudder. You can not add it again."
                        ).fail
                      }
     } yield ()
