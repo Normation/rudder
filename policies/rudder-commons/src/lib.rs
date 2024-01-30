@@ -131,7 +131,10 @@ pub struct MethodConstraints {
     // Storing as string to be able to ser/de easily
     #[serde(skip_serializing_if = "Option::is_none")]
     pub regex: Option<RegexConstraint>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub not_regex: Option<RegexConstraint>,
     pub max_length: usize,
+    pub min_length: usize,
 }
 
 impl MethodConstraints {
@@ -160,7 +163,18 @@ impl MethodConstraints {
                     error_message: None,
                 });
             }
+            MethodConstraint::NotRegex(v) => {
+                // Ensure valid regex
+                //
+                // We use look-around so the regex crate is not enough
+                let _regex = fancy_regex::Regex::new(&v)?;
+                self.not_regex = Some(RegexConstraint {
+                    value: v,
+                    error_message: None,
+                });
+            }
             MethodConstraint::MaxLength(v) => self.max_length = v,
+            MethodConstraint::MinLength(v) => self.min_length = v,
         }
         Ok(())
     }
@@ -176,15 +190,28 @@ impl MethodConstraints {
         }
         if value.len() > self.max_length {
             bail!(
-                "value length ({}) exceeds max value ({})",
+                "value length ({}) exceeds max length ({})",
                 value.len(),
                 self.max_length
+            )
+        }
+        if value.len() < self.min_length {
+            bail!(
+                "value length ({}) is lower than min length ({})",
+                value.len(),
+                self.min_length
             )
         }
         if let Some(r) = &self.regex {
             let regex = fancy_regex::Regex::new(&r.value)?;
             if !regex.is_match(value)? {
                 bail!("value '{}' does not match regex '{}'", value, r.value)
+            }
+        }
+        if let Some(r) = &self.not_regex {
+            let regex = fancy_regex::Regex::new(&r.value)?;
+            if regex.is_match(value)? {
+                bail!("value '{}' does match forbidden regex '{}'", value, r.value)
             }
         }
         if let Some(s) = &self.select {
@@ -209,7 +236,9 @@ pub enum MethodConstraint {
     AllowWhitespace(bool),
     Select(Vec<String>),
     Regex(String),
+    NotRegex(String),
     MaxLength(usize),
+    MinLength(usize),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash)]
@@ -237,7 +266,9 @@ impl Default for MethodConstraints {
             allow_whitespace: false,
             select: None,
             regex: None,
+            not_regex: None,
             max_length: DEFAULT_MAX_PARAM_LENGTH,
+            min_length: 0,
         }
     }
 }
@@ -333,12 +364,14 @@ mod tests {
         assert!(constraints.is_valid(" ").is_err());
 
         let constraints = MethodConstraints {
-            max_length: 2,
+            max_length: 3,
+            min_length: 2,
             ..Default::default()
         };
-        assert!(constraints.is_valid("4").is_ok());
+        assert!(constraints.is_valid("4").is_err());
         assert!(constraints.is_valid("42").is_ok());
-        assert!(constraints.is_valid("424").is_err());
+        assert!(constraints.is_valid("424").is_ok());
+        assert!(constraints.is_valid("4242").is_err());
 
         let constraints = MethodConstraints {
             select: Some(vec![
@@ -369,5 +402,17 @@ mod tests {
         assert!(constraints.is_valid("correct").is_ok());
         assert!(constraints.is_valid("").is_err());
         assert!(constraints.is_valid("ae2er").is_err());
+
+        let constraints = MethodConstraints {
+            not_regex: Some(RegexConstraint {
+                value: "^a+$".to_string(),
+                error_message: None,
+            }),
+            ..Default::default()
+        };
+        assert!(constraints.is_valid("b").is_ok());
+        assert!(constraints.is_valid("ab").is_ok());
+        assert!(constraints.is_valid("a").is_err());
+        assert!(constraints.is_valid("aa").is_err());
     }
 }
