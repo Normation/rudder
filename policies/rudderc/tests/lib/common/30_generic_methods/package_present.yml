@@ -21,6 +21,7 @@ parameter:
       allow_empty_string: false
       allow_whitespace_string: false
       max_length: 16384
+      min_length: 0
     type: string
   - name: version
     description: "Version of the package, can be \"latest\" for latest version or \"any\" for any version (defaults to \"any\")"
@@ -28,6 +29,7 @@ parameter:
       allow_empty_string: true
       allow_whitespace_string: false
       max_length: 16384
+      min_length: 0
     type: here-string
   - name: architecture
     description: "Architecture of the package, can be an architecture name  or \"default\" (defaults to \"default\")"
@@ -38,6 +40,7 @@ parameter:
       regex:
         value: "^[a-z]*$"
       max_length: 16384
+      min_length: 0
     type: string
   - name: provider
     description: "Package provider to use, can be \"yum\", \"apt\", \"zypper\", \"zypper_pattern\", \"slackpkg\", \"pkg\", \"ips\", \"nimclient\" or \"default\" for system default package manager (defaults to \"default\")"
@@ -56,4 +59,5 @@ parameter:
         - value: ips
         - value: nimclient
       max_length: 16384
+      min_length: 0
     type: string
