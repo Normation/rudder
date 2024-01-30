@@ -191,13 +191,7 @@ impl Rpkg {
         info!("Installing rpkg '{}'...", self.path.display());
         let is_upgrade = self.is_installed(db);
         // Verify webapp compatibility
-        if !(force
-            || self
-                .metadata
-                .version
-                .rudder_version
-                .is_compatible(&webapp.version))
-        {
+        if !webapp.version.is_compatible(&self.metadata.version) && !force {
             bail!("This plugin was built for a Rudder '{}', it is incompatible with your current webapp version '{}'.", self.metadata.version.rudder_version, webapp.version)
         }
         // Verify that dependencies are installed
