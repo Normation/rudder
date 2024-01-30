@@ -535,32 +535,44 @@ buildIncludeList originRule groupsTree model editMode includeBool ruleTarget =
         in
           List.member ruleTarget list
 
-    (groupName, groupTarget, isEnabled) = case List.Extra.find (\g -> g.id == id) groupsList of
-      Just gr -> (gr.name, gr.target, gr.enabled)
-      Nothing -> (id, id, True)
-
-    (disabledClass, disabledLabel) =
-      if isEnabled then
-        ("", text "")
-      else
-        (" is-disabled", span[class "badge-disabled"][])
-
-    rowIncludeGroup = li[class ((if isNew then "" else "new") ++ disabledClass)]
-      [ span[class "fa fa-sitemap"][]
-      , a[href (getGroupLink model.contextPath id)]
-        [ span [class "target-name"][text groupName]
-        , disabledLabel
-        , goToIcon
+    targetItem : String -> String -> Bool -> Html Msg
+    targetItem groupName groupTarget isEnabled =
+      let
+        (disabledClass, disabledLabel) =
+          if isEnabled then
+            ("", text "")
+          else
+            (" is-disabled", span[class "badge-disabled"][])
+      in
+        li[class ((if isNew then "" else "new") ++ disabledClass)]
+        [ span[class "fa fa-sitemap"][]
+        , a[href (getGroupLink model.contextPath id)]
+          [ span [class "target-name"][text groupName]
+          , disabledLabel
+          , goToIcon
+          ]
+        , ( if editMode then
+            span [class "target-remove", onClick (SelectGroup groupTarget includeBool)][ i [class "fa fa-times"][] ]
+          else
+            text ""
+        )
+        , span [class "border"][]
         ]
-      , ( if editMode then
-          span [class "target-remove", onClick (SelectGroup groupTarget includeBool)][ i [class "fa fa-times"][] ]
-        else
-          text ""
-      )
-      , span [class "border"][]
-      ]
   in
-    rowIncludeGroup
+    case List.Extra.find (\g -> g.id == id) groupsList of
+      Just gr -> targetItem gr.name gr.target gr.enabled
+      Nothing ->
+        li[class "unknown"]
+        [ span
+          [ class "fa fa-excalamtion-triangle" ][]
+        , a[]
+          [ span [class "target-name"]
+            [ b[][text "Unknown target: "]
+            , text id
+            ]
+          ]
+        , span [class "target-remove", onClick (SelectGroup id includeBool)][ i [class "fa fa-times"][] ]
+        ]
 
 buildComplianceReport : ValueLine -> String
 buildComplianceReport report =
@@ -580,7 +592,6 @@ buildComplianceReport report =
     "auditNonCompliant"          -> "Non compliant"
     "badPolicyMode"              -> "Bad Policy Mode"
     val -> val
-
 
 reportStatusOrder : ValueLine -> Int
 reportStatusOrder report =

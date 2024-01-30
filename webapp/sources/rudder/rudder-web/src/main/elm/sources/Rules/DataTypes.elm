@@ -290,7 +290,7 @@ type Msg
   | GetRuleNodesDirectivesResult RuleId (Result Error RuleNodesDirectives)
   | GetRuleComplianceResult  RuleId (Result Error RuleCompliance)
   | GetNodesList             (Result Error (List NodeInfo))
-  | SaveRuleDetails          (Result Error Rule)
+  | SaveRuleDetails          Bool (Result Error Rule)
   | SaveDisableAction        (Result Error Rule)
   | SaveCategoryResult       (Result Error (Category Rule))
   | GetRulesResult           (Result Error (Category Rule))

@@ -22,6 +22,7 @@ import Rules.ViewUtils exposing (..)
 -- PORTS / SUBSCRIPTIONS
 port linkSuccessNotification : Value -> Cmd msg
 port successNotification : String -> Cmd msg
+port warningNotification : String -> Cmd msg
 port errorNotification   : String -> Cmd msg
 port pushUrl             : (String,String) -> Cmd msg
 port initTooltips        : String -> Cmd msg
@@ -321,7 +322,7 @@ update msg model =
       in
         ({model | mode = CategoryForm categoryDetails}, Cmd.none )
 
-    SaveRuleDetails (Ok ruleDetails) ->
+    SaveRuleDetails unknownTargets (Ok ruleDetails) ->
       case model.mode of
         RuleForm details ->
           let
@@ -358,6 +359,8 @@ update msg model =
                 ( modelUi.crSettings
                 , defaultNotif
                 )
+
+            unknownTargetsMsg = if unknownTargets then warningNotification "Unknown targets have been removed from this rule" else Cmd.none
             newModel = {model | mode = RuleForm {details | originRule = Just ruleDetails, rule = ruleDetails, ui = {ui | editDirectives = False, editGroups = False}}, ui = {modelUi | saving = False, crSettings = crSettings} }
           in
             (newModel, Cmd.batch
@@ -365,13 +368,18 @@ update msg model =
               , getRulesTree newModel
               , getRulesComplianceDetails ruleDetails.id newModel
               , getRuleNodesDirectives ruleDetails.id newModel
+              , unknownTargetsMsg
               ]
             )
         _   -> (model, Cmd.none)
 
 
-    SaveRuleDetails (Err err) ->
-      processApiError "Saving Rule" err model
+    SaveRuleDetails unknownTargets (Err err) ->
+      let
+        (errorModel, errorMsg) = processApiError "Saving Rule" err model
+        unknownTargetsMsg = if unknownTargets then warningNotification "Unknown targets have been removed from this rule" else Cmd.none
+      in
+        ( errorModel, Cmd.batch [errorMsg, unknownTargetsMsg] )
 
     SaveDisableAction (Ok ruleDetails) ->
       case model.mode of
