@@ -312,8 +312,9 @@ $small-prefix : "sm-";
   font-size: 1em;
   display: inline-flex;
   align-items: center;
-  margin-left: 0;
-  margin-right: 8px;
+  margin-left: 0 !important;
+  margin-right: 6px;
+  font-weight: 500 !important;
 
   &.security{
     background-color: #DA291C !important;

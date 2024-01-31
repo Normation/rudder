@@ -55,7 +55,7 @@ buildSystemUpdatesScoreDetails score details =
             valueTxt = String.fromInt v
             titleTxt = (String.Extra.humanize id) ++ ": " ++ valueTxt
           in
-            span[class ("badge badge-" ++ id), title titleTxt][i[class ("fa fa-" ++ iconClass)][], text valueTxt]
+            span[class ("badge badge-systemupdates " ++ id), title titleTxt][i[class ("fa fa-" ++ iconClass)][], text valueTxt]
         Nothing -> text ""
   in
     case systemUpdatesScoreDetails of
