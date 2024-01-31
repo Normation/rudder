@@ -40,33 +40,12 @@ displayNodesComplianceTable model =
     sort =   case List.Extra.find (Tuple3.first >> (==) sortId) fun.rows of
       Just (_,_,sortFun) -> (\i1 i2 -> sortFun (fun.data model i1) (fun.data model i2))
       Nothing -> (\_ _ -> EQ)
-    isGlobalMode = isGlobalCompliance model
   in
     ( if model.ui.loading then
       generateLoadingTable
       else
       div[]
-      [ div [class "table-header extra-filters"]
-        [ div [class "d-inline-flex align-items-baseline pb-3 w-25"]
-          [
-            div [class "btn-group yesno"]
-            [ label [class ("btn btn-default" ++ if isGlobalMode then " active" else ""), style "box-shadow" (if isGlobalMode then "inset 0 3px 5px rgba(0,0,0,.125)" else "none"), onClick (LoadCompliance GlobalCompliance)]
-              [text "Global"]
-            , label [class ("btn btn-default" ++ if isGlobalMode then "" else " active"), style "box-shadow" (if isGlobalMode then "none" else "inset 0 3px 5px rgba(0,0,0,.125)"), onClick (LoadCompliance TargetedCompliance)]
-              [text "Targeted"]
-            ]
-            , span [class "mx-3"]
-              [text "Compliance"]
-          ]
-        ,  div[class "main-filters"]
-          [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value filters.filter, onInput (\s -> (UpdateFilters {filters | filter = s} ))][]
-          , button [class "btn btn-default btn-sm btn-icon", onClick (UpdateComplianceFilters {complianceFilters | showComplianceFilters = not complianceFilters.showComplianceFilters}), style "min-width" "170px"]
-            [ text ((if complianceFilters.showComplianceFilters then "Hide " else "Show ") ++ "compliance filters")
-            , i [class ("fa " ++ (if complianceFilters.showComplianceFilters then "fa-minus" else "fa-plus"))][]
-            ]
-          ]
-        , displayComplianceFilters complianceFilters UpdateComplianceFilters
-        ]
+      [ filtersView model
       , div[class "table-container"]
         [ table [class "dataTable compliance-table"]
           [ thead []

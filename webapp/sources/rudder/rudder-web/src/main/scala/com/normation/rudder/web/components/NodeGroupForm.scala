@@ -209,6 +209,10 @@ class NodeGroupForm(
                      |    initBsTooltips();
                      |  }, 400);
                      |});
+                     |// Clear tooltips
+                     |app.ports.clearTooltips.subscribe(function(msg) {
+                     |  removeBsTooltips();
+                     |});
                      |$$("#complianceLinkTab").on("click", function (){
                      |  app.ports.loadCompliance.send(null);
                      |});
