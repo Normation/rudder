@@ -1,0 +1,118 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2024 Normation SAS
+type: object
+required:
+  - id
+  - name
+  - policyMode
+  - compliance
+  - complianceDetails
+  - components
+properties:
+  id:
+    type: string
+    format: uuid
+    description: id of the directive
+    example: 9a1773c9-0889-40b6-be89-f6504443ac1b
+  name:
+    type: string
+    description: Name of the directive
+    example: test directive
+  policyMode:
+    type: string
+    enum:
+      - default
+      - audit
+      - enforce
+    description: Policy mode of the rule
+    example: audit
+  compliance:
+    type: number
+    format: float
+    description: Directive compliance level
+    example: 83.34
+  complianceDetails:
+    type: object
+    properties:
+      successAlreadyOK:
+        type: number
+        format: float
+        example: 66.68
+      noReport:
+        type: number
+        format: float
+        example: 7.45
+      successNotApplicable:
+        type: number
+        format: float
+        example: 16.66
+      unexpectedMissingComponent:
+        type: number
+        format: float
+        example: 2.63
+      error:
+        type: number
+        format: float
+        example: 1.32
+      unexpectedUnknownComponent:
+        type: number
+        format: float
+        example: 2.63
+      successRepaired:
+        type: number
+        format: float
+        example: 2.63
+  components:
+    type: array
+    items:
+      type: object
+      required:
+        - name
+        - compliance
+        - complianceDetails
+        - nodes
+      properties:
+        name:
+          type: string
+          description: Name of the component
+          example: Test users
+        compliance:
+          type: number
+          format: float
+          description: Component compliance level
+          example: 100.0
+        complianceDetails:
+          type: object
+          properties:
+            successAlreadyOK:
+              type: number
+              format: float
+              example: 66.67
+            noReport:
+              type: number
+              format: float
+              example: 0.0
+            successNotApplicable:
+              type: number
+              format: float
+              example: 33.33
+            unexpectedMissingComponent:
+              type: number
+              format: float
+              example: 0.0
+            error:
+              type: number
+              format: float
+              example: 0.0
+            unexpectedUnknownComponent:
+              type: number
+              format: float
+              example: 0.0
+            successRepaired:
+              type: number
+              format: float
+              example: 0.0
+        nodes:
+          type: array
+          items:
+            $ref: node-compliance-component.yml

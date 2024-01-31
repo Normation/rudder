@@ -1,5 +1,5 @@
 {
   "dependencies": {
-    "@redocly/cli": "^1.5.0"
+    "@redocly/cli": "^1.6.0"
   }
 }
