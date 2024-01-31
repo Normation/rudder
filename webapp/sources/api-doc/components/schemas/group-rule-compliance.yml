@@ -1,0 +1,73 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2024 Normation SAS
+type: object
+required:
+  - id
+  - name
+  - compliance
+  - complianceDetails
+  - directives
+properties:
+  id:
+    type: string
+    format: uuid
+    description: id of the rule
+    example: 32377fd7-02fd-43d0-aab7-28460a91347b
+  name:
+    type: string
+    description: Name of the rule
+    example: Global configuration for all nodes
+  mode:
+    type: string
+    enum:
+      - full-compliance
+      - changes-only
+      - reports-disabled
+  policyMode:
+    type: string
+    enum:
+      - default
+      - audit
+      - enforce
+    description: Policy mode of the rule
+    example: audit
+  compliance:
+    type: number
+    format: float
+    description: Directive compliance level
+    example: 83.34
+  complianceDetails:
+    type: object
+    properties:
+      successAlreadyOK:
+        type: number
+        format: float
+        example: 100.0
+      noReport:
+        type: number
+        format: float
+        example: 0.0
+      successNotApplicable:
+        type: number
+        format: float
+        example: 0.0
+      unexpectedMissingComponent:
+        type: number
+        format: float
+        example: 0.0
+      error:
+        type: number
+        format: float
+        example: 0.0
+      unexpectedUnknownComponent:
+        type: number
+        format: float
+        example: 0.0
+      successRepaired:
+        type: number
+        format: float
+        example: 0.0
+  directives:
+    type: array
+    items:
+      $ref: group-rule-compliance-directives.yml
