@@ -27,11 +27,11 @@ function {{ id|dsc_case }} {
 
 {% for m in methods %}
     $reportId=$reportIdBase + "{{ m.id }}"
-    $componentKey = {{ m.component_key|value_fmt(id, parameters) }}
+    $componentKey = "{{ m.component_key|escape_double_quotes }}"
     $reportParams = @{
         ClassPrefix = ([Rudder.Condition]::canonify(("{{ m.class_prefix }}_" + $componentKey)))
         ComponentKey = $componentKey
-        ComponentName = {{ m.component_name|value_fmt(id, parameters) }}
+        ComponentName = "{{ m.component_name|escape_double_quotes }}"
         PolicyMode = {{ m.policy_mode|policy_mode_fmt }}
         ReportId = $reportId
         DisableReporting = ${{ m.disable_reporting }}
@@ -40,7 +40,7 @@ function {{ id|dsc_case }} {
   {%- if m.is_supported %}
     {% match m.condition %}
     {%- when Some with (cond) %}
-    $class = {{ cond|canonify_condition_with_context(id, parameters) }}
+    $class = {{ cond|canonify_condition }}
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
             {% for arg in m.args %}
