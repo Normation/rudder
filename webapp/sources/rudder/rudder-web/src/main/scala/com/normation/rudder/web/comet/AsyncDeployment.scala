@@ -37,10 +37,13 @@
 
 package com.normation.rudder.web.comet
 
+import bootstrap.liftweb.FindCurrentUser
 import bootstrap.liftweb.RudderConfig
 import bootstrap.liftweb.RudderConfig.clearCacheService
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.batch._
 import com.normation.rudder.users.CurrentUser
+import com.normation.rudder.users.RudderUserDetail
 import com.normation.utils.DateFormaterService
 import net.liftweb.common._
 import net.liftweb.http._
@@ -56,6 +59,15 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   // current states of the deployment
   private[this] var deploymentStatus = DeploymentStatus(NoStatus, IdleDeployer)
+  // we need to get current user from SpringSecurity because it is not set in session anymore,
+  // and comet doesn't know about requests
+  private[this] val currentUser:         Option[RudderUserDetail] = FindCurrentUser.get()
+  def havePerm(perm: AuthorizationType): Boolean                  = {
+    currentUser match {
+      case None    => false
+      case Some(u) => u.checkRights(perm)
+    }
+  }
 
   override def registerWith = asyncDeploymentAgent
 
@@ -66,7 +78,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   private[this] def displayTime(label: String, time: DateTime): NodeSeq = {
     val t = time.toString("yyyy-MM-dd HH:mm:ssZ")
     val d = DateFormaterService.getFormatedPeriod(time, DateTime.now)
-    // exceptionnaly not putting {} to remove the noide
+    // exceptionally not putting {} to remove the node
     <span>{label + t}</span><div class="help-block">{"↳ " + d} ago</div>
   }
   private[this] def displayDate(label: String, time: DateTime): NodeSeq = {
@@ -171,7 +183,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
             commonStatement(
               start,
               end,
-              "Error occured in",
+              "Error occurred in",
               "Error during policy update",
               "text-danger fa fa-times",
               "text-danger"
@@ -188,8 +200,8 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     JsRaw("""hideBsModal('generatePoliciesDialog')""")
   }
 
-  private[this] def fullPolicyGeneration:      NodeSeq = {
-    <lift:authz role="deployment_write"> {
+  private[this] def fullPolicyGeneration: NodeSeq = {
+    if (havePerm(AuthorizationType.Deployment.Write)) {
       SHtml.ajaxButton(
         "Regenerate",
         () => {
@@ -203,22 +215,21 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         },
         ("class", "btn btn-danger")
       )
-    }
-    </lift:authz>
+    } else NodeSeq.Empty
   }
+
   private[this] def showGeneratePoliciesPopup: NodeSeq = {
     val callback = JsRaw("initBsModal('generatePoliciesDialog')")
-    <lift:authz role="deployment_write"> {
+    if (havePerm(AuthorizationType.Deployer.Write)) {
       SHtml.a(
         Text("Regenerate all policies"),
         callback,
         ("class", "regeneratePolicies")
       )
-    }
-    </lift:authz>
+    } else NodeSeq.Empty
   }
   private[this] def layout = {
-    <lift:authz role="deployment_read">
+    if (havePerm(AuthorizationType.Deployment.Read)) {
 
       <li class={"nav-item dropdown notifications-menu " ++ statusBackground}>
         <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -232,10 +243,9 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
             {showGeneratePoliciesPopup}
           </li>
         </ul>
-      </li>
-      {errorPopup}
-      {generatePoliciesPopup}
-    </lift:authz>
+      </li> ++ errorPopup ++ generatePoliciesPopup
+
+    } else NodeSeq.Empty
   }
 
   private[this] def errorPopup = {

@@ -125,6 +125,16 @@ case class RudderUserDetail(
   override val isAccountNonLocked                         = true
   override val isCredentialsNonExpired                    = true
   override val isEnabled                                  = status == UserStatus.Active
+  def checkRights(auth: AuthorizationType): Boolean = {
+    if (authz.authorizationTypes.contains(AuthorizationType.NoRights)) false
+    else if (authz.authorizationTypes.contains(AuthorizationType.AnyRights)) true
+    else {
+      auth match {
+        case AuthorizationType.NoRights => false
+        case _                          => authz.authorizationTypes.contains(auth)
+      }
+    }
+  }
 }
 
 /**
@@ -171,18 +181,6 @@ object CurrentUser extends RequestVar[Option[RudderUserDetail]](None) with Authe
     case Some(u) => u.account
   }
 
-  def checkRights(auth: AuthorizationType): Boolean = {
-    val authz = getRights.authorizationTypes
-    if (authz.contains(AuthorizationType.NoRights)) false
-    else if (authz.contains(AuthorizationType.AnyRights)) true
-    else {
-      auth match {
-        case AuthorizationType.NoRights => false
-        case _                          => authz.contains(auth)
-      }
-    }
-  }
-
   def getApiAuthz: ApiAuthorization = {
     this.get match {
       case None    => ApiAuthorization.None
@@ -193,5 +191,12 @@ object CurrentUser extends RequestVar[Option[RudderUserDetail]](None) with Authe
   def nodePerms: NodeSecurityContext = this.get match {
     case Some(u) => u.nodePerms
     case None    => NodeSecurityContext.None
+  }
+
+  override def checkRights(auth: AuthorizationType): Boolean = {
+    this.get match {
+      case Some(u) => u.checkRights(auth)
+      case None    => false
+    }
   }
 }

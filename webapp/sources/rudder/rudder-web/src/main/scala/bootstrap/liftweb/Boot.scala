@@ -99,7 +99,7 @@ object Boot {
     /**
      * A list of uris to match against when deciding whether to add a nonce to the CSP header for strict CSP
      * (see level 3 specification section for nonce : https://www.w3.org/TR/CSP3/#framework-directive-source-list).
-     * 
+     *
      * This will apply our custom CSP headers for all html tags within the page with the `with-nonce` snippet directive.
      */
     val customCSPUrisRegexList = List(
@@ -109,7 +109,7 @@ object Boot {
   }
 
   /**
-    * A vendor for our custom headers. 
+    * A vendor for our custom headers.
     * We use it as default vendor for headers with our custom routing logic of CSP headers for instance.
     */
   final class RequestHeadersFactoryVendor(csp: ContentSecurityPolicy) extends Vendor[List[(String, String)]] {
@@ -365,6 +365,23 @@ object UserLogout {
   }
 }
 
+/*
+ * Utility methods to manage CurrentUser (find it where SpringSecurity put it)
+ */
+object FindCurrentUser {
+
+  def get(): Option[RudderUserDetail] = {
+    SecurityContextHolder.getContext.getAuthentication match {
+      case null => None
+      case auth =>
+        auth.getPrincipal match {
+          case u: RudderUserDetail => Some(u)
+          case _ => None
+        }
+    }
+  }
+}
+
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -595,15 +612,7 @@ class Boot extends Loggable {
      */
     LiftRules.onBeginServicing.append { _ =>
       if (CurrentUser.isEmpty) {
-        val optUser = SecurityContextHolder.getContext.getAuthentication match {
-          case null => None
-          case auth =>
-            auth.getPrincipal match {
-              case u: RudderUserDetail => Some(u)
-              case _ => None
-            }
-        }
-        CurrentUser.set(optUser)
+        CurrentUser.set(FindCurrentUser.get())
       }
     }
 

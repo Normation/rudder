@@ -19,11 +19,11 @@
 
 
     $reportId=$reportIdBase + "a86ce2e5-d5b6-45cc-87e8-c11cca71d908"
-    $componentKey = 'htop'
+    $componentKey = "htop"
     $reportParams = @{
         ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
         ComponentKey = $componentKey
-        ComponentName = 'No block without condition'
+        ComponentName = "No block without condition"
         PolicyMode = $policyMode
         ReportId = $reportId
         DisableReporting = $false
@@ -31,11 +31,9 @@
     }
     
     $methodParams = @{
-        Architecture = ''
-        Name = @'
-htop
-'@
-        Provider = ''
+        Architecture = ""
+        Name = "htop"
+        Provider = ""
         Version = @'
 
 '@
@@ -47,11 +45,11 @@ htop
     
 
     $reportId=$reportIdBase + "b86ce2e5-d5b6-45cc-87e8-c11cca71d907"
-    $componentKey = 'htop'
+    $componentKey = "htop"
     $reportParams = @{
         ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
         ComponentKey = $componentKey
-        ComponentName = 'No block with condition'
+        ComponentName = "No block with condition"
         PolicyMode = $policyMode
         ReportId = $reportId
         DisableReporting = $false
@@ -61,11 +59,9 @@ htop
     $class = "debian"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
-            Architecture = ''
-            Name = @'
-htop
-'@
-            Provider = ''
+            Architecture = ""
+            Name = "htop"
+            Provider = ""
             Version = @'
 
 '@
@@ -79,11 +75,11 @@ htop
     }
 
     $reportId=$reportIdBase + "df06e919-02b7-41a7-a03f-4239592f3c12"
-    $componentKey = 'ntp'
+    $componentKey = "ntp"
     $reportParams = @{
         ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
         ComponentKey = $componentKey
-        ComponentName = 'NTP service'
+        ComponentName = "NTP service"
         PolicyMode = $policyMode
         ReportId = $reportId
         DisableReporting = $false
@@ -91,11 +87,9 @@ htop
     }
     
     $methodParams = @{
-        Architecture = ''
-        Name = @'
-ntp
-'@
-        Provider = ''
+        Architecture = ""
+        Name = "ntp"
+        Provider = ""
         Version = @'
 
 '@
@@ -107,11 +101,11 @@ ntp
     
 
     $reportId=$reportIdBase + "df06e919-02b7-41a7-a03f-4239592f3c45"
-    $componentKey = 'ntp'
+    $componentKey = "ntp"
     $reportParams = @{
         ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
         ComponentKey = $componentKey
-        ComponentName = 'NTP service'
+        ComponentName = "NTP service"
         PolicyMode = $policyMode
         ReportId = $reportId
         DisableReporting = $false
@@ -119,11 +113,9 @@ ntp
     }
     
     $methodParams = @{
-        Architecture = ''
-        Name = @'
-ntp
-'@
-        Provider = ''
+        Architecture = ""
+        Name = "ntp"
+        Provider = ""
         Version = @'
 
 '@
@@ -135,11 +127,11 @@ ntp
     
 
     $reportId=$reportIdBase + "cf06e919-02b7-41a7-a03f-4239592f3c14"
-    $componentKey = 'ntp'
+    $componentKey = "ntp"
     $reportParams = @{
         ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
         ComponentKey = $componentKey
-        ComponentName = 'NTP service'
+        ComponentName = "NTP service"
         PolicyMode = $policyMode
         ReportId = $reportId
         DisableReporting = $false
@@ -147,11 +139,9 @@ ntp
     }
     
     $methodParams = @{
-        Architecture = ''
-        Name = @'
-ntp
-'@
-        Provider = ''
+        Architecture = ""
+        Name = "ntp"
+        Provider = ""
         Version = @'
 
 '@
@@ -163,11 +153,11 @@ ntp
     
 
     $reportId=$reportIdBase + "cf06e919-02b7-41a7-a03f-4239592f3c13"
-    $componentKey = 'ntp'
+    $componentKey = "ntp"
     $reportParams = @{
         ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
         ComponentKey = $componentKey
-        ComponentName = 'NTP service'
+        ComponentName = "NTP service"
         PolicyMode = $policyMode
         ReportId = $reportId
         DisableReporting = $false
@@ -175,11 +165,9 @@ ntp
     }
     
     $methodParams = @{
-        Architecture = ''
-        Name = @'
-ntp
-'@
-        Provider = ''
+        Architecture = ""
+        Name = "ntp"
+        Provider = ""
         Version = @'
 
 '@
@@ -191,11 +179,11 @@ ntp
     
 
     $reportId=$reportIdBase + "cf06e919-02b7-41a7-a03f-4239592f3c21"
-    $componentKey = 'ntp'
+    $componentKey = "ntp"
     $reportParams = @{
         ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
         ComponentKey = $componentKey
-        ComponentName = 'Enabled reporting'
+        ComponentName = "Enabled reporting"
         PolicyMode = $policyMode
         ReportId = $reportId
         DisableReporting = $false
@@ -203,11 +191,9 @@ ntp
     }
     
     $methodParams = @{
-        Architecture = ''
-        Name = @'
-ntp
-'@
-        Provider = ''
+        Architecture = ""
+        Name = "ntp"
+        Provider = ""
         Version = @'
 
 '@
@@ -219,11 +205,11 @@ ntp
     
 
     $reportId=$reportIdBase + "c76686bb-79ab-4ae5-b45f-108492ab4101"
-    $componentKey = 'ntp'
+    $componentKey = "ntp"
     $reportParams = @{
         ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
         ComponentKey = $componentKey
-        ComponentName = 'Disabled reporting'
+        ComponentName = "Disabled reporting"
         PolicyMode = $policyMode
         ReportId = $reportId
         DisableReporting = $true
@@ -231,11 +217,9 @@ ntp
     }
     
     $methodParams = @{
-        Architecture = ''
-        Name = @'
-ntp
-'@
-        Provider = ''
+        Architecture = ""
+        Name = "ntp"
+        Provider = ""
         Version = @'
 
 '@

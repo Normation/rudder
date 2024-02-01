@@ -22,15 +22,11 @@
 
 
     $reportId=$reportIdBase + "9e763779-9f33-44bc-ad73-1c5d5732301c"
-    $componentKey = @'
-/tmp/
-'@ + ([Nustache.Core.Render]::StringToString('{{' + @'
-param_in_condition.file
-'@ + '}}', $data, $mustacheOptions))
+    $componentKey = "/tmp/${file}"
     $reportParams = @{
         ClassPrefix = ([Rudder.Condition]::canonify(("file_check_exists_" + $componentKey)))
         ComponentKey = $componentKey
-        ComponentName = 'Check if a file exists'
+        ComponentName = "Check if a file exists"
         PolicyMode = $policyMode
         ReportId = $reportId
         DisableReporting = $false
@@ -39,29 +35,21 @@ param_in_condition.file
     Rudder-Report-NA @reportParams
 
     $reportId=$reportIdBase + "e8362340-dc50-4231-9b7f-748b51e9fa07"
-    $componentKey = 'echo "May be executed or not"'
+    $componentKey = "echo `"May be executed or not`""
     $reportParams = @{
         ClassPrefix = ([Rudder.Condition]::canonify(("command_execution_" + $componentKey)))
         ComponentKey = $componentKey
-        ComponentName = 'Execute only if...'
+        ComponentName = "Execute only if..."
         PolicyMode = $policyMode
         ReportId = $reportId
         DisableReporting = $false
         TechniqueName = $techniqueName
     }
     
-    $class = ([Rudder.Condition]::canonify(@'
-file_check_exists__tmp_
-'@ + ([Nustache.Core.Render]::StringToString('{{' + @'
-param_in_condition.file
-'@ + '}}', $data, $mustacheOptions)) + @'
-_kept
-'@))
+    $class = "file_check_exists__tmp_" + ([Rudder.Condition]::canonify(${file})) + "_kept"
     if ($localContext.Evaluate($class)) {
         $methodParams = @{
-            Command = @'
-echo "May be executed or not"
-'@
+            Command = "echo `"May be executed or not`""
             
         }
         $call = Command-Execution @methodParams -PolicyMode $policyMode
