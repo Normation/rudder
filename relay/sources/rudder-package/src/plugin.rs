@@ -18,7 +18,10 @@ use crate::{
 pub fn long_names(l: Vec<String>) -> Vec<String> {
     l.into_iter()
         .map(|n| {
-            if ["rudder-plugin-", "/"].iter().any(|p| n.starts_with(p)) {
+            if ["rudder-plugin-", "/", "."]
+                .iter()
+                .any(|p| n.starts_with(p))
+            {
                 n
             } else {
                 format!("rudder-plugin-{n}")
