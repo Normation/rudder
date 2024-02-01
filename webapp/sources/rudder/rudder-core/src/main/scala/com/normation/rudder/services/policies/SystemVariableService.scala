@@ -350,7 +350,9 @@ class SystemVariableServiceImpl(
       })
 
       // IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
-      val nodesWithCFEKey = nodesAgentWithCfserverDistrib.map(_._2).sortBy(_.id.value)
+      // we want also to avoid nodes with bad cfkey (empty string) to avoid possible security vuln taking advantage of that.
+      val nodesWithCFEKey =
+        nodesAgentWithCfserverDistrib.collect { case (_, n) if (n.keyHashCfengine.nonEmpty) => n }.sortBy(_.id.value)
 
       val varManagedNodes      = systemVariableSpecService.get("MANAGED_NODES_NAME").toVariable(nodesWithCFEKey.map(_.hostname))
       val varManagedNodesId    = systemVariableSpecService.get("MANAGED_NODES_ID").toVariable(nodesWithCFEKey.map(_.id.value))
@@ -365,7 +367,7 @@ class SystemVariableServiceImpl(
       val varManagedNodesIp =
         systemVariableSpecService.get("MANAGED_NODES_IP").toVariable(nodesWithCFEKey.flatMap(_.ips).distinct.sorted)
 
-      // same kind of variable but for ALL childrens, not only direct one:
+      // same kind of variable but for ALL children, not only direct one:
       val allChildren = {
         // utility to add children of a list of nodes
         def addWithSubChildren(nodes: List[NodeInfo]): List[NodeInfo] = {
@@ -388,7 +390,10 @@ class SystemVariableServiceImpl(
       }
 
       // Each node may have several agent type, so we need to "unfold" agents per children
-      val subNodesList = allChildren.map(node => (node.agentsName.map(agent => agent -> node))).flatten
+      // we want also to avoid nodes with bad security token (empty string) to avoid possible security vuln taking advantage of that.
+      val subNodesList = allChildren.collect {
+        case node if (node.keyHashBase64Sha256.nonEmpty) => (node.agentsName.map(agent => agent -> node))
+      }.flatten
 
       val varSubNodesName    = systemVariableSpecService.get("SUB_NODES_NAME").toVariable(subNodesList.map(_._2.hostname))
       val varSubNodesId      = systemVariableSpecService.get("SUB_NODES_ID").toVariable(subNodesList.map(_._2.id.value))
@@ -402,7 +407,7 @@ class SystemVariableServiceImpl(
       val nodesWithCertificate       = nodesAgentWithHttpDistrib.flatMap {
         case (agent, node) =>
           agent.securityToken match {
-            // A certificat, we return it
+            // A certificate, we return it
             case cert: Certificate =>
               // for the certificate part, we exec the ZIO. If we have failure, log it and return "None"
               val parsedCert = cert.cert.either.runNow match {
@@ -471,10 +476,9 @@ class SystemVariableServiceImpl(
     }
 
     /* Get the policy server security token
-     * We are pretty certin to find a policy server, as it is checked earlier
+     * We are pretty sure to find a policy server, as it is checked earlier
      * and there is by construct a securityToken
      */
-    // cfengine version
     val varPolicyServerKeyHashCfengine  =
       systemVariableSpecService.get("POLICY_SERVER_KEY").toVariable(Seq(allNodeInfos(nodeInfo.policyServerId).keyHashCfengine))
     // base64(sha256(der encoded pub key))) version
@@ -482,13 +486,11 @@ class SystemVariableServiceImpl(
       .get("POLICY_SERVER_KEY_HASH")
       .toVariable(Seq("sha256//" + allNodeInfos(nodeInfo.policyServerId).keyHashBase64Sha256))
 
-    logger.trace("System variables for node %s done".format(nodeInfo.id.value))
-
     /*
      * RUDDER_NODE_CONFIG_ID is a very special system variable:
      * it must not be used to assess node config stability from
      * run to run.
-     * So we set it to a default value and handle it specialy in
+     * So we set it to a default value and handle it specially in
      * PolicyWriterServiceImpl#prepareRulesForAgents
      */
     val varNodeConfigVersion = systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq("DUMMY NODE CONFIG VERSION"))
@@ -540,9 +542,9 @@ class SystemVariableServiceImpl(
       systemVariableSpecService.get("RUDDER_NODE_GROUPS_CLASSES").toVariable(Seq(stringNodeGroupsClasses))
 
     // If Syslog is disabled, we force HTTPS.
-    val varNodeReportingProtocol = {
+    val varNodeReportingProtocol: Box[(String, SystemVariable)] = {
       // By default, we are tolerant: it's far worse to fail a generation while support is ok than to
-      // succeed and have a node that doesn't rerport.
+      // succeed and have a node that doesn't report.
       // => version must exists and and starts by 2.x, 3.x, 4.x, 5.x
       def versionHasSyslogOnly(maybeVersion: Option[AgentVersion], agentType: AgentType): Boolean = {
         maybeVersion match {
@@ -568,20 +570,26 @@ class SystemVariableServiceImpl(
           s"on that node."
         )
       }
-      // as we don't have capalities and version is not reliable, we only fail when we are sure:
+
+      // as we don't have capabilities and version is not reliable, we only fail when we are sure:
       // - version provided and
       //   - starts by 2.x, 3.x, 4.x, 5.x for Unix
       //   - agent is DSC < 6.1
-      val onlySyslogSupported                                = nodeInfo.agentsName.find(agent => versionHasSyslogOnly(agent.version, agent.agentType))
+      val onlySyslogSupported = nodeInfo.agentsName.find(agent => versionHasSyslogOnly(agent.version, agent.agentType))
 
-      (onlySyslogSupported match {
-        case Some(agentInfo) =>
-          // If HTTPS is used on a node that does support it, we fails.
-          // Also, special case root, because not having root cause strange things.
-          if (nodeInfo.id == Constants.ROOT_POLICY_SERVER_ID) Full(AgentReportingHTTPS)
-          else failure(nodeInfo, agentInfo)
-        case None            => Full(AgentReportingHTTPS)
-      }).map { reportingProtocol =>
+      (
+        onlySyslogSupported match {
+          case Some(agentInfo) =>
+            // If HTTPS is used on a node that does support it, we fails.
+            // Also, special case root, because not having root cause strange things.
+            if (nodeInfo.id == Constants.ROOT_POLICY_SERVER_ID) {
+              Full(AgentReportingHTTPS)
+            } else {
+              failure(nodeInfo, agentInfo)
+            }
+          case None            => Full(AgentReportingHTTPS)
+        }
+      ).map { reportingProtocol =>
         val v = systemVariableSpecService.get("REPORTING_PROTOCOL").toVariable(Seq(reportingProtocol.value))
         (v.spec.name, v)
       }
@@ -616,6 +624,7 @@ class SystemVariableServiceImpl(
         )
       ) :: Nil
     }
+
     val varRudderInventoryVariables =
       systemVariableSpecService.get("RUDDER_INVENTORY_VARS").toVariable(Seq(prettyRender(JObject(nodeInfoToJson(nodeInfo)))))
 
@@ -634,14 +643,21 @@ class SystemVariableServiceImpl(
 
     val variables = globalSystemVariables ++ baseVariables ++ policyServerVars
 
-    (agentRunVariables, varNodeReportingProtocol) match {
-      case (Right(runValues), Full(reporting)) =>
-        Full(variables ++ runValues + reporting)
-      case (f1, f2: Failure)                   =>
-        // prefer message on reporting mode
-        f2
-      case (fail, _)                           =>
-        fail.toBox
+    // additional check on the fact that at least the security token is well formed and correctly parsed
+    val checkSecurityTokenOK = if (nodeInfo.keyHashBase64Sha256.isEmpty) {
+      Failure(s"Can't generate policies for node '${nodeInfo.hostname}' (${nodeInfo.id.value}: invalid security token.")
+    } else {
+      Full(())
+    }
+
+    logger.trace(s"System variables for node '${nodeInfo.id.value}' done")
+
+    for {
+      _         <- checkSecurityTokenOK
+      reporting <- varNodeReportingProtocol
+      runValues <- agentRunVariables.toBox
+    } yield {
+      variables ++ runValues + reporting
     }
   }
 
