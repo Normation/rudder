@@ -563,7 +563,7 @@ buildIncludeList originRule groupsTree model editMode includeBool ruleTarget =
       Nothing ->
         li[class "unknown"]
         [ span
-          [ class "fa fa-excalamtion-triangle" ][]
+          [ class "fa fa-exclamation-triangle" ][]
         , a[]
           [ span [class "target-name"]
             [ b[][text "Unknown target: "]
@@ -571,6 +571,7 @@ buildIncludeList originRule groupsTree model editMode includeBool ruleTarget =
             ]
           ]
         , span [class "target-remove", onClick (SelectGroup id includeBool)][ i [class "fa fa-times"][] ]
+        , span [class "border"][]
         ]
 
 buildComplianceReport : ValueLine -> String
