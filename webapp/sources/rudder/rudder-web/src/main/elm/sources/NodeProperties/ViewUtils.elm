@@ -230,7 +230,7 @@ displayNodePropertyRow model =
                 ]
               ]
             , td [class "is-edited"]
-              [ div []
+              [ div [class "value-container"]
                 [ textarea [placeholder "Value", attribute "msd-elastic" "", attribute "rows" "1", class "form-control input-sm input-value auto-resize code", value eP.value, onInput (\s -> UpdateProperty p.name {eP | value = s, pristineValue = False}) ][]
                 , (if (checkEmptyVal && checkPristineVal)  then small [class "text-danger"][text "Value is required"] else text "")
                 ]
