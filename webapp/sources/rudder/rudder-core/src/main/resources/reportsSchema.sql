@@ -455,18 +455,20 @@ CREATE TABLE NodeFacts (
 );
 
 
+CREATE TYPE score AS enum ('A', 'B', 'C', 'D', 'E')
+
 Create table GlobalScore (
   nodeId  text primary key
-, score   text
-, message text
-, details jsonb
+, score   score  NOT NULL
+, message text  NOT NULL
+, details jsonb  NOT NULL
 );
 
 Create table scoreDetails (
-  nodeId  text
-, scoreId    text
-, score   text
-, message text
-, details jsonb
+  nodeId  text NOT NULL
+, scoreId text NOT NULL
+, score   score NOT NULL
+, message text NOT NULL
+, details jsonb NOT NULL
 , PRIMARY KEY (nodeId, scoreId)
 );
