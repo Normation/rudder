@@ -82,7 +82,7 @@ items:
           example: "corp inc."
         serialNumber: 
           type: string
-          description: Manufacturer of the machine
+          description: Serial number of the machine
           example: ece12459-2b90-49c9-ab1e-72e38f797421
     state:
       type: string
