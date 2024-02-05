@@ -496,7 +496,8 @@ td.listclose:after {
   cursor: pointer;
   max-height: 66px;
 }
-#nodePropertiesTab .value-container.show-more.toggle{
+#nodePropertiesTab .value-container.show-more.toggle,
+#nodePropertiesTab .is-edited > .value-container{
   overflow: auto;
   max-height: 300px;
 }
