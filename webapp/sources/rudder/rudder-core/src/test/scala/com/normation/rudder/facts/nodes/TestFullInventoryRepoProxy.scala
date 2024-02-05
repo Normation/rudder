@@ -40,6 +40,7 @@ package com.normation.rudder.facts.nodes
 import com.normation.errors._
 import com.normation.inventory.domain._
 import com.normation.inventory.services.core.FullInventoryRepository
+import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.zio._
 import com.normation.zio.ZioRuntime
 import com.softwaremill.quicklens._
@@ -111,7 +112,8 @@ class TestFullInventoryRepoProxy extends Specification {
     for {
       callbacks <- Ref.make(Chunk.empty[NodeFactChangeEventCallback])
       lock      <- ReentrantLock.make()
-      r          = new CoreNodeFactRepository(NoopFactStorage, noopNodeBySoftwareName, pendingRef, acceptedRef, callbacks, lock)
+      tenants   <- DefaultTenantService.make(Nil)
+      r          = new CoreNodeFactRepository(NoopFactStorage, noopNodeBySoftwareName, tenants, pendingRef, acceptedRef, callbacks, lock)
       _         <- r.registerChangeCallbackAction(CoreNodeFactChangeEventCallback("trail", e => callbackLog.update(_.appended(e.event))))
       //      _         <- r.registerChangeCallbackAction(new NodeFactChangeEventCallback("log", e => effectUioUnit(println(s"**** ${e.name}"))))
     } yield {

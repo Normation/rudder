@@ -76,6 +76,7 @@ import com.normation.rudder.services.reports.NodeConfigurationService
 import com.normation.rudder.services.reports.NodeConfigurationServiceImpl
 import com.normation.rudder.services.reports.ReportingServiceImpl
 import com.normation.rudder.services.reports.UnexpectedReportInterpretation
+import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.zio._
 import com.softwaremill.quicklens._
 import doobie.implicits._
@@ -120,7 +121,10 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       build("n4", Some(PolicyMode.Audit))
     ).toMap
 
-    CoreNodeFactRepository.make(NoopFactStorage, NoopGetNodesbySofwareName, Map(), accepted, Chunk.empty).runNow
+    (for {
+      t <- DefaultTenantService.make(Nil)
+      r <- CoreNodeFactRepository.make(NoopFactStorage, NoopGetNodesbySofwareName, t, Map(), accepted, Chunk.empty)
+    } yield r).runNow
   }
 
   val directivesLib = NodeConfigData.directives

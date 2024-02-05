@@ -46,6 +46,8 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.ReadOnlySoftwareDAOImpl
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.MachineInfo
+import com.normation.rudder.tenants.DefaultTenantService
+import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
 import com.normation.zio._
 import com.normation.zio.ZioRuntime
@@ -190,10 +192,11 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     )
   )
 
+  val tenantService = DefaultTenantService.make(List(TenantId("zoneA"), TenantId("zoneB"))).runNow
   val factRepo: CoreNodeFactRepository = {
     val trailCB = CoreNodeFactChangeEventCallback("trail", e => callbackLog.update(_.appended(e.event)))
 //   val logCB = CoreNodeFactChangeEventCallback("log", e => effectUioUnit(println(s"**** ${e.name}"))))
-    CoreNodeFactRepository.make(factStorage, nodeBySoftwareName, Chunk(trailCB)).runNow
+    CoreNodeFactRepository.make(factStorage, nodeBySoftwareName, tenantService, Chunk(trailCB)).runNow
   }
 
 //  org.slf4j.LoggerFactory
@@ -346,7 +349,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     "allow to get only nodes with one security tag" in {
       val nodes = factRepo
         .getAll()(
-          QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.ByTenants(Chunk(Tenant("zoneA")))),
+          QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA")))),
           SelectNodeStatus.Accepted
         )
         .runNow
@@ -357,12 +360,33 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     "have cumulative rights" in {
       val nodes = factRepo
         .getAll()(
-          QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.ByTenants(Chunk(Tenant("zoneA"), Tenant("zoneB")))),
+          QueryContext.testQC
+            .modify(_.nodePerms)
+            .setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB")))),
           SelectNodeStatus.Accepted
         )
         .runNow
 
       nodes.keySet.map(_.value) must containTheSameElementsAs(List("node0", "node1", "node2"))
+    }
+
+    "if we remove tenants, we don't get anything anymore" in {
+
+      val nodes = (for {
+        // keep for restoration but remove all tenant
+        initTs <- tenantService.tenantIds.getAndSet(Set())
+        nodes  <- factRepo
+                    .getAll()(
+                      QueryContext.testQC
+                        .modify(_.nodePerms)
+                        .setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB")))),
+                      SelectNodeStatus.Accepted
+                    )
+        // restore tenants
+        _      <- tenantService.tenantIds.set(initTs)
+      } yield nodes).runNow
+
+      nodes must beEmpty
     }
   }
 

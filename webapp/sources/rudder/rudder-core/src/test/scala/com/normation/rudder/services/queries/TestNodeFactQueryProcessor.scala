@@ -46,6 +46,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.facts.nodes._
+import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.zio._
 import com.softwaremill.quicklens._
 import com.unboundid.ldap.sdk.DN
@@ -113,13 +114,17 @@ class TestNodeFactQueryProcessor {
     object NoopNodeBySoftware extends GetNodesbySofwareName {
       override def apply(softName: String): IOResult[List[(NodeId, Software)]] = Nil.succeed
     }
-    CoreNodeFactRepository
-      .make(
-        MockLdapFactStorage.nodeFactStorage,
-        NoopNodeBySoftware,
-        Chunk.empty
-      )
-      .runNow
+
+    (for {
+      t <- DefaultTenantService.make(Nil)
+      r <- CoreNodeFactRepository
+             .make(
+               MockLdapFactStorage.nodeFactStorage,
+               NoopNodeBySoftware,
+               t,
+               Chunk.empty
+             )
+    } yield r).runNow
   }
 
   val internalLDAPQueryProcessor: InternalLDAPQueryProcessor = {
