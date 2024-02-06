@@ -1642,7 +1642,11 @@ class NodeApiService(
       .removeNodePure(id, mode)(ChangeContext(modId, actor, DateTime.now(), None, Some(actorIp), QueryContext.todoQC.nodePerms))
       .toBox match {
       case Full(info) =>
-        toJsonResponse(None, ("nodes" -> JArray(restSerializer.serializeNodeInfo(info.toNodeInfo, "deleted") :: Nil)))
+        val l = info match {
+          case Some(x) => restSerializer.serializeNodeInfo(x.toNodeInfo, "deleted") :: Nil
+          case None    => Nil
+        }
+        toJsonResponse(None, ("nodes" -> JArray(l)))
 
       case eb: EmptyBox =>
         val message = (eb ?~ ("Error when deleting Nodes")).msg
