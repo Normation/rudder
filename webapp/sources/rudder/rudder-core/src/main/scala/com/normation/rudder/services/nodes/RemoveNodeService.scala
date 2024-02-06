@@ -47,7 +47,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PendingInventory
 import com.normation.inventory.domain.RemovedInventory
 import com.normation.inventory.domain.UndefinedKey
-import com.normation.inventory.domain.UnknownOS
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
@@ -58,14 +57,11 @@ import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
-import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.facts.nodes.NodeFactStorage
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.hooks.RunHooks
-import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
@@ -157,13 +153,14 @@ trait RemoveNodeService {
    * - clean the ou=Nodes
    * - clean the groups
    * - move the node
+   *
+   * Return NodeInfo of the cleaned node if any was found, and None if nothing relevant was found for that node.
    */
-
   def removeNode(nodeId: NodeId, modId: ModificationId, actor: EventActor): Box[DeletionResult] = {
     removeNodePure(nodeId, DeleteMode.MoveToRemoved, modId, actor).map(_ => Success).toBox
   }
 
-  def removeNodePure(nodeId: NodeId, mode: DeleteMode, modId: ModificationId, actor: EventActor): IOResult[NodeInfo]
+  def removeNodePure(nodeId: NodeId, mode: DeleteMode, modId: ModificationId, actor: EventActor): IOResult[Option[NodeInfo]]
 }
 
 trait RemoveNodeBackend {
@@ -207,7 +204,12 @@ class RemoveNodeServiceImpl(
    * The main goal is to separate the clear cache as it could fail while the node is correctly deleted.
    * A failing clear cache should not be considered an error when deleting a Node.
    */
-  override def removeNodePure(nodeId: NodeId, mode: DeleteMode, modId: ModificationId, actor: EventActor): IOResult[NodeInfo] = {
+  override def removeNodePure(
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      modId:  ModificationId,
+      actor:  EventActor
+  ): IOResult[Option[NodeInfo]] = {
     // main logic, see help function below
     nodeId match {
       case Constants.ROOT_POLICY_SERVER_ID => Inconsistency("The root node cannot be deleted.").fail
@@ -253,38 +255,7 @@ class RemoveNodeServiceImpl(
                        s"Node '${nodeId.value}' ${optInfo.map(_.hostname).getOrElse("")} was successfully deleted"
                      )
         } yield {
-          optInfo match {
-            case Some(info) =>
-              info
-            // in that case, just return a minimal info
-            case None       =>
-              NodeInfo(
-                new Node(
-                  nodeId,
-                  "",
-                  "",
-                  NodeState.Ignored,
-                  false,
-                  false,
-                  new DateTime(0),
-                  ReportingConfiguration(None, None, None),
-                  Nil,
-                  None
-                ),
-                "",
-                None,
-                UnknownOS(),
-                Nil,
-                new DateTime(0),
-                UndefinedKey,
-                Nil,
-                Constants.ROOT_POLICY_SERVER_ID,
-                "",
-                None,
-                None,
-                None
-              )
-          }
+          optInfo
         }
       }
     }
