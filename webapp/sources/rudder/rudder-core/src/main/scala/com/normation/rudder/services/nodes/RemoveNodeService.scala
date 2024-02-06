@@ -41,16 +41,11 @@ import com.normation.errors._
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.AgentType
-import com.normation.inventory.domain.AgentVersion
 import com.normation.inventory.domain.InventoryStatus
-import com.normation.inventory.domain.MachineUuid
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PendingInventory
-import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.RemovedInventory
 import com.normation.inventory.domain.UndefinedKey
-import com.normation.inventory.domain.UnknownMachineType
-import com.normation.inventory.domain.UnknownOS
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
@@ -61,20 +56,14 @@ import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
-import com.normation.rudder.domain.nodes.MachineInfo
-import com.normation.rudder.domain.nodes.NodeKind
-import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.facts.nodes.RudderAgent
-import com.normation.rudder.facts.nodes.RudderSettings
 import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.hooks.RunHooks
-import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
@@ -94,7 +83,6 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.util.function.BiPredicate
 import java.util.function.Consumer
 import net.liftweb.common.Box
-import org.joda.time.DateTime
 import zio.{System => _, _}
 import zio.stream._
 import zio.syntax._
@@ -164,13 +152,15 @@ trait RemoveNodeService {
    * - clean the ou=Nodes
    * - clean the groups
    * - move the node
+   *
+   * Return NodeInfo of the cleaned node if any was found, and None if nothing relevant was found for that node.
    */
 
   def removeNode(nodeId: NodeId)(implicit cc: ChangeContext): Box[DeletionResult] = {
     removeNodePure(nodeId, DeleteMode.MoveToRemoved).map(_ => Success).toBox
   }
 
-  def removeNodePure(nodeId: NodeId, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[CoreNodeFact]
+  def removeNodePure(nodeId: NodeId, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[Option[CoreNodeFact]]
 }
 
 trait RemoveNodeBackend {
@@ -232,7 +222,7 @@ class RemoveNodeServiceImpl(
    * The main goal is to separate the clear cache as it could fail while the node is correctly deleted.
    * A failing clear cache should not be considered an error when deleting a Node.
    */
-  override def removeNodePure(nodeId: NodeId, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[CoreNodeFact] = {
+  override def removeNodePure(nodeId: NodeId, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[Option[CoreNodeFact]] = {
     // main logic, see help function below
     nodeId match {
       case Constants.ROOT_POLICY_SERVER_ID => Inconsistency("The root node cannot be deleted.").fail
@@ -270,44 +260,7 @@ class RemoveNodeServiceImpl(
                        s"Node '${nodeId.value}' ${optInfo.map(_.fqdn).getOrElse("")} was successfully deleted"
                      )
         } yield {
-          optInfo match {
-            case Some(info) =>
-              info
-            // in that case, just return a minimal info
-            case None       =>
-              CoreNodeFact(
-                nodeId,
-                None,
-                "",
-                UnknownOS(),
-                MachineInfo(MachineUuid("unknown"), UnknownMachineType, None, None),
-                RudderSettings(
-                  UndefinedKey,
-                  ReportingConfiguration(None, None, None),
-                  NodeKind.Node,
-                  RemovedInventory,
-                  NodeState.Ignored,
-                  None,
-                  Constants.ROOT_POLICY_SERVER_ID,
-                  None
-                ),
-                RudderAgent(
-                  AgentType.CfeCommunity,
-                  "root",
-                  AgentVersion(""),
-                  PublicKey(""),
-                  Chunk.empty
-                ),
-                Chunk.empty,
-                new DateTime(0),
-                new DateTime(0),
-                None,
-                Chunk.empty,
-                None,
-                None,
-                None
-              )
-          }
+          optInfo
         }
       }
     }
