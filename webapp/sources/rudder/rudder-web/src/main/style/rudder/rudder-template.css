@@ -76,7 +76,6 @@ ul {
 }
 .content-wrapper .rudder-template .jstree .jstree-node a.jstree-anchor:hover,
 .content-wrapper .rudder-template .jstree .jstree-node.jstree-leaf a.jstree-anchor{
-  color: #1295c2;
   cursor: pointer;
 }
 .content-wrapper .rudder-template .jstree .jstree-anchor .btn.create{
@@ -587,7 +586,6 @@ ul {
 
 .rudder-template .sidebar-navbar ul > li > a,
 .rudder-template .main-navbar ul > li > a{
-  color: #1295c2;
   padding: 0;
   background-color: transparent !important;
   border: none !important;

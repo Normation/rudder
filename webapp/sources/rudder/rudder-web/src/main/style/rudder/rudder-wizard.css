@@ -307,9 +307,6 @@ ul.wizard-timeline > li.activeSection ~ li > .timeline-item .item-dot{
   color: #fff !important;
   transition-duration: .2s;
 }
-.content-wrapper .rudder-template .btn-default:hover {
-  background-color: #9DA4B9;
-}
 .content-wrapper .rudder-template .btn > i{
   margin-left: 6px;
 }
