@@ -289,11 +289,6 @@ body {
   line-height: 100%;
 }
 
-.btn.btn-default {
-  color: #444;
-  background-color: #FAFAFA;
-}
-
 .btn {
   box-shadow: 0 2px 5px 0 rgba(0, 0, 0, .26);
   font-weight: 500;
