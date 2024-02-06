@@ -176,6 +176,7 @@ $bar-stripped-gradient : linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, t
 // COMPLIANCE SCORE
 $badge-size : 135px;
 $badge-breakdown-size : 75px;
+$badge-tabs-size : 23px;
 $small-prefix : "sm-";
 
 @mixin badge-url($score, $size) {
@@ -231,6 +232,16 @@ $small-prefix : "sm-";
     }
   }
 }
+
+#NodeDetailsTabMenu {
+  .badge-compliance-score{
+    height: $badge-tabs-size;
+    width: $badge-tabs-size;
+    margin-right: 3px;
+    margin-top:2px;
+  }
+}
+
 .compliance-score {
   label{
     color: #72829D;
@@ -242,6 +253,7 @@ $small-prefix : "sm-";
       width: $badge-breakdown-size;
     }
   }
+
 
   .score-explanation {
     border-left: 2px solid #D6DEEF;

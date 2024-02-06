@@ -462,3 +462,8 @@ pre.display-keys > label{
 #reporting-mode-title{
   display: none;
 }
+
+#NodeDetailsTabMenu li a {
+  display: flex;
+  height: 25px;
+}
