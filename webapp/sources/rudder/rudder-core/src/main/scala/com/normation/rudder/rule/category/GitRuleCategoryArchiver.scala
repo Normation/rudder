@@ -54,7 +54,6 @@ import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import zio._
-import zio.syntax._
 
 trait GitRuleCategoryArchiver {
 
@@ -137,7 +136,7 @@ class GitRuleCategoryArchiverImpl(
   def getCategoryName(categoryId: RuleCategoryId): String = categoryId.value
 
   private[this] def categoryFile(category: RuleCategoryId, parents: List[RuleCategoryId]) =
-    new File(newCategoryDirectory(category, parents), categoryFileName)
+    newCategoryDirectory(category, parents).map(new File(_, categoryFileName))
 
   def archiveRuleCategory(
       category:  RuleCategory,
@@ -145,21 +144,21 @@ class GitRuleCategoryArchiverImpl(
       gitCommit: Option[(ModificationId, PersonIdent, Option[String])]
   ): IOResult[GitPath] = {
     // Build Rule category file, needs to reverse parents , start from end)
-    val ruleCategoryFile = categoryFile(category.id, parents.reverse)
-    val gitPath          = toGitPath(ruleCategoryFile)
     for {
-      archive <- writeXml(
-                   ruleCategoryFile,
-                   ruleCategorySerialisation.serialise(category),
-                   "Archived Rule category: " + ruleCategoryFile.getPath
-                 )
-      commit  <- gitCommit match {
-                   case Some((modId, commiter, reason)) =>
-                     val commitMsg = s"Archive rule Category with ID '${category.id.value}' ${GET(reason)}"
-                     commitAddFileWithModId(modId, commiter, gitPath, commitMsg)
-                   case None                            =>
-                     ZIO.unit
-                 }
+      ruleCategoryFile <- categoryFile(category.id, parents.reverse)
+      gitPath           = toGitPath(ruleCategoryFile)
+      archive          <- writeXml(
+                            ruleCategoryFile,
+                            ruleCategorySerialisation.serialise(category),
+                            "Archived Rule category: " + ruleCategoryFile.getPath
+                          )
+      commit           <- gitCommit match {
+                            case Some((modId, commiter, reason)) =>
+                              val commitMsg = s"Archive rule Category with ID '${category.id.value}' ${GET(reason)}"
+                              commitAddFileWithModId(modId, commiter, gitPath, commitMsg)
+                            case None                            =>
+                              ZIO.unit
+                          }
     } yield {
       GitPath(gitPath)
     }
@@ -178,24 +177,24 @@ class GitRuleCategoryArchiverImpl(
       doCommit:   Option[(ModificationId, PersonIdent, Option[String])]
   ): IOResult[GitPath] = {
     // Build Rule category file, needs to reverse parents , start from end)
-    val ruleCategoryFile = categoryFile(categoryId, parents.reverse)
-    val gitPath          = toGitPath(ruleCategoryFile)
-    if (ruleCategoryFile.exists) {
-      for {
-        deleted  <- IOResult.attempt(FileUtils.forceDelete(ruleCategoryFile))
-        _        <- logPure.debug("Deleted archive of rule: " + ruleCategoryFile.getPath)
-        commited <- doCommit match {
-                      case Some((modId, commiter, reason)) =>
-                        val commitMsg = s"Delete archive of rule with ID '${categoryId.value} ${GET(reason)}"
-                        commitRmFileWithModId(modId, commiter, gitPath, commitMsg)
-                      case None                            =>
-                        ZIO.unit
-                    }
-      } yield {
-        GitPath(gitPath)
-      }
-    } else {
-      GitPath(gitPath).succeed
+    for {
+      ruleCategoryFile <- categoryFile(categoryId, parents.reverse)
+      gitPath           = toGitPath(ruleCategoryFile)
+      _                <- ZIO.whenZIO(IOResult.attempt(ruleCategoryFile.exists)) {
+                            for {
+                              _ <- IOResult.attempt(FileUtils.forceDelete(ruleCategoryFile))
+                              _ <- logPure.debug("Deleted archive of rule: " + ruleCategoryFile.getPath)
+                              _ <- doCommit match {
+                                     case Some((modId, commiter, reason)) =>
+                                       val commitMsg = s"Delete archive of rule with ID '${categoryId.value} ${GET(reason)}"
+                                       commitRmFileWithModId(modId, commiter, gitPath, commitMsg)
+                                     case None                            =>
+                                       ZIO.unit
+                                   }
+                            } yield ()
+                          }
+    } yield {
+      GitPath(gitPath)
     }
   }
 
@@ -210,18 +209,16 @@ class GitRuleCategoryArchiverImpl(
     if (oldParents == newParents) {
       this.archiveRuleCategory(category, oldParents, gitCommit)
     } else {
-
-      val oldCategoryDir  = categoryFile(category.id, oldParents.reverse).getParentFile
-      val newCategoryFile = categoryFile(category.id, newParents.reverse)
-      val newCategoryDir  = newCategoryFile.getParentFile
-
       for {
-        archive <- writeXml(
-                     newCategoryFile,
-                     ruleCategorySerialisation.serialise(category),
-                     s"Archived rule category: ${newCategoryFile.getPath}"
-                   )
-        moved   <- {
+        oldCategoryDir  <- categoryFile(category.id, oldParents.reverse).map(_.getParentFile)
+        newCategoryFile <- categoryFile(category.id, newParents.reverse)
+        newCategoryDir   = newCategoryFile.getParentFile
+        archive         <- writeXml(
+                             newCategoryFile,
+                             ruleCategorySerialisation.serialise(category),
+                             s"Archived rule category: ${newCategoryFile.getPath}"
+                           )
+        moved           <- {
           ZIO.when(null != oldCategoryDir && oldCategoryDir.exists) {
             ZIO.when(oldCategoryDir.isDirectory) {
               // move content except category.xml
@@ -232,15 +229,15 @@ class GitRuleCategoryArchiverImpl(
             IOResult.attempt(FileUtils.deleteQuietly(oldCategoryDir))
           }
         }
-        commit  <- gitCommit match {
-                     case Some((modId, commiter, reason)) =>
-                       val commitMsg = s"Move archive of rule category with ID '${category.id.value}'${GET(reason)}"
-                       val oldPath   = toGitPath(oldCategoryDir)
-                       val newPath   = toGitPath(newCategoryDir)
-                       commitMvDirectoryWithModId(modId, commiter, oldPath, newPath, commitMsg)
-                     case None                            =>
-                       ZIO.unit
-                   }
+        commit          <- gitCommit match {
+                             case Some((modId, commiter, reason)) =>
+                               val commitMsg = s"Move archive of rule category with ID '${category.id.value}'${GET(reason)}"
+                               val oldPath   = toGitPath(oldCategoryDir)
+                               val newPath   = toGitPath(newCategoryDir)
+                               commitMvDirectoryWithModId(modId, commiter, oldPath, newPath, commitMsg)
+                             case None                            =>
+                               ZIO.unit
+                           }
       } yield {
         GitPath(toGitPath(archive))
       }
