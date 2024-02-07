@@ -42,32 +42,3 @@ scoreBreakdownList scoreDetails = scoreDetails
     , label[class "text-center pt-2"][text (String.Extra.humanize sD.scoreId)]
     ]
   )
-
-{--
-buildSystemUpdatesScoreDetails : DetailedScore -> Maybe (Html Msg) -> Html msg
-buildSystemUpdatesScoreDetails score details =
-  let
-    toBadge : String -> String -> Maybe Int -> Html msg
-    toBadge id iconClass value =
-      case value of
-        Just v  ->
-          let
-            valueTxt = String.fromInt v
-            titleTxt = (String.Extra.humanize id) ++ ": " ++ valueTxt
-          in
-            span[class ("badge badge-systemupdates " ++ id), title titleTxt][i[class ("fa fa-" ++ iconClass)][], text valueTxt]
-        Nothing -> text ""
-  in
-    case systemUpdatesScoreDetails of
-      Just systemUpdatesScore ->
-        div[class "d-flex mb-3 align-items-center"]
-        [ label[class "text-end"][text "System updates"]
-        , div[]
-          [ toBadge "security"    "warning" systemUpdatesScore.details.security
-          , toBadge "bugfix"      "bug"     systemUpdatesScore.details.bugfix
-          , toBadge "enhancement" "plus"    systemUpdatesScore.details.enhancement
-          , toBadge "update"      "box"     systemUpdatesScore.details.update
-          ]
-        ]
-      Nothing -> text ""
-      --}
