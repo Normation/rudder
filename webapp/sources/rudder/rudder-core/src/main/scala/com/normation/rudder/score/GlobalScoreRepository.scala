@@ -42,6 +42,8 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
 import doobie.implicits._
 import doobie.implicits.toSqlInterpolator
+import doobie.postgres.implicits.pgEnumString
+import doobie.util.invariant.InvalidEnum
 import zio.interop.catz._
 
 trait GlobalScoreRepository {
@@ -56,8 +58,17 @@ object GlobalScoreRepositoryImpl {
   import ScoreSerializer._
   import com.normation.rudder.db.json.implicits._
   import doobie._
-  implicit val getScoreValue: Get[ScoreValue] = Get[String].temap(ScoreValue.fromString)
-  implicit val putScoreValue: Put[ScoreValue] = Put[String].contramap(_.value)
+
+  implicit val scoreMeta: Meta[ScoreValue] = {
+    def getValue(value: String) = {
+      ScoreValue.fromString(value) match {
+        case Right(s)  => s
+        case Left(err) => throw InvalidEnum[ScoreValue](value)
+      }
+    }
+
+    pgEnumString("score", getValue, _.value)
+  }
 
   implicit val stateWrite: Meta[List[NoDetailsScore]] = new Meta(pgDecoderGet, pgEncoderPut)
 
