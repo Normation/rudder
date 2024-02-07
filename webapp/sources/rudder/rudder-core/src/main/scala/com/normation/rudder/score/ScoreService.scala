@@ -46,27 +46,46 @@ import zio.syntax.ToZio
 
 trait ScoreService {
   def getAll(): IOResult[Map[NodeId, GlobalScore]]
-  def getGlobalScore(nodeId:  NodeId):                   IOResult[GlobalScore]
-  def getScoreDetails(nodeId: NodeId):                   IOResult[List[Score]]
-  def cleanScore(name:        String):                   IOResult[Unit]
-  def update(newScores:       Map[NodeId, List[Score]]): IOResult[Unit]
+  def getGlobalScore(nodeId:    NodeId):                   IOResult[GlobalScore]
+  def getScoreDetails(nodeId:   NodeId):                   IOResult[List[Score]]
+  def cleanScore(name:          String):                   IOResult[Unit]
+  def update(newScores:         Map[NodeId, List[Score]]): IOResult[Unit]
+  def registerScore(newScoreId: String):                   IOResult[Unit]
 }
 
 class ScoreServiceImpl(globalScoreRepository: GlobalScoreRepository, scoreRepository: ScoreRepository) extends ScoreService {
   private[this] val cache:      Ref[Map[NodeId, GlobalScore]] = globalScoreRepository.getAll().flatMap(Ref.make(_)).runNow
   private[this] val scoreCache: Ref[Map[NodeId, List[Score]]] = scoreRepository.getAll().flatMap(Ref.make(_)).runNow
 
-  def getAll():                       IOResult[Map[NodeId, GlobalScore]] = cache.get
-  def getGlobalScore(nodeId: NodeId): IOResult[GlobalScore]              = {
+  private[this] val availableScore: Ref[List[String]] =
+    Ref.make(ComplianceScore.scoreId :: SystemUpdateScore.scoreId :: Nil).runNow
+
+  def fillWithNoScore(globalScore: GlobalScore): IOResult[GlobalScore]              = {
     for {
-      c   <- cache.get
-      res <-
+      scoreIds <- availableScore.get
+    } yield {
+      scoreIds.foldLeft(globalScore) {
+        case (score, id) =>
+          if (score.details.exists(_.scoreId == id)) score
+          else score.copy(details = score.details :+ (NoDetailsScore(id, ScoreValue.NoScore, "")))
+
+      }
+    }
+  }
+  def getAll():                                  IOResult[Map[NodeId, GlobalScore]] = cache.get.flatMap(ZIO.foreach(_) {
+    case (key, v) => fillWithNoScore(v).map((key, _))
+  })
+  def getGlobalScore(nodeId: NodeId):            IOResult[GlobalScore]              = {
+    for {
+      c           <- cache.get
+      res         <-
         c.get(nodeId) match {
           case Some(g) => g.succeed
           case None    => Inconsistency(s"No global score for node ${nodeId.value}").fail
         }
+      withNoScore <- fillWithNoScore(res)
     } yield {
-      res
+      withNoScore
     }
   }
 
@@ -117,6 +136,14 @@ class ScoreServiceImpl(globalScoreRepository: GlobalScoreRepository, scoreReposi
                           }
     } yield {}
 
+  }
+
+  def registerScore(newScoreId: String): IOResult[Unit] = {
+    availableScore.update(_ :+ newScoreId)
+  }
+
+  def getAvailableScore: IOResult[List[String]] = {
+    availableScore.get
   }
 }
 
