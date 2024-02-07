@@ -109,7 +109,7 @@ object DisplayNodeGroupTree extends Loggable {
       override val attrs = {
         ("data-jstree" -> s"""{ "type" : "${rel}" }""") ::
         ("catId"       -> category.id.value) ::
-        ("class"       -> "") ::
+        ("class"       -> "groupTreeNode") ::
         Nil
       }
     }
@@ -139,7 +139,7 @@ object DisplayNodeGroupTree extends Loggable {
         else ""
         val excludedClass = if (excluded.contains(targetInfo.target.target)) { "excluded" }
         else { "" }
-        s"$includedClass $excludedClass"
+        s"$includedClass $excludedClass groupTreeNode"
       }
 
       override val attrs = {

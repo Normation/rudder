@@ -259,21 +259,55 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
    */
   var select_system_node_allowed = false;
 
+  // Save node event handlers, in order to customize node by reassigning the click event handler
+  var allNodes = $('li.groupTreeNode > a[id^="lift-event-js-"], li.groupTreeNode > * > span[id^="lift-event-js-"]');
+  var allNodeEvents = allNodes.map(function () {
+    return $._data(this, 'events')["click"]; // we need to intercept the click now, the object will change after the jstree init
+  }).get().map(function (x, i) { return [allNodes[i], x] });  // cannot use a node object as key, so keep a [node, events] array
+
+  (function ($, undefined) {
+    "use strict";
+    $.jstree.defaults.keepevent = $.noop;
+    $.jstree.plugins.keepevent = function (options, parent) {
+      this.redraw_node = function (obj, deep, callback, force_draw) {
+        obj = parent.redraw_node.call(this, obj, deep, callback, force_draw);
+        if (obj) {
+          var child = $(obj).find('[id^="lift-event-js-"]'); // all nested child elements with a 'lift-event-js-...' id
+          child.each(function () {
+            var id = this.id;
+            var nodes = allNodeEvents.find(function (x) { return x[0].id === id });
+            if (nodes && nodes[1]) {
+              var event = nodes[1];
+              if (event) {
+                $(this).off("click.jstree");
+                $(this).on("click", event.handler);
+              }
+            }
+          });
+        }
+        return obj;
+      };
+    };
+  })(jQuery);
+
+
   $(id).bind("loaded.jstree", function (event, data) {
     data.instance.open_all();
     initBsTooltips();
   }).on("ready.jstree", function () {
     // make jstree node openable in a new tab
-    var nodes = document.querySelectorAll('[id^="jstree-"][id$="_anchor"]');
-    nodes.forEach(function(x) {
-      var jsTreeId = x.getAttribute("id");
-      var idType = ""
-      if(jsTreeId.startsWith("jstree-special:")) {
-        var idGroupSystem = jsTreeId.slice(7, -7);
-        x.setAttribute("href", contextPath + "/secure/nodeManager/groups#{\"target\":\"" + idGroupSystem + "\"}");
-      } else {
-        var idGroupUser = jsTreeId.slice(13, -7);
-        x.setAttribute("href", contextPath + "/secure/nodeManager/groups#{\"groupId\":\"" + idGroupUser + "\"}");
+    var items = document.querySelectorAll(".groupTreeNode");
+    items.forEach(function (item) {
+      var node = item.querySelector("a.jstree-anchor");
+      var jsTreeId = item.getAttribute("id");
+      if (node) {
+        if(jsTreeId.startsWith("jstree-group:")) {
+          var idGroupSystem = jsTreeId.slice("jstree-group:".length);
+          node.setAttribute("href", contextPath + "/secure/nodeManager/groups#{\"groupId\":\"" + idGroupSystem + "\"}");
+        } else {
+          var idGroupUser = jsTreeId.slice("jstree-".length);
+          node.setAttribute("href", contextPath + "/secure/nodeManager/groups#{\"target\":\"" + idGroupUser + "\"}");
+        }
       }
     });
   }).jstree({
@@ -355,7 +389,7 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
   	  "theme" : "rudder",
   	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
     },
-    "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm", "search"  ]
+    "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm", "search", "keepevent" ]
     });
 }
 
@@ -416,6 +450,38 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
   if (select_limit > 0) {
     select_multiple_modifier = "ctrl"
   }
+
+  // Save node event handlers, in order to customize node by reassigning the click event handler
+  var allNodes = $('li.techniqueNode > a[id^="lift-event-js-"], li.techniqueNode > * > span[id^="lift-event-js-"], li.directiveNode > a[id^="lift-event-js-"], li.directiveNode > * > span[id^="lift-event-js-"]');
+  var allNodeEvents = allNodes.map(function () {
+    return $._data(this, 'events')["click"]; // we need to intercept the click now, the object will change after the jstree init
+  }).get().map(function (x, i) { return [allNodes[i], x] });  // cannot use a node object as key, so keep a [node, events] array
+
+  (function ($, undefined) {
+    "use strict";
+    $.jstree.defaults.keepevent = $.noop;
+    $.jstree.plugins.keepevent = function (options, parent) {
+      this.redraw_node = function (obj, deep, callback, force_draw) {
+        obj = parent.redraw_node.call(this, obj, deep, callback, force_draw);
+        if (obj) {
+          var child = $(obj).find('[id^="lift-event-js-"]'); // all nested child elements with a 'lift-event-js-...' id
+          child.each(function () {
+            var id = this.id;
+            var nodes = allNodeEvents.find(function (x) { return x[0].id === id });
+            if (nodes && nodes[1]) {
+              var event = nodes[1];
+              if (event) {
+                $(this).off("click.jstree");
+                $(this).on("click", event.handler);
+              }
+            }
+          });
+        }
+        return obj;
+      };
+    };
+  })(jQuery);
+
   var tree = $(id).on("loaded.jstree", function (event, data) {
 
     openTreeNodes(id, "directiveTreeSettings_nodesState", data);
@@ -423,11 +489,14 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
     initBsTooltips();
     }).on("ready.jstree", function () {
       // make jstree node openable in a new tab
-      var nodes = document.querySelectorAll('[id^="jsTree-"][id$="_anchor"]');
-      nodes.forEach(function(x) {
-        var jsTreeId = x.getAttribute("id");
-        var idDirective = jsTreeId.slice(7, -7);
-        x.setAttribute("href", contextPath + "/secure/configurationManager/directiveManagement#{\"directiveId\":\"" + idDirective + "\"}");
+      var items = document.querySelectorAll(".directiveNode")
+       items.forEach(function (item) {
+         var node = item.querySelector("a.jstree-anchor")
+         var jsTreeId = item.getAttribute("id");
+         var idDirective = jsTreeId.slice(7);
+         if (node) {
+           node.setAttribute("href", contextPath + "/secure/configurationManager/directiveManagement#{\"directiveId\":\"" + idDirective + "\"}");
+         }
       });
     }).jstree({
       "core" : {
@@ -475,7 +544,7 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
     	  "theme" : "rudder",
     	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
       },
-      "plugins" : [ "themes", "html_data", "types", "search", "searchtag"]
+      "plugins" : [ "themes", "html_data", "types", "search", "searchtag", "keepevent" ]
     });
    if(tree.element){
      tree.element.jstree().select_node(initially_select)
