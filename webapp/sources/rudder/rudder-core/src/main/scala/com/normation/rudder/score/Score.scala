@@ -58,7 +58,7 @@ object ScoreValue {
   case object C       extends ScoreValue { val value = "C" }
   case object D       extends ScoreValue { val value = "D" }
   case object E       extends ScoreValue { val value = "E" }
-  case object NoScore extends ScoreValue { val value = "-" }
+  case object NoScore extends ScoreValue { val value = "X" }
 
   val allValues: Set[ScoreValue] = ca.mrvisser.sealerate.values
 
