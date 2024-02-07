@@ -37,6 +37,12 @@
 
 package com.normation.rudder.rest.data
 
+import com.normation.cfclerk.domain.ReportingLogic
+import com.normation.cfclerk.domain.ReportingLogic.FocusReport
+import com.normation.cfclerk.domain.ReportingLogic.WeightedReport
+import com.normation.cfclerk.domain.ReportingLogic.WorstReportWeightedOne
+import com.normation.cfclerk.domain.ReportingLogic.WorstReportWeightedSum
+import com.normation.cfclerk.domain.WorstReportReportingLogic
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.PolicyMode
@@ -131,27 +137,143 @@ final case class ByRuleDirectiveCompliance(
 sealed trait ByRuleComponentCompliance {
   def name:       String
   def compliance: ComplianceLevel
+
+  def getValues(predicate: ByRuleNodeCompliance => Boolean): Seq[ByRuleNodeCompliance]
+
+  def withFilteredElement(predicate: ByRuleNodeCompliance => Boolean): Option[ByRuleComponentCompliance]
+
+  def componentValues: List[ByRuleNodeCompliance]
+
+  def componentValues(v: String): List[ByRuleNodeCompliance] = componentValues.filter(_.values.exists(_.componentValue == v))
+
+  def status: ReportType
+}
+
+object ByRuleComponentCompliance {
+
+  def merge(components: Iterable[ByRuleComponentCompliance]): List[ByRuleComponentCompliance] = {
+    components.groupBy(_.name).flatMap {
+      case (cptName, reports) =>
+        val valueComponents = reports.collect { case c: ByRuleValueCompliance => c }.toList
+        ByRuleValueCompliance(cptName, valueComponents.flatMap(_.nodes))
+
+        val groupComponent = reports.collect { case c: ByRuleBlockCompliance => c }.toList match {
+          case Nil => Nil
+          case r   =>
+            import ReportingLogic._
+            val reportingLogic = r
+              .map(_.reportingLogic)
+              .reduce((a, b) => {
+                (a, b) match {
+                  case (WorstReportWeightedOne, _) | (_, WorstReportWeightedOne) => WorstReportWeightedOne
+                  case (WorstReportWeightedSum, _) | (_, WorstReportWeightedSum) => WorstReportWeightedSum
+                  case (WeightedReport, _) | (_, WeightedReport)                 => WeightedReport
+                  case (FocusReport(a), _)                                       => FocusReport(a)
+                }
+              })
+            ByRuleBlockCompliance(cptName, ByRuleComponentCompliance.merge(r.flatMap(_.subComponents)), reportingLogic) :: Nil
+        }
+        groupComponent ::: valueComponents
+
+    }
+  }.toList
 }
 
 final case class ByRuleBlockCompliance(
-    name:          String,
-    compliance:    ComplianceLevel,
-    subComponents: Seq[ByRuleComponentCompliance]
-) extends ByRuleComponentCompliance
+    name:           String,
+    subComponents:  Seq[ByRuleComponentCompliance],
+    reportingLogic: ReportingLogic
+) extends ByRuleComponentCompliance {
+  def findChildren(componentName: String): List[ByRuleComponentCompliance] = {
+    subComponents.find(_.name == componentName).toList :::
+    subComponents.collect { case g: ByRuleBlockCompliance => g }.flatMap(_.findChildren(componentName)).toList
+  }
+
+  override lazy val compliance: ComplianceLevel = {
+    import ReportingLogic._
+    reportingLogic match {
+      // simple weighted compliance, as usual
+      case WeightedReport => ComplianceLevel.sum(subComponents.map(_.compliance))
+      // worst case bubble up, and its weight can be either 1 or the sum of sub-component weight
+      case worst: WorstReportReportingLogic =>
+        val worstReport = ReportType.getWorseType(subComponents.map(_.status))
+        val allReports  = getValues(_ => true).flatMap(_.values.flatMap(_.messages.map(_ => worstReport)))
+        val kept        = worst match {
+          case WorstReportWeightedOne => allReports.take(1)
+          case WorstReportWeightedSum => allReports
+        }
+        ComplianceLevel.compute(kept)
+      // focus on a given sub-component name (can be present several time, or 0 which leads to N/A)
+      case FocusReport(component) =>
+        ComplianceLevel.sum(findChildren(component).map(_.compliance))
+    }
+  }
+
+  def getValues(predicate: ByRuleNodeCompliance => Boolean): Seq[ByRuleNodeCompliance] = {
+    subComponents.flatMap(_.getValues(predicate))
+  }
+
+  val componentValues: List[ByRuleNodeCompliance] = getValues(_ => true).toList
+
+  def withFilteredElement(predicate: ByRuleNodeCompliance => Boolean): Option[ByRuleComponentCompliance] = {
+    subComponents.flatMap(_.withFilteredElement(predicate)) match {
+      case Nil => None
+      case l   => Some(this.copy(subComponents = l))
+    }
+  }
+
+  val status: ReportType = {
+    reportingLogic match {
+      case WorstReportWeightedOne | WorstReportWeightedSum | WeightedReport =>
+        ReportType.getWorseType(subComponents.map(_.status))
+      case FocusReport(component)                                           =>
+        ReportType.getWorseType(findChildren(component).map(_.status))
+    }
+  }
+
+}
 
 final case class ByRuleValueCompliance(
-    name:       String,
-    compliance: ComplianceLevel,
-    nodes:      Seq[ByRuleNodeCompliance]
-) extends ByRuleComponentCompliance
+    name:  String,
+    // compliance: ComplianceLevel,
+    nodes: Seq[ByRuleNodeCompliance]
+) extends ByRuleComponentCompliance {
+
+  override lazy val compliance = ComplianceLevel.sum(componentValues.map(_.compliance))
+
+  /*
+   * Get all values matching the predicate
+   */
+  def getValues(predicate: ByRuleNodeCompliance => Boolean): Seq[ByRuleNodeCompliance] = {
+    nodes.filter(v => predicate(v)).toSeq
+  }
+
+  val status: ReportType = ReportType.getWorseType(getValues(_ => true).map(_.status))
+
+  val componentValues = nodes.toList
+
+  /*
+   * Rebuild a componentStatusReport, keeping only values matching the predicate
+   */
+  def withFilteredElement(predicate: ByRuleNodeCompliance => Boolean): Option[ByRuleComponentCompliance] = {
+    val values = componentValues.filter { case v => predicate(v) }
+    if (values.isEmpty) None
+    else Some(this.copy(nodes = values))
+  }
+
+}
 
 final case class ByRuleNodeCompliance(
-    id:         NodeId,
-    name:       String,
-    mode:       Option[PolicyMode],
-    compliance: ComplianceLevel,
-    values:     Seq[ComponentValueStatusReport]
-)
+    id:     NodeId,
+    name:   String,
+    mode:   Option[PolicyMode],
+    // compliance: ComplianceLevel,
+    values: Seq[ComponentValueStatusReport]
+) {
+  lazy val compliance = ComplianceLevel.sum(values.map(_.compliance))
+
+  val status: ReportType = ReportType.getWorseType(values.map(_.status))
+}
 
 /* This is the same compliance structure than ByRuleByDirectiveCompliance except that the entry point is a Node
    The full hierarchy is
@@ -179,19 +301,101 @@ final case class ByRuleByNodeByDirectiveCompliance(
 sealed trait ByRuleByNodeByDirectiveByComponentCompliance {
   def name:       String
   def compliance: ComplianceLevel
+
+  def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[ComponentValueStatusReport]
+
+  def withFilteredElement(predicate: ComponentValueStatusReport => Boolean): Option[ByRuleByNodeByDirectiveByComponentCompliance]
+
+  def componentValues: List[ComponentValueStatusReport]
+
+  def componentValues(v: String): List[ComponentValueStatusReport] = componentValues.filter(_.componentValue == v)
+
+  def status: ReportType
 }
 
 final case class ByRuleByNodeByDirectiveByBlockCompliance(
-    name:          String,
-    compliance:    ComplianceLevel,
-    subComponents: Seq[ByRuleByNodeByDirectiveByComponentCompliance]
-) extends ByRuleByNodeByDirectiveByComponentCompliance
+    name:           String,
+    subComponents:  Seq[ByRuleByNodeByDirectiveByComponentCompliance],
+    reportingLogic: ReportingLogic
+) extends ByRuleByNodeByDirectiveByComponentCompliance {
+
+  def findChildren(componentName: String): List[ByRuleByNodeByDirectiveByComponentCompliance] = {
+    subComponents.find(_.name == componentName).toList :::
+    subComponents.collect { case g: ByRuleByNodeByDirectiveByBlockCompliance => g }.flatMap(_.findChildren(componentName)).toList
+  }
+
+  override lazy val compliance: ComplianceLevel = {
+    import ReportingLogic._
+    reportingLogic match {
+      // simple weighted compliance, as usual
+      case WeightedReport => ComplianceLevel.sum(subComponents.map(_.compliance))
+      // worst case bubble up, and its weight can be either 1 or the sum of sub-component weight
+      case worst: WorstReportReportingLogic =>
+        val worstReport = ReportType.getWorseType(subComponents.map(_.status))
+        val allReports  = getValues(_ => true).flatMap(_.messages.map(_ => worstReport))
+        val kept        = worst match {
+          case WorstReportWeightedOne => allReports.take(1)
+          case WorstReportWeightedSum => allReports
+        }
+        ComplianceLevel.compute(kept)
+      // focus on a given sub-component name (can be present several time, or 0 which leads to N/A)
+      case FocusReport(component) =>
+        ComplianceLevel.sum(findChildren(component).map(_.compliance))
+    }
+  }
+
+  def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[ComponentValueStatusReport] = {
+    subComponents.flatMap(_.getValues(predicate))
+  }
+
+  val componentValues: List[ComponentValueStatusReport] = ComponentValueStatusReport.merge(getValues(_ => true))
+
+  def withFilteredElement(
+      predicate: ComponentValueStatusReport => Boolean
+  ): Option[ByRuleByNodeByDirectiveByComponentCompliance] = {
+    subComponents.flatMap(_.withFilteredElement(predicate)) match {
+      case Nil => None
+      case l   => Some(this.copy(subComponents = l))
+    }
+  }
+
+  val status: ReportType = {
+    reportingLogic match {
+      case WorstReportWeightedOne | WorstReportWeightedSum | WeightedReport =>
+        ReportType.getWorseType(subComponents.map(_.status))
+      case FocusReport(component)                                           =>
+        ReportType.getWorseType(findChildren(component).map(_.status))
+    }
+  }
+
+}
 
 final case class ByRuleByNodeByDirectiveByValueCompliance(
-    name:       String,
-    compliance: ComplianceLevel,
-    values:     Seq[ComponentValueStatusReport]
-) extends ByRuleByNodeByDirectiveByComponentCompliance
+    name:            String,
+    componentValues: List[ComponentValueStatusReport]
+) extends ByRuleByNodeByDirectiveByComponentCompliance {
+  override lazy val compliance = ComplianceLevel.sum(componentValues.map(_.compliance))
+
+  /*
+   * Get all values matching the predicate
+   */
+  def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[ComponentValueStatusReport] = {
+    componentValues.filter(v => predicate(v)).toSeq
+  }
+
+  val status: ReportType = ReportType.getWorseType(getValues(_ => true).map(_.status))
+
+  /*
+   * Rebuild a componentStatusReport, keeping only values matching the predicate
+   */
+  def withFilteredElement(
+      predicate: ComponentValueStatusReport => Boolean
+  ): Option[ByRuleByNodeByDirectiveByComponentCompliance] = {
+    val values = componentValues.filter { case v => predicate(v) }
+    if (values.isEmpty) None
+    else Some(this.copy(componentValues = values))
+  }
+}
 
 object GroupComponentCompliance {
   // This function do the recursive treatment of components, we will have each time a pair of Sequence of tuple (NodeId , component compliance structure)
@@ -212,7 +416,8 @@ object GroupComponentCompliance {
             // All subComponents are regrouped by Node, rebuild our block for each node
             case (nodeId, s) =>
               val subs = s.map(_._2)
-              (nodeId, ByRuleByNodeByDirectiveByBlockCompliance(b.name, ComplianceLevel.sum(subs.map(_.compliance)), subs))
+
+              (nodeId, ByRuleByNodeByDirectiveByBlockCompliance(b.name, subs, b.reportingLogic))
           }
           .toSeq
       // Value case
@@ -227,8 +432,7 @@ object GroupComponentCompliance {
             (nodeId, data.map(_.name).headOption.getOrElse(nodeId.value), data.map(_.mode).headOption.getOrElse(None)),
             ByRuleByNodeByDirectiveByValueCompliance(
               v.name,
-              ComplianceLevel.sum(data.map(_.compliance)),
-              data.flatMap(_.values)
+              data.flatMap(_.values).toList
             )
           )
         }).toSeq
@@ -492,7 +696,7 @@ object JsonCompliance {
               case component: ByRuleByNodeByDirectiveByBlockCompliance =>
                 ("components" -> byNodeByDirectiveByComponents(component.subComponents, level, precision))
               case component: ByRuleByNodeByDirectiveByValueCompliance =>
-                ("values" -> values(component.values, level))
+                ("values" -> values(component.componentValues, level))
             })
           )
         })
@@ -724,7 +928,7 @@ object JsonCompliance {
               case component: ByRuleByNodeByDirectiveByBlockCompliance =>
                 ("components" -> byNodeByDirectiveByComponents(component.subComponents, level, precision))
               case component: ByRuleByNodeByDirectiveByValueCompliance =>
-                ("values" -> values(component.values, level))
+                ("values" -> values(component.componentValues, level))
             })
           )
         })

@@ -328,7 +328,8 @@ final case class BlockStatusReport(
     subComponents.find(_.componentName == componentName).toList :::
     subComponents.collect { case g: BlockStatusReport => g }.flatMap(_.findChildren(componentName))
   }
-  def compliance:                          ComplianceLevel             = {
+
+  override lazy val compliance: ComplianceLevel = {
     import ReportingLogic._
     reportingLogic match {
       // simple weighted compliance, as usual
@@ -343,7 +344,8 @@ final case class BlockStatusReport(
         }
         ComplianceLevel.compute(kept)
       // focus on a given sub-component name (can be present several time, or 0 which leads to N/A)
-      case FocusReport(component) => ComplianceLevel.sum(findChildren(component).map(_.compliance))
+      case FocusReport(component) =>
+        ComplianceLevel.sum(findChildren(component).map(_.compliance))
     }
   }
 
@@ -351,15 +353,16 @@ final case class BlockStatusReport(
     subComponents.flatMap(_.getValues(predicate))
   }
 
-  def componentValues:                                                       List[ComponentValueStatusReport] = ComponentValueStatusReport.merge(getValues(_ => true))
-  def withFilteredElement(predicate: ComponentValueStatusReport => Boolean): Option[ComponentStatusReport]    = {
+  val componentValues: List[ComponentValueStatusReport] = ComponentValueStatusReport.merge(getValues(_ => true))
+
+  def withFilteredElement(predicate: ComponentValueStatusReport => Boolean): Option[ComponentStatusReport] = {
     subComponents.flatMap(_.withFilteredElement(predicate)) match {
       case Nil => None
       case l   => Some(this.copy(subComponents = l))
     }
   }
 
-  def status: ReportType = {
+  val status: ReportType = {
     reportingLogic match {
       case WorstReportWeightedOne | WorstReportWeightedSum | WeightedReport =>
         ReportType.getWorseType(subComponents.map(_.status))
@@ -370,14 +373,14 @@ final case class BlockStatusReport(
 }
 final case class ValueStatusReport(
     componentName:         String,
-    expectedComponentName: String, // only one ComponentValueStatusReport by valuex.
-
-    componentValues: List[ComponentValueStatusReport]
+    expectedComponentName: String, // only one ComponentValueStatusReport by values.
+    componentValues:       List[ComponentValueStatusReport]
 ) extends ComponentStatusReport {
 
   override def toString() = s"${componentName}:${componentValues.toSeq.sortBy(_.componentValue).mkString("[", ",", "]")}"
 
   override lazy val compliance = ComplianceLevel.sum(componentValues.map(_.compliance))
+
   /*
    * Get all values matching the predicate
    */
@@ -385,7 +388,8 @@ final case class ValueStatusReport(
     componentValues.filter(v => predicate(v)).toSeq
   }
 
-  def status:                                                                ReportType                    = ReportType.getWorseType(getValues(_ => true).map(_.status))
+  val status: ReportType = ReportType.getWorseType(getValues(_ => true).map(_.status))
+
   /*
    * Rebuild a componentStatusReport, keeping only values matching the predicate
    */
