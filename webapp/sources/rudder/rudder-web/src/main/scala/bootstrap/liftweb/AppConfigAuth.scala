@@ -235,15 +235,10 @@ class AppConfigAuth extends ApplicationContextAware {
 
       if (login.isEmpty || password.isEmpty) {
         (defaultEncoder, Map.empty[String, RudderUserDetail])
-      } else {
-        // check if the password is in plain text (for compatibility before #19308) or bcrypt-encoded
-        val passwordEncoder = if (password.startsWith("$2y$")) {
-          PasswordEncoder.BCRYPT
-        } else {
-          PasswordEncoder.PlainText
-        }
+      } else if (password.startsWith("$2y$")) {
+        // Actual bcrypt hash
         (
-          passwordEncoder,
+          defaultEncoder,
           Map(
             login -> RudderUserDetail(
               RudderAccount.User(
@@ -255,6 +250,12 @@ class AppConfigAuth extends ApplicationContextAware {
             )
           )
         )
+      } else {
+        // Plain text, not supported anymore
+        logger.warn(
+          "Fallback admin account is configured with a plain text password. It is not supported anymore, and the account is disabled."
+        )
+        (defaultEncoder, Map.empty[String, RudderUserDetail])
       }
     } else {
       (defaultEncoder, Map.empty[String, RudderUserDetail])
@@ -414,11 +415,11 @@ object AuthenticationMethods {
       }
     }
 
-    // always add "rootAdmin" has the first method
+    // always add "rootAdmin" as the first method
     // and de-duplicate methods
     val auths = ("rootAdmin" +: names).distinct.map(AuthenticationMethods(_))
 
-    // for each methods, check that the provider file is present, or log an error and
+    // for each method, check that the provider file is present, or log an error and
     // disable that provider
     auths.flatMap { a =>
       if (a.name == "rootAdmin") {

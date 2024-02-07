@@ -3327,7 +3327,8 @@ object RudderConfigInit {
       List(
         CheckCoreNumber,
         CheckFreeSpace,
-        new CheckFileDescriptorLimit(nodeInfoService)
+        new CheckFileDescriptorLimit(nodeInfoService),
+        new CheckLocalAccountHashMethod(rudderUserListProvider)
       )
     )
 
