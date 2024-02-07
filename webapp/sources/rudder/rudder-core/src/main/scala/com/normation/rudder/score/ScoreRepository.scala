@@ -41,12 +41,13 @@ import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
 import doobie.Fragments
-import doobie.Get
-import doobie.Put
+import doobie.Meta
 import doobie.Read
 import doobie.Write
 import doobie.implicits._
 import doobie.implicits.toSqlInterpolator
+import doobie.postgres.implicits.pgEnumString
+import doobie.util.invariant.InvalidEnum
 import zio.interop.catz._
 import zio.json.ast.Json
 
@@ -63,8 +64,16 @@ trait ScoreRepository {
 class ScoreRepositoryImpl(doobie: Doobie) extends ScoreRepository {
 
   import com.normation.rudder.db.json.implicits._
-  implicit val getScoreValue: Get[ScoreValue] = Get[String].temap(ScoreValue.fromString)
-  implicit val putScoreValue: Put[ScoreValue] = Put[String].contramap(_.value)
+
+  implicit val scoreMeta: Meta[ScoreValue] = {
+    def getValue(value: String) = {
+      ScoreValue.fromString(value) match {
+        case Right(s)  => s
+        case Left(err) => throw InvalidEnum[ScoreValue](value)
+      }
+    }
+    pgEnumString("score", getValue, _.value)
+  }
 
   // implicit val stateWrite: Meta[Score] = new Meta(pgDecoderGet, pgEncoderPut)
 
