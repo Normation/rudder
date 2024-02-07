@@ -314,13 +314,13 @@ $small-prefix : "sm-";
     font-weight: bold;
   }
 
-  .badge-systemupdates{
+  .badge-type{
     height: 28px;
     cursor: help;
   }
 }
 
-.badge-systemupdates{
+.badge-type{
   font-size: 1em;
   display: inline-flex;
   align-items: center;
@@ -341,6 +341,9 @@ $small-prefix : "sm-";
     background-color: #72829D !important;
   }
 
+  & .icon-state {
+    margin-right: 6px;
+  }
   & > i{
     margin-right: 4px;
   }
