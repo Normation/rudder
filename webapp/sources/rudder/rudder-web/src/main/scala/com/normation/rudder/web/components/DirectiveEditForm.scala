@@ -479,9 +479,9 @@ class DirectiveEditForm(
     new WBTextAreaField("Description", directive.longDescription) {
       override def setFilter             = notNull _ :: trim _ :: Nil
       override def className             = "form-control"
-      override def labelClassName        = "row col-xs-12"
-      override def subContainerClassName = "row col-xs-12"
-      override def containerClassName    = "col-xs-6 row"
+      override def labelClassName        = ""
+      override def subContainerClassName = ""
+      override def containerClassName    = "col-6 pe-2"
       override def inputAttributes: Seq[(String, String)] = Seq(("rows", "15"))
       override def labelExtensions: NodeSeq               = {
         <i class="fa fa-check text-success cursorPointer half-opacity"     onmouseenter="toggleOpacity(this)" title="Valid description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> ++ Text(

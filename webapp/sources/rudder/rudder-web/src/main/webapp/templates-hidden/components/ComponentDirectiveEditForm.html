@@ -128,7 +128,7 @@
                 Here comes the shortDescription field
               </div>
               <div id="longDescriptionFieldMarkdownContainer">
-                <label class="wbBaseFieldLabel"><span class="text-fit">Description</span>
+                <label><span class="text-fit">Description</span>
                   <i class="fa fa-pencil text-primary cursorPointer half-opacity edit-description-icon" onmouseenter="toggleOpacity(this)" title="Edit description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i>
                 </label>
                 <div class="markdown">
@@ -136,13 +136,13 @@
                   <p id="longDescriptionFieldMarkdownEmpty" class="nodisplay half-opacity">No description defined, click on <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> to edit </p>
                 </div>
               </div>
-              <div id="longDescriptionFieldContainer" class="nodisplay">
+              <div id="longDescriptionFieldContainer" class="d-flex visually-hidden">
                 <div id="longDescriptionField">
                   Here comes the longDescription field
                 </div>
-                <div id="longDescriptionFieldMarkdownPreviewContainer" class="wbBaseField col-xs-6 row">
-                  <label class="col-xs-12 row wbBaseFieldLabel"><span class="text-fit">Preview</span></label>
-                  <div id="longDescriptionFieldPreviewMarkdown" class=" col-xs-12 row markdown"></div>
+                <div id="longDescriptionFieldMarkdownPreviewContainer" class="col-sm-6 ps-2">
+                  <label><span class="text-fit">Preview</span></label>
+                  <div id="longDescriptionFieldPreviewMarkdown" class="markdown"></div>
                 </div>
               </div>
 

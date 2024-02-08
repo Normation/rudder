@@ -73,7 +73,7 @@
             <group-pendingchangerequest></group-pendingchangerequest>
             <group-name></group-name>
             <div id="longDescriptionFieldMarkdownContainer" class="form-group">
-              <label class="wbBaseFieldLabel"><span class="text-fit">Description</span>
+              <label><span class="text-fit">Description</span>
                 <lift:authz role="group_write">
                   <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Edit description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i>
                 </lift:authz>
@@ -83,13 +83,13 @@
                 <p id="longDescriptionFieldMarkdownEmpty" class="nodisplay half-opacity">No description defined, click on <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> to edit </p>
               </div>
             </div>
-            <div id="longDescriptionFieldContainer" class="nodisplay form-group">
-              <div id="longDescriptionField">
+            <div id="longDescriptionFieldContainer" class="d-flex visually-hidden">
+              <div id="longDescriptionField" class="col-6">
                 Here comes the longDescription field
               </div>
-              <div id="longDescriptionFieldMarkdownPreviewContainer" class="col-6">
-                <label class="col-12 wbBaseFieldLabel"><span class="text-fit">Preview</span></label>
-                <div id="longDescriptionFieldPreviewMarkdown" class=" col-12 markdown"></div>
+              <div id="longDescriptionFieldMarkdownPreviewContainer" class="col-6 ps-2">
+                <label><span class="text-fit">Preview</span></label>
+                <div id="longDescriptionFieldPreviewMarkdown" class="markdown"></div>
               </div>
             </div>
             <group-rudderid></group-rudderid>

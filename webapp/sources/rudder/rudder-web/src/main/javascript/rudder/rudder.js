@@ -725,14 +725,14 @@ function setupMarkdown(initialValue, id) {
 }
 
 function togglePreview(target, id) {
-  $("#"+ id + "MarkdownPreviewContainer").toggle();
+  $("#"+ id + "MarkdownPreviewContainer").toggleClass("visually-hidden");
   $(target).toggleClass('fa-eye-slash fa-eye');
   $('#'+ id).toggleClass('col-xs-6 col-xs-12');
 }
 
 function toggleMarkdownEditor(id) {
-  $("#"+ id + "Container").toggle();
-  $("#"+ id + "MarkdownContainer").toggle();
+  $("#"+ id + "Container").toggleClass("visually-hidden");
+  $("#"+ id + "MarkdownContainer").toggleClass("visually-hidden");
 }
 
 function toggleOpacity(target) {
