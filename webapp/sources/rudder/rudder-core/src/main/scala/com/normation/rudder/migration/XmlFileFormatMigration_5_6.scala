@@ -99,7 +99,7 @@ class ControlXmlFileFormatMigration_5_6(
     override val previousMigrationController: Option[ControlXmlFileFormatMigration],
     val batchSize:                            Int = 1000
 ) extends ControlXmlFileFormatMigration with Migration_5_6_Definition {
-  override val batchMigrators = (
+  override val batchMigrators: List[BatchElementMigration[_ <: MigrableEntity] with Migration_5_6_Definition] = (
     new EventLogsMigration_5_6(doobie, batchSize)
       :: new ChangeRequestsMigration_5_6(doobie, batchSize)
       :: Nil
@@ -116,32 +116,34 @@ class EventLogsMigration_5_6(
     override val doobie:    Doobie,
     override val batchSize: Int = 1000
 ) extends EventLogsMigration with Migration_5_6_Definition {
-  override val individualMigration = new IndividualElementMigration[MigrationEventLog] with Migration_5_6_Definition {
+  override val individualMigration: IndividualElementMigration[MigrationEventLog] with Migration_5_6_Definition = {
+    new IndividualElementMigration[MigrationEventLog] with Migration_5_6_Definition {
 
-    def migrate(eventLog: MigrationEventLog): Box[MigrationEventLog] = {
-      val MigrationEventLog(id, eventType, data) = eventLog
+      def migrate(eventLog: MigrationEventLog): Box[MigrationEventLog] = {
+        val MigrationEventLog(id, eventType, data) = eventLog
 
-      /*
-       * -- Important--
-       * The <entry></entry> part is tested here, then removed
-       * for migration, then added back in create.
-       * That is to have XmlMigration rule be independant of
-       * <entry>.
-       */
+        /*
+         * -- Important--
+         * The <entry></entry> part is tested here, then removed
+         * for migration, then added back in create.
+         * That is to have XmlMigration rule be independant of
+         * <entry>.
+         */
 
-      // utility to factor common code
-      // notice the addition of <entry> tag in the result
-      def create(optElem: Box[Elem], name: String) = {
-        optElem.map(xml => MigrationEventLog(id, name, <entry>{xml}</entry>))
-      }
+        // utility to factor common code
+        // notice the addition of <entry> tag in the result
+        def create(optElem: Box[Elem], name: String) = {
+          optElem.map(xml => MigrationEventLog(id, name, <entry>{xml}</entry>))
+        }
 
-      for {
-        xml      <- TestIsEntry(data)
-        migrated <- eventType.toLowerCase match {
-                      case _ => create(XmlMigration_5_6.other(xml), eventType)
-                    }
-      } yield {
-        migrated
+        for {
+          xml      <- TestIsEntry(data)
+          migrated <- eventType.toLowerCase match {
+                        case _ => create(XmlMigration_5_6.other(xml), eventType)
+                      }
+        } yield {
+          migrated
+        }
       }
     }
   }
@@ -157,20 +159,22 @@ class ChangeRequestsMigration_5_6(
     override val doobie:    Doobie,
     override val batchSize: Int = 1000
 ) extends ChangeRequestsMigration with Migration_5_6_Definition {
-  override val individualMigration = new IndividualElementMigration[MigrationChangeRequest] with Migration_5_6_Definition {
-    def migrate(cr: MigrationChangeRequest): Box[MigrationChangeRequest] = {
+  override val individualMigration: IndividualElementMigration[MigrationChangeRequest] with Migration_5_6_Definition = {
+    new IndividualElementMigration[MigrationChangeRequest] with Migration_5_6_Definition {
+      def migrate(cr: MigrationChangeRequest): Box[MigrationChangeRequest] = {
 
-      val MigrationChangeRequest(id, name, content) = cr
+        val MigrationChangeRequest(id, name, content) = cr
 
-      // utility to factor common code
-      def create(optElem: Box[Elem], name: String) = {
-        optElem.map(xml => MigrationChangeRequest(id, name, xml))
-      }
+        // utility to factor common code
+        def create(optElem: Box[Elem], name: String) = {
+          optElem.map(xml => MigrationChangeRequest(id, name, xml))
+        }
 
-      for {
-        migrated <- create(XmlMigration_5_6.changeRequest(content), name)
-      } yield {
-        migrated
+        for {
+          migrated <- create(XmlMigration_5_6.changeRequest(content), name)
+        } yield {
+          migrated
+        }
       }
     }
   }

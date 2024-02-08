@@ -62,7 +62,7 @@ object ScoreValue {
 
   val allValues: Set[ScoreValue] = ca.mrvisser.sealerate.values
 
-  def fromString(s: String) = allValues.find(_.value == s.toUpperCase()) match {
+  def fromString(s: String): Either[String, ScoreValue] = allValues.find(_.value == s.toUpperCase()) match {
     case None    => Left(s"${s} is not valid status value, accepted values are ${allValues.map(_.value).mkString(", ")}")
     case Some(v) => Right(v)
   }

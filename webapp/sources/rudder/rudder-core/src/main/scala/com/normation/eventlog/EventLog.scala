@@ -41,7 +41,7 @@ object EventMetadata {
   // but it was never used in 10 y of rudder
   val uuidGen = new StringUuidGeneratorImpl()
 
-  def withNewId(actor: EventActor, msg: Option[String] = None) = {
+  def withNewId(actor: EventActor, msg: Option[String] = None): EventMetadata = {
     EventMetadata(ModificationId(uuidGen.newUuid), actor, msg)
   }
 }
@@ -68,7 +68,7 @@ trait EventLogType extends PartialFunction[String, EventLogType] {
     serialize == x
   }
 
-  def apply(x: String) = this
+  def apply(x: String): EventLogType = this
 
 }
 
@@ -192,8 +192,8 @@ object UnspecializedEventLog extends EventLogFilter {
 }
 
 object EventLog {
-  def withContent(nodes: NodeSeq) = <entry>{nodes}</entry>
-  val emptyDetails                = withContent(NodeSeq.Empty)
+  def withContent(nodes: NodeSeq): Elem = <entry>{nodes}</entry>
+  val emptyDetails:                Elem = withContent(NodeSeq.Empty)
 }
 
 case object UnknownEventLogType extends NoRollbackEventLogType {

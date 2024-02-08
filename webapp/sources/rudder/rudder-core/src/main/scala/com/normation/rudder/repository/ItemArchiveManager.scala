@@ -83,7 +83,7 @@ final case class NotArchivedElements(
     activeTechniques: Seq[ActiveTechniqueNotArchived],
     directives:       Seq[DirectiveNotArchived]
 ) {
-  val isEmpty = categories.isEmpty && activeTechniques.isEmpty && directives.isEmpty
+  val isEmpty: Boolean = categories.isEmpty && activeTechniques.isEmpty && directives.isEmpty
 }
 
 /**

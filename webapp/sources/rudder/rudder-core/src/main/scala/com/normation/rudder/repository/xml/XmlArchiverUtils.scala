@@ -47,7 +47,7 @@ import scala.xml.Elem
 trait XmlArchiverUtils {
 
   object GET {
-    def apply(reason: Option[String]) = reason match {
+    def apply(reason: Option[String]): String = reason match {
       case None    => ""
       case Some(m) => "\n\nReason provided by user:\n" + m
     }

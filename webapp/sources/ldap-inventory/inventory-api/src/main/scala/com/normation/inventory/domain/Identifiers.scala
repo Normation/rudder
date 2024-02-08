@@ -40,6 +40,7 @@ package com.normation.inventory.domain
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import java.security.MessageDigest
+import scala.util.matching.Regex
 import zio.syntax.ToZio
 
 trait Uuid extends Any {
@@ -54,7 +55,7 @@ final case class MachineUuid(val value: String) extends AnyVal with Uuid
 final case class SoftwareUuid(val value: String) extends AnyVal with Uuid
 
 object SoftwareUuid {
-  val pattern = "softwareId=(.*),ou=Software,.*".r
+  val pattern: Regex = "softwareId=(.*),ou=Software,.*".r
 
   def SoftwareUuidFromDnString(dnString: String): IOResult[SoftwareUuid] = {
     dnString match {

@@ -26,6 +26,7 @@ import com.unboundid.ldap.sdk.Entry
 import com.unboundid.ldif._
 import java.io.File
 import java.util.regex.Pattern
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 /**
@@ -78,7 +79,7 @@ class DummyLDIFFileLogger extends LDIFFileLogger {
  * only use to log.
  */
 object DefaultLDIFFileLogger {
-  val defaultTraceDir   = System.getProperty("java.io.tmpdir") +
+  val defaultTraceDir: String = System.getProperty("java.io.tmpdir") +
     System.getProperty("file.separator") + "ldifTrace"
   val defaultLoggerName = "trace.ldif.in.file"
 }
@@ -101,9 +102,9 @@ trait Slf4jLDIFLogger extends LDIFFileLogger {
   def log(s:  String): Unit
   def logE(s: String, e: Exception): Unit
 
-  val logger = LoggerFactory.getLogger(loggerName)
+  val logger: Logger = LoggerFactory.getLogger(loggerName)
 
-  def rootDir = {
+  def rootDir: File = {
     val dir = new File(ldifTraceRootDir)
     if (!dir.exists()) dir.mkdirs
     dir

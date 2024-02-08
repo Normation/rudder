@@ -44,7 +44,7 @@ trait GetBaseUrlService {
 
 class DefaultBaseUrlService(configUrl: String) extends GetBaseUrlService {
 
-  val baseUrl = configUrl match {
+  val baseUrl: Option[String] = configUrl match {
     case null | "" => None
     case s         => Some(s)
   }

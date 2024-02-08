@@ -84,21 +84,21 @@ class RudderUserDetailsTest extends Specification {
 
   // org.slf4j.LoggerFactory.getLogger("application.authorization").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
 
-  def getUserDetailList(xml: Elem, debugName: String, extendedAuthz: Boolean = true) =
+  def getUserDetailList(xml: Elem, debugName: String, extendedAuthz: Boolean = true): ValidatedUserList =
     UserFileProcessing.parseXml(roleApiMapping, xml, debugName, extendedAuthz, false).force
 
   // also check that we accept both `role` and `roles` tags
-  val userXML_1 = <authentication hash="sha512" case-sensitivity="true">
+  val userXML_1: Elem = <authentication hash="sha512" case-sensitivity="true">
     <user name="admin" role="administrator" password="c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"/>
     <user name="ADMIN" permissions="administrator" password="c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"/>
   </authentication>
 
-  val userXML_2 = <authentication hash="sha512" case-sensitivity="false">
+  val userXML_2: Elem = <authentication hash="sha512" case-sensitivity="false">
     <user name="admin" permissions="administrator" password="c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"/>
     <user name="ADMIN" role="administrator" password="c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"/>
   </authentication>
 
-  val userXML_empty = <authentication>
+  val userXML_empty: Elem = <authentication>
     <user name="admin" roles="administrator"/>
   </authentication>
 
@@ -122,7 +122,7 @@ class RudderUserDetailsTest extends Specification {
     (userDetailList.users.size must beEqualTo(1)) and (userDetailList.users("admin").getPassword.size must beEqualTo(32))
   }
 
-  val userXML_3 = <authentication>
+  val userXML_3: Elem = <authentication>
     <custom-roles>
       <role name="role-a1" permissions="ROLE-a0,roLE-A0"/>                    <!-- node_read,node_write,config_*,parameter_*,technique_*,directive_*,rule_* -->
       <role name="role-a0" permissions="node_read,node_write,configuration"/> <!-- node_read,node_write,config_*,parameter_*,technique_*,directive_*,rule_* -->

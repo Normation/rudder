@@ -138,5 +138,5 @@ final case class NodeGroup(
     isSystem:    Boolean = false
 ) {
   // system object must ALWAYS be ENABLED.
-  def isEnabled = _isEnabled || isSystem
+  def isEnabled: Boolean = _isEnabled || isSystem
 }

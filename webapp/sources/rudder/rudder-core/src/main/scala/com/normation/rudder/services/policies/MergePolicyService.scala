@@ -61,7 +61,7 @@ object MergePolicyService {
    * Order that compare Priority THEN bundle order to
    * sort BoundPolicyDraft
    */
-  val priorityThenBundleOrder = new Order[BoundPolicyDraft]() {
+  val priorityThenBundleOrder: Order[BoundPolicyDraft] = new Order[BoundPolicyDraft]() {
     /* by definition:
      * x <= y    x >= y      Int
      * true      true        = 0     (corresponds to x == y)
@@ -86,7 +86,7 @@ object MergePolicyService {
    * Order that compare ONLY bundle order to
    * sort BoundPolicyDraft
    */
-  val onlyBundleOrder = new Order[BoundPolicyDraft]() {
+  val onlyBundleOrder: Order[BoundPolicyDraft] = new Order[BoundPolicyDraft]() {
     def compare(d1: BoundPolicyDraft, d2: BoundPolicyDraft) = {
       BundleOrder.compareList(d1.ruleOrder :: d1.directiveOrder :: Nil, d2.ruleOrder :: d2.directiveOrder :: Nil)
     }

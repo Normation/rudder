@@ -279,8 +279,8 @@ class FileTreeFilter(rootDirectories: List[String], endPaths: List[String]) exte
   }
 
   override val shouldBeRecursive = true
-  override def clone             = this
-  override lazy val toString     = {
+  override def clone:         FileTreeFilter = this
+  override lazy val toString: String         = {
     val start = rootDirectories match {
       case Nil => ""
       case l   => l.mkString("(", ",", ")/")
@@ -321,6 +321,6 @@ class ExactFileTreeFilter(rootDirectory: Option[String], fileName: String) exten
   }
 
   override val shouldBeRecursive = true
-  override def clone             = this
-  override lazy val toString     = "[.*/%s]".format(fileName)
+  override def clone:         ExactFileTreeFilter = this
+  override lazy val toString: String              = "[.*/%s]".format(fileName)
 }

@@ -71,11 +71,12 @@ import zio.syntax._
 
 object ReportingServiceUtils {
 
-  def log(msg: String) = ZIO.succeed(println(msg)) // you actual log lib
-  val effect           = ZIO.attempt(
+  def log(msg: String): ZIO[Any, Nothing, Unit] = ZIO.succeed(println(msg)) // you actual log lib
+  val effect:           Task[Nothing]           = ZIO.attempt(
     throw new RuntimeException("I'm some impure code!")
   ) // here, exception is caught and you get a ZIO[Any, Throwable, Something]
-  val withLogError = effect.flatMapError(exception => log(exception.getMessage) *> ZIO.succeed(exception))
+  val withLogError: ZIO[Any, Throwable, Nothing] =
+    effect.flatMapError(exception => log(exception.getMessage) *> ZIO.succeed(exception))
 
   /*
    * Build rule status reports from node reports, deciding which directives should be "skipped"
@@ -732,7 +733,7 @@ trait CachedFindRuleNodeStatusReports
     // reload it for future use
   }
 
-  override def newExpectedReports(action: CacheExpectedReportAction) = {
+  override def newExpectedReports(action: CacheExpectedReportAction): IOResult[Unit] = {
     invalidateWithAction(
       Seq((action.nodeId, CacheComplianceQueueAction.ExpectedReportAction(action)))
     )

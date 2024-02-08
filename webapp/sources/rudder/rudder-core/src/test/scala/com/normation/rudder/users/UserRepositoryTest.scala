@@ -44,7 +44,7 @@ trait UserRepositoryTest extends Specification with Loggable {
 
   // to compare UserInfo with ==, we need to have everything in UTC.
   implicit class ForceTimeUTC(users: List[UserInfo]) {
-    def toUTC = users.map(u => {
+    def toUTC: List[UserInfo] = users.map(u => {
       u.modify(_.creationDate)
         .using(_.toDateTime(DateTimeZone.UTC))
         .modify(_.statusHistory)
@@ -58,14 +58,14 @@ trait UserRepositoryTest extends Specification with Loggable {
   val AUTH_PLUGIN_NAME_LOCAL  = "test-file"
   val AUTH_PLUGIN_NAME_REMOTE = "test-oidc"
 
-  lazy val repo = if (doJdbcTest && doobie != null) {
+  lazy val repo: UserRepository = if (doJdbcTest && doobie != null) {
     new JdbcUserRepository(doobie)
   } else {
     InMemoryUserRepository.make().runNow
   }
 
-  val actor    = EventActor("test")
-  val dateInit = DateTime.parse("2023-09-01T01:01:01Z")
+  val actor:    EventActor = EventActor("test")
+  val dateInit: DateTime   = DateTime.parse("2023-09-01T01:01:01Z")
 
   "basic sequential operations with users" >> {
     val users = List("alice", "bob", "charlie", "mallory")

@@ -83,12 +83,12 @@ sealed trait NodeDetailLevel {
    * Does any of the listed fields need to be looked-up
    * with full inventory ?
    */
-  final def needFullInventory() = NodeDetailLevel.fullInventoryFields.keySet.intersect(fields).nonEmpty
+  final def needFullInventory(): Boolean = NodeDetailLevel.fullInventoryFields.keySet.intersect(fields).nonEmpty
 
   /**
    * Does any of the listed fields need software look-up?
    */
-  final def needSoftware() = NodeDetailLevel.softwareFields.keySet.intersect(fields).nonEmpty
+  final def needSoftware(): Boolean = NodeDetailLevel.softwareFields.keySet.intersect(fields).nonEmpty
 }
 
 case object MinimalDetailLevel extends NodeDetailLevel {
@@ -107,7 +107,7 @@ final case class CustomDetailLevel(
     base:         NodeDetailLevel,
     customFields: Set[String]
 ) extends NodeDetailLevel {
-  val fields = base.fields ++ customFields
+  val fields: Set[String] = base.fields ++ customFields
 }
 
 /*
@@ -121,7 +121,7 @@ object NodeFileFormat {
 // this is for NodeFileFormat.V1
 object NodeDetailLevel {
 
-  val otherDefaultFields = List(
+  val otherDefaultFields: List[String] = List(
     "state",
     "os",
     "architectureDescription",
@@ -138,7 +138,7 @@ object NodeDetailLevel {
     "timezone"
   )
 
-  val otherAllFields = List(
+  val otherAllFields: List[String] = List(
     "accounts",
     "bios",
     "controllers",
@@ -159,9 +159,9 @@ object NodeDetailLevel {
     "virtualMachines"
   )
 
-  val minimalFields = List("id", "hostname", "status")
-  val defaultFields = minimalFields ::: otherDefaultFields
-  val allFields     = defaultFields ::: otherAllFields
+  val minimalFields: List[String] = List("id", "hostname", "status")
+  val defaultFields: List[String] = minimalFields ::: otherDefaultFields
+  val allFields:     List[String] = defaultFields ::: otherAllFields
 
   /**
    * A methods that map fields that only use nodeInfo

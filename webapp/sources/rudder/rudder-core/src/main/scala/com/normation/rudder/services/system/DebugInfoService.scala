@@ -59,7 +59,7 @@ trait DebugInfoService {
 
 class DebugInfoServiceImpl extends DebugInfoService {
 
-  val logger = NamedZioLogger(this.getClass.getName)
+  val logger: NamedZioLogger = NamedZioLogger(this.getClass.getName)
 
   private[this] def execScript(): IOResult[Promise[Nothing, CmdResult]] = {
     val environment = java.lang.System.getenv.asScala.toMap

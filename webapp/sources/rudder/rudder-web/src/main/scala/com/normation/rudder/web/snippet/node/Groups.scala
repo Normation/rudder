@@ -88,11 +88,11 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
 
   private[this] var boxGroupLib = getFullGroupLibrary().toBox
 
-  val mainDispatch = {
+  val mainDispatch: Map[String, NodeSeq => NodeSeq] = {
     Map(
       "head"           -> head _,
-      "detailsPopup"   -> { _: NodeSeq => NodeGroupForm.staticBody },
-      "initRightPanel" -> { _: NodeSeq => initRightPanel() },
+      "detailsPopup"   -> { (_: NodeSeq) => NodeGroupForm.staticBody },
+      "initRightPanel" -> { (_: NodeSeq) => initRightPanel() },
       "groupHierarchy" -> groupHierarchy(boxGroupLib)
     )
   }

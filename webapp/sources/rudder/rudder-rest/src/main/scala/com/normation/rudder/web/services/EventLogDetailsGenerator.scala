@@ -101,7 +101,7 @@ class EventLogDetailsGenerator(
 
   // convention: "X" means "ignore"
 
-  def displayDescription(event: EventLog) = {
+  def displayDescription(event: EventLog): NodeSeq = {
     import linkUtil._
     def crDesc(x: EventLog, actionName: NodeSeq) = {
       val id   = RuleId.parse((x.details \ "rule" \ "id").text).getOrElse(RuleId(RuleUid("")))
@@ -1746,19 +1746,19 @@ class EventLogDetailsGenerator(
     def name:   String
     def op:     String
     def action: (EventLog, PersonIdent, Seq[EventLog], EventLog) => Box[GitCommitId]
-    def selectRollbackedEventsRequest(id: Int) = s" id ${op} ${id} and modificationid IS NOT NULL"
+    def selectRollbackedEventsRequest(id: Int): String = s" id ${op} ${id} and modificationid IS NOT NULL"
   }
 
   case object RollbackTo extends RollBackAction {
-    val name   = "after"
-    val op     = ">"
-    def action = modificationService.restoreToEventLog _
+    val name = "after"
+    val op   = ">"
+    def action: (EventLog, PersonIdent, Seq[EventLog], EventLog) => Box[GitCommitId] = modificationService.restoreToEventLog _
   }
 
   case object RollbackBefore extends RollBackAction {
-    val name   = "before"
-    val op     = ">="
-    def action = modificationService.restoreBeforeEventLog _
+    val name = "before"
+    val op   = ">="
+    def action: (EventLog, PersonIdent, Seq[EventLog], EventLog) => Box[GitCommitId] = modificationService.restoreBeforeEventLog _
   }
 
 }

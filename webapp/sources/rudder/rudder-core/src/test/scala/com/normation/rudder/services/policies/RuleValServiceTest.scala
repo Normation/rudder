@@ -78,15 +78,15 @@ class RuleValServiceTest extends Specification {
   /**
    * Create the objects for tests
    */
-  val techniqueId = TechniqueId(
+  val techniqueId: TechniqueId  = TechniqueId(
     TechniqueName("techniqueName"),
     TechniqueVersionHelper("1.0")
   )
-  val directiveId = DirectiveUid("dirId")
-  val ruleId      = RuleId(RuleUid("ruleId"))
+  val directiveId: DirectiveUid = DirectiveUid("dirId")
+  val ruleId:      RuleId       = RuleId(RuleUid("ruleId"))
 
   /* create representation of meta techniques */
-  def makePredefinedSectionSpec(name: String, providedValues: (String, Seq[String])) = {
+  def makePredefinedSectionSpec(name: String, providedValues: (String, Seq[String])): PredefinedValuesVariableSpec = {
     PredefinedValuesVariableSpec(
       reportKeysVariableName(name),
       "description",
@@ -94,7 +94,7 @@ class RuleValServiceTest extends Specification {
       id = None
     )
   }
-  def makeComponentSectionSpec(name: String)                                         = {
+  def makeComponentSectionSpec(name: String):                                         SectionSpec                  = {
     SectionSpec(
       name,
       true,
@@ -106,7 +106,7 @@ class RuleValServiceTest extends Specification {
     )
   }
 
-  def makeRootSectionSpec() = {
+  def makeRootSectionSpec(): SectionSpec = {
     SectionSpec(
       "root section",
       false,
@@ -121,7 +121,7 @@ class RuleValServiceTest extends Specification {
     )
   }
 
-  def makeMetaTechnique(id: TechniqueId) = {
+  def makeMetaTechnique(id: TechniqueId): Technique = {
     Technique(
       id,
       "meta" + id,
@@ -137,9 +137,9 @@ class RuleValServiceTest extends Specification {
     )
   }
 
-  val technique = makeMetaTechnique(techniqueId)
+  val technique: Technique = makeMetaTechnique(techniqueId)
 
-  val directive = Directive(
+  val directive: Directive = Directive(
     DirectiveId(directiveId, GitVersion.DEFAULT_REV),
     techniqueId.version,
     Map(),
@@ -152,7 +152,7 @@ class RuleValServiceTest extends Specification {
     false
   )
 
-  val rule = Rule(
+  val rule: Rule = Rule(
     ruleId,
     "Rule Name",
     RuleCategoryId("cat1"),
@@ -164,7 +164,7 @@ class RuleValServiceTest extends Specification {
     false
   )
 
-  val fullActiveTechnique = {
+  val fullActiveTechnique: FullActiveTechnique = {
     FullActiveTechnique(
       ActiveTechniqueId("activeTechId"),
       techniqueId.name,
@@ -177,7 +177,7 @@ class RuleValServiceTest extends Specification {
   }
 
   // create the ActiveTechniqueCategory
-  val fullActiveTechniqueCategory = {
+  val fullActiveTechniqueCategory: FullActiveTechniqueCategory = {
     FullActiveTechniqueCategory(
       ActiveTechniqueCategoryId("id"),
       "name",

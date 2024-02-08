@@ -64,7 +64,6 @@ import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api._
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
-import scala.annotation.nowarn
 import zio._
 import zio.syntax._
 
@@ -99,10 +98,9 @@ class ItemArchiveManagerImpl(
 ) extends ItemArchiveManager with GitArchiverFullCommitUtils {
 
   // import (retore, rollback, etc) action must be exclusive so if a second one happens concurrently, it's an error.
-  val importSemaphore = Semaphore.make(1).runNow
+  val importSemaphore: Semaphore = Semaphore.make(1).runNow
 
-  @nowarn("msg=a type was inferred to be `Any`")
-  def useSemaphoreOrFail[A](effect: IOResult[A]) = {
+  def useSemaphoreOrFail[A](effect: IOResult[A]): ZIO[Any, RudderError, A] = {
     // we timeout the semaphore acquisition to fail if another op is already running
     ZIO.scoped(
       importSemaphore.withPermitScoped
@@ -379,7 +377,7 @@ class ItemArchiveManagerImpl(
       actor:         EventActor,
       reason:        Option[String],
       includeSystem: Boolean = false
-  ) = {
+  ): ZIO[Any, RudderError, GitCommitId] = {
     val commitMsg = "User %s requested rule archive restoration to commit %s".format(actor.name, archiveId.value)
     useSemaphoreOrFail(
       for {
@@ -510,7 +508,7 @@ class ItemArchiveManagerImpl(
       actor:         EventActor,
       reason:        Option[String],
       includeSystem: Boolean = false
-  ) = {
+  ): ZIO[Any, RudderError, GitCommitId] = {
     val commitMsg = "User %s requested Parameters archive restoration to commit %s".format(actor.name, archiveId.value)
     useSemaphoreOrFail(
       for {
@@ -644,27 +642,28 @@ trait ArchiveMode extends Any {
  * To be counted as a directory the last character have to be a /.
  */
 final case class PartialArchive(directory: String) extends AnyVal with ArchiveMode {
-  def configureRm(rmCmd: RmCommand)             = rmCmd.addFilepattern(directory)
-  def configureCheckout(coCmd: CheckoutCommand) = coCmd.addPath(directory)
+  def configureRm(rmCmd: RmCommand):             RmCommand       = rmCmd.addFilepattern(directory)
+  def configureCheckout(coCmd: CheckoutCommand): CheckoutCommand = coCmd.addPath(directory)
 }
 
 object PartialArchive {
-  val groupArchive     = PartialArchive("groups/")
-  val ruleArchive      = PartialArchive("rules/")
-  val directiveArchive = PartialArchive("directives/")
-  val ncfArchive       = PartialArchive("ncf/")
-  val parameterArchive = PartialArchive("parameters/")
+  val groupArchive:     PartialArchive = PartialArchive("groups/")
+  val ruleArchive:      PartialArchive = PartialArchive("rules/")
+  val directiveArchive: PartialArchive = PartialArchive("directives/")
+  val ncfArchive:       PartialArchive = PartialArchive("ncf/")
+  val parameterArchive: PartialArchive = PartialArchive("parameters/")
 }
 
 import com.normation.rudder.repository.xml.PartialArchive._
 
 case object TechniqueLibraryArchive extends ArchiveMode {
-  def configureRm(rmCmd: RmCommand)             = directiveArchive.configureRm(ncfArchive.configureRm(rmCmd))
-  def configureCheckout(coCmd: CheckoutCommand) = directiveArchive.configureCheckout(ncfArchive.configureCheckout(coCmd))
+  def configureRm(rmCmd: RmCommand):             RmCommand       = directiveArchive.configureRm(ncfArchive.configureRm(rmCmd))
+  def configureCheckout(coCmd: CheckoutCommand): CheckoutCommand =
+    directiveArchive.configureCheckout(ncfArchive.configureCheckout(coCmd))
 }
 case object FullArchive             extends ArchiveMode {
 
-  def configureRm(rmCmd: RmCommand) = {
+  def configureRm(rmCmd: RmCommand): RmCommand = {
     TechniqueLibraryArchive.configureRm(
       ruleArchive.configureRm(
         groupArchive.configureRm(
@@ -674,7 +673,7 @@ case object FullArchive             extends ArchiveMode {
     )
   }
 
-  def configureCheckout(coCmd: CheckoutCommand) = {
+  def configureCheckout(coCmd: CheckoutCommand): CheckoutCommand = {
     TechniqueLibraryArchive.configureCheckout(
       ruleArchive.configureCheckout(
         groupArchive.configureCheckout(

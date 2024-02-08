@@ -79,12 +79,14 @@ class StatelessUserPropertyService(
 
   // TODO: handle errors here!
 
-  override def reasonsFieldBehavior = (getEnable().toBox.getOrElse(true), getMandatory().toBox.getOrElse(true)) match {
-    case (true, true)  => ReasonBehavior.Mandatory
-    case (true, false) => ReasonBehavior.Optionnal
-    case (false, _)    => ReasonBehavior.Disabled
+  override def reasonsFieldBehavior:    ReasonBehavior.ReasonBehavior = {
+    (getEnable().toBox.getOrElse(true), getMandatory().toBox.getOrElse(true)) match {
+      case (true, true)  => ReasonBehavior.Mandatory
+      case (true, false) => ReasonBehavior.Optionnal
+      case (false, _)    => ReasonBehavior.Disabled
+    }
   }
-  override def reasonsFieldExplanation: String = getExplanation().toBox.getOrElse("")
+  override def reasonsFieldExplanation: String                        = getExplanation().toBox.getOrElse("")
 }
 
 class ReasonsMessageInfo(val enabled: Boolean, val mandatory: Boolean, val explanation: String)

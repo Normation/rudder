@@ -68,7 +68,7 @@ object UserStatus {
   case object Disabled extends UserStatus { override def value = "disabled" }
   case object Deleted  extends UserStatus { override def value = "deleted"  }
 
-  def values = ca.mrvisser.sealerate.values[UserStatus]
+  def values:           Set[UserStatus]            = ca.mrvisser.sealerate.values[UserStatus]
   def parse(s: String): Either[String, UserStatus] = {
     values
       .find(_.value == s.toLowerCase)

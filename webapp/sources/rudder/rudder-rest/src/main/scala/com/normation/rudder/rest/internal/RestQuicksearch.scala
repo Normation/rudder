@@ -186,7 +186,7 @@ class RestQuicksearch(
 
   implicit private[this] class JsonResultTypeSummary(t: ResultTypeSummary) {
 
-    val desc = if (t.originalNumber <= t.returnedNumber) {
+    val desc: String = if (t.originalNumber <= t.returnedNumber) {
       s"${t.originalNumber} found"
     } else { // we elided some results
       s"${t.originalNumber} found, only displaying the first ${t.returnedNumber}. Please refine your query."

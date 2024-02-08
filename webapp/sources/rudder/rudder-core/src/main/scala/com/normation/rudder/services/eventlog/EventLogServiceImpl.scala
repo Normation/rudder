@@ -39,6 +39,7 @@ package com.normation.rudder.services.eventlog
 
 import cats.data._
 import com.normation.box._
+import com.normation.errors
 import com.normation.eventlog._
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.eventlog._
@@ -88,7 +89,7 @@ class EventLogDeploymentService(
    * Return the list of event corresponding at a modification since last successful deployement
    *
    */
-  def getListOfModificationEvents(lastSuccess: EventLog) = {
+  def getListOfModificationEvents(lastSuccess: EventLog): errors.IOResult[Seq[EventLog]] = {
     ModificationWatchList.events.toList.map(_.serialize) match {
       case Nil    => Nil.succeed
       case h :: t =>

@@ -91,7 +91,7 @@ final case class InheritMode(
     forArray:  InheritMode.ArrayMode,
     forString: InheritMode.StringMode
 ) {
-  def value = s"${forObject.value}${forArray.value}${forString.value}"
+  def value: String = s"${forObject.value}${forArray.value}${forString.value}"
 }
 object InheritMode {
   sealed trait ObjectMode      { def value: Char }
@@ -99,8 +99,8 @@ object InheritMode {
     final case object Override extends ObjectMode { override val value = 'o' }
     final case object Merge    extends ObjectMode { override val value = 'm' }
 
-    def all            = ca.mrvisser.sealerate.values[ObjectMode].toList
-    def parse(c: Char) = all.find(c == _.value)
+    def all:            List[ObjectMode]   = ca.mrvisser.sealerate.values[ObjectMode].toList
+    def parse(c: Char): Option[ObjectMode] = all.find(c == _.value)
   }
   sealed trait ArrayMode       { def value: Char }
   final case object ArrayMode  {
@@ -108,8 +108,8 @@ object InheritMode {
     final case object Append   extends ArrayMode { override val value = 'a' }
     final case object Prepend  extends ArrayMode { override val value = 'p' }
 
-    def all            = ca.mrvisser.sealerate.values[ArrayMode].toList
-    def parse(c: Char) = all.find(c == _.value)
+    def all:            List[ArrayMode]   = ca.mrvisser.sealerate.values[ArrayMode].toList
+    def parse(c: Char): Option[ArrayMode] = all.find(c == _.value)
   }
   sealed trait StringMode      { def value: Char }
   final case object StringMode {
@@ -117,8 +117,8 @@ object InheritMode {
     final case object Append   extends StringMode { override val value = 'a' }
     final case object Prepend  extends StringMode { override val value = 'p' }
 
-    def all            = ca.mrvisser.sealerate.values[StringMode].toList
-    def parse(c: Char) = all.find(c == _.value)
+    def all:            List[StringMode]   = ca.mrvisser.sealerate.values[StringMode].toList
+    def parse(c: Char): Option[StringMode] = all.find(c == _.value)
   }
 
   def parseString(s: String): PureResult[InheritMode] = s.toList match {
@@ -132,7 +132,7 @@ object InheritMode {
       Left(Inconsistency(s"Impossible to parse string as inherit mode option, expecting: [mo][oap][oap] but got: ${s}"))
   }
 
-  val Default = InheritMode(ObjectMode.Merge, ArrayMode.Override, StringMode.Override)
+  val Default: InheritMode = InheritMode(ObjectMode.Merge, ArrayMode.Override, StringMode.Override)
 }
 
 object PropertyProvider {
@@ -140,8 +140,8 @@ object PropertyProvider {
    * System property provider. These properties should never
    * be updated/deleted by things other than rudder.
    */
-  final val systemPropertyProvider  = PropertyProvider("system")
-  final val defaultPropertyProvider = PropertyProvider("default")
+  final val systemPropertyProvider:  PropertyProvider = PropertyProvider("system")
+  final val defaultPropertyProvider: PropertyProvider = PropertyProvider("default")
 }
 
 /*
@@ -235,7 +235,7 @@ object GenericProperty {
   /**
    * Property name must matches that pattern
    */
-  val patternName = Pattern.compile("""[\-a-zA-Z0-9_]+""")
+  val patternName: Pattern = Pattern.compile("""[\-a-zA-Z0-9_]+""")
 
   def getMode(config: Config):                            Option[InheritMode] = {
     if (config.hasPath(INHERIT_MODE)) {
@@ -675,13 +675,13 @@ object GenericProperty {
  * Only the provider of a property can modify it.
  */
 final case class NodeProperty(config: Config) extends GenericProperty[NodeProperty] {
-  override def fromConfig(c: Config) = NodeProperty(c)
+  override def fromConfig(c: Config): NodeProperty = NodeProperty(c)
 }
 
 object NodeProperty {
 
   // the provider that manages inventory custom properties
-  val customPropertyProvider = PropertyProvider("inventory")
+  val customPropertyProvider: PropertyProvider = PropertyProvider("inventory")
 
   /**
    * A builder with the logic to handle the value part.
@@ -707,12 +707,12 @@ object NodeProperty {
     GenericProperty.parseConfig(json).map(new NodeProperty(_))
   }
 
-  def fromInventory(prop: CustomProperty) =
+  def fromInventory(prop: CustomProperty): NodeProperty =
     apply(prop.name, GenericProperty.fromJsonValue(prop.value), None, Some(NodeProperty.customPropertyProvider))
 }
 
 final case class GroupProperty(config: Config) extends GenericProperty[GroupProperty] {
-  override def fromConfig(c: Config) = GroupProperty(c)
+  override def fromConfig(c: Config): GroupProperty = GroupProperty(c)
 }
 
 object GroupProperty {
@@ -858,7 +858,7 @@ object JsonPropertySerialisation {
   import net.liftweb.json.JsonDSL._
 
   implicit class ParentPropertyToJSon(val p: ParentProperty) extends AnyVal {
-    def toJson = {
+    def toJson: JValue = {
       p match {
         case ParentProperty.Global(value)          =>
           (
@@ -918,7 +918,7 @@ object JsonPropertySerialisation {
       JArray(props.sortBy(_.prop.name).map(p => p.toApiJson))
     }
 
-    def toApiJsonRenderParents = {
+    def toApiJsonRenderParents: JArray = {
       JArray(props.sortBy(_.prop.name).map(p => p.toApiJsonRenderParents))
     }
 
@@ -949,7 +949,7 @@ object JsonPropertySerialisation {
  * A Global Parameter is a parameter globally defined, that may be overriden
  */
 final case class GlobalParameter(config: Config) extends GenericProperty[GlobalParameter] {
-  override def fromConfig(c: Config) = GlobalParameter(c)
+  override def fromConfig(c: Config): GlobalParameter = GlobalParameter(c)
 }
 
 object GlobalParameter {

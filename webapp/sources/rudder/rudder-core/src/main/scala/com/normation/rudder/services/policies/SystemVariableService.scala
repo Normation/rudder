@@ -148,7 +148,7 @@ class SystemVariableServiceImpl(
   import SystemVariableService._
 
   // get the Rudder reports DB (postgres) database name from URI
-  val reportsDbName = {
+  val reportsDbName: String = {
     reportsDbUri
       .split("""/""")
       .toSeq
@@ -159,17 +159,18 @@ class SystemVariableServiceImpl(
         )
       )
   }
-  val reportsDbUrl  = reportsDbUri.replace(s"""jdbc:postgresql://""", s"""postgresql://${reportsDbUser}@""")
+  val reportsDbUrl:  String = reportsDbUri.replace(s"""jdbc:postgresql://""", s"""postgresql://${reportsDbUser}@""")
 
-  val varToolsFolder                = systemVariableSpecService.get("TOOLS_FOLDER").toVariable(Seq(toolsFolder))
-  val varWebdavUser                 = systemVariableSpecService.get("DAVUSER").toVariable(Seq(webdavUser))
-  val varWebdavPassword             = systemVariableSpecService.get("DAVPASSWORD").toVariable(Seq(webdavPassword))
-  val varSharedFilesFolder          = systemVariableSpecService.get("SHARED_FILES_FOLDER").toVariable(Seq(sharedFilesFolder))
-  val varPolicyDistribCfenginePort  =
+  val varToolsFolder:                SystemVariable = systemVariableSpecService.get("TOOLS_FOLDER").toVariable(Seq(toolsFolder))
+  val varWebdavUser:                 SystemVariable = systemVariableSpecService.get("DAVUSER").toVariable(Seq(webdavUser))
+  val varWebdavPassword:             SystemVariable = systemVariableSpecService.get("DAVPASSWORD").toVariable(Seq(webdavPassword))
+  val varSharedFilesFolder:          SystemVariable =
+    systemVariableSpecService.get("SHARED_FILES_FOLDER").toVariable(Seq(sharedFilesFolder))
+  val varPolicyDistribCfenginePort:  SystemVariable =
     systemVariableSpecService.get("COMMUNITYPORT").toVariable(Seq(policyDistribCfenginePort.toString))
-  val varPolicyDistribHttpsPort     =
+  val varPolicyDistribHttpsPort:     SystemVariable =
     systemVariableSpecService.get("HTTPS_POLICY_DISTRIBUTION_PORT").toVariable(Seq(policyDistribHttpsPort.toString))
-  val configurationRepositoryFolder =
+  val configurationRepositoryFolder: SystemVariable =
     systemVariableSpecService.get("CONFIGURATION_REPOSITORY_FOLDER").toVariable(Seq(configurationRepository))
 
   // compute all the global system variable (so that need to be computed only once in a deployment)

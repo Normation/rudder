@@ -77,7 +77,7 @@ class AsyncComplianceService(
     // Compute compliance
     def computeCompliance()(implicit qc: QueryContext): Box[Map[Kind, Option[ComplianceLevel]]]
 
-    final protected def toCompliance(id: Kind, reports: Iterable[RuleNodeStatusReport]) = {
+    final protected def toCompliance(id: Kind, reports: Iterable[RuleNodeStatusReport]): (Kind, Some[ComplianceLevel]) = {
       // BE CAREFUL: reports may be a SET - and it's likely that
       // some compliance will be equals. So change to seq.
       val compliance = {
@@ -88,7 +88,7 @@ class AsyncComplianceService(
       (id, Some(compliance))
     }
 
-    final protected def toComplianceWithMissing(compliance: ComplianceLevel) = {
+    final protected def toComplianceWithMissing(compliance: ComplianceLevel): Some[ComplianceLevel] = {
       if (compliance.total == 0) {
         Some(compliance.copy(missing = 1))
       } else {

@@ -56,6 +56,7 @@ import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.matcher.ContentMatchers
+import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.BeforeAfterAll
@@ -70,7 +71,7 @@ import zio.syntax._
 @RunWith(classOf[JUnitRunner])
 class TestEditorTechniqueWriterFallback extends Specification with ContentMatchers with Loggable with BeforeAfterAll {
   sequential
-  lazy val basePath = "/tmp/test-rudder-technique-writer-fallback-" + DateTime.now.toString()
+  lazy val basePath: String = "/tmp/test-rudder-technique-writer-fallback-" + DateTime.now.toString()
 
   override def beforeAll(): Unit = {
     new JFile(basePath).mkdirs()
@@ -174,9 +175,10 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
 
   import ParameterType._
 
-  val defaultConstraint = Constraint.AllowEmpty(false) :: Constraint.AllowWhiteSpace(false) :: Constraint.MaxLength(16384) :: Nil
+  val defaultConstraint: List[Constraint.Constraint] =
+    Constraint.AllowEmpty(false) :: Constraint.AllowWhiteSpace(false) :: Constraint.MaxLength(16384) :: Nil
 
-  val methods = (
+  val methods: Map[BundleName, GenericMethod] = (
     GenericMethod(
       BundleName("package_install"),
       "Package install",
@@ -193,7 +195,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       Nil
   ).map(m => (m.id, m)).toMap
 
-  val editorTechniqueReader = new EditorTechniqueReader {
+  val editorTechniqueReader: EditorTechniqueReader = new EditorTechniqueReader {
     def readTechniquesMetadataFile: IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])] = {
       ???
     }
@@ -218,7 +220,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
     baseDir
   )
 
-  val techniqueTemplate = {
+  val techniqueTemplate: EditorTechnique = {
     EditorTechnique(
       BundleName("technique_by_Rudder"),
       new Version("1.0"),
@@ -243,12 +245,12 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
   }
 
   // File object for the configuration-config.yml for given compiler/technique
-  def compilationConfigFile(implicit compiler: TechniqueCompilerWithFallback, technique: EditorTechnique) = File(
+  def compilationConfigFile(implicit compiler: TechniqueCompilerWithFallback, technique: EditorTechnique): File = File(
     compiler.baseConfigRepoPath + "/" + technique.id.value + "/" + compiler.compilationConfigFilename
   )
 
   // File object for the configuration-output.yml for given compiler/technique
-  def compilationOutputFile(implicit compiler: TechniqueCompilerWithFallback, technique: EditorTechnique) = File(
+  def compilationOutputFile(implicit compiler: TechniqueCompilerWithFallback, technique: EditorTechnique): File = File(
     compiler.baseConfigRepoPath + "/" + technique.id.value + "/" + compiler.compilationOutputFilename
   )
 
@@ -259,7 +261,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       techniqueId: String,
       expected:    String,
       status:      OutputFileStatus
-  ) = {
+  ): MatchResult[Any] = {
     val f = File(compiler.baseConfigRepoPath + "/" + techniqueId + "/" + filename)
 
     status match {
@@ -271,22 +273,28 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
   }
 
   // check validity of xml file written by rudderc
-  def checkXML(status: OutputFileStatus)(implicit compiler: TechniqueCompilerWithFallback, technique: EditorTechnique) = {
+  def checkXML(
+      status:          OutputFileStatus
+  )(implicit compiler: TechniqueCompilerWithFallback, technique: EditorTechnique): MatchResult[Any] = {
     checkOutput(compiler, "metadata.xml", technique.id.value, Content.ruddercMetadata, status)
   }
 
   // check validity of .cf file written by rudderc
-  def checkCFE(status: OutputFileStatus)(implicit compiler: TechniqueCompilerWithFallback, technique: EditorTechnique) = {
+  def checkCFE(
+      status:          OutputFileStatus
+  )(implicit compiler: TechniqueCompilerWithFallback, technique: EditorTechnique): MatchResult[Any] = {
     checkOutput(compiler, "technique.cf", technique.id.value, Content.ruddercCFE, status)
   }
 
   // check validity of .ps1 file written by rudderc
-  def checkPS1(status: OutputFileStatus)(implicit compiler: TechniqueCompilerWithFallback, technique: EditorTechnique) = {
+  def checkPS1(
+      status:          OutputFileStatus
+  )(implicit compiler: TechniqueCompilerWithFallback, technique: EditorTechnique): MatchResult[Any] = {
     checkOutput(compiler, "technique.ps1", technique.id.value, Content.ruddercPS1, status)
   }
 
   // it is done elsewhere in rudder
-  def initDirectories(compiler: TechniqueCompilerWithFallback, technique: EditorTechnique) = {
+  def initDirectories(compiler: TechniqueCompilerWithFallback, technique: EditorTechnique): File = {
     (compiler.gitDir / technique.id.value).createDirectories()
   }
 

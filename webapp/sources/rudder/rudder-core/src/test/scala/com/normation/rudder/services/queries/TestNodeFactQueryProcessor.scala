@@ -68,10 +68,10 @@ class TestNodeFactQueryProcessor {
   implicit def StringToNodeId(s: String):  NodeId      = NodeId(s)
   implicit def StringToGroupId(s: String): NodeGroupId = NodeGroupId(NodeGroupUid(s))
 
-  val logger = NamedZioLogger(this.getClass.getPackageName + "." + this.getClass.getSimpleName)
+  val logger: NamedZioLogger = NamedZioLogger(this.getClass.getPackageName + "." + this.getClass.getSimpleName)
 
   object subGroupComparatorRepo extends SubGroupComparatorRepository {
-    val groups = Map(
+    val groups: Map[SubGroupChoice, Chunk[NodeId]] = Map(
       (SubGroupChoice("test-group-node1", "Only contains node1"), Chunk[NodeId]("node1")),
       (SubGroupChoice("test-group-node2", "Only contains node2"), Chunk[NodeId]("node2")),
       (SubGroupChoice("test-group-node12", "Only contains node1 and node2"), Chunk[NodeId]("node1", "node2")),
@@ -108,7 +108,7 @@ class TestNodeFactQueryProcessor {
   //org.slf4j.LoggerFactory.getLogger("com.normation.rudder.services.queries").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
   // format: on
 
-  val nodeRepository = {
+  val nodeRepository: CoreNodeFactRepository = {
 
     object NoopNodeBySoftware extends GetNodesbySofwareName {
       override def apply(softName: String): IOResult[List[(NodeId, Software)]] = Nil.succeed
@@ -122,7 +122,7 @@ class TestNodeFactQueryProcessor {
       .runNow
   }
 
-  val internalLDAPQueryProcessor = {
+  val internalLDAPQueryProcessor: InternalLDAPQueryProcessor = {
     import MockLdapFactStorage._
     val rudderDit    = new RudderDit(new DN("ou=Rudder, cn=rudder-configuration"))
     val ditQueryData = new DitQueryData(acceptedDIT, nodeDit, rudderDit, queryData)
@@ -131,7 +131,8 @@ class TestNodeFactQueryProcessor {
 
   val queryProcessor = new NodeFactQueryProcessor(nodeRepository, subGroupComparatorRepo, internalLDAPQueryProcessor)
 
-  val parser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
+  val parser: CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer = new CmdbQueryParser
+    with DefaultStringQueryParser with JsonQueryLexer {
     override val criterionObjects = queryData.criteriaMap.toMap
   }
 
@@ -143,7 +144,7 @@ class TestNodeFactQueryProcessor {
 //    .asInstanceOf[ch.qos.logback.classic.Logger]
 //    .setLevel(ch.qos.logback.classic.Level.TRACE)
 
-  val s = Seq(
+  val s: Seq[NodeId] = Seq(
     new NodeId("node0"),
     new NodeId("node1"),
     new NodeId("node2"),
@@ -154,8 +155,8 @@ class TestNodeFactQueryProcessor {
     new NodeId("node7")
   )
 
-  val root = NodeId("root")
-  val sr   = root +: s
+  val root: NodeId      = NodeId("root")
+  val sr:   Seq[NodeId] = root +: s
 
   @Test def basicQueriesOnId(): Unit = {
 

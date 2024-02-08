@@ -69,7 +69,7 @@ final case class RunCompliance(
 
 object RunCompliance {
 
-  def from(runTimestamp: DateTime, endOfLife: DateTime, report: NodeStatusReport) = {
+  def from(runTimestamp: DateTime, endOfLife: DateTime, report: NodeStatusReport): RunCompliance = {
     RunCompliance(
       report.nodeId,
       runTimestamp,
@@ -90,7 +90,7 @@ class ComplianceJdbcRepository(
 
   val logger = ReportLogger
 
-  val nodeComplianceLevelcolumns = List(
+  val nodeComplianceLevelcolumns: List[String] = List(
     "nodeid",
     "runtimestamp",
     "ruleid",

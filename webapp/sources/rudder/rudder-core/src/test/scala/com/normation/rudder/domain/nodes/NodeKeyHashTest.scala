@@ -48,7 +48,7 @@ import org.specs2.runner._
 class NodeKeyHashTest extends Specification with Loggable {
 
   // Keys are sanitized in LDAP, we remove header and footer
-  val key = PublicKey("""
+  val key: PublicKey = PublicKey("""
 MIIBCAKCAQEAv76gYG9OaFpc0eBeUXDM3WsRWyuHco3DpWnKrrpqQwylpEH26gRb
 cu/L5KWc1ihj1Rv/AU3dkQL5KdXatSrWOLUMmYcQc5DYSnZacbdHIGLn11w1PHsw
 9P2pivwQyIF3k4zqANtlZ3iZN4AXZpURI4VVhiBYPwZ4XgHPibcuJHiyNyymiHpT
@@ -57,7 +57,7 @@ Yh3O5rVto12XqisGWIbsmsT0XFr6V9+/sde/lpjI4AEcHR8oFYX5JP9/SXPuRJfQ
 lEl8vn5PHTY0mMrNAcM7+rzpkOW2c7b8bwIBIw==
 """)
 
-  val key2 = PublicKey("""-----BEGIN RSA PUBLIC KEY-----
+  val key2: PublicKey = PublicKey("""-----BEGIN RSA PUBLIC KEY-----
 MIIBCgKCAQEA1BYbjAvs2htHI9CKhJS68+krvOBQWObqDdEDK3QXESWa0e7gcGao
 zI4vFrFqlsSmra73ws59uDjf/GCbXanU7TDF38eopV08218qT1oHUpYVmUlLbn6A
 ONzhBbPyPEDs4cshadh2YDSWpfwOED+vHhZaM6JETSV6HM7N0+kMya1wgYD2MsZ/

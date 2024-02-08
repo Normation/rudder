@@ -323,7 +323,7 @@ case object ModifyRudderVerifyCertificates extends ModifyGlobalPropertyEventType
  * List of event generating a modification of promises
  */
 object ModificationWatchList {
-  val events = Seq[EventLogType](
+  val events: Seq[EventLogType] = Seq[EventLogType](
     AcceptNodeEventType,
     DeleteNodeEventType,
     AddRuleEventType,
@@ -357,7 +357,7 @@ object ModificationWatchList {
 }
 
 object EventTypeFactory {
-  val eventTypes = List[EventLogType](
+  val eventTypes: List[EventLogType] = List[EventLogType](
     AutomaticStartDeployementEventType,
     ManualStartDeployementEventType,
     SuccessfulDeploymentEventType,

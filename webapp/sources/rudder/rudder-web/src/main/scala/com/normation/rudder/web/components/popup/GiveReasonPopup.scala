@@ -76,7 +76,7 @@ class GiveReasonPopup(
   private[this] val userPropertyService         = RudderConfig.userPropertyService
   private[this] val techniqueRepository         = RudderConfig.techniqueRepository
 
-  def dispatch = { case "popupContent" => popupContent _ }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => popupContent _ }
 
   def popupContent(html: NodeSeq): NodeSeq = {
     SHtml.ajaxForm(
@@ -109,7 +109,7 @@ class GiveReasonPopup(
     }
   }
 
-  def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol") = {
+  def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol"): WBTextAreaField = {
     new WBTextAreaField("Change audit message", "") {
       override def setFilter  = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField %

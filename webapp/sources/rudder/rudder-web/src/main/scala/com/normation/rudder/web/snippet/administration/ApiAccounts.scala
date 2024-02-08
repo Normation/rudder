@@ -50,7 +50,7 @@ class ApiAccounts extends DispatchSnippet with DefaultExtendableSnippet[ApiAccou
 
   private[this] val relativePath = RudderConfig.restApiAccounts.relativePath.mkString("/", "/", "")
 
-  def mainDispatch = Map(
+  def mainDispatch: Map[String, NodeSeq => NodeSeq] = Map(
     "render" -> render,
     "body"   -> identity
   )

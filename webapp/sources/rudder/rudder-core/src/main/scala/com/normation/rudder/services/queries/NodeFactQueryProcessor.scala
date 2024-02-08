@@ -70,7 +70,7 @@ import zio.syntax._
 final case class NodeFactMatcher(debugString: String, matches: CoreNodeFact => IOResult[Boolean])
 
 object NodeFactMatcher {
-  val nodeAndRelayMatcher = {
+  val nodeAndRelayMatcher: NodeFactMatcher = {
     val s = "only matches node and relay"
     NodeFactMatcher(
       s,
@@ -90,27 +90,29 @@ trait Group {
   def zero: NodeFactMatcher
 }
 object GroupAnd extends Group {
-  def compose(a: NodeFactMatcher, b: NodeFactMatcher) = {
+  def compose(a: NodeFactMatcher, b: NodeFactMatcher): NodeFactMatcher = {
     (a, b) match {
       case (`zero`, _) => b
       case (_, `zero`) => a
       case _           => NodeFactMatcher(s"(${a.debugString}) && (${b.debugString})", (n: CoreNodeFact) => (a.matches(n) && b.matches(n)))
     }
   }
-  def inverse(a: NodeFactMatcher)                     = NodeFactMatcher(s"!(${a.debugString})", (n: CoreNodeFact) => a.matches(n).map(!_))
-  val zero                                            = NodeFactMatcher("true", _ => true.succeed)
+  def inverse(a: NodeFactMatcher):                     NodeFactMatcher =
+    NodeFactMatcher(s"!(${a.debugString})", (n: CoreNodeFact) => a.matches(n).map(!_))
+  val zero:                                            NodeFactMatcher = NodeFactMatcher("true", _ => true.succeed)
 }
 
 object GroupOr extends Group {
-  def compose(a: NodeFactMatcher, b: NodeFactMatcher) = {
+  def compose(a: NodeFactMatcher, b: NodeFactMatcher): NodeFactMatcher = {
     (a, b) match {
       case (`zero`, _) => b
       case (_, `zero`) => a
       case _           => NodeFactMatcher(s"(${a.debugString}) || (${b.debugString})", (n: CoreNodeFact) => (a.matches(n) || b.matches(n)))
     }
   }
-  def inverse(a: NodeFactMatcher)                     = NodeFactMatcher(s"!(${a.debugString})", (n: CoreNodeFact) => a.matches(n).map(!_))
-  val zero                                            = NodeFactMatcher("false", _ => false.succeed)
+  def inverse(a: NodeFactMatcher):                     NodeFactMatcher =
+    NodeFactMatcher(s"!(${a.debugString})", (n: CoreNodeFact) => a.matches(n).map(!_))
+  val zero:                                            NodeFactMatcher = NodeFactMatcher("false", _ => false.succeed)
 }
 
 class NodeFactQueryProcessor(

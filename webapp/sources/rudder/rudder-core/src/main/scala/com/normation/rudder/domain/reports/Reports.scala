@@ -41,6 +41,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import org.joda.time.DateTime
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 /**
@@ -304,7 +305,7 @@ final case class RudderJsonReport(
 }
 object Reports {
 
-  val logger = LoggerFactory.getLogger(classOf[Reports])
+  val logger: Logger = LoggerFactory.getLogger(classOf[Reports])
 
   def factory(
       executionDate:      DateTime,
@@ -555,20 +556,24 @@ object Reports {
     )
   }
 
-  def unapply(report: Reports) = Some(
-    (
-      report.executionDate,
-      report.ruleId,
-      report.directiveId,
-      report.nodeId,
-      report.reportId,
-      report.component,
-      report.keyValue,
-      report.executionTimestamp,
-      report.severity,
-      report.message
+  def unapply(
+      report: Reports
+  ): Some[(DateTime, RuleId, DirectiveId, NodeId, String, String, String, DateTime, String, String)] = {
+    Some(
+      (
+        report.executionDate,
+        report.ruleId,
+        report.directiveId,
+        report.nodeId,
+        report.reportId,
+        report.component,
+        report.keyValue,
+        report.executionTimestamp,
+        report.severity,
+        report.message
+      )
     )
-  )
+  }
 
   val LOG_TRACE    = "log_trace"
   val LOG_DEBUG    = "log_debug"

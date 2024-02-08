@@ -620,7 +620,7 @@ object LdapNodeFactStorage {
     selectFacts.software.mode == SelectMode.Retrieve
   }
 
-  def inventoryFacts(s: SelectFacts) = {
+  def inventoryFacts(s: SelectFacts): List[SelectFactConfig[_ <: Equals with IterableOnce[Serializable] with Serializable]] = {
     List(
       s.swap,
       s.accounts,

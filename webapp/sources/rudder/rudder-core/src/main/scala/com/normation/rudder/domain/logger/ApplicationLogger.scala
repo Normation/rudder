@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory
  * Applicative log of interest for Rudder ops.
  */
 object ApplicationLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("application")
+  override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("application")
 
   object Properties extends Logger {
     override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("application.properties")
@@ -58,24 +58,24 @@ object ApplicationLoggerPure extends NamedZioLogger {
   def loggerName = "application"
 
   object Archive extends NamedZioLogger {
-    def loggerName = parent.loggerName + ".archive"
+    def loggerName: String = parent.loggerName + ".archive"
   }
 
   object Plugin extends NamedZioLogger {
-    def loggerName = parent.loggerName + ".plugin"
+    def loggerName: String = parent.loggerName + ".plugin"
   }
 
   object Authz extends NamedZioLogger {
-    def loggerName = parent.loggerName + ".authorization"
+    def loggerName: String = parent.loggerName + ".authorization"
   }
 
   object User extends NamedZioLogger {
-    def loggerName = parent.loggerName + ".user"
+    def loggerName: String = parent.loggerName + ".user"
   }
 }
 
 object ApiLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("api-processing")
+  override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("api-processing")
 }
 
 object ApiLoggerPure extends NamedZioLogger {
@@ -90,14 +90,14 @@ object ApiLoggerPure extends NamedZioLogger {
  * A logger dedicated to "plugin" information, especially boot info.
  */
 object PluginLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("application.plugin")
+  override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("application.plugin")
 }
 
 /**
  * A logger dedicated to scheduled jobs and batches
  */
 object ScheduledJobLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("scheduled.job")
+  override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("scheduled.job")
 }
 
 object ScheduledJobLoggerPure extends NamedZioLogger {
@@ -121,13 +121,13 @@ object DynamicGroupLoggerPure extends NamedZioLogger {
  * A logger for new nodes information
  */
 object NodeLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("nodes")
+  override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("nodes")
   object PendingNode extends Logger {
     // the logger for information about pending nodes (accept/refuse)
-    override protected def _logger = LoggerFactory.getLogger("nodes.pending")
+    override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("nodes.pending")
     // the logger for info about what policies will be applied to the new node
     object Policies extends Logger {
-      override protected def _logger = LoggerFactory.getLogger("nodes.pending.policies")
+      override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("nodes.pending.policies")
     }
   }
 }
@@ -178,7 +178,7 @@ object NodeLoggerPure extends NamedZioLogger { parent =>
  * parameter.s
  */
 object JsDirectiveParamLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("jsDirectiveParam")
+  override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("jsDirectiveParam")
 }
 
 object JsDirectiveParamLoggerPure extends NamedZioLogger {
@@ -206,14 +206,14 @@ object RuddercLogger extends NamedZioLogger {
  * Logger about change request and other workflow thing.
  */
 object ChangeRequestLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("changeRequest")
+  override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("changeRequest")
 }
 
 /**
  * Logger used for historization of object names by `HistorizationService`
  */
 object HistorizationLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("historization")
+  override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("historization")
 }
 
 object GitArchiveLoggerPure extends NamedZioLogger {
@@ -229,18 +229,18 @@ object ConfigurationLoggerPure extends NamedZioLogger {
 }
 
 object GitArchiveLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("git-policy-archive")
+  override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("git-policy-archive")
 }
 
 object ComplianceLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("compliance")
+  override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("compliance")
 }
 
 object ReportLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("report")
+  override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("report")
 
   object Cache extends Logger {
-    override protected def _logger = LoggerFactory.getLogger("report.cache")
+    override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("report.cache")
   }
 }
 

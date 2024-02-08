@@ -72,11 +72,11 @@ import zio.json._
 import zio.syntax._
 
 object NodeGroupForm {
-  val templatePath = "templates-hidden" :: "components" :: "NodeGroupForm" :: Nil
+  val templatePath: List[String] = "templates-hidden" :: "components" :: "NodeGroupForm" :: Nil
 
-  val staticInit = ChooseTemplate(templatePath, "component-staticinit")
-  val body       = ChooseTemplate(templatePath, "component-body")
-  val staticBody = ChooseTemplate(templatePath, "component-staticbody")
+  val staticInit: NodeSeq = ChooseTemplate(templatePath, "component-staticinit")
+  val body:       NodeSeq = ChooseTemplate(templatePath, "component-body")
+  val staticBody: NodeSeq = ChooseTemplate(templatePath, "component-staticbody")
 
   private val saveButtonId = "groupSaveButtonId"
 
@@ -159,9 +159,9 @@ class NodeGroupForm(
 
   setSearchNodeComponent
 
-  def mainDispatch = Map(
-    "showForm"  -> { _: NodeSeq => showForm() },
-    "showGroup" -> { _: NodeSeq =>
+  def mainDispatch: Map[String, NodeSeq => NodeSeq] = Map(
+    "showForm"  -> { (_: NodeSeq) => showForm() },
+    "showGroup" -> { (_: NodeSeq) =>
       searchNodeComponent.get match {
         case Full(component) => component.buildQuery(true)
         case _               => <div>The component is not set</div>
@@ -169,7 +169,7 @@ class NodeGroupForm(
     }
   )
 
-  val pendingChangeRequestXml = {
+  val pendingChangeRequestXml: Elem = {
     <div class="callout-fade callout-info callout-cr" id="pendingChangeRequestNotification">
         <p><b><i class="fa fa-info-circle"></i>Pending change requests</b><span class="fa fa-chevron-down" onclick="$('#pendingChangeRequestNotification').toggleClass('list-hidden')"></span></p>
         <div>

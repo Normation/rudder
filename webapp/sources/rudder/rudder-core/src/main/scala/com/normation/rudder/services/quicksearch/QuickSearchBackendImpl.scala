@@ -68,7 +68,7 @@ import scala.util.control.NonFatal
  * Correctly quote a token
  */
 object QSPattern {
-  def apply(token: String) = s"""(?iums).*${Pattern.quote(token)}.*""".r.pattern
+  def apply(token: String): Pattern = s"""(?iums).*${Pattern.quote(token)}.*""".r.pattern
 }
 
 /**
@@ -550,7 +550,7 @@ object QSLdapBackend {
       rudderDit:                               RudderDit
   ) {
 
-    def filter = obj match {
+    def filter: List[Filter] = obj match {
       case Common    => Nil
       case Node      => Nil
       case Group     => AND(IS(OC_RUDDER_NODE_GROUP), Filter.create(s"entryDN:dnSubtreeMatch:=${rudderDit.GROUP.dn.toString}")) :: Nil

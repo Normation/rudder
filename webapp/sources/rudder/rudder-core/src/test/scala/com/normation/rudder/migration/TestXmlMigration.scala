@@ -45,9 +45,11 @@ import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import org.junit.runner.RunWith
+import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import scala.xml.Elem
+import scala.xml.Node
 
 /**
  * Test individual event log data migration
@@ -57,7 +59,7 @@ class TestXmlMigration extends Specification with Loggable {
 
   val migration = XmlMigration_5_6
 
-  def compare(b: Box[Elem], e: Elem) = {
+  def compare(b: Box[Elem], e: Elem): MatchResult[Node] = {
     val x = b match {
       case Full(x) => x
       case _       => throw new IllegalArgumentException("bad test")

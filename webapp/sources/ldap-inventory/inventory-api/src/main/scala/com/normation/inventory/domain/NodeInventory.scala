@@ -143,7 +143,7 @@ sealed abstract class WindowsType extends OsType {
   override val kernelName = "Windows"
 }
 object WindowsType {
-  val allKnownTypes = (
+  val allKnownTypes: List[WindowsType] = (
     WindowsXP
       :: WindowsVista
       :: WindowsSeven
@@ -185,7 +185,7 @@ sealed abstract class LinuxType extends OsType {
   override val kernelName = "Linux"
 }
 object LinuxType {
-  val allKnownTypes = (
+  val allKnownTypes: List[LinuxType] = (
     Debian
       :: Ubuntu
       :: Kali
@@ -244,7 +244,7 @@ sealed abstract class BsdType extends OsType {
 }
 
 object BsdType {
-  val allKnownTypes = (
+  val allKnownTypes: List[BsdType] = (
     FreeBSD
       :: UnknownBsdType
       :: Nil
@@ -480,9 +480,9 @@ object SoftwareUpdateKind           {
   final case object Enhancement         extends SoftwareUpdateKind { val name = "enhancement" }
   final case class Other(value: String) extends SoftwareUpdateKind { val name = "other"       }
 
-  def all = ca.mrvisser.sealerate.collect[SoftwareUpdateKind]
+  def all: Set[SoftwareUpdateKind] = ca.mrvisser.sealerate.collect[SoftwareUpdateKind]
 
-  def parse(value: String) = all.find(_.name == value.toLowerCase()).getOrElse(Other(value))
+  def parse(value: String): SoftwareUpdateKind = all.find(_.name == value.toLowerCase()).getOrElse(Other(value))
 }
 sealed trait SoftwareUpdateSeverity {
   def name: String
@@ -495,9 +495,9 @@ object SoftwareUpdateSeverity {
   case object Critical            extends SoftwareUpdateSeverity { val name = "critical" }
   case class Other(value: String) extends SoftwareUpdateSeverity { val name = "other"    }
 
-  def all = ca.mrvisser.sealerate.collect[SoftwareUpdateSeverity]
+  def all: Set[SoftwareUpdateSeverity] = ca.mrvisser.sealerate.collect[SoftwareUpdateSeverity]
 
-  def parse(value: String) = all.find(_.name == value.toLowerCase()).getOrElse(Other(value))
+  def parse(value: String): SoftwareUpdateSeverity = all.find(_.name == value.toLowerCase()).getOrElse(Other(value))
 }
 
 /*

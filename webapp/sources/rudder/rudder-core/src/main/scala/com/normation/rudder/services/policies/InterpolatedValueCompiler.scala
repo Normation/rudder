@@ -160,7 +160,7 @@ object PropertyParserTokens {
 
   // a string that is not part of a interpolated value
   final case class CharSeq(s: String) extends AnyVal with Token {
-    def prefix(p: String) = CharSeq(p + s)
+    def prefix(p: String): CharSeq = CharSeq(p + s)
   }
 
   // ${} but not for rudder
@@ -501,7 +501,7 @@ object PropertyParser {
   /*
    * Defines what is accepted as a valid property character name.
    */
-  final val invalidPropertyChar = Set('"', '$', '{', '}', '[', ']')
+  final val invalidPropertyChar:       Set[Char]          = Set('"', '$', '{', '}', '[', ']')
   def validPropertyNameChar(c: Char):  Boolean            = {
     !(c.isControl || c.isSpaceChar || c.isWhitespace || invalidPropertyChar.contains(c))
   }
@@ -521,18 +521,18 @@ object PropertyParser {
     P(Start ~ ((noVariableStart | variable | ("${" ~ noVariableEnd.map(_.prefix("${")))).rep(1) | empty) ~ End).map(_.toList)
 
   // empty string is a special case that must be look appart from plain string.
-  def empty[A: P] = P("").map(_ => CharSeq("") :: Nil)
-  def space[A: P] = P(CharsWhile(_.isWhitespace, 0))
+  def empty[A: P]:           P[List[CharSeq]] = P("").map(_ => CharSeq("") :: Nil)
+  def space[A: P]:           P[Unit]          = P(CharsWhile(_.isWhitespace, 0))
   // plain string must not match our identifier, ${rudder.* and ${node.properties.*}
   // here we defined a function to build them
-  def noVariableStart[A: P]: P[CharSeq] = P((!"${" ~ AnyChar).rep(1).!).map(CharSeq(_))
-  def noVariableEnd[A: P]:   P[CharSeq] = P((!"}" ~ AnyChar).rep(1).!).map(CharSeq(_))
+  def noVariableStart[A: P]: P[CharSeq]       = P((!"${" ~ AnyChar).rep(1).!).map(CharSeq(_))
+  def noVariableEnd[A: P]:   P[CharSeq]       = P((!"}" ~ AnyChar).rep(1).!).map(CharSeq(_))
 
-  def variable[A: P] = P("${" ~ space ~ variableType ~ space ~ "}")
+  def variable[A: P]: P[Token] = P("${" ~ space ~ variableType ~ space ~ "}")
 
-  def variableType[A: P] = P(interpolatedVariable | otherVariable)
-  def variableId[A: P]: P[String] = P(CharIn("""\-_a-zA-Z0-9""").rep(1).!)
-  def propertyId[A: P]: P[String] = P(CharsWhile(validPropertyNameChar).!)
+  def variableType[A: P]: P[Token]  = P(interpolatedVariable | otherVariable)
+  def variableId[A: P]:   P[String] = P(CharIn("""\-_a-zA-Z0-9""").rep(1).!)
+  def propertyId[A: P]:   P[String] = P(CharsWhile(validPropertyNameChar).!)
 
   // other cases of ${}: cfengine variables, etc
   def otherVariable[A: P]: P[NonRudderVar] = P((variableId ~ ".").rep(0) ~ variableId).map {

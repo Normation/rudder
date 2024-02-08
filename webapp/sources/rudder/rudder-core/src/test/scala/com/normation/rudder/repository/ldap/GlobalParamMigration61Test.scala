@@ -66,7 +66,7 @@ import org.specs2.runner._
 class GlobalParamMigration61Test extends Specification {
 
   implicit class ForceGet[A](res: PureResult[A]) {
-    def forceGet = res match {
+    def forceGet: A = res match {
       case Right(value) => value
       case Left(err)    => throw new IllegalArgumentException(s"Error when trying to get value: ${err.fullMsg}")
     }
@@ -101,7 +101,7 @@ class GlobalParamMigration61Test extends Specification {
     new LDAPEntityMapper(rudderDit, nodeDit, acceptedNodesDitImpl, cmdbQueryParser, inventoryMapper)
   }
 
-  val baseParam = GlobalParameter.parse("test", GitVersion.DEFAULT_REV, "", None, "", None).forceGet
+  val baseParam: GlobalParameter = GlobalParameter.parse("test", GitVersion.DEFAULT_REV, "", None, "", None).forceGet
 
   // attribute that used to be set in GlobalParameter entry before 6.1.
   def setIs6_0(e: LDAPEntry): Unit = {

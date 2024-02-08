@@ -41,6 +41,7 @@ import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.LiftRules
 import net.liftweb.http.RequestVar
 import net.liftweb.http.S
+import scala.xml.NodeBuffer
 
 /**
   * We need to provide both lift.js and page js to the client with a custom nonce.
@@ -56,7 +57,7 @@ object CustomPageJs extends DispatchSnippet {
 
   def dispatch: DispatchIt = { case "pageScript" => _ => pageScript }
 
-  def pageScript = {
+  def pageScript: NodeBuffer = {
     val _ = hasCustomPageScript.set(true)
     <script data-lift="with-nonce" src={s"/${LiftRules.resourceServerPath}/lift.js"}></script>
     <script type="text/javascript" data-lift="with-nonce" src={scriptUrl(s"page/${S.renderVersion}.js")}></script>

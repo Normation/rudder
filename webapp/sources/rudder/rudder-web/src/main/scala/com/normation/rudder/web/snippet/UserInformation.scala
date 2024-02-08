@@ -49,6 +49,7 @@ import net.liftweb.http._
 import net.liftweb.http.js._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
+import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers._
 import org.springframework.security.core.context.SecurityContextHolder
 import scala.xml.NodeSeq
@@ -62,7 +63,7 @@ class UserInformation extends DispatchSnippet with DefaultExtendableSnippet[User
     "logout"          -> ((xml: NodeSeq) => logout(xml))
   )
 
-  def userCredentials = {
+  def userCredentials: CssSel = {
     CurrentUser.get match {
       case Some(u) =>
         val displayName = userRepo.get(u.getUsername).runNow match {
@@ -87,7 +88,7 @@ class UserInformation extends DispatchSnippet with DefaultExtendableSnippet[User
     }
   }
 
-  def logout = {
+  def logout: CssSel = {
     val onclick: JsCmd = {
       val func = SHtml.ajaxCall(
         JsNull,

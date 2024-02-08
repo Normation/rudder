@@ -97,7 +97,7 @@ class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository) {
     def wrap: Chunk[A] = Chunk(a)
   }
 
-  val criteria = Chunk(
+  val criteria: Chunk[ObjectCriterion] = Chunk(
     ObjectCriterion(
       OC_MACHINE,
       Chunk(
@@ -397,7 +397,7 @@ object MatcherUtils {
 }
 
 final case class DebugInfo(comparatorName: String, value: Option[String]) {
-  def formatValue = value match {
+  def formatValue:                                                                   String = value match {
     case None    => ""
     case Some(v) => s" ${v}"
   }
@@ -409,7 +409,7 @@ final case class DebugInfo(comparatorName: String, value: Option[String]) {
 final case class MatchHolderZio[A](debug: DebugInfo, values: Chunk[A], matcher: Chunk[A] => IOResult[Boolean])(implicit
     serializer:                           A => String
 ) {
-  def matches = for {
+  def matches: ZIO[Any, RudderError, Boolean] = for {
     res <- matcher(values)
     _   <- FactQueryProcessorLoggerPure.trace(debug.debugMsg(values, res))
   } yield res
@@ -551,7 +551,7 @@ final case class NodeCriterionMatcherDouble(extractor: CoreNodeFact => Chunk[Dou
 
 final case class NodeCriterionMatcherDate(extractorNode: CoreNodeFact => Chunk[DateTime])
     extends NodeCriterionOrderedValueMatcher[DateTime] {
-  val parseDate = (s: String) =>
+  val parseDate: String => Option[DateTime] = (s: String) =>
     DateFormaterService.parseDate(s).toOption.orElse(Try(DateTimeFormat.forPattern("dd/MM/YYYY").parseDateTime(s)).toOption)
   // we need to accept both ISO format and old dd/MM/YYYY format for compatibility
   // also, we discard the time, only keep date
@@ -559,7 +559,7 @@ final case class NodeCriterionMatcherDate(extractorNode: CoreNodeFact => Chunk[D
   override def extractor:               CoreNodeFact => Chunk[DateTime] = (n: CoreNodeFact) => extractorNode(n).map(_.withTimeAtStartOfDay())
   override def parseNum(value: String): Option[DateTime]                = parseDate(value).map(_.withTimeAtStartOfDay())
   override def serialise(a: DateTime):  String                          = DateFormaterService.serialize(a)
-  val order = Ordering.by(_.getMillis)
+  val order:                            Ordering[DateTime]              = Ordering.by(_.getMillis)
 }
 
 /*
