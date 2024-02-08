@@ -1,0 +1,21 @@
+#!/bin/sh
+
+# Hooks parameter are passed by environment variable:
+#
+# - RUDDER_NODE_ID: the nodeId
+# - RUDDER_NODE_HOSTNAME: the node fully qualified hostname
+# - RUDDER_NODE_POLICY_SERVER_ID: the node policy server id
+# - RUDDER_AGENT_TYPE : agent type ("cfengine-community" or "dsc")
+# - RUDDER_POLICIES_DIRECTORY_CURRENT: the full path of the base directory containing policies for that node
+# - RUDDER_POLICIES_DIRECTORY_NEW: the full path of the base directory containing next policies for that node (during a generation)
+# - RUDDER_POLICIES_DIRECTORY_ARCHIVE: the full path of the base directory containing previous policies for that node
+# - RUDDER_NODE_KIND: node kind: root, relay or node
+
+
+# Errors code on hooks are interpreted as follow:
+# - 0     : success, no log (apart if debug one)          , continue to next hook
+# - 1-31  : error  , error   log in /var/log/rudder/webapp/, stop processing
+# - 32-63 : warning, warning log in /var/log/rudder/webapp/, continue to next hook
+# - 64-255: reserved for future use case. Behavior may change without notice.
+
+rm -f /var/rudder/inventories/received/${RUDDER_NODE_HOSTNAME}-${RUDDER_NODE_ID}.ocs*
