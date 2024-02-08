@@ -107,7 +107,7 @@ object JsonResponseObjects {
   )
 
   object JRActiveTechnique {
-    def fromTechnique(activeTechnique: FullActiveTechnique) = {
+    def fromTechnique(activeTechnique: FullActiveTechnique): JRActiveTechnique = {
       JRActiveTechnique(activeTechnique.techniqueName.value, activeTechnique.techniques.map(_._1.serialize).toList)
     }
   }
@@ -202,7 +202,7 @@ object JsonResponseObjects {
       message:  String
   )
   object JRRevisionInfo     {
-    def fromRevisionInfo(r: RevisionInfo) = {
+    def fromRevisionInfo(r: RevisionInfo): JRRevisionInfo = {
       JRRevisionInfo(r.rev.value, DateFormaterService.serialize(r.date), r.author, r.message)
     }
   }
@@ -227,7 +227,7 @@ object JsonResponseObjects {
       mayBeEmpty:  Boolean
   )
   object JRTechniqueParameter {
-    def from(param: TechniqueParameter) = {
+    def from(param: TechniqueParameter): JRTechniqueParameter = {
       JRTechniqueParameter(
         param.id.value,
         param.name,
@@ -242,7 +242,7 @@ object JsonResponseObjects {
       state: String
   )
   object JRTechniqueResource  {
-    def from(resource: ResourceFile) = {
+    def from(resource: ResourceFile): JRTechniqueResource = {
       JRTechniqueResource(
         resource.path,
         resource.state.value
@@ -303,7 +303,7 @@ object JsonResponseObjects {
     }
   }
   object JRDirective          {
-    def empty(id: String) = JRDirective(None, id, "", "", "", "", "", Map(), 5, false, false, "", List())
+    def empty(id: String): JRDirective = JRDirective(None, id, "", "", "", "", "", Map(), 5, false, false, "", List())
 
     def fromDirective(technique: Technique, directive: Directive, crId: Option[ChangeRequestId]): JRDirective = {
       directive
@@ -406,7 +406,7 @@ object JsonResponseObjects {
 
   object JRRule {
     // create an empty json rule with just ID set
-    def empty(id: String) = JRRule(None, id, "", "", "", "", Nil, Nil, false, false, Nil, None, None)
+    def empty(id: String): JRRule = JRRule(None, id, "", "", "", "", Nil, Nil, false, false, Nil, None, None)
 
     // create from a rudder business rule
     def fromRule(
@@ -528,7 +528,7 @@ object JsonResponseObjects {
       rules:       List[String]
   )
   object JRSimpleRuleCategory {
-    def fromCategory(cat: RuleCategory, parent: String, rules: List[String]) = {
+    def fromCategory(cat: RuleCategory, parent: String, rules: List[String]): JRSimpleRuleCategory = {
       cat
         .into[JRSimpleRuleCategory]
         .withFieldComputed(_.id, _.id.value)
@@ -601,7 +601,7 @@ object JsonResponseObjects {
 
   object JRGlobalParameter {
     import GenericProperty._
-    def empty(name: String) = JRGlobalParameter(None, name, "".toConfigValue, "", None, None)
+    def empty(name: String):                                                    JRGlobalParameter = JRGlobalParameter(None, name, "".toConfigValue, "", None, None)
     def fromGlobalParameter(p: GlobalParameter, crId: Option[ChangeRequestId]): JRGlobalParameter = {
       JRGlobalParameter(crId.map(_.value.toString), p.name, p.value, p.description, p.inheritMode, p.provider)
     }
@@ -618,12 +618,12 @@ object JsonResponseObjects {
       origval:     Option[ConfigValue]
   )
   object JRProperty {
-    def fromGroupProp(p: GroupProperty) = {
+    def fromGroupProp(p: GroupProperty): JRProperty = {
       val desc = if (p.description.trim.isEmpty) None else Some(p.description)
       JRProperty(p.name, p.value, desc, p.inheritMode, p.provider, None, None)
     }
 
-    def fromNodePropertyHierarchy(prop: NodePropertyHierarchy, renderInHtml: RenderInheritedProperties) = {
+    def fromNodePropertyHierarchy(prop: NodePropertyHierarchy, renderInHtml: RenderInheritedProperties): JRProperty = {
       val (parents, origval) = prop.hierarchy.reverse match {
         case Nil  => (None, None)
         case list =>
@@ -660,7 +660,7 @@ object JsonResponseObjects {
         value: ConfigValue
     ) extends JRParentProperty
 
-    def fromParentProperty(p: ParentProperty) = {
+    def fromParentProperty(p: ParentProperty): JRParentProperty = {
       p match {
         case ParentProperty.Group(name, id, value) =>
           JRParentGroup(name, id.serialize, value)
@@ -682,7 +682,11 @@ object JsonResponseObjects {
   )
 
   object JRGroupInheritedProperties {
-    def fromGroup(groupId: NodeGroupId, properties: List[NodePropertyHierarchy], renderInHtml: RenderInheritedProperties) = {
+    def fromGroup(
+        groupId:      NodeGroupId,
+        properties:   List[NodePropertyHierarchy],
+        renderInHtml: RenderInheritedProperties
+    ): JRGroupInheritedProperties = {
       JRGroupInheritedProperties(
         groupId.serialize,
         properties.sortBy(_.prop.name).map(JRProperty.fromNodePropertyHierarchy(_, renderInHtml))
@@ -696,11 +700,11 @@ object JsonResponseObjects {
       comparator: String,
       value:      String
   ) {
-    def toStringCriterionLine = StringCriterionLine(objectType, attribute, comparator, Some(value))
+    def toStringCriterionLine: StringCriterionLine = StringCriterionLine(objectType, attribute, comparator, Some(value))
   }
 
   object JRCriterium {
-    def fromCriterium(c: CriterionLine) = {
+    def fromCriterium(c: CriterionLine): JRCriterium = {
       c.into[JRCriterium]
         .withFieldComputed(_.objectType, _.objectType.objectType)
         .withFieldComputed(_.attribute, _.attribute.name)
@@ -717,7 +721,7 @@ object JsonResponseObjects {
   )
 
   object JRQuery {
-    def fromQuery(query: Query) = {
+    def fromQuery(query: Query): JRQuery = {
       JRQuery(
         query.returnType.value,
         query.composition.value,
@@ -778,9 +782,9 @@ object JsonResponseObjects {
   }
 
   object JRGroup {
-    def empty(id: String) = JRGroup(None, id, "", "", "", None, Nil, false, false, Nil, Nil, "", false)
+    def empty(id: String): JRGroup = JRGroup(None, id, "", "", "", None, Nil, false, false, Nil, Nil, "", false)
 
-    def fromGroup(group: NodeGroup, catId: NodeGroupCategoryId, crId: Option[ChangeRequestId]) = {
+    def fromGroup(group: NodeGroup, catId: NodeGroupCategoryId, crId: Option[ChangeRequestId]): JRGroup = {
       group
         .into[JRGroup]
         .enableBeanGetters
@@ -807,7 +811,7 @@ object JsonResponseObjects {
 
   object JRRuleNodesDirectives {
     // create an empty json rule with just ID set
-    def empty(id: String) = JRRuleNodesDirectives(id, 0, 0)
+    def empty(id: String): JRRuleNodesDirectives = JRRuleNodesDirectives(id, 0, 0)
 
     // create from a rudder business rule
     def fromData(ruleId: RuleId, nodesCount: Int, directivesCount: Int): JRRuleNodesDirectives = {
@@ -821,7 +825,7 @@ object JsonResponseObjects {
   )
 
   object JRHooks {
-    def fromHook(hook: Hooks) = {
+    def fromHook(hook: Hooks): JRHooks = {
       hook
         .into[JRHooks]
         .withFieldConst(_.basePath, hook.basePath)

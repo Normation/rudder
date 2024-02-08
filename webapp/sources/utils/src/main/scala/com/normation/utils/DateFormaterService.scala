@@ -44,6 +44,7 @@ import org.joda.time.DateTimeFieldType
 import org.joda.time.Duration
 import org.joda.time.chrono.ISOChronology
 import org.joda.time.format.DateTimeFormat
+import org.joda.time.format.DateTimeFormatter
 import org.joda.time.format.DateTimeFormatterBuilder
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.format.PeriodFormatterBuilder
@@ -52,14 +53,14 @@ import zio.json._
 
 object DateFormaterService {
 
-  val displayDateFormat = new DateTimeFormatterBuilder()
+  val displayDateFormat: DateTimeFormatter = new DateTimeFormatterBuilder()
     .append(DateTimeFormat.forPattern("YYYY-MM-dd"))
     .appendLiteral(' ')
     .append(DateTimeFormat.forPattern("HH:mm:ssZ"))
     .toFormatter
 
-  val rfcDateformat           = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZZ")
-  val rfcDateformatWithMillis = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
+  val rfcDateformat:           DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZZ")
+  val rfcDateformatWithMillis: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
 
   /*
    * Display date must be used only for the user facing date in non serialized form
@@ -124,7 +125,7 @@ object DateFormaterService {
    * So we use a:
    * YYYY-MM-dd_HH_mm_ss.SSS
    */
-  val gitTagFormat = new DateTimeFormatterBuilder()
+  val gitTagFormat: DateTimeFormatter = new DateTimeFormatterBuilder()
     .appendYear(4, 4)
     .appendLiteral('-')
     .appendFixedDecimal(DateTimeFieldType.monthOfYear(), 2)

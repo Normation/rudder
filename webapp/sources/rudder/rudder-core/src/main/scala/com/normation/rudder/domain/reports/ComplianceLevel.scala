@@ -90,7 +90,7 @@ final case class CompliancePercent(
     auditError:         Double = 0,
     badPolicyMode:      Double = 0
 )(val precision:        CompliancePrecision = Level0) {
-  val compliance = success + repaired + notApplicable + compliant + auditNotApplicable
+  val compliance: Double = success + repaired + notApplicable + compliant + auditNotApplicable
 }
 
 final case class ComplianceSerializable(
@@ -111,7 +111,7 @@ final case class ComplianceSerializable(
 )
 
 object ComplianceSerializable {
-  def fromPercent(compliancePercent: CompliancePercent) = {
+  def fromPercent(compliancePercent: CompliancePercent): ComplianceSerializable = {
     ComplianceSerializable(
       if (compliancePercent.pending == 0) None else Some(compliancePercent.pending),
       if (compliancePercent.notApplicable == 0) None else Some(compliancePercent.notApplicable),
@@ -134,7 +134,7 @@ object ComplianceSerializable {
 object CompliancePercent {
 
   // a correspondance array between worse order in `ReportType` and the order of fields in `ComplianceLevel`
-  val WORSE_ORDER = {
+  val WORSE_ORDER: Array[Int] = {
     import ReportType._
     Array(
       Pending,
@@ -348,7 +348,7 @@ object CompliancePercent {
    *  Init compliance percent from a Seq. Order is of course extremely important here.
    *  This is a dangerous internal only method: if the seq is too short or too big, throw an error.
    */
-  protected def fromSeq(pc: Seq[Double], precision: CompliancePrecision) = {
+  protected def fromSeq(pc: Seq[Double], precision: CompliancePrecision): CompliancePercent = {
     val expected = WORSE_ORDER.length
     if (pc.length != expected) {
       throw new IllegalArgumentException(
@@ -382,15 +382,16 @@ final case class ComplianceLevel(
     badPolicyMode:      Int = 0
 ) {
 
-  override def toString() =
+  override def toString(): String =
     s"[p:${pending} s:${success} r:${repaired} e:${error} u:${unexpected} m:${missing} nr:${noAnswer} na:${notApplicable} rd:${reportsDisabled} c:${compliant} ana:${auditNotApplicable} nc:${nonCompliant} ae:${auditError} bpm:${badPolicyMode}]"
 
-  lazy val total    =
+  lazy val total:    Int =
     pending + success + repaired + error + unexpected + missing + noAnswer + notApplicable + reportsDisabled + compliant + auditNotApplicable + nonCompliant + auditError + badPolicyMode
-  lazy val total_ok = success + repaired + notApplicable + compliant + auditNotApplicable
+  lazy val total_ok: Int = success + repaired + notApplicable + compliant + auditNotApplicable
 
-  def withoutPending                                                     = this.copy(pending = 0, reportsDisabled = 0)
-  def computePercent(precision: CompliancePrecision = PERCENT_PRECISION) = CompliancePercent.fromLevels(this, precision)
+  def withoutPending:                                                     ComplianceLevel   = this.copy(pending = 0, reportsDisabled = 0)
+  def computePercent(precision: CompliancePrecision = PERCENT_PRECISION): CompliancePercent =
+    CompliancePercent.fromLevels(this, precision)
 
   def complianceWithoutPending(precision: CompliancePrecision = PERCENT_PRECISION): Double =
     CompliancePercent.complianceWithoutPending(this, precision)
@@ -623,7 +624,7 @@ object ComplianceLevelSerialisation {
     )
   }
 
-  def parseLevel(json: JValue) = {
+  def parseLevel(json: JValue): ComplianceLevel = {
     (ComplianceLevel.apply _).tupled(parse(json, (i: BigInt) => i.intValue))
   }
 

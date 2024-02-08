@@ -39,13 +39,14 @@ package com.normation.rudder.domain.logger
 
 import com.normation.NamedZioLogger
 import net.liftweb.common.Logger
+import org.slf4j
 import org.slf4j.LoggerFactory
 
 /**
  * Applicative log of interest for Rudder ops.
  */
 object TimingDebugLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("debug_timing")
+  override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("debug_timing")
 }
 
 object TimingDebugLoggerPure extends NamedZioLogger {

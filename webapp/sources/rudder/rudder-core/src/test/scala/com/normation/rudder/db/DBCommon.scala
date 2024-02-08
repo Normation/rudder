@@ -46,7 +46,9 @@ import com.normation.rudder.repository.jdbc.RudderDatasourceProvider
 import doobie._
 import doobie.implicits._
 import doobie.implicits.javasql._
+import java.io.Closeable
 import java.util.Properties
+import javax.sql.DataSource
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
 import org.specs2.mutable.Specification
@@ -67,7 +69,7 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     """Set JAVA property 'test.postgres' to false to ignore that test, for example from maven with: mvn -DargLine="-Dtest.postgres=false" test"""
   )
 
-  lazy val doDatabaseConnection = java.lang.System.getProperty("test.postgres", "").toLowerCase match {
+  lazy val doDatabaseConnection: Boolean = java.lang.System.getProperty("test.postgres", "").toLowerCase match {
     case "true" | "1" => true
     case _            => false
   }
@@ -113,7 +115,7 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
   override def beforeAll(): Unit = initDb()
   override def afterAll():  Unit = cleanDb()
 
-  def initDb() = {
+  def initDb(): AnyVal = {
     if (sqlInit.trim.size > 0) {
       // Postgres'JDBC driver just accept multiple statement
       // in one query. No need to try to split ";" etc.
@@ -124,7 +126,7 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     }
   }
 
-  def cleanDb() = {
+  def cleanDb(): Unit = {
     if (sqlClean.trim.size > 0) doobie.transactRunEither(xa => Update0(sqlClean, None).run.transact(xa)) match {
       case Right(x) => x
       case Left(ex) => throw ex
@@ -137,7 +139,7 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
   // services //
   //////////////
 
-  lazy val properties = {
+  lazy val properties: Properties = {
     val p  = new Properties()
     val in = this.getClass.getClassLoader.getResourceAsStream("database.properties")
     p.load(in)
@@ -146,7 +148,7 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
   }
 
   // init DB and repositories
-  lazy val dataSource = {
+  lazy val dataSource: DataSource with Closeable = {
     val config = new RudderDatasourceProvider(
       properties.getProperty("jdbc.driverClassName"),
       properties.getProperty("jdbc.url"),
@@ -166,14 +168,14 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     }).mkString(", "))
   }
 
-  lazy val doobie                                       = new DoobieIO(dataSource)
-  def transacRun[T](query: Transactor[Task] => Task[T]) = {
+  lazy val doobie = new DoobieIO(dataSource)
+  def transacRun[T](query: Transactor[Task] => Task[T]): T = {
     doobie.transactRunEither(xa => query(xa)) match {
       case Right(x) => x
       case Left(ex) => throw ex
     }
   }
-  lazy val migrationEventLogRepository                  = new MigrationEventLogRepository(doobie)
+  lazy val migrationEventLogRepository = new MigrationEventLogRepository(doobie)
 
   def insertLog(log: MigrationTestLog): Int = {
     doobie.transactRunEither(xa => sql"""

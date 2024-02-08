@@ -86,7 +86,7 @@ class DeleteEditorTechniqueImpl(
     baseConfigRepoPath:   String // root of config repos
 ) extends DeleteEditorTechnique {
   // root of technique repository
-  val techniquesDir = File(baseConfigRepoPath) / "techniques"
+  val techniquesDir: File = File(baseConfigRepoPath) / "techniques"
 
   override def deleteTechnique(
       techniqueName:    String,

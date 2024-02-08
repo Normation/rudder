@@ -50,12 +50,14 @@ import com.normation.rudder.domain.queries.Or
 import com.normation.rudder.web.ChooseTemplate
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.GUIDJsExp
 import net.liftweb.http.S
 import net.liftweb.http.SHtml
 import net.liftweb.http.js._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.Helpers._
+import scala.collection.mutable
 import scala.collection.mutable.{Map => MutMap}
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.Buffer
@@ -144,7 +146,7 @@ class SearchNodeComponent(
   // activate the global save button
   var searchFormHasError = false
 
-  val errors = MutMap[CriterionLine, String]()
+  val errors: mutable.Map[CriterionLine, String] = MutMap[CriterionLine, String]()
 
   def buildQuery(isGroupsPage: Boolean): NodeSeq = {
 
@@ -263,7 +265,7 @@ class SearchNodeComponent(
       val checkBox                             = {
         SHtml.checkbox(
           rType == NodeAndRootServerReturnType,
-          { value: Boolean =>
+          { (value: Boolean) =>
             if (value)
               rType = NodeAndRootServerReturnType
             else
@@ -279,9 +281,8 @@ class SearchNodeComponent(
           .radio(
             Seq("AND", "OR"),
             Full(if (comp == Or) "OR" else "AND"),
-            { value: String =>
-              composition = CriterionComposition.parse(value).getOrElse(And)
-            } // default to AND on unknown composition string
+            (value: String) => composition = CriterionComposition.parse(value).getOrElse(And)
+            // default to AND on unknown composition string
           )
           .flatMap(radio => <label>
             {radio.xhtml}
@@ -292,7 +293,7 @@ class SearchNodeComponent(
       val transformCheckbox = {
         SHtml.checkbox(
           transform == ResultTransformation.Invert,
-          { value: Boolean =>
+          { (value: Boolean) =>
             if (value)
               transform = ResultTransformation.Invert
             else
@@ -338,7 +339,7 @@ class SearchNodeComponent(
      */
     def showQueryAndGridContent(): NodeSeq = {
       (
-        "content-query" #> { x: NodeSeq => displayQuery(x, false) }
+        "content-query" #> { (x: NodeSeq) => displayQuery(x, false) }
         & "update-gridresult" #> srvGrid.displayAndInit(Some(Seq()), "serverGrid") // we need to set something, or IE moans
       )(searchNodes)
     }
@@ -560,7 +561,7 @@ object SearchNodeComponent {
   }
 
   // expected "newObjectTypeValue,attributeSelectEltId,oldAttrValue,comparatorSelectEltId,oldCompValue,valueSelectEltId,oldValue
-  def ajaxAttr(lines: Buffer[CriterionLine], i: Int) = {
+  def ajaxAttr(lines: Buffer[CriterionLine], i: Int): GUIDJsExp = {
     SHtml.ajaxCall( // we we change the attribute, we want to reset the value, see issue #1199
       JE.JsRaw(
         "this.value+',at_%s,'+%s+',ct_%s,'+ %s +',v_%s,'+%s"
@@ -570,7 +571,7 @@ object SearchNodeComponent {
     )
   }
   // expect "objectTypeValue,newAttrValue,comparatorSelectEltId,oldCompValue,valueSelectEltId
-  def ajaxComp(lines: Buffer[CriterionLine], i: Int) = {
+  def ajaxComp(lines: Buffer[CriterionLine], i: Int): GUIDJsExp = {
     SHtml.ajaxCall( // we we change the attribute, we want to reset the value, see issue #1199
       JE.JsRaw(
         "%s+','+this.value+',ct_%s,'+ %s +',v_%s,'+%s"
@@ -580,7 +581,7 @@ object SearchNodeComponent {
     )
   }
   // expect "newCompValue,valueSelectEltId"
-  def ajaxVal(lines: Buffer[CriterionLine], i: Int)  = {
+  def ajaxVal(lines: Buffer[CriterionLine], i: Int):  GUIDJsExp = {
     SHtml.ajaxCall(JE.JsRaw("this.value+',v_%s'".format(i)), s => After(TimeSpan(200), replaceValue(s)))
   }
 
@@ -682,7 +683,7 @@ object SearchNodeComponent {
     )
   }
 
-  val defaultLine = {
+  val defaultLine: CriterionLine = {
     // in case of further modification in ditQueryData
     require(
       ditQueryData.criteriaMap(OC_NODE).criteria(0).name == "OS",

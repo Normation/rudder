@@ -57,9 +57,9 @@ import org.specs2.runner._
 @RunWith(classOf[JUnitRunner])
 class PrepareTemplateVariableTest extends Specification {
 
-  def TID(s: String) = TechniqueId(TechniqueName(s), TechniqueVersionHelper("1.0"))
+  def TID(s: String): TechniqueId = TechniqueId(TechniqueName(s), TechniqueVersionHelper("1.0"))
 
-  val bundles = List(
+  val bundles: List[TechniqueBundles] = List(
     (
       "Global configuration for all nodes/20. Install jdk version 1.0",
       "directive1",

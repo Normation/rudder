@@ -66,7 +66,7 @@ class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatc
   }
 
   implicit class GetPureResult[A](res: PureResult[A]) {
-    def forceGet = res match {
+    def forceGet: A = res match {
       case Right(v)  => v
       case Left(err) => throw new RuntimeException(err.fullMsg)
     }

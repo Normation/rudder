@@ -20,13 +20,13 @@ object WithNonce extends StatefulSnippet {
     */
   private object nonce extends RequestVar[String](defaultValue) {}
 
-  def dispatch = { case _ => render }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case _ => render }
 
-  def render(xhtml: NodeSeq) = {
+  def render(xhtml: NodeSeq): NodeSeq = {
     xhtml.map(scriptWithNonce(_))
   }
 
-  def scriptWithNonce(base: Node) = {
+  def scriptWithNonce(base: Node): Node = {
     nonce.setIfUnset(generateNonce)
     val attributes = MetaData.update(base.attributes, base.scope, new UnprefixedAttribute("nonce", getCurrentNonce, Null))
 

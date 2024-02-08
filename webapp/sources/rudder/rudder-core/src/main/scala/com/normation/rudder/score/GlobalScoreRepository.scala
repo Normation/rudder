@@ -80,12 +80,12 @@ object GlobalScoreRepositoryImpl {
   }
 
   implicit val globalScoreRead:       Read[GlobalScore]           = {
-    Read[(ScoreValue, String, List[NoDetailsScore])].map { d: (ScoreValue, String, List[NoDetailsScore]) =>
+    Read[(ScoreValue, String, List[NoDetailsScore])].map { (d: (ScoreValue, String, List[NoDetailsScore])) =>
       GlobalScore(d._1, d._2, d._3)
     }
   }
   implicit val globalScoreWithIdRead: Read[(NodeId, GlobalScore)] = {
-    Read[(String, ScoreValue, String, List[NoDetailsScore])].map { d: (String, ScoreValue, String, List[NoDetailsScore]) =>
+    Read[(String, ScoreValue, String, List[NoDetailsScore])].map { (d: (String, ScoreValue, String, List[NoDetailsScore])) =>
       (NodeId(d._1), GlobalScore(d._2, d._3, d._4))
     }
   }

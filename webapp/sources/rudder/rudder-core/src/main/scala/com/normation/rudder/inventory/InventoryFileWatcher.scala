@@ -76,11 +76,11 @@ import zio.syntax._
 // utility object to hold common utilities
 object InventoryProcessingUtils {
 
-  val inventoryExtensions = "gz" :: "xml" :: "ocs" :: "sign" :: Nil
+  val inventoryExtensions: List[String] = "gz" :: "xml" :: "ocs" :: "sign" :: Nil
 
   val signExtension = ".sign"
 
-  def logDirPerm(dir: File, name: String) = {
+  def logDirPerm(dir: File, name: String): Unit = {
     if (dir.isDirectory && dir.isWritable) {
       InventoryProcessingLogger.logEffect.debug(s"${name} inventories directory [ok]: ${dir.pathAsString}")
     } else {
@@ -90,15 +90,15 @@ object InventoryProcessingUtils {
     }
   }
 
-  def hasValidInventoryExtension(file: File) = {
+  def hasValidInventoryExtension(file: File): Boolean = {
     val ext = file.extension(includeDot = false, includeAll = false).getOrElse("")
     inventoryExtensions.contains(ext)
   }
 
-  def makeManagedStream(file: File, kind: String = "inventory") = IOManaged.makeM[InputStream] {
+  def makeManagedStream(file: File, kind: String = "inventory"): IOManaged[InputStream] = IOManaged.makeM[InputStream] {
     IOResult.attempt(s"Error when trying to read ${kind} file '${file.name}'")(file.newInputStream)
   }(_.close())
-  def makeFileExists(file: File)                                = IOManaged.make[Boolean](file.exists)(_ => ())
+  def makeFileExists(file: File):                                IOManaged[Boolean]     = IOManaged.make[Boolean](file.exists)(_ => ())
 }
 
 /**
@@ -113,12 +113,12 @@ class InventoryFileWatcher(
     collectOldInventoriesFrequency: Duration // how often you check for old inventories
 ) {
 
-  val takeCareOfUnprocessedFileAfter = 3.minutes
-  val semaphore                      = Semaphore.make(1).runNow
+  val takeCareOfUnprocessedFileAfter: Duration  = 3.minutes
+  val semaphore:                      Semaphore = Semaphore.make(1).runNow
 
-  val incoming = File(incomingInventoryPath)
+  val incoming: File = File(incomingInventoryPath)
   InventoryProcessingUtils.logDirPerm(incoming, "Incoming")
-  val updated  = File(updatedInventoryPath)
+  val updated:  File = File(updatedInventoryPath)
   InventoryProcessingUtils.logDirPerm(updated, "Accepted nodes updates")
 
   // service for cleaning
@@ -144,9 +144,9 @@ class InventoryFileWatcher(
   }
 
   // That reference holds watcher instance to be able to stop them if asked
-  val ref = Ref.Synchronized.make(Option.empty[Watchers]).runNow
+  val ref: Ref.Synchronized[Option[Watchers]] = Ref.Synchronized.make(Option.empty[Watchers]).runNow
 
-  def startWatcher() = semaphore
+  def startWatcher(): Either[RudderError, Unit] = semaphore
     .withPermit(
       ref.updateZIO(opt => {
         opt match {
@@ -172,7 +172,7 @@ class InventoryFileWatcher(
     .either
     .runNow
 
-  def stopWatcher() = semaphore
+  def stopWatcher(): Either[RudderError, Unit] = semaphore
     .withPermit(
       ref.updateZIO(opt => {
         opt match {
@@ -509,7 +509,7 @@ class SchedulerMissedNotify(
     checker: CheckExistingInventoryFiles,
     period:  Duration
 ) {
-  val schedule = {
+  val schedule: URIO[Any, Fiber.Runtime[Nothing, Nothing]] = {
     def loop(d: Duration) = for {
       _ <- checker.checkFilesOlderThan(d)
       _ <- ZIO.clockWith(_.sleep(period))
@@ -538,8 +538,8 @@ class ProcessFile(
     prioIncomingDirPath: String
 ) extends HandleIncomingInventoryFile {
 
-  val prioIncomingDir = File(prioIncomingDirPath)
-  val sign            = if (InventoryProcessingUtils.signExtension.charAt(0) == '.') {
+  val prioIncomingDir: File   = File(prioIncomingDirPath)
+  val sign:            String = if (InventoryProcessingUtils.signExtension.charAt(0) == '.') {
     InventoryProcessingUtils.signExtension
   } else {
     "." + InventoryProcessingUtils.signExtension
@@ -560,7 +560,7 @@ class ProcessFile(
    */
 
   // time after the last mod event after which we consider that a file is written
-  val fileWrittenThreshold = Duration(500, TimeUnit.MILLISECONDS)
+  val fileWrittenThreshold: Duration = Duration(500, TimeUnit.MILLISECONDS)
 
   /*
    * This is the map of be processed file based on received events.
@@ -568,7 +568,8 @@ class ProcessFile(
    * The task is configured to be processed after some delay.
    * We only modify that map as a result of a dequeue event.
    */
-  val toBeProcessed = ZioRuntime.unsafeRun(zio.Ref.Synchronized.make(Map.empty[File, Fiber[RudderError, Unit]]))
+  val toBeProcessed: Ref.Synchronized[Map[File, Fiber[RudderError, Unit]]] =
+    ZioRuntime.unsafeRun(zio.Ref.Synchronized.make(Map.empty[File, Fiber[RudderError, Unit]]))
 
   /*
    * We need a queue of add file / file written even to delimit when a file should be
@@ -577,7 +578,7 @@ class ProcessFile(
    * (resetting the task). Once the task is started, we want to free space in the map, and so enqueue
    * a "file written" event.
    */
-  val watchEventQueue = ZioRuntime.unsafeRun(Queue.bounded[WatchEvent](16384))
+  val watchEventQueue: Queue[WatchEvent] = ZioRuntime.unsafeRun(Queue.bounded[WatchEvent](16384))
 
   def processMessage(): UIO[Unit] = {
     watchEventQueue.take.flatMap {
@@ -641,7 +642,7 @@ class ProcessFile(
    * When queue is full, we prefer to drop old `SaveInventory` to new ones. In the worst case, they will be caught up
    * by the SchedulerMissedNotify and put again in the WatchEvent queue.
    */
-  protected val saveInventoryBuffer = Queue.sliding[InventoryPair](1024).runNow
+  protected val saveInventoryBuffer: Queue[InventoryPair] = Queue.sliding[InventoryPair](1024).runNow
 
   /*
    * The logic is:
@@ -710,7 +711,7 @@ class ProcessFile(
    * It likely means that we add several "watch event: add" for that file (either copied several time,
    * touched, or inotify event emission not what we thought)
    */
-  val saveInventoryBufferProcessing = {
+  val saveInventoryBufferProcessing: ZIO[Any, Nothing, Unit] = {
     import com.normation.rudder.inventory.StatusLog._
     for {
       fst  <- saveInventoryBuffer.take

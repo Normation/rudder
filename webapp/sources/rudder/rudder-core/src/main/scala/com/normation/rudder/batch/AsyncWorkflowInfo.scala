@@ -45,5 +45,5 @@ class AsyncWorkflowInfo extends LiftActor with ListenerManager {
 
   def createUpdate = WorkflowUpdate
 
-  override protected def lowPriority = { case WorkflowUpdate => updateListeners() }
+  override protected def lowPriority: PartialFunction[Any, Unit] = { case WorkflowUpdate => updateListeners() }
 }

@@ -44,7 +44,7 @@ private object JsonSpecMatcher {
     /**
      * Compares both "pretty" format version of json
      */
-    def toStringMatcher = {
+    def toStringMatcher: EqualityMatcher[String] = {
       new EqualityMatcher[String](t.toJsonPretty) {
         override def apply[S <: String](s: Expectable[S]): MatchResult[S] = {
           val checkedValues =
@@ -70,15 +70,15 @@ private object JsonSpecMatcher {
     }
   }
 
-  def cleanParse(text: String) = {
+  def cleanParse(text: String): String = {
     val cleaned = text.replaceAll("(\\w)\\s+", "$1").replaceAll("(\\W)\\s+", "$1").replaceAll("\\s+$", "")
     prettyPrint(cleaned)
   }
 
-  def prettyPrint(json: String) = {
+  def prettyPrint(json: String): String = {
     json.fromJson[Json].map(_.toJsonPretty).getOrElse(json)
   }
-  def prettyPrint(json: Json)   = {
+  def prettyPrint(json: Json):   String = {
     json.toJsonPretty
   }
 }

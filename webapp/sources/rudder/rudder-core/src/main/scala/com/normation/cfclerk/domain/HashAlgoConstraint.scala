@@ -192,7 +192,7 @@ object HashAlgoConstraint {
     case object AIX extends DerivedPasswordType {
       final val name = "AIX"
 
-      def hash(h: HashAlgoConstraint) = h match {
+      def hash(h: HashAlgoConstraint): HashAlgoConstraint = h match {
         case LinuxShadowMD5    => AixMD5
         case LinuxShadowSHA256 => AixSHA256
         case LinuxShadowSHA512 => AixSHA512
@@ -203,7 +203,7 @@ object HashAlgoConstraint {
     case object Linux extends DerivedPasswordType {
       final val name = "Unix"
 
-      def hash(h: HashAlgoConstraint) = h match {
+      def hash(h: HashAlgoConstraint): HashAlgoConstraint = h match {
         case AixMD5    => LinuxShadowMD5
         case AixSHA256 => LinuxShadowSHA256
         case AixSHA512 => LinuxShadowSHA512
@@ -217,7 +217,7 @@ object HashAlgoConstraint {
   ///// Generic methods on algos
   /////
 
-  def algorithms = values[HashAlgoConstraint]
+  def algorithms: Set[HashAlgoConstraint] = values[HashAlgoConstraint]
 
   /**
    * A default order between hash algo constraints, for example
@@ -244,11 +244,11 @@ object HashAlgoConstraint {
     algos.toSeq.sortBy(order)
   }
 
-  def algoNames(algos: Set[HashAlgoConstraint]) = {
+  def algoNames(algos: Set[HashAlgoConstraint]): String = {
     sort(algos).map(_.prefix.toUpperCase).mkString(", ")
   }
 
-  def fromStringIn(algos: Set[HashAlgoConstraint], algoName: String) = {
+  def fromStringIn(algos: Set[HashAlgoConstraint], algoName: String): Option[HashAlgoConstraint] = {
     algos.find(a => a.prefix == algoName.toLowerCase)
   }
 

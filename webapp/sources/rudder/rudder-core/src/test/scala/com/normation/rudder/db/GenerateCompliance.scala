@@ -51,8 +51,10 @@ import doobie._
 import doobie.implicits._
 import doobie.postgres.implicits._
 import java.io.ByteArrayInputStream
+import java.io.Closeable
 import java.nio.charset.StandardCharsets
 import java.util.Properties
+import javax.sql.DataSource
 import org.joda.time.DateTime
 import scala.util.Random
 import zio.interop.catz._
@@ -82,7 +84,7 @@ object GenerateCompliance {
   }
 
   // init DB and repositories
-  lazy val dataSource = {
+  lazy val dataSource: DataSource with Closeable = {
     val config = new RudderDatasourceProvider(
       properties.getProperty("rudder.jdbc.driver"),
       properties.getProperty("rudder.jdbc.url"),
@@ -95,7 +97,7 @@ object GenerateCompliance {
 
   lazy val doobie = new Doobie(dataSource)
 
-  lazy val roLdap = {
+  lazy val roLdap: ROPooledSimpleAuthConnectionProvider = {
     new ROPooledSimpleAuthConnectionProvider(
       properties.getProperty("ldap.authdn"),
       properties.getProperty("ldap.authpw"),
@@ -104,7 +106,7 @@ object GenerateCompliance {
       poolSize = 2
     )
   }
-  lazy val rwLdap = {
+  lazy val rwLdap: RWPooledSimpleAuthConnectionProvider = {
     new RWPooledSimpleAuthConnectionProvider(
       properties.getProperty("ldap.authdn"),
       properties.getProperty("ldap.authpw"),
@@ -203,7 +205,7 @@ object GenerateCompliance {
   // first example with composite type for compliance
   // -----------------------------------------------------------------------
 
-  def saveCompositeCompliances(runs: Seq[RunCompliance]) = {
+  def saveCompositeCompliances(runs: Seq[RunCompliance]): List[Int] = {
 
     /*
      * Array of composite type are not supported by JDBC driver which only see
@@ -301,7 +303,7 @@ object GenerateCompliance {
   // second example with a successly normalized table (with loads of line)
   // -----------------------------------------------------------------------
 
-  val columns            = List(
+  val columns:            List[String] = List(
     "nodeid",
     "runtimestamp",
     "ruleid",
@@ -321,8 +323,8 @@ object GenerateCompliance {
     "auditerror",
     "badpolicymode"
   )
-  val columnsString      = columns.mkString(",")
-  val columnsPlaceholder = columns.map(_ => "?").mkString(",")
+  val columnsString:      String       = columns.mkString(",")
+  val columnsPlaceholder: String       = columns.map(_ => "?").mkString(",")
 
   // in that case, our data are just expansion of RuleCompliance
   type DATA = (String, DateTime, String, String, ComplianceLevel)
@@ -338,7 +340,7 @@ object GenerateCompliance {
     )
   }
 
-  def saveComplianceLevel(runs: Seq[RunCompliance]) = {
+  def saveComplianceLevel(runs: Seq[RunCompliance]): Int = {
 
     val expanded = (for {
       run  <- runs

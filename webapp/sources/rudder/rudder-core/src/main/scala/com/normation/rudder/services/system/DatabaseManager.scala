@@ -111,7 +111,7 @@ class DatabaseManagerImpl(
     reportsRepository.getDatabaseSize(reportsRepository.archiveTable)
   }
 
-  def archiveEntries(date: DateTime) = {
+  def archiveEntries(date: DateTime): Box[Int] = {
     val archiveReports         = reportsRepository.archiveEntries(date) ?~! "An error occured while archiving reports"
     val archiveNodeConfigs     =
       expectedReportsRepo.archiveNodeConfigurations(date) ?~! "An error occured while archiving Node Configurations"

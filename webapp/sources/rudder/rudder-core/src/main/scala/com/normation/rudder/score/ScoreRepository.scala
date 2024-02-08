@@ -85,10 +85,10 @@ class ScoreRepositoryImpl(doobie: Doobie) extends ScoreRepository {
   }
 
   implicit val scoreRead:       Read[Score]           = {
-    Read[(String, ScoreValue, String, Json)].map { d: (String, ScoreValue, String, Json) => Score(d._1, d._2, d._3, d._4) }
+    Read[(String, ScoreValue, String, Json)].map((d: (String, ScoreValue, String, Json)) => Score(d._1, d._2, d._3, d._4))
   }
   implicit val scoreWithIdRead: Read[(NodeId, Score)] = {
-    Read[(String, String, ScoreValue, String, Json)].map { d: (String, String, ScoreValue, String, Json) =>
+    Read[(String, String, ScoreValue, String, Json)].map { (d: (String, String, ScoreValue, String, Json)) =>
       (NodeId(d._1), Score(d._2, d._3, d._4, d._5))
     }
   }

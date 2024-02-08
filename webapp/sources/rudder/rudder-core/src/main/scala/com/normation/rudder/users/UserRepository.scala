@@ -270,7 +270,7 @@ object UserRepository {
 }
 
 object InMemoryUserRepository {
-  def make() = {
+  def make(): ZIO[Any, Nothing, InMemoryUserRepository] = {
     for {
       users    <- Ref.make(Map[String, UserInfo]())
       sessions <- Ref.make(List[UserSession]())
@@ -536,7 +536,19 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
     Read[
       (String, DateTime, String, String, Option[String], Option[String], Option[DateTime], List[StatusHistory], Json.Obj)
     ].map {
-      u: ((String, DateTime, String, String, Option[String], Option[String], Option[DateTime], List[StatusHistory], Json.Obj)) =>
+      (u: (
+          (
+              String,
+              DateTime,
+              String,
+              String,
+              Option[String],
+              Option[String],
+              Option[DateTime],
+              List[StatusHistory],
+              Json.Obj
+          )
+      )) =>
         UserInfo(
           u._1,
           u._2,

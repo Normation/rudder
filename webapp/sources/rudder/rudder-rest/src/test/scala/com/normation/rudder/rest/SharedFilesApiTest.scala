@@ -50,15 +50,15 @@ import org.specs2.runner._
 class SharedFilesApiTest extends Specification {
 
   // Setup temporary test files
-  val tmp      = File(s"/tmp/rudder-test-shared-files/${DateTime.now.toString(ISODateTimeFormat.dateTime())}")
+  val tmp:      File = File(s"/tmp/rudder-test-shared-files/${DateTime.now.toString(ISODateTimeFormat.dateTime())}")
   tmp.createDirectoryIfNotExists(createParents = true)
-  val folder1  = tmp / "folder1"
+  val folder1:  File = tmp / "folder1"
   folder1.createDirectoryIfNotExists()
-  val file1    = folder1 / "file1"
+  val file1:    File = folder1 / "file1"
   file1.createFile()
-  val file2    = tmp / "file2"
+  val file2:    File = tmp / "file2"
   file2.createFile()
-  val symlink1 = tmp / "symlink1"
+  val symlink1: File = tmp / "symlink1"
   symlink1.symbolicLinkTo(File("/etc"))
 
   "sanitize valid path" >> {

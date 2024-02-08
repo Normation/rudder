@@ -60,11 +60,11 @@ sealed trait Variable {
 
   val spec: T
 
-  override def clone = Variable.matchCopy(this)
+  override def clone: Variable = Variable.matchCopy(this)
 
   def values: Seq[String] // this is the internal representation of the data
 
-  override def toString() = Variable.format(spec.name, values)
+  override def toString(): String = Variable.format(spec.name, values)
 
   /**
    * *********************************
@@ -385,7 +385,7 @@ final case class PredefinedValuesVariable(
 
 object Variable {
 
-  def format(name: String, values: Seq[String]) = {
+  def format(name: String, values: Seq[String]): String = {
     // we only want to see the values if:
     // - they start with a ${}, because it's a replacement
     // - else, only 'limit' chars at most, with "..." if longer

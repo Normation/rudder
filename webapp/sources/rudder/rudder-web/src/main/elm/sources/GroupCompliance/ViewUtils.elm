@@ -414,7 +414,6 @@ filtersView model =
           div [class "btn-group yesno"]
           [ label 
             [ class ("btn btn-default" ++ if isGlobalMode then " active" else "")
-              , style "box-shadow" (if isGlobalMode then "inset 0 3px 5px rgba(0,0,0,.125)" else "none")
               , attribute "data-bs-toggle" "tooltip"
               , attribute "data-bs-placement" "top"
               , attribute "data-bs-html" "true"
@@ -424,7 +423,6 @@ filtersView model =
             [text "Global"]
           , label 
             [ class ("btn btn-default" ++ if isGlobalMode then "" else " active")
-              , style "box-shadow" (if isGlobalMode then "none" else "inset 0 3px 5px rgba(0,0,0,.125)")
               , attribute "data-bs-toggle" "tooltip"
               , attribute "data-bs-placement" "top"
               , attribute "data-bs-html" "true"

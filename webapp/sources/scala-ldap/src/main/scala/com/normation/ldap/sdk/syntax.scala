@@ -20,6 +20,7 @@
 
 package com.normation.ldap.sdk
 
+import com.unboundid.ldap.sdk
 import com.unboundid.ldap.sdk.{Entry => UEntry}
 import com.unboundid.ldap.sdk.{LDAPConnection => ULDAPConnection}
 import com.unboundid.ldap.sdk.{LDAPResult => ULDAPResult}
@@ -38,7 +39,7 @@ object syntax {
   type LDAPResult              = ULDAPResult
 
   implicit class SearchScopeTonbound(s: SearchScope) {
-    def toUnboundid = {
+    def toUnboundid: sdk.SearchScope = {
       import com.unboundid.ldap.sdk.SearchScope._
       s match {
         case One                => ONE

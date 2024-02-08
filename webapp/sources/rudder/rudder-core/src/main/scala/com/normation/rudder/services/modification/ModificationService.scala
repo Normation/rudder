@@ -60,7 +60,12 @@ class ModificationService(
     }
   }
 
-  def restoreToEventLog(eventLog: EventLog, commiter: PersonIdent, rollbackedEvents: Seq[EventLog], target: EventLog) = {
+  def restoreToEventLog(
+      eventLog:         EventLog,
+      commiter:         PersonIdent,
+      rollbackedEvents: Seq[EventLog],
+      target:           EventLog
+  ): Box[GitCommitId] = {
     for {
       commit   <- getCommitsfromEventLog(eventLog)
       rollback <- commit match {
@@ -87,7 +92,12 @@ class ModificationService(
 
   }
 
-  def restoreBeforeEventLog(eventLog: EventLog, commiter: PersonIdent, rollbackedEvents: Seq[EventLog], target: EventLog) = {
+  def restoreBeforeEventLog(
+      eventLog:         EventLog,
+      commiter:         PersonIdent,
+      rollbackedEvents: Seq[EventLog],
+      target:           EventLog
+  ): Box[GitCommitId] = {
     for {
       commit   <- getCommitsfromEventLog(eventLog)
       rollback <- commit match {

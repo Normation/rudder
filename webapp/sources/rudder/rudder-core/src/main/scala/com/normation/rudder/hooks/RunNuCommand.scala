@@ -76,13 +76,13 @@ import zio.syntax._
  * unix command line.
  */
 final case class Cmd(cmdPath: String, parameters: List[String], environment: Map[String, String]) {
-  def display = s"${cmdPath} ${parameters.mkString(" ")}"
+  def display: String = s"${cmdPath} ${parameters.mkString(" ")}"
 }
 final case class CmdResult(code: Int, stdout: String, stderr: String)
 
 object RunNuCommand {
 
-  val logger = NamedZioLogger("command-runner")
+  val logger: NamedZioLogger = NamedZioLogger("command-runner")
 
   // we don't want NuCommand to log with its format which is totally broken along our, so we redefined it.
   // we don't really use that class but need that trick to be able to access protected fields.
@@ -90,7 +90,7 @@ object RunNuCommand {
     import java.util.logging._
     override def start(command: util.List[String], environment: Array[String], cwd: Path): NuProcess = null
     override def run(command: util.List[String], environment: Array[String], cwd: Path):   Unit      = {}
-    def silent() = {
+    def silent():                                                                          Unit      = {
       BasePosixProcess.LOGGER.setLevel(java.util.logging.Level.WARNING)
       BasePosixProcess.LOGGER.setUseParentHandlers(false)
       val h = new ConsoleHandler()

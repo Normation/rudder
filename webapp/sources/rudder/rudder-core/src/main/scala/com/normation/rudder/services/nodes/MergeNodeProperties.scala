@@ -109,13 +109,13 @@ object GroupProp {
    * This provider means that the property is purely inherited, ie it is not
    * overridden for given node or group.
    */
-  val INHERITANCE_PROVIDER = PropertyProvider("inherited")
+  val INHERITANCE_PROVIDER: PropertyProvider = PropertyProvider("inherited")
 
   /**
    * This provider means that the property is inherited but also
    * overridden for given node or group.
    */
-  val OVERRIDE_PROVIDER = PropertyProvider("overridden")
+  val OVERRIDE_PROVIDER: PropertyProvider = PropertyProvider("overridden")
 
   implicit class ToNodePropertyHierarchy(g: GroupProp) {
     def toNodePropHierarchy: Map[String, NodePropertyHierarchy] = {

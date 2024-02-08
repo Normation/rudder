@@ -51,6 +51,7 @@ import com.normation.rudder.domain.reports.ExpectedReportsSerialisation._
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.GlobalComplianceMode
+import net.liftweb.common.Box
 import net.liftweb.common.Full
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
@@ -69,7 +70,7 @@ class ExpectedReportTest extends Specification {
   implicit private[this] def r2n(s: String): RuleId      = RuleId(RuleUid(s))
   implicit private[this] def d2n(s: String): DirectiveId = DirectiveId(DirectiveUid(s), GitVersion.DEFAULT_REV)
 
-  val parse                                                              = ExpectedReportsSerialisation.parseJsonNodeExpectedReports _
+  val parse: String => Box[JsonNodeExpectedReports] = ExpectedReportsSerialisation.parseJsonNodeExpectedReports _
   def serialize(e: ExpectedReportsSerialisation.JsonNodeExpectedReports) = {
     e.toJson
   }

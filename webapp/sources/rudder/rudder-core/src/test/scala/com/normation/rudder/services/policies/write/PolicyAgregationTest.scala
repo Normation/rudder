@@ -54,11 +54,10 @@ import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.policies.PolicyId
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
+import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-import scala.annotation.nowarn
 
-@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class PolicyAgregationTest extends Specification {
   implicit def str2pId(id: String):      TechniqueId = TechniqueId(TechniqueName(id), TechniqueVersionHelper("1.0"))
@@ -71,7 +70,7 @@ class PolicyAgregationTest extends Specification {
     .asInstanceOf[ch.qos.logback.classic.Logger]
     .setLevel(ch.qos.logback.classic.Level.OFF)
 
-  def compareValues(expected: Seq[(String, String)], actual1: Seq[String], actual2: Seq[String]) = {
+  def compareValues(expected: Seq[(String, String)], actual1: Seq[String], actual2: Seq[String]): MatchResult[Any] = {
     val actual = actual1.zip(actual2)
 
     (actual1.size must beEqualTo(expected.size)) and
@@ -79,15 +78,15 @@ class PolicyAgregationTest extends Specification {
     (actual must containTheSameElementsAs(expected))
   }
 
-  val policyMode = GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always)
+  val policyMode: GlobalPolicyMode = GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always)
 
-  val trackerVariableSpec = TrackerVariableSpec(Some("card"), None)
-  val trackerVariable     = TrackerVariable(trackerVariableSpec, Seq())
+  val trackerVariableSpec: TrackerVariableSpec = TrackerVariableSpec(Some("card"), None)
+  val trackerVariable:     TrackerVariable     = TrackerVariable(trackerVariableSpec, Seq())
 
-  val cfe = AgentConfig(AgentType.CfeCommunity, Nil, Nil, Nil, Nil)
+  val cfe: AgentConfig = AgentConfig(AgentType.CfeCommunity, Nil, Nil, Nil, Nil)
 
   //  a simple mutli-instance technique
-  val technique1_1 = Technique(
+  val technique1_1: Technique = Technique(
     TechniqueId(TechniqueName("tech_1"), TechniqueVersionHelper("1.0")),
     "tech_1",
     "DESCRIPTION",
@@ -99,35 +98,35 @@ class PolicyAgregationTest extends Specification {
   )
 
   //  a simple mutli-instance technique
-  val technique2_1 = technique1_1.copy(
+  val technique2_1: Technique = technique1_1.copy(
     id = TechniqueId(TechniqueName("tech_2"), TechniqueVersionHelper("1.0")),
     name = "tech_2"
   )
 
   // the same in an other version
-  val technique2_2 = technique1_1.copy(
+  val technique2_2: Technique = technique1_1.copy(
     id = TechniqueId(TechniqueName("tech_2"), TechniqueVersionHelper("2.0")),
     name = "tech_2"
   )
 
   // the same in an other version, multi-policy
-  val technique2_3 = technique1_1.copy(
+  val technique2_3: Technique = technique1_1.copy(
     id = TechniqueId(TechniqueName("tech_2"), TechniqueVersionHelper("3.0")),
     name = "tech_2",
     generationMode = TechniqueGenerationMode.MultipleDirectives
   )
 
   // that one is not multi-instance, not multi-policy
-  val technique3_1 = technique1_1.copy(
+  val technique3_1: Technique = technique1_1.copy(
     id = TechniqueId(TechniqueName("tech_3"), TechniqueVersionHelper("1.0")),
     name = "tech_3",
     isMultiInstance = false
   )
 
   // an other version still not multi-policy
-  val technique3_2 = technique3_1.copy(id = TechniqueId(TechniqueName("tech_3"), TechniqueVersionHelper("2.0")))
+  val technique3_2: Technique = technique3_1.copy(id = TechniqueId(TechniqueName("tech_3"), TechniqueVersionHelper("2.0")))
 
-  def newPolicy(technique: Technique, id: String, varName: String, values: Seq[String]) = {
+  def newPolicy(technique: Technique, id: String, varName: String, values: Seq[String]): BoundPolicyDraft = {
     val v = InputVariable(InputVariableSpec("card", "description for " + varName, multivalued = true, id = None), values)
     BoundPolicyDraft(
       id,

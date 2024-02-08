@@ -54,12 +54,12 @@ import org.specs2.runner._
 @RunWith(classOf[JUnitRunner])
 class LoadDemoDataTest extends Specification {
 
-  val bootstrapLDIFs = ("ldap/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
+  val bootstrapLDIFs: List[String] = ("ldap/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
     // toURI is needed for https://issues.rudder.io/issues/19186
     this.getClass.getClassLoader.getResource(name).toURI.getPath
   }
 
-  val numEntries = bootstrapLDIFs.foldLeft(0) {
+  val numEntries: Int = bootstrapLDIFs.foldLeft(0) {
     case (x, path) =>
       val reader = new com.unboundid.ldif.LDIFReader(path)
       var i      = 0
@@ -67,7 +67,8 @@ class LoadDemoDataTest extends Specification {
       i + x
   }
 
-  val ldap = InitTestLDAPServer.newLdapConnectionProvider(InitTestLDAPServer.schemaLDIFs, bootstrapLDIFs)
+  val ldap: InMemoryDsConnectionProvider[RwLDAPConnection with RoLDAPConnection] =
+    InitTestLDAPServer.newLdapConnectionProvider(InitTestLDAPServer.schemaLDIFs, bootstrapLDIFs)
 
   "The in memory LDAP directory" should {
 
@@ -79,7 +80,7 @@ class LoadDemoDataTest extends Specification {
 }
 
 object InitTestLDAPServer {
-  val schemaLDIFs = (
+  val schemaLDIFs: List[String] = (
     "00-core" ::
       "01-pwpolicy" ::
       "04-rfc2307bis" ::
@@ -94,7 +95,10 @@ object InitTestLDAPServer {
 
   val baseDN = "cn=rudder-configuration"
 
-  def newLdapConnectionProvider(schema: List[String], fullLdifPaths: List[String]) = {
+  def newLdapConnectionProvider(
+      schema:        List[String],
+      fullLdifPaths: List[String]
+  ): InMemoryDsConnectionProvider[RwLDAPConnection with RoLDAPConnection] = {
     InMemoryDsConnectionProvider[RwLDAPConnection with RoLDAPConnection](
       baseDNs = baseDN :: Nil,
       schemaLDIFPaths = schema,

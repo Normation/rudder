@@ -51,6 +51,7 @@ import net.liftweb.http.js._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
 import org.joda.time.DateTime
+import scala.util.matching.Regex
 import scala.xml._
 
 class AsyncDeployment extends CometActor with CometListener with Loggable {
@@ -73,7 +74,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   override val defaultHtml = NodeSeq.Empty
 
-  override def lowPriority = { case d: DeploymentStatus => deploymentStatus = d; reRender() }
+  override def lowPriority: PartialFunction[Any, Unit] = { case d: DeploymentStatus => deploymentStatus = d; reRender() }
 
   private[this] def displayTime(label: String, time: DateTime): NodeSeq = {
     val t = time.toString("yyyy-MM-dd HH:mm:ssZ")
@@ -94,12 +95,12 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     SetHtml("deployment-end", content)
   }
 
-  override def render = {
+  override def render: RenderOut = {
     partialUpdate(updateDuration)
     new RenderOut(layout)
   }
 
-  val deployementErrorMessage = """(.*)!errormessage!(.*)""".r
+  val deployementErrorMessage: Regex = """(.*)!errormessage!(.*)""".r
 
   private[this] def statusBackground: String = {
     deploymentStatus.processing match {

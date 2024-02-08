@@ -81,7 +81,7 @@ trait PipelinedInventorySaver[R] extends InventorySaver[R] with Loggable {
   val basePostPipeline:  Seq[PostCommit[R]]
   private[this] val postCommitPipeline: Ref[Seq[PostCommit[R]]] = Ref.make(basePostPipeline).runNow
 
-  def registerPostCommitHook(hook: PostCommit[R]) = postCommitPipeline.update(hook +: _)
+  def registerPostCommitHook(hook: PostCommit[R]): UIO[Unit] = postCommitPipeline.update(hook +: _)
 
   /**
    * Here comes the logic to actually save change in the Directory

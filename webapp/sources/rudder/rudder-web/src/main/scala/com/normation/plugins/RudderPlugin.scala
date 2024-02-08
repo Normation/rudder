@@ -56,13 +56,13 @@ import scala.xml.NodeSeq
 
 final case class PluginVersion private (rudderAbi: Version, pluginVersion: Version) {
 
-  override def toString = rudderAbi.toVersionStringNoEpoch + "-" + pluginVersion.toVersionString
+  override def toString: String = rudderAbi.toVersionStringNoEpoch + "-" + pluginVersion.toVersionString
 }
 
 object PluginVersion {
 
   // a special value used to indicate a plugin version parsing error
-  def PARSING_ERROR(badVersion: String) = {
+  def PARSING_ERROR(badVersion: String): PluginVersion = {
     val vr = Version(0, Numeric(0), After(Dot, Numeric(0)) :: After(Dot, Numeric(1)) :: Nil)
     val vp = Version(
       0,
@@ -116,7 +116,7 @@ object PluginVersion {
     }
   }
 
-  def apply(rudderVersion: Version, pluginVersion: Version) = {
+  def apply(rudderVersion: Version, pluginVersion: Version): PluginVersion = {
     new PluginVersion(normalize(rudderVersion), normalize(pluginVersion))
   }
 }
@@ -158,7 +158,7 @@ trait RudderPluginDef {
    * The fully qualified name of the plugin if used
    * for that.
    */
-  final lazy val id = this.getClass.getName
+  final lazy val id: String = this.getClass.getName
 
   /**
    * A description of the module, expected to be displayed to

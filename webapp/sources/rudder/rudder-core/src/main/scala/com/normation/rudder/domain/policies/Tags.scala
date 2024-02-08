@@ -58,7 +58,7 @@ final case class Tag(name: TagName, value: TagValue)
  * We can have multiple Tags with same name - unicity is really on tuple (name, value)
  */
 final case class Tags(tags: Set[Tag]) extends AnyVal {
-  def map[A](f: Tag => A) = {
+  def map[A](f: Tag => A): Set[A] = {
     tags.map(f)
   }
 }
@@ -66,7 +66,7 @@ final case class Tags(tags: Set[Tag]) extends AnyVal {
 object Tags {
   // get tags from a list of key/value embodied by a Map with one elements (but
   // also works with several elements in map)
-  def fromMaps(tags: List[Map[String, String]]) = {
+  def fromMaps(tags: List[Map[String, String]]): Tags = {
     Tags(tags.flatMap(_.map { case (k, v) => Tag(TagName(k), TagValue(v)) }).toSet)
   }
 }

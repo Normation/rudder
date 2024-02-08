@@ -30,7 +30,7 @@ class RestApiAccounts(
 
   // used in ApiAccounts snippet to get the context path
   // of that service
-  val relativePath = "secure" :: "apiaccounts" :: Nil
+  val relativePath: List[String] = "secure" :: "apiaccounts" :: Nil
 
   serve {
     case Get("secure" :: "apiaccounts" :: Nil, req) =>
@@ -295,7 +295,7 @@ final case class RestApiAccount(
 ) {
 
   // Id cannot change if already defined
-  def update(account: ApiAccount) = {
+  def update(account: ApiAccount): ApiAccount = {
     val nameUpdate   = name.getOrElse(account.name)
     val enableUpdate = enabled.getOrElse(account.isEnabled)
     val descUpdate   = description.getOrElse(account.description)

@@ -55,6 +55,7 @@ import org.apache.commons.io.IOUtils
 import org.eclipse.jgit.api.Git
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
+import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
@@ -79,7 +80,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
    * Add a switch to be able to see tmp files (not clean themps) with
    * -Dtests.clean.tmp=false
    */
-  override def afterAll() = {
+  override def afterAll(): Unit = {
     if (System.getProperty("tests.clean.tmp") != "false") {
       logger.info("Deleting directory " + gitRoot.getAbsolutePath)
       FileUtils.deleteDirectory(gitRoot)
@@ -115,25 +116,26 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
    * -- libdir
    *      --- template2.st
    */
-  val template         = new File(gitRoot, "template.st")
-  val templateId       = TechniqueResourceIdByPath(Nil, GitVersion.DEFAULT_REV, "template")
-  val templateContent  = "this is some template content"
+  val template = new File(gitRoot, "template.st")
+  val templateId: TechniqueResourceIdByPath = TechniqueResourceIdByPath(Nil, GitVersion.DEFAULT_REV, "template")
+  val templateContent = "this is some template content"
   template.getParentFile.mkdirs
   FileUtils.writeStringToFile(template, templateContent, StandardCharsets.UTF_8)
-  val template2        = new File(new File(gitRoot, "libdir"), "template2.st")
-  val template2Id      = TechniqueResourceIdByPath(List("libdir"), GitVersion.DEFAULT_REV, "template2")
+  val template2       = new File(new File(gitRoot, "libdir"), "template2.st")
+  val template2Id: TechniqueResourceIdByPath = TechniqueResourceIdByPath(List("libdir"), GitVersion.DEFAULT_REV, "template2")
   val template2Content = "this is template2 content"
   template2.getParentFile.mkdirs
   FileUtils.writeStringToFile(template2, template2Content, StandardCharsets.UTF_8)
 
   val f1        = new File(new File(gitRoot, "libdir"), "file1.txt")
   val f1Content = "this is the content of file 1"
-  val file1     = TechniqueResourceIdByPath(List("libdir"), GitVersion.DEFAULT_REV, f1.getName)
+  val file1: TechniqueResourceIdByPath = TechniqueResourceIdByPath(List("libdir"), GitVersion.DEFAULT_REV, f1.getName)
   FileUtils.writeStringToFile(f1, f1Content, StandardCharsets.UTF_8)
 
-  val file2 = TechniqueResourceIdByName(TechniqueId(TechniqueName("p1_1"), TechniqueVersionHelper("1.0")), "file2.txt")
+  val file2: TechniqueResourceIdByName =
+    TechniqueResourceIdByName(TechniqueId(TechniqueName("p1_1"), TechniqueVersionHelper("1.0")), "file2.txt")
 
-  val repo = GitRepositoryProviderImpl.make(gitRoot.getAbsolutePath).runNow
+  val repo: GitRepositoryProviderImpl = GitRepositoryProviderImpl.make(gitRoot.getAbsolutePath).runNow
 
   // post init hook
   postInitHook()
@@ -152,7 +154,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
   val R     = RootTechniqueCategoryId
 
   // utility to assert the content of a ressource equals some string
-  def assertResourceContent(id: TechniqueResourceId, isTemplate: Boolean, expectedContent: String) = {
+  def assertResourceContent(id: TechniqueResourceId, isTemplate: Boolean, expectedContent: String): MatchResult[Any] = {
     val ext = if (isTemplate) Some(TechniqueTemplate.templateExtension) else None
     reader
       .getResourceContent(id, ext) {
@@ -294,10 +296,10 @@ class JGitPackageReader_SameRootTest extends JGitPackageReaderSpec {
  */
 @RunWith(classOf[JUnitRunner])
 class JGitPackageReader_ChildRootTest extends JGitPackageReaderSpec {
-  lazy val gitRoot         = new File("/tmp/test-jgit-" + DateTime.now().toString())
-  lazy val ptLibDirName    = "techniques"
-  lazy val ptLib           = new File(gitRoot, ptLibDirName)
-  lazy val relativePathArg = Some("  /" + ptLibDirName + "/  ")
+  lazy val gitRoot      = new File("/tmp/test-jgit-" + DateTime.now().toString())
+  lazy val ptLibDirName = "techniques"
+  lazy val ptLib        = new File(gitRoot, ptLibDirName)
+  lazy val relativePathArg: Some[String] = Some("  /" + ptLibDirName + "/  ")
 
   def postInitHook(): Unit = {
     // add dummy files

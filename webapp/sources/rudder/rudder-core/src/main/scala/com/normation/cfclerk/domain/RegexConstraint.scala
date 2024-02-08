@@ -51,7 +51,7 @@ case class RegexConstraint(pattern: String, errorMsg: String) {
     throw new ConstraintException("A regex constraint was created with an empty pattern, which has no meaning")
   }
 
-  val compiled = Pattern.compile(pattern)
+  val compiled: Pattern = Pattern.compile(pattern)
 
   /* throw a ConstraintException if the value doesn't match the pattern */
   def check(varValue: String, varName: String): PureResult[String] = {
@@ -85,11 +85,11 @@ object RegexConstraint {
   // (?i) : case insensitive
   val mail = """(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}\b"""
 
-  val ipv4 = """\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}
+  val ipv4: String = """\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}
                      (?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b""".replaceAll("""\s""", "")
 
   // didn't invented it: http://sroze.io/2008/10/09/regex-ipv4-et-ipv6/
-  val ipv6 = """(
+  val ipv6: String = """(
       (([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}) |
       (([0-9A-Fa-f]{1,4}:){6}:[0-9A-Fa-f]{1,4}) |
       (([0-9A-Fa-f]{1,4}:){5}:([0-9A-Fa-f]{1,4}:)?[0-9A-Fa-f]{1,4}) |
@@ -105,7 +105,7 @@ object RegexConstraint {
       (([0-9A-Fa-f]{1,4}:){1,7}:)
     )""".replaceAll("""\s""", "")
 
-  val ipv4or6 = s"""(${ipv4})|(${ipv6})"""
+  val ipv4or6: String = s"""(${ipv4})|(${ipv6})"""
 
 }
 

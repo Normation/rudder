@@ -37,7 +37,9 @@
 
 package com.normation.inventory.ldap.core
 
+import com.normation.ldap.sdk.schema.LDAPObjectClass
 import com.normation.ldap.sdk.schema.LDAPSchema
+import scala.util.matching.Regex
 
 object LDAPConstants {
 
@@ -288,19 +290,19 @@ object LDAPConstants {
     may = Set(A_MB_UUID, A_MANUFACTURER, A_SERIAL_NUMBER)
   )
 
-  val OC_OC_PM              = OC.createObjectClass(OC_PM)
-  val OC_OC_VM              = OC.createObjectClass(OC_VM)
-  val OC_OC_VM_VIRTUALBOX   = OC.createObjectClass(OC_VM_VIRTUALBOX, OC(OC_VM))
-  val OC_OC_VM_XEN          = OC.createObjectClass(OC_VM_XEN, OC(OC_VM))
-  val OC_OC_VM_VMWARE       = OC.createObjectClass(OC_VM_VMWARE, OC(OC_VM))
-  val OC_OC_VM_SOLARIS_ZONE = OC.createObjectClass(OC_VM_SOLARIS_ZONE, OC(OC_VM))
-  val OC_OC_VM_QEMU         = OC.createObjectClass(OC_VM_QEMU, OC(OC_VM))
-  val OC_OC_VM_AIX_LPAR     = OC.createObjectClass(OC_VM_AIX_LPAR, OC(OC_VM))
-  val OC_OC_VM_HYPERV       = OC.createObjectClass(OC_VM_HYPERV, OC(OC_VM))
-  val OC_OC_VM_BSDJAIL      = OC.createObjectClass(OC_VM_BSDJAIL, OC(OC_VM))
-  val OC_OC_VM_LXC          = OC.createObjectClass(OC_VM_LXC, OC(OC_VM))
-  val OC_OC_VM_VIRTUOZZO    = OC.createObjectClass(OC_VM_VIRTUOZZO, OC(OC_VM))
-  val OC_OC_VM_OPENVZ       = OC.createObjectClass(OC_VM_OPENVZ, OC(OC_VM))
+  val OC_OC_PM:              LDAPObjectClass = OC.createObjectClass(OC_PM)
+  val OC_OC_VM:              LDAPObjectClass = OC.createObjectClass(OC_VM)
+  val OC_OC_VM_VIRTUALBOX:   LDAPObjectClass = OC.createObjectClass(OC_VM_VIRTUALBOX, OC(OC_VM))
+  val OC_OC_VM_XEN:          LDAPObjectClass = OC.createObjectClass(OC_VM_XEN, OC(OC_VM))
+  val OC_OC_VM_VMWARE:       LDAPObjectClass = OC.createObjectClass(OC_VM_VMWARE, OC(OC_VM))
+  val OC_OC_VM_SOLARIS_ZONE: LDAPObjectClass = OC.createObjectClass(OC_VM_SOLARIS_ZONE, OC(OC_VM))
+  val OC_OC_VM_QEMU:         LDAPObjectClass = OC.createObjectClass(OC_VM_QEMU, OC(OC_VM))
+  val OC_OC_VM_AIX_LPAR:     LDAPObjectClass = OC.createObjectClass(OC_VM_AIX_LPAR, OC(OC_VM))
+  val OC_OC_VM_HYPERV:       LDAPObjectClass = OC.createObjectClass(OC_VM_HYPERV, OC(OC_VM))
+  val OC_OC_VM_BSDJAIL:      LDAPObjectClass = OC.createObjectClass(OC_VM_BSDJAIL, OC(OC_VM))
+  val OC_OC_VM_LXC:          LDAPObjectClass = OC.createObjectClass(OC_VM_LXC, OC(OC_VM))
+  val OC_OC_VM_VIRTUOZZO:    LDAPObjectClass = OC.createObjectClass(OC_VM_VIRTUOZZO, OC(OC_VM))
+  val OC_OC_VM_OPENVZ:       LDAPObjectClass = OC.createObjectClass(OC_VM_OPENVZ, OC(OC_VM))
 
   OC.createObjectClass(
     OC_PE,
@@ -308,7 +310,7 @@ object LDAPConstants {
     may = Set(A_NAME, A_DESCRIPTION, A_MODEL, A_SERIAL_NUMBER, A_FIRMWARE, A_QUANTITY, A_SME_TYPE, A_STATUS, A_MANUFACTURER)
   )
 
-  val machineTypesNames = Set(
+  val machineTypesNames: Set[String] = Set(
     OC_MACHINE,
     OC_PM,
     OC_VM,
@@ -482,9 +484,9 @@ object LDAPConstants {
   OC.createObjectClass(OC_DYN_GROUP, must = Set(A_MEMBER_URL), may = Set(A_DESCRIPTION))
 
   // User defined properties : the regexp that the data should abide by
-  val userDefinedPropertyRegex = """\{([^\}]+)\}(.+)""".r
+  val userDefinedPropertyRegex: Regex = """\{([^\}]+)\}(.+)""".r
 
   // variable bindings variable regexp : VariableName:FieldName
-  val variableBindingRegex = """(.+):(.+)""".r
+  val variableBindingRegex: Regex = """(.+):(.+)""".r
 
 }

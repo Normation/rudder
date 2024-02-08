@@ -61,7 +61,7 @@ import scala.xml._
 
 object TechniqueEditForm {
 
-  val componentTechniqueEditForm = "templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil
+  val componentTechniqueEditForm: List[String] = "templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil
 
   /**
    * This is part of component static initialization.
@@ -131,7 +131,7 @@ class TechniqueEditForm(
 
   //////////////////////////// public methods ////////////////////////////
 
-  def dispatch = { case "showForm" => { _: NodeSeq => showForm() } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "showForm" => { (_: NodeSeq) => showForm() } }
 
   def showForm(): NodeSeq = {
     (
@@ -186,7 +186,7 @@ class TechniqueEditForm(
     (
       ClearClearable &
       // all the top level action are displayed only if the template is on the user library
-      "#userTemplateAction" #> { xml: NodeSeq =>
+      "#userTemplateAction" #> { (xml: NodeSeq) =>
         currentActiveTechnique match {
           case e: EmptyBox => NodeSeq.Empty
           case Full(activeTechnique) =>
@@ -283,7 +283,7 @@ class TechniqueEditForm(
     }
   }
 
-  def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol") = {
+  def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol"): WBTextAreaField = {
     new WBTextAreaField("Change audit message", "") {
       override def setFilter             = notNull _ :: trim _ :: Nil
       override def inputField            = super.inputField % ("placeholder" -> { userPropertyService.reasonsFieldExplanation })

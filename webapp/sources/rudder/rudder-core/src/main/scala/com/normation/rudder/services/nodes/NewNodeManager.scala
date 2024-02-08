@@ -175,7 +175,7 @@ class NewNodeManagerHooksImpl(
     HOOKS_IGNORE_SUFFIXES: List[String]
 ) extends NewNodeManagerHooks {
 
-  val codeHooks = Ref
+  val codeHooks: Ref[Chunk[NewNodePostAcceptHooks]] = Ref
     .make(
       Chunk[NewNodePostAcceptHooks](
         // by default, add the script hooks

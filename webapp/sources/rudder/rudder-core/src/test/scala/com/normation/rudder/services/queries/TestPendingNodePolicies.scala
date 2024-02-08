@@ -101,7 +101,7 @@ class TestPendingNodePolicies extends Specification {
    *  O --> P (1) OK
    */
 
-  val groupCriterion = ObjectCriterion(
+  val groupCriterion: ObjectCriterion = ObjectCriterion(
     "group",
     Seq(
       Criterion(A_NODE_GROUP_UUID, ExactStringComparator, NodeCriterionMatcherString(_ => Chunk("group id")))
@@ -109,9 +109,9 @@ class TestPendingNodePolicies extends Specification {
   )
 
   // a query line for sub group
-  def sub(g: NodeGroup) = CriterionLine(groupCriterion, groupCriterion.criteria.head, Equals, g.id.serialize)
+  def sub(g: NodeGroup): CriterionLine = CriterionLine(groupCriterion, groupCriterion.criteria.head, Equals, g.id.serialize)
   // a random query that will be added as dummy content - query checker will returns pre-defined things
-  val cl                = CriterionLine(
+  val cl:                CriterionLine = CriterionLine(
     ObjectCriterion(
       OC_MACHINE,
       Seq(Criterion(A_MACHINE_UUID, StringComparator, NodeCriterionMatcherString(n => Chunk(n.machine.id.value))))
@@ -122,41 +122,41 @@ class TestPendingNodePolicies extends Specification {
   )
 
   // the node that we will try to accept
-  val node = NodeId("node")
+  val node: NodeId = NodeId("node")
 
-  def orQuery(g: NodeGroup)      = Query(null, Or, Identity, List(cl, sub(g), cl))
-  def andQuery(g: NodeGroup)     = Query(null, And, Identity, List(cl, sub(g), cl))
-  def onlySubQuery(g: NodeGroup) = Query(null, And, Identity, List(sub(g)))
-  val dummyQuery0                = Query(null, And, Identity, List(cl)) // will return 0 node
-  val dummyQuery1                = Query(null, Or, Identity, List(cl))  // will return 1 node
+  def orQuery(g: NodeGroup):      Query = Query(null, Or, Identity, List(cl, sub(g), cl))
+  def andQuery(g: NodeGroup):     Query = Query(null, And, Identity, List(cl, sub(g), cl))
+  def onlySubQuery(g: NodeGroup): Query = Query(null, And, Identity, List(sub(g)))
+  val dummyQuery0:                Query = Query(null, And, Identity, List(cl)) // will return 0 node
+  val dummyQuery1:                Query = Query(null, Or, Identity, List(cl))  // will return 1 node
 
-  def ng(id: String, q: Query, dyn: Boolean = true) =
+  def ng(id: String, q: Query, dyn: Boolean = true): NodeGroup =
     NodeGroup(NodeGroupId(NodeGroupUid(id)), id, id, Nil, Some(q), dyn, Set(), true, false)
 
   // groups
-  val c = ng("c", dummyQuery1) // ok
-  val b = ng("b", andQuery(c)) // ok
-  val a = ng("a", andQuery(b)) // ok
+  val c: NodeGroup = ng("c", dummyQuery1) // ok
+  val b: NodeGroup = ng("b", andQuery(c)) // ok
+  val a: NodeGroup = ng("a", andQuery(b)) // ok
 
-  val d = ng("d", dummyQuery1) // ok
+  val d: NodeGroup = ng("d", dummyQuery1) // ok
 
-  val f = ng("f", dummyQuery1, false) // no
-  val e = ng("e", andQuery(f))        // no
+  val f: NodeGroup = ng("f", dummyQuery1, false) // no
+  val e: NodeGroup = ng("e", andQuery(f))        // no
 
-  val h = ng("h", dummyQuery0) // no
-  val g = ng("g", andQuery(h)) // no even if remaning query returns node
-  val j = ng("j", dummyQuery1) // ok
-  val i = ng("i", andQuery(j)) // ok
+  val h: NodeGroup = ng("h", dummyQuery0) // no
+  val g: NodeGroup = ng("g", andQuery(h)) // no even if remaning query returns node
+  val j: NodeGroup = ng("j", dummyQuery1) // ok
+  val i: NodeGroup = ng("i", andQuery(j)) // ok
 
-  val l  = ng("l", dummyQuery0)      // no
-  val k  = ng("k", orQuery(l))       // ok b/c remaning query returns node
-  val n  = ng("n", dummyQuery1)      // ok
-  val m  = ng("m", orQuery(n))       // ok
-  val pp = ng("p", dummyQuery1)      // ok ('p' is already taken apparently)
-  val o  = ng("o", onlySubQuery(pp)) // ok
+  val l:  NodeGroup = ng("l", dummyQuery0)      // no
+  val k:  NodeGroup = ng("k", orQuery(l))       // ok b/c remaning query returns node
+  val n:  NodeGroup = ng("n", dummyQuery1)      // ok
+  val m:  NodeGroup = ng("m", orQuery(n))       // ok
+  val pp: NodeGroup = ng("p", dummyQuery1)      // ok ('p' is already taken apparently)
+  val o:  NodeGroup = ng("o", onlySubQuery(pp)) // ok
 
   // a fake dyn group service
-  val getDynGroups = new DynGroupService {
+  val getDynGroups: DynGroupService = new DynGroupService {
     override def getAllDynGroups(): Box[Seq[NodeGroup]] = Full(
       List(
         a,
@@ -181,18 +181,20 @@ class TestPendingNodePolicies extends Specification {
   }
 
   // a fake query checker
-  val queryChecker = new QueryChecker {
+  val queryChecker: QueryChecker = new QueryChecker {
     override def check(query: Query, nodeIds: Option[Seq[NodeId]])(implicit qc: QueryContext): IOResult[Set[NodeId]] = {
       // make a 0 criteria request raise an error like LDAP would do,
       // see: https://www.rudder-project.org/redmine/issues/12338
       if (query.criteria.isEmpty) {
         Inconsistency(s"Trying to perform an LDAP search on 0 criteria: error").fail
       } else {
-        (query match {
-          case x if (x == dummyQuery0) => Set.empty[NodeId]
-          case x if (x == dummyQuery1) => Set(node)
-          case x                       => Set(node)
-        }).intersect(nodeIds.getOrElse(Seq(node)).toSet).succeed
+        (
+          query match {
+            case x if (x == dummyQuery0) => Set.empty[NodeId]
+            case x if (x == dummyQuery1) => Set(node)
+            case x                       => Set(node)
+          }
+        ).intersect(nodeIds.getOrElse(Seq(node)).toSet).succeed
       }
     }
   }

@@ -122,17 +122,17 @@ object BuildBundleSequence {
   }
   object BundleParam       {
     final case class SimpleQuote(value: String, name: String) extends BundleParam {
-      def quote(agentEscape: String => String) = "'" + value + "'"
+      def quote(agentEscape: String => String): String = "'" + value + "'"
     }
     final case class DoubleQuote(value: String, name: String) extends BundleParam {
-      def quote(agentEscape: String => String) = "\"" + agentEscape(value) + "\""
+      def quote(agentEscape: String => String): String = "\"" + agentEscape(value) + "\""
     }
   }
 
   // a Bundle is a BundleName and a Rudder Id that will
   // be used to identify reports for that bundle
   final case class Bundle(id: Option[PolicyId], name: BundleName, params: List[BundleParam]) {
-    def callParams(escape: String => String) = {
+    def callParams(escape: String => String): String = {
       if (params.nonEmpty) {
         params.map(_.quote(escape)).mkString("(", ",", ")")
       } else {
@@ -140,19 +140,19 @@ object BuildBundleSequence {
       }
     }
 
-    def callBundle(escape: String => String) = s"${name.value}${callParams(escape)}"
+    def callBundle(escape: String => String): String = s"${name.value}${callParams(escape)}"
   }
 
   object Bundle {
-    def modeBundle(policyMode: PolicyMode, isSystem: Boolean) = {
+    def modeBundle(policyMode: PolicyMode, isSystem: Boolean): Bundle = {
       (isSystem, policyMode) match {
         case (true, _)                   => enforce
         case (false, PolicyMode.Audit)   => audit
         case (false, PolicyMode.Enforce) => enforce
       }
     }
-    val audit                                                 = Bundle.apply(None, BundleName("""set_dry_run_mode"""), BundleParam.DoubleQuote("true", "mode") :: Nil)
-    val enforce                                               = Bundle.apply(None, BundleName("""set_dry_run_mode"""), BundleParam.DoubleQuote("false", "mode") :: Nil)
+    val audit:                                                 Bundle = Bundle.apply(None, BundleName("""set_dry_run_mode"""), BundleParam.DoubleQuote("true", "mode") :: Nil)
+    val enforce:                                               Bundle = Bundle.apply(None, BundleName("""set_dry_run_mode"""), BundleParam.DoubleQuote("false", "mode") :: Nil)
   }
 
   /*

@@ -65,8 +65,8 @@ object PendingHistoryGrid extends Loggable {
   val logDetailsService = RudderConfig.eventLogDetailsService
   val configService     = RudderConfig.configService
 
-  def pendingHistoryTemplatePath = List("templates-hidden", "pending_history_grid")
-  def template(): NodeSeq = Templates(pendingHistoryTemplatePath) match {
+  def pendingHistoryTemplatePath: List[String] = List("templates-hidden", "pending_history_grid")
+  def template():                 NodeSeq      = Templates(pendingHistoryTemplatePath) match {
     case Empty | Failure(_, _, _) =>
       throw new IllegalArgumentException(
         "Template for pending history not found. I was looking for %s.html".format(pendingHistoryTemplatePath.mkString("/"))
