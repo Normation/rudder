@@ -195,13 +195,15 @@ editionTemplate model details =
         [ p[][text (Maybe.Extra.unwrap "" .shortDescription originRule)] ]
       ]
     , div [class "main-navbar" ]
-      [ ul[class "ui-tabs-nav "]
-        [ li[class ("ui-tabs-tab" ++ (if details.tab == Information   then " ui-tabs-active" else ""))]
-          [ a[onClick (UpdateRuleForm {details | tab = Information })]
+      [ ul[class "nav nav-underline"]
+        [ li[class "nav-item"]
+          [ button
+            [ attribute "role" "tab", type_ "button", class ("nav-link" ++ (if details.tab == Information then " active" else "")), onClick (UpdateRuleForm {details | tab = Information})]
             [ text "Information" ]
           ]
-        , li[class ("ui-tabs-tab" ++ (if details.tab == Directives    then " ui-tabs-active" else ""))]
-          [ a[onClick (UpdateRuleForm {details | tab = Directives})]
+        , li[class "nav-item"]
+          [ button
+            [ attribute "role" "tab", type_ "button", class ("nav-link" ++ (if details.tab == Directives then " active" else "")), onClick (UpdateRuleForm {details | tab = Directives})]
             [ text "Directives"
             , span[class "badge badge-secondary badge-resources"]
               [ getNbResourcesBadge nbDirectives "This rule does not apply any directive"
@@ -213,8 +215,9 @@ editionTemplate model details =
         , ( if isNewRule then
           text ""
         else
-          li[class ("ui-tabs-tab" ++ (if details.tab == Nodes        then " ui-tabs-active" else ""))]
-          [ a[onClick (UpdateRuleForm {details | tab = Nodes })]
+          li[class "nav-item"]
+          [ button
+            [ attribute "role" "tab", type_ "button", class ("nav-link" ++ (if details.tab == Nodes then " active" else "")), onClick (UpdateRuleForm {details | tab = Nodes})]
             [ text "Nodes"
             , span[class "badge badge-secondary badge-resources"]
               [ getNbResourcesBadge (Maybe.withDefault 0 (getRuleNbNodes details)) "This rule is not applied on any node"
@@ -222,8 +225,9 @@ editionTemplate model details =
             ]
           ]
         )
-        , li[class ("ui-tabs-tab" ++ (if details.tab == Groups       then " ui-tabs-active" else ""))]
-          [ a[onClick (UpdateRuleForm {details | tab = Groups })]
+        , li[class "nav-item"]
+          [ button
+            [ attribute "role" "tab", type_ "button", class ("nav-link" ++ (if details.tab == Groups then " active" else "")), onClick (UpdateRuleForm {details | tab = Groups})]
             [ text "Groups"
             , span[class "badge badge-secondary badge-resources"]
               [ getGroupsNbResourcesBadge (getRuleNbGroups originRule) (List.length (getTargetIncludedIds (Maybe.Extra.unwrap [] .targets originRule))) "This rule is not applied on any group"
@@ -235,8 +239,9 @@ editionTemplate model details =
         , ( if isNewRule then
           text ""
         else
-          li[class ("ui-tabs-tab" ++ (if details.tab == TechnicalLogs       then " ui-tabs-active" else ""))]
-          [ a[onClick (UpdateRuleForm {details | tab = TechnicalLogs })]
+          li[class "nav-item"]
+          [ button
+            [ attribute "role" "tab", type_ "button", class ("nav-link" ++ (if details.tab == TechnicalLogs then " active" else "")), onClick (UpdateRuleForm {details | tab = TechnicalLogs})]
             [ text "Recent changes"
             , span[class "badge badge-secondary badge-resources"]
               [ span [class "nb-resources"] [text (String.fromFloat (countRecentChanges details.rule.id model.changes))]

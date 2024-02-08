@@ -157,7 +157,7 @@ showTechnique model technique origin ui editInfo =
     fakeMetadata = Http.Metadata "internal-elm-call" 200 "call from elm app" Dict.empty
     blocksOnError = checkBlocksOnError technique.elems
     areBlockOnError = Dict.isEmpty blocksOnError
-    activeTabClass = (\tab -> "ui-tabs-tab " ++ (if ui.tab == tab then "active" else ""))
+    activeTabClass = (\tab -> if ui.tab == tab then " active" else "")
     creation = case origin of
                  Creation _ -> True
                  Clone _ _ -> True
@@ -303,22 +303,26 @@ showTechnique model technique origin ui editInfo =
           ]
         ]
       ]
-    , div [ class "main-navbar" ] [
-        ul [ class "ui-tabs-nav nav nav-tabs" ] [
-          li [ class (activeTabClass General) , onClick (SwitchTab General)] [
-            a [] [ text "Information" ]
+    , div [ class "main-navbar" ]
+      [ ul [ class "nav nav-underline" ]
+        [ li [ class "nav-item"]
+          [ button
+            [ attribute "role" "tab", type_ "button", class ("nav-link " ++ (activeTabClass General)), onClick (SwitchTab General)]
+            [ text "Information"]
           ]
-        , li [ class (activeTabClass Parameters), onClick (SwitchTab Parameters) ] [
-            a [] [
-              text "Parameters "
+        , li [ class "nav-item"]
+          [ button
+            [ attribute "role" "tab", type_ "button", class ("nav-link " ++ (activeTabClass Parameters)), onClick (SwitchTab Parameters)]
+            [ text "Parameters "
             , span [ class ( "badge badge-secondary badge-resources " ++ if List.isEmpty technique.parameters then "empty" else "") ] [
                 span [] [ text (String.fromInt (List.length technique.parameters)) ]
               ]
             ]
           ]
-        , li [ class (activeTabClass Resources)  , onClick (SwitchTab Resources)] [
-            a [] [
-              text "Resources "
+        , li [ class "nav-item"]
+          [ button
+            [ attribute "role" "tab", type_ "button", class ("nav-link " ++ (activeTabClass Resources)), onClick (SwitchTab Resources)]
+            [ text "Resources "
             , span [  class  ( "badge badge-secondary badge-resources " ++ if List.isEmpty technique.resources then "empty" else "") ] [
                 if ((List.isEmpty technique.resources)|| (List.any (\s -> (s.state == Untouched) || (s.state == Modified)) technique.resources) ) then span [ class "nb-resources" ] [text (String.fromInt (List.length (List.filter  (\s -> s.state == Untouched || s.state == Modified) technique.resources ) ))] else text ""
               , if not (List.isEmpty (List.filter (.state >> (==) New) technique.resources)) then  span [class "nb-resources new"] [ text ((String.fromInt (List.length (List.filter (.state >> (==) New) technique.resources))))] else text ""
@@ -327,14 +331,15 @@ showTechnique model technique origin ui editInfo =
             ]
           ]
         , if (Maybe.Extra.isJust technique.output) then
-            li [ class (activeTabClass Output)  , onClick (SwitchTab Output)] [
-              a [] [
-                text "Compilation output "
-              , span [  class  ( "fa ") ] []
-              ]
+          li [ class "nav-item" ]
+          [ button
+            [ attribute "role" "tab", type_ "button", class ("nav-link " ++ (activeTabClass Output)), onClick (SwitchTab Output)]
+            [ text "Compilation output "
+            , span [ class  ( "fa fa-check") ] []
             ]
-            else
-              text ""
+          ]
+          else
+            text ""
         ]
       ]
     , div [ class "main-details", id "details"]

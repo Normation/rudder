@@ -198,7 +198,7 @@ class ShowNodeDetailsFromNode(
   ): NodeSeq = {
     nodeFactRepo.get(nodeId).toBox match {
       case Full(None) =>
-        (<ul id="NodeDetailsTabMenu" class="rudder-ui-tabs ui-tabs-nav"></ul>
+        (<ul id="NodeDetailsTabMenu" class="nav nav-underline"></ul>
           <div class="col-xs-12">
             <div class="info-card critical">
               <div class="card-info">
@@ -230,14 +230,10 @@ class ShowNodeDetailsFromNode(
                 bindNode(nf, withinPopup, globalMode, globalScore) ++ Script(
                   DisplayNode.jsInit(node.id, "") &
                   JsRaw(s"""
-                    $$( "#${detailsId}" ).tabs({ active : ${tab} } );
-                    $$('#nodeInventory .ui-tabs-vertical .ui-tabs-nav li a').on('click',function(){
-                      var tab = $$(this).attr('href');
-                      $$('#nodeInventory .ui-tabs-vertical .ui-tabs-nav li a.active').removeClass('active');
-                      $$(this).addClass('active');
-                      $$('#nodeInventory > .sInventory > .sInventory').hide();
-                      $$(tab).show();
-                    });
+                    var nodeTabs = $$("#${detailsId} .main-navbar > .nav > li ");
+                    var activeTabBtn = nodeTabs.get(${tab}).querySelector("button");
+                    activeTabBtn.classList.add('active');
+                    var activeTab = document.querySelector("#"+activeTabBtn.getAttribute("aria-controls")).classList.add('active', 'show')
                     """) &
                   buildJsTree(groupTreeId)
                 )

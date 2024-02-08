@@ -152,7 +152,6 @@ object DisplayNode extends Loggable {
 
   def jsInit(nodeId: NodeId, salt: String = ""): JsCmd = {
     val jsId           = JsNodeId(nodeId, salt)
-    val detailsId      = htmlId(jsId, "details_")
     val softGridDataId = htmlId(jsId, "soft_grid_data_")
     val softPanelId    = "soft_tab"
     val eltIdswidth    =
@@ -175,8 +174,7 @@ object DisplayNode extends Loggable {
     )
 
     JsRaw("var " + softGridDataId + "= null") &
-    OnLoad(
-      JsRaw("$('#" + detailsId + "').tabs()") & {
+    OnLoad({
         eltIds.map { i =>
           JsRaw(s"""
               $$('#${htmlId(jsId, i + "_")}').dataTable({
@@ -324,16 +322,28 @@ object DisplayNode extends Loggable {
       </div>
       <div class="tabs">
         <div class="main-navbar">
-          <ul class="rudder-ui-tabs">
-            <li><a href={htmlId_#(jsId, "node_summary_")}>Summary</a></li>
-            <li><a href={htmlId_#(jsId, "node_inventory_")}>Inventory</a></li>
+          <ul class="nav nav-underline mx-0">
+            <li class="nav-item">
+              <button class="nav-link active" data-bs-toggle="tab" data-bs-target={
+      htmlId_#(jsId, "node_summary_")
+    } type="button" role="tab" aria-controls={htmlId_#(jsId, "node_summary_")} aria-selected="false">Summary</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target={
+      htmlId_#(jsId, "node_inventory_")
+    } type="button" role="tab" aria-controls={htmlId_#(jsId, "node_inventory_")} aria-selected="false">Inventory</button>
+            </li>
           </ul>
         </div>
-        <div id={htmlId(jsId, "node_summary_")}>
-          {showNodeDetails(nodeFact, globalMode, None, salt)}
-        </div>
-        <div id={htmlId(jsId, "node_inventory_")}>
-          {showInventoryVerticalMenu(sm, nodeFact.toCore)}
+        <div class="tab-content">
+          <div id={htmlId(jsId, "node_summary_")} class="tab-pane active show">
+            <div class="d-flex px-3 py-2">
+              {showNodeDetails(nodeFact, globalMode, None, salt)}
+            </div>
+          </div>
+          <div id={htmlId(jsId, "node_inventory_")} class="tab-pane p-3">
+            {showInventoryVerticalMenu(sm, nodeFact.toCore)}
+          </div>
         </div>
       </div>
     </div>

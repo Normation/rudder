@@ -1,7 +1,7 @@
 module Rules.ViewCategoryDetails exposing (..)
 
 import Html exposing (Html, button, div, i, span, text, h1, ul, li, input, a, p, form, label, textarea, select, table, thead, tbody)
-import Html.Attributes exposing (id, class, type_, placeholder, value, for, style)
+import Html.Attributes exposing (id, class, type_, placeholder, value, for, style, attribute)
 import Html.Events exposing (onClick, onInput, onSubmit)
 import List
 import Maybe.Extra
@@ -122,14 +122,19 @@ editionTemplateCat model details =
         [ p[][text ""] ]
       ]
     , div [class "main-navbar" ]
-      [ ul[class "ui-tabs-nav "]
-        [ li[class ("ui-tabs-tab" ++ (if details.tab == Information    then " ui-tabs-active" else ""))]
-          [ a[onClick (UpdateCategoryForm {details | tab = Information})][ text "Information" ]
+      [ ul[class "nav nav-underline"]
+        [ li[class "nav-item"]
+          [ button
+            [ attribute "role" "tab", type_ "button", class ("nav-link" ++ (if details.tab == Information then " active" else "")), onClick (UpdateCategoryForm {details | tab = Information})]
+            [ text "Information" ]
           ]
-        , li[class ("ui-tabs-tab" ++ (if details.tab == Rules    then " ui-tabs-active" else ""))]
-          [ a[onClick (UpdateCategoryForm {details | tab = Rules})][ text "Rules" ]
-          , span[class "badge badge-secondary badge-resources"]
-            [ span [class "nb-resources"] [text (String.fromInt (List.length rulesList))]
+        , li[class "nav-item"]
+          [ button
+            [ attribute "role" "tab", type_ "button", class ("nav-link" ++ (if details.tab == Rules then " active" else "")), onClick (UpdateCategoryForm {details | tab = Rules})]
+            [ text "Rules"
+            , span[class "badge badge-secondary badge-resources"]
+              [ span [class "nb-resources"] [text (String.fromInt (List.length rulesList))]
+              ]
             ]
           ]
         ]

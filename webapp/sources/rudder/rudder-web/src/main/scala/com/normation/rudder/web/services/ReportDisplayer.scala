@@ -53,7 +53,6 @@ import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.services.reports._
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
-import com.normation.rudder.web.model.JsNodeId
 import net.liftweb.common._
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JE._
@@ -98,21 +97,26 @@ class ReportDisplayer(
       addOverriden: Boolean,
       onlySystem:   Boolean
   ): NodeSeq = {
-    val id       = JsNodeId(node.id)
     val callback = {
       SHtml.ajaxInvoke(() =>
         SetHtml(containerId, displayReports(node, getReports, tableId, containerId, addOverriden, onlySystem))
       )
     }
     Script(OnLoad(JsRaw(s"""
-      if($$("[aria-controls='${tabId}']").hasClass('ui-tabs-active')){
+      const triggerEl = document.querySelector("[aria-controls='${tabId}']");
+      if(triggerEl.classList.contains('active')){
         ${callback.toJsCmd}
       }
-      $$("#details_${id}").on( "tabsactivate", function(event, ui) {
-        if(ui.newPanel.attr('id')== '${tabId}') {
-          ${callback.toJsCmd}
-        }
-      });
+      const tabEl = document.querySelectorAll('.nav-underline button[data-bs-toggle="tab"]')
+      var tabId;
+      tabEl.forEach((element) =>
+        element.addEventListener('shown.bs.tab', event => {
+          tabId = event.target.getAttribute("aria-controls");
+          if(tabId = '${tabId}') {
+            ${callback.toJsCmd}
+          }
+        })
+      );
     """)))
   }
 
