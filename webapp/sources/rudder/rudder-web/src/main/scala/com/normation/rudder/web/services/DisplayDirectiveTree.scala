@@ -56,6 +56,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.Helpers
+import scala.xml.Elem
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
 import scala.xml.Text
@@ -108,8 +109,8 @@ object AgentCompat {
     }
   }
 
-  val windowsIcon = <i class="dsc-icon tree-icon"></i>
-  val linuxIcon   = <i class="fa fa-gear tree-icon"></i>
+  val windowsIcon: Elem = <i class="dsc-icon tree-icon"></i>
+  val linuxIcon:   Elem = <i class="fa fa-gear tree-icon"></i>
 }
 
 object DisplayDirectiveTree extends Loggable {

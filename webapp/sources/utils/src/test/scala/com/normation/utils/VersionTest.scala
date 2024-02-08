@@ -44,7 +44,7 @@ import org.specs2.runner._
 @RunWith(classOf[JUnitRunner])
 class VersionTest extends Specification {
 
-  def forceParse(s: String) = {
+  def forceParse(s: String): Version = {
     ParseVersion.parse(s) match {
       case Left(err) => throw new IllegalArgumentException(s"Error in test when parsing version '${s}': ${err}")
       case Right(v)  => v

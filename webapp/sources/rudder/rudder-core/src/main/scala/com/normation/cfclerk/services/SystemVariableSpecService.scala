@@ -41,7 +41,7 @@ import com.normation.cfclerk.domain.SystemVariableSpec
 import com.normation.errors.RudderError
 
 final case class MissingSystemVariable(name: String) extends RudderError {
-  def msg = s"System variable ${name} is missing. This is likely a desynchronisation between your configuration " +
+  def msg: String = s"System variable ${name} is missing. This is likely a desynchronisation between your configuration " +
     s"repository and your Rudder variable. If not, please report it"
 }
 

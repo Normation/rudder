@@ -101,7 +101,7 @@ object DeletionResult {
   case object Success                                              extends DeletionResult
   final case class Error(err: RudderError)                         extends DeletionResult
 
-  def resolve(results: List[DeletionResult]) = {
+  def resolve(results: List[DeletionResult]): ZIO[Any, Accumulated[RudderError], List[Unit]] = {
     results.accumulate(_ match {
       case Error(err)          => err.fail
       case PreHookFailed(err)  => Inconsistency(s"Pre hook error: ${err.msg}").fail
@@ -118,7 +118,7 @@ object DeleteMode       {
   final case object MoveToRemoved extends DeleteMode { val name = "move"  }
   final case object Erase         extends DeleteMode { val name = "erase" }
 
-  def all = ca.mrvisser.sealerate.values[DeleteMode]
+  def all: Set[DeleteMode] = ca.mrvisser.sealerate.values[DeleteMode]
 }
 
 /*
@@ -385,13 +385,13 @@ class RemoveNodeServiceImpl(
   }
 
   // env pair: first: hookEnv, second: systemEnv
-  def runPreHooks(env: (HookEnvPairs, HookEnvPairs))            = {
+  def runPreHooks(env: (HookEnvPairs, HookEnvPairs)):            ZIO[Any, RudderError, HookReturnCode] = {
     runHooks("node-pre-deletion", env)
   }
-  def runPostHooks(env: (HookEnvPairs, HookEnvPairs))           = {
+  def runPostHooks(env: (HookEnvPairs, HookEnvPairs)):           ZIO[Any, RudderError, HookReturnCode] = {
     runHooks("node-post-deletion", env)
   }
-  def runHooks(name: String, env: (HookEnvPairs, HookEnvPairs)) = {
+  def runHooks(name: String, env: (HookEnvPairs, HookEnvPairs)): ZIO[Any, RudderError, HookReturnCode] = {
     for {
       start <- currentTimeMillis
       hooks <- RunHooks.getHooksPure(HOOKS_D + "/" + name, HOOKS_IGNORE_SUFFIXES)

@@ -28,6 +28,7 @@ import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldap.sdk.schema.Schema
 import com.unboundid.ldif.LDIFRecord
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import scala.collection.mutable.Buffer
 import scala.jdk.CollectionConverters._
@@ -106,13 +107,13 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
    * Check if that entry has the given objectClass.
    * (Case insensitive).
    */
-  def isA(objectClass: String) = _backed.hasObjectClass(objectClass)
+  def isA(objectClass: String): Boolean = _backed.hasObjectClass(objectClass)
 
   //////  Methods that deal with Attribute (presence, get attribute object, etc)  //////
 
-  def hasAttribute(attributeName: String) = _backed.hasAttribute(attributeName)
+  def hasAttribute(attributeName: String): Boolean = _backed.hasAttribute(attributeName)
 
-  def hasAttribute(attribute: Attribute) = _backed.hasAttribute(attribute)
+  def hasAttribute(attribute: Attribute): Boolean = _backed.hasAttribute(attribute)
 
   def attributes: Iterable[Attribute] = _backed.getAttributes.asScala
 
@@ -123,7 +124,7 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
   /**
    * Number of attribute in that entry
    */
-  def attributesSize = _backed.getAttributes.size()
+  def attributesSize: Int = _backed.getAttributes.size()
 
   /**
    * Return the attribute with the given name if
@@ -138,7 +139,7 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
    * Return the attribute with the given name.
    * Throws an exception if that attribute does not exist.
    */
-  def getAttribute(attributeName: String) = _backed.getAttribute(attributeName)
+  def getAttribute(attributeName: String): Attribute = _backed.getAttribute(attributeName)
 
   //////  Methods for direct access to value  //////
 
@@ -149,7 +150,7 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
    * Return true if the attribute is multivalued and at least one
    * value is the one given in argument.
    */
-  def hasAttribueValue(attributeName: String, value: String) = _backed.hasAttributeValue(attributeName, value)
+  def hasAttribueValue(attributeName: String, value: String): Boolean = _backed.hasAttributeValue(attributeName, value)
 
   /**
    * Return the set of values for the given attribute.
@@ -232,7 +233,7 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
    * attribute with given name is removed.
    * In all case, null and empty values are removed.
    */
-  def resetValuesTo(attributeName: String, values: String*) = {
+  def resetValuesTo(attributeName: String, values: String*): AnyVal = {
     values match {
       case null =>
         _backed.removeAttribute(attributeName)
@@ -247,13 +248,14 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
   }
 
   /** add given value(s) to given attribute. Create the attribute if does not exist */
-  def mergeAttribute(attribute: Attribute) = _backed.addAttribute(attribute)
+  def mergeAttribute(attribute: Attribute): Boolean = _backed.addAttribute(attribute)
 
   /** add given attribute. If already present, existing values will be merged */
-  def addValues(attributeName: String, values: String*) = _backed.addAttribute(new Attribute(attributeName, values.asJava))
+  def addValues(attributeName: String, values: String*): Boolean =
+    _backed.addAttribute(new Attribute(attributeName, values.asJava))
 
   /** remove attribute */
-  def deleteAttribute(attributeName: String) = _backed.removeAttribute(attributeName)
+  def deleteAttribute(attributeName: String): Boolean = _backed.removeAttribute(attributeName)
 
   //////  Standard methods (toString/equal etc) and LDIF method  //////
 
@@ -281,7 +283,7 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
     case _ => false
   }
 
-  override lazy val hashCode = 41 + _backed.hashCode
+  override lazy val hashCode: Int = 41 + _backed.hashCode
 
 }
 
@@ -290,7 +292,7 @@ object LDAPEntry {
    * Create a new LDAPEntry from the given arguments.
    * The entry is copied and can be disposed after use.
    */
-  val logger = LoggerFactory.getLogger(classOf[LDAPEntry])
+  val logger: Logger = LoggerFactory.getLogger(classOf[LDAPEntry])
 
   def apply(e: UnboundidEntry):                                                                LDAPEntry = new LDAPEntry(e.duplicate()) // val e = LDAPEntry(unboundidEntry)
   def apply(dn: DN, attributes: Attribute*):                                                   LDAPEntry = LDAPEntry(new UnboundidEntry(dn, attributes: _*))

@@ -76,7 +76,7 @@ class CreateOrUpdateGlobalParameterPopup(
 
   private[this] val userPropertyService = RudderConfig.userPropertyService
 
-  def dispatch = { case "popupContent" => { _ => popupContent() } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
 
   /* Text variation for
    * - Global Parameter
@@ -321,7 +321,7 @@ class CreateOrUpdateGlobalParameterPopup(
     }
   }
 
-  def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol") = {
+  def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol"): WBTextAreaField = {
     new WBTextAreaField("Change audit message", "") {
       override def setFilter  = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField %

@@ -66,7 +66,7 @@ case class JsonResponsePrettify(
     code:     Int,
     prettify: Boolean
 ) extends LiftResponse {
-  def toResponse = {
+  def toResponse: InMemoryResponse = {
     val bytes = (if (prettify) RestUtils.render(json) else compactRender(json)).getBytes("UTF-8")
     InMemoryResponse(
       bytes,
@@ -197,7 +197,7 @@ object RestUtils extends Loggable {
     effectiveResponse(id, message, InternalError, action, prettify)
   }
 
-  def notValidVersionResponse(action: String)(implicit availableVersions: List[ApiVersion]) = {
+  def notValidVersionResponse(action: String)(implicit availableVersions: List[ApiVersion]): LiftResponse = {
     val versions = "latest" :: availableVersions.map(_.value.toString)
     toJsonError(
       None,
@@ -205,14 +205,15 @@ object RestUtils extends Loggable {
     )(action, false)
   }
 
-  def missingResponse(version: Int, action: String) = {
+  def missingResponse(version: Int, action: String): LiftResponse = {
     toJsonError(None, JString(s"Version ${version} exists for this API function, but it's implementation is missing"))(
       action,
       false
     )
   }
 
-  def unauthorized = effectiveResponse(None, JString("You are not authorized to access that API"), ForbiddenError, "", false)
+  def unauthorized: LiftResponse =
+    effectiveResponse(None, JString("You are not authorized to access that API"), ForbiddenError, "", false)
 
   def response(
       restExtractor: RestExtractorService,
@@ -297,7 +298,7 @@ object RestUtils extends Loggable {
     }
   }
 
-  def notFoundResponse(id: Option[String], message: JValue)(implicit action: String, prettify: Boolean) = {
+  def notFoundResponse(id: Option[String], message: JValue)(implicit action: String, prettify: Boolean): LiftResponse = {
     effectiveResponse(id, message, NotFoundError, action, prettify)
   }
 

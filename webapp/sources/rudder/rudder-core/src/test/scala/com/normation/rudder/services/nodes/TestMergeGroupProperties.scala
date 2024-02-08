@@ -76,45 +76,46 @@ class TestMergeGroupProperties extends Specification {
   sequential
 
   implicit class ToTarget(g: NodeGroup) {
-    def toTarget    = FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, "", true, true)
-    def toCriterion = CriterionLine(null, Criterion("some ldap attr", new SubGroupComparator(null)), null, g.id.serialize)
+    def toTarget:    FullRuleTargetInfo = FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, "", true, true)
+    def toCriterion: CriterionLine      =
+      CriterionLine(null, Criterion("some ldap attr", new SubGroupComparator(null)), null, g.id.serialize)
   }
 
   implicit class ToNodePropertyHierarchy(groups: List[NodeGroup]) {
-    def toParents(name: String)                      = {
+    def toParents(name: String):                      List[ParentProperty.Group] = {
       groups.flatMap(g => g.properties.find(_.name == name).map(p => ParentProperty.Group(g.name, g.id, p.value)))
     }
     // use first parent to build a fully inherited prop
-    def toH1(name: String)                           = {
+    def toH1(name: String):                           NodePropertyHierarchy      = {
       toParents(name) match {
         case h :: t => NodePropertyHierarchy(NodeProperty(name, h.value, None, Some(GroupProp.INHERITANCE_PROVIDER)), h :: t)
         case _      => throw new IllegalArgumentException(s"No value found for prop '${name}' in group list")
       }
     }
-    def toH2(prop: NodeProperty)                     = {
+    def toH2(prop: NodeProperty):                     NodePropertyHierarchy      = {
       com.normation.rudder.domain.properties.NodePropertyHierarchy(prop, toParents(prop.name))
     }
-    def toH3(name: String, globalParam: ConfigValue) = {
+    def toH3(name: String, globalParam: ConfigValue): NodePropertyHierarchy      = {
       toH1(name).modify(_.hierarchy).using(_ :+ ParentProperty.Global(globalParam))
     }
   }
   implicit class ToNodeProp(global: ConfigValue)                  {
-    def toG(name: String)  = {
+    def toG(name: String):  NodePropertyHierarchy = {
       NodePropertyHierarchy(
         NodeProperty(name, global, None, Some(GroupProp.INHERITANCE_PROVIDER)),
         ParentProperty.Global(global) :: Nil
       )
     }
-    def toGP(name: String) = {
+    def toGP(name: String): GlobalParameter       = {
       GlobalParameter(name, GitVersion.DEFAULT_REV, global, None, "", None)
     }
   }
   implicit class ToConfigValue(s: String)                         {
-    def toConfigValue = ConfigValueFactory.fromAnyRef(s)
+    def toConfigValue: ConfigValue = ConfigValueFactory.fromAnyRef(s)
   }
 
   implicit class ForceGet[A](a: PureResult[A]) {
-    def forceGet = a match {
+    def forceGet: A = a match {
       case Right(value) => value
       case Left(err)    => throw new RuntimeException(s"Error in test: forceGet a result which was in error: ${err.fullMsg}")
     }
@@ -131,7 +132,7 @@ class TestMergeGroupProperties extends Specification {
    *    node
    */
 
-  val parent1     = NodeGroup(
+  val parent1:     NodeGroup     = NodeGroup(
     NodeGroupId(NodeGroupUid("parent1")),
     "parent1",
     "",
@@ -141,8 +142,8 @@ class TestMergeGroupProperties extends Specification {
     Set(),
     true
   )
-  val parent2Prop = GroupProperty("foo", GitVersion.DEFAULT_REV, "bar2".toConfigValue, None, None)
-  val parent2     = NodeGroup(
+  val parent2Prop: GroupProperty = GroupProperty("foo", GitVersion.DEFAULT_REV, "bar2".toConfigValue, None, None)
+  val parent2:     NodeGroup     = NodeGroup(
     NodeGroupId(NodeGroupUid("parent2")),
     "parent2",
     "",
@@ -152,11 +153,30 @@ class TestMergeGroupProperties extends Specification {
     Set(),
     true
   )
-  val childProp   = GroupProperty("foo", GitVersion.DEFAULT_REV, "baz".toConfigValue, None, None)
-  val query       = Query(NodeReturnType, And, Identity, List(parent1.toCriterion))
-  val child       = NodeGroup(NodeGroupId(NodeGroupUid("child")), "child", "", List(childProp), Some(query), true, Set(), true)
-  val nodeInfo    =
-    NodeConfigData.node1.modify(_.node.properties).setTo(NodeProperty("foo", "barNode".toConfigValue, None, None) :: Nil)
+  val childProp:   GroupProperty = GroupProperty("foo", GitVersion.DEFAULT_REV, "baz".toConfigValue, None, None)
+  val query:       Query         = Query(NodeReturnType, And, Identity, List(parent1.toCriterion))
+  val child:       NodeGroup     = NodeGroup(
+    NodeGroupId(NodeGroupUid("child")),
+    "child",
+    "",
+    List(childProp),
+    Some(query),
+    true,
+    Set(),
+    true
+  )
+  val nodeInfo:    NodeInfo      = {
+    NodeConfigData.node1
+      .modify(_.node.properties)
+      .setTo(
+        NodeProperty(
+          "foo",
+          "barNode".toConfigValue,
+          None,
+          None
+        ) :: Nil
+      )
+  }
 
   "overriding a property in a hierarchy should work" >> {
     val merged   = MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: child.toTarget :: Nil, Map())

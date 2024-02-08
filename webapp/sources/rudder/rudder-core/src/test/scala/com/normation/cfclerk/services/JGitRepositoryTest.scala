@@ -38,6 +38,7 @@
 package com.normation.cfclerk.services
 
 import better.files.File
+import com.normation.errors
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.effectUioUnit
@@ -75,7 +76,7 @@ import zio.syntax._
 @RunWith(classOf[JUnitRunner])
 class JGitRepositoryTest extends Specification with Loggable with AfterAll {
 
-  val gitRoot = File("/tmp/test-jgit-" + DateTime.now().toString())
+  val gitRoot: File = File("/tmp/test-jgit-" + DateTime.now().toString())
 
   // Set sequential execution
   sequential
@@ -84,7 +85,7 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
    * Add a switch to be able to see tmp files (not clean themps) with
    * -Dtests.clean.tmp=false
    */
-  override def afterAll() = {
+  override def afterAll(): Unit = {
     if (java.lang.System.getProperty("tests.clean.tmp") != "false") {
       logger.info("Deleting directory " + gitRoot.pathAsString)
       FileUtils.deleteDirectory(gitRoot.toJava)
@@ -93,8 +94,8 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
 
   gitRoot.createDirectories()
 
-  val repo    = GitRepositoryProviderImpl.make(gitRoot.pathAsString).runNow
-  val archive = new GitConfigItemRepository with XmlArchiverUtils {
+  val repo:    GitRepositoryProviderImpl                     = GitRepositoryProviderImpl.make(gitRoot.pathAsString).runNow
+  val archive: GitConfigItemRepository with XmlArchiverUtils = new GitConfigItemRepository with XmlArchiverUtils {
     override val gitRepo = repo
     override def relativePath: String = ""
     override def xmlPrettyPrinter = new RudderPrettyPrinter(Int.MaxValue, 2)
@@ -112,7 +113,7 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
 
   import org.eclipse.jgit.treewalk.TreeWalk
 
-  def readElementsAt(repository: Repository, commit: String) = {
+  def readElementsAt(repository: Repository, commit: String): ZIO[Any, errors.SystemError, List[String]] = {
     val ref = repository.findRef(commit)
 
     // a RevWalk allows to walk over commits based on some filtering that is defined

@@ -46,6 +46,7 @@ import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.services.nodes.NodeInfoService
+import net.liftweb.common.Box
 import zio.ZIO
 
 /**
@@ -114,7 +115,7 @@ object QuickSearchService {
 
     import QSBackend._
 
-    def search(query: Query) = b match {
+    def search(query: Query): Box[Iterable[QuickSearchResult]] = b match {
       case LdapBackend      => QSLdapBackend.search(query)
       case DirectiveBackend => QSDirectiveBackend.search(query)
     }

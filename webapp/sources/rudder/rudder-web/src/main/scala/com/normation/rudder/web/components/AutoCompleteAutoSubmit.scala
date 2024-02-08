@@ -68,7 +68,7 @@ import net.liftweb.util.Helpers._
  * submits automatically when an entry is selected
  */
 object AutoCompleteAutoSubmit {
-  def apply(start: String, options: (String, Int) => Seq[String], onSubmit: String => JsCmd, attrs: (String, String)*) =
+  def apply(start: String, options: (String, Int) => Seq[String], onSubmit: String => JsCmd, attrs: (String, String)*): Elem =
     new AutoCompleteAutoSubmit().render(start, options, onSubmit, attrs: _*)
 
   def apply(
@@ -77,7 +77,7 @@ object AutoCompleteAutoSubmit {
       onSubmit:    String => JsCmd,
       jsonOptions: List[(String, String)],
       attrs:       (String, String)*
-  ) = new AutoCompleteAutoSubmit().render(start, options, onSubmit, jsonOptions, attrs: _*)
+  ): Elem = new AutoCompleteAutoSubmit().render(start, options, onSubmit, jsonOptions, attrs: _*)
 
   def autocompleteObj[T](options: Seq[(T, String)], default: Box[T], onSubmit: T => JsCmd): Elem =
     new AutoCompleteAutoSubmit().autocompleteObj(options, default, onSubmit)

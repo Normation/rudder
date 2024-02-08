@@ -79,7 +79,7 @@ final case class JsonPluginDef(
  */
 class ReadPluginPackageInfo(path: String) {
 
-  val index = File(path)
+  val index: File = File(path)
 
   def check: IOResult[Boolean] = {
     IOResult.attempt {

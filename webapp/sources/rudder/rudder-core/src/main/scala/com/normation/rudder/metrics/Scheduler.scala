@@ -97,7 +97,7 @@ class Scheduler[A](
   }
 
   // time between min and max time, ie time to wait before looking for events.
-  val delta = Duration.fromNanos(max.toNanos - min.toNanos)
+  val delta: Duration = Duration.fromNanos(max.toNanos - min.toNanos)
 
   /*
    * The loop logic: wait for an event or the max duration and then sleep for
@@ -105,7 +105,7 @@ class Scheduler[A](
    * We need to special case the first iteration, because for it the max time is
    * really max time, while for next iteration, it's only (max - min).
    */
-  val loop = {
+  val loop: ZIO[Any, Nothing, Nothing] = {
     def oneStep(d: Duration) = {
       for {
         a <- queue.take.race(ZIO.unit.delay(d) *> default)

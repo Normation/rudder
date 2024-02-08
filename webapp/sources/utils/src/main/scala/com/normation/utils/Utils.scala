@@ -33,8 +33,8 @@ import org.joda.time.format.ISODateTimeFormat
 object Utils {
 
   implicit class DateToIsoString(private val dateTime: DateTime) {
-    def toIsoString         = dateTime.toString(ISODateTimeFormat.basicDateTime())
-    def toIsoStringNoMillis = dateTime.toString(ISODateTimeFormat.basicDateTimeNoMillis())
+    def toIsoString:         String = dateTime.toString(ISODateTimeFormat.basicDateTime())
+    def toIsoStringNoMillis: String = dateTime.toString(ISODateTimeFormat.basicDateTimeNoMillis())
   }
 
   /**
@@ -56,5 +56,5 @@ object Utils {
    * Empty test on string, return true is the String is null or "",
    * false otherwise
    */
-  def isEmpty(s: String) = if (null == s || "" == s) true else false
+  def isEmpty(s: String): Boolean = if (null == s || "" == s) true else false
 }

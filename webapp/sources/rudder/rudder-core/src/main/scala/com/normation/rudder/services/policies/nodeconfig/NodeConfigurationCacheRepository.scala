@@ -459,9 +459,9 @@ object FileBasedNodeConfigurationHashRepository {
  */
 class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigurationHashRepository {
 
-  val semaphore = Semaphore.make(1).runNow
+  val semaphore: Semaphore = Semaphore.make(1).runNow
 
-  val hashesFile = File(path)
+  val hashesFile: File = File(path)
 
   def checkFile(file: File): IOResult[Unit] = {
     (for {

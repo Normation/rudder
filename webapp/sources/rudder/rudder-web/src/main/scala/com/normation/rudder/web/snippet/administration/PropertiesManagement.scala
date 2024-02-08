@@ -55,6 +55,7 @@ import com.normation.rudder.web.components.AgentScheduleEditForm
 import com.normation.rudder.web.components.ComplianceModeEditForm
 import com.normation.rudder.web.services.CurrentUser
 import java.nio.charset.StandardCharsets
+import java.nio.file.attribute.PosixFilePermission
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.SHtml._
@@ -79,12 +80,12 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
   private[this] val genericReasonMessage = Some("Property modified from Rudder preference page")
 
-  def startNewPolicyGeneration() = {
+  def startNewPolicyGeneration(): Unit = {
     val modId = ModificationId(uuidGen.newUuid)
     asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
   }
 
-  def disableInputs = {
+  def disableInputs: NodeSeq = {
     // If user does not have the Edit("administration") right, all inputs are disabled
     // else nothing is done because it enables what should not be.
     if (!CurrentUser.checkRights(AuthorizationType.Administration.Edit)) {
@@ -94,7 +95,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     NodeSeq.Empty
   }
 
-  def dispatch = {
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
     case "changeMessage"                      => changeMessageConfiguration
     case "denyBadClocks"                      => cfserverNetworkConfiguration
     case "relaySynchronizationMethod"         => relaySynchronizationMethodManagement
@@ -113,7 +114,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "generationHookTriggerNodeUpdate"    => generationHookTriggerNodeUpdate
   }
 
-  def changeMessageConfiguration = { xml: NodeSeq =>
+  def changeMessageConfiguration: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     // initial values
     var initEnabled     = configService.rudder_ui_changeMessage_enabled().toBox
     var initMandatory   = configService.rudder_ui_changeMessage_mandatory().toBox
@@ -235,7 +236,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     } &
 
     "#restoreExplanation " #> {
-      initExplanation.map { s: String =>
+      initExplanation.map { (s: String) =>
         ajaxButton(
           <span>Reset to default</span>,
           () => {
@@ -250,7 +251,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     } &
 
     "#mandatoryTooltip *" #> {
-      initMandatory.map { b: Boolean =>
+      initMandatory.map { (b: Boolean) =>
         val tooltipid = Helpers.nextFuncName
         <span class="tooltipable" tooltipid={tooltipid} title="">
             <span class="glyphicon glyphicon-info-sign info"></span>
@@ -262,7 +263,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     } &
 
     "#explanationTooltip *" #> {
-      initExplanation.map { s: String =>
+      initExplanation.map { (s: String) =>
         val tooltipid = Helpers.nextFuncName
         <span class="tooltipable" tooltipid={tooltipid} title="">
             <span class="glyphicon glyphicon-info-sign info"></span>
@@ -278,7 +279,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }) apply (xml ++ Script(initJs(enabled)))
   }
 
-  def cfserverNetworkConfiguration = { xml: NodeSeq =>
+  def cfserverNetworkConfiguration: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     //  initial values, updated on successfull submit
     var initDenyBadClocks = configService.cfengine_server_denybadclocks().toBox
 
@@ -341,7 +342,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }) apply (xml ++ Script(check()))
   }
 
-  def relaySynchronizationMethodManagement = { xml: NodeSeq =>
+  def relaySynchronizationMethodManagement: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     //  initial values, updated on successfull submit
     var initRelaySyncMethod      = configService.relay_server_sync_method().toBox
     // Be careful, we store negative value
@@ -502,7 +503,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     () => startNewPolicyGeneration()
   )
 
-  val complianceModeEditForm  = {
+  val complianceModeEditForm:  ComplianceModeEditForm[GlobalComplianceMode] = {
     val globalMode = configService.rudder_compliance_mode().toBox
     new ComplianceModeEditForm[GlobalComplianceMode](
       globalMode,
@@ -513,10 +514,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       globalMode
     )
   }
-  val agentPolicyModeEditForm = {
+  val agentPolicyModeEditForm: AgentPolicyModeEditForm                      = {
     new AgentPolicyModeEditForm()
   }
-  def getSchedule(): Box[AgentRunInterval] = {
+  def getSchedule():           Box[AgentRunInterval]                        = {
     for {
       starthour <- configService.agent_run_start_hour()
       startmin  <- configService.agent_run_start_minute()
@@ -549,10 +550,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   }.toBox
 
   def cfagentScheduleConfiguration = agentScheduleEditForm.cfagentScheduleConfiguration
-  def agentPolicyModeConfiguration = agentPolicyModeEditForm.cfagentPolicyModeConfiguration(None)
-  def complianceModeConfiguration  = complianceModeEditForm.complianceModeConfiguration
+  def agentPolicyModeConfiguration: NodeSeq = agentPolicyModeEditForm.cfagentPolicyModeConfiguration(None)
+  def complianceModeConfiguration = complianceModeEditForm.complianceModeConfiguration
 
-  def cfengineGlobalProps = { xml: NodeSeq =>
+  def cfengineGlobalProps: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     //  initial values, updated on successful submit
     var initModifiedFilesTtl = configService.cfengine_modified_files_ttl().toBox
     // form values
@@ -603,7 +604,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }) apply (xml ++ Script(check()))
   }
 
-  def loggingConfiguration = { xml: NodeSeq =>
+  def loggingConfiguration: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     //  initial values, updated on successfull submit
     var initCfengineOutputsTtl = configService.cfengine_outputs_ttl().toBox
     // form values
@@ -655,7 +656,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }) apply (xml ++ Script(check()))
   }
 
-  def addDisabled(disabled: Boolean) = {
+  def addDisabled(disabled: Boolean): NodeSeq => NodeSeq = {
     if (disabled) "* [disabled]" #> "disabled"
     else PassThru
   }
@@ -665,7 +666,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
    * - isExec == true =>  rwxr-xr-x
    * - isExec == false => rw-r--r--
    */
-  def getHookPerm(isExec: Boolean) = {
+  def getHookPerm(isExec: Boolean): Set[PosixFilePermission] = {
     // property file should be either rwxr--r-- or rw-r--r--
     import java.nio.file.attribute.PosixFilePermission._
     val perms = Set(OWNER_READ, OWNER_WRITE, GROUP_READ, OTHERS_READ)
@@ -673,7 +674,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     else perms
   }
 
-  def generationHookCfpromise = { xml: NodeSeq =>
+  def generationHookCfpromise: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     {
       import better.files._
       val hook = File("/opt/rudder/etc/hooks.d/policy-generation-node-ready/10-cf-promise-check")
@@ -916,7 +917,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  def sendMetricsConfiguration = { xml: NodeSeq =>
+  def sendMetricsConfiguration: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     (configService.send_server_metrics().toBox match {
       case Full(value) =>
         var initSendMetrics    = value
@@ -964,7 +965,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }) apply (xml)
   }
 
-  def displayGraphsConfiguration = { xml: NodeSeq =>
+  def displayGraphsConfiguration: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     ((configService.display_changes_graph().toBox, configService.rudder_ui_display_ruleComplianceColumns().toBox) match {
       case (Full(valueGraphs), Full(valueColumns)) =>
         var initDisplayGraphs     = valueGraphs
@@ -1033,7 +1034,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }) apply (xml ++ Script(Run(s"""$$("#displayGraphsSubmit").attr("disabled",true);""")))
   }
 
-  def directiveScriptEngineConfiguration = { xml: NodeSeq =>
+  def directiveScriptEngineConfiguration: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     import com.normation.rudder.domain.appconfig.FeatureSwitch._
 
     (configService.rudder_featureSwitch_directiveScriptEngine().toBox match {
@@ -1091,7 +1092,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }) apply xml
   }
 
-  def nodeOnAcceptDefaultsConfiguration = { xml: NodeSeq =>
+  def nodeOnAcceptDefaultsConfiguration: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     val modes  = SelectableOption[Option[PolicyMode]](None, "Use global value") :: PolicyMode.allModes.map { x =>
       SelectableOption[Option[PolicyMode]](Some(x), x.name.capitalize)
     }.toList
@@ -1176,7 +1177,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ("#nodeOnAcceptDefaults" #> process).apply(xml)
   }
 
-  def unexpectedReportInterpretation = { xml: NodeSeq =>
+  def unexpectedReportInterpretation: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     import com.normation.rudder.services.reports.UnexpectedReportBehavior._
 
     (configService.rudder_compliance_unexpected_report_interpretation().toBox match {

@@ -69,10 +69,10 @@ class MigrateEventLogEnforceSchema(
   override def description: String =
     "Check if eventtype, principal, severity, data have a not null constraint, otherwise migrate these columns"
 
-  val defaultEventType = Fragment.const("''")
-  val defaultSeverity  = Fragment.const("100")
-  val defaultPrincipal = Fragment.const("'unknown'")
-  val defaultData      = Fragment.const("''")
+  val defaultEventType: Fragment = Fragment.const("''")
+  val defaultSeverity:  Fragment = Fragment.const("100")
+  val defaultPrincipal: Fragment = Fragment.const("'unknown'")
+  val defaultData:      Fragment = Fragment.const("''")
 
   def migrateColumnStatement(column: Fragment, defaultValue: Fragment): Update0 = {
     sql"""

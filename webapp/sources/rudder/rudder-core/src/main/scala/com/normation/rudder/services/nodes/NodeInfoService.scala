@@ -565,7 +565,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
 
   override def loggerName: String = this.getClass.getName
 
-  val semaphore = Semaphore.make(1).runNow
+  val semaphore:    Semaphore         = Semaphore.make(1).runNow
   /*
    * Compare if cache is up to date (based on internal state of the cache)
    */
@@ -611,7 +611,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
   /*
    * Our cache
    */
-  protected[this] var nodeCache = Option.empty[LocalNodeInfoCache]
+  protected[this] var nodeCache: Option[LocalNodeInfoCache] = None
 
   // we need modifyTimestamp to search for update and entryCSN to remove already processed entries
   private[this] val searchAttributes = nodeInfoAttributes :+ A_MOD_TIMESTAMP :+ "entryCSN"

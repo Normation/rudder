@@ -112,7 +112,7 @@ final case class MigrationTestLog(
 @RunWith(classOf[JUnitRunner])
 class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
 
-  lazy val migration = new EventLogsMigration_5_6(
+  lazy val migration: EventLogsMigration_5_6 = new EventLogsMigration_5_6(
     doobie = doobie,
     batchSize = 2
   ) {
@@ -122,7 +122,7 @@ class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
   var logs5WithId: Map[String, MigrationTestLog] = null // init in initDb
   var logs6WithId: Seq[MigrationTestLog]         = null
 
-  override def initDb() = {
+  override def initDb(): Unit = {
     super.initDb()
 
     def insertLog(log: MigrationTestLog): Int = {
@@ -207,7 +207,7 @@ class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
 
 object NoMigrationEventLogs {
 
-  val e1 = MigrationTestLog(
+  val e1: MigrationTestLog = MigrationTestLog(
     eventType = "AcceptNode",
     data = <entry><node action="accept" fileFormat="3.42">
                              <id>xxxc8e3d-1bf6-4bc1-9398-f8890b015a50</id>
@@ -218,7 +218,7 @@ object NoMigrationEventLogs {
                            </node></entry>
   )
 
-  val e2 = MigrationTestLog(
+  val e2: MigrationTestLog = MigrationTestLog(
     eventType = "AcceptNode",
     data = <entry><node action="accept" fileFormat="**BAD**">
                              <id>xxxx8e3d-1bf6-4bc1-9398-f8890b015a50</id>
@@ -229,7 +229,7 @@ object NoMigrationEventLogs {
                            </node></entry>
   )
 
-  val e3 = MigrationTestLog(
+  val e3: MigrationTestLog = MigrationTestLog(
     eventType = "StartDeployement",
     data = <entry><addPendingDeployement alreadyPending="false" fileFormat="2.21"></addPendingDeployement></entry>
   )

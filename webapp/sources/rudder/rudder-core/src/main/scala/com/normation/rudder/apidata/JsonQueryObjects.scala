@@ -101,7 +101,7 @@ object JsonQueryObjects {
       id:          Option[String] = None
   ) {
 
-    def update(ruleCategory: RuleCategory) = {
+    def update(ruleCategory: RuleCategory): RuleCategory = {
       ruleCategory.using(this).ignoreRedundantPatcherFields.patch
     }
   }
@@ -163,7 +163,7 @@ object JsonQueryObjects {
 
       source: Option[DirectiveId] = None
   ) {
-    val onlyName = displayName.isDefined &&
+    val onlyName: Boolean = displayName.isDefined &&
       shortDescription.isEmpty &&
       longDescription.isEmpty &&
       enabled.isEmpty &&
@@ -174,7 +174,7 @@ object JsonQueryObjects {
       policyMode.isEmpty &&
       tags.isEmpty // no need to check source or reason
 
-    def updateDirective(directive: Directive) = {
+    def updateDirective(directive: Directive): Directive = {
       directive.patchUsing(
         PatchDirective(
           id,
@@ -206,7 +206,7 @@ object JsonQueryObjects {
       source: Option[RuleId] = None
   ) {
 
-    val onlyName = displayName.isDefined &&
+    val onlyName: Boolean = displayName.isDefined &&
       category.isEmpty &&
       shortDescription.isEmpty &&
       longDescription.isEmpty &&
@@ -215,7 +215,7 @@ object JsonQueryObjects {
       enabled.isEmpty &&
       tags.isEmpty // no need to check source or reason
 
-    def updateRule(rule: Rule) = {
+    def updateRule(rule: Rule): Rule = {
       val updateRevision   = id.map(_.rev).getOrElse(rule.id.rev)
       val updateName       = displayName.getOrElse(rule.name)
       val updateCategory   = category.map(RuleCategoryId.apply).getOrElse(rule.categoryId)
@@ -246,7 +246,7 @@ object JsonQueryObjects {
       description: Option[String],
       inheritMode: Option[InheritMode]
   ) {
-    def updateParameter(parameter: GlobalParameter) = {
+    def updateParameter(parameter: GlobalParameter): GlobalParameter = {
       // provider from API is force set to default.
       parameter.patch(PatchProperty(id, value, Some(PropertyProvider.defaultPropertyProvider), description, inheritMode))
     }
@@ -258,7 +258,7 @@ object JsonQueryObjects {
       value:       ConfigValue,
       inheritMode: Option[InheritMode]
   ) {
-    def toGroupProperty = GroupProperty(
+    def toGroupProperty: GroupProperty = GroupProperty(
       name,
       rev.map(Revision.apply).getOrElse(GitVersion.DEFAULT_REV),
       value,
@@ -273,7 +273,8 @@ object JsonQueryObjects {
       transform:   Option[String],
       where:       Option[List[StringCriterionLine]]
   ) {
-    def toQueryString = StringQuery(returnType.getOrElse(NodeReturnType), composition, transform, where.getOrElse(Nil))
+    def toQueryString: StringQuery =
+      StringQuery(returnType.getOrElse(NodeReturnType), composition, transform, where.getOrElse(Nil))
   }
 
   final case class GroupPatch(
@@ -298,7 +299,7 @@ object JsonQueryObjects {
       source:      Option[NodeGroupId] = None
   ) {
 
-    val onlyName = displayName.isDefined &&
+    val onlyName: Boolean = displayName.isDefined &&
       description.isEmpty &&
       properties.isEmpty &&
       query.isEmpty &&
@@ -340,7 +341,7 @@ trait RudderJsonDecoders {
 
   // JRRuleTarget
   object JRRuleTargetDecoder {
-    def parseString(s: String) = RuleTarget.unserOne(s) match {
+    def parseString(s: String): Either[String, JRRuleTargetString] = RuleTarget.unserOne(s) match {
       case None    => Left(s"'${s}' can not be decoded as a simple rule target")
       case Some(x) => Right(JRRuleTargetString(x))
     }

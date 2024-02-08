@@ -51,16 +51,16 @@ import org.specs2.specification.AfterAll
 class TestRemoveNodeService extends Specification with AfterAll {
 
   // let's say that's /var/rudder/share
-  val varRudderShare = File(s"/tmp/rudder-test-delete-node-${DateTime.now().toString(ISODateTimeFormat.dateTime())}")
+  val varRudderShare: File = File(s"/tmp/rudder-test-delete-node-${DateTime.now().toString(ISODateTimeFormat.dateTime())}")
 
   // nodeXX appears at seleral places
 
-  override def afterAll(): Unit = {
+  override def afterAll(): Unit       = {
     if (System.getProperty("tests.clean.tmp") != "false") {
       varRudderShare.delete()
     }
   }
-  val expected = List(
+  val expected:            List[File] = List(
     varRudderShare,
     varRudderShare / "node1",
     varRudderShare / "node1" / "rules",
@@ -82,7 +82,7 @@ class TestRemoveNodeService extends Specification with AfterAll {
     varRudderShare / "relay1" / "share" / "relay2" / "share" / "node22" / "rules"
   )
 
-  val startFS = expected ::: List(
+  val startFS: List[File] = expected ::: List(
     varRudderShare / "nodeXX" / "rules",
     varRudderShare / "relay1" / "share" / "nodeXX" / "rules", // if it was a relay at some point, it's deleted all the same
 

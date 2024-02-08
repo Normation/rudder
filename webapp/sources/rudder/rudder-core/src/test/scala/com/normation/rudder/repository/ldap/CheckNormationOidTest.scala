@@ -40,6 +40,7 @@ package com.normation.rudder.repository.ldap
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
+import scala.util.matching.Regex
 
 /**
  * A test to check that the Normation OID is not defined in
@@ -51,10 +52,10 @@ import org.specs2.runner._
 @RunWith(classOf[JUnitRunner])
 class CheckNormationOidTest extends Specification {
 
-  val regex = """.*objectIdentifier NormationOID 1.3.6.1.4.1.35061.*""".r
+  val regex: Regex = """.*objectIdentifier NormationOID 1.3.6.1.4.1.35061.*""".r
 
   // toURI is needed for https://issues.rudder.io/issues/19186
-  val rudderSchemaFile = this.getClass.getClassLoader.getResource("ldap/rudder.schema").toURI.getPath
+  val rudderSchemaFile: String = this.getClass.getClassLoader.getResource("ldap/rudder.schema").toURI.getPath
 
   "Normation OID" should {
 

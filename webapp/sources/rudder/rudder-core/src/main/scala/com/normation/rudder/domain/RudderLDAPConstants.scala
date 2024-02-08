@@ -42,6 +42,7 @@ import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.utils.Utils
 import net.liftweb.common.Loggable
+import scala.util.matching.Regex
 
 object RudderLDAPConstants extends Loggable {
 
@@ -241,12 +242,12 @@ object RudderLDAPConstants extends Loggable {
   /**
    * Serialize and unserialize variables in A_DIRECTIVE_VARIABLES
    */
-  val VSEP                = ":"
+  val VSEP = ":"
   // '(?m)' => multiligne
   // '(?s)' => . matches \n
-  val policyVariableRegex = """(?m)(?s)([^\[]+)\[(\d+)\]:(.+)""".r
+  val policyVariableRegex: Regex = """(?m)(?s)([^\[]+)\[(\d+)\]:(.+)""".r
 
-  val mayBeEmptyPolicyVariableRegex = """(?m)(?s)([^\[]+)\[(\d+)\]:(.*)""".r
+  val mayBeEmptyPolicyVariableRegex: Regex = """(?m)(?s)([^\[]+)\[(\d+)\]:(.*)""".r
 
   /**
    * Parsing/printing variables
@@ -316,7 +317,7 @@ object RudderLDAPConstants extends Loggable {
    * Serialize a variable into the expected format
    * for an LDAP attribute value.
    */
-  def policyVariableToString(name: String, index: Int, value: String, mayBeEmpty: Boolean = false) = {
+  def policyVariableToString(name: String, index: Int, value: String, mayBeEmpty: Boolean = false): String = {
     require(!Utils.isEmpty(name), "Policy variable name can not be null")
     if (!mayBeEmpty) {
       require(!Utils.isEmpty(value), "Policy variable value can not be empty (it is for variable %s)".format(name))

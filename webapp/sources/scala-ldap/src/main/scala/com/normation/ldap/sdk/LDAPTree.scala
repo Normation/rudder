@@ -28,6 +28,7 @@ import com.normation.ldap.sdk.LDAPRudderError.Consistancy
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFRecord
+import org.slf4j.Logger
 import scala.collection.mutable.Buffer
 import scala.collection.mutable.HashMap
 import zio.syntax._
@@ -101,7 +102,7 @@ trait LDAPTree extends Tree[LDAPEntry] with ToLDIFRecords with ToLDIFString {
 
 object LDAPTree {
   // loggin
-  val logger = org.slf4j.LoggerFactory.getLogger(classOf[LDAPTree])
+  val logger: Logger = org.slf4j.LoggerFactory.getLogger(classOf[LDAPTree])
 
   def apply(r: LDAPEntry, c: Iterable[(RDN, LDAPTree)]): LDAPTree = new LDAPTree {
     require(null != r, "root of a tree can't be null")

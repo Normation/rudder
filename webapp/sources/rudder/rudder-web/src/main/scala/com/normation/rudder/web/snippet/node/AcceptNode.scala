@@ -81,7 +81,7 @@ class AcceptNode extends Loggable {
 
   val gridHtmlId = "acceptNodeGrid"
 
-  def authedUser = {
+  def authedUser: EventActor = {
     SecurityContextHolder.getContext.getAuthentication.getPrincipal match {
       case u: UserDetails => EventActor(u.getUsername)
       case _ =>
@@ -279,7 +279,7 @@ class AcceptNode extends Loggable {
    * retrieve the list of all checked servers with JS
    * and then show the popup
    */
-  def showConfirmPopup(template: NodeSeq, popupId: String) = {
+  def showConfirmPopup(template: NodeSeq, popupId: String): JsCmd = {
     net.liftweb.http.js.JE.JsRaw("""
         var selectedNode = JSON.stringify($('input[name="serverids"]:checkbox:checked').map(function() {
           return $(this).val();
@@ -290,7 +290,7 @@ class AcceptNode extends Loggable {
   /**
    * Display the expected Directives for a machine
    */
-  def showExpectedPolicyPopup(node: Srv) = {
+  def showExpectedPolicyPopup(node: Srv): JsCmd = {
     SetHtml("expectedPolicyZone", (new ExpectedPolicyPopup("expectedPolicyZone", node)).display) &
     OnLoad(JsRaw("""createPopup("expectedPolicyPopup")"""))
   }

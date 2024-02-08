@@ -86,7 +86,7 @@ import scala.xml.NodeSeq
 
 //serialize / deserialize tags
 object TagsXml {
-  def toXml(tags: Tags) = {
+  def toXml(tags: Tags): Elem = {
     <tags>{tags.map(tag => <tag name={tag.name.value} value={tag.value.value} />)}</tags>
   }
 
@@ -205,7 +205,7 @@ class DirectiveSerialisationImpl(xmlVersion: String) extends DirectiveSerialisat
       ptName:              TechniqueName,
       variableRootSection: Option[SectionSpec],
       directive:           Directive
-  ) = {
+  ): Elem = {
     createTrimedElem(XML_TAG_DIRECTIVE, xmlVersion)(
       <id>{directive.id.serialize}</id>
       :: <displayName>{directive.name}</displayName>

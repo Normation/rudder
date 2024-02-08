@@ -38,6 +38,7 @@
 package com.normation.inventory.ldap.core
 
 import com.normation.ldap.sdk.schema.LDAPSchema
+import scala.util.matching.Regex
 
 object LDAPConstants {
 
@@ -308,7 +309,7 @@ object LDAPConstants {
     may = Set(A_NAME, A_DESCRIPTION, A_MODEL, A_SERIAL_NUMBER, A_FIRMWARE, A_QUANTITY, A_SME_TYPE, A_STATUS, A_MANUFACTURER)
   )
 
-  val machineTypesNames = Set(
+  val machineTypesNames: Set[String] = Set(
     OC_MACHINE,
     OC_PM,
     OC_VM,
@@ -481,9 +482,9 @@ object LDAPConstants {
   OC.createObjectClass(OC_DYN_GROUP, must = Set(A_MEMBER_URL), may = Set(A_DESCRIPTION))
 
   // User defined properties : the regexp that the data should abide by
-  val userDefinedPropertyRegex = """\{([^\}]+)\}(.+)""".r
+  val userDefinedPropertyRegex: Regex = """\{([^\}]+)\}(.+)""".r
 
   // variable bindings variable regexp : VariableName:FieldName
-  val variableBindingRegex = """(.+):(.+)""".r
+  val variableBindingRegex: Regex = """(.+):(.+)""".r
 
 }

@@ -106,7 +106,7 @@ class TestSignatureService extends Specification with Loggable {
     ZIO.acquireReleaseWith(getInputStream(path))(is => effectUioUnit(is.close))(TestInventoryDigestServiceV1.parse)
   }
 
-  val boxedSignature = parseSignature("fusion-inventories/signed_inventory.ocs.sign")
+  val boxedSignature: IOResult[InventoryDigest] = parseSignature("fusion-inventories/signed_inventory.ocs.sign")
 
   "Signature file" should {
     "contain use sha512 algorithm" in {

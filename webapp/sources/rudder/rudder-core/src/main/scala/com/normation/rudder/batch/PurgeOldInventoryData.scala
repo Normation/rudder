@@ -154,7 +154,7 @@ class PurgeOldInventoryData(
   }
 
   // start cron
-  def start() = {
+  def start(): Fiber.Runtime[Nothing, Unit] = {
     ZioRuntime.unsafeRun(prog.forkDaemon)
   }
 }

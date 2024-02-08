@@ -50,6 +50,7 @@ import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonDSL._
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.QuoteMode
+import scala.collection.immutable
 
 /**
  * Here, we want to present two views of compliance:
@@ -86,7 +87,7 @@ final case class ByRuleRuleCompliance(
     policyMode: Option[PolicyMode],
     directives: Seq[ByRuleDirectiveCompliance]
 ) {
-  lazy val nodes = GroupComponentCompliance.fromDirective(directives).toSeq
+  lazy val nodes: Seq[GroupComponentCompliance] = GroupComponentCompliance.fromDirective(directives).toSeq
 }
 
 final case class ByDirectiveCompliance(
@@ -244,7 +245,7 @@ object GroupComponentCompliance {
   // The goal here is to build a Compliance structure based on Nodes from a Compliance Structure Based on Directives
   // That contains Node reference as leaf
   // So we will go deep in the data structure to take reference to node then reconstruct the tree from the leaf
-  def fromDirective(directives: Seq[ByRuleDirectiveCompliance]) = {
+  def fromDirective(directives: Seq[ByRuleDirectiveCompliance]): immutable.Iterable[GroupComponentCompliance] = {
     for {
       // Regroup all Directive by node getting Nodes values from components
       (nodeId, data) <- directives.flatMap { d =>
@@ -282,7 +283,7 @@ object GroupComponentCompliance {
   // The goal here is to build a Compliance structure based on Nodes from a Compliance Structure Based on Directives
   // That contains Node reference as leaf
   // So we will go deep in the data structure to take reference to node then reconstruct the tree from the leaf
-  def fromRules(directives: Seq[ByDirectiveByRuleCompliance]) = {
+  def fromRules(directives: Seq[ByDirectiveByRuleCompliance]): immutable.Iterable[ByDirectiveNodeCompliance] = {
     for {
       // Regroup all Directive by node getting Nodes values from components
       (nodeId, data) <- directives.flatMap { d =>
@@ -372,7 +373,7 @@ object ByNodeDirectiveCompliance {
 object CsvCompliance {
 
   // use "," , quote everything with ", line separator is \n
-  val csvFormat = CSVFormat.DEFAULT.builder().setQuoteMode(QuoteMode.ALL).setRecordSeparator("\n").build()
+  val csvFormat: CSVFormat = CSVFormat.DEFAULT.builder().setQuoteMode(QuoteMode.ALL).setRecordSeparator("\n").build()
 
   def recurseComponent(
       component: ByRuleComponentCompliance,
@@ -439,7 +440,7 @@ object JsonCompliance {
   }
 
   implicit class JsonbyDirectiveCompliance(val directive: ByDirectiveCompliance) extends AnyVal {
-    def toJsonV6 = (
+    def toJsonV6: JObject = (
       ("id"                    -> directive.id.serialize)
         ~ ("name"              -> directive.name)
         ~ ("compliance"        -> directive.compliance.complianceWithoutPending())
@@ -448,7 +449,7 @@ object JsonCompliance {
         ~ ("rules"             -> rules(directive.rules, 10, CompliancePrecision.Level2))
         ~ ("nodes"             -> byNodes(directive.nodes, 10, CompliancePrecision.Level2))
     )
-    def toJson(level: Int, precision: CompliancePrecision) = (
+    def toJson(level: Int, precision: CompliancePrecision): JObject = (
       ("id"                    -> directive.id.serialize)
         ~ ("name"              -> directive.name)
         ~ ("compliance"        -> directive.compliance.complianceWithoutPending(precision))
@@ -628,7 +629,7 @@ object JsonCompliance {
   }
 
   implicit class JsonByRuleCompliance(val rule: ByRuleRuleCompliance) extends AnyVal {
-    def toJsonV6 = (
+    def toJsonV6: JObject = (
       ("id"                    -> rule.id.serialize)
         ~ ("name"              -> rule.name)
         ~ ("compliance"        -> rule.compliance.complianceWithoutPending())
@@ -645,7 +646,7 @@ object JsonCompliance {
      * - 4 and up: rules, directives, components, node and component values
      */
 
-    def toJson(level: Int, precision: CompliancePrecision) = (
+    def toJson(level: Int, precision: CompliancePrecision): JObject = (
       ("id"                    -> rule.id.serialize)
         ~ ("name"              -> rule.name)
         ~ ("compliance"        -> rule.compliance.complianceWithoutPending(precision))
@@ -800,7 +801,7 @@ object JsonCompliance {
   }
 
   implicit class JsonByNodeCompliance(val n: ByNodeNodeCompliance) extends AnyVal {
-    def toJsonV6 = (
+    def toJsonV6: JObject = (
       ("id"                    -> n.id.value)
         ~ ("compliance"        -> n.compliance.complianceWithoutPending())
         ~ ("policyMode"        -> n.policyMode.map(_.name).getOrElse("default"))
@@ -817,7 +818,7 @@ object JsonCompliance {
      * - 5 and up: nodes, rules, directives, components and component values
      */
 
-    def toJson(level: Int, precision: CompliancePrecision) = (
+    def toJson(level: Int, precision: CompliancePrecision): JObject = (
       ("id"                    -> n.id.value)
         ~ ("name"              -> n.name)
         ~ ("compliance"        -> n.compliance.complianceWithoutPending(precision))
@@ -969,7 +970,7 @@ sealed trait ComplianceFormat {
 object ComplianceFormat {
   case object CSV  extends ComplianceFormat { val value = "csv"  }
   case object JSON extends ComplianceFormat { val value = "json" }
-  def allValues = ca.mrvisser.sealerate.values[ComplianceFormat]
+  def allValues:                Set[ComplianceFormat]            = ca.mrvisser.sealerate.values[ComplianceFormat]
   def fromValue(value: String): Either[String, ComplianceFormat] = {
     allValues.find(_.value == value) match {
       case None         =>

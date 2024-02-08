@@ -70,7 +70,7 @@ class TestQueryProcessor extends Loggable {
   val ldifLogger = new DefaultLDIFFileLogger("TestQueryProcessor", "/tmp/normation/rudder/ldif")
 
   // init of in memory LDAP directory
-  val schemaLDIFs    = (
+  val schemaLDIFs:    List[String]                                   = (
     "00-core" ::
       "01-pwpolicy" ::
       "04-rfc2307bis" ::
@@ -82,11 +82,11 @@ class TestQueryProcessor extends Loggable {
     // toURI is needed for https://issues.rudder.io/issues/19186
     this.getClass.getClassLoader.getResource("ldap-data/schema/" + name + ".ldif").toURI.getPath
   }
-  val bootstrapLDIFs = ("ldap/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
+  val bootstrapLDIFs: List[String]                                   = ("ldap/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
     // toURI is needed for https://issues.rudder.io/issues/19186
     this.getClass.getClassLoader.getResource(name).toURI.getPath
   }
-  val ldap           = InMemoryDsConnectionProvider[RoLDAPConnection](
+  val ldap:           InMemoryDsConnectionProvider[RoLDAPConnection] = InMemoryDsConnectionProvider[RoLDAPConnection](
     baseDNs = "cn=rudder-configuration" :: Nil,
     schemaLDIFPaths = schemaLDIFs,
     bootstrapLDIFPaths = bootstrapLDIFs,
@@ -130,7 +130,8 @@ class TestQueryProcessor extends Loggable {
     nodeInfoService
   )
 
-  val parser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
+  val parser: CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer = new CmdbQueryParser
+    with DefaultStringQueryParser with JsonQueryLexer {
     override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryData.criteriaMap
   }
 
@@ -140,7 +141,7 @@ class TestQueryProcessor extends Loggable {
   // val l: ch.qos.logback.classic.Logger = org.slf4j.LoggerFactory.getLogger("com.normation.rudder.services.queries").asInstanceOf[ch.qos.logback.classic.Logger]
   // l.setLevel(ch.qos.logback.classic.Level.TRACE)
 
-  val s = Seq(
+  val s: Seq[NodeId] = Seq(
     new NodeId("node0"),
     new NodeId("node1"),
     new NodeId("node2"),
@@ -151,8 +152,8 @@ class TestQueryProcessor extends Loggable {
     new NodeId("node7")
   )
 
-  val root = NodeId("root")
-  val sr   = root +: s
+  val root: NodeId      = NodeId("root")
+  val sr:   Seq[NodeId] = root +: s
 
   @Test def ensureNodeLoaded(): Unit = {
     // just check that we correctly loaded demo data in serve

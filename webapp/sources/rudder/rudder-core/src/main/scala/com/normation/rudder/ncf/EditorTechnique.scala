@@ -75,7 +75,7 @@ object ResourceFileState {
   case object Modified  extends ResourceFileState { val value = "modified"  }
   case object Untouched extends ResourceFileState { val value = "untouched" }
 
-  val allValues = New :: Deleted :: Modified :: Untouched :: Nil
+  val allValues: List[ResourceFileState] = New :: Deleted :: Modified :: Untouched :: Nil
 
   def parse: String => PureResult[ResourceFileState] = { value =>
     allValues.find(_.value == value) match {
@@ -105,7 +105,7 @@ final case class EditorTechnique(
     tags:          Map[String, String],
     internalId:    Option[String]
 ) {
-  val path = s"techniques/${category}/${id.value}/${version.value}"
+  val path: String = s"techniques/${category}/${id.value}/${version.value}"
 }
 
 object EditorTechnique {
@@ -209,7 +209,7 @@ object ParameterType {
   }
 
   class BasicParameterTypeService extends ParameterTypeService {
-    def create(value: String) = {
+    def create(value: String): PureResult[ParameterType] = {
       value match {
         case "string"      => Right(StringParameter)
         case "here-string" => Right(HereString)
@@ -220,7 +220,7 @@ object ParameterType {
       }
     }
 
-    def value(parameterType: ParameterType) = {
+    def value(parameterType: ParameterType):                                      PureResult[String] = {
       parameterType match {
         case StringParameter => Right("string")
         case Raw             => Right("raw")
@@ -244,7 +244,7 @@ object ParameterType {
 
   class PlugableParameterTypeService extends ParameterTypeService {
 
-    def create(value: String)               = {
+    def create(value: String):               PureResult[ParameterType] = {
       (innerServices foldRight (Left(Unexpected(s"'${value}' is not a valid method parameter type")): PureResult[
         ParameterType
       ])) {
@@ -252,7 +252,7 @@ object ParameterType {
         case (service, _)        => service.create(value)
       }
     }
-    def value(parameterType: ParameterType) = {
+    def value(parameterType: ParameterType): PureResult[String]        = {
       (innerServices foldRight (Left(Unexpected(s"parameter type '${parameterType}' has no value defined")): PureResult[
         String
       ])) {
@@ -268,8 +268,8 @@ object ParameterType {
       }
     }
 
-    def addNewParameterService(service: ParameterTypeService) = innerServices = service :: innerServices
-    private[this] var innerServices: List[ParameterTypeService] = new BasicParameterTypeService :: Nil
+    def addNewParameterService(service: ParameterTypeService): Unit                       = innerServices = service :: innerServices
+    private[this] var innerServices:                           List[ParameterTypeService] = new BasicParameterTypeService :: Nil
   }
 }
 

@@ -388,7 +388,7 @@ class TechniqueApi(
 
     import techniqueSerializer._
 
-    def moveRessources(technique: EditorTechnique, internalId: String) = {
+    def moveRessources(technique: EditorTechnique, internalId: String): IOResult[String] = {
       val workspacePath = s"workspace/${internalId}/${technique.version.value}/resources"
       val finalPath     = s"techniques/${technique.category}/${technique.id.value}/${technique.version.value}/resources"
 
@@ -696,7 +696,8 @@ class TechniqueAPIService6(
     restDataSerializer: RestDataSerializer
 ) extends Loggable {
 
-  def serialize(technique: Technique, directive: Directive) = restDataSerializer.serializeDirective(technique, directive, None)
+  def serialize(technique: Technique, directive: Directive): JValue =
+    restDataSerializer.serializeDirective(technique, directive, None)
 
   def listTechniques: Box[JValue] = {
     (for {

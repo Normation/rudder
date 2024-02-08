@@ -208,6 +208,7 @@ import com.typesafe.config.ConfigFactory
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFChangeRecord
+import cron4s.CronExpr
 import java.io.File
 import java.nio.file.attribute.PosixFilePermission
 import java.security.Security
@@ -218,6 +219,7 @@ import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
 import scala.collection.mutable.Buffer
+import scala.concurrent.duration
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 import zio.{Scheduler => _, System => _, _}
@@ -245,7 +247,7 @@ final case class FileSystemResource(file: File)  extends AnyVal with ConfigResou
 object RudderProperties {
 
   // extension used in overriding files
-  val configFileExtensions = Set("properties", "prop", "config")
+  val configFileExtensions: Set[String] = Set("properties", "prop", "config")
 
   // by default, used and configured to /opt/rudder/etc/rudder-web.properties
   val JVM_CONFIG_FILE_KEY = "rudder.configFile"
@@ -311,7 +313,7 @@ object RudderProperties {
 
   // Sorting is done here for meaningful debug log, but we need to reverse it
   // because in typesafe Config, we have "withDefault" (ie the opposite of overrides)
-  val overrideConfigs = overrideDir match {
+  val overrideConfigs: List[FileSystemResource] = overrideDir match {
     case None    => // no additional config to add
       Nil
     case Some(x) =>
@@ -335,14 +337,14 @@ object RudderProperties {
   }
 
   // some value used as defaults for migration
-  val migrationConfig = {
+  val migrationConfig: String = {
     s"""rudder.batch.reportscleaner.compliancelevels.delete.TTL=15
     """
   }
 
   // the Config lib does not define overriding but fallback, so we are starting with the directory, sorted last first
   // then default file, then migration things.
-  val empty = ConfigFactory.empty()
+  val empty: Config = ConfigFactory.empty()
 
   val config: Config = {
     (
@@ -408,7 +410,7 @@ object RudderParsedProperties {
 
   private[this] val filteredPasswords = scala.collection.mutable.Buffer[String]()
 
-  def logRudderParsedProperties() = {
+  def logRudderParsedProperties(): Unit = {
     import scala.jdk.CollectionConverters._
     val config = RudderProperties.config
     if (ApplicationLogger.isInfoEnabled) {
@@ -434,7 +436,7 @@ object RudderParsedProperties {
   filteredPasswords += "rudder.auth.admin.password"
 
   // list of configuration properties that we want to totally hide
-  val hiddenRegisteredProperties = scala.collection.mutable.Buffer[String]()
+  val hiddenRegisteredProperties: Buffer[String] = scala.collection.mutable.Buffer[String]()
   hiddenRegisteredProperties += "rudder.dir.licensesFolder"
 
   // auth backend is init too late to have a chance to hide its values, which is a bit sad.
@@ -449,12 +451,12 @@ object RudderParsedProperties {
   }
   // other values
 
-  val LDAP_HOST                         = config.getString("ldap.host")
-  val LDAP_PORT                         = config.getInt("ldap.port")
-  val LDAP_AUTHDN                       = config.getString("ldap.authdn")
-  val LDAP_AUTHPW                       = config.getString("ldap.authpw");
+  val LDAP_HOST:                         String         = config.getString("ldap.host")
+  val LDAP_PORT:                         Int            = config.getInt("ldap.port")
+  val LDAP_AUTHDN:                       String         = config.getString("ldap.authdn")
+  val LDAP_AUTHPW:                       String         = config.getString("ldap.authpw");
   filteredPasswords += "ldap.authpw"
-  val LDAP_MAX_POOL_SIZE                = {
+  val LDAP_MAX_POOL_SIZE:                Int            = {
     try {
       config.getInt("ldap.maxPoolSize")
     } catch {
@@ -465,7 +467,7 @@ object RudderParsedProperties {
         2
     }
   }
-  val LDAP_CACHE_NODE_INFO_MIN_INTERVAL = {
+  val LDAP_CACHE_NODE_INFO_MIN_INTERVAL: Duration       = {
     val x = {
       try {
         config.getInt("ldap.nodeinfo.cache.min.interval")
@@ -483,7 +485,7 @@ object RudderParsedProperties {
       x.millis
     }
   }
-  val RUDDER_DIR_BACKUP                 = {
+  val RUDDER_DIR_BACKUP:                 Option[String] = {
     try {
       config.getString("rudder.dir.backup").trim match {
         case "" => None
@@ -493,13 +495,13 @@ object RudderParsedProperties {
       case ex: ConfigException => None
     }
   }
-  val RUDDER_DIR_DEPENDENCIES           = config.getString("rudder.dir.dependencies")
-  val RUDDER_DIR_LOCK                   = config.getString("rudder.dir.lock") // TODO no more used ?
-  val RUDDER_DIR_SHARED_FILES_FOLDER    = config.getString("rudder.dir.shared.files.folder")
-  val RUDDER_WEBDAV_USER                = config.getString("rudder.webdav.user")
-  val RUDDER_WEBDAV_PASSWORD            = config.getString("rudder.webdav.password");
+  val RUDDER_DIR_DEPENDENCIES:           String         = config.getString("rudder.dir.dependencies")
+  val RUDDER_DIR_LOCK:                   String         = config.getString("rudder.dir.lock") // TODO no more used ?
+  val RUDDER_DIR_SHARED_FILES_FOLDER:    String         = config.getString("rudder.dir.shared.files.folder")
+  val RUDDER_WEBDAV_USER:                String         = config.getString("rudder.webdav.user")
+  val RUDDER_WEBDAV_PASSWORD:            String         = config.getString("rudder.webdav.password");
   filteredPasswords += "rudder.webdav.password"
-  val CFENGINE_POLICY_DISTRIBUTION_PORT = {
+  val CFENGINE_POLICY_DISTRIBUTION_PORT: Int            = {
     try {
       config.getInt("rudder.policy.distribution.port.cfengine")
     } catch {
@@ -515,7 +517,7 @@ object RudderParsedProperties {
         }
     }
   }
-  val HTTPS_POLICY_DISTRIBUTION_PORT    = {
+  val HTTPS_POLICY_DISTRIBUTION_PORT:    Int            = {
     try {
       config.getInt("rudder.policy.distribution.port.https")
     } catch {
@@ -527,7 +529,7 @@ object RudderParsedProperties {
     }
   }
 
-  val POSTGRESQL_IS_LOCAL = {
+  val POSTGRESQL_IS_LOCAL: Boolean = {
     try {
       config.getBoolean("rudder.postgresql.local")
     } catch {
@@ -535,14 +537,14 @@ object RudderParsedProperties {
     }
   }
 
-  val RUDDER_JDBC_DRIVER        = config.getString("rudder.jdbc.driver")
-  val RUDDER_JDBC_URL           = config.getString("rudder.jdbc.url")
-  val RUDDER_JDBC_USERNAME      = config.getString("rudder.jdbc.username")
-  val RUDDER_JDBC_PASSWORD      = config.getString("rudder.jdbc.password");
+  val RUDDER_JDBC_DRIVER:        String = config.getString("rudder.jdbc.driver")
+  val RUDDER_JDBC_URL:           String = config.getString("rudder.jdbc.url")
+  val RUDDER_JDBC_USERNAME:      String = config.getString("rudder.jdbc.username")
+  val RUDDER_JDBC_PASSWORD:      String = config.getString("rudder.jdbc.password");
   filteredPasswords += "rudder.jdbc.password"
-  val RUDDER_JDBC_MAX_POOL_SIZE = config.getInt("rudder.jdbc.maxPoolSize")
+  val RUDDER_JDBC_MAX_POOL_SIZE: Int    = config.getInt("rudder.jdbc.maxPoolSize")
 
-  val RUDDER_JDBC_BATCH_MAX_SIZE = {
+  val RUDDER_JDBC_BATCH_MAX_SIZE: Int = {
     val x = {
       try {
         config.getInt("rudder.jdbc.batch.max.size")
@@ -561,7 +563,7 @@ object RudderParsedProperties {
     }
   }
 
-  val RUDDER_GIT_GC = (
+  val RUDDER_GIT_GC: Option[CronExpr] = (
     try {
       config.getString("rudder.git.gc")
     } catch {
@@ -579,7 +581,7 @@ object RudderParsedProperties {
     case Right(opt) => opt
   }
 
-  val RUDDER_INVENTORIES_CLEAN_CRON = (
+  val RUDDER_INVENTORIES_CLEAN_CRON: Option[CronExpr] = (
     try {
       config.getString("rudder.inventories.cleanup.old.files.cron")
     } catch {
@@ -599,7 +601,7 @@ object RudderParsedProperties {
     case Right(opt) => opt
   }
 
-  val RUDDER_INVENTORIES_CLEAN_AGE = {
+  val RUDDER_INVENTORIES_CLEAN_AGE: Duration = {
     try {
       val age = config.getString("rudder.inventories.cleanup.old.files.age")
       Duration.fromScala(scala.concurrent.duration.Duration.apply(age))
@@ -612,8 +614,8 @@ object RudderParsedProperties {
    * Root directory for git config-repo et fact-repo.
    * We should homogeneize naming here, ie s/rudder.dir.gitRoot/rudder.dir.gitRootConfigRepo/
    */
-  val RUDDER_GIT_ROOT_CONFIG_REPO = config.getString("rudder.dir.gitRoot")
-  val RUDDER_GIT_ROOT_FACT_REPO   = {
+  val RUDDER_GIT_ROOT_CONFIG_REPO: String = config.getString("rudder.dir.gitRoot")
+  val RUDDER_GIT_ROOT_FACT_REPO:   String = {
     try {
       config.getString("rudder.dir.gitRootFactRepo")
     } catch {
@@ -621,14 +623,14 @@ object RudderParsedProperties {
     }
   }
 
-  val RUDDER_GIT_FACT_WRITE_NODES  = {
+  val RUDDER_GIT_FACT_WRITE_NODES:  Boolean = {
     try {
       config.getBoolean("rudder.facts.repo.writeNodeState")
     } catch {
       case ex: Exception => false
     }
   }
-  val RUDDER_GIT_FACT_COMMIT_NODES = {
+  val RUDDER_GIT_FACT_COMMIT_NODES: Boolean = {
     try {
       config.getBoolean("rudder.facts.repo.historizeNodeChange")
     } catch {
@@ -636,17 +638,17 @@ object RudderParsedProperties {
     }
   }
 
-  val RUDDER_DIR_TECHNIQUES                        = RUDDER_GIT_ROOT_CONFIG_REPO + "/techniques"
-  val RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL         = config.getInt("rudder.batch.dyngroup.updateInterval") // 60 //one hour
-  val RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL =
+  val RUDDER_DIR_TECHNIQUES:                        String = RUDDER_GIT_ROOT_CONFIG_REPO + "/techniques"
+  val RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL:         Int    = config.getInt("rudder.batch.dyngroup.updateInterval") // 60 //one hour
+  val RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL: Int    =
     config.getInt("rudder.batch.techniqueLibrary.updateInterval") // 60 * 5 //five minutes
-  val RUDDER_BATCH_REPORTSCLEANER_ARCHIVE_TTL =
+  val RUDDER_BATCH_REPORTSCLEANER_ARCHIVE_TTL: Int =
     config.getInt("rudder.batch.reportscleaner.archive.TTL") // AutomaticReportsCleaning.defaultArchiveTTL
-  val RUDDER_BATCH_REPORTSCLEANER_DELETE_TTL =
+  val RUDDER_BATCH_REPORTSCLEANER_DELETE_TTL: Int =
     config.getInt("rudder.batch.reportscleaner.delete.TTL") // AutomaticReportsCleaning.defaultDeleteTTL
-  val RUDDER_BATCH_REPORTSCLEANER_COMPLIANCE_DELETE_TTL =
+  val RUDDER_BATCH_REPORTSCLEANER_COMPLIANCE_DELETE_TTL: Int =
     config.getInt("rudder.batch.reportscleaner.compliancelevels.delete.TTL") // AutomaticReportsCleaning.defaultDeleteTTL
-  val RUDDER_BATCH_REPORTSCLEANER_LOG_DELETE_TTL = {
+  val RUDDER_BATCH_REPORTSCLEANER_LOG_DELETE_TTL: String = {
     (Try {
       config.getString("rudder.batch.reportsCleaner.deleteLogReport.TTL")
     } orElse Try {
@@ -658,19 +660,19 @@ object RudderParsedProperties {
       res
     }).getOrElse("2x")
   }
-  val RUDDER_BATCH_REPORTSCLEANER_FREQUENCY      =
+  val RUDDER_BATCH_REPORTSCLEANER_FREQUENCY:      String =
     config.getString("rudder.batch.reportscleaner.frequency") // AutomaticReportsCleaning.defaultDay
-  val RUDDER_BATCH_DATABASECLEANER_RUNTIME_HOUR =
+  val RUDDER_BATCH_DATABASECLEANER_RUNTIME_HOUR: Int =
     config.getInt("rudder.batch.databasecleaner.runtime.hour") // AutomaticReportsCleaning.defaultHour
-  val RUDDER_BATCH_DATABASECLEANER_RUNTIME_MINUTE =
+  val RUDDER_BATCH_DATABASECLEANER_RUNTIME_MINUTE: Int =
     config.getInt("rudder.batch.databasecleaner.runtime.minute") // AutomaticReportsCleaning.defaultMinute
-  val RUDDER_BATCH_DATABASECLEANER_RUNTIME_DAY = config.getString("rudder.batch.databasecleaner.runtime.day") // "sunday"
-  val RUDDER_BATCH_REPORTS_LOGINTERVAL         = config.getInt("rudder.batch.reports.logInterval")            // 1 //one minute
-  val RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH    = "refs/heads/master"
+  val RUDDER_BATCH_DATABASECLEANER_RUNTIME_DAY: String = config.getString("rudder.batch.databasecleaner.runtime.day") // "sunday"
+  val RUDDER_BATCH_REPORTS_LOGINTERVAL:         Int    = config.getInt("rudder.batch.reports.logInterval")            // 1 //one minute
+  val RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH = "refs/heads/master"
   // THIS ONE IS STILL USED FOR USERS USING GIT REPLICATION
-  val RUDDER_AUTOARCHIVEITEMS                  = config.getBoolean("rudder.autoArchiveItems")                 // true
-  val RUDDER_REPORTS_EXECUTION_MAX_DAYS        = config.getInt("rudder.batch.storeAgentRunTimes.maxDays")     // In days : 0
-  val RUDDER_REPORTS_EXECUTION_MAX_MINUTES     = {                                                            // Tis is handled at the object creation, days and minutes = 0 => 30 minutes
+  val RUDDER_AUTOARCHIVEITEMS:              Boolean = config.getBoolean("rudder.autoArchiveItems")             // true
+  val RUDDER_REPORTS_EXECUTION_MAX_DAYS:    Int     = config.getInt("rudder.batch.storeAgentRunTimes.maxDays") // In days : 0
+  val RUDDER_REPORTS_EXECUTION_MAX_MINUTES: Int     = {                                                        // Tis is handled at the object creation, days and minutes = 0 => 30 minutes
     try {
       config.getInt("rudder.batch.storeAgentRunTimes.maxMinutes")
     } catch {
@@ -681,7 +683,7 @@ object RudderParsedProperties {
         0
     }
   }
-  val RUDDER_REPORTS_EXECUTION_MAX_SIZE        = {                                                            // In minutes: 5
+  val RUDDER_REPORTS_EXECUTION_MAX_SIZE:    Int     = {                                                        // In minutes: 5
     try {
       config.getInt("rudder.batch.storeAgentRunTimes.maxBatchSize")
     } catch {
@@ -693,13 +695,14 @@ object RudderParsedProperties {
     }
   }
 
-  val RUDDER_REPORTS_EXECUTION_INTERVAL = config.getInt("rudder.batch.storeAgentRunTimes.updateInterval").seconds.asScala
+  val RUDDER_REPORTS_EXECUTION_INTERVAL: duration.Duration =
+    config.getInt("rudder.batch.storeAgentRunTimes.updateInterval").seconds.asScala
 
-  val HISTORY_INVENTORIES_ROOTDIR = config.getString("history.inventories.rootdir")
+  val HISTORY_INVENTORIES_ROOTDIR: String = config.getString("history.inventories.rootdir")
 
-  val RUDDER_DEBUG_NODE_CONFIGURATION_PATH = config.getString("rudder.debug.nodeconfiguration.path")
+  val RUDDER_DEBUG_NODE_CONFIGURATION_PATH: String = config.getString("rudder.debug.nodeconfiguration.path")
 
-  val RUDDER_BATCH_PURGE_DELETED_INVENTORIES = {
+  val RUDDER_BATCH_PURGE_DELETED_INVENTORIES: Int = {
     try {
       config.getInt("rudder.batch.purge.inventories.delete.TTL")
     } catch {
@@ -711,7 +714,7 @@ object RudderParsedProperties {
     }
   }
 
-  val RUDDER_BCRYPT_COST = {
+  val RUDDER_BCRYPT_COST: Int = {
     try {
       config.getInt("rudder.bcrypt.cost")
     } catch {
@@ -723,7 +726,7 @@ object RudderParsedProperties {
     }
   }
 
-  val RUDDER_BATCH_PURGE_DELETED_INVENTORIES_INTERVAL = {
+  val RUDDER_BATCH_PURGE_DELETED_INVENTORIES_INTERVAL: Int = {
     try {
       config.getInt("rudder.batch.purge.inventories.delete.interval")
     } catch {
@@ -735,7 +738,7 @@ object RudderParsedProperties {
     }
   }
 
-  val RUDDER_BATCH_DELETE_SOFTWARE_INTERVAL = {
+  val RUDDER_BATCH_DELETE_SOFTWARE_INTERVAL: Int = {
     try {
       config.getInt("rudder.batch.delete.software.interval")
     } catch {
@@ -747,7 +750,7 @@ object RudderParsedProperties {
     }
   }
 
-  val RUDDER_BATCH_CHECK_NODE_CACHE_INTERVAL = {
+  val RUDDER_BATCH_CHECK_NODE_CACHE_INTERVAL: Duration = {
     try {
       Duration.fromScala(scala.concurrent.duration.Duration(config.getString("rudder.batch.check.node.cache.interval")))
     } catch {
@@ -758,7 +761,7 @@ object RudderParsedProperties {
         Duration(15, TimeUnit.SECONDS)
     }
   }
-  val RUDDER_GROUP_OWNER_CONFIG_REPO         = {
+  val RUDDER_GROUP_OWNER_CONFIG_REPO:         String   = {
     try {
       config.getString("rudder.config.repo.new.file.group.owner")
     } catch {
@@ -769,7 +772,7 @@ object RudderParsedProperties {
         "rudder"
     }
   }
-  val RUDDER_GROUP_OWNER_GENERATED_POLICIES  = {
+  val RUDDER_GROUP_OWNER_GENERATED_POLICIES:  String   = {
     try {
       config.getString("rudder.generated.policies.group.owner")
     } catch {
@@ -781,9 +784,9 @@ object RudderParsedProperties {
     }
   }
 
-  val RUDDER_RELAY_API = config.getString("rudder.server.relay.api")
+  val RUDDER_RELAY_API: String = config.getString("rudder.server.relay.api")
 
-  val RUDDER_SERVER_HSTS = {
+  val RUDDER_SERVER_HSTS: Boolean = {
     try {
       config.getBoolean("rudder.server.hsts")
     } catch {
@@ -792,7 +795,7 @@ object RudderParsedProperties {
     }
   }
 
-  val RUDDER_SERVER_HSTS_SUBDOMAINS = {
+  val RUDDER_SERVER_HSTS_SUBDOMAINS: Boolean = {
     try {
       config.getBoolean("rudder.server.hstsIncludeSubDomains")
     } catch {
@@ -801,7 +804,7 @@ object RudderParsedProperties {
     }
   }
 
-  val RUDDER_RELAY_RELOAD = {
+  val RUDDER_RELAY_RELOAD: String = {
     try {
       config.getString("rudder.relayd.reload")
     } catch {
@@ -812,14 +815,14 @@ object RudderParsedProperties {
 
   // The base directory for hooks. I'm not sure it needs to be configurable
   // as we only use it in generation.
-  val HOOKS_D                      = "/opt/rudder/etc/hooks.d"
-  val UPDATED_NODE_IDS_PATH        = "/var/rudder/policy-generation-info/last-updated-nodeids"
-  val GENERATION_FAILURE_MSG_PATH  = "/var/rudder/policy-generation-info/last-failure-message"
+  val HOOKS_D                     = "/opt/rudder/etc/hooks.d"
+  val UPDATED_NODE_IDS_PATH       = "/var/rudder/policy-generation-info/last-updated-nodeids"
+  val GENERATION_FAILURE_MSG_PATH = "/var/rudder/policy-generation-info/last-failure-message"
   /*
    * This is a parameter for compatibility mode for Rudder 5.0.
    * It should be removed in 5.1 and up.
    */
-  val UPDATED_NODE_IDS_COMPABILITY = {
+  val UPDATED_NODE_IDS_COMPABILITY: Option[Boolean] = {
     try {
       Some(config.getBoolean("rudder.hooks.policy-generation-finished.nodeids.compability"))
     } catch {
@@ -827,7 +830,7 @@ object RudderParsedProperties {
     }
   }
 
-  val HOOKS_IGNORE_SUFFIXES = RudderProperties.splitProperty(config.getString("rudder.hooks.ignore-suffixes"))
+  val HOOKS_IGNORE_SUFFIXES: List[String] = RudderProperties.splitProperty(config.getString("rudder.hooks.ignore-suffixes"))
 
   val logentries                  = "logentries.xml"
   val prettyPrinter               = new RudderPrettyPrinter(Int.MaxValue, 2)
@@ -854,7 +857,7 @@ object RudderParsedProperties {
     )
   }
 
-  val LDIF_TRACELOG_ROOT_DIR = {
+  val LDIF_TRACELOG_ROOT_DIR: String = {
     try {
       config.getString("ldif.tracelog.rootdir")
     } catch {
@@ -863,7 +866,7 @@ object RudderParsedProperties {
   }
 
   // don't parse some elements in inventories: processes
-  val INVENTORIES_IGNORE_PROCESSES = {
+  val INVENTORIES_IGNORE_PROCESSES: Boolean = {
     try {
       config.getBoolean("inventory.parse.ignore.processes")
     } catch {
@@ -874,7 +877,7 @@ object RudderParsedProperties {
   // the number of inventories parsed and saved in parallel.
   // That number should be small, LDAP doesn't like lots of write
   // Minimum 1, 1x mean "0.5x number of cores"
-  val MAX_PARSE_PARALLEL = {
+  val MAX_PARSE_PARALLEL: String = {
     try {
       config.getString("inventory.parse.parallelization")
     } catch {
@@ -882,7 +885,7 @@ object RudderParsedProperties {
     }
   }
 
-  val INVENTORY_ROOT_DIR = {
+  val INVENTORY_ROOT_DIR: String = {
     try {
       config.getString("inventories.root.directory")
     } catch {
@@ -890,12 +893,12 @@ object RudderParsedProperties {
     }
   }
 
-  val INVENTORY_DIR_INCOMING = INVENTORY_ROOT_DIR + "/incoming"
-  val INVENTORY_DIR_FAILED   = INVENTORY_ROOT_DIR + "/failed"
-  val INVENTORY_DIR_RECEIVED = INVENTORY_ROOT_DIR + "/received"
-  val INVENTORY_DIR_UPDATE   = INVENTORY_ROOT_DIR + "/accepted-nodes-updates"
+  val INVENTORY_DIR_INCOMING: String = INVENTORY_ROOT_DIR + "/incoming"
+  val INVENTORY_DIR_FAILED:   String = INVENTORY_ROOT_DIR + "/failed"
+  val INVENTORY_DIR_RECEIVED: String = INVENTORY_ROOT_DIR + "/received"
+  val INVENTORY_DIR_UPDATE:   String = INVENTORY_ROOT_DIR + "/accepted-nodes-updates"
 
-  val WATCHER_ENABLE = {
+  val WATCHER_ENABLE: Boolean = {
     try {
       config.getBoolean("inventories.watcher.enable")
     } catch {
@@ -903,7 +906,7 @@ object RudderParsedProperties {
     }
   }
 
-  val WATCHER_GARBAGE_OLD_INVENTORIES_PERIOD = {
+  val WATCHER_GARBAGE_OLD_INVENTORIES_PERIOD: Duration = {
     try {
       Duration.fromScala(
         scala.concurrent.duration.Duration.apply(
@@ -917,7 +920,7 @@ object RudderParsedProperties {
     }
   }
 
-  val WATCHER_DELETE_OLD_INVENTORIES_AGE = {
+  val WATCHER_DELETE_OLD_INVENTORIES_AGE: Duration = {
     try {
       Duration.fromScala(
         scala.concurrent.duration.Duration.apply(config.getString("inventories.watcher.max.age.before.deletion"))
@@ -929,7 +932,7 @@ object RudderParsedProperties {
 
   val METRICS_NODES_DIRECTORY_GIT_ROOT = "/var/rudder/metrics/nodes"
 
-  val METRICS_NODES_MIN_PERIOD = {
+  val METRICS_NODES_MIN_PERIOD: Duration = {
     try {
       Duration.fromScala(scala.concurrent.duration.Duration(config.getString("metrics.node.scheduler.period.min")))
     } catch {
@@ -942,7 +945,7 @@ object RudderParsedProperties {
         15.minutes
     }
   }
-  val METRICS_NODES_MAX_PERIOD = {
+  val METRICS_NODES_MAX_PERIOD: Duration = {
     try {
       Duration.fromScala(scala.concurrent.duration.Duration(config.getString("metrics.node.scheduler.period.max")))
     } catch {
@@ -962,7 +965,7 @@ object RudderParsedProperties {
     )
   }
 
-  val RUDDER_HEALTHCHECK_PERIOD = {
+  val RUDDER_HEALTHCHECK_PERIOD: Duration = {
     try {
       Duration.fromScala(scala.concurrent.duration.Duration(config.getString("metrics.healthcheck.scheduler.period")))
     } catch {
@@ -980,7 +983,7 @@ object RudderParsedProperties {
   }
 
   // Store it an a Box as it's only used in Lift
-  val AUTH_IDLE_TIMEOUT = {
+  val AUTH_IDLE_TIMEOUT: Box[Duration] = {
     try {
       val timeout = config.getString("rudder.auth.idle-timeout")
       if (timeout.isEmpty) {
@@ -1110,7 +1113,7 @@ object RudderConfig extends Loggable {
 
   // we need that to be the first thing, and take care of Exception so that the error is
   // human understandable when the directory is not up
-  val rci = RudderConfigInit.init()
+  val rci: RudderServiceApi = RudderConfigInit.init()
 
   val ApiVersions:                         List[ApiVersion]                           = rci.apiVersions
   val acceptedNodeQueryProcessor:          QueryProcessor                             = rci.acceptedNodeQueryProcessor
@@ -1257,7 +1260,7 @@ object RudderConfig extends Loggable {
     }
   }
 
-  def postPluginInitActions = {
+  def postPluginInitActions: Unit = {
     // todo: scheduler interval should be a property
     ZioRuntime.unsafeRun(jsonReportsAnalyzer.start(5.seconds).forkDaemon.provideLayer(ZioRuntime.layers))
     ZioRuntime.unsafeRun(MainCampaignService.start(mainCampaignService))

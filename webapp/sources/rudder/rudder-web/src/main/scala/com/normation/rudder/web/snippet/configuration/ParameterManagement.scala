@@ -68,7 +68,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
   // the current GlobalParameterForm component
   private[this] val parameterPopup = new LocalSnippet[CreateOrUpdateGlobalParameterPopup]
 
-  def dispatch = { case "display" => { _ => display() } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "display" => { _ => display() } }
 
   def display(): NodeSeq = {
     (for {

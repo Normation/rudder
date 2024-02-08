@@ -71,8 +71,8 @@ trait LDIFInventoryLogger extends Any {
 }
 
 object DefaultLDIFInventoryLogger {
-  val logger        = NamedZioLogger("trace.ldif.in.file")
-  val defaultLogDir = java.lang.System.getProperty("java.io.tmpdir") +
+  val logger:        NamedZioLogger = NamedZioLogger("trace.ldif.in.file")
+  val defaultLogDir: String         = java.lang.System.getProperty("java.io.tmpdir") +
     java.lang.System.getProperty("file.separator") + "LDIFLogReport"
 }
 
@@ -81,7 +81,7 @@ import java.io.File
 
 class DefaultLDIFInventoryLogger(val LDIFLogDir: String = DefaultLDIFInventoryLogger.defaultLogDir) extends LDIFInventoryLogger {
 
-  def rootDir = {
+  def rootDir: File = {
     val dir = new File(LDIFLogDir)
     if (!dir.exists()) dir.mkdirs
     dir

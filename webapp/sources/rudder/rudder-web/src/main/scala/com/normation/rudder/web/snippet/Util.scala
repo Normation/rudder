@@ -38,12 +38,13 @@
 package com.normation.rudder.web.snippet
 
 import net.liftweb.http._ // For implicits
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 //lift std import
 import scala.xml._
 
 object Util {
-  val logger = LoggerFactory.getLogger(classOf[Util])
+  val logger: Logger = LoggerFactory.getLogger(classOf[Util])
 }
 
 class Util {

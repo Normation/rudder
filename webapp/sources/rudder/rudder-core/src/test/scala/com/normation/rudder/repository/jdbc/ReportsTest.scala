@@ -65,14 +65,14 @@ import zio.interop.catz._
 class ReportsTest extends DBCommon {
 
   implicit class ForceOpen[A](box: Box[A]) {
-    def open = box match {
+    def open: A = box match {
       case Full(x) => x
       case eb: EmptyBox => throw new IllegalArgumentException(s"Test failed, open an empty box: ${eb}")
     }
   }
 
   // clean data base
-  def cleanTables() = {
+  def cleanTables(): Int = {
     transacRun(xa => sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa))
   }
 
@@ -93,9 +93,9 @@ class ReportsTest extends DBCommon {
     (nodeId, lines.map(t => toReport((t._6, t._1, t._2, nodeId, t._3, t._4, t._5, t._6, t._7, t._8))))
   }
 
-  val run1 = DateTime.now.minusMinutes(5 * 5).withMillisOfSecond(123) // check that millis are actually used
-  val run2 = DateTime.now.minusMinutes(5 * 4)
-  val run3 = DateTime.now.minusMinutes(5 * 3)
+  val run1: DateTime = DateTime.now.minusMinutes(5 * 5).withMillisOfSecond(123) // check that millis are actually used
+  val run2: DateTime = DateTime.now.minusMinutes(5 * 4)
+  val run3: DateTime = DateTime.now.minusMinutes(5 * 3)
 
   implicit def toAgentIds(ids: Set[(String, DateTime)]): Set[AgentRunId] = {
     ids.map(t => AgentRunId(NodeId(t._1), t._2))

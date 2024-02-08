@@ -49,7 +49,7 @@ import scala.xml._
  */
 trait JsTreeNode {
 
-  val attrs = List.empty[(String, String)]
+  val attrs: List[(String, String)] = Nil
 
   def body:     NodeSeq
   def children: List[JsTreeNode]

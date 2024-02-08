@@ -57,6 +57,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JE.JsVar
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds._
+import scala.xml.Elem
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
 
@@ -179,7 +180,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
     )
   }
 
-  def queryForm(sc: SearchNodeComponent) = {
+  def queryForm(sc: SearchNodeComponent): Elem = {
     SHtml.ajaxForm(sc.buildQuery(false))
   }
 

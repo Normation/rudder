@@ -44,12 +44,13 @@ import com.normation.inventory.domain.Inventory
 import com.normation.inventory.ldap.core._
 import com.normation.inventory.services.provisioning._
 import com.normation.utils.StringUuidGenerator
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import zio._
 import zio.syntax._
 
 object UuidMergerPreCommit {
-  val logger = LoggerFactory.getLogger(classOf[UuidMergerPreCommit])
+  val logger: Logger = LoggerFactory.getLogger(classOf[UuidMergerPreCommit])
 }
 
 /**

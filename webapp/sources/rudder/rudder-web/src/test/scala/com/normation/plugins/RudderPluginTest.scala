@@ -38,6 +38,7 @@
 package com.normation.plugins
 
 import com.normation.utils.ParseVersion
+import com.normation.utils.Version
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
@@ -46,7 +47,7 @@ import org.specs2.runner.JUnitRunner
 class RudderPluginTest extends Specification {
 
   implicit class ForceParse(s: String) {
-    def toVersion = ParseVersion.parse(s) match {
+    def toVersion: Version = ParseVersion.parse(s) match {
       case Left(err) => throw new IllegalArgumentException(s"Can not parse '${s}' as a version in test: ${err}")
       case Right(v)  => v
     }

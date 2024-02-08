@@ -103,7 +103,7 @@ object TraitTestApiFromYamlFiles {
       modules:     List[A],
       versions:    List[ApiVersion],
       userService: Option[UserService]
-  ) = {
+  ): (LiftHandler, LiftRules) = {
     implicit val userServiceImp = userService match {
       case None    =>
         new UserService {
@@ -284,7 +284,7 @@ trait TraitTestApiFromYamlFiles extends Specification {
     }
   }
 
-  def cleanBreakline(text: String) = {
+  def cleanBreakline(text: String):   String        = {
     val cleaned = text.replaceAll("(\\w)\\s+", "$1").replaceAll("(\\W)\\s+", "$1").replaceAll("\\s+$", "")
     net.liftweb.json.parseOpt(cleaned).map(net.liftweb.json.prettyRender).getOrElse(cleaned)
   }
@@ -295,7 +295,7 @@ trait TraitTestApiFromYamlFiles extends Specification {
   }
 
   // a way to only test some files in do test. Let it empty to ex on all.
-  def doTest(limitToFiles: List[String] = Nil) = {
+  def doTest(limitToFiles: List[String] = Nil): Fragments = {
     ///// tests ////
     val restTest = new RestTest(liftRules)
 

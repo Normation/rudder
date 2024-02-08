@@ -99,7 +99,7 @@ class ShowNodeDetailsFromNode(
   private[this] val configService        = RudderConfig.configService
   private[this] var boxNodeInfo          = nodeInfoService.getNodeInfo(nodeId).toBox
 
-  def complianceModeEditForm(nodeInfo: NodeInfo) = {
+  def complianceModeEditForm(nodeInfo: NodeInfo): ComplianceModeEditForm[NodeComplianceMode]      = {
     val (globalMode, nodeMode) = {
       val modes = getHeartBeat(nodeInfo)
       (modes.map(_._1), modes.map(_._2))
@@ -112,7 +112,7 @@ class ShowNodeDetailsFromNode(
       globalMode
     )
   }
-  def getHeartBeat(nodeInfo: NodeInfo): Box[(GlobalComplianceMode, NodeComplianceMode)] = {
+  def getHeartBeat(nodeInfo: NodeInfo):           Box[(GlobalComplianceMode, NodeComplianceMode)] = {
     for {
       globalMode <- configService.rudder_compliance_mode().toBox
 
@@ -189,7 +189,8 @@ class ShowNodeDetailsFromNode(
     }
   }.toBox
 
-  val emptyInterval = AgentRunInterval(Some(false), 5, 0, 0, 0) // if everything fails, we fall back to the default entry
+  val emptyInterval: AgentRunInterval =
+    AgentRunInterval(Some(false), 5, 0, 0, 0) // if everything fails, we fall back to the default entry
   def getSchedule(nodeInfo: NodeInfo): Box[AgentRunInterval] = {
     Full(nodeInfo.nodeReportingConfiguration.agentRunInterval.getOrElse(getGlobalSchedule().getOrElse(emptyInterval)))
   }
@@ -212,13 +213,13 @@ class ShowNodeDetailsFromNode(
     }).toBox
   }
 
-  def mainDispatch = Map(
-    "popupDetails"    -> { _: NodeSeq => privateDisplay(true, Summary) },
-    "popupCompliance" -> { _: NodeSeq => privateDisplay(true, Compliance) },
-    "popupSystem"     -> { _: NodeSeq => privateDisplay(true, System) },
-    "mainDetails"     -> { _: NodeSeq => privateDisplay(false, Summary) },
-    "mainCompliance"  -> { _: NodeSeq => privateDisplay(false, Compliance) },
-    "mainSystem"      -> { _: NodeSeq => privateDisplay(false, System) }
+  def mainDispatch: Map[String, NodeSeq => NodeSeq] = Map(
+    "popupDetails"    -> { (_: NodeSeq) => privateDisplay(true, Summary) },
+    "popupCompliance" -> { (_: NodeSeq) => privateDisplay(true, Compliance) },
+    "popupSystem"     -> { (_: NodeSeq) => privateDisplay(true, System) },
+    "mainDetails"     -> { (_: NodeSeq) => privateDisplay(false, Summary) },
+    "mainCompliance"  -> { (_: NodeSeq) => privateDisplay(false, Compliance) },
+    "mainSystem"      -> { (_: NodeSeq) => privateDisplay(false, System) }
   )
 
   def display(popupDisplay: Boolean, displayDetailsMode: DisplayDetailsMode): NodeSeq = {

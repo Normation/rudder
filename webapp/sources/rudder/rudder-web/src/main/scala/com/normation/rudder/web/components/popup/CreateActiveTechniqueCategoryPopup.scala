@@ -74,7 +74,7 @@ class CreateActiveTechniqueCategoryPopup(
 
   private[this] val categories = activeTechniqueCategoryRepository.getAllActiveTechniqueCategories().toBox
 
-  def dispatch = { case "popupContent" => popupContent _ }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => popupContent _ }
 
   def popupContent(html: NodeSeq): NodeSeq = {
     SHtml.ajaxForm(

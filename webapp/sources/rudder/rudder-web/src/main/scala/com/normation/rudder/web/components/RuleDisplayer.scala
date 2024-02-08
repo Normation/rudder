@@ -71,7 +71,7 @@ class RuleDisplayer(
 
   private[this] val htmlId_popup = "createRuleCategoryPopup"
 
-  def getRootCategory() = {
+  def getRootCategory(): Box[RuleCategory] = {
     directive match {
       case Some(appManagement) =>
         Full(appManagement.rootCategory)
@@ -84,10 +84,10 @@ class RuleDisplayer(
     getRootCategory()
   }
 
-  def dispatch = { case "display" => { _ => NodeSeq.Empty } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "display" => { _ => NodeSeq.Empty } }
 
   // Update Rule displayer after a Rule has changed ( update / creation )
-  def onRuleChange(selectedCategoryUpdate: RuleCategoryId) = {
+  def onRuleChange(selectedCategoryUpdate: RuleCategoryId): JsCmd = {
     refreshGrid & refreshTree & ruleCategoryTree.map(_.updateSelectedCategory(selectedCategoryUpdate)).getOrElse(Noop)
   }
 
@@ -116,7 +116,7 @@ class RuleDisplayer(
     )
   }
 
-  def includeSubCategory = {
+  def includeSubCategory:   Elem    = {
     SHtml.ajaxCheckbox(
       true,
       value => OnLoad(JsRaw(s"""
@@ -164,7 +164,7 @@ class RuleDisplayer(
     </div>
   }
 
-  def check() = {
+  def check(): JsCmd = {
     def action(ruleId: RuleId, status: Boolean) = {
       JsRaw(s"""$$('#${ruleId.serialize}Checkbox').prop("checked",${status}); """)
     }
@@ -216,7 +216,7 @@ class RuleDisplayer(
 
   }
 
-  def display = {
+  def display: NodeSeq = {
     val columnToFilter = {
       if (directive.isDefined) 3 else 2
     }

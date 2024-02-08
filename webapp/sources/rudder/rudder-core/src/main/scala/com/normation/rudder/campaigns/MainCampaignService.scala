@@ -56,7 +56,7 @@ trait CampaignHandler {
 }
 
 object MainCampaignService {
-  def start(mainCampaignService: MainCampaignService) = {
+  def start(mainCampaignService: MainCampaignService): ZIO[Any, Nothing, Unit] = {
     for {
       campaignQueue <- Queue.unbounded[CampaignEventId]
       _             <- mainCampaignService.start(campaignQueue).forkDaemon
@@ -72,15 +72,15 @@ class MainCampaignService(
     endDelay:     Int
 ) {
 
-  private[this] var services: List[CampaignHandler] = Nil
-  def registerService(s: CampaignHandler) = {
+  private[this] var services:              List[CampaignHandler]       = Nil
+  def registerService(s: CampaignHandler): ZIO[Any, RudderError, Unit] = {
     services = s :: services
     init()
   }
 
   private[this] var inner: Option[CampaignScheduler] = None
 
-  def deleteCampaign(c: CampaignId) = {
+  def deleteCampaign(c: CampaignId): ZIO[Any, RudderError, Unit] = {
 
     inner match {
       case Some(s) =>
@@ -92,7 +92,7 @@ class MainCampaignService(
     }
   }
 
-  def saveCampaign(c: Campaign)       = {
+  def saveCampaign(c: Campaign):       ZIO[Any, RudderError, Campaign]        = {
     for {
       _ <- campaignRepo.save(c)
       _ <- scheduleCampaignEvent(c, DateTime.now())
@@ -100,7 +100,7 @@ class MainCampaignService(
       c
     }
   }
-  def queueCampaign(c: CampaignEvent) = {
+  def queueCampaign(c: CampaignEvent): ZIO[Any, Inconsistency, CampaignEvent] = {
     inner match {
       case Some(s) => s.queueCampaign(c)
       case None    => Inconsistency("not initialized yet").fail
@@ -109,7 +109,7 @@ class MainCampaignService(
 
   case class CampaignScheduler(main: MainCampaignService, queue: Queue[CampaignEventId]) {
 
-    def deleteCampaign(c: CampaignId)   = {
+    def deleteCampaign(c: CampaignId):   ZIO[Any, RudderError, Unit]      = {
       for {
         campaign <- campaignRepo.get(c)
         events   <- repo.getWithCriteria(campaignId = Some(c))
@@ -127,7 +127,7 @@ class MainCampaignService(
         ()
       }
     }
-    def queueCampaign(c: CampaignEvent) = {
+    def queueCampaign(c: CampaignEvent): ZIO[Any, Nothing, CampaignEvent] = {
       for {
         _ <- queue.offer(c.id)
       } yield {
@@ -135,7 +135,7 @@ class MainCampaignService(
       }
     }
 
-    def handle(eventId: CampaignEventId) = {
+    def handle(eventId: CampaignEventId): ZIO[Any, RudderError, Any] = {
 
       def base(event: CampaignEvent): PartialFunction[Campaign, IOResult[CampaignEvent]] = { case _ => event.succeed }
 
@@ -304,7 +304,7 @@ class MainCampaignService(
         .catchAll(failingLog) // this catch all is when event the previous level does not work. It should not create loop
     }
 
-    def loop() = {
+    def loop(): ZIO[Any, Nothing, Unit] = {
       for {
         c <- queue.take
         _ <- handle(c).forkDaemon
@@ -313,7 +313,7 @@ class MainCampaignService(
       }
     }
 
-    def start() = loop().forever
+    def start(): ZIO[Any, Nothing, Nothing] = loop().forever
   }
 
   def scheduleCampaignEvent(campaign: Campaign, date: DateTime): IOResult[Option[CampaignEvent]] = {
@@ -360,7 +360,7 @@ class MainCampaignService(
     }
   }
 
-  def init() = {
+  def init(): ZIO[Any, RudderError, Unit] = {
     inner match {
       case None    => Inconsistency("Campaign queue not initialized. campaign service was not started accordingly").fail
       case Some(s) =>
@@ -385,7 +385,7 @@ class MainCampaignService(
     }
   }
 
-  def start(initQueue: Queue[CampaignEventId]) = {
+  def start(initQueue: Queue[CampaignEventId]): ZIO[Any, RudderError, Unit] = {
     val s = CampaignScheduler(this, initQueue)
     inner = Some(s)
     for {
