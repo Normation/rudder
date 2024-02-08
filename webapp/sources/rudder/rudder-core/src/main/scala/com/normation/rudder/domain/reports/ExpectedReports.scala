@@ -466,7 +466,8 @@ object ExpectedReportsSerialisation {
       def transform: BlockExpectedReport = BlockExpectedReport(bid, rl, scs.map(_.transform), id)
     }
     implicit class _JsonBlockExpectedReport7_1(x: BlockExpectedReport)           {
-      def transform = JsonBlockExpectedReport7_1(x.componentName, x.reportingLogic, x.subComponents.map(_.transform), x.id)
+      def transform: JsonBlockExpectedReport7_1 =
+        JsonBlockExpectedReport7_1(x.componentName, x.reportingLogic, x.subComponents.map(_.transform), x.id)
     }
 
     final case class JsonDirectiveExpectedReports7_1(
@@ -478,7 +479,7 @@ object ExpectedReportsSerialisation {
       def transform: DirectiveExpectedReports = DirectiveExpectedReports(did, pm, s.getOrElse(false), cs.map(_.transform))
     }
     implicit class _JsonDirectiveExpectedReports7_1(x: DirectiveExpectedReports) {
-      def transform = {
+      def transform: JsonDirectiveExpectedReports7_1 = {
         val s = if (x.isSystem) Some(true) else None
         JsonDirectiveExpectedReports7_1(
           x.directiveId,

@@ -50,7 +50,7 @@ import org.specs2.runner.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class TestDecodeNcfMethodLib extends Specification {
 
-  val paramaterTypeService = new PlugableParameterTypeService()
+  val paramaterTypeService: PlugableParameterTypeService = new PlugableParameterTypeService()
 
   s"We should be able to decode a standard lib" >> {
     val json = Resource.getAsString("ncf/generic_methods.json")

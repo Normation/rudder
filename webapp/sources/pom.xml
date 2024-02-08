@@ -282,7 +282,7 @@ limitations under the License.
         <configuration>
           <scala>
             <includes>
-              <include>**/*.scala</include>
+              <include>src/**/*.scala</include>
             </includes>
             <excludes>
               <exclude>**/ConstraintsTest.scala</exclude> <!-- make spotless scalafmt stack overflow, works on intellij: ignore -->

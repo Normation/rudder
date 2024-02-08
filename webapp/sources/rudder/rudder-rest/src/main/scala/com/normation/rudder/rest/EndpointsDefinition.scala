@@ -371,7 +371,7 @@ object NodeApi       extends ApiModuleProvider[NodeApi]    {
 
   final case object NodeInheritedProperties extends NodeApi with GeneralApi with OneParam with StartsAtVersion11 with SortIndex {
     val z: Int = implicitly[Line].value
-    val description    = "Get all propreties for that node, included inherited ones"
+    val description    = "Get all properties for that node, included inherited ones"
     val (action, path) = GET / "nodes" / "{id}" / "inheritedProperties"
   }
 

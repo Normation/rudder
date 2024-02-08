@@ -948,7 +948,7 @@ class TestNodeConfiguration(
     )
   }
 
-  val archiveTechnique =
+  val archiveTechnique: Technique =
     techniqueRepository.unsafeGet(TechniqueId(TechniqueName("test_import_export_archive"), TechniqueVersionHelper("1.0")))
   val archiveDirective: Directive = Directive(
     DirectiveId(DirectiveUid("test_import_export_archive_directive"), GitVersion.DEFAULT_REV),
@@ -986,7 +986,7 @@ class TestNodeConfiguration(
       .toMap
   }
 
-  def simpleServerPolicy(name: String, variables: List[String] = List()) = {
+  def simpleServerPolicy(name: String, variables: List[String] = List()): (Technique, BoundPolicyDraft) = {
     val technique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName(s"${name}"), TechniqueVersionHelper("1.0")))
     val spec      = technique.getAllVariableSpecs.map(s => (s.name, s)).toMap
     val vars      = getVariables(technique.id.serialize, spec, variables)

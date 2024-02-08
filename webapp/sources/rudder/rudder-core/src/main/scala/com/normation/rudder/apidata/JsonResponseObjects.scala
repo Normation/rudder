@@ -528,7 +528,7 @@ object JsonResponseObjects {
       rules:       List[String]
   )
   object JRSimpleRuleCategory {
-    def fromCategory(cat: RuleCategory, parent: String, rules: List[String]) = {
+    def fromCategory(cat: RuleCategory, parent: String, rules: List[String]): JRSimpleRuleCategory = {
       cat
         .into[JRSimpleRuleCategory]
         .withFieldComputed(_.id, _.id.value)
@@ -704,7 +704,7 @@ object JsonResponseObjects {
   }
 
   object JRCriterium {
-    def fromCriterium(c: CriterionLine) = {
+    def fromCriterium(c: CriterionLine): JRCriterium = {
       c.into[JRCriterium]
         .withFieldComputed(_.objectType, _.objectType.objectType)
         .withFieldComputed(_.attribute, _.attribute.name)
@@ -784,7 +784,7 @@ object JsonResponseObjects {
   object JRGroup {
     def empty(id: String): JRGroup = JRGroup(None, id, "", "", "", None, Nil, false, false, Nil, Nil, "", false)
 
-    def fromGroup(group: NodeGroup, catId: NodeGroupCategoryId, crId: Option[ChangeRequestId]) = {
+    def fromGroup(group: NodeGroup, catId: NodeGroupCategoryId, crId: Option[ChangeRequestId]): JRGroup = {
       group
         .into[JRGroup]
         .enableBeanGetters
@@ -825,7 +825,7 @@ object JsonResponseObjects {
   )
 
   object JRHooks {
-    def fromHook(hook: Hooks) = {
+    def fromHook(hook: Hooks): JRHooks = {
       hook
         .into[JRHooks]
         .withFieldConst(_.basePath, hook.basePath)

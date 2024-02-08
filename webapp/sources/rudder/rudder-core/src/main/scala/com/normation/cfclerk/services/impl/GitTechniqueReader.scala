@@ -149,9 +149,16 @@ class GitTechniqueReader(
   // without leading and trailing /.
   val canonizedRelativePath: Option[String] = relativePathToGitRepos.flatMap { path =>
     val p1 = path.trim
-    val p2 = if (p1(0) == '/') p1.tail else p1
-    val p3 = if (p2(p2.size - 1) == '/') p2.substring(0, p2.size - 1) else p2
-
+    val p2 = if (p1(0) == '/') {
+      p1.tail
+    } else {
+      p1
+    }
+    val p3 = if (p2(p2.size - 1) == '/') {
+      p2.substring(0, p2.size - 1)
+    } else {
+      p2
+    }
     if (p3.size == 0) { // can not have Some("/") or Some("")
       None
     } else {

@@ -56,11 +56,11 @@ class NodePropertiesTest extends Specification with Loggable {
     }
   }
 
-  val p1: NodeProperty = NodeProperty.parse("jsonArray", """[ "one", 2, true]  """, None, None).forceGet
-  val p2: NodeProperty = NodeProperty.parse("jsonProp", """{"jsonObject":"ok"}""", None, None).forceGet
-  val p3    = NodeProperty.parse("stringArray", """[array]""", None, None).forceGet
-  val p4    = NodeProperty.parse("stringSimple", "simple string", None, None).forceGet
-  val props = List(p1, p2, p3, p4)
+  val p1:    NodeProperty       = NodeProperty.parse("jsonArray", """[ "one", 2, true]  """, None, None).forceGet
+  val p2:    NodeProperty       = NodeProperty.parse("jsonProp", """{"jsonObject":"ok"}""", None, None).forceGet
+  val p3:    NodeProperty       = NodeProperty.parse("stringArray", """[array]""", None, None).forceGet
+  val p4:    NodeProperty       = NodeProperty.parse("stringSimple", "simple string", None, None).forceGet
+  val props: List[NodeProperty] = List(p1, p2, p3, p4)
 
   // used to generate nodeproperties.d content
   "Node property set toDataJson correctly be rendered" >> {

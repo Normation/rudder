@@ -135,7 +135,7 @@ object json {
 
   }
   object JPolicyServer   {
-    def from(server: PolicyServer) = {
+    def from(server: PolicyServer): JPolicyServer = {
       server
         .into[JPolicyServer]
         .withFieldComputed(_.id, _.id.value)

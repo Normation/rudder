@@ -188,11 +188,13 @@ class TestPendingNodePolicies extends Specification {
       if (query.criteria.isEmpty) {
         Inconsistency(s"Trying to perform an LDAP search on 0 criteria: error").fail
       } else {
-        (query match {
-          case x if (x == dummyQuery0) => Set.empty[NodeId]
-          case x if (x == dummyQuery1) => Set(node)
-          case x                       => Set(node)
-        }).intersect(nodeIds.getOrElse(Seq(node)).toSet).succeed
+        (
+          query match {
+            case x if (x == dummyQuery0) => Set.empty[NodeId]
+            case x if (x == dummyQuery1) => Set(node)
+            case x                       => Set(node)
+          }
+        ).intersect(nodeIds.getOrElse(Seq(node)).toSet).succeed
       }
     }
   }
