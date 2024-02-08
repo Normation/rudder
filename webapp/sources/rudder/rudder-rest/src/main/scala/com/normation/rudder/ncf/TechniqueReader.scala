@@ -39,8 +39,8 @@ class TechniqueReader(
 ) extends GitConfigItemRepository with XmlArchiverUtils {
   override val relativePath: String = "ncf"
   val configuration_repository = gitRepo.rootDirectory
-  val ncfRootDir               = configuration_repository / relativePath
-  val methodsFile              = ncfRootDir / "generic_methods.json"
+  val ncfRootDir:  File = configuration_repository / relativePath
+  val methodsFile: File = ncfRootDir / "generic_methods.json"
 
   def getAllTechniqueFiles(currentPath: File): IOResult[List[File]]                                              = {
     import com.normation.errors._

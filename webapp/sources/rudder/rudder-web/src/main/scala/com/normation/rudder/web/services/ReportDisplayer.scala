@@ -79,8 +79,8 @@ class ReportDisplayer(
 
   private[this] val getAllNodeInfos = RudderConfig.nodeInfoService.getAll _
 
-  def reportByNodeTemplate = ChooseTemplate(List("templates-hidden", "reports_server"), "batches-list")
-  def directiveDetails     = ChooseTemplate(List("templates-hidden", "reports_server"), "directive:foreach")
+  def reportByNodeTemplate: NodeSeq = ChooseTemplate(List("templates-hidden", "reports_server"), "batches-list")
+  def directiveDetails:     NodeSeq = ChooseTemplate(List("templates-hidden", "reports_server"), "directive:foreach")
 
   /**
    * Main entry point to display the tab with reports of a node.
@@ -116,7 +116,12 @@ class ReportDisplayer(
   /**
    * Refresh the main compliance table
    */
-  def refreshReportDetail(node: NodeInfo, tableId: String, getReports: NodeId => Box[NodeStatusReport], addOverriden: Boolean) = {
+  def refreshReportDetail(
+      node:         NodeInfo,
+      tableId:      String,
+      getReports:   NodeId => Box[NodeStatusReport],
+      addOverriden: Boolean
+  ): AnonFunc = {
     def refreshData: Box[JsCmd] = {
       for {
         report <- getReports(node.id)

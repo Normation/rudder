@@ -58,7 +58,7 @@ class TestFileHistoryLogRepository {
   val repos = new FileHistoryLogRepository(rootDir, StringMarshaller, StringId)
 
   implicit class RunThing[R, E, T](thing: ZIO[Any, E, T]) {
-    def runNow = ZioRuntime.unsafeRun(thing.either)
+    def runNow: Either[E, T] = ZioRuntime.unsafeRun(thing.either)
   }
 
   // you can debug detail by setting "TRACE" level below:
@@ -94,7 +94,7 @@ class TestFileHistoryLogRepository {
 }
 
 object TestFileHistoryLogRepository {
-  val rootDir = java.lang.System.getProperty("java.io.tmpdir") + "/testFileHistoryLogRepo"
+  val rootDir: String = java.lang.System.getProperty("java.io.tmpdir") + "/testFileHistoryLogRepo"
 
   def clean: Unit = {
     FileUtils.deleteDirectory(new File(rootDir))

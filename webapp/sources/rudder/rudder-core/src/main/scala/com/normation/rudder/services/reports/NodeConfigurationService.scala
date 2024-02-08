@@ -92,7 +92,7 @@ class CachedNodeConfigurationService(
     val nodeInfoService:  NodeInfoService
 ) extends NodeConfigurationService with CachedRepository with InvalidateCache[CacheExpectedReportAction] {
 
-  val semaphore = Semaphore.make(1).runNow
+  val semaphore: Semaphore = Semaphore.make(1).runNow
 
   val logger = ReportLoggerPure.Cache
 

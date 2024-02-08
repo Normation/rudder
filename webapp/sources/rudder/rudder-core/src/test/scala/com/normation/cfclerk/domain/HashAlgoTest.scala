@@ -54,9 +54,9 @@ class HashAlgoTest extends Specification {
     AixPasswordHashAlgo.getSecretKeFactory(sha).isDefined
   }
 
-  val sha1Available   = isAvailable(ShaSpec.SHA1)
-  val sha256Available = isAvailable(ShaSpec.SHA256)
-  val sha512Available = isAvailable(ShaSpec.SHA512)
+  val sha1Available:   Boolean = isAvailable(ShaSpec.SHA1)
+  val sha256Available: Boolean = isAvailable(ShaSpec.SHA256)
+  val sha512Available: Boolean = isAvailable(ShaSpec.SHA512)
 
   "Aix hashing" should {
 

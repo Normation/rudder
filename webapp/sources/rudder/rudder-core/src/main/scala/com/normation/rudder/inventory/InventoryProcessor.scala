@@ -103,7 +103,7 @@ class DefaultProcessInventoryService(
  * It's the interface used by the ProcessInventoryService
  */
 final case class InventoryPair(inventory: File, signature: File) {
-  def toSaveInventoryInfo = SaveInventoryInfo(
+  def toSaveInventoryInfo: SaveInventoryInfo = SaveInventoryInfo(
     inventory.name,
     InventoryProcessingUtils.makeManagedStream(inventory, "inventory"),
     InventoryProcessingUtils.makeManagedStream(signature, "signature"),
@@ -164,7 +164,7 @@ class InventoryProcessor(
     checkAliveLdap:   () => IOResult[Unit],
     nodeInventoryDit: InventoryDit
 ) {
-  def logDirPerm(dir: File, name: String) = {
+  def logDirPerm(dir: File, name: String): Unit = {
     if (dir.isDirectory && dir.isWritable) {
       InventoryProcessingLogger.logEffect.debug(s"${name} inventories directory [ok]: ${dir.pathAsString}")
     } else {
@@ -177,7 +177,7 @@ class InventoryProcessor(
   ApplicationLogger.info(s"Configure inventory processing with parallelism of '${maxParallel}'")
 
   // we want to limit the number of inventories concurrently parsed
-  lazy val concurrentInventoryProcessingSemaphore = ZioRuntime.unsafeRun(Semaphore.make(maxParallel))
+  lazy val concurrentInventoryProcessingSemaphore: Semaphore = ZioRuntime.unsafeRun(Semaphore.make(maxParallel))
 
   /*
    * If blocking is true, that method won't complete until there is room in the backend queue.
@@ -370,9 +370,9 @@ class InventoryMover(
     failedHook:            InventoryFailedHook
 ) extends InventoryMoveWhenProcessed {
 
-  val received = File(receivedInventoryPath)
+  val received: File = File(receivedInventoryPath)
   InventoryProcessingUtils.logDirPerm(received, "Received")
-  val failed   = File(failedInventoryPath)
+  val failed:   File = File(failedInventoryPath)
   InventoryProcessingUtils.logDirPerm(failed, "Failed")
 
   // we don't manage race condition very well, so we have cases where

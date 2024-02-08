@@ -185,8 +185,9 @@ import zio.syntax._
  */
 class RestTestSetUp {
 
-  implicit val userService = new UserService {
-    val user           = new User {
+  implicit val userService: userService = new userService
+  class userService extends UserService {
+    val user: User = new User {
       val account                              = RudderAccount.User("test-user", "pass")
       def checkRights(auth: AuthorizationType) = true
       def getApiAuthz                          = ApiAuthz.allAuthz
@@ -196,15 +197,15 @@ class RestTestSetUp {
 
   // Instantiate Service needed to feed System API constructor
 
-  val fakeUpdatePTLibService = new UpdateTechniqueLibrary() {
+  val fakeUpdatePTLibService: UpdateTechniqueLibrary = new UpdateTechniqueLibrary() {
     def update(modId: ModificationId, actor: EventActor, reason: Option[String]) = {
       Full(Map())
     }
     def registerCallback(callback: TechniquesLibraryUpdateNotification): Unit = {}
   }
 
-  val mockGitRepo          = new MockGitConfigRepo("")
-  val mockTechniques       = MockTechniques(mockGitRepo)
+  val mockGitRepo = new MockGitConfigRepo("")
+  val mockTechniques: MockTechniques = MockTechniques(mockGitRepo)
   val mockDirectives       = new MockDirectives(mockTechniques)
   val mockRules            = new MockRules()
   val mockNodes            = new MockNodes()
@@ -231,10 +232,10 @@ class RestTestSetUp {
     override def getAllDynGroupsWithandWithoutDependencies(): Box[(Seq[NodeGroupId], Seq[NodeGroupId])] = ???
   }
 
-  val deploymentStatusSerialisation = new DeploymentStatusSerialisation {
+  val deploymentStatusSerialisation: DeploymentStatusSerialisation = new DeploymentStatusSerialisation {
     override def serialise(deploymentStatus: CurrentDeploymentStatus): Elem = <test/>
   }
-  val eventLogRepo                  = new EventLogRepository {
+  val eventLogRepo:                  EventLogRepository            = new EventLogRepository {
     override def saveEventLog(modId: ModificationId, eventLog: EventLog): IOResult[EventLog] = eventLog.succeed
 
     override def eventLogFactory:                                                                EventLogFactory                                       = ???
@@ -280,10 +281,10 @@ class RestTestSetUp {
     ): IOResult[EventLog] = ZIO.succeed(null)
 
   }
-  val eventLogger                   = new EventLogDeploymentService(eventLogRepo, null) {
+  val eventLogger:                   EventLogDeploymentService     = new EventLogDeploymentService(eventLogRepo, null) {
     override def getLastDeployement(): Box[CurrentDeploymentStatus] = Full(NoStatus)
   }
-  val policyGeneration              = new PromiseGenerationService {
+  val policyGeneration:              PromiseGenerationService      = new PromiseGenerationService {
     override def deploy():                                                                     Box[Set[NodeId]]                        = Full(Set())
     override def getAllNodeInfos():                                                            Box[Map[NodeId, NodeInfo]]              = ???
     override def getDirectiveLibrary(ids: Set[DirectiveId]):                                   Box[FullActiveTechniqueCategory]        = ???
@@ -381,11 +382,11 @@ class RestTestSetUp {
     ): Box[Unit] = ???
     override def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit]                          = ???
   }
-  val bootGuard                     = (for {
+  val bootGuard:                     Promise[Nothing, Unit]        = (for {
     p <- Promise.make[Nothing, Unit]
     _ <- p.succeed(())
   } yield p).runNow
-  val asyncDeploymentAgent          = new AsyncDeploymentActor(
+  val asyncDeploymentAgent = new AsyncDeploymentActor(
     policyGeneration,
     eventLogger,
     deploymentStatusSerialisation,
@@ -394,7 +395,7 @@ class RestTestSetUp {
     bootGuard
   )
 
-  val findDependencies  = new FindDependencies { // never find any dependencies
+  val findDependencies: FindDependencies = new FindDependencies { // never find any dependencies
     override def findRulesForDirective(id: DirectiveUid): IOResult[Seq[Rule]] = Nil.succeed
     override def findRulesForTarget(target: RuleTarget):  IOResult[Seq[Rule]] = Nil.succeed
   }
@@ -435,7 +436,7 @@ class RestTestSetUp {
       commitAndDeployChangeRequest
     )
   )
-  val restExtractorService = RestExtractorService(
+  val restExtractorService:         RestExtractorService                = RestExtractorService(
     mockRules.ruleRepo,
     mockDirectives.directiveRepo,
     null, // roNodeGroupRepository
@@ -451,7 +452,7 @@ class RestTestSetUp {
 
   val zioJsonExtractor = new ZioJsonExtractor(mockLdapQueryParsing.queryParser)
 
-  val restDataSerializer = RestDataSerializerImpl(
+  val restDataSerializer: RestDataSerializerImpl = RestDataSerializerImpl(
     mockTechniques.techniqueRepo,
     null // diffService
   )
@@ -464,11 +465,11 @@ class RestTestSetUp {
     override def clearNodeConfigurationCache(storeEvent: Boolean, actor: EventActor) = null
   }
 
-  val fakeNotArchivedElements =
+  val fakeNotArchivedElements: NotArchivedElements =
     NotArchivedElements(Seq[CategoryNotArchived](), Seq[ActiveTechniqueNotArchived](), Seq[DirectiveNotArchived]())
-  val fakePersonIdent         = new PersonIdent("test-user", "test.user@normation.com")
-  val fakeGitCommitId         = GitCommitId("6d6b2ceb46adeecd845ad0c0812fee07e2727104")
-  val fakeGitArchiveId        = GitArchiveId(GitPath("fake/git/path"), fakeGitCommitId, fakePersonIdent)
+  val fakePersonIdent = new PersonIdent("test-user", "test.user@normation.com")
+  val fakeGitCommitId:  GitCommitId  = GitCommitId("6d6b2ceb46adeecd845ad0c0812fee07e2727104")
+  val fakeGitArchiveId: GitArchiveId = GitArchiveId(GitPath("fake/git/path"), fakeGitCommitId, fakePersonIdent)
 
   class FakeItemArchiveManager extends ItemArchiveManager {
     override def exportAll(
@@ -477,35 +478,35 @@ class RestTestSetUp {
         actor:         EventActor,
         reason:        Option[String],
         includeSystem: Boolean
-    ) = ZIO.succeed((fakeGitArchiveId, fakeNotArchivedElements))
+    ): IOResult[(GitArchiveId, NotArchivedElements)] = ZIO.succeed((fakeGitArchiveId, fakeNotArchivedElements))
     override def exportRules(
         commiter:      PersonIdent,
         modId:         ModificationId,
         actor:         EventActor,
         reason:        Option[String],
         includeSystem: Boolean
-    ) = ZIO.succeed(fakeGitArchiveId)
+    ): IOResult[GitArchiveId] = ZIO.succeed(fakeGitArchiveId)
     override def exportTechniqueLibrary(
         commiter:      PersonIdent,
         modId:         ModificationId,
         actor:         EventActor,
         reason:        Option[String],
         includeSystem: Boolean
-    ) = ZIO.succeed((fakeGitArchiveId, fakeNotArchivedElements))
+    ): IOResult[(GitArchiveId, NotArchivedElements)] = ZIO.succeed((fakeGitArchiveId, fakeNotArchivedElements))
     override def exportGroupLibrary(
         commiter:      PersonIdent,
         modId:         ModificationId,
         actor:         EventActor,
         reason:        Option[String],
         includeSystem: Boolean
-    ) = ZIO.succeed(fakeGitArchiveId)
+    ): IOResult[GitArchiveId] = ZIO.succeed(fakeGitArchiveId)
     override def exportParameters(
         commiter:      PersonIdent,
         modId:         ModificationId,
         actor:         EventActor,
         reason:        Option[String],
         includeSystem: Boolean
-    ) = ZIO.succeed(fakeGitArchiveId)
+    ): IOResult[GitArchiveId] = ZIO.succeed(fakeGitArchiveId)
     override def importAll(
         archiveId:     GitCommitId,
         commiter:      PersonIdent,
@@ -513,7 +514,7 @@ class RestTestSetUp {
         actor:         EventActor,
         reason:        Option[String],
         includeSystem: Boolean
-    ) = ZIO.succeed(fakeGitCommitId)
+    ): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def importRules(
         archiveId:     GitCommitId,
         commiter:      PersonIdent,
@@ -521,7 +522,7 @@ class RestTestSetUp {
         actor:         EventActor,
         reason:        Option[String],
         includeSystem: Boolean
-    ) = ZIO.succeed(fakeGitCommitId)
+    ): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def importTechniqueLibrary(
         archiveId:     GitCommitId,
         commiter:      PersonIdent,
@@ -529,7 +530,7 @@ class RestTestSetUp {
         actor:         EventActor,
         reason:        Option[String],
         includeSystem: Boolean
-    ) = ZIO.succeed(fakeGitCommitId)
+    ): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def importGroupLibrary(
         archiveId:     GitCommitId,
         commiter:      PersonIdent,
@@ -537,7 +538,7 @@ class RestTestSetUp {
         actor:         EventActor,
         reason:        Option[String],
         includeSystem: Boolean
-    ) = ZIO.succeed(fakeGitCommitId)
+    ): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def importParameters(
         archiveId:     GitCommitId,
         commiter:      PersonIdent,
@@ -545,7 +546,7 @@ class RestTestSetUp {
         actor:         EventActor,
         reason:        Option[String],
         includeSystem: Boolean
-    ) = ZIO.succeed(fakeGitCommitId)
+    ): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def rollback(
         archiveId:        GitCommitId,
         commiter:         PersonIdent,
@@ -556,31 +557,31 @@ class RestTestSetUp {
         target:           EventLog,
         rollbackType:     String,
         includeSystem:    Boolean
-    ) = ZIO.succeed(fakeGitCommitId)
+    ): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
 
     /**
       * These methods are called by the Archive API to get the git archives.
       * The API then provides the logic to transform the Box[Map][DateTime, GitArchiveId] into JSON
       * Here, we want to make these methods returning fake archives for testing the API logic.
       */
-    val fakeArchives                     = Map[DateTime, GitArchiveId](
+    val fakeArchives:                     Map[DateTime, GitArchiveId]           = Map[DateTime, GitArchiveId](
       new DateTime(42) -> fakeGitArchiveId
     )
-    override def getFullArchiveTags      = ZIO.succeed(fakeArchives)
-    override def getGroupLibraryTags     = ZIO.succeed(fakeArchives)
-    override def getTechniqueLibraryTags = ZIO.succeed(fakeArchives)
-    override def getRulesTags            = ZIO.succeed(fakeArchives)
-    override def getParametersTags       = ZIO.succeed(fakeArchives)
+    override def getFullArchiveTags:      IOResult[Map[DateTime, GitArchiveId]] = ZIO.succeed(fakeArchives)
+    override def getGroupLibraryTags:     IOResult[Map[DateTime, GitArchiveId]] = ZIO.succeed(fakeArchives)
+    override def getTechniqueLibraryTags: IOResult[Map[DateTime, GitArchiveId]] = ZIO.succeed(fakeArchives)
+    override def getRulesTags:            IOResult[Map[DateTime, GitArchiveId]] = ZIO.succeed(fakeArchives)
+    override def getParametersTags:       IOResult[Map[DateTime, GitArchiveId]] = ZIO.succeed(fakeArchives)
   }
   val fakeItemArchiveManager = new FakeItemArchiveManager
-  val fakeClearCacheService   = new FakeClearCacheService
-  val fakePersonIndentService = new PersonIdentService {
+  val fakeClearCacheService = new FakeClearCacheService
+  val fakePersonIndentService: PersonIdentService = new PersonIdentService {
     override def getPersonIdentOrDefault(username: String) = ZIO.succeed(fakePersonIdent)
   }
-  val fakeScriptLauncher      = new DebugInfoService {
+  val fakeScriptLauncher:      DebugInfoService   = new DebugInfoService {
     override def launch() = DebugInfoScriptResult("test", new Array[Byte](42)).succeed
   }
-  val nodeInfoService         = new NodeInfoServiceCachedImpl(
+  val nodeInfoService = new NodeInfoServiceCachedImpl(
     null,
     null,
     null,
@@ -591,7 +592,7 @@ class RestTestSetUp {
     FiniteDuration(100, "millis")
   )
 
-  val fakeUpdateDynamicGroups = {
+  val fakeUpdateDynamicGroups: UpdateDynamicGroups = {
     new UpdateDynamicGroups(dynGroupService, dynGroupUpdaterService, asyncDeploymentAgent, uuidGen, 1, () => Full("1")) {
       // for some reason known only by Scala inheritance rules, the underlying LAUpdateDyngroup is null, so we need to override that.
       override lazy val laUpdateDyngroupManager = new LAUpdateDyngroupManager() {
@@ -660,7 +661,7 @@ class RestTestSetUp {
     new RuleApplicationStatusServiceImpl()
   )
 
-  val fieldFactory           = new DirectiveFieldFactory {
+  val fieldFactory:         DirectiveFieldFactory = new DirectiveFieldFactory {
     override def forType(fieldType: VariableSpec, id: String): DirectiveField = default(id)
     override def default(withId: String):                      DirectiveField = new DirectiveField {
       self =>
@@ -686,7 +687,7 @@ class RestTestSetUp {
     mockConfigRepo.configurationRepository,
     new Section2FieldService(fieldFactory, Translator.defaultTranslators)
   )
-  val directiveApiService2   = {
+  val directiveApiService2: DirectiveApiService2  = {
     new DirectiveApiService2(
       mockDirectives.directiveRepo,
       mockDirectives.directiveRepo,
@@ -700,7 +701,7 @@ class RestTestSetUp {
     )
   }
 
-  val directiveApiService14 = {
+  val directiveApiService14: DirectiveApiService14 = {
     new DirectiveApiService14(
       mockDirectives.directiveRepo,
       mockConfigRepo.configurationRepository,
@@ -727,13 +728,13 @@ class RestTestSetUp {
     null
   )
 
-  val systemApi        = new SystemApi(restExtractorService, apiService11, apiService13, "5.0", "5.0.0", "some time")
-  val authzToken       = AuthzToken(EventActor("fakeToken"))
-  val systemStatusPath = "api" + systemApi.Status.schema.path
+  val systemApi = new SystemApi(restExtractorService, apiService11, apiService13, "5.0", "5.0.0", "some time")
+  val authzToken:       AuthzToken = AuthzToken(EventActor("fakeToken"))
+  val systemStatusPath: String     = "api" + systemApi.Status.schema.path
 
-  val nodeInfo                     = mockNodes.nodeInfoService
-  val softDao                      = mockNodes.softwareDao
-  val roReportsExecutionRepository = new RoReportsExecutionRepository {
+  val nodeInfo = mockNodes.nodeInfoService
+  val softDao  = mockNodes.softwareDao
+  val roReportsExecutionRepository: RoReportsExecutionRepository = new RoReportsExecutionRepository {
     override def getNodesLastRun(nodeIds: Set[NodeId]): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] =
       Map.empty[NodeId, Option[AgentRunWithNodeConfig]].succeed
 
@@ -775,36 +776,38 @@ class RestTestSetUp {
     null
   )
   // override ldap methods to use mock nodes
-  val nodeApiService16 = new NodeApiService15(nodeInfo, null, null, mockNodes.newNodeManager, uuidGen, null, null, null) {
+  val nodeApiService16: NodeApiService15 = {
+    new NodeApiService15(nodeInfo, null, null, mockNodes.newNodeManager, uuidGen, null, null, null) {
 
-    override def checkUuid(nodeId: NodeId): IO[Creation.CreationError, Unit] = {
-      mockNodes.nodeInfoService
-        .get(nodeId)
-        .map(_.nonEmpty)
-        .mapError(err => CreationError.OnSaveInventory(s"Error during node ID check: ${err.fullMsg}"))
-        .unit
-    }
+      override def checkUuid(nodeId: NodeId): IO[Creation.CreationError, Unit] = {
+        mockNodes.nodeInfoService
+          .get(nodeId)
+          .map(_.nonEmpty)
+          .mapError(err => CreationError.OnSaveInventory(s"Error during node ID check: ${err.fullMsg}"))
+          .unit
+      }
 
-    override def saveInventory(inventory: FullInventory): IO[Creation.CreationError, NodeId] = {
-      mockNodes.nodeInfoService
-        .save(inventory)
-        .mapBoth(
-          err => CreationError.OnSaveInventory(s"Error when saving node: ${err.fullMsg}"),
-          _ => inventory.node.main.id
-        )
-    }
+      override def saveInventory(inventory: FullInventory): IO[Creation.CreationError, NodeId] = {
+        mockNodes.nodeInfoService
+          .save(inventory)
+          .mapBoth(
+            err => CreationError.OnSaveInventory(s"Error when saving node: ${err.fullMsg}"),
+            _ => inventory.node.main.id
+          )
+      }
 
-    override def saveRudderNode(id: NodeId, setup: NodeSetup): IO[Creation.CreationError, NodeId] = {
-      mockNodes.nodeInfoService.nodeBase.updateZIO { nodes =>
-        nodes.get(id) match {
-          case None    => CreationError.OnSaveNode(s"Can not merge node: missing").fail
-          case Some(n) =>
-            import com.softwaremill.quicklens._
-            val res = n.modify(_.info.node).using(x => mergeNodeSetup(x, setup))
+      override def saveRudderNode(id: NodeId, setup: NodeSetup): IO[Creation.CreationError, NodeId] = {
+        mockNodes.nodeInfoService.nodeBase.updateZIO { nodes =>
+          nodes.get(id) match {
+            case None    => CreationError.OnSaveNode(s"Can not merge node: missing").fail
+            case Some(n) =>
+              import com.softwaremill.quicklens._
+              val res = n.modify(_.info.node).using(x => mergeNodeSetup(x, setup))
 
-            (nodes + ((id, res))).succeed
-        }
-      }.map(_ => id)
+              (nodes + ((id, res))).succeed
+          }
+        }.map(_ => id)
+      }
     }
   }
 
@@ -860,14 +863,14 @@ class RestTestSetUp {
       mockConfigRepo.configurationRepository,
       mockTechniques.techniqueRevisionRepo
     )
-    val featureSwitchState    = Ref.make[FeatureSwitch](FeatureSwitch.Disabled).runNow
+    val featureSwitchState: Ref[FeatureSwitch] = Ref.make[FeatureSwitch](FeatureSwitch.Disabled).runNow
     // archive name in a Ref to make it simple to change in tests
-    val rootDirName           = Ref.make("archive").runNow
-    val zipArchiveReader      = new ZipArchiveReaderImpl(mockLdapQueryParsing.queryParser, mockTechniques.techniqueParser)
+    val rootDirName:        Ref[String]        = Ref.make("archive").runNow
+    val zipArchiveReader = new ZipArchiveReaderImpl(mockLdapQueryParsing.queryParser, mockTechniques.techniqueParser)
     // a mock save archive that stores result in a ref
     object archiveSaver   extends SaveArchiveService  {
-      val base = Ref.make(Option.empty[(PolicyArchive, MergePolicy)]).runNow
-      override def save(archive: PolicyArchive, mergePolicy: MergePolicy, actor: EventActor): IOResult[Unit] = {
+      val base:                                                                               Ref[Option[(PolicyArchive, MergePolicy)]] = Ref.make(Option.empty[(PolicyArchive, MergePolicy)]).runNow
+      override def save(archive: PolicyArchive, mergePolicy: MergePolicy, actor: EventActor): IOResult[Unit]                            = {
         base.set(Some((archive, mergePolicy))).unit
       }
     }
@@ -893,7 +896,7 @@ class RestTestSetUp {
     val api        = new CampaignApi(repo, translator, dumbCampaignEventRepository, mainCampaignService, restExtractorService, uuidGen)
   }
 
-  val apiModules = List(
+  val apiModules: List[LiftApiModuleProvider[_ <: EndpointSchema with SortIndex]] = List(
     systemApi,
     new ParameterApi(restExtractorService, zioJsonExtractor, parameterApiService2, parameterApiService14),
     new TechniqueApi(
@@ -951,7 +954,8 @@ class RestTestSetUp {
     campaignApiModule.api
   )
 
-  val apiVersions            = ApiVersion(13, true) :: ApiVersion(14, false) :: ApiVersion(15, false) :: ApiVersion(16, false) :: Nil
+  val apiVersions: List[ApiVersion] =
+    ApiVersion(13, true) :: ApiVersion(14, false) :: ApiVersion(15, false) :: ApiVersion(16, false) :: Nil
   val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))
 
   liftRules.statelessDispatch.append(RestStatus)
@@ -988,7 +992,7 @@ class RestTestSetUp {
 }
 
 object RestTestSetUp {
-  def newEnv = {
+  def newEnv: RestTestSetUp = {
     new RestTestSetUp()
   }
 }
@@ -1002,7 +1006,7 @@ class RestTest(liftRules: LiftRules) {
    * Correctly build and scope mutable things to use the request in a safe
    * way in the context of LiftRules.
    */
-  def doReq[T](mockReq: MockHttpServletRequest)(tests: Req => MatchResult[T]) = {
+  def doReq[T](mockReq: MockHttpServletRequest)(tests: Req => MatchResult[T]): MatchResult[T] = {
     LiftRulesMocker.devTestLiftRulesInstance.doWith(liftRules) {
       MockWeb.useLiftRules.doWith(true) {
         MockWeb.testReq(mockReq)(tests)
@@ -1015,7 +1019,7 @@ class RestTest(liftRules: LiftRules) {
    * The request must be a stateless one, else a failure
    * will follow.
    */
-  def execRequestResponse[T](mockReq: MockHttpServletRequest)(tests: Box[LiftResponse] => MatchResult[T]) = {
+  def execRequestResponse[T](mockReq: MockHttpServletRequest)(tests: Box[LiftResponse] => MatchResult[T]): MatchResult[T] = {
     doReq(mockReq) { req =>
       // the test logic is taken from LiftServlet#doServices.
       // perhaps we should call directly that methods, but it need
@@ -1051,9 +1055,9 @@ class RestTest(liftRules: LiftRules) {
     }
     mockReq
   }
-  def GET(path: String)                                       = mockRequest(path, "GET")
-  def POST(path: String)                                      = mockRequest(path, "POST")
-  def DELETE(path: String)                                    = mockRequest(path, "DELETE")
+  def GET(path: String): MockHttpServletRequest = mockRequest(path, "GET")
+  def POST(path: String):   MockHttpServletRequest = mockRequest(path, "POST")
+  def DELETE(path: String): MockHttpServletRequest = mockRequest(path, "DELETE")
 
   private[this] def mockJsonRequest(path: String, method: String, data: JValue) = {
     val mockReq = mockRequest(path, method)
@@ -1061,11 +1065,11 @@ class RestTest(liftRules: LiftRules) {
     mockReq
   }
 
-  def jsonPUT(path: String, json: JValue) = {
+  def jsonPUT(path: String, json: JValue): MockHttpServletRequest = {
     mockJsonRequest(path, "PUT", json)
   }
 
-  def jsonPOST(path: String, json: JValue) = {
+  def jsonPOST(path: String, json: JValue): MockHttpServletRequest = {
     mockJsonRequest(path, "POST", json)
   }
 
@@ -1076,7 +1080,7 @@ class RestTest(liftRules: LiftRules) {
       filename:     String,
       data:         Array[Byte],
       stringParams: Map[String, String] = Map()
-  ) = {
+  ): MockHttpServletRequest = {
     import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity
     val mockReq     = mockRequest(path, "POST")
     val filePart    = new FilePart(paramName, new ByteArrayPartSource(filename, data), null, StandardCharsets.UTF_8.name())
@@ -1095,17 +1099,17 @@ class RestTest(liftRules: LiftRules) {
   }
 
   // high level methods. Directly manipulate response
-  def testGETResponse[T](path: String)(tests: Box[LiftResponse] => MatchResult[T])    = {
+  def testGETResponse[T](path: String)(tests: Box[LiftResponse] => MatchResult[T]):    MatchResult[T] = {
     execRequestResponse(GET(path))(tests)
   }
-  def testDELETEResponse[T](path: String)(tests: Box[LiftResponse] => MatchResult[T]) = {
+  def testDELETEResponse[T](path: String)(tests: Box[LiftResponse] => MatchResult[T]): MatchResult[T] = {
     execRequestResponse(DELETE(path))(tests)
   }
 
-  def testPUTResponse[T](path: String, json: JValue)(tests: Box[LiftResponse] => MatchResult[T])  = {
+  def testPUTResponse[T](path: String, json: JValue)(tests: Box[LiftResponse] => MatchResult[T]):  MatchResult[T] = {
     execRequestResponse(jsonPUT(path, json))(tests)
   }
-  def testPOSTResponse[T](path: String, json: JValue)(tests: Box[LiftResponse] => MatchResult[T]) = {
+  def testPOSTResponse[T](path: String, json: JValue)(tests: Box[LiftResponse] => MatchResult[T]): MatchResult[T] = {
     execRequestResponse(jsonPOST(path, json))(tests)
   }
   def testBinaryPOSTResponse[T](
@@ -1116,27 +1120,27 @@ class RestTest(liftRules: LiftRules) {
       stringParams: Map[String, String] = Map()
   )(
       tests:        Box[LiftResponse] => MatchResult[T]
-  ) = {
+  ): MatchResult[T] = {
     execRequestResponse(binaryPOST(path, paramName, filename, data, stringParams))(tests)
   }
-  def testEmptyPostResponse[T](path: String)(tests: Box[LiftResponse] => MatchResult[T]): MatchResult[T] = {
+  def testEmptyPostResponse[T](path: String)(tests: Box[LiftResponse] => MatchResult[T]):          MatchResult[T] = {
     execRequestResponse(POST(path))(tests)
   }
 
   // Low level methods. You can build the answer by hand from there
 
-  def testGET[T](path: String)(tests: Req => MatchResult[T]) = {
+  def testGET[T](path: String)(tests: Req => MatchResult[T]): MatchResult[T] = {
     doReq(GET(path))(tests)
   }
 
-  def testDELETE[T](path: String)(tests: Req => MatchResult[T]) = {
+  def testDELETE[T](path: String)(tests: Req => MatchResult[T]): MatchResult[T] = {
     doReq(DELETE(path))(tests)
   }
 
-  def testPUT[T](path: String, json: JValue)(tests: Req => MatchResult[T])  = {
+  def testPUT[T](path: String, json: JValue)(tests: Req => MatchResult[T]):  MatchResult[T] = {
     doReq(jsonPUT(path, json))(tests)
   }
-  def testPOST[T](path: String, json: JValue)(tests: Req => MatchResult[T]) = {
+  def testPOST[T](path: String, json: JValue)(tests: Req => MatchResult[T]): MatchResult[T] = {
     doReq(jsonPOST(path, json))(tests)
   }
 

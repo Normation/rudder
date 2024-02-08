@@ -62,6 +62,7 @@ import net.liftweb.common.Full
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
+import org.specs2.specification.core.Fragment
 
 @RunWith(classOf[JUnitRunner])
 class Section2FieldServiceTest extends Specification {
@@ -82,9 +83,9 @@ class Section2FieldServiceTest extends Specification {
   //   </input>
   // </sections>
   object Sections {
-    val rootSectField = RootSectionField()
-    val multSect      = rootSectField.getAllSectionFields(1)
-    val innerSect     = multSect.getAllSectionFields(2)
+    val rootSectField: SectionField = RootSectionField()
+    val multSect:      SectionField = rootSectField.getAllSectionFields(1)
+    val innerSect:     SectionField = multSect.getAllSectionFields(2)
   }
 
   "multSect" should {
@@ -100,30 +101,30 @@ class Section2FieldServiceTest extends Specification {
     haveNbChildren(3)
   }
 
-  def haveNbChildren(nbChildren: Int)(implicit section: SectionField) = {
+  def haveNbChildren(nbChildren: Int)(implicit section: SectionField): Fragment = {
     "have %d children".format(nbChildren) in {
       section.childFields.size mustEqual nbChildren
     }
   }
 
-  def beMultivalued(implicit section: SectionField)          = {
+  def beMultivalued(implicit section: SectionField):          Fragment = {
     "be multivalued" in {
       section.isMultivalued
     }
   }
-  def haveName(name: String)(implicit section: SectionField) = {
+  def haveName(name: String)(implicit section: SectionField): Fragment = {
     "have name '%s'".format(name) in {
       section.name mustEqual name
     }
   }
 
-  def haveId(id: String)(implicit varField: DirectiveField) = {
+  def haveId(id: String)(implicit varField: DirectiveField): Fragment = {
     "have id '%s'".format(id) in {
       varField.id mustEqual id
     }
   }
 
-  def haveAllVars(implicit section: SectionField) = {
+  def haveAllVars(implicit section: SectionField): Fragment = {
     "have all kinds of variable" in {
       val vars = section.childFields.collect { case v: DirectiveField => v }
       isSelect(vars(0))
@@ -131,13 +132,13 @@ class Section2FieldServiceTest extends Specification {
     }
   }
 
-  def isSelect(varField: DirectiveField) = {
+  def isSelect(varField: DirectiveField): Fragment = {
     "is a select variable" in {
       varField must beAnInstanceOf[SelectField]
     }
   }
 
-  def isText(varField: DirectiveField) = {
+  def isText(varField: DirectiveField): Fragment = {
     "is an input variable" in {
       varField must beAnInstanceOf[TextField]
     }
@@ -152,13 +153,13 @@ class Section2FieldServiceTest extends Specification {
 
   object RootSectionField {
 
-    def apply() = {
+    def apply(): SectionField = {
 
       val rootSectSpec = createRootSectionSpec
       ConfigSection2FieldService.section2FieldService.createSectionField(rootSectSpec, Map(), true, Map())
     }
 
-    def createRootSectionSpec = {
+    def createRootSectionSpec: SectionSpec = {
       val innerMultSect    = SectionSpec("innerMultSect", isMultivalued = true, children = allVars())
       val innerSect        = SectionSpec("innerSect", children = allVars())
       val selectInMultSect = SelectVariableSpec("selectInMultSect", "selectInMultSectDesc", id = None)

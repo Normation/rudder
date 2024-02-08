@@ -594,7 +594,7 @@ final case class RestDataSerializerImpl(
       status:        WorkflowNodeId,
       isAcceptable:  Boolean,
       apiVersion:    ApiVersion
-  ) = {
+  ): JObject = {
 
     val changes: JValue = changeRequest match {
       case cr: ConfigurationChangeRequest =>
@@ -631,11 +631,11 @@ final case class RestDataSerializerImpl(
     ~ ("changes"     -> changes))
   }
 
-  def serializeTechnique(technique: FullActiveTechnique): JValue = {
+  def serializeTechnique(technique: FullActiveTechnique): JValue  = {
     (("name"      -> technique.techniqueName.value)
     ~ ("versions" -> technique.techniques.map(_._1.serialize)))
   }
-  def serializeTechnique(technique: Technique) = {
+  def serializeTechnique(technique: Technique):           JObject = {
     (("name"     -> technique.name)
     ~ ("id"      -> technique.id.name.value)
     ~ ("version" -> technique.id.version.serialize))

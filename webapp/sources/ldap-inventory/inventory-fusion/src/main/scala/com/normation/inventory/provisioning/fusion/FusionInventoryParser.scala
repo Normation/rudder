@@ -71,8 +71,9 @@ class FusionInventoryParser(
 
   import OptText.optText
 
-  val userLoginDateTimeFormat = DateTimeFormat.forPattern(lastLoggedUserDatetimeFormat).withLocale(Locale.ENGLISH)
-  val biosDateTimeFormat      = DateTimeFormat.forPattern(biosDateFormat).withLocale(Locale.ENGLISH)
+  val userLoginDateTimeFormat: DateTimeFormatter =
+    DateTimeFormat.forPattern(lastLoggedUserDatetimeFormat).withLocale(Locale.ENGLISH)
+  val biosDateTimeFormat:      DateTimeFormatter = DateTimeFormat.forPattern(biosDateFormat).withLocale(Locale.ENGLISH)
 
   // extremely specialized convert used for optional field only, that
   // log the error in place of using a box
@@ -103,7 +104,7 @@ class FusionInventoryParser(
     text
   }
 
-  def parseDate(n: NodeSeq, fmt: DateTimeFormatter) = {
+  def parseDate(n: NodeSeq, fmt: DateTimeFormatter): Option[DateTime] = {
     val date = optText(n).getOrElse("Unknown")
     try {
       Some(DateTime.parse(date, fmt))
@@ -1373,7 +1374,7 @@ object OptText {
    * - remove leading/trailing spaces ;
    * - remove multiple space
    */
-  def optText(n: NodeSeq) = n.text match {
+  def optText(n: NodeSeq): Option[String] = n.text match {
     case null | "" => None
     case s         =>
       s.trim().replaceAll("""[\p{Blank}]+""", " ") match {

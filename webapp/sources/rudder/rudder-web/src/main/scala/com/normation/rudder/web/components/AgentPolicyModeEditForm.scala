@@ -16,7 +16,9 @@ class AgentPolicyModeEditForm extends DispatchSnippet with Loggable {
     "agentpolicymode-form"
   )
 
-  def dispatch = { case "cfagentPolicyModeConfiguration" => (xml) => cfagentPolicyModeConfiguration(None) }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "cfagentPolicyModeConfiguration" => (xml) => cfagentPolicyModeConfiguration(None)
+  }
 
   /*
    * If a node ID is given, then it's a node only detail. If none, then it's the global

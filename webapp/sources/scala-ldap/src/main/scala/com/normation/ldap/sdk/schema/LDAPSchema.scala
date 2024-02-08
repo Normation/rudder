@@ -32,7 +32,7 @@ package com.normation.ldap.sdk.schema
 class LDAPSchema {
   type S = scala.collection.immutable.Set[LDAPObjectClass]
   import scala.collection.mutable.{Map => MutMap}
-  def S = scala.collection.immutable.Set[LDAPObjectClass] _
+  def S: Seq[LDAPObjectClass] => Set[LDAPObjectClass] = scala.collection.immutable.Set[LDAPObjectClass] _
 
   /**
    * map of class name (lower case) -> object class
@@ -49,13 +49,13 @@ class LDAPSchema {
    * Get the matching ObjectClass, or throw a NoSuchElementException
    * if the key does not match any ObjectClass
    */
-  def apply(className: String) =
+  def apply(className: String): LDAPObjectClass =
     ocs.getOrElse(className.toLowerCase, throw new NoSuchElementException(s"Missing LDAP Object in the Schema: $className"))
 
   /**
    * Optionaly get the ObjectClass whose name is className
    */
-  def get(className: String) = ocs.get(className.toLowerCase)
+  def get(className: String): Option[LDAPObjectClass] = ocs.get(className.toLowerCase)
 
   /**
    * Register a new object class.

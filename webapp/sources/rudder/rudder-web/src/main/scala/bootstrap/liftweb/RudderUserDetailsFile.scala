@@ -118,17 +118,17 @@ object PasswordEncoder {
     }
   }
 
-  val PlainText = new PasswordEncoder() {
+  val PlainText: PasswordEncoder = new PasswordEncoder() {
     override def encode(rawPassword: CharSequence):                           String  = rawPassword.toString
     override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = rawPassword.toString == encodedPassword
   }
   // Unsalted hash functions :
-  val MD5       = new DigestEncoder("MD5")
-  val SHA1      = new DigestEncoder("SHA-1")
-  val SHA256    = new DigestEncoder("SHA-256")
-  val SHA512    = new DigestEncoder("SHA-512")
+  val MD5 = new DigestEncoder("MD5")
+  val SHA1   = new DigestEncoder("SHA-1")
+  val SHA256 = new DigestEncoder("SHA-256")
+  val SHA512 = new DigestEncoder("SHA-512")
   // Salted hash functions :
-  val BCRYPT    = new PasswordEncoder() {
+  val BCRYPT: PasswordEncoder = new PasswordEncoder() {
     override def encode(rawPassword: CharSequence):                           String  = {
       val salt: Array[Byte] = new Array(16)
       random.nextBytes(salt)
@@ -365,10 +365,10 @@ object RudderAuthType {
   }
 
   case object User extends RudderAuthType {
-    override val grantedAuthorities = buildAuthority("ROLE_USER")
+    override val grantedAuthorities: Collection[GrantedAuthority] = buildAuthority("ROLE_USER")
   }
   case object Api  extends RudderAuthType {
-    override val grantedAuthorities = buildAuthority("ROLE_REMOTE")
+    override val grantedAuthorities: Collection[GrantedAuthority] = buildAuthority("ROLE_REMOTE")
 
     val apiRudderRights = Rights.NoRights
     val apiRudderRole: Set[Role] = Set(Role.NoRights)

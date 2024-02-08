@@ -44,6 +44,7 @@ import com.normation.utils.Control.traverse
 import net.liftweb.common._
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
+import scala.util.matching.Regex
 import zio.Chunk
 
 /**
@@ -60,9 +61,9 @@ sealed abstract class RuleTarget {
 
 sealed trait SimpleTarget extends RuleTarget //simple as opposed to composed
 
-object GroupTarget { def r = "group:(.+)".r }
+object GroupTarget { def r: Regex = "group:(.+)".r }
 final case class GroupTarget(groupId: NodeGroupId) extends SimpleTarget {
-  override def target = "group:" + groupId.serialize
+  override def target: String = "group:" + groupId.serialize
 }
 
 //object NodeTarget { def r = "node:(.+)".r }
@@ -72,26 +73,26 @@ final case class GroupTarget(groupId: NodeGroupId) extends SimpleTarget {
 
 sealed trait NonGroupRuleTarget extends SimpleTarget
 
-object PolicyServerTarget { def r = "policyServer:(.+)".r }
+object PolicyServerTarget { def r: Regex = "policyServer:(.+)".r }
 final case class PolicyServerTarget(nodeId: NodeId) extends NonGroupRuleTarget {
-  override def target = "policyServer:" + nodeId.value
+  override def target: String = "policyServer:" + nodeId.value
 }
 
 case object AllTarget extends NonGroupRuleTarget {
   override def target = "special:all"
-  def r               = "special:all".r
+  def r: Regex = "special:all".r
 }
 
 case object AllTargetExceptPolicyServers extends NonGroupRuleTarget {
   override def target = "special:all_exceptPolicyServers"
   // for compat reason in event logs < Rudder 7.0, we must be able to parse also old format: `special:all_nodes_without_role`
-  def r               = "(?:special:all_exceptPolicyServers|special:all_nodes_without_role)".r
+  def r: Regex = "(?:special:all_exceptPolicyServers|special:all_nodes_without_role)".r
 }
 
 case object AllPolicyServers extends NonGroupRuleTarget {
   override def target = "special:all_policyServers"
   // for compat reason in event logs < Rudder 7.0, we must be able to parse also old format: `special:all_servers_with_role`
-  def r               = "(?:special:all_policyServers|special:all_servers_with_role)".r
+  def r: Regex = "(?:special:all_policyServers|special:all_servers_with_role)".r
 }
 
 /**
@@ -99,7 +100,7 @@ case object AllPolicyServers extends NonGroupRuleTarget {
  * This target is rendered as Json
  */
 sealed trait CompositeRuleTarget extends RuleTarget {
-  final def target = compactRender(toJson)
+  final def target: String = compactRender(toJson)
 
   /**
    * Removing a target is the action of erasing that target in each place where
@@ -187,14 +188,14 @@ final case class TargetExclusion(
     ("exclude" -> excludedTarget.toJson)
   }
 
-  override def toString = {
+  override def toString: String = {
     target
   }
 
   /**
    * Add a target to the included target
    */
-  def updateInclude(target: RuleTarget) = {
+  def updateInclude(target: RuleTarget): TargetExclusion = {
     val newIncluded = includedTarget addTarget target
     copy(newIncluded)
   }
@@ -202,7 +203,7 @@ final case class TargetExclusion(
   /**
    * Add a target to the excluded target
    */
-  def updateExclude(target: RuleTarget) = {
+  def updateExclude(target: RuleTarget): TargetExclusion = {
     val newExcluded = excludedTarget addTarget target
     copy(includedTarget, newExcluded)
   }
@@ -466,7 +467,7 @@ object RuleTarget extends Loggable {
    * a cfengine class compatible string,
    * prefixed by "group_"
    */
-  def toCFEngineClassName(target: String) = {
+  def toCFEngineClassName(target: String): String = {
     // normalisation process:
     // 1) to asccii
     // 2) cfengine normalisation, replacing all non [alphanum-]
@@ -520,7 +521,7 @@ final case class FullRuleTargetInfo(
     isSystem:    Boolean
 ) {
 
-  def toTargetInfo = RuleTargetInfo(
+  def toTargetInfo: RuleTargetInfo = RuleTargetInfo(
     target = target.target,
     name = name,
     description = description,

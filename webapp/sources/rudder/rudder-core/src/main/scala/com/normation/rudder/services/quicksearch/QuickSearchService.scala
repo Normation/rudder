@@ -116,7 +116,7 @@ object QuickSearchService {
 
     import QSBackend._
 
-    def search(query: Query) = b match {
+    def search(query: Query): Box[Iterable[QuickSearchResult]] = b match {
       case LdapBackend      => QSLdapBackend.search(query)
       case DirectiveBackend => QSDirectiveBackend.search(query)
     }

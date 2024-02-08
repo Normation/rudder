@@ -70,21 +70,21 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
   private[this] val currentRuleForm      = new LocalSnippet[RuleEditForm]
   private[this] val currentRuleDisplayer = new LocalSnippet[RuleDisplayer]
 
-  override def mainDispatch = {
+  override def mainDispatch: Map[String, NodeSeq => NodeSeq] = {
     RudderConfig.configService.rudder_ui_changeMessage_enabled().toBox match {
       case Full(changeMsgEnabled) =>
         Map(
-          "head"      -> { _: NodeSeq => head(changeMsgEnabled) },
-          "editRule"  -> { _: NodeSeq => editRule(changeMsgEnabled) },
-          "viewRules" -> { _: NodeSeq => viewRules(changeMsgEnabled) }
+          "head"      -> { (_: NodeSeq) => head(changeMsgEnabled) },
+          "editRule"  -> { (_: NodeSeq) => editRule(changeMsgEnabled) },
+          "viewRules" -> { (_: NodeSeq) => viewRules(changeMsgEnabled) }
         )
       case eb: EmptyBox =>
         val e = eb ?~! "Error when getting Rudder application configuration for change audit message activation"
         logger.error(s"Error when displaying Rules : ${e.messageChain}")
         Map(
-          "head"      -> { _: NodeSeq => NodeSeq.Empty },
-          "editRule"  -> { _: NodeSeq => NodeSeq.Empty },
-          "viewRules" -> { _: NodeSeq => <div class="error">{e.msg}</div> }
+          "head"      -> { (_: NodeSeq) => NodeSeq.Empty },
+          "editRule"  -> { (_: NodeSeq) => NodeSeq.Empty },
+          "viewRules" -> { (_: NodeSeq) => <div class="error">{e.msg}</div> }
         )
     }
   }
@@ -142,7 +142,7 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
   }
 
   // When a rule is changed, the Rule displayer should be updated (Rule grid, selected category, ...)
-  def onRuleChange(changeMsgEnabled: Boolean)(rule: Rule) = {
+  def onRuleChange(changeMsgEnabled: Boolean)(rule: Rule):                JsCmd   = {
     currentRuleDisplayer.get match {
       case Full(ruleDisplayer) =>
         ruleDisplayer.onRuleChange(rule.categoryId)

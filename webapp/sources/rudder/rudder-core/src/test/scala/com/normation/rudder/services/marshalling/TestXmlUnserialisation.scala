@@ -29,6 +29,7 @@ import net.liftweb.common.Full
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+import scala.xml.Elem
 
 /*
  * Test the cache behaviour
@@ -36,10 +37,11 @@ import org.specs2.runner.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
 
-  val queryParser                      = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
+  val queryParser: CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer = new CmdbQueryParser
+    with DefaultStringQueryParser with JsonQueryLexer {
     override val criterionObjects = Map[String, ObjectCriterion]()
   }
-  val directiveUnserialisation         = new DirectiveUnserialisationImpl
+  val directiveUnserialisation = new DirectiveUnserialisationImpl
   val nodeGroupCategoryUnserialisation = new NodeGroupCategoryUnserialisationImpl
   val nodeGroupUnserialisation         = new NodeGroupUnserialisationImpl(queryParser)
   val ruleUnserialisation              = new RuleUnserialisationImpl
@@ -65,7 +67,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
   val techniqueName = "TEST_Technique"
   val directiveId   = "1234567-aaaa-bbbb-cccc-ddddddddddd"
 
-  val directiveXML = <directive fileFormat="6">
+  val directiveXML: Elem = <directive fileFormat="6">
     <id>{directiveId}</id>
     <displayName>Test Directive name</displayName>
     <techniqueName>{techniqueName}</techniqueName>
@@ -80,7 +82,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
     <tags/>
   </directive>
 
-  val directive = Directive(
+  val directive: Directive = Directive(
     DirectiveId(DirectiveUid(directiveId)),
     TechniqueVersionHelper("1.0"),
     Map(),

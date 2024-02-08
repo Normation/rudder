@@ -54,6 +54,7 @@ import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.MigrationLoggerPure
 import com.normation.rudder.domain.policies.ActiveTechniqueId
+import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.repository.WoRuleRepository
@@ -173,38 +174,38 @@ object SystemConfig {
 
   object v6_2 {
     final case class DirectiveCommon(policyServerId: NodeId, at: AT)           {
-      val id = s"${at.id}-${policyServerId.value}"
+      val id: String = s"${at.id}-${policyServerId.value}"
       val dn = new DN(s"directiveId=${id},${at.dn.toString}")
     }
     final case class DirectiveDistributePolicy(policyServerId: NodeId, at: AT) {
-      val id = s"${at.id}-${policyServerId.value}"
+      val id: String = s"${at.id}-${policyServerId.value}"
       val dn = new DN(s"directiveId=${id},${at.dn.toString}")
     }
 
-    val serverRoleNoRoleTarget  = T("special:all_nodes_without_role")
-    val serverRoleAllRoleTarget = T(s"special:all_servers_with_role")
+    val serverRoleNoRoleTarget:  T = T("special:all_nodes_without_role")
+    val serverRoleAllRoleTarget: T = T(s"special:all_servers_with_role")
 
-    val techniqueCommon           = AT("common")
-    val techniqueDistributePolicy = AT("distributePolicy")
-    val techniqueInventory        = AT("inventory")
-    val techniqueServerRoles      = AT("server-roles")
+    val techniqueCommon:           AT = AT("common")
+    val techniqueDistributePolicy: AT = AT("distributePolicy")
+    val techniqueInventory:        AT = AT("inventory")
+    val techniqueServerRoles:      AT = AT("server-roles")
 
-    val ruleServerRole = R("server-roles")
+    val ruleServerRole: R = R("server-roles")
 
-    def dirCommon(policyServerId: NodeId) = DirectiveCommon(policyServerId, techniqueCommon)
+    def dirCommon(policyServerId: NodeId): DirectiveCommon = DirectiveCommon(policyServerId, techniqueCommon)
 
-    def ruleDistributePolicy(policyServerId: NodeId) = R(s"${policyServerId.value}-DP")
-    def ruleHasPolicyServer(policyServerId: NodeId)  = R(s"hasPolicyServer-${policyServerId.value}")
+    def ruleDistributePolicy(policyServerId: NodeId): R = R(s"${policyServerId.value}-DP")
+    def ruleHasPolicyServer(policyServerId: NodeId):  R = R(s"hasPolicyServer-${policyServerId.value}")
 
     // for root
-    val rootDirCommon           = dirCommon(Constants.ROOT_POLICY_SERVER_ID)
-    val rootRuleDistributPolicy = ruleDistributePolicy(Constants.ROOT_POLICY_SERVER_ID)
-    val rootHasPolicyServer     = ruleHasPolicyServer(Constants.ROOT_POLICY_SERVER_ID)
+    val rootDirCommon:           DirectiveCommon = dirCommon(Constants.ROOT_POLICY_SERVER_ID)
+    val rootRuleDistributPolicy: R               = ruleDistributePolicy(Constants.ROOT_POLICY_SERVER_ID)
+    val rootHasPolicyServer:     R               = ruleHasPolicyServer(Constants.ROOT_POLICY_SERVER_ID)
   }
 
   object v7_x {
-    def rulePolicyServer(policyServerId: NodeId)    = R(s"policy-server-${policyServerId.value}")
-    def ruleHasPolicyServer(policyServerId: NodeId) = R(s"hasPolicyServer-${policyServerId.value}")
+    def rulePolicyServer(policyServerId: NodeId):    R = R(s"policy-server-${policyServerId.value}")
+    def ruleHasPolicyServer(policyServerId: NodeId): R = R(s"hasPolicyServer-${policyServerId.value}")
   }
 }
 
@@ -345,7 +346,7 @@ class MigrateTechniques6_x_7_0(
    * previous failed migration and need to be replaced.
    * Return the list of rule ID that will need to be renamed.
    */
-  def createNewConfigsOne(nodeId: NodeId) = {
+  def createNewConfigsOne(nodeId: NodeId): ZIO[Any, RudderError, List[RuleId]] = {
 
     val configs = PolicyServerConfigurationObjects.getConfigurationObject(nodeId)
     val modId   = new ModificationId(uuidGen.newUuid)
@@ -379,7 +380,7 @@ class MigrateTechniques6_x_7_0(
     } yield (rules.map(_.id))
   }
 
-  def createNewConfigsAll(nodeIds: List[NodeId]) = {
+  def createNewConfigsAll(nodeIds: List[NodeId]): ZIO[Any, RudderError, Unit] = {
     for {
       _ <- testNewTechniquesLoaded()
       _ <- ZIO.foreach(nodeIds)(createNewConfigsOne)
@@ -546,7 +547,7 @@ class MigrateTechniques6_x_7_0(
 
   }
 
-  def finalMoveAndCleanAll(nodeIds: List[NodeId]) = {
+  def finalMoveAndCleanAll(nodeIds: List[NodeId]): ZIO[Any, RudderError, Unit] = {
     for {
       // we try to migrate each server
       _ <- ZIO.foreach(nodeIds)(finalMoveAndCleanOne(_))

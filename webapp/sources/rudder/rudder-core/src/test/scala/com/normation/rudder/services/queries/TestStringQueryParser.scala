@@ -54,23 +54,23 @@ class TestStringQueryParser {
    *
    *
    */
-  val c1 = Criterion("name", BareComparator(Exists, Greater))
-  val c2 = Criterion("id", BareComparator(Equals))
-  val c3 = Criterion("name", BareComparator(Exists, Greater))
+  val c1: Criterion = Criterion("name", BareComparator(Exists, Greater))
+  val c2: Criterion = Criterion("id", BareComparator(Equals))
+  val c3: Criterion = Criterion("name", BareComparator(Exists, Greater))
 
-  val oc1 = ObjectCriterion("node", List(c1, c2))
-  val oc2 = ObjectCriterion("machine", List(c3))
+  val oc1: ObjectCriterion = ObjectCriterion("node", List(c1, c2))
+  val oc2: ObjectCriterion = ObjectCriterion("machine", List(c3))
 
-  val criteria = Map(
+  val criteria: Map[String, ObjectCriterion] = Map(
     "node"    -> oc1,
     "machine" -> oc2
   )
 
-  val parser = new DefaultStringQueryParser() {
+  val parser: DefaultStringQueryParser = new DefaultStringQueryParser() {
     override val criterionObjects = criteria
   }
 
-  val valid1_0 = StringQuery(
+  val valid1_0: StringQuery = StringQuery(
     NodeReturnType,
     Some("and"),
     None,
@@ -81,15 +81,15 @@ class TestStringQueryParser {
     )
   )
 
-  val valid1_1 = StringQuery(NodeReturnType, Some("and"), None, List())
-  val valid1_2 = StringQuery(NodeReturnType, Some("or"), None, List())
-  val valid1_3 = StringQuery(NodeReturnType, None, None, List())             // default to and
-  val valid2_1 = StringQuery(NodeReturnType, None, Some("identity"), List()) // default to and
-  val valid2_2 = StringQuery(NodeReturnType, None, Some("none"), List())     // default to and
-  val valid2_3 = StringQuery(NodeReturnType, None, Some("invert"), List())   // default to and
+  val valid1_1: StringQuery = StringQuery(NodeReturnType, Some("and"), None, List())
+  val valid1_2: StringQuery = StringQuery(NodeReturnType, Some("or"), None, List())
+  val valid1_3: StringQuery = StringQuery(NodeReturnType, None, None, List())             // default to and
+  val valid2_1: StringQuery = StringQuery(NodeReturnType, None, Some("identity"), List()) // default to and
+  val valid2_2: StringQuery = StringQuery(NodeReturnType, None, Some("none"), List())     // default to and
+  val valid2_3: StringQuery = StringQuery(NodeReturnType, None, Some("invert"), List())   // default to and
 
-  val unvalidComp          = StringQuery(NodeReturnType, Some("foo"), None, List())
-  val unknowObjectType     = StringQuery(
+  val unvalidComp:          StringQuery = StringQuery(NodeReturnType, Some("foo"), None, List())
+  val unknowObjectType:     StringQuery = StringQuery(
     NodeReturnType,
     None,
     None,
@@ -97,7 +97,7 @@ class TestStringQueryParser {
       StringCriterionLine("unknown", "name", "exists")
     )
   )
-  val unknowAttribute      = StringQuery(
+  val unknowAttribute:      StringQuery = StringQuery(
     NodeReturnType,
     None,
     None,
@@ -105,7 +105,7 @@ class TestStringQueryParser {
       StringCriterionLine("node", "unknown", "exists")
     )
   )
-  val unknowComparator     = StringQuery(
+  val unknowComparator:     StringQuery = StringQuery(
     NodeReturnType,
     None,
     None,
@@ -113,7 +113,7 @@ class TestStringQueryParser {
       StringCriterionLine("node", "name", "unknown")
     )
   )
-  val missingRequiredValue = StringQuery(
+  val missingRequiredValue: StringQuery = StringQuery(
     NodeReturnType,
     None,
     None,

@@ -103,7 +103,7 @@ case class JSONReportsAnalyser(reportsRepository: ReportsRepository, propRepo: R
   /*
    * start the handler process. It will execute at provided intervals
    */
-  def start(interval: Duration) = {
+  def start(interval: Duration): ZIO[Any, RudderError, Nothing] = {
     loop.delay(interval).forever
   }
 

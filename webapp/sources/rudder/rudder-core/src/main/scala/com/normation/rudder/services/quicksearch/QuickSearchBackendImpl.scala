@@ -68,7 +68,7 @@ import scala.util.control.NonFatal
  */
 object QSPattern {
 
-  def apply(token: String) = s"""(?iums).*${Pattern.quote(token)}.*""".r.pattern
+  def apply(token: String): Pattern = s"""(?iums).*${Pattern.quote(token)}.*""".r.pattern
 }
 
 /**
@@ -468,7 +468,7 @@ object QSLdapBackend {
       rudderDit:                               RudderDit
   ) {
 
-    def filter = obj match {
+    def filter: List[Filter] = obj match {
       case Common    => Nil
       case Node      => (
         AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.NODES.dn.toString}"))

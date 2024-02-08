@@ -164,9 +164,9 @@ class RuleEditForm(
 
   //////////////////////////// public methods ////////////////////////////
 
-  def mainDispatch = Map(
-    "showForm"          -> { _: NodeSeq => showForm() },
-    "showRecentChanges" -> { _: NodeSeq => showForm("changesGrid") }
+  def mainDispatch: Map[String, NodeSeq => NodeSeq] = Map(
+    "showForm"          -> { (_: NodeSeq) => showForm() },
+    "showRecentChanges" -> { (_: NodeSeq) => showForm("changesGrid") }
   )
 
   private[this] val boxRootRuleCategory = getRootRuleCategory()
@@ -348,7 +348,7 @@ class RuleEditForm(
     val excludedTarget = ruleTarget.excludedTarget.targets
 
     (
-      "#pendingChangeRequestNotification" #> { xml: NodeSeq => PendingChangeRequestDisplayer.checkByRule(xml, rule.id.uid) } &
+      "#pendingChangeRequestNotification" #> { (xml: NodeSeq) => PendingChangeRequestDisplayer.checkByRule(xml, rule.id.uid) } &
       // activation button: show disactivate if activated
       "#disactivateButtonLabel" #> { if (rule.isEnabledStatus) "Disable" else "Enable" } &
       "#nameField" #> crName.toForm_! &
@@ -547,7 +547,7 @@ class RuleEditForm(
 
   private[this] var newTags = rule.tags
 
-  def updateTag(boxTag: Box[Tags]) = {
+  def updateTag(boxTag: Box[Tags]): Unit = {
     boxTag match {
       case Full(tags) => newTags = tags
       case eb: EmptyBox =>
@@ -555,7 +555,7 @@ class RuleEditForm(
         formTracker.addFormError(error(failure.messageChain))
     }
   }
-  def tagsEditForm                 = new TagsEditForm(rule.tags, rule.id.serialize)
+  def tagsEditForm = new TagsEditForm(rule.tags, rule.id.serialize)
 
   private[this] val crName = new WBTextField("Name", rule.name) {
     override def setFilter             = notNull _ :: trim _ :: Nil

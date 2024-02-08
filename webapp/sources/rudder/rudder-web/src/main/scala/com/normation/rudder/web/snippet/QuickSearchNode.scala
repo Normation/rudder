@@ -52,7 +52,7 @@ import scala.xml.NodeSeq
  */
 class QuickSearchNode extends DispatchSnippet with Loggable {
 
-  def dispatch = { case "render" => quickSearchEveryting }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "render" => quickSearchEveryting }
 
   def quickSearchEveryting(html: NodeSeq): NodeSeq = {
     val bind = (
@@ -62,7 +62,7 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
   }
 
   // json view of the aliases
-  val jsonDocinfo = {
+  val jsonDocinfo: String = {
     import net.liftweb.json._
     import net.liftweb.json.JsonAST.{compactRender => _, _}
     import net.liftweb.json.JsonDSL._

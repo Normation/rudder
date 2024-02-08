@@ -53,6 +53,7 @@ import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.services.policies.PolicyId
+import net.liftweb.common.Box
 import net.liftweb.common.Full
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
@@ -76,7 +77,7 @@ class ExpectedReportTest extends Specification {
       throw new IllegalArgumentException(s"Not a technique version: ${s}")
     )
 
-  val parse                                                              = ExpectedReportsSerialisation.parseJsonNodeExpectedReports _
+  val parse: String => Box[JsonNodeExpectedReports] = ExpectedReportsSerialisation.parseJsonNodeExpectedReports _
   def serialize(e: ExpectedReportsSerialisation.JsonNodeExpectedReports) = {
     e.toJson
   }

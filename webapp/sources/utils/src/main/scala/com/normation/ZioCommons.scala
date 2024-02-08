@@ -156,7 +156,7 @@ object errors {
 
     // All error can have their message printed with the class name for
     // for context.
-    def fullMsg = this.getClass.getSimpleName + ": " + msg
+    def fullMsg: String = this.getClass.getSimpleName + ": " + msg
   }
 
   // a common error for system error not specifically bound to
@@ -174,7 +174,7 @@ object errors {
   trait BaseChainError[E <: RudderError] extends RudderError {
     def cause: E
     def hint:  String
-    def msg = s"${hint}; cause was: ${cause.fullMsg}"
+    def msg: String = s"${hint}; cause was: ${cause.fullMsg}"
   }
 
   final case class Chained[E <: RudderError](hint: String, cause: E) extends BaseChainError[E] {
@@ -182,12 +182,12 @@ object errors {
   }
 
   final case class Accumulated[E <: RudderError](all: NonEmptyList[E]) extends RudderError {
-    implicit val ord: Order[E] = new Order[E]() {
+    implicit val ord: Order[E]       = new Order[E]() {
       override def compare(x: E, y: E): Int = String.CASE_INSENSITIVE_ORDER.compare(x.fullMsg, y.fullMsg)
     }
-    def msg = all.map(_.fullMsg).toList.mkString(" ; ")
+    def msg:          String         = all.map(_.fullMsg).toList.mkString(" ; ")
     // only unique error
-    def deduplicate = {
+    def deduplicate:  Accumulated[E] = {
       Accumulated(all.distinct)
     }
   }
@@ -222,7 +222,7 @@ object errors {
 
   // not optional - mandatory presence of an object
   implicit class OptionToPureResult[A](val res: Option[A]) extends AnyVal {
-    def notOptionalPure(error: => String) = res match {
+    def notOptionalPure(error: => String): Either[Inconsistency, A] = res match {
       case None    => Left(Inconsistency(error))
       case Some(x) => Right(x)
     }
@@ -258,7 +258,7 @@ object errors {
 
   // also with the flatmap included to avoid a combinator
   implicit class MandatoryOptionIO[R, E <: RudderError, A](val res: ZIO[R, E, Option[A]]) extends AnyVal {
-    def notOptional(error: => String) = res.flatMap(_.notOptional(error))
+    def notOptional(error: => String): ZIO[R, RudderError, A] = res.flatMap(_.notOptional(error))
   }
 
   /**
@@ -386,9 +386,9 @@ object errors {
 
 object zio {
 
-  val currentTimeMillis = ZIO.clockWith(_.currentTime(TimeUnit.MILLISECONDS))
+  val currentTimeMillis: ZIO[Any, Nothing, Long] = ZIO.clockWith(_.currentTime(TimeUnit.MILLISECONDS))
 //    ZIO.access[_root_.zio.clock.Clock](_.get.currentTime(TimeUnit.MILLISECONDS))
-  val currentTimeNanos  = ZIO.clockWith(_.nanoTime)
+  val currentTimeNanos:  ZIO[Any, Nothing, Long] = ZIO.clockWith(_.nanoTime)
 //  ZIO.accessM[_root_.zio.clock.Clock](_.get.nanoTime)
 
   /*
@@ -569,10 +569,10 @@ trait NamedZioLogger extends ZioLogger {
   // ensure that children use def or lazy val - val leads to UninitializedFieldError.
   def loggerName: String
 
-  final val logEffect = LoggerFactory.getLogger(loggerName)
+  final val logEffect: Logger = LoggerFactory.getLogger(loggerName)
 
   // for compatibility with current Lift convention, use logger = this
-  def logPure = this
+  def logPure: NamedZioLogger = this
 }
 
 object NamedZioLogger {

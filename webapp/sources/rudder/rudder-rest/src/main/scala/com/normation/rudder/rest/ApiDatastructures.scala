@@ -113,14 +113,14 @@ object ApiPathSegment {
 
 final case class ApiPath(parts: NonEmptyList[ApiPathSegment]) extends AnyVal {
   // canonical representation: variable in {}
-  override def toString() = parts.map { p =>
+  override def toString(): String = parts.map { p =>
     p match {
       case ApiPathSegment.Resource(v) => "{" + v + "}"
       case ApiPathSegment.Segment(v)  => v
     }
   }.toList.mkString("/") // no string at the end
 
-  def value = toString()
+  def value: String = toString()
 
   // create a new path by adding a subpath at the end
   def /(p: ApiPath): ApiPath = ApiPath(parts.concatNel(p.parts))
@@ -140,20 +140,20 @@ final case class ApiPath(parts: NonEmptyList[ApiPathSegment]) extends AnyVal {
 }
 
 object ApiPath {
-  def toPathElement(s: String): ApiPathSegment = {
+  def toPathElement(s: String):        ApiPathSegment          = {
     if (s.startsWith("{") && s.endsWith("}")) {
       ApiPathSegment.Resource(s.substring(1, s.size - 1))
     } else {
       ApiPathSegment.Segment(s)
     }
   }
-  def of(head: String, tail: String*) = {
+  def of(head: String, tail: String*): ApiPath                 = {
     ApiPath(NonEmptyList(toPathElement(head), tail.map(toPathElement).toList))
   }
   // parse a path to an api path.
   // we don't accept empty string and ignore empty subpart, but appart
   // from that everything works
-  def parse(path: String): Either[String, ApiPath] = {
+  def parse(path: String):             Either[String, ApiPath] = {
     path.trim.split("/").filter(_.nonEmpty).toList match {
       case Nil    =>
         Left("The given is empty, it can't be a Rudder API path")
@@ -248,25 +248,25 @@ object EndpointSchema {
 }
 
 // utility extension trait to define "version from N to latest"
-trait StartsAtVersion2  extends EndpointSchema { val versions = ApiV.From(2)  }
-trait StartsAtVersion3  extends EndpointSchema { val versions = ApiV.From(3)  }
-trait StartsAtVersion4  extends EndpointSchema { val versions = ApiV.From(4)  }
-trait StartsAtVersion5  extends EndpointSchema { val versions = ApiV.From(5)  }
-trait StartsAtVersion6  extends EndpointSchema { val versions = ApiV.From(6)  }
-trait StartsAtVersion7  extends EndpointSchema { val versions = ApiV.From(7)  }
-trait StartsAtVersion8  extends EndpointSchema { val versions = ApiV.From(8)  }
-trait StartsAtVersion9  extends EndpointSchema { val versions = ApiV.From(9)  }
-trait StartsAtVersion10 extends EndpointSchema { val versions = ApiV.From(10) }
-trait StartsAtVersion11 extends EndpointSchema { val versions = ApiV.From(11) }
-trait StartsAtVersion12 extends EndpointSchema { val versions = ApiV.From(12) } // Rudder 6.0 & 6.1
-trait StartsAtVersion13 extends EndpointSchema { val versions = ApiV.From(13) } // Rudder 6.2
-trait StartsAtVersion14 extends EndpointSchema { val versions = ApiV.From(14) } // Rudder 7.0
-trait StartsAtVersion15 extends EndpointSchema { val versions = ApiV.From(15) } // Rudder 7.1
-trait StartsAtVersion16 extends EndpointSchema { val versions = ApiV.From(16) } // Rudder 7.2
-trait StartsAtVersion17 extends EndpointSchema { val versions = ApiV.From(17) } // Rudder 7.3
-trait StartsAtVersion18 extends EndpointSchema { val versions = ApiV.From(18) }
-trait StartsAtVersion19 extends EndpointSchema { val versions = ApiV.From(19) }
-trait StartsAtVersion20 extends EndpointSchema { val versions = ApiV.From(20) }
+trait StartsAtVersion2  extends EndpointSchema { val versions: ApiV.From = ApiV.From(2)  }
+trait StartsAtVersion3  extends EndpointSchema { val versions: ApiV.From = ApiV.From(3)  }
+trait StartsAtVersion4  extends EndpointSchema { val versions: ApiV.From = ApiV.From(4)  }
+trait StartsAtVersion5  extends EndpointSchema { val versions: ApiV.From = ApiV.From(5)  }
+trait StartsAtVersion6  extends EndpointSchema { val versions: ApiV.From = ApiV.From(6)  }
+trait StartsAtVersion7  extends EndpointSchema { val versions: ApiV.From = ApiV.From(7)  }
+trait StartsAtVersion8  extends EndpointSchema { val versions: ApiV.From = ApiV.From(8)  }
+trait StartsAtVersion9  extends EndpointSchema { val versions: ApiV.From = ApiV.From(9)  }
+trait StartsAtVersion10 extends EndpointSchema { val versions: ApiV.From = ApiV.From(10) }
+trait StartsAtVersion11 extends EndpointSchema { val versions: ApiV.From = ApiV.From(11) }
+trait StartsAtVersion12 extends EndpointSchema { val versions: ApiV.From = ApiV.From(12) } // Rudder 6.0 & 6.1
+trait StartsAtVersion13 extends EndpointSchema { val versions: ApiV.From = ApiV.From(13) } // Rudder 6.2
+trait StartsAtVersion14 extends EndpointSchema { val versions: ApiV.From = ApiV.From(14) } // Rudder 7.0
+trait StartsAtVersion15 extends EndpointSchema { val versions: ApiV.From = ApiV.From(15) } // Rudder 7.1
+trait StartsAtVersion16 extends EndpointSchema { val versions: ApiV.From = ApiV.From(16) } // Rudder 7.2
+trait StartsAtVersion17 extends EndpointSchema { val versions: ApiV.From = ApiV.From(17) } // Rudder 7.3
+trait StartsAtVersion18 extends EndpointSchema { val versions: ApiV.From = ApiV.From(18) }
+trait StartsAtVersion19 extends EndpointSchema { val versions: ApiV.From = ApiV.From(19) }
+trait StartsAtVersion20 extends EndpointSchema { val versions: ApiV.From = ApiV.From(20) }
 
 // utility extension trait to define the kind of API
 trait PublicApi   extends EndpointSchema { val kind = ApiKind.Public   }
@@ -436,8 +436,8 @@ class RudderEndpointDispatcher(logger: Log) extends ConnectEndpoint {
    *   On secure, we only make available the latest version on a shorter path:
    * - /secure/api/endpoint
    */
-  val publicBase   = ApiPath.of("api")
-  val internalBase = ApiPath.of("secure", "api")
+  val publicBase:   ApiPath = ApiPath.of("api")
+  val internalBase: ApiPath = ApiPath.of("secure", "api")
 
   // from a base path and versions, builed "base/v1", "base/v2", "...", "base/latest"
   // return the couple (version, path), because we need the actual version in Endpoint

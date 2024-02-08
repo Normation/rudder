@@ -166,7 +166,7 @@ final case class SectionSpec(
 }
 
 object SectionSpec {
-  def isSection(sectionName: String) = sectionName == "SECTION"
+  def isSection(sectionName: String): Boolean = sectionName == "SECTION"
 }
 
 /**
@@ -270,8 +270,8 @@ sealed trait SectionVariableSpec extends SectionChildSpec with VariableSpec {
 }
 
 final case class ValueLabel(value: String, label: String) {
-  def tuple   = (value, label)
-  def reverse = ValueLabel(label, value)
+  def tuple:   (String, String) = (value, label)
+  def reverse: ValueLabel       = ValueLabel(label, value)
 }
 
 trait ValueLabelVariableSpec extends SectionVariableSpec {
@@ -341,7 +341,7 @@ final case class PredefinedValuesVariableSpec(
     val id:         Option[String]
 ) extends SectionVariableSpec {
 
-  def nelOfProvidedValues = providedValues._1 :: providedValues._2.toList
+  def nelOfProvidedValues: List[String] = providedValues._1 :: providedValues._2.toList
 
   override type T = PredefinedValuesVariableSpec
   override type V = PredefinedValuesVariable
@@ -379,9 +379,9 @@ final case class InputVariableSpec(
  * will have to be set-up to achieve such a goal.
  */
 object SectionVariableSpec {
-  def markerNames = List(INPUT, SELECT1, SELECT, REPORT_KEYS)
+  def markerNames: List[String] = List(INPUT, SELECT1, SELECT, REPORT_KEYS)
 
-  def isVariable(variableName: String) = markerNames contains variableName
+  def isVariable(variableName: String): Boolean = markerNames contains variableName
 
   /**
    * Default variable implementation
@@ -479,7 +479,7 @@ object ReportingLogic {
     val key = "focus"
   }
   final case class FocusReport(component: String) extends ReportingLogic {
-    val value = s"${FocusReport.key}:${component}"
+    val value: String = s"${FocusReport.key}:${component}"
   }
   case object WorstReportWeightedOne extends WorstReportReportingLogic {
     val value = "worst-case-weighted-one"

@@ -63,7 +63,7 @@ import scala.collection.SortedMap
  */
 object ActiveTechniqueCategoryOrdering extends Ordering[List[ActiveTechniqueCategoryId]] {
   type ID = ActiveTechniqueCategoryId
-  override def compare(x: List[ID], y: List[ID]) = {
+  override def compare(x: List[ID], y: List[ID]): Int = {
     Utils.recTreeStringOrderingCompare(x.map(_.value), y.map(_.value))
   }
 }
@@ -91,7 +91,7 @@ final case class FullActiveTechnique(
     isEnabled:            Boolean = true,
     isSystem:             Boolean = false
 ) {
-  def toActiveTechnique() = ActiveTechnique(
+  def toActiveTechnique(): ActiveTechnique = ActiveTechnique(
     id = id,
     techniqueName = techniqueName,
     acceptationDatetimes = acceptationDatetimes.toMap,
@@ -100,7 +100,7 @@ final case class FullActiveTechnique(
     isSystem = isSystem
   )
 
-  val newestAvailableTechnique = techniques.toSeq.sortBy(_._1).reverse.map(_._2).headOption
+  val newestAvailableTechnique: Option[Technique] = techniques.toSeq.sortBy(_._1).reverse.map(_._2).headOption
 
   /*
    * Add some direcives for some technique, and only keep directives whose id/revision is in `keep`.

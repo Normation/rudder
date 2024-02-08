@@ -368,7 +368,7 @@ class TechniqueApi(
 
   object CreateTechnique extends LiftApiModule0 {
 
-    def moveRessources(technique: EditorTechnique, internalId: String) = {
+    def moveRessources(technique: EditorTechnique, internalId: String): IO[SystemError, String] = {
       val workspacePath = s"workspace/${internalId}/${technique.version.value}/resources"
       val finalPath     = s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/resources"
 
@@ -622,7 +622,8 @@ class TechniqueAPIService6(
     restDataSerializer: RestDataSerializer
 ) extends Loggable {
 
-  def serialize(technique: Technique, directive: Directive) = restDataSerializer.serializeDirective(technique, directive, None)
+  def serialize(technique: Technique, directive: Directive): JValue =
+    restDataSerializer.serializeDirective(technique, directive, None)
 
   def listTechniques: Box[JValue] = {
     (for {
@@ -771,7 +772,10 @@ class TechniqueAPIService14(
     techniqueRevisions.getTechniqueRevision(name, version).map(_.map(JRRevisionInfo.fromRevisionInfo))
   }
 
-  def getTechniqueWithData(techniqueName: TechniqueName, version: Option[TechniqueVersion]) = {
+  def getTechniqueWithData(
+      techniqueName: TechniqueName,
+      version:       Option[TechniqueVersion]
+  ): ZIO[Any, RudderError, Seq[JRTechnique]] = {
     for {
       lib            <- readDirective.getFullDirectiveLibrary()
       activeTechnique = lib.allActiveTechniques.values.find(_.techniqueName == techniqueName).toSeq
@@ -793,7 +797,7 @@ class TechniqueAPIService14(
       }
     }
   }
-  def getTechniquesWithData(): IOResult[JValue] = {
+  def getTechniquesWithData():                                   IOResult[JValue]               = {
     for {
       lib                  <- readDirective.getFullDirectiveLibrary()
       activeTechniques      = lib.allActiveTechniques.values.toSeq

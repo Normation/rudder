@@ -49,7 +49,7 @@ import scala.xml.Text
 
 class DebugScript extends DispatchSnippet with Loggable {
 
-  def dispatch = { case "render" => launchDebugScript }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "render" => launchDebugScript }
 
   def launchDebugScript: IdMemoizeTransform = SHtml.idMemoize { outerXml =>
     // our process method returns a

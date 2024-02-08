@@ -117,7 +117,7 @@ class AgentRegister {
    * Find the first agent matching the required agentType/osDetail and apply f on it.
    * If none is found, return a failure.
    */
-  def findMap[T](agentNodeProps: AgentNodeProperties)(f: AgentSpecificGeneration => Box[T]) = {
+  def findMap[T](agentNodeProps: AgentNodeProperties)(f: AgentSpecificGeneration => Box[T]): Box[T] = {
     pipeline.find(handler => handler.handle(agentNodeProps)) match {
       case None =>
         val msg = if (agentNodeProps.isPolicyServer) {
@@ -138,7 +138,7 @@ class AgentRegister {
    * Find the first agent matching the required agentType/osDetail.
    * If none is found, return a failure.
    */
-  def findHandler(agentNodeProps: AgentNodeProperties) = {
+  def findHandler(agentNodeProps: AgentNodeProperties): Box[AgentSpecificGeneration] = {
     pipeline.find(handler => handler.handle(agentNodeProps)) match {
       case None =>
         val msg = if (agentNodeProps.isPolicyServer) {

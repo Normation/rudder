@@ -173,8 +173,8 @@ object TestMigrateEventLogEnforceSchema {
 
   private class MigrateEventLogEnforceSchemaTempTable(doobie: Doobie, overrideEffect: Option[Task[Unit]] = None)
       extends MigrateEventLogEnforceSchema(doobie) {
-    override def tableName                             = tempTableName
-    override def migrationEffect(xa: Transactor[Task]) = {
+    override def tableName = tempTableName
+    override def migrationEffect(xa: Transactor[Task]): Task[Unit] = {
       val default = super.migrationEffect(xa)
       overrideEffect.getOrElse(default)
     }

@@ -75,6 +75,7 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
+import zio.ZIO
 import zio.syntax._
 
 class GroupsApi(
@@ -747,7 +748,7 @@ class GroupApiService2(
     }
   }
 
-  def listGroups(req: Req, apiVersion: ApiVersion) = {
+  def listGroups(req: Req, apiVersion: ApiVersion): LiftResponse = {
     implicit val action   = "listGroups"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     readGroup.getAll().toBox match {
@@ -759,7 +760,7 @@ class GroupApiService2(
     }
   }
 
-  def createGroup(restGroup: Box[RestGroup], req: Req, apiVersion: ApiVersion) = {
+  def createGroup(restGroup: Box[RestGroup], req: Req, apiVersion: ApiVersion): LiftResponse = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val modId             = ModificationId(uuidGen.newUuid)
     val actor             = RestUtils.getActor(req)
@@ -875,7 +876,7 @@ class GroupApiService2(
     }
   }
 
-  def groupDetails(sid: String, req: Req, apiVersion: ApiVersion) = {
+  def groupDetails(sid: String, req: Req, apiVersion: ApiVersion): LiftResponse = {
     implicit val action   = "groupDetails"
     implicit val prettify = restExtractor.extractPrettify(req.params)
 
@@ -890,7 +891,7 @@ class GroupApiService2(
     }
   }
 
-  def reloadGroup(sid: String, req: Req, apiVersion: ApiVersion) = {
+  def reloadGroup(sid: String, req: Req, apiVersion: ApiVersion): LiftResponse = {
     implicit val action   = "reloadGroup"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor             = RestUtils.getActor(req)
@@ -932,7 +933,7 @@ class GroupApiService2(
     }
   }
 
-  def deleteGroup(sid: String, req: Req, apiVersion: ApiVersion) = {
+  def deleteGroup(sid: String, req: Req, apiVersion: ApiVersion): LiftResponse = {
     implicit val action   = "deleteGroup"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor             = RestUtils.getActor(req)
@@ -949,7 +950,7 @@ class GroupApiService2(
     }
   }
 
-  def updateGroup(sid: String, req: Req, restValues: Box[RestGroup], apiVersion: ApiVersion) = {
+  def updateGroup(sid: String, req: Req, restValues: Box[RestGroup], apiVersion: ApiVersion): LiftResponse = {
     implicit val action   = "updateGroup"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor             = getActor(req)
@@ -978,7 +979,7 @@ class GroupApiService6(
     restDataSerializer: RestDataSerializer
 ) extends Loggable {
 
-  def getCategoryTree(apiVersion: ApiVersion) = {
+  def getCategoryTree(apiVersion: ApiVersion): Box[JValue] = {
     for {
       root <- readGroup.getFullGroupLibrary().toBox
     } yield {
@@ -986,7 +987,7 @@ class GroupApiService6(
     }
   }
 
-  def getCategoryDetails(id: NodeGroupCategoryId, apiVersion: ApiVersion) = {
+  def getCategoryDetails(id: NodeGroupCategoryId, apiVersion: ApiVersion): Box[JValue] = {
     for {
       root     <- readGroup.getFullGroupLibrary().toBox
       category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
@@ -999,7 +1000,7 @@ class GroupApiService6(
   def deleteCategory(
       id:         NodeGroupCategoryId,
       apiVersion: ApiVersion
-  )(actor:        EventActor, modId: ModificationId, reason: Option[String]) = {
+  )(actor:        EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     for {
       root     <- readGroup.getFullGroupLibrary().toBox
       category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
@@ -1014,7 +1015,7 @@ class GroupApiService6(
       id:         NodeGroupCategoryId,
       restData:   RestGroupCategory,
       apiVersion: ApiVersion
-  )(actor:        EventActor, modId: ModificationId, reason: Option[String]) = {
+  )(actor:        EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     for {
       root      <- readGroup.getFullGroupLibrary().toBox
       category  <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
@@ -1032,7 +1033,7 @@ class GroupApiService6(
       defaultId:  () => NodeGroupCategoryId,
       restData:   RestGroupCategory,
       apiVersion: ApiVersion
-  )(actor:        EventActor, modId: ModificationId, reason: Option[String]) = {
+  )(actor:        EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     for {
       update  <- restData.create(defaultId)
       category = update.toNodeGroupCategory
@@ -1097,7 +1098,7 @@ class GroupApiService14(
       clone:       Option[NodeGroupId],
       params:      DefaultParams,
       actor:       EventActor
-  ) = {
+  ): ZIO[Any, RudderError, JRGroup] = {
     def actualGroupCreation(change: NodeGroupChangeRequest, groupId: NodeGroupId) = {
       val modId = ModificationId(uuidGen.newUuid)
       (for {
@@ -1238,7 +1239,7 @@ class GroupApiService14(
     }
   }
 
-  def getCategoryTree(apiVersion: ApiVersion) = {
+  def getCategoryTree(apiVersion: ApiVersion): Box[JValue] = {
     for {
       root <- readGroup.getFullGroupLibrary().toBox
     } yield {
@@ -1246,7 +1247,7 @@ class GroupApiService14(
     }
   }
 
-  def getCategoryDetails(id: NodeGroupCategoryId, apiVersion: ApiVersion) = {
+  def getCategoryDetails(id: NodeGroupCategoryId, apiVersion: ApiVersion): Box[JValue] = {
     for {
       root     <- readGroup.getFullGroupLibrary().toBox
       category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
@@ -1259,7 +1260,7 @@ class GroupApiService14(
   def deleteCategory(
       id:         NodeGroupCategoryId,
       apiVersion: ApiVersion
-  )(actor:        EventActor, modId: ModificationId, reason: Option[String]) = {
+  )(actor:        EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     for {
       root     <- readGroup.getFullGroupLibrary().toBox
       category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
@@ -1274,7 +1275,7 @@ class GroupApiService14(
       id:         NodeGroupCategoryId,
       restData:   RestGroupCategory,
       apiVersion: ApiVersion
-  )(actor:        EventActor, modId: ModificationId, reason: Option[String]) = {
+  )(actor:        EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     for {
       root      <- readGroup.getFullGroupLibrary().toBox
       category  <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
@@ -1292,7 +1293,7 @@ class GroupApiService14(
       defaultId:  () => NodeGroupCategoryId,
       restData:   RestGroupCategory,
       apiVersion: ApiVersion
-  )(actor:        EventActor, modId: ModificationId, reason: Option[String]) = {
+  )(actor:        EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     for {
       update  <- restData.create(defaultId)
       category = update.toNodeGroupCategory

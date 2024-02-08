@@ -54,7 +54,7 @@ import org.junit.runners.BlockJUnit4ClassRunner
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TestJsonQueryLexing {
 
-  val lexer = new JsonQueryLexer() {}
+  val lexer: JsonQueryLexer = new JsonQueryLexer() {}
 
   val valid1_0 =
     """

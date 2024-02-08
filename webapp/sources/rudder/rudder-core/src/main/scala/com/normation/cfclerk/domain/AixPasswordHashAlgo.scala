@@ -270,7 +270,7 @@ object AixPasswordHashAlgo extends Loggable {
     def name: String
 
     // algo prefix prepended in the final hash string.
-    final lazy val prefix = s"{s${name.toLowerCase}}"
+    final lazy val prefix: String = s"{s${name.toLowerCase}}"
 
     // number of bytes of the hash before encoding
     def byteNumber: Int

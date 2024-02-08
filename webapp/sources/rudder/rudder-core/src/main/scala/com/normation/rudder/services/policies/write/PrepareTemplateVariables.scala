@@ -67,7 +67,7 @@ case class PrepareTemplateTimer(
 )
 
 object PrepareTemplateTimer {
-  def make() = for {
+  def make(): ZIO[Any, Nothing, PrepareTemplateTimer] = for {
     a <- Ref.make(0L)
     b <- Ref.make(0L)
     c <- Ref.make(0L)

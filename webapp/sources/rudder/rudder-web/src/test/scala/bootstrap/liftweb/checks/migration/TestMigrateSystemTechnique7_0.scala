@@ -55,8 +55,10 @@ import com.normation.inventory.ldap.core.InventoryDitServiceImpl
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.inventory.ldap.core.LDAPConstants.A_DESCRIPTION
 import com.normation.inventory.ldap.core.LDAPConstants.A_NAME
+import com.normation.ldap.listener.InMemoryDsConnectionProvider
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RoLDAPConnection
+import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.configuration.ActiveDirective
 import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.configuration.GroupAndCat
@@ -119,6 +121,7 @@ import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.junit.runner._
+import org.specs2.matcher.MatchResult
 import org.specs2.mutable._
 import org.specs2.runner._
 import scala.util.Try
@@ -136,7 +139,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
   sequential
   // initialize test environnement - long and painful //
 
-  val schema = ("00-core" ::
+  val schema: List[String] = ("00-core" ::
     "01-pwpolicy" ::
     "04-rfc2307bis" ::
     "05-rfc4876" ::
@@ -146,7 +149,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     this.getClass.getClassLoader.getResource("ldap-data/schema/" + name + ".ldif").toURI.getPath
   }
 
-  val bootstrapLDIFs = ("bootstrap-6_2.ldif" ::
+  val bootstrapLDIFs: List[String] = ("bootstrap-6_2.ldif" ::
     "init-root-server-6_2.ldif" ::
     "init-relay1-server-6_2.ldif" ::
     Nil) map { name =>
@@ -154,8 +157,8 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     this.getClass.getClassLoader.getResource("ldap-data/" + name).toURI.getPath
   }
 
-  val root   = NodeConfigData.root
-  val relay1 = NodeConfigData.node1
+  val root = NodeConfigData.root
+  val relay1: NodeInfo = NodeConfigData.node1
     .modify(_.node.id.value)
     .setTo("ba7e3ca5-a967-40d8-aa97-41a3ff450fd2")
     .modify(_.node.isPolicyServer)
@@ -163,7 +166,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     .modify(_.hostname)
     .setTo("relay1.rudder.test")
 
-  val nodeInfoService = new NodeInfoService {
+  val nodeInfoService: NodeInfoService = new NodeInfoService {
     override def getAll():                              IOResult[Map[NodeId, NodeInfo]] = List(root, relay1).map(x => (x.id, x)).toMap.succeed
     override def getNodeInfo(nodeId: NodeId):           IOResult[Option[NodeInfo]]      = ???
     override def getNodeInfos(nodeIds: Set[NodeId]):    IOResult[Set[NodeInfo]]         = ???
@@ -181,7 +184,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
 
   val rudderDit = new RudderDit(new DN("ou=Rudder,cn=rudder-configuration"))
 
-  val eventLogRepos = new EventLogRepository {
+  val eventLogRepos: EventLogRepository = new EventLogRepository {
     override def saveEventLog(modId: ModificationId, eventLog: EventLog):                        IOResult[EventLog]                                    = eventLog.succeed
     override def eventLogFactory:                                                                EventLogFactory                                       = ???
     override def getEventLogByCriteria(
@@ -234,8 +237,9 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     }
   }
 
-  val ldap   = InitTestLDAPServer.newLdapConnectionProvider(schema, bootstrapLDIFs)
-  val roLdap = ldap.asInstanceOf[LDAPConnectionProvider[RoLDAPConnection]]
+  val ldap:   InMemoryDsConnectionProvider[RwLDAPConnection with RoLDAPConnection] =
+    InitTestLDAPServer.newLdapConnectionProvider(schema, bootstrapLDIFs)
+  val roLdap: LDAPConnectionProvider[RoLDAPConnection]                             = ldap.asInstanceOf[LDAPConnectionProvider[RoLDAPConnection]]
 
   val policyServerService = new PolicyServerManagementServiceImpl(ldap, rudderDit, eventLogRepos)
 
@@ -278,70 +282,72 @@ class TestMigrateSystemTechniques7_0 extends Specification {
   private[this] lazy val ldapDiffMapper = new LDAPDiffMapper(ldapEntityMapper, queryParser)
   private[this] lazy val uuidGen        = new StringUuidGeneratorImpl
 
-  val archiver                                  = new GitDirectiveArchiver with GitActiveTechniqueArchiver with GitActiveTechniqueCategoryArchiver {
-    override def archiveDirective(
-        directive:           Directive,
-        ptName:              TechniqueName,
-        catIds:              List[ActiveTechniqueCategoryId],
-        variableRootSection: SectionSpec,
-        gitCommit:           Option[(ModificationId, PersonIdent, Option[String])]
-    ): IOResult[GitPath] = ???
-    override def deleteDirective(
-        directiveId: DirectiveUid,
-        ptName:      TechniqueName,
-        catIds:      List[ActiveTechniqueCategoryId],
-        gitCommit:   Option[(ModificationId, PersonIdent, Option[String])]
-    ): IOResult[GitPath] = ???
-    override def archiveActiveTechnique(
-        activeTechnique: ActiveTechnique,
-        parents:         List[ActiveTechniqueCategoryId],
-        gitCommit:       Option[(ModificationId, PersonIdent, Option[String])]
-    ): IOResult[(GitPath, Seq[DirectiveNotArchived])] = ???
-    override def deleteActiveTechnique(
-        ptName:    TechniqueName,
-        parents:   List[ActiveTechniqueCategoryId],
-        gitCommit: Option[(ModificationId, PersonIdent, Option[String])]
-    ): IOResult[GitPath] = ???
-    override def moveActiveTechnique(
-        activeTechnique: ActiveTechnique,
-        oldParents:      List[ActiveTechniqueCategoryId],
-        newParents:      List[ActiveTechniqueCategoryId],
-        gitCommit:       Option[(ModificationId, PersonIdent, Option[String])]
-    ): IOResult[(GitPath, Seq[DirectiveNotArchived])] = ???
-    override def archiveActiveTechniqueCategory(
-        uptc:       ActiveTechniqueCategory,
-        getParents: List[ActiveTechniqueCategoryId],
-        gitCommit:  Option[(ModificationId, PersonIdent, Option[String])]
-    ): IOResult[GitPath] = ???
-    override def deleteActiveTechniqueCategory(
-        uptcId:     ActiveTechniqueCategoryId,
-        getParents: List[ActiveTechniqueCategoryId],
-        gitCommit:  Option[(ModificationId, PersonIdent, Option[String])]
-    ): IOResult[GitPath] = ???
-    override def moveActiveTechniqueCategory(
-        uptc:       ActiveTechniqueCategory,
-        oldParents: List[ActiveTechniqueCategoryId],
-        newParents: List[ActiveTechniqueCategoryId],
-        gitCommit:  Option[(ModificationId, PersonIdent, Option[String])]
-    ): IOResult[GitPath] = ???
-    override def commitActiveTechniqueLibrary(
-        modId:    ModificationId,
-        commiter: PersonIdent,
-        reason:   Option[String]
-    ): IOResult[GitArchiveId] = ???
-    override def getTags():        IOResult[Map[DateTime, GitArchiveId]] = ???
-    override def getItemDirectory: File                                  = ???
+  val archiver: GitDirectiveArchiver with GitActiveTechniqueArchiver with GitActiveTechniqueCategoryArchiver = {
+    new GitDirectiveArchiver with GitActiveTechniqueArchiver with GitActiveTechniqueCategoryArchiver {
+      override def archiveDirective(
+          directive:           Directive,
+          ptName:              TechniqueName,
+          catIds:              List[ActiveTechniqueCategoryId],
+          variableRootSection: SectionSpec,
+          gitCommit:           Option[(ModificationId, PersonIdent, Option[String])]
+      ): IOResult[GitPath] = ???
+      override def deleteDirective(
+          directiveId: DirectiveUid,
+          ptName:      TechniqueName,
+          catIds:      List[ActiveTechniqueCategoryId],
+          gitCommit:   Option[(ModificationId, PersonIdent, Option[String])]
+      ): IOResult[GitPath] = ???
+      override def archiveActiveTechnique(
+          activeTechnique: ActiveTechnique,
+          parents:         List[ActiveTechniqueCategoryId],
+          gitCommit:       Option[(ModificationId, PersonIdent, Option[String])]
+      ): IOResult[(GitPath, Seq[DirectiveNotArchived])] = ???
+      override def deleteActiveTechnique(
+          ptName:    TechniqueName,
+          parents:   List[ActiveTechniqueCategoryId],
+          gitCommit: Option[(ModificationId, PersonIdent, Option[String])]
+      ): IOResult[GitPath] = ???
+      override def moveActiveTechnique(
+          activeTechnique: ActiveTechnique,
+          oldParents:      List[ActiveTechniqueCategoryId],
+          newParents:      List[ActiveTechniqueCategoryId],
+          gitCommit:       Option[(ModificationId, PersonIdent, Option[String])]
+      ): IOResult[(GitPath, Seq[DirectiveNotArchived])] = ???
+      override def archiveActiveTechniqueCategory(
+          uptc:       ActiveTechniqueCategory,
+          getParents: List[ActiveTechniqueCategoryId],
+          gitCommit:  Option[(ModificationId, PersonIdent, Option[String])]
+      ): IOResult[GitPath] = ???
+      override def deleteActiveTechniqueCategory(
+          uptcId:     ActiveTechniqueCategoryId,
+          getParents: List[ActiveTechniqueCategoryId],
+          gitCommit:  Option[(ModificationId, PersonIdent, Option[String])]
+      ): IOResult[GitPath] = ???
+      override def moveActiveTechniqueCategory(
+          uptc:       ActiveTechniqueCategory,
+          oldParents: List[ActiveTechniqueCategoryId],
+          newParents: List[ActiveTechniqueCategoryId],
+          gitCommit:  Option[(ModificationId, PersonIdent, Option[String])]
+      ): IOResult[GitPath] = ???
+      override def commitActiveTechniqueLibrary(
+          modId:    ModificationId,
+          commiter: PersonIdent,
+          reason:   Option[String]
+      ): IOResult[GitArchiveId] = ???
+      override def getTags():        IOResult[Map[DateTime, GitArchiveId]] = ???
+      override def getItemDirectory: File                                  = ???
+    }
   }
   private[this] lazy val personIdentServiceImpl = new TrivialPersonIdentService
 
-  lazy val gitParseTechniqueLibrary                = new GitParseTechniqueLibrary(
+  lazy val gitParseTechniqueLibrary = new GitParseTechniqueLibrary(
     testEnv.draftParser,
     testEnv.repo,
     testEnv.gitRevisionProvider,
     "techniques",
     "metadata.xml"
   )
-  lazy val configurationRepository                 = new ConfigurationRepository {
+  lazy val configurationRepository: ConfigurationRepository = new ConfigurationRepository {
     override def getTechnique(id: TechniqueId):              IOResult[Option[(Chunk[TechniqueCategoryName], Technique)]] =
       testEnv.techniqueRepository.getLastTechniqueByName(id.name).map((Chunk.empty, _)).succeed
     override def getDirective(id: DirectiveId):              IOResult[Option[ActiveDirective]]                           = ???
@@ -357,7 +363,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     testEnv.techniqueRepository,
     uptLibReadWriteMutex
   )
-  val woLdapDirectiveRepository                    = new WoLDAPDirectiveRepository(
+  val woLdapDirectiveRepository = new WoLDAPDirectiveRepository(
     roLdapDirectiveRepository,
     ldap,
     ldapDiffMapper,
@@ -425,16 +431,16 @@ class TestMigrateSystemTechniques7_0 extends Specification {
 
   sequential
 
-  val numEntries = bootstrapLDIFs.foldLeft(0) {
+  val numEntries: Int = bootstrapLDIFs.foldLeft(0) {
     case (x, path) =>
       val reader = new com.unboundid.ldif.LDIFReader(path)
       var i      = 0
       while (reader.readEntry != null) i += 1
       i + x
   }
-  val dirDn      = "techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration"
-  val ruleDn     = "ou=Rules,ou=Rudder,cn=rudder-configuration"
-  val groupDn    = "groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration"
+  val dirDn = "techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration"
+  val ruleDn  = "ou=Rules,ou=Rudder,cn=rudder-configuration"
+  val groupDn = "groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration"
 
   "The in memory LDAP directory" should {
 
@@ -556,7 +562,7 @@ class TestMigrateSystemTechniques7_0 extends Specification {
     prog.runNow must containTheSameElementsAs(List("192.168.2.0/24", "192.168.3.0/24", "192.168.1.0/24", "192.168.42.42"))
   }
 
-  def checkNewEntries(prefix: String) = { // root policy server
+  def checkNewEntries(prefix: String): MatchResult[Equals with Serializable] = { // root policy server
     Try(
       ldap.server.assertEntriesExist(
         s"directiveId=common-hasPolicyServer-root,activeTechniqueId=common,${dirDn}",

@@ -60,7 +60,7 @@ trait SnippetExtensionPoint[T] {
   /**
    * The key for plugin to extends that snippet.
    */
-  def extendsAt = SnippetExtensionKey(ttag.runtimeClass.getSimpleName)
+  def extendsAt: SnippetExtensionKey = SnippetExtensionKey(ttag.runtimeClass.getSimpleName)
 
   /**
    * Here, we are rather strict on what we want : a T that is also extendable
@@ -122,7 +122,7 @@ trait ExtendableSnippet[T] extends DispatchSnippet {
   // reminder:
   // type DispatchIt = PartialFunction[String, NodeSeq => NodeSeq]
 
-  def extendsAt = SnippetExtensionKey(self.getClass.getSimpleName)
+  def extendsAt: SnippetExtensionKey = SnippetExtensionKey(self.getClass.getSimpleName)
 
   def mainDispatch: Map[String, NodeSeq => NodeSeq]
 

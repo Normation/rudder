@@ -207,7 +207,7 @@ final case class Directive(
     tags:             Tags = Tags(Set())
 ) {
   // system object must ALWAYS be ENABLED.
-  def isEnabled = _isEnabled || isSystem
+  def isEnabled: Boolean = _isEnabled || isSystem
 }
 
 final case class SectionVal(

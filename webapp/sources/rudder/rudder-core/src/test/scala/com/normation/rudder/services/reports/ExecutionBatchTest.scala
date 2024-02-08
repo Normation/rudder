@@ -37,6 +37,7 @@
 
 package com.normation.rudder.services.reports
 
+import ch.qos.logback.classic.Logger
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
@@ -72,7 +73,7 @@ class ExecutionBatchTest extends Specification {
   implicit private def str2ruleUid(s: String)     = RuleUid(s)
 
   // a logger for timing information
-  val logger = org.slf4j.LoggerFactory.getLogger("timing-test").asInstanceOf[ch.qos.logback.classic.Logger]
+  val logger: Logger = org.slf4j.LoggerFactory.getLogger("timing-test").asInstanceOf[ch.qos.logback.classic.Logger]
   // set to trace to see timing
   logger.setLevel(ch.qos.logback.classic.Level.OFF)
   // also disable executionbatch since we are testing error cases:
@@ -83,11 +84,11 @@ class ExecutionBatchTest extends Specification {
 
   import ReportType._
 
-  val strictUnexpectedInterpretation = UnexpectedReportInterpretation(Set())
-  val executionTimestamp             = new DateTime()
+  val strictUnexpectedInterpretation: UnexpectedReportInterpretation = UnexpectedReportInterpretation(Set())
+  val executionTimestamp = new DateTime()
 
-  val globalPolicyMode = GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always)
-  val mode             = NodeModeConfig(
+  val globalPolicyMode: GlobalPolicyMode = GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always)
+  val mode:             NodeModeConfig   = NodeModeConfig(
     GlobalComplianceMode(FullCompliance, 30),
     None,
     AgentRunInterval(None, 5, 14, 5, 4),
@@ -104,7 +105,7 @@ class ExecutionBatchTest extends Specification {
       nbRules:         Int,
       nbDirectives:    Int,
       nbReportsPerDir: Int
-  ) = {
+  ): (MergeInfo, IndexedSeq[ResultSuccessReport], NodeExpectedReports, NodeExpectedReports, UnexpectedReportInterpretation) = {
     val ruleIds      = (1 to nbRules).map("rule_id_" + _ + nodeId).toSeq
     val directiveIds = (1 to nbDirectives).map("directive_id_" + _ + nodeId).toSeq
     val dirPerRule   = ruleIds.map(rule => (RuleId(rule), directiveIds.map(dir => DirectiveId(DirectiveUid(dir + "@@" + rule)))))
@@ -223,8 +224,9 @@ class ExecutionBatchTest extends Specification {
     res.toMap
   }
 
-  val getNodeStatusByRule = (getNodeStatusReportsByRule _).tupled
-  val one                 = NodeId("one")
+  val getNodeStatusByRule: ((Map[NodeId, NodeExpectedReports], Seq[Reports])) => Map[NodeId, NodeStatusReport] =
+    (getNodeStatusReportsByRule _).tupled
+  val one:                 NodeId                                                                              = NodeId("one")
 
   /*
    * Test the general run information (do we have a run, is it an expected version, etc)
@@ -3333,7 +3335,7 @@ class ExecutionBatchTest extends Specification {
     )
   }
 
-  val fullCompliance = GlobalComplianceMode(FullCompliance, 1)
+  val fullCompliance: GlobalComplianceMode = GlobalComplianceMode(FullCompliance, 1)
 
   "A detailed execution Batch, with one component, cardinality one, one node" should {
 

@@ -40,12 +40,12 @@ import com.normation.eventlog.EventActor
 
 package object domain {
 
-  val CfclerkEventActor = EventActor("CFClerk")
+  val CfclerkEventActor: EventActor = EventActor("CFClerk")
 
   // The name of the special Variable that holds all the
   // parameters
   val PARAMETER_VARIABLE = "RUDDER_PARAMETERS"
 
-  def reportKeysVariableName(sectionName: String) = "expectedReportKey " + sectionName
+  def reportKeysVariableName(sectionName: String): String = "expectedReportKey " + sectionName
 
 }

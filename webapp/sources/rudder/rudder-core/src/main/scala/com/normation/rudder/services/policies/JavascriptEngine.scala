@@ -71,7 +71,7 @@ object HashOsType {
   final case object AixHash   extends HashOsType
   final case object CryptHash extends HashOsType // linux, bsd,...
 
-  def all = sealerate.values[HashOsType]
+  def all: Set[HashOsType] = sealerate.values[HashOsType]
 }
 
 /*
@@ -322,7 +322,7 @@ final class JsRudderLibImpl(
   def getPassword = password
 
   // with the Proxy interface, it will be accessed with rudder.password... or rudder.hash...
-  val members = Map(
+  val members: Map[String, ImplicitGetBytes] = Map(
     ("password", password),
     ("hash", hash)
   )
@@ -359,12 +359,12 @@ object JsRudderLibBinding {
    */
   object Aix extends JsRudderLibBinding {
     val jsRudderLib = new JsRudderLibImpl(AixHash)
-    def bindings    = toBindings("rudder", jsRudderLib)
+    def bindings: Bindings = toBindings("rudder", jsRudderLib)
   }
 
   object Crypt extends JsRudderLibBinding {
     val jsRudderLib = new JsRudderLibImpl(CryptHash)
-    def bindings    = toBindings("rudder", jsRudderLib)
+    def bindings: Bindings = toBindings("rudder", jsRudderLib)
   }
 }
 
@@ -492,7 +492,7 @@ object JsEngine {
   }
 
   final case class GraalEngine(engine: Engine) {
-    def buildContext = ZIO.acquireRelease(
+    def buildContext: ZIO[Any with Any with Scope, SystemError, Context] = ZIO.acquireRelease(
       IOResult.attempt(
         Context
           .newBuilder("js")
@@ -519,7 +519,7 @@ object JsEngine {
      * Note: maybe make that a parameter so that we can put an even higher value here,
      * but only put 1s in tests so that they end quickly
      */
-    val DEFAULT_MAX_EVAL_DURATION = FiniteDuration(5, TimeUnit.SECONDS)
+    val DEFAULT_MAX_EVAL_DURATION: FiniteDuration = FiniteDuration(5, TimeUnit.SECONDS)
 
     /**
      * Get a new JS Engine.

@@ -47,7 +47,7 @@ object GitVersion {
    * By convention, an empty `value` means `DEFAULT_REV`.
    */
   final case class Revision(value: String) extends AnyVal {
-    def toOptionString = value match {
+    def toOptionString: Option[String] = value match {
       case DEFAULT_REV.value => None
       case v                 => Some(v)
     }
@@ -73,7 +73,7 @@ object GitVersion {
    * Without more configuration, it's "master"
    * Capitalized so that it can be used in pattern matching
    */
-  val DEFAULT_REV = Revision("default")
+  val DEFAULT_REV: Revision = Revision("default")
 
   // an empty string is considered as missing version, so DEFAULT_REV.
   object ParseRev {

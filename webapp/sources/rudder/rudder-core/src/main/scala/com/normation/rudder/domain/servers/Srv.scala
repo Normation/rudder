@@ -64,7 +64,7 @@ object Srv {
    * List of attributes needed to be able to map a Srv.
    * There must be at least all required attributes for a node.
    */
-  val ldapAttributes = Seq(
+  val ldapAttributes: Seq[String] = Seq(
     A_OC,
     A_NODE_UUID,
     A_HOSTNAME,

@@ -51,7 +51,7 @@ object LoadTechniqueError {
   final case class Chained(hint: String, cause: LoadTechniqueError)
       extends LoadTechniqueError with BaseChainError[LoadTechniqueError]
   final case class Accumulated(causes: NonEmptyList[LoadTechniqueError]) extends LoadTechniqueError {
-    val msg = causes.map(_.fullMsg).toList.mkString("; ")
+    val msg: String = causes.map(_.fullMsg).toList.mkString("; ")
   }
 }
 

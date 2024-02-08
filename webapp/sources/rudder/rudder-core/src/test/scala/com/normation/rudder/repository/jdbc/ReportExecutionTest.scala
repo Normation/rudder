@@ -59,20 +59,20 @@ import zio.interop.catz._
 class AgentRunsTest extends DBCommon with BoxSpecMatcher {
 
   // clean data base
-  def cleanTables() = {
+  def cleanTables(): Int = {
     transacRun(xa => sql"DELETE FROM ReportsExecution;".update.run.transact(xa))
   }
 
   lazy val woRunRepo = new WoReportsExecutionRepositoryImpl(doobie)
   lazy val roRunRepo = new RoReportsExecutionRepositoryImpl(doobie, woRunRepo, null, new PostgresqlInClause(2), 200)
 
-  val nodes = Seq(NodeId("n1"), NodeId("n2"), NodeId("n3"))
+  val nodes: Seq[NodeId] = Seq(NodeId("n1"), NodeId("n2"), NodeId("n3"))
 
-  val runBaseline = DateTime.now.minusMinutes(2)
+  val runBaseline: DateTime = DateTime.now.minusMinutes(2)
 
-  val insertionTimeBaseline = DateTime.now.minusMinutes(1)
+  val insertionTimeBaseline: DateTime = DateTime.now.minusMinutes(1)
 
-  val runs = Seq(
+  val runs: Seq[DB.UncomputedAgentRun] = Seq(
     DB.UncomputedAgentRun("node1", runBaseline.minusMinutes(5), Some("NodeConfigId1"), 1, insertionTimeBaseline.minusMinutes(5)),
     DB.UncomputedAgentRun("node1", runBaseline, Some("NodeConfigId1"), 2, insertionTimeBaseline),
     DB.UncomputedAgentRun(

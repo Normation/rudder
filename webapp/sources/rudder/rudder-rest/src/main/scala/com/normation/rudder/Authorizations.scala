@@ -217,14 +217,14 @@ object AuthorizationType {
    */
   def allKind: Set[AuthorizationType] = allKindsMap
 
-  private[this] var allKindsMap: Set[AuthorizationType] = {
+  private[this] var allKindsMap:                     Set[AuthorizationType] = {
     Set(
       AnyRights
     ) ++ Administration.values ++ Compliance.values ++ Configuration.values ++ Deployer.values ++ Deployment.values ++
     Directive.values ++ Group.values ++ Node.values ++ Rule.values ++ Parameter.values ++ Technique.values ++
     UserAccount.values ++ Validator.values
   }
-  def addAuthKind(newKinds: Set[AuthorizationType]) = allKindsMap = allKindsMap ++ newKinds
+  def addAuthKind(newKinds: Set[AuthorizationType]): Unit                   = allKindsMap = allKindsMap ++ newKinds
 
   /*
    * Parse a right string (ie: object_operation) as a set of authorization type, taking care of the special keyword "all"
@@ -295,9 +295,9 @@ object AuthorizationType {
  */
 case class Rights private (authorizationTypes: Set[AuthorizationType]) {
 
-  def displayAuthorizations = authorizationTypes.map(_.id).toList.sorted.mkString(", ")
+  def displayAuthorizations: String = authorizationTypes.map(_.id).toList.sorted.mkString(", ")
 
-  override def equals(other: Any) = other match {
+  override def equals(other: Any): Boolean = other match {
     case that: Rights => this.authorizationTypes == that.authorizationTypes
     case _ => false
   }
@@ -309,9 +309,9 @@ case class Rights private (authorizationTypes: Set[AuthorizationType]) {
 
 object Rights {
 
-  val NoRights = Rights.forAuthzs(AuthorizationType.NoRights)
+  val NoRights: Rights = Rights.forAuthzs(AuthorizationType.NoRights)
 
-  val AnyRights = Rights.forAuthzs(AuthorizationType.AnyRights)
+  val AnyRights: Rights = Rights.forAuthzs(AuthorizationType.AnyRights)
 
   def apply(authorizationTypes: Iterable[AuthorizationType]): Rights = {
     if (authorizationTypes.isEmpty) {
@@ -321,7 +321,7 @@ object Rights {
     }
   }
 
-  def forAuthzs(authorizationTypes: AuthorizationType*) = apply(authorizationTypes.toSeq)
+  def forAuthzs(authorizationTypes: AuthorizationType*): Rights = apply(authorizationTypes.toSeq)
 }
 
 /*
@@ -342,7 +342,7 @@ object Role       {
   final case class Custom(rights: Rights) extends Role {
     val name = "custom"
 
-    override def debugString = s"authz[${rights.displayAuthorizations}]"
+    override def debugString: String = s"authz[${rights.displayAuthorizations}]"
   }
 
   trait BuiltinName  { // not sealed, plugins need to extend
@@ -380,7 +380,7 @@ object Role       {
   final case object NoRights extends Role {
     val name = "no_rights";
 
-    def rights = Rights(Set(A.NoRights))
+    def rights: Rights = Rights(Set(A.NoRights))
   }
 
   // standard predefined built-in roles
@@ -400,13 +400,13 @@ object Role       {
     ).map(r => (r._name, r)).toMap
   }
 
-  def forRight(right: AuthorizationType)        = Custom(Rights.forAuthzs(right))
-  def forRights(rights: Set[AuthorizationType]) = Custom(Rights(rights))
+  def forRight(right: AuthorizationType):        Custom = Custom(Rights.forAuthzs(right))
+  def forRights(rights: Set[AuthorizationType]): Custom = Custom(Rights(rights))
 
   // this is the named custom roles defined in <custom-roles> tag
   final case class NamedCustom(name: String, permissions: Seq[Role]) extends Role {
-    def rights               = Rights(permissions.flatMap(_.rights.authorizationTypes))
-    override def debugString = s"customRole[${permissions.map(_.debugString).mkString(",")}]"
+    def rights:               Rights = Rights(permissions.flatMap(_.rights.authorizationTypes))
+    override def debugString: String = s"customRole[${permissions.map(_.debugString).mkString(",")}]"
   }
 
   // standard predefined special roles, ie Admin et NoRights
@@ -430,14 +430,14 @@ object RudderRoles {
   // our database of roles. Everything is case insensitive, so role name are mapped "to lower string"
 
   // role names are case insensitive
-  implicit val roleOrdering = Ordering.comparatorToOrdering(String.CASE_INSENSITIVE_ORDER)
+  implicit val roleOrdering: Ordering[String] = Ordering.comparatorToOrdering(String.CASE_INSENSITIVE_ORDER)
 
   // built-in roles are provided by Rudder core and can be provided by plugins. We assume people knows what they are doing
   // and fewer check are done on them.
   private val builtInCoreRoles = SortedMap[String, Role](Role.allBuiltInRoles.toList: _*)
 
   // this is the actual set of currently knowed builin roles
-  val builtInRoles = Ref.make(builtInCoreRoles).runNow
+  val builtInRoles: Ref[SortedMap[String, Role]] = Ref.make(builtInCoreRoles).runNow
 
   private val customRoles = Ref.make(SortedMap.empty[String, Role]).runNow
   private val allRoles: Ref[SortedMap[String, Role]] = ZioRuntime.unsafeRun(for {
