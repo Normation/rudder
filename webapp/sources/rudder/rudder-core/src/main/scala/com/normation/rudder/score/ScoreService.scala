@@ -51,16 +51,26 @@ trait ScoreService {
   def cleanScore(name:          String):                   IOResult[Unit]
   def update(newScores:         Map[NodeId, List[Score]]): IOResult[Unit]
   def registerScore(newScoreId: String):                   IOResult[Unit]
+  def init(): IOResult[Unit]
 }
 
 class ScoreServiceImpl(globalScoreRepository: GlobalScoreRepository, scoreRepository: ScoreRepository) extends ScoreService {
-  private[this] val cache:      Ref[Map[NodeId, GlobalScore]] = globalScoreRepository.getAll().flatMap(Ref.make(_)).runNow
-  private[this] val scoreCache: Ref[Map[NodeId, List[Score]]] = scoreRepository.getAll().flatMap(Ref.make(_)).runNow
+  private[this] val cache:      Ref[Map[NodeId, GlobalScore]] = Ref.make(Map.empty[NodeId, GlobalScore]).runNow
+  private[this] val scoreCache: Ref[Map[NodeId, List[Score]]] = Ref.make(Map.empty[NodeId, List[Score]]).runNow
 
   private[this] val availableScore: Ref[List[String]] =
     Ref.make(ComplianceScore.scoreId :: SystemUpdateScore.scoreId :: Nil).runNow
 
-  def fillWithNoScore(globalScore: GlobalScore): IOResult[GlobalScore]              = {
+  def init(): IOResult[Unit] = {
+    for {
+      globalScores <- globalScoreRepository.getAll()
+      _            <- cache.set(globalScores)
+      scores       <- scoreRepository.getAll()
+      _            <- scoreCache.set(scores)
+    } yield ()
+  }
+
+  def fillWithNoScore(globalScore: GlobalScore): IOResult[GlobalScore] = {
     for {
       scoreIds <- availableScore.get
     } yield {
@@ -72,10 +82,12 @@ class ScoreServiceImpl(globalScoreRepository: GlobalScoreRepository, scoreReposi
       }
     }
   }
-  def getAll():                                  IOResult[Map[NodeId, GlobalScore]] = cache.get.flatMap(ZIO.foreach(_) {
+
+  def getAll(): IOResult[Map[NodeId, GlobalScore]] = cache.get.flatMap(ZIO.foreach(_) {
     case (key, v) => fillWithNoScore(v).map((key, _))
   })
-  def getGlobalScore(nodeId: NodeId):            IOResult[GlobalScore]              = {
+
+  def getGlobalScore(nodeId: NodeId): IOResult[GlobalScore] = {
     for {
       c           <- cache.get
       res         <-
