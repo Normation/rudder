@@ -1290,6 +1290,8 @@ object RudderConfig extends Loggable {
       // is encapsulated in a try/catch ( see net.liftweb.http.provider.HTTPProvider.bootLift )
       rci.allBootstrapChecks.checks()
 
+      rci.scoreService.init().runNow
+
     }
   }
 

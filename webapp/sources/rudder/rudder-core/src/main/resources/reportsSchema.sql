@@ -455,7 +455,7 @@ CREATE TABLE NodeFacts (
 );
 
 
-CREATE TYPE score AS enum ('A', 'B', 'C', 'D', 'E')
+CREATE TYPE score AS enum ('A', 'B', 'C', 'D', 'E');
 
 Create table GlobalScore (
   nodeId  text primary key

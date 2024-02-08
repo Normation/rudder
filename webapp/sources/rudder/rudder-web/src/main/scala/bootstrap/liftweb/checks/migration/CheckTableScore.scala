@@ -62,7 +62,7 @@ class CheckTableScore(
     val sqlType   = sql"""CREATE TYPE score AS enum ('A', 'B', 'C', 'D', 'E')"""
     val sql1      = sql"""CREATE TABLE IF NOT EXISTS GlobalScore (
       nodeId  text primary key
-    , score   score NOT NULL CHECK (score <> '')
+    , score   score NOT NULL
     , message text NOT NULL CHECK (message <> '')
     , details jsonb NOT NULL
     );"""
@@ -70,7 +70,7 @@ class CheckTableScore(
     val sql2 = sql"""CREATE TABLE IF NOT EXISTS ScoreDetails (
       nodeId  text
     , scoreId text
-    , score   score NOT NULL CHECK (score <> '')
+    , score   score NOT NULL
     , message text NOT NULL CHECK (message <> '')
     , details jsonb NOT NULL
     , PRIMARY KEY (nodeId, scoreId)
