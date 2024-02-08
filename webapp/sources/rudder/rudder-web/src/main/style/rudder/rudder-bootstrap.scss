@@ -86,6 +86,10 @@ $link-color : $rudder-txt-link;
     line-height: 1.5;
     border-radius: 3px;
   }
+  
+  &.active {
+    box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+  }
 }
 // --- FORM-GROUP OVERRIDE
 .form-group{
