@@ -171,6 +171,7 @@ import com.normation.rudder.score.ScoreRepositoryImpl
 import com.normation.rudder.score.ScoreService
 import com.normation.rudder.score.ScoreServiceImpl
 import com.normation.rudder.score.ScoreServiceManager
+import com.normation.rudder.score.SystemUpdateScoreHandler
 import com.normation.rudder.services._
 import com.normation.rudder.services.eventlog._
 import com.normation.rudder.services.eventlog.EventLogFactoryImpl
@@ -1296,6 +1297,8 @@ object RudderConfig extends Loggable {
       rci.allBootstrapChecks.checks()
 
       rci.scoreService.init().runNow
+
+      rci.scoreServiceManager.registerHandler(new SystemUpdateScoreHandler(rci.nodeFactRepository)).runNow
 
     }
   }
