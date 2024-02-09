@@ -519,8 +519,8 @@ blockBody model parentId block ui techniqueUi =
        |> addClass ("method-info" ++ if (block.condition.os /= Nothing || block.condition.advanced /= "") then " condition" else "")
        |> addClassConditional ("closed") (ui.mode == Closed)
        |> addAction ("click", UIBlockAction block.id {ui | mode = Opened})
-       |> appendRightLabels
        |> appendLeftLabels
+       |> appendRightLabels
        |> appendChildList
           [ element "div"
             |> addClass "btn-holder"
