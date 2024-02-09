@@ -37,6 +37,7 @@
 
 package bootstrap.liftweb
 
+import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogDetails
@@ -78,10 +79,13 @@ import net.liftweb.sitemap.Menu
 import net.liftweb.util.TimeHelpers._
 import org.joda.time.DateTime
 import org.reflections.Reflections
+import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
 import scala.concurrent.duration.DAYS
 import scala.concurrent.duration.Duration
 import scala.xml.NodeSeq
+import zio.{System => _, _}
+import zio.syntax._
 
 /*
  * Utilities about rights
@@ -227,38 +231,70 @@ object FatalException {
  */
 object UserLogout {
 
-  def cleanUpSession(session: LiftSession, endCause: String) = {
-    SecurityContextHolder.getContext.getAuthentication match {
+  val logoutActions = Ref.make(Chunk[LogoutPostAction]()).runNow
+
+  def cleanUpSession(session: LiftSession, endCause: String): Option[URI] = {
+    val logoutRedirect: Option[URI] = SecurityContextHolder.getContext.getAuthentication match {
       case null => // impossible to know who is login out
         ApplicationLogger.debug("Logout called for a null authentication, can not log user out")
+        None
       case auth =>
         auth.getPrincipal() match {
           case u: RudderUserDetail =>
-            (RudderConfig.userRepository.logCloseSession(u.getUsername, DateTime.now(), endCause) *>
-            RudderConfig.eventLogRepository
-              .saveEventLog(
-                ModificationId(RudderConfig.stringUuidGenerator.newUuid),
-                LogoutEventLog(
-                  EventLogDetails(
-                    modificationId = None,
-                    principal = EventActor(u.getUsername),
-                    details = EventLog.emptyDetails,
-                    reason = None
+            val redirects: IterableOnce[Option[URI]] = {
+              (RudderConfig.userRepository.logCloseSession(u.getUsername, DateTime.now(), endCause) *>
+              RudderConfig.eventLogRepository
+                .saveEventLog(
+                  ModificationId(RudderConfig.stringUuidGenerator.newUuid),
+                  LogoutEventLog(
+                    EventLogDetails(
+                      modificationId = None,
+                      principal = EventActor(u.getUsername),
+                      details = EventLog.emptyDetails,
+                      reason = None
+                    )
                   )
+                ) *>
+              logoutActions.get.flatMap(actions => {
+                ZIO.foreach(actions)(a => {
+                  a.exec(auth)
+                    .catchAll(err => {
+                      ApplicationLoggerPure.error(
+                        s"Error when performing logout action '${a.id}': ${err.fullMsg}"
+                      ) *> None.succeed
+                    })
+                })
+              }))
+                .catchAll(err =>
+                  ApplicationLoggerPure.error(s"Error when saving user login event log result: ${err.fullMsg}") *> None.succeed
                 )
-              )).runNowLogError(err => ApplicationLogger.error(s"Error when saving user loggin event log result: ${err.fullMsg}"))
+                .runNow
+            }
+
+            redirects.iterator.toSeq.headOption.flatten
 
           case x => // impossible to know who is login out
-            ApplicationLogger.debug("Logout called with unexpected UserDetails, can not log user logout. Details: " + x)
+            ApplicationLogger.debug(
+              "Logout called with unexpected UserDetails, can not log user logout. Details: " + x
+            )
+            None
         }
     }
-    // Let's terminate the session
     SecurityContextHolder.clearContext()
     // info.session.destroySession() //does not seems to actually terminate the session everytime
     session.httpSession.foreach(_.terminate)
     session.destroySession()
+    logoutRedirect
   }
 }
+
+/*
+ * Additional post action that are called just before session is cleared when
+ * currently logged user is a RudderUserDetail (and only in that case).
+ * If an URI is returned, it will be used as a redirect (of course, only the first post-action
+ * returning an URI will have the redirect).
+ */
+final case class LogoutPostAction(id: String, exec: Authentication => IOResult[Option[URI]])
 
 /**
  * A class that's instantiated early and run.  It allows the application

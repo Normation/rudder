@@ -91,13 +91,16 @@ class UserInformation extends DispatchSnippet with DefaultExtendableSnippet[User
       "Log out",
       JE.Call("logout"),
       { () =>
-        S.session match {
-          case Full(session) => // we have a session, try to know who is login out
-            UserLogout.cleanUpSession(session, "User asked for logout")
-          case e: EmptyBox => // no session ? Strange, but ok, nobody is login
-            ApplicationLogger.debug("Logout called for a non existing session, nothing more done")
+        {
+          val redirect = (S.session match {
+            case Full(session) => // we have a session, try to know who is login out
+              UserLogout.cleanUpSession(session, "User asked for logout")
+            case e: EmptyBox => // no session ? Strange, but ok, nobody is login
+              ApplicationLogger.debug("Logout called for a non existing session, nothing more done")
+              None
+          })
+          JsCmds.RedirectTo(redirect.map(_.toString).getOrElse("/"))
         }
-        JsCmds.RedirectTo("/")
       },
       ("class", "btn btn-danger")
     )
