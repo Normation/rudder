@@ -643,29 +643,30 @@ callBody model ui techniqueUi call pid =
        |> addAction ("click",  UIMethodAction call.id {ui | mode = Opened})
        |> appendChildList
           [ element "div"
-            |> addClass "btn-holder"
-            |> addAttribute (hidden (not model.hasWriteRights))
-            |> appendChildList
-               [ removeButton
-               , resetButton
-               , cloneButton
-               , ( case method.documentation of
-                 Just _ -> docButton
-                 Nothing -> element "span"
-               )
-               , element "span" |> addAttributeList
-                                   [ class deprecatedClass
-                                   , attribute "data-bs-toggle" "popover", attribute "data-trigger" "hover", attribute "data-bs-container" "body"
-                                   , attribute "data-bs-placement" "auto", attribute "data-bs-content" (getTooltipContent method)
-                                   , attribute "data-bs-html" "true"
-                                   ]
-               ]
-
-          , element "div"
             |> addClass "flex-column"
             |> addAction ("click",  UIMethodAction call.id {ui | mode = Opened})
             |> appendLeftLabels
             |> appendRightLabels
+            |> appendChild (
+               element "div"
+                 |> addClass "btn-holder"
+                 |> addAttribute (hidden (not model.hasWriteRights))
+                 |> appendChildList
+                    [ removeButton
+                    , resetButton
+                    , cloneButton
+                    , ( case method.documentation of
+                      Just _ -> docButton
+                      Nothing -> element "span"
+                    )
+                    , element "span" |> addAttributeList
+                                        [ class deprecatedClass
+                                        , attribute "data-bs-toggle" "popover", attribute "data-trigger" "hover", attribute "data-bs-container" "body"
+                                        , attribute "data-bs-placement" "auto", attribute "data-bs-content" (getTooltipContent method)
+                                        , attribute "data-bs-html" "true"
+                                        ]
+                    ]
+               )
             |> appendChild condition-- (call.condition.os /= Nothing || call.condition.advanced /= "")
             |> appendChild methodName
             --|> appendChild methodNameId
