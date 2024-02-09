@@ -47,7 +47,7 @@ getClassParameter: Method -> MethodParameter
 getClassParameter method =
   case findClassParameter method of
     Just p -> p
-    Nothing -> MethodParameter method.classParameter "" "" []
+    Nothing -> MethodParameter method.classParameter "" "" defaultConstraint
 
 findClassParameter: Method -> Maybe MethodParameter
 findClassParameter method =
@@ -57,22 +57,16 @@ parameterName: MethodParameter -> String
 parameterName param =
   String.replace "_" " " (String.Extra.toSentenceCase param.name.value)
 
-checkMandatoryParameter: MethodParameter -> Bool
-checkMandatoryParameter methodParam =
-  List.all (\c -> case c of
-             AllowEmpty bool -> not bool
-             _ -> True
-           ) methodParam.constraints
 
 showParam: Model -> MethodCall -> ValidationState MethodCallParamError -> MethodParameter -> List CallParameter -> Html Msg
 showParam model call state methodParam params =
   let
     displayedValue = List.Extra.find (.id >> (==) methodParam.name ) params |> Maybe.map (.value >> displayValue) |> Maybe.withDefault ""
     isMandatory =
-      if (checkMandatoryParameter methodParam) then
-        span [class "mandatory-param"] [text " *"]
-      else
+      if methodParam.constraints.allowEmpty |> Maybe.withDefault False then
         span [class "allow-empty"] [text ""]
+      else
+        span [class "mandatory-param"] [text " *"]
     errors = case state of
       InvalidState constraintErrors -> List.filterMap (\c -> case c of
                                                          ConstraintError err ->
@@ -125,39 +119,48 @@ accumulateValidationState validations base =
                           (Unchanged, Unchanged) -> Unchanged
              ) base validations
 
-accumulateErrorConstraint: CallParameter -> List Constraint -> ValidationState MethodCallParamError -> ValidationState MethodCallParamError
+accumulateErrorConstraint: CallParameter -> Constraint -> ValidationState MethodCallParamError -> ValidationState MethodCallParamError
 accumulateErrorConstraint call constraints base =
-  accumulateValidationState (List.map  (checkConstraintOnParameter call) constraints ) base
+  accumulateValidationState [ (checkConstraintOnParameter call constraints) ] base
 
 checkConstraintOnParameter: CallParameter -> Constraint -> ValidationState MethodCallParamError
 checkConstraintOnParameter call constraint =
-  case constraint of
-    AllowEmpty          True -> ValidState
-    AllowEmpty          False -> if (isEmptyValue call.value) then InvalidState [ConstraintError { id = call.id, message = ("Parameter '"++call.id.value++"' is empty")}] else ValidState
-    AllowWhiteSpace     True -> ValidState
-    AllowWhiteSpace     False -> case Regex.fromString "(^\\s)|(\\s$)" of
-                               Nothing -> ValidState
-                               Just r -> if Regex.contains r (displayValue call.value) then InvalidState [ConstraintError { id = call.id, message = ( "Parameter '"++call.id.value++"' start or end with whitespace characters"  ) } ] else ValidState
-    MaxLength max -> if lengthValue call.value >= max then  InvalidState [ConstraintError  { id = call.id, message = ("Parameter '"++call.id.value++"' should be at most " ++ (String.fromInt max) ++ " long" ) } ]else ValidState
-    MinLength min -> if lengthValue call.value <= min then  InvalidState [ConstraintError { id = call.id, message = ("Parameter '"++call.id.value++"' should be at least " ++ (String.fromInt min) ++ " long") } ] else ValidState
-    MatchRegex r -> case Regex.fromString r of
-                      Nothing ->  ValidState
+  let
+    checkEmpty =  if not (constraint.allowEmpty  |> Maybe.withDefault False) && isEmptyValue call.value then [ConstraintError { id = call.id, message = ("Parameter '"++call.id.value++"' is empty")}] else []
+    checkWhiteSpace =
+      if constraint.allowWhiteSpace  |> Maybe.withDefault False then
+        []
+      else
+        case Regex.fromString "(^\\s)|(\\s$)" of
+          Nothing -> []
+          Just r -> if Regex.contains r (displayValue call.value) then [ConstraintError { id = call.id, message = ( "Parameter '"++call.id.value++"' start or end with whitespace characters"  ) } ] else []
+
+    checkMax = if lengthValue call.value >= (constraint.maxLength  |> Maybe.withDefault 16384) then  [ConstraintError  { id = call.id, message = ("Parameter '"++call.id.value++"' should be at most " ++ (String.fromInt (constraint.maxLength |> Maybe.withDefault 16384) ) ++ " long" ) } ]else []
+    min = Maybe.withDefault 0 constraint.minLength
+    checkMin = if lengthValue call.value <= min then [ConstraintError { id = call.id, message = ("Parameter '"++call.id.value++"' should be at least " ++ (String.fromInt min) ++ " long") } ] else []
+    regexValue = Maybe.map Regex.fromString constraint.matchRegex |> Maybe.Extra.join
+    checkRegex = case regexValue of
+                      Nothing ->  []
+                      Just regex ->
+                        if Regex.contains regex (displayValue call.value) then
+                          []
+                        else
+                          [ConstraintError { id = call.id, message = ( "Parameter '" ++ call.id.value ++"' should match the following regexp: " ++ (Maybe.withDefault "" constraint.matchRegex)  )} ]
+    nonRegexValue = Maybe.map Regex.fromString constraint.notMatchRegex |> Maybe.Extra.join
+    notRegexCheck = case  nonRegexValue of
+                      Nothing ->  []
                       Just regex -> if Regex.contains regex (displayValue call.value) then
-                                      ValidState
+                                       [ConstraintError { id = call.id, message = ("Parameter '" ++ call.id.value ++"' should not match the following regexp: " ++ (Maybe.withDefault "" constraint.notMatchRegex) ) }]
                                     else
-                                       InvalidState [ConstraintError { id = call.id, message = ( "Parameter '" ++ call.id.value ++"' should match the following regexp: " ++ r  )} ]
-    NotMatchRegex r -> case Regex.fromString r of
-                      Nothing ->  ValidState
-                      Just regex -> if Regex.contains regex (displayValue call.value) then
-                                       InvalidState [ConstraintError { id = call.id, message = ("Parameter '" ++ call.id.value ++"' should not match the following regexp: " ++ r ) }]
-                                    else
-                                      ValidState
-    Select list -> if List.any ( (==) (displayValue call.value) ) list then
-                     ValidState
+                                      []
+    checkSelect = Maybe.map ( \ select -> if List.any ( .value >> (==) (displayValue call.value) ) select then
+                     []
                    else
-                     InvalidState [ConstraintError { id = call.id, message =  ( "Parameter '" ++ call.id.value ++ "'  should be one of the value from the following list: " ++ (String.join ", " list) )} ]
-
-
+                     [ConstraintError { id = call.id, message =  ( "Parameter '" ++ call.id.value ++ "'  should be one of the value from the following list: " ++ (String.join ", " (select |> List.map .value)) )} ]
+                  ) constraint.select |> Maybe.withDefault []
+    checks = [ checkEmpty, checkWhiteSpace, checkMax, checkMin, checkRegex, notRegexCheck, checkSelect ] |> List.concat
+  in
+    if List.isEmpty checks then ValidState else InvalidState checks
 {-
   DISPLAY ONE METHOD EXTENDED
 -}

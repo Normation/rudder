@@ -514,7 +514,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "technique parameter",
         Some(" a long description, with line \n break within"),
         // we must ensure that it will lead to: [parameter(Mandatory=$false)]
-        true
+        true,
+        None
       ) :: Nil,
       Nil,
       Map(),
@@ -662,7 +663,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "version",
         "package version",
         Some("Package version to install"),
-        false
+        false,
+        None
       ) :: Nil,
       Nil,
       Map(),
@@ -753,7 +755,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "my_custom_condition",
         "my custom condition",
         None,
-        false
+        false,
+        None
       ) :: Nil,
       Nil,
       Map(),

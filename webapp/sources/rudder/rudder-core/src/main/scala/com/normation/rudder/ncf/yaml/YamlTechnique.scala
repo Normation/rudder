@@ -97,16 +97,13 @@ case class TechniqueParameter(
     constraints:   Constraints
 )
 
-case class Constraints(
-    allow_empty: Option[Boolean]
-)
-
 object YamlTechniqueSerializer {
   implicit val encoderParameterId:        JsonEncoder[ParameterId]        = JsonEncoder[String].contramap(_.value)
   implicit val encoderFieldParameterId:   JsonFieldEncoder[ParameterId]   = JsonFieldEncoder[String].contramap(_.value)
   implicit val encoderBundleName:         JsonEncoder[BundleName]         = JsonEncoder[String].contramap(_.value)
   implicit val encoderVersion:            JsonEncoder[Version]            = JsonEncoder[String].contramap(_.value)
   implicit val encoderReporting:          JsonEncoder[Reporting]          = DeriveJsonEncoder.gen
+  implicit val encoderSelectOption:       JsonEncoder[SelectOption]       = DeriveJsonEncoder.gen
   implicit val encoderConstraints:        JsonEncoder[Constraints]        = DeriveJsonEncoder.gen
   implicit val encoderPolicyMode:         JsonEncoder[PolicyMode]         = JsonEncoder[String].contramap(_.name)
   implicit lazy val encoderMethodElem:    JsonEncoder[MethodItem]         = DeriveJsonEncoder.gen
@@ -119,6 +116,8 @@ object YamlTechniqueSerializer {
   implicit val decoderFieldParameterId:   JsonFieldDecoder[ParameterId]   = JsonFieldDecoder[String].map(ParameterId.apply)
   implicit val decoderVersion:            JsonDecoder[Version]            = JsonDecoder[String].map(s => new Version(s))
   implicit val decoderReporting:          JsonDecoder[Reporting]          = DeriveJsonDecoder.gen
+  implicit val decoderSelectOption:       JsonDecoder[SelectOption]       =
+    JsonDecoder[String].map(SelectOption(_, None)).orElse(DeriveJsonDecoder.gen)
   implicit val decoderConstraints:        JsonDecoder[Constraints]        = DeriveJsonDecoder.gen
   implicit val decoderTechniqueParameter: JsonDecoder[TechniqueParameter] = DeriveJsonDecoder.gen
   implicit val decoderPolicyMode:         JsonDecoder[PolicyMode]         = JsonDecoder[String].mapOrFail(PolicyMode.parse(_) match {
@@ -223,7 +222,9 @@ object YamlTechniqueSerializer {
       techniqueParameter.name,
       techniqueParameter.description,
       techniqueParameter.documentation,
-      Constraints(allow_empty = Some(techniqueParameter.mayBeEmpty))
+      techniqueParameter.constraints
+        .getOrElse(Constraints(None, None, None, None, None, None, None))
+        .copy(allowEmpty = Some(techniqueParameter.mayBeEmpty))
     )
   }
 
@@ -233,7 +234,8 @@ object YamlTechniqueSerializer {
       techniqueParameter.name,
       techniqueParameter.description,
       techniqueParameter.documentation,
-      techniqueParameter.constraints.allow_empty.getOrElse(false)
+      techniqueParameter.constraints.allowEmpty.getOrElse(false),
+      Some(techniqueParameter.constraints)
     )
   }
 
