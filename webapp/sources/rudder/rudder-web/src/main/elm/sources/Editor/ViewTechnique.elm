@@ -98,7 +98,7 @@ listAllMethodWithErrorOnParameters methodCallList libMethods =
                   let
                     paramConstraints = case (List.head (List.filter (\p -> param.id.value == p.name.value) method.parameters)) of
                       Just paramWithConstraints -> paramWithConstraints.constraints
-                      _                         -> []
+                      _                         -> defaultConstraint
                     state = accumulateErrorConstraint param paramConstraints ValidState
                   in
                   state

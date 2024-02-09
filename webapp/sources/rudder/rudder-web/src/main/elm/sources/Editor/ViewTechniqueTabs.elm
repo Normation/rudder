@@ -6,6 +6,8 @@ import Html.Events exposing (..)
 
 import Editor.AgentValueParser exposing (..)
 import Editor.DataTypes exposing (..)
+import List.Extra
+import Maybe.Extra
 import Regex
 import String.Extra
 
@@ -74,6 +76,8 @@ techniqueParameter model technique param opened =
         ("", text "")
 
     checkboxId = ("paramRequired-" ++ param.id.value)
+
+    constraint = param.constraints
   in
     li [] [
       span [ class "border" ] []
@@ -81,7 +85,10 @@ techniqueParameter model technique param opened =
         div [ class "input-group form-group" ] [
           input [readonly (not model.hasWriteRights), type_ "text",  class ("form-control " ++ invalidNameClass), value param.description, placeholder "Parameter name", onInput (\s -> TechniqueParameterModified param.id {param | description = s }), required True] []
         , label [ class "input-group-text", for checkboxId]
-          [ input[type_ "checkbox", id checkboxId, checked (not param.mayBeEmpty), onCheck (\c -> (TechniqueParameterModified param.id {param | mayBeEmpty = not c }))][]
+          [ input[type_ "checkbox", id checkboxId, checked (not param.mayBeEmpty), onCheck (\c ->
+            let newConstraint = {constraint | allowEmpty = Just c}
+            in
+              (TechniqueParameterModified param.id {param | mayBeEmpty = not c, constraints = newConstraint }))][]
           , span [][text " Required "]
           , span
             [ class "cursor-help popover-bs", attribute "data-toggle" "popover"
@@ -93,13 +100,68 @@ techniqueParameter model technique param opened =
           ]
         ]
       , invalidNameElem
-      , div [ class "input-group" ] [
+      , div [ class "input-group form-group" ] [
            input [readonly (not model.hasWriteRights), type_ "text",  class ("form-control "++invalidParamClass), value param.name, placeholder (if (String.isEmpty param.description) then "Variable name" else (canonifyString param.description)) , onInput (\s -> TechniqueParameterModified param.id {param | name = s }), required True] []
         , button [ class "btn btn-outline-secondary clipboard", title "Copy to clipboard" , onClick (Copy ("${" ++ param_var_name ++ "}")) ] [
             i [ class "ion ion-clipboard" ] []
           ]
         ]
       , invalidParamElem
+      , div [ class "input-group form-group" ] [
+          label [ class "input-group-text", for "param_select"]
+            [ input[type_ "checkbox", id "param_select", checked (Maybe.Extra.isJust constraint.select ), onCheck (\c ->
+              let newConstraint = {constraint | select = if c then Just [ SelectOption "" Nothing ] else Nothing }
+                in
+              (TechniqueParameterModified param.id {param | constraints = newConstraint }))][]
+            , span [][text "  Select values from a list "]
+            ]
+          ]
+      , ( case constraint.select of
+            Just l ->
+             let displayValue = \ index currentValue ->
+                  li[] [div [ class "input-group form-group" ] [
+                     input [type_ "text",  class ("form-control "), value currentValue.value, placeholder "Value" ,
+                      onInput (\s ->
+                        let
+                          newConstraint = { constraint | select = Just (List.Extra.updateAt index (\val -> {val | value = s}) l  ) }
+                        in
+                          TechniqueParameterModified param.id {param | constraints = newConstraint }), required True] []
+                    , input [type_ "text",  class ("form-control "), value (Maybe.withDefault "" currentValue.name), placeholder "Name" ,
+                      onInput (\s ->
+                        let
+                          newConstraint = { constraint | select = Just (List.Extra.updateAt index (\val -> {val | name = if String.isEmpty s then Nothing else Just s}) l  ) }
+                        in
+                          TechniqueParameterModified param.id {param | constraints = newConstraint }), required True] []
+                    , button [ class "btn btn-outline-danger", title "Remove value" ,
+                      onClick (
+                        let
+                          newConstraint = { constraint | select = Just (List.Extra.removeAt index l  ) }
+                        in
+                          TechniqueParameterModified param.id {param | constraints = newConstraint }), required True] [
+                       i [ class "fa fa-times" ] []
+                     ]
+                   ]
+                  ]
+             in
+             ul []
+              ( List.concat [
+                List.indexedMap displayValue l
+              , [ button [
+                    class "btn btn-outline-primary", title "add a new value"
+                  , onClick (
+                      let
+                        newConstraint = { constraint | select = Just (List.concat [l , [ SelectOption "" Nothing] ]  ) }
+                      in
+                        TechniqueParameterModified param.id {param | constraints = newConstraint }
+                    ), required True
+                  ] [
+                    i [ class "fa fa-plus" ] []
+                  , text "Add value"
+                  ]
+                ]
+              ])
+            Nothing -> text ""
+        )
       , div [] param_name
       , button [ class "btn btn-sm btn-outline-primary",  style "margin-top" "5px" , onClick (TechniqueParameterToggle param.id)] [
           text "Description "

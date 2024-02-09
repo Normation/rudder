@@ -51,8 +51,10 @@ import com.normation.rudder.ncf.Constraint.CheckResult
 import com.normation.rudder.ncf.Constraint.Constraint
 import java.util.regex.Pattern
 import zio.ZIO
+import zio.json.SnakeCase
 import zio.json.jsonDiscriminator
 import zio.json.jsonHint
+import zio.json.jsonMemberNames
 
 sealed trait NcfId {
   def value:        String
@@ -196,7 +198,8 @@ final case class TechniqueParameter(
     name:          String,
     description:   String,
     documentation: Option[String],
-    mayBeEmpty:    Boolean
+    mayBeEmpty:    Boolean,
+    constraints:   Option[Constraints]
 )
 
 object ParameterType {
@@ -275,6 +278,19 @@ object ParameterType {
     private[this] var innerServices:                           List[ParameterTypeService] = new BasicParameterTypeService :: Nil
   }
 }
+
+case class SelectOption(value: String, name: Option[String])
+
+@jsonMemberNames(SnakeCase)
+case class Constraints(
+    allowEmpty:      Option[Boolean],
+    allowWhiteSpace: Option[Boolean],
+    minLength:       Option[Int],
+    maxLength:       Option[Int],
+    regex:           Option[String],
+    notRegex:        Option[String],
+    select:          Option[List[SelectOption]]
+)
 
 object Constraint {
   sealed trait Constraint {

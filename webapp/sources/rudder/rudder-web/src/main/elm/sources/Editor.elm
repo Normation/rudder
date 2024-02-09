@@ -427,7 +427,7 @@ update msg model =
 
                             newValidation =
                                  List.foldl ( \param val ->
-                                   accumulateErrorConstraint  param (Maybe.withDefault [] (Dict.get param.id.value constraints)) val
+                                   accumulateErrorConstraint  param (Maybe.withDefault defaultConstraint (Dict.get param.id.value constraints)) val
                                  ) b.validation realCall.parameters
 
                           in
@@ -497,7 +497,7 @@ update msg model =
           case model.mode of
             TechniqueDetails t o ui editInfo->
               let
-                parameters = List.append t.parameters [  TechniqueParameter paramId "" "" Nothing False ]
+                parameters = List.append t.parameters [  TechniqueParameter paramId "" "" Nothing False defaultConstraint]
               in
                 TechniqueDetails { t | parameters = parameters } o ui editInfo
             _ -> model.mode
@@ -771,8 +771,8 @@ update msg model =
 
                 calls = updateElemIf (getId >> (==) call.id )  (updateParameter paramId newValue) t.elems
                 constraints = case Dict.get call.methodName.value model.methods of
-                           Just m -> Maybe.withDefault [] (Maybe.map (.constraints) (List.Extra.find (.name >> (==) paramId) m.parameters))
-                           Nothing -> []
+                           Just m -> Maybe.withDefault defaultConstraint (Maybe.map (.constraints) (List.Extra.find (.name >> (==) paramId) m.parameters))
+                           Nothing -> defaultConstraint
 
                 updateCallUi = \optCui ->
                   let

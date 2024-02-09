@@ -27,6 +27,7 @@ decodeTechniqueParameter =
     |> required "description" string
     |> optional "documentation" (maybe string) Nothing
     |> optional "mayBeEmpty" bool False
+    |> optional "constraints" decodeConstraint defaultConstraint
 
 decodeCallParameter : List (String, List AgentValue) -> List CallParameter
 decodeCallParameter params =
@@ -155,44 +156,24 @@ decodeAgent =
       _          -> fail (v ++ " is not a valid agent")
   ) string
 
-decodeConstraint: Decoder (List Constraint)
+decoderSelectOption : Decoder SelectOption
+decoderSelectOption =
+  oneOf [ map (\s ->SelectOption s Nothing) string
+  , succeed SelectOption
+      |> required "value" string
+      |> optional "name" (maybe string) Nothing
+  ]
+
+decodeConstraint: Decoder Constraint
 decodeConstraint =
-  andThen ( \v ->
-    List.foldl (\val acc ->
-      case val of
-        ("allow_empty_string", value) ->
-          case decodeValue bool value of
-            Ok b -> andThen (\t -> succeed (AllowEmpty b :: t) ) acc
-            Err e-> fail (errorToString e)
-        ("allow_whitespace_string", value) ->
-          case decodeValue bool value of
-            Ok b -> andThen (\t -> succeed (AllowWhiteSpace b :: t) ) acc
-            Err e-> fail (errorToString e)
-        ("max_length", value) ->
-          case decodeValue int value of
-            Ok b -> andThen (\t -> succeed (MaxLength b :: t) ) acc
-            Err e-> fail (errorToString e)
-        ("min_length", value) ->
-          case decodeValue int value of
-            Ok b -> andThen (\t -> succeed (MinLength b :: t) ) acc
-            Err e-> fail (errorToString e)
-        ("regex", value) ->
-          case decodeValue string value of
-            Ok b -> andThen (\t -> succeed (MatchRegex b :: t) ) acc
-            Err e-> fail (errorToString e)
-        ("not_regex", value) ->
-          case decodeValue string value of
-            Ok b -> andThen (\t -> succeed (NotMatchRegex b :: t) ) acc
-            Err e-> fail (errorToString e)
-        ("select", value) ->
-          case decodeValue (list string) value of
-            Ok b -> andThen (\t -> succeed (Select b :: t) ) acc
-            Err e-> fail (errorToString e)
-        _ -> acc
-
-    ) (succeed []) v
-
-  ) (keyValuePairs value)
+  succeed Constraint
+    |> optional  "allow_empty_string" (maybe bool) Nothing
+    |> optional  "allow_whitespace_string" (maybe bool) Nothing
+    |> optional  "max_length" (maybe int) Nothing
+    |> optional  "min_length" (maybe int) Nothing
+    |> optional  "regex" (maybe string) Nothing
+    |> optional  "not_regex" (maybe string) Nothing
+    |> optional  "select" (maybe (list decoderSelectOption)) Nothing
 
 decodeMethodParameter: Decoder MethodParameter
 decodeMethodParameter =

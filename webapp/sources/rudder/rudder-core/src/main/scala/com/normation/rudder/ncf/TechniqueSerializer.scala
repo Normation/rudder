@@ -66,6 +66,8 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
   implicit val encoderMethodElem:             JsonEncoder[MethodElem]                  = DeriveJsonEncoder.gen
   implicit val encoderTechniqueParameterType: JsonEncoder[ParameterType.ParameterType] =
     JsonEncoder[String].contramap(s => parameterTypeService.value(s).getOrElse(s.toString))
+  implicit val encoderSelectOption:           JsonEncoder[SelectOption]                = DeriveJsonEncoder.gen
+  implicit val encoderConstraints:            JsonEncoder[Constraints]                 = DeriveJsonEncoder.gen
   implicit val encoderTechniqueParameter:     JsonEncoder[TechniqueParameter]          = DeriveJsonEncoder.gen
   implicit val encoderResourceFileState:      JsonEncoder[ResourceFileState]           = JsonEncoder[String].contramap(_.value)
   implicit val encoderResourceFile:           JsonEncoder[ResourceFile]                = DeriveJsonEncoder.gen
@@ -83,6 +85,8 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
     case Left(err) => Left(err.fullMsg)
     case Right(r)  => Right(r)
   })
+  implicit val decoderSelectOption:       JsonDecoder[SelectOption]                = DeriveJsonDecoder.gen
+  implicit val decoderConstraints:        JsonDecoder[Constraints]                 = DeriveJsonDecoder.gen
   implicit val decoderTechniqueParameter: JsonDecoder[TechniqueParameter]          = DeriveJsonDecoder.gen
   implicit val decoderMethodElem:         JsonDecoder[MethodElem]                  = DeriveJsonDecoder.gen
   implicit val decoderResourceFileState:  JsonDecoder[ResourceFileState]           =
