@@ -2346,6 +2346,9 @@ class MockNodeGroups(nodesRepo: MockNodes) {
       } yield cat
     }
     override def getAll():                              IOResult[Seq[NodeGroup]]                           = categories.get.map(_.allGroups.values.map(_.nodeGroup).toSeq)
+    override def getAllByIds(ids: Seq[NodeGroupId]):    IOResult[Seq[NodeGroup]]                           = {
+      categories.get.map(_.allGroups.values.map(_.nodeGroup).filter(g => ids.contains(g.id)).toSeq)
+    }
 
     override def getAllNodeIds(): IOResult[Map[NodeGroupId, Set[NodeId]]] =
       categories.get.map(_.allGroups.values.map(_.nodeGroup).map(g => (g.id, g.serverList)).toMap)

@@ -93,7 +93,6 @@ view model =
         Maybe.Extra.filter (\_ -> model.ruleTree /= emptyCategory) treeItem
   
   in 
-    --TODO: use SCSS variable for "34px" input-group-text height (that's the value for the input form height)
     div [class "shadow-none col-6 col-md-8 col-lg-7"]
     [ div [class "template-main-header"]
       [ div [class "header-title"]
@@ -101,9 +100,9 @@ view model =
         ]
       , div [class "header-filter"]
         [ div [class "input-group flex-nowrap"]
-          [ button [class "input-group-text btn btn-default", type_ "button", style "height" "34px", onClick (FoldAllCategories model.ui.ruleTreeFilters) ][span [class "fa fa-folder fa-folder-open"][]]
+          [ button [class "input-group-text btn btn-default", type_ "button", onClick (FoldAllCategories model.ui.ruleTreeFilters) ][span [class "fa fa-folder fa-folder-open"][]]
           , input[type_ "text", value model.ui.ruleTreeFilters.filter ,placeholder "Filter", class "form-control", onInput (\s -> UpdateRuleFilters {treeFilters | filter = s})][]
-          , button [class "input-group-text btn btn-default", type_ "button", style "height" "34px", onClick (UpdateRuleFilters {treeFilters | filter = ""})] [span [class "fa fa-times"][]]
+          , button [class "input-group-text btn btn-default", type_ "button", onClick (UpdateRuleFilters {treeFilters | filter = ""})] [span [class "fa fa-times"][]]
           ]
         , label [class "btn btn-default more-filters", for "toggle-filters"][]
         ]
@@ -114,7 +113,7 @@ view model =
           [ label[for "tag-key"][text "Tags"]
           , div [class "input-group flex-nowrap"]
             [ input[type_ "text", value model.ui.ruleTreeFilters.newTag.key, placeholder "key", class "form-control", id "tag-key", onInput (\s -> UpdateRuleFilters {treeFilters | newTag = {newTag | key = s}})][]
-            , span [class "input-group-text", style "height" "34px"][text " = "] 
+            , span [class "input-group-text"][text " = "] 
             , input[type_ "text", value model.ui.ruleTreeFilters.newTag.value, placeholder "value", class "form-control", onInput (\s -> UpdateRuleFilters {treeFilters | newTag = {newTag | value = s}})][]
             , button 
               [ type_ "button"

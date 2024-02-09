@@ -62,7 +62,6 @@ import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.json._
 import net.liftweb.util._
-import net.liftweb.util.Helpers._
 import scala.xml._
 
 object Groups {
@@ -118,19 +117,104 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
   }
 
   /**
-   * Display the Groups hierarchy fieldset, with the JS tree
+   * Display the Groups tree on the left in Elm, and change the content on the right when needed within the `html_id` element of the page)
    * @param html
    * @return
    */
   def groupHierarchy(rootCategory: Box[FullNodeGroupCategory]): CssSel = {
-    (
-      "#groupTree" #> buildGroupTree("")
-      & "#newItem" #> groupNewItem()
+    val newItemCallback        = AnonFunc(
+      SHtml.ajaxCall(JsVar("hasWriteRights"), (hasWriteRights) => if (hasWriteRights.toBoolean) showPopup() else Noop)
     )
-  }
-
-  def groupNewItem(): NodeSeq = {
-    SHtml.ajaxButton("Create", () => showPopup(), ("class", "btn btn-success new-icon pull-right"))
+    val displayGroupDetails    = AnonFunc( // closure with "groupIdOrTarget"
+      SHtml.ajaxCall(JsVar("groupIdOrTarget"), _ => parseJsArg(boxGroupLib))
+    )
+    val displayCategoryDetails = AnonFunc( // closure with "categoryId"
+      SHtml.ajaxCall(
+        JsVar("categoryId"),
+        (catId) => displayCategory(catId).getOrElse(JsRaw(s"createErrorNotification('Category ${catId} not found')"))
+      )
+    )
+    _ =>
+      Script(
+        OnLoad(
+          JsRaw(
+            s"""
+               |var main = document.getElementById("groups-app");
+               |var initValues = {
+               |  contextPath    : contextPath
+               |, hasWriteRights : hasWriteRights
+               |};
+               |var app = Elm.Groups.init({node: main, flags: initValues});
+               |app.ports.errorNotification.subscribe(function(str) {
+               |  createErrorNotification(str)
+               |});
+               |app.ports.pushUrl.subscribe(function(url) {
+               |  var hashKey = url[0];
+               |  var hashValue = url[1];
+               |  var url = contextPath + "/secure/nodeManager/groups";
+               |  if (hashKey == "") {
+               |    window.location.hash = "";
+               |  } else {
+               |    window.location.hash = JSON.stringify({[hashKey]: hashValue});
+               |  }
+               |});
+               |app.ports.adjustComplianceCols.subscribe(function() {
+               |  //call the equalize width function
+               |  var group = $$(".compliance-col");
+               |  var widest = 0;
+               |  group.each(function() {
+               |      var thisWidth = $$(this).width();
+               |      if(thisWidth > widest) {
+               |          widest = thisWidth;
+               |      }
+               |  });
+               |  group.width(widest);
+               |});
+               |app.ports.displayCategoryDetails.subscribe(function(categoryId) {
+               |  var displayCategoryDetailsCallback = ${displayCategoryDetails.toJsCmd};
+               |  displayCategoryDetailsCallback()
+               |});
+               |app.ports.displayGroupDetails.subscribe(function(groupIdOrTarget) {
+               |  var displayGroupDetailsCallback = ${displayGroupDetails.toJsCmd};
+               |  displayGroupDetailsCallback()
+               |});
+               |var createGroupCallback = ${newItemCallback.toJsCmd};
+               |app.ports.createGroupModal.subscribe(function(msg) {
+               |  createGroupCallback()
+               |});
+               | 
+               |// We need to notify the Elm app when an action could have been executed to refresh the display
+               |$$("#createGroupPopup").on("hidden.bs.modal", function () {
+               |  app.ports.closeModal.send(null)
+               |});
+               |$$("#basePopup").on("hidden.bs.modal", function () {
+               |  app.ports.closeModal.send(null)
+               |});
+               |$$("#confirmUpdateActionDialog").on("hidden.bs.modal", function () {
+               |  app.ports.closeModal.send(null)
+               |});
+               |$$("#createCloneGroupPopup").on("hidden.bs.modal", function () {
+               |  app.ports.closeModal.send(null)
+               |});
+               |
+               |// Initialize tooltips
+               |app.ports.initTooltips.subscribe(function(msg) {
+               |  initBsTooltips();
+               |  setTimeout(function(){
+               |    initBsTooltips();
+               |  }, 800);
+               |});
+               |// The timeout aims to wait that the tree is fully loaded to
+               |// to prevent href to reload the page on click
+               |setTimeout(function(){
+               |  $$('.jstree-anchor').click(function (event) {
+               |    event.preventDefault();
+               |  });
+               |}, 950);
+              """.stripMargin
+          )
+        )
+      )
   }
 
   /**
@@ -456,6 +540,18 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
   /********************************************
   * Utility methods for JS
   ********************************************/
+
+  /**
+    * @return None if the category is not found
+    */
+  private[this] def displayCategory(categoryId: String): Option[JsCmd] = {
+    for {
+      groupLib <- boxGroupLib.toOption
+      category <- groupLib.allCategories.get(NodeGroupCategoryId(categoryId))
+    } yield {
+      displayCategory(category.toNodeGroupCategory)
+    }
+  }
 
   private[this] def displayCategory(category: NodeGroupCategory): JsCmd = {
     selectedCategoryId = Full(category.id)

@@ -5,56 +5,31 @@
   <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-groups.css"/>
   <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-groupcompliance.js"></script>
   <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-grouprelatedrules.js"></script>
+  <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-groups.js"></script>
 </head_merge>
 
 <span data-list="node.Groups.head"></span>
-<div class="rudder-template">
-  <div class="template-sidebar sidebar-left" data-lift="node.Groups.groupHierarchy">
-      <div class="sidebar-header">
-        <div class="header-title">
-          <h1>Groups</h1>
-          <div class="header-buttons">
-            <lift:Authz role="group_write">
-              <div id="newItem">Here comes the New item Button</div>
-            </lift:Authz>
-          </div>
-        </div>
-        <div class="header-filter">
-          <div class="input-group">
-            <button type="button" class="btn btn-default" onclick="toggleTree('#groupTree', this);">
-              <span class="fa fa-folder fa-folder-open"></span>
-            </button>
-            <input class="form-control" placeholder="Filter" id="groupSearch" onkeydown="refuseEnter(event);" onkeyup="searchTree('#groupSearch', '#groupTree');">
-            <button type="button" class="btn btn-default" onclick="clearSearchFieldTree('#groupSearch', '#groupTree');" >
-              <span class="fa fa-times"></span>
-            </button>
-          </div>
-        </div>
-
-      </div>
-      <div class="sidebar-body">
-        <div id="groupTree" class="sidebar-list">Here comes the Groups Tree</div>
-      </div>
-  </div>
-
-  <div class="template-main" id="ajaxItemContainer">
-    <div class="jumbotron">
-      <h1>Groups</h1>
-      <p>A group is based on a query over inventory data that defines a set of nodes, on which specific policies can then be applied.</p>
-      <p>Group categories are there to visually organize groups, and have no effect on the content of the groups or the applied configuration.</p>
-      <p>There is a set of pre-defined groups (called system groups), that covers Rudder-related classification.</p>
-    </div>
-    <div data-lift="node.Groups.initRightPanel"></div>
-  </div>
-
+<div id="groups-app">
 </div>
 
 
-<div id="createGroupPopup" class="modal fade" tabindex="-1">
+<div id="createGroupPopup" data-bs-target="#createGroupPopup" class="modal fade" tabindex="-1">
   <div id="createGroupContainer"></div>
 </div>
 
 <div data-lift="node.Groups.detailsPopup"></div>
 
+<div data-lift="node.Groups.initRightPanel"></div>
+
+<div data-lift="node.Groups.groupHierarchy"></div>
+
+<script>
+  var hasWriteRights = false;
+</script>
+<lift:authz role="rule_write">
+  <script>
+    hasWriteRights = true;
+  </script>
+</lift:authz>
 </lift:surround>
 

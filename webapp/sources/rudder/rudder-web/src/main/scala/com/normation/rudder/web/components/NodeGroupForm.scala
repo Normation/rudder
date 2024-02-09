@@ -738,7 +738,7 @@ class NodeGroupForm(
               val updateCategory = newCategory.getOrElse(parentCategoryId)
               successPopup & onSuccessCallback(Left((Right(newGroup), updateCategory))) &
               (if (action == DGModAction.Delete)
-                 SetHtml(htmlId_item, NodeSeq.Empty)
+                 RedirectTo("/secure/nodeManager/groups")
                else
                  Noop)
             }
