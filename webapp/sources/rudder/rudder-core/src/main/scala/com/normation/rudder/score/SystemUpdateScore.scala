@@ -41,14 +41,18 @@ import com.normation.errors.PureResult
 import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.SoftwareUpdateKind
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.facts.nodes.SelectFacts
+import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.score.ScoreValue.A
 import com.normation.rudder.score.ScoreValue.B
 import com.normation.rudder.score.ScoreValue.C
 import com.normation.rudder.score.ScoreValue.D
 import com.normation.rudder.score.ScoreValue.E
-import zio.json.DeriveJsonEncoder
-import zio.json.EncoderOps
-import zio.json.JsonEncoder
+import zio._
+import zio.json._
+import zio.syntax._
 
 object SystemUpdateScore {
   val scoreId = "system-updates"
@@ -63,17 +67,18 @@ case class SystemUpdateStats(
     other:       Option[Int]
 )
 
-object SystemUpdateScoreHandler extends ScoreEventHandler {
+class SystemUpdateScoreHandler(nodeFactRepository: NodeFactRepository) extends ScoreEventHandler {
+
   def handle(event: ScoreEvent): PureResult[List[(NodeId, List[Score])]] = {
     implicit val compliancePercentEncoder: JsonEncoder[SystemUpdateStats] = DeriveJsonEncoder.gen
     event match {
-      case InventoryScoreEvent(n, inventory) =>
-        val sum         = inventory.node.softwareUpdates.size
-        val security    = inventory.node.softwareUpdates.count(_.kind == SoftwareUpdateKind.Security)
-        val patch       = inventory.node.softwareUpdates.count(_.kind == SoftwareUpdateKind.None)
-        val defect      = inventory.node.softwareUpdates.count(_.kind == SoftwareUpdateKind.Defect)
-        val enhancement = inventory.node.softwareUpdates.count(_.kind == SoftwareUpdateKind.Enhancement)
-        val other       = inventory.node.softwareUpdates.count { s =>
+      case SystemUpdateScoreEvent(n, softwareUpdates) =>
+        val sum         = softwareUpdates.size
+        val security    = softwareUpdates.count(_.kind == SoftwareUpdateKind.Security)
+        val patch       = softwareUpdates.count(_.kind == SoftwareUpdateKind.None)
+        val defect      = softwareUpdates.count(_.kind == SoftwareUpdateKind.Defect)
+        val enhancement = softwareUpdates.count(_.kind == SoftwareUpdateKind.Enhancement)
+        val other       = softwareUpdates.count { s =>
           s.kind match {
             case SoftwareUpdateKind.Other(_) => true
             case _                           => false
@@ -107,7 +112,22 @@ object SystemUpdateScoreHandler extends ScoreEventHandler {
           case Left(err) => Left(Inconsistency(err))
           case Right(r)  => Right(r)
         }
-      case _                                 => Right(Nil)
+      case _                                          => Right(Nil)
     }
   }
+
+  override def initEvents: UIO[Chunk[ScoreEvent]] = {
+    nodeFactRepository
+      .slowGetAll()(
+        QueryContext.systemQC,
+        SelectNodeStatus.Accepted,
+        SelectFacts.none.copy(softwareUpdate = SelectFacts.none.softwareUpdate.toRetrieve)
+      )
+      .map(nf => SystemUpdateScoreEvent(nf.id, nf.softwareUpdate.toList))
+      .runCollect
+      .catchAll(err => ScoreLoggerPure.error(s"Error when initializing system update events: ${err.fullMsg}") *> Chunk().succeed)
+  }
+
+  override def initForScore(globalScore: GlobalScore): Boolean =
+    globalScore.details.forall(_.scoreId != SystemUpdateScore.scoreId)
 }

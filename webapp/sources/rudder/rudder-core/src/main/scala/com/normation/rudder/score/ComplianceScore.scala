@@ -46,9 +46,9 @@ import com.normation.rudder.score.ScoreValue.B
 import com.normation.rudder.score.ScoreValue.C
 import com.normation.rudder.score.ScoreValue.D
 import com.normation.rudder.score.ScoreValue.E
-import zio.json.DeriveJsonEncoder
-import zio.json.EncoderOps
-import zio.json.JsonEncoder
+import zio._
+import zio.json._
+import zio.syntax._
 
 object ComplianceScore {
   val scoreId = "compliance"
@@ -84,4 +84,8 @@ object ComplianceScoreEventHandler extends ScoreEventHandler {
       case _                                => Right(Nil)
     }
   }
+
+  override def initEvents: UIO[Chunk[ScoreEvent]] = Chunk.empty.succeed
+
+  override def initForScore(globalScore: GlobalScore): Boolean = false
 }

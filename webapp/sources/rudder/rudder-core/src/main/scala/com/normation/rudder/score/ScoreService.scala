@@ -163,13 +163,23 @@ class ScoreServiceImpl(globalScoreRepository: GlobalScoreRepository, scoreReposi
 class ScoreServiceManager(readScore: ScoreService) {
 
   val handlers: Ref[List[ScoreEventHandler]] =
-    Ref.make(ComplianceScoreEventHandler :: SystemUpdateScoreHandler :: List.empty[ScoreEventHandler]).runNow
+    Ref.make(ComplianceScoreEventHandler :: List.empty[ScoreEventHandler]).runNow
 
   def registerHandler(handler: ScoreEventHandler): UIO[Unit] = {
-    handlers.update(handler :: _)
+    handlers.update(handler :: _) *>
+    (for {
+      s <- readScore
+             .getAll()
+             .map(_.exists(g => handler.initForScore(g._2)))
+             .catchAll(err => ScoreLoggerPure.error(s"Error when getting available scores for initialization") *> false.succeed)
+      _ <- handler.initEvents.flatMap(ZIO.foreach(_)(handleEvent(_))).unit
+    } yield ())
   }
 
-  def handleEvent(scoreEvent: ScoreEvent): IOResult[Unit] = {
+  /*
+   * The handler must catch any error
+   */
+  def handleEvent(scoreEvent: ScoreEvent): UIO[Unit] = {
     (for {
       h       <- handlers.get
       _       <- ScoreLoggerPure.debug(s"Received new score event ${scoreEvent.getClass}")
@@ -183,4 +193,5 @@ class ScoreServiceManager(readScore: ScoreService) {
       ScoreLoggerPure.error(s"An error occurred while treating score event of type '${scoreEvent.getClass}': ${err.fullMsg}")
     )
   }
+
 }

@@ -39,13 +39,11 @@ package com.normation.rudder.score
 
 import com.normation.NamedZioLogger
 import com.normation.errors.PureResult
-import com.normation.inventory.domain.Inventory
 import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.SoftwareUpdate
 import com.normation.rudder.domain.reports.CompliancePercent
-import zio.json.DeriveJsonDecoder
-import zio.json.DeriveJsonEncoder
-import zio.json.JsonDecoder
-import zio.json.JsonEncoder
+import zio._
+import zio.json._
 import zio.json.ast.Json
 
 sealed trait ScoreValue {
@@ -94,11 +92,18 @@ object GlobalScoreService {
 
 trait ScoreEvent
 
-case class InventoryScoreEvent(nodeId: NodeId, inventory: Inventory)                  extends ScoreEvent
+case class SystemUpdateScoreEvent(nodeId: NodeId, updates: List[SoftwareUpdate])      extends ScoreEvent
 case class ComplianceScoreEvent(nodeId: NodeId, compliancePercent: CompliancePercent) extends ScoreEvent
 
 trait ScoreEventHandler {
   def handle(event: ScoreEvent): PureResult[List[(NodeId, List[Score])]]
+
+  /*
+   * Init events must always succeed. It is done early in Rudder bootstrap sequence and
+   * would lead to unknown state if it fails.
+   */
+  def initEvents: UIO[Chunk[ScoreEvent]]
+  def initForScore(globalScore: GlobalScore): Boolean
 }
 
 object ScoreSerializer {
