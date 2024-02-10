@@ -231,6 +231,11 @@ $small-prefix : "sm-";
       @include badge-url("X", $small-prefix);
     }
   }
+
+  &.xs {
+    height: $badge-tabs-size;
+    width: $badge-tabs-size;
+  }
 }
 
 #NodeDetailsTabMenu {
