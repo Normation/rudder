@@ -104,9 +104,11 @@ import com.normation.rudder.rest.data.Rest.NodeDetails
 import com.normation.rudder.rest.data.Validation
 import com.normation.rudder.rest.data.Validation.NodeValidationError
 import com.normation.rudder.score.GlobalScore
+import com.normation.rudder.score.NoDetailsScore
 import com.normation.rudder.score.Score
 import com.normation.rudder.score.ScoreSerializer
 import com.normation.rudder.score.ScoreService
+import com.normation.rudder.score.ScoreValue
 import com.normation.rudder.services.nodes.MergeNodeProperties
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.queries._
@@ -995,7 +997,8 @@ class NodeApiService(
       inheritedProperties:    List[NodePropertyHierarchy],
       softs:                  List[Software],
       compliance:             Option[ComplianceLevel],
-      sysCompliance:          Option[ComplianceLevel]
+      sysCompliance:          Option[ComplianceLevel],
+      score:                  GlobalScore
   ): JObject = {
 
     def escapeHTML(s: String): String = JsExp.strToJsExp(xml.Utility.escape(s)).str
@@ -1032,8 +1035,10 @@ class NodeApiService(
           (globalPolicyMode.mode, "none")
       }
     }
-
     import com.normation.rudder.domain.properties.JsonPropertySerialisation._
+    val jsonScore                 =
+      ("score" -> score.value.value) ~ ("details" -> JObject(score.details.map(s => JField(s.scoreId, s.value.value))))
+
     (("name"                -> escapeHTML(nodeInfo.hostname))
     ~ ("policyServerId"     -> escapeHTML(nodeInfo.policyServerId.value))
     ~ ("policyMode"         -> escapeHTML(policyMode.name))
@@ -1058,7 +1063,8 @@ class NodeApiService(
         .toList
     ))
     ~ ("properties"          -> JObject(properties.map(s => JField(s.name, s.toJson))))
-    ~ ("inheritedProperties" -> JObject(inheritedProperties.map(s => JField(s.prop.name, s.toApiJsonRenderParents)))))
+    ~ ("inheritedProperties" -> JObject(inheritedProperties.map(s => JField(s.prop.name, s.toApiJsonRenderParents))))
+    ~ ("score"               -> jsonScore))
   }
 
   def listNodes(req: Req)(implicit qc: QueryContext): ZIO[Any, RudderError, JArray] = {
@@ -1084,6 +1090,8 @@ class NodeApiService(
                            case Some(nodeIds) =>
                              nodeFactRepository.getAll().map(_.filterKeys(id => nodeIds.contains(id)))
                          }
+      scores          <- scoreService.getAll()
+      allScoreId      <- scoreService.getAvailableScore()
       n2              <- currentTimeMillis
       _               <- TimingDebugLoggerPure.trace(s"Getting node infos: ${n2 - n1}ms")
       runs            <- reportsExecutionRepository.getNodesLastRun(nodes.keySet.toSet)
@@ -1138,7 +1146,10 @@ class NodeApiService(
             inheritedProp.get(n.id).getOrElse(Nil).toList,
             softs.get(n.id).getOrElse(Nil).toList,
             userCompliances.get(n.id),
-            systemCompliances.get(n.id)
+            systemCompliances.get(n.id),
+            scores
+              .get(n.id)
+              .getOrElse(GlobalScore(ScoreValue.NoScore, "", allScoreId.map(s => NoDetailsScore(s, ScoreValue.NoScore, ""))))
           )
         })
       )

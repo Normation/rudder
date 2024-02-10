@@ -1109,7 +1109,14 @@ function createRuleComponentValueTable (contextPath) {
  *   , "callBack" : Callback on Node, if missing, replaced by a link to nodeId [ Function ]
  *   }
  */
+function scoreFunction(value) { return function (nTd, sData, oData, iRow, iCol) {
+  $(nTd).empty();
+  var score = oData.score.details[value];
 
+    var content = $("<span class=\"badge-compliance-score "+score+" xs sm\"></span>");
+    $(nTd).prepend( content )
+  }
+}
 
 function propertyFunction(value, inherited) { return function (nTd, sData, oData, iRow, iCol) {
   $(nTd).empty();
@@ -1166,6 +1173,41 @@ var allColumns = {
              , "title": value + " version"
              , "defaultContent" : "<span class='text-muted'>N/A</span>"
              , "value" : value
+             }
+    }
+  , "Score" :
+                 { "data": "score.score"
+                 , "title": "Score"
+                          , "defaultContent" : "<span class='text-muted'>N/A</span>"
+                 , "createdCell" :
+                   function (nTd, sData, oData, iRow, iCol) {
+                     $(nTd).empty();
+
+                     var score = oData.score.score;
+
+                     var content = $("<span class=\"badge-compliance-score "+score+" xs sm\"></span>");
+                     $(nTd).prepend( content )
+
+                   }
+                 }
+  , "Score details" :
+    function(scoreId) {
+      var title = "Score '"+scoreId+"'"
+      return { "data": function ( row, type, val, meta ) {
+                             if (type === 'set') {
+                               return;
+                             }
+                             else if (type === 'sort') {
+                               return row.score.details[scoreId];
+                             }
+                             // 'sort', 'type' and undefined all just use the integer
+                             return row.score.details[scoreId]
+                           }
+
+             , "title": title
+             , "defaultContent" : "<span class='text-muted'>N/A</span>"
+             , "createdCell" : scoreFunction(scoreId)
+             , "value" : scoreId
              }
     }
   , "Property" :
@@ -1303,8 +1345,8 @@ function callbackElement(oData, displayCompliance) {
 
 
 var dynColumns = []
-var columns = [ allColumns["Hostname"],  allColumns["OS"],  allColumns["Compliance"],  allColumns["Last run"]];
-var defaultColumns = [ allColumns["Hostname"],  allColumns["OS"],  allColumns["Policy mode"],  allColumns["Compliance"]];
+var columns = []// allColumns["Hostname"],  allColumns["OS"],  allColumns["Compliance"],  allColumns["Last run"]];
+var defaultColumns = [ allColumns["Score"], allColumns["Hostname"],  allColumns["OS"],  allColumns["Policy mode"],  allColumns["Compliance"]];
 var allColumnsKeys =  Object.keys(allColumns)
 function reloadTable(gridId) {
   var table = $('#'+gridId).DataTable();
@@ -1409,7 +1451,7 @@ function createNodeTable(gridId, refresh) {
     var data2 = table.rows().data();
     table.destroy();
     $('#'+gridId).empty();
-    if (columnName =="Property" || columnName =="Software" ) {
+    if (columnName =="Property" || columnName =="Software") {
       columns.push(allColumns[columnName](escapedValue, checked))
       localStorage.setItem(cacheId, JSON.stringify(columns))
       params["ajax"] = {
@@ -1442,9 +1484,13 @@ function createNodeTable(gridId, refresh) {
 
       createTable(gridId,[], columns, params, contextPath, refresh, "nodes");
     } else {
-      columns.push(allColumns[columnName])
+      if ( columnName =="Score details" ) {
+        columns.push(allColumns[columnName](escapedValue))
+      } else {
+        columns.push(allColumns[columnName])
+        dynColumns = dynColumns.filter(function(col) { return col != columnName})
+      }
       localStorage.setItem(cacheId, JSON.stringify(columns))
-      dynColumns = dynColumns.filter(function(col) { return col != columnName})
       delete params["ajax"];
       createTable(gridId,data2, columns, params, contextPath, refresh, "nodes");
     }
@@ -1499,12 +1545,12 @@ function createNodeTable(gridId, refresh) {
       colsContainer.append(elem)
     }
     $("#select-columns").append(colsContainer)
-    if (dynColumns[0] != "Property" && dynColumns[0] !="Software" ) {
+    if (dynColumns[0] != "Property" && dynColumns[0] !="Software" && dynColumns[0] !="Score details" ) {
       $("#select-columns input").parent().hide()
       $("#colCheckbox").parent().parent().hide()
     }
     $("#select-columns select").change(function(e) {
-      if (this.value =="Property" || this.value =="Software" ) {
+      if (this.value =="Property" || this.value =="Software" || this.value =="Score details" ) {
         $("#select-columns input").parent().show()
         $("#select-columns input").attr('placeholder', this.value + " name" )
         if (this.value == "Property" ) {
@@ -1512,6 +1558,7 @@ function createNodeTable(gridId, refresh) {
         }
       } else {
         $("#select-columns input").parent().hide()
+        $("#colCheckbox").parent().parent().hide()
       }
     })
     $("#select-columns div button#add-column").click(function(e) {

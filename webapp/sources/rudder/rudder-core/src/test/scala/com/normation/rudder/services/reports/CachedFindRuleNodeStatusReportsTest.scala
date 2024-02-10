@@ -82,14 +82,16 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   val stillOk: DateTime = DateTime.now.plusMinutes(5)
 
   // build one node by kind of reports, expired or not
-  def buildNode(id: String):                   (NodeId, CoreNodeFact) = {
+  def buildNode(id: String): (NodeId, CoreNodeFact) = {
     (NodeId(id), NodeConfigData.fact1.modify(_.id).setTo(NodeId(id)))
   }
-  def run(id: String, info: RunAndConfigInfo): NodeStatusReport       =
+
+  def run(id: String, info: RunAndConfigInfo): NodeStatusReport =
     NodeStatusReport(NodeId(id), info, RunComplianceInfo.OK, Nil, Set())
+
   // a list of node, on node by type of reports, in a triplet:
   // (node, expired report, still ok report)
-  def expected(id: String):                    NodeExpectedReports    = NodeExpectedReports(NodeId(id), NodeConfigId(id), null, null, null, Nil, Nil)
+  def expected(id: String): NodeExpectedReports = NodeExpectedReports(NodeId(id), NodeConfigId(id), null, null, null, Nil, Nil)
 
   val nodes: List[((NodeId, CoreNodeFact), NodeStatusReport, NodeStatusReport)] = List(
     (
@@ -145,10 +147,12 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
 
   class TestCache extends CachedFindRuleNodeStatusReports() {
     val batchSize = 3
+
     // what the backend will give to the cache
     var reports: Map[NodeId, NodeStatusReport] = Map[NodeId, NodeStatusReport]()
+
     // store all updated nodes
-    var updated: List[NodeId]                  = Nil
+    var updated: List[NodeId] = Nil
 
     override def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports = new DefaultFindRuleNodeStatusReports() {
       override def confExpectedRepo:                                                      FindExpectedReportRepository              = ???
@@ -213,6 +217,8 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
       override def update(newScores: Map[NodeId, List[Score]]): IOResult[Unit] = ().succeed
 
       override def registerScore(newScoreId: String): IOResult[Unit] = ???
+
+      override def getAvailableScore(): IOResult[List[String]] = ???
 
       override def init(): IOResult[Unit] = ???
     })

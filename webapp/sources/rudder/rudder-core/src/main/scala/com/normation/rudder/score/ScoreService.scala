@@ -51,7 +51,8 @@ trait ScoreService {
   def cleanScore(name:          String):                   IOResult[Unit]
   def update(newScores:         Map[NodeId, List[Score]]): IOResult[Unit]
   def registerScore(newScoreId: String):                   IOResult[Unit]
-  def init(): IOResult[Unit]
+  def getAvailableScore(): IOResult[List[String]]
+  def init():              IOResult[Unit]
 }
 
 class ScoreServiceImpl(globalScoreRepository: GlobalScoreRepository, scoreRepository: ScoreRepository) extends ScoreService {
@@ -154,7 +155,7 @@ class ScoreServiceImpl(globalScoreRepository: GlobalScoreRepository, scoreReposi
     availableScore.update(_ :+ newScoreId)
   }
 
-  def getAvailableScore: IOResult[List[String]] = {
+  def getAvailableScore(): IOResult[List[String]] = {
     availableScore.get
   }
 }

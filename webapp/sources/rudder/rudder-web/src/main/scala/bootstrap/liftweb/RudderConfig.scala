@@ -3650,7 +3650,7 @@ object RudderConfigInit {
       ditQueryDataImpl,
       reportsRepository,
       eventLogDeploymentServiceImpl,
-      new SrvGrid(roAgentRunsRepository, configService, roLdapRuleRepository, nodeFactInfoService),
+      new SrvGrid(roAgentRunsRepository, configService, roLdapRuleRepository, nodeFactInfoService, scoreService),
       findExpectedRepo,
       roLDAPApiAccountRepository,
       woLDAPApiAccountRepository,

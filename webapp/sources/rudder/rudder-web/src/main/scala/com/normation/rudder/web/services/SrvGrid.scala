@@ -49,6 +49,7 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository.RoRuleRepository
+import com.normation.rudder.score.ScoreService
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.Utils.isEmpty
@@ -87,7 +88,8 @@ class SrvGrid(
     roAgentRunsRepository: RoReportsExecutionRepository,
     configService:         ReadConfigService,
     roRuleRepository:      RoRuleRepository,
-    nodeInfoService:       NodeInfoService
+    nodeInfoService:       NodeInfoService,
+    scoreService:          ScoreService
 ) extends Loggable {
 
   def jsVarNameForId(tableId: String): String = "oTable" + tableId
