@@ -340,9 +340,9 @@ object Role       {
 
   // this is the anonymous custom roles, the one computed on fly for user who have several roles in their attribute
   final case class Custom(rights: Rights) extends Role {
-    val name = "custom"
+    val name = "custom" // yes, that should be anonymous, it's for historical reason in the plugin. Will change in 8.2
 
-    override def debugString: String = s"authz[${rights.displayAuthorizations}]"
+    override def debugString: String = s"anonymousRole:authz[${rights.displayAuthorizations}]"
   }
 
   trait BuiltinName  { // not sealed, plugins need to extend
@@ -406,7 +406,19 @@ object Role       {
   // this is the named custom roles defined in <custom-roles> tag
   final case class NamedCustom(name: String, permissions: Seq[Role]) extends Role {
     def rights:               Rights = Rights(permissions.flatMap(_.rights.authorizationTypes))
-    override def debugString: String = s"customRole[${permissions.map(_.debugString).mkString(",")}]"
+    override def debugString: String = s"${name}:customRole[${permissions.map(_.debugString).mkString(",")}]"
+  }
+
+  // a role that is just an alias for an other, which can be useful to add a relevant name/description
+  // NOTE: we use the name of the aliased role for `name` so that Rudder internal resolution works as expected with
+  // custom roles etc.
+  final case class Alias(of: Role, aliasName: String, description: String) extends Role {
+    override def name:   String = of.name
+    override def rights: Rights = of.rights
+
+    override def debugString: String = {
+      s"${aliasName}:aliasof[${of.name}][${of.rights}]"
+    }
   }
 
   // standard predefined special roles, ie Admin et NoRights
@@ -414,6 +426,20 @@ object Role       {
 
   def allBuiltInRoles: Map[String, Role] =
     standardBuiltIn.map { case (k, v) => (k.value, v) } ++ specialBuiltIn.map(r => (r.name, r)).toMap
+
+  // a method used for the log of permission in a correct human readable way, callable from Java
+  def toDisplayNames(roles: Iterable[Role]): List[String] = {
+    roles.map { r =>
+      r match {
+        case Custom(rights)                    => s"anon[${rights.displayAuthorizations}]"
+        case Builtin(_name, rights)            => _name.value
+        case Administrator                     => Administrator.name
+        case NoRights                          => NoRights.name
+        case NamedCustom(name, permissions)    => name
+        case Alias(of, aliasName, description) => s"${aliasName}(${of.name})"
+      }
+    }.toList.sorted
+  }
 }
 
 // custom role utility classes to help parse/resolve them
@@ -503,8 +529,9 @@ object RudderRoles {
       } yield ()
     }
   }
+
   // short-cut to register a new plugin role
-  def registerBuiltin(role: Builtin):                                                      IOResult[Unit] = {
+  def registerBuiltin(role: Builtin): IOResult[Unit] = {
     registerBuiltin(role._name, role.rights.authorizationTypes)
   }
 
