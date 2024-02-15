@@ -268,7 +268,7 @@ def remove(package_names):
 def rudder_postupgrade():
     for plugin in utils.DB['plugins']:
         script_dir = utils.DB_DIRECTORY + '/' + plugin
-        utils.run_script('postinst', script_dir, True)
+        utils.run_script('postinst', script_dir, exist=True, exit_on_error=False)
 
 
 def check_compatibility(exact_version):

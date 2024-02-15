@@ -47,6 +47,7 @@ def run(
     capture_output=False,
     shell=False,
     check=False,
+    exit_on_error=False,
 ):
     """
     Local version of the run method define in the python 3.5+ versions of the subprocess module.
@@ -83,9 +84,8 @@ def run(
         output, error = process.communicate(input=input)
         retcode = process.poll()
         if check and retcode != 0:
-            logger.error("execution of '%s' failed" % cmd)
-            logger.error(error)
-            fail(output, retcode)
+            msg = "execution of '%s' failed with\n%s\n%s" % (cmd, output, error)
+            fail(output, retcode, exit_on_error=exit_on_error)
         return (retcode, output, error)
     except subprocess.CalledProcessError as e:
         stdout = ''
@@ -98,9 +98,14 @@ def run(
             "Command '%s' returned a non-zero return code, %d.%s%s"
             % (' '.join(e.cmd), e.returncode, stdout, stderr),
             1,
+            exit_on_error=exit_on_error,
         )
     except Exception as e:
-        fail("Could not execute command '%s',\nException details: %s" % (' '.join(cmd), e), 1)
+        fail(
+            "Could not execute command '%s',\nException details: %s" % (' '.join(cmd), e),
+            1,
+            exit_on_error=exit_on_error,
+        )
 
 
 """ Get Terminal width """
@@ -579,7 +584,14 @@ def run_script(name, script_dir, exist, exit_on_error=True):
         else:
             param = 'install'
         # Use None everywhere to branch to stdin/err/out
-        run([script, param], check=True, stdin=None, stdout=None, stderr=None)
+        run(
+            [script, param],
+            check=True,
+            stdin=None,
+            stdout=None,
+            stderr=None,
+            exit_on_error=exit_on_error,
+        )
 
 
 def jar_status(name, enable):
