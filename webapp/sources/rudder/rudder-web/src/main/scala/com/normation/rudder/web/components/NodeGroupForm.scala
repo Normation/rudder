@@ -351,7 +351,7 @@ class NodeGroupForm(
                            <li class="nav-item">
                              <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#groupParametersTab" type="button" role="tab" aria-controls="groupParametersTab">Parameters</button>
                            </li>
-                           <li>
+                           <li class="nav-item">
                              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#groupRulesTab" type="button" role="tab" aria-controls="groupRulesTab">Related rules</button>
                            </li>
                          </ul>

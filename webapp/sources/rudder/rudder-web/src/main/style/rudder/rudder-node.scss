@@ -361,17 +361,8 @@ pre.display-keys > label{
 }
 
 /* INVENTORY TAB */
-#nodeInventory{
-  & > .sInventory {
-    & > div {
-      margin-left: 12em;
-      padding-left: 12px;
-
-      & > .alert:first-child{
-        margin-top: 0;
-      }
-    }
-  }
+.sInventory .tab-pane > .alert:first-child{
+  margin-top: 0;
 }
 [id^=node_details_]{
   & > .sInventory {
@@ -380,59 +371,54 @@ pre.display-keys > label{
     }
   }
 }
+
 .list-tabs-inventory{
-  margin-bottom: 15px;
-  float: left;
-  width: 12em;
-  border-bottom: none;
-  padding-left: 0;
+  width: 13em;
 
-  & > .ui-tabs-tab {
-    display: block;
-    border: 1px solid $rudder-border-color-default;
-    transition-duration: .2s;
-    padding: 0;
-    position: relative;
+  & > .nav-item {
+    & > button {
+      transition-duration: .2s;
+      background-color: $rudder-bg-gray;
+      border: 1px solid $rudder-border-color-default;
+      padding: 6px 10px;
+      color: $rudder-txt-secondary;
+      position:relative;
+      text-align: left;
+      width: 100%;
 
-    & + .ui-tabs-tab {
-      border-top: none;
-    }
-    &.ui-tabs-active {
-      &:after{
-        content: "";
-        position: absolute;
-        top: calc(50% - 4px);
-        right: -6px;
-        display: block;
-        width: 10px;
-        height: 10px;
-        border-top: 1px solid $rudder-border-color-default;
-        border-right: 1px solid $rudder-border-color-default;
-        transform: rotate(45deg);
-        background-color: #fff;
+      &:hover{
+        background-color:#fff;
+        color: $rudder-txt-link;
       }
-      &:before{
-        content:initial;
-      }
-      & > a {
+
+      &.active {
         background-color: #fff;
         color: $rudder-txt-primary;
+        &:after{
+          content: "";
+          position: absolute;
+          top: calc(50% - 4px);
+          right: -6px;
+          display: block;
+          width: 10px;
+          height: 10px;
+          border-top: 1px solid $rudder-border-color-default;
+          border-right: 1px solid $rudder-border-color-default;
+          transform: rotate(45deg);
+          background-color: #fff;
+        }
+        &:before{
+          content:initial;
+        }
       }
     }
-
-    & > a {
-      transition-property : background-color;
-      background-color: $rudder-bg-gray;
-      padding: 6px 10px;
-      transition-duration: .2s;
-      display: block;
-      color: $rudder-txt-secondary;
-      &:hover{
-         background-color:#fff;
-         color: $rudder-txt-link;
-      }
+    & + .nav-item > button {
+      border-top: none;
     }
   }
+}
+.list-tabs-inventory + .tab-content {
+  flex: 1;
 }
 
 #serverDetails > .ui-tabs.ui-widget.ui-widget-content{
