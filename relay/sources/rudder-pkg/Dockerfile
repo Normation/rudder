@@ -8,4 +8,5 @@ RUN mkdir /home/jenkins ;\
     chown jenkins /home/jenkins
 
 COPY relay/sources/rudder-pkg/requirements.txt requirements.txt
+ENV PYLINTHOME=/tmp/
 RUN pip install -r requirements.txt
