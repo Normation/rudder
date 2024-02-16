@@ -45,16 +45,12 @@
       </div>
       <div id="new_servers_tab">
         <div class="main-navbar">
-          <ul class="ui-tabs-nav nav nav-tabs">
-            <li class="ui-tabs-tab" role="presentation">
-              <a href="#review_new_server">
-                Review new nodes
-              </a>
+          <ul class="nav nav-underline">
+            <li class="nav-item">
+              <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#review_new_server" type="button" role="tab" aria-controls="review_new_server" aria-selected="true">Review new nodes</button>
             </li>
-            <li class="ui-tabs-tab" role="presentation">
-              <a href="#history">
-                History
-              </a>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab" aria-controls="history" aria-selected="true">History</button>
             </li>
           </ul>
         </div>
@@ -62,41 +58,43 @@
           <div class="template-main">
             <div class="main-container">
               <div class="main-details">
-                <div id="review_new_server">
-                  <div class="callout-fade callout-info">
-                    <div class="marker">
-                      <span class="fa fa-info-circle"></span>
-                    </div>
-                    <p>Click on a node name to view detailed inventory information.</p>
-                    <p>Click on <i class="fa fa-search"></i>to list Rules that would be applied to this node if you accept it.</p>
-                  </div>
-                  <lift:Msgs>[error]</lift:Msgs>
-                  <div  data-lift="lazy-load?template=lazy-load-spinner">
-                    <div data-lift="node.AcceptNode.list">
-                      <pending-servers></pending-servers>
-                      <div id="acceptNodeGrid_paginate_area" class="nodisplay"></div>
-                      <lift:authz role="node_write">
-                        <div class="action-btns">
-                          <pending-refuse></pending-refuse>
-                          <pending-accept></pending-accept>
-                        </div>
-                      </lift:authz>
-                      <pending-errors></pending-errors>
-                    </div>
-                  </div>
-                </div>
-
-                <div id="history">
-                  <div data-lift="lazy-load?template=lazy-load-spinner">
+                <div class="tab-content">
+                  <div id="review_new_server" class="tab-pane active">
                     <div class="callout-fade callout-info">
                       <div class="marker">
                         <span class="fa fa-info-circle"></span>
                       </div>
-                      <p>View history of Nodes that have been accepted or refused.</p>
-                      <p>Click on a node name to view detailed inventory information (as it was at review time).</p>
+                      <p>Click on a node name to view detailed inventory information.</p>
+                      <p>Click on <i class="fa fa-search"></i>to list Rules that would be applied to this node if you accept it.</p>
                     </div>
-                    <div data-lift="node.PendingHistoryGrid.displayAndInit">
-                      <pending-history></pending-history>
+                    <lift:Msgs>[error]</lift:Msgs>
+                    <div  data-lift="lazy-load?template=lazy-load-spinner">
+                      <div data-lift="node.AcceptNode.list">
+                        <pending-servers></pending-servers>
+                        <div id="acceptNodeGrid_paginate_area" class="nodisplay"></div>
+                        <lift:authz role="node_write">
+                          <div class="action-btns">
+                            <pending-refuse></pending-refuse>
+                            <pending-accept></pending-accept>
+                          </div>
+                        </lift:authz>
+                        <pending-errors></pending-errors>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div id="history" class="tab-pane">
+                    <div data-lift="lazy-load?template=lazy-load-spinner">
+                      <div class="callout-fade callout-info">
+                        <div class="marker">
+                          <span class="fa fa-info-circle"></span>
+                        </div>
+                        <p>View history of Nodes that have been accepted or refused.</p>
+                        <p>Click on a node name to view detailed inventory information (as it was at review time).</p>
+                      </div>
+                      <div data-lift="node.PendingHistoryGrid.displayAndInit">
+                        <pending-history></pending-history>
+                      </div>
                     </div>
                   </div>
                 </div>

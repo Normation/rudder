@@ -372,7 +372,7 @@ $(document).ready(function() {
       return ((a < b) ? 1 : ((a > b) ? -1 : 0));
     }
   } );
-  sidebarControl(".sidebar");
+  sidebarControl();
   initBsTooltips();
 });
 
@@ -773,23 +773,22 @@ function buildScrollSpyNav(){
     });
 }
 
-function sidebarControl(a){
-  var b = this
-    , c = 400;
-  $(document).on("click", a + " li a", function(a) {
+function sidebarControl(){
+  var speed = 400;
+  $(".sidebar li a").on("click", function(a) {
     var d = $(this)
       , e = d.next();
     if (e.is(".treeview-menu") && e.is(":visible"))
-      e.slideUp(c, function() {
+      e.slideUp(speed, function() {
         e.removeClass("menu-open")
       }),
       e.parent("li").removeClass("active");
     else if (e.is(".treeview-menu") && !e.is(":visible")) {
       var f = d.parents("ul").first()
-        , g = f.find("ul:visible").slideUp(c);
+        , g = f.find("ul:visible").slideUp(speed);
       g.removeClass("menu-open");
       var h = d.parent("li");
-      e.slideDown(c, function() {
+      e.slideDown(speed, function() {
         e.addClass("menu-open"),
         f.find("li.active").removeClass("active"),
         h.addClass("active")

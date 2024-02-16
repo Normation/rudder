@@ -16,16 +16,16 @@ view : Model -> Html Msg
 view model =
   div [class "tab-table-content"]
   ( List.append
-    [ ul [class "ui-tabs-nav"]
-      [ li [class ("ui-tabs-tab ui-tab" ++ (if model.ui.viewMode == RulesView then " active" else ""))]
-        [ a [onClick (ChangeViewMode RulesView)]
-          [ text "By Rules"
-          ]
+    [ ul [class "nav nav-underline"]
+      [ li [class "nav-item"]
+        [ button
+          [ attribute "role" "tab", type_ "button", class ("nav-link " ++ (if model.ui.viewMode == RulesView then " active" else "")), onClick (ChangeViewMode RulesView)]
+          [ text "By Rules" ]
         ]
-      , li [class ("ui-tabs-tab ui-tab" ++ (if model.ui.viewMode == NodesView then " active" else ""))]
-        [ a [onClick (ChangeViewMode NodesView)]
-          [ text "By Nodes"
-          ]
+      , li [class "nav-item"]
+        [ button
+          [ attribute "role" "tab", type_ "button", class ("nav-link " ++ (if model.ui.viewMode == NodesView then " active" else "")), onClick (ChangeViewMode NodesView)]
+          [ text "By Rules" ]
         ]
       ]
     ]

@@ -86,51 +86,67 @@
   </div>
   <div id="node_tabs" class="tabs">
     <div class="main-navbar">
-      <ul id="NodeDetailsTabMenu" class="ui-tabs-nav nav nav-tabs">
-        <li class="ui-tabs-tab"><a href="#node_summary">Summary</a></li>
-        <li class="ui-tabs-tab"><a href="#node_reports">Compliance</a></li>
-        <li class="ui-tabs-tab"><a href="#node_inventory">Inventory</a></li>
-        <li class="ui-tabs-tab"><a href="#node_properties">Properties</a></li>
-        <li class="ui-tabs-tab"><a href="#system_status">System status</a></li>
-        <li class="ui-tabs-tab"><a href="#node_logs">Technical logs</a></li>
-        <li class="ui-tabs-tab"><a href="#node_parameters">Settings</a></li>
+      <ul id="NodeDetailsTabMenu" class="nav nav-underline">
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#node_summary" type="button" role="tab" aria-controls="node_summary" aria-selected="false">Summary</button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#node_reports" type="button" role="tab" aria-controls="node_reports" aria-selected="false">Compliance</button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#node_inventory" type="button" role="tab" aria-controls="node_inventory" aria-selected="false">Inventory</button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#node_properties" type="button" role="tab" aria-controls="node_properties" aria-selected="false">Properties</button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#system_status" type="button" role="tab" aria-controls="system_status" aria-selected="false">System status</button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#node_logs" type="button" role="tab" aria-controls="node_logs" aria-selected="false">Technical logs</button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#node_parameters" type="button" role="tab" aria-controls="node_parameters" aria-selected="false">Settings</button>
+        </li>
       </ul>
     </div>
     <div class="one-col-main">
       <div class="template-main">
         <div class="main-container">
           <div class="main-details">
+            <div class="tab-content">
+              <div id="node_summary" class="tab-pane">
+                <div class="d-flex">
+                  <div id="nodeDetails"></div>
+                  <div id="nodeGroups">
+                    <h3>Groups containing this node <span class="badge" id="nbGroups"></span></h3>
+                    <div id="node_groupTree"></div>
+                  </div>
+                </div>
+              </div>
 
-            <div id="node_summary">
-              <div id="nodeDetails"></div>
-              <div id="nodeGroups">
-                <h3>Groups containing this node <span class="badge" id="nbGroups"></span></h3>
-                <div id="node_groupTree"></div>
+              <div id="node_inventory" class="tab-pane">
+                <div id="nodeInventory"></div>
+              </div>
+
+              <div id="node_reports" class="tab-pane">
+                <div id="reportsDetails"></div>
+              </div>
+
+              <div id="node_logs" class="tab-pane">
+                <div id="logsDetails"></div>
+              </div>
+
+              <div id="node_properties" class="tab-pane">
+                <div id="nodeProperties"></div>
+              </div>
+
+              <div id="node_parameters" class="tab-pane"></div>
+
+              <div id="system_status" class="tab-pane">
+                <div id="systemStatus"></div>
               </div>
             </div>
-
-            <div id="node_inventory">
-              <div id="nodeInventory"></div>
-            </div>
-
-            <div id="node_reports">
-              <div id="reportsDetails"></div>
-            </div>
-
-            <div id="node_logs">
-              <div id="logsDetails"></div>
-            </div>
-
-            <div id="node_properties">
-              <div id="nodeProperties"></div>
-            </div>
-
-            <div id="node_parameters"></div>
-
-            <div id="system_status">
-              <div id="systemStatus"></div>
-            </div>
-
           </div>
         </div>
       </div>
