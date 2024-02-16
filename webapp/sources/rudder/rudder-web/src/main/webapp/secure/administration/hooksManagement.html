@@ -34,14 +34,5 @@
       app.ports.copy.subscribe(function(str) {
         navigator.clipboard.writeText(str);
       });
-
-      app.ports.initJs.subscribe(function(category) {
-        setTimeout(function(){
-          $("#navbar-scrollspy a").on('click', function(event){
-            navScroll(event, $(this).attr("href"), '.main-details')
-          });
-        }, 600);
-      });
-
     </script>
 </lift:surround>
