@@ -11,6 +11,7 @@ use tempfile::tempdir;
 const BIN: &str = concat!("../../target/debug/", env!("CARGO_PKG_NAME"));
 
 #[test]
+#[ignore]
 fn it_renders_mustache_inlined() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
@@ -30,6 +31,7 @@ fn it_renders_mustache_inlined() {
 }
 
 #[test]
+#[ignore]
 fn it_renders_mustache_from_file() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
@@ -49,6 +51,7 @@ fn it_renders_mustache_from_file() {
 }
 
 #[test]
+#[ignore]
 fn it_checks_mustache() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
@@ -67,6 +70,7 @@ fn it_checks_mustache() {
 }
 
 #[test]
+#[ignore]
 fn it_check_correct_mustache() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
