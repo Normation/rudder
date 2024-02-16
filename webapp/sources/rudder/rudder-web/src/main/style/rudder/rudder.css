@@ -52,22 +52,6 @@ html {
   height:100%;
 }
 
-
-
-
-/**********************************
- *Node inventory details
- **********************************/
-.sInventory {
-  margin: 0px;
-  padding: 0px;
-}
-
-.sInventory > div {
-  margin: 0px;
-  padding: 0px;
-}
-
 .details {
   margin: 0px;
   padding: 0px;
@@ -1425,14 +1409,6 @@ label span.text-fit{
   outline: 0;
   -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgba(208, 208, 208, 0.6);
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgb(208, 208, 208);
-}
-#serverDetails .sInventory, #nodeInventory, #node_inventory{
-  border : none !important;
-  overflow: visible;
-}
-
-#serverDetails .dataTables_wrapper_top .dataTables_length{
-  padding: 5px;
 }
 #changesChartContainer {
   height: 40vh;

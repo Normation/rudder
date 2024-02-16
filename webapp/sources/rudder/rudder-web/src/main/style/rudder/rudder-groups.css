@@ -67,14 +67,6 @@ input[disabled] + .save-tooltip {
   display: inline-block;
 }
 
-
-#groupParametersTab,
-#groupCriteriaTab,
-#categoryParametersTab{
-  padding: 0 15px;
-  float: left;
-  width: 100%;
-}
 #groupDetails .radio-inline .radioTextLabel{
   margin:0;
 }

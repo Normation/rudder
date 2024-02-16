@@ -29,7 +29,7 @@
 </component-staticbody>
 
 <component-body>
-<div id="GroupTabs" class="main-container">
+<div class="main-container">
   <div class="main-header">
     <div class="header-title">
       <h1>
@@ -46,90 +46,92 @@
     </div>
   </div>
   <div class="main-navbar">
-    <ul id="groupTabMenu" class="ui-tabs-nav" role="tablist">
-      <li role="presentation" class="ui-tabs-tab ui-tab active" data-bs-toggle="tab" data-bs-target="#groupParametersTab" type="button" role="tab">
-        <a href="#groupParametersTab">Parameters</a>
+    <ul id="groupTabMenu" class="nav nav-underline">
+      <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#groupParametersTab" type="button" role="tab" aria-controls="groupParametersTab" aria-selected="true">Parameters</button>
       </li>
-      <li role="presentation" class="ui-tabs-tab ui-tab" data-bs-toggle="tab" data-bs-target="#groupCriteriaTab" type="button" role="tab">
-        <a href="#groupCriteriaTab">Criteria</a>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#groupCriteriaTab" type="button" role="tab" aria-controls="groupCriteriaTab" aria-selected="true">Criteria</button>
       </li>
-      <li role="presentation" class="ui-tabs-tab ui-tab" data-bs-toggle="tab" data-bs-target="#groupRulesTab" type="button" role="tab">
-        <a id="relatedRulesLinkTab" href="#groupRulesTab">Related rules</a>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#groupRulesTab" type="button" role="tab" aria-controls="groupRulesTab" aria-selected="false">Related rules</button>
       </li>
-      <li role="presentation" class="ui-tabs-tab ui-tab" data-bs-toggle="tab" data-bs-target="#groupPropertiesTab" type="button" role="tab">
-        <a href="#groupPropertiesTab">Properties</a>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#groupPropertiesTab" type="button" role="tab" aria-controls="groupPropertiesTab" aria-selected="false">Properties</button>
       </li>
-      <li role="presentation" class="ui-tabs-tab ui-tab" data-bs-toggle="tab" data-bs-target="#groupComplianceTab" type="button" role="tab">
-        <a id="complianceLinkTab" href="#groupComplianceTab">Compliance</a>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#groupComplianceTab" type="button" role="tab" aria-controls="groupComplianceTab" aria-selected="false">Compliance</button>
       </li>
     </ul>
   </div>
   <div class="main-details">
-    <div id="groupParametersTab" class="row">
-      <div class="col-12 col-sm-6 col-lg-7">
-        <div class="main-form">
-          <group-notifications ></group-notifications>
-          <group-pendingchangerequest></group-pendingchangerequest>
-          <group-name></group-name>
-          <div id="longDescriptionFieldMarkdownContainer" class="form-group">
-            <label class="wbBaseFieldLabel"><span class="text-fit">Description</span>
-              <lift:authz role="group_write">
-                <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Edit description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i>
-              </lift:authz>
-            </label>
-            <div class="markdown">
-              <div id="longDescriptionFieldMarkdown"></div>
-              <p id="longDescriptionFieldMarkdownEmpty" class="nodisplay half-opacity">No description defined, click on <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> to edit </p>
+    <div class="tab-content">
+      <div id="groupParametersTab" class="tab-pane active main-form">
+        <div class="col-12 col-sm-6 col-lg-7">
+          <div class="main-form">
+            <group-notifications ></group-notifications>
+            <group-pendingchangerequest></group-pendingchangerequest>
+            <group-name></group-name>
+            <div id="longDescriptionFieldMarkdownContainer" class="form-group">
+              <label class="wbBaseFieldLabel"><span class="text-fit">Description</span>
+                <lift:authz role="group_write">
+                  <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Edit description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i>
+                </lift:authz>
+              </label>
+              <div class="markdown">
+                <div id="longDescriptionFieldMarkdown"></div>
+                <p id="longDescriptionFieldMarkdownEmpty" class="nodisplay half-opacity">No description defined, click on <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> to edit </p>
+              </div>
             </div>
-          </div>
-          <div id="longDescriptionFieldContainer" class="nodisplay form-group">
-            <div id="longDescriptionField">
-              Here comes the longDescription field
+            <div id="longDescriptionFieldContainer" class="nodisplay form-group">
+              <div id="longDescriptionField">
+                Here comes the longDescription field
+              </div>
+              <div id="longDescriptionFieldMarkdownPreviewContainer" class="col-6">
+                <label class="col-12 wbBaseFieldLabel"><span class="text-fit">Preview</span></label>
+                <div id="longDescriptionFieldPreviewMarkdown" class=" col-12 markdown"></div>
+              </div>
             </div>
-            <div id="longDescriptionFieldMarkdownPreviewContainer" class="col-6">
-              <label class="col-12 wbBaseFieldLabel"><span class="text-fit">Preview</span></label>
-              <div id="longDescriptionFieldPreviewMarkdown" class=" col-12 markdown"></div>
-            </div>
-          </div>
-          <group-rudderid></group-rudderid>
-          <group-container></group-container>
-          <group-cfeclasses></group-cfeclasses>
-        </div>
-      </div>
-      <div class="col-12 col-sm-6 col-lg-5">
-        <div class="form-group show-compliance">
-          <div id="groupComplianceSummary">
-            <label data-bs-toggle="tooltip" data-bs-placement="right" title="<div class='tooltip-inner-content'>Compliance that takes into account all rules that apply directives to a node within this group</div>">
-              Global compliance
-            </label>
-            <div class="groupGlobalComplianceProgressBar"></div>
-            <label data-bs-toggle="tooltip" data-bs-placement="right" title="<div class='tooltip-inner-content'>Compliance that takes into account only rules that explicitly include this group in their target</div>">
-              Targeted compliance
-            </label>
-            <div class="groupTargetedComplianceProgressBar"></div>
-          </div>
-          <label class="id-label">Group ID</label>
-          <div class="id-container">
-            <p class="id-value">The node group id</p>
-            <i class="ion ion-clipboard clipboard-icon"></i>
+            <group-rudderid></group-rudderid>
+            <group-container></group-container>
+            <group-cfeclasses></group-cfeclasses>
           </div>
         </div>
+        <div class="col-12 col-sm-6 col-lg-5">
+          <div class="form-group show-compliance">
+            <div id="groupComplianceSummary">
+              <label data-bs-toggle="tooltip" data-bs-placement="right" title="<div class='tooltip-inner-content'>Compliance that takes into account all rules that apply directives to a node within this group</div>">
+                Global compliance
+              </label>
+              <div class="groupGlobalComplianceProgressBar"></div>
+              <label data-bs-toggle="tooltip" data-bs-placement="right" title="<div class='tooltip-inner-content'>Compliance that takes into account only rules that explicitly include this group in their target</div>">
+                Targeted compliance
+              </label>
+              <div class="groupTargetedComplianceProgressBar"></div>
+            </div>
+            <label class="id-label">Group ID</label>
+            <div class="id-container">
+              <p class="id-value">The node group id</p>
+              <i class="ion ion-clipboard clipboard-icon"></i>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-    <div id="groupRulesTab" class="main-form">
-      <div id="groupRelatedRulesApp"></div>
-    </div>
-    <div id="groupPropertiesTab" class="main-form">
-      <div id="groupPropertiesTabContent"></div>
-    </div>
-    <div id="groupComplianceTab" class="main-form">
-      <div id="groupComplianceApp"></div>
-    </div>
-    <div id="groupCriteriaTab" class="main-form">
+      <div id="groupRulesTab" class="tab-pane main-form">
+        <div id="groupRelatedRulesApp"></div>
+      </div>
+      <div id="groupPropertiesTab" class="tab-pane main-form">
+        <div id="groupPropertiesTabContent"></div>
+      </div>
+      <div id="groupComplianceTab" class="tab-pane main-form">
+        <div id="groupComplianceApp"></div>
+      </div>
+      <div id="groupCriteriaTab" class="tab-pane main-form">
       <group-static></group-static>
       <div id="SearchNodes">
         <group-showGroup ></group-showGroup>
       </div>
+    </div>
     </div>
   </div>
   <div class="table-container">

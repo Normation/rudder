@@ -99,7 +99,7 @@ class NodeGroupCategoryForm(
 
   def showForm(): NodeSeq = {
     val html = SHtml.ajaxForm(
-      <div id="GroupTabs" class="main-container">
+      <div class="main-container">
         <div class="main-header">
           <div class="header-title">
             <h1>
@@ -117,9 +117,9 @@ class NodeGroupCategoryForm(
           </div>
         </div>
         <div class="main-navbar">
-          <ul id="groupTabMenu" class="ui-tabs-nav ui-widget-header">
-            <li class="ui-tabs-tab ui-tab ui-tabs-active ui-state-active">
-              <a href="#categoryParametersTab">Parameters</a>
+          <ul id="groupTabMenu" class="nav nav-underline">
+            <li class="nav-item">
+              <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#categoryParametersTab" type="button" role="tab" aria-controls="categoryParametersTab" aria-selected="true">Parameters</button>
             </li>
           </ul>
         </div>

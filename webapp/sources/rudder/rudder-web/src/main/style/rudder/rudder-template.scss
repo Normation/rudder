@@ -34,6 +34,10 @@
 *************************************************************************************
 */
 
+// --- MODULES
+
+@use 'rudder-variables' as *;
+
 /* === RESET === */
 ul {
   list-style-type: none;
@@ -570,22 +574,19 @@ ul {
   position: relative;
   z-index: 1;
 }
-.rudder-template .main-navbar ul{
-  padding: 0 15px;
-  margin-bottom: 0;
+.rudder-template .main-details .nav-underline{
+  margin: 0 -15px;
 }
 .rudder-template .sidebar-navbar ul{
   margin: 10px -15px 0px -15px;
   padding: 0 15px;
 }
-.rudder-template .sidebar-navbar ul > li,
-.rudder-template .main-navbar ul > li{
+.rudder-template .sidebar-navbar ul > li{
   margin-right: 15px;
   padding: 0 0 6px 0;
 }
 
-.rudder-template .sidebar-navbar ul > li > a,
-.rudder-template .main-navbar ul > li > a{
+.rudder-template .sidebar-navbar ul > li > a{
   padding: 0;
   background-color: transparent !important;
   border: none !important;
@@ -602,8 +603,8 @@ ul {
 .rudder-template .main-navbar ul > li > .fa-times:hover {
   opacity: 1;
 }
-.rudder-template .sidebar-navbar ul > li > a .badge,
-.rudder-template .main-navbar ul > li > a .badge,
+.rudder-template .sidebar-navbar ul > li > .badge,
+.rudder-template .main-navbar ul > li > .badge,
 .rudder-template .template-main .main-details .badge,
 .rudder-template .badge{
   background-color: #b1bbcb;
@@ -1013,9 +1014,7 @@ ul {
   float: left;
   width: 100%;
 }
-.rudder-template .tab-table-content > .ui-tabs-nav{
-  margin: 0 -15px -17px -15px;
-}
+
 .tab-table-content .table-title h4,
 .list-container .list-heading h4{
   color: #6A7280;
