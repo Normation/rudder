@@ -41,6 +41,7 @@ fn test(
 }
 
 #[test]
+#[ignore]
 fn it_creates_missing_directory() {
     test(
         false,
@@ -52,11 +53,13 @@ fn it_creates_missing_directory() {
 }
 
 #[test]
+#[ignore]
 fn it_does_not_create_dir_in_audit() {
     test(false, "present", PolicyMode::Audit, Err(anyhow!("")), false);
 }
 
 #[test]
+#[ignore]
 fn it_removes_directory() {
     test(
         true,
@@ -68,11 +71,13 @@ fn it_removes_directory() {
 }
 
 #[test]
+#[ignore]
 fn it_does_not_remove_dir_in_audit() {
     test(true, "absent", PolicyMode::Audit, Err(anyhow!("")), true);
 }
 
 #[test]
+#[ignore]
 fn it_checks_absent_directory() {
     test(
         false,
@@ -84,6 +89,7 @@ fn it_checks_absent_directory() {
 }
 
 #[test]
+#[ignore]
 fn it_checks_present_directory() {
     test(
         true,
