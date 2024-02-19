@@ -27,40 +27,40 @@ pipeline {
     stages {
         stage('Tests') {
             parallel {
-                stage('relayd-man') {
-                    agent {
-                        dockerfile {
-                            filename 'ci/asciidoctor.Dockerfile'
-                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
-                        }
-                    }
-                    when { not { branch 'master' } }
-                    steps {
-                        script {
-                            running.add("Tests - relayd-man")
-                            updateSlack(errors, running, slackResponse, version, changeUrl)
-                        }
-                        dir('relay/sources') {
-                            sh script: 'make man-source', label: 'build man page'
-                        }
-                    }
-                    post {
-                        failure {
-                            script {
-                                failedBuild = true
-                                errors.add("Tests - relayd-man")
-                                //notifier.notifyResult("shell-team")
-                                slackSend(channel: slackResponse.threadId, message: "Error during relayd man build - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
-                            }
-                        }
-                        cleanup {
-                            script {
-                              running.remove("Tests - relayd-man")
-                                updateSlack(errors, running, slackResponse, version, changeUrl)
-                            }
-                        }
-                    }
-                }
+                //stage('relayd-man') {
+                //    agent {
+                //        dockerfile {
+                //            filename 'ci/asciidoctor.Dockerfile'
+                //            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
+                //        }
+                //    }
+                //    when { not { branch 'master' } }
+                //    steps {
+                //        script {
+                //            running.add("Tests - relayd-man")
+                //            updateSlack(errors, running, slackResponse, version, changeUrl)
+                //        }
+                //        dir('relay/sources') {
+                //            sh script: 'make man-source', label: 'build man page'
+                //        }
+                //    }
+                //    post {
+                //        failure {
+                //            script {
+                //                failedBuild = true
+                //                errors.add("Tests - relayd-man")
+                //                //notifier.notifyResult("shell-team")
+                //                slackSend(channel: slackResponse.threadId, message: "Error during relayd man build - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                //            }
+                //        }
+                //        cleanup {
+                //            script {
+                //              running.remove("Tests - relayd-man")
+                //                updateSlack(errors, running, slackResponse, version, changeUrl)
+                //            }
+                //        }
+                //    }
+                //}
                 stage('shell') {
                     agent {
                         dockerfile {
@@ -100,308 +100,325 @@ pipeline {
                         }
                     }
                 }
-                stage('python') {
-                    agent {
-                        dockerfile {
-                            filename 'ci/pylint.Dockerfile'
-                        }
-                    }
-                    steps {
-                        script {
-                            running.add("Tests - python")
-                            updateSlack(errors, running, slackResponse, version, changeUrl)
-                        }
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            sh script: './qa-test --python', label: 'python scripts lint'
-                        }
+                //stage('python') {
+                //    agent {
+                //        dockerfile {
+                //            filename 'ci/pylint.Dockerfile'
+                //        }
+                //    }
+                //    steps {
+                //        script {
+                //            running.add("Tests - python")
+                //            updateSlack(errors, running, slackResponse, version, changeUrl)
+                //        }
+                //        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                //            sh script: './qa-test --python', label: 'python scripts lint'
+                //        }
 
-                    }
-                    post {
-                        failure {
-                            script {
-                                failedBuild = true
-                                errors.add("Tests - python")
-                                //notifier.notifyResult("shell-team")
-                                slackSend(channel: slackResponse.threadId, message: "Error during python tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
-                            }
-                        }
-                        cleanup {
-                            script {
-                                running.remove("Tests - python")
-                                updateSlack(errors, running, slackResponse, version, changeUrl)
-                            }
-                        }
-                    }
-                }
-                stage('typos') {
-                    agent {
-                        dockerfile {
-                            filename 'ci/typos.Dockerfile'
-                            additionalBuildArgs  '--build-arg VERSION=1.16.5'
-                        }
-                    }
+                //    }
+                //    post {
+                //        failure {
+                //            script {
+                //                failedBuild = true
+                //                errors.add("Tests - python")
+                //                //notifier.notifyResult("shell-team")
+                //                slackSend(channel: slackResponse.threadId, message: "Error during python tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                //            }
+                //        }
+                //        cleanup {
+                //            script {
+                //                running.remove("Tests - python")
+                //                updateSlack(errors, running, slackResponse, version, changeUrl)
+                //            }
+                //        }
+                //    }
+                //}
+                //stage('typos') {
+                //    agent {
+                //        dockerfile {
+                //            filename 'ci/typos.Dockerfile'
+                //            additionalBuildArgs  '--build-arg VERSION=1.16.5'
+                //        }
+                //    }
 
-                    steps {
-                        script {
-                            running.add("Tests - typo")
-                            updateSlack(errors, running, slackResponse, version, changeUrl)
-                        }
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            dir('policies') {
-                                sh script: 'typos', label: 'check policies typos'
-                            }
-                            dir('webapp/sources/api-doc') {
-                                sh script: 'typos', label: 'check webapp api doc typos'
-                            }
-                            dir('relay') {
-                                sh script: 'typos --exclude "*.pem" --exclude "*.cert" --exclude "*.priv" --exclude "*.pub" --exclude "*.signed" --exclude "*.log" --exclude "*.json"', label: 'check relayd typos'
-                            }
-                        }
-                    }
-                    post {
-                        failure {
-                            script {
-                                failedBuild = true
-                                errors.add("Tests - typo")
-                                //notifier.notifyResult("shell-team")
-                                slackSend(channel: slackResponse.threadId, message: "Error while checking typos - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
-                            }
-                        }
-                        cleanup {
-                            script {
-                                running.remove("Tests - typo")
-                                updateSlack(errors, running, slackResponse, version, changeUrl)
-                            }
-                        }
-                    }
-                }
-                stage('api-doc') {
-                    agent {
-                        dockerfile {
-                            filename 'api-doc/Dockerfile'
-                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
-                        }
-                    }
+                //    steps {
+                //        script {
+                //            running.add("Tests - typo")
+                //            updateSlack(errors, running, slackResponse, version, changeUrl)
+                //        }
+                //        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                //            dir('policies') {
+                //                sh script: 'typos', label: 'check policies typos'
+                //            }
+                //            dir('webapp/sources/api-doc') {
+                //                sh script: 'typos', label: 'check webapp api doc typos'
+                //            }
+                //            dir('relay') {
+                //                sh script: 'typos --exclude "*.pem" --exclude "*.cert" --exclude "*.priv" --exclude "*.pub" --exclude "*.signed" --exclude "*.log" --exclude "*.json"', label: 'check relayd typos'
+                //            }
+                //        }
+                //    }
+                //    post {
+                //        failure {
+                //            script {
+                //                failedBuild = true
+                //                errors.add("Tests - typo")
+                //                //notifier.notifyResult("shell-team")
+                //                slackSend(channel: slackResponse.threadId, message: "Error while checking typos - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                //            }
+                //        }
+                //        cleanup {
+                //            script {
+                //                running.remove("Tests - typo")
+                //                updateSlack(errors, running, slackResponse, version, changeUrl)
+                //            }
+                //        }
+                //    }
+                //}
+                //stage('api-doc') {
+                //    agent {
+                //        dockerfile {
+                //            filename 'api-doc/Dockerfile'
+                //            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
+                //        }
+                //    }
 
-                    steps {
-                        script {
-                            running.add("Tests - api-doc")
-                            updateSlack(errors, running, slackResponse, version, changeUrl)
-                        }
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            dir('api-doc') {
-                                sh script: 'make', label: 'build API docs'
-                            }
-                        }
-                    }
-                    post {
-                        failure {
-                            script {
-                                failedBuild = true
-                                errors.add("Tests - api-doc")
-                                //notifier.notifyResult("shell-team")
-                                slackSend(channel: slackResponse.threadId, message: "Error while buiding api doc - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
-                            }
-                        }
-                        cleanup {
-                            script {
-                                running.remove("Tests - api-doc")
-                                updateSlack(errors, running, slackResponse, version, changeUrl)
-                            }
-                        }
-                    }
-                }
-                stage('rudder-pkg') {
-                    agent {
-                        dockerfile {
-                            filename 'relay/sources/rudder-pkg/Dockerfile'
-                            args '-v /etc/passwd:/etc/passwd:ro'
-                        }
-                    }
-                    steps {
-                        script {
-                            running.add("Tests - rudder-pkg")
-                            updateSlack(errors, running, slackResponse, version, changeUrl)
-                        }
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            dir ('relay/sources') {
-                                sh script: 'make check', label: 'rudder-pkg tests'
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            // linters results
-                            recordIssues enabledForFailure: true, id: 'rudder-pkg', failOnError: true, sourceDirectory: 'relay/sources/rudder-pkg/', sourceCodeEncoding: 'UTF-8',
-                                         tool: pyLint(pattern: 'relay/sources/rudder-pkg/pylint.log', reportEncoding: 'UTF-8')
-                        }
-                        failure {
-                            script {
-                                failedBuild = true
-                                errors.add("Tests - rudder-pkg")
-                                //notifier.notifyResult("python-team")
-                                slackSend(channel: slackResponse.threadId, message: "Error during rudder-pkg tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
-                            }
-                        }
-                        cleanup {
-                            script {
-                                running.remove("Tests - rudder-pkg")
-                                updateSlack(errors, running, slackResponse, version, changeUrl)
-                            }
-                        }
-                    }
-                }
-                stage('webapp') {
-                    agent {
-                        dockerfile {
-                            filename 'webapp/sources/Dockerfile'
-                            additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
-                            // we don't share elm folder as it is may break with concurrent builds
-                            // set same timezone as some tests rely on it
-                            // and share maven cache
-                            args '-v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/home/jenkins/.elm -v /srv/cache/maven:/home/jenkins/.m2'
-                        }
-                    }
-                    steps {
+                //    steps {
+                //        script {
+                //            running.add("Tests - api-doc")
+                //            updateSlack(errors, running, slackResponse, version, changeUrl)
+                //        }
+                //        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                //            dir('api-doc') {
+                //                sh script: 'make', label: 'build API docs'
+                //            }
+                //        }
+                //    }
+                //    post {
+                //        failure {
+                //            script {
+                //                failedBuild = true
+                //                errors.add("Tests - api-doc")
+                //                //notifier.notifyResult("shell-team")
+                //                slackSend(channel: slackResponse.threadId, message: "Error while buiding api doc - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                //            }
+                //        }
+                //        cleanup {
+                //            script {
+                //                running.remove("Tests - api-doc")
+                //                updateSlack(errors, running, slackResponse, version, changeUrl)
+                //            }
+                //        }
+                //    }
+                //}
+                //stage('rudder-pkg') {
+                //    agent {
+                //        dockerfile {
+                //            filename 'relay/sources/rudder-pkg/Dockerfile'
+                //            args '-v /etc/passwd:/etc/passwd:ro'
+                //        }
+                //    }
+                //    steps {
+                //        script {
+                //            running.add("Tests - rudder-pkg")
+                //            updateSlack(errors, running, slackResponse, version, changeUrl)
+                //        }
+                //        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                //            dir ('relay/sources') {
+                //                sh script: 'make check', label: 'rudder-pkg tests'
+                //            }
+                //        }
+                //    }
+                //    post {
+                //        always {
+                //            // linters results
+                //            recordIssues enabledForFailure: true, id: 'rudder-pkg', failOnError: true, sourceDirectory: 'relay/sources/rudder-pkg/', sourceCodeEncoding: 'UTF-8',
+                //                         tool: pyLint(pattern: 'relay/sources/rudder-pkg/pylint.log', reportEncoding: 'UTF-8')
+                //        }
+                //        failure {
+                //            script {
+                //                failedBuild = true
+                //                errors.add("Tests - rudder-pkg")
+                //                //notifier.notifyResult("python-team")
+                //                slackSend(channel: slackResponse.threadId, message: "Error during rudder-pkg tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                //            }
+                //        }
+                //        cleanup {
+                //            script {
+                //                running.remove("Tests - rudder-pkg")
+                //                updateSlack(errors, running, slackResponse, version, changeUrl)
+                //            }
+                //        }
+                //    }
+                //}
+                //stage('webapp') {
+                //    agent {
+                //        dockerfile {
+                //            filename 'webapp/sources/Dockerfile'
+                //            additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
+                //            // we don't share elm folder as it is may break with concurrent builds
+                //            // set same timezone as some tests rely on it
+                //            // and share maven cache
+                //            args '-v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/home/jenkins/.elm -v /srv/cache/maven:/home/jenkins/.m2'
+                //        }
+                //    }
+                //    steps {
 
-                        script {
-                            running.add("Tests - webapp")
-                            updateSlack(errors, running, slackResponse, version, changeUrl)
-                        }
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
-                            dir('webapp/sources') {
-                                sh script: 'mvn spotless:check --batch-mode', label: "scala format test"
-                                sh script: 'mvn clean test --batch-mode', label: "webapp tests"
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            // collect test results
-                            junit 'webapp/sources/**/target/surefire-reports/*.xml'
-                        }
-                        failure {
-                            script {
-                                failedBuild = true
-                                errors.add("Tests - webapp")
-                                //notifier.notifyResult("scala-team")
-                                slackSend(channel: slackResponse.threadId, message: "Error during webapp tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
-                            }
-                        }
-                        cleanup {
-                            script {
-                                running.remove("Tests - webapp")
-                                updateSlack(errors, running, slackResponse, version, changeUrl)
-                            }
-                        }
-                    }
-                }
-                stage('relayd') {
-                    // we need to use a script for side container currently
-                    agent { label 'docker' }
-                    environment {
-                        POSTGRES_PASSWORD = 'PASSWORD'
-                        POSTGRES_DB       = 'rudder'
-                        POSTGRES_USER     = 'rudderreports'
-                    }
-                    steps {
+                //        script {
+                //            running.add("Tests - webapp")
+                //            updateSlack(errors, running, slackResponse, version, changeUrl)
+                //        }
+                //        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                //            sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
+                //            dir('webapp/sources') {
+                //                sh script: 'mvn spotless:check --batch-mode', label: "scala format test"
+                //                sh script: 'mvn clean test --batch-mode', label: "webapp tests"
+                //            }
+                //        }
+                //    }
+                //    post {
+                //        always {
+                //            // collect test results
+                //            junit 'webapp/sources/**/target/surefire-reports/*.xml'
+                //        }
+                //        failure {
+                //            script {
+                //                failedBuild = true
+                //                errors.add("Tests - webapp")
+                //                //notifier.notifyResult("scala-team")
+                //                slackSend(channel: slackResponse.threadId, message: "Error during webapp tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                //            }
+                //        }
+                //        cleanup {
+                //            script {
+                //                running.remove("Tests - webapp")
+                //                updateSlack(errors, running, slackResponse, version, changeUrl)
+                //            }
+                //        }
+                //    }
+                //}
+                //stage('relayd') {
+                //    // we need to use a script for side container currently
+                //    agent { label 'docker' }
+                //    environment {
+                //        POSTGRES_PASSWORD = 'PASSWORD'
+                //        POSTGRES_DB       = 'rudder'
+                //        POSTGRES_USER     = 'rudderreports'
+                //    }
+                //    steps {
 
-                        script {
-                            running.add("Tests - relayd")
-                            updateSlack(errors, running, slackResponse, version, changeUrl)
-                        }
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            script {
-                                docker.image('postgres:11-bullseye').withRun('-e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} -e POSTGRES_DB=${POSTGRES_DB}', '-c listen_addresses="*"') { c ->
-                                    docker.build('relayd', "-f relay/sources/relayd/Dockerfile --build-arg USER_ID=${env.JENKINS_UID} --pull .")
-                                          .inside("-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache -v /srv/cache/cargo-vet:/home/jenkins/.cache/cargo-vet --link=${c.id}:postgres") {
-                                        dir('relay/sources/relayd') {
-                                            sh script: "PGPASSWORD=${POSTGRES_PASSWORD} psql -U ${POSTGRES_USER} -h postgres -d ${POSTGRES_DB} -a -f tools/create-database.sql", label: 'provision database'
-                                            sh script: 'make check', label: 'relayd tests'
-                                            sh script: 'cargo vet', label: 'check dependencies audits'
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            // linters results
-                            recordIssues enabledForFailure: true, id: 'relayd', name: 'cargo relayd', sourceDirectory: 'relay/sources/relayd', sourceCodeEncoding: 'UTF-8',
-                                         tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'relayd', name: 'cargo relayd')
-                        }
-                        failure {
-                            script {
-                                failedBuild = true
-                                errors.add("Tests - relayd")
-                                //notifier.notifyResult("rust-team")
-                                slackSend(channel: slackResponse.threadId, message: "Error during relayd tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
-                            }
-                        }
-                        cleanup {
-                            script {
-                                running.remove("Tests - relayd")
-                                updateSlack(errors, running, slackResponse, version, changeUrl)
-                            }
-                        }
-                    }
-                }
-                stage('policies') {
-                    agent {
-                        dockerfile {
-                            filename 'policies/Dockerfile'
-                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${version}-nightly"
-                            // mount cache
-                            args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache -v /srv/cache/cargo-vet:/home/jenkins/.cache/cargo-vet'
-                        }
-                    }
-                    steps {
+                //        script {
+                //            running.add("Tests - relayd")
+                //            updateSlack(errors, running, slackResponse, version, changeUrl)
+                //        }
+                //        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                //            script {
+                //                docker.image('postgres:11-bullseye').withRun('-e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} -e POSTGRES_DB=${POSTGRES_DB}', '-c listen_addresses="*"') { c ->
+                //                    docker.build('relayd', "-f relay/sources/relayd/Dockerfile --build-arg USER_ID=${env.JENKINS_UID} --pull .")
+                //                          .inside("-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache -v /srv/cache/cargo-vet:/home/jenkins/.cache/cargo-vet --link=${c.id}:postgres") {
+                //                        dir('relay/sources/relayd') {
+                //                            sh script: "PGPASSWORD=${POSTGRES_PASSWORD} psql -U ${POSTGRES_USER} -h postgres -d ${POSTGRES_DB} -a -f tools/create-database.sql", label: 'provision database'
+                //                            sh script: 'make check', label: 'relayd tests'
+                //                            sh script: 'cargo vet', label: 'check dependencies audits'
+                //                        }
+                //                    }
+                //                }
+                //            }
+                //        }
+                //    }
+                //    post {
+                //        always {
+                //            // linters results
+                //            recordIssues enabledForFailure: true, id: 'relayd', name: 'cargo relayd', sourceDirectory: 'relay/sources/relayd', sourceCodeEncoding: 'UTF-8',
+                //                         tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'relayd', name: 'cargo relayd')
+                //        }
+                //        failure {
+                //            script {
+                //                failedBuild = true
+                //                errors.add("Tests - relayd")
+                //                //notifier.notifyResult("rust-team")
+                //                slackSend(channel: slackResponse.threadId, message: "Error during relayd tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                //            }
+                //        }
+                //        cleanup {
+                //            script {
+                //                running.remove("Tests - relayd")
+                //                updateSlack(errors, running, slackResponse, version, changeUrl)
+                //            }
+                //        }
+                //    }
+                //}
+                //stage('policies') {
+                //    agent {
+                //        dockerfile {
+                //            filename 'policies/Dockerfile'
+                //            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${version}-nightly"
+                //            // mount cache
+                //            args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache -v /srv/cache/cargo-vet:/home/jenkins/.cache/cargo-vet'
+                //        }
+                //    }
+                //    steps {
 
-                        script {
-                            running.add("Tests - policies")
-                            updateSlack(errors, running, slackResponse, version, changeUrl)
-                        }
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            dir('policies') {
-                                dir('target/repos') {
-                                    dir('ncf') {
-                                        git url: 'https://github.com/normation/ncf.git'
-                                    }
-                                    dir('dsc') {
-                                        git url: 'https://github.com/normation/rudder-agent-windows.git',
-                                            credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
-                                    }
-                                }
-                                sh script: 'make agent-windows', label: 'install local Windows agent'
-                                sh script: 'make check', label: 'language tests'
-                                sh script: 'cargo vet', label: 'check dependencies audits'
-                                sh script: 'make docs', label: 'language docs'
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            // linters results
-                            recordIssues enabledForFailure: true, id: 'policies', name: 'cargo policies', sourceDirectory: 'rudderc', sourceCodeEncoding: 'UTF-8',
-                                         tool: cargo(pattern: 'policies/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'rudderc', name: 'cargo language')
-                        }
-                        failure {
-                            script {
-                                failedBuild = true
-                                errors.add("Tests - policies")
-                                //notifier.notifyResult("rust-team")
-                                slackSend(channel: slackResponse.threadId, message: "Error during policies tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
-                            }
-                        }
-                        cleanup {
-                            script {
-                                running.remove("Tests - policies")
-                                updateSlack(errors, running, slackResponse, version, changeUrl)
-                            }
-                        }
-                    }
+                //        script {
+                //            running.add("Tests - policies")
+                //            updateSlack(errors, running, slackResponse, version, changeUrl)
+                //        }
+                //        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                //            dir('policies') {
+                //                dir('target/repos') {
+                //                    dir('ncf') {
+                //                        git url: 'https://github.com/normation/ncf.git'
+                //                    }
+                //                    dir('dsc') {
+                //                        git url: 'https://github.com/normation/rudder-agent-windows.git',
+                //                            credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
+                //                    }
+                //                }
+                //                sh script: 'make agent-windows', label: 'install local Windows agent'
+                //                sh script: 'make check', label: 'language tests'
+                //                sh script: 'cargo vet', label: 'check dependencies audits'
+                //                sh script: 'make docs', label: 'language docs'
+                //            }
+                //        }
+                //    }
+                //    post {
+                //        always {
+                //            // linters results
+                //            recordIssues enabledForFailure: true, id: 'policies', name: 'cargo policies', sourceDirectory: 'rudderc', sourceCodeEncoding: 'UTF-8',
+                //                         tool: cargo(pattern: 'policies/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'rudderc', name: 'cargo language')
+                //        }
+                //        failure {
+                //            script {
+                //                failedBuild = true
+                //                errors.add("Tests - policies")
+                //                //notifier.notifyResult("rust-team")
+                //                slackSend(channel: slackResponse.threadId, message: "Error during policies tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                //            }
+                //        }
+                //        cleanup {
+                //            script {
+                //                running.remove("Tests - policies")
+                //                updateSlack(errors, running, slackResponse, version, changeUrl)
+                //            }
+                //        }
+                //    }
+                //}
+            }
+        }
+        stage('windows-policies') {
+            agent {
+                label 'windows-generic'
+            }
+            steps {
+                dir('policies') {
+                    //dir('target/repos/ncf') {
+                    //    git url: 'https://github.com/normation/ncf.git'
+                    //}
+                    //dir('target/repos/dsc') {
+                    //    git url: 'https://github.com/normation/rudder-agent-windows.git',
+                    //        credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
+                    //}
+                    sh script: 'RUDDERC_VERSION="${RUDDER_VERSION}-${GIT_COMMIT}" make static', label: 'public binary'
                 }
             }
         }
@@ -638,7 +655,24 @@ pipeline {
                         }
                     }
                 }
-                stage('policies') {
+                stage('windows-policies') {
+                    agent {
+                        label 'windows-generic'
+                    }
+                    steps {
+                        dir('policies') {
+                            dir('target/repos/ncf') {
+                                git url: 'https://github.com/normation/ncf.git'
+                            }
+                            dir('target/repos/dsc') {
+                                git url: 'https://github.com/normation/rudder-agent-windows.git',
+                                    credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
+                            }
+                            sh script: 'RUDDERC_VERSION="${RUDDER_VERSION}-${GIT_COMMIT}" make static', label: 'public binary'
+                        }
+                    }
+                }
+                stage('linux-policies') {
                     agent {
                         dockerfile {
                             filename 'policies/Dockerfile'
