@@ -26,22 +26,30 @@ displayHooksList root categories =
           Other  -> ( ""       , "Other"  )
 
         cat = List.filter (\c -> c.kind == kind) categories
+
       in
         if List.isEmpty cat then
           text ""
         else
           li[]
-          [ h3[id prefix][text title]
-          , ul[class "category-sublist"](List.map (\c -> li[]
-            [ h4[id c.name] [ text (humanize (String.replace prefix "" c.name)) ]
-            , ( if List.isEmpty c.hooks then
-              text ""
-            else
-              ul[class "hooks-sublist"]
-              ( List.map (\h -> li[][text h.name]) c.hooks )
+          [ h4[id prefix][text title]
+          , ul[class "category-sublist"]( cat
+            |> List.map (\c ->
+              let
+                hasSublist = not (List.isEmpty c.hooks)
+                subClass = if hasSublist then "sublist" else ""
+              in
+                li[]
+                [ h5[id c.name, class subClass] [ text (humanize (String.replace prefix "" c.name)) ]
+                , ( if hasSublist then
+                  ul[class "hooks-sublist"]
+                  ( List.map (\h -> li[][text h.name]) c.hooks )
+                  else
+                  text ""
+                  )
+                ]
+              )
             )
-            ]
-            ) cat)
           ]
   in
     ul[class "hooks-list col-lg-8"](List.map (\k -> displayCategory k) kindList)
@@ -62,13 +70,13 @@ displayNavList categories =
         if List.isEmpty cat then
           text ""
         else
-          li [class "ui-tabs-tab"]
-          [ a [href ( "#" ++ prefix )]
+          li [class "nav-item"]
+          [ a [class "nav-link", href ( "#" ++ prefix )]
             [ text title
             ]
           , ul[class "nav nav-tabs"] (
-            List.map (\c -> li[]
-              [ a [href ( "#" ++ c.name )]
+            List.map (\c -> li[class "nav-item"]
+              [ a [class "nav-link", href ( "#" ++ c.name )]
                 [ text (humanize (String.replace prefix "" c.name))
                 ]
               ]

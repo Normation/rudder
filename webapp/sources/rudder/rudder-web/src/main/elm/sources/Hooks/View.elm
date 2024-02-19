@@ -34,7 +34,7 @@ view model =
         ]
       , div[ class "template-main"]
         [ div[ class "main-container"]
-          [ div[ class "main-details", attribute "data-bs-spy" "scroll", attribute "data-bs-target" "#navbar-scrollspy"]
+          [ div[ class "main-details", attribute "data-bs-spy" "scroll", attribute "data-bs-target" "#navbar-scrollspy", attribute "data-bs-smooth-scroll" "true"]
             [ displayHooksList model.root model.categories
             ]
           ]
