@@ -9,7 +9,6 @@ import Hooks.DataTypes exposing (..)
 port successNotification : String -> Cmd msg
 port errorNotification   : String -> Cmd msg
 -- init the scroll when interacting with the left menu
-port initJs              : String -> Cmd msg
 port copy                : String -> Cmd msg
 
 subscriptions : Model -> Sub Msg

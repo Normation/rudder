@@ -51,6 +51,8 @@ $link-color : $rudder-txt-link;
 $nav-underline-border-width : 0.2rem;
 $nav-underline-link-active-color: $rudder-txt-primary;
 
+$input-font-size-sm: 12px;  // previous bootstrap 3 value VS 0.85rem default in bootstrap 5
+
 @import "../../node_modules/bootstrap/scss/bootstrap";
 
 /* --- BUTTONS
@@ -123,5 +125,18 @@ $nav-underline-link-active-color: $rudder-txt-primary;
   .nav-link.active, .show>.nav-link {
     font-weight: normal;
     border-bottom-color: $rudder-txt-link;
+  }
+}
+// -- CHECKBOX/RADIO OVERRIDE
+.checkbox, .radio {
+  & {
+    position: relative;
+    display: block;
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+
+  & label {
+    cursor: pointer;
   }
 }

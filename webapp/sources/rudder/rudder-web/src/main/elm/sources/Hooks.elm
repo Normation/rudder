@@ -62,7 +62,7 @@ update msg model =
              ) categoriesResult
           in
             ( { model | root = rootHooks, categories = catResult, ui = { modelUi | loading = False } }
-              , initJs ""
+              , Cmd.none
             )
         Err err ->
           processApiError "Getting Hooks list" err model

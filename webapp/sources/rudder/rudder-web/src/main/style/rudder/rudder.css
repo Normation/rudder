@@ -129,10 +129,6 @@ div.intro div ul {
    margin-left:10px;
 }
 
-td.directiveVarValue > input {
-  width: 500px;
-}
-
 .compositionCheckbox input {
   margin-left : 5px;
   vertical-align: middle;
@@ -246,12 +242,6 @@ input.deleteNetwork * {
 
 .wbBaseFieldLabel {
   margin-top: 5px;
-}
-
-.variableDefinition > span,
-.variableDefinition td,
-.variableDefinition input {
-  vertical-align: middle;
 }
 
 .wbBaseFieldLabel .tw-bs .ruddericon {

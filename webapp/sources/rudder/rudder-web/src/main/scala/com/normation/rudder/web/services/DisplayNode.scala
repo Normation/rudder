@@ -253,57 +253,91 @@ object DisplayNode extends Loggable {
     val jsId = JsNodeId(sm.node.main.id, salt)
     val mainTabDeclaration: List[NodeSeq] = {
       <li class="nav-item">
-        <button class="nav-link active" data-bs-toggle="tab" data-bs-target={htmlId_#(jsId, "sd_os_")} type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_os_")}>Operating system</button>
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target={
+        htmlId_#(jsId, "sd_os_")
+      } type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_os_")}>Operating system</button>
       </li> ::
-        <li class="nav-item">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target={htmlId_#(jsId, "sd_fs_")} type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_fs_")}>File systems</button>
+      <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target={
+        htmlId_#(jsId, "sd_fs_")
+      } type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_fs_")}>File systems</button>
       </li> ::
-        <li class="nav-item">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target={htmlId_#(jsId, "sd_net_")} type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_net_")}>Network interfaces</button>
+      <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target={
+        htmlId_#(jsId, "sd_net_")
+      } type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_net_")}>Network interfaces</button>
         </li> ::
-        <li class="nav-item" id="soft_tab">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target={htmlId_#(jsId, "sd_soft_")} type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_soft_")}>Software</button>
+      <li class="nav-item" id="soft_tab">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target={
+        htmlId_#(jsId, "sd_soft_")
+      } type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_soft_")}>Software</button>
         </li> ::
-        <li class="nav-item">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target={htmlId_#(jsId, "sd_softUpdates_")} type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_softUpdates_")}>Software updates</button>
+      <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target={
+        htmlId_#(jsId, "sd_softUpdates_")
+      } type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_softUpdates_")}>Software updates</button>
         </li> ::
-        <li class="nav-item">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target={htmlId_#(jsId, "sd_var_")} type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_var_")}>Environment</button>
+      <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target={
+        htmlId_#(jsId, "sd_var_")
+      } type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_var_")}>Environment</button>
         </li> ::
-        // Hardware content
-        <li class="nav-item">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target={htmlId_#(jsId, "sd_bios_")} type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_bios_")}>BIOS</button>
+      // Hardware content
+      <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target={
+        htmlId_#(jsId, "sd_bios_")
+      } type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_bios_")}>BIOS</button>
         </li> ::
-        <li class="nav-item">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target={htmlId_#(jsId, "sd_controllers_")} type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_controllers_")}>Controllers</button>
+      <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target={
+        htmlId_#(jsId, "sd_controllers_")
+      } type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_controllers_")}>Controllers</button>
         </li> ::
-        <li class="nav-item">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target={htmlId_#(jsId, "sd_memories_")} type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_memories_")}>Memory</button>
+      <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target={
+        htmlId_#(jsId, "sd_memories_")
+      } type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_memories_")}>Memory</button>
         </li> ::
-        <li class="nav-item">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target={htmlId_#(jsId, "sd_ports_")} type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_ports_")}>Ports</button>
+      <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target={
+        htmlId_#(jsId, "sd_ports_")
+      } type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_ports_")}>Ports</button>
         </li> ::
-        <li class="nav-item">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target={htmlId_#(jsId, "sd_processors_")} type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_processors_")}>Processors</button>
+      <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target={
+        htmlId_#(jsId, "sd_processors_")
+      } type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_processors_")}>Processors</button>
         </li> ::
-        <li class="nav-item">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target={htmlId_#(jsId, "sd_slots_")} type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_slots_")}>Slots</button>
+      <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target={
+        htmlId_#(jsId, "sd_slots_")
+      } type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_slots_")}>Slots</button>
         </li> ::
-        <li class="nav-item">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target={htmlId_#(jsId, "sd_sounds_")} type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_sounds_")}>Sound</button>
+      <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target={
+        htmlId_#(jsId, "sd_sounds_")
+      } type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_sounds_")}>Sound</button>
         </li> ::
-        <li class="nav-item">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target={htmlId_#(jsId, "sd_storages_")} type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_storages_")}>Storage</button>
+      <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target={
+        htmlId_#(jsId, "sd_storages_")
+      } type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_storages_")}>Storage</button>
         </li> ::
-        <li class="nav-item">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target={htmlId_#(jsId, "sd_videos_")} type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_videos_")}>Video</button>
+      <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target={
+        htmlId_#(jsId, "sd_videos_")
+      } type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_videos_")}>Video</button>
         </li> ::
-        //
-        <li class="nav-item">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target={htmlId_#(jsId, "sd_process_")} type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_process_")}>Processes</button>
+      //
+      <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target={
+        htmlId_#(jsId, "sd_process_")
+      } type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_process_")}>Processes</button>
         </li> ::
-        <li class="nav-item">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target={htmlId_#(jsId, "sd_vm_")} type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_vm_")}>Virtual machines</button>
+      <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target={
+        htmlId_#(jsId, "sd_vm_")
+      } type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_vm_")}>Virtual machines</button>
         </li> ::
       Nil
     }

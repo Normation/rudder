@@ -2,14 +2,12 @@
 
 <input-text>
   <div class="directive-input-group">
-    <div class="input-group input-group-sm text-section col-xs-12">
-      <div class="input-feature">
-        <button class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown" type="button"> <span class="prefix-selected">Text</span> <span class="caret"></span></button>
-        <ul class="dropdown-menu">
-          <li><a onclick="updatePrefix(this, '')"        >Text </a></li>
-          <li><a onclick="updatePrefix(this, 'evaljs:')" >JS   </a></li>
-        </ul>
-      </div>
+    <div class="input-group input-group-sm text-section col-12">
+      <button class="btn btn-default lh-1 dropdown-toggle" data-bs-toggle="dropdown" type="button"> <span class="prefix-selected">Text</span> <span class="caret"></span></button>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" onclick="updatePrefix(this, '')"        >Text </a></li>
+        <li><a class="dropdown-item" onclick="updatePrefix(this, 'evaljs:')" >JS   </a></li>
+      </ul>
       <input class="form-control monospace-font" type="text" oninput="updateResult(this);"/>
     </div>
   </div>
@@ -17,22 +15,22 @@
 
 <input-textarea>
   <div class="directive-input-group">
-    <div class="input-group input-group-sm text-section col-xs-12">
+    <div class="input-group input-group-sm text-section d-table col-12">
       <div class="btn-group btn-group-sm input-feature">
-        <button class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown" type="button"> <span class="prefix-selected">Text</span> <span class="caret"></span></button>
+        <button class="btn btn-default lh-1 dropdown-toggle" data-bs-toggle="dropdown" type="button"> <span class="prefix-selected">Text</span> <span class="caret"></span></button>
         <ul class="dropdown-menu">
-          <li><a onclick="updatePrefix(this, '')"        >Text </a></li>
-          <li><a onclick="updatePrefix(this, 'evaljs:')" >JS   </a></li>
+          <li><a class="dropdown-item" onclick="updatePrefix(this, '')"        >Text </a></li>
+          <li><a class="dropdown-item" onclick="updatePrefix(this, 'evaljs:')" >JS   </a></li>
         </ul>
       </div>
-      <textarea class="form-control textarea monospace-font" oninput="updateResult(this);" ></textarea>
+      <textarea class="form-control textarea monospace-font w-100 mx-0" oninput="updateResult(this);" ></textarea>
     </div>
   </div>
 </input-textarea>
 
 <input-shared>
   <div class="directive-input-group">
-    <div class="input-group input-group-sm col-xs-12 rect-padding">
+    <div class="input-group input-group-sm col-12 rect-padding">
       <button class="btn btn-default browserFile" type="button" id="browserFile" onclick="">
         <span class="fa fa-folder-open"></span>
       </button>

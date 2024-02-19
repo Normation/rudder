@@ -808,6 +808,9 @@ header.main-header .logo-lg img{
 .navbar-nav li.dropdown > a {
   padding: 14px 8px;
 }
+.navbar-nav li.dropdown > a:after {
+  margin-left: .8em;
+}
 /* ----- <DROPDOWN MENU>  ----- */
 @media (max-width: 767px){
   .navbar-nav .open .dropdown-menu {
@@ -1006,7 +1009,7 @@ header.main-header .logo-lg img{
   padding: 3px;
   position: absolute;
   top: 0px;
-  right: 12px;
+  right: calc(.8em + 8px);
   text-align: center;
 }
 .navbar .navbar-nav li.notifications-menu > a .fa-heartbeat{
