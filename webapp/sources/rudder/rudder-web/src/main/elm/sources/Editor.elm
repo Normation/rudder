@@ -915,7 +915,7 @@ update msg model =
                   callState = (Dict.fromList (List.map (\c -> (c.id.value, defaultMethodUiInfo)) (List.concatMap getAllCalls technique.elems)))
                   blockState = (Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo)) (List.concatMap getAllBlocks technique.elems)))
                   ui = TechniqueUiInfo General callState blockState [] False Unchanged Unchanged Nothing
-                  editInfo = TechniqueEditInfo "" True (Ok ())
+                  editInfo = TechniqueEditInfo "" False (Ok ())
                 in
                   update (GenerateId FinalizeImport) { model | mode = TechniqueDetails technique (Creation (TechniqueId "")) ui editInfo}
               EditYaml _->
