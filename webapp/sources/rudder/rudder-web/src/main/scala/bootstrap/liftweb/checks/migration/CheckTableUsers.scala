@@ -55,7 +55,8 @@ class CheckTableUsers(
 
   import doobie._
 
-  override def description: String = "Check if database tables Users and UserSessions exist"
+  override def description: String =
+    "Check if database tables Users and UserSessions exist and authz column exists in UserSessions table."
 
   def createUserTables: IOResult[Unit] = {
     val sql1 = sql"""CREATE TABLE IF NOT EXISTS Users (
@@ -76,6 +77,7 @@ class CheckTableUsers(
     , creationDate timestamp with time zone NOT NULL
     , authMethod   text
     , permissions  text[]
+    , authz        text[] NOT NULL DEFAULT '{}'
     , endDate      timestamp with time zone
     , endCause     text
     );"""
@@ -84,10 +86,18 @@ class CheckTableUsers(
     transactIOResult(s"Error with 'UserSessions' table creation")(xa => sql2.update.run.transact(xa)).unit
   }
 
+  def createAuthzColumn: IOResult[Unit] = {
+    val sql = sql"""
+      ALTER TABLE UserSessions ADD COLUMN IF NOT EXISTS authz text[] NOT NULL DEFAULT '{}';
+    """
+    transactIOResult(s"Error with 'authz' column creation")(xa => sql.update.run.transact(xa)).unit
+  }
+
   override def checks(): Unit = {
     val prog = {
       for {
         _ <- createUserTables
+        _ <- createAuthzColumn
       } yield ()
     }
 

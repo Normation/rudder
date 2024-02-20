@@ -172,6 +172,7 @@ public class RudderProviderManager implements org.springframework.security.authe
                                 JZioRuntime.runNow(userRepository.logStartSession(
                                   details.getUsername(),
                                   com.normation.rudder.Role.toDisplayNames(details.roles()),
+                                  details.roles().toList().flatMap(r -> r.rights().authorizationTypes().toList().map(a -> a.id())),
                                   com.normation.rudder.users.SessionId.apply(sessionId),
                                   p.name(),
                                   org.joda.time.DateTime.now()
