@@ -993,6 +993,17 @@ button.btn.clipboard:hover {
   display: none !important;
 }
 /* =====  BLOCK  ===== */
+.method-info .block-name-container{
+  padding: 0px 100px 0 0;
+}
+.method-info.closed .block-name-container{
+  padding-left: 0;
+  padding-top: 0;
+}
+.method-condition:not(.closed){
+  padding-left: 10px;
+}
+
 /* =====  METHOD  ===== */
 ul.list-unstyled > li{
   margin-bottom: 10px;
@@ -1158,7 +1169,7 @@ ul li.hide-method {
   background-color: #337ab7;
   z-index: 100;
 }
-.card-method.showMethodBlock:not(.active) .method .method-info .method-condition,
+.card-method.showMethodBlock .method .method-info .method-condition,
 .card-method.showMethodCall .method .method-info .method-condition{
   padding-left: 10px;
 }
