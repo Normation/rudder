@@ -55,8 +55,9 @@ pipeline {
                         }
                         cleanup {
                             script {
-                              running.remove("Tests - relayd-man")
+                                running.remove("Tests - relayd-man")
                                 updateSlack(errors, running, slackResponse, version, changeUrl)
+                                cleanWs(deleteDirs: true, notFailBuild: true)
                             }
                         }
                     }
@@ -96,6 +97,7 @@ pipeline {
                             script {
                                 running.remove("Tests - shell")
                                 updateSlack(errors, running, slackResponse, version, changeUrl)
+                                cleanWs(deleteDirs: true, notFailBuild: true)
                             }
                         }
                     }
@@ -129,6 +131,7 @@ pipeline {
                             script {
                                 running.remove("Tests - python")
                                 updateSlack(errors, running, slackResponse, version, changeUrl)
+                                cleanWs(deleteDirs: true, notFailBuild: true)
                             }
                         }
                     }
@@ -171,6 +174,7 @@ pipeline {
                             script {
                                 running.remove("Tests - typo")
                                 updateSlack(errors, running, slackResponse, version, changeUrl)
+                                cleanWs(deleteDirs: true, notFailBuild: true)
                             }
                         }
                     }
@@ -207,6 +211,7 @@ pipeline {
                             script {
                                 running.remove("Tests - api-doc")
                                 updateSlack(errors, running, slackResponse, version, changeUrl)
+                                cleanWs(deleteDirs: true, notFailBuild: true)
                             }
                         }
                     }
@@ -247,6 +252,7 @@ pipeline {
                             script {
                                 running.remove("Tests - rudder-pkg")
                                 updateSlack(errors, running, slackResponse, version, changeUrl)
+                                cleanWs(deleteDirs: true, notFailBuild: true)
                             }
                         }
                     }
@@ -293,6 +299,7 @@ pipeline {
                             script {
                                 running.remove("Tests - webapp")
                                 updateSlack(errors, running, slackResponse, version, changeUrl)
+                                cleanWs(deleteDirs: true, notFailBuild: true)
                             }
                         }
                     }
@@ -343,6 +350,7 @@ pipeline {
                             script {
                                 running.remove("Tests - relayd")
                                 updateSlack(errors, running, slackResponse, version, changeUrl)
+                                cleanWs(deleteDirs: true, notFailBuild: true)
                             }
                         }
                     }
@@ -396,6 +404,7 @@ pipeline {
                             script {
                                 running.remove("Tests - policies")
                                 updateSlack(errors, running, slackResponse, version, changeUrl)
+                                cleanWs(deleteDirs: true, notFailBuild: true)
                             }
                         }
                     }
@@ -460,6 +469,7 @@ pipeline {
                                 script {
                                     running.remove("Tests - compatibility JDK ${JDK_VERSION}")
                                     updateSlack(errors, running, slackResponse, version, changeUrl)
+                                    cleanWs(deleteDirs: true, notFailBuild: true)
                                 }
                             }
                         }
@@ -503,6 +513,7 @@ pipeline {
                             script {
                                 running.remove("Publish - relayd-man")
                                 updateSlack(errors, running, slackResponse, version, changeUrl)
+                                cleanWs(deleteDirs: true, notFailBuild: true)
                             }
                         }
                     }
@@ -546,6 +557,7 @@ pipeline {
                             script {
                                 running.remove("Publish - api-doc")
                                 updateSlack(errors, running, slackResponse, version, changeUrl)
+                                cleanWs(deleteDirs: true, notFailBuild: true)
                             }
                         }
                     }
@@ -583,6 +595,7 @@ pipeline {
                             script {
                                 running.remove("Publish - api-doc-redirect")
                                 updateSlack(errors, running, slackResponse, version, changeUrl)
+                                cleanWs(deleteDirs: true, notFailBuild: true)
                             }
                         }
                     }
@@ -631,6 +644,7 @@ pipeline {
                             script {
                                 running.remove("Publish - webapp")
                                 updateSlack(errors, running, slackResponse, version, changeUrl)
+                                cleanWs(deleteDirs: true, notFailBuild: true)
                             }
                         }
                     }
@@ -647,12 +661,6 @@ pipeline {
                     }
                 }
             }
-        }
-    }
-    post {
-        // Clean after build
-        always {
-            cleanWs(deleteDirs: true, notFailBuild: true)
         }
     }
 }
