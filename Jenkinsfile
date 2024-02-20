@@ -393,6 +393,7 @@ pipeline {
                             script {
                                 running.remove("Tests - rudder-package")
                                 updateSlack(errors, running, slackResponse, version, changeUrl)
+                                cleanWs(deleteDirs: true, notFailBuild: true)
                             }
                         }
                     }
