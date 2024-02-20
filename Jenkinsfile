@@ -701,6 +701,7 @@ pipeline {
                             script {
                                 running.remove("Publish - policies")
                                 updateSlack(errors, running, slackResponse, version, changeUrl)
+                                cleanWs(deleteDirs: true, notFailBuild: true)
                             }
                         }
                     }
