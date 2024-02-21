@@ -3,7 +3,7 @@
 
 use std::{collections::HashMap, fmt};
 
-use crate::backends::unix::cfengine::{bundle::UNIQUE_ID, cfengine_canonify_condition, quoted};
+use crate::backends::unix::cfengine::{bundle::UNIQUE_ID, quoted};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum PromiseType {
@@ -167,21 +167,17 @@ impl Promise {
         )
     }
 
-    /// Shortcut for adding a condition
+    /// Shortcut to add a condition expression
     pub fn if_condition<T: AsRef<str>>(mut self, condition: T) -> Self {
-        self.attributes.insert(
-            AttributeType::If,
-            cfengine_canonify_condition(condition.as_ref()),
-        );
+        self.attributes
+            .insert(AttributeType::If, format!("\"{}\"", condition.as_ref()));
         self
     }
 
-    /// Shortcut for adding a condition
+    /// Shortcut for adding a condition expression
     pub fn unless_condition<T: AsRef<str>>(mut self, condition: T) -> Self {
-        self.attributes.insert(
-            AttributeType::Unless,
-            cfengine_canonify_condition(condition.as_ref()),
-        );
+        self.attributes
+            .insert(AttributeType::Unless, format!("\"{}\"", condition.as_ref()));
         self
     }
 
@@ -285,6 +281,12 @@ mod tests {
                 .if_condition("debian")
                 .format(0, LONGEST_ATTRIBUTE_LEN + 3 + UNIQUE_ID_LEN),
             "    \"test\"                            string => \"plop\",\n                                             if => \"debian\";"
+        );
+        assert_eq!(
+            Promise::string("test", "plop")
+                .if_condition("debian.${my.var}")
+                .format(0, LONGEST_ATTRIBUTE_LEN + 3 + UNIQUE_ID_LEN),
+            "    \"test\"                            string => \"plop\",\n                                             if => \"debian.${my.var}\";"
         );
     }
 }

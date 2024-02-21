@@ -27,10 +27,10 @@ bundle agent call_param_in_condition_e8362340_dc50_4231_9b7f_748b51e9fa07(c_name
   methods:
     "e8362340-dc50-4231-9b7f-748b51e9fa07_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "e8362340-dc50-4231-9b7f-748b51e9fa07_${report_data.directive_id}" usebundle => command_execution("${command}"),
-                                             if => canonify("${method_call_condition}");
+                                             if => "${method_call_condition}";
     "e8362340-dc50-4231-9b7f-748b51e9fa07_${report_data.directive_id}" usebundle => _classes_noop(canonify("${class_prefix}_command_execution_${c_key}")),
-                                         unless => canonify("${method_call_condition}");
+                                         unless => "${method_call_condition}";
     "e8362340-dc50-4231-9b7f-748b51e9fa07_${report_data.directive_id}" usebundle => log_rudder("Skipping method 'Command execution' with key parameter 'echo \"May be executed or not\"' since condition 'file_check_exists__tmp_${file}_kept' is not reached", "echo \"May be executed or not\"", canonify("${class_prefix}_command_execution_${c_key}"), canonify("${class_prefix}_command_execution_${c_key}"), @{args}),
-                                         unless => canonify("${method_call_condition}");
+                                         unless => "${method_call_condition}";
 
 }
