@@ -40,7 +40,6 @@
 
 // Variables
 $node-state-size: 14px;
-$node-logo-size: 50px;
 
 // Override Rudder template
 .rudder-template {
@@ -213,108 +212,6 @@ $node-logo-size: 50px;
   padding: 0 18px !important;
   height: 20px;
 }
-
-/* OS ICONS */
-.os-logo {
-  width: $node-logo-size;
-  height: $node-logo-size;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  opacity: 0.5;
-  margin-right: 10px;
-  cursor: help;
-  background-image: url(../../images/os/unknown-logo.svg);
-
-  @media (max-width: 992px){
-    &  {
-      display: none !important
-    }
-  }
-
-  &.linux{
-    background-image: url(../../images/os/linux-logo.svg);
-  }
-  &.debian{
-    background-image: url(../../images/os/debian-logo.svg);
-  }
-  &.kali{
-    background-image: url(../../images/os/kali-logo.svg);
-  }
-  &.ubuntu{
-    background-image: url(../../images/os/ubuntu-logo.svg);
-  }
-  &.redhat{
-    background-image: url(../../images/os/redhat-logo.svg);
-  }
-  &.centos{
-    background-image: url(../../images/os/centos-logo.svg);
-  }
-  &.fedora{
-    background-image: url(../../images/os/fedora-logo.svg);
-  }
-  &.suse{
-    background-image: url(../../images/os/suse-logo.svg);
-  }
-  &.android{
-    background-image: url(../../images/os/android-logo.svg);
-  }
-  &.oracle{
-    background-image: url(../../images/os/oracle-logo.svg);
-  }
-  &.scientific{
-    background-image: url(../../images/os/scientific-logo.svg);
-  }
-  &.slackware{
-    background-image: url(../../images/os/slackware-logo.svg);
-  }
-  &.mint{
-    background-image: url(../../images/os/mint-logo.svg);
-  }
-  &.rockylinux{
-    background-image: url(../../images/os/rocky-logo.svg);
-  }
-  &.almalinux{
-    background-image: url(../../images/os/alma-logo.svg);
-  }
-  &.raspbian{
-    background-image: url(../../images/os/raspbian-logo.svg);
-  }
-  &.windowsxp,
-  &.windowsvista,
-  &.windowsseven,
-  &.windows10,
-  &.windows2000,
-  &.windows2003,
-  &.windows2008,
-  &.windows2008r2{
-    background-image: url(../../images/os/windows-logo.svg);
-  }
-  &.windows,
-  &.windows2012,
-  &.windows2012r2,
-  &.windows2016,
-  &.windows2016r2,
-  &.windows2019{
-    background-image: url(../../images/os/windows-2012-logo.svg);
-  }
-  &.windows2022{
-    background-image: url(../../images/os/windows-2012-logo.svg);
-  }
-  &.aix{
-    background-image: url(../../images/os/aix-logo.svg);
-  }
-  &.solaris{
-    background-image: url(../../images/os/solaris-logo.svg);
-  }
-  &.bsd{
-    background-image: url(../../images/os/bsd-logo.svg);
-  }
-  &.freebsd{
-    background-image: url(../../images/os/freebsd-logo.svg);
-  }
-}
-
 
 .callout-fade.callout-info p .fa{
   margin-right: 5px;

@@ -349,7 +349,7 @@ $small-prefix : "sm-";
   & .icon-state {
     margin-right: 6px;
   }
-  & > i{
+  & > i:not(:last-child){
     margin-right: 4px;
   }
 }

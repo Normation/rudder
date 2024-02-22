@@ -1211,10 +1211,6 @@ table.directiveGroupDef, table.directiveVarDef, table.directiveSectionDef {
   margin:10px 0 0 15px;
 }
 
-.form-group select {
-  width: auto;
-}
-
 .animate-hide {
   -webkit-transition: all linear .2s;
   transition: all linear .2s;
@@ -1232,17 +1228,8 @@ table.directiveGroupDef, table.directiveVarDef, table.directiveSectionDef {
   display:block!important;
 }
 
-input[type="number"] {
-    padding: 5px 0 5px 5px;
-    margin-top:-5px;
-}
-
 .c3-tooltip td.name {
     padding-right: 3px;
-}
-
-.filterIcon {
-  margin-bottom:-3px;
 }
 
 .ui-button-disabled  {

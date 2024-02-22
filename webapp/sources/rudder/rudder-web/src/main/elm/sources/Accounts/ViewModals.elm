@@ -83,7 +83,7 @@ displayModals model =
                   , textarea [id "newAccount-description", class "form-control vresize float-inherit", value account.description, onInput (\s -> UpdateAccountForm {account | description = s} )][]
                   ]
                 , div [class "form-group"]
-                  [ label [for "newAccount-expiration"]
+                  [ label [for "newAccount-expiration", class "mb-1"]
                     [ text "Expiration date"
                     , label [for "selectDate", class "custom-toggle toggle-secondary"]
                       [ input [type_ "checkbox", id "selectDate", checked account.expirationDateDefined, onCheck (\c ->  UpdateAccountForm {account | expirationDateDefined = c} )][]
