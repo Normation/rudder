@@ -16,6 +16,7 @@
 
 package bootstrap.liftweb;
 
+import com.normation.rudder.AuthorizationType;
 import com.normation.rudder.domain.logger.ApplicationLogger;
 import com.normation.rudder.users.*;
 import org.apache.commons.logging.Log;
@@ -172,6 +173,7 @@ public class RudderProviderManager implements org.springframework.security.authe
                                 JZioRuntime.runNow(userRepository.logStartSession(
                                   details.getUsername(),
                                   com.normation.rudder.Role.toDisplayNames(details.roles()),
+                                  com.normation.rudder.Rights.combineAll(details.roles().toList().map(r -> r.rights())).authorizationTypes().toList().map(AuthorizationType::id),
                                   com.normation.rudder.users.SessionId.apply(sessionId),
                                   p.name(),
                                   org.joda.time.DateTime.now()

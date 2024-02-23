@@ -65,6 +65,7 @@ trait UserRepository {
   def logStartSession(
       userId:            String,
       permissions:       List[String],
+      authz:             List[String],
       sessionId:         SessionId,
       authenticatorName: String,
       date:              DateTime
@@ -284,11 +285,14 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
   override def logStartSession(
       userId:            String,
       permissions:       List[String],
+      authz:             List[String],
       sessionId:         SessionId,
       authenticatorName: String,
       date:              DateTime
   ): IOResult[Unit] = {
-    sessionBase.update(UserSession(userId, sessionId, date, authenticatorName, permissions.sorted, None, None) :: _) *>
+    sessionBase.update(
+      UserSession(userId, sessionId, date, authenticatorName, permissions.sorted, authz.sorted, None, None) :: _
+    ) *>
     userBase.update(_.map { case (k, v) => if (k == userId) (k, v.modify(_.lastLogin).setTo(Some(date))) else (k, v) })
   }
 
@@ -554,13 +558,14 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
   override def logStartSession(
       userId:            String,
       permissions:       List[String],
+      authz:             List[String],
       sessionId:         SessionId,
       authenticatorName: String,
       date:              DateTime
   ): IOResult[Unit] = {
     val session   = {
-      sql"""insert into usersessions (sessionid, userid, creationdate, authmethod, permissions)
-            values (${sessionId}, ${userId}, ${date}, ${authenticatorName}, ${permissions.sorted})"""
+      sql"""insert into usersessions (sessionid, userid, creationdate, authmethod, permissions, authz)
+            values (${sessionId}, ${userId}, ${date}, ${authenticatorName}, ${permissions.sorted}, ${authz.sorted})"""
     }
     val lastLogin = {
       sql"""update users set lastlogin = ${date} where id = ${userId}"""
@@ -589,7 +594,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
 
   override def getLastPreviousLogin(userId: String): IOResult[Option[UserSession]] = {
     val sql =
-      sql"""select userid, sessionid, creationdate, authmethod, permissions, enddate, endcause from usersessions where userid = ${userId} and enddate is not null order by creationdate desc limit 1"""
+      sql"""select userid, sessionid, creationdate, authmethod, permissions, authz, enddate, endcause from usersessions where userid = ${userId} and enddate is not null order by creationdate desc limit 1"""
 
     transactIOResult(s"Error when retrieving information for previous session for '${userId}'")(xa =>
       sql.query[UserSession].option.transact(xa)
@@ -597,7 +602,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
   }
 
   override def deleteOldSessions(olderThan: DateTime): IOResult[Unit] = {
-    val sql = sql"""delete from usersessuins where creationdate < ${olderThan}"""
+    val sql = sql"""delete from usersessions where creationdate < ${olderThan}"""
 
     transactIOResult(s"Error when purging user sessions older then: ${DateFormaterService.serialize(olderThan)}")(xa =>
       sql.update.run.transact(xa)

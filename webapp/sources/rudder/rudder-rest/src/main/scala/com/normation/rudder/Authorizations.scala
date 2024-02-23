@@ -322,6 +322,8 @@ object Rights {
   }
 
   def forAuthzs(authorizationTypes: AuthorizationType*): Rights = apply(authorizationTypes.toSeq)
+
+  def combineAll(rights: Iterable[Rights]): Rights = Rights(rights.map(_.authorizationTypes).toList.combineAll)
 }
 
 /*
