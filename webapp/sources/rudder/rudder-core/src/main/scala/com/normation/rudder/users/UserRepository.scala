@@ -625,12 +625,13 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
           fr")"
 
         def update(updated: Vector[UserInfo]): ConnectionIO[Int] = {
+          // never update the managedBy of an existing user which may have been provided by another origin
           val sql =
             """insert into users (id, creationdate, status, managedby, name, email, lastlogin, statushistory, otherinfo)
                   values (?,?,?,?,? , ?,?,?,?)
                on conflict (id) do update
-                set (creationdate, status, managedby, name, email, lastlogin, statushistory, otherinfo) =
-                  (EXCLUDED.creationdate, EXCLUDED.status, EXCLUDED.managedby, EXCLUDED.name, EXCLUDED.email, EXCLUDED.lastlogin, EXCLUDED.statushistory, EXCLUDED.otherinfo)"""
+                set (creationdate, status, name, email, lastlogin, statushistory, otherinfo) =
+                  (EXCLUDED.creationdate, EXCLUDED.status, EXCLUDED.name, EXCLUDED.email, EXCLUDED.lastlogin, EXCLUDED.statushistory, EXCLUDED.otherinfo)"""
 
           Update[UserInfo](sql).updateMany(updated)
         }

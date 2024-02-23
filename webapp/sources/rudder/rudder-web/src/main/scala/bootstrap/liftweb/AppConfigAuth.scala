@@ -157,8 +157,8 @@ class AppConfigAuth extends ApplicationContextAware {
       }
       val properties: Option[(String, AuthBackendProviderProperties)] = x.name match {
         case "ldap"            =>
-          // roles for LDAP-provided users come directly from the file
-          Some(x.name -> AuthBackendProviderProperties(x.name, true, true))
+          // roles for LDAP-provided users come directly from the file, it neither extends nor overrides the default roles
+          Some("ldap" -> AuthBackendProviderProperties("ldap", false, false, true))
         case "oidc" | "oauth2" => {
           val baseProperty  = "rudder.auth.oauth2.provider"
           // we need to read under the registration key, under the base property
@@ -169,10 +169,10 @@ class AppConfigAuth extends ApplicationContextAware {
             case (acc, reg) =>
               val rolesEnabled = Try(config.getBoolean(s"${baseProperty}.${reg}.${A_ROLES_ENABLED}"))
                 .getOrElse(false) // default value, same as in the auth backend plugin, but also identity element of the monoid
-              val rolesOverride = Try(config.getBoolean(s"${baseProperty}.${reg}.${A_ROLES_ENABLED}"))
+              val rolesOverride = Try(config.getBoolean(s"${baseProperty}.${reg}.${A_ROLES_OVERRIDE}"))
                 .getOrElse(false) // default value, same as in the auth backend plugin, but also identity element of the monoid
               AuthBackendProviderProperties
-                .combine(x.name, acc, AuthBackendProviderProperties(x.name, rolesEnabled, rolesOverride))
+                .combine(x.name, acc, AuthBackendProviderProperties(x.name, rolesEnabled, rolesOverride, false))
           })
         }
         case _                 => None // default providers or providers for which handling the properties is still unkown
@@ -219,7 +219,7 @@ class AppConfigAuth extends ApplicationContextAware {
       }
     }
     RudderConfig.authenticationProviders.setConfiguredProviders(configuredAuthProviders.toArray)
-    RudderConfig.authenticationProviders.setProviderProperties(providerProperties)
+    RudderConfig.authenticationProviders.addProviderProperties(providerProperties)
   }
 
   ///////////// FOR WEB INTERFACE /////////////
@@ -450,20 +450,23 @@ class RudderXmlUserDetailsContextMapper(authConfigProvider: UserDetailListProvid
 /**
   * A description of some properties of an authentication backend
   * @param hasAdditionalRoles if the backend can provide additional roles than the ones of the default backend 
-  * @param overridesRoles if the backend is configured to override the roles of the default backend, assumes that hasAdditionalRoles is true
+  * @param overridesRoles if the backend is configured to override the roles of the default backend and cannot change them
+  * @param hasModifiablePassword if the backend is configured to allow password modification
   */
 final case class AuthBackendProviderProperties private (
-    hasAdditionalRoles: Boolean,
-    overridesRoles:     Boolean
+    hasAdditionalRoles:    Boolean,
+    overridesRoles:        Boolean,
+    hasModifiablePassword: Boolean
 ) {
   def extendsRoles: Boolean = hasAdditionalRoles && !overridesRoles
 }
 
 object AuthBackendProviderProperties {
   def apply(
-      name:               String,
-      hasAdditionalRoles: Boolean,
-      overridesRoles:     Boolean
+      name:                  String,
+      hasAdditionalRoles:    Boolean,
+      overridesRoles:        Boolean,
+      hasModifiablePassword: Boolean
   ): AuthBackendProviderProperties = {
     if (overridesRoles && !hasAdditionalRoles) {
       // This is not consistent so we force overridesRoles to false
@@ -471,14 +474,14 @@ object AuthBackendProviderProperties {
         s"Backend provider properties for '${name}' are not consistent: backend does not enables providing roles but roles overrides is set to true. " +
         s"Overriding roles will not be enabled."
       )
-      new AuthBackendProviderProperties(false, false)
+      new AuthBackendProviderProperties(false, false, hasModifiablePassword)
     } else {
-      new AuthBackendProviderProperties(hasAdditionalRoles, overridesRoles)
+      new AuthBackendProviderProperties(hasAdditionalRoles, overridesRoles, hasModifiablePassword)
     }
   }
 
-  // properties set to false by default is the default behavior, it may break all the properties parsing logic in this file otherwise
-  def empty: AuthBackendProviderProperties = new AuthBackendProviderProperties(false, false)
+  // properties set to false by default regarding roles is the default behavior, it may break all the properties parsing logic in this file otherwise
+  def empty: AuthBackendProviderProperties = new AuthBackendProviderProperties(false, false, false)
   def combine(
       name:  String,
       left:  AuthBackendProviderProperties,
@@ -487,7 +490,8 @@ object AuthBackendProviderProperties {
     AuthBackendProviderProperties(
       name,
       left.hasAdditionalRoles || right.hasAdditionalRoles,
-      left.overridesRoles || right.overridesRoles
+      left.overridesRoles || right.overridesRoles,
+      left.hasModifiablePassword || right.hasModifiablePassword
     )
   }
 }
@@ -605,8 +609,8 @@ class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
     this.authenticationMethods.toSeq
   }
 
-  def setProviderProperties(properties: Map[String, AuthBackendProviderProperties]): Unit = {
-    this.backendProperties = properties
+  def addProviderProperties(properties: Map[String, AuthBackendProviderProperties]): Unit = {
+    this.backendProperties = this.backendProperties ++ properties
   }
 
   def getProviderProperties(): Map[String, AuthBackendProviderProperties] = {
