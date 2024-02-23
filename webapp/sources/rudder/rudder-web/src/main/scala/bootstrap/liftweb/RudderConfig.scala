@@ -1133,6 +1133,7 @@ object RudderConfig extends Loggable {
   val restDataSerializer:                  RestDataSerializer                         = rci.restDataSerializer
   val restExtractorService:                RestExtractorService                       = rci.restExtractorService
   val restQuicksearch:                     RestQuicksearch                            = rci.restQuicksearch
+  val roleApiMapping:                      RoleApiMapping                             = rci.roleApiMapping
   val roAgentRunsRepository:               RoReportsExecutionRepository               = rci.roAgentRunsRepository
   val roApiAccountRepository:              RoApiAccountRepository                     = rci.roApiAccountRepository
   val roDirectiveRepository:               RoDirectiveRepository                      = rci.roDirectiveRepository
@@ -1291,6 +1292,7 @@ case class RudderServiceApi(
     jsonPluginDefinition:                ReadPluginPackageInfo,
     rudderApi:                           LiftHandler,
     authorizationApiMapping:             ExtensibleAuthorizationApiMapping,
+    roleApiMapping:                      RoleApiMapping,
     roRuleCategoryRepository:            RoRuleCategoryRepository,
     woRuleCategoryRepository:            WoRuleCategoryRepository,
     workflowLevelService:                DefaultWorkflowLevel,
@@ -3583,6 +3585,7 @@ object RudderConfigInit {
       jsonPluginDefinition,
       rudderApi,
       authorizationApiMapping,
+      roleApiMapping,
       roRuleCategoryRepository,
       woRuleCategoryRepository,
       workflowLevelService,
