@@ -49,9 +49,19 @@ def install_file(package_files, exact_version, exit_on_error=True):
                 utils.remove_previous_jar(metadata['name'])
 
         script_dir = utils.extract_scripts(metadata, package_file)
-        utils.run_script('preinst', script_dir, exist, exit_on_error=exit_on_error)
+        preinst_retcode = utils.run_script('preinst', script_dir, exist)
+        if exit_on_error and preinst_retcode != 0:
+            utils.fail(
+                package_file
+                + ' installation failed, the preinst package script exited with a non zero exit code.'
+            )
         utils.install(metadata, package_file, exist)
-        utils.run_script('postinst', script_dir, exist, exit_on_error=exit_on_error)
+        postinst_retcode = utils.run_script('postinst', script_dir, exist)
+        if exit_on_error and postinst_retcode != 0:
+            utils.fail(
+                package_file
+                + ' installation failed, the postinst package script exited with a non zero exit code.'
+            )
         if metadata['type'] == 'plugin' and 'jar-files' in metadata:
             for j in metadata['jar-files']:
                 utils.jar_status(j, True)
@@ -257,9 +267,9 @@ def remove(package_names):
         if metadata['type'] == 'plugin' and 'jar-files' in metadata:
             for j in metadata['jar-files']:
                 utils.jar_status(j, False)
-        utils.run_script('prerm', script_dir, None)
+        prerm_ret_code = utils.run_script('prerm', script_dir, None)
         utils.remove_files(metadata)
-        utils.run_script('postrm', script_dir, None)
+        postrm_ret_code = utils.run_script('postrm', script_dir, None)
         shutil.rmtree(script_dir)
         del utils.DB['plugins'][package_name]
         utils.db_save()
@@ -268,7 +278,7 @@ def remove(package_names):
 def rudder_postupgrade():
     for plugin in utils.DB['plugins']:
         script_dir = utils.DB_DIRECTORY + '/' + plugin
-        utils.run_script('postinst', script_dir, exist=True, exit_on_error=False)
+        postinst_retcode = utils.run_script('postinst', script_dir, exist=True)
 
 
 def check_compatibility(exact_version):
