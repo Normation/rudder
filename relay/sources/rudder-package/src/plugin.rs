@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use std::{collections::HashMap, fmt::Display, path::Path, process::Command};
+use std::{collections::HashMap, fmt::Display, io::BufWriter, path::Path, process::Command};
 
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
@@ -119,7 +119,7 @@ impl Metadata {
             debug!("Skipping as the script does not exist.");
             return Ok(());
         }
-        let mut binding = Command::new(package_script_path);
+        let mut binding = Command::new(package_script_path.clone());
         let cmd = binding.arg(arg.to_string());
         let r = match CmdOutput::new(cmd) {
             Ok(a) => a,
@@ -127,6 +127,15 @@ impl Metadata {
                 bail!("Could not execute package script '{}'`n{}", script, e);
             }
         };
+        let mut package_script_logfile = package_script_path;
+        package_script_logfile.set_extension(".log");
+        let file = std::fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(package_script_logfile)?;
+        let mut writer = BufWriter::new(file);
+        let _ = serde_json::to_writer_pretty(&mut writer, &r);
         if !r.output.status.success() {
             debug!("Package script execution return unexpected exit code.");
         }
