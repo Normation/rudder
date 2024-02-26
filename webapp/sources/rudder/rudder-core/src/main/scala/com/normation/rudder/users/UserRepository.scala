@@ -801,7 +801,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
 
   // only disabled user can be set back to active
   override def setActive(userId: List[String], trace: EventTrace): IOResult[Unit] = {
-    changeStatus(userId, None, Nil, trace, UserStatus.Active, Some(fr"status = '${UserStatus.Disabled.value}'")).unit
+    changeStatus(userId, None, Nil, trace, UserStatus.Active, Some(fr"status = ${UserStatus.Disabled.value}")).unit
   }
 
   override def getAll(): IOResult[List[UserInfo]] = {
