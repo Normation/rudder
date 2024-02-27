@@ -44,6 +44,7 @@ import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.tenants.TenantService
 import com.softwaremill.quicklens._
 import scala.collection.MapView
 import zio._
@@ -82,14 +83,6 @@ import zio.syntax._
  *
  */
 trait NodeFactRepository {
-
-  /*
-   * Check if the node can be seen in the given query context. Return none if it can't.
-   */
-  def securityFilter[A <: MinimalNodeFactInterface](n: A)(implicit qc: QueryContext): Option[A] = {
-    if (qc.nodePerms.nsc.canSee(n)) Some(n) else None
-  }
-
   /*
    * Add a call back that will be called when a change occurs.
    * The callbacks are not ordered and not blocking and will have a short time-out
@@ -271,6 +264,7 @@ object CoreNodeFactRepository {
   def make(
       storage:    NodeFactStorage,
       softByName: GetNodesbySofwareName,
+      tenants:    TenantService,
       callbacks:  Chunk[NodeFactChangeEventCallback]
   ): IOResult[CoreNodeFactRepository] = for {
     _        <- InventoryDataLogger.debug("Getting pending node info for node fact repos")
@@ -278,7 +272,7 @@ object CoreNodeFactRepository {
     _        <- InventoryDataLogger.debug("Getting accepted node info for node fact repos")
     accepted <- storage.getAllAccepted()(SelectFacts.none).map(f => (f.id, f.toCore)).runCollect.map(_.toMap)
     _        <- InventoryDataLogger.debug("Creating node fact repos")
-    repo     <- make(storage, softByName, pending, accepted, callbacks)
+    repo     <- make(storage, softByName, tenants, pending, accepted, callbacks)
   } yield {
     repo
   }
@@ -286,6 +280,7 @@ object CoreNodeFactRepository {
   def make(
       storage:    NodeFactStorage,
       softByName: GetNodesbySofwareName,
+      tenants:    TenantService,
       pending:    Map[NodeId, CoreNodeFact],
       accepted:   Map[NodeId, CoreNodeFact],
       callbacks:  Chunk[NodeFactChangeEventCallback]
@@ -295,7 +290,7 @@ object CoreNodeFactRepository {
     lock <- ReentrantLock.make()
     cbs  <- Ref.make(callbacks)
   } yield {
-    new CoreNodeFactRepository(storage, softByName, p, a, cbs, lock)
+    new CoreNodeFactRepository(storage, softByName, tenants, p, a, cbs, lock)
   }
 
 }
@@ -331,6 +326,7 @@ class SoftDaoGetNodesbySofwareName(val softwareDao: ReadOnlySoftwareDAO) extends
 class CoreNodeFactRepository(
     storage:        NodeFactStorage,
     softwareByName: GetNodesbySofwareName,
+    tenants:        TenantService,
     pendingNodes:   Ref[Map[NodeId, CoreNodeFact]],
     acceptedNodes:  Ref[Map[NodeId, CoreNodeFact]],
     callbacks:      Ref[Chunk[NodeFactChangeEventCallback]],
@@ -378,7 +374,7 @@ class CoreNodeFactRepository(
   private[nodes] def getOnRef(ref: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
       qc:                          QueryContext
   ): IOResult[Option[CoreNodeFact]] = {
-    ref.get.map(_.get(nodeId).flatMap(securityFilter))
+    tenants.nodeGetMapView(ref, nodeId)
   }
 
   /*
@@ -426,7 +422,7 @@ class CoreNodeFactRepository(
   override def slowGet(
       nodeId:    NodeId
   )(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): IOResult[Option[NodeFact]] = {
-    (for {
+    for {
       optCNF <- get(nodeId)(qc, status)
       res    <- optCNF match {
                   case None    => None.succeed
@@ -460,17 +456,14 @@ class CoreNodeFactRepository(
                       }
                     }
                 }
-    } yield res.flatMap(securityFilter))
+      sec    <- tenants.nodeFilter(res)
+    } yield sec
   }
 
   private[nodes] def getAllOnRef[A](
       ref:       Ref[Map[NodeId, CoreNodeFact]]
   )(implicit qc: QueryContext): IOResult[MapView[NodeId, CoreNodeFact]] = {
-    if (qc.nodePerms.isNone) {
-      MapView().succeed
-    } else {
-      ref.get.map(_.view.filter { case (_, n) => qc.nodePerms.canSee(n) })
-    }
+    tenants.nodeFilterMapView(ref)
   }
 
   override def getAll()(implicit qc: QueryContext, status: SelectNodeStatus): IOResult[MapView[NodeId, CoreNodeFact]] = {
@@ -486,22 +479,19 @@ class CoreNodeFactRepository(
   }
 
   override def slowGetAll()(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): IOStream[NodeFact] = {
-    if (qc.nodePerms.isNone) ZStream.empty
-    else {
+    tenants.nodeFilterStream(
       if (attrs == SelectFacts.none) {
         ZStream.fromIterableZIO(getAll()(qc, status).map(_.map(cnf => NodeFact.fromMinimal(cnf._2))))
       } else {
         status match {
-          // here, the filtering can be forward to storage, by core node fact must check it in all case, it's
-          // its responsibility
-          case SelectNodeStatus.Pending  => storage.getAllPending()(attrs).filter(qc.nodePerms.canSee(_))
-          case SelectNodeStatus.Accepted => storage.getAllAccepted()(attrs).filter(qc.nodePerms.canSee(_))
-          case SelectNodeStatus.Any      =>
-            storage.getAllPending()(attrs).filter(qc.nodePerms.canSee(_)) ++
-            storage.getAllAccepted()(attrs).filter(qc.nodePerms.canSee(_))
+          // here, the filtering could be forwarded to storage, but core node fact must check it in
+          // all case, it's its responsibility
+          case SelectNodeStatus.Pending  => storage.getAllPending()(attrs)
+          case SelectNodeStatus.Accepted => storage.getAllAccepted()(attrs)
+          case SelectNodeStatus.Any      => storage.getAllPending()(attrs) ++ storage.getAllAccepted()(attrs)
         }
       }
-    }
+    )
   }
 
   override def getNodesbySofwareName(softName: String): IOResult[List[(NodeId, Software)]] = {

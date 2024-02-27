@@ -50,9 +50,9 @@ import com.normation.rudder.RudderRoles
 import com.normation.rudder.UncheckedCustomRole
 import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.facts.nodes.NodeSecurityContext
-import com.normation.rudder.facts.nodes.Tenant
 import com.normation.rudder.rest.AuthorizationApiMapping
 import com.normation.rudder.rest.RoleApiMapping
+import com.normation.rudder.tenants.TenantId
 import com.normation.zio._
 import org.junit.runner.RunWith
 import org.specs2.mutable._
@@ -252,11 +252,11 @@ class RudderUserDetailsTest extends Specification {
     val userDetailList = getUserDetailList(tenantXML_1, "tenantXML_1")
 
     "be able to define one tenants" in {
-      userDetailList.users("user_single").nodePerms === NodeSecurityContext.ByTenants(Chunk(Tenant("zoneA")))
+      userDetailList.users("user_single").nodePerms === NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA")))
     }
 
     "be able to define a list of tenants" in {
-      userDetailList.users("user_multi").nodePerms === NodeSecurityContext.ByTenants(Chunk(Tenant("zoneA"), Tenant("zoneB")))
+      userDetailList.users("user_multi").nodePerms === NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB")))
     }
 
     "have no tenants attribute means ALL for compat reason" in {
@@ -276,7 +276,7 @@ class RudderUserDetailsTest extends Specification {
     }
 
     "only have access to sane ascii identifier" in {
-      userDetailList.users("user_ascii").nodePerms === NodeSecurityContext.ByTenants(Chunk(Tenant("zoneA")))
+      userDetailList.users("user_ascii").nodePerms === NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA")))
     }
   }
 

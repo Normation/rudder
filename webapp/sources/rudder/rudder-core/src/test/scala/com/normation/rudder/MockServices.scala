@@ -142,6 +142,7 @@ import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.PolicyServers
 import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
+import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio._
@@ -2186,7 +2187,10 @@ class MockNodes() {
 
   val getNodesbySofwareName = new SoftDaoGetNodesbySofwareName(softwareDao)
 
-  val nodeFactRepo: CoreNodeFactRepository = CoreNodeFactRepository.make(nodeFactStorage, getNodesbySofwareName, Chunk()).runNow
+  val tenantService = DefaultTenantService.make(Nil).runNow
+
+  val nodeFactRepo: CoreNodeFactRepository =
+    CoreNodeFactRepository.make(nodeFactStorage, getNodesbySofwareName, tenantService, Chunk()).runNow
 
   object queryProcessor extends QueryProcessor {
 

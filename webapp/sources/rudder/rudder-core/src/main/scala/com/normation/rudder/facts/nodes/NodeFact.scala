@@ -58,6 +58,7 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.reports._
+import com.normation.rudder.tenants.TenantId
 import com.normation.utils.ParseVersion
 import com.normation.utils.Version
 import com.normation.zio._
@@ -72,7 +73,6 @@ import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonAST.JValue
 import org.joda.time.DateTime
-import scala.util.matching.Regex
 import zio.Chunk
 import zio.json._
 import zio.json.ast.Json
@@ -113,7 +113,7 @@ final case class RudderAgent(
 
 // A security token for now is just a a list of tags denoting tenants
 // That security tag is not exposed in proxy service
-final case class SecurityTag(tenants: Chunk[Tenant])
+final case class SecurityTag(tenants: Chunk[TenantId])
 
 // default serialization for security tag. Be careful, changing that impacts external APIs.
 object SecurityTag {
@@ -1447,28 +1447,6 @@ object QueryContext {
 }
 
 /*
- * A node can belong to one (or technically more, but we will limit that for now) `tenant`.
- * A `tenant` is a segregation limit defining an isolated zone.
- * Tenants should be \ascii\num_-
- */
-final case class Tenant(value: String) extends AnyVal {
-  def debugString = value
-}
-
-object Tenant {
-
-  implicit val codecTenant: JsonCodec[Tenant] = new JsonCodec[Tenant](
-    JsonEncoder.string.contramap(_.value),
-    JsonDecoder.string.map(Tenant(_))
-  )
-
-  // Tenant d can only be non empty alpha-num and hyphen. Check externally to avoid perf cost
-  // at instantiation;
-  val checkTenantId: Regex = """^(\p{Alnum}[\p{Alnum}-_]*)$""".r
-
-}
-
-/*
  * People can access nodes based on a security context.
  * For now, there is only three cases:
  * - access all or none nodes, whatever properties the node has
@@ -1478,13 +1456,13 @@ sealed trait NodeSecurityContext { def value: String }
 object NodeSecurityContext       {
 
   // a context that can see all nodes whatever their security tags
-  case object All                                    extends NodeSecurityContext { override val value = "all"  }
+  case object All                                      extends NodeSecurityContext { override val value = "all"  }
   // a security context that can't see any node. Very good for performance.
-  case object None                                   extends NodeSecurityContext { override val value = "none" }
+  case object None                                     extends NodeSecurityContext { override val value = "none" }
   // a security context associated with a list of tenants. If the node share at least one of the
   // tenants, if can be seen. Be careful, it's really just non-empty interesting (so that adding
   // more tag here leads to more nodes, not less).
-  final case class ByTenants(tenants: Chunk[Tenant]) extends NodeSecurityContext {
+  final case class ByTenants(tenants: Chunk[TenantId]) extends NodeSecurityContext {
     override val value: String = s"tags:[${tenants.mkString(", ")}]"
   }
 
@@ -1497,22 +1475,23 @@ object NodeSecurityContext       {
       nsc == None
     }
 
-    def canSee(nodeTag: SecurityTag): Boolean = {
+    // can that security tag be seen in that context, given the set of known tenants?
+    def canSee(nodeTag: SecurityTag)(implicit tenants: Set[TenantId]): Boolean = {
       nsc match {
         case All           => true
         case None          => false
-        case ByTenants(ts) => ts.exists(s => nodeTag.tenants.exists(_ == s))
+        case ByTenants(ts) => ts.exists(s => nodeTag.tenants.exists(_ == s) && tenants.contains(s))
       }
     }
 
-    def canSee(optTag: Option[SecurityTag]): Boolean = {
+    def canSee(optTag: Option[SecurityTag])(implicit tenants: Set[TenantId]): Boolean = {
       optTag match {
         case Some(t)    => canSee(t)
         case scala.None => nsc == NodeSecurityContext.All // only admin can see private nodes
       }
     }
 
-    def canSee(n: MinimalNodeFactInterface): Boolean = {
+    def canSee(n: MinimalNodeFactInterface)(implicit tenants: Set[TenantId]): Boolean = {
       canSee(n.rudderSettings.security)
     }
 

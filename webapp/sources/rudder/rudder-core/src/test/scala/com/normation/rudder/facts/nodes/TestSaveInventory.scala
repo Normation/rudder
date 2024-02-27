@@ -61,6 +61,7 @@ import com.normation.rudder.inventory.InventoryProcessor
 import com.normation.rudder.inventory.InventoryProcessStatus
 import com.normation.rudder.inventory.InventoryProcessStatus.Saved
 import com.normation.rudder.inventory.SaveInventoryInfo
+import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio._
@@ -450,8 +451,9 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
       pending   <- Ref.make(Map[NodeId, CoreNodeFact]())
       accepted  <- Ref.make(Map[NodeId, CoreNodeFact]())
       callbacks <- Ref.make(Chunk.empty[NodeFactChangeEventCallback])
+      tenants   <- DefaultTenantService.make(Nil)
       lock      <- ReentrantLock.make()
-      r          = new CoreNodeFactRepository(factStorage, noopNodeBySoftwareName, pending, accepted, callbacks, lock)
+      r          = new CoreNodeFactRepository(factStorage, noopNodeBySoftwareName, tenants, pending, accepted, callbacks, lock)
       _         <- r.registerChangeCallbackAction(CoreNodeFactChangeEventCallback("trail", e => callbackLog.update(_.appended(e.event))))
 //      _         <- r.registerChangeCallbackAction(new NodeFactChangeEventCallback("log", e => effectUioUnit(println(s"**** ${e.name}"))))
     } yield {

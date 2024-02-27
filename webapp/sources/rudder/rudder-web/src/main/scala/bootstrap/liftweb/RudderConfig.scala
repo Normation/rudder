@@ -194,6 +194,8 @@ import com.normation.rudder.services.servers._
 import com.normation.rudder.services.system._
 import com.normation.rudder.services.user._
 import com.normation.rudder.services.workflows._
+import com.normation.rudder.tenants.DefaultTenantService
+import com.normation.rudder.tenants.TenantService
 import com.normation.rudder.users._
 import com.normation.rudder.web.model._
 import com.normation.rudder.web.services._
@@ -1198,6 +1200,8 @@ object RudderConfig extends Loggable {
   val eventLogDetailsService:              EventLogDetailsService                     = rci.eventLogDetailsService
   val eventLogRepository:                  EventLogRepository                         = rci.eventLogRepository
   val findExpectedReportRepository:        FindExpectedReportRepository               = rci.findExpectedReportRepository
+  val gitModificationRepository:           GitModificationRepository                  = rci.gitModificationRepository
+  val gitRepo:                             GitRepositoryProvider                      = rci.gitRepo
   val gitRevisionProvider:                 GitRevisionProvider                        = rci.gitRevisionProvider
   val healthcheckNotificationService:      HealthcheckNotificationService             = rci.healthcheckNotificationService
   val historizeNodeCountBatch:             IOResult[Unit]                             = rci.historizeNodeCountBatch
@@ -1258,6 +1262,7 @@ object RudderConfig extends Loggable {
   val srvGrid:                             SrvGrid                                    = rci.srvGrid
   val stringUuidGenerator:                 StringUuidGenerator                        = rci.stringUuidGenerator
   val techniqueRepository:                 TechniqueRepository                        = rci.techniqueRepository
+  val tenantService:                       TenantService                              = rci.tenantService
   val tokenGenerator:                      TokenGeneratorImpl                         = rci.tokenGenerator
   val updateDynamicGroups:                 UpdateDynamicGroups                        = rci.updateDynamicGroups
   val updateDynamicGroupsService:          DynGroupUpdaterService                     = rci.updateDynamicGroupsService
@@ -1274,8 +1279,6 @@ object RudderConfig extends Loggable {
   val woRuleRepository:                    WoRuleRepository                           = rci.woRuleRepository
   val workflowEventLogService:             WorkflowEventLogService                    = rci.workflowEventLogService
   val workflowLevelService:                DefaultWorkflowLevel                       = rci.workflowLevelService
-  val gitRepo:                             GitRepositoryProvider                      = rci.gitRepo
-  val gitModificationRepository:           GitModificationRepository                  = rci.gitModificationRepository
 
   /**
    * A method to call to force initialisation of all object and services.
@@ -1441,7 +1444,8 @@ case class RudderServiceApi(
     inventoryDitService:                 InventoryDitService,
     nodeFactRepository:                  NodeFactRepository,
     scoreServiceManager:                 ScoreServiceManager,
-    scoreService:                        ScoreService
+    scoreService:                        ScoreService,
+    tenantService:                       TenantService
 )
 
 /*
@@ -1955,6 +1959,8 @@ object RudderConfigInit {
 
     lazy val getNodeBySoftwareName = new SoftDaoGetNodesbySofwareName(deprecated.softwareInventoryDAO)
 
+    lazy val tenantService = DefaultTenantService.make(Nil).runNow
+
     lazy val nodeFactRepository = {
 
       val callbacks = Chunk[NodeFactChangeEventCallback](
@@ -1968,7 +1974,7 @@ object RudderConfigInit {
         )
       )
 
-      val repo = CoreNodeFactRepository.make(ldapNodeFactStorage, getNodeBySoftwareName, callbacks).runNow
+      val repo = CoreNodeFactRepository.make(ldapNodeFactStorage, getNodeBySoftwareName, tenantService, callbacks).runNow
       repo
     }
 
@@ -2117,6 +2123,7 @@ object RudderConfigInit {
       ApiVersion(16, true) ::  // rudder 7.2 - create node api, import/export archive, hooks & campaigns internal API
       ApiVersion(17, true) ::  // rudder 7.3 - directive compliance, campaign API is public
       ApiVersion(18, false) :: // rudder 8.0 - allowed network
+      ApiVersion(19, false) :: // rudder 8.1 - (score), tenants
       Nil
     }
 
@@ -3722,7 +3729,8 @@ object RudderConfigInit {
       inventoryDitService,
       nodeFactRepository,
       scoreServiceManager,
-      scoreService
+      scoreService,
+      tenantService
     )
 
     // need to be done here to avoid cyclic dependencies

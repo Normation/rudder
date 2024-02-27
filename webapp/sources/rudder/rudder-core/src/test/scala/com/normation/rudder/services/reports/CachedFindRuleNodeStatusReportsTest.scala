@@ -61,6 +61,7 @@ import com.normation.rudder.score.Score
 import com.normation.rudder.score.ScoreService
 import com.normation.rudder.score.ScoreServiceManager
 import com.normation.rudder.services.policies.NodeConfigData
+import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.zio._
 import com.softwaremill.quicklens._
 import net.liftweb.common.Box
@@ -142,8 +143,12 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   )
 
   val accepted:     Map[NodeId, CoreNodeFact] = nodes.map { case (n, _, _) => n }.toMap
-  val nodeFactRepo: CoreNodeFactRepository    =
-    CoreNodeFactRepository.make(NoopFactStorage, NoopGetNodesbySofwareName, Map(), accepted, Chunk.empty).runNow
+  val nodeFactRepo: CoreNodeFactRepository    = {
+    (for {
+      t <- DefaultTenantService.make(Nil)
+      r <- CoreNodeFactRepository.make(NoopFactStorage, NoopGetNodesbySofwareName, t, Map(), accepted, Chunk.empty)
+    } yield r).runNow
+  }
 
   class TestCache extends CachedFindRuleNodeStatusReports() {
     val batchSize = 3

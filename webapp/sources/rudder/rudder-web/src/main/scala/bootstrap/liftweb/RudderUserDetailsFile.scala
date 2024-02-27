@@ -48,8 +48,8 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.facts.nodes.NodeSecurityContext
-import com.normation.rudder.facts.nodes.Tenant
 import com.normation.rudder.rest.RoleApiMapping
+import com.normation.rudder.tenants.TenantId
 import com.normation.rudder.users._
 import com.normation.zio._
 import java.io.File
@@ -619,10 +619,10 @@ object UserFileProcessing {
           .foldLeft(ts)(NodeSecurityContext.ByTenants(Chunk.empty): NodeSecurityContext) {
             case (t1, t2) =>
               t2.strip() match {
-                case "*"                     => t1.plus(NodeSecurityContext.All).succeed
-                case "-"                     => NodeSecurityContext.None.succeed
-                case Tenant.checkTenantId(v) => t1.plus(NodeSecurityContext.ByTenants(Chunk(Tenant(v)))).succeed
-                case x                       =>
+                case "*"                       => t1.plus(NodeSecurityContext.All).succeed
+                case "-"                       => NodeSecurityContext.None.succeed
+                case TenantId.checkTenantId(v) => t1.plus(NodeSecurityContext.ByTenants(Chunk(TenantId(v)))).succeed
+                case x                         =>
                   ApplicationLoggerPure.Authz.warn(
                     s"Value '${x}' is not a valid tenant identifier. It must contains only alpha-num  ascii chars or " +
                     s"'-' and '_' (not in the first) place; or exactly '*' (all tenants) or '-' (none tenants)"
