@@ -1651,7 +1651,8 @@ object RudderConfigInit {
       tokenGenerator,
       uuidGen,
       userService,
-      apiAuthorizationLevelService
+      apiAuthorizationLevelService,
+      tenantService
     )
     lazy val restDataSerializer = RestDataSerializerImpl(techniqueRepository, diffService)
 

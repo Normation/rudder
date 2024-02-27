@@ -7,6 +7,7 @@ import com.normation.rudder.api.RoApiAccountRepository
 import com.normation.rudder.api.WoApiAccountRepository
 import com.normation.rudder.apidata.ApiAccountSerialisation._
 import com.normation.rudder.rest.RestUtils._
+import com.normation.rudder.tenants.TenantService
 import com.normation.rudder.users.UserService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio._
@@ -25,7 +26,8 @@ class RestApiAccounts(
     tokenGenerator: TokenGenerator,
     uuidGen:        StringUuidGenerator,
     userService:    UserService,
-    apiAuthService: ApiAuthorizationLevelService
+    apiAuthService: ApiAuthorizationLevelService,
+    tenantsService: TenantService
 ) extends RestHelper with Loggable {
 
   // used in ApiAccounts snippet to get the context path
@@ -57,8 +59,9 @@ class RestApiAccounts(
             })
           val accounts = {
             (
-              ("aclPluginEnabled" -> apiAuthService.aclEnabled) ~
-              ("accounts"         -> JArray(
+              ("aclPluginEnabled"     -> apiAuthService.aclEnabled) ~
+              ("tenantsPluginEnabled" -> tenantsService.tenantsEnabled) ~
+              ("accounts"             -> JArray(
                 filtered.map(_.toJson)
               ))
             )
