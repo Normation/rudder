@@ -100,6 +100,7 @@ def run(
             1,
             exit_on_error=exit_on_error,
         )
+        return (e.returncode, e.stdout, e.stdout)
     except Exception as e:
         fail(
             "Could not execute command '%s',\nException details: %s" % (' '.join(cmd), e),
@@ -604,9 +605,10 @@ def run_script(name, script_dir, exist):
             logger.error(
                 script
                 + ' execution exited with error code '
-                + retcode
+                + str(retcode)
                 + ' see the detailed log execution in '
-                + logfile
+                + script
+                + '.log'
             )
         return retcode
     else:
