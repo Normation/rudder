@@ -37,6 +37,7 @@
 
 package com.normation.rudder.tenants
 
+import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.IOStream
 import com.normation.inventory.domain.NodeId
@@ -56,9 +57,11 @@ import zio.syntax._
  */
 trait TenantService {
 
+  def tenantsEnabled: Boolean
+
   // we use set because tenant list should be small (less than 100) and generally used
   // in a "contains" way.
-  def getTenants(): IOResult[Set[TenantId]]
+  def getTenants(): UIO[Set[TenantId]]
   def updateTenants(ids: Set[TenantId]): IOResult[Unit]
 
   /*
@@ -89,23 +92,25 @@ object DefaultTenantService {
   def make(tenantIds: IterableOnce[TenantId]): UIO[DefaultTenantService] = {
     for {
       ref <- Ref.make(Set.from(tenantIds))
-    } yield new DefaultTenantService(ref)
+    } yield new DefaultTenantService(false, ref)
   }
 }
 
-class DefaultTenantService(val tenantIds: Ref[Set[TenantId]]) extends TenantService {
+class DefaultTenantService(var tenantsEnabled: Boolean, val tenantIds: Ref[Set[TenantId]]) extends TenantService {
 
-  override def getTenants(): IOResult[Set[TenantId]] = {
-    tenantIds.get
+  override def getTenants(): UIO[Set[TenantId]] = {
+    if (tenantsEnabled) tenantIds.get
+    else Set().succeed
   }
 
   override def updateTenants(ids: Set[TenantId]): IOResult[Unit] = {
-    tenantIds.set(ids)
+    if (tenantsEnabled) tenantIds.set(ids)
+    else Inconsistency(s"Error: tenants are not enabled").fail
   }
 
   override def nodeFilter[A <: MinimalNodeFactInterface](opt: Option[A])(implicit qc: QueryContext): UIO[Option[A]] = {
     opt match {
-      case Some(n) => tenantIds.get.map(ids => if (qc.nodePerms.nsc.canSee(n)(ids)) Some(n) else None)
+      case Some(n) => getTenants().map(ids => if (qc.nodePerms.nsc.canSee(n)(ids)) Some(n) else None)
       case None    => None.succeed
     }
 
@@ -118,7 +123,7 @@ class DefaultTenantService(val tenantIds: Ref[Set[TenantId]]) extends TenantServ
       MapView().succeed
     } else {
       for {
-        ts <- tenantIds.get
+        ts <- getTenants()
         ns <- nodes.get
       } yield ns.view.filter { case (_, n) => qc.nodePerms.canSee(n)(ts) }
     }
@@ -128,7 +133,7 @@ class DefaultTenantService(val tenantIds: Ref[Set[TenantId]]) extends TenantServ
     if (qc.nodePerms.isNone) ZStream.empty
     else {
       ZStream
-        .fromZIO(tenantIds.get)
+        .fromZIO(getTenants())
         .cross(s)
         .collect { case (tenantIds, n) if (qc.nodePerms.canSee(n)(tenantIds)) => n }
     }
@@ -140,7 +145,7 @@ class DefaultTenantService(val tenantIds: Ref[Set[TenantId]]) extends TenantServ
     if (qc.nodePerms.isNone) None.succeed
     else {
       for {
-        ts <- tenantIds.get
+        ts <- getTenants()
         ns <- nodes.get
       } yield ns.get(nodeId).filter(qc.nodePerms.canSee(_)(ts))
     }
