@@ -85,7 +85,7 @@ def run(
         retcode = process.poll()
         if check and retcode != 0:
             msg = "execution of '%s' failed with\n%s\n%s" % (cmd, output, error)
-            fail(output, retcode, exit_on_error=exit_on_error)
+            fail(msg, retcode, exit_on_error=exit_on_error)
         return (retcode, output, error)
     except subprocess.CalledProcessError as e:
         stdout = ''
@@ -570,12 +570,13 @@ def extract_scripts(metadata, package_file):
     return package_dir
 
 
-def run_script(name, script_dir, exist, exit_on_error=True):
+def run_script(name, script_dir, exist):
     """
     Use the raw option of the run function to enable inputs and output streaming
     for the packaging scripts if needed.
     """
     script = script_dir + '/' + name
+    logger.debug('Running ' + name + ' step')
     if os.path.isfile(script):
         if exist is None:
             param = ''
@@ -584,14 +585,33 @@ def run_script(name, script_dir, exist, exit_on_error=True):
         else:
             param = 'install'
         # Use None everywhere to branch to stdin/err/out
-        run(
-            [script, param],
-            check=True,
-            stdin=None,
-            stdout=None,
-            stderr=None,
-            exit_on_error=exit_on_error,
+
+        (retcode, raw_output, raw_error) = run(
+            [script, param], check=True, stdin=None, capture_output=True
         )
+        with open(script + '.log', 'w') as logfile:
+            logfile.write(
+                json.dumps(
+                    {
+                        'Exitcode': retcode,
+                        'Output': raw_output.decode('utf-8'),
+                        'Error': raw_error.decode('utf-8'),
+                    },
+                    indent=4,
+                )
+            )
+        if retcode != 0:
+            logger.error(
+                script
+                + ' execution exited with error code '
+                + retcode
+                + ' see the detailed log execution in '
+                + logfile
+            )
+        return retcode
+    else:
+        logger.debug('Nothing to do as the script ' + script + ' does not exist')
+        return 0
 
 
 def jar_status(name, enable):
