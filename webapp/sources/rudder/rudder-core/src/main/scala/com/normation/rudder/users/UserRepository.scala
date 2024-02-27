@@ -832,7 +832,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
     params match {
       case Nil       => ZIO.unit
       case h :: tail =>
-        val sql = sql"""update users""" ++ Fragments.set(params: _*) ++ fr"""where id = ${id}"""
+        val sql = fr"""update users""" ++ Fragments.set(params: _*) ++ fr"""where id = ${id}"""
 
         transactIOResult(s"Error when updating user information for '${id}'")(xa => sql.update.run.transact(xa)).unit
     }
