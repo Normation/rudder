@@ -94,6 +94,14 @@ final case object HttpAction {
 
   def values: Set[HttpAction] = ca.mrvisser.sealerate.values[HttpAction]
 
+  // sort the action by the importance of the action, please DON'T FORGET TO ADD NEW VALUES HERE
+  implicit val orderingHttpAction: Ordering[HttpAction] = new Ordering[HttpAction] {
+    val order = List(HEAD, GET, PUT, POST, DELETE)
+    override def compare(x: HttpAction, y: HttpAction): Int = {
+      order.indexOf(x) - order.indexOf(y)
+    }
+  }
+
   def parse(action: String): Either[String, HttpAction] = {
     val lower = action.toLowerCase()
     values.find(_.name == lower).toRight(s"Action '${action}' is not recognized as a supported HTTP action")
@@ -133,7 +141,8 @@ object AclPathSegment {
  */
 sealed trait AclPath extends Any {
   def value: String = parts.toList.map(_.value).mkString("/")
-  def parts: NonEmptyList[AclPathSegment]
+  def parts:   NonEmptyList[AclPathSegment]
+  def display: String
 }
 
 object AclPath {
@@ -142,10 +151,12 @@ object AclPath {
   // in our simpler case)
   final case class FullPath(segments: NonEmptyList[AclPathSegment]) extends AnyVal with AclPath {
     def parts = segments
+    def display: String = "/" + value
   }
   // only the root is given, and the path ends with "**". It can even be only "**"
   final case class Root(segments: List[AclPathSegment])             extends AnyVal with AclPath {
-    def parts: NonEmptyList[AclPathSegment] = NonEmptyList.ofInitLast(segments, AclPathSegment.DoubleWildcard)
+    def parts:   NonEmptyList[AclPathSegment] = NonEmptyList.ofInitLast(segments, AclPathSegment.DoubleWildcard)
+    def display: String                       = "/"
   }
 
   // parse a path to an acl path.
@@ -206,7 +217,7 @@ object AclPath {
  * is no authorization for that path.
  */
 final case class ApiAclElement(path: AclPath, actions: Set[HttpAction]) {
-  def display: String = path.value + ":" + actions.map(_.name.toUpperCase()).mkString("[", ",", "]")
+  def display: String = path.display + ":" + actions.toList.sorted.map(_.name.toUpperCase()).mkString("[", ",", "]")
 }
 
 sealed trait ApiAuthorizationKind { def name: String }
@@ -246,7 +257,10 @@ object ApiAuthorization       {
   case object None                               extends ApiAuthorization { override val kind = ApiAuthorizationKind.None }
   case object RW                                 extends ApiAuthorization { override val kind = ApiAuthorizationKind.RW   }
   case object RO                                 extends ApiAuthorization { override val kind = ApiAuthorizationKind.RO   }
-  final case class ACL(acl: List[ApiAclElement]) extends ApiAuthorization { override def kind = ApiAuthorizationKind.ACL  }
+  final case class ACL(acl: List[ApiAclElement]) extends ApiAuthorization {
+    override def kind = ApiAuthorizationKind.ACL
+    override def toString: String = acl.map(_.display).mkString(";")
+  }
 
   /**
    * An authorization object with ALL authorization,
