@@ -46,29 +46,36 @@ for template in templates:
 
     print('Built %s' % (src_openapi_file))
 
-    # Lint doc (on split files to allow correct file reports)
+    ################################################################################
+    # Lint doc using redocly (on split files to allow correct file reports)
     if subprocess.call(['npx', 'redocly', 'lint', src_openapi_file]):
         print('Linter failed on %s' % (src_openapi_file))
         exit(1)
 
-    # Build final openapi.yml
+    ################################################################################
+    # Build final OpenAPI spec files using redocly
+    for format in ["yml", "json"]:
+        openapi_file = '%s/openapi.%s' % (target, format)
+        if subprocess.call(
+            [
+                'npx',
+                'redocly',
+                'bundle',
+                src_openapi_file,
+                '--output',
+                openapi_file,
+            ]
+        ):
+            print('Could not build %s' % (openapi_file))
+            exit(1)
+
+        print('Built %s' % (openapi_file))
+
+    # YAML output used for next steps
     openapi_file = '%s/openapi.yml' % target
-    if subprocess.call(
-        [
-            'npx',
-            'redocly',
-            'bundle',
-            src_openapi_file,
-            '--output',
-            openapi_file,
-        ]
-    ):
-        print('Could not build %s' % (openapi_file))
-        exit(1)
 
-    print('Built %s' % (openapi_file))
-
-    # Build doc from yaml file (with pre-rendered html)
+    ################################################################################
+    # Build ReDoc doc (with pre-rendered html)
     html_file = '%s/index.html' % target
     if subprocess.call(
         [
@@ -132,4 +139,13 @@ for template in templates:
         print('Could not insert redoc JS path into %s' % (html_file))
         exit(1)
 
+    ################################################################################
+    # Build RapiDoc doc
+    rapidoc_target = '%s/alt/index.html' % target
+    os.mkdir('%s/alt/' % target)
+    shutil.copyfile('%s/rapidoc.html' % source, rapidoc_target)
+    print('Built %s' % (rapidoc_target))
+
+    ################################################################################
+    # Common assets
     shutil.copytree('%s/assets' % source, '%s/assets' % target)
