@@ -350,7 +350,7 @@ update msg model =
                           ]
                       in
                         linkSuccessNotification encodeToastInfo
-                    Nothing -> errorNotification("Error while trying to create change request")
+                    Nothing -> defaultNotif
                   else
                   defaultNotif
                   )
