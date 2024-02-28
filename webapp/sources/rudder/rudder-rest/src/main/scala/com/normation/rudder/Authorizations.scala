@@ -533,10 +533,12 @@ object RudderRoles {
 
   // Utility method for parsing several roles at once
   // No consistency enforcement other than if at least on "NoRight" exists, then only NoRight is returned.
-  // Unknown roles are filtered out (with log)
+  // Role are always trimmed.
+  // Unknown roles are filtered out (with log), empty string are ignored.
   def parseRoles(roles: List[String]): UIO[List[Role]] = {
+    val nonEmptyRoles = roles.map(_.trim).filter(_.nonEmpty)
     ZIO
-      .foreach(roles) { role =>
+      .foreach(nonEmptyRoles) { role =>
         parseRole(role).foldZIO(
           err => ApplicationLoggerPure.Authz.warn(err.fullMsg) *> Nil.succeed,
           r => List(r).succeed
