@@ -40,6 +40,7 @@ package com.normation.rudder.web.snippet
 import bootstrap.liftweb.RudderConfig
 import bootstrap.liftweb.UserLogout
 import com.normation.plugins.DefaultExtendableSnippet
+import com.normation.rudder.Role
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.users.CurrentUser
 import com.normation.utils.DateFormaterService
@@ -69,13 +70,14 @@ class UserInformation extends DispatchSnippet with DefaultExtendableSnippet[User
           case Some(info) => info.name.getOrElse(info.id)
         }
 
+        val roles       = s"User roles : ${Role.toDisplayNames(u.roles).mkString(", ")}"
         val lastSession = userRepo.getLastPreviousLogin(u.getUsername).runNow match {
           case None    => ""
           case Some(s) =>
             s"Last login on '${DateFormaterService.getDisplayDate(s.creationDate)}' with '${s.authMethod}' authentication"
         }
 
-        "#openerAccount" #> <span id="openerAccount" title={lastSession}>{displayName}</span>
+        "#openerAccount" #> <span id="openerAccount" title={List(roles, lastSession).mkString("\n")}>{displayName}</span>
 
       case None =>
         S.session.foreach { session =>
