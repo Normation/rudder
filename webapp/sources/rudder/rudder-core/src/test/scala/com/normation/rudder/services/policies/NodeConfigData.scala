@@ -390,7 +390,7 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
     List("192.168.0.5"),
     DateTime.now,
     UndefinedKey,
-    Seq(AgentInfo(AgentType.Dsc, Some(AgentVersion("7.0.0")), Certificate("windows-node-dsc-certificate"), Set())),
+    Seq(AgentInfo(AgentType.Dsc, Some(AgentVersion("7.0.0")), Certificate(CERT), Set())),
     rootId,
     admin1,
     None,
