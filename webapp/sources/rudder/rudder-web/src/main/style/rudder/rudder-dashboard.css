@@ -34,6 +34,7 @@
 
 #globalComplianceStats {
   color: #36474E;
+  padding: 0 30px;
 }
 
 .highlight{
@@ -128,9 +129,6 @@
     #f8f9fc 20px
   );
   box-shadow: inset 0 0 2px rgb(0 0 0 / 10%);
-}
-#globalComplianceStats h4 {
-  padding: 0 30px;
 }
 
 /* Node Breakdown */
