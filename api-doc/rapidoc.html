@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <script type="module" src="../assets/rapidoc-min.js"></script>
+</head>
+
+<body>
+  <!--
+    See https://rapidocweb.com/api.html
+
+    - Same fonts as the Rudder webapp
+    - Basic Rudder 7 theme
+   -->
+  <rapi-doc spec-url="../openapi.json" show-curl-before-try="true" show-header="false"
+    show-method-in-nav-bar="as-colored-block" allow-try="true" render-style="focused" load-fonts="false" regular-font='system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial,
+    sans-serif' mono-font='SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
+    nav-bg-color="#041922" theme="light" nav-text-color="#ffffffaa" nav-accent-color="#13BEB7" primary-color="#13BEB7"
+    allow-spec-file-download="true" info-description-headings-in-navbar="true">
+    <img slot="nav-logo" src="../assets/rudder-white.svg" style="height: 50px;" />
+  </rapi-doc>
+</body>
+
+</html>

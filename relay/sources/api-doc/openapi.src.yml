@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Rudder relay API
   version: "1"
