@@ -54,9 +54,6 @@ upload api dir file =
 listDirectory : String -> List String -> Cmd Msg
 listDirectory api dir =
   let
-    currentFolder = case List.Extra.last dir of
-      Just  d -> d
-      Nothing -> "/"
 
     body =  Json.Encode.object [
               ("action", Json.Encode.string "list")
@@ -67,7 +64,7 @@ listDirectory api dir =
     api
     (Http.jsonBody body )
     (Decode.at ["result"] (Decode.list fileDecoder))
-    (EnvMsg << (LsGotten currentFolder))
+    (EnvMsg << (LsGotten (getDirPath dir)))
 
 fileDecoder : Decode.Decoder FileMeta
 fileDecoder =

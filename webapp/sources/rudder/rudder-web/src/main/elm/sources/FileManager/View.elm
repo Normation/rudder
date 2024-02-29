@@ -113,14 +113,14 @@ filesTree model =
           ( fs.childs
             |> List.map (\f ->
               let
-                parents = fs.parents
+                path =  List.append fs.parents [fs.name, f] |> getDirPath
               in
                 li [ ]
                 [ a [ onClick <| EnvMsg <| GetLsTree (List.append fs.parents [fs.name, f] ) ]
                   [ folderIcon 20
                   , text f
                   ]
-                , if List.member f openedDir then listFolders f else text ""
+                , if List.member path openedDir then listFolders path else text ""
                 ]
             )
           )
@@ -238,7 +238,7 @@ renderFile { api, thumbnailsUrl, dir, selected, clipboardDir, clipboardFiles } i
   , title file.name
   , onMouseDown <| (\x y -> EnvMsg <| MouseDown (Just file) x y)
   , onMouseUp <| EnvMsg << (MouseUp <| Just file)
-  , onDoubleClick <| if file.type_ == "dir" then EnvMsg <| GetLs file.name else Download
+  , onDoubleClick <| if file.type_ == "dir" then EnvMsg <| GetLs (getDirPath (List.append dir [ file.name] )) else Download
   ]
   [ renderThumb thumbnailsUrl api (getDirPath dir) file
   , div [ class "fm-name" ] [ text file.name ]
@@ -253,7 +253,7 @@ renderFileList { api, thumbnailsUrl, dir, selected, clipboardDir, clipboardFiles
   , title file.name
   , onMouseDown <| (\x y -> EnvMsg <| MouseDown (Just file) x y)
   , onMouseUp <| EnvMsg << (MouseUp <| Just file)
-  , onDoubleClick <| if file.type_ == "dir" then EnvMsg <| (GetLs file.name) else Download
+  , onDoubleClick <| if file.type_ == "dir" then EnvMsg <| (GetLs (getDirPath (List.append dir [ file.name] ))) else Download
   ]
   [ td[]
     [ div[]
