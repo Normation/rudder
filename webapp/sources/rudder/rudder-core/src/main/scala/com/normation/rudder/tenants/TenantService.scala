@@ -40,7 +40,9 @@ package com.normation.rudder.tenants
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.IOStream
+import com.normation.errors.RudderError
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
 import com.normation.rudder.facts.nodes.NodeFact
@@ -82,6 +84,26 @@ trait TenantService {
   def nodeGetMapView(nodes: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
       qc:                   QueryContext
   ): IOResult[Option[CoreNodeFact]]
+
+  /*
+   * Check if the node can be created given ChangeContext
+   * It's pure so that we can avoid a sync Ref in NodeRepo.
+   */
+  def checkCreate(n:    CoreNodeFact, cc: ChangeContext, availableTenants: Set[TenantId]): Either[RudderError, CoreNodeFact]
+  /*
+   * Check if the existing node can be updated with the new node given change context
+   */
+  def checkUpdate(
+      existing:         CoreNodeFact,
+      updated:          CoreNodeFact,
+      cc:               ChangeContext,
+      availableTenants: Set[TenantId]
+  ): Either[RudderError, CoreNodeFact]
+
+  /*
+   * Check if the node can be deleted given ChangeContext
+   */
+  def checkDelete(existing: CoreNodeFact, cc: ChangeContext, availableTenants: Set[TenantId]): Either[RudderError, CoreNodeFact]
 
 }
 
@@ -148,6 +170,80 @@ class DefaultTenantService(var tenantsEnabled: Boolean, val tenantIds: Ref[Set[T
         ts <- getTenants()
         ns <- nodes.get
       } yield ns.get(nodeId).filter(qc.nodePerms.canSee(_)(ts))
+    }
+  }
+
+  override def checkCreate(
+      n:                CoreNodeFact,
+      cc:               ChangeContext,
+      availableTenants: Set[TenantId]
+  ): Either[RudderError, CoreNodeFact] = {
+    if (cc.nodePerms.canSee(n.rudderSettings.security)(availableTenants)) {
+      Right(n)
+    } else {
+      // only id to avoid giving too much info in error in that case
+      Left(Inconsistency(s"Node '${n.id.value}' can't be created by ${cc.actor.name}"))
+    }
+  }
+
+  override def checkUpdate(
+      existing:         CoreNodeFact,
+      updated:          CoreNodeFact,
+      cc:               ChangeContext,
+      availableTenants: Set[TenantId]
+  ): Either[RudderError, CoreNodeFact] = {
+    // only id to avoid giving too much info in error in that case
+    def error(n: CoreNodeFact) = {
+      val tag = n.rudderSettings.security match {
+        case None    => '*'
+        case Some(t) => t.tenants.map(_.value).mkString(",")
+      }
+      Left(Inconsistency(s"Node '${n.id.value}' [${tag}] can't be modified by '${cc.actor.name}' (perm:${cc.nodePerms.value})"))
+    }
+
+    if (cc.nodePerms.canSee(existing.rudderSettings.security)(availableTenants)) {
+      if (cc.nodePerms.canSee(updated.rudderSettings.security)(availableTenants)) {
+        // here, if tenants are not enabled, we must keep the old ones in any case
+        if (tenantsEnabled) {
+          // here, we also need to check if the tenant are changing, if the new tenant is in the list
+          // (we already know that the permission is ok, but "*" can see even non existing tenants)
+          // We also accept non modified tenant.
+          (existing.rudderSettings.security, updated.rudderSettings.security) match {
+            case (_, None)                      => Right(updated)
+            case (Some(a), Some(b)) if (a == b) => Right(updated)
+            case (_, Some(b))                   =>
+              if (b.tenants.forall(t => availableTenants.contains(t))) {
+                Right(updated)
+              } else {
+                Left(
+                  Inconsistency(
+                    s"Node '${updated.id.value}' security tag's tenant can not be updated to '${b.tenants.map(_.value).mkString(",")}' because it does not exist"
+                  )
+                )
+              }
+          }
+        } else {
+          import com.softwaremill.quicklens._
+          Right(updated.modify(_.rudderSettings.security).setTo(existing.rudderSettings.security))
+        }
+      } else {
+        error(updated)
+      }
+    } else {
+      error(existing)
+    }
+  }
+
+  override def checkDelete(
+      existing:         CoreNodeFact,
+      cc:               ChangeContext,
+      availableTenants: Set[TenantId]
+  ): Either[RudderError, CoreNodeFact] = {
+    if (cc.nodePerms.canSee(existing.rudderSettings.security)(availableTenants)) {
+      Right(existing)
+    } else {
+      // only id to avoid giving too much info in error in that case
+      Left(Inconsistency(s"Node '${existing.id.value}' can't be deleted by ${cc.actor.name}"))
     }
   }
 }

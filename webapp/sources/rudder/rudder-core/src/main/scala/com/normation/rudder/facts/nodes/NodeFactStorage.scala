@@ -663,7 +663,7 @@ class LdapNodeFactStorage(
     fullInventoryRepository: FullInventoryRepositoryImpl,
     softwareGet:             ReadOnlySoftwareDAO,
     softwareSave:            SoftwareDNFinderAction,
-    uuidGen:                 StringUuidGenerator
+    uuidGen:                 StringUuidGenerator,
 ) extends NodeFactStorage {
 
   // for save, we always store the full node. Since we don't know how to restrict attributes to save

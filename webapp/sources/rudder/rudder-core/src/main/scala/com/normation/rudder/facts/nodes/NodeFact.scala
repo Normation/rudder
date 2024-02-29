@@ -1463,7 +1463,7 @@ object NodeSecurityContext       {
   // tenants, if can be seen. Be careful, it's really just non-empty interesting (so that adding
   // more tag here leads to more nodes, not less).
   final case class ByTenants(tenants: Chunk[TenantId]) extends NodeSecurityContext {
-    override val value: String = s"tags:[${tenants.mkString(", ")}]"
+    override val value: String = s"tags:[${tenants.map(_.value).mkString(", ")}]"
   }
 
   /*

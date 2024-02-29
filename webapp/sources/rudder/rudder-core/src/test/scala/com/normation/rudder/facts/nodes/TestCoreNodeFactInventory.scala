@@ -295,7 +295,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       })
     }
 
-    "allow to get software without the other parts of inventory" in { // how to chek that we don't retrieve cpu filesystems etc?
+    "allow to get software without the other parts of inventory" in { // how to check that we don't retrieve cpu filesystems etc?
       factStorage.clearCallStack
       implicit val attrs = SelectFacts.softwareOnly
       val node           = factRepo.slowGet(node7id).notOptional("node7 must be here").runNow
@@ -371,6 +371,82 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
         .runNow
 
       nodes.keySet.map(_.value) must containTheSameElementsAs(List("node0", "node1", "node2"))
+    }
+
+    "when the plugin is enable, we can change security tag for node" in {
+      val qcA = QueryContext.testQC
+        .modify(_.nodePerms)
+        .setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA"))))
+
+      val qcB = QueryContext.testQC
+        .modify(_.nodePerms)
+        .setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneB"))))
+
+      val (nodesA, nodesB) = (for {
+        n      <- factRepo.get(NodeId("node0"))(qcA).notOptional(s"node0 must be there for tests")
+        nX      = n.modify(_.rudderSettings.security).setTo(Some(SecurityTag(Chunk(TenantId("zoneB")))))
+        _      <- factRepo.save(nX)(ChangeContext.newForRudder())
+        nodesA <- factRepo.getAll()(qcA, SelectNodeStatus.Accepted)
+        nodesB <- factRepo.getAll()(qcB, SelectNodeStatus.Accepted)
+      } yield (nodesA, nodesB)).runNow
+
+      (nodesA.keySet.map(_.value) must containTheSameElementsAs(List("node1"))) and
+      (nodesB.keySet.map(_.value) must containTheSameElementsAs(List("node0", "node1", "node2")))
+
+    }
+
+    "when the plugin is enabled, if we try to change to a non existing tenant id node's SecurityTag, we get an error" in {
+      implicit val qc = QueryContext.testQC
+        .modify(_.nodePerms)
+        .setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneB"))))
+
+      val nonExistingTenantId = TenantId("zoneXXX")
+
+      val res = (for {
+        n <- factRepo.get(NodeId("node0")).notOptional(s"node0 must be there for tests")
+        nX = n.modify(_.rudderSettings.security).setTo(Some(SecurityTag(Chunk(nonExistingTenantId))))
+        _ <- factRepo.save(nX)(ChangeContext.newForRudder())
+      } yield ()).either.runNow
+
+      res must beLike {
+        case Left(err) => err.fullMsg must beMatching(""".*security tag's tenant can not be updated to 'zoneXXX'.*""")
+      }
+    }
+
+    "when the plugin is enabled, if we try to change things to a node on an other tenant, we get an error" in {
+      implicit val cc = ChangeContext
+        .newForRudder()
+        .modify(_.nodePerms)
+        .setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA"))))
+
+      val res = (for {
+        // node0 is now on zone B
+        n <- factRepo.get(NodeId("node0")).notOptional(s"node0 must be there for tests")
+        _ <- factRepo.save(n)(cc)
+      } yield ()).either.runNow
+
+      res must beLike {
+        case Left(err) =>
+          err.fullMsg must beMatching(""".*\QNode 'node0' [zoneB] can't be modified by 'rudder' (perm:tags:[zoneA])\E.*""")
+      }
+    }
+
+    "when the plugin is disabled, we don't change tenants" in {
+      implicit val qc = QueryContext.testQC
+
+      val nonExistingTenantId = TenantId("zoneXXX")
+
+      tenantService.tenantsEnabled = false
+
+      val res = (for {
+        n <- factRepo.get(NodeId("node0")).notOptional(s"node0 must be there for tests")
+        nX = n.modify(_.rudderSettings.security).setTo(Some(SecurityTag(Chunk(nonExistingTenantId))))
+        e <- factRepo.save(nX)(ChangeContext.newForRudder())
+      } yield e).runNow
+
+      tenantService.tenantsEnabled = true
+
+      res.event must beEqualTo(NodeFactChangeEvent.Noop)
     }
 
     "if we remove tenants, we don't get anything anymore" in {

@@ -197,6 +197,13 @@ trait NodeFactRepository {
   )(implicit cc: ChangeContext, attrs: SelectFacts = SelectFacts.all): IOResult[NodeFactChangeEventCC]
 
   /*
+   * A simpler version of save for CoreNodeFacts
+   */
+  def save(nodeFact: CoreNodeFact)(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] = {
+    save(NodeFact.fromMinimal(nodeFact))(cc, SelectFacts.none)
+  }
+
+  /*
    * Save the full node fact.
    * If some fields are marked as ignored, they must not be updated by the persistence layer
    * (it's up to it to do it).
@@ -326,7 +333,7 @@ class SoftDaoGetNodesbySofwareName(val softwareDao: ReadOnlySoftwareDAO) extends
 class CoreNodeFactRepository(
     storage:        NodeFactStorage,
     softwareByName: GetNodesbySofwareName,
-    tenants:        TenantService,
+    tenantService:  TenantService,
     pendingNodes:   Ref[Map[NodeId, CoreNodeFact]],
     acceptedNodes:  Ref[Map[NodeId, CoreNodeFact]],
     callbacks:      Ref[Chunk[NodeFactChangeEventCallback]],
@@ -374,7 +381,7 @@ class CoreNodeFactRepository(
   private[nodes] def getOnRef(ref: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
       qc:                          QueryContext
   ): IOResult[Option[CoreNodeFact]] = {
-    tenants.nodeGetMapView(ref, nodeId)
+    tenantService.nodeGetMapView(ref, nodeId)
   }
 
   /*
@@ -392,14 +399,16 @@ class CoreNodeFactRepository(
         diff <- (a, p, c) match {
                   case (None, None, _)    => delete(nodeId)
                   case (None, Some(x), _) =>
-                    saveOn(pendingNodes, x.toCore).map { e =>
-                      e.updateWith(StorageChangeEventSave.Created(x, attrs))
-                        .toChangeEvent(nodeId, PendingInventory, cc)
+                    saveOn(pendingNodes, x.toCore).map {
+                      case (_, e) =>
+                        e.updateWith(StorageChangeEventSave.Created(x, attrs))
+                          .toChangeEvent(nodeId, PendingInventory, cc)
                     }
                   case (Some(x), _, _)    =>
-                    saveOn(acceptedNodes, x.toCore).map { e =>
-                      e.updateWith(StorageChangeEventSave.Created(x, attrs))
-                        .toChangeEvent(nodeId, AcceptedInventory, cc)
+                    saveOn(acceptedNodes, x.toCore).map {
+                      case (_, e) =>
+                        e.updateWith(StorageChangeEventSave.Created(x, attrs))
+                          .toChangeEvent(nodeId, AcceptedInventory, cc)
                     }
                 }
       } yield diff
@@ -456,14 +465,14 @@ class CoreNodeFactRepository(
                       }
                     }
                 }
-      sec    <- tenants.nodeFilter(res)
+      sec    <- tenantService.nodeFilter(res)
     } yield sec
   }
 
   private[nodes] def getAllOnRef[A](
       ref:       Ref[Map[NodeId, CoreNodeFact]]
   )(implicit qc: QueryContext): IOResult[MapView[NodeId, CoreNodeFact]] = {
-    tenants.nodeFilterMapView(ref)
+    tenantService.nodeFilterMapView(ref)
   }
 
   override def getAll()(implicit qc: QueryContext, status: SelectNodeStatus): IOResult[MapView[NodeId, CoreNodeFact]] = {
@@ -479,7 +488,7 @@ class CoreNodeFactRepository(
   }
 
   override def slowGetAll()(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): IOStream[NodeFact] = {
-    tenants.nodeFilterStream(
+    tenantService.nodeFilterStream(
       if (attrs == SelectFacts.none) {
         ZStream.fromIterableZIO(getAll()(qc, status).map(_.map(cnf => NodeFact.fromMinimal(cnf._2))))
       } else {
@@ -499,29 +508,70 @@ class CoreNodeFactRepository(
   }
 
   /*
-   *
+   * Save on the given ref the given CoreNodeFact. The CoreNodeFact can be altered
+   * based on security check (tenants), so "saveOn" gives you back the real CoreNodeFact
+   * that was save in addition to the save event.
    */
-  private def saveOn(ref: Ref[Map[NodeId, CoreNodeFact]], nodeFact: CoreNodeFact): IOResult[StorageChangeEventSave] = {
-    ref
-      .getAndUpdate(_ + ((nodeFact.id, nodeFact)))
-      .map { old =>
-        old.get(nodeFact.id) match {
-          case Some(n) =>
-            if (CoreNodeFact.same(n, nodeFact)) StorageChangeEventSave.Noop(nodeFact.id, SelectFacts.none)
-            else StorageChangeEventSave.Updated(NodeFact.fromMinimal(n), NodeFact.fromMinimal(nodeFact), SelectFacts.none)
-          case None    => StorageChangeEventSave.Created(NodeFact.fromMinimal(nodeFact), SelectFacts.none)
-        }
-      }
+  private def saveOn(ref: Ref[Map[NodeId, CoreNodeFact]], nodeFact: CoreNodeFact)(implicit
+      cc:                 ChangeContext
+  ): IOResult[(Option[SecurityTag], StorageChangeEventSave)] = {
+    // we use modify with either return to avoid the cost of Ref.Synchronized
+    tenantService
+      .getTenants()
+      .flatMap(tenants => {
+        ref
+          .modify(nodes => {
+            nodes.get(nodeFact.id) match {
+              case None           => // new node, we just check that potential tenant is consistent with CC
+                tenantService.checkCreate(nodeFact, cc, tenants) match {
+                  case Left(err) => (Left(err), nodes)
+                  // node can be updated
+                  case Right(n)  =>
+                    (
+                      Right(
+                        (n.rudderSettings.security, StorageChangeEventSave.Created(NodeFact.fromMinimal(n), SelectFacts.none))
+                      ),
+                      (nodes + (n.id -> n))
+                    )
+                }
+              case Some(existing) =>
+                tenantService.checkUpdate(existing, nodeFact, cc, tenants) match {
+                  case Left(err) => (Left(err), nodes)
+                  // node can be updated
+                  case Right(n)  =>
+                    val e = {
+                      if (CoreNodeFact.same(existing, n)) StorageChangeEventSave.Noop(nodeFact.id, SelectFacts.none)
+                      else
+                        StorageChangeEventSave.Updated(NodeFact.fromMinimal(existing), NodeFact.fromMinimal(n), SelectFacts.none)
+                    }
+                    (Right((n.rudderSettings.security, e)), (nodes + (n.id -> n)))
+                }
+            }
+          })
+          .flatMap(ZIO.fromEither(_))
+      })
   }
 
-  private def deleteOn(ref: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId): IOResult[StorageChangeEventDelete] = {
-    ref
-      .getAndUpdate(_.removed(nodeId))
-      .map(old => {
-        old.get(nodeId) match {
-          case None    => StorageChangeEventDelete.Noop(nodeId)
-          case Some(n) => StorageChangeEventDelete.Deleted(NodeFact.fromMinimal(n), SelectFacts.none)
-        }
+  private def deleteOn(ref: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
+      cc:                   ChangeContext
+  ): IOResult[StorageChangeEventDelete] = {
+    tenantService
+      .getTenants()
+      .flatMap(tenants => {
+        ref
+          .modify(nodes => {
+            nodes.get(nodeId) match {
+              case None           => (Right(StorageChangeEventDelete.Noop(nodeId)), nodes)
+              case Some(existing) =>
+                tenantService.checkDelete(existing, cc, tenants) match {
+                  case Left(err) => (Left(err), nodes)
+                  case Right(n)  =>
+                    val e = StorageChangeEventDelete.Deleted(NodeFact.fromMinimal(n), SelectFacts.none)
+                    (Right(e), nodes.removed(nodeId))
+                }
+            }
+          })
+          .flatMap(ZIO.fromEither(_))
       })
   }
 
@@ -545,7 +595,7 @@ class CoreNodeFactRepository(
       }
 
       val checks: List[NodeFact => ValidationResult] = List(
-        (node: NodeFact) => { // root is enablef
+        (node: NodeFact) => { // root is enabled
           if (node.rudderSettings.state == NodeState.Enabled) ok
           else s"Root node must always be in '${NodeState.Enabled.name}' lifecycle state.".invalidNel
         },
@@ -583,22 +633,24 @@ class CoreNodeFactRepository(
     checkAgentKey(nodeFact) *>
     ZIO.scoped(
       for {
-        _ <- lock.withLock
-        // here we persist all the core data with the provided solution
-        s <- storage.save(nodeFact)
+        _     <- lock.withLock
+        // we first need to check for existing node and its security tag consistency,
+        // so we start with the quick on memory map to get existing node characteristics
         // but then the diff are only done on the core elements
-        e <- nodeFact.rudderSettings.status match {
-               case RemovedInventory  => // this case is ignored, we don't delete node based on status value
-                 NodeFactChangeEventCC(Noop(nodeFact.id, attrs), cc).succeed
-               case PendingInventory  =>
-                 saveOn(pendingNodes, nodeFact.toCore).map(e => e.updateWith(s).toChangeEvent(nodeFact.id, PendingInventory, cc))
-               case AcceptedInventory =>
-                 saveOn(acceptedNodes, nodeFact.toCore).map(e =>
-                   e.updateWith(s).toChangeEvent(nodeFact.id, AcceptedInventory, cc)
-                 )
-             }
-        _ <- runCallbacks(e)
-      } yield e
+        res   <- nodeFact.rudderSettings.status match {
+                   case RemovedInventory  => // this case is ignored, we don't delete node based on status value
+                     (nodeFact.rudderSettings.security, StorageChangeEventSave.Noop(nodeFact.id, attrs)).succeed
+                   case PendingInventory  =>
+                     saveOn(pendingNodes, nodeFact.toCore)
+                   case AcceptedInventory =>
+                     saveOn(acceptedNodes, nodeFact.toCore)
+                 }
+        (t, e) = res
+        // here we persist all the core data with the provided solution
+        s     <- storage.save(nodeFact.modify(_.rudderSettings.security).setTo(t))
+        es     = e.updateWith(s).toChangeEvent(nodeFact.id, nodeFact.rudderSettings.status, cc)
+        _     <- runCallbacks(es)
+      } yield es
     )
   }
 
