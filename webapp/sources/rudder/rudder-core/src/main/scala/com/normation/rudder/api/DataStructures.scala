@@ -259,7 +259,7 @@ object ApiAuthorization       {
   case object RO                                 extends ApiAuthorization { override val kind = ApiAuthorizationKind.RO   }
   final case class ACL(acl: List[ApiAclElement]) extends ApiAuthorization {
     override def kind = ApiAuthorizationKind.ACL
-    override def toString: String = acl.map(_.display).mkString(";")
+    def debugString: String = acl.map(_.display).mkString(";")
   }
 
   /**
