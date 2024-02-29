@@ -625,12 +625,13 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
           fr")"
 
         def update(updated: Vector[UserInfo]): ConnectionIO[Int] = {
+          // never update the user personal information and managedby of an existing user which may have been provided and modified by another origin
           val sql =
             """insert into users (id, creationdate, status, managedby, name, email, lastlogin, statushistory, otherinfo)
                   values (?,?,?,?,? , ?,?,?,?)
                on conflict (id) do update
-                set (creationdate, status, managedby, name, email, lastlogin, statushistory, otherinfo) =
-                  (EXCLUDED.creationdate, EXCLUDED.status, EXCLUDED.managedby, EXCLUDED.name, EXCLUDED.email, EXCLUDED.lastlogin, EXCLUDED.statushistory, EXCLUDED.otherinfo)"""
+                set (creationdate, status, lastlogin, statushistory) =
+                  (EXCLUDED.creationdate, EXCLUDED.status, EXCLUDED.lastlogin, EXCLUDED.statushistory)"""
 
           Update[UserInfo](sql).updateMany(updated)
         }
@@ -800,7 +801,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
 
   // only disabled user can be set back to active
   override def setActive(userId: List[String], trace: EventTrace): IOResult[Unit] = {
-    changeStatus(userId, None, Nil, trace, UserStatus.Active, Some(fr"status = '${UserStatus.Disabled.value}'")).unit
+    changeStatus(userId, None, Nil, trace, UserStatus.Active, Some(fr"status = ${UserStatus.Disabled.value}")).unit
   }
 
   override def getAll(): IOResult[List[UserInfo]] = {
@@ -831,7 +832,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
     params match {
       case Nil       => ZIO.unit
       case h :: tail =>
-        val sql = sql"""update users""" ++ Fragments.set(params: _*) ++ fr"""where id = ${id}"""
+        val sql = fr"""update users""" ++ Fragments.set(params: _*) ++ fr"""where id = ${id}"""
 
         transactIOResult(s"Error when updating user information for '${id}'")(xa => sql.update.run.transact(xa)).unit
     }
