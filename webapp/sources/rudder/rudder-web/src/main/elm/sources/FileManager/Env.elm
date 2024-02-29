@@ -17,7 +17,7 @@ import FileManager.Util exposing (..)
 
 handleEnvMsg : EnvMsg -> Model -> (Model, Cmd Msg)
 handleEnvMsg msg model = case msg of
-  Open () -> ({ model | open = True }, Cmd.none)
+  Open () -> ({ model | open = True, dir = ["/"] }, Cmd.none)
   Close -> ({ model | open = False, selected = [] }, close [])
   Accept -> ({ model | open = False, selected = [] }, close <| reverse <| map ((++) (getDirPath model.dir) << .name) model.selected)
   MouseDown maybe pos1 ctrl ->
@@ -86,7 +86,7 @@ handleEnvMsg msg model = case msg of
 
   GetLs dir ->
     let
-      newDir = if List.member dir model.dir then takeWhile (\d -> d /= dir) model.dir else List.append model.dir [dir]
+      newDir = String.split "/" dir
     in
       ({ model | dir = newDir, files = [], load = True }, listDirectory model.api newDir)
 
