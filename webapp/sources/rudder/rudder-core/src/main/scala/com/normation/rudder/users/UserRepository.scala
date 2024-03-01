@@ -234,20 +234,22 @@ object UserRepository {
         )
     }.toMap
 
-    // `resurrected` are zombie that get back to live with the new origin.
+    // `resurrected` are zombie that get back to live with the new origin. For users with same origin, we keep them as is.
     // We resurrect users with "active" status because we have nothing to manage "disabled" for now.
-    val resurrected = zombies.map {
+    val resurrectedOrSameOrigin = zombies.map {
       case (k, v) =>
         // check that status is really deleted, just in case
         if (v.status == UserStatus.Deleted) {
           (
             k,
-            v.modify(_.status)
-              .setTo(UserStatus.Active)
-              .modify(_.statusHistory)
-              .using(StatusHistory(UserStatus.Disabled, trace) :: _)
-              .modify(_.managedBy)
-              .setTo(origin)
+            if (v.managedBy != origin) {
+              v.modify(_.status)
+                .setTo(UserStatus.Active)
+                .modify(_.statusHistory)
+                .using(StatusHistory(UserStatus.Disabled, trace) :: _)
+                .modify(_.managedBy)
+                .setTo(origin)
+            } else v
           )
         } else (k, v)
     }
@@ -264,7 +266,7 @@ object UserRepository {
         )
     }
 
-    realNew ++ resurrected ++ deleted
+    realNew ++ resurrectedOrSameOrigin ++ deleted
   }
 
 }
@@ -634,13 +636,23 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
           fr")"
 
         def update(updated: Vector[UserInfo]): ConnectionIO[Int] = {
-          // never update the user personal information and managedby of an existing user which may have been provided and modified by another origin
+          // never update the user personal information of an existing user which may have been provided and modified by another origin
           val sql =
             """insert into users (id, creationdate, status, managedby, name, email, lastlogin, statushistory, otherinfo)
                   values (?,?,?,?,? , ?,?,?,?)
                on conflict (id) do update
-                set (creationdate, status, lastlogin, statushistory) =
-                  (EXCLUDED.creationdate, EXCLUDED.status, EXCLUDED.lastlogin, EXCLUDED.statushistory)"""
+                set (creationdate, status, managedby, lastlogin, statushistory) =
+                  (
+                    EXCLUDED.creationdate,
+                    EXCLUDED.status, 
+                    CASE WHEN users.status = 'active'
+                      THEN users.managedby
+                      ELSE EXCLUDED.managedby
+                    END,
+                    EXCLUDED.lastlogin,
+                    EXCLUDED.statushistory
+                  )
+                  """
 
           Update[UserInfo](sql).updateMany(updated)
         }
