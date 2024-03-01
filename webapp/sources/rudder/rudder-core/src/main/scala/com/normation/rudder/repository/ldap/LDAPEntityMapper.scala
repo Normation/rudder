@@ -162,6 +162,10 @@ class LDAPEntityMapper(
       mode <- node.policyMode
     } entry.addValues(A_POLICY_MODE, mode.name)
 
+    node.securityTag.foreach { t =>
+      entry.resetValuesTo(A_SECURITY_TAG, t.toJson)
+    }
+
     entry
   }
 

@@ -86,9 +86,9 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     MockLdapFactStorage.ldap.server.entryExists(dit.NODES.NODE.dn(id).toString)
   }
 
-  def nodeAsString(id: String, dit: InventoryDit): String = {
+  def nodeAsString(id: String): String = {
     val sb = new java.lang.StringBuilder()
-    MockLdapFactStorage.ldap.server.getEntry(dit.NODES.NODE.dn(id).toString).toString(sb)
+    MockLdapFactStorage.ldap.server.getEntry(s"nodeId=${id},ou=Nodes, cn=rudder-configuration").toString(sb)
     sb.toString()
   }
 
@@ -385,9 +385,10 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       val (nodesA, nodesB) = (for {
         n      <- factRepo.get(NodeId("node0"))(qcA).notOptional(s"node0 must be there for tests")
         nX      = n.modify(_.rudderSettings.security).setTo(Some(SecurityTag(Chunk(TenantId("zoneB")))))
-        _      <- factRepo.save(nX)(ChangeContext.newForRudder())
+        e      <- factRepo.save(nX)(ChangeContext.newForRudder()) // admin can change from zoneA to zoneB
         nodesA <- factRepo.getAll()(qcA, SelectNodeStatus.Accepted)
         nodesB <- factRepo.getAll()(qcB, SelectNodeStatus.Accepted)
+        _      <- effectUioUnit(println(s"***** post mod: " + nodeAsString("node0")))
       } yield (nodesA, nodesB)).runNow
 
       (nodesA.keySet.map(_.value) must containTheSameElementsAs(List("node1"))) and
@@ -439,9 +440,11 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       tenantService.tenantsEnabled = false
 
       val res = (for {
+        _ <- effectUioUnit(println(s"***** pre disabled: " + nodeAsString("node0")))
         n <- factRepo.get(NodeId("node0")).notOptional(s"node0 must be there for tests")
         nX = n.modify(_.rudderSettings.security).setTo(Some(SecurityTag(Chunk(nonExistingTenantId))))
         e <- factRepo.save(nX)(ChangeContext.newForRudder())
+        _ <- effectUioUnit(println(s"***** post disabled: " + nodeAsString("node0")))
       } yield e).runNow
 
       tenantService.tenantsEnabled = true
