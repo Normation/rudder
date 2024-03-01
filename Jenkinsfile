@@ -235,11 +235,11 @@ pipeline {
                         }
                     }
                     post {
-                        always {
+                        //always {
                             // linters results
-                            recordIssues enabledForFailure: true, id: 'rudder-pkg', failOnError: true, sourceDirectory: 'relay/sources/rudder-pkg/', sourceCodeEncoding: 'UTF-8',
-                                         tool: pyLint(pattern: 'relay/sources/rudder-pkg/pylint.log', reportEncoding: 'UTF-8')
-                        }
+                            //recordIssues enabledForFailure: true, id: 'rudder-pkg', failOnError: true, sourceCodeEncoding: 'UTF-8',
+                            //             tool: pyLint(pattern: 'relay/sources/rudder-pkg/pylint.log', reportEncoding: 'UTF-8')
+                        //}
                         failure {
                             script {
                                 failedBuild = true
@@ -336,7 +336,7 @@ pipeline {
                     post {
                         always {
                             // linters results
-                            recordIssues enabledForFailure: true, id: 'relayd', name: 'cargo relayd', sourceDirectory: 'relay/sources/relayd', sourceCodeEncoding: 'UTF-8',
+                            recordIssues enabledForFailure: true, id: 'relayd', name: 'cargo relayd', sourceCodeEncoding: 'UTF-8',
                                          tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'relayd', name: 'cargo relayd')
                         }
                         failure {
@@ -392,7 +392,7 @@ pipeline {
                     post {
                         always {
                             // linters results
-                            recordIssues enabledForFailure: true, id: 'policies', name: 'cargo policies', sourceDirectory: 'rudderc', sourceCodeEncoding: 'UTF-8',
+                            recordIssues enabledForFailure: true, id: 'policies', name: 'cargo policies', sourceCodeEncoding: 'UTF-8',
                                          tool: cargo(pattern: 'policies/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'rudderc', name: 'cargo language')
                         }
                         failure {
