@@ -1,0 +1,10 @@
+conditions:
+  - test_ubuntu_22_04
+setup:
+  - sh: "rm -f /tmp/rudderc-*"
+check:
+  - sh: "test -f /tmp/rudderc-os-condition-or"
+  - sh: "test -f /tmp/rudderc-os-condition-only-ubuntu22"
+  - sh: "! test -f /tmp/rudderc-os-condition-only-centos8"
+cleanup:
+  - sh: "rm /tmp/rudderc-*"
