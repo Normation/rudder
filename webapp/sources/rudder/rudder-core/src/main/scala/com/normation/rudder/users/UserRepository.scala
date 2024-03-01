@@ -82,7 +82,7 @@ trait UserRepository {
    * Get the last previous session for user
    * (it the last closed session)
    */
-  def getLastPreviousLogin(userId: String): IOResult[Option[UserSession]]
+  def getLastPreviousLogin(userId: String, closedSessionsOnly: Boolean = true): IOResult[Option[UserSession]]
 
   /*
    * Delete session that are older than the given date
@@ -308,7 +308,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
     sessionBase.update(_.map(s => if (s.userId == userId) closeSession(s, date, cause) else s))
   }
 
-  override def getLastPreviousLogin(userId: String): IOResult[Option[UserSession]] = {
+  override def getLastPreviousLogin(userId: String, closedSessionsOnly: Boolean = true): IOResult[Option[UserSession]] = {
     // sessions are sorted oldest first, for find is ok
     sessionBase.get.map(_.find(s => s.userId == userId && s.endDate.isDefined))
   }
@@ -592,9 +592,18 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
     )
   }
 
-  override def getLastPreviousLogin(userId: String): IOResult[Option[UserSession]] = {
-    val sql =
-      sql"""select userid, sessionid, creationdate, authmethod, permissions, authz, enddate, endcause from usersessions where userid = ${userId} and enddate is not null order by creationdate desc limit 1"""
+  override def getLastPreviousLogin(userId: String, closedSessionsOnly: Boolean = true): IOResult[Option[UserSession]] = {
+    val selectPart  =
+      fr"select userid, sessionid, creationdate, authmethod, permissions, authz, enddate, endcause from usersessions"
+    val wherePart   = {
+      Fragments.whereAndOpt(
+        Some(fr"userid = ${userId}"),
+        if (closedSessionsOnly) Some(fr"enddate is not null") else None
+      )
+    }
+    val orderByPart = fr"order by creationdate desc limit 1"
+
+    val sql = (selectPart ++ wherePart ++ orderByPart)
 
     transactIOResult(s"Error when retrieving information for previous session for '${userId}'")(xa =>
       sql.query[UserSession].option.transact(xa)
