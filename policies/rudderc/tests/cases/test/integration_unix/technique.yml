@@ -1,0 +1,29 @@
+id: os_condition_logic_or_
+name: 'OS condition logic OR '
+version: '1.0'
+category: ncf_techniques
+items:
+  - id: 74537fd1-bbb7-460e-bf2c-dcfc341c2fe0
+    name: logic with or
+    condition: test_ubuntu_22_04|test_centos_8
+    method: file_content
+    params:
+      path: /tmp/rudderc-os-condition-or
+      lines: "rudder.cm"
+      enforce: "true"
+  - id: 8421d610-ebc6-4a2f-b3de-f04fb101e944
+    name: for ubuntu 22.04.03
+    condition: test_ubuntu_22_04
+    method: file_content
+    params:
+      path: /tmp/rudderc-os-condition-only-ubuntu22
+      lines: "rudder.cm"
+      enforce: "true"
+  - id: b63fc018-b2d8-4f4b-8535-b4143e760779
+    name: for centos 8
+    condition: test_centos_8
+    method: file_content
+    params:
+      path: /tmp/rudderc-os-condition-only-centos8
+      lines: "rudder.cm"
+      enforce: "true"
