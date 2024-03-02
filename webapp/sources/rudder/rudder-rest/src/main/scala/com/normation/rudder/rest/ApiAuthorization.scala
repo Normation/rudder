@@ -54,7 +54,7 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.json.JsonDSL._
 
 /*
- * This trait allows to check for autorisation on a given boundedendpoint
+ * This trait allows to check for authorisation on a given boundedendpoint
  * for a given ApiToken.
  * T: authorization token type
  */
@@ -132,7 +132,7 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
                * - an user API account is disabled.
                */
                 // without plugin, api account linked to user are disabled
-                case (false, _, RudderAccount.Api(ApiAccount(_, ApiAccountKind.User, _, _, _, _, _, _)))                         =>
+                case (false, _, RudderAccount.Api(ApiAccount(_, ApiAccountKind.User, _, _, _, _, _, _,_)))                         =>
                   logger.warn(
                     s"API account linked to a user account '${user.actor.name}' is disabled because the API Authorization plugin is disabled."
                   )
@@ -140,7 +140,7 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
 
                 // without plugin but ACL configured, standard api account are change to "no right" to avoid unwanted mod
                 // (making them "ro" could give the token MORE rights than with the plugin - ex: token only have "ro" on compliance)
-                case (false, ApiAuthz.ACL(acl), RudderAccount.Api(ApiAccount(_, _: ApiAccountKind.PublicApi, _, _, _, _, _, _))) =>
+                case (false, ApiAuthz.ACL(acl), RudderAccount.Api(ApiAccount(_, _: ApiAccountKind.PublicApi, _, _, _, _, _, _,_))) =>
                   logger.info(
                     s"API account '${user.actor.name}' has ACL authorization but no plugin allows to interpret them. Removing all rights for that token."
                   )

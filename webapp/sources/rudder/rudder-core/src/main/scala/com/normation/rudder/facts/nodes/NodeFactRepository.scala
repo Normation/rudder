@@ -105,7 +105,7 @@ trait NodeFactRepository {
     status match {
       case AcceptedInventory => f(qc, SelectNodeStatus.Accepted)
       case PendingInventory  => f(qc, SelectNodeStatus.Pending)
-      case RemovedInventory  => Inconsistency("You can not query deleted nodes").fail
+      case RemovedInventory  => Inconsistency("Node is missing").fail
     }
   }
 
@@ -118,7 +118,7 @@ trait NodeFactRepository {
     status match {
       case AcceptedInventory => f(qc, SelectNodeStatus.Accepted)
       case PendingInventory  => f(qc, SelectNodeStatus.Pending)
-      case RemovedInventory  => ZStream.fromZIO(Inconsistency("You can not query deleted nodes").fail)
+      case RemovedInventory  => ZStream.fromZIO(Inconsistency("Node is missing").fail)
     }
   }
 
@@ -190,7 +190,8 @@ trait NodeFactRepository {
    * Save (create or override) a core node fact
    * Use "updateInventory` if you want to save in pending, it's likely what you want.
    *
-   * Not that the diff is only done on the core properties
+   * Not that the diff is only done on the core properties.
+   * SecurityTag must not be updated with that method, but it can be initially set.
    */
   def save(
       nodeFact:  NodeFact
@@ -202,6 +203,11 @@ trait NodeFactRepository {
   def save(nodeFact: CoreNodeFact)(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] = {
     save(NodeFact.fromMinimal(nodeFact))(cc, SelectFacts.none)
   }
+
+  /*
+   * Define security tag for the node if change context allows it.
+   */
+  def setSecurityTag(nodeId: NodeId, tag: Option[SecurityTag])(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC]
 
   /*
    * Save the full node fact.
@@ -399,16 +405,14 @@ class CoreNodeFactRepository(
         diff <- (a, p, c) match {
                   case (None, None, _)    => delete(nodeId)
                   case (None, Some(x), _) =>
-                    saveOn(pendingNodes, x.toCore).map {
-                      case (_, e) =>
-                        e.updateWith(StorageChangeEventSave.Created(x, attrs))
-                          .toChangeEvent(nodeId, PendingInventory, cc)
+                    saveOn(pendingNodes, x.toCore).map { e =>
+                      e.updateWith(StorageChangeEventSave.Created(x, attrs))
+                        .toChangeEvent(nodeId, PendingInventory, cc)
                     }
                   case (Some(x), _, _)    =>
-                    saveOn(acceptedNodes, x.toCore).map {
-                      case (_, e) =>
-                        e.updateWith(StorageChangeEventSave.Created(x, attrs))
-                          .toChangeEvent(nodeId, AcceptedInventory, cc)
+                    saveOn(acceptedNodes, x.toCore).map { e =>
+                      e.updateWith(StorageChangeEventSave.Created(x, attrs))
+                        .toChangeEvent(nodeId, AcceptedInventory, cc)
                     }
                 }
       } yield diff
@@ -508,48 +512,21 @@ class CoreNodeFactRepository(
   }
 
   /*
-   * Save on the given ref the given CoreNodeFact. The CoreNodeFact can be altered
-   * based on security check (tenants), so "saveOn" gives you back the real CoreNodeFact
-   * that was save in addition to the save event.
+   * Save on the given ref the given CoreNodeFact. This method is dumb and won't
+   * check for tenants, which should have been done before hand.
    */
-  private def saveOn(ref: Ref[Map[NodeId, CoreNodeFact]], nodeFact: CoreNodeFact)(implicit
-      cc:                 ChangeContext
-  ): IOResult[(Option[SecurityTag], StorageChangeEventSave)] = {
-    // we use modify with either return to avoid the cost of Ref.Synchronized
-    tenantService
-      .getTenants()
-      .flatMap(tenants => {
-        ref
-          .modify(nodes => {
-            nodes.get(nodeFact.id) match {
-              case None           => // new node, we just check that potential tenant is consistent with CC
-                tenantService.checkCreate(nodeFact, cc, tenants) match {
-                  case Left(err) => (Left(err), nodes)
-                  // node can be updated
-                  case Right(n)  =>
-                    (
-                      Right(
-                        (n.rudderSettings.security, StorageChangeEventSave.Created(NodeFact.fromMinimal(n), SelectFacts.none))
-                      ),
-                      (nodes + (n.id -> n))
-                    )
-                }
-              case Some(existing) =>
-                tenantService.checkUpdate(existing, nodeFact, cc, tenants) match {
-                  case Left(err) => (Left(err), nodes)
-                  // node can be updated
-                  case Right(n)  =>
-                    val e = {
-                      if (CoreNodeFact.same(existing, n)) StorageChangeEventSave.Noop(nodeFact.id, SelectFacts.none)
-                      else
-                        StorageChangeEventSave.Updated(NodeFact.fromMinimal(existing), NodeFact.fromMinimal(n), SelectFacts.none)
-                    }
-                    (Right((n.rudderSettings.security, e)), (nodes + (n.id -> n)))
-                }
-            }
-          })
-          .flatMap(ZIO.fromEither(_))
-      })
+  private def saveOn(ref: Ref[Map[NodeId, CoreNodeFact]], nodeFact: CoreNodeFact): IOResult[StorageChangeEventSave] = {
+    ref
+      .getAndUpdate(_ + ((nodeFact.id, nodeFact)))
+      .map { old =>
+        old.get(nodeFact.id) match {
+          case Some(n) =>
+            if (CoreNodeFact.same(n, nodeFact)) StorageChangeEventSave.Noop(nodeFact.id, SelectFacts.none)
+            else StorageChangeEventSave.Updated(NodeFact.fromMinimal(n), NodeFact.fromMinimal(nodeFact), SelectFacts.none)
+          case None    =>
+            StorageChangeEventSave.Created(NodeFact.fromMinimal(nodeFact), SelectFacts.none)
+        }
+      }
   }
 
   private def deleteOn(ref: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
@@ -626,32 +603,80 @@ class CoreNodeFactRepository(
     }
   }
 
-  def save(
+  /*
+   * Save can be used in two fashion: either for setting tenants
+   * or for save. In the second case, we must ensure tenants don't change.
+   * In the first case, we use the existing coreNodeFact for save.
+   */
+  private def internalSave(
+      node:      Either[NodeFact, (NodeId, Option[SecurityTag])]
+  )(implicit cc: ChangeContext, attrs: SelectFacts): IOResult[NodeFactChangeEventCC] = {
+    ZIO.scoped(
+      for {
+        _        <- lock.withLock
+        n        <- get(node.fold(_.id, _._1))(cc.toQuery)
+        nodeFact <- (node, n) match {
+                      // first case: we are saving a new node fact, tenant can be set
+                      case (Left(x), None)          => x.succeed
+                      // second case: updating a node fact, we need to keep existing tenant
+                      // we also keep status
+                      case (Left(x), Some(y))       =>
+                        x
+                          .modify(_.rudderSettings.security)
+                          .setTo(y.rudderSettings.security)
+                          .modify(_.rudderSettings.status)
+                          .setTo(y.rudderSettings.status)
+                          .succeed
+                      // second case: we are updating tenants
+                      case (Right((_, t)), Some(x)) => NodeFact.fromMinimal(x.modify(_.rudderSettings.security).setTo(t)).succeed
+                      case (Right((id, _)), None)   =>
+                        Inconsistency(s"Error: can not change tenant of missing node with Id '${id.value}'").fail
+                    }
+        es       <- tenantService.manageUpdate(n, nodeFact, cc) { updated =>
+                      for {
+                        // first we persist on cold storage, which is more likely to fail. Plus, for history reason, some
+                        // mapping are not exactly isomorphic, and some normalization can happen - for ex, for missing machine.
+                        s <- storage.save(updated)
+                        // then, we get the actual thing that was saved from the save even
+                        up = s match {
+                               case StorageChangeEventSave.Created(node, attrs)             =>
+                                 node
+                               case StorageChangeEventSave.Updated(oldNode, newNode, attrs) =>
+                                 newNode
+                               case StorageChangeEventSave.Noop(nodeId, attrs)              =>
+                                 updated
+                             }
+                        // then, we save that as the core node fact reference
+                        e <- nodeFact.rudderSettings.status match {
+                               case RemovedInventory  => // this case is ignored, we don't delete node based on status value
+                                 StorageChangeEventSave.Noop(up.id, attrs).succeed
+                               case PendingInventory  =>
+                                 saveOn(pendingNodes, up.toCore)
+                               case AcceptedInventory =>
+                                 saveOn(acceptedNodes, up.toCore)
+                             }
+                        // finally, merge both events and return the final change event and run call backs on it
+                        es = s.updateWith(e).toChangeEvent(up.id, up.rudderSettings.status, cc)
+                        _ <- NodeLoggerPure.Details.Write.trace(s"Saved node event: ${es.event.debugDiff}")
+                        _ <- runCallbacks(es)
+                      } yield es
+                    }
+      } yield es
+    )
+  }
+
+  override def setSecurityTag(nodeId: NodeId, tag: Option[SecurityTag])(implicit
+      cc:                             ChangeContext
+  ): IOResult[NodeFactChangeEventCC] = {
+    internalSave(Right((nodeId, tag)))(cc, SelectFacts.none)
+  }
+
+  override def save(
       nodeFact:  NodeFact
   )(implicit cc: ChangeContext, attrs: SelectFacts = SelectFacts.all): IOResult[NodeFactChangeEventCC] = {
     checkRootProperties(nodeFact) *>
     checkAgentKey(nodeFact) *>
-    ZIO.scoped(
-      for {
-        _     <- lock.withLock
-        // we first need to check for existing node and its security tag consistency,
-        // so we start with the quick on memory map to get existing node characteristics
-        // but then the diff are only done on the core elements
-        res   <- nodeFact.rudderSettings.status match {
-                   case RemovedInventory  => // this case is ignored, we don't delete node based on status value
-                     (nodeFact.rudderSettings.security, StorageChangeEventSave.Noop(nodeFact.id, attrs)).succeed
-                   case PendingInventory  =>
-                     saveOn(pendingNodes, nodeFact.toCore)
-                   case AcceptedInventory =>
-                     saveOn(acceptedNodes, nodeFact.toCore)
-                 }
-        (t, e) = res
-        // here we persist all the core data with the provided solution
-        s     <- storage.save(nodeFact.modify(_.rudderSettings.security).setTo(t))
-        es     = e.updateWith(s).toChangeEvent(nodeFact.id, nodeFact.rudderSettings.status, cc)
-        _     <- runCallbacks(es)
-      } yield es
-    )
+    internalSave(Left(nodeFact))
   }
 
   override def changeStatus(nodeId: NodeId, into: InventoryStatus)(implicit

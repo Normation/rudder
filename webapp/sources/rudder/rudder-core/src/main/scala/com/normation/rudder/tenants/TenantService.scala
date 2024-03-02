@@ -86,19 +86,16 @@ trait TenantService {
   ): IOResult[Option[CoreNodeFact]]
 
   /*
-   * Check if the node can be created given ChangeContext
-   * It's pure so that we can avoid a sync Ref in NodeRepo.
+   * Check if the existing node can be updated with the new node given change context.
+   * In case it can, a possibly updated version of the security tag to set to node is provided. Else, it's an error.
    */
-  def checkCreate(n:    CoreNodeFact, cc: ChangeContext, availableTenants: Set[TenantId]): Either[RudderError, CoreNodeFact]
-  /*
-   * Check if the existing node can be updated with the new node given change context
-   */
-  def checkUpdate(
-      existing:         CoreNodeFact,
-      updated:          CoreNodeFact,
-      cc:               ChangeContext,
-      availableTenants: Set[TenantId]
-  ): Either[RudderError, CoreNodeFact]
+  def manageUpdate[A](
+      existing: Option[CoreNodeFact],
+      updated:  NodeFact,
+      cc:       ChangeContext
+  )(
+      action:   NodeFact => IOResult[A]
+  ): IOResult[A]
 
   /*
    * Check if the node can be deleted given ChangeContext
@@ -173,64 +170,62 @@ class DefaultTenantService(var tenantsEnabled: Boolean, val tenantIds: Ref[Set[T
     }
   }
 
-  override def checkCreate(
-      n:                CoreNodeFact,
-      cc:               ChangeContext,
-      availableTenants: Set[TenantId]
-  ): Either[RudderError, CoreNodeFact] = {
-    if (cc.nodePerms.canSee(n.rudderSettings.security)(availableTenants)) {
-      Right(n)
-    } else {
-      // only id to avoid giving too much info in error in that case
-      Left(Inconsistency(s"Node '${n.id.value}' can't be created by ${cc.actor.name}"))
-    }
-  }
-
-  override def checkUpdate(
-      existing:         CoreNodeFact,
-      updated:          CoreNodeFact,
-      cc:               ChangeContext,
-      availableTenants: Set[TenantId]
-  ): Either[RudderError, CoreNodeFact] = {
+  override def manageUpdate[A](
+      existing: Option[CoreNodeFact],
+      updated:  NodeFact,
+      cc:       ChangeContext
+  )(
+      action:   NodeFact => IOResult[A]
+  ): IOResult[A] = {
     // only id to avoid giving too much info in error in that case
-    def error(n: CoreNodeFact) = {
+    def error(n: MinimalNodeFactInterface) = {
       val tag = n.rudderSettings.security match {
         case None    => '*'
         case Some(t) => t.tenants.map(_.value).mkString(",")
       }
-      Left(Inconsistency(s"Node '${n.id.value}' [${tag}] can't be modified by '${cc.actor.name}' (perm:${cc.nodePerms.value})"))
+      Inconsistency(s"Node '${n.id.value}' [${tag}] can't be modified by '${cc.actor.name}' (perm:${cc.nodePerms.value})").fail
     }
 
-    if (cc.nodePerms.canSee(existing.rudderSettings.security)(availableTenants)) {
-      if (cc.nodePerms.canSee(updated.rudderSettings.security)(availableTenants)) {
-        // here, if tenants are not enabled, we must keep the old ones in any case
-        if (tenantsEnabled) {
-          // here, we also need to check if the tenant are changing, if the new tenant is in the list
-          // (we already know that the permission is ok, but "*" can see even non existing tenants)
-          // We also accept non modified tenant.
-          (existing.rudderSettings.security, updated.rudderSettings.security) match {
-            case (_, None)                      => Right(updated)
-            case (Some(a), Some(b)) if (a == b) => Right(updated)
-            case (_, Some(b))                   =>
-              if (b.tenants.forall(t => availableTenants.contains(t))) {
-                Right(updated)
-              } else {
-                Left(
-                  Inconsistency(
-                    s"Node '${updated.id.value}' security tag's tenant can not be updated to '${b.tenants.map(_.value).mkString(",")}' because it does not exist"
-                  )
-                )
-              }
+    getTenants().flatMap { availableTenants =>
+      existing match {
+        // in the case of creation, we just have to check if the user has actual access on update node fact
+        case None           =>
+          if (cc.nodePerms.canSee(updated.rudderSettings.security)(availableTenants)) {
+            action(updated)
+          } else {
+            error(updated)
           }
-        } else {
-          import com.softwaremill.quicklens._
-          Right(updated.modify(_.rudderSettings.security).setTo(existing.rudderSettings.security))
-        }
-      } else {
-        error(updated)
+        case Some(existing) =>
+          (if (cc.nodePerms.canSee(existing.rudderSettings.security)(availableTenants)) {
+             if (cc.nodePerms.canSee(updated.rudderSettings.security)(availableTenants)) {
+               // here, if tenants are not enabled, we must keep the old ones in any case
+               if (tenantsEnabled) {
+                 // here, we also need to check if the tenant are changing, if the new tenant is in the list
+                 // (we already know that the permission is ok, but "*" can see even non existing tenants)
+                 // We also accept non modified tenant.
+                 (existing.rudderSettings.security, updated.rudderSettings.security) match {
+                   case (_, None)                      => updated.succeed
+                   case (Some(a), Some(b)) if (a == b) => updated.succeed
+                   case (_, Some(b))                   =>
+                     if (b.tenants.forall(t => availableTenants.contains(t))) {
+                       updated.succeed
+                     } else {
+                       Inconsistency(
+                         s"Node '${updated.id.value}' security tag's tenant can not be updated to '${b.tenants.map(_.value).mkString(",")}' because it does not exist"
+                       ).fail
+                     }
+                 }
+               } else {
+                 import com.softwaremill.quicklens._
+                 updated.modify(_.rudderSettings.security).setTo(existing.rudderSettings.security).succeed
+               }
+             } else {
+               error(updated)
+             }
+           } else {
+             error(existing)
+           }).flatMap(up => action(up))
       }
-    } else {
-      error(existing)
     }
   }
 

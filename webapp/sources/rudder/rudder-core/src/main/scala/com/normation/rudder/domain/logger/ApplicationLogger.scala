@@ -155,8 +155,16 @@ object NodeLoggerPure extends NamedZioLogger { parent =>
     def loggerName: String = parent.loggerName + ".metrics"
   }
 
-  object Details extends NamedZioLogger {
+  object Details extends NamedZioLogger { details =>
     def loggerName: String = parent.loggerName + ".details"
+
+    object Read extends NamedZioLogger {
+      def loggerName: String = details.loggerName + ".read"
+    }
+
+    object Write extends NamedZioLogger {
+      def loggerName: String = details.loggerName + ".write"
+    }
   }
 
   object Security extends NamedZioLogger {

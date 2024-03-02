@@ -144,7 +144,7 @@ trait SerializeFacts[A, B] {
 }
 
 /*
- * Storage have a very simple change event output datastructure. This is because they don't know
+ * Storage have a very simple change event output datastructures. This is because they don't know
  * about business logic, just about the action done to the serialized data.
  *
  * SelectFacts informs about what the storage know about the change.
@@ -156,15 +156,24 @@ trait SerializeFacts[A, B] {
  * parameter and must do whatever is needed to honor the requirement.
  *
  * When no requirement is done in the parameters for SelectFacts, storage can return
- * what it wants, always trying to maximize perf / minimize data transfered in that case .
+ * what it wants, always trying to maximize perf / minimize data transferred in that case .
  */
 sealed trait StorageChangeEvent
 // save
-sealed trait StorageChangeEventSave extends StorageChangeEvent
+sealed trait StorageChangeEventSave extends StorageChangeEvent {
+  def attrs:       SelectFacts
+  def debugString: String
+}
 object StorageChangeEventSave {
-  final case class Created(node: NodeFact, attrs: SelectFacts)                       extends StorageChangeEventSave
-  final case class Updated(oldNode: NodeFact, newNode: NodeFact, attrs: SelectFacts) extends StorageChangeEventSave
-  final case class Noop(nodeId: NodeId, attrs: SelectFacts)                          extends StorageChangeEventSave
+  final case class Created(node: NodeFact, attrs: SelectFacts)                       extends StorageChangeEventSave {
+    override def debugString: String = s"[created] ${node.debugString(attrs)}"
+  }
+  final case class Updated(oldNode: NodeFact, newNode: NodeFact, attrs: SelectFacts) extends StorageChangeEventSave {
+    override def debugString: String = s"[updated] ${NodeFact.debugDiff(oldNode, newNode, attrs)}"
+  }
+  final case class Noop(nodeId: NodeId, attrs: SelectFacts)                          extends StorageChangeEventSave {
+    override def debugString: String = s"[noop] ${nodeId.value}"
+  }
 
   implicit class StorageChangeEventExtensions(e: StorageChangeEventSave) {
     def toChangeEvent(
@@ -196,17 +205,24 @@ object StorageChangeEventSave {
       def update(nfa: NodeFact, nfb: NodeFact, attrs: SelectFacts) = SelectFacts.merge(nfa, Some(nfb))(attrs.invert)
 
       (e, b) match {
-        case (Noop(_, _), x)                                  => x
-        case (x, Noop(_, _))                                  => x
-        case (Created(a1, _), Created(a2, attrs))             => Created(update(a1, a2, attrs), attrs)
-        case (Created(a1, _), Updated(ob, nb, attrs))         => Updated(ob, update(a1, nb, attrs), attrs)
-        case (Updated(oa, na, _), Created(b1, attrs))         => Updated(oa, update(na, b1, attrs), attrs)
-        case (Updated(ob1, nb1, _), Updated(ob2, nb2, attrs)) =>
+        case (Noop(id, ata), Noop(_, atb))                => Noop(id, ata.max(atb))
+        case (Noop(_, ata), Created(ob, atb))             => Created(ob, ata.max(atb))
+        case (Noop(_, ata), Updated(ob, nb, atb))         => Updated(ob, nb, ata.max(atb))
+        case (Created(oa, ata), Created(ob, atb))         =>
+          val at = ata.max(atb)
+          Created(update(oa, ob, at), at)
+        case (Created(oa, ata), Updated(ob, nb, atb))     =>
+          val at = ata.max(atb)
+          Updated(ob, update(oa, nb, at), at)
+        case (Updated(oa, na, ata), Updated(ob, nb, atb)) =>
+          val at = ata.max(atb)
           Updated(
-            update(ob1, ob2, attrs),
-            update(nb1, nb1, attrs),
-            attrs
+            update(oa, ob, at),
+            update(na, nb, at),
+            at
           )
+        // remaining case are symmetric
+        case (a, b)                                       => b.updateWith(a)
       }
     }
   }
@@ -663,7 +679,7 @@ class LdapNodeFactStorage(
     fullInventoryRepository: FullInventoryRepositoryImpl,
     softwareGet:             ReadOnlySoftwareDAO,
     softwareSave:            SoftwareDNFinderAction,
-    uuidGen:                 StringUuidGenerator,
+    uuidGen:                 StringUuidGenerator
 ) extends NodeFactStorage {
 
   // for save, we always store the full node. Since we don't know how to restrict attributes to save
@@ -776,7 +792,7 @@ class LdapNodeFactStorage(
   }
 
   /*
-   * Get node fact with trying to make the minimum data retieval from ldap (the granularity is coarse: we only check if
+   * Get node fact with trying to make the minimum data retrieval from ldap (the granularity is coarse: we only check if
    * we need full inventory or just node info, and software or not)
    */
   private[nodes] def getNodeFact(nodeId: NodeId, status: InventoryStatus, attrs: SelectFacts): IOResult[Option[NodeFact]] = {
@@ -872,7 +888,7 @@ class LdapNodeFactStorage(
                  }
       t1      <- currentTimeMillis
       _       <- NodeLoggerPure.Metrics.debug(s"node '${nodeId.value}' retrieved in ${t1 - t0} ms")
-      _       <- NodeLoggerPure.Details.trace(s"node '${nodeId.value}' fetched details: ${res}")
+      _       <- NodeLoggerPure.Details.Read.trace(s"node '${nodeId.value}' fetched details: ${res.map(_.debugString(attrs))}")
     } yield res
   }
 

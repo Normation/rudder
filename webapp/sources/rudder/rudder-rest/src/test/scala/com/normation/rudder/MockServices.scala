@@ -94,6 +94,7 @@ import com.normation.rudder.facts.nodes.NodeFactChangeEventCallback
 import com.normation.rudder.facts.nodes.NodeFactChangeEventCC
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.facts.nodes.SecurityTag
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.reports.AgentRunInterval
@@ -265,11 +266,14 @@ class MockCompliance(mockDirectives: MockDirectives) {
     def getNodesbySofwareName(softName: String):                                               IOResult[List[(NodeId, Software)]] = ???
     def slowGetAll()(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): errors.IOStream[NodeFact]          = ???
     def save(nodeFact: NodeFact)(implicit cc: ChangeContext, attrs: SelectFacts):              IOResult[NodeFactChangeEventCC]    = ???
+    def setSecurityTag(nodeId: NodeId, tag: Option[SecurityTag])(implicit cc: ChangeContext):  IOResult[NodeFactChangeEventCC]    =
+      ???
     def updateInventory(inventory: FullInventory, software: Option[Iterable[Software]])(implicit
         cc:                        ChangeContext
     ): IOResult[NodeFactChangeEventCC] = ???
     def changeStatus(nodeId: NodeId, into: InventoryStatus)(implicit cc: ChangeContext):       IOResult[NodeFactChangeEventCC]    = ???
     def delete(nodeId: NodeId)(implicit cc: ChangeContext):                                    IOResult[NodeFactChangeEventCC]    = ???
+
   }
 
   // We want to ignore rules that are defined in `MockRules` because they may target all nodes and pollute our compliance tests
