@@ -861,7 +861,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                           case None    => ApiAccountType.PublicApi
                           case Some(s) => ApiAccountType.values.find(_.name == s).getOrElse(ApiAccountType.PublicApi)
                         }
-      tenants        <- NodeSecurityContext.parse((apiAccount \ "tenants").headOption.map(_.text.split(",").toList)).toBox
+      tenants        <- NodeSecurityContext.parse((apiAccount \ "tenants").headOption.map(_.text)).toBox
     } yield {
       val kind = accountType match {
         case ApiAccountType.System    => ApiAccountKind.System

@@ -616,7 +616,7 @@ object UserFileProcessing {
 
       for {
         nsc <- NodeSecurityContext
-                 .parse(u.tenants)
+                 .parseList(u.tenants)
                  .toIO
                  .flatMap { // check for adequate plugin
                    case NodeSecurityContext.ByTenants(_) if (!TODO_MODULE_TENANTS_ENABLED) =>

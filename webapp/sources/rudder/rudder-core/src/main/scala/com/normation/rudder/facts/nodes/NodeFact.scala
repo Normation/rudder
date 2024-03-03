@@ -1672,8 +1672,11 @@ object NodeSecurityContext       {
    * - '-' means "none"
    * None means "all" for compat
    */
-  def parse(tenants: Option[List[String]], ignoreMalformed: Boolean = true): PureResult[NodeSecurityContext] = {
-
+  def parse(tenantString: Option[String], ignoreMalformed: Boolean = true): PureResult[NodeSecurityContext] = {
+    parseList(tenantString.map(_.split(",").map(_.trim)))
+  }
+  
+  def parseList(tenantString: Option[List[String]], ignoreMalformed: Boolean = true): PureResult[NodeSecurityContext] = {
     tenants match {
       case scala.None => Right(NodeSecurityContext.All) // for compatibility with previous versions
       case Some(ts)   =>
