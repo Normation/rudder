@@ -378,7 +378,7 @@ pipeline {
                     post {
                         always {
                             // linters results
-                            recordIssues enabledForFailure: true, id: 'rudder-package', name: 'cargo rudder-package', sourceDirectory: 'rudderc', sourceCodeEncoding: 'UTF-8',
+                            recordIssues enabledForFailure: true, id: 'rudder-package', name: 'cargo rudder-package', sourceCodeEncoding: 'UTF-8',
                                          tool: cargo(pattern: 'relay/sources/rudder-package/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'rudder-package', name: 'cargo rudder-package')
                         }
                         failure {
