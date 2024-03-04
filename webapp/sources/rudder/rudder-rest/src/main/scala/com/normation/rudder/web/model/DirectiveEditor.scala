@@ -313,7 +313,7 @@ final case class SectionFieldImp(
     else {
       <tr><td colspan="3">
         <div  id={sectionId} class={classes}>
-         <div class="section-title" onClick={methodName}>Section: {name}</div>
+         <div class="section-title" onclick={methodName}>Section: {name}</div>
           <table class="directiveSectionDef">
               {childrenXml}
           </table>
@@ -468,7 +468,7 @@ final case class MultivaluedSectionField(
 
           val classes = "groupFieldset foldableSection " + section.visibilityClasses
           <div  id={sectionId} class={classes}>
-              <div class="section-title" onClick={methodName}>{"%s #%s".format(name, i + 1)}</div>
+              <div class="section-title" onclick={methodName}>{"%s #%s".format(name, i + 1)}</div>
               {showFormEntry(section, i)}
             </div> ++ Script(JsRaw(""" function %s { %s } """.format(methodName, changeVisibility.toJsCmd)))
       }

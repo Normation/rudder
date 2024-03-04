@@ -364,5 +364,5 @@ class AcceptNode extends Loggable {
    * @return
    */
   val selectAll: Node =
-    <input type="checkbox" id="selectAll" onClick="jqCheckAll('selectAll', 'serverids')"/>
+    <input type="checkbox" id="selectAll" onclick="jqCheckAll('selectAll', 'serverids')"/>
 }

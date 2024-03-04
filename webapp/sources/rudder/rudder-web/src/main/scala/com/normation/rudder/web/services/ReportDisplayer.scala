@@ -401,7 +401,7 @@ class ReportDisplayer(
                           node.rudderAgent.agentType == AgentType.CfeEnterprise
                         ) {
                           <div id="triggerAgent">
-            <button id="triggerBtn" class="btn btn-primary btn-trigger"  onClick={
+            <button id="triggerBtn" class="btn btn-primary btn-trigger"  onclick={
                             s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, addOverriden).toJsCmd});"
                           }>
               <span>Trigger agent</span>
