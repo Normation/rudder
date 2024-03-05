@@ -294,11 +294,11 @@ class ReportDisplayer(
         ("progress-bar-reportsdisabled", NodeSeq.Empty)
 
       case _: Pending | _: NoUserRulesDefined =>
-        ("bg-info text-info", NodeSeq.Empty)
+        ("alert alert-info", NodeSeq.Empty)
 
       case _: ComputeCompliance =>
         if (report.compliance.total <= 0) { // should not happen
-          ("bg-success text-success", NodeSeq.Empty)
+          ("alert alert-success", NodeSeq.Empty)
         } else {
           val nbAttention = (
             report.compliance.noAnswer + report.compliance.missing + report.compliance.unexpected + report.compliance.badPolicyMode +
@@ -306,16 +306,16 @@ class ReportDisplayer(
           )
           if (nbAttention > 0) {
             (
-              "bg-warning text-warning",
+              "alert alert-warning",
               <p>{nbAttention} reports below (out of {
                 report.compliance.total
               } total reports) are not in Success, and may require attention.</p>
             )
           } else if (report.compliance.computePercent().pending > 0) {
-            ("bg-info text-info", NodeSeq.Empty)
+            ("alert alert-info", NodeSeq.Empty)
 
           } else {
-            ("bg-success text-success", <p>All reports received for this node are in Success.</p>)
+            ("alert alert-success", <p>All reports received for this node are in Success.</p>)
           }
         }
     }
@@ -370,7 +370,7 @@ class ReportDisplayer(
   ): NodeSeq = {
     val boxXml = (if (node.rudderSettings.state == NodeState.Ignored) {
                     Full(
-                      <div><div class="col-sm-3"><p class="center bg-info" style="padding: 25px; margin:5px;">This node is disabled.</p></div></div>
+                      <div><div class="col-sm-3"><p class="center alert alert-info" style="padding: 25px; margin:5px;">This node is disabled.</p></div></div>
                     )
                   } else {
                     for {

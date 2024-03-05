@@ -772,7 +772,7 @@ td.complianceTd, td.parametersTd {
 }
 
 .btn-trigger {
-  width:136px;
+  min-width:150px;
   height:40px;
 }
 
