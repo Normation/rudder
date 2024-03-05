@@ -145,8 +145,6 @@ ul {
 
 .rudder-template{
   display: flex;
-  color: #041922;
-  font-size: 14px;
 }
 
 /* === HEADER === */
@@ -245,7 +243,6 @@ ul {
 }
 .header-buttons .dropdown-menu > li > a,
 .gm-labels .dropdown-menu > li > a {
-  font-size: 14px;
   padding: 10px 14px;
   transition-duration: .2s;
   cursor: pointer;
@@ -564,7 +561,6 @@ ul {
 .rudder-template .main-header .header-description{
   margin-top: 10px;
   color: #738195;
-  font-size: 14px;
 }
 .rudder-template .main-header .header-description p{
   margin-bottom: 6px;
@@ -620,7 +616,6 @@ ul {
   flex: 1;
   flex-direction: column;
   overflow: auto;
-  font-size: 14px;
   position: relative;
   height: 100%;
 }

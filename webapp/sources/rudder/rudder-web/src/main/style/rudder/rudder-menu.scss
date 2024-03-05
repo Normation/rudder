@@ -148,7 +148,6 @@ $navbar-hover-color : #F4F4F4;
   line-height: 50px;
   text-align: center;
   width: 230px;
-  font-family: var(--font-sans);
   padding: 0 15px;
   font-weight: 300;
   overflow: hidden;
@@ -970,9 +969,6 @@ header.main-header .logo-lg img{
 }
  .navbar-nav .notifications-menu>.dropdown-menu > li > a > .fa-flag-o, .navbar-nav .notifications-menu>.dropdown-menu > li > a > .fa-flag-checkered{
   font-size: 16px;
-}
-.navbar-nav .notifications-menu>.dropdown-menu > li > a{
-  font-size:12px !important;
 }
 .navbar-nav .notifications-menu>.dropdown-menu > li > a:hover .fa,
 .navbar-nav .messages-menu>.dropdown-menu > li > a:hover .fa,

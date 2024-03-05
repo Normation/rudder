@@ -233,7 +233,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     if (havePerm(AuthorizationType.Deployment.Read)) {
 
       <li class={"nav-item dropdown notifications-menu " ++ statusBackground}>
-        <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <a href="#" class="dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           Status
           <i class="fa fa-heartbeat"></i>
           <span id="generation-status" class="label"><span></span></span>

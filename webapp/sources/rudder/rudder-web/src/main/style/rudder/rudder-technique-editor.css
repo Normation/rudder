@@ -775,7 +775,7 @@ ul.files-list > li .full-name:before{
 }
 ul.files-list > li .use-with > span,
 ul.files-list > li .full-name > span{
-  font-family: var(--font-mono);
+  font-family: var(--bs-font-monospace);
   font-weight: bold;
   word-break: break-word;
 }
@@ -877,7 +877,7 @@ button.btn.clipboard:hover {
 }
 .method-details .form-control{
   padding: 4px 6px;
-  font-family: var(--font-mono);
+  font-family: var(--bs-font-monospace);
   font-size: 14px;
 }
 .method-details select.form-select:not([size]):not([multiple]) {
@@ -1229,7 +1229,7 @@ ul li.hide-method {
   outline: none !important;
   width: auto !important;
   padding: 0;
-  font-family: var(--font-mono);
+  font-family: var(--bs-font-monospace);
   font-size: 14px;
   min-height: 28px !important;
 }
@@ -1451,7 +1451,7 @@ ul li.hide-method {
 }
 .show-diff table tbody > tr > td:nth-child(2),
 .show-diff table tbody > tr > td:nth-child(3) {
-  font-family: var(--font-mono);
+  font-family: var(--bs-font-monospace);
   white-space: pre-wrap;
   word-break: break-all;
 }
@@ -1705,7 +1705,7 @@ ul li.hide-method {
 
 /* YAML editor */
 textarea.yaml-editor {
-  font-family: var(--font-mono);
+  font-family: var(--bs-font-monospace);
   /* Remove decoration */
   border: none;
   box-shadow: none;

@@ -297,7 +297,7 @@ body {
 }
 
 textarea.code {
-  font-family: var(--font-mono);
+  font-family: var(--bs-font-monospace);
   font-size: 13px;
   min-height: 250px;
   resize: vertical;
@@ -595,7 +595,6 @@ table th > a:focus {
 }
 
 .item-extension::after {
-  font-family: var(--font-sans);
   content: attr(data-ext);
   left: 4px;
   position: absolute;
