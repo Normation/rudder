@@ -177,19 +177,19 @@ showTechnique model technique origin ui editInfo =
                      Clone _ id -> DeleteTechnique (Ok (fakeMetadata, id))
                      Edit _ -> OpenDeletionPopup technique
     topButtons =  [ li [] [
-                      a [ disabled creation , onClick (GenerateId (\s -> CloneTechnique technique (TechniqueId s))) ] [
+                      a [ class "dropdown-item", disabled creation , onClick (GenerateId (\s -> CloneTechnique technique (TechniqueId s))) ] [
                         text "Clone "
                       , i [ class "fa fa-clone"] []
                       ]
                     ]
                   , li [] [
-                      a [ onClick Export] [
+                      a [ class "dropdown-item", onClick Export] [
                         text "Export "
                       , i [ class "fa fa-download"] []
                       ]
                     ]
                   , li [] [
-                      a [ class "action-danger", onClick deleteAction ] [
+                      a [ class "dropdown-item action-danger", onClick deleteAction ] [
                         text "Delete "
                       , i [ class "fa fa-times-circle"] []
                       ]

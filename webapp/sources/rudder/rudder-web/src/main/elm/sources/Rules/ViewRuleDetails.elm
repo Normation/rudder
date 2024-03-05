@@ -46,20 +46,20 @@ editionTemplate model details =
               ]
             , ul [ class "dropdown-menu" ]
               [ li []
-                [ a [ onClick (GenerateId (\r -> CloneRule or (RuleId r)))]
+                [ a [ class "dropdown-item", onClick (GenerateId (\r -> CloneRule or (RuleId r)))]
                   [ i [ class "fa fa-clone"] []
                   , text "Clone"
                   ]
                 ]
               , li []
-                [ a [ onClick (OpenDeactivationPopup rule)]
+                [ a [ class "dropdown-item", onClick (OpenDeactivationPopup rule)]
                   [ i [ class "fa fa-ban"] []
                   , text txtDisabled
                   ]
                 ]
               , li [class "divider"][]
               , li []
-                [ a [ class ("action-danger"), onClick (OpenDeletionPopup rule)]
+                [ a [ class "dropdown-item action-danger", onClick (OpenDeletionPopup rule)]
                   [ i [ class "fa fa-times-circle"] []
                   , text "Delete"
                   ]
