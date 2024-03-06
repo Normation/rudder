@@ -578,14 +578,12 @@ label.text-fit{
   background-color: #fff;
   padding: 0px !important;
   padding-bottom: 8px !important;
-  color: #041922;
   text-align: left !important;
   width: 360px;
   max-width: 360px;
   font-size: 12px;
   box-shadow: 0px 0px 5px rgba(0, 0, 0, .12);
   border-radius: 0px;
-  color: #041922;
   border: 1px solid #ccc;
   border-radius: 3px;
 }
@@ -608,7 +606,6 @@ label.text-fit{
 .tooltip > .tooltip-inner h4{
   background-color: #fff;
   font-weight: 600;
-  color: #041922;
   border-bottom: 1px solid #d6deef;
   padding: 5px;
   font-size: 14px;
