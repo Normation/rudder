@@ -56,6 +56,8 @@ $nav-underline-link-active-color: $rudder-txt-primary;
 
 $input-font-size-sm: 12px;  // previous bootstrap 3 value VS 0.85rem default in bootstrap 5
 
+$border-color-translucent: $rudder-border-color-default;
+
 @import "../../node_modules/bootstrap/scss/bootstrap";
 
 /* --- BUTTONS
@@ -111,6 +113,7 @@ $input-font-size-sm: 12px;  // previous bootstrap 3 value VS 0.85rem default in 
   padding: 0 15px;
   margin-bottom: 0;
   position: relative;
+  min-height: 4px;
 
   &:before {
     content: "";

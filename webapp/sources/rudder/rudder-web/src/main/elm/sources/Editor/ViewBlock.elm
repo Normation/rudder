@@ -85,14 +85,14 @@ showBlockTab model parentId block uiInfo techniqueUi =
                  let
                    updatedCondition = {condition | os = os }
                  in
-                   li [ onClick (MethodCallModified (Block parentId {block | condition = updatedCondition })), class (osClass os) ] [ a [href "#" ] [ text (osName os) ] ]
+                   li [ onClick (MethodCallModified (Block parentId {block | condition = updatedCondition })), class (osClass os) ] [ a [class "dropdown-item"] [ text (osName os) ] ]
                  )
                osList
         ubuntuLi = List.map (\ubuntuMinor ->
                      let
                        updatedCall = Block parentId { block | condition = {condition | os =  updateUbuntuMinor  ubuntuMinor condition.os } }
                      in
-                       li [ onClick (MethodCallModified updatedCall) ] [ a [href "#" ] [ text (showUbuntuMinor ubuntuMinor) ] ]
+                       li [ onClick (MethodCallModified updatedCall) ] [ a [class "dropdown-item"] [ text (showUbuntuMinor ubuntuMinor) ] ]
                    ) [All, ZeroFour, Ten]
         condition = block.condition
         errorOnConditionInput =
@@ -247,7 +247,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
                              )
         liCompositionRule =  \rule -> element "li"
                                            |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = rule }))
-                                           |> appendChild (element "a" |> addAttribute (href "#") |> appendText (compositionText rule))
+                                           |> appendChild (element "a" |> addClass "dropdown-item" |> appendText (compositionText rule))
         availableComposition = List.map liCompositionRule [ WeightedReport, FocusReport "", WorstReport WorstReportWeightedSum ]
 
         -- sub-select - focus
@@ -263,7 +263,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
                      in
                        element "li"
                                |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = FocusReport (getId child).value }))
-                               |> appendChild (element "a" |> addAttribute (href "#") |> appendText component)
+                               |> appendChild (element "a" |> addClass "dropdown-item" |> appendText component)
 
         availableFocus = List.map liFocus block.calls
 
@@ -274,7 +274,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
 
         liWorst = \weight -> element "li"
                     |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = (WorstReport weight) }))
-                    |> appendChild (element "a" |> addAttribute (href "#") |> appendText (labelWorst weight))
+                    |> appendChild (element "a" |> addClass "dropdown-item" |> appendText (labelWorst weight))
 
         availableWorst = List.map liWorst [ WorstReportWeightedOne, WorstReportWeightedSum]
       in
@@ -356,8 +356,8 @@ blockBody model parentId block ui techniqueUi =
                              |> addStyleConditional ("font-style", "20px") (ui.mode == Opened)
                              |> addAttributeList
                                   [ type_ "button", attribute "data-bs-content" ((if (ui.mode == Opened) then "Close details<br/>" else "") ++ tooltipContent) , attribute "data-bs-toggle" "popover"
-                                  , attribute "data-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "auto"
-                                  , attribute "data-bs-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                                  , attribute "data-bs-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "auto"
+                                  , attribute "data-bs-html" "true"
                                   ]
                            )
                 |> addAction ("click",  UIBlockAction block.id {ui | mode = if(ui.mode == Opened) then Closed else Opened})
@@ -369,7 +369,7 @@ blockBody model parentId block ui techniqueUi =
                   |> addAttributeList
                      [ type_ "button", title "Clone this block", attribute "data-bs-toggle" "tooltip"
                      , attribute "data-bs-placement" "left"
-                     , attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+
                      ]
                   |> appendChild cloneIcon
     resetIcon = element "i" |> addClass "fa fa-rotate-right"
@@ -379,7 +379,7 @@ blockBody model parentId block ui techniqueUi =
                   |> addAttributeList
                      [ type_ "button", title "Reset this block", attribute "data-bs-toggle" "tooltip"
                      , attribute "data-bs-placement" "left"
-                     , attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+
                      ]
                   |> appendChild resetIcon
     removeIcon = element "i" |> addClass "fa fa-times-circle"
@@ -389,7 +389,7 @@ blockBody model parentId block ui techniqueUi =
                   |> addAttributeList
                      [ type_ "button", title "Remove this block", attribute "data-bs-toggle" "tooltip"
                      , attribute "data-bs-placement" "left"
-                     , attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+
                      ]
                   |> appendChild removeIcon
     condition = element "div"
@@ -452,12 +452,14 @@ blockBody model parentId block ui techniqueUi =
                                    |> appendChild
                                       (element "a"
                                         |> addAction ("click",  MethodCallModified (Block parentId {block | policyMode = Nothing }) )
+                                        |> addClass "dropdown-item"
                                         |> appendText "Default"
                                       )
                                  , element "li"
                                    |> appendChild
                                       (element "a"
                                         |> addAction ("click",  MethodCallModified (Block parentId {block | policyMode = Just Audit }) )
+                                        |> addClass "dropdown-item"
                                         |> appendText "Audit"
                                       )
                                  , element "li"

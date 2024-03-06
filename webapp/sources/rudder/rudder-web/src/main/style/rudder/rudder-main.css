@@ -44,6 +44,7 @@ code, kbd, pre, samp, .code {
 }
 a{
   text-decoration: none !important;
+  cursor: pointer;
 }
 
 ul {

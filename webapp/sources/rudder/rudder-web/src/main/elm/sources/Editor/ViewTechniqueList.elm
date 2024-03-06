@@ -171,7 +171,7 @@ draftsItem model draft =
             , span [class "treeGroupName"]
               [ text (if String.isEmpty draft.technique.name then "<unamed draft>" else draft.technique.name)  ]
             , if hasDeprecatedMethod  then
-                span [ class "cursor-help popover-bs", attribute "data-bs-toggle"  "popover", attribute "data-trigger" "hover"
+                span [ class "cursor-help popover-bs", attribute "data-bs-toggle"  "popover", attribute "data-bs-trigger" "hover"
                      , attribute "data-bs-container" "body", attribute  "data-bs-placement" "right", attribute "data-title" draft.technique.name
                      , attribute "data-bs-content" "<div>This technique uses <b>deprecated</b> generic methods.</div>"
                      , attribute "data-bs-html" "true" ] [ i [ class "fa fa-info-circle deprecated-icon" ] [] ]
@@ -214,14 +214,14 @@ techniqueItem model technique =
               span [class "badge" ] [ text "draft" ]
               else text ""
             , if hasDeprecatedMethod  then
-                span [ class "cursor-help popover-bs", attribute "data-bs-toggle"  "popover", attribute "data-trigger" "hover"
+                span [ class "cursor-help popover-bs", attribute "data-bs-toggle"  "popover", attribute "data-bs-trigger" "hover"
                      , attribute "data-bs-container" "body", attribute  "data-bs-placement" "right", attribute "data-title" technique.name
                      , attribute "data-bs-content" "<div>This technique uses <b>deprecated</b> generic methods.</div>"
                      , attribute "data-bs-html" "true" ] [ i [ class "fa fa-info-circle deprecated-icon" ] [] ]
               else
                 text ""
             , if hasUnknownMethod  then
-                span [ class "cursor-help popover-bs", attribute "data-bs-toggle"  "popover", attribute "data-trigger" "hover"
+                span [ class "cursor-help popover-bs", attribute "data-bs-toggle"  "popover", attribute "data-bs-trigger" "hover"
                      , attribute "data-bs-container" "body", attribute  "data-bs-placement" "right", attribute "data-title" technique.name
                      , attribute "data-bs-content" ("<div>This technique uses <b>unknown</b> generic methods: " ++ (String.join ", " (List.map (\m -> m.methodName.value) (List.Extra.unique unknownMethods))) ++ ".</br>These methods do not exist in the library, you must provide them or it will break at run time</div>")
                      , attribute "data-bs-html" "true" ] [ i [ class "fa fa-warning text-warning-rudder min-size-icon unknown-gm-icon" ] [] ]

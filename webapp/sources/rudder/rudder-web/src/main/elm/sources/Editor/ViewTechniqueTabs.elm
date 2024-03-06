@@ -92,7 +92,7 @@ techniqueParameter model technique param opened =
           , span [][text " Required "]
           , span
             [ class "cursor-help popover-bs", attribute "data-toggle" "popover"
-            , attribute "data-trigger" "hover", attribute "data-container" "body"
+            , attribute "data-bs-trigger" "hover", attribute "data-container" "body"
             , attribute "data-placement" "bottom"
             , attribute "data-content" beEmptyTitle
             , attribute "data-html" "true"

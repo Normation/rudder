@@ -345,13 +345,13 @@ mainContextMenu : Html Msg
 mainContextMenu =
   ul[class "dropdown-menu pull-right"]
   [ li[]
-    [ a [ onClick (OpenNameDialog (NewDir "")) ]
+    [ a [ class "dropdown-item", onClick (OpenNameDialog (NewDir "")) ]
       [ i [class "fa fa-plus"][]
       , text "New folder"
       ]
     ]
   , li[]
-    [ a [ onClick ChooseFiles ]
+    [ a [ class "dropdown-item", onClick ChooseFiles ]
       [ i [class "fa fa-cloud-upload-alt"][]
       , text "Upload files"
       ]

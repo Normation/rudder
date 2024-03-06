@@ -184,7 +184,7 @@ showCategory  category allDeprecated =
       ( text category ::
         if (allDeprecated) then
           [ span [ class "cursor-help popover-bs", attribute "data-bs-toggle" "popover"
-                 , attribute "data-trigger" "hover", attribute "data-bs-container" "body"
+                 , attribute "data-bs-trigger" "hover", attribute "data-bs-container" "body"
                  , attribute "data-bs-placement" "bottom", attribute "data-title" category
                  , attribute "data-bs-content" "<div>All generic methods in this category are <b>deprecated</b>.</div>"
                  , attribute "data-bs-html" "true"
@@ -228,7 +228,7 @@ showMethod ui method mode dnd =
                     ( element "i"
                       |> addAttributeList
                          [ class "fa fa-info-circle tooltip-icon deprecated-icon popover-bs"
-                         , attribute "data-bs-toggle" "popover", attribute "data-trigger" "hover"
+                         , attribute "data-bs-toggle" "popover", attribute "data-bs-trigger" "hover"
                          , attribute "data-bs-container" "body", attribute "data-bs-placement" "top"
                          , attribute "data-title" method.name, attribute "data-bs-content" (getTooltipContent method)
                          , attribute "data-bs-html" "true"
