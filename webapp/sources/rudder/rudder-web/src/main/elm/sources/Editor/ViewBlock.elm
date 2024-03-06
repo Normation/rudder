@@ -356,8 +356,8 @@ blockBody model parentId block ui techniqueUi =
                              |> addStyleConditional ("font-style", "20px") (ui.mode == Opened)
                              |> addAttributeList
                                   [ type_ "button", attribute "data-bs-content" ((if (ui.mode == Opened) then "Close details<br/>" else "") ++ tooltipContent) , attribute "data-bs-toggle" "popover"
-                                  , attribute "data-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "auto"
-                                  , attribute "data-bs-html" "true", attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+                                  , attribute "data-bs-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "auto"
+                                  , attribute "data-bs-html" "true"
                                   ]
                            )
                 |> addAction ("click",  UIBlockAction block.id {ui | mode = if(ui.mode == Opened) then Closed else Opened})
@@ -369,7 +369,7 @@ blockBody model parentId block ui techniqueUi =
                   |> addAttributeList
                      [ type_ "button", title "Clone this block", attribute "data-bs-toggle" "tooltip"
                      , attribute "data-bs-placement" "left"
-                     , attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+
                      ]
                   |> appendChild cloneIcon
     resetIcon = element "i" |> addClass "fa fa-rotate-right"
@@ -379,7 +379,7 @@ blockBody model parentId block ui techniqueUi =
                   |> addAttributeList
                      [ type_ "button", title "Reset this block", attribute "data-bs-toggle" "tooltip"
                      , attribute "data-bs-placement" "left"
-                     , attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+
                      ]
                   |> appendChild resetIcon
     removeIcon = element "i" |> addClass "fa fa-times-circle"
@@ -389,7 +389,7 @@ blockBody model parentId block ui techniqueUi =
                   |> addAttributeList
                      [ type_ "button", title "Remove this block", attribute "data-bs-toggle" "tooltip"
                      , attribute "data-bs-placement" "left"
-                     , attribute "data-delay" """'{"show":"400", "hide":"100"}'"""
+
                      ]
                   |> appendChild removeIcon
     condition = element "div"

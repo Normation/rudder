@@ -821,6 +821,14 @@ function initBsTooltips(){
 }
 function removeBsTooltips(){
   document.querySelectorAll(".tooltip").forEach(e => e.remove());
+  document.querySelectorAll(".popover").forEach(e => e.remove());
+}
+function initBsPopovers(){
+  const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]');
+  var options = {
+    delay : { "show": 400, "hide": 100 },
+  };
+  const popoverList = [...popoverTriggerList].map(popoverTriggerEl => new bootstrap.Popover(popoverTriggerEl, options))
 }
 function initBsModal(modalName){
   var selector = document.querySelector('#' + modalName);
