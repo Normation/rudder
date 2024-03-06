@@ -143,13 +143,15 @@ $(document).ready(function(){
     createInfoNotification(str)
   });
   app.ports.clearTooltips.subscribe(function(str) {
-    $(".popover").remove();
+    removeBsTooltips();
   });
   app.ports.initInputs.subscribe(function(str) {
     setTimeout(function(){
       $(".method textarea.form-control").on("input", autoResize).each(function(){
         autoResize(this);
       });
+      initBsPopovers();
+      initBsTooltips();
     }, 10);
   });
   app.ports.scrollMethod.subscribe(function(info){
@@ -160,10 +162,7 @@ $(document).ready(function(){
     }, addDelay);
   });
 
-  $(document).on('mouseover','.popover-bs',function(){
-    $(this).bsPopover('show');
-  });
-
+  initBsPopovers();
   initBsTooltips();
 
   // The timeout aims to wait that the tree is fully loaded to
