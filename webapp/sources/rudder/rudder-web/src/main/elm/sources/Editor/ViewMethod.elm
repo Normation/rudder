@@ -137,7 +137,7 @@ checkConstraintOnParameter call constraint =
 
     checkMax = if lengthValue call.value >= (constraint.maxLength  |> Maybe.withDefault 16384) then  [ConstraintError  { id = call.id, message = ("Parameter '"++call.id.value++"' should be at most " ++ (String.fromInt (constraint.maxLength |> Maybe.withDefault 16384) ) ++ " long" ) } ]else []
     min = Maybe.withDefault 0 constraint.minLength
-    checkMin = if lengthValue call.value <= min then [ConstraintError { id = call.id, message = ("Parameter '"++call.id.value++"' should be at least " ++ (String.fromInt min) ++ " long") } ] else []
+    checkMin = if lengthValue call.value < min then [ConstraintError { id = call.id, message = ("Parameter '"++call.id.value++"' should be at least " ++ (String.fromInt min) ++ " long") } ] else []
     regexValue = Maybe.map Regex.fromString constraint.matchRegex |> Maybe.Extra.join
     checkRegex = case regexValue of
                       Nothing ->  []
