@@ -25,24 +25,19 @@ view model =
             [ span[] [text "API accounts"]
             ]
           ]
+        , div [class "header-description"]
+          [ p[]
+            [ text "Configure accounts allowed to connect to Rudder's REST API. For API usage, read the dedicated "
+            , a[ href "https://docs.rudder.io/api/" ][ text "documentation" ]
+            , text "."
+            ]
+          ]
         ]
       , div[ class "one-col-main"]
         [ div[ class "template-main"]
           [ div[ class "main-container"]
             [ div[ class "main-details"]
-              [ div[ class "explanation-text"]
-                [ div[]
-                  [ p[][
-                      span[][
-                        text "Configure accounts allowed to connect to Rudder's REST API. For API usage, read the dedicated ",
-                        a[ href "https://docs.rudder.io/api/" ][ text "documentation" ],
-                        text "."
-                      ]
-                    ]
-                  ]
-
-              ]
-              , div [class "parameters-container"] [
+              [ div [class "parameters-container"] [
                 if hasClearTextTokens then
                   div [class "alert alert-warning"]
                     [ i [class "fa fa-exclamation-triangle"][]
