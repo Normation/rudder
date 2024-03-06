@@ -110,6 +110,7 @@ $input-font-size-sm: 12px;  // previous bootstrap 3 value VS 0.85rem default in 
   padding: 0 15px;
   margin-bottom: 0;
   position: relative;
+  min-height: 4px;
 
   &:before {
     content: "";
