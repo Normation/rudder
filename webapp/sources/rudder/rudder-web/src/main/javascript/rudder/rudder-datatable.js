@@ -2363,8 +2363,6 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
     $("#"+gridId+"_wrapper .dataTables_refresh").append(refreshBtn);
   }
 
-  $("#"+gridId+"_wrapper .dataTables_refresh button").tooltip({position:{my:"left+40 bottom-10",collision: "flipfit"}});
-
   $('.dataTables_filter input').attr("placeholder", "Filter");
 
   $('.modal .dataTables_filter input').addClass("form-control");
