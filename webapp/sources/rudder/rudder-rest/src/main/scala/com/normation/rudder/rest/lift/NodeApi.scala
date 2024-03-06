@@ -51,7 +51,6 @@ import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
-import com.normation.rudder.UserService
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.NodeDetailLevel
 import com.normation.rudder.apidata.RenderInheritedProperties
@@ -110,6 +109,7 @@ import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.servers.NewNodeManager
 import com.normation.rudder.services.servers.RemoveNodeService
+import com.normation.rudder.users.UserService
 import com.normation.utils.Control._
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator

@@ -43,7 +43,6 @@ import com.normation.errors._
 import com.normation.eventlog._
 import com.normation.eventlog.EventActor
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.UserService
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.DetailLevel
 import com.normation.rudder.apidata.FullDetails
@@ -91,6 +90,7 @@ import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.RuleModAction
 import com.normation.rudder.services.workflows.WorkflowLevelService
+import com.normation.rudder.users.UserService
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box

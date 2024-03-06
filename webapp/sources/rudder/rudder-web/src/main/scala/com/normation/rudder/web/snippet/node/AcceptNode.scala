@@ -44,9 +44,9 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.servers.Srv
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.popup.ExpectedPolicyPopup
-import com.normation.rudder.web.services.CurrentUser
 import com.normation.utils.DateFormaterService
 import net.liftweb.common._
 import net.liftweb.http._

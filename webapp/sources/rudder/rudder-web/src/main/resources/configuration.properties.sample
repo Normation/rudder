@@ -555,9 +555,45 @@ rudder.batch.storeAgentRunTimes.maxBatchSize=5
 
 rudder.batch.storeAgentRunTimes.updateInterval=5
 
-#########################
-# Rudder Authentication  ###############################################################
-#########################
+
+
+###################################
+# Rudder Users and Authentication  ###############################################################
+###################################
+
+#
+# User information and sessions are stored in Rudder PostgreSQL database.
+# These information can expire or may need to be purged (typically for compliance to privacy norms).
+# Information are cleaned-up based on a cron-like schedule with format:
+# seconds minutes hourOfDay dayOfTheMonth month DayOfTheWeek
+# See https://www.alonsodomin.me/cron4s/userguide/#parsing for more information, and
+# https://en.wikipedia.org/wiki/Cron for even more information.
+#
+# You can disable it totally with:
+#   @never
+# in place of the cron usual format.
+# Default run at 1:17 every morning.
+#
+rudder.users.cleanup.cron=0 17 1 * * ?
+
+# Other clean-up format are duration. You can use human format with unit: 'ms' 'milliseconds' up to 'days'
+# For users:
+# - when an user didn't logged-in for a certain period of time, its account can be disabled or/and
+#   deleted. If the user never logged-in, then the account create date is used.
+rudder.users.cleanup.account.disableAfterLastLogin=60 days
+rudder.users.cleanup.account.deleteAfterLastLogin=120 days
+
+# - when an user is deleted (for example removed from `rudder-user.xml` file), then the user information,
+#   like status changes, are not purged immediately (typically to be able to do post-deletion accountability).
+#   After some time, you will likely need to purge these information nonetheless.
+#   If that parameter is set to '0' then users are purged immediately on deletion. We do not advice to do that.
+rudder.users.cleanup.purgeDeletedAfter=30 days
+
+# For sessions:
+# - user session information (log-in time, permissions for the sessions, log-out, etc) need to be purge after
+#   some time, too.
+rudder.users.cleanup.sessions.purgeAfter=30 days
+
 
 #
 # Rudder has a root admin account, with full rights on the

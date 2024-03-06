@@ -58,7 +58,8 @@ object DateFormaterService {
     .append(DateTimeFormat.forPattern("HH:mm:ssZ"))
     .toFormatter
 
-  val rfcDateformat: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZZ")
+  val rfcDateformat:           DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZZ")
+  val rfcDateformatWithMillis: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
 
   /*
    * Display date must be used only for the user facing date in non serialized form
