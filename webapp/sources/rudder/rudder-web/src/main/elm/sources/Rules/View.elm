@@ -167,7 +167,7 @@ view model =
               , False
               )
         in
-          div [ tabindex -1, class "modal fade show", style "z-index" "1050", style "display" "block" ]
+          div [ tabindex -1, class "modal fade show", style "display" "block" ]
           [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
           , div [ class "modal-dialog" ] [
               div [ class "modal-content" ] [
@@ -204,7 +204,7 @@ view model =
               )
 
         in
-          div [ tabindex -1, class "modal fade show", style "z-index" "1050", style "display" "block" ]
+          div [ tabindex -1, class "modal fade show", style "display" "block" ]
           [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
           , div [ class "modal-dialog" ] [
               div [ class "modal-content" ]  [
@@ -217,9 +217,8 @@ view model =
                 , auditForm
                 ]
               , div [ class "modal-footer" ] [
-                  button [ class "btn btn-default pull-left", onClick (ClosePopup Ignore) ]
-                  [ i [ class "fa fa-arrow-left space-right" ] []
-                  , text "Cancel "
+                  button [ class "btn btn-default", onClick (ClosePopup Ignore) ]
+                  [ text "Cancel "
                   ]
                 , button [ class "btn btn-primary", onClick (ClosePopup DisableRule), disabled btnDisabled ]
                   [ text (txtDisable ++ " ")
@@ -230,7 +229,7 @@ view model =
             ]
           ]
       DeletionValidationCat category ->
-        div [ tabindex -1, class "modal fade show", style "z-index" "1050", style "display" "block" ]
+        div [ tabindex -1, class "modal fade show", style "display" "block" ]
          [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
          , div [ class "modal-dialog" ] [
              div [ class "modal-content" ] [
@@ -256,7 +255,7 @@ view model =
         let
           action = if creation then "Create" else "Update"
         in
-          div [ tabindex -1, class "modal fade show", style "z-index" "1050", style "display" "block" ]
+          div [ tabindex -1, class "modal fade show", style "display" "block" ]
           [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
           , div [ class "modal-dialog" ]
             [ div [ class "modal-content" ]
@@ -273,9 +272,8 @@ view model =
                 , changeAuditForm crSettings
                 ]
               , div [ class "modal-footer" ]
-                [ button [ class "btn btn-default pull-left", onClick (ClosePopup Ignore) ]
-                  [ i [ class "fa fa-arrow-left space-right" ] []
-                  , text "Cancel "
+                [ button [ class "btn btn-default", onClick (ClosePopup Ignore) ]
+                  [ text "Cancel "
                   ]
                 , button [ class "btn btn-primary", onClick (ClosePopup (CallApi True (saveRuleDetails rule (isNothing originRule)))), disabled (crSettings.mandatoryChangeMessage && String.isEmpty crSettings.message) ]
                   ( if crSettings.enableChangeRequest then

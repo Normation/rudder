@@ -249,7 +249,7 @@ modalDelete model =
   case model.ui.modalState of
     NoModal -> text ""
     Deletion name ->
-      div [ tabindex -1, class "modal fade show", style "z-index" "1050", style "display" "block" ]
+      div [ tabindex -1, class "modal fade show", style "display" "block" ]
       [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
       , div [ class "modal-dialog" ]
         [ div [ class "modal-content" ]
