@@ -470,10 +470,6 @@ textarea.code {
   font-size: 14px;
 }
 
-.dropdown-menu > li > a {
-  padding: 6px 20px;
-}
-
 .dropdown-menu > li > a > i {
   margin-right: 4px;
 }

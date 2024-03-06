@@ -71,9 +71,7 @@
   right: -4px !important;
   left: auto !important;
 }
-.rudder-template ul.dropdown-menu > li > a{
-  display: block;
-}
+
 .btn.btn-outline-success{
   background-color: #fff ;
   transition-property: background-color, color;

@@ -189,7 +189,7 @@ showMethodTab model method parentId call uiInfo=
                      let
                        updatedCall = Call parentId { call | condition = {condition | os =  updateUbuntuMinor  ubuntuMinor condition.os } }
                      in
-                       li [ onClick (MethodCallModified updatedCall) ] [ a [href "#" ] [ text (showUbuntuMinor ubuntuMinor) ] ]
+                       li [ onClick (MethodCallModified updatedCall) ] [ a [class "dropdown-item"] [ text (showUbuntuMinor ubuntuMinor) ] ]
 
                    ) [All, ZeroFour, Ten]
         updateConditonVersion = \f s ->
@@ -215,7 +215,7 @@ showMethodTab model method parentId call uiInfo=
                      let
                        updatedCondition = {condition | os = os }
                      in
-                       li [ onClick (MethodCallModified (Call parentId {call | condition = updatedCondition })), class (osClass os) ] [ a [href "#" ] [ text (osName os) ] ] ) osList )
+                       li [ onClick (MethodCallModified (Call parentId {call | condition = updatedCondition })), class (osClass os) ] [ a [class "dropdown-item"] [ text (osName os) ] ] ) osList )
               ]
             , if (hasMajorMinorVersion condition.os || isUbuntu condition.os ) then
                 input [ readonly (not model.hasWriteRights)
@@ -566,18 +566,21 @@ callBody model ui techniqueUi call pid =
                                    |> appendChild
                                       (element "a"
                                         |> addAction ("click",  MethodCallModified (Call pid {call  | policyMode = Nothing }) )
+                                        |> addClass "dropdown-item"
                                         |> appendText "Default"
                                       )
                                  , element "li"
                                    |> appendChild
                                       (element "a"
                                         |> addAction ("click",  MethodCallModified (Call pid {call  | policyMode = Just Audit }) )
+                                        |> addClass "dropdown-item"
                                         |> appendText "Audit"
                                       )
                                  , element "li"
                                    |> appendChild
                                       (element "a"
                                         |> addAction ("click",  MethodCallModified (Call pid {call  | policyMode = Just Enforce }) )
+                                        |> addClass "dropdown-item"
                                         |> appendText "Enforce"
                                       )
                                   ]
