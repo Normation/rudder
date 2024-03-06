@@ -131,6 +131,7 @@ import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestServi
 import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestServiceImpl
 import com.normation.rudder.services.workflows.DefaultWorkflowLevel
 import com.normation.rudder.services.workflows.NoWorkflowServiceImpl
+import com.normation.rudder.users._
 import com.normation.rudder.web.model.DirectiveField
 import com.normation.rudder.web.services.DirectiveEditorServiceImpl
 import com.normation.rudder.web.services.DirectiveFieldFactory
@@ -187,7 +188,7 @@ class RestTestSetUp {
 
   implicit val userService: userService = new userService
   class userService extends UserService {
-    val user: User = new User {
+    val user: AuthenticatedUser = new AuthenticatedUser {
       val account = RudderAccount.User("test-user", "pass")
 
       def checkRights(auth: AuthorizationType): Boolean = {

@@ -39,12 +39,13 @@ package bootstrap.liftweb
 
 import com.normation.errors._
 import com.normation.rudder.Role
-import com.normation.rudder.RudderAccount
 import com.normation.rudder.api._
 import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.web.services.RudderUserDetail
+import com.normation.rudder.users._
+import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.web.services.UserSessionLogEvent
 import com.normation.zio._
+import com.softwaremill.quicklens._
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigException
 import java.util.Collection
@@ -83,6 +84,8 @@ import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.security.web.authentication.AuthenticationFailureHandler
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler
 import scala.annotation.nowarn
+import scala.util.Try
+import zio.syntax._
 
 /**
  * Spring configuration for user authentication.
@@ -107,6 +110,10 @@ class AppConfigAuth extends ApplicationContextAware {
 
   // we define the System ApiAcl as one that is all mighty and can manage everything
   val SYSTEM_API_ACL = ApiAuthorization.RW
+
+  // Configuration values within an authentication provider config from which we get provider properties
+  val A_ROLES_ENABLED  = "roles.enabled"
+  val A_ROLES_OVERRIDE = "roles.override"
 
   /*
    * This method is expected to try to initialize the Spring bean for
@@ -135,7 +142,7 @@ class AppConfigAuth extends ApplicationContextAware {
     // prepare specific properties for each configuredAuthProviders - we need system properties for spring
 
     import scala.jdk.CollectionConverters._
-    configuredAuthProviders.foreach { x =>
+    val providerProperties: Map[String, AuthBackendProviderProperties] = configuredAuthProviders.flatMap { x =>
       try {
         // try to load all the specific properties of that auth type
         // so that they are available from Spring
@@ -148,7 +155,29 @@ class AppConfigAuth extends ApplicationContextAware {
       } catch {
         case ex: ConfigException.Missing => // does nothing - the beauty of imperative prog :(
       }
-    }
+      val properties: Option[(String, AuthBackendProviderProperties)] = x.name match {
+        case "ldap"            =>
+          // roles for LDAP-provided users come directly from the file, so we can say they override the file roles
+          Some("ldap" -> AuthBackendProviderProperties(ProviderRoleExtension.WithOverride))
+        case "oidc" | "oauth2" => {
+          val baseProperty  = "rudder.auth.oauth2.provider"
+          // we need to read under the registration key, under the base property
+          val registrations =
+            Try(config.getString(baseProperty + ".registrations").split(",").map(_.trim).toList).getOrElse(List.empty)
+          // when there are multiple registrations we should take the most prioritized configuration under the same provider
+          Some(x.name -> registrations.foldLeft(AuthBackendProviderProperties.empty) {
+            case (acc, reg) =>
+              val rolesEnabled = Try(config.getBoolean(s"${baseProperty}.${reg}.${A_ROLES_ENABLED}"))
+                .getOrElse(false) // default value, same as in the auth backend plugin
+              val rolesOverride = Try(config.getBoolean(s"${baseProperty}.${reg}.${A_ROLES_OVERRIDE}"))
+                .getOrElse(false) // default value, same as in the auth backend plugin
+              acc.maxByPriority(AuthBackendProviderProperties.fromConfig(x.name, rolesEnabled, rolesOverride))
+          })
+        }
+        case _                 => None // default providers or providers for which handling the properties is still unkown
+      }
+      properties
+    }.toMap
 
     // load additional beans from authentication dedicated resource files
 
@@ -189,6 +218,7 @@ class AppConfigAuth extends ApplicationContextAware {
       }
     }
     RudderConfig.authenticationProviders.setConfiguredProviders(configuredAuthProviders.toArray)
+    RudderConfig.authenticationProviders.addProviderProperties(providerProperties)
   }
 
   ///////////// FOR WEB INTERFACE /////////////
@@ -199,14 +229,14 @@ class AppConfigAuth extends ApplicationContextAware {
    * log-in into Rudder.
    */
   @Bean(name = Array("org.springframework.security.authenticationManager"))
-  def authenticationManager = new RudderProviderManager(RudderConfig.authenticationProviders)
+  def authenticationManager = new RudderProviderManager(RudderConfig.authenticationProviders, RudderConfig.userRepository)
 
   @Bean def rudderWebAuthenticationFailureHandler: AuthenticationFailureHandler = new RudderUrlAuthenticationFailureHandler(
     "/index.html?login_error=true"
   )
 
   @Bean def rudderUserDetailsService: RudderInMemoryUserDetailsService = {
-    new RudderInMemoryUserDetailsService(RudderConfig.rudderUserListProvider)
+    new RudderInMemoryUserDetailsService(RudderConfig.rudderUserListProvider, RudderConfig.userRepository)
   }
 
   @Bean def fileAuthenticationProvider: AuthenticationProvider = {
@@ -250,6 +280,7 @@ class AppConfigAuth extends ApplicationContextAware {
                 login,
                 password
               ),
+              UserStatus.Active,
               Set(Role.Administrator),
               SYSTEM_API_ACL
             )
@@ -266,12 +297,18 @@ class AppConfigAuth extends ApplicationContextAware {
       )
     }
 
-    val authConfigProvider = new UserDetailListProvider {
+    val authConfigProvider  = new UserDetailListProvider {
       // in the case of the root admin defined in config file, given is very specific use case, we enforce case sensitivity
       override def authConfig: ValidatedUserList = ValidatedUserList(encoder, true, Nil, admins)
     }
-    val provider           = new DaoAuthenticationProvider()
-    provider.setUserDetailsService(new RudderInMemoryUserDetailsService(authConfigProvider))
+    val rootAccountUserRepo = InMemoryUserRepository.make().runNow
+    rootAccountUserRepo.setExistingUsers(
+      "root-account",
+      admins.keys.toList,
+      EventTrace(com.normation.rudder.domain.eventlog.RudderEventActor, DateTime.now())
+    )
+    val provider            = new DaoAuthenticationProvider()
+    provider.setUserDetailsService(new RudderInMemoryUserDetailsService(authConfigProvider, rootAccountUserRepo))
     provider.setPasswordEncoder(encoder) // force password encoder to the one we want
     provider
   }
@@ -354,15 +391,38 @@ object LogFailedLogin {
 }
 
 /**
- *  A trivial, immutable implementation of UserDetailsService for RudderUser
+ * In SpringSecurity-land, "UserDetails" is all the authentication and authorization related
+ * information about an user.
+ * In rudder, by default these information are gathered:
+ * - from the database to know if an user exists, is enabled, etc
+ * - and from file to get roles, authentication properties, etc.
+ * Other backend can override / super charge some of these properties.
  */
-class RudderInMemoryUserDetailsService(val authConfigProvider: UserDetailListProvider) extends UserDetailsService {
+class RudderInMemoryUserDetailsService(val authConfigProvider: UserDetailListProvider, userRepository: UserRepository)
+    extends UserDetailsService {
+
   @throws(classOf[UsernameNotFoundException])
   override def loadUserByUsername(username: String): RudderUserDetail = {
-    authConfigProvider.getUserByName(username) match {
-      case Left(err) => throw new UsernameNotFoundException(err.fullMsg)
-      case Right(u)  => u
+    userRepository
+      .get(username)
+      .flatMap {
+        case Some(user) if (user.status != UserStatus.Deleted) =>
+          authConfigProvider.getUserByName(username) match {
+            case Left(err) =>
+              // when the user is not found, we return a default "no roles" user.
+              // It will be the responsibility of other backend to provided the correct set of rights.
+              Some(RudderUserDetail(RudderAccount.User(user.id, ""), user.status, Set(), ApiAuthorization.None)).succeed
+            case Right(d)  =>
+              // update status, user can be disabled for ex
+              Some(d.modify(_.status).setTo(user.status)).succeed
+          }
+        case _                                                 => None.succeed
+      }
+      .runNow match {
+      case None    => throw new UsernameNotFoundException(s"User '${username}' was not found in Rudder base")
+      case Some(u) => u
     }
+
   }
 }
 
@@ -379,8 +439,70 @@ class RudderXmlUserDetailsContextMapper(authConfigProvider: UserDetailListProvid
       authorities: Collection[_ <: GrantedAuthority]
   ): UserDetails = {
     authConfigProvider.authConfig.users
-      .getOrElse(username, RudderUserDetail(RudderAccount.User(username, ""), Set(Role.NoRights), ApiAuthorization.None))
+      .getOrElse(
+        username,
+        RudderUserDetail(RudderAccount.User(username, ""), UserStatus.Disabled, Set(Role.NoRights), ApiAuthorization.None)
+      )
   }
+}
+
+sealed trait ProviderRoleExtension {
+  def name: String
+  def priority: Int = this match {
+    case ProviderRoleExtension.None         => 0
+    case ProviderRoleExtension.NoOverride   => 1
+    case ProviderRoleExtension.WithOverride => 2
+  }
+}
+object ProviderRoleExtension       {
+  case object None         extends ProviderRoleExtension { override val name: String = "none"        }
+  case object NoOverride   extends ProviderRoleExtension { override val name: String = "no-override" }
+  case object WithOverride extends ProviderRoleExtension { override val name: String = "override"    }
+}
+
+/**
+  * A description of some properties of an authentication backend
+  */
+final case class AuthBackendProviderProperties(
+    providerRoleExtension: ProviderRoleExtension
+) {
+  def maxByPriority(
+      that: AuthBackendProviderProperties
+  ): AuthBackendProviderProperties = {
+    if (this.providerRoleExtension.priority > that.providerRoleExtension.priority) {
+      this
+    } else {
+      that
+    }
+  }
+}
+
+object AuthBackendProviderProperties {
+  implicit val ordering: Ordering[AuthBackendProviderProperties] = Ordering.by(_.providerRoleExtension.priority)
+
+  def fromConfig(
+      name:               String,
+      hasAdditionalRoles: Boolean,
+      overridesRoles:     Boolean
+  ): AuthBackendProviderProperties = {
+    (hasAdditionalRoles, overridesRoles) match {
+      case (false, false) =>
+        new AuthBackendProviderProperties(ProviderRoleExtension.None)
+      case (false, true)  =>
+        // This is not a consistent configuration, we log a warning and persue with the most restrictive configuration
+        ApplicationLogger.warn(
+          s"Backend provider properties for '${name}' are not consistent: backend does not enables providing roles but roles overrides is set to true. " +
+          s"Overriding roles will not be enabled."
+        )
+        new AuthBackendProviderProperties(ProviderRoleExtension.None)
+      case (true, false)  =>
+        new AuthBackendProviderProperties(ProviderRoleExtension.NoOverride)
+      case (true, true)   =>
+        new AuthBackendProviderProperties(ProviderRoleExtension.WithOverride)
+    }
+  }
+
+  def empty: AuthBackendProviderProperties = new AuthBackendProviderProperties(ProviderRoleExtension.None)
 }
 
 /**
@@ -440,14 +562,20 @@ object AuthenticationMethods {
   }
 }
 
+object DefaultAuthBackendProvider extends AuthBackendsProvider {
+
+  val FILE       = "file"
+  val ROOT_ADMIN = "rootAdmin"
+
+  override def authenticationBackends:            Set[String] = Set(FILE, ROOT_ADMIN)
+  override def name:                              String      = s"Default authentication backends provider: '${authenticationBackends.mkString("','")}"
+  override def allowedToUseBackend(name: String): Boolean     = true // always enable - ie we never want to skip them
+}
+
 // and default implementation: provides 'file', 'rootAdmin'
 class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
 
-  val defaultAuthBackendsProvider: AuthBackendsProvider = new AuthBackendsProvider() {
-    override def authenticationBackends:            Set[String] = Set("file", "rootAdmin")
-    override def name:                              String      = s"Default authentication backends provider: '${authenticationBackends.mkString("','")}"
-    override def allowedToUseBackend(name: String): Boolean     = true // always enable - ie we never want to skip them
-  }
+  val defaultAuthBackendsProvider: AuthBackendsProvider = DefaultAuthBackendProvider
 
   // the list of AuthenticationMethods configured by the user
   private[this] var authenticationMethods = Array[AuthenticationMethods]() // must be a var/array, because init by spring-side
@@ -459,6 +587,9 @@ class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
   // this is the map of configured spring bean "AuthenticationProvider"
   private[this] var springProviders = Map[String, AuthenticationProvider]()
 
+  // a map of properties registered for each backend
+  private[this] var backendProperties = Map[String, AuthBackendProviderProperties]()
+
   def addProvider(p: AuthBackendsProvider): Unit = {
     ApplicationLogger.info(s"Add backend providers '${p.name}'")
     backends = backends :+ p
@@ -467,6 +598,9 @@ class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
 
   // add default providers
   this.addProvider(defaultAuthBackendsProvider)
+  this.addProviderProperties(
+    Map(DefaultAuthBackendProvider.FILE -> AuthBackendProviderProperties(ProviderRoleExtension.WithOverride))
+  )
 
   /*
    * Add a spring configured name -> provider
@@ -485,6 +619,14 @@ class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
   // get the list of provider in an imutable seq
   def getConfiguredProviders(): Seq[AuthenticationMethods] = {
     this.authenticationMethods.toSeq
+  }
+
+  def addProviderProperties(properties: Map[String, AuthBackendProviderProperties]): Unit = {
+    this.backendProperties = this.backendProperties ++ properties
+  }
+
+  def getProviderProperties(): Map[String, AuthBackendProviderProperties] = {
+    this.backendProperties
   }
 
   /*
@@ -585,6 +727,7 @@ class RestAuthenticationFilter(
               authenticate(
                 RudderUserDetail(
                   RudderAccount.Api(apiV1Account),
+                  UserStatus.Active,
                   RudderAuthType.Api.apiRudderRole,
                   ApiAuthorization.None // un-authenticated APIv1 token certainly doesn't get any authz on v2 API
                 )
@@ -606,8 +749,8 @@ class RestAuthenticationFilter(
               authenticate(
                 RudderUserDetail(
                   RudderAccount.Api(systemAccount),
+                  UserStatus.Active,
                   Set(Role.Administrator), // this token has "admin rights - use with care
-
                   systemApiAcl
                 )
               )
@@ -641,6 +784,7 @@ class RestAuthenticationFilter(
                           case _                                            => // no expiration date or expiration date not reached
                             val user = RudderUserDetail(
                               RudderAccount.Api(principal),
+                              UserStatus.Active,
                               RudderAuthType.Api.apiRudderRole,
                               authz
                             )
@@ -664,6 +808,7 @@ class RestAuthenticationFilter(
                             authenticate(
                               RudderUserDetail(
                                 RudderAccount.Api(principal),
+                                u.status,
                                 u.roles,
                                 u.apiAuthz
                               )

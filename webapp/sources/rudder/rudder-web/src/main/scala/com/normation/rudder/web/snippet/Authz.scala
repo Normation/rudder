@@ -38,7 +38,7 @@
 package com.normation.rudder.web.snippet
 
 import com.normation.rudder.AuthorizationType
-import com.normation.rudder.web.services.CurrentUser
+import com.normation.rudder.users.CurrentUser
 import net.liftweb.common._
 import net.liftweb.http._
 import scala.xml.NodeSeq

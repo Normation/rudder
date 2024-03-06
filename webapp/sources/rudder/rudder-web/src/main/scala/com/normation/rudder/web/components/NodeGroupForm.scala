@@ -49,11 +49,11 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.NodeGroupChangeRequest
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.popup.CreateCloneGroupPopup
 import com.normation.rudder.web.components.popup.ModificationValidationPopup
 import com.normation.rudder.web.model._
-import com.normation.rudder.web.services.CurrentUser
 import com.normation.zio._
 import net.liftweb.common._
 import net.liftweb.http._

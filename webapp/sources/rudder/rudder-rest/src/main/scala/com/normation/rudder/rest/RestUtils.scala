@@ -39,8 +39,8 @@ package com.normation.rudder.rest
 
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.UserService
 import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.users.UserService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox

@@ -43,8 +43,8 @@ import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.popup.CreateOrUpdateGlobalParameterPopup
-import com.normation.rudder.web.services.CurrentUser
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.DispatchSnippet

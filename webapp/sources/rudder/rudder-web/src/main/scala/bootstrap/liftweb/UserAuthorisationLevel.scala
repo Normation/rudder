@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2021 Normation SAS
+ * Copyright 2017 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -35,37 +35,36 @@
  *************************************************************************************
  */
 
-package com.normation.rudder.web.snippet
+package bootstrap.liftweb
 
-import bootstrap.liftweb.RudderConfig
-import com.normation.box._
-import com.normation.rudder.AuthorizationType.Administration
-import com.normation.rudder.users.CurrentUser
-import net.liftweb.common._
-import net.liftweb.http.CurrentReq
-import net.liftweb.http.DispatchSnippet
-import net.liftweb.http.js.JsCmd
-import net.liftweb.http.js.JsCmds._
-import scala.xml.NodeSeq
+import com.normation.rudder.domain.logger.PluginLogger
 
-class SetupRedirect extends DispatchSnippet with Loggable {
+/**
+ * This file contains data structure that choose the level of rights Rudder understand for a user. 
+ * Without plugin, it only knows about admin / no rights. 
+ * With user management plugins, it knows about roles and fine permissions.
+ */
 
-  private[this] val configService = RudderConfig.configService
+/**
+ * This is the class that defines the user management level.
+ * Without the plugin, by default only "admin" role is know.
+ * A user with an unknown role has no rights.
+ */
+trait UserAuthorisationLevel {
+  def userAuthEnabled: Boolean
+  def name:            String
+}
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "display" => _ => Script(display()) }
+// and default implementation is: no
+class DefaultUserAuthorisationLevel() extends UserAuthorisationLevel {
+  // Alternative level provider
+  private[this] var level: Option[UserAuthorisationLevel] = None
 
-  def display(): JsCmd = {
-
-    configService.rudder_setup_done().toBox match {
-      case Full(false)
-          if CurrentUser.checkRights(Administration.Write) && !CurrentReq.value.request.url.contains("administration/setup") =>
-        RedirectTo("/secure/administration/setup")
-      case Full(_) =>
-        Noop
-      case eb: EmptyBox =>
-        val msg = eb ?~! "Could not get 'setup done' property"
-        logger.error(msg.messageChain)
-        Noop
-    }
+  def overrideLevel(l: UserAuthorisationLevel): Unit    = {
+    PluginLogger.info(s"Update User Authorisations level to '${l.name}'")
+    level = Some(l)
   }
+  override def userAuthEnabled:                 Boolean = level.map(_.userAuthEnabled).getOrElse(false)
+
+  override def name: String = level.map(_.name).getOrElse("Default implementation (only 'admin' right)")
 }

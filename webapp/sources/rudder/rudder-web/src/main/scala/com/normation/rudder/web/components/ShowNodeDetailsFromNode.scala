@@ -54,9 +54,9 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.reports.NodeComplianceMode
 import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.JsNodeId
-import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.services.DisplayNode
 import com.normation.rudder.web.services.DisplayNodeGroupTree
 import net.liftweb.common._

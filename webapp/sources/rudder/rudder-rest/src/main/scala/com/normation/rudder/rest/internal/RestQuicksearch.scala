@@ -39,7 +39,6 @@ package com.normation.rudder.rest.internal
 
 import com.normation.box._
 import com.normation.rudder.AuthorizationType
-import com.normation.rudder.UserService
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.rest.OldInternalApiAuthz
@@ -47,6 +46,7 @@ import com.normation.rudder.rest.RestUtils._
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.quicksearch.QSObject
 import com.normation.rudder.services.quicksearch.QuickSearchResult
+import com.normation.rudder.users.UserService
 import com.normation.rudder.web.model.LinkUtil
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper

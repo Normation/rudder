@@ -40,7 +40,7 @@ package com.normation.rudder.web.comet
 import bootstrap.liftweb.RudderConfig
 import bootstrap.liftweb.RudderConfig.clearCacheService
 import com.normation.rudder.batch._
-import com.normation.rudder.web.services.CurrentUser
+import com.normation.rudder.users.CurrentUser
 import com.normation.utils.DateFormaterService
 import net.liftweb.common._
 import net.liftweb.http._

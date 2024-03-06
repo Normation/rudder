@@ -38,14 +38,12 @@
 package com.normation.rudder.web.snippet
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.EventLog
-import com.normation.eventlog.EventLogDetails
-import com.normation.eventlog.ModificationId
+import bootstrap.liftweb.UserLogout
 import com.normation.plugins.DefaultExtendableSnippet
-import com.normation.rudder.domain.eventlog.LogoutEventLog
+import com.normation.rudder.Role
 import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.web.services.CurrentUser
+import com.normation.rudder.users.CurrentUser
+import com.normation.utils.DateFormaterService
 import com.normation.zio._
 import net.liftweb.common._
 import net.liftweb.http._
@@ -53,13 +51,11 @@ import net.liftweb.http.js._
 import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers._
 import org.springframework.security.core.context.SecurityContextHolder
-import org.springframework.security.core.userdetails.UserDetails
 import scala.xml.NodeSeq
 
 class UserInformation extends DispatchSnippet with DefaultExtendableSnippet[UserInformation] {
 
-  private[this] val eventLogger = RudderConfig.eventLogRepository
-  private[this] val uuidGen     = RudderConfig.stringUuidGenerator
+  val userRepo = RudderConfig.userRepository
 
   override def mainDispatch: Map[String, NodeSeq => NodeSeq] = Map(
     "userCredentials" -> ((xml: NodeSeq) => userCredentials(xml)),
@@ -68,8 +64,22 @@ class UserInformation extends DispatchSnippet with DefaultExtendableSnippet[User
 
   def userCredentials: CssSel = {
     CurrentUser.get match {
-      case Some(u) => "#openerAccount" #> u.getUsername
-      case None    =>
+      case Some(u) =>
+        val displayName = userRepo.get(u.getUsername).runNow match {
+          case None       => u.getUsername
+          case Some(info) => info.name.getOrElse(info.id)
+        }
+
+        val roles       = s"User roles : ${Role.toDisplayNames(u.roles).mkString(", ")}"
+        val lastSession = userRepo.getLastPreviousLogin(u.getUsername).runNow match {
+          case None    => ""
+          case Some(s) =>
+            s"Last login on '${DateFormaterService.getDisplayDate(s.creationDate)}' with '${s.authMethod}' authentication"
+        }
+
+        "#openerAccount" #> <span id="openerAccount" title={List(roles, lastSession).mkString("\n")}>{displayName}</span>
+
+      case None =>
         S.session.foreach { session =>
           SecurityContextHolder.clearContext()
           session.destroySession()
@@ -83,40 +93,16 @@ class UserInformation extends DispatchSnippet with DefaultExtendableSnippet[User
       "Log out",
       JE.Call("logout"),
       { () =>
-        S.session match {
-          case Full(session) => // we have a session, try to know who is login out
-            SecurityContextHolder.getContext.getAuthentication match {
-              case null => // impossible to know who is login out
-                ApplicationLogger.debug("Logout called for a null authentication, can not log user out")
-              case auth =>
-                auth.getPrincipal() match {
-                  case u: UserDetails =>
-                    eventLogger
-                      .saveEventLog(
-                        ModificationId(uuidGen.newUuid),
-                        LogoutEventLog(
-                          EventLogDetails(
-                            modificationId = None,
-                            principal = EventActor(u.getUsername),
-                            details = EventLog.emptyDetails,
-                            reason = None
-                          )
-                        )
-                      )
-                      .runNowLogError(err =>
-                        ApplicationLogger.error(s"Error when saving user loggin event log result: ${err.fullMsg}")
-                      )
-
-                  case x => // impossible to know who is login out
-                    ApplicationLogger.debug("Logout called with unexpected UserDetails, can not log user logout. Details: " + x)
-                }
-            }
-            SecurityContextHolder.clearContext()
-            session.destroySession()
-          case e: EmptyBox => // no session ? Strange, but ok, nobody is login
-            ApplicationLogger.debug("Logout called for a non existing session, nothing more done")
+        {
+          val redirect = (S.session match {
+            case Full(session) => // we have a session, try to know who is login out
+              UserLogout.cleanUpSession(session, "User asked for logout")
+            case e: EmptyBox => // no session ? Strange, but ok, nobody is login
+              ApplicationLogger.debug("Logout called for a non existing session, nothing more done")
+              None
+          })
+          JsCmds.RedirectTo(redirect.map(_.toString).getOrElse("/"))
         }
-        JsCmds.RedirectTo("/")
       },
       ("class", "btn btn-danger")
     )

@@ -45,7 +45,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.repository._
-import com.normation.rudder.web.services.CurrentUser
+import com.normation.rudder.users.CurrentUser
 import com.normation.utils.DateFormaterService
 import net.liftweb.common._
 import net.liftweb.http._

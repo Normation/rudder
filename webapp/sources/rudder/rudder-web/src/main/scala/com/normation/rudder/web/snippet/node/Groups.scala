@@ -49,10 +49,10 @@ import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository._
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.NodeGroupCategoryForm
 import com.normation.rudder.web.components.NodeGroupForm
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
-import com.normation.rudder.web.services.CurrentUser
 import com.normation.rudder.web.services.DisplayNodeGroupTree
 import net.liftweb.common._
 import net.liftweb.http._

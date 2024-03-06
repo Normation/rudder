@@ -43,15 +43,13 @@ import com.normation.errors._
 import com.normation.errors.IOResult
 import com.normation.errors.effectUioUnit
 import com.normation.rudder.AuthorizationType
-import com.normation.rudder.RudderAccount
-import com.normation.rudder.User
-import com.normation.rudder.UserService
 import com.normation.rudder.api.ApiAuthorization
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.lift.LiftApiProcessingLogger
 import com.normation.rudder.rest.lift.LiftHandler
+import com.normation.rudder.users._
 import com.normation.zio._
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
@@ -107,7 +105,7 @@ object TraitTestApiFromYamlFiles {
     implicit val userServiceImp = userService match {
       case None    =>
         new UserService {
-          val user           = new User {
+          val user           = new AuthenticatedUser {
             val account                              = RudderAccount.User("test-user", "pass")
             def checkRights(auth: AuthorizationType) = true
             def getApiAuthz                          = ApiAuthorization.allAuthz

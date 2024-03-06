@@ -53,8 +53,8 @@ import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowService
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model._
-import com.normation.rudder.web.services.CurrentUser
 import com.typesafe.config.ConfigValue
 import com.typesafe.config.ConfigValueType
 import java.util.regex.Pattern

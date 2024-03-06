@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2011 Normation SAS
+ * Copyright 2023 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -35,59 +35,30 @@
  *************************************************************************************
  */
 
-package com.normation.rudder.web.services
+package bootstrap.liftweb.checks.consistency
 
-import com.normation.rudder.AuthorizationType
-import com.normation.rudder.Rights
-import com.normation.rudder.RudderAccount
-import com.normation.rudder.User
-import com.normation.rudder.api.ApiAuthorization
-import net.liftweb.http.SessionVar
-import org.springframework.security.core.context.SecurityContextHolder
+import bootstrap.liftweb.BootstrapChecks
+import bootstrap.liftweb.BootstrapLogger
+import com.normation.rudder.users._
+import com.normation.zio._
+import javax.servlet.UnavailableException
+import org.joda.time.DateTime
 
 /**
- * An utility class that get the currently logged user
- * (if any)
- *
+ * This class check that all user sessions are closed
  */
-object CurrentUser extends SessionVar[Option[RudderUserDetail]]({
-      SecurityContextHolder.getContext.getAuthentication match {
-        case null => None
-        case auth =>
-          auth.getPrincipal match {
-            case u: RudderUserDetail => Some(u)
-            case _ => None
-          }
-      }
+class CloseOpenUserSessions(
+    userRepository: UserRepository
+) extends BootstrapChecks {
 
-    }) with User {
+  override val description = "Check all user sessions are closed"
 
-  def getRights: Rights = this.get match {
-    case Some(u) => u.authz
-    case None    => Rights.forAuthzs(AuthorizationType.NoRights)
+  @throws(classOf[UnavailableException])
+  override def checks(): Unit = {
+    userRepository
+      .closeAllOpenSession(DateTime.now(), "sessions still opened while Rudder is starting")
+      .catchAll(err => BootstrapLogger.error(s"Error when closing user sessions when Rudder restart: ${err.fullMsg}"))
+      .runNow
   }
 
-  def account: RudderAccount = this.get match {
-    case None    => RudderAccount.User("unknown", "")
-    case Some(u) => u.account
-  }
-
-  def checkRights(auth: AuthorizationType): Boolean = {
-    val authz = getRights.authorizationTypes
-    if (authz.contains(AuthorizationType.NoRights)) false
-    else if (authz.contains(AuthorizationType.AnyRights)) true
-    else {
-      auth match {
-        case AuthorizationType.NoRights => false
-        case _                          => authz.contains(auth)
-      }
-    }
-  }
-
-  def getApiAuthz: ApiAuthorization = {
-    this.get match {
-      case None    => ApiAuthorization.None
-      case Some(u) => u.apiAuthz
-    }
-  }
 }

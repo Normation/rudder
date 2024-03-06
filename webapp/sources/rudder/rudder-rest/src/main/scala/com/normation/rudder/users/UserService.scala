@@ -35,41 +35,11 @@
  *************************************************************************************
  */
 
-package com.normation.rudder
-
-import com.normation.eventlog.EventActor
-import com.normation.rudder.api.ApiAccount
-import com.normation.rudder.api.ApiAuthorization
-
-/*
- * This file define data type around what is a User in Rudder,
- * and a service to access it.
- */
+package com.normation.rudder.users
 
 /**
- * Rudder user details must know if the account is for a
- * rudder user or an api account, and in the case of an
- * api account, what sub-case of it.
- */
-sealed trait RudderAccount
-object RudderAccount {
-  final case class User(login: String, password: String) extends RudderAccount
-  final case class Api(api: ApiAccount)                  extends RudderAccount
-}
-
-trait User {
-  def account: RudderAccount
-  def checkRights(auth: AuthorizationType): Boolean
-  def getApiAuthz: ApiAuthorization
-  final def actor: EventActor = EventActor(account match {
-    case RudderAccount.User(login, _) => login
-    case RudderAccount.Api(api)       => api.name.value
-  })
-}
-
-/**
- * A minimalistic definition of a service that give access to currently logged user.
+ * A minimalistic definition of a service that give access to currently logged user .
  */
 trait UserService {
-  def getCurrentUser: User
+  def getCurrentUser: AuthenticatedUser
 }
