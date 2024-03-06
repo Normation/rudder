@@ -81,7 +81,7 @@ class HealthcheckInfo(
     def notifHtml(notifClass: String, notifTitle: String, checksHtml: List[String]): NodeSeq = {
       val checksMenu = "<ul class='menu'>" + checksHtml.mkString("\n") + "</ul>"
 
-      val tooltipContent = "<h4><i class='fa fa-warning'></i> " + notifTitle + "</h4><div>" + checksMenu + "</div>"
+      val tooltipContent = "<h4><i class='fa fa-warning text-warning'></i> " + notifTitle + "</h4><div>" + checksMenu + "</div>"
       <li
       class={"plugin-warning " + notifClass}
       data-bs-toggle="tooltip"
@@ -130,7 +130,7 @@ class HealthcheckInfo(
   def healthcheckInfoIcon(html: NodeSeq): NodeSeq = {
     def displayPluginIcon(iconClass: String, notifTitle: String): NodeSeq = {
       val tooltipContent =
-        "<h4 class='" + iconClass + "' > <i class='fa fa-exclamation-triangle'></i> " + notifTitle + "</h4><div>More details on <b>Health Check</b> page</div>"
+        "<h4 class='" + iconClass + "' > <i class='fa fa-exclamation-triangle text-warning'></i> " + notifTitle + "</h4><div>More details on <b>Health Check</b> page</div>"
       <i class={
         "fa fa-exclamation-triangle plugin-icon icon-info " ++ iconClass
       } data-bs-toggle="tooltip" data-bs-placement="right" title={
