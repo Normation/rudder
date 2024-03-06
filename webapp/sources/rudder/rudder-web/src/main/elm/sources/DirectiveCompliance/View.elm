@@ -20,12 +20,12 @@ view model =
       [ li [class "nav-item"]
         [ button
           [ attribute "role" "tab", type_ "button", class ("nav-link " ++ (if model.ui.viewMode == RulesView then " active" else "")), onClick (ChangeViewMode RulesView)]
-          [ text "By Rules" ]
+          [ text "By rule" ]
         ]
       , li [class "nav-item"]
         [ button
           [ attribute "role" "tab", type_ "button", class ("nav-link " ++ (if model.ui.viewMode == NodesView then " active" else "")), onClick (ChangeViewMode NodesView)]
-          [ text "By Nodes" ]
+          [ text "By node" ]
         ]
       ]
     ]
