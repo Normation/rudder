@@ -131,10 +131,8 @@ view model =
             [ button [class "input-group-text btn btn-default", type_ "button", onClick (FoldAllCategories model.ui.groupFilters) ][span [class "fa fa-folder fa-folder-open"][]]
               , input[type_ "text", value model.ui.groupFilters.treeFilters.filter, placeholder "Filter", class "form-control", onInput (\s -> UpdateGroupFilters {groupFilters | treeFilters = {treeFilters | filter = s}})][]
               , button [class "input-group-text btn btn-default", type_ "button", onClick (UpdateGroupFilters {groupFilters | treeFilters = {treeFilters | filter = ""}})] [span [class "fa fa-times"][]]
-              ]
-            , label [class "btn btn-default more-filters", for "toggle-filters"][]
             ]
-        , input [type_ "checkbox", id "toggle-filters", class "toggle-filters", checked True][]
+          ]
         ]
       , div [class "sidebar-body"]
         [ div [class "sidebar-list"][(
