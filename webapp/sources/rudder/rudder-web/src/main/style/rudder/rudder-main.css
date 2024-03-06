@@ -154,31 +154,7 @@ pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
 pre.json-beautify code.elmsh {
   background: transparent !important;
 }
-/* - MODALS - */
-.modal.show .modal-dialog{
-  z-index: 1060;
-}
-.modal .modal-content {
-  border-radius: 0;
-  border: none;
-}
-.modal .modal-header {
-  border-radius: 0;
-  background: #041922;
-}
-.modal .modal-header .close{
-  color: #fff;
-  font-size: 1.8em;
-  opacity: .4;
-}
-.modal .modal-footer .btn {
-  width:auto;
-}
 
-#sendMetricsPopup .btn {
-  line-height: initial;
-  padding: 8px 12px;
-}
 /* - LABEL BOOTSTRAP */
 .content-wrapper label.radio{
   color: #555;

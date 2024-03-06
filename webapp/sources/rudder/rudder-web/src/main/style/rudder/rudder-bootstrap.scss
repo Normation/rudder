@@ -48,6 +48,8 @@ $danger     : $rudder-danger;
 $body-color : $rudder-txt-primary;
 $link-color : $rudder-txt-link;
 
+$border-color: $rudder-border-color-default;
+
 $nav-underline-border-width : 0.2rem;
 $nav-underline-link-active-color: $rudder-txt-primary;
 
@@ -139,4 +141,8 @@ $input-font-size-sm: 12px;  // previous bootstrap 3 value VS 0.85rem default in 
   & label {
     cursor: pointer;
   }
+}
+// -- MODALS
+.modal .modal-dialog{
+  z-index: $zindex-modal;
 }
