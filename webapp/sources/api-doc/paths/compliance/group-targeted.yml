@@ -7,7 +7,7 @@ get:
   parameters:
     - $ref: ../../components/parameters/compliance-level.yml
     - $ref: ../../components/parameters/compliance-percent-precision.yml
-    - $ref: ../../components/parameters/node-group-id.yml
+    - $ref: ../../components/parameters/target-or-node-group-id.yml
   responses:
     "200":
       description: Success

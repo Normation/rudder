@@ -183,38 +183,15 @@ class NodeGroupForm(
     val html = SHtml.ajaxForm(body)
 
     nodeGroup match {
-      case Left(target)                     => showFormTarget(target)(html) ++ showRelatedRulesTree(target)
+      case Left(target)                     =>
+        showFormTarget(target)(html) ++ showRelatedRulesTree(target) ++ showGroupCompliance(target.target)
       case Right(group) if (group.isSystem) =>
-        showFormTarget(GroupTarget(group.id))(html) ++ showRelatedRulesTree(GroupTarget(group.id))
+        showFormTarget(GroupTarget(group.id))(html) ++ showRelatedRulesTree(GroupTarget(group.id)) ++ showGroupCompliance(
+          group.id.uid.value
+        )
       case Right(group)                     =>
-        showFormNodeGroup(group)(html) ++
-        showRelatedRulesTree(GroupTarget(group.id)) ++ Script(
-          OnLoad(
-            JsRaw(s"""
-                     |var main = document.getElementById("groupComplianceApp")
-                     |var initValues = {
-                     |  groupId : "${group.id.uid.value}",
-                     |  contextPath : contextPath
-                     |};
-                     |var app = Elm.Groupcompliance.init({node: main, flags: initValues});
-                     |app.ports.errorNotification.subscribe(function(str) {
-                     |  createErrorNotification(str)
-                     |});
-                     |// Initialize tooltips
-                     |app.ports.initTooltips.subscribe(function(msg) {
-                     |  setTimeout(function(){
-                     |    initBsTooltips();
-                     |  }, 400);
-                     |});
-                     |// Clear tooltips
-                     |app.ports.clearTooltips.subscribe(function(msg) {
-                     |  removeBsTooltips();
-                     |});
-                     |$$("#complianceLinkTab").on("click", function (){
-                     |  app.ports.loadCompliance.send(null);
-                     |});
-                     |""".stripMargin)
-          )
+        showFormNodeGroup(group)(html) ++ showRelatedRulesTree(GroupTarget(group.id)) ++ showGroupCompliance(
+          group.id.uid.value
         )
     }
   }
@@ -258,16 +235,45 @@ class NodeGroupForm(
       )
     )
   }
+
+  private[this] def showGroupCompliance(targetOrGroupIdStr: String): NodeSeq = {
+    Script(
+      OnLoad(
+        JsRaw(s"""
+                 |var main = document.getElementById("groupComplianceApp")
+                 |var initValues = {
+                 |  groupId : "${targetOrGroupIdStr}",
+                 |  contextPath : contextPath
+                 |};
+                 |var app = Elm.Groupcompliance.init({node: main, flags: initValues});
+                 |app.ports.errorNotification.subscribe(function(str) {
+                 |  createErrorNotification(str)
+                 |});
+                 |// Initialize tooltips
+                 |app.ports.initTooltips.subscribe(function(msg) {
+                 |  setTimeout(function(){
+                 |    initBsTooltips();
+                 |  }, 400);
+                 |});
+                 |// Clear tooltips
+                 |app.ports.clearTooltips.subscribe(function(msg) {
+                 |  removeBsTooltips();
+                 |});
+                 |$$("#complianceLinkTab").on("click", function (){
+                 |  app.ports.loadCompliance.send(null);
+                 |});
+                 |""".stripMargin)
+      )
+    )
+  }
   private[this] val groupNameString = nodeGroup.fold(
     t => rootCategory.allTargets.get(t).map(_.name).getOrElse(t.target),
     _.name
   )
 
   private[this] def showComplianceForGroup(progressBarSelector: String, optComplianceArray: Option[JsArray]) = {
-    nodeGroup.toOption.map(g => {
-      val complianceHtml = optComplianceArray.map(js => s"buildComplianceBar(${js.toJsCmd})").getOrElse("\"No report\"")
-      Script(JsRaw(s"""$$("${progressBarSelector}").html(${complianceHtml});"""))
-    })
+    val complianceHtml = optComplianceArray.map(js => s"buildComplianceBar(${js.toJsCmd})").getOrElse("\"No report\"")
+    Script(JsRaw(s"""$$("${progressBarSelector}").html(${complianceHtml});"""))
   }
 
   private[this] def showFormNodeGroup(nodeGroup: NodeGroup): CssSel = {
@@ -352,7 +358,10 @@ class NodeGroupForm(
                              <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#groupParametersTab" type="button" role="tab" aria-controls="groupParametersTab">Parameters</button>
                            </li>
                            <li class="nav-item">
-                             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#groupRulesTab" type="button" role="tab" aria-controls="groupRulesTab">Related rules</button>
+                             <button id="relatedRulesLinkTab" class="nav-link" data-bs-toggle="tab" data-bs-target="#groupRulesTab" type="button" role="tab" aria-controls="groupRulesTab">Related rules</button>
+                           </li>
+                           <li class="nav-item">
+                             <button id="complianceLinkTab" class="nav-link" data-bs-toggle="tab" data-bs-target="#groupComplianceTab" type="button" role="tab" aria-controls="groupComplianceTab" aria-selected="false">Compliance</button>
                            </li>
                          </ul>
     & "group-rudderid" #> <div>
@@ -375,7 +384,16 @@ class NodeGroupForm(
       case eb: EmptyBox =>
         <span class="error">Error when retrieving the request, please try again</span>
     })
-    & ".show-compliance" #> NodeSeq.Empty)
+    & ".groupGlobalComplianceProgressBar *" #> showComplianceForGroup(
+      ".groupGlobalComplianceProgressBar",
+      loadComplianceBar(true)
+    )
+    & ".groupTargetedComplianceProgressBar *" #> showComplianceForGroup(
+      ".groupTargetedComplianceProgressBar",
+      loadComplianceBar(false)
+    )
+    & ".id-label" #> NodeSeq.Empty
+    & ".id-container" #> NodeSeq.Empty)
   }
 
   def showGroupProperties(group: NodeGroup): NodeSeq = {
@@ -439,10 +457,13 @@ class NodeGroupForm(
   }
 
   private def loadComplianceBar(isGlobalCompliance: Boolean): Option[JsArray] = {
+    val target = nodeGroup match {
+      case Left(value)  => value
+      case Right(value) => GroupTarget(value.id)
+    }
     for {
-      group      <- nodeGroup.toOption
       compliance <-
-        complianceService.getNodeGroupCompliance(group.id, level = Some(1), isGlobalCompliance = isGlobalCompliance).toOption
+        complianceService.getNodeGroupCompliance(target, level = Some(1), isGlobalCompliance = isGlobalCompliance).toOption
     } yield {
       ComplianceLevelSerialisation.ComplianceLevelToJs(compliance.compliance).toJsArray
     }
