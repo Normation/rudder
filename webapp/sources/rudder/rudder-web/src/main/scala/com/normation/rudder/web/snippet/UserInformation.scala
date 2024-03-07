@@ -40,6 +40,7 @@ package com.normation.rudder.web.snippet
 import bootstrap.liftweb.RudderConfig
 import bootstrap.liftweb.UserLogout
 import com.normation.plugins.DefaultExtendableSnippet
+import com.normation.rudder.Role
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.users.CurrentUser
 import com.normation.utils.DateFormaterService
@@ -47,8 +48,6 @@ import com.normation.zio._
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers._
 import org.springframework.security.core.context.SecurityContextHolder
@@ -71,13 +70,14 @@ class UserInformation extends DispatchSnippet with DefaultExtendableSnippet[User
           case Some(info) => info.name.getOrElse(info.id)
         }
 
+        val roles       = s"User roles : ${Role.toDisplayNames(u.roles).mkString(", ")}"
         val lastSession = userRepo.getLastPreviousLogin(u.getUsername).runNow match {
           case None    => ""
           case Some(s) =>
             s"Last login on '${DateFormaterService.getDisplayDate(s.creationDate)}' with '${s.authMethod}' authentication"
         }
 
-        "#openerAccount" #> <span id="openerAccount" title={lastSession}>{displayName}</span>
+        "#openerAccount" #> <span id="openerAccount" title={List(roles, lastSession).mkString("\n")}>{displayName}</span>
 
       case None =>
         S.session.foreach { session =>
@@ -89,26 +89,23 @@ class UserInformation extends DispatchSnippet with DefaultExtendableSnippet[User
   }
 
   def logout: CssSel = {
-    val onclick: JsCmd = {
-      val func = SHtml.ajaxCall(
-        JsNull,
-        _ => {
-          S.session match {
+    "*" #> SHtml.ajaxButton(
+      "Log out",
+      JE.Call("logout"),
+      { () =>
+        {
+          val redirect = (S.session match {
             case Full(session) => // we have a session, try to know who is login out
               UserLogout.cleanUpSession(session, "User asked for logout")
             case e: EmptyBox => // no session ? Strange, but ok, nobody is login
               ApplicationLogger.debug("Logout called for a non existing session, nothing more done")
-          }
-          JsCmds.RedirectTo("/")
+              None
+          })
+          JsCmds.RedirectTo(redirect.map(_.toString).getOrElse("/"))
         }
-      )
-      JE.Call("logout", AnonFunc(func))
-    }
-    "#userInformationLogoutButton" #> ((<button id="userInformationLogoutButton" class="btn btn-danger">Log out</button>) ++ WithNonce
-      .scriptWithNonce(
-        Script(OnLoad(JsRaw(s"$$('#userInformationLogoutButton').click(function(){${onclick.toJsCmd}});")))
-      ))
-
+      },
+      ("class", "btn btn-danger")
+    )
   }
 
 }

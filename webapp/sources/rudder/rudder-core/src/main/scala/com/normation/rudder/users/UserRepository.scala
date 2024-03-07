@@ -65,6 +65,7 @@ trait UserRepository {
   def logStartSession(
       userId:            String,
       permissions:       List[String],
+      authz:             List[String],
       tenants:           String, // this is the serialisation of tenants (ie nodePerms.value)
       sessionId:         SessionId,
       authenticatorName: String,
@@ -82,7 +83,7 @@ trait UserRepository {
    * Get the last previous session for user
    * (it the last closed session)
    */
-  def getLastPreviousLogin(userId: String): IOResult[Option[UserSession]]
+  def getLastPreviousLogin(userId: String, closedSessionsOnly: Boolean = true): IOResult[Option[UserSession]]
 
   /*
    * Delete session that are older than the given date
@@ -234,20 +235,22 @@ object UserRepository {
         )
     }.toMap
 
-    // `resurrected` are zombie that get back to live with the new origin.
+    // `resurrected` are zombie that get back to live with the new origin. For users with same origin, we keep them as is.
     // We resurrect users with "active" status because we have nothing to manage "disabled" for now.
-    val resurrected = zombies.map {
+    val resurrectedOrSameOrigin = zombies.map {
       case (k, v) =>
         // check that status is really deleted, just in case
         if (v.status == UserStatus.Deleted) {
           (
             k,
-            v.modify(_.status)
-              .setTo(UserStatus.Active)
-              .modify(_.statusHistory)
-              .using(StatusHistory(UserStatus.Disabled, trace) :: _)
-              .modify(_.managedBy)
-              .setTo(origin)
+            if (v.managedBy != origin) {
+              v.modify(_.status)
+                .setTo(UserStatus.Active)
+                .modify(_.statusHistory)
+                .using(StatusHistory(UserStatus.Disabled, trace) :: _)
+                .modify(_.managedBy)
+                .setTo(origin)
+            } else v
           )
         } else (k, v)
     }
@@ -264,7 +267,7 @@ object UserRepository {
         )
     }
 
-    realNew ++ resurrected ++ deleted
+    realNew ++ resurrectedOrSameOrigin ++ deleted
   }
 
 }
@@ -285,12 +288,15 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
   override def logStartSession(
       userId:            String,
       permissions:       List[String],
+      authz:             List[String],
       tenants:           String,
       sessionId:         SessionId,
       authenticatorName: String,
       date:              DateTime
   ): IOResult[Unit] = {
-    sessionBase.update(UserSession(userId, sessionId, date, authenticatorName, permissions.sorted, tenants, None, None) :: _) *>
+    sessionBase.update(
+      UserSession(userId, sessionId, date, authenticatorName, permissions.sorted, authz.sorted, tenants, None, None) :: _
+    ) *>
     userBase.update(_.map { case (k, v) => if (k == userId) (k, v.modify(_.lastLogin).setTo(Some(date))) else (k, v) })
   }
 
@@ -306,7 +312,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
     sessionBase.update(_.map(s => if (s.userId == userId) closeSession(s, date, cause) else s))
   }
 
-  override def getLastPreviousLogin(userId: String): IOResult[Option[UserSession]] = {
+  override def getLastPreviousLogin(userId: String, closedSessionsOnly: Boolean = true): IOResult[Option[UserSession]] = {
     // sessions are sorted oldest first, for find is ok
     sessionBase.get.map(_.find(s => s.userId == userId && s.endDate.isDefined))
   }
@@ -510,6 +516,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
  *   creationDate timestamp with time zone NOT NULL
  *   authMethod   text
  *   permissions  text[]
+ *   authz        text[]
  *   tenants      text
  *   endDate      timestamp with time zone
  *   endCause     text
@@ -567,14 +574,15 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
   override def logStartSession(
       userId:            String,
       permissions:       List[String],
+      authz:             List[String],
       tenants:           String,
       sessionId:         SessionId,
       authenticatorName: String,
       date:              DateTime
   ): IOResult[Unit] = {
     val session   = {
-      sql"""insert into usersessions (sessionid, userid, creationdate, authmethod, permissions, tenants)
-            values (${sessionId}, ${userId}, ${date}, ${authenticatorName}, ${permissions.sorted}, ${tenants})"""
+      sql"""insert into usersessions (sessionid, userid, creationdate, authmethod, permissions, authz, tenants)
+            values (${sessionId}, ${userId}, ${date}, ${authenticatorName}, ${permissions.sorted}, ${authz.sorted}, ${tenants})"""
     }
     val lastLogin = {
       sql"""update users set lastlogin = ${date} where id = ${userId}"""
@@ -601,9 +609,18 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
     )
   }
 
-  override def getLastPreviousLogin(userId: String): IOResult[Option[UserSession]] = {
-    val sql =
-      sql"""select * from usersessions where userid = ${userId} and enddate is not null order by creationdate desc limit 1"""
+  override def getLastPreviousLogin(userId: String, closedSessionsOnly: Boolean = true): IOResult[Option[UserSession]] = {
+    val selectPart  =
+      fr"select userid, sessionid, creationdate, authmethod, permissions, authz, tenants, enddate, endcause from usersessions"
+    val wherePart   = {
+      Fragments.whereAndOpt(
+        Some(fr"userid = ${userId}"),
+        if (closedSessionsOnly) Some(fr"enddate is not null") else None
+      )
+    }
+    val orderByPart = fr"order by creationdate desc limit 1"
+
+    val sql = (selectPart ++ wherePart ++ orderByPart)
 
     transactIOResult(s"Error when retrieving information for previous session for '${userId}'")(xa =>
       sql.query[UserSession].option.transact(xa)
@@ -611,7 +628,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
   }
 
   override def deleteOldSessions(olderThan: DateTime): IOResult[Unit] = {
-    val sql = sql"""delete from usersessuins where creationdate < ${olderThan}"""
+    val sql = sql"""delete from usersessions where creationdate < ${olderThan}"""
 
     transactIOResult(s"Error when purging user sessions older then: ${DateFormaterService.serialize(olderThan)}")(xa =>
       sql.update.run.transact(xa)
@@ -634,12 +651,23 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
           fr")"
 
         def update(updated: Vector[UserInfo]): ConnectionIO[Int] = {
+          // never update the user personal information of an existing user which may have been provided and modified by another origin
           val sql =
             """insert into users (id, creationdate, status, managedby, name, email, lastlogin, statushistory, otherinfo)
                   values (?,?,?,?,? , ?,?,?,?)
                on conflict (id) do update
-                set (creationdate, status, managedby, name, email, lastlogin, statushistory, otherinfo) =
-                  (EXCLUDED.creationdate, EXCLUDED.status, EXCLUDED.managedby, EXCLUDED.name, EXCLUDED.email, EXCLUDED.lastlogin, EXCLUDED.statushistory, EXCLUDED.otherinfo)"""
+                set (creationdate, status, managedby, lastlogin, statushistory) =
+                  (
+                    EXCLUDED.creationdate,
+                    EXCLUDED.status,
+                    CASE WHEN users.status = 'active'
+                      THEN users.managedby
+                      ELSE EXCLUDED.managedby
+                    END,
+                    EXCLUDED.lastlogin,
+                    EXCLUDED.statushistory
+                  )
+                  """
 
           Update[UserInfo](sql).updateMany(updated)
         }
@@ -809,7 +837,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
 
   // only disabled user can be set back to active
   override def setActive(userId: List[String], trace: EventTrace): IOResult[Unit] = {
-    changeStatus(userId, None, Nil, trace, UserStatus.Active, Some(fr"status = '${UserStatus.Disabled.value}'")).unit
+    changeStatus(userId, None, Nil, trace, UserStatus.Active, Some(fr"status = ${UserStatus.Disabled.value}")).unit
   }
 
   override def getAll(): IOResult[List[UserInfo]] = {
@@ -840,7 +868,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
     params match {
       case Nil       => ZIO.unit
       case h :: tail =>
-        val sql = sql"""update users""" ++ Fragments.set(h, tail: _*) ++ fr"""where id = ${id}"""
+        val sql = fr"""update users""" ++ Fragments.set(h, tail: _*) ++ fr"""where id = ${id}"""
 
         transactIOResult(s"Error when updating user information for '${id}'")(xa => sql.update.run.transact(xa)).unit
     }

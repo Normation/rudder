@@ -81,6 +81,7 @@ CREATE TABLE UserSessions (
 , creationDate timestamp with time zone NOT NULL
 , authMethod   text
 , permissions  text[]
+, authz        text[]
 , tenants      text
 , endDate      timestamp with time zone
 , endCause     text

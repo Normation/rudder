@@ -86,6 +86,7 @@ import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.security.web.authentication.AuthenticationFailureHandler
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler
 import scala.annotation.nowarn
+import scala.util.Try
 import zio.syntax._
 
 /**
@@ -111,6 +112,10 @@ class AppConfigAuth extends ApplicationContextAware {
 
   // we define the System ApiAcl as one that is all mighty and can manage everything
   val SYSTEM_API_ACL = ApiAuthorization.RW
+
+  // Configuration values within an authentication provider config from which we get provider properties
+  val A_ROLES_ENABLED  = "roles.enabled"
+  val A_ROLES_OVERRIDE = "roles.override"
 
   /*
    * This method is expected to try to initialize the Spring bean for
@@ -139,7 +144,7 @@ class AppConfigAuth extends ApplicationContextAware {
     // prepare specific properties for each configuredAuthProviders - we need system properties for spring
 
     import scala.jdk.CollectionConverters._
-    configuredAuthProviders.foreach { x =>
+    val providerProperties: Map[String, AuthBackendProviderProperties] = configuredAuthProviders.flatMap { x =>
       try {
         // try to load all the specific properties of that auth type
         // so that they are available from Spring
@@ -152,7 +157,29 @@ class AppConfigAuth extends ApplicationContextAware {
       } catch {
         case ex: ConfigException.Missing => // does nothing - the beauty of imperative prog :(
       }
-    }
+      val properties: Option[(String, AuthBackendProviderProperties)] = x.name match {
+        case "ldap"            =>
+          // roles for LDAP-provided users come directly from the file, so we can say they override the file roles
+          Some("ldap" -> AuthBackendProviderProperties(ProviderRoleExtension.WithOverride))
+        case "oidc" | "oauth2" => {
+          val baseProperty  = "rudder.auth.oauth2.provider"
+          // we need to read under the registration key, under the base property
+          val registrations =
+            Try(config.getString(baseProperty + ".registrations").split(",").map(_.trim).toList).getOrElse(List.empty)
+          // when there are multiple registrations we should take the most prioritized configuration under the same provider
+          Some(x.name -> registrations.foldLeft(AuthBackendProviderProperties.empty) {
+            case (acc, reg) =>
+              val rolesEnabled = Try(config.getBoolean(s"${baseProperty}.${reg}.${A_ROLES_ENABLED}"))
+                .getOrElse(false) // default value, same as in the auth backend plugin
+              val rolesOverride = Try(config.getBoolean(s"${baseProperty}.${reg}.${A_ROLES_OVERRIDE}"))
+                .getOrElse(false) // default value, same as in the auth backend plugin
+              acc.maxByPriority(AuthBackendProviderProperties.fromConfig(x.name, rolesEnabled, rolesOverride))
+          })
+        }
+        case _                 => None // default providers or providers for which handling the properties is still unkown
+      }
+      properties
+    }.toMap
 
     // load additional beans from authentication dedicated resource files
 
@@ -193,6 +220,7 @@ class AppConfigAuth extends ApplicationContextAware {
       }
     }
     RudderConfig.authenticationProviders.setConfiguredProviders(configuredAuthProviders.toArray)
+    RudderConfig.authenticationProviders.addProviderProperties(providerProperties)
   }
 
   ///////////// FOR WEB INTERFACE /////////////
@@ -375,6 +403,7 @@ object LogFailedLogin {
  */
 class RudderInMemoryUserDetailsService(val authConfigProvider: UserDetailListProvider, userRepository: UserRepository)
     extends UserDetailsService {
+
   @throws(classOf[UsernameNotFoundException])
   override def loadUserByUsername(username: String): RudderUserDetail = {
     userRepository
@@ -431,6 +460,65 @@ class RudderXmlUserDetailsContextMapper(authConfigProvider: UserDetailListProvid
         )
       )
   }
+}
+
+sealed trait ProviderRoleExtension {
+  def name: String
+  def priority: Int = this match {
+    case ProviderRoleExtension.None         => 0
+    case ProviderRoleExtension.NoOverride   => 1
+    case ProviderRoleExtension.WithOverride => 2
+  }
+}
+object ProviderRoleExtension       {
+  case object None         extends ProviderRoleExtension { override val name: String = "none"        }
+  case object NoOverride   extends ProviderRoleExtension { override val name: String = "no-override" }
+  case object WithOverride extends ProviderRoleExtension { override val name: String = "override"    }
+}
+
+/**
+  * A description of some properties of an authentication backend
+  */
+final case class AuthBackendProviderProperties(
+    providerRoleExtension: ProviderRoleExtension
+) {
+  def maxByPriority(
+      that: AuthBackendProviderProperties
+  ): AuthBackendProviderProperties = {
+    if (this.providerRoleExtension.priority > that.providerRoleExtension.priority) {
+      this
+    } else {
+      that
+    }
+  }
+}
+
+object AuthBackendProviderProperties {
+  implicit val ordering: Ordering[AuthBackendProviderProperties] = Ordering.by(_.providerRoleExtension.priority)
+
+  def fromConfig(
+      name:               String,
+      hasAdditionalRoles: Boolean,
+      overridesRoles:     Boolean
+  ): AuthBackendProviderProperties = {
+    (hasAdditionalRoles, overridesRoles) match {
+      case (false, false) =>
+        new AuthBackendProviderProperties(ProviderRoleExtension.None)
+      case (false, true)  =>
+        // This is not a consistent configuration, we log a warning and persue with the most restrictive configuration
+        ApplicationLogger.warn(
+          s"Backend provider properties for '${name}' are not consistent: backend does not enables providing roles but roles overrides is set to true. " +
+          s"Overriding roles will not be enabled."
+        )
+        new AuthBackendProviderProperties(ProviderRoleExtension.None)
+      case (true, false)  =>
+        new AuthBackendProviderProperties(ProviderRoleExtension.NoOverride)
+      case (true, true)   =>
+        new AuthBackendProviderProperties(ProviderRoleExtension.WithOverride)
+    }
+  }
+
+  def empty: AuthBackendProviderProperties = new AuthBackendProviderProperties(ProviderRoleExtension.None)
 }
 
 /**
@@ -503,7 +591,7 @@ object DefaultAuthBackendProvider extends AuthBackendsProvider {
 // and default implementation: provides 'file', 'rootAdmin'
 class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
 
-  val defaultAuthBackendsProvider = DefaultAuthBackendProvider
+  val defaultAuthBackendsProvider: AuthBackendsProvider = DefaultAuthBackendProvider
 
   // the list of AuthenticationMethods configured by the user
   private[this] var authenticationMethods = Array[AuthenticationMethods]() // must be a var/array, because init by spring-side
@@ -515,6 +603,9 @@ class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
   // this is the map of configured spring bean "AuthenticationProvider"
   private[this] var springProviders = Map[String, AuthenticationProvider]()
 
+  // a map of properties registered for each backend
+  private[this] var backendProperties = Map[String, AuthBackendProviderProperties]()
+
   def addProvider(p: AuthBackendsProvider): Unit = {
     ApplicationLogger.info(s"Add backend providers '${p.name}'")
     backends = backends :+ p
@@ -523,6 +614,9 @@ class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
 
   // add default providers
   this.addProvider(defaultAuthBackendsProvider)
+  this.addProviderProperties(
+    Map(DefaultAuthBackendProvider.FILE -> AuthBackendProviderProperties(ProviderRoleExtension.WithOverride))
+  )
 
   /*
    * Add a spring configured name -> provider
@@ -541,6 +635,14 @@ class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
   // get the list of provider in an imutable seq
   def getConfiguredProviders(): Seq[AuthenticationMethods] = {
     this.authenticationMethods.toSeq
+  }
+
+  def addProviderProperties(properties: Map[String, AuthBackendProviderProperties]): Unit = {
+    this.backendProperties = this.backendProperties ++ properties
+  }
+
+  def getProviderProperties(): Map[String, AuthBackendProviderProperties] = {
+    this.backendProperties
   }
 
   /*

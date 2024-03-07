@@ -193,8 +193,9 @@ import zio.syntax._
  */
 class RestTestSetUp {
 
-  implicit val userService: UserService = new UserService {
-    val user           = new AuthenticatedUser {
+  implicit val userService: userService = new userService
+  class userService extends UserService {
+    val user: AuthenticatedUser = new AuthenticatedUser {
       val account                              = RudderAccount.User("test-user", "pass")
       def checkRights(auth: AuthorizationType) = true
       def getApiAuthz                          = ApiAuthz.allAuthz

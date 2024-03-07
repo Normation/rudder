@@ -48,7 +48,9 @@ import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.domain.logger.ApiLogger
 import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.users._
+import com.normation.rudder.users.CurrentUser
+import com.normation.rudder.users.RudderAccount
+import com.normation.rudder.users.UserService
 import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import net.liftweb.json.JsonDSL._
