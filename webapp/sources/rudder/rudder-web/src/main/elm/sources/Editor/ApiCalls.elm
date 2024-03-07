@@ -9,6 +9,8 @@ import Json.Encode exposing (object, string)
 import Editor.DataTypes exposing (..)
 import Editor.JsonDecoder exposing (..)
 import Editor.JsonEncoder exposing (..)
+import List.Extra
+import Url.Builder exposing (QueryParameter)
 
 
 --
@@ -28,6 +30,10 @@ import Editor.JsonEncoder exposing (..)
 getUrl: Model -> String -> String
 getUrl m url =
   m.contextPath ++ "/secure/api/" ++ url
+
+getUrlNew: Model -> List String -> List QueryParameter -> String
+getUrlNew m url p=
+  Url.Builder.relative (m.contextPath :: "secure" :: "api" :: url) p
 
 getTechniques : Model -> Cmd Msg
 getTechniques  model =
@@ -159,7 +165,7 @@ getRessources state model =
     url = case state of
             Edit t -> "techniques/" ++ t.id.value ++ "/" ++ t.version ++ "/resources"
             Creation id -> "drafts/" ++ id.value ++ "/" ++ "1.0/resources"
-            Clone t id -> "drafts/" ++ id.value ++ "/" ++ t.version ++ "/resources"
+            Clone t _ id -> "drafts/" ++ id.value ++ "/" ++ t.version ++ "/resources"
     req =
       request
         { method  = "GET"
@@ -167,6 +173,25 @@ getRessources state model =
         , url     = getUrl model url
         , body    = emptyBody
         , expect  = Detailed.expectJson GetTechniqueResources ( Json.Decode.at ["data", "resources" ] ( Json.Decode.list decodeResource ))
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+  in
+    req
+
+
+copyResourcesToDraft : String -> Technique -> Maybe TechniqueId ->  Model -> Cmd Msg
+copyResourcesToDraft draftId technique optId model =
+  let
+    id = Maybe.withDefault technique.id optId
+    url = getUrlNew model [  "drafts", draftId, technique.version, "resources",  "clone"] [Url.Builder.string "techniqueId" id.value, Url.Builder.string "category" technique.category]
+    req =
+      request
+        { method  = "POST"
+        , headers = []
+        , url     = url
+        , body    = emptyBody
+        , expect  = Detailed.expectWhatever CopyResources
         , timeout = Nothing
         , tracker = Nothing
         }

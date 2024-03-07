@@ -93,7 +93,7 @@ mainInit initValues =
   in
     (model, Cmd.batch ( [ getDrafts (), getMethods model, getTechniquesCategories model]) )
 
-updatedStoreTechnique: Model -> (Model, Cmd msg)
+updatedStoreTechnique: Model -> (Model, Cmd Msg)
 updatedStoreTechnique model =
   case model.mode of
     TechniqueDetails t o _ editInfo ->
@@ -112,7 +112,7 @@ updatedStoreTechnique model =
                draft = Draft  t Nothing id.value (Time.millisToPosix 0)
               in
                 (Dict.insert draft.id draft model.drafts, Cmd.batch[initInputs "", clearTooltips "", storeDraft (encodeDraft draft)] )
-            Clone origin id ->
+            Clone _ _ id ->
               let
                draft = Draft  t Nothing id.value (Time.millisToPosix 0)
               in
@@ -160,7 +160,7 @@ selectTechnique model technique =
       Right d ->
         let
          st = case d.origin of
-                   Just o -> Clone d.technique o.id
+                   Just o -> Clone d.technique Nothing o.id
                    Nothing -> Creation (TechniqueId d.id)
         in
         (d.technique, st, Cmd.none)
@@ -219,7 +219,10 @@ update msg model =
 
     UpdateTechniqueFilter treeFilter ->
       ( { model | techniqueFilter = treeFilter } , Cmd.none )
-
+    CopyResources (Ok ()) ->
+      ( model, Cmd.none )
+    CopyResources (Err err) ->
+      ( model ,  errorNotification  ("Error when copying technique resources to draft" ) )
     SelectTechnique technique ->
       case model.mode of
         TechniqueDetails t _ _ editInfo ->
@@ -295,7 +298,7 @@ update msg model =
     GetDrafts drafts invalidDraftsToClean->
       ({ model | drafts = drafts }, Cmd.batch (List.map clearDraft invalidDraftsToClean))
 
-    CloneTechnique technique internalId ->
+    CloneTechnique technique optDraftId internalId ->
       let
         copiedName = technique.name ++ " (Copy)"
         newId = canonifyHelper (Value (String.toLower copiedName))
@@ -303,9 +306,10 @@ update msg model =
         blockState =  Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo)) (List.concatMap getAllBlocks technique.elems))
         ui = TechniqueUiInfo General callState  blockState [] False Unchanged Unchanged Nothing
         editInfo = TechniqueEditInfo "" False (Ok ())
-        newModel = { model | mode = TechniqueDetails {technique | name = copiedName, id = TechniqueId newId}  (Clone technique internalId) ui editInfo }
+        newModel = { model | mode = TechniqueDetails {technique | name = copiedName, id = TechniqueId newId}  (Clone technique optDraftId internalId) ui editInfo }
+        (nm,cmd) = updatedStoreTechnique newModel
       in
-        updatedStoreTechnique newModel
+        (nm,(Cmd.batch [ copyResourcesToDraft internalId.value technique optDraftId model , cmd]) )
 
     SaveTechnique (Ok (metadata, technique)) ->
       let
@@ -319,7 +323,7 @@ update msg model =
               (TechniqueDetails technique (Edit technique) {ui | saving = False} editInfo, technique.id)
             TechniqueDetails _ (Creation id) ui editInfo ->
               (TechniqueDetails technique (Edit technique) {ui | saving = False} editInfo, id)
-            TechniqueDetails _ (Clone _ id) ui editInfo ->
+            TechniqueDetails _ (Clone _ _ id) ui editInfo ->
               (TechniqueDetails technique (Edit technique) {ui | saving = False} editInfo, id)
             m -> (m, technique.id)
         drafts = Dict.remove idToClean.value model.drafts
@@ -345,7 +349,7 @@ update msg model =
                 update (CallApi (saveTechnique t False Nothing)) { model | mode = TechniqueDetails t o newUi editInfo }
               Creation internalId ->
                 update (CallApi (saveTechnique t True (Just internalId))) { model | mode = TechniqueDetails t o newUi editInfo }
-              Clone _ internalId ->
+              Clone _ _ internalId ->
                 update (CallApi (saveTechnique t True (Just internalId))) { model | mode = TechniqueDetails t o newUi editInfo }
         _ -> (model, Cmd.none)
 
@@ -387,7 +391,7 @@ update msg model =
                 (technique, drafts) =
                   case s of
                     Edit t -> (t, Dict.remove t.id.value model.drafts)
-                    Clone t _ -> (t, model.drafts)
+                    Clone t _ _ -> (t, model.drafts)
                     Creation _ -> (base, model.drafts)
               in
                 { model | mode = TechniqueDetails technique s ui editInfo, drafts = drafts }
@@ -404,7 +408,7 @@ update msg model =
                 origin =
                   case s of
                     Edit t -> t
-                    Clone t _ -> t
+                    Clone t _ _ -> t
                     Creation _ -> technique
                 (updatedTechnique, needCheck) =
                   case findElemIf  (getId >> (==) (getId call)) origin.elems of
@@ -528,7 +532,7 @@ update msg model =
                     url = case s of
                             Edit _ ->  t.id.value ++ "/" ++ t.version ++ "/" ++ t.category
                             Creation internalId -> "draft/" ++ internalId.value ++ "/" ++ t.version
-                            Clone _ internalId -> "draft/" ++ internalId.value ++ "/" ++ t.version
+                            Clone _ _ internalId -> "draft/" ++ internalId.value ++ "/" ++ t.version
                   in
                     openManager (model.contextPath ++ "/secure/api/resourceExplorer/"  ++ url)
                 _ -> Cmd.none

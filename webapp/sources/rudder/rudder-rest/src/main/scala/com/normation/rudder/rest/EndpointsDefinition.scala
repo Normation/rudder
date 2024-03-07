@@ -585,37 +585,43 @@ object TechniqueApi       extends ApiModuleProvider[TechniqueApi]               
     val (action, path) = GET / "techniques" / "{name}" / "{version}" / "revisions"
   }
 
-  final case object UpdateTechnique        extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex  {
+  final case object UpdateTechnique          extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Update technique created with technique editor"
     val (action, path) = POST / "techniques" / "{techniqueId}" / "{version}"
   }
-  final case object CreateTechnique        extends TechniqueApi with ZeroParam with StartsAtVersion14 with SortIndex {
+  final case object CreateTechnique          extends TechniqueApi with ZeroParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Create a new technique in Rudder from a technique in the technique editor"
     val (action, path) = PUT / "techniques"
   }
-  final case object DeleteTechnique        extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex  {
+  final case object DeleteTechnique          extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Delete a technique from technique editor"
     val (action, path) = DELETE / "techniques" / "{techniqueId}" / "{techniqueVersion}"
   }
-  final case object GetResources           extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex  {
+  final case object GetResources             extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get currently deployed resources of a technique"
     val (action, path) = GET / "techniques" / "{techniqueId}" / "{techniqueVersion}" / "resources"
   }
-  final case object GetNewResources        extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex  {
+  final case object GetNewResources          extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get resources of a technique draft"
     val (action, path) = GET / "drafts" / "{techniqueId}" / "{techniqueVersion}" / "resources"
   }
-  final case object GetTechniqueAllVersion extends TechniqueApi with OneParam with StartsAtVersion14 with SortIndex  {
+  final case object CopyResourcesWhenCloning extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex  {
+    val z: Int = implicitly[Line].value
+    val description    = "Copy resources from a technique to a technique draft"
+    val (action, path) = POST / "drafts" / "{techniqueId}" / "{techniqueVersion}" / "resources" / "clone"
+    override val kind: ApiKind = ApiKind.Internal
+  }
+  final case object GetTechniqueAllVersion   extends TechniqueApi with OneParam with StartsAtVersion14 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get all Techniques metadata"
     val (action, path) = GET / "techniques" / "{techniqueId}"
   }
-  final case object GetTechnique           extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex  {
+  final case object GetTechnique             extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get all Techniques metadata"
     val (action, path) = GET / "techniques" / "{techniqueId}" / "{techniqueVersion}"
@@ -623,17 +629,17 @@ object TechniqueApi       extends ApiModuleProvider[TechniqueApi]               
   /*
    * Method are returned sorted alpha-numericaly
    */
-  final case object GetMethods             extends TechniqueApi with ZeroParam with StartsAtVersion14 with SortIndex {
+  final case object GetMethods               extends TechniqueApi with ZeroParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Get all methods metadata"
     val (action, path) = GET / "methods"
   }
-  final case object UpdateMethods          extends TechniqueApi with ZeroParam with StartsAtVersion14 with SortIndex {
+  final case object UpdateMethods            extends TechniqueApi with ZeroParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "reload methods metadata from file system"
     val (action, path) = POST / "methods" / "reload"
   }
-  final case object CheckTechnique         extends TechniqueApi with ZeroParam with StartsAtVersion16 with SortIndex {
+  final case object CheckTechnique           extends TechniqueApi with ZeroParam with StartsAtVersion16 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Check if a techniques is valid yaml, with rudderc compilation, with various output (json ? yaml ?)"
     val (action, path) = POST / "techniques" / "check"
