@@ -70,7 +70,7 @@ object ApplicationLoggerPure extends NamedZioLogger {
   }
 
   object User extends NamedZioLogger {
-    def loggerName: String = parent.loggerName + ".user"
+    def loggerName = parent.loggerName + ".user"
   }
 }
 

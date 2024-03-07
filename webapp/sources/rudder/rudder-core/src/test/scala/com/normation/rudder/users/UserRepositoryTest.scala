@@ -117,6 +117,11 @@ trait UserRepositoryTest extends Specification with Loggable {
       }
     }
 
+    // BOB is rept removed after setting the users again without BOB
+    val dateBobRemovedIdempotent      = DateTime.parse("2023-09-02T02:03:04Z")
+    val traceBobRemovedIdempotent     = EventTrace(actor, dateBobRemovedIdempotent)
+    val userInfosBobRemovedIdempotent = userInfosBobRemoved
+
     // BOB added back from OIDC
     val dateBobOidc      = DateTime.parse("2023-09-03T03:03:03Z")
     val traceBobOidc     = EventTrace(actor, dateBobOidc)
@@ -182,6 +187,11 @@ trait UserRepositoryTest extends Specification with Loggable {
       repo.getAll().runNow.toUTC must containTheSameElementsAs(userInfosBobRemoved)
     }
 
+    "If an user is reloaded from the same origin, it should be kept as is" >> {
+      repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, userFileBobRemoved, traceBobRemovedIdempotent).runNow
+      repo.getAll().runNow.toUTC must containTheSameElementsAs(userInfosBobRemovedIdempotent)
+    }
+
     "If an user is created by an other module and file reloaded, it's Active and remains so" >> {
       repo.setExistingUsers(AUTH_PLUGIN_NAME_REMOTE, List("bob"), traceBobOidc).runNow
       repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, userFileBobRemoved, traceReload).runNow
@@ -224,14 +234,14 @@ trait UserRepositoryTest extends Specification with Loggable {
       (
         // Alice logged but not since date2
         repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, List("alice"), EventTrace(actor, date1)) *>
-        repo.logStartSession("alice", List("role1"), "all", SessionId("sessionAlice1"), AUTH_PLUGIN_NAME_LOCAL, date2) *>
+        repo.logStartSession("alice", List("role1"), List.empty, "", SessionId("sessionAlice1"), AUTH_PLUGIN_NAME_LOCAL, date2) *>
         // Bob created at date1 but never logged since
         repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, List("alice", "bob"), EventTrace(actor, date1)) *>
         // same for Charlie from OIDC
         repo.setExistingUsers(AUTH_PLUGIN_NAME_REMOTE, List("charlie"), EventTrace(actor, date1)) *>
         // David created on date1 and logged recently
         repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, List("alice", "bob", "david"), EventTrace(actor, date1)) *>
-        repo.logStartSession("david", List("role1"), "all", SessionId("sessionDavid1"), AUTH_PLUGIN_NAME_LOCAL, date4)
+        repo.logStartSession("david", List("role1"), List.empty, "", SessionId("sessionDavid1"), AUTH_PLUGIN_NAME_LOCAL, date4)
       ).runNow
 
       val users = repo.getAll().runNow

@@ -16,6 +16,7 @@
 
 package bootstrap.liftweb;
 
+import com.normation.rudder.AuthorizationType;
 import com.normation.rudder.domain.logger.ApplicationLogger;
 import com.normation.rudder.users.*;
 import org.apache.commons.logging.Log;
@@ -169,12 +170,15 @@ public class RudderProviderManager implements org.springframework.security.authe
                                   ApplicationLogger.warn(() -> "Rudder does not know how to get sessionId from '"+className+"'. Please report to developers that message");
                                   sessionId = Integer.toHexString(result.getDetails().hashCode());
                                 }
-                                JZioRuntime.runNow(userRepository.logStartSession(details.getUsername(),
-                                        details.roles().map(x -> x.name()).toList(),
-                                        details.nodePerms().value(),
-                                        com.normation.rudder.users.SessionId.apply(sessionId),
-                                        p.name(), org.joda.time.DateTime.now())
-                                );
+                                JZioRuntime.runNow(userRepository.logStartSession(
+                                  details.getUsername(),
+                                  com.normation.rudder.Role.toDisplayNames(details.roles()),
+                                  com.normation.rudder.Rights.combineAll(details.roles().toList().map(r -> r.rights())).authorizationTypes().toList().map(AuthorizationType::id),
+                                  details.nodePerms().value(),
+                                  com.normation.rudder.users.SessionId.apply(sessionId),
+                                  p.name(),
+                                  org.joda.time.DateTime.now()
+                                ));
                             }
                         }
                     }

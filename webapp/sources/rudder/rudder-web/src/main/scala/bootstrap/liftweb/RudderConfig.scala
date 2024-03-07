@@ -150,10 +150,7 @@ import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.ncf.TechniqueWriterImpl
 import com.normation.rudder.ncf.WebappTechniqueCompiler
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
-import com.normation.rudder.reports.AgentRunIntervalService
-import com.normation.rudder.reports.AgentRunIntervalServiceImpl
-import com.normation.rudder.reports.ComplianceModeService
-import com.normation.rudder.reports.ComplianceModeServiceImpl
+import com.normation.rudder.reports._
 import com.normation.rudder.reports.execution._
 import com.normation.rudder.repository._
 import com.normation.rudder.repository.jdbc._
@@ -1241,6 +1238,7 @@ object RudderConfig extends Loggable {
   val restDataSerializer:                  RestDataSerializer                         = rci.restDataSerializer
   val restExtractorService:                RestExtractorService                       = rci.restExtractorService
   val restQuicksearch:                     RestQuicksearch                            = rci.restQuicksearch
+  val roleApiMapping:                      RoleApiMapping                             = rci.roleApiMapping
   val roAgentRunsRepository:               RoReportsExecutionRepository               = rci.roAgentRunsRepository
   val roApiAccountRepository:              RoApiAccountRepository                     = rci.roApiAccountRepository
   val roDirectiveRepository:               RoDirectiveRepository                      = rci.roDirectiveRepository
@@ -1398,6 +1396,7 @@ case class RudderServiceApi(
     jsonPluginDefinition:                ReadPluginPackageInfo,
     rudderApi:                           LiftHandler,
     authorizationApiMapping:             ExtensibleAuthorizationApiMapping,
+    roleApiMapping:                      RoleApiMapping,
     roRuleCategoryRepository:            RoRuleCategoryRepository,
     woRuleCategoryRepository:            WoRuleCategoryRepository,
     workflowLevelService:                DefaultWorkflowLevel,
@@ -3684,6 +3683,7 @@ object RudderConfigInit {
       jsonPluginDefinition,
       rudderApi,
       authorizationApiMapping,
+      roleApiMapping,
       roRuleCategoryRepository,
       woRuleCategoryRepository,
       workflowLevelService,

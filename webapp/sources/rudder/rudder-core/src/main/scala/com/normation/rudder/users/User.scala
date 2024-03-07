@@ -115,6 +115,7 @@ case class UserSession(
     creationDate: DateTime,
     authMethod:   String,
     permissions:  List[String],
+    authz:        List[String],
     tenants:      String,
     endDate:      Option[DateTime],
     endCause:     Option[String]
