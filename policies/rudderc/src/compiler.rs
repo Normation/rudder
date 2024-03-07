@@ -213,7 +213,8 @@ fn check_method(method: &mut Method) -> Result<()> {
             .iter()
             .any(|info_p| info_p.name == *p_name)
         {
-            warn!("Unexpected parameter '{}' in '{}'", p_name, method.name)
+            error!("Unexpected parameter '{}' in '{}'", p_name, method.name);
+            user_error()
         }
     }
 
