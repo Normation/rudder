@@ -610,6 +610,11 @@ object TechniqueApi       extends ApiModuleProvider[TechniqueApi]               
     val description    = "Get resources of a technique draft"
     val (action, path) = GET / "drafts" / "{techniqueId}" / "{techniqueVersion}" / "resources"
   }
+  final case object CopyResourcesWhenCloning extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description = "Copy resources from a technique to a technique draft"
+    val (action, path) = POST / "drafts" / "{techniqueId}" / "{techniqueVersion}" / "resources" / "clone"
+  }
   final case object GetTechniqueAllVersion extends TechniqueApi with OneParam with StartsAtVersion14 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get all Techniques metadata"
