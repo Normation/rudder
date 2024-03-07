@@ -389,7 +389,7 @@ def remove():
 
 
 def file_install():
-    cmd_line = [rpm_cmd] + rpm_quiet_option + ["--force", "-U"]
+    cmd_line = [yum_cmd] + yum_options + ["install"]
     found = False
     for line in sys.stdin:
         if line.startswith("File="):
