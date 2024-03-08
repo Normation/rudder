@@ -159,7 +159,7 @@ function homePage (
 
     var allNodes = nodeCount.active;
     var activeNodes ="<span class='highlight'>" + nodeCount.active + "</span> Nodes."
-    if (nodeCount.active === 1) {
+    if (nodeCount.active <= 1) {
       activeNodes = "<span class='highlight'>" + nodeCount.active + "</span> Node."
     }
     var stats = "Compliance based on "+ activeNodes
@@ -167,11 +167,11 @@ function homePage (
       allNodes += nodeCount.pending.nodes;
       var pendingNodes = nodeCount.pending.nodes + " Nodes"
       var verb = "are"
-      if (nodeCount.active === 1) {
+      if (nodeCount.active <= 1) {
         pendingNodes = nodeCount.pending.nodes + " Node"
         verb = "is"
       }
-      stats += " There "+ verb +" also " + pendingNodes + " for which we are still waiting for data (" + nodeCount.pending.percent + "%)."
+      stats += "<br>There "+ verb +" also " + pendingNodes + " for which we are still waiting for data (" + nodeCount.pending.percent + "%)."
     }
     $("#globalComplianceStats").html(stats);
 
