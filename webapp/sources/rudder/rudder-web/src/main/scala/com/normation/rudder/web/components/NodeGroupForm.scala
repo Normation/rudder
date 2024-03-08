@@ -470,9 +470,9 @@ class NodeGroupForm(
     new WBTextAreaField("Description", desc) {
       override def setFilter             = notNull _ :: trim _ :: Nil
       override def className             = "form-control"
-      override def labelClassName        = "col-12"
-      override def subContainerClassName = "col-12"
-      override def containerClassName    = "col-6"
+      override def labelClassName        = ""
+      override def subContainerClassName = ""
+      override def containerClassName    = "pe-2"
       override def errorClassName        = "field_errors paddscala"
       override def inputAttributes: Seq[(String, String)] = Seq(("rows", "15"))
       override def labelExtensions: NodeSeq               = {
