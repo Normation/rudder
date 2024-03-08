@@ -58,7 +58,11 @@ pub enum Command {
     },
     /// Install plugins, locally or from the repository
     Install {
-        #[clap(long, short, help = "Force installation of given plugin")]
+        #[clap(
+            long,
+            short,
+            help = "Bypass compatibility check and force installation of given plugin"
+        )]
         force: bool,
 
         #[clap()]

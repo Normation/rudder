@@ -94,6 +94,7 @@ impl Database {
         &mut self,
         force: bool,
         package: &str,
+        version: Option<&str>,
         repository: &Repository,
         index: Option<&RepoIndex>,
         webapp: &mut Webapp,
