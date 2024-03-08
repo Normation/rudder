@@ -33,35 +33,20 @@
 bundle agent rudder_inventory_trigger(id)
 {
   vars:
-      "flag_file"         string => "${g.rudder_base}/etc/force_inventory";
-      "canonified_path"   string => canonify("${flag_file}");
-
-      "old_class_prefix"  string => canonify("rudder_inventory_trigger_${id}");
-      "args"               slist => { "${id}" };
-
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("rudder_inventory_trigger_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
-      "inner_class_prefix"      string => canonify("file_lines_present_${flag_file}");
-
-  defaults:
-      "id" string => "default", if_match_regex => "";
+      "flag_file"    string => "${g.rudder_base}/etc/force_inventory";
+      "class_prefix" string => canonify("rudder_inventory_trigger_${id}");
 
   classes:
-      "should_report" expression => "${report_data.should_report}";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";      
 
   methods:
-      "disable_reporting_${class_prefix}"
-                           usebundle => disable_reporting;
-      # empty flag file
-      "action"             usebundle => file_content("${flag_file}", "", "true");
-      "reenable_reporting_${class_prefix}"
-                           usebundle => enable_reporting,
-                          ifvarclass => "should_report";
-      "class copy"         usebundle => _classes_copy("file_content_${canonified_path}", "${old_class_prefix}"),
-                          ifvarclass => "file_lines_present_${canonified_path}_reached";
-      "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
-                          ifvarclass => "${inner_class_prefix}_reached";
-      "report"             usebundle => _log_v3("Trigger inventory", "${id}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("file_content");
+      "${report_data.method_id}" usebundle => file_content("${flag_file}", "", "true");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes("${report_data.report_id}");
+      "${report_data.method_id}" usebundle => call_method_end("file_content");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${id}", "Trigger an inventory", "");
 }
