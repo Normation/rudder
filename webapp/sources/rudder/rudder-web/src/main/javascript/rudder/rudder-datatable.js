@@ -1842,7 +1842,7 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
                       var confirm = "#confirm" + id.toString();
                       var radios = $('.radio');
                       var action = getRadioChecked(radios);
-                      var confirmHtml = "<p><i class='fa fa-exclamation-triangle warnicon' aria-hidden='true'></i><b>Are you sure you want to restore configuration policy " + action + " this</b></p><span><button class='btn btn-default rollback-action' onClick=cancelRollback(" + id + ")>Cancel</button></span>&nbsp;&nbsp;<button class='btn btn-danger rollback-action' onClick=confirmRollback(" + id + ")>Confirm</button></span>";
+                      var confirmHtml = "<p><i class='fa fa-exclamation-triangle warnicon' aria-hidden='true'></i><b>Are you sure you want to restore configuration policy " + action + " this</b></p><span><button class='btn btn-default rollback-action' onclick=cancelRollback(" + id + ")>Cancel</button></span>&nbsp;&nbsp;<button class='btn btn-danger rollback-action' onClick=confirmRollback(" + id + ")>Confirm</button></span>";
                       $(confirm).append(confirmHtml);
                     });
                   } else {
