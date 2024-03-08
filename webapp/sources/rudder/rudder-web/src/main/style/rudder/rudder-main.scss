@@ -172,31 +172,6 @@ pre.json-beautify code.elmsh {
   background-color: #13BEB7 !important;
   border-color: #109f9a !important;
 }
-#login-page .content-wrapper .form-control:focus {
-  border-color: #041922;
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(102, 175, 233, 0);
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 7px rgba(180, 180, 180, 0.6);
-}
-.content-wrapper .form-control{
-  border: 1px solid #d6deef;
-  -webkit-box-shadow: none;
-  box-shadow: none;
-  font-weight: normal;
-}
-.content-wrapper .form-control:active:focus {
-  border-color: #d6deef;
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 5px rgba(175, 175, 175, 0.6);
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 5px rgba(175, 175, 175, 0.6);
-}
-.content-wrapper .form-control:focus {
-  border-color: #c4cbda;
-  -webkit-box-shadow: none;
-  box-shadow: none;
-}
-.no-background{
-  background-color:transparent !important;
-  background:none !important;
-}
 
 .content-wrapper .dataTables_wrapper_top .btn-default,
 .content-wrapper .dataTables_wrapper_bottom .btn-default {
@@ -1904,15 +1879,13 @@ ul > li.rudder-form > .input-group.disabled *{
   top:1px;
 }
 /* WBASEFIELD RADIO SWITCH */
-.wbBaseField.form-group .switch {
-  margin-bottom: 10px;
-}
 .wbBaseField.form-group .switch input{
   display: none !important;
 }
 .wbBaseField.form-group .switch label.radio-inline{
   padding: 0;
   margin: 0;
+  cursor: pointer;
 }
 .wbBaseField.form-group .switch label.radio-inline input + .radioTextLabel{
   display: inline-block;

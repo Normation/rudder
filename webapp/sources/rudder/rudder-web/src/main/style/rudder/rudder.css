@@ -142,7 +142,6 @@ div.intro div ul {
 
 button.ui-state-default {
    width: 130px;
-
 }
 
 form select.selectComparator {
@@ -155,14 +154,6 @@ form select.selectField {
 
 .content-wrapper input.queryInputValue, .content-wrapper select.queryInputValue {
   width:280px;
-  margin: 0px;
-  padding: 0px;
-
-}
-
-form input.removeLineButton {
-  padding: 0;
-  width: 22px !important;
 }
 
 input.deleteNetwork * {
@@ -428,56 +419,7 @@ td.directiveVarValue  {
   text-align:center;
 }
 
-.pull-left {
-  float:left
-}
-
-.pull-right {
-  float:right
-}
-
-fieldset.searchNodes {
-  padding:5px;
-  clear: both;
-}
-
-tr.query_line, .query_line td {
-  padding: 4px 1px;
-  text-align: center;
-}
-
 .composition span {
-  display: inline-block;
-}
-
-/************************
- * Search groups
- ************************/
-
-fieldset.hierarchy {
-  width:300px;
-  margin:5px;
-  padding:5px;
-  /*float: left;*/
-  display: inline-block;
-  vertical-align: top;
-}
-
-fieldset.groupCategory {
-  width:600px;
-  margin:5px;
-  padding:5px;
-  float: left;
-
-}
-
-.nodeGroupSubmitSearch {
-   margin: 0 ;
-   padding: 5px 0 5px 0;
-}
-
-div.hierarchySpacer {
-  width:5%;
   display: inline-block;
 }
 
@@ -1174,22 +1116,8 @@ li.excluded a{
  font-size : 12px;
 }
 
-.techniqueEditorLink {
-  float:right;
-  text-decoration:none;
-  font-weight:bold;
-  font-size:13px;
-  margin-top:-5px;
-}
-
-.searchNodes tr td {
-  padding: 0 5px 5px 5px;
-}
 .searchNodes tr > td:first-child {
   padding-left: 0;
-}
-.searchNodes tr > td:last-child {
-  padding-right: 0;
 }
 .deprecatedTechniqueIcon {
   margin-left : 3px;
