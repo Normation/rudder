@@ -2716,6 +2716,8 @@ table a > i.fa-pencil:hover{
   border: 1px solid #d6deef;
   border-radius: 4px;
   background-color: #F8F9FC;
+  max-height: 400px;
+  overflow: auto;
 }
 .markdown > :first-child{
   margin-top: 0;
