@@ -75,12 +75,6 @@
   overflow-y: auto;
   overflow-x: hidden;
 }
-i#changeIconRule {
-  min-width: 25px;
-}
-#submitSearch #SubmitSearch{
-  margin-left: 7px;
-}
 label.rule-info{
   margin-bottom:0;
 }

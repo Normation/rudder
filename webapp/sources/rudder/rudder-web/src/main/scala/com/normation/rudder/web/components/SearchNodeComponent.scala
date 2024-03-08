@@ -228,18 +228,19 @@ class SearchNodeComponent(
 
       lines.append(cl)
 
-      val initJs          = cl.attribute.cType.initForm("v_" + index)
-      val inputAttributes = ("id", "v_" + index) :: ("class", "queryInputValue form-control input-sm") :: {
+      val initJs = cl.attribute.cType.initForm("v_" + index)
+
+      val inputAttributes = ("id", "v_" + index) :: ("class", "queryInputValue form-control form-control-sm") :: {
         if (cl.comparator.hasValue) Nil else ("disabled", "disabled") :: Nil
       }
       val input           = cl.attribute.cType.toForm(cl.value, (x => lines(index) = lines(index).copy(value = x)), inputAttributes: _*)
       (".removeLine *" #> {
         if (addRemove)
-          SHtml.ajaxSubmit("-", () => removeLine(index), ("class", "removeLineButton btn btn-danger btn-xs"))
+          SHtml.ajaxSubmit("-", () => removeLine(index), ("class", "btn btn-danger btn-sm fw-bold"))
         else
           NodeSeq.Empty
       } &
-      ".addLine *" #> SHtml.ajaxSubmit("+", () => addLine(index), ("class", "removeLineButton btn btn-success btn-xs")) &
+      ".addLine *" #> SHtml.ajaxSubmit("+", () => addLine(index), ("class", "btn btn-success btn-sm fw-bold")) &
       ".objectType *" #> objectTypeSelect(cl.objectType, lines, index) &
       ".attributeName *" #> attributeNameSelect(cl.objectType, cl.attribute, lines, index) &
       ".comparator *" #> comparatorSelect(cl.objectType, cl.attribute, cl.comparator, lines, index) &
@@ -311,7 +312,7 @@ class SearchNodeComponent(
         "Search",
         () => processForm(isGroupsPage),
         ("id"    -> "SubmitSearch"),
-        ("class" -> "submitButton btn btn-primary")
+        ("class" -> "btn btn-primary ")
       ) &
       "#query_lines *" #> criteria.zipWithIndex.flatMap { case (cl, i) => displayQueryLine(cl, i, criteria.size > 1) }).apply(
         html
@@ -499,7 +500,7 @@ object SearchNodeComponent {
         }
       case Nil    => ""
     }
-    val newForm      = comp.toForm(v_old, func, ("id" -> v_eltid), ("class" -> "queryInputValue form-control input-sm"))
+    val newForm      = comp.toForm(v_old, func, ("id" -> v_eltid), ("class" -> "queryInputValue form-control form-control-sm"))
     comp.destroyForm(v_eltid) &
     JsCmds.Replace(v_eltid, newForm) &
     comp.initForm(v_eltid) &
@@ -643,7 +644,7 @@ object SearchNodeComponent {
       }),
       ("id", "ot_" + i),
       ("onchange", ajaxAttr(lines, i)._2.toJsCmd),
-      ("class", "selectField form-select input-sm")
+      ("class", "selectField form-select form-select-sm")
     )
   }
 
@@ -658,7 +659,7 @@ object SearchNodeComponent {
       }),
       ("id", "at_" + i),
       ("onchange", ajaxComp(lines, i)._2.toJsCmd),
-      ("class", "selectField form-select input-sm")
+      ("class", "selectField form-select form-select-sm")
     )
   }
 
@@ -679,7 +680,7 @@ object SearchNodeComponent {
       }),
       ("id", "ct_" + i),
       ("onchange", ajaxVal(lines, i)._2.toJsCmd),
-      ("class", "selectComparator form-select input-sm")
+      ("class", "selectComparator form-select form-select-sm")
     )
   }
 
