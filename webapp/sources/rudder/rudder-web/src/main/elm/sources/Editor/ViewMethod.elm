@@ -546,7 +546,7 @@ callBody model ui techniqueUi call pid =
           Opened -> element "div"
                       |> addClass ("gm-labels " ++ methodNameLabelClass)
                       |> appendChild
-                          ( element "div" |> addClass "gm-label rudder-label gm-label-label" |> appendText "Policy mode:")
+                          ( element "div" |> addClass "gm-label rudder-label gm-label-label" |> appendText "Policy mode override:")
                       |> appendChild
                          ( element "div"
                            |> addClass "btn-group"
@@ -555,7 +555,7 @@ callBody model ui techniqueUi call pid =
                                |> addClass ("btn dropdown-toggle rudder-label gm-label " ++ policyModeLabel)
                                |> addAttribute (attribute  "data-bs-toggle" "dropdown")
                                |> appendText (case call.policyMode of
-                                               Nothing -> "Default"
+                                               Nothing -> "None"
                                                Just Enforce -> " "
                                                Just Audit -> " "
                                              )
@@ -567,7 +567,7 @@ callBody model ui techniqueUi call pid =
                                       (element "a"
                                         |> addAction ("click",  MethodCallModified (Call pid {call  | policyMode = Nothing }) )
                                         |> addClass "dropdown-item"
-                                        |> appendText "Default"
+                                        |> appendText "None"
                                       )
                                  , element "li"
                                    |> appendChild

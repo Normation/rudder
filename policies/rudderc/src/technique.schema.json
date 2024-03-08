@@ -281,7 +281,7 @@
       "enum": [
         "audit",
         "enforce",
-        "default"
+        "none"
       ]
     },
     "methodReportingMode": {
@@ -386,7 +386,7 @@
           "title": "method call tags",
           "$ref": "#/$defs/tags"
         },
-        "policy_mode": {
+        "policy_mode_override": {
           "title": "method call policy mode override",
           "$ref": "#/$defs/policyMode"
         },
@@ -455,7 +455,7 @@
           "title": "block call tags",
           "$ref": "#/$defs/tags"
         },
-        "policy_mode": {
+        "policy_mode_override": {
           "title": "block call policy mode",
           "$ref": "#/$defs/policyMode"
         },

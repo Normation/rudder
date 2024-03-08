@@ -83,7 +83,7 @@ impl Backend for Unix {
                 ItemKind::Block(r) => {
                     let mut calls: Vec<(Promise, Option<Bundle>)> = vec![];
                     if let Some(x) = dry_run_mode::push_policy_mode(
-                        r.policy_mode,
+                        r.policy_mode_override,
                         format!("push_policy_mode_for_block_{}", r.id),
                     ) {
                         calls.push((x, None))
@@ -96,7 +96,7 @@ impl Backend for Unix {
                         )?);
                     }
                     if let Some(x) = dry_run_mode::pop_policy_mode(
-                        r.policy_mode,
+                        r.policy_mode_override,
                         format!("pop_policy_mode_for_block_{}", r.id),
                     ) {
                         calls.push((x, None))
