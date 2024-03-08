@@ -271,7 +271,6 @@ pre.json-beautify code.elmsh {
 .content-wrapper {
   height: auto;
   padding-top:50px;
-  font-size: 12px;
 }
 @media (max-width: 767px){
   .content-wrapper {
@@ -444,29 +443,7 @@ pre.json-beautify code.elmsh {
 .content-wrapper .filters-container .input-group{
   width: 100%;
 }
-.ui-widget.ui-tooltip h4{
-  margin-bottom: 10px;
-  font-size:16px;
-  padding-bottom:5px;
-  border-bottom : 1px solid #e6e6e6;
-}
-.ui-widget.ui-tooltip p{
-  margin-bottom: 6px;
-}
-.ui-widget.ui-tooltip ul{
-  padding-left:25px;
-}
-.ui-widget.ui-tooltip ol{
-  list-style-type:disc;
-  padding-left:30px;
-  margin-bottom:15px;
-}
-.ui-widget.ui-tooltip li{
-  list-style-type:disc;
-}
-.ui-widget.ui-tooltip li b{
-  color : #EF9600;
-}
+
 .text-grey-rudder{
   color:#555;
 }
@@ -2196,29 +2173,6 @@ table a > i.fa-pencil:hover{
 /* RULES TABLE */
 
 
-/* UI TOOLTIPS */
-.ui-tooltip {
-  display: inline-block;
-  border: 1px solid #ccc;
-  background-color: #fff;
-  position: absolute;
-  z-index: 9999;
-  max-width: 300px
-}
-
-.ui-tooltip-content{
-  font-size:13px;
-  padding: 6px 12px;
-}
-
-.ui-tooltip-content h3{
-  font-size:16px;
-  font-weight:700;
-  margin:0;
-}
-
-
-
 /* DATEPICKERS */
 #ui-datepicker-div{
   z-index: 9999 !important;
@@ -2777,6 +2731,110 @@ ul.dropdown-menu.dropdown-compliance > li {
 ul.dropdown-menu.dropdown-compliance > li > span:last-child {
   font-weight: bold;
 }
+
+/* OS ICONS */
+$node-logo-size: 50px;
+
+.os-logo {
+  width: $node-logo-size;
+  height: $node-logo-size;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.5;
+  margin-right: 10px;
+  cursor: help;
+  background-image: url(../../images/os/unknown-logo.svg);
+
+  @media (max-width: 992px){
+    &  {
+      display: none !important
+    }
+  }
+
+  &.linux{
+    background-image: url(../../images/os/linux-logo.svg);
+  }
+  &.debian{
+    background-image: url(../../images/os/debian-logo.svg);
+  }
+  &.kali{
+    background-image: url(../../images/os/kali-logo.svg);
+  }
+  &.ubuntu{
+    background-image: url(../../images/os/ubuntu-logo.svg);
+  }
+  &.redhat{
+    background-image: url(../../images/os/redhat-logo.svg);
+  }
+  &.centos{
+    background-image: url(../../images/os/centos-logo.svg);
+  }
+  &.fedora{
+    background-image: url(../../images/os/fedora-logo.svg);
+  }
+  &.suse{
+    background-image: url(../../images/os/suse-logo.svg);
+  }
+  &.android{
+    background-image: url(../../images/os/android-logo.svg);
+  }
+  &.oracle{
+    background-image: url(../../images/os/oracle-logo.svg);
+  }
+  &.scientific{
+    background-image: url(../../images/os/scientific-logo.svg);
+  }
+  &.slackware{
+    background-image: url(../../images/os/slackware-logo.svg);
+  }
+  &.mint{
+    background-image: url(../../images/os/mint-logo.svg);
+  }
+  &.rockylinux{
+    background-image: url(../../images/os/rocky-logo.svg);
+  }
+  &.almalinux{
+    background-image: url(../../images/os/alma-logo.svg);
+  }
+  &.raspbian{
+    background-image: url(../../images/os/raspbian-logo.svg);
+  }
+  &.windowsxp,
+  &.windowsvista,
+  &.windowsseven,
+  &.windows10,
+  &.windows2000,
+  &.windows2003,
+  &.windows2008,
+  &.windows2008r2{
+    background-image: url(../../images/os/windows-logo.svg);
+  }
+  &.windows,
+  &.windows2012,
+  &.windows2012r2,
+  &.windows2016,
+  &.windows2016r2,
+  &.windows2019{
+    background-image: url(../../images/os/windows-2012-logo.svg);
+  }
+  &.windows2022{
+    background-image: url(../../images/os/windows-2012-logo.svg);
+  }
+  &.aix{
+    background-image: url(../../images/os/aix-logo.svg);
+  }
+  &.solaris{
+    background-image: url(../../images/os/solaris-logo.svg);
+  }
+  &.bsd{
+    background-image: url(../../images/os/bsd-logo.svg);
+  }
+  &.freebsd{
+    background-image: url(../../images/os/freebsd-logo.svg);
+  }
+}
+
 /* KEYFRAMES */
 @-webkit-keyframes text-radio-on {
   0%   {color: #646464;}

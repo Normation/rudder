@@ -44,6 +44,7 @@ $primary    : $rudder-primary;
 $success    : $rudder-success;
 $warning    : $rudder-warning;
 $danger     : $rudder-danger;
+$info       : $rudder-info;
 
 $body-color : $rudder-txt-primary;
 $link-color : $rudder-txt-link;
@@ -54,6 +55,7 @@ $border-color: $rudder-border-color-default;
 $nav-underline-border-width : 0.2rem;
 $nav-underline-link-active-color: $rudder-txt-primary;
 
+$font-size-root: 14px;
 $input-font-size-sm: 12px;  // previous bootstrap 3 value VS 0.85rem default in bootstrap 5
 
 $border-color-translucent: $rudder-border-color-default;
@@ -103,9 +105,9 @@ $border-color-translucent: $rudder-border-color-default;
 }
 // --- FORM-GROUP
 .form-group{
-  margin-bottom: 5px;
+  margin-bottom: 10px;
   label{
-    font-weight: bold;
+    font-weight: 500;
   }
 }
 // --- NAV & TABS

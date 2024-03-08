@@ -468,6 +468,9 @@ ul {
   position: relative;
   display: flex;
 }
+.sidebar-navbar + .rudder-template .filters-container{
+  border-top : none !important;
+}
 .rudder-template .filters-container > div{
   flex: 1;
 }
@@ -577,21 +580,10 @@ ul {
 .rudder-template .main-details .nav-underline{
   margin: 0 -15px;
 }
-.rudder-template .sidebar-navbar ul{
+.rudder-template .sidebar-navbar ul {
   margin: 10px -15px 0px -15px;
-  padding: 0 15px;
-}
-.rudder-template .sidebar-navbar ul > li{
-  margin-right: 15px;
-  padding: 0 0 6px 0;
 }
 
-.rudder-template .sidebar-navbar ul > li > a{
-  padding: 0;
-  background-color: transparent !important;
-  border: none !important;
-  cursor: pointer;
-}
 .rudder-template .main-navbar ul > li > .fa-times {
   color: #72829d;
   padding: 3px 4px;
