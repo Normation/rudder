@@ -325,7 +325,7 @@ pub struct DeserItem {
     pub module: Option<String>,
     #[serde(deserialize_with = "PolicyMode::from_string")]
     #[serde(default)]
-    pub policy_mode: Option<PolicyMode>,
+    pub policy_mode_override: Option<PolicyMode>,
 }
 
 // Variant of Technique for first level of deserialization
@@ -390,7 +390,7 @@ impl DeserItem {
                     &self.name, &self.id
                 ))?,
                 info: None,
-                policy_mode: self.policy_mode,
+                policy_mode_override: self.policy_mode_override,
             })),
             (true, false, _, false) => {
                 bail!("Method {} ({}) requires params", self.name, self.id)
@@ -406,7 +406,7 @@ impl DeserItem {
                     "Module {} ({}) has an unexpected reporting mode",
                     self.name, self.id
                 ))?,
-                policy_mode: self.policy_mode,
+                policy_mode_override: self.policy_mode_override,
             })),
             (false, true, _, false) => {
                 bail!("Module {} ({}) requires params", self.name, self.id)
@@ -426,7 +426,7 @@ impl DeserItem {
                     .into_iter()
                     .map(|i| i.into_kind().unwrap())
                     .collect(),
-                policy_mode: self.policy_mode,
+                policy_mode_override: self.policy_mode_override,
             })),
             (false, false, false, false) => {
                 bail!("Block {} ({}) requires items", self.name, self.id)
@@ -473,7 +473,7 @@ pub struct Block {
     pub reporting: BlockReporting,
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub policy_mode: Option<PolicyMode>,
+    pub policy_mode_override: Option<PolicyMode>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -493,7 +493,7 @@ pub struct Module {
     pub reporting: LeafReporting,
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub policy_mode: Option<PolicyMode>,
+    pub policy_mode_override: Option<PolicyMode>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -516,7 +516,7 @@ pub struct Method {
     pub info: Option<&'static MethodInfo>,
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub policy_mode: Option<PolicyMode>,
+    pub policy_mode_override: Option<PolicyMode>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]

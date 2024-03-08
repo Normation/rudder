@@ -432,7 +432,7 @@ blockBody model parentId block ui techniqueUi =
           Opened -> element "div"
                       |> addClass ("gm-labels ")
                       |> appendChild
-                          ( element "div" |> addClass "gm-label rudder-label gm-label-label" |> appendText "Policy mode:")
+                          ( element "div" |> addClass "gm-label rudder-label gm-label-label" |> appendText "Policy mode override:")
                       |> appendChild
                          ( element "div"
                            |> addClass "btn-group"
@@ -441,7 +441,7 @@ blockBody model parentId block ui techniqueUi =
                                |> addClass ("btn dropdown-toggle rudder-label gm-label " ++ policyModeLabel)
                                |> addAttribute (attribute  "data-bs-toggle" "dropdown")
                                |> appendText (case block.policyMode of
-                                               Nothing -> "Default"
+                                               Nothing -> "None"
                                                Just Enforce -> " "
                                                Just Audit -> " "
                                              )
@@ -453,7 +453,7 @@ blockBody model parentId block ui techniqueUi =
                                       (element "a"
                                         |> addAction ("click",  MethodCallModified (Block parentId {block | policyMode = Nothing }) )
                                         |> addClass "dropdown-item"
-                                        |> appendText "Default"
+                                        |> appendText "None"
                                       )
                                  , element "li"
                                    |> appendChild

@@ -109,10 +109,10 @@ Blocks contains:
 * `tags` (optional): Optional key-value tags.
 * `items`: A list of items (block or method call). Cannot be empty.
 * `condition` (optional): A condition expression for the whole block. `true` is an always defined (default), `false` is never defined.
-* `policy_mode` (optional):
-  * `default`(default): Inherit policy mode from parent container
-  * `enforce`: Force the policy mode of all items within the block in enforce mode.
-  * `audit`: Force the policy mode of all items within the block in audit mode.
+* `policy_mode_override` (optional):
+  * `none`(default): Use the policy mode from parent container (or directive if no override)
+  * `enforce`: Force the policy mode of all items within the block to enforce mode.
+  * `audit`: Force the policy mode of all items within the block to audit mode.
 * `reporting` (optional):
   * `mode`
     * `weighted` (default)
@@ -121,6 +121,15 @@ Blocks contains:
     * `focus`: Apply the outcome of one of the included methods to the whole block, requires passing the `id` value
     * `disabled`: No reporting
   * `id` (required with `focus` mode): id of the method to focus reporting on.
+
+<div class="warning">
+Setting <code class="hljs">policy_mode_override</code> to <code class="hljs">enforce</code> will <strong>bypass the audit mode</strong>, so it must only be used
+for actions that <strong>do not modify the system</strong> and are required for proper audit mode operation (e.g.
+writing a temporary file to compare its content with the system).
+</div>
+
+<div class="warning">Policy mode effective value will always be the most closest override layer, meanning that an overridden policy mode on a method call
+will always prevail over directives and blocks values.</div>
 
 ```yaml
 items:
@@ -135,9 +144,6 @@ items:
       - ...
 ```
 
-<div class="warning">Policy mode effective value will always be taken from the latest override layer. Meaning that a forced policy mode on a method call
-will always prevail over directives and blocks ones.</div>
-
 ## Methods
 
 Methods contains:
@@ -148,14 +154,20 @@ Methods contains:
 * `tags` (optional): Optional key-value tags.
 * `params`: Key-Value dictionary of parameters for the method.
 * `condition` (optional): A condition expression for the method. `true` is an always defined (default), `false` is never defined.
-* `policy_mode` (optional):
-  * `default`(default): Inherit policy mode from parent container
+* `policy_mode_override` (optional):
+  * `none` (default): Inherit policy mode from parent container (ore directive if no override)
   * `enforce`: Force the policy mode to enforce mode.
   * `audit`: Force the policy mode to audit mode.
 * `reporting` (optional)
   * `mode`
     * `enabled` (default): Normal reporting
     * `disabled`: No reporting
+
+<div class="warning">
+Setting <code class="hljs">policy_mode_override</code> to <code class="hljs">enforce</code> will <strong>bypass the audit mode</strong>, so it must only be used
+for actions that <strong>do not modify the system</strong> and are required for proper audit mode operation (e.g.
+writing a temporary file to compare its content with the system).
+</div>
 
 The methods are documented in the next section of this documentation, sorted by category.
 
