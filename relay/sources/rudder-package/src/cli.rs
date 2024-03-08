@@ -46,13 +46,13 @@ pub struct Args {
 pub enum Command {
     /// Update package index and licenses from the repository
     Update {
-        #[clap(long, short, help = "Only check for server connectivity")]
+        #[clap(long, short, help = "Only check for server connectivity and exit")]
         check: bool,
 
         #[clap(
             long,
             short,
-            help = "Stop successfully if the repository is not reachable"
+            help = "Exit without error if the repository is not reachable"
         )]
         if_available: bool,
     },
@@ -61,7 +61,7 @@ pub enum Command {
         #[clap(
             long,
             short,
-            help = "Bypass compatibility check and force installation of given plugin"
+            help = "Bypass compatibility check and force installation of the given plugin version"
         )]
         force: bool,
 
@@ -88,7 +88,7 @@ pub enum Command {
     },
     /// Display the plugins list
     List {
-        #[clap(long, short, help = "Show all available plugins")]
+        #[clap(long, short, help = "Show all installed and available plugins")]
         all: bool,
 
         #[clap(long, short, help = "Show enabled plugins")]
