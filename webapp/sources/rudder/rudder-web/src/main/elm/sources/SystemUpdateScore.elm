@@ -3,10 +3,12 @@ port module SystemUpdateScore exposing (..)
 import Browser
 import Html
 import Html.String exposing (..)
-import Html.String.Attributes exposing (class, title)
+import Html.String.Attributes exposing (class, title, attribute)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import String.Extra
+
+import Compliance.Utils exposing (buildTooltipContent)
 
 port sendHtml : String -> Cmd msg
 port getValue : (Value -> msg) -> Sub msg
@@ -41,9 +43,15 @@ buildScoreDetails details =
         Just v  ->
           let
             valueTxt = String.fromInt v
-            titleTxt = (String.Extra.humanize id) ++ ": " ++ valueTxt
+            titleTxt = "<b>" ++ (String.Extra.humanize id) ++ ":</b> " ++ valueTxt
           in
-            span[class ("badge badge-type " ++ id), title titleTxt][i[class ("fa fa-" ++ iconClass)][], text valueTxt]
+            span
+            [ class ("badge badge-type " ++ id)
+            , attribute "data-bs-toggle" "tooltip"
+            , attribute "data-bs-placement" "top"
+            , title (buildTooltipContent "System updates" titleTxt)
+            ]
+            [ i[class ("fa fa-" ++ iconClass)][], text valueTxt ]
         Nothing -> text ""
   in
         div[]
