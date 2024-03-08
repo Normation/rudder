@@ -461,7 +461,7 @@ class ReportDisplayer(
                               onlySystem
                             )
                             & "#AllLogButton  [class+]" #> { if (runDate.isEmpty || tableId != "reportsGrid") "hide" else "" }
-                            & "#AllLogButton  [onClick]" #> {
+                            & "#AllLogButton  [onclick]" #> {
                               if (runDate.nonEmpty || tableId == "reportsGrid") {
                                 val init    = AnonFunc(logDisplayer.asyncDisplay(node.id, runDate, "complianceLogsGrid"))
                                 val refresh = AnonFunc(logDisplayer.ajaxRefresh(node.id, runDate, "complianceLogsGrid"))
@@ -485,7 +485,7 @@ class ReportDisplayer(
                               onlySystem
                             )
                             & "#AllLogButton [class+]" #> { if (runDate.isEmpty || tableId != "reportsGrid") "hide" else "" }
-                            & "#AllLogButton [onClick]" #> {
+                            & "#AllLogButton [onclick]" #> {
                               if (runDate.nonEmpty || tableId == "reportsGrid") {
                                 val init    = AnonFunc(logDisplayer.asyncDisplay(node.id, runDate, "complianceLogsGrid"))
                                 val refresh = AnonFunc(logDisplayer.ajaxRefresh(node.id, runDate, "complianceLogsGrid"))
