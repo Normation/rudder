@@ -7,7 +7,10 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tracing::error;
 
-use crate::{plugin, versions::RudderVersion};
+use crate::{
+    plugin,
+    versions::{ArchiveVersion, RudderVersion},
+};
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct RepoIndex {
@@ -44,11 +47,7 @@ impl RepoIndex {
         self.index.as_slice()
     }
 
-    // What we need to do with the index:
-    //
-    // * get latest version of a given plugin (for install)
-    // * get latest version of all plugins (for list)
-
+    /// Get latest version of all plugins (for list)
     pub fn latest_compatible_plugins(&self, webapp_version: &RudderVersion) -> Vec<&Plugin> {
         let names = self
             .index
@@ -62,6 +61,7 @@ impl RepoIndex {
             .collect()
     }
 
+    /// Get latest version of a given plugin (for install with name only, or upgrade)
     pub fn latest_compatible_plugin(
         &self,
         webapp_version: &RudderVersion,
@@ -73,6 +73,32 @@ impl RepoIndex {
                 plugin_name == p.metadata.name && webapp_version.is_compatible(&p.metadata.version)
             })
             .max_by_key(|p| &p.metadata.version)
+    }
+
+    /// Get a precise version of a given plugin (for install with name:version)
+    pub fn matching_compatible_plugin(
+        &self,
+        webapp_version: &RudderVersion,
+        plugin_name: &str,
+        plugin_version: &ArchiveVersion,
+    ) -> Option<&Plugin> {
+        self.index
+            .iter()
+            .filter(|p| {
+                plugin_name == p.metadata.name && webapp_version.is_compatible(&p.metadata.version)
+            })
+            .find(|p| &p.metadata.version == plugin_version)
+    }
+
+    /// Get a precise version of a given plugin regardless of compatibility (for install with name:version + force)
+    pub fn any_matching_plugin(
+        &self,
+        plugin_name: &str,
+        plugin_version: &ArchiveVersion,
+    ) -> Option<&Plugin> {
+        self.index
+            .iter()
+            .find(|p| p.metadata.name == plugin_name && &p.metadata.version == plugin_version)
     }
 }
 

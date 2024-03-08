@@ -6,6 +6,7 @@ use std::{
     fs::{self, *},
     io::BufWriter,
     path::{Path, PathBuf},
+    str::FromStr,
 };
 
 use anyhow::{anyhow, bail, Context, Result};
@@ -18,6 +19,7 @@ use crate::{
     plugin::{self, short_name},
     repo_index::RepoIndex,
     repository::Repository,
+    versions::ArchiveVersion,
     webapp::Webapp,
     PACKAGES_FOLDER, TMP_PLUGINS_FOLDER,
 };
@@ -103,14 +105,36 @@ impl Database {
         let rpkg_path = if Path::new(&package).exists() && package.ends_with(".rpkg") {
             package.to_string()
         } else {
-            // Find compatible plugin if any
-            let to_dl_and_install = match index.and_then(|i|i.latest_compatible_plugin(&webapp.version, package)) {
-                    None => bail!("Could not find any compatible '{}' plugin with the current Rudder version in the configured repository.", package),
-                    Some(p) => {
-                        debug!("Found a compatible plugin in the repository:\n{:?}", p);
-                        p
-                    }
-                };
+            let i = match index {
+                Some(i) => i,
+                None => bail!("No index was found from remote repository. Try running 'rudder package update'.")
+            };
+
+            let to_dl_and_install = if let Some(v) = version {
+                let parsed_version = ArchiveVersion::from_str(v)?;
+                if force {
+                    i.any_matching_plugin(package, &parsed_version)
+                        .ok_or(anyhow!(
+                            "Could not find any plugin matching '{}:{}'",
+                            package,
+                            v,
+                        ))
+                } else {
+                    i.matching_compatible_plugin(&webapp.version, package, &parsed_version)
+                        .ok_or(anyhow!(
+                            "Could not find any compatible plugin matching '{}:{}'",
+                            package,
+                            v,
+                        ))
+                }
+            } else {
+                i.latest_compatible_plugin(&webapp.version, package)
+                    .ok_or(anyhow!(
+                        "Could not find any compatible '{}' plugin",
+                        package
+                    ))
+            }?;
+
             let dest = Path::new(TMP_PLUGINS_FOLDER).join(
                 Path::new(&to_dl_and_install.path)
                     .file_name()
