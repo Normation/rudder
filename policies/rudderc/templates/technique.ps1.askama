@@ -32,7 +32,7 @@ function {{ id|dsc_case }} {
         ClassPrefix = ([Rudder.Condition]::canonify(("{{ m.class_prefix }}_" + $componentKey)))
         ComponentKey = $componentKey
         ComponentName = "{{ m.component_name|escape_double_quotes }}"
-        PolicyMode = {{ m.policy_mode|policy_mode_fmt }}
+        PolicyMode = {{ m.policy_mode_override|policy_mode_fmt }}
         ReportId = $reportId
         DisableReporting = ${{ m.disable_reporting }}
         TechniqueName = $techniqueName
@@ -47,7 +47,7 @@ function {{ id|dsc_case }} {
                 {{- arg.0 }} = {{ arg|parameter_fmt }}
             {% endfor %}
         }
-        $call = {{ m.name|dsc_case }} @methodParams -PolicyMode {{ m.policy_mode|policy_mode_fmt }}
+        $call = {{ m.name|dsc_case }} @methodParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }}
         $methodContext = Compute-Method-Call @reportParams -MethodCall $call
         $localContext.merge($methodContext)
     } else {
@@ -59,7 +59,7 @@ function {{ id|dsc_case }} {
             {{- arg.0 }} = {{ arg|parameter_fmt }}
         {% endfor %}
     }
-    $call = {{ m.name|dsc_case }} @methodParams -PolicyMode {{ m.policy_mode|policy_mode_fmt }}
+    $call = {{ m.name|dsc_case }} @methodParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }}
     $methodContext = Compute-Method-Call @reportParams -MethodCall $call
     $localContext.merge($methodContext)
     {% endmatch %}

@@ -157,7 +157,7 @@ struct WindowsMethod {
     args: Vec<(String, String, Escaping)>,
     name: String,
     is_supported: bool,
-    policy_mode: Option<PolicyMode>,
+    policy_mode_override: Option<PolicyMode>,
 }
 
 fn method_call(
@@ -211,14 +211,14 @@ fn method_call(
         args,
         name: filters::dsc_case(&m.info.as_ref().unwrap().bundle_name).unwrap(),
         is_supported,
-        policy_mode: if let Some(x) = policy_mode_context {
-            if m.policy_mode.is_none() {
+        policy_mode_override: if let Some(x) = policy_mode_context {
+            if m.policy_mode_override.is_none() {
                 Some(x)
             } else {
-                m.policy_mode
+                m.policy_mode_override
             }
         } else {
-            m.policy_mode
+            m.policy_mode_override
         },
     })
 }
@@ -246,7 +246,7 @@ impl Windows {
                         calls.extend(resolve_module(
                             inner,
                             context.and(&r.condition),
-                            r.policy_mode,
+                            r.policy_mode_override,
                         )?);
                     }
                     Ok(calls)

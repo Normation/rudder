@@ -106,8 +106,8 @@ pub fn method_call(
         info.bundle_name
     );
 
-    let push_policy_mode = dry_run_mode::push_policy_mode(m.policy_mode, unique.clone());
-    let pop_policy_mode = dry_run_mode::pop_policy_mode(m.policy_mode, unique.clone());
+    let push_policy_mode = dry_run_mode::push_policy_mode(m.policy_mode_override, unique.clone());
+    let pop_policy_mode = dry_run_mode::pop_policy_mode(m.policy_mode_override, unique.clone());
     let incall_condition = "${method_call_condition}".to_string();
 
     let mut promises = match (&condition, is_supported) {

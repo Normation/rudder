@@ -71,17 +71,17 @@ case class Technique(
 
 case class MethodItem(
     // Common fields
-    id:          String,
-    name:        String,
-    reporting:   Option[Reporting],
-    condition:   Option[String],
-    tags:        Option[Map[String, String]],
+    id:                   String,
+    name:                 String,
+    reporting:            Option[Reporting],
+    condition:            Option[String],
+    tags:                 Option[Map[String, String]],
     // Call specific fields
-    method:      Option[String],
-    params:      Option[Map[ParameterId, String]],
+    method:               Option[String],
+    params:               Option[Map[ParameterId, String]],
     // Block specific fields
-    items:       Option[List[MethodItem]],
-    policy_mode: Option[PolicyMode]
+    items:                Option[List[MethodItem]],
+    policy_mode_override: Option[PolicyMode]
 )
 
 case class Reporting(
@@ -169,7 +169,7 @@ object YamlTechniqueSerializer {
             reporting,
             item.condition.getOrElse(""),
             items,
-            item.policy_mode
+            item.policy_mode_override
           )
         }
       case None        =>
@@ -184,7 +184,7 @@ object YamlTechniqueSerializer {
                 item.name,
                 // boolean for "disableReporting"
                 item.reporting.map(_.mode == "disabled").getOrElse(false),
-                item.policy_mode
+                item.policy_mode_override
               )
             )
           case None         => Left(Consistancy("error"))

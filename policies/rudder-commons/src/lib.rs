@@ -309,7 +309,7 @@ impl PolicyMode {
         String::deserialize(deserializer).and_then(|string| match string.as_ref() {
             "enforce" => Ok(Some(PolicyMode::Enforce)),
             "audit" => Ok(Some(PolicyMode::Audit)),
-            "default" => Ok(None),
+            "none" => Ok(None),
             _ => Err(Error::custom(format!(
                 "Could not parse policy mode '{}'",
                 string
