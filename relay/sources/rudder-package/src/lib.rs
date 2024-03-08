@@ -111,17 +111,22 @@ pub fn run_inner(args: Args) -> Result<()> {
         Command::Install { force, package } => {
             let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
             let mut errors = false;
-            for p in &long_names(package) {
-                if let Err(e) = db.install(force, p, &repo, index.as_ref(), &mut webapp) {
+            for full_p in &long_names(package) {
+                // Extract version numbers
+                let (p, v) = match full_p.split_once(':') {
+                    None => (full_p.as_str(), None),
+                    Some((p, v)) => (p, Some(v)),
+                };
+
+                if let Err(e) = db.install(force, p, v, &repo, index.as_ref(), &mut webapp) {
                     errors = true;
                     error!("Installation of {} failed: {e:?}", short_name(p));
                 }
             }
             if errors {
                 bail!("Some plugin installation failed");
-            } else {
-                info!("Installation ran successfully");
             }
+            info!("Installation ran successfully");
         }
         Command::Uninstall { package } => {
             let mut errors = false;
@@ -133,9 +138,8 @@ pub fn run_inner(args: Args) -> Result<()> {
             }
             if errors {
                 bail!("Some plugin uninstallation failed");
-            } else {
-                info!("Uninstallation ran successfully");
             }
+            info!("Uninstallation ran successfully");
         }
         Command::Upgrade {
             all,
@@ -160,9 +164,8 @@ pub fn run_inner(args: Args) -> Result<()> {
                 }
                 if errors {
                     bail!("Some scripts failed");
-                } else {
-                    info!("All postinstall scripts ran successfully");
                 }
+                info!("All postinstall scripts ran successfully");
             } else {
                 // Normal upgrades
                 let to_upgrade: Vec<String> = if all {
@@ -181,16 +184,15 @@ pub fn run_inner(args: Args) -> Result<()> {
                 };
                 let mut errors = false;
                 for p in &to_upgrade {
-                    if let Err(e) = db.install(false, p, &repo, index.as_ref(), &mut webapp) {
+                    if let Err(e) = db.install(false, p, None, &repo, index.as_ref(), &mut webapp) {
                         errors = true;
                         error!("Could not upgrade {}: {e:?}", short_name(p))
                     }
                 }
                 if errors {
                     bail!("Some plugins were not upgraded correctly");
-                } else {
-                    info!("All plugins were upgraded successfully");
                 }
+                info!("All plugins were upgraded successfully");
             }
         }
         Command::List {
