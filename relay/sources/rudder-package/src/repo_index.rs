@@ -3,9 +3,10 @@
 
 use std::{collections::HashSet, fs, path::Path};
 
+use anyhow::{bail, Context};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use tracing::error;
+use tracing::warn;
 
 use crate::{plugin, versions::RudderVersion};
 
@@ -21,20 +22,31 @@ impl RepoIndex {
     pub fn from_path(path: &str) -> Result<Option<Self>, anyhow::Error> {
         if Path::new(path).exists() {
             let data = fs::read_to_string(path)?;
-            match serde_json::from_str(&data) {
-                Ok(index) => {
-                    let modified = fs::metadata(path)?.modified()?;
-                    let latest_update: DateTime<Utc> = modified.into();
-                    Ok(Some(Self {
-                        index,
-                        latest_update,
-                    }))
-                }
-                Err(e) => {
-                    error!("Could not parse index from repository: {:?}", e);
-                    Ok(None)
+            // First read as JSON to avoid failing on invalid entries
+            let raw_json: serde_json::Value =
+                serde_json::from_str(&data).context("Parsing index from repository")?;
+            let Some(plugins) = raw_json.as_array() else {
+                bail!("The repository index must be an array")
+            };
+
+            let modified = fs::metadata(path)?.modified()?;
+            let latest_update: DateTime<Utc> = modified.into();
+
+            let mut index = vec![];
+            for entry in plugins {
+                match serde_json::from_value(entry.clone()) {
+                    Ok(p) => index.push(p),
+                    Err(e) => warn!(
+                        "Could not parse entry '{}' from repository index: {:?}",
+                        serde_json::to_string(entry)?,
+                        e
+                    ),
                 }
             }
+            Ok(Some(Self {
+                index,
+                latest_update,
+            }))
         } else {
             Ok(None)
         }

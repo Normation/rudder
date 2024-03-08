@@ -37,5 +37,9 @@
       "files.txz": "/opt/rudder/"
     },
     "path": "./8.0/rudder-plugin-vault-8.0.0~rc1-2.1-nightly.rpkg/nightly/rudder-plugin-vault-8.0.0~rc1-2.1-nightly.rpkg"
+  },
+  {
+    "malformed": "entry",
+    "should not": "break index reading"
   }
 ]
