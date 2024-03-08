@@ -41,8 +41,6 @@
   bottom: 100px;
   right: 100px;
   z-index: 1;
-  font-family: var(--font-sans);
-  font-size: 14px;
 }
 
 .fm-bar {

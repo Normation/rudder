@@ -39,7 +39,7 @@
 
 @import "rudder-variables";
 
-// --- VARIABLES
+// --- COLORS
 $primary    : $rudder-primary;
 $success    : $rudder-success;
 $warning    : $rudder-warning;
@@ -51,14 +51,21 @@ $link-color : $rudder-txt-link;
 $tooltip-color: $rudder-txt-primary;
 
 $border-color: $rudder-border-color-default;
+$border-color-translucent: $rudder-border-color-default;
 
-$nav-underline-border-width : 0.2rem;
 $nav-underline-link-active-color: $rudder-txt-primary;
 
-$font-size-root: 14px;
+// --- FONTS
+// $font-size-root affects the value of `rem`, which is used for as well font sizes, paddings, and margins
+// $font-size-base affects the font size of the body text
+$font-size-root: 16px;
+$font-size-base: .875rem; // == 14px;
+
+$nav-link-font-size: 1rem;
 $input-font-size-sm: 12px;  // previous bootstrap 3 value VS 0.85rem default in bootstrap 5
 
-$border-color-translucent: $rudder-border-color-default;
+// --- NAV
+$nav-underline-border-width : 0.2rem;
 
 @import "../../node_modules/bootstrap/scss/bootstrap";
 
