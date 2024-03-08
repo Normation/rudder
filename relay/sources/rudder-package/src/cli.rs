@@ -58,10 +58,16 @@ pub enum Command {
     },
     /// Install plugins, locally or from the repository
     Install {
-        #[clap(long, short, help = "Force installation of given plugin")]
+        #[clap(
+            long,
+            short,
+            help = "Bypass compatibility check and force installation of given plugin"
+        )]
         force: bool,
 
-        #[clap()]
+        #[clap(
+            help = "Plugin name(s). You can specify a precise version with 'name:version' (like 'cve:8.1.0-1.2')"
+        )]
         package: Vec<String>,
     },
     /// Upgrade plugins
@@ -77,7 +83,7 @@ pub enum Command {
     },
     /// Uninstall plugins
     Uninstall {
-        #[clap()]
+        #[clap(help = "Plugin name(s)")]
         package: Vec<String>,
     },
     /// Display the plugins list
@@ -93,14 +99,14 @@ pub enum Command {
     },
     /// Show detailed information about a plugin
     Show {
-        #[clap()]
+        #[clap(help = "Plugin name(s)")]
         package: Vec<String>,
     },
     /// Show general information about plugin management
     Info {},
     /// Enable installed plugins
     Enable {
-        #[clap()]
+        #[clap(help = "Plugin name(s)")]
         package: Vec<String>,
 
         #[clap(long, short, help = "Enable all installed plugins")]
@@ -118,7 +124,7 @@ pub enum Command {
     },
     /// Disable installed plugins
     Disable {
-        #[clap()]
+        #[clap(help = "Plugin name(s)")]
         package: Vec<String>,
 
         #[clap(long, short, help = "Disable all installed plugins")]
