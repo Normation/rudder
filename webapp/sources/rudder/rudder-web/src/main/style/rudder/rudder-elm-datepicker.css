@@ -43,6 +43,7 @@ button.form-control.btn-datepicker:disabled {
 .elm-datepicker-container{
   display: flex;
   flex-direction: column;
+  flex: 1;
 }
 .elm-datepicker-container .form-control{
   cursor: pointer;
