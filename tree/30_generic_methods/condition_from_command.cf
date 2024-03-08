@@ -93,19 +93,25 @@
 bundle agent condition_from_command(condition, command, true_codes, false_codes)
 {
   vars:
-      "old_class_prefix"  string => canonify("condition_from_command_${condition}");
-      "args"               slist => { "${condition}", "${command}", "${true_codes}", "${false_codes}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("condition_from_command_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
-      "true_list"     slist => splitstring("${true_codes}", "\s*,\s*", "256");
-      "false_list"    slist => splitstring("${false_codes}", "\s*,\s*", "256");
+      "class_prefix"  string => canonify("condition_from_command_${condition}");
+      "true_list"      slist => splitstring("${true_codes}", "\s*,\s*", "256");
+      "false_list"     slist => splitstring("${false_codes}", "\s*,\s*", "256");
+    pass3::
+      "message"       string => "The command '${command}' was successfully executed and the condition '${condition}_true' was defined",
+                          if => "${report_data.method_id}_true";
+      "message"       string => "The command '${command}' returned an exit code from the 'false_codes' list and the condition '${condition}_false' was defined",
+                          if => "${report_data.method_id}_false";
+      "message"       string => "The command '${command}' returned an unexpected exit code no conditions were defined",
+                      unless => "${report_data.method_id}_true|${report_data.method_id}_false";
 
   classes:
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
+      "${condition}_true"  expression => "${report_data.method_id}_true",
+                                scope => "namespace";
+      "${condition}_false" expression => "${report_data.method_id}_false",
+                                scope => "namespace";
 
   methods:
     pass1.!pass2::
@@ -114,12 +120,12 @@ bundle agent condition_from_command(condition, command, true_codes, false_codes)
     pass2.!pass3::
       "restore_dry_run_${class_prefix}" usebundle => pop_dry_run_mode();
     pass3::
-      "report"
-        usebundle  => _log_v3("Execute the test command ${command} to create ${condition}_{true,false}", "${condition}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}"
+        usebundle  => log_rudder_v4("${condition}", "${message}", "${condition}");
 
   commands:
-    pass1.!pass2::
+    pass1.!pass2.!pass3::
       "${command}"
         contain      => in_shell,
-        classes      => classes_generic_return_boolean_list_two("${old_class_prefix}", "${class_prefix}", "${condition}", @{true_list}, @{false_list});
+        classes      => classes_generic_return_boolean_list_two("${class_prefix}", "${report_data.method_id}", "${report_data.method_id}", @{true_list}, @{false_list});
 }

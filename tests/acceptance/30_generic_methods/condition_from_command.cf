@@ -162,25 +162,25 @@ bundle agent test
 
   methods:
     # Enforce
-    "ph0"  usebundle => apply_gm("condition_from_command", @{args0},  "${init.status[0]}",  "ph0",  "${init.mode[0]}");
-    "ph1"  usebundle => apply_gm("condition_from_command", @{args1},  "${init.status[1]}",  "ph1",  "${init.mode[1]}");
-    "ph2"  usebundle => apply_gm("condition_from_command", @{args2},  "${init.status[2]}",  "ph2",  "${init.mode[2]}");
-    "ph3"  usebundle => apply_gm("condition_from_command", @{args3},  "${init.status[3]}",  "ph3",  "${init.mode[3]}");
-    "ph4"  usebundle => apply_gm("condition_from_command", @{args4},  "${init.status[4]}",  "ph4",  "${init.mode[4]}");
-    "ph5"  usebundle => apply_gm("condition_from_command", @{args5},  "${init.status[5]}",  "ph5",  "${init.mode[5]}");
-    "ph6"  usebundle => apply_gm("condition_from_command", @{args6},  "${init.status[6]}",  "ph6",  "${init.mode[6]}");
-    "ph7"  usebundle => apply_gm("condition_from_command", @{args7},  "${init.status[7]}",  "ph7",  "${init.mode[7]}");
-    "ph8"  usebundle => apply_gm("condition_from_command", @{args8},  "${init.status[8]}",  "ph8",  "${init.mode[8]}");
+    "ph0"  usebundle => apply_gm_v4("condition_from_command", @{args0},  "${init.status[0]}",  "ph0",  "${init.mode[0]}");
+    "ph1"  usebundle => apply_gm_v4("condition_from_command", @{args1},  "${init.status[1]}",  "ph1",  "${init.mode[1]}");
+    "ph2"  usebundle => apply_gm_v4("condition_from_command", @{args2},  "${init.status[2]}",  "ph2",  "${init.mode[2]}");
+    "ph3"  usebundle => apply_gm_v4("condition_from_command", @{args3},  "${init.status[3]}",  "ph3",  "${init.mode[3]}");
+    "ph4"  usebundle => apply_gm_v4("condition_from_command", @{args4},  "${init.status[4]}",  "ph4",  "${init.mode[4]}");
+    "ph5"  usebundle => apply_gm_v4("condition_from_command", @{args5},  "${init.status[5]}",  "ph5",  "${init.mode[5]}");
+    "ph6"  usebundle => apply_gm_v4("condition_from_command", @{args6},  "${init.status[6]}",  "ph6",  "${init.mode[6]}");
+    "ph7"  usebundle => apply_gm_v4("condition_from_command", @{args7},  "${init.status[7]}",  "ph7",  "${init.mode[7]}");
+    "ph8"  usebundle => apply_gm_v4("condition_from_command", @{args8},  "${init.status[8]}",  "ph8",  "${init.mode[8]}");
 
     # Audit
-    "ph9"  usebundle => apply_gm("condition_from_command", @{args9},  "${init.status[9]}",  "ph9",  "${init.mode[9]}");
-    "ph10" usebundle => apply_gm("condition_from_command", @{args10}, "${init.status[10]}", "ph10", "${init.mode[10]}");
-    "ph11" usebundle => apply_gm("condition_from_command", @{args11}, "${init.status[11]}", "ph11", "${init.mode[11]}");
-    "ph12" usebundle => apply_gm("condition_from_command", @{args12}, "${init.status[12]}", "ph12", "${init.mode[12]}");
-    "ph13" usebundle => apply_gm("condition_from_command", @{args13}, "${init.status[13]}", "ph13", "${init.mode[13]}");
-    "ph14" usebundle => apply_gm("condition_from_command", @{args14}, "${init.status[14]}", "ph14", "${init.mode[14]}");
-    "ph15" usebundle => apply_gm("condition_from_command", @{args15}, "${init.status[15]}", "ph15", "${init.mode[15]}");
-    "ph16" usebundle => apply_gm("condition_from_command", @{args16}, "${init.status[16]}", "ph16", "${init.mode[16]}");
+    "ph9"  usebundle => apply_gm_v4("condition_from_command", @{args9},  "${init.status[9]}",  "ph9",  "${init.mode[9]}");
+    "ph10" usebundle => apply_gm_v4("condition_from_command", @{args10}, "${init.status[10]}", "ph10", "${init.mode[10]}");
+    "ph11" usebundle => apply_gm_v4("condition_from_command", @{args11}, "${init.status[11]}", "ph11", "${init.mode[11]}");
+    "ph12" usebundle => apply_gm_v4("condition_from_command", @{args12}, "${init.status[12]}", "ph12", "${init.mode[12]}");
+    "ph13" usebundle => apply_gm_v4("condition_from_command", @{args13}, "${init.status[13]}", "ph13", "${init.mode[13]}");
+    "ph14" usebundle => apply_gm_v4("condition_from_command", @{args14}, "${init.status[14]}", "ph14", "${init.mode[14]}");
+    "ph15" usebundle => apply_gm_v4("condition_from_command", @{args15}, "${init.status[15]}", "ph15", "${init.mode[15]}");
+    "ph16" usebundle => apply_gm_v4("condition_from_command", @{args16}, "${init.status[16]}", "ph16", "${init.mode[16]}");
 
 }
 
