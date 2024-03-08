@@ -54,11 +54,9 @@ import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.ldap.LDAPDiffMapper
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.user.PersonIdentService
-
 import com.normation.zio._
 import java.security.MessageDigest
 import org.joda.time.DateTime
-
 import zio._
 import zio.syntax._
 

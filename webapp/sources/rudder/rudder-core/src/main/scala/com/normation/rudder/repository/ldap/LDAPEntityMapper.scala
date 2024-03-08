@@ -1091,7 +1091,8 @@ class LDAPEntityMapper(
                                          }
                                      }
                                  }
-        tenants               <- NodeSecurityContext.parse(e(A_API_TENANT)).left.map(err => InventoryMappingRudderError.UnexpectedObject(err.fullMsg))
+        tenants               <-
+          NodeSecurityContext.parse(e(A_API_TENANT)).left.map(err => InventoryMappingRudderError.UnexpectedObject(err.fullMsg))
       } yield {
 
         def warnOnIgnoreAuthz(): Unit = {

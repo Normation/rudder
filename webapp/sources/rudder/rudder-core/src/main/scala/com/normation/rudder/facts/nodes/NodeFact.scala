@@ -1673,7 +1673,7 @@ object NodeSecurityContext       {
    * None means "all" for compat
    */
   def parse(tenantString: Option[String], ignoreMalformed: Boolean = true): PureResult[NodeSecurityContext] = {
-    parseList(tenantString.map(_.split(",").toList.map(_.trim)))
+    parseList(tenantString.map(_.split(",").toList))
   }
 
   def parseList(tenants: Option[List[String]], ignoreMalformed: Boolean = true): PureResult[NodeSecurityContext] = {
