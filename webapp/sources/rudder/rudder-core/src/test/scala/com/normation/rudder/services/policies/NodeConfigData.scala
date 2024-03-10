@@ -396,7 +396,7 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
       rootId,
       None
     ),
-    RudderAgent(Dsc, admin1, AgentVersion("7.0.0"), Certificate("windows-node-dsc-certificate"), Chunk.empty),
+    RudderAgent(Dsc, admin1, AgentVersion("7.0.0"), Certificate(CERT), Chunk.empty),
     Chunk.empty,
     DateTime.now,
     DateTime.now,
