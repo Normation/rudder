@@ -1316,7 +1316,7 @@ class GroupApiService14(
   def getNodePropertiesTree(
       groupId:      NodeGroupId,
       renderInHtml: RenderInheritedProperties
-  )(implicit qc:    QueryContext): IOResult[JRGroupInheritedProperties] = {
+  )(implicit qc: QueryContext): IOResult[JRGroupInheritedProperties] = {
     for {
       groupLibrary <- readGroup.getFullGroupLibrary()
       allGroups     = groupLibrary.allGroups

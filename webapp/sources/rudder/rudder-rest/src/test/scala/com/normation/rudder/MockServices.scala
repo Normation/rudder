@@ -259,20 +259,20 @@ class MockCompliance(mockDirectives: MockDirectives) {
 
     def registerChangeCallbackAction(callback: NodeFactChangeEventCallback): IOResult[Unit] = ???
     def getStatus(id:                          NodeId)(implicit qc:   QueryContext): IOResult[InventoryStatus] = ???
-    def get(nodeId:                            NodeId)(implicit qc:   QueryContext, status:         SelectNodeStatus): IOResult[Option[CoreNodeFact]]  = ???
+    def get(nodeId:                            NodeId)(implicit qc:   QueryContext, status:    SelectNodeStatus): IOResult[Option[CoreNodeFact]]  = ???
     def slowGet(
         nodeId: NodeId
     )(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): IOResult[Option[NodeFact]] = ???
     def getNodesbySofwareName(softName:        String): IOResult[List[(NodeId, Software)]] = ???
-    def slowGetAll()(implicit qc:              QueryContext, status:  SelectNodeStatus, attrs:      SelectFacts):      errors.IOStream[NodeFact]       = ???
-    def save(nodeFact:                         NodeFact)(implicit cc: ChangeContext, attrs:         SelectFacts):      IOResult[NodeFactChangeEventCC] = ???
-    def setSecurityTag(nodeId: NodeId, tag: Option[SecurityTag])(implicit cc: ChangeContext):  IOResult[NodeFactChangeEventCC]    =
+    def slowGetAll()(implicit qc:              QueryContext, status:  SelectNodeStatus, attrs: SelectFacts):      errors.IOStream[NodeFact]       = ???
+    def save(nodeFact:                         NodeFact)(implicit cc: ChangeContext, attrs:    SelectFacts):      IOResult[NodeFactChangeEventCC] = ???
+    def setSecurityTag(nodeId: NodeId, tag: Option[SecurityTag])(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] =
       ???
     def updateInventory(inventory: FullInventory, software: Option[Iterable[Software]])(implicit
         cc: ChangeContext
     ): IOResult[NodeFactChangeEventCC] = ???
-    def changeStatus(nodeId:                   NodeId, into:          InventoryStatus)(implicit cc: ChangeContext):    IOResult[NodeFactChangeEventCC] = ???
-    def delete(nodeId:                         NodeId)(implicit cc:   ChangeContext): IOResult[NodeFactChangeEventCC] = ???
+    def changeStatus(nodeId: NodeId, into: InventoryStatus)(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] = ???
+    def delete(nodeId: NodeId)(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] = ???
 
   }
 

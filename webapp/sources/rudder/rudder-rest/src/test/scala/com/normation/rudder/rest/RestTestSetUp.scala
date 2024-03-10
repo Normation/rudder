@@ -198,7 +198,7 @@ class RestTestSetUp {
 
   implicit val userService: TestUserService = new TestUserService
   class TestUserService extends UserService {
-    val user: AuthenticatedUser = new AuthenticatedUser {
+    val user:           AuthenticatedUser = new AuthenticatedUser {
       val account: RudderAccount = RudderAccount.User("test-user", "pass")
       def checkRights(auth: AuthorizationType) = true
       def getApiAuthz: ApiAuthz            = ApiAuthz.allAuthz

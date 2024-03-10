@@ -42,7 +42,6 @@ import com.normation.rudder.Role
 import com.normation.rudder.api.*
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.facts.nodes.NodeSecurityContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.*
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.web.services.UserSessionLogEvent
@@ -463,7 +462,7 @@ class RudderXmlUserDetailsContextMapper(authConfigProvider: UserDetailListProvid
 }
 
 sealed trait ProviderRoleExtension {
-  def name: String
+  def name:     String
   def priority: Int = this match {
     case ProviderRoleExtension.None         => 0
     case ProviderRoleExtension.NoOverride   => 1

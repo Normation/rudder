@@ -530,7 +530,7 @@ class CoreNodeFactRepository(
   }
 
   private def deleteOn(ref: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
-      cc:                   ChangeContext
+      cc: ChangeContext
   ): IOResult[StorageChangeEventDelete] = {
     tenantService
       .getTenants()
@@ -609,7 +609,7 @@ class CoreNodeFactRepository(
    * In the first case, we use the existing coreNodeFact for save.
    */
   private def internalSave(
-      node:      Either[NodeFact, (NodeId, Option[SecurityTag])]
+      node: Either[NodeFact, (NodeId, Option[SecurityTag])]
   )(implicit cc: ChangeContext, attrs: SelectFacts): IOResult[NodeFactChangeEventCC] = {
     ZIO.scoped(
       for {
@@ -666,13 +666,13 @@ class CoreNodeFactRepository(
   }
 
   override def setSecurityTag(nodeId: NodeId, tag: Option[SecurityTag])(implicit
-      cc:                             ChangeContext
+      cc: ChangeContext
   ): IOResult[NodeFactChangeEventCC] = {
     internalSave(Right((nodeId, tag)))(cc, SelectFacts.none)
   }
 
   override def save(
-      nodeFact:  NodeFact
+      nodeFact: NodeFact
   )(implicit cc: ChangeContext, attrs: SelectFacts = SelectFacts.all): IOResult[NodeFactChangeEventCC] = {
     checkRootProperties(nodeFact) *>
     checkAgentKey(nodeFact) *>

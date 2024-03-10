@@ -167,7 +167,7 @@ object AclPathSegment {
  *
  */
 sealed trait AclPath extends Any {
-  def value: String = parts.toList.map(_.value).mkString("/")
+  def value:   String = parts.toList.map(_.value).mkString("/")
   def parts:   NonEmptyList[AclPathSegment]
   def display: String
 }

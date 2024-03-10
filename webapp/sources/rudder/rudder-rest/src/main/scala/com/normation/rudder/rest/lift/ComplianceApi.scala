@@ -880,13 +880,13 @@ class ComplianceAPIService(
       nodeGroupComplianceId: String,
       nodeGroupName:         String,
       serverList:            Set[NodeId],
-      allDirectives:      Map[DirectiveId, (FullActiveTechnique, Directive)],
-      nodeFacts:          MapView[NodeId, CoreNodeFact],
-      nodeSettings:       Map[NodeId, RudderSettings],
-      rules:              Seq[Rule],
-      allRuleInfos:       Map[RuleId, (Chunk[NodeId], Option[PolicyMode])],
-      level:              Option[Int],
-      isGlobalCompliance: Boolean
+      allDirectives:         Map[DirectiveId, (FullActiveTechnique, Directive)],
+      nodeFacts:             MapView[NodeId, CoreNodeFact],
+      nodeSettings:          Map[NodeId, RudderSettings],
+      rules:                 Seq[Rule],
+      allRuleInfos:          Map[RuleId, (Chunk[NodeId], Option[PolicyMode])],
+      level:                 Option[Int],
+      isGlobalCompliance:    Boolean
   )(implicit qc: QueryContext): IOResult[ByNodeGroupCompliance] = {
     val ruleMap = rules.map(r => (r.id, r)).toMap
     val ruleIds = ruleMap.keySet

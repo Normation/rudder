@@ -42,7 +42,6 @@ import cats.data.Validated.Valid
 import cats.data.ValidatedNel
 import com.normation.box.*
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.*
 import com.normation.inventory.domain.NodeId

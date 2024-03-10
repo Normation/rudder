@@ -53,7 +53,7 @@ import org.junit.runner.RunWith
 import org.slf4j.LoggerFactory
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-import zio._
+import zio.*
 
 @RunWith(classOf[JUnitRunner])
 class TestWriteNodeCertificatesPem extends Specification {

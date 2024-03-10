@@ -92,8 +92,8 @@ import scala.util.matching.Regex
 import scala.xml.Elem
 import scala.xml.Node
 import scala.xml.NodeSeq
-import zio.{System => _, _}
-import zio.syntax._
+import zio.{System as _, *}
+import zio.syntax.*
 
 /*
  * Utilities about rights
