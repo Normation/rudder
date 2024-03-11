@@ -41,7 +41,8 @@ $navbar-hover-color : #F4F4F4;
 .wrapper {
   min-height: 100%;
   position: static;
-  overflow: hidden
+  overflow: hidden;
+  float: left;
 }
 .content-wrapper{
   transition: transform .3s ease-in-out,margin .3s ease-in-out;
