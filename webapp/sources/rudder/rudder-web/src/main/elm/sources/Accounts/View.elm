@@ -88,5 +88,4 @@ view model =
         ]
       ]
     , displayModals model
-    , displayCopy model
     ]
