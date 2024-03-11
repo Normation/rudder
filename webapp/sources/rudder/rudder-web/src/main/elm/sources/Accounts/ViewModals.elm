@@ -119,46 +119,39 @@ displayModals model =
               , account.authorisationType == "acl"
               )
   in
-    div [class ("modal modal-account fade " ++ modalClass)]
-    [ div [class "modal-backdrop fade show", onClick (ToggleEditPopup NoModal)][]
-    , div [class "modal-dialog"]
-      [ div [class "modal-content"]
-        [ div [class "modal-header"]
-          [ h5 [class "modal-title"] [text modalTitle]
-          , button [type_ "button", class "btn-close", attribute "data-bs-dismiss" "modal", attribute "aria-label" "Close"][]
-          ]
-        , div [class "modal-body"]
-          [ popupBody
-            -- ACL plugin container
-          , div [id "apiauthorization-app", style "display" (if displayAcl then "block" else "none")]
-            [ div [id "apiauthorization-content"][]
+    case model.ui.copyState of
+      NoCopy ->
+        div [class ("modal modal-account fade " ++ modalClass)]
+        [ div [class "modal-backdrop fade show", onClick (ToggleEditPopup NoModal)][]
+        , div [class "modal-dialog"]
+          [ div [class "modal-content"]
+            [ div [class "modal-header"]
+              [ h5 [class "modal-title"] [text modalTitle]
+              , button [type_ "button", class "btn-close", attribute "data-bs-dismiss" "modal", attribute "aria-label" "Close"][]
+              ]
+            , div [class "modal-body"]
+              [ popupBody
+                -- ACL plugin container
+              , div [id "apiauthorization-app", style "display" (if displayAcl then "block" else "none")]
+                [ div [id "apiauthorization-content"][]
+                ]
+              ]
+            , div [class "modal-footer"]
+              [ button [type_ "button", class "btn btn-default", onClick (ToggleEditPopup NoModal)] [ text "Close" ]
+              , button [type_ "button", class ("btn btn-" ++ btnClass), onClick saveAction, disabled (checkEmptyBtn || checkAlreadyUsedName) ][text btnTxt]
+              ]
             ]
           ]
-        , div [class "modal-footer"]
-          [ button [type_ "button", class "btn btn-default", onClick (ToggleEditPopup NoModal)] [ text "Close" ]
-          , button [type_ "button", class ("btn btn-" ++ btnClass), onClick saveAction, disabled (checkEmptyBtn || checkAlreadyUsedName) ][text btnTxt]
-          ]
         ]
-      ]
-    ]
-
-
--- Almost a modal as it is a notification that requires user interaction (copy)
-displayCopy : Model -> Html Msg
-displayCopy model =
-    let
-      t = case model.ui.copyState of
-          NoCopy -> ""
-          Token string -> string
-      modalClass = if model.ui.copyState == NoCopy then "" else " show"
-    in
-        div [class ("modal fade" ++ modalClass)]
+      Token txt ->
+        -- Almost a modal as it is a notification that requires user interaction (copy)
+        div [class "modal fade show", style "display" "block"]
         [ div [class "modal-backdrop fade show", onClick (CloseCopyPopup)][]
         , div [class "modal-dialog"]
           [ div [class "modal-content"]
             [ div [class "modal-header"]
               [ h5 [class "modal-title"] [text "Copy the token"]
-              , button [type_ "button", class "btn-close", attribute "data-bs-dismiss" "modal", attribute "aria-label" "Close"][]
+              , button [type_ "button", class "btn-close", attribute "data-bs-dismiss" "modal", attribute "aria-label" "Close", onClick (CloseCopyPopup)][]
               ]
             , div [class "modal-body"]
               [ div[]
@@ -166,9 +159,10 @@ displayCopy model =
                   [ i [class "fa fa-exclamation-triangle"][]
                   , text "This is the only time the token value will be available."
                   ]
-                , div [][ span [class "token-txt"]
-                  [ text t ]
-                  , a [ class "btn-goto always clipboard", title "Copy to clipboard", onClick (Copy t) ]
+                , div []
+                  [ span [class "token-txt"]
+                    [ text txt ]
+                  , a [ class "btn-goto always clipboard", title "Copy to clipboard", onClick (Copy txt) ]
                     [ i [class "ion ion-clipboard"][] ]
                   ]
                 ]
@@ -179,3 +173,5 @@ displayCopy model =
             ]
           ]
         ]
+
+
