@@ -660,10 +660,10 @@ function callRemoteRun(nodeId, refreshCompliance) {
   });
 }
 
-function showHideRunLogs(scrollTarget, init, refresh) {
-  $("#AllLogButton").toggle()
-  $("#logRun").toggle()
-  if ( ! $.fn.DataTable.isDataTable( '#complianceLogsGrid' ) ) {
+function showHideRunLogs(scrollTarget, tabId, init, refresh) {
+  $("#allLogButton-" + tabId).toggle()
+  $("#logRun-" + tabId).toggle()
+  if ( ! $.fn.DataTable.isDataTable( '#complianceLogsGrid-' + tabId ) && init !== undefined) {
     init()
   }
   if (refresh !== undefined) {
