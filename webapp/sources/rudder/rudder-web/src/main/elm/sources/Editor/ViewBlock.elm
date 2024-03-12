@@ -466,6 +466,7 @@ blockBody model parentId block ui techniqueUi =
                                    |> appendChild
                                       (element "a"
                                         |> addAction ("click",  MethodCallModified (Block parentId {block | policyMode = Just Enforce }) )
+                                        |> addClass "dropdown-item"
                                         |> appendText "Enforce"
                                       )
                                   ]
