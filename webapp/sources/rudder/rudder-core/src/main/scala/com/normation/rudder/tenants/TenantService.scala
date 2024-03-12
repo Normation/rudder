@@ -42,6 +42,7 @@ import com.normation.errors.IOResult
 import com.normation.errors.IOStream
 import com.normation.errors.RudderError
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
@@ -115,7 +116,20 @@ object DefaultTenantService {
   }
 }
 
-class DefaultTenantService(var tenantsEnabled: Boolean, val tenantIds: Ref[Set[TenantId]]) extends TenantService {
+/*
+ *  _tenantsEnabled is accessed in a lot of hot path, we prefer not to encapsulate it into a Ref.
+ * We still put its modification behind a eval.
+ */
+class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: Ref[Set[TenantId]]) extends TenantService {
+
+  def setTenantEnabled(isEnabled: Boolean): UIO[Unit] = {
+    ApplicationLoggerPure.Plugin.info(s"Multi-tenants feature enabled: ${isEnabled}") *>
+    ZIO.succeed { _tenantsEnabled = isEnabled }
+  }
+
+  override def tenantsEnabled: Boolean = {
+    _tenantsEnabled
+  }
 
   override def getTenants(): UIO[Set[TenantId]] = {
     if (tenantsEnabled) tenantIds.get
