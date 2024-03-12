@@ -313,7 +313,10 @@ class MockCompliance(mockDirectives: MockDirectives) {
     def findRuleNodeStatusReports(nodeIds: Set[NodeId], filterByRules: Set[RuleId])(implicit
         qc:                                QueryContext
     ): Box[Map[NodeId, NodeStatusReport]] = {
-      Full(statusReports)
+      val filteredNodeReports = statusReports.view.filterKeys(nodeIds.contains(_)).toMap
+      Full(
+        filterReportsByRules(filteredNodeReports, filterByRules)
+      )
     }
 
     def findDirectiveNodeStatusReports(

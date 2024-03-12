@@ -51,7 +51,7 @@ buildScoreDetails details =
             , attribute "data-bs-placement" "top"
             , title (buildTooltipContent "System updates" titleTxt)
             ]
-            [ i[class ("fa fa-" ++ iconClass)][], text valueTxt ]
+            [ i[class ("fa fa-" ++ iconClass)][], text (" " ++ valueTxt) ]
         Nothing -> text ""
   in
         div[]

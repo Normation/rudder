@@ -2289,24 +2289,6 @@ response:
               }
             ],
             "nodes" : [
-              {
-                "id" : "bn5",
-                "name" : "node1.localhost",
-                "mode" : "full-compliance",
-                "compliance" : 0.0,
-                "policyMode" : "enforce",
-                "complianceDetails" : {},
-                "rules" : []
-              },
-              {
-                "id" : "bn4",
-                "name" : "node1.localhost",
-                "mode" : "full-compliance",
-                "compliance" : 0.0,
-                "policyMode" : "enforce",
-                "complianceDetails" : {},
-                "rules" : []
-              }
             ]
           }
         ]

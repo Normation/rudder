@@ -883,10 +883,9 @@ class ComplianceAPIService(
       currentGroupNodeIds = nodeGroup.serverList
 
       t1            <- currentTimeMillis
-      // filter reports only for nodes in the current group and applicable rules to get the compliance consistency at any level
       reportsByNode <- reportingService
                          .findRuleNodeStatusReports(
-                           nodeSettings.keySet -- currentGroupNodeIds,
+                           nodeSettings.keySet,
                            ruleIds
                          )
                          .toIO
