@@ -16,6 +16,176 @@ import scala.annotation.nowarn
 import zio.json.ast.Json
 
 @RunWith(classOf[JUnitRunner])
+class UserRepositoryUtilsTest extends Specification {
+
+  "UserRepositoryTest computeUpdatedUserList" should {
+    val actor    = EventActor("test")
+    val dateInit = DateTime.parse("2023-09-01T01:01:01Z")
+    val date2    = DateTime.parse("2023-09-02T02:02:02Z")
+
+    val users = List("alice", "bob", "charlie", "mallory")
+
+    // INIT USERS
+    val traceInit               = EventTrace(actor, dateInit)
+    val historyInit             = List(StatusHistory(UserStatus.Active, traceInit))
+    val trace2                  = EventTrace(actor, date2)
+    val AUTH_PLUGIN_NAME_LOCAL  = "test-file"
+    val AUTH_PLUGIN_NAME_REMOTE = "test-oidc"
+    val userInfosInit           = {
+      /*
+       *  When users are first init:
+       * - user in file are active
+       * - history is just their creation
+       * - since it's a first time, all user creation date is date of first load
+       * - they all originate from auth plugin
+       */
+      users
+        .map(u => {
+          u -> UserInfo(
+            u,
+            dateInit,
+            UserStatus.Active,
+            AUTH_PLUGIN_NAME_LOCAL,
+            None,
+            None,
+            None,
+            historyInit,
+            Json.Obj()
+          )
+        })
+        .toMap
+    }
+
+    // update status history for a new user with the date of the trace
+    // this method may be useful because computeUpdatedUserList always return a user using the trace date
+    def updateInitUserWithTrace(name: String, trace: EventTrace): UserInfo = {
+      userInfosInit(name)
+        .modify(_.creationDate)
+        .setTo(trace.actionDate)
+        .modify(_.statusHistory)
+        // default initial status. For now the computeUpdatedUserList method does not append the trace
+        .setTo(StatusHistory(UserStatus.Active, trace) :: Nil)
+    }
+
+    "returns initial users when passed with empty arguments" in {
+      val expected = {
+        Map(
+          "alice"   -> updateInitUserWithTrace("alice", trace2),
+          "mallory" -> updateInitUserWithTrace("mallory", trace2),
+          "bob"     -> updateInitUserWithTrace("bob", trace2),
+          "charlie" -> updateInitUserWithTrace("charlie", trace2)
+        )
+      }
+      UserRepository.computeUpdatedUserList(
+        users,
+        AUTH_PLUGIN_NAME_LOCAL,
+        trace = EventTrace(actor, date2),
+        zombies = Map.empty,
+        managed = Map.empty
+      ) must be equalTo (expected)
+
+    }
+
+    val bobZombie = userInfosInit("bob")
+      .modify(_.status)
+      .setTo(UserStatus.Deleted)
+      .modify(_.statusHistory)
+      .using(
+        StatusHistory(UserStatus.Deleted, trace2) :: _
+      )
+
+    "returns same users when zombies are from the same origin" in {
+      val activeUsers = List("alice", "mallory", "charlie")
+      val expected    = Map(
+        "alice"   -> updateInitUserWithTrace("alice", trace2),
+        "mallory" -> updateInitUserWithTrace("mallory", trace2),
+        "bob"     -> bobZombie,
+        "charlie" -> updateInitUserWithTrace("charlie", trace2)
+      )
+
+      UserRepository.computeUpdatedUserList(
+        activeUsers,
+        AUTH_PLUGIN_NAME_LOCAL,
+        trace = EventTrace(actor, date2),
+        zombies = Map("bob" -> bobZombie),
+        managed = Map.empty
+      ) must be equalTo (expected)
+    }
+
+    "returns updated users when zombies is resurrected with a different origin" in {
+      val bobRevived = userInfosInit("bob")
+        .modify(_.status)
+        .setTo(UserStatus.Active)
+        .modify(_.managedBy)
+        .setTo(AUTH_PLUGIN_NAME_REMOTE)
+        .modify(_.statusHistory)
+        .using(StatusHistory(UserStatus.Disabled, trace2) :: _)
+      val expected   = Map(
+        "bob" -> bobRevived
+      )
+
+      UserRepository.computeUpdatedUserList(
+        List("bob"),
+        AUTH_PLUGIN_NAME_REMOTE,
+        trace = trace2,
+        zombies = Map("bob" -> bobRevived),
+        managed = Map.empty
+      ) must be equalTo (expected)
+    }
+
+    "returns updated users when user is added back to active users list, from the same origin and after having been deleted" in {
+      val activeUsers = List("alice", "bob", "charlie", "mallory")
+
+      val bobRevived = bobZombie
+        .modify(_.status)
+        .setTo(UserStatus.Active)
+        .modify(_.statusHistory)
+        .using(StatusHistory(UserStatus.Active, trace2) :: _)
+
+      val expected = Map(
+        "alice"   -> updateInitUserWithTrace("alice", trace2),
+        "mallory" -> updateInitUserWithTrace("mallory", trace2),
+        "bob"     -> bobRevived,
+        "charlie" -> updateInitUserWithTrace("charlie", trace2)
+      )
+
+      UserRepository.computeUpdatedUserList(
+        activeUsers,
+        AUTH_PLUGIN_NAME_LOCAL,
+        trace = EventTrace(actor, date2),
+        zombies = Map("bob" -> bobZombie),
+        managed = Map.empty
+      ) must be equalTo (expected)
+    }
+
+    "returns updated users when managed and not in the active users should be deleted" in {
+      val activeUsers = List("alice", "charlie", "mallory")
+
+      val bobManaged = userInfosInit("bob")
+        .modify(_.status)
+        .setTo(UserStatus.Deleted)
+        .modify(_.statusHistory)
+        .using(StatusHistory(UserStatus.Deleted, trace2) :: _)
+
+      val expected = Map(
+        "alice"   -> updateInitUserWithTrace("alice", trace2),
+        "mallory" -> updateInitUserWithTrace("mallory", trace2),
+        "bob"     -> bobManaged,
+        "charlie" -> updateInitUserWithTrace("charlie", trace2)
+      )
+
+      UserRepository.computeUpdatedUserList(
+        activeUsers,
+        AUTH_PLUGIN_NAME_LOCAL,
+        trace = EventTrace(actor, date2),
+        zombies = Map.empty,
+        managed = Map("bob" -> userInfosInit("bob"))
+      ) must be equalTo (expected)
+    }
+  }
+}
+
+@RunWith(classOf[JUnitRunner])
 class InMemoryUserRepositoryTest extends UserRepositoryTest {
   override def doobie: Doobie = null
 }
@@ -117,10 +287,46 @@ trait UserRepositoryTest extends Specification with Loggable {
       }
     }
 
-    // BOB is rept removed after setting the users again without BOB
+    // BOB is added again to the active users and is 'active'
+    val dateBobReactivated      = DateTime.parse("2023-09-02T02:03:03Z")
+    val traceBobReactivated     = EventTrace(actor, dateBobReactivated)
+    val userInfosBobReactivated = {
+      /*
+       * When bob is added back (ie in the list of user from the files):
+       * - Bob is in the list, but with a status "active"
+       * - history lines only contains the creation one
+       * - other users are not changed
+       */
+      userInfosBobRemoved.map {
+        case u if (u.id == "bob") =>
+          u.modify(_.status)
+            .setTo(UserStatus.Active)
+            .modify(_.statusHistory)
+            .using(StatusHistory(UserStatus.Active, traceBobReactivated) :: _)
+
+        case u => u
+      }
+    }
+
+    // BOB is kept removed after setting the users again without BOB
     val dateBobRemovedIdempotent      = DateTime.parse("2023-09-02T02:03:04Z")
     val traceBobRemovedIdempotent     = EventTrace(actor, dateBobRemovedIdempotent)
-    val userInfosBobRemovedIdempotent = userInfosBobRemoved
+    val userInfosBobRemovedIdempotent = {
+      /*
+       * When bob is removed again (ie not in the list of user from the files):
+       * - Bob is in the list, but with a status deleted and a new history line
+       * - other users are not changed
+       */
+      userInfosBobReactivated.map {
+        case u if (u.id == "bob") =>
+          u.modify(_.status)
+            .setTo(UserStatus.Deleted)
+            .modify(_.statusHistory)
+            .using(StatusHistory(UserStatus.Deleted, traceBobRemovedIdempotent) :: _)
+
+        case u => u
+      }
+    }
 
     // BOB added back from OIDC
     val dateBobOidc      = DateTime.parse("2023-09-03T03:03:03Z")
@@ -134,7 +340,7 @@ trait UserRepositoryTest extends Specification with Loggable {
        * - and a new history line exists (keeping the old ones - it's the same bob)
        * - other users are not changed
        */
-      userInfosBobRemoved.map {
+      userInfosBobRemovedIdempotent.map {
         case u if (u.id == "bob") =>
           u.modify(_.status)
             .setTo(UserStatus.Active)
@@ -187,7 +393,14 @@ trait UserRepositoryTest extends Specification with Loggable {
       repo.getAll().runNow.toUTC must containTheSameElementsAs(userInfosBobRemoved)
     }
 
+    "Reactivating 'deleted' users by setting existing users" >> {
+      repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, users, traceBobReactivated).runNow
+      repo.getAll().runNow.toUTC must containTheSameElementsAs(userInfosBobReactivated)
+    }
+
     "If an user is reloaded from the same origin, it should be kept as is" >> {
+      // removing it again first, then a second time to check idempotency
+      repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, userFileBobRemoved, traceBobRemovedIdempotent).runNow
       repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, userFileBobRemoved, traceBobRemovedIdempotent).runNow
       repo.getAll().runNow.toUTC must containTheSameElementsAs(userInfosBobRemovedIdempotent)
     }
