@@ -177,6 +177,15 @@ mod markdown {
 |------|---------------|
 {parameters}
 
+#### Outcome conditions
+
+You need to replace `${{{class_parameter}}}` with its actual canonified value.
+
+* ✅ Ok: `{class_prefix}_${{{class_parameter}}}_ok`
+  * ☑️  Already compliant: `{class_prefix}_${{{class_parameter}}}_kept`
+  * 🟨 Repaired: `{class_prefix}_${{{class_parameter}}}_repaired`
+* ❌ Error: `{class_prefix}_${{{class_parameter}}}_error`
+
 #### Example
 
 ```yaml
@@ -186,6 +195,8 @@ mod markdown {
 {documentation}
 ",
             bundle_name = m.bundle_name,
+            class_prefix = m.class_prefix,
+            class_parameter = m.class_parameter,
             agents = m
                 .agent_support
                 .iter()
