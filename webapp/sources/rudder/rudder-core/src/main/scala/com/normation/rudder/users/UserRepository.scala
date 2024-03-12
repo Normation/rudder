@@ -216,22 +216,39 @@ object UserRepository {
     val allUpdatable = zombies.keySet ++ managed.keySet
 
     // the real new ones are neither zombies nor managed by that origin, bootstrap them.
-    val realNew = activeUsers.collect {
+    val realNew = activeUsers.flatMap {
       case k if (!allUpdatable.contains(k)) =>
-        (
-          k,
-          UserInfo(
+        Some(
+          (
             k,
-            trace.actionDate,
-            UserStatus.Active,
-            origin,
-            None,
-            None,
-            None,
-            List(StatusHistory(UserStatus.Active, trace)),
-            Json.Obj()
+            UserInfo(
+              k,
+              trace.actionDate,
+              UserStatus.Active,
+              origin,
+              None,
+              None,
+              None,
+              List(StatusHistory(UserStatus.Active, trace)),
+              Json.Obj()
+            )
           )
         )
+      // deleted users that are in active users list should be active again if they are from the same origin
+      case k                                =>
+        zombies.get(k) match {
+          case Some(u) if (u.status == UserStatus.Deleted && u.managedBy == origin) =>
+            Some(
+              (
+                k,
+                u.modify(_.status)
+                  .setTo(UserStatus.Active)
+                  .modify(_.statusHistory)
+                  .using(StatusHistory(UserStatus.Active, trace) :: _)
+              )
+            )
+          case _                                                                    => None
+        }
     }.toMap
 
     // `resurrected` are zombie that get back to live with the new origin. For users with same origin, we keep them as is.
@@ -266,7 +283,7 @@ object UserRepository {
         )
     }
 
-    realNew ++ resurrectedOrSameOrigin ++ deleted
+    resurrectedOrSameOrigin ++ deleted ++ realNew
   }
 
 }
