@@ -17,7 +17,7 @@ init flags =
     initUI       = UI initFilters NoModal flags.hasWriteRights True
     initModel    = Model flags.contextPath Loading initUI initCategory Dict.empty
     listInitActions =
-      [ getGroupsTree initModel
+      [ getGroupsTree initModel True
       ]
   in
     ( initModel
