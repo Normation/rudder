@@ -125,7 +125,7 @@ type Msg
   | OpenGroupDetails GroupId
   | OpenCategoryDetails String
   | FoldAllCategories Filters
-  | GetGroupsTreeResult (Result Error (Category Group))
+  | GetGroupsTreeResult (Result Error (Category Group)) Bool
   | GetGroupsComplianceResult Bool (Result Error (List GroupComplianceSummary))
   | UpdateGroupFilters      Filters
 
