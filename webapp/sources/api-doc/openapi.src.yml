@@ -111,6 +111,12 @@ tags:
 
 
       Get OpenSCAP reports for nodes.
+  - name: "🧩 Multi-tenants"
+    description: >-
+      **Requires that the `multitenants` plugin is installed on the server.**
+
+
+      Manage tenants and set them on nodes.
 paths:
   "/info":
     $ref: paths/info/all.yml
@@ -340,3 +346,9 @@ paths:
     $ref: paths/systemUpdate/campaignHistory.yml
   "/openscap/report/{nodeId}":
     $ref: paths/openscap/report.yml
+  "/tenants":
+    $ref: paths/tenants/all.yml
+  "/tenants/{id}":
+    $ref: paths/tenants/id.yml
+  "/securitytags/nodes":
+    $ref: paths/securitytags/nodes.yml

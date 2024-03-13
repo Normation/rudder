@@ -1,0 +1,64 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2024 Normation SAS
+post:
+  summary: Define a tenant on nodes
+  description: Set given tenant to the list of nodes. You can give several (tenantId, nodes) in one go.
+  operationId: setNodeSecurityTags
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            type: object
+            required:
+              - tenantId
+              - nodeIds
+            properties:
+              tenantId:
+                type: string
+                description: the ID of the tenant to set on nodes
+              nodeIds:
+                type: array
+                items:
+                  type: string
+                  description: a node ID on which the tenant must be defined
+  responses:
+    "200":
+      description: The list of tenants with their documentation information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - listGroups
+              data:
+                type: object
+                required:
+                  - tenants
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/tenant.yml
+  tags:
+    - Tenants
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/securitytags/nodes.sh
