@@ -474,32 +474,32 @@ class InventoryMapper(
       case VirtualMachineType(Virtuozzo)     => OC_OC_VM_VIRTUOZZO
       case VirtualMachineType(LXC)           => OC_OC_VM_LXC
       case PhysicalMachineType               => OC_OC_PM
-      case UnknownMachineType                => OC_OC_PM // we didn't had unknown in that time and physical was the default
+      case UnknownMachineType                => OC_OC_MACHINE
     }
   }
 
-  def machineTypeFromObjectClasses(objectClassNames: Set[String]): Option[MachineType] = {
-    def objectClass2MachineType(oc: LDAPObjectClass): Option[MachineType] = {
+  def machineTypeFromObjectClasses(objectClassNames: Set[String]): MachineType = {
+    def objectClass2MachineType(oc: LDAPObjectClass): MachineType = {
       oc match {
-        case LDAPObjectClass(OC_VM, _, _, _)              => Some(VirtualMachineType(UnknownVmType))
-        case LDAPObjectClass(OC_VM_VIRTUALBOX, _, _, _)   => Some(VirtualMachineType(VirtualBox))
-        case LDAPObjectClass(OC_VM_XEN, _, _, _)          => Some(VirtualMachineType(Xen))
-        case LDAPObjectClass(OC_VM_VMWARE, _, _, _)       => Some(VirtualMachineType(VMWare))
-        case LDAPObjectClass(OC_VM_SOLARIS_ZONE, _, _, _) => Some(VirtualMachineType(SolarisZone))
-        case LDAPObjectClass(OC_VM_QEMU, _, _, _)         => Some(VirtualMachineType(QEmu))
-        case LDAPObjectClass(OC_VM_AIX_LPAR, _, _, _)     => Some(VirtualMachineType(AixLPAR))
-        case LDAPObjectClass(OC_VM_HYPERV, _, _, _)       => Some(VirtualMachineType(HyperV))
-        case LDAPObjectClass(OC_VM_BSDJAIL, _, _, _)      => Some(VirtualMachineType(BSDJail))
-        case LDAPObjectClass(OC_VM_LXC, _, _, _)          => Some(VirtualMachineType(LXC))
-        case LDAPObjectClass(OC_VM_VIRTUOZZO, _, _, _)    => Some(VirtualMachineType(Virtuozzo))
-        case LDAPObjectClass(OC_VM_OPENVZ, _, _, _)       => Some(VirtualMachineType(OpenVZ))
-        case LDAPObjectClass(OC_PM, _, _, _)              => Some(PhysicalMachineType)
-        case _                                            => None
+        case LDAPObjectClass(OC_VM, _, _, _)              => VirtualMachineType(UnknownVmType)
+        case LDAPObjectClass(OC_VM_VIRTUALBOX, _, _, _)   => VirtualMachineType(VirtualBox)
+        case LDAPObjectClass(OC_VM_XEN, _, _, _)          => VirtualMachineType(Xen)
+        case LDAPObjectClass(OC_VM_VMWARE, _, _, _)       => VirtualMachineType(VMWare)
+        case LDAPObjectClass(OC_VM_SOLARIS_ZONE, _, _, _) => VirtualMachineType(SolarisZone)
+        case LDAPObjectClass(OC_VM_QEMU, _, _, _)         => VirtualMachineType(QEmu)
+        case LDAPObjectClass(OC_VM_AIX_LPAR, _, _, _)     => VirtualMachineType(AixLPAR)
+        case LDAPObjectClass(OC_VM_HYPERV, _, _, _)       => VirtualMachineType(HyperV)
+        case LDAPObjectClass(OC_VM_BSDJAIL, _, _, _)      => VirtualMachineType(BSDJail)
+        case LDAPObjectClass(OC_VM_LXC, _, _, _)          => VirtualMachineType(LXC)
+        case LDAPObjectClass(OC_VM_VIRTUOZZO, _, _, _)    => VirtualMachineType(Virtuozzo)
+        case LDAPObjectClass(OC_VM_OPENVZ, _, _, _)       => VirtualMachineType(OpenVZ)
+        case LDAPObjectClass(OC_PM, _, _, _)              => PhysicalMachineType
+        case _                                            => UnknownMachineType
       }
     }
     val machineTypes = objectClassNames.filter(x => machineTypesNames.exists(y => x.equalsIgnoreCase(y)))
     val types = OC.demux(machineTypes.toSeq: _*) - OC(OC_MACHINE)
-    if (types.size == 1) objectClass2MachineType(types.head) else None
+    if (types.size == 1) objectClass2MachineType(types.head) else UnknownMachineType
   }
 
   def treeFromMachine(machine: MachineInventory): LDAPTree = {
@@ -586,7 +586,7 @@ class InventoryMapper(
       dit               <- ditService.getDit(tree.root.dn).notOptional(s"Impossible to find DIT for entry '${tree.root.dn.toString()}'")
       inventoryStatus    = ditService.getInventoryStatus(dit)
       id                <- dit.MACHINES.MACHINE.idFromDN(tree.root.dn).toIO
-      machineType       <- machineTypeFromObjectClasses(tree.root.valuesFor(A_OC).toSet).notOptional("Can not find machine types")
+      machineType        = machineTypeFromObjectClasses(tree.root.valuesFor(A_OC).toSet)
       name               = tree.root(A_NAME)
       mbUuid             = tree.root(A_MB_UUID) map { x => MotherBoardUuid(x) }
       inventoryDate      = tree.root.getAsGTime(A_INVENTORY_DATE).map(_.dateTime)

@@ -6,6 +6,7 @@ import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
 import com.normation.rudder.api.RoApiAccountRepository
 import com.normation.rudder.api.WoApiAccountRepository
 import com.normation.rudder.apidata.ApiAccountSerialisation._
+import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.RestUtils._
 import com.normation.rudder.tenants.TenantService
 import com.normation.rudder.users.UserService
@@ -105,7 +106,8 @@ class RestApiAccounts(
                   restApiAccount.description.getOrElse(""),
                   restApiAccount.enabled.getOrElse(true),
                   now,
-                  now
+                  now,
+                  restApiAccount.tenants.getOrElse(NodeSecurityContext.All)
                 )
                 writeApi.save(account, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor).either.runNow match {
                   case Right(_) =>
@@ -294,7 +296,8 @@ final case class RestApiAccount(
     enabled:     Option[Boolean],
     oldId:       Option[ApiAccountId],
     expiration:  Option[Option[DateTime]],
-    authz:       Option[ApiAuthz]
+    authz:       Option[ApiAuthz],
+    tenants:     Option[NodeSecurityContext]
 ) {
 
   // Id cannot change if already defined

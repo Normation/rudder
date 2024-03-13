@@ -42,7 +42,6 @@ import cats.data.Validated.Valid
 import cats.data.ValidatedNel
 import com.normation.box._
 import com.normation.errors._
-import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain._
 import com.normation.inventory.domain.NodeId
@@ -222,7 +221,7 @@ class NodeApi(
         _     <- NodeLoggerPure.info(s"API request for creating nodes: [${nodes.map(n => s"${n.id} (${n.status})").mkString("; ")}]")
         res   <- ZIO.foldLeft(nodes)(ResultHolder(Nil, Nil)) {
                    case (res, node) =>
-                     nodeApiService.saveNode(node, authzToken.qc.actor, req.remoteAddr).either.map {
+                     nodeApiService.saveNode(node, authzToken.qc, req.remoteAddr).either.map {
                        case Right(id) => res.modify(_.created).using(_ :+ id)
                        case Left(err) => res.modify(_.failed).using(_ :+ ((node.id, err)))
                      }
@@ -360,7 +359,7 @@ class NodeApi(
         .map(_.getOrElse(deleteDefaultMode))
         .getOrElse(deleteDefaultMode)
 
-      nodeApiService.deleteNode(NodeId(id), authzToken.qc.actor, req.remoteAddr, pretiffy, mode)
+      nodeApiService.deleteNode(NodeId(id), authzToken.qc, req.remoteAddr, pretiffy, mode)
     }
   }
 
@@ -383,7 +382,7 @@ class NodeApi(
         new DateTime(),
         params.reason,
         Some(req.remoteAddr),
-        QueryContext.todoQC.nodePerms
+        authzToken.qc.nodePerms
       )
 
       (for {
@@ -420,7 +419,7 @@ class NodeApi(
       } else {
         (restExtractor.extractNodeIds(req.params), restExtractor.extractNodeStatus(req.params))
       }
-      nodeApiService.changeNodeStatus(nodeIds, nodeStatus, authzToken.qc.actor, req.remoteAddr, prettify)
+      nodeApiService.changeNodeStatus(nodeIds, nodeStatus, authzToken.qc, req.remoteAddr, prettify)
     }
   }
 
@@ -445,7 +444,7 @@ class NodeApi(
       } else {
         restExtractor.extractNodeStatus(req.params)
       }
-      nodeApiService.changeNodeStatus(Full(Some(List(NodeId(id)))), nodeStatus, authzToken.qc.actor, req.remoteAddr, prettify)
+      nodeApiService.changeNodeStatus(Full(Some(List(NodeId(id)))), nodeStatus, authzToken.qc, req.remoteAddr, prettify)
     }
   }
 
@@ -808,7 +807,7 @@ class NodeApiService(
    * - if needed, accept
    * - now, setup node info (property, state, etc)
    */
-  def saveNode(nodeDetails: Rest.NodeDetails, eventActor: EventActor, actorIp: String): IO[CreationError, NodeId] = {
+  def saveNode(nodeDetails: Rest.NodeDetails, qc: QueryContext, actorIp: String): IO[CreationError, NodeId] = {
     def toCreationError(res: ValidatedNel[NodeValidationError, NodeTemplate]) = {
       res match {
         case Invalid(nel) => CreationError.OnValidation(nel).fail
@@ -818,11 +817,11 @@ class NodeApiService(
 
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(uuidGen.newUuid),
-      eventActor,
+      qc.actor,
       new DateTime(),
       None,
       Some(actorIp),
-      QueryContext.todoQC.nodePerms
+      qc.nodePerms
     )
 
     for {
@@ -1262,7 +1261,7 @@ class NodeApiService(
   def changeNodeStatus(
       nodeIds:          Box[Option[List[NodeId]]],
       nodeStatusAction: Box[NodeStatusAction],
-      actor:            EventActor,
+      qc:               QueryContext,
       actorIp:          String,
       prettifyStatus:   Boolean
   ): LiftResponse = {
@@ -1275,7 +1274,7 @@ class NodeApiService(
         nodeStatusAction match {
           case Full(nodeStatusAction) =>
             modifyStatusFromAction(ids, nodeStatusAction)(
-              ChangeContext(modId, actor, DateTime.now(), None, Some(actorIp), QueryContext.todoQC.nodePerms)
+              ChangeContext(modId, qc.actor, DateTime.now(), None, Some(actorIp), qc.nodePerms)
             ) match {
               case Full(result) =>
                 toJsonResponse(None, ("nodes" -> JArray(result)))
@@ -1652,13 +1651,13 @@ class NodeApiService(
     }
   }
 
-  def deleteNode(id: NodeId, actor: EventActor, actorIp: String, prettify: Boolean, mode: DeleteMode): LiftResponse = {
+  def deleteNode(id: NodeId, qc: QueryContext, actorIp: String, prettify: Boolean, mode: DeleteMode): LiftResponse = {
     implicit val p      = prettify
     implicit val action = "deleteNode"
     val modId           = ModificationId(uuidGen.newUuid)
 
     removeNodeService
-      .removeNodePure(id, mode)(ChangeContext(modId, actor, DateTime.now(), None, Some(actorIp), QueryContext.todoQC.nodePerms))
+      .removeNodePure(id, mode)(ChangeContext(modId, qc.actor, DateTime.now(), None, Some(actorIp), qc.nodePerms))
       .toBox match {
       case Full(info) =>
         val l = info match {

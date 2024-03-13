@@ -86,9 +86,16 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     MockLdapFactStorage.ldap.server.entryExists(dit.NODES.NODE.dn(id).toString)
   }
 
-  def nodeAsString(id: String, dit: InventoryDit): String = {
+  def nodeAsString(id: String):    String = {
     val sb = new java.lang.StringBuilder()
-    MockLdapFactStorage.ldap.server.getEntry(dit.NODES.NODE.dn(id).toString).toString(sb)
+    MockLdapFactStorage.ldap.server.getEntry(s"nodeId=${id},ou=Nodes, cn=rudder-configuration").toString(sb)
+    sb.toString()
+  }
+  def machineAsString(id: String): String = {
+    val sb = new java.lang.StringBuilder()
+    MockLdapFactStorage.ldap.server
+      .getEntry(s"machineId=machine-for-${id},ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
+      .toString(sb)
     sb.toString()
   }
 
@@ -194,7 +201,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
   val tenantService = DefaultTenantService.make(List(TenantId("zoneA"), TenantId("zoneB"))).runNow
   // enable tenants for these tests
-  tenantService.tenantsEnabled = true
+  tenantService.setTenantEnabled(true).runNow
 
   val factRepo: CoreNodeFactRepository = {
     val trailCB = CoreNodeFactChangeEventCallback("trail", e => callbackLog.update(_.appended(e.event)))
@@ -206,6 +213,11 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 //    .getLogger("inventory-processing")
 //    .asInstanceOf[ch.qos.logback.classic.Logger]
 //    .setLevel(ch.qos.logback.classic.Level.TRACE)
+
+  org.slf4j.LoggerFactory
+    .getLogger("nodes.details.write")
+    .asInstanceOf[ch.qos.logback.classic.Logger]
+    .setLevel(ch.qos.logback.classic.Level.TRACE)
 
   sequential
 
@@ -295,7 +307,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       })
     }
 
-    "allow to get software without the other parts of inventory" in { // how to chek that we don't retrieve cpu filesystems etc?
+    "allow to get software without the other parts of inventory" in { // how to check that we don't retrieve cpu filesystems etc?
       factStorage.clearCallStack
       implicit val attrs = SelectFacts.softwareOnly
       val node           = factRepo.slowGet(node7id).notOptional("node7 must be here").runNow
@@ -340,10 +352,22 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
      * node3: zoneC
      * other: no zone, private by default BUT for people with the ALL right
      */
+    val ccA = ChangeContext
+      .newForRudder()
+      .modify(_.nodePerms)
+      .setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA"))))
+
+    val qcNone = QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.None)
+    val qcA    = QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA"))))
+    val qcB    = QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneB"))))
+    val qcAB   = QueryContext.testQC
+      .modify(_.nodePerms)
+      .setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB"))))
+    val nodeId = NodeId("node0")
 
     "allow to filter all nodes with no access" in {
       val nodes = factRepo
-        .getAll()(QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.None), SelectNodeStatus.Accepted)
+        .getAll()(qcNone, SelectNodeStatus.Accepted)
         .runNow
 
       nodes must beEmpty
@@ -351,10 +375,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
     "allow to get only nodes with one security tag" in {
       val nodes = factRepo
-        .getAll()(
-          QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA")))),
-          SelectNodeStatus.Accepted
-        )
+        .getAll()(qcA, SelectNodeStatus.Accepted)
         .runNow
 
       nodes.keySet.map(_.value) must containTheSameElementsAs(List("node0", "node1"))
@@ -362,15 +383,77 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
     "have cumulative rights" in {
       val nodes = factRepo
-        .getAll()(
-          QueryContext.testQC
-            .modify(_.nodePerms)
-            .setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB")))),
-          SelectNodeStatus.Accepted
-        )
+        .getAll()(qcAB, SelectNodeStatus.Accepted)
         .runNow
 
       nodes.keySet.map(_.value) must containTheSameElementsAs(List("node0", "node1", "node2"))
+    }
+
+    "when the plugin is enable, we can change security tag for node" in {
+
+      val (nodesA, nodesB) = (for {
+        _      <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(TenantId("zoneB")))))(
+                    ChangeContext.newForRudder()
+                  ) // admin can change from zoneA to zoneB
+        nodesA <- factRepo.getAll()(qcA, SelectNodeStatus.Accepted)
+        nodesB <- factRepo.getAll()(qcB, SelectNodeStatus.Accepted)
+      } yield (nodesA, nodesB)).runNow
+
+      (nodesA.keySet.map(_.value) must containTheSameElementsAs(List("node1"))) and
+      (nodesB.keySet.map(_.value) must containTheSameElementsAs(List("node0", "node1", "node2")))
+
+    }
+
+    "when the plugin is enabled, if we try to change to a non existing tenant id node's SecurityTag, we get an error" in {
+      val nonExistingTenantId = TenantId("zoneXXX")
+
+      val res = (for {
+        _ <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(nonExistingTenantId))))(ChangeContext.newForRudder())
+      } yield ()).either.runNow
+
+      res must beLike {
+        case Left(err) => err.fullMsg must beMatching(""".*security tag's tenant can not be updated to 'zoneXXX'.*""")
+      }
+    }
+
+    "when the plugin is enabled, if we try to change things to a node on an other tenant, we get an error" in {
+
+      val res = (for {
+        // node0 is now on zone B
+        n <- factRepo.get(nodeId)(qcB).notOptional(s"node0 must be there for tests")
+        _ <- factRepo.save(n)(ccA)
+      } yield ()).either.runNow
+
+      res must beLike {
+        case Left(err) =>
+          err.fullMsg must beMatching(""".*\QNode 'node0' [zoneB] can't be modified by 'rudder' (perm:tags:[zoneA])\E.*""")
+      }
+    }
+
+    "when the plugin is enable, we don't change tenants on save, we just keep the existing one in storage" in {
+      val nonExistingTenantId = TenantId("zoneXXX")
+
+      val res = (for {
+        n      <- factRepo.get(nodeId)(qcB).notOptional(s"node0 must be there for tests")
+        newNode = n.modify(_.rudderSettings.security).setTo(Some(SecurityTag(Chunk(nonExistingTenantId))))
+        e      <- factRepo.save(newNode)(ChangeContext.newForRudder())
+      } yield e).runNow
+
+      res.event must beEqualTo(NodeFactChangeEvent.Noop(nodeId, SelectFacts.none))
+    }
+
+    "when the plugin is disabled, we don't change tenants on setSecurityContext, we just keep the existing one in storage" in {
+      val nonExistingTenantId = TenantId("zoneXXX")
+
+      tenantService.setTenantEnabled(false).runNow
+
+      val res = (for {
+        e <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(nonExistingTenantId))))(ChangeContext.newForRudder())
+      } yield e).runNow
+
+      tenantService.setTenantEnabled(true).runNow
+
+      res.event must beEqualTo(NodeFactChangeEvent.Noop(nodeId, SelectFacts.none))
     }
 
     "if we remove tenants, we don't get anything anymore" in {
@@ -394,6 +477,26 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
   }
 
   "basic update action" should {
+
+    "saving the node after get is a noop" >> {
+
+      def test(id: NodeId) = {
+        val (n1, n2, e) = (for {
+          n1 <- factRepo.get(id)(QueryContext.testQC).notOptional("error: missing node2 for test")
+          n2 <- factRepo.slowGet(id)(QueryContext.testQC, attrs = SelectFacts.all).notOptional("error: missing node2 for test")
+          e  <- factRepo.save(n2)(ChangeContext.newForRudder(), SelectFacts.all)
+        } yield (n1, n2, e)).runNow
+
+        (CoreNodeFact.same(n1, n2.toCore)) and
+        (e.event === NodeFactChangeEvent.Noop(id, SelectFacts.all))
+
+      }
+
+      // node2: no machine, some soft
+      // node4: machine, no soft
+      test(NodeId("node2")) and test(NodeId("node4"))
+    }
+
     "we can save a whole inventory and changing everything in storage, included software" >> {
       factStorage.clearCallStack
       val node = factRepo

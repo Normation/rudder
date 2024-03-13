@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+name: "id"
+in: path
+required: true
+description: Id of the tenant
+schema:
+  type: string
+  format: string matching ^(\p{Alnum}[\p{Alnum}-_]*)$
+  example: zone-1

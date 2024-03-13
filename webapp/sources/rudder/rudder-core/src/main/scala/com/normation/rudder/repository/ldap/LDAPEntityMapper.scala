@@ -73,6 +73,7 @@ import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
+import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.facts.nodes.SecurityTag
 import com.normation.rudder.reports._
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
@@ -161,6 +162,8 @@ class LDAPEntityMapper(
     for {
       mode <- node.policyMode
     } entry.addValues(A_POLICY_MODE, mode.name)
+
+    node.securityTag.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, t.toJson))
 
     entry
   }
@@ -368,12 +371,11 @@ class LDAPEntityMapper(
     } yield {
       val machineInfo = machineEntry.flatMap { e =>
         for {
-          machineType <- inventoryMapper.machineTypeFromObjectClasses(e.valuesFor("objectClass"))
           machineUuid <- e(A_MACHINE_UUID).map(MachineUuid.apply)
         } yield {
           MachineInfo(
             machineUuid,
-            machineType,
+            inventoryMapper.machineTypeFromObjectClasses(e.valuesFor("objectClass")),
             e(LDAPConstants.A_SERIAL_NUMBER),
             e(LDAPConstants.A_MANUFACTURER).map(Manufacturer(_))
           )
@@ -1089,6 +1091,8 @@ class LDAPEntityMapper(
                                          }
                                      }
                                  }
+        tenants               <-
+          NodeSecurityContext.parse(e(A_API_TENANT)).left.map(err => InventoryMappingRudderError.UnexpectedObject(err.fullMsg))
       } yield {
 
         def warnOnIgnoreAuthz(): Unit = {
@@ -1120,7 +1124,8 @@ class LDAPEntityMapper(
           description,
           isEnabled,
           creationDatetime.dateTime,
-          tokenCreationDatetime.dateTime
+          tokenCreationDatetime.dateTime,
+          tenants
         )
       }
     } else {

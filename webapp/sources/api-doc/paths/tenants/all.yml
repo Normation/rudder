@@ -1,0 +1,137 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2024 Normation SAS
+get:
+  summary: Get the list of all tenants.
+  description: Get the list of tenants. The special '*' and '-' are not included in the returned values.
+  operationId: getTenants
+  responses:
+    "200":
+      description: The list of tenants with their documentation information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - listGroups
+              data:
+                type: object
+                required:
+                  - tenants
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/tenant.yml
+  tags:
+    - Tenants
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/tenants/all.sh
+post:
+  summary: Add one or more tenants
+  description: Add one or more tenants to existing list. Already defined tenants (same id) are updated
+  operationId: addTenants
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            $ref: ../../components/schemas/tenant.yml
+  responses:
+    "200":
+      description: List of actually added/updated tenants
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - updateGroup
+              data:
+                type: object
+                required:
+                  - tenants
+                properties:
+                  tenants:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/tenant.yml
+  tags:
+    - Tenants
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/tenants/add.sh
+delete:
+  summary: Delete a list of tenants
+  description: Delete the list of tenants with given IDs
+  operationId: deleteTenants
+  responses:
+    "200":
+      description: The list of tenants actually deleted. Already missing tenants are ignored.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - deleteGroup
+              data:
+                type: object
+                required:
+                  - groups
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      type: string
+                      description: The id of tenants really deleted
+  tags:
+    - Tenants
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/tenants/delete.sh

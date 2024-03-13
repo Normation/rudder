@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+properties:
+  id:
+    type: string
+    description: A unique identifier for a tenant, matching ^(\p{Alnum}[\p{Alnum}-_]*)$
+    example: zone-1
+  name:
+    type: string
+    description: A name for humans
+    example: "Zone 1"
+  description:
+    type: string
+    description: One line description of the tenant, typically used to get a glimpse of tenant goal.
+    example: "zone-1 tenants holds nodes for the European geo zone"
+  documentation:
+    type: string
+    description: A long form description of the tenant, accepting markdown
+    example: "zone-1 tenants holds nodes for the European geo zone. The region is split as: ... etc ..."

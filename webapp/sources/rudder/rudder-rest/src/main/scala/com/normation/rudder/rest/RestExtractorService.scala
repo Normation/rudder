@@ -76,6 +76,7 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
 import com.normation.rudder.domain.reports.CompliancePrecision
 import com.normation.rudder.domain.workflows._
+import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.repository._
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
@@ -1057,6 +1058,7 @@ final case class RestExtractorService(
       expirationDefined <- extractJsonBoolean(json, "expirationDateDefined")
       expirationValue   <- extractJsonString(json, "expirationDate", DateFormaterService.parseDateTimePicker(_).toBox)
       authType          <- extractJsonString(json, "authorizationType", ApiAuthorizationKind.parse)
+      tenants           <- extractJsonString(json, "tenants", s => NodeSecurityContext.parse(Some(s)).toBox)
 
       acl <- extractJsonArray(json, "acl")((extractApiACLFromJSON _)).map(_.getOrElse(Nil))
     } yield {
@@ -1083,7 +1085,7 @@ final case class RestExtractorService(
         case Some(true)  => Some(expirationValue)
         case Some(false) => Some(None)
       }
-      RestApiAccount(id, name, description, enabled, oldId, expiration, auth)
+      RestApiAccount(id, name, description, enabled, oldId, expiration, auth, tenants)
     }
   }
 

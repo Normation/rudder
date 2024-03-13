@@ -49,6 +49,7 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.rudder.domain.RudderLDAPConstants.A_API_UUID
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.ldap.LDAPDiffMapper
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
@@ -110,7 +111,8 @@ final class RoLDAPApiAccountRepository(
       "For internal use",
       true,
       DateTime.now,
-      DateTime.now
+      DateTime.now,
+      NodeSecurityContext.All
     )
   }
 
