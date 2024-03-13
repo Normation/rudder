@@ -28,6 +28,7 @@ use std::{
 use anyhow::{anyhow, bail, Context, Result};
 use clap::Parser;
 use cli::Args;
+use rudder_cli::custom_panic_hook_ignore_sigpipe;
 use tracing::{debug, error, info, warn};
 
 use crate::{
@@ -67,6 +68,8 @@ fn am_i_root() -> Result<bool> {
 
 /// CLI entry point
 pub fn run() -> Result<()> {
+    custom_panic_hook_ignore_sigpipe();
+
     // Read CLI args
     let args = cli::Args::parse();
 
