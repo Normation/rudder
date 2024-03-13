@@ -38,7 +38,6 @@
 package com.normation.rudder.rest.data
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
@@ -127,7 +126,7 @@ final case class ByDirectiveByNodeRuleCompliance(
 )
 
 final case class ByNodeGroupCompliance(
-    id:         NodeGroupId,
+    id:         String,
     name:       String,
     compliance: ComplianceLevel,
     mode:       ComplianceModeName,
@@ -838,7 +837,7 @@ object JsonCompliance {
   implicit class JsonByNodeGroupCompliance(val nodeGroup: ByNodeGroupCompliance) extends AnyVal {
 
     def toJson(level: Int, precision: CompliancePrecision): JObject = {
-      (("id"                 -> nodeGroup.id.serialize)
+      (("id"                 -> nodeGroup.id)
       ~ ("name"              -> nodeGroup.name)
       ~ ("compliance"        -> nodeGroup.compliance.complianceWithoutPending(precision))
       ~ ("mode"              -> nodeGroup.mode.name)
