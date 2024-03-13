@@ -54,12 +54,12 @@ update msg model =
       let
         ui = model.ui
       in
-        ({ model | ui = { ui | modal = NoModal, loadingGroups = True } }, Cmd.batch [ getGroupsTree model ])
+        ({ model | ui = { ui | modal = NoModal, loadingGroups = True } }, Cmd.batch [ getGroupsTree model False ])
     OpenGroupDetails groupId ->
       ({ model | mode = ExternalTemplate }, Cmd.batch [pushUrl (getIdAnchorKey groupId.value, groupId.value), displayGroupDetails groupId.value])
     OpenCategoryDetails catId ->
       ({ model | mode = ExternalTemplate }, Cmd.batch [pushUrl ("", ""), displayCategoryDetails catId])
-    GetGroupsTreeResult res ->
+    GetGroupsTreeResult res chainInitTable ->
       case res of
         Ok r ->
           let
@@ -69,7 +69,7 @@ update msg model =
           in
             ( 
               newModel
-              , Cmd.batch [ initTooltips (), getInitialGroupCompliance newModel ]  -- reload the table each time we have a new groups tree
+              , Cmd.batch (initTooltips () :: (if chainInitTable then [ getInitialGroupCompliance newModel ] else []))  -- reload the table each time we have a new groups tree
             )
         Err err ->
           processApiError "Getting groups tree" err model

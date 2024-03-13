@@ -31,8 +31,8 @@ getGroupsCompliance keepGroups groupIds model =
   in
     req
 
-getGroupsTree : Model -> Cmd Msg
-getGroupsTree model =
+getGroupsTree : Model -> Bool -> Cmd Msg
+getGroupsTree model chainInitTable =
   let
     req =
       request
@@ -40,7 +40,7 @@ getGroupsTree model =
         , headers = []
         , url     = getUrl model ["groups", "tree"] []
         , body    = emptyBody
-        , expect  = expectJson GetGroupsTreeResult decodeGetGroupsTree
+        , expect  = expectJson (\r -> GetGroupsTreeResult r chainInitTable) decodeGetGroupsTree 
         , timeout = Nothing
         , tracker = Nothing
         }
