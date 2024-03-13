@@ -428,10 +428,10 @@ class DirectiveEditForm(
           <p>To do so, please go to the corresponding tab, or use the shortcut below:
         </p>
           <div class="action-btn">
-            <a class="btn btn-primary btn-icon" href="#parametersTab" aria-controls="parametersTab" role="tab" data-bs-toggle="tab" onclick="$('.ui-tabs-nav .active').removeClass('active');$('#paramNav').addClass('active');">
+            <button type="button" class="btn btn-primary btn-icon" onclick="document.querySelector('[data-bs-target=\'#parametersTab\']').click()">
               Set parameters
               <i class="fa fa-arrow-right"></i>
-            </a>
+            </button>
           </div>
         </div>
       </div>
