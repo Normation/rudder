@@ -201,7 +201,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
   val tenantService = DefaultTenantService.make(List(TenantId("zoneA"), TenantId("zoneB"))).runNow
   // enable tenants for these tests
-  tenantService.tenantsEnabled = true
+  tenantService.setTenantEnabled(true).runNow
 
   val factRepo: CoreNodeFactRepository = {
     val trailCB = CoreNodeFactChangeEventCallback("trail", e => callbackLog.update(_.appended(e.event)))
@@ -445,13 +445,13 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     "when the plugin is disabled, we don't change tenants on setSecurityContext, we just keep the existing one in storage" in {
       val nonExistingTenantId = TenantId("zoneXXX")
 
-      tenantService.tenantsEnabled = false
+      tenantService.setTenantEnabled(false).runNow
 
       val res = (for {
         e <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(nonExistingTenantId))))(ChangeContext.newForRudder())
       } yield e).runNow
 
-      tenantService.tenantsEnabled = true
+      tenantService.setTenantEnabled(true).runNow
 
       res.event must beEqualTo(NodeFactChangeEvent.Noop(nodeId, SelectFacts.none))
     }
