@@ -162,9 +162,9 @@ paths:
     $ref: paths/compliance/nodes.yml
   "/compliance/nodes/{nodeId}":
     $ref: paths/compliance/node.yml
-  "/compliance/groups/{nodeGroupId}":
+  "/compliance/groups/{targetOrNodeGroupId}":
     $ref: paths/compliance/group-global.yml
-  "/compliance/groups/{nodeGroupId}/target":
+  "/compliance/groups/{targetOrNodeGroupId}/target":
     $ref: paths/compliance/group-targeted.yml
   "/archives/export":
     $ref: paths/archives/export.yml
