@@ -283,7 +283,7 @@ object LDAPConstants {
     must = Set(A_NAME),
     may = Set(A_DESCRIPTION, A_SERIAL_NUMBER, "seeAlso", "owner", "ou", "o", "l")
   )
-  OC.createObjectClass(
+  val OC_OC_MACHINE: LDAPObjectClass = OC.createObjectClass(
     OC_MACHINE,
     sup = OC(OC_DEVICE),
     must = Set(A_MACHINE_UUID),

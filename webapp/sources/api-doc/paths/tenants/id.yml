@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2024 Normation SAS
+get:
+  summary: Get tenant details
+  description: Get detailed information about one tenant
+  operationId: getTenant
+  parameters:
+    - $ref: ../../components/parameters/tenant-id.yml
+  responses:
+    "200":
+      description: Tenant information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getTenant
+              data:
+                type: object
+                required:
+                  - tenants
+                properties:
+                  tenants:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/tenant.yml
+  tags:
+    - Tenants
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/tenants/id.sh

@@ -49,7 +49,6 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.RoleApiMapping
-import com.normation.rudder.tenants.TenantId
 import com.normation.rudder.users._
 import com.normation.zio._
 import java.io.File
@@ -604,38 +603,6 @@ object UserFileProcessing {
     }
   }
 
-  /*
-   * Tenants name are only alphanumeric (mandatory first) + '-' + '_' with two special cases:
-   * - '*' means "all"
-   * - '-' means "none"
-   * None means "all" for compat
-   */
-  def resolveTenants(tenants: Option[List[String]]): UIO[NodeSecurityContext] = {
-
-    tenants match {
-      case None     => NodeSecurityContext.All.succeed // for compatibility with previous versions
-      case Some(ts) =>
-        (ZIO
-          .foldLeft(ts)(NodeSecurityContext.ByTenants(Chunk.empty): NodeSecurityContext) {
-            case (t1, t2) =>
-              t2.strip() match {
-                case "*"                       => t1.plus(NodeSecurityContext.All).succeed
-                case "-"                       => NodeSecurityContext.None.succeed
-                case TenantId.checkTenantId(v) => t1.plus(NodeSecurityContext.ByTenants(Chunk(TenantId(v)))).succeed
-                case x                         =>
-                  ApplicationLoggerPure.Authz.warn(
-                    s"Value '${x}' is not a valid tenant identifier. It must contains only alpha-num  ascii chars or " +
-                    s"'-' and '_' (not in the first) place; or exactly '*' (all tenants) or '-' (none tenants)"
-                  ) *> t1.plus(NodeSecurityContext.ByTenants(Chunk.empty)).succeed
-              }
-          })
-          .map {
-            case NodeSecurityContext.ByTenants(c) if (c.isEmpty) => NodeSecurityContext.None
-            case x                                               => x
-          }
-    }
-  }
-
   def resolveUsers(
       users:         List[ParsedUser],
       extendedAuthz: Boolean,
@@ -648,14 +615,18 @@ object UserFileProcessing {
       val ParsedUser(name, pwd, roles, tenants) = u
 
       for {
-        nsc <- resolveTenants(u.tenants).flatMap { // check for adequate plugin
-                 case NodeSecurityContext.ByTenants(_) if (!TODO_MODULE_TENANTS_ENABLED) =>
-                   ApplicationLoggerPure.Authz.warn(
-                     s"Tenants definition are only available with the corresponding plugin. To prevent unwanted right escalation, " +
-                     s"user '${name}' will be restricted to no tenants"
-                   ) *> NodeSecurityContext.None.succeed
-                 case x                                                                  => x.succeed
-               }
+        nsc <- NodeSecurityContext
+                 .parseList(u.tenants)
+                 .toIO
+                 .flatMap { // check for adequate plugin
+                   case NodeSecurityContext.ByTenants(_) if (!TODO_MODULE_TENANTS_ENABLED) =>
+                     ApplicationLoggerPure.Authz.warn(
+                       s"Tenants definition are only available with the corresponding plugin. To prevent unwanted right escalation, " +
+                       s"user '${name}' will be restricted to no tenants"
+                     ) *> NodeSecurityContext.None.succeed
+                   case x                                                                  => x.succeed
+                 }
+                 .catchAll(err => ApplicationLoggerPure.Authz.warn(err.fullMsg) *> NodeSecurityContext.None.succeed)
         rs  <-
           RudderRoles
             .parseRoles(roles)

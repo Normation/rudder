@@ -41,7 +41,7 @@
 SET client_min_messages='warning';
 
 
--- Enforce support for standart string (unescaped \)
+-- Enforce support for standard string (unescaped \)
 ALTER database rudder SET standard_conforming_strings=true;
 
 
@@ -52,9 +52,9 @@ ALTER database rudder SET standard_conforming_strings=true;
  * We store execution reports, historize them, and
  * also store each run in a dedicated tables.
  *
- * These tables are (should) be independant from
+ * These tables are (should) be independent from
  * rudder-the-webapp and should be directly
- * feeded by syslog.
+ * fed by syslog.
  *************************************************************************************
  */
 

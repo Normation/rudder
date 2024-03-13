@@ -40,7 +40,10 @@ package com.normation.rudder.tenants
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.IOStream
+import com.normation.errors.RudderError
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
 import com.normation.rudder.facts.nodes.NodeFact
@@ -83,6 +86,23 @@ trait TenantService {
       qc:                   QueryContext
   ): IOResult[Option[CoreNodeFact]]
 
+  /*
+   * Check if the existing node can be updated with the new node given change context.
+   * In case it can, a possibly updated version of the security tag to set to node is provided. Else, it's an error.
+   */
+  def manageUpdate[A](
+      existing: Option[CoreNodeFact],
+      updated:  NodeFact,
+      cc:       ChangeContext
+  )(
+      action:   NodeFact => IOResult[A]
+  ): IOResult[A]
+
+  /*
+   * Check if the node can be deleted given ChangeContext
+   */
+  def checkDelete(existing: CoreNodeFact, cc: ChangeContext, availableTenants: Set[TenantId]): Either[RudderError, CoreNodeFact]
+
 }
 
 /*
@@ -96,7 +116,20 @@ object DefaultTenantService {
   }
 }
 
-class DefaultTenantService(var tenantsEnabled: Boolean, val tenantIds: Ref[Set[TenantId]]) extends TenantService {
+/*
+ *  _tenantsEnabled is accessed in a lot of hot path, we prefer not to encapsulate it into a Ref.
+ * We still put its modification behind a eval.
+ */
+class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: Ref[Set[TenantId]]) extends TenantService {
+
+  def setTenantEnabled(isEnabled: Boolean): UIO[Unit] = {
+    ApplicationLoggerPure.Plugin.info(s"Multi-tenants feature enabled: ${isEnabled}") *>
+    ZIO.succeed { _tenantsEnabled = isEnabled }
+  }
+
+  override def tenantsEnabled: Boolean = {
+    _tenantsEnabled
+  }
 
   override def getTenants(): UIO[Set[TenantId]] = {
     if (tenantsEnabled) tenantIds.get
@@ -148,6 +181,78 @@ class DefaultTenantService(var tenantsEnabled: Boolean, val tenantIds: Ref[Set[T
         ts <- getTenants()
         ns <- nodes.get
       } yield ns.get(nodeId).filter(qc.nodePerms.canSee(_)(ts))
+    }
+  }
+
+  override def manageUpdate[A](
+      existing: Option[CoreNodeFact],
+      updated:  NodeFact,
+      cc:       ChangeContext
+  )(
+      action:   NodeFact => IOResult[A]
+  ): IOResult[A] = {
+    // only id to avoid giving too much info in error in that case
+    def error(n: MinimalNodeFactInterface) = {
+      val tag = n.rudderSettings.security match {
+        case None    => '*'
+        case Some(t) => t.tenants.map(_.value).mkString(",")
+      }
+      Inconsistency(s"Node '${n.id.value}' [${tag}] can't be modified by '${cc.actor.name}' (perm:${cc.nodePerms.value})").fail
+    }
+
+    getTenants().flatMap { availableTenants =>
+      existing match {
+        // in the case of creation, we just have to check if the user has actual access on update node fact
+        case None           =>
+          if (cc.nodePerms.canSee(updated.rudderSettings.security)(availableTenants)) {
+            action(updated)
+          } else {
+            error(updated)
+          }
+        case Some(existing) =>
+          (if (cc.nodePerms.canSee(existing.rudderSettings.security)(availableTenants)) {
+             if (cc.nodePerms.canSee(updated.rudderSettings.security)(availableTenants)) {
+               // here, if tenants are not enabled, we must keep the old ones in any case
+               if (tenantsEnabled) {
+                 // here, we also need to check if the tenant are changing, if the new tenant is in the list
+                 // (we already know that the permission is ok, but "*" can see even non existing tenants)
+                 // We also accept non modified tenant.
+                 (existing.rudderSettings.security, updated.rudderSettings.security) match {
+                   case (_, None)                      => updated.succeed
+                   case (Some(a), Some(b)) if (a == b) => updated.succeed
+                   case (_, Some(b))                   =>
+                     if (b.tenants.forall(t => availableTenants.contains(t))) {
+                       updated.succeed
+                     } else {
+                       Inconsistency(
+                         s"Node '${updated.id.value}' security tag's tenant can not be updated to '${b.tenants.map(_.value).mkString(",")}' because it does not exist"
+                       ).fail
+                     }
+                 }
+               } else {
+                 import com.softwaremill.quicklens._
+                 updated.modify(_.rudderSettings.security).setTo(existing.rudderSettings.security).succeed
+               }
+             } else {
+               error(updated)
+             }
+           } else {
+             error(existing)
+           }).flatMap(up => action(up))
+      }
+    }
+  }
+
+  override def checkDelete(
+      existing:         CoreNodeFact,
+      cc:               ChangeContext,
+      availableTenants: Set[TenantId]
+  ): Either[RudderError, CoreNodeFact] = {
+    if (cc.nodePerms.canSee(existing.rudderSettings.security)(availableTenants)) {
+      Right(existing)
+    } else {
+      // only id to avoid giving too much info in error in that case
+      Left(Inconsistency(s"Node '${existing.id.value}' can't be deleted by ${cc.actor.name}"))
     }
   }
 }

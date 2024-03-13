@@ -78,6 +78,7 @@ import com.normation.rudder.domain.workflows._
 import com.normation.rudder.domain.workflows.DirectiveChangeItem
 import com.normation.rudder.domain.workflows.DirectiveChanges
 import com.normation.rudder.domain.workflows.NodeGroupChanges
+import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
@@ -860,6 +861,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                           case None    => ApiAccountType.PublicApi
                           case Some(s) => ApiAccountType.values.find(_.name == s).getOrElse(ApiAccountType.PublicApi)
                         }
+      tenants        <- NodeSecurityContext.parse((apiAccount \ "tenants").headOption.map(_.text)).toBox
     } yield {
       val kind = accountType match {
         case ApiAccountType.System    => ApiAccountKind.System
@@ -875,7 +877,8 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
         description,
         isEnabled,
         creationDate,
-        tokenGenDate
+        tokenGenDate,
+        tenants
       )
     }
   }

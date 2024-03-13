@@ -38,6 +38,9 @@
 package com.normation.rudder.facts.nodes
 
 import com.normation.box._
+import com.normation.errors.Inconsistency
+import com.normation.errors.PureResult
+import com.normation.errors.RudderError
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain._
@@ -73,7 +76,7 @@ import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonAST.JValue
 import org.joda.time.DateTime
-import zio.Chunk
+import zio._
 import zio.json._
 import zio.json.ast.Json
 import zio.json.ast.Json._
@@ -835,6 +838,59 @@ object NodeFact {
       .setTo(n.policyMode)
   }
 
+  def debugDiff(n1: NodeFact, n2: NodeFact, attrs: SelectFacts): String = {
+    def diff[A](a: A, b: A): String = {
+      if (a == b) a.toString
+      else {
+        s"""
+           |  -${a.toString}
+           |  +${b.toString}""".stripMargin
+      }
+    }
+    val pad     = "\n * "
+    val ignored = new StringBuilder().append(pad).append("ignored: ")
+    val sb      = new StringBuilder(s"""id:${diff(n1.id.value, n2.id.value)}
+                                  | * description:${diff(n1.description, n2.description)}
+                                  | * fqdn:${diff(n1.fqdn, n2.fqdn)}
+                                  | * os:${diff(n1.os, n2.os)}
+                                  | * machine:${diff(n1.machine, n2.machine)}
+                                  | * rudderSettings:${diff(n1.rudderSettings, n2.rudderSettings)}
+                                  | * rudderAgent:${diff(n1.rudderAgent, n2.rudderAgent)}
+                                  | * properties:${diff(n1.properties.toList.sortBy(_.name), n2.properties.toList.sortBy(_.name))}
+                                  | * creationDate:${diff(n1.creationDate, n2.creationDate)}
+                                  | * factProcessedDate:${diff(n1.factProcessedDate, n2.factProcessedDate)}
+                                  | * lastInventoryDate:${diff(n1.lastInventoryDate, n2.lastInventoryDate)}
+                                  | * ipAddresses:${diff(n1.ipAddresses, n2.ipAddresses)}
+                                  | * timezone:${diff(n1.timezone, n2.timezone)}
+                                  | * archDescription:${diff(n1.archDescription, n2.archDescription)}
+                                  | * ram:${diff(n1.ram, n2.ram)}""".stripMargin)
+
+    attrs.swap.logDiff(n1, n2, sb, pad, ignored, "")
+    attrs.accounts.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.bios.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.controllers.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.environmentVariables.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.fileSystems.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.inputs.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.localGroups.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.localUsers.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.logicalVolumes.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.memories.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.networks.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.physicalVolumes.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.ports.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.processes.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.processors.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.slots.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.software.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.softwareUpdate.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.sounds.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.storages.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.videos.logDiff(n1, n2, sb, pad, ignored, ",")
+    attrs.vms.logDiff(n1, n2, sb, pad, ignored, ",")
+
+    sb.append(ignored.toString()).toString()
+  }
 }
 
 trait MinimalNodeFactInterface {
@@ -1031,6 +1087,7 @@ object SelectMode {
 }
 
 case class SelectFactConfig[A](
+    name:     String,
     mode:     SelectMode,
     selector: NodeFact => A,
     modify:   PathLazyModify[NodeFact, A],
@@ -1042,6 +1099,54 @@ case class SelectFactConfig[A](
   def invertMode: SelectFactConfig[A] = if (this.mode == SelectMode.Ignore) toRetrieve else toIgnore
 
   override def toString: String = this.mode.toString
+
+  def merge(other: SelectFactConfig[A], fix: SelectMode): SelectFactConfig[A] = {
+    (this.mode, other.mode) match {
+      case (a, b) if (a == b) => this
+      case _                  => this.copy(mode = fix)
+    }
+  }
+
+  def max(other: SelectFactConfig[A]): SelectFactConfig[A] = merge(other, SelectMode.Retrieve)
+
+  def min(other: SelectFactConfig[A]): SelectFactConfig[A] = merge(other, SelectMode.Ignore)
+
+  private def optLog(n: NodeFact): Option[String] = {
+    mode match {
+      case SelectMode.Ignore   => None
+      case SelectMode.Retrieve => Some(selector(n).toString) // should be debugString and have a trait for that
+    }
+  }
+  def log(n: NodeFact):            String         = {
+    s"${name}: ${optLog(n).getOrElse("ignored")}"
+  }
+
+  // with a pair of StringBuilder
+  def log(n: NodeFact, out: StringBuilder, pad: String, ignored: StringBuilder, padIgnore: String): Unit = {
+    optLog(n) match {
+      case Some(x) => out.append(pad).append(name).append(": ").append(x)
+      case None    => ignored.append(padIgnore).append(name)
+    }
+  }
+
+  private def optLogDiff(n1: NodeFact, n2: NodeFact, pad: String): Option[String] = {
+    mode match {
+      case SelectMode.Ignore   => None
+      case SelectMode.Retrieve =>
+        (selector(n1), selector(n2)) match {
+          case (a, b) if (a == b) => Some(a.toString)
+          case (a, b)             =>
+            Some(s"""${pad} - ${a.toString}${pad} + ${b.toString}""")
+        }
+    }
+  }
+
+  def logDiff(n1: NodeFact, n2: NodeFact, out: StringBuilder, pad: String, ignored: StringBuilder, padIgnore: String): Unit = {
+    optLogDiff(n1, n2, pad) match {
+      case Some(x) => out.append(pad).append(name).append(": ").append(x)
+      case None    => ignored.append(padIgnore).append(name)
+    }
+  }
 }
 
 case class SelectFacts(
@@ -1071,6 +1176,36 @@ case class SelectFacts(
 ) {
   def debugString: String =
     this.productElementNames.zip(this.productIterator).map { case (a, b) => s"${a}: ${b.toString}" }.mkString(", ")
+
+  // get the merge of that fact with an other, keeping the most change
+  def merge(other: SelectFacts, fix: SelectMode): SelectFacts = SelectFacts(
+    swap.merge(other.swap, fix),
+    accounts.merge(other.accounts, fix),
+    bios.merge(other.bios, fix),
+    controllers.merge(other.controllers, fix),
+    environmentVariables.merge(other.environmentVariables, fix),
+    fileSystems.merge(other.fileSystems, fix),
+    inputs.merge(other.inputs, fix),
+    localGroups.merge(other.localGroups, fix),
+    localUsers.merge(other.localUsers, fix),
+    logicalVolumes.merge(other.logicalVolumes, fix),
+    memories.merge(other.memories, fix),
+    networks.merge(other.networks, fix),
+    physicalVolumes.merge(other.physicalVolumes, fix),
+    ports.merge(other.ports, fix),
+    processes.merge(other.processes, fix),
+    processors.merge(other.processors, fix),
+    slots.merge(other.slots, fix),
+    software.merge(other.software, fix),
+    softwareUpdate.merge(other.softwareUpdate, fix),
+    sounds.merge(other.sounds, fix),
+    storages.merge(other.storages, fix),
+    videos.merge(other.videos, fix),
+    vms.merge(other.vms, fix)
+  )
+
+  def max(other: SelectFacts): SelectFacts = merge(other, SelectMode.Retrieve)
+  def min(other: SelectFacts): SelectFacts = merge(other, SelectMode.Ignore)
 }
 
 sealed trait SelectNodeStatus { def name: String }
@@ -1115,29 +1250,29 @@ object SelectFacts {
   // format: off
   // there's perhaps a better way to do that, but `shrug` don't know about it
   val none: SelectFacts = SelectFacts(
-    SelectFactConfig(SelectMode.Ignore,_.swap, modifyLens[NodeFact](_.swap), None),
-    SelectFactConfig(SelectMode.Ignore,_.accounts, modifyLens[NodeFact](_.accounts), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.bios, modifyLens[NodeFact](_.bios), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.controllers, modifyLens[NodeFact](_.controllers), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.environmentVariables, modifyLens[NodeFact](_.environmentVariables), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.fileSystems, modifyLens[NodeFact](_.fileSystems), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.inputs, modifyLens[NodeFact](_.inputs), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.localGroups, modifyLens[NodeFact](_.localGroups), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.localUsers, modifyLens[NodeFact](_.localUsers), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.logicalVolumes, modifyLens[NodeFact](_.logicalVolumes), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.memories, modifyLens[NodeFact](_.memories), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.networks, modifyLens[NodeFact](_.networks), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.physicalVolumes, modifyLens[NodeFact](_.physicalVolumes), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.ports, modifyLens[NodeFact](_.ports), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.processes, modifyLens[NodeFact](_.processes), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.processors, modifyLens[NodeFact](_.processors), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.slots, modifyLens[NodeFact](_.slots), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.software, modifyLens[NodeFact](_.software), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.softwareUpdate, modifyLens[NodeFact](_.softwareUpdate), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.sounds, modifyLens[NodeFact](_.sounds), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.storages, modifyLens[NodeFact](_.storages), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.videos, modifyLens[NodeFact](_.videos), Chunk.empty),
-    SelectFactConfig(SelectMode.Ignore,_.vms, modifyLens[NodeFact](_.vms), Chunk.empty)
+    SelectFactConfig("swap", SelectMode.Ignore,_.swap, modifyLens[NodeFact](_.swap), None),
+    SelectFactConfig("accounts", SelectMode.Ignore,_.accounts, modifyLens[NodeFact](_.accounts), Chunk.empty),
+    SelectFactConfig("bios", SelectMode.Ignore,_.bios, modifyLens[NodeFact](_.bios), Chunk.empty),
+    SelectFactConfig("controllers", SelectMode.Ignore,_.controllers, modifyLens[NodeFact](_.controllers), Chunk.empty),
+    SelectFactConfig("environment", SelectMode.Ignore,_.environmentVariables, modifyLens[NodeFact](_.environmentVariables), Chunk.empty),
+    SelectFactConfig("file", SelectMode.Ignore,_.fileSystems, modifyLens[NodeFact](_.fileSystems), Chunk.empty),
+    SelectFactConfig("inputs", SelectMode.Ignore,_.inputs, modifyLens[NodeFact](_.inputs), Chunk.empty),
+    SelectFactConfig("local", SelectMode.Ignore,_.localGroups, modifyLens[NodeFact](_.localGroups), Chunk.empty),
+    SelectFactConfig("local", SelectMode.Ignore,_.localUsers, modifyLens[NodeFact](_.localUsers), Chunk.empty),
+    SelectFactConfig("logical", SelectMode.Ignore,_.logicalVolumes, modifyLens[NodeFact](_.logicalVolumes), Chunk.empty),
+    SelectFactConfig("memories", SelectMode.Ignore,_.memories, modifyLens[NodeFact](_.memories), Chunk.empty),
+    SelectFactConfig("networks", SelectMode.Ignore,_.networks, modifyLens[NodeFact](_.networks), Chunk.empty),
+    SelectFactConfig("physical", SelectMode.Ignore,_.physicalVolumes, modifyLens[NodeFact](_.physicalVolumes), Chunk.empty),
+    SelectFactConfig("ports", SelectMode.Ignore,_.ports, modifyLens[NodeFact](_.ports), Chunk.empty),
+    SelectFactConfig("processes", SelectMode.Ignore,_.processes, modifyLens[NodeFact](_.processes), Chunk.empty),
+    SelectFactConfig("processors", SelectMode.Ignore,_.processors, modifyLens[NodeFact](_.processors), Chunk.empty),
+    SelectFactConfig("slots", SelectMode.Ignore,_.slots, modifyLens[NodeFact](_.slots), Chunk.empty),
+    SelectFactConfig("software", SelectMode.Ignore,_.software, modifyLens[NodeFact](_.software), Chunk.empty),
+    SelectFactConfig("software", SelectMode.Ignore,_.softwareUpdate, modifyLens[NodeFact](_.softwareUpdate), Chunk.empty),
+    SelectFactConfig("sounds", SelectMode.Ignore,_.sounds, modifyLens[NodeFact](_.sounds), Chunk.empty),
+    SelectFactConfig("storages", SelectMode.Ignore,_.storages, modifyLens[NodeFact](_.storages), Chunk.empty),
+    SelectFactConfig("videos", SelectMode.Ignore,_.videos, modifyLens[NodeFact](_.videos), Chunk.empty),
+    SelectFactConfig("vms", SelectMode.Ignore,_.vms, modifyLens[NodeFact](_.vms), Chunk.empty)
   )
 
   val all: SelectFacts = SelectFacts(
@@ -1331,6 +1466,52 @@ final case class NodeFact(
   def customProperties: Chunk[CustomProperty] = properties.collect {
     case p if (p.provider == Some(NodeProperty.customPropertyProvider)) => CustomProperty(p.name, p.jsonValue)
   }
+
+  def debugString(attrs: SelectFacts): String = {
+    val pad     = "\n * "
+    val ignored = new StringBuilder().append(pad).append("ignored: ")
+    val sb      = new StringBuilder(s"""id:${this.id.value}
+                                  | * description:${this.description}
+                                  | * fqdn:${this.fqdn}
+                                  | * os:${this.os}
+                                  | * machine:${this.machine}
+                                  | * rudderSettings:${this.rudderSettings}
+                                  | * rudderAgent:${this.rudderAgent}
+                                  | * properties:${this.properties.toList.sortBy(_.name)}
+                                  | * creationDate:${this.creationDate}
+                                  | * factProcessedDate:${this.factProcessedDate}
+                                  | * lastInventoryDate:${this.lastInventoryDate}
+                                  | * ipAddresses:${this.ipAddresses}
+                                  | * timezone:${this.timezone}
+                                  | * archDescription:${this.archDescription}
+                                  | * ram:${this.ram}""".stripMargin)
+
+    attrs.swap.log(this, sb, pad, ignored, "")
+    attrs.accounts.log(this, sb, pad, ignored, ",")
+    attrs.bios.log(this, sb, pad, ignored, ",")
+    attrs.controllers.log(this, sb, pad, ignored, ",")
+    attrs.environmentVariables.log(this, sb, pad, ignored, ",")
+    attrs.fileSystems.log(this, sb, pad, ignored, ",")
+    attrs.inputs.log(this, sb, pad, ignored, ",")
+    attrs.localGroups.log(this, sb, pad, ignored, ",")
+    attrs.localUsers.log(this, sb, pad, ignored, ",")
+    attrs.logicalVolumes.log(this, sb, pad, ignored, ",")
+    attrs.memories.log(this, sb, pad, ignored, ",")
+    attrs.networks.log(this, sb, pad, ignored, ",")
+    attrs.physicalVolumes.log(this, sb, pad, ignored, ",")
+    attrs.ports.log(this, sb, pad, ignored, ",")
+    attrs.processes.log(this, sb, pad, ignored, ",")
+    attrs.processors.log(this, sb, pad, ignored, ",")
+    attrs.slots.log(this, sb, pad, ignored, ",")
+    attrs.software.log(this, sb, pad, ignored, ",")
+    attrs.softwareUpdate.log(this, sb, pad, ignored, ",")
+    attrs.sounds.log(this, sb, pad, ignored, ",")
+    attrs.storages.log(this, sb, pad, ignored, ",")
+    attrs.videos.log(this, sb, pad, ignored, ",")
+    attrs.vms.log(this, sb, pad, ignored, ",")
+
+    sb.append(ignored.toString()).toString()
+  }
 }
 
 final case class JsonOsDetails(
@@ -1362,36 +1543,44 @@ final case class JNodeProperty(name: String, value: ConfigValue, mode: Option[St
 sealed trait NodeFactChangeEvent {
   def name:        String
   def debugString: String
+  def debugDiff:   String
 }
 
 object NodeFactChangeEvent {
   final case class NewPending(node: NodeFact, attrs: SelectFacts)                           extends NodeFactChangeEvent {
     override val name:        String = "newPending"
     override def debugString: String = s"[${name}] node '${node.fqdn}' (${node.id.value})"
+    override def debugDiff:   String = s"${debugString} ${node.debugString(attrs)}"
   }
   final case class UpdatedPending(oldNode: NodeFact, newNode: NodeFact, attrs: SelectFacts) extends NodeFactChangeEvent {
     override val name:        String = "updatedPending"
     override def debugString: String = s"[${name}] node '${newNode.fqdn}' (${newNode.id.value})"
+    override def debugDiff:   String = s"${debugString} ${NodeFact.debugDiff(oldNode, newNode, attrs)}"
   }
   final case class Accepted(node: NodeFact, attrs: SelectFacts)                             extends NodeFactChangeEvent {
     override val name:        String = "accepted"
     override def debugString: String = s"[${name}] node '${node.fqdn}' (${node.id.value})"
+    override def debugDiff:   String = s"${debugString} ${node.debugString(attrs)}"
   }
   final case class Refused(node: NodeFact, attrs: SelectFacts)                              extends NodeFactChangeEvent {
     override val name:        String = "refused"
     override def debugString: String = s"[${name}] node '${node.fqdn}' (${node.id.value})"
+    override def debugDiff:   String = s"${debugString} ${node.debugString(attrs)}"
   }
   final case class Updated(oldNode: NodeFact, newNode: NodeFact, attrs: SelectFacts)        extends NodeFactChangeEvent {
     override val name:        String = "updatedAccepted"
     override def debugString: String = s"[${name}] node '${newNode.fqdn}' (${newNode.id.value})"
+    override def debugDiff:   String = s"${debugString} ${NodeFact.debugDiff(oldNode, newNode, attrs)}"
   }
   final case class Deleted(node: NodeFact, attrs: SelectFacts)                              extends NodeFactChangeEvent {
     override val name:        String = "deleted"
     override def debugString: String = s"[${name}] node '${node.fqdn}' (${node.id.value})"
+    override def debugDiff:   String = s"${debugString} ${node.debugString(attrs)}"
   }
   final case class Noop(nodeId: NodeId, attrs: SelectFacts)                                 extends NodeFactChangeEvent {
     override val name:        String = "noop"
     override def debugString: String = s"[${name}] node '${nodeId.value}' "
+    override def debugDiff:   String = debugString
   }
 }
 
@@ -1452,18 +1641,70 @@ object QueryContext {
  * - access all or none nodes, whatever properties the node has
  * - access nodes only if they belongs to one of the listed tenants.
  */
-sealed trait NodeSecurityContext { def value: String }
+sealed trait NodeSecurityContext {
+  def value:     String
+  // serialize into a string that can be parsed by parse `NodeSecurityContext.parse`
+  def serialize: String
+}
 object NodeSecurityContext       {
 
   // a context that can see all nodes whatever their security tags
-  case object All                                      extends NodeSecurityContext { override val value = "all"  }
+  case object All                                      extends NodeSecurityContext {
+    override val value = "all"
+    override def serialize: String = "*"
+  }
   // a security context that can't see any node. Very good for performance.
-  case object None                                     extends NodeSecurityContext { override val value = "none" }
+  case object None                                     extends NodeSecurityContext {
+    override val value     = "none"
+    override def serialize = "-"
+  }
   // a security context associated with a list of tenants. If the node share at least one of the
   // tenants, if can be seen. Be careful, it's really just non-empty interesting (so that adding
   // more tag here leads to more nodes, not less).
   final case class ByTenants(tenants: Chunk[TenantId]) extends NodeSecurityContext {
-    override val value: String = s"tags:[${tenants.mkString(", ")}]"
+    override val value: String = s"tags:[${tenants.map(_.value).mkString(", ")}]"
+    override def serialize = tenants.map(_.value).mkString(",")
+  }
+
+  /*
+   * Tenants name are only alphanumeric (mandatory first) + '-' + '_' with two special cases:
+   * - '*' means "all"
+   * - '-' means "none"
+   * None means "all" for compat
+   */
+  def parse(tenantString: Option[String], ignoreMalformed: Boolean = true): PureResult[NodeSecurityContext] = {
+    parseList(tenantString.map(_.split(",").toList))
+  }
+
+  def parseList(tenants: Option[List[String]], ignoreMalformed: Boolean = true): PureResult[NodeSecurityContext] = {
+    tenants match {
+      case scala.None => Right(NodeSecurityContext.All) // for compatibility with previous versions
+      case Some(ts)   =>
+        (ts
+          .foldLeft(Right(NodeSecurityContext.ByTenants(Chunk.empty)): PureResult[NodeSecurityContext]) {
+            case (x: Left[RudderError, NodeSecurityContext], _) => x
+            case (Right(t1), t2)                                =>
+              t2.strip() match {
+                case "*"                       => Right(t1.plus(NodeSecurityContext.All))
+                case "-"                       => Right(NodeSecurityContext.None)
+                case TenantId.checkTenantId(v) => Right(t1.plus(NodeSecurityContext.ByTenants(Chunk(TenantId(v)))))
+                case x                         =>
+                  if (ignoreMalformed) Right(t1.plus(NodeSecurityContext.ByTenants(Chunk.empty)))
+                  else {
+                    Left(
+                      Inconsistency(
+                        s"Value '${x}' is not a valid tenant identifier. It must contains only alpha-num  ascii chars or " +
+                        s"'-' and '_' (not in the first) place; or exactly '*' (all tenants) or '-' (none tenants)"
+                      )
+                    )
+                  }
+              }
+          })
+          .map {
+            case NodeSecurityContext.ByTenants(c) if (c.isEmpty) => NodeSecurityContext.None
+            case x                                               => x
+          }
+    }
   }
 
   /*

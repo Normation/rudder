@@ -114,6 +114,7 @@ object RudderLDAPConstants extends Loggable {
   val A_API_EXPIRATION_DATETIME     = "expirationTimestamp"
   val A_API_AUTHZ_KIND              = "apiAuthorizationKind"
   val A_API_ACL                     = "apiAcl"
+  val A_API_TENANT                  = "apiTenant"
 
   // Parameters
   val A_PARAMETER_NAME  = "parameterName"

@@ -42,7 +42,6 @@ import com.normation.rudder.Role
 import com.normation.rudder.api._
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.facts.nodes.NodeSecurityContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users._
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.web.services.UserSessionLogEvent
@@ -737,7 +736,8 @@ class RestAuthenticationFilter(
                 "API Account for un-authenticated API",
                 true,
                 new DateTime(0),
-                DateTime.now()
+                DateTime.now(),
+                NodeSecurityContext.None
               )
 
               authenticate(
@@ -805,7 +805,7 @@ class RestAuthenticationFilter(
                               UserStatus.Active,
                               RudderAuthType.Api.apiRudderRole,
                               authz,
-                              QueryContext.todoQC.nodePerms
+                              principal.tenants
                             )
                             // cool, build an authentication token from it
                             authenticate(user)

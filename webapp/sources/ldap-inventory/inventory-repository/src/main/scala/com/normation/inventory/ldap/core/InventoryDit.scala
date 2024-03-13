@@ -254,7 +254,7 @@ final case class InventoryDit(val BASE_DN: DN, val SOFTWARE_BASE_DN: DN, val nam
 }
 
 /*
- * Plombing to be able to define the DIT as it was
+ * Plumbing to be able to define the DIT as it was
  * (what is an Entry, an OU, a MACHINE_ELT, etc)
  */
 

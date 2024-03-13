@@ -39,6 +39,7 @@ package com.normation.rudder.api
 import cats.data._
 import cats.implicits._
 import com.normation.rudder.api.ApiToken.prefixV2
+import com.normation.rudder.facts.nodes.NodeSecurityContext
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import org.bouncycastle.util.encoders.Hex
@@ -342,5 +343,6 @@ final case class ApiAccount(
     description:         String,
     isEnabled:           Boolean,
     creationDate:        DateTime,
-    tokenGenerationDate: DateTime
+    tokenGenerationDate: DateTime,
+    tenants:             NodeSecurityContext
 )
