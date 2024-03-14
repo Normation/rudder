@@ -737,6 +737,8 @@ class EventLogFactoryImpl(
       scala.xml.Utility.trim(<activeTechnique changeType="delete" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <id>{deleteDiff.technique.id.value}</id>
         <techniqueName>{deleteDiff.technique.techniqueName.value}</techniqueName>
+        <isSystem>{deleteDiff.technique.isSystem}</isSystem>
+        <isEnabled>{deleteDiff.technique._isEnabled}</isEnabled>
       </activeTechnique>)
     }
     DeleteTechnique(
