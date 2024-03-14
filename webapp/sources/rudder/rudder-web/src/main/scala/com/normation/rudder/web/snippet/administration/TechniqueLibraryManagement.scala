@@ -80,22 +80,22 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
   import TechniqueLibraryManagement.*
 
-  private[this] val techniqueRepository         = RudderConfig.techniqueRepository
-  private[this] val updatePTLibService          = RudderConfig.updateTechniqueLibrary
-  private[this] val roActiveTechniqueRepository = RudderConfig.roDirectiveRepository
-  private[this] val rwActiveTechniqueRepository = RudderConfig.woDirectiveRepository
-  private[this] val uuidGen                     = RudderConfig.stringUuidGenerator
+  private val techniqueRepository         = RudderConfig.techniqueRepository
+  private val updatePTLibService          = RudderConfig.updateTechniqueLibrary
+  private val roActiveTechniqueRepository = RudderConfig.roDirectiveRepository
+  private val rwActiveTechniqueRepository = RudderConfig.woDirectiveRepository
+  private val uuidGen                     = RudderConfig.stringUuidGenerator
   // transform Technique variable to human viewable HTML fields
-  private[this] val treeUtilService             = RudderConfig.jsTreeUtilService
-  private[this] val userPropertyService         = RudderConfig.userPropertyService
-  private[this] val updateTecLibInterval        = RudderConfig.RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL
+  private val treeUtilService             = RudderConfig.jsTreeUtilService
+  private val userPropertyService         = RudderConfig.userPropertyService
+  private val updateTecLibInterval        = RudderConfig.RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL
 
   // the popup component to create user technique category
-  private[this] val creationPopup = new LocalSnippet[CreateActiveTechniqueCategoryPopup]
+  private val creationPopup = new LocalSnippet[CreateActiveTechniqueCategoryPopup]
 
   // the popup component to give reason when moving techniques from Reference
   // Technique Library to Active Technique Library
-  private[this] val giveReasonPopup = new LocalSnippet[GiveReasonPopup]
+  private val giveReasonPopup = new LocalSnippet[GiveReasonPopup]
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
     case "head"                   => { _ => head() }
@@ -110,15 +110,15 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   // current states for the page - they will be kept only for the duration
   // of one request and its followng Ajax requests
 
-  private[this] val rootCategoryId = roActiveTechniqueRepository.getActiveTechniqueLibrary.map(_.id).toBox
+  private val rootCategoryId = roActiveTechniqueRepository.getActiveTechniqueLibrary.map(_.id).toBox
 
-  private[this] val currentTechniqueDetails         = new LocalSnippet[TechniqueEditForm]
-  private[this] val currentTechniqueCategoryDetails = new LocalSnippet[TechniqueCategoryEditForm]
+  private val currentTechniqueDetails         = new LocalSnippet[TechniqueEditForm]
+  private val currentTechniqueCategoryDetails = new LocalSnippet[TechniqueCategoryEditForm]
 
-  private[this] val techniqueId: Box[String] = S.param("techniqueId")
+  private val techniqueId: Box[String] = S.param("techniqueId")
 
   // create a new Technique edit form and update currentTechniqueDetails
-  private[this] def updateCurrentTechniqueDetails(technique: Option[Technique], activeTechnique: Option[ActiveTechnique]) = {
+  private def updateCurrentTechniqueDetails(technique: Option[Technique], activeTechnique: Option[ActiveTechnique]) = {
     currentTechniqueDetails.set(
       Full(
         new TechniqueEditForm(
@@ -134,7 +134,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   }
 
   // create a new Technique edit form and update currentTechniqueDetails
-  private[this] def updateCurrentTechniqueCategoryDetails(category: ActiveTechniqueCategory) = {
+  private def updateCurrentTechniqueCategoryDetails(category: ActiveTechniqueCategory) = {
     currentTechniqueCategoryDetails.set(
       rootCategoryId.map { rootCategoryId =>
         new TechniqueCategoryEditForm(
@@ -154,11 +154,11 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     TechniqueEditForm.staticInit
   }
 
-  private[this] def setCreationPopup: Unit = {
+  private def setCreationPopup: Unit = {
     creationPopup.set(Full(new CreateActiveTechniqueCategoryPopup(onSuccessCallback = { () => refreshTree() })))
   }
 
-  private[this] def setGiveReasonPopup(s: ActiveTechniqueId, d: ActiveTechniqueCategoryId): Unit = {
+  private def setGiveReasonPopup(s: ActiveTechniqueId, d: ActiveTechniqueCategoryId): Unit = {
     giveReasonPopup.set(
       Full(
         new GiveReasonPopup(
@@ -175,7 +175,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   /**
    * Create the popup
    */
-  private[this] def createPopup: NodeSeq = {
+  private def createPopup: NodeSeq = {
     creationPopup.get match {
       case Failure(m, _, _) => <span class="error">Error: {m}</span>
       case Empty            => <div>The component is not set</div>
@@ -186,7 +186,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   /**
    * Create the reason popup
    */
-  private[this] def createReasonPopup: NodeSeq = {
+  private def createReasonPopup: NodeSeq = {
     giveReasonPopup.get match {
       case Failure(m, _, _) => <span class="error">Error: {m}</span>
       case Empty            => <div>The component is not set</div>
@@ -390,7 +390,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
   ///////////////////// Callback function for Drag'n'drop in the tree /////////////////////
 
-  private[this] def moveTechnique(arg: String): JsCmd = {
+  private def moveTechnique(arg: String): JsCmd = {
     // parse arg, which have to  be json object with sourceactiveTechniqueId, destCatId
     try {
       (for {
@@ -441,7 +441,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  private[this] def moveCategory(arg: String): JsCmd = {
+  private def moveCategory(arg: String): JsCmd = {
     // parse arg, which have to  be json object with sourceactiveTechniqueId, destCatId
     try {
       (for {
@@ -493,7 +493,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  private[this] def bindTechnique(arg: String): JsCmd = {
+  private def bindTechnique(arg: String): JsCmd = {
     // parse arg, which have to be json object with sourceactiveTechniqueId, destCatId
     try {
       (for {
@@ -549,7 +549,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  private[this] def onSuccessReasonPopup(id: ActiveTechniqueId): JsCmd = {
+  private def onSuccessReasonPopup(id: ActiveTechniqueId): JsCmd = {
     val jsStr = """setTimeout(function() { $("[activeTechniqueId=%s]")
       .attempt("highlight", {}, 2000)}, 100)"""
     refreshTree() &
@@ -562,17 +562,17 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     Alert(errorMessage.format(srcActiveTechId, destCatId))
   }
 
-  private[this] def refreshTree(): JsCmd = {
+  private def refreshTree(): JsCmd = {
     Replace(htmlId_techniqueLibraryTree, systemLibrary()) &
     Replace(htmlId_activeTechniquesTree, userLibrary()) &
     OnLoad(After(TimeSpan(100), JsRaw("""initBsTooltips();""")))
   }
 
-  private[this] def refreshActiveTreeLibrary(): JsCmd = {
+  private def refreshActiveTreeLibrary(): JsCmd = {
     Replace(htmlId_activeTechniquesTree, userLibrary())
   }
 
-  private[this] def refreshBottomPanel(id: ActiveTechniqueId): JsCmd = {
+  private def refreshBottomPanel(id: ActiveTechniqueId): JsCmd = {
     for {
       activeTechnique <- roActiveTechniqueRepository.getActiveTechniqueByActiveTechnique(id).toBox.flatMap(Box(_))
       technique       <- techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName)
@@ -587,7 +587,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   /**
    * Javascript to initialize the reference library tree
    */
-  private[this] def buildReferenceLibraryJsTree: JsExp = JsRaw(
+  private def buildReferenceLibraryJsTree: JsExp = JsRaw(
     """buildReferenceTechniqueTree('#%s','%s','%s')""".format(
       htmlId_techniqueLibraryTree, {
         techniqueId match {
@@ -602,7 +602,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   /**
    * Javascript to initialize the user library tree
    */
-  private[this] def buildUserLibraryJsTree: JsExp = JsRaw(
+  private def buildUserLibraryJsTree: JsExp = JsRaw(
     """buildActiveTechniqueTree('#%s', '%s', %s ,'%s')""".format(
       htmlId_activeTechniquesTree,
       htmlId_techniqueLibraryTree,
@@ -612,7 +612,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   )
 
   // ajax function that update the bottom of the page when a Technique is clicked
-  private[this] def onClickTemplateNode(technique: Option[Technique], activeTechnique: Option[ActiveTechnique]): JsCmd = {
+  private def onClickTemplateNode(technique: Option[Technique], activeTechnique: Option[ActiveTechnique]): JsCmd = {
     updateCurrentTechniqueDetails(technique, activeTechnique)
 
     // update UI
@@ -626,7 +626,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    *   - Techniques
    * - no action can be done with such node.
    */
-  private[this] def jsTreeNodeOf_ptCategory(category: TechniqueCategory): JsTreeNode = {
+  private def jsTreeNodeOf_ptCategory(category: TechniqueCategory): JsTreeNode = {
 
     def jsTreeNodeOf_pt(technique: Technique): JsTreeNode = new JsTreeNode {
 
@@ -703,7 +703,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * @param category
    * @return
    */
-  private[this] def jsTreeNodeOf_uptCategory(category: ActiveTechniqueCategory): JsTreeNode = {
+  private def jsTreeNodeOf_uptCategory(category: ActiveTechniqueCategory): JsTreeNode = {
     /*
      * Transform a ActiveTechnique into a JsTree leaf
      */
@@ -838,7 +838,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  private[this] def showCreateActiveTechniqueCategoryPopup(): JsCmd = {
+  private def showCreateActiveTechniqueCategoryPopup(): JsCmd = {
     setCreationPopup
 
     // update UI
@@ -848,7 +848,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
   }
 
-  private[this] def showGiveReasonPopup(
+  private def showGiveReasonPopup(
       sourceActiveTechniqueId: ActiveTechniqueId,
       destCatId:               ActiveTechniqueCategoryId
   ): JsCmd = {
@@ -860,7 +860,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     JsRaw("""initBsModal("createActiveTechniquePopup")""")
   }
 
-  private[this] def reloadTechniqueLibrary(isTechniqueLibraryPage: Boolean): NodeSeq = {
+  private def reloadTechniqueLibrary(isTechniqueLibraryPage: Boolean): NodeSeq = {
 
     def initJs    = SetHtml("techniqueLibraryUpdateInterval", <span>{updateTecLibInterval}</span>)
     def process() = {

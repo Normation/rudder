@@ -93,7 +93,7 @@ object AutomaticReportsCleaning {
   /**
    *  Build an hourly frequency
    */
-  private[this] def buildHourly(min: Int): Box[CleanFrequency] = {
+  private def buildHourly(min: Int): Box[CleanFrequency] = {
 
     if (min >= 0 && min <= 59)
       Full(Hourly(min))
@@ -104,7 +104,7 @@ object AutomaticReportsCleaning {
   /**
    *  Build a daily frequency
    */
-  private[this] def buildDaily(min: Int, hour: Int): Box[CleanFrequency] = {
+  private def buildDaily(min: Int, hour: Int): Box[CleanFrequency] = {
 
     if (min >= 0 && min <= 59) {
       if (hour >= 0 && hour <= 23)
@@ -119,7 +119,7 @@ object AutomaticReportsCleaning {
   /**
    *  Build a weekly frequency
    */
-  private[this] def buildWeekly(min: Int, hour: Int, day: String): Option[CleanFrequency] = {
+  private def buildWeekly(min: Int, hour: Int, day: String): Option[CleanFrequency] = {
 
     if (min >= 0 && min <= 59) {
       if (hour >= 0 && hour <= 23) {
@@ -434,21 +434,20 @@ class AutomaticReportsCleaning(
       extends DatabaseCleanerActor {
     updateManager =>
 
-    private[this] val reportLogger = ReportLogger
-    private[this] val automatic    = reportsttl > 0
+    private val reportLogger = ReportLogger
+    private val automatic    = reportsttl > 0
     // compliancettl may be disabled, it's managed with the Option[DeleteCommand.ComplianceLevel]
     // We don't handle the case where compliancelevel cleaning would be enabled and reports
     // disable, because really, if someone has enough free space to keep ruddersysevent forever,
     // they can handle compliance forever, too.
-    private[this] var currentState: CleanerState = IdleCleaner
-    private[this] var lastRun:      DateTime     = DateTime.now()
+    private var currentState: CleanerState = IdleCleaner
 
     def isIdle: Boolean = currentState == IdleCleaner
 
-    private[this] def formatDate(date: DateTime): String = date.toString("yyyy-MM-dd HH:mm")
+    private def formatDate(date: DateTime): String = date.toString("yyyy-MM-dd HH:mm")
     val logger = ScheduledJobLogger
 
-    private[this] def activeCleaning(
+    private def activeCleaning(
         reports:     DeleteCommand.Reports,
         compliances: Option[DeleteCommand.ComplianceLevel],
         message:     DatabaseCleanerMessage,
@@ -480,7 +479,6 @@ class AutomaticReportsCleaning(
               )
             )
           }
-          lastRun = DateTime.now
           currentState = IdleCleaner
       }
     }

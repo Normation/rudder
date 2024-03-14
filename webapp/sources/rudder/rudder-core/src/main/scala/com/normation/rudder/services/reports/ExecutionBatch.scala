@@ -389,7 +389,7 @@ object ExecutionBatch extends Loggable {
    * Utility method to factor out common logging task and be assured that
    * the log message is actually sync with the info type.
    */
-  private[this] def runType(traceMessage: String, runType: RunAndConfigInfo)(implicit nodeId: NodeId): RunAndConfigInfo = {
+  private def runType(traceMessage: String, runType: RunAndConfigInfo)(implicit nodeId: NodeId): RunAndConfigInfo = {
     val msg = if (traceMessage.trim.isEmpty) "" else ": " + traceMessage
     ComplianceDebugLogger.node(nodeId).debug(s"Run config for node ${nodeId.value}: ${runType.logName} ${msg}")
     runType
@@ -1266,7 +1266,7 @@ object ExecutionBatch extends Loggable {
     (computed ::: newStatus).toSet
   }
 
-  private[this] def buildUnexpectedReports(mergeInfo: MergeInfo, reports: Seq[Reports]): Set[RuleNodeStatusReport] = {
+  private def buildUnexpectedReports(mergeInfo: MergeInfo, reports: Seq[Reports]): Set[RuleNodeStatusReport] = {
     reports
       .groupBy(x => x.ruleId)
       .map {
@@ -1313,7 +1313,7 @@ object ExecutionBatch extends Loggable {
   /**
    * Build unexpected reports for the given reports
    */
-  private[this] def buildUnexpectedDirectives(reports: Seq[Reports]): Seq[DirectiveStatusReport] = {
+  private def buildUnexpectedDirectives(reports: Seq[Reports]): Seq[DirectiveStatusReport] = {
     reports.map { r =>
       DirectiveStatusReport(
         r.directiveId,
@@ -1681,7 +1681,7 @@ object ExecutionBatch extends Loggable {
    * to be the "unexpanded" one, and that so, the expanded value is lost.
    *
    */
-  private[this] def buildNoReportIdComponentValueStatus(
+  private def buildNoReportIdComponentValueStatus(
       expectedValue:       ExpectedValue,
       filteredReports:     Seq[Reports],
       componentGotReports: Boolean, // does the component got at least one report?

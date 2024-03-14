@@ -220,7 +220,7 @@ object Boot {
  */
 object PluginsInfo {
 
-  private[this] var _plugins = Map[PluginName, RudderPluginDef]()
+  private var _plugins = Map[PluginName, RudderPluginDef]()
 
   def registerPlugin(plugin: RudderPluginDef): Unit = {
     _plugins = _plugins + (plugin.name -> plugin)
@@ -291,9 +291,9 @@ object StaticResourceRewrite extends RestHelper {
  */
 object FatalException {
 
-  private[this] var fatalException = Set[String]()
+  private var fatalException = Set[String]()
   // need to be pre-allocated
-  private[this] val format         = org.joda.time.format.ISODateTimeFormat.dateTime()
+  private val format         = org.joda.time.format.ISODateTimeFormat.dateTime()
   /*
    * Call that method with the list of fatal exception to set-up the
    * UncaughtExceptionHandler.
@@ -948,12 +948,12 @@ class Boot extends Loggable {
   // Run a health check
   RudderConfig.healthcheckNotificationService.init
 
-  private[this] def addPluginsMenuTo(plugins: List[RudderPluginDef], menus: List[Menu]): List[Menu] = {
+  private def addPluginsMenuTo(plugins: List[RudderPluginDef], menus: List[Menu]): List[Menu] = {
     // return the updated siteMap
     plugins.foldLeft(menus) { case (prev, mutator) => mutator.updateSiteMap(prev) }
   }
 
-  private[this] def initPlugins(): List[RudderPluginDef] = {
+  private def initPlugins(): List[RudderPluginDef] = {
     import scala.jdk.CollectionConverters.*
 
     val reflections = new Reflections("bootstrap.rudder.plugin", "com.normation.plugins")

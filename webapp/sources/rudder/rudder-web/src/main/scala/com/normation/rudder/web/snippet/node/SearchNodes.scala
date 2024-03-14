@@ -80,14 +80,14 @@ import scala.xml.NodeSeq.seqToNodeSeq
 
 class SearchNodes extends StatefulSnippet with Loggable {
 
-  private[this] val queryParser         = RudderConfig.cmdbQueryParser
-  private[this] val getFullGroupLibrary = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
-  private[this] val linkUtil            = RudderConfig.linkUtil
+  private val queryParser         = RudderConfig.cmdbQueryParser
+  private val getFullGroupLibrary = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
+  private val linkUtil            = RudderConfig.linkUtil
 
   // the popup component to create the group
-  private[this] val creationPopup = new LocalSnippet[CreateCategoryOrGroupPopup]
+  private val creationPopup = new LocalSnippet[CreateCategoryOrGroupPopup]
 
-  private[this] val groupLibrary = getFullGroupLibrary().toBox match {
+  private val groupLibrary = getFullGroupLibrary().toBox match {
     case Full(x) => x
     case eb: EmptyBox =>
       val e = eb ?~! "Major error: can not get the node group library"
@@ -125,7 +125,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
     </head>
   }
 
-  private[this] def setCreationPopup(query: Option[Query], serverList: Box[Seq[NodeInfo]]): Unit = {
+  private def setCreationPopup(query: Option[Query], serverList: Box[Seq[NodeInfo]]): Unit = {
     creationPopup.set(
       Full(
         new CreateCategoryOrGroupPopup(
@@ -154,7 +154,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
     )
   }
 
-  private[this] def setSearchComponent(query: Option[Query]): SearchNodeComponent = {
+  private def setSearchComponent(query: Option[Query]): SearchNodeComponent = {
     def showNodeDetails(nodeId: String, displayCompliance: Boolean): JsCmd = {
       linkUtil.redirectToNodeLink(NodeId(nodeId))
     }
@@ -196,7 +196,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
    * - pass an empty string if hash is undefined or empty
    * - pass a json-serialised structure in other cases
    */
-  private[this] def parseHashtag()(implicit qc: QueryContext): JsCmd = {
+  private def parseHashtag()(implicit qc: QueryContext): JsCmd = {
     def executeQuery(query: String): JsCmd = {
       val sc = if (query.nonEmpty) {
         val parsed = queryParser(query)
@@ -224,7 +224,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
   /**
    * Create the popup
    */
-  private[this] def createPopup: NodeSeq = {
+  private def createPopup: NodeSeq = {
     creationPopup.get match {
       case Failure(m, _, _) => <span class="error">Error: {m}</span>
       case Empty            => <div>The component is not set</div>
@@ -232,7 +232,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
     }
   }
 
-  private[this] def showPopup():                                      JsCmd = {
+  private def showPopup():                                            JsCmd = {
     searchNodeComponent.get match {
       case Full(r) =>
         setCreationPopup(r.getQuery(), r.getSrvList())

@@ -85,7 +85,7 @@ trait ApiAuthorizationLevelService {
 
 // and default implementation is: no
 class DefaultApiAuthorizationLevel(logger: Log) extends ApiAuthorizationLevelService {
-  private[this] var level:                            Option[ApiAuthorizationLevelService] = None
+  private var level:                                  Option[ApiAuthorizationLevelService] = None
   def overrideLevel(l: ApiAuthorizationLevelService): Unit                                 = {
     logger.info(s"Update API authorization level to '${l.name}'")
     level = Some(l)

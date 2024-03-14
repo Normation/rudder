@@ -193,7 +193,7 @@ trait AbstractScheduler {
       case x                                                               => logger.debug(s"[${displayName}] scheduler don't know how to process message: '${x}'")
     }
 
-    private[this] object TaskProcessor extends SpecializedLiftActor[StartProcessing] {
+    private object TaskProcessor extends SpecializedLiftActor[StartProcessing] {
 
       override protected def messageHandler: PartialFunction[StartProcessing, Unit] = {
         // --------------------------------------------

@@ -83,7 +83,7 @@ sealed trait Variable {
 
   // the comments below contains implementations and should be reused in SelectVariable and SelectOne variable
 
-  private[this] def checkValueForVariable(seq: Seq[String]): Either[LoadTechniqueError, Seq[String]] = {
+  private def checkValueForVariable(seq: Seq[String]): Either[LoadTechniqueError, Seq[String]] = {
     (spec match {
       case vl: ValueLabelVariableSpec =>
         if ((null != vl.valueslabels) && (vl.valueslabels.size > 0)) {

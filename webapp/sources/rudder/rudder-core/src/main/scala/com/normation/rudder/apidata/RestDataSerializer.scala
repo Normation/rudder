@@ -142,7 +142,7 @@ final case class RestDataSerializerImpl(
     diffService:   DiffService
 ) extends RestDataSerializer with Loggable {
 
-  private[this] def serializeMachineType(machine: Option[MachineType]): JValue = {
+  private def serializeMachineType(machine: Option[MachineType]): JValue = {
     machine match {
       case None                           => "No machine Inventory"
       case Some(UnknownMachineType)       => "Unknown"
@@ -356,9 +356,9 @@ final case class RestDataSerializerImpl(
     (("from" -> convert(diff.oldValue))
     ~ ("to"  -> convert(diff.newValue)))
   }
-  private[this] val create = "create"
-  private[this] val delete = "delete"
-  private[this] val modify = "modify"
+  private val create = "create"
+  private val delete = "delete"
+  private val modify = "modify"
 
   def serializeRuleChange(change: RuleChange): Box[JValue] = {
 

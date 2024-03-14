@@ -51,7 +51,7 @@ trait JSONReportsHandler {
 
 case class JSONReportsAnalyser(reportsRepository: ReportsRepository, propRepo: RudderPropertiesRepository) {
 
-  private[this] var handlers: List[JSONReportsHandler] = Nil
+  private var handlers: List[JSONReportsHandler] = Nil
 
   def addHandler(handler: JSONReportsHandler): Unit = handlers = handler :: handlers
 

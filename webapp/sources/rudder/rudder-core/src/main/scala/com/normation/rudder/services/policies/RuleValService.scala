@@ -71,7 +71,7 @@ class RuleValServiceImpl(
   /*
    * return variable merged when they have the same component name & reportid.
    */
-  private[this] def buildVariables(
+  private def buildVariables(
       variableSpecs: Seq[(List[SectionSpec], VariableSpec)],
       context:       Map[String, Seq[String]]
   ): Box[Map[ComponentId, Variable]] = {

@@ -197,7 +197,7 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
         objectClass = OC_TECHNIQUE_CATEGORY,
         objectClassUuid = A_TECHNIQUE_CATEGORY_UUID
       ) {
-    private[this] def activeTechniques = this
+    private def activeTechniques = this
 
     // method that check is an entry if of the given type
 
@@ -257,7 +257,7 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
   }
 
   object RULES extends OU("Rules", BASE_DN) {
-    private[this] def rules = this
+    private def rules = this
 
     def getRuleUid(dn: DN): Box[String] = singleRdnValue(dn, A_RULE_UUID)
 
@@ -355,7 +355,7 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
         objectClass = OC_GROUP_CATEGORY,
         objectClassUuid = A_GROUP_CATEGORY_UUID
       ) {
-    private[this] def group = this
+    private def group = this
 
     val rootCategoryId: NodeGroupCategoryId = NodeGroupCategoryId(this.uuid)
 
@@ -510,7 +510,7 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
   }
 
   object PARAMETERS extends OU("Parameters", BASE_DN) {
-    private[this] def parameters = this
+    private def parameters = this
 
     def getParameter(dn: DN): Box[String] = singleRdnValue(dn, A_PARAMETER_NAME)
 

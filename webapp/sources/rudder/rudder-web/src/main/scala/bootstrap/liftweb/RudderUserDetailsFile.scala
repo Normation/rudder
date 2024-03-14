@@ -297,13 +297,13 @@ final class FileUserDetailListProvider(roleApiMapping: RoleApiMapping, authorisa
    * You will have to "reload" after application full init (to allows plugin override);
    * We also set case sensitivity to false as a default (which will be updated with the actual data from the file on reload).
    */
-  private[this] val cache =
+  private val cache =
     Ref.make(ValidatedUserList(PasswordEncoder.PlainText, isCaseSensitive = false, customRoles = Nil, users = Map())).runNow
 
   /**
    * Callbacks for who need to be informed of a successfully users list reload
    */
-  private[this] val callbacks = Ref.make(List.empty[RudderAuthorizationFileReloadCallback]).runNow
+  private val callbacks = Ref.make(List.empty[RudderAuthorizationFileReloadCallback]).runNow
 
   /**
    * Reload the list of users. Only update the cache if there is no errors.

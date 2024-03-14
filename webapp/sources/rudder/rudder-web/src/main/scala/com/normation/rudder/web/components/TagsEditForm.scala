@@ -40,7 +40,7 @@ class TagsEditForm(tags: Tags, objectId: String) extends Loggable {
     tagTemplate(controllerId, appId, isEditForm = false, isRule = isRule)
   }
 
-  private[this] def tagTemplate(controllerId: String, appId: String, isEditForm: Boolean, isRule: Boolean): NodeSeq = {
+  private def tagTemplate(controllerId: String, appId: String, isEditForm: Boolean, isRule: Boolean): NodeSeq = {
 
     val (filterId, objectType) = if (isRule) {
       ("showFiltersRules", "rule")

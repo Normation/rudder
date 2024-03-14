@@ -73,7 +73,7 @@ class LDAPGitRevisionProvider(
     )
   }
 
-  private[this] var currentId = {
+  private var currentId = {
     val setID = for {
       id <- getAvailableRevTreeId
       _  <- setCurrentRevTreeId(id)

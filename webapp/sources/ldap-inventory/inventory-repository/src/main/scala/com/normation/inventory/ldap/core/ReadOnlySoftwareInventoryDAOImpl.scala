@@ -62,7 +62,7 @@ class ReadOnlySoftwareDAOImpl(
     mapper:              InventoryMapper
 ) extends ReadOnlySoftwareDAO {
 
-  private[this] def search(con: RoLDAPConnection, ids: Seq[SoftwareUuid]): IOResult[Seq[Software]] = {
+  private def search(con: RoLDAPConnection, ids: Seq[SoftwareUuid]): IOResult[Seq[Software]] = {
     val NB_BATCH_SOFTWARE = 2000
 
     // fetching 10 000 software make this method timeout

@@ -206,26 +206,26 @@ class ModificationValidationPopup(
 
   import ModificationValidationPopup.*
 
-  private[this] val userPropertyService   = RudderConfig.userPropertyService
-  private[this] val dependencyService     = RudderConfig.dependencyAndDeletionService
-  private[this] val uuidGen               = RudderConfig.stringUuidGenerator
-  private[this] val techniqueRepo         = RudderConfig.techniqueRepository
-  private[this] val asyncDeploymentAgent  = RudderConfig.asyncDeploymentAgent
-  private[this] val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
-  private[this] val woDirectiveRepository = RudderConfig.woDirectiveRepository
+  private val userPropertyService   = RudderConfig.userPropertyService
+  private val dependencyService     = RudderConfig.dependencyAndDeletionService
+  private val uuidGen               = RudderConfig.stringUuidGenerator
+  private val techniqueRepo         = RudderConfig.techniqueRepository
+  private val asyncDeploymentAgent  = RudderConfig.asyncDeploymentAgent
+  private val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
+  private val woDirectiveRepository = RudderConfig.woDirectiveRepository
 
   // fonction to read state of things
-  private[this] val getGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
+  private val getGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
 
-  private[this] val disabled = item match {
+  private val disabled = item match {
     case Left(item)  => !item.newDirective.isEnabled
     case Right(item) => !item.newGroup.isEnabled
   }
 
-  private[this] val validationRequired                               = workflowService.needExternalValidation()
-  private[this] val (defaultRequestName, itemType, itemName, action) = {
+  private val validationRequired                               = workflowService.needExternalValidation()
+  private val (defaultRequestName, itemType, itemName, action) = {
     item match {
       case Left(DirectiveChangeRequest(action, t, a, r, d, opt, add, remove)) =>
         (s"${action.name} Directive ${d.name}", "Directive", d.name, action)
@@ -234,12 +234,12 @@ class ModificationValidationPopup(
     }
   }
 
-  private[this] val explanation: NodeSeq = explanationMessages(itemType, action, disabled)
+  private val explanation: NodeSeq = explanationMessages(itemType, action, disabled)
   // When there is no rules, we need to remove the warning message
-  private[this] val explanationNoWarning = ("#dialogDisableWarning" #> NodeSeq.Empty).apply(explanation)
-  private[this] val groupLib             = getGroupLib()
+  private val explanationNoWarning = ("#dialogDisableWarning" #> NodeSeq.Empty).apply(explanation)
+  private val groupLib             = getGroupLib()
 
-  private[this] val rules = {
+  private val rules = {
     action match {
       case DGModAction.CreateSolo =>
         Full(Set[Rule]())
@@ -257,7 +257,7 @@ class ModificationValidationPopup(
   }
 
   // must be here because used in val popupWarningMessages
-  private[this] val crReasons = {
+  private val crReasons = {
     import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
@@ -365,7 +365,7 @@ class ModificationValidationPopup(
     )(html)
   }
 
-  private[this] def showDependentRules(rules: Set[Rule]): NodeSeq = {
+  private def showDependentRules(rules: Set[Rule]): NodeSeq = {
     action match {
       case DGModAction.CreateSolo => NodeSeq.Empty
       case _ if (rules.size <= 0) => NodeSeq.Empty
@@ -401,7 +401,7 @@ class ModificationValidationPopup(
     }
   }
 
-  private[this] val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
+  private val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
     override def setFilter      = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
@@ -410,7 +410,7 @@ class ModificationValidationPopup(
       valMinLen(1, "Name must not be empty") _ :: Nil
   }
 
-  private[this] val changeRequestDescription = new WBTextAreaField("Description", "") {
+  private val changeRequestDescription = new WBTextAreaField("Description", "") {
     override def setFilter      = notNull _ :: trim _ :: Nil
     override def inputField     = super.inputField % ("style" -> "height:7em") % ("tabindex" -> "2") % ("class" -> "nodisplay")
     override def errorClassName = "col-xl-12 errors-container"
@@ -419,7 +419,7 @@ class ModificationValidationPopup(
   }
 
   // The formtracker needs to check everything only if its not a creation and there is workflow
-  private[this] val formTracker = {
+  private val formTracker = {
     (validationRequired, action) match {
       case (false, _)                     => new FormTracker(crReasons.toList)
       case (true, DGModAction.CreateSolo) => new FormTracker(crReasons.toList)
@@ -433,9 +433,9 @@ class ModificationValidationPopup(
     }
   }
 
-  private[this] def error(msg: String) = <span class="col-xl-12 errors-container">{msg}</span>
+  private def error(msg: String) = <span class="col-xl-12 errors-container">{msg}</span>
 
-  private[this] def closePopup(): JsCmd = {
+  private def closePopup(): JsCmd = {
     JsRaw("""hideBsModal('confirmUpdateActionDialog');
             |hideBsModal('basePopup');""".stripMargin)
   }
@@ -443,15 +443,15 @@ class ModificationValidationPopup(
   /**
    * Update the form when something happened
    */
-  private[this] def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide(): JsCmd = {
     SetHtml(htmlId_popupContainer, popupContent())
   }
 
-  private[this] def onSubmitStartWorkflow(): JsCmd = {
+  private def onSubmitStartWorkflow(): JsCmd = {
     onSubmit()
   }
 
-  private[this] def DirectiveDiffFromAction(
+  private def DirectiveDiffFromAction(
       techniqueName: TechniqueName,
       directive:     Directive,
       initialState:  Option[Directive]
@@ -486,7 +486,7 @@ class ModificationValidationPopup(
     }
   }
 
-  private[this] def groupDiffFromAction(
+  private def groupDiffFromAction(
       group:        NodeGroup,
       initialState: Option[NodeGroup]
   ): Box[ChangeRequestNodeGroupDiff] = {
@@ -507,7 +507,7 @@ class ModificationValidationPopup(
     }
   }
 
-  private[this] def saveChangeRequest(): JsCmd = {
+  private def saveChangeRequest(): JsCmd = {
     // we only have quick change request now
     val boxcr = item match {
       case Left(
@@ -663,7 +663,7 @@ class ModificationValidationPopup(
     }
   }
 
-  private[this] def saveAndDeployDirective(
+  private def saveAndDeployDirective(
       directive:         Directive,
       activeTechniqueId: ActiveTechniqueId,
       why:               Option[String]
@@ -693,14 +693,14 @@ class ModificationValidationPopup(
     }
   }
 
-  private[this] def onFailure: JsCmd = {
+  private def onFailure: JsCmd = {
     formTracker.addFormError(error("There was a problem with your request"))
     updateFormClientSide() & JsRaw(
       """scrollToElementPopup('#notifications', 'confirmUpdateActionDialogconfirmUpdateActionDialog')"""
     )
   }
 
-  private[this] def updateAndDisplayNotifications(): NodeSeq = {
+  private def updateAndDisplayNotifications(): NodeSeq = {
     val notifications = formTracker.formErrors
     formTracker.cleanErrors
     if (notifications.isEmpty) NodeSeq.Empty

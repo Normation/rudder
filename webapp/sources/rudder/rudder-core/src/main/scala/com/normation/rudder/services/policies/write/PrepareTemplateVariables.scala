@@ -245,7 +245,7 @@ class PrepareTemplateVariablesImpl(
     }
   }
 
-  private[this] def prepareTechniqueTemplate(
+  private def prepareTechniqueTemplate(
       agentNodeProps:      AgentNodeProperties,
       policies:            List[Policy],
       parameters:          Seq[ParameterEntry],
@@ -323,7 +323,7 @@ class PrepareTemplateVariablesImpl(
   }
 
   // Create a STVariable from a Variable
-  private[this] def stVariableFromVariable(
+  private def stVariableFromVariable(
       v:                Variable,
       variableEscaping: AgentSpecificGeneration,
       nodeId:           NodeId,
@@ -346,7 +346,7 @@ class PrepareTemplateVariablesImpl(
     }
   }
 
-  private[this] def prepareVariables(
+  private def prepareVariables(
       agentNodeProps:       AgentNodeProperties,
       agentVariableHandler: AgentSpecificGeneration,
       policy:               Policy,

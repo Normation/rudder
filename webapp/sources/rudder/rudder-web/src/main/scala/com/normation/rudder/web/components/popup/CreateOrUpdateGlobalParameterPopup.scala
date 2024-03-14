@@ -79,7 +79,7 @@ class CreateOrUpdateGlobalParameterPopup(
     onFailureCallback: () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
 
-  private[this] val userPropertyService = RudderConfig.userPropertyService
+  private val userPropertyService = RudderConfig.userPropertyService
   private[this] val uuidGen             = RudderConfig.stringUuidGenerator
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
@@ -96,8 +96,8 @@ class CreateOrUpdateGlobalParameterPopup(
     case GlobalParamModAction.Create => "Add a global property"
   }
 
-  private[this] val workflowEnabled = workflowService.needExternalValidation()
-  private[this] val titleWorkflow   = workflowEnabled match {
+  private val workflowEnabled = workflowService.needExternalValidation()
+  private val titleWorkflow   = workflowEnabled match {
     case true  =>
       <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Request</h4>
               <hr class="css-fix"/>
@@ -108,7 +108,7 @@ class CreateOrUpdateGlobalParameterPopup(
     case false => NodeSeq.Empty
   }
 
-  private[this] def globalParamDiffFromAction(newParameter: GlobalParameter): Box[ChangeRequestGlobalParameterDiff] = {
+  private def globalParamDiffFromAction(newParameter: GlobalParameter): Box[ChangeRequestGlobalParameterDiff] = {
     change.previousGlobalParam match {
       case None    =>
         if ((change.action == GlobalParamModAction.Update) || (change.action == GlobalParamModAction.Create))
@@ -136,7 +136,7 @@ class CreateOrUpdateGlobalParameterPopup(
     }
   }
 
-  private[this] def onSubmit()(implicit qc: QueryContext): JsCmd = {
+  private def onSubmit()(implicit qc: QueryContext): JsCmd = {
     if (formTracker.hasErrors) {
       onFailure
     } else {
@@ -195,23 +195,23 @@ class CreateOrUpdateGlobalParameterPopup(
     }
   }
 
-  private[this] def onFailure(implicit qc: QueryContext): JsCmd = {
+  private def onFailure(implicit qc: QueryContext): JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them"))
     updateFormClientSide()
   }
 
-  private[this] def closePopup(): JsCmd = {
+  private def closePopup(): JsCmd = {
     JsRaw("""hideBsModal('createGlobalParameterPopup');""")
   }
 
   /**
    * Update the form when something happened
    */
-  private[this] def updateFormClientSide()(implicit qc: QueryContext): JsCmd = {
+  private def updateFormClientSide()(implicit qc: QueryContext): JsCmd = {
     SetHtml(CreateOrUpdateGlobalParameterPopup.htmlId_popupContainer, popupContent())
   }
 
-  private[this] def updateAndDisplayNotifications(formTracker: FormTracker): NodeSeq = {
+  private def updateAndDisplayNotifications(formTracker: FormTracker): NodeSeq = {
     val notifications = formTracker.formErrors
     formTracker.cleanErrors
 
@@ -225,9 +225,9 @@ class CreateOrUpdateGlobalParameterPopup(
   }
 
   ////////////////////////// fields for form ////////////////////////
-  private[this] val patternName = Pattern.compile("[a-zA-Z0-9_]+");
+  private val patternName = Pattern.compile("[a-zA-Z0-9_]+");
 
-  private[this] val parameterName = new WBTextField("Name", change.previousGlobalParam.map(_.name).getOrElse("")) {
+  private val parameterName = new WBTextField("Name", change.previousGlobalParam.map(_.name).getOrElse("")) {
     override def setFilter      = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     = (change.previousGlobalParam match {
@@ -241,7 +241,7 @@ class CreateOrUpdateGlobalParameterPopup(
   }
 
   // The value may be empty
-  private[this] val parameterFormat = {
+  private val parameterFormat = {
 
     val defaultMode = change.previousGlobalParam.map { p =>
       if (p.value.valueType() == ConfigValueType.STRING) "string" else "json"
@@ -269,7 +269,7 @@ class CreateOrUpdateGlobalParameterPopup(
   }
 
   // The value may be empty
-  private[this] val parameterValue = {
+  private val parameterValue = {
     new WBTextAreaField("Value", change.previousGlobalParam.map(p => p.valueAsString).getOrElse("")) {
       override def setFilter      = trim _ :: Nil
       override def inputField     = (change.action match {
@@ -281,7 +281,7 @@ class CreateOrUpdateGlobalParameterPopup(
     }
   }
 
-  private[this] val parameterDescription = {
+  private val parameterDescription = {
     new WBTextAreaField("Description", change.previousGlobalParam.map(_.description).getOrElse("")) {
       override def setFilter      = notNull _ :: trim _ :: Nil
       override def inputField     = (change.action match {
@@ -293,7 +293,7 @@ class CreateOrUpdateGlobalParameterPopup(
     }
   }
 
-  private[this] val parameterInheritMode = {
+  private val parameterInheritMode = {
     new WBTextField("Inherit Mode", change.previousGlobalParam.flatMap(_.inheritMode.map(_.value)).getOrElse("")) {
       override val maxLen         = 3
       override def setFilter      = trim _ :: Nil
@@ -310,15 +310,15 @@ class CreateOrUpdateGlobalParameterPopup(
     }
   }
 
-  private[this] def defaultClassName = change.action match {
+  private def defaultClassName = change.action match {
     case GlobalParamModAction.Update => "btn-success"
     case GlobalParamModAction.Create => "btn-success"
     case GlobalParamModAction.Delete => "btn-danger"
   }
 
-  private[this] val defaultRequestName =
+  private val defaultRequestName =
     s"${change.action.name.capitalize} Global Parameter " + change.previousGlobalParam.map(_.name).getOrElse("")
-  private[this] val changeRequestName  = new WBTextField("Change request title", defaultRequestName) {
+  private val changeRequestName  = new WBTextField("Change request title", defaultRequestName) {
     override def setFilter      = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
@@ -329,7 +329,7 @@ class CreateOrUpdateGlobalParameterPopup(
 
   val parameterOverridable = true
 
-  private[this] val paramReasons = {
+  private val paramReasons = {
     import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
@@ -354,7 +354,7 @@ class CreateOrUpdateGlobalParameterPopup(
     }
   }
 
-  private[this] val formTracker = {
+  private val formTracker = {
     val fields = parameterName :: parameterValue :: paramReasons.toList ::: {
       if (workflowEnabled) changeRequestName :: Nil
       else Nil
@@ -362,7 +362,7 @@ class CreateOrUpdateGlobalParameterPopup(
     new FormTracker(fields)
   }
 
-  private[this] def error(msg: String) = Text(msg)
+  private def error(msg: String) = Text(msg)
 
   def popupContent()(implicit qc: QueryContext): NodeSeq = {
     val (buttonName, classForButton) = workflowEnabled match {
@@ -417,7 +417,7 @@ class CreateOrUpdateGlobalParameterPopup(
     ).apply(formXml())
 
   }
-  private[this] def formXml(): NodeSeq = {
+  private def formXml(): NodeSeq = {
     SHtml.ajaxForm(
       <div class="modal-dialog">
         <div class="modal-content">

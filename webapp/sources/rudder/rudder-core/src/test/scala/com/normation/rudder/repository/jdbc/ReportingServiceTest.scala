@@ -194,8 +194,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
   lazy val agentRunService: agentRunService = new agentRunService
   class agentRunService extends AgentRunIntervalService() {
-    private[this] val interval = Duration.standardMinutes(5)
-    private[this] val nodes    = Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), ResolvedAgentRunInterval(interval, 1))).toMap
+    private val interval = Duration.standardMinutes(5)
+    private val nodes    = Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), ResolvedAgentRunInterval(interval, 1))).toMap
     def getGlobalAgentRun():                                  Box[AgentRunInterval]                      = Full(AgentRunInterval(None, interval.toStandardMinutes.getMinutes, 0, 0, 0))
     def getNodeReportingConfigurations(nodeIds: Set[NodeId]): Box[Map[NodeId, ResolvedAgentRunInterval]] = {
       Full(nodes.view.filterKeys(x => nodeIds.contains(x)).toMap)

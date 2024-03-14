@@ -573,7 +573,7 @@ class RwLDAPConnection(
     }
   }
 
-  private[this] def logIgnoredException(dn: => String, action: String, e: Throwable): Unit = {
+  private def logIgnoredException(dn: => String, action: String, e: Throwable): Unit = {
     val diagnostic = e match {
       case ex: LDAPException => ex.getResultString
       case ex => ex.getMessage

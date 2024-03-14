@@ -104,7 +104,7 @@ class SimpleGitRevisionProvider(refPath: String, repo: GitRepositoryProvider) ex
     )
   }
 
-  private[this] val currentId = Ref.make[ObjectId](getAvailableRevTreeId.runNow).runNow
+  private val currentId = Ref.make[ObjectId](getAvailableRevTreeId.runNow).runNow
 
   override def getAvailableRevTreeId: IOResult[ObjectId] = {
     IOResult.attempt {

@@ -97,7 +97,7 @@ object DateFormaterService {
   def getDisplayDateTimePicker(date: DateTime): String = {
     date.toString(dateFormatTimePicker)
   }
-  private[this] val periodFormatter = new PeriodFormatterBuilder()
+  private val periodFormatter = new PeriodFormatterBuilder()
     .appendDays()
     .appendSuffix(" day", " days")
     .appendSeparator(", ")

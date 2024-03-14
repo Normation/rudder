@@ -518,7 +518,7 @@ class VariableTest extends Specification {
   /// Utility methods
   ///
 
-  private[this] def checkType(typeName: String, varName: String) = {
+  private def checkType(typeName: String, varName: String) = {
     "An input with a type '%s'".format(typeName) should {
       val input = variables(varName)
       "have a constraint with a type '%s'".format(typeName) in {
@@ -527,72 +527,72 @@ class VariableTest extends Specification {
     }
   }
 
-  private[this] def beAnInput(implicit variable: Variable) = {
+  private def beAnInput(implicit variable: Variable) = {
     "Be an input variable" in {
       variable.spec.isInstanceOf[InputVariableSpec]
     }
   }
 
-  private[this] def beASelect1(implicit variable: Variable) = {
+  private def beASelect1(implicit variable: Variable) = {
     "Be an input select 1" in {
       variable.spec.isInstanceOf[SelectOneVariableSpec]
     }
   }
 
-  private[this] def beASelect(implicit variable: Variable) = {
+  private def beASelect(implicit variable: Variable) = {
     "Be an input select" in {
       variable.spec.isInstanceOf[SelectVariableSpec]
     }
   }
 
-  private[this] def beAPassword(implicit variable: Variable) = {
+  private def beAPassword(implicit variable: Variable) = {
     "Be an input password input" in {
       variable.spec.isInstanceOf[InputVariableSpec] and
       variable.spec.constraint.typeName.name == "password"
     }
   }
 
-  private[this] def beAPredefVal(implicit variable: Variable) = {
+  private def beAPredefVal(implicit variable: Variable) = {
     "Be an PREDEF val" in {
       variable.spec.isInstanceOf[PredefinedValuesVariableSpec]
     }
   }
 
-  private[this] def haveDescription(description: String = refDescription)(implicit variable: Variable) = {
+  private def haveDescription(description: String = refDescription)(implicit variable: Variable) = {
     "have description '%s'".format(description) in {
       variable.spec.description mustEqual description
     }
   }
 
-  private[this] def haveName(name: String = refName)(implicit variable: Variable) = {
+  private def haveName(name: String = refName)(implicit variable: Variable) = {
     "have name '%s'".format(name) in {
       variable.spec.name mustEqual name
     }
   }
 
-  private[this] def haveValue[T](value: T = refValue)(implicit variable: Variable) = {
+  private def haveValue[T](value: T = refValue)(implicit variable: Variable) = {
     "have value '%s'".format(value) in {
       variable.getValidatedValue(identity).getOrElse(throw new Exception("for test")).head mustEqual value
     }
   }
 
-  private[this] def saveHaveValue(value: String = refValue)(implicit variable: Variable) = {
+  private def saveHaveValue(value: String = refValue)(implicit variable: Variable) = {
     haveValue(value)(variable.copyWithSavedValue(value).orThrow)
   }
 
-  private[this] def haveNbValues(nbValues: Int)(implicit variable: Variable) = {
+  private def haveNbValues(nbValues: Int)(implicit variable: Variable) = {
     "have %d values".format(nbValues) in {
       variable.values.length mustEqual nbValues
     }
   }
 
-  private[this] def haveType(typeName: String)(implicit variable: Variable) = {
+  private def haveType(typeName: String)(implicit variable: Variable) = {
     "have type " + typeName in {
       variable.spec.constraint.typeName.name mustEqual typeName
     }
   }
 
-  private[this] def provideAndHaveValues(values: String*)(implicit variable: Variable) = {
+  private def provideAndHaveValues(values: String*)(implicit variable: Variable) = {
     s"have both provided values and set values '${values.mkString(",")}'" in {
       variable match {
         case v: PredefinedValuesVariable =>
@@ -603,13 +603,13 @@ class VariableTest extends Specification {
     }
   }
 
-  private[this] def notBeMultivalued(implicit variable: Variable) = {
+  private def notBeMultivalued(implicit variable: Variable) = {
     "not be multivalued (because it is not a valid tag of variable spec)" in {
       !variable.spec.multivalued
     }
   }
 
-  private[this] def haveNoAlgo(implicit variable: Variable) = {
+  private def haveNoAlgo(implicit variable: Variable) = {
     s"Have an user defined hash algorithm (and so none constrained)" in {
       variable.spec.constraint.typeName match {
         case PasswordVType(algos) => algos must containTheSameElementsAs(HashAlgoConstraint.values)
@@ -618,7 +618,7 @@ class VariableTest extends Specification {
     }
   }
 
-  private[this] def haveAlgo(algos: List[HashAlgoConstraint])(implicit variable: Variable) = {
+  private def haveAlgo(algos: List[HashAlgoConstraint])(implicit variable: Variable) = {
     s"Have hash algorithm of type ${algos.map(_.prefix).mkString(",")}" in {
       variable.spec.constraint.typeName match {
         case PasswordVType(a) => a ==== (algos)

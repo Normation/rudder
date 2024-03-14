@@ -587,14 +587,14 @@ class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
   val defaultAuthBackendsProvider: AuthBackendsProvider = DefaultAuthBackendProvider
 
   // the list of AuthenticationMethods configured by the user
-  private[this] var authenticationMethods = Array[AuthenticationMethods]() // must be a var/array, because init by spring-side
+  private var authenticationMethods = Array[AuthenticationMethods]() // must be a var/array, because init by spring-side
 
-  private[this] var backends            = Seq[AuthBackendsProvider]()
+  private var backends            = Seq[AuthBackendsProvider]()
   // a map of status for each backend (status is dynamic)
-  private[this] var allowedToUseBackend = Map[String, () => Boolean]()
+  private var allowedToUseBackend = Map[String, () => Boolean]()
 
   // this is the map of configured spring bean "AuthenticationProvider"
-  private[this] var springProviders = Map[String, AuthenticationProvider]()
+  private var springProviders = Map[String, AuthenticationProvider]()
 
   // a map of properties registered for each backend
   private[this] var backendProperties = Map[String, AuthBackendProviderProperties]()
@@ -675,16 +675,16 @@ class RestAuthenticationFilter(
   def destroy(): Unit = {}
   def init(config: FilterConfig): Unit = {}
 
-  private[this] val not_authenticated_api = List(
+  private val not_authenticated_api = List(
     "/api/status"
   )
 
-  private[this] def isValidNonAuthApiV1(httpRequest: HttpServletRequest): Boolean = {
+  private def isValidNonAuthApiV1(httpRequest: HttpServletRequest): Boolean = {
     val requestPath = httpRequest.getRequestURI.substring(httpRequest.getContextPath.length)
     not_authenticated_api.exists(path => requestPath.startsWith(path))
   }
 
-  private[this] def failsAuthentication(
+  private def failsAuthentication(
       httpRequest:  HttpServletRequest,
       httpResponse: HttpServletResponse,
       error:        RudderError
@@ -694,7 +694,7 @@ class RestAuthenticationFilter(
     httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")
   }
 
-  private[this] def authenticate(userDetails: RudderUserDetail): Unit = {
+  private def authenticate(userDetails: RudderUserDetail): Unit = {
     val authenticationToken = new UsernamePasswordAuthenticationToken(
       userDetails,
       userDetails.getAuthorities,

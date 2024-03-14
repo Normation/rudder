@@ -102,17 +102,17 @@ class TechniqueEditForm(
   import TechniqueEditForm.*
 
   // find Technique
-  private[this] val techniqueRepository         = RudderConfig.techniqueRepository
-  private[this] val roActiveTechniqueRepository = RudderConfig.roDirectiveRepository
-  private[this] val rwActiveTechniqueRepository = RudderConfig.woDirectiveRepository
-  private[this] val uuidGen                     = RudderConfig.stringUuidGenerator
+  private val techniqueRepository         = RudderConfig.techniqueRepository
+  private val roActiveTechniqueRepository = RudderConfig.roDirectiveRepository
+  private val rwActiveTechniqueRepository = RudderConfig.woDirectiveRepository
+  private val uuidGen                     = RudderConfig.stringUuidGenerator
   // transform Technique variable to human viewable HTML fields
-  private[this] val directiveEditorService      = RudderConfig.directiveEditorService
-  private[this] val dependencyService           = RudderConfig.dependencyAndDeletionService
-  private[this] val asyncDeploymentAgent        = RudderConfig.asyncDeploymentAgent
-  private[this] val userPropertyService         = RudderConfig.userPropertyService
+  private val directiveEditorService      = RudderConfig.directiveEditorService
+  private val dependencyService           = RudderConfig.dependencyAndDeletionService
+  private val asyncDeploymentAgent        = RudderConfig.asyncDeploymentAgent
+  private val userPropertyService         = RudderConfig.userPropertyService
 
-  private[this] var currentActiveTechnique: Box[ActiveTechnique] = Box(activeTechnique).or {
+  private var currentActiveTechnique: Box[ActiveTechnique] = Box(activeTechnique).or {
     for {
       tech          <- Box(technique)
       optActiveTech <- roActiveTechniqueRepository.getActiveTechnique(tech.id.name).toBox
@@ -256,7 +256,7 @@ class TechniqueEditForm(
     """)))
   }
 
-  private[this] val crReasons = {
+  private val crReasons = {
     import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
@@ -265,7 +265,7 @@ class TechniqueEditForm(
     }
   }
 
-  private[this] val crReasonsRemovePopup = {
+  private val crReasonsRemovePopup = {
     import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
@@ -274,7 +274,7 @@ class TechniqueEditForm(
     }
   }
 
-  private[this] val crReasonsDisablePopup = {
+  private val crReasonsDisablePopup = {
     import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
@@ -298,21 +298,21 @@ class TechniqueEditForm(
     }
   }
 
-  private[this] val formTracker = {
+  private val formTracker = {
     new FormTracker(crReasons.toList)
   }
 
-  private[this] val formTrackerRemovePopup = {
+  private val formTrackerRemovePopup = {
     new FormTracker(crReasonsRemovePopup.toList)
   }
 
-  private[this] val formTrackerDisactivatePopup = {
+  private val formTrackerDisactivatePopup = {
     new FormTracker(crReasonsDisablePopup.toList)
   }
 
   ////////////// Callbacks //////////////
 
-  private[this] def onSuccess(): JsCmd = {
+  private def onSuccess(): JsCmd = {
     // MUST BE THIS WAY, because the parent may change some reference to JsNode
     // and so, our AJAX could be broken
     cleanTrackers()
@@ -321,34 +321,34 @@ class TechniqueEditForm(
     successPopup
   }
 
-  private[this] def cleanTrackers(): Unit = {
+  private def cleanTrackers(): Unit = {
     formTracker.clean
     formTrackerRemovePopup.clean
     formTrackerDisactivatePopup.clean
   }
 
-  private[this] def onFailure(): JsCmd = {
+  private def onFailure(): JsCmd = {
     formTracker.addFormError(error("There was a problem with your request"))
     updateFormClientSide()
   }
 
-  private[this] def onFailureRemovePopup(): JsCmd = {
+  private def onFailureRemovePopup(): JsCmd = {
     formTrackerRemovePopup.addFormError(error("There was a problem with your request"))
     updateRemoveFormClientSide()
   }
 
-  private[this] def onFailureDisablePopup(): JsCmd = {
+  private def onFailureDisablePopup(): JsCmd = {
     formTrackerDisactivatePopup.addFormError(error("There was a problem with your request"))
     updateDisableFormClientSide()
   }
 
-  private[this] def updateRemoveFormClientSide(): JsCmd = {
+  private def updateRemoveFormClientSide(): JsCmd = {
     val jsDisplayRemoveDiv = JsRaw("""initBsModal("deleteActionDialog");""")
     Replace("deleteActionDialog", this.showRemovePopupForm()) &
     jsDisplayRemoveDiv
   }
 
-  private[this] def updateDisableFormClientSide(): JsCmd = {
+  private def updateDisableFormClientSide(): JsCmd = {
     val jsDisplayRemoveDiv = JsRaw("""initBsModal("disableActionDialog")""")
     Replace("disableActionDialog", this.showDisactivatePopupForm()) &
     jsDisplayRemoveDiv
@@ -356,7 +356,7 @@ class TechniqueEditForm(
 
   ///////////// Delete /////////////
 
-  private[this] def deleteButton(id: ActiveTechniqueId): Elem = {
+  private def deleteButton(id: ActiveTechniqueId): Elem = {
 
     def deleteActiveTechnique(): JsCmd = {
       if (formTrackerRemovePopup.hasErrors) {
@@ -393,13 +393,13 @@ class TechniqueEditForm(
     SHtml.ajaxSubmit("Delete", deleteActiveTechnique _)
   }
 
-  private[this] def dialogDeleteTree(htmlId: String, activeTechnique: ActiveTechnique): NodeSeq = {
+  private def dialogDeleteTree(htmlId: String, activeTechnique: ActiveTechnique): NodeSeq = {
     (new TechniqueTree(htmlId, activeTechnique.id, DontCare)).tree()
   }
 
   ///////////// Enable / disable /////////////
 
-  private[this] def disableButton(activeTechnique: ActiveTechnique): Elem = {
+  private def disableButton(activeTechnique: ActiveTechnique): Elem = {
     def switchActivation(status: Boolean)(): JsCmd = {
       if (formTrackerDisactivatePopup.hasErrors) {
         onFailureDisablePopup()
@@ -417,7 +417,7 @@ class TechniqueEditForm(
     }
   }
 
-  private[this] def dialogDisableWarning(activeTechnique: ActiveTechnique): NodeSeq = {
+  private def dialogDisableWarning(activeTechnique: ActiveTechnique): NodeSeq = {
     if (activeTechnique.isEnabled) {
       <h2>Disabling this Technique will also affect the following Directives and Rules.</h2>
     } else {
@@ -425,7 +425,7 @@ class TechniqueEditForm(
     }
   }
 
-  private[this] def dialogDisableTree(htmlId: String, activeTechnique: ActiveTechnique): NodeSeq = {
+  private def dialogDisableTree(htmlId: String, activeTechnique: ActiveTechnique): NodeSeq = {
     val switchFilterStatus = if (activeTechnique.isEnabled) OnlyDisableable else OnlyEnableable
     (new TechniqueTree(htmlId, activeTechnique.id, switchFilterStatus)).tree()
   }
@@ -489,7 +489,7 @@ class TechniqueEditForm(
     }</div>
   }
 
-  private[this] def showParameters(technique: Technique): NodeSeq = {
+  private def showParameters(technique: Technique): NodeSeq = {
     directiveEditorService.get(technique.id, DirectiveUid("just-for-read-only")) match {
       case Full(pe) => pe.toHtmlNodeSeq
       case e: EmptyBox =>
@@ -499,7 +499,7 @@ class TechniqueEditForm(
     }
   }
 
-  private[this] def showIsSingle(technique: Technique): NodeSeq = {
+  private def showIsSingle(technique: Technique): NodeSeq = {
     <span>
       {
       if (technique.isMultiInstance) {
@@ -552,13 +552,13 @@ class TechniqueEditForm(
   /////////////////////////////// Edit form ///////////////////////////////
   /////////////////////////////////////////////////////////////////////////
 
-  private[this] def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide(): JsCmd = {
     SetHtml(htmlId_technique, this.showCrForm())
   }
 
-  private[this] def error(msg: String) = <span class="error">{msg}</span>
+  private def error(msg: String) = <span class="error">{msg}</span>
 
-  private[this] def statusAndDeployTechnique(uactiveTechniqueId: ActiveTechniqueId, status: Boolean): JsCmd = {
+  private def statusAndDeployTechnique(uactiveTechniqueId: ActiveTechniqueId, status: Boolean): JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
     (for {
       save   <- rwActiveTechniqueRepository
@@ -581,7 +581,7 @@ class TechniqueEditForm(
     }
   }
 
-  private[this] def updateAndDisplayNotifications(formTracker: FormTracker): NodeSeq = {
+  private def updateAndDisplayNotifications(formTracker: FormTracker): NodeSeq = {
     val notifications = formTracker.formErrors
     formTracker.cleanErrors
     if (notifications.isEmpty) {
@@ -594,7 +594,7 @@ class TechniqueEditForm(
   }
 
   ///////////// success pop-up ///////////////
-  private[this] def successPopup: JsCmd = {
+  private def successPopup: JsCmd = {
     JsRaw("""createSuccessNotification()""")
   }
 

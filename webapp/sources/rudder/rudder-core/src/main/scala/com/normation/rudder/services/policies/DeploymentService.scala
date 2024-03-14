@@ -534,7 +534,7 @@ trait PromiseGenerationService {
     )
     result
   }
-  private[this] val periodFormatter = {
+  private val periodFormatter = {
     new PeriodFormatterBuilder()
       .appendDays()
       .appendSuffix(" day", " days")
@@ -839,7 +839,7 @@ class PromiseGenerationServiceImpl(
     with PromiseGeneration_BuildNodeContext with PromiseGeneration_buildRuleVals with PromiseGeneration_buildNodeConfigurations
     with PromiseGeneration_updateAndWriteRule with PromiseGeneration_setExpectedReports with PromiseGeneration_Hooks {
 
-  private[this] var dynamicsGroupsUpdate: Option[UpdateDynamicGroups] = None
+  private var dynamicsGroupsUpdate: Option[UpdateDynamicGroups] = None
 
   // We need to register the update dynamic group after instantiation of the class
   // as the deployment service, the async deployment and the dynamic group update have cyclic dependencies
@@ -851,7 +851,7 @@ class PromiseGenerationServiceImpl(
     dynamicsGroupsUpdate.map(groupUpdate(_)).getOrElse(Failure("Dynamic group update is not registered, this is an error"))
 
   }
-  private[this] def groupUpdate(updateDynamicGroups: UpdateDynamicGroups): Box[Unit] = {
+  private def groupUpdate(updateDynamicGroups: UpdateDynamicGroups): Box[Unit] = {
     // Trigger a manual update if one is not pending (otherwise it goes in infinit loop)
     // It doesn't expose anything about its ending, so we need to wait for the update to be idle
     if (updateDynamicGroups.isIdle()) {
@@ -1907,7 +1907,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
   /*
    * Plugin hooks
    */
-  private[this] val codeHooks = collection.mutable.Buffer[PromiseGenerationHooks]()
+  private val codeHooks = collection.mutable.Buffer[PromiseGenerationHooks]()
 
   def appendPreGenCodeHook(hook: PromiseGenerationHooks): Unit = {
     this.codeHooks.append(hook)

@@ -105,7 +105,7 @@ import scala.reflect.ClassTag
  *
  */
 class LocalSnippet[T <: DispatchSnippet](implicit m: ClassTag[T]) {
-  private[this] var _snippet: Box[T] = Empty
+  private var _snippet: Box[T] = Empty
 
   val name = m.runtimeClass.getSimpleName
 

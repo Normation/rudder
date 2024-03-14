@@ -95,42 +95,42 @@ class RuleGrid(
     graphRecentChanges:   DisplayColumn
 ) extends DispatchSnippet with Loggable {
 
-  sealed private[this] trait Line { val rule: Rule }
+  sealed private trait Line { val rule: Rule }
 
-  private[this] case class OKLine(
+  private case class OKLine(
       rule:              Rule,
       applicationStatus: ApplicationStatus,
       trackerVariables:  Seq[(Directive, ActiveTechnique, Technique)],
       targets:           Set[RuleTargetInfo]
   ) extends Line
 
-  private[this] case class ErrorLine(
+  private case class ErrorLine(
       rule:             Rule,
       trackerVariables: Box[Seq[(Directive, ActiveTechnique, Technique)]],
       targets:          Box[Set[RuleTargetInfo]]
   ) extends Line
 
-  private[this] val getFullNodeGroupLib      = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
-  private[this] val getFullDirectiveLib      = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
-  private[this] val getRuleApplicationStatus = RudderConfig.ruleApplicationStatus.isApplied _
-  private[this] val getRootRuleCategory      = RudderConfig.roRuleCategoryRepository.getRootCategory _
+  private val getFullNodeGroupLib      = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
+  private val getFullDirectiveLib      = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
+  private val getRuleApplicationStatus = RudderConfig.ruleApplicationStatus.isApplied _
+  private val getRootRuleCategory      = RudderConfig.roRuleCategoryRepository.getRootCategory _
 
-  private[this] val recentChanges          = RudderConfig.recentChangesService
-  private[this] val techniqueRepository    = RudderConfig.techniqueRepository
-  private[this] val categoryService        = RudderConfig.ruleCategoryService
-  private[this] val asyncComplianceService = RudderConfig.asyncComplianceService
-  private[this] val configService          = RudderConfig.configService
+  private val recentChanges          = RudderConfig.recentChangesService
+  private val techniqueRepository    = RudderConfig.techniqueRepository
+  private val categoryService        = RudderConfig.ruleCategoryService
+  private val asyncComplianceService = RudderConfig.asyncComplianceService
+  private val configService          = RudderConfig.configService
 
   // used to error tempering
-  private[this] val roRuleRepository = RudderConfig.roRuleRepository
-  private[this] val woRuleRepository = RudderConfig.woRuleRepository
-  private[this] val uuidGen          = RudderConfig.stringUuidGenerator
-  private[this] val nodeFactRepo     = RudderConfig.nodeFactRepository
+  private val roRuleRepository = RudderConfig.roRuleRepository
+  private val woRuleRepository = RudderConfig.woRuleRepository
+  private val uuidGen          = RudderConfig.stringUuidGenerator
+  private val nodeFactRepo     = RudderConfig.nodeFactRepository
 
   /////  local variables /////
-  private[this] val htmlId_rulesGridId       = "grid_" + htmlId_rulesGridZone
-  private[this] val htmlId_reportsPopup      = "popup_" + htmlId_rulesGridZone
-  private[this] val htmlId_modalReportsPopup = "modal_" + htmlId_rulesGridZone
+  private val htmlId_rulesGridId       = "grid_" + htmlId_rulesGridZone
+  private val htmlId_reportsPopup      = "popup_" + htmlId_rulesGridZone
+  private val htmlId_modalReportsPopup = "modal_" + htmlId_rulesGridZone
 
   /*
    * Compliance and recent changes columns (not forced):
@@ -155,11 +155,11 @@ class RuleGrid(
    * ---------------------------------------------------------
    */
   import DisplayColumn.*
-  private[this] val showComplianceAndChangesColumn = columnCompliance match {
+  private val showComplianceAndChangesColumn = columnCompliance match {
     case Force(display) => display
     case FromConfig     => configService.rudder_ui_display_ruleComplianceColumns().toBox.openOr(true)
   }
-  private[this] val showChangesGraph               = showComplianceAndChangesColumn && (graphRecentChanges match {
+  private val showChangesGraph               = showComplianceAndChangesColumn && (graphRecentChanges match {
     case Force(display) => display
     case FromConfig     => configService.display_changes_graph().toBox.openOr(true)
   })
@@ -314,7 +314,7 @@ class RuleGrid(
 
   //////////////////////////////// utility methods ////////////////////////////////
 
-  private[this] def selectAllVisibleRules(status: Boolean): JsCmd = {
+  private def selectAllVisibleRules(status: Boolean): JsCmd = {
     directiveApplication match {
       case Some(directiveApp) =>
         def moveCategory(arg: String): JsCmd = {
@@ -359,7 +359,7 @@ class RuleGrid(
     }
   }
 
-  private[this] def changesFuture(rules: Seq[Rule]): Future[Box[Map[RuleId, Map[Interval, Int]]]] = {
+  private def changesFuture(rules: Seq[Rule]): Future[Box[Map[RuleId, Map[Interval, Int]]]] = {
     Future {
       if (rules.isEmpty) {
         Full(Map())
@@ -379,7 +379,7 @@ class RuleGrid(
   }
 
   // Ajax call back to get recent changes
-  private[this] def ajaxChanges(future: Future[Box[Map[RuleId, Map[Interval, Int]]]]): JsCmd = {
+  private def ajaxChanges(future: Future[Box[Map[RuleId, Map[Interval, Int]]]]): JsCmd = {
     SHtml.ajaxInvoke(() => {
       // Is my future completed ?
       if (future.isCompleted) {
@@ -419,7 +419,7 @@ class RuleGrid(
    * First: transform all Rules to Lines
    * Second: Transform all of those lines into javascript datas to send in the function
    */
-  private[this] def getRulesTableData(
+  private def getRulesTableData(
       rules:            Seq[Rule],
       nodeFacts:        MapView[NodeId, CoreNodeFact],
       groupLib:         FullNodeGroupCategory,
@@ -472,7 +472,7 @@ class RuleGrid(
   /*
    * Convert Rules to Data used in Datatables Lines
    */
-  private[this] def convertRulesToLines(
+  private def convertRulesToLines(
       directivesLib:    FullActiveTechniqueCategory,
       groupsLib:        FullNodeGroupCategory,
       arePolicyServers: MapView[NodeId, Boolean],
@@ -579,7 +579,7 @@ class RuleGrid(
   /*
    * Generates Data for a line of the table
    */
-  private[this] def getRuleData(
+  private def getRuleData(
       line:             Line,
       groupsLib:        FullNodeGroupCategory,
       nodeFacts:        MapView[NodeId, CoreNodeFact],

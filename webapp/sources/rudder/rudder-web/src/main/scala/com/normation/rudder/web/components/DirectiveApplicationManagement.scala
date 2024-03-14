@@ -85,8 +85,8 @@ final case class DirectiveApplicationManagement(
 ) extends Loggable {
 
   // Utility Types
-  private[this] type Category   = RuleCategory
-  private[this] type CategoryId = RuleCategoryId
+  private type Category   = RuleCategory
+  private type CategoryId = RuleCategoryId
 
   /*
    * Initial Values
@@ -95,18 +95,18 @@ final case class DirectiveApplicationManagement(
   // Rules
 
   // Applying Rules At the beginning
-  private[this] val applyingRules = rules.filter(_.directiveIds.contains(directive.id))
+  private val applyingRules = rules.filter(_.directiveIds.contains(directive.id))
 
   // Applying Rules Id
-  private[this] val applyingRulesId = applyingRules.map(_.id)
+  private val applyingRulesId = applyingRules.map(_.id)
 
   // Map to get a Rule form its id
-  private[this] val rulesMap = rules.groupMapReduce(_.id)(identity)((a, b) => a)
+  private val rulesMap = rules.groupMapReduce(_.id)(identity)((a, b) => a)
 
   // Categories
 
   // Map to get children categories from a category
-  private[this] val categories = {
+  private val categories = {
     def mapCategories(cat: Category, map: Map[CategoryId, List[CategoryId]] = Map.empty): Map[CategoryId, List[CategoryId]] = {
       cat.childs.foldRight(map)(mapCategories) + (cat.id -> cat.childs.map(_.id))
     }
@@ -115,14 +115,14 @@ final case class DirectiveApplicationManagement(
   }
 
   // Map ti get parent category from a category
-  private[this] val parentCategories = {
+  private val parentCategories = {
     categories.flatMap { case (parent, childs) => childs.map((_ -> parent)) }
   }
 
   // Category -> Rule
 
   // Utility method to complete the map (add Rules to parents)
-  private[this] def completeMapping(baseMap: Map[CategoryId, List[RuleId]]): Map[CategoryId, List[RuleId]] = {
+  private def completeMapping(baseMap: Map[CategoryId, List[RuleId]]): Map[CategoryId, List[RuleId]] = {
     def toApply(category: CategoryId, rules: List[RuleId], map: Map[CategoryId, List[RuleId]]): Map[CategoryId, List[RuleId]] = {
       val updatedMap = map.updated(category, (map.get(category).getOrElse(Nil) ++ rules).distinct)
       parentCategories.get(category) match {
@@ -135,13 +135,13 @@ final case class DirectiveApplicationManagement(
   }
 
   // Get Rules from a category
-  private[this] val rulesByCategory = completeMapping(rules.groupMap(_.categoryId)(_.id)).withDefaultValue(Nil)
+  private val rulesByCategory = completeMapping(rules.groupMap(_.categoryId)(_.id)).withDefaultValue(Nil)
 
   // Get applying Rules fror each category at the beginning
-  private[this] val applyingRulesbyCategory = completeMapping(applyingRules.groupMap(_.categoryId)(_.id)).withDefaultValue(Nil)
+  private val applyingRulesbyCategory = completeMapping(applyingRules.groupMap(_.categoryId)(_.id)).withDefaultValue(Nil)
 
   // Current State, this variable will contains the application state of all Rules and categories
-  private[this] var currentApplyingRules = applyingRulesbyCategory.withDefaultValue(Nil)
+  private var currentApplyingRules = applyingRulesbyCategory.withDefaultValue(Nil)
 
   // Get rules that needs to be updated , and divide them by those who are new application and those who don't apply the Directive annymore
   def checkRulesToUpdate: (List[Rule], List[Rule]) = {

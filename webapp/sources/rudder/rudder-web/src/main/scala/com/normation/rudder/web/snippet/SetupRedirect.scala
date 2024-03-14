@@ -50,7 +50,7 @@ import scala.xml.NodeSeq
 
 class SetupRedirect extends DispatchSnippet with Loggable {
 
-  private[this] val configService = RudderConfig.configService
+  private val configService = RudderConfig.configService
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
     case "display" => _ => WithNonce.scriptWithNonce(Script(display()))

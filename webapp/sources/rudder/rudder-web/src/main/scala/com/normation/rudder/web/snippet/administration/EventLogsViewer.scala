@@ -46,8 +46,8 @@ import net.liftweb.http.DispatchSnippet
 import scala.xml.NodeSeq
 
 class EventLogsViewer extends DispatchSnippet with Loggable {
-  private[this] val repos     = RudderConfig.eventLogRepository
-  private[this] val eventList = RudderConfig.eventListDisplayer
+  private val repos     = RudderConfig.eventLogRepository
+  private val eventList = RudderConfig.eventListDisplayer
 
   def getLastEvents: Box[Seq[EventLog]] = {
     repos.getEventLogByCriteria(None, Some(1000), List(Fragment.const("id DESC"))).toBox

@@ -347,7 +347,7 @@ object JsRudderLibBinding {
   import java.util.HashMap as JHMap
   import javax.script.SimpleBindings
 
-  private[this] def toBindings(k: String, v: JsRudderLibImpl): Bindings = {
+  private def toBindings(k: String, v: JsRudderLibImpl): Bindings = {
     val m = new JHMap[String, Object]()
     m.put(k, v)
     new SimpleBindings(m)
@@ -580,7 +580,7 @@ object JsEngine {
 
   final class SandboxedJsEngine private (jsEngine: GraalEngine, pool: ExecutorService, maxTime: FiniteDuration) extends JsEngine {
 
-    private[this] trait KillingThread {
+    private trait KillingThread {
 
       /**
        * Force stop the thread, throws a the ThreadDeath error.

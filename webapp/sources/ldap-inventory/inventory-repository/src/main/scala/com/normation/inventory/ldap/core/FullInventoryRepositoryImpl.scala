@@ -70,14 +70,14 @@ class FullInventoryRepositoryImpl(
   /**
    * Get the expected DN of a machine from its ID and status
    */
-  private[this] def dnMachine(uuid: MachineUuid, inventoryStatus: InventoryStatus) = {
+  private def dnMachine(uuid: MachineUuid, inventoryStatus: InventoryStatus) = {
     inventoryDitService.getDit(inventoryStatus).MACHINES.MACHINE.dn(uuid)
   }
-  private[this] def dn(uuid: NodeId, inventoryStatus: InventoryStatus)             = {
+  private def dn(uuid: NodeId, inventoryStatus: InventoryStatus)             = {
     // TODO: scala3 migration - bug: https://github.com/lampepfl/dotty/issues/16467
     inventoryDitService.getDit(inventoryStatus).NODES.NODE.dn(uuid.value)
   }
-  private[this] def nodeDn(inventoryStatus: InventoryStatus)                       = {
+  private def nodeDn(inventoryStatus: InventoryStatus)                       = {
     inventoryDitService.getDit(inventoryStatus).NODES.dn
   }
 
@@ -88,7 +88,7 @@ class FullInventoryRepositoryImpl(
    * index 2: Removed
    *
    */
-  private[this] def getExistingMachineDN(con: RwLDAPConnection, id: MachineUuid): LDAPIOResult[Seq[(Boolean, DN)]] = {
+  private def getExistingMachineDN(con: RwLDAPConnection, id: MachineUuid): LDAPIOResult[Seq[(Boolean, DN)]] = {
     val status = Seq(AcceptedInventory, PendingInventory, RemovedInventory)
     ZIO.foreach(status) { x =>
       val d = dnMachine(id, x)
@@ -99,7 +99,7 @@ class FullInventoryRepositoryImpl(
   /*
    * find the first dn matching ID, starting with accepted, then pending, then deleted
    */
-  private[this] def findDnForId[ID](
+  private def findDnForId[ID](
       con: RwLDAPConnection,
       id:  ID,
       fdn: (ID, InventoryStatus) => DN
@@ -181,7 +181,7 @@ class FullInventoryRepositoryImpl(
    * Update the list of node, setting the container value to the one given.
    * Delete the attribute if None.
    */
-  private[this] def updateNodes(
+  private def updateNodes(
       con:          RwLDAPConnection,
       nodes:        Map[InventoryStatus, Set[LDAPEntry]],
       newMachineId: Option[(MachineUuid, InventoryStatus)]

@@ -531,7 +531,7 @@ case object DateComparator extends LDAPCriterionType {
   }
   override def toLDAP(value: String): Either[RudderError, String] = parseDate(value).map(GeneralizedTime(_).toString)
 
-  private[this] def parseDate(value: String): PureResult[DateTime] = try {
+  private def parseDate(value: String): PureResult[DateTime] = try {
     val date = frenchFmt.parseDateTime(value)
     Right(date)
   } catch {
@@ -700,7 +700,7 @@ case object AgentComparator extends LDAPCriterionType {
    * 4.1: a json is stored in AGENTS_NAME, but not with the same value than 4.2 (oldshortName instead of id is stored as agentType ...)
    * <4.1: AGENTS_NAME only contains the name of the agent (but a value that is different form the id, oldShortName)
    */
-  private[this] def filterAgent(agent: AgentType) = {
+  private def filterAgent(agent: AgentType) = {
     SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.id}""""), null) ::           // 4.2+
     SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.oldShortName}""""), null) :: // 4.1
     EQ(A_AGENTS_NAME, agent.oldShortName) ::                                             // 3.1 ( < 4.1 in fact)

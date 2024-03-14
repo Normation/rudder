@@ -143,7 +143,7 @@ class JsTreeUtilService(
     sort(x.name, y.name)
   }
 
-  private[this] def sort(x: String, y: String): Boolean = {
+  private def sort(x: String, y: String): Boolean = {
     if (String.CASE_INSENSITIVE_ORDER.compare(x, y) > 0) false else true
   }
 

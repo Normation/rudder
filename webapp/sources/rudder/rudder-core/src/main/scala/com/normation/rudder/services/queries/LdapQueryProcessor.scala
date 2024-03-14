@@ -633,7 +633,7 @@ class InternalLDAPQueryProcessor(
    *   that in `queryAndChekNodeId` where we know about server roles
    * - step2: filter out nodes based on a given list of acceptable entries
    */
-  private[this] def postFilterNode(
+  private def postFilterNode(
       entries:        Seq[NodeId],
       returnType:     QueryReturnType,
       limitToNodeIds: Option[Seq[NodeId]]
@@ -647,7 +647,7 @@ class InternalLDAPQueryProcessor(
   /*
    * From the list of DN to query with their filters, build a list of LDAPObjectType
    */
-  private[this] def createLDAPObjects(query: LDAPNodeQuery, debugId: Long): IOResult[Map[DnType, Map[String, LDAPObjectType]]] = {
+  private def createLDAPObjects(query: LDAPNodeQuery, debugId: Long): IOResult[Map[DnType, Map[String, LDAPObjectType]]] = {
     ZIO
       .foreach(query.objectTypesFilters) {
         case (dnType, mapOtSubQueries) =>
@@ -710,7 +710,7 @@ class InternalLDAPQueryProcessor(
   }
 
   // execute a query with special filter based on the composition
-  private[this] def executeQuery(
+  private def executeQuery(
       base:           DN,
       scope:          SearchScope,
       objectFilter:   LDAPObjectTypeFilter,
@@ -838,7 +838,7 @@ class InternalLDAPQueryProcessor(
     }
   }
 
-  private[this] def getDnsForObjectType(
+  private def getDnsForObjectType(
       lot:         LDAPObjectType,
       composition: CriterionComposition,
       debugId:     Long
@@ -879,7 +879,7 @@ class InternalLDAPQueryProcessor(
    * from special filter.
    * Special filter are handled in their own place
    */
-  private[this] def unspecialiseFilters(filters: Set[ExtendedFilter]): PureResult[(Set[Filter], Set[SpecialFilter])] = {
+  private def unspecialiseFilters(filters: Set[ExtendedFilter]): PureResult[(Set[Filter], Set[SpecialFilter])] = {
     val start = Right((Set(), Set())): Either[RudderError, (Set[Filter], Set[SpecialFilter])]
     filters.foldLeft(start) {
       case (Right((ldapFilters, specials)), LDAPFilter(f))         => Right((ldapFilters + f, specials))
@@ -892,11 +892,11 @@ class InternalLDAPQueryProcessor(
    * Special filters may need some attributes to work.
    * That method allows to get them
    */
-  private[this] def getAdditionnalAttributes(filters: Set[SpecialFilter]): Set[String] = {
+  private def getAdditionnalAttributes(filters: Set[SpecialFilter]): Set[String] = {
     filters.flatMap { case f: GeneralRegexFilter => Set(f.attributeName) }
   }
 
-  private[this] def postProcessQueryResults(
+  private def postProcessQueryResults(
       results:        Seq[LDAPEntry],
       specialFilters: Set[(CriterionComposition, SpecialFilter)],
       debugId:        Long

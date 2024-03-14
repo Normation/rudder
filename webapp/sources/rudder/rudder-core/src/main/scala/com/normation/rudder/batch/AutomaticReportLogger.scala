@@ -96,7 +96,7 @@ class AutomaticReportLogger(
     /*
      * List of all reports kind processed by the logger
      */
-    private[this] val reportsKind = {
+    private val reportsKind = {
       List(
         Reports.LOG_REPAIRED,
         Reports.LOG_WARN,
@@ -173,7 +173,7 @@ class AutomaticReportLogger(
      * Both bounds are inclusive (so both fromId and maxId will be logged if
      * they are non-compliant reports).
      */
-    private[this] def logReportsBetween(lastProcessedId: Long, maxId: Long): Unit = {
+    private def logReportsBetween(lastProcessedId: Long, maxId: Long): Unit = {
 
       /*
        * Log all non-compliant reports between fromId and maxId (both inclusive), limited to batch size max.

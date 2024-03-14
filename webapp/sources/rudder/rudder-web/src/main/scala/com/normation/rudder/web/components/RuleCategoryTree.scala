@@ -72,13 +72,13 @@ class RuleCategoryTree(
     updateComponent:         () => JsCmd
 ) extends DispatchSnippet with Loggable {
 
-  private[this] val roRuleCategoryRepository = RudderConfig.roRuleCategoryRepository
-  private[this] val woRuleCategoryRepository = RudderConfig.woRuleCategoryRepository
-  private[this] val ruleCategoryService      = RudderConfig.ruleCategoryService
-  private[this] val uuidGen                  = RudderConfig.stringUuidGenerator
-  private[this] var root                     = rootCategory
+  private val roRuleCategoryRepository = RudderConfig.roRuleCategoryRepository
+  private val woRuleCategoryRepository = RudderConfig.woRuleCategoryRepository
+  private val ruleCategoryService      = RudderConfig.ruleCategoryService
+  private val uuidGen                  = RudderConfig.stringUuidGenerator
+  private var root                     = rootCategory
 
-  private[this] var selectedCategoryId = rootCategory.id
+  private var selectedCategoryId = rootCategory.id
 
   def getSelected: RuleCategoryId = {
     if (root.contains(selectedCategoryId)) {
@@ -144,9 +144,9 @@ class RuleCategoryTree(
         Noop
     }
   }
-  private[this] val isDirectiveApplication = directive.isDefined
+  private val isDirectiveApplication = directive.isDefined
 
-  private[this] def moveCategory(arg: String): JsCmd = {
+  private def moveCategory(arg: String): JsCmd = {
     // parse arg, which have to  be json object with sourceGroupId, destCatId
     try {
       (for {
@@ -226,7 +226,7 @@ class RuleCategoryTree(
     )
   }
 
-  private[this] def categoryNode(category: RuleCategory): JsTreeNode = new JsTreeNode {
+  private def categoryNode(category: RuleCategory): JsTreeNode = new JsTreeNode {
 
     override val attrs = ("data-jstree" -> """{ "type" : "category" }""") :: ("id", category.id.value) :: Nil
 

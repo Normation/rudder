@@ -103,15 +103,15 @@ class DirectiveEditForm(
 
   val currentDirectiveSettingForm = new LocalSnippet[DirectiveEditForm]
 
-  private[this] val directiveEditorService = RudderConfig.directiveEditorService
-  private[this] val techniqueRepo          = RudderConfig.techniqueRepository
-  private[this] val roRuleRepo             = RudderConfig.roRuleRepository
-  private[this] val roRuleCategoryRepo     = RudderConfig.roRuleCategoryRepository
-  private[this] val workflowLevelService   = RudderConfig.workflowLevelService
-  private[this] val ncfTechniqueService    = RudderConfig.ncfTechniqueReader
+  private val directiveEditorService = RudderConfig.directiveEditorService
+  private val techniqueRepo          = RudderConfig.techniqueRepository
+  private val roRuleRepo             = RudderConfig.roRuleRepository
+  private val roRuleCategoryRepo     = RudderConfig.roRuleCategoryRepository
+  private val workflowLevelService   = RudderConfig.workflowLevelService
+  private val ncfTechniqueService    = RudderConfig.ncfTechniqueReader
 
-  private[this] val htmlId_save     = htmlId_policyConf + "Save"
-  private[this] val parameterEditor = {
+  private val htmlId_save     = htmlId_policyConf + "Save"
+  private val parameterEditor = {
     directiveEditorService.get(technique.id, directive.id.uid, directive.parameters) match {
       case Full(pe)         => pe
       case Empty            => {
@@ -382,7 +382,7 @@ class DirectiveEditForm(
 
   }
 
-  private[this] def clonePopup(): JsCmd = {
+  private def clonePopup(): JsCmd = {
     SetHtml("basePopup", newCreationPopup(technique, activeTechnique)) &
     JsRaw(s""" initBsModal("basePopup"); """)
   }
@@ -391,7 +391,7 @@ class DirectiveEditForm(
 
   def addFormMsg(msg: NodeSeq): Unit = formTracker.addFormError(msg)
 
-  private[this] def onFailure(hasVariableErrors: Boolean = false): JsCmd = {
+  private def onFailure(hasVariableErrors: Boolean = false): JsCmd = {
     formTracker.addFormError(error("There was a problem with your request."))
     val cmd = if (hasVariableErrors) {
       showVariablesErrorNotifications()
@@ -402,7 +402,7 @@ class DirectiveEditForm(
     cmd
   }
 
-  private[this] def onNothingToDo(): JsCmd = {
+  private def onNothingToDo(): JsCmd = {
     formTracker.addFormError(error("There are no modifications to save."))
     showErrorNotifications()
   }
@@ -412,11 +412,11 @@ class DirectiveEditForm(
     onFailureCallback() & Replace("notification", displayNotifications())
   }
 
-  private[this] def showErrorNotifications(): JsCmd = {
+  private def showErrorNotifications(): JsCmd = {
     onFailureCallback() & Replace("editForm", showDirectiveForm())
   }
 
-  private[this] def showIsSingle(): NodeSeq = {
+  private def showIsSingle(): NodeSeq = {
     <span>
       {
       if (technique.isMultiInstance) {
@@ -428,7 +428,7 @@ class DirectiveEditForm(
     </span>
   }
 
-  private[this] def showParametersLink(): NodeSeq = {
+  private def showParametersLink(): NodeSeq = {
     if (isADirectiveCreation) {
       <div class="callout-fade callout-info">
         <div class="marker">
@@ -451,7 +451,7 @@ class DirectiveEditForm(
     }
   }
 
-  private[this] def displayPrivateDrafts: Option[NodeSeq] = {
+  private def displayPrivateDrafts: Option[NodeSeq] = {
 //TODO
 //    for {
 //      drafts <- roDraftChangeRequestRepository.getAll(actor, directive.id)
@@ -459,13 +459,13 @@ class DirectiveEditForm(
     None
   }
 
-  private[this] def displayChangeRequests: Option[NodeSeq] = {
+  private def displayChangeRequests: Option[NodeSeq] = {
     None
   }
 
   ///////////// fields for Directive settings ///////////////////
 
-  private[this] val directiveName = new WBTextField("Name", directive.name) {
+  private val directiveName = new WBTextField("Name", directive.name) {
     override def setFilter             = notNull _ :: trim _ :: Nil
     override def className             = "form-control"
     override def labelClassName        = "col-sm-12"
@@ -475,7 +475,7 @@ class DirectiveEditForm(
       valMinLen(1, "Name must not be empty") _ :: Nil
   }
 
-  private[this] val directiveShortDescription = {
+  private val directiveShortDescription = {
     new WBTextField("Short description", directive.shortDescription) {
       override def className             = "form-control"
       override def labelClassName        = "col-sm-12"
@@ -486,7 +486,7 @@ class DirectiveEditForm(
     }
   }
 
-  private[this] val directiveLongDescription = {
+  private val directiveLongDescription = {
     new WBTextAreaField("Description", directive.longDescription) {
       override def setFilter             = notNull _ :: trim _ :: Nil
       override def className             = "form-control"
@@ -504,7 +504,7 @@ class DirectiveEditForm(
     }
   }
 
-  private[this] val directivePriority = {
+  private val directivePriority = {
     val priorities = List(
       (0, "Highest"),
       (1, "+4"),
@@ -550,7 +550,7 @@ class DirectiveEditForm(
     }
   }
 
-  private[this] var newTags = directive.tags
+  private var newTags = directive.tags
 
   def updateTag(boxTag: Box[Tags]): Unit = {
     boxTag match {
@@ -571,7 +571,7 @@ class DirectiveEditForm(
     }
     s"${version.serialize} ${deprecationInfo}"
   }
-  private[this] val globalOverrideText = globalMode.overridable match {
+  private val globalOverrideText = globalMode.overridable match {
     case Always        =>
       <div>
         You may override the agent policy mode on this directive.
@@ -585,7 +585,7 @@ class DirectiveEditForm(
       </p>
   }
 
-  private[this] val policyModesLabel = {
+  private val policyModesLabel = {
     val tooltipContent = {
       s"""
          |<div>
@@ -611,7 +611,7 @@ class DirectiveEditForm(
     </label>
   }
 
-  private[this] val policyModes = {
+  private val policyModes = {
     val l           = Seq(
       "global",
       "audit",
@@ -643,7 +643,7 @@ class DirectiveEditForm(
 
   val versions: Seq[(TechniqueVersion, String)] = techniques.keys.map(v => (v, showDeprecatedVersion(v))).toSeq.sortBy(_._1)
 
-  private[this] val directiveVersion = {
+  private val directiveVersion = {
     val attributes = ("id" -> "selectVersion") ::
       (if (isADirectiveCreation) {
          ("disabled" -> "true") :: Nil
@@ -666,15 +666,15 @@ class DirectiveEditForm(
     }
   }
 
-  private[this] val formTracker = {
+  private val formTracker = {
     val l = List(directiveName, directiveShortDescription, directiveLongDescription) // ++ crReasons
     new FormTracker(l)
   }
 
-  private[this] def error(msg: String) = <span class="error">{msg}</span>
+  private def error(msg: String) = <span class="error">{msg}</span>
 
   // Returns true if there is any error
-  private[this] def checkVariables(): Boolean = {
+  private def checkVariables(): Boolean = {
     !parameterEditor.mapValueSeq.forall { vars =>
       try {
         val s = Seq(parameterEditor.variableSpecs(vars._1).toVariable(vars._2))
@@ -688,7 +688,7 @@ class DirectiveEditForm(
     }
   }
 
-  private[this] def onSubmitSave(): JsCmd = {
+  private def onSubmitSave(): JsCmd = {
     val hasVariableErrors = checkVariables()
 
     if (formTracker.hasErrors) {
@@ -766,7 +766,7 @@ class DirectiveEditForm(
   }
 
   // action must be 'enable' or 'disable'
-  private[this] def onSubmitDisable(action: DGModAction): JsCmd = {
+  private def onSubmitDisable(action: DGModAction): JsCmd = {
     displayConfirmationPopup(
       action,
       directive.copy(_isEnabled = !directive._isEnabled),
@@ -775,7 +775,7 @@ class DirectiveEditForm(
     )
   }
 
-  private[this] def onSubmitDelete(): JsCmd = {
+  private def onSubmitDelete(): JsCmd = {
     displayConfirmationPopup(
       DGModAction.Delete,
       directive,
@@ -787,7 +787,7 @@ class DirectiveEditForm(
   /*
    * Create the confirmation pop-up
    */
-  private[this] def displayConfirmationPopup(
+  private def displayConfirmationPopup(
       action:       DGModAction,
       newDirective: Directive,
       baseRules:    List[Rule],
@@ -863,7 +863,7 @@ class DirectiveEditForm(
     }
   }
 
-  private[this] def displayNotifications(): NodeSeq = {
+  private def displayNotifications(): NodeSeq = {
     val notifications = formTracker.formErrors
 
     if (notifications.isEmpty) {
@@ -875,7 +875,7 @@ class DirectiveEditForm(
     }
   }
 
-  private[this] def newCreationPopup(technique: Technique, activeTechnique: ActiveTechnique): NodeSeq = {
+  private def newCreationPopup(technique: Technique, activeTechnique: ActiveTechnique): NodeSeq = {
 
     val popup = new CreateCloneDirectivePopup(
       technique.name,
@@ -890,7 +890,7 @@ class DirectiveEditForm(
 
   ///////////// success pop-up ///////////////
 
-  private[this] def successNotification(msg: String): JsCmd = {
+  private def successNotification(msg: String): JsCmd = {
     JsRaw(s"""createSuccessNotification("${msg}")""")
   }
 }

@@ -88,8 +88,8 @@ class CheckTechniqueLibrary(
 
     val logger = ScheduledJobLogger
 
-    private[this] val isAutomatic        = updateInterval > 0
-    private[this] val realUpdateInterval = {
+    private val isAutomatic        = updateInterval > 0
+    private val realUpdateInterval = {
       if (updateInterval < TECHLIB_MINIMUM_UPDATE_INTERVAL && isAutomatic) {
         logger.warn(s"Value '${updateInterval}' for ${propertyName} is too small, using '${TECHLIB_MINIMUM_UPDATE_INTERVAL}'")
         TECHLIB_MINIMUM_UPDATE_INTERVAL

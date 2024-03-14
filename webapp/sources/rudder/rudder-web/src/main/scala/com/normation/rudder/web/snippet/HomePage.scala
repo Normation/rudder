@@ -156,11 +156,11 @@ object HomePage {
 
 class HomePage extends StatefulSnippet {
 
-  private[this] val ldap             = RudderConfig.roLDAPConnectionProvider
-  private[this] val pendingNodesDit  = RudderConfig.pendingNodesDit
-  private[this] val rudderDit        = RudderConfig.rudderDit
-  private[this] val reportingService = RudderConfig.reportingService
-  private[this] val roRuleRepo       = RudderConfig.roRuleRepository
+  private val ldap             = RudderConfig.roLDAPConnectionProvider
+  private val pendingNodesDit  = RudderConfig.pendingNodesDit
+  private val rudderDit        = RudderConfig.rudderDit
+  private val reportingService = RudderConfig.reportingService
+  private val roRuleRepo       = RudderConfig.roRuleRepository
 
   override val dispatch: DispatchIt = {
     case "pendingNodes"       => pendingNodes
@@ -407,7 +407,7 @@ class HomePage extends StatefulSnippet {
   /**
    * Get the count of agent version name -> size for accepted nodes
    */
-  private[this] def getRudderAgentVersion(nodeFacts: MapView[NodeId, CoreNodeFact]): Map[String, Int] = {
+  private def getRudderAgentVersion(nodeFacts: MapView[NodeId, CoreNodeFact]): Map[String, Int] = {
     val n2            = System.currentTimeMillis
     val agentSoftware = nodeFacts.map(_._2.rudderAgent.toAgentInfo)
     val agentVersions = agentSoftware.flatMap(_.version)
@@ -420,37 +420,37 @@ class HomePage extends StatefulSnippet {
     res
   }
 
-  private[this] def countPendingNodes(): Box[Int] = {
+  private def countPendingNodes(): Box[Int] = {
     ldap.flatMap(con => con.searchOne(pendingNodesDit.NODES.dn, ALL, "1.1")).map(x => x.size)
   }.toBox
 
-  private[this] def countAcceptedNodes(nodeFacts: MapView[NodeId, CoreNodeFact]): Box[Int] = {
+  private def countAcceptedNodes(nodeFacts: MapView[NodeId, CoreNodeFact]): Box[Int] = {
     Full(nodeFacts.size)
   }
 
-  private[this] def countAllRules(): Box[Int] = {
+  private def countAllRules(): Box[Int] = {
     roRuleRepo.getIds().map(_.size).toBox
   }
 
-  private[this] def countAllDirectives(): Box[Int] = {
+  private def countAllDirectives(): Box[Int] = {
     ldap.flatMap { con =>
       con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, AND(IS(OC_DIRECTIVE), EQ(A_IS_SYSTEM, FALSE.toLDAPString)), "1.1")
     }.map(x => x.size)
   }.toBox
 
-  private[this] def countAllTechniques(): Box[Int] = {
+  private def countAllTechniques(): Box[Int] = {
     ldap.flatMap { con =>
       con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, AND(IS(OC_ACTIVE_TECHNIQUE), EQ(A_IS_SYSTEM, FALSE.toLDAPString)), "1.1")
     }.map(x => x.size)
   }.toBox
 
-  private[this] def countAllGroups(): Box[Int] = {
+  private def countAllGroups(): Box[Int] = {
     ldap
       .flatMap(con => con.searchSub(rudderDit.GROUP.dn, OR(IS(OC_RUDDER_NODE_GROUP), IS(OC_SPECIAL_TARGET)), "1.1"))
       .map(x => x.size)
   }.toBox
 
-  private[this] def displayCount(count: () => Box[Int], name: String) = {
+  private def displayCount(count: () => Box[Int], name: String) = {
     Text((count() match {
       case Empty => 0
       case m: Failure =>

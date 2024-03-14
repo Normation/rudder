@@ -527,7 +527,7 @@ final case class MultivaluedSectionField(
   /**
    * Command to correct display and behaviour after modifying sections
    */
-  private[this] def postModificationJS(): JsExp = {
+  private def postModificationJS(): JsExp = {
     JsRaw("""initBsTooltips(); """)
   }
 

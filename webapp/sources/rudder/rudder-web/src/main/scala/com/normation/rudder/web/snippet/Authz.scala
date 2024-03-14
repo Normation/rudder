@@ -56,7 +56,7 @@ class Authz extends DispatchSnippet with Loggable {
    * current user - having even one "no_rights"
    * make it true
    */
-  private[this] def noRights(): Boolean = {
+  private def noRights(): Boolean = {
     CurrentUser.getRights.authorizationTypes.contains(AuthorizationType.NoRights)
   }
 

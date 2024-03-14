@@ -282,7 +282,7 @@ class FillTemplatesService {
    * If a content is not in the cache, it will create the StringTemplate instance, and return it
    *
    */
-  private[this] val cache = ZioRuntime.unsafeRun(Ref.make(Map[String, Promise[RudderError, SynchronizedFileTemplate]]()))
+  private val cache = ZioRuntime.unsafeRun(Ref.make(Map[String, Promise[RudderError, SynchronizedFileTemplate]]()))
 
   def clearCache(): IOResult[Unit] = {
     cache.set(Map())

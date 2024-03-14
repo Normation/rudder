@@ -276,7 +276,7 @@ class PolicyWriterServiceImpl(
     }
   }
 
-  private[this] def writeNodePropertiesFile(agentNodeConfig: AgentNodeConfiguration) = {
+  private def writeNodePropertiesFile(agentNodeConfig: AgentNodeConfiguration) = {
 
     def generateNodePropertiesJson(properties: Seq[NodeProperty]): JValue = {
       import net.liftweb.json.JsonDSL.*
@@ -297,7 +297,7 @@ class PolicyWriterServiceImpl(
     } yield ()
   }
 
-  private[this] def writeRudderParameterFile(agentNodeConfig: AgentNodeConfiguration): IOResult[Unit] = {
+  private def writeRudderParameterFile(agentNodeConfig: AgentNodeConfiguration): IOResult[Unit] = {
     def generateParametersJson(parameters: Set[ParameterEntry]): JValue = {
       import com.normation.rudder.domain.properties.JsonPropertySerialisation.*
       import net.liftweb.json.JsonDSL.*
@@ -723,7 +723,7 @@ class PolicyWriterServiceImpl(
    *
    * Note: just making traverse for prepared technique/writePromisesFiles parallel increase latency by x5
    */
-  private[this] def writePolicies(
+  private def writePolicies(
       preparedTemplates: Seq[AgentNodeWritableConfiguration],
       writeTimer:        WriteTimer,
       fillTimer:         FillTemplateTimer
@@ -804,7 +804,7 @@ class PolicyWriterServiceImpl(
     }.unit
   }
 
-  private[this] def writeOtherResources(
+  private def writeOtherResources(
       preparedTemplates: Seq[AgentNodeWritableConfiguration],
       writeTimer:        WriteTimer,
       globalPolicyMode:  GlobalPolicyMode,
@@ -873,7 +873,7 @@ class PolicyWriterServiceImpl(
    * Note that a node without any agent configured won't
    * have any promise written.
    */
-  private[this] def calculatePathsForNodeConfigurations(
+  private def calculatePathsForNodeConfigurations(
       configs:             Seq[NodeConfiguration],
       rootNodeConfigId:    NodeId,
       allNodeInfos:        Map[NodeId, NodeInfo],
@@ -921,7 +921,7 @@ class PolicyWriterServiceImpl(
    * We are returning a map where keys are (TechniqueResourceId, AgentType) because
    * for a given resource IDs, you can have different out path for different agent.
    */
-  private[this] def readTemplateFromFileSystem(
+  private def readTemplateFromFileSystem(
       templatesToRead: Seq[ToRead]
   )(implicit
       timeout:         Duration,
@@ -970,7 +970,7 @@ class PolicyWriterServiceImpl(
    * We are returning a map where keys are (TechniqueResourceId, AgentType) because
    * for a given resource IDs, you can have different out path for different agent.
    */
-  private[this] def readResourcesFromFileSystem(
+  private def readResourcesFromFileSystem(
       staticResourceToRead: Seq[ToRead]
   )(implicit
       timeout:              Duration,
@@ -1002,7 +1002,7 @@ class PolicyWriterServiceImpl(
     } yield res
   }
 
-  private[this] def writeDirectiveCsv(
+  private def writeDirectiveCsv(
       paths:      NodePoliciesPaths,
       policies:   Seq[Policy],
       policyMode: GlobalPolicyMode
@@ -1036,7 +1036,7 @@ class PolicyWriterServiceImpl(
     }
   }
 
-  private[this] def writeSystemVarJson(
+  private def writeSystemVarJson(
       paths:     NodePoliciesPaths,
       variables: Map[String, Variable]
   ): IOResult[List[AgentSpecificFile]] = {
@@ -1058,7 +1058,7 @@ class PolicyWriterServiceImpl(
    * symbolic link toward root.pem if it's the same)
    * https://issues.rudder.io/issues/19529
    */
-  private[this] def writePolicyServerPem(
+  private def writePolicyServerPem(
       paths:                    NodePoliciesPaths,
       policyServerCertificates: PolicyServerCertificates
   ): IOResult[List[AgentSpecificFile]] = {
@@ -1093,7 +1093,7 @@ class PolicyWriterServiceImpl(
     }
   }
 
-  private[this] def systemVariableToJson(vars: Map[String, Variable]): String = {
+  private def systemVariableToJson(vars: Map[String, Variable]): String = {
     // only keep system variables, sort them by name
     import net.liftweb.json.*
 
@@ -1138,7 +1138,7 @@ class PolicyWriterServiceImpl(
    * Move the generated promises from the new folder to their final folder, backuping previous promises in the way
    * @param folders : (Container identifier, (base folder, new folder of the policies, backup folder of the policies) )
    */
-  private[this] def movePromisesToFinalPosition(folders: Seq[NodePoliciesPaths], maxParallelism: Int): IOResult[Unit] = {
+  private def movePromisesToFinalPosition(folders: Seq[NodePoliciesPaths], maxParallelism: Int): IOResult[Unit] = {
     // We need to sort the folders by "depth", so that we backup and move the deepest one first
     // 2020-01: FAR and NCH are not sure why we need to do that. But it seems that we can parallelize it nonetheless.
     val sortedFolder = folders.sortBy(x => x.baseFolder.count(_ == '/')).reverse
@@ -1271,7 +1271,7 @@ class PolicyWriterServiceImpl(
   /**
    * Copy a resource file from a technique to the node promises directory
    */
-  private[this] def copyResourceFile(
+  private def copyResourceFile(
       file:              TechniqueFile,
       isRootServer:      Boolean,
       agentType:         AgentType,
@@ -1304,7 +1304,7 @@ class PolicyWriterServiceImpl(
   /**
    * Move the machine policies folder to the backup folder if it's not None, else ignore backup.
    */
-  private[this] def backupNodeFolder(
+  private def backupNodeFolder(
       nodeFolder:    File,
       backupFolder:  Option[File],
       mvOptions:     Option[File.CopyOptions],
@@ -1340,7 +1340,7 @@ class PolicyWriterServiceImpl(
    * Move the newly created folder to the final location, ie we move
    *  var/rudder/share/00000038-55a2-4b97-8529-5154cbb63a18/rules.new/ into var/rudder/share/00000038-55a2-4b97-8529-5154cbb63a18/rules
    */
-  private[this] def moveNewNodeFolder(
+  private def moveNewNodeFolder(
       src:           File,
       dest:          File,
       mvOptions:     Option[File.CopyOptions],
@@ -1377,7 +1377,7 @@ class PolicyWriterServiceImpl(
    * @param nodeFolder
    * @param backupFolder
    */
-  private[this] def restoreBackupNodeFolder(
+  private def restoreBackupNodeFolder(
       nodeFolder:    String,
       backupFolder:  String,
       mvOptions:     Option[File.CopyOptions],

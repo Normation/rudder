@@ -101,7 +101,7 @@ class AgentRegister {
   /**
    * Ordered list of handlers, init with the default agent (CFEngine for linux)
    */
-  private[this] var pipeline: List[AgentSpecificGeneration] = {
+  private var pipeline: List[AgentSpecificGeneration] = {
     CFEngineAgentSpecificGeneration :: Nil
   }
 

@@ -108,7 +108,7 @@ class RestQuicksearch(
     }
   }
 
-  private[this] def filter(results: Set[QuickSearchResult]) = {
+  private def filter(results: Set[QuickSearchResult]) = {
     import com.normation.rudder.services.quicksearch.QuickSearchResultId.*
 
     val user = userService.getCurrentUser
@@ -140,7 +140,7 @@ class RestQuicksearch(
    *   crunching the browser with thousands of answers
    */
 
-  private[this] def prepare(results: Set[QuickSearchResult], maxByKind: Int): JValue = {
+  private def prepare(results: Set[QuickSearchResult], maxByKind: Int): JValue = {
     val filteredResult = filter(results)
     // group by kind, and build the summary for each
     val map            = filteredResult.groupBy(_.id.tpe).map {
@@ -178,13 +178,13 @@ class RestQuicksearch(
   }
 
   // private case class cannot be final because of scalac bug
-  private[this] case class ResultTypeSummary(
+  private case class ResultTypeSummary(
       tpe:            String,
       originalNumber: Int,
       returnedNumber: Int
   )
 
-  implicit private[this] class JsonResultTypeSummary(t: ResultTypeSummary) {
+  implicit private class JsonResultTypeSummary(t: ResultTypeSummary) {
 
     val desc: String = if (t.originalNumber <= t.returnedNumber) {
       s"${t.originalNumber} found"
@@ -201,7 +201,7 @@ class RestQuicksearch(
     }
   }
 
-  implicit private[this] class JsonSearchResult(r: QuickSearchResult) {
+  implicit private class JsonSearchResult(r: QuickSearchResult) {
     import com.normation.inventory.domain.NodeId
     import com.normation.rudder.domain.nodes.NodeGroupId
     import com.normation.rudder.domain.policies.DirectiveUid

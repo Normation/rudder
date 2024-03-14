@@ -214,7 +214,7 @@ object AuthorizationType {
    */
   def allKind: Set[AuthorizationType] = allKindsMap
 
-  private[this] var allKindsMap: Set[AuthorizationType] = {
+  private var allKindsMap: Set[AuthorizationType] = {
     Set(
       AnyRights
     ) ++ Administration.values ++ Compliance.values ++ Configuration.values ++ Deployer.values ++ Deployment.values ++

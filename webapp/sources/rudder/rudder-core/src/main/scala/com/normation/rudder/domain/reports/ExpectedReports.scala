@@ -628,7 +628,7 @@ object NodeConfigIdSerializer {
   import org.joda.time.format.ISODateTimeFormat
 
   // date are ISO format
-  private[this] val isoDateTime = ISODateTimeFormat.dateTime
+  private val isoDateTime = ISODateTimeFormat.dateTime
 
   /*
    * In the database, we only keep creation time.

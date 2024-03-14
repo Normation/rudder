@@ -114,7 +114,7 @@ class RoLDAPDirectiveRepository(
       })
   }
 
-  private[this] def policyFilter(includeSystem: Boolean) =
+  private def policyFilter(includeSystem: Boolean) =
     if (includeSystem) IS(OC_DIRECTIVE) else AND(IS(OC_DIRECTIVE), EQ(A_IS_SYSTEM, false.toLDAPString))
 
   /**
@@ -472,7 +472,7 @@ class RoLDAPDirectiveRepository(
    * Add directives ids for the given active technique which must
    * be mapped to the given dn in LDAP directory accessible by con
    */
-  private[this] def addDirectives(activeTechnique: ActiveTechnique, dn: DN, con: RoLDAPConnection): IOResult[ActiveTechnique] = {
+  private def addDirectives(activeTechnique: ActiveTechnique, dn: DN, con: RoLDAPConnection): IOResult[ActiveTechnique] = {
     for {
       piEntries <- con.searchOne(dn, EQ(A_OC, OC_DIRECTIVE), "objectClass").fold(_ => Seq(), x => x)
     } yield {
@@ -482,7 +482,7 @@ class RoLDAPDirectiveRepository(
     }
   }
 
-  private[this] def getActiveTechnique[ID](id: ID, filter: ID => Filter): IOResult[Option[ActiveTechnique]] = {
+  private def getActiveTechnique[ID](id: ID, filter: ID => Filter): IOResult[Option[ActiveTechnique]] = {
     userLibMutex.readLock(for {
       con        <- ldap
       uptEntries <- con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter(id))
@@ -722,7 +722,7 @@ class WoLDAPDirectiveRepository(
    * If the directive is exactly the same, returns None diff.
    * Returned the saved Directive
    */
-  private[this] def internalSaveDirective(
+  private def internalSaveDirective(
       inActiveTechniqueId: ActiveTechniqueId,
       directive:           Directive,
       modId:               ModificationId,
@@ -846,7 +846,7 @@ class WoLDAPDirectiveRepository(
     internalSaveDirective(inActiveTechniqueId, directive, modId, actor, reason, systemCall = true)
   }
 
-  private[this] def directiveNameExists(con: RoLDAPConnection, name: String, id: DirectiveUid): IOResult[Boolean] = {
+  private def directiveNameExists(con: RoLDAPConnection, name: String, id: DirectiveUid): IOResult[Boolean] = {
     val filter = AND(AND(IS(OC_DIRECTIVE), EQ(A_NAME, name), NOT(EQ(A_DIRECTIVE_UUID, id.value))))
     con
       .searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter)
@@ -889,7 +889,7 @@ class WoLDAPDirectiveRepository(
     internalDeleteDirective(id, modId, actor, reason, callSystem = false)
   }
 
-  private[this] def internalDeleteDirective(
+  private def internalDeleteDirective(
       id:         DirectiveUid,
       modId:      ModificationId,
       actor:      EventActor,
@@ -952,7 +952,7 @@ class WoLDAPDirectiveRepository(
    * Check if the given parent category has a child with the given name (exact) and
    * an id different from given id
    */
-  private[this] def existsByName(
+  private def existsByName(
       con:             RwLDAPConnection,
       parentDN:        DN,
       subCategoryName: String,

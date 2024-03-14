@@ -536,11 +536,11 @@ class WebappTechniqueCompiler(
     getTechniqueRelativePath: EditorTechnique => String, // get the technique path relative to git root.
     val baseConfigRepoPath:   String                     // root of config repos
 ) extends TechniqueCompiler {
-  private[this] val cfengineTechniqueWriter =
+  private val cfengineTechniqueWriter =
     new ClassicTechniqueWriter(baseConfigRepoPath, parameterTypeService, getTechniqueRelativePath)
-  private[this] val dscTechniqueWriter      =
+  private val dscTechniqueWriter      =
     new DSCTechniqueWriter(baseConfigRepoPath, translater, parameterTypeService, getTechniqueRelativePath)
-  private[this] val agentSpecific           = cfengineTechniqueWriter :: dscTechniqueWriter :: Nil
+  private val agentSpecific           = cfengineTechniqueWriter :: dscTechniqueWriter :: Nil
 
   override def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput] = {
     for {

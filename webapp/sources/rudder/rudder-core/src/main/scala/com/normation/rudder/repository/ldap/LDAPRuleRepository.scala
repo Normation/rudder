@@ -143,7 +143,7 @@ class WoLDAPRuleRepository(
   /**
    * Check if a configuration exist with the given name, and another id
    */
-  private[this] def nodeRuleNameExists(con: RoLDAPConnection, name: String, id: RuleId): IOResult[Boolean] = {
+  private def nodeRuleNameExists(con: RoLDAPConnection, name: String, id: RuleId): IOResult[Boolean] = {
     val filter = AND(AND(IS(OC_RULE), EQ(A_NAME, name), NOT(EQ(A_RULE_UUID, id.uid.value))))
     con
       .searchSub(rudderDit.RULES.dn, filter)
@@ -154,7 +154,7 @@ class WoLDAPRuleRepository(
       })
   }
 
-  private[this] def internalDeleteRule(
+  private def internalDeleteRule(
       id:         RuleId,
       modId:      ModificationId,
       actor:      EventActor,
@@ -283,7 +283,7 @@ class WoLDAPRuleRepository(
     })
   }
 
-  private[this] def internalUpdate(
+  private def internalUpdate(
       rule:       Rule,
       modId:      ModificationId,
       actor:      EventActor,

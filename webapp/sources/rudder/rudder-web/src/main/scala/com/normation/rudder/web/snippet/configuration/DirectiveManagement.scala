@@ -90,13 +90,13 @@ final case class JsonDirectiveRId(directiveId: String, rev: Option[String])
 class DirectiveManagement extends DispatchSnippet with Loggable {
   import DirectiveManagement.*
 
-  private[this] val techniqueRepository = RudderConfig.techniqueRepository
-  private[this] val getDirectiveLib     = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()
-  private[this] val getRules            = () => RudderConfig.roRuleRepository.getAll()
-  private[this] val uuidGen             = RudderConfig.stringUuidGenerator
-  private[this] val linkUtil            = RudderConfig.linkUtil
-  private[this] val configService       = RudderConfig.configService
-  private[this] val configRepo          = RudderConfig.configurationRepository
+  private val techniqueRepository = RudderConfig.techniqueRepository
+  private val getDirectiveLib     = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()
+  private val getRules            = () => RudderConfig.roRuleRepository.getAll()
+  private val uuidGen             = RudderConfig.stringUuidGenerator
+  private val linkUtil            = RudderConfig.linkUtil
+  private val configService       = RudderConfig.configService
+  private val configRepo          = RudderConfig.configurationRepository
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
     case "head"                 => { _ => head() }
@@ -109,7 +109,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   }
 
   // must be initialized on first call of "techniqueDetails"
-  private[this] var techniqueDetails: MemoizeTransform = null
+  private var techniqueDetails: MemoizeTransform = null
 
   // the current DirectiveEditForm component
   val currentDirectiveSettingForm = new LocalSnippet[DirectiveEditForm]
@@ -124,7 +124,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   var directiveLibrary: errors.IOResult[FullActiveTechniqueCategory] = getDirectiveLib()
   var rules:            errors.IOResult[Seq[Rule]]                   = getRules()
 
-  private[this] val directiveId: Box[String] = S.param("directiveId")
+  private val directiveId: Box[String] = S.param("directiveId")
 
   /**
    * Head information (JsTree dependencies,...)
@@ -143,7 +143,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    *
    * We want to look for #{ "directiveId":"XXXXXXXXXXXX" , "rev":"XXXX" }
    */
-  private[this] def parseJsArg(): JsCmd = {
+  private def parseJsArg(): JsCmd = {
 
     def displayDetails(jsonId: String) = {
       implicit val format = json.DefaultFormats
@@ -213,7 +213,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     ) ++ Script(OnLoad(buildJsTree()))
   }
 
-  private[this] def buildJsTree(): JsCmd = {
+  private def buildJsTree(): JsCmd = {
 
     JsRaw(s"""
         var directiveId = null;
@@ -339,7 +339,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         }
     })
   }
-  private[this] val (monoMessage, multiMessage, limitedMessage) = {
+  private val (monoMessage, multiMessage, limitedMessage) = {
     (
       "A unique directive derived from that technique can be deployed on a given server.",
       """Several directives derived from that technique can be deployed on a given server.
@@ -350,7 +350,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     )
   }
 
-  private[this] def showIsSingle(technique: Technique): NodeSeq = {
+  private def showIsSingle(technique: Technique): NodeSeq = {
     <span>
       {
       if (technique.isMultiInstance) {
@@ -376,7 +376,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     </span>
   }
 
-  private[this] def showVersions(
+  private def showVersions(
       activeTechnique: FullActiveTechnique,
       validTechniques: Seq[(TechniqueVersion, Technique, DateTime)]
   ): NodeSeq = {
@@ -461,7 +461,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   }
 
   ///////////// finish migration pop-up ///////////////
-  private[this] def displayFinishMigrationPopup: JsCmd = {
+  private def displayFinishMigrationPopup: JsCmd = {
     JsRaw(""" callPopupWithTimeout(200,"finishMigrationPopup") """)
   }
 
@@ -469,7 +469,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    * Configure a Rudder internal Technique to be usable in the
    * user Technique (private) library.
    */
-  private[this] def showDirectiveDetails(): NodeSeq = {
+  private def showDirectiveDetails(): NodeSeq = {
     currentDirectiveSettingForm.get match {
       case Failure(m, ex, _) =>
         <div id={htmlId_policyConf} class="col-lg-offset-2 col-lg-8" style="margin-top:50px">
@@ -529,7 +529,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  private[this] def newDirective(technique: Technique, activeTechnique: FullActiveTechnique) = {
+  private def newDirective(technique: Technique, activeTechnique: FullActiveTechnique) = {
     configService.rudder_global_policy_mode().toBox match {
       case Full(globalMode) =>
         val allDefaults          = techniqueRepository.getTechniquesInfo().directivesDefaultNames
@@ -625,11 +625,11 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     After(TimeSpan(0), JsRaw("""removeBsTooltips();initBsTooltips();"""))
   }
 
-  private[this] case class MissingTechniqueException(directive: Directive) extends Exception(
+  private case class MissingTechniqueException(directive: Directive) extends Exception(
         s"Directive ${directive.name} (${directive.id.uid.value}) is bound to a technique without any valid version available"
       )
 
-  private[this] def updateDirectiveSettingForm(
+  private def updateDirectiveSettingForm(
       techniques:           Map[TechniqueVersion, Technique],
       activeTechnique:      ActiveTechnique,
       directive:            Directive,
@@ -695,7 +695,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    * If it is given a directive, it updated the form, else goes to the changerequest page
    */
 
-  private[this] def directiveEditFormSuccessCallBack()(returns: Either[Directive, ChangeRequestId]): JsCmd = {
+  private def directiveEditFormSuccessCallBack()(returns: Either[Directive, ChangeRequestId]): JsCmd = {
 
     returns match {
       case Left(dir) => // ok, we've received a directive, show it
@@ -707,11 +707,11 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  private[this] def onRemoveSuccessCallBack(): JsCmd = {
+  private def onRemoveSuccessCallBack(): JsCmd = {
     updateDirectiveLibrary()
   }
 
-  private[this] def updateDirectiveLibrary(): JsCmd = {
+  private def updateDirectiveLibrary(): JsCmd = {
     directiveLibrary = getDirectiveLib()
     rules = getRules()
     Replace(htmlId_activeTechniquesTree, displayDirectiveLibrary())
@@ -719,11 +719,11 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
   //////////////// display trees ////////////////////////
 
-  private[this] def onClickDirective(cat: FullActiveTechniqueCategory, at: FullActiveTechnique, directive: Directive): JsCmd = {
+  private def onClickDirective(cat: FullActiveTechniqueCategory, at: FullActiveTechnique, directive: Directive): JsCmd = {
     updateDirectiveForm(Left(directive), None)
   }
 
-  private[this] def onClickActiveTechnique(cat: FullActiveTechniqueCategory, fullActiveTechnique: FullActiveTechnique): JsCmd = {
+  private def onClickActiveTechnique(cat: FullActiveTechniqueCategory, fullActiveTechnique: FullActiveTechnique): JsCmd = {
     currentTechnique = fullActiveTechnique.newestAvailableTechnique.map(fat => (fullActiveTechnique, fat.id.version))
     currentDirectiveSettingForm.set(Empty)
     // Update UI

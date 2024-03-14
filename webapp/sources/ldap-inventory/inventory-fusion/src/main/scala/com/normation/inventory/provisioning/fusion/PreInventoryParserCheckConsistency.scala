@@ -86,11 +86,11 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
   }
 
   // Utilitary method to get only once the RUDDER and the AGENT
-  private[this] def getInTags(xml: NodeSeq, tag: String): NodeSeq = {
+  private def getInTags(xml: NodeSeq, tag: String): NodeSeq = {
     xml \\ tag
   }
 
-  private[this] def checkWithinNodeSeq(nodes: NodeSeq, child: String): IOResult[String] = {
+  private def checkWithinNodeSeq(nodes: NodeSeq, child: String): IOResult[String] = {
     val nodes2 = nodes \ child
 
     nodes2 match {
@@ -103,7 +103,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
     }
   }
 
-  private[this] def checkNodeSeq(
+  private def checkNodeSeq(
       xml:            NodeSeq,
       tag:            String,
       directChildren: Boolean = false,
@@ -131,7 +131,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
     }
   }
 
-  private[this] def checkId(rudderNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
+  private def checkId(rudderNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
     val tag = "UUID"
     for {
       tagHere <- {
@@ -147,7 +147,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
     }
   }
 
-  private[this] def checkRoot(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
+  private def checkRoot(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
     val agentTag = "OWNER"
     val tag      = "USER"
     for {
@@ -163,7 +163,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
     }
   }
 
-  private[this] def checkPolicyServer(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
+  private def checkPolicyServer(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
     val agentTag = "POLICY_SERVER_UUID"
     val tag      = "POLICY_SERVER"
     for {
@@ -179,7 +179,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
     }
   }
 
-  private[this] def checkOS(inventory: NodeSeq): IOResult[NodeSeq] = {
+  private def checkOS(inventory: NodeSeq): IOResult[NodeSeq] = {
     // VERSION is not mandatory on windows, it can't be added in that list
     val tags  = "FULL_NAME" :: "KERNEL_NAME" :: "NAME" :: Nil
     val error = InventoryError.Inconsistency(
@@ -205,7 +205,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
    * - (on AIX and non empty HARDWARE > OSVERSION )
    * Other cases are failure (missing required info)
    */
-  private[this] def checkKernelVersion(inventory: NodeSeq): IOResult[NodeSeq] = {
+  private def checkKernelVersion(inventory: NodeSeq): IOResult[NodeSeq] = {
 
     val failure    = "Missing attribute OPERATINGSYSTEM>KERNEL_VERSION in inventory. This attribute is mandatory".inconsistency
     val aixFailure = "Missing attribute HARDWARE>OSVERSION in inventory. This attribute is mandatory".inconsistency
@@ -238,7 +238,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
   }
 
   // for check kernel version
-  private[this] class AddChildrenTo(label: String, newChild: scala.xml.Node) extends scala.xml.transform.RewriteRule {
+  private class AddChildrenTo(label: String, newChild: scala.xml.Node) extends scala.xml.transform.RewriteRule {
     override def transform(n: scala.xml.Node): scala.collection.Seq[Node] = n match {
       case Elem(prefix, "OPERATINGSYSTEM", attribs, scope, child*) =>
         Elem(prefix, label, attribs, scope, minimizeEmpty = false, child ++ newChild: _*)
@@ -246,7 +246,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
     }
   }
 
-  private[this] def checkAgentType(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
+  private def checkAgentType(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
     val agentTag = "AGENT_NAME"
     val tag      = "AGENTNAME"
     for {
@@ -263,7 +263,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
   }
 
   // since Rudder 6.0, an agent certificate is mandatory
-  private[this] def checkSecurityToken(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
+  private def checkSecurityToken(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
     for {
       tagHere <- checkWithinNodeSeq(agentNodeSeq, "AGENT_CERT")
                    .chainError(

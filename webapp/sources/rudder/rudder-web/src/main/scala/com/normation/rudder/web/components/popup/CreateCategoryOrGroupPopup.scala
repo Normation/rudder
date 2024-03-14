@@ -84,10 +84,10 @@ class CreateCategoryOrGroupPopup(
     "groups-creategrouppopup"
   )
 
-  private[this] val woNodeGroupRepository      = RudderConfig.woNodeGroupRepository
-  private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
-  private[this] val uuidGen                    = RudderConfig.stringUuidGenerator
-  private[this] val userPropertyService        = RudderConfig.userPropertyService
+  private val woNodeGroupRepository      = RudderConfig.woNodeGroupRepository
+  private val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
+  private val uuidGen                    = RudderConfig.stringUuidGenerator
+  private val userPropertyService        = RudderConfig.userPropertyService
 
   var createContainer = false // issue #1190 always create a group by default
 
@@ -96,7 +96,7 @@ class CreateCategoryOrGroupPopup(
   /**
    * If we create a category, the info about the group is hidden (default), otherwise we show it
    */
-  private[this] def initJs: JsCmd = {
+  private def initJs: JsCmd = {
     JsRaw("""
         $('input[value="Group"]').click(
           function() {
@@ -150,7 +150,7 @@ class CreateCategoryOrGroupPopup(
   }
 
   ///////////// fields for category settings ///////////////////
-  private[this] val piName = new WBTextField("Name", "") {
+  private val piName = new WBTextField("Name", "") {
     override def setFilter      = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
@@ -159,7 +159,7 @@ class CreateCategoryOrGroupPopup(
       valMinLen(1, "Name must not be empty.") _ :: Nil
   }
 
-  private[this] val piDescription = new WBTextAreaField("Description", "") {
+  private val piDescription = new WBTextAreaField("Description", "") {
     override def setFilter      = notNull _ :: trim _ :: Nil
     override def inputField     = super.inputField % ("style" -> "height:5em") % ("tabindex" -> "4")
     override def errorClassName = "col-xl-12 errors-container"
@@ -167,7 +167,7 @@ class CreateCategoryOrGroupPopup(
 
   }
 
-  private[this] val piStatic = new WBRadioField(
+  private val piStatic = new WBRadioField(
     "Group type",
     Seq("dynamic", "static"),
     "dynamic",
@@ -190,7 +190,7 @@ class CreateCategoryOrGroupPopup(
       valMinLen(1, "Please choose a group type.") _ :: Nil
   }
 
-  private[this] val piItemType = {
+  private val piItemType = {
     new WBRadioField(
       "Item to create",
       Seq("Group", "Category"),
@@ -212,7 +212,7 @@ class CreateCategoryOrGroupPopup(
     }
   }
 
-  private[this] val piContainer = new WBSelectField(
+  private val piContainer = new WBSelectField(
     "Parent category",
     (categoryHierarchyDisplayer.getCategoriesHierarchy(rootCategory, None).map { case (id, name) => (id.value -> name) }),
     selectedCategory.map(_.value).getOrElse("")
@@ -225,24 +225,24 @@ class CreateCategoryOrGroupPopup(
       valMinLen(1, "Please select a category") _ :: Nil
   }
 
-  private[this] val formTracker = new FormTracker(piName, piDescription, piContainer, piStatic)
+  private val formTracker = new FormTracker(piName, piDescription, piContainer, piStatic)
 
-  private[this] var notifications = List.empty[NodeSeq]
+  private var notifications = List.empty[NodeSeq]
 
-  private[this] def error(msg: String) = Text(msg)
+  private def error(msg: String) = Text(msg)
 
-  private[this] def closePopup(): JsCmd = {
+  private def closePopup(): JsCmd = {
     JsRaw("""hideBsModal('createGroupPopup');""")
   }
 
   /**
    * Update the form when something happened
    */
-  private[this] def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide(): JsCmd = {
     SetHtml("createGroupContainer", popupContent())
   }
 
-  private[this] def onSubmit(): JsCmd = {
+  private def onSubmit(): JsCmd = {
     if (formTracker.hasErrors) {
       onFailure & onFailureCallback()
     } else {
@@ -310,7 +310,7 @@ class CreateCategoryOrGroupPopup(
     }
   }
 
-  private[this] val piReasons = {
+  private val piReasons = {
     import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
@@ -335,11 +335,11 @@ class CreateCategoryOrGroupPopup(
     }
   }
 
-  private[this] def onFailure: JsCmd = {
+  private def onFailure: JsCmd = {
     updateFormClientSide()
   }
 
-  private[this] def updateAndDisplayNotifications(): NodeSeq = {
+  private def updateAndDisplayNotifications(): NodeSeq = {
     notifications :::= formTracker.formErrors
     formTracker.cleanErrors
 

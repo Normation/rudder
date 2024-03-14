@@ -84,9 +84,9 @@ class RuleCategoryPopup(
     "component-deletepopup"
   )
 
-  private[this] val woRulecategoryRepository   = RudderConfig.woRuleCategoryRepository
-  private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
-  private[this] val uuidGen                    = RudderConfig.stringUuidGenerator
+  private val woRulecategoryRepository   = RudderConfig.woRuleCategoryRepository
+  private val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
+  private val uuidGen                    = RudderConfig.stringUuidGenerator
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
 
@@ -150,7 +150,7 @@ class RuleCategoryPopup(
 
   ///////////// fields for category settings ///////////////////
 
-  private[this] val categoryName = new WBTextField("Name", targetCategory.map(_.name).getOrElse("")) {
+  private val categoryName = new WBTextField("Name", targetCategory.map(_.name).getOrElse("")) {
     override def setFilter             = notNull _ :: trim _ :: Nil
     override def subContainerClassName = "col-xl-9 col-md-12 col-sm-12"
     override def errorClassName        = "col-xl-12 errors-container"
@@ -160,7 +160,7 @@ class RuleCategoryPopup(
       valMinLen(1, "The name must not be empty.") _ :: Nil
   }
 
-  private[this] val categoryDescription = new WBTextAreaField("Description", targetCategory.map(_.description).getOrElse("")) {
+  private val categoryDescription = new WBTextAreaField("Description", targetCategory.map(_.description).getOrElse("")) {
     override def subContainerClassName = "col-xl-9 col-md-12 col-sm-12"
     override def setFilter             = notNull _ :: trim _ :: Nil
     override def inputField            = super.inputField % ("tabindex" -> "4")
@@ -171,7 +171,7 @@ class RuleCategoryPopup(
 
   val categories: RuleCategory = targetCategory.map(rootCategory.filter(_)).getOrElse(rootCategory)
 
-  private[this] val categoryParent = {
+  private val categoryParent = {
     new WBSelectField(
       "Parent",
       categoryHierarchyDisplayer.getRuleCategoryHierarchy(categories, None).map { case (id, name) => (id.value -> name) },
@@ -185,24 +185,24 @@ class RuleCategoryPopup(
     }
   }
 
-  private[this] val formTracker = new FormTracker(categoryName, categoryDescription, categoryParent)
+  private val formTracker = new FormTracker(categoryName, categoryDescription, categoryParent)
 
-  private[this] var notifications = List.empty[NodeSeq]
+  private var notifications = List.empty[NodeSeq]
 
-  private[this] def error(msg: String) = <span class="col-xl-12 errors-container">{msg}</span>
+  private def error(msg: String) = <span class="col-xl-12 errors-container">{msg}</span>
 
-  private[this] def closePopup(): JsCmd = {
+  private def closePopup(): JsCmd = {
     JsRaw("""hideBsModal('createRuleCategoryPopup');""")
   }
 
   /**
    * Update the form when something happened
    */
-  private[this] def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide(): JsCmd = {
     SetHtml("RuleCategoryCreationContainer", popupContent())
   }
 
-  private[this] def onSubmitDelete(): JsCmd = {
+  private def onSubmitDelete(): JsCmd = {
     targetCategory match {
       case Some(category) =>
         val modId = new ModificationId(uuidGen.newUuid)
@@ -223,7 +223,7 @@ class RuleCategoryPopup(
     }
   }
 
-  private[this] def onSubmit(): JsCmd = {
+  private def onSubmit(): JsCmd = {
 
     if (formTracker.hasErrors) {
       onFailure & onFailureCallback()
@@ -268,11 +268,11 @@ class RuleCategoryPopup(
     }
   }
 
-  private[this] def onFailure: JsCmd = {
+  private def onFailure: JsCmd = {
     updateFormClientSide()
   }
 
-  private[this] def updateAndDisplayNotifications(): NodeSeq = {
+  private def updateAndDisplayNotifications(): NodeSeq = {
     notifications :::= formTracker.formErrors
     formTracker.cleanErrors
 

@@ -83,7 +83,7 @@ class ParseTechniqueTest extends Specification {
     technique.agentConfigs.map(_.agentType) must containTheSameElementsAs(List(AgentType.CfeCommunity))
   }
 
-  private[this] def readFile(fileName: String): Elem = {
+  private def readFile(fileName: String): Elem = {
     val doc = {
       try {
         XML.load(ClassLoader.getSystemResourceAsStream(fileName))

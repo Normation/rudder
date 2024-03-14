@@ -573,7 +573,7 @@ class RuleApiService2(
 
   import restDataSerializer.serializeRule as serialize
 
-  private[this] def createChangeRequestAndAnswer(
+  private def createChangeRequestAndAnswer(
       id:     String,
       diff:   ChangeRequestRuleDiff,
       change: RuleChangeRequest,

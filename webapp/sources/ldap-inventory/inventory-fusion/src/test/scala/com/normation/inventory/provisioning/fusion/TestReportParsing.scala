@@ -61,7 +61,7 @@ import zio.*
 @RunWith(classOf[JUnitRunner])
 class TestInventoryParsing extends Specification with Loggable {
 
-  implicit private[this] class TestParser(parser: FusionInventoryParser) {
+  implicit private class TestParser(parser: FusionInventoryParser) {
     def parse(inventoryRelativePath: String): IOResult[Inventory] = {
       val url = this.getClass.getClassLoader.getResource(inventoryRelativePath)
       if (null == url) {

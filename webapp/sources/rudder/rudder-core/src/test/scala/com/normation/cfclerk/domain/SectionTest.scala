@@ -125,7 +125,7 @@ class SectionTest extends Specification {
     }
   }
 
-  private[this] def getUniqueSection(name: String): SectionSpec = {
+  private def getUniqueSection(name: String): SectionSpec = {
     implicit val sects = rootSectionsOk.filterByName(name)
     beUnique
 
@@ -138,55 +138,55 @@ class SectionTest extends Specification {
     }
   }
 
-  private[this] def beEmpty(implicit section: SectionSpec) = {
+  private def beEmpty(implicit section: SectionSpec) = {
     "be empty" in {
       section.children.size mustEqual 0
     }
   }
 
-  private[this] def haveNbChildren(nbChildren: Int)(implicit section: SectionSpec) = {
+  private def haveNbChildren(nbChildren: Int)(implicit section: SectionSpec) = {
     "have %d children".format(nbChildren) in {
       section.children.size mustEqual nbChildren
     }
   }
 
-  private[this] def containNbVariables(nbVariables: Int)(implicit section: SectionSpec) = {
+  private def containNbVariables(nbVariables: Int)(implicit section: SectionSpec) = {
     "contain %d variables".format(nbVariables) in {
       section.getAllVariables.size mustEqual nbVariables
     }
   }
 
-  private[this] def beUnique(implicit children: Seq[SectionChildSpec]) = {
+  private def beUnique(implicit children: Seq[SectionChildSpec]) = {
     "be unique" in {
       children.size mustEqual 1
     }
   }
 
-  private[this] def beSection(implicit sectionChild: SectionChildSpec) = {
+  private def beSection(implicit sectionChild: SectionChildSpec) = {
     "be a section" in {
       sectionChild.isInstanceOf[SectionSpec]
     }
   }
 
-  private[this] def beMultivalued(implicit section: SectionSpec) = {
+  private def beMultivalued(implicit section: SectionSpec) = {
     "be multivalued" in {
       section.isMultivalued
     }
   }
 
-  private[this] def beHighPriority(implicit section: SectionSpec) = {
+  private def beHighPriority(implicit section: SectionSpec) = {
     "be of high priority (default) " in {
       section.displayPriority mustEqual HighDisplayPriority
     }
   }
 
-  private[this] def beLowPriority(implicit section: SectionSpec) = {
+  private def beLowPriority(implicit section: SectionSpec) = {
     "be of low priority (non default) " in {
       section.displayPriority mustEqual LowDisplayPriority
     }
   }
 
-  private[this] def readFile(fileName: String): Elem = {
+  private def readFile(fileName: String): Elem = {
     val doc = {
       try {
         XML.load(ClassLoader.getSystemResourceAsStream(fileName))

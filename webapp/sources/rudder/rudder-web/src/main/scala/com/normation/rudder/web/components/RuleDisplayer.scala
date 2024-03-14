@@ -66,10 +66,10 @@ class RuleDisplayer(
     graphRecentChanges:  DisplayColumn
 ) extends DispatchSnippet with Loggable {
 
-  private[this] val ruleRepository       = RudderConfig.roRuleRepository
-  private[this] val roCategoryRepository = RudderConfig.roRuleCategoryRepository
+  private val ruleRepository       = RudderConfig.roRuleRepository
+  private val roCategoryRepository = RudderConfig.roRuleCategoryRepository
 
-  private[this] val htmlId_popup = "createRuleCategoryPopup"
+  private val htmlId_popup = "createRuleCategoryPopup"
 
   def getRootCategory(): Box[RuleCategory] = {
     directive match {
@@ -80,7 +80,7 @@ class RuleDisplayer(
     }
   }
 
-  private[this] var root: Box[RuleCategory] = {
+  private var root: Box[RuleCategory] = {
     getRootCategory()
   }
 
@@ -92,17 +92,17 @@ class RuleDisplayer(
   }
 
   // refresh the rule grid
-  private[this] def refreshGrid = {
+  private def refreshGrid = {
     SetHtml(gridId, viewRules)
   }
 
   // refresh the rule category Tree
-  private[this] def refreshTree = {
+  private def refreshTree = {
     root = getRootCategory()
     ruleCategoryTree.map(tree => SetHtml("categoryTreeParent", viewCategories(tree))).getOrElse(Noop)
   }
 
-  private[this] val ruleCategoryTree = {
+  private val ruleCategoryTree = {
     root.map(
       new RuleCategoryTree(
         "categoryTree",
@@ -366,7 +366,7 @@ class RuleDisplayer(
   }
 
   // Popup
-  private[this] def creationPopup(category: Option[RuleCategory], ruleCategoryTree: RuleCategoryTree) = {
+  private def creationPopup(category: Option[RuleCategory], ruleCategoryTree: RuleCategoryTree) = {
     val rootCategory = ruleCategoryTree.getRoot
     new RuleCategoryPopup(
       rootCategory,
@@ -382,7 +382,7 @@ class RuleDisplayer(
   /**
     * Create the popup
     */
-  private[this] def showCategoryPopup(category: Option[RuleCategory]): JsCmd = {
+  private def showCategoryPopup(category: Option[RuleCategory]): JsCmd = {
     val popupHtml = {
       ruleCategoryTree match {
         case Full(ruleCategoryTree) =>
@@ -404,7 +404,7 @@ class RuleDisplayer(
   /**
     * Create the delete popup
     */
-  private[this] def showDeleteCategoryPopup(category: RuleCategory): JsCmd = {
+  private def showDeleteCategoryPopup(category: RuleCategory): JsCmd = {
     val popupHtml = {
       ruleCategoryTree match {
         case Full(ruleCategoryTree) =>

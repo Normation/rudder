@@ -93,10 +93,10 @@ class CreateCloneDirectivePopup(
     onFailureCallback:    () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
 
-  private[this] val uuidGen               = RudderConfig.stringUuidGenerator
-  private[this] val userPropertyService   = RudderConfig.userPropertyService
-  private[this] val roDirectiveRepository = RudderConfig.roDirectiveRepository
-  private[this] val woDirectiveRepository = RudderConfig.woDirectiveRepository
+  private val uuidGen               = RudderConfig.stringUuidGenerator
+  private val userPropertyService   = RudderConfig.userPropertyService
+  private val roDirectiveRepository = RudderConfig.roDirectiveRepository
+  private val woDirectiveRepository = RudderConfig.woDirectiveRepository
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
 
@@ -124,7 +124,7 @@ class CreateCloneDirectivePopup(
 
   ///////////// fields for category settings ///////////////////
 
-  private[this] val reasons = {
+  private val reasons = {
     import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
@@ -150,7 +150,7 @@ class CreateCloneDirectivePopup(
     }
   }
 
-  private[this] val directiveName = new WBTextField("Name", "Copy of <%s>".format(directive.name)) {
+  private val directiveName = new WBTextField("Name", "Copy of <%s>".format(directive.name)) {
     override def setFilter      = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
@@ -159,7 +159,7 @@ class CreateCloneDirectivePopup(
       valMinLen(1, "Name must not be empty") _ :: Nil
   }
 
-  private[this] val directiveShortDescription = {
+  private val directiveShortDescription = {
     new WBTextAreaField("Short description", directive.shortDescription) {
       override def setFilter      = notNull _ :: trim _ :: Nil
       override def inputField     = super.inputField % ("style" -> "height:7em") % ("tabindex" -> "2")
@@ -168,24 +168,24 @@ class CreateCloneDirectivePopup(
     }
   }
 
-  private[this] val formTracker = new FormTracker(directiveName :: directiveShortDescription :: reasons.toList)
+  private val formTracker = new FormTracker(directiveName :: directiveShortDescription :: reasons.toList)
 
-  private[this] var notifications = List.empty[NodeSeq]
+  private var notifications = List.empty[NodeSeq]
 
-  private[this] def error(msg: String) = Text(msg)
+  private def error(msg: String) = Text(msg)
 
-  private[this] def closePopup(): JsCmd = {
+  private def closePopup(): JsCmd = {
     JsRaw("""hideBsModal('basePopup');""")
   }
 
   /**
    * Update the form when something happened
    */
-  private[this] def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide(): JsCmd = {
     SetHtml(htmlId_popupContainer, popupContent())
   }
 
-  private[this] def onSubmit(): JsCmd = {
+  private def onSubmit(): JsCmd = {
 
     if (formTracker.hasErrors) {
       onFailure & onFailureCallback()
@@ -235,12 +235,12 @@ class CreateCloneDirectivePopup(
     }
   }
 
-  private[this] def onFailure: JsCmd = {
+  private def onFailure: JsCmd = {
     formTracker.addFormError(error("There was a problem with your request"))
     updateFormClientSide()
   }
 
-  private[this] def updateAndDisplayNotifications(): NodeSeq = {
+  private def updateAndDisplayNotifications(): NodeSeq = {
     notifications :::= formTracker.formErrors
     formTracker.cleanErrors
 

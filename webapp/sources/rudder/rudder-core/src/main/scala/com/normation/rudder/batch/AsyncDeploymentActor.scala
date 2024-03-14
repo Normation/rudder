@@ -159,7 +159,7 @@ final class AsyncDeploymentActor(
   val timeFormat = "yyyy-MM-dd HH:mm:ss"
 
   // message from the deployment agent to the manager
-  sealed private[this] case class DeploymentResult(
+  sealed private case class DeploymentResult(
       id:         Long,
       modId:      ModificationId,
       start:      DateTime,
@@ -170,11 +170,11 @@ final class AsyncDeploymentActor(
   )
 
   // message from manager to deployment agent
-  private[this] case class NewDeployment(id: Long, modId: ModificationId, started: DateTime, actor: EventActor, eventLogId: Int)
+  private case class NewDeployment(id: Long, modId: ModificationId, started: DateTime, actor: EventActor, eventLogId: Int)
 
-  private[this] var lastFinishedDeployement: CurrentDeploymentStatus = getLastFinishedDeployment
-  private[this] var currentDeployerState:    DeployerState           = IdleDeployer
-  private[this] var currentDeploymentId = lastFinishedDeployement match {
+  private var lastFinishedDeployement: CurrentDeploymentStatus = getLastFinishedDeployment
+  private var currentDeployerState:    DeployerState           = IdleDeployer
+  private var currentDeploymentId = lastFinishedDeployement match {
     case NoStatus => 0L
     case a: SuccessStatus => a.id
     case a: ErrorStatus   => a.id
@@ -184,7 +184,7 @@ final class AsyncDeploymentActor(
   def getStatus:       CurrentDeploymentStatus = lastFinishedDeployement
   def getCurrentState: DeployerState           = currentDeployerState
 
-  private[this] def getLastFinishedDeployment: CurrentDeploymentStatus = {
+  private def getLastFinishedDeployment: CurrentDeploymentStatus = {
     eventLogger.getLastDeployement() match {
       case Empty =>
         PolicyGenerationLogger.manager.debug("Could not find a last policy update")
@@ -205,7 +205,7 @@ final class AsyncDeploymentActor(
    */
   override def createUpdate: DeploymentStatus = DeploymentStatus(lastFinishedDeployement, currentDeployerState)
 
-  private[this] def WithDetails(xml: NodeSeq)(implicit actor: EventActor, reason: Option[String] = None) = {
+  private def WithDetails(xml: NodeSeq)(implicit actor: EventActor, reason: Option[String] = None) = {
     EventLogDetails(
       modificationId = None,
       principal = actor,
@@ -217,7 +217,7 @@ final class AsyncDeploymentActor(
   // deprecated flag file to trigger policy generation at start
   val triggerPolicyUpdateFlagPath = "/opt/rudder/etc/trigger-policy-generation"
 
-  private[this] def logTriggerError(v: PureResult[PolicyGenerationTrigger]) = {
+  private def logTriggerError(v: PureResult[PolicyGenerationTrigger]) = {
     v match {
       case Left(err) =>
         val msg =
@@ -447,7 +447,7 @@ final class AsyncDeploymentActor(
    * The internal agent that will actually do the deployment
    * Long time running process, I/O consuming.
    */
-  private[this] object DeployerAgent extends LiftActor {
+  private object DeployerAgent extends LiftActor {
 
     def doDeployement(bootSemaphore: Promise[Nothing, Unit], delay: IOResult[Duration], nd: NewDeployment): UIO[Unit] = {
       val prog = for {

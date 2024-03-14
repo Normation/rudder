@@ -71,10 +71,10 @@ class GiveReasonPopup(
     "reason-givereasonpopup"
   )
 
-  private[this] val uuidGen                     = RudderConfig.stringUuidGenerator
-  private[this] val rwActiveTechniqueRepository = RudderConfig.woDirectiveRepository
-  private[this] val userPropertyService         = RudderConfig.userPropertyService
-  private[this] val techniqueRepository         = RudderConfig.techniqueRepository
+  private val uuidGen                     = RudderConfig.stringUuidGenerator
+  private val rwActiveTechniqueRepository = RudderConfig.woDirectiveRepository
+  private val userPropertyService         = RudderConfig.userPropertyService
+  private val techniqueRepository         = RudderConfig.techniqueRepository
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => popupContent _ }
 
@@ -101,7 +101,7 @@ class GiveReasonPopup(
   }
 
 ///////////// fields for category settings ///////////////////
-  private[this] val crReasons = {
+  private val crReasons = {
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
       case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
@@ -125,25 +125,25 @@ class GiveReasonPopup(
     }
   }
 
-  private[this] val formTracker = {
+  private val formTracker = {
     val fields = List() ++ crReasons
     new FormTracker(fields)
   }
 
-  private[this] def error(msg: String) = <span class="col-xl-12 errors-container">{msg}</span>
+  private def error(msg: String) = <span class="col-xl-12 errors-container">{msg}</span>
 
-  private[this] def closePopup(): JsCmd = {
+  private def closePopup(): JsCmd = {
     JsRaw("""hideBsModal('createActiveTechniquePopup');""")
   }
 
   /**
    * Update the form when something happened
    */
-  private[this] def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide(): JsCmd = {
     SetHtml("createActiveTechniquesContainer", popupContent(NodeSeq.Empty))
   }
 
-  private[this] def onSubmit(): JsCmd = {
+  private def onSubmit(): JsCmd = {
     if (formTracker.hasErrors) {
       onFailure & onFailureCallback(sourceActiveTechniqueId.value, destCatId.value)
     } else {
@@ -185,7 +185,7 @@ class GiveReasonPopup(
     }
   }
 
-  private[this] def onFailure: JsCmd = {
+  private def onFailure: JsCmd = {
     formTracker.addFormError(error("There was a problem with your request"))
     updateFormClientSide()
   }

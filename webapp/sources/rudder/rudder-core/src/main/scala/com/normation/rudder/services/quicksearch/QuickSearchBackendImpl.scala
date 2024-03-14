@@ -113,7 +113,7 @@ object QSNodeFactBackend extends Loggable {
 
   implicit class QSAttributeFilter(val a: QSAttribute) extends AnyVal {
 
-    private[this] def toMatch(node: CoreNodeFact): Option[Set[(String, String)]] = {
+    private def toMatch(node: CoreNodeFact): Option[Set[(String, String)]] = {
 
       def someSet(v: String)         = Some(Set((v, v)))
       def optSet(v:  Option[String]) = v.map(x => Set((x, x)))
@@ -225,7 +225,7 @@ object QSDirectiveBackend extends Loggable {
 
   implicit class QSAttributeFilter(val a: QSAttribute) extends AnyVal {
 
-    private[this] def toMatch(at: FullActiveTechnique, dir: Directive): Option[Set[(String, String)]] = {
+    private def toMatch(at: FullActiveTechnique, dir: Directive): Option[Set[(String, String)]] = {
 
       val enableToken  = Set("true", "enable", "enabled", "isenable", "isenabled")
       val disableToken = Set("false", "disable", "disabled", "isdisable", "isdisabled")
@@ -345,7 +345,7 @@ object QSLdapBackend {
   /**
    * Mapping between attribute and their ldap name
    */
-  private[this] val attributeNameMapping: Map[QSAttribute, String] = {
+  private val attributeNameMapping: Map[QSAttribute, String] = {
     val m: Map[QSAttribute, String] = Map(
       Name              -> A_NAME,
       Description       -> A_DESCRIPTION,

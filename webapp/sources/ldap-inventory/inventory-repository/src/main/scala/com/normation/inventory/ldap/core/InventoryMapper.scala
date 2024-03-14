@@ -459,7 +459,7 @@ class InventoryMapper(
   // perhaps that should be in DIT ?
   // def machineType2Filter(mt : MachineType) : Filter = BuildFilter.IS(machineType2ObjectClass(mt).name)
 
-  private[this] def machineType2ObjectClass(mt: MachineType): LDAPObjectClass = {
+  private def machineType2ObjectClass(mt: MachineType): LDAPObjectClass = {
     mt match {
       case VirtualMachineType(UnknownVmType) => OC_OC_VM
       case VirtualMachineType(VirtualBox)    => OC_OC_VM_VIRTUALBOX
@@ -537,7 +537,7 @@ class InventoryMapper(
    * If the mapping goes bad or the entry type is unknown, the
    * MachineInventory is returned as it was, and the error is logged
    */
-  private[this] def mapAndAddElementGeneric[U, T](
+  private def mapAndAddElementGeneric[U, T](
       from: U,
       e:    LDAPEntry,
       name: String,
@@ -555,7 +555,7 @@ class InventoryMapper(
     }
   }
 
-  private[this] def mapAndAddMachineElement(entry: LDAPEntry, machine: MachineInventory): UIO[MachineInventory] = {
+  private def mapAndAddMachineElement(entry: LDAPEntry, machine: MachineInventory): UIO[MachineInventory] = {
     def mapAndAdd[T](
         name: String,
         f:    LDAPEntry => InventoryMappingPure[T],
@@ -908,7 +908,7 @@ class InventoryMapper(
    * If the mapping goes bad or the entry type is unknown, the
    * NodeInventory is returned as it was, and the error is logged
    */
-  private[this] def mapAndAddNodeElement(entry: LDAPEntry, node: NodeInventory): UIO[NodeInventory] = {
+  private def mapAndAddNodeElement(entry: LDAPEntry, node: NodeInventory): UIO[NodeInventory] = {
     def mapAndAdd[T](
         name: String,
         f:    LDAPEntry => InventoryMappingPure[T],

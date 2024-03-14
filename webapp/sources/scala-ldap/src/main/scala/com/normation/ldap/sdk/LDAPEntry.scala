@@ -77,7 +77,7 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
 
   lazy val optDn: Option[DN] = if (NULL_DN == dn) None else Some(dn)
 
-  private[this] lazy val listRdns: List[RDN] = dn.getRDNs.toList
+  private lazy val listRdns: List[RDN] = dn.getRDNs.toList
 
   private val _parentDn: Option[DN] = listRdns match {
     case r :: Nil => None

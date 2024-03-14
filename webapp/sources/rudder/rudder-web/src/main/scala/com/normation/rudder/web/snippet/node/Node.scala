@@ -62,9 +62,9 @@ import net.liftweb.http.StatefulSnippet
 
 class NodeDetails extends StatefulSnippet with Loggable {
 
-  private[this] val getFullGroupLibrary = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
+  private val getFullGroupLibrary = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
 
-  private[this] val groupLibrary = getFullGroupLibrary().toBox match {
+  private val groupLibrary = getFullGroupLibrary().toBox match {
     case Full(x) => x
     case eb: EmptyBox =>
       val e = eb ?~! "Major error: can not get the node group library"

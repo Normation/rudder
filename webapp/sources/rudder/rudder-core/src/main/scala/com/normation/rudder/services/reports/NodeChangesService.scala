@@ -114,7 +114,7 @@ trait NodeChangesService {
    * sequence, which is also ordered by date.
    */
 
-  final private[this] def getInterval(since: DateTime, to: DateTime): List[Interval] = {
+  final private def getInterval(since: DateTime, to: DateTime): List[Interval] = {
     if (to.isBefore(since)) {
       Nil
     } else {
@@ -195,7 +195,7 @@ class CachedNodeChangesServiceImpl(
 
   override val changesMaxAge = changeService.changesMaxAge
 
-  private[this] val cache = Ref.make[Option[ChangesCache]](None).runNow // this is a bug if it does not work
+  private val cache = Ref.make[Option[ChangesCache]](None).runNow // this is a bug if it does not work
 
   // when the class is instanciated, ask for a cache init
   ZioRuntime.runNow((for {
@@ -268,7 +268,7 @@ class CachedNodeChangesServiceImpl(
     )
   }
 
-  private[this] def cacheToLog(changes: ChangesByRule): String = {
+  private def cacheToLog(changes: ChangesByRule): String = {
     changes.map {
       case (ruleId, x) =>
         val byInt = x.map {
@@ -285,7 +285,7 @@ class CachedNodeChangesServiceImpl(
    * are removed from the result.
    * For a given rule, on a given interval, changes from change1 and change2 are added.
    */
-  private[this] def merge(on: Seq[Interval], changes1: ChangesByRule, changes2: ChangesByRule): ChangesByRule = {
+  private def merge(on: Seq[Interval], changes1: ChangesByRule, changes2: ChangesByRule): ChangesByRule = {
     // shortcut that get map(k1)(k2) and return an empty seq if key not found
     def get(changes: ChangesByRule, ruleId: RuleId, i: Interval): Int = {
       changes.getOrElse(ruleId, Map()).getOrElse(i, 0)
@@ -477,7 +477,7 @@ object NodeChanges {
   val startFormat = "HH:mm"
   val endFormat   = "- HH:mm"
 
-  private[this] def displayPeriod(interval: Interval) = {
+  private def displayPeriod(interval: Interval) = {
     JsArray(
       Str(interval.getStart().toString(day)) :: Str(interval.getStart().toString(startFormat)) :: Str(
         interval.getEnd().toString(endFormat)

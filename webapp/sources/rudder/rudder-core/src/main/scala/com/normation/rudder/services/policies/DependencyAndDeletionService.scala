@@ -241,7 +241,7 @@ class DependencyAndDeletionServiceImpl(
    * - have a target ;
    * - the target is enable ;
    */
-  private[this] def filterRules(rules: Seq[Rule], groupLib: FullNodeGroupCategory): IOResult[Seq[Rule]] = {
+  private def filterRules(rules: Seq[Rule], groupLib: FullNodeGroupCategory): IOResult[Seq[Rule]] = {
     val switchableCr: Seq[(Rule, Set[RuleTarget])] = {
       // only rule with "own status == true" and completly defined
       // (else their states can't change)

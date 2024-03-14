@@ -538,7 +538,7 @@ object JsonCompliance {
         ~ ("nodes"             -> byNodes(directive.nodes, level, precision))
     )
 
-    private[this] def byNodes(
+    private def byNodes(
         nodes:     Seq[ByDirectiveNodeCompliance],
         level:     Int,
         precision: CompliancePrecision
@@ -558,7 +558,7 @@ object JsonCompliance {
       }
     }
 
-    private[this] def byRule(
+    private def byRule(
         rules:     Seq[ByDirectiveByNodeRuleCompliance],
         level:     Int,
         precision: CompliancePrecision
@@ -578,7 +578,7 @@ object JsonCompliance {
       }
     }
 
-    private[this] def byNodeByDirectiveByComponents(
+    private def byNodeByDirectiveByComponents(
         comps:     Seq[ByRuleByNodeByDirectiveByComponentCompliance],
         level:     Int,
         precision: CompliancePrecision
@@ -601,7 +601,7 @@ object JsonCompliance {
       }
     }
 
-    private[this] def byNodeByComponents(
+    private def byNodeByComponents(
         comps:     Seq[ByRuleComponentCompliance],
         level:     Int,
         precision: CompliancePrecision
@@ -624,7 +624,7 @@ object JsonCompliance {
       }
     }
 
-    private[this] def rules(
+    private def rules(
         rules:     Seq[ByDirectiveByRuleCompliance],
         level:     Int,
         precision: CompliancePrecision
@@ -644,7 +644,7 @@ object JsonCompliance {
       }
     }
 
-    private[this] def components(
+    private def components(
         comps:     Seq[ByRuleComponentCompliance],
         level:     Int,
         precision: CompliancePrecision
@@ -683,7 +683,7 @@ object JsonCompliance {
         })
       }
     }
-    private[this] def nodes(
+    private def nodes(
         nodes:     Seq[ByRuleNodeCompliance],
         level:     Int,
         precision: CompliancePrecision
@@ -735,7 +735,7 @@ object JsonCompliance {
         ~ ("nodes"             -> byNodes(rule.nodes, level, precision))
     )
 
-    private[this] def directives(
+    private def directives(
         directives: Seq[ByRuleDirectiveCompliance],
         level:      Int,
         precision:  CompliancePrecision
@@ -757,7 +757,7 @@ object JsonCompliance {
         })
       }
     }
-    private[this] def byNodes(
+    private def byNodes(
         nodes:     Seq[GroupComponentCompliance],
         level:     Int,
         precision: CompliancePrecision
@@ -777,7 +777,7 @@ object JsonCompliance {
       }
     }
 
-    private[this] def byNodesByDirectives(
+    private def byNodesByDirectives(
         directives: Seq[ByRuleByNodeByDirectiveCompliance],
         level:      Int,
         precision:  CompliancePrecision
@@ -796,7 +796,7 @@ object JsonCompliance {
         })
       }
     }
-    private[this] def components(
+    private def components(
         comps:     Seq[ByRuleComponentCompliance],
         level:     Int,
         precision: CompliancePrecision
@@ -819,7 +819,7 @@ object JsonCompliance {
       }
     }
 
-    private[this] def byNodeByDirectiveByComponents(
+    private def byNodeByDirectiveByComponents(
         comps:     Seq[ByRuleByNodeByDirectiveByComponentCompliance],
         level:     Int,
         precision: CompliancePrecision
@@ -858,7 +858,7 @@ object JsonCompliance {
         })
       }
     }
-    private[this] def nodes(
+    private def nodes(
         nodes:     Seq[ByRuleNodeCompliance],
         level:     Int,
         precision: CompliancePrecision
@@ -893,7 +893,7 @@ object JsonCompliance {
       ~ ("nodes"             -> byNode(nodeGroup.nodes, level, precision)))
     }
 
-    private[this] def byRule(
+    private def byRule(
         rules:     Seq[ByNodeGroupRuleCompliance],
         level:     Int,
         precision: CompliancePrecision
@@ -911,7 +911,7 @@ object JsonCompliance {
       }
     }
 
-    private[this] def byNode(
+    private def byNode(
         nodes:     Seq[ByNodeGroupNodeCompliance],
         level:     Int,
         precision: CompliancePrecision
@@ -930,7 +930,7 @@ object JsonCompliance {
       }
     }
 
-    private[this] def byNodeRules(
+    private def byNodeRules(
         rules:     Seq[ByNodeRuleCompliance],
         level:     Int,
         precision: CompliancePrecision
@@ -950,7 +950,7 @@ object JsonCompliance {
       }
     }
 
-    private[this] def byNodeDirectives(
+    private def byNodeDirectives(
         directives: Seq[ByNodeDirectiveCompliance],
         level:      Int,
         precision:  CompliancePrecision
@@ -970,7 +970,7 @@ object JsonCompliance {
       }
     }
 
-    private[this] def byNodeComponents(
+    private def byNodeComponents(
         comps:     List[ComponentStatusReport],
         level:     Int,
         precision: CompliancePrecision
@@ -993,7 +993,7 @@ object JsonCompliance {
       }
     }
 
-    private[this] def directives(
+    private def directives(
         directives: Seq[ByNodeGroupByRuleDirectiveCompliance],
         level:      Int,
         precision:  CompliancePrecision
@@ -1013,7 +1013,7 @@ object JsonCompliance {
       }
     }
 
-    private[this] def components(
+    private def components(
         comps:     Seq[ByRuleComponentCompliance],
         level:     Int,
         precision: CompliancePrecision
@@ -1036,7 +1036,7 @@ object JsonCompliance {
       }
     }
 
-    private[this] def nodes(
+    private def nodes(
         nodes:     Seq[ByRuleNodeCompliance],
         level:     Int,
         precision: CompliancePrecision
@@ -1056,7 +1056,7 @@ object JsonCompliance {
       }
     }
 
-    private[this] def values(values: Seq[ComponentValueStatusReport], level: Int): Option[JsonAST.JValue] = {
+    private def values(values: Seq[ComponentValueStatusReport], level: Int): Option[JsonAST.JValue] = {
       if (level < 5) None
       else {
         Some(values.map { value =>
@@ -1103,7 +1103,7 @@ object JsonCompliance {
         ~ ("rules"             -> rules(n.nodeCompliances, level, precision))
     )
 
-    private[this] def rules(
+    private def rules(
         rules:     Seq[ByNodeRuleCompliance],
         level:     Int,
         precision: CompliancePrecision
@@ -1123,7 +1123,7 @@ object JsonCompliance {
       }
     }
 
-    private[this] def directives(
+    private def directives(
         directives: Seq[ByNodeDirectiveCompliance],
         level:      Int,
         precision:  CompliancePrecision
@@ -1143,7 +1143,7 @@ object JsonCompliance {
       }
     }
 
-    private[this] def components(
+    private def components(
         comps:     List[ComponentStatusReport],
         level:     Int,
         precision: CompliancePrecision
@@ -1166,7 +1166,7 @@ object JsonCompliance {
       }
     }
 
-    private[this] def values(componentValues: List[ComponentValueStatusReport], level: Int): Option[JsonAST.JValue] = {
+    private def values(componentValues: List[ComponentValueStatusReport], level: Int): Option[JsonAST.JValue] = {
       if (level < 5) None
       else {
         Some(componentValues.map {
@@ -1214,7 +1214,7 @@ object JsonCompliance {
    * the semantic of unexpected / missing and no answer is not clear at all.
    *
    */
-  private[this] def percents(c: ComplianceLevel, precision: CompliancePrecision): Map[String, Double] = {
+  private def percents(c: ComplianceLevel, precision: CompliancePrecision): Map[String, Double] = {
     import ReportType.*
 
     // we want at most `precision` decimals

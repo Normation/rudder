@@ -35,14 +35,14 @@ class CreateCloneGroupPopup(
     onFailureCallback: () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
 
-  private[this] val roNodeGroupRepository = RudderConfig.roNodeGroupRepository
-  private[this] val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
-  private[this] val uuidGen               = RudderConfig.stringUuidGenerator
-  private[this] val userPropertyService   = RudderConfig.userPropertyService
+  private val roNodeGroupRepository = RudderConfig.roNodeGroupRepository
+  private val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
+  private val uuidGen               = RudderConfig.stringUuidGenerator
+  private val userPropertyService   = RudderConfig.userPropertyService
 
-  private[this] val categories       = roNodeGroupRepository.getAllNonSystemCategories()
+  private val categories       = roNodeGroupRepository.getAllNonSystemCategories()
   // Fetch the parent category, if any
-  private[this] val parentCategoryId =
+  private val parentCategoryId =
     nodeGroup.flatMap(x => roNodeGroupRepository.getNodeGroupCategory(x.id).toBox).map(_.id.value).getOrElse("")
 
   var createContainer = false
@@ -83,18 +83,18 @@ class CreateCloneGroupPopup(
     "groups-createclonegrouppopup"
   )
 
-  private[this] def closePopup(): JsCmd = {
+  private def closePopup(): JsCmd = {
     JsRaw("""hideBsModal('createCloneGroupPopup');""")
   }
 
-  private[this] def onFailure()(implicit qc: QueryContext): JsCmd = {
+  private def onFailure()(implicit qc: QueryContext): JsCmd = {
     onFailureCallback() &
     updateFormClientSide()
   }
 
-  private[this] def error(msg: String) = <span class="col-xl-12 errors-container">{msg}</span>
+  private def error(msg: String) = <span class="col-xl-12 errors-container">{msg}</span>
 
-  private[this] def onSubmit()(implicit qc: QueryContext): JsCmd = {
+  private def onSubmit()(implicit qc: QueryContext): JsCmd = {
     nodeGroup match {
       case None     => Noop
       case Some(ng) =>
@@ -188,7 +188,7 @@ class CreateCloneGroupPopup(
     }
   }
 
-  private[this] def updateAndDisplayNotifications(formTracker: FormTracker): NodeSeq = {
+  private def updateAndDisplayNotifications(formTracker: FormTracker): NodeSeq = {
 
     val notifications = formTracker.formErrors
     formTracker.cleanErrors
@@ -207,7 +207,7 @@ class CreateCloneGroupPopup(
 
   ///////////// fields for category settings ///////////////////
 
-  private[this] val groupReasons = {
+  private val groupReasons = {
     import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
@@ -232,7 +232,7 @@ class CreateCloneGroupPopup(
     }
   }
 
-  private[this] val groupName = {
+  private val groupName = {
     new WBTextField("Name", nodeGroup.map(x => "Copy of <%s>".format(x.name)).getOrElse("")) {
       override def setFilter      = notNull _ :: trim _ :: Nil
       override def errorClassName = "col-xl-12 errors-container"
@@ -243,14 +243,14 @@ class CreateCloneGroupPopup(
     }
   }
 
-  private[this] val groupDescription = new WBTextAreaField("Description", nodeGroup.map(x => x.description).getOrElse("")) {
+  private val groupDescription = new WBTextAreaField("Description", nodeGroup.map(x => x.description).getOrElse("")) {
     override def setFilter      = notNull _ :: trim _ :: Nil
     override def inputField     = super.inputField % ("style" -> "height:5em") % ("tabindex" -> "3")
     override def errorClassName = "col-xl-12 errors-container"
     override def validations: List[String => List[FieldError]] = Nil
   }
 
-  private[this] val isStatic = {
+  private val isStatic = {
     new WBRadioField(
       "Group type",
       Seq("static", "dynamic"),
@@ -270,7 +270,7 @@ class CreateCloneGroupPopup(
     }
   }
 
-  private[this] val groupContainer = {
+  private val groupContainer = {
     new WBSelectField("Parent category", (categories.toBox.getOrElse(Seq()).map(x => (x.id.value -> x.name))), parentCategoryId) {
       override def inputField =
         super.inputField % ("onkeydown" -> "return processKey(event , 'createCOGSaveButton')") % ("tabindex" -> "2")
@@ -280,7 +280,7 @@ class CreateCloneGroupPopup(
     }
   }
 
-  private[this] def initJs: JsCmd = {
+  private def initJs: JsCmd = {
     JsShowId("createGroupHiddable") & {
       if (groupGenerator != None) {
         JsHideId("itemCreation")
@@ -290,11 +290,11 @@ class CreateCloneGroupPopup(
     }
   }
 
-  private[this] val formTracker = {
+  private val formTracker = {
     new FormTracker(groupName, groupDescription, groupContainer, isStatic)
   }
 
-  private[this] def updateFormClientSide()(implicit qc: QueryContext): JsCmd = {
+  private def updateFormClientSide()(implicit qc: QueryContext): JsCmd = {
     SetHtml("createCloneGroupContainer", popupContent())
   }
 }

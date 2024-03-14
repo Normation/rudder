@@ -509,7 +509,7 @@ object ComplianceData extends Loggable {
   }
 
   // From Node Point of view
-  private[this] def getDirectivesComplianceDetails(
+  private def getDirectivesComplianceDetails(
       directivesReport: List[DirectiveStatusReport],
       directiveLib:     FullActiveTechniqueCategory,
       globalPolicyMode: GlobalPolicyMode,
@@ -542,7 +542,7 @@ object ComplianceData extends Loggable {
   //////////////// Component Report ///////////////
 
   // From Node Point of view
-  private[this] def getComponentsComplianceDetails(
+  private def getComponentsComplianceDetails(
       components:     List[ComponentStatusReport],
       includeMessage: Boolean
   ): JsTableData[ComponentComplianceLine] = {
@@ -578,7 +578,7 @@ object ComplianceData extends Loggable {
   //////////////// Value Report ///////////////
 
   // From Node Point of view
-  private[this] def getValuesComplianceDetails(
+  private def getValuesComplianceDetails(
       values: List[ComponentValueStatusReport]
   ): JsTableData[ComponentValueComplianceLine] = {
     val valuesComplianceData = for {
@@ -601,7 +601,7 @@ object ComplianceData extends Loggable {
     JsTableData(valuesComplianceData)
   }
 
-  private[this] def getDisplayStatusFromSeverity(severity: String): String = {
+  private def getDisplayStatusFromSeverity(severity: String): String = {
     S.?(s"reports.severity.${severity}")
   }
 

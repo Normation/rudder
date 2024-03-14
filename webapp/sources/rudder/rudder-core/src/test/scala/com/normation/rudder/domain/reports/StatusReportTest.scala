@@ -59,9 +59,9 @@ import scala.io.Source
 
 @RunWith(classOf[JUnitRunner])
 class StatusReportTest extends Specification {
-  implicit private[this] def s2n(s: String): NodeId      = NodeId(s)
-  implicit private[this] def r2n(s: String): RuleId      = RuleId(RuleUid(s))
-  implicit private[this] def d2n(s: String): DirectiveId = DirectiveId(DirectiveUid(s), GitVersion.DEFAULT_REV)
+  implicit private def s2n(s: String): NodeId      = NodeId(s)
+  implicit private def r2n(s: String): RuleId      = RuleId(RuleUid(s))
+  implicit private def d2n(s: String): DirectiveId = DirectiveId(DirectiveUid(s), GitVersion.DEFAULT_REV)
 
   sequential
 
@@ -335,7 +335,7 @@ class StatusReportTest extends Specification {
     }
   }
 
-  private[this] def parse(s: String): List[RuleNodeStatusReport] = {
+  private def parse(s: String): List[RuleNodeStatusReport] = {
 
     def ?(s: String): Option[String] = s.trim match {
       case "" | "\"\"" => None
@@ -390,7 +390,7 @@ class StatusReportTest extends Specification {
       .toList
   }
 
-  private[this] def toRT(s: String): ReportType = s.toLowerCase match {
+  private def toRT(s: String): ReportType = s.toLowerCase match {
     case "success"              => EnforceSuccess
     case "error"                => EnforceError
     case "noanswer"             => NoAnswer
@@ -402,7 +402,7 @@ class StatusReportTest extends Specification {
     case s                      => throw new IllegalArgumentException(s)
   }
 
-  private[this] def aggregate(nr: Iterable[RuleNodeStatusReport]): AggregatedStatusReport = {
+  private def aggregate(nr: Iterable[RuleNodeStatusReport]): AggregatedStatusReport = {
     AggregatedStatusReport(nr)
   }
 

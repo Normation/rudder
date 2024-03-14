@@ -186,7 +186,7 @@ trait ItemArchiveManager {
   /**
    * Import the item archive from HEAD (corresponding to last commit)
    */
-  private[this] def lastGitCommitId = GitCommitId("HEAD")
+  private def lastGitCommitId = GitCommitId("HEAD")
 
   def importHeadAll(
       commiter:      PersonIdent,

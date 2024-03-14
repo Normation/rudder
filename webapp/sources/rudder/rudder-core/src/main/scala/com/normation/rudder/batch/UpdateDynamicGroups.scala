@@ -139,10 +139,10 @@ class UpdateDynamicGroups(
     private var lastUpdateTime = new DateTime(0)
     private var avoidedUpdate  = 0L
     private var currentState: DynamicGroupUpdaterStates = IdleGroupUpdater
-    private var onePending               = false
-    private var needDeployment           = false
-    private[this] val isAutomatic        = updateInterval > 0
-    private[this] val realUpdateInterval = {
+    private var onePending         = false
+    private var needDeployment     = false
+    private val isAutomatic        = updateInterval > 0
+    private val realUpdateInterval = {
       if (updateInterval < DYNGROUP_MINIMUM_UPDATE_INTERVAL && isAutomatic) {
         ScheduledJobLogger.warn(
           s"Value '${updateInterval}' for ${propertyName} is too small, using '${DYNGROUP_MINIMUM_UPDATE_INTERVAL}'"
@@ -155,7 +155,7 @@ class UpdateDynamicGroups(
 
     def isIdle(): Boolean = currentState == IdleGroupUpdater
 
-    private[this] def processUpdate(force: Boolean) = {
+    private def processUpdate(force: Boolean) = {
       val need = dynGroupService.changesSince(lastUpdateTime).getOrElse(true)
       // if there was a delayedUpdate, we need to force re-computation of groups, or
       // if there is one pending (which
@@ -200,7 +200,7 @@ class UpdateDynamicGroups(
       }
     }
 
-    private[this] def displayNodechange(nodes: Set[NodeId]): String = {
+    private def displayNodechange(nodes: Set[NodeId]): String = {
       if (nodes.nonEmpty) {
         nodes.map(_.value).mkString("[ ", ", ", " ]")
       } else {
@@ -293,7 +293,7 @@ class UpdateDynamicGroups(
       case x                                                                      => DynamicGroupLoggerPure.logEffect.debug(s"Dynamic group updater can't process this message: '${x}'")
     }
 
-    private[this] object LAUpdateDyngroup extends SpecializedLiftActor[StartDynamicUpdate] {
+    private object LAUpdateDyngroup extends SpecializedLiftActor[StartDynamicUpdate] {
 
       override protected def messageHandler: PartialFunction[StartDynamicUpdate, Unit] = {
         //

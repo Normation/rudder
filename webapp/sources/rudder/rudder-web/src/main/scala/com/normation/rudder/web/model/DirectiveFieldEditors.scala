@@ -658,7 +658,7 @@ class PasswordField(
   protected var _x: String = getDefaultValue
 
   // the algo to use
-  private[this] var currentAlgo:   Option[HashAlgoConstraint] = {
+  private var currentAlgo:   Option[HashAlgoConstraint] = {
     if (algos.contains(HashAlgoConstraint.LinuxShadowSHA256)) {
       Some(HashAlgoConstraint.LinuxShadowSHA256)
     } else {
@@ -669,13 +669,11 @@ class PasswordField(
       }
     }
   }
-  private[this] var currentHash:   Option[String]             = None
-  private[this] var currentAction: String                     = "keep"
-  // to store the result
-  private[this] var currentValue:  Option[String]             = None
+  private var currentHash:   Option[String]             = None
+  private var currentAction: String                     = "keep"
 
-  private[this] var previousAlgo: Option[HashAlgoConstraint] = None
-  private[this] var previousHash: Option[String]             = None
+  private var previousAlgo: Option[HashAlgoConstraint] = None
+  private var previousHash: Option[String]             = None
 
   /*
    * find the new internal value of the hash given:
@@ -683,7 +681,7 @@ class PasswordField(
    * - blank required
    * - new value
    */
-  private[this] def newInternalValue(
+  private def newInternalValue(
       keepCurrentPwd: Boolean,
       blankPwd:       Boolean,
       pastValue:      String,
@@ -691,8 +689,6 @@ class PasswordField(
       chosenAlgo:     HashAlgoConstraint
   ): String = {
     slaves.foreach(s => s.updateValue(keepCurrentPwd, blankPwd, pastValue, newInput, chosenAlgo))
-
-    currentValue = Some(newInput)
 
     if (keepCurrentPwd) pastValue
     else if (blankPwd) ""
@@ -900,7 +896,7 @@ class DerivedPasswordField(val id: String, val derivedType: HashAlgoConstraint.D
   def setFilter:   List[String => String]           = Nil
 
   // the actual backend value like: sha1:XXXXXX
-  private[this] var _x: String = getDefaultValue
+  private var _x: String = getDefaultValue
 
   // the mapping between source algo and corresponding algo
 

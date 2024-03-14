@@ -171,7 +171,7 @@ class ReportsExecutionService(
    * The hook method where the other method needing to happen when
    * new reports are processed are called.
    */
-  private[this] def hookForChanges(lowestId: Long, highestId: Long): Unit = {
+  private def hookForChanges(lowestId: Long, highestId: Long): Unit = {
     val startHooks = System.currentTimeMillis
 
     // notify changes updates

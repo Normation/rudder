@@ -600,7 +600,7 @@ object ComplianceLevelSerialisation {
     )
   }
 
-  private[this] def parse[T](json: JValue, convert: BigInt => T) = {
+  private def parse[T](json: JValue, convert: BigInt => T) = {
     def N(n: JValue): T = convert(n match {
       case JInt(i) => i
       case _       => 0

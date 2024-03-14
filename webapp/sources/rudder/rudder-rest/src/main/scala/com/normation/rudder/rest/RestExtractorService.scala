@@ -126,7 +126,7 @@ final case class RestExtractorService(
    * Params Extractors
    */
 
-  private[this] def extractOneValue[T](params: Map[String, List[String]], key: String)(
+  private def extractOneValue[T](params: Map[String, List[String]], key: String)(
       to: (String) => Box[T] = ((value: String) => Full(value))
   ) = {
     params.get(key) match {
@@ -136,7 +136,7 @@ final case class RestExtractorService(
     }
   }
 
-  private[this] def extractList[T](params: Map[String, List[String]], key: String)(
+  private def extractList[T](params: Map[String, List[String]], key: String)(
       to: (List[String]) => Box[T]
   ): Box[Option[T]] = {
     params.get(key) match {
@@ -148,7 +148,7 @@ final case class RestExtractorService(
   /*
    * Convert value functions
    */
-  private[this] def toBoolean(value: String): Box[Boolean] = {
+  private def toBoolean(value: String): Box[Boolean] = {
     value match {
       case "true"  => Full(true)
       case "false" => Full(false)
@@ -156,7 +156,7 @@ final case class RestExtractorService(
     }
   }
 
-  private[this] def toNodeStatusAction(value: String): Box[NodeStatusAction] = {
+  private def toNodeStatusAction(value: String): Box[NodeStatusAction] = {
     value.toLowerCase match {
       case "accept" | "accepted"            => Full(AcceptNode)
       case "refuse" | "refused"             => Full(RefuseNode)
@@ -164,7 +164,7 @@ final case class RestExtractorService(
       case _                                => Failure(s"value for nodestatus action should be accept, refuse, delete")
     }
   }
-  private[this] def toInt(value: String):              Box[Int]              = {
+  private def toInt(value: String):              Box[Int]              = {
     try {
       Full(value.toInt)
     } catch {
@@ -172,11 +172,11 @@ final case class RestExtractorService(
     }
   }
 
-  private[this] def toQuery(value: String): Box[Query] = {
+  private def toQuery(value: String): Box[Query] = {
     queryParser(value)
   }
 
-  private[this] def toQueryCriterion(value: String): Box[List[StringCriterionLine]] = {
+  private def toQueryCriterion(value: String): Box[List[StringCriterionLine]] = {
     JsonParser.parseOpt(value) match {
       case None        => Failure("Could not parse 'select' cause in api query ")
       case Some(value) =>
@@ -186,19 +186,19 @@ final case class RestExtractorService(
     }
   }
 
-  private[this] def toQueryReturnType(value: String): Box[QueryReturnType] = {
+  private def toQueryReturnType(value: String): Box[QueryReturnType] = {
     QueryReturnType(value).toBox
   }
 
-  private[this] def toQueryComposition(value: String): Box[Option[String]] = {
+  private def toQueryComposition(value: String): Box[Option[String]] = {
     Full(Some(value))
   }
 
-  private[this] def toQueryTransform(value: String): Box[Option[String]] = {
+  private def toQueryTransform(value: String): Box[Option[String]] = {
     Full(if (value.isEmpty) None else Some(value))
   }
 
-  private[this] def toMinimalSizeString(minimalSize: Int)(value: String): Box[String] = {
+  private def toMinimalSizeString(minimalSize: Int)(value: String): Box[String] = {
     if (value.size >= minimalSize) {
       Full(value)
     } else {
@@ -206,7 +206,7 @@ final case class RestExtractorService(
     }
   }
 
-  private[this] def toParameterName(value: String): Box[String] = {
+  private def toParameterName(value: String): Box[String] = {
     toMinimalSizeString(1)(value) match {
       case Full(value) =>
         if (GenericProperty.patternName.matcher(value).matches)
@@ -217,11 +217,11 @@ final case class RestExtractorService(
     }
   }
 
-  private[this] def toDirectiveParam(value: String): Box[Map[String, Seq[String]]] = {
+  private def toDirectiveParam(value: String): Box[Map[String, Seq[String]]] = {
     parseSectionVal(parse(value)).map(SectionVal.toMapVariables(_))
   }
 
-  private[this] def extractJsonDirectiveParam(json: JValue): Box[Option[Map[String, Seq[String]]]] = {
+  private def extractJsonDirectiveParam(json: JValue): Box[Option[Map[String, Seq[String]]]] = {
     json \ "parameters" match {
       case JObject(Nil) | JNothing => Full(None)
       case x @ JObject(_)          => parseSectionVal(x).map(x => Some(SectionVal.toMapVariables(x)))
@@ -229,26 +229,26 @@ final case class RestExtractorService(
     }
   }
 
-  private[this] def toNodeGroupCategoryId(value: String): Box[NodeGroupCategoryId] = {
+  private def toNodeGroupCategoryId(value: String): Box[NodeGroupCategoryId] = {
     Full(NodeGroupCategoryId(value))
   }
-  private[this] def toRuleCategoryId(value: String):      Box[RuleCategoryId]      = {
+  private def toRuleCategoryId(value: String):      Box[RuleCategoryId]      = {
     Full(RuleCategoryId(value))
   }
 
-  private[this] def toGroupCategoryId(value: String): Box[NodeGroupCategoryId] = {
+  private def toGroupCategoryId(value: String): Box[NodeGroupCategoryId] = {
     Full(NodeGroupCategoryId(value))
   }
 
-  private[this] def toApiAccountId(value: String): Box[ApiAccountId] = {
+  private def toApiAccountId(value: String): Box[ApiAccountId] = {
     Full(ApiAccountId(value))
   }
 
-  private[this] def toApiAccountName(value: String): Box[ApiAccountName] = {
+  private def toApiAccountName(value: String): Box[ApiAccountName] = {
     Full(ApiAccountName(value))
   }
 
-  private[this] def toWorkflowStatus(value: String): Box[Seq[WorkflowNodeId]] = {
+  private def toWorkflowStatus(value: String): Box[Seq[WorkflowNodeId]] = {
     val possiblestates = workflowLevelService.getWorkflowService().stepsValue
     value.toLowerCase match {
       case "open"   => Full(workflowLevelService.getWorkflowService().openSteps)
@@ -262,7 +262,7 @@ final case class RestExtractorService(
     }
   }
 
-  private[this] def toWorkflowTargetStatus(value: String): Box[WorkflowNodeId] = {
+  private def toWorkflowTargetStatus(value: String): Box[WorkflowNodeId] = {
     val possiblestates = workflowLevelService.getWorkflowService().stepsValue
     possiblestates.find(_.value.equalsIgnoreCase(value)) match {
       case Some(state) => Full(state)
@@ -273,7 +273,7 @@ final case class RestExtractorService(
     }
   }
 
-  private[this] def toNodeDetailLevel(value: String): Box[NodeDetailLevel] = {
+  private def toNodeDetailLevel(value: String): Box[NodeDetailLevel] = {
     val fields = value.split(",")
     if (fields.contains("full")) {
       Full(FullDetailLevel)
@@ -313,7 +313,7 @@ final case class RestExtractorService(
    *
    * So in all case, the result is exactly ONE target.
    */
-  private[this] def toRuleTarget(parameters: Map[String, List[String]], key: String): Box[Option[RuleTarget]] = {
+  private def toRuleTarget(parameters: Map[String, List[String]], key: String): Box[Option[RuleTarget]] = {
     parameters.get(key) match {
       case Some(values) =>
         traverse(values)(value => RuleTarget.unser(value)).flatMap(mergeTarget)
@@ -336,7 +336,7 @@ final case class RestExtractorService(
     }
   }
 
-  private[this] def mergeTarget(seq: Seq[RuleTarget]): Box[Option[RuleTarget]] = {
+  private def mergeTarget(seq: Seq[RuleTarget]): Box[Option[RuleTarget]] = {
     seq match {
       case Seq()         => Full(None)
       case head +: Seq() => Full(Some(head))
@@ -355,7 +355,7 @@ final case class RestExtractorService(
   /*
    * Convert List Functions
    */
-  private[this] def convertListToDirectiveId(values: Seq[String]): Box[Set[DirectiveId]] = {
+  private def convertListToDirectiveId(values: Seq[String]): Box[Set[DirectiveId]] = {
     def toDirectiveId(value: String): Box[DirectiveId] = {
       // TODO: parse value correctly
       readDirective.getDirective(DirectiveUid(value)).notOptional(s"Directive '$value' not found").map(_.id).toBox
@@ -363,7 +363,7 @@ final case class RestExtractorService(
     traverse(values)(toDirectiveId).map(_.toSet)
   }
 
-  private[this] def convertListToNodeId(values: List[String]): Box[List[NodeId]] = {
+  private def convertListToNodeId(values: List[String]): Box[List[NodeId]] = {
     Full(values.map(NodeId(_)))
   }
 
@@ -902,7 +902,7 @@ final case class RestExtractorService(
   // this extractTagsFromJson is exclusively used when updating TAG in the POST API request. We want to extract tags as a List
   // of {key1,value1 ... keyN,valueN}
 
-  private[this] def extractTagsFromJson(value: JValue): Box[Option[Tags]] = {
+  private def extractTagsFromJson(value: JValue): Box[Option[Tags]] = {
     implicit val formats = DefaultFormats
     if (value == JNothing) Full(None) // missing tag in json means user doesn't want to update them
     else {

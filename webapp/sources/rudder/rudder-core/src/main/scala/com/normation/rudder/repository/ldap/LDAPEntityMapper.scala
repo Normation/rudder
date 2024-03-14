@@ -326,7 +326,7 @@ class LDAPEntityMapper(
     }
   }
 
-  private[this] def inventoryEntriesToNodeInfos(
+  private def inventoryEntriesToNodeInfos(
       node:           Node,
       inventoryEntry: LDAPEntry,
       machineEntry:   Option[LDAPEntry]

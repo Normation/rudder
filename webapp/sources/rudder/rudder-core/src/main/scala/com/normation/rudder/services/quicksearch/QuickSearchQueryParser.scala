@@ -156,44 +156,44 @@ object QSRegexQueryParser {
   ///// this is the entry point /////
   /////
 
-  private[this] def all[A: P]: P[QF] = P(Start ~ (nominal | onlyFilters) ~ End)
+  private def all[A: P]: P[QF] = P(Start ~ (nominal | onlyFilters) ~ End)
 
   /////
   ///// different structure of queries
   /////
 
   // degenerated case with only filters, no query string
-  private[this] def onlyFilters[A: P]: P[QF] = P(filter.rep(1)) map { case f => (EmptyQuery, f.toList) }
+  private def onlyFilters[A: P]: P[QF] = P(filter.rep(1)) map { case f => (EmptyQuery, f.toList) }
 
   // nonimal case: zero of more filter, a query string, zero or more filter
-  private[this] def nominal[A: P]: P[QF] = P(filter.rep(0) ~/ (case0 | case1)) map {
+  private def nominal[A: P]: P[QF] = P(filter.rep(0) ~/ (case0 | case1)) map {
     case (f1, (q, f2)) => (check(q), f1.toList ::: f2.toList)
   }
 
   // need the two following rules so that so the parsing is correctly done for filter in the end
-  private[this] def case0[A: P]: P[QF] = P(queryInMiddle ~ filter.rep(1)) map { case (q, f) => (check(q), f.toList) }
-  private[this] def case1[A: P]: P[QF] = P(queryAtEnd) map { case q => (check(q), Nil) }
+  private def case0[A: P]: P[QF] = P(queryInMiddle ~ filter.rep(1)) map { case (q, f) => (check(q), f.toList) }
+  private def case1[A: P]: P[QF] = P(queryAtEnd) map { case q => (check(q), Nil) }
 
   /////
   ///// simple elements: filters
   /////
 
   // deal with filters: they all start with "in:"
-  private[this] def filter[A:     P]: P[Filter] = P(filterAttr | filterType)
-  private[this] def filterType[A: P]: P[Filter] = P(IgnoreCase("is:") ~ filterKeys) map { FilterType.apply }
-  private[this] def filterAttr[A: P]: P[Filter] = P(IgnoreCase("in:") ~ filterKeys) map { FilterAttr.apply }
+  private def filter[A:     P]: P[Filter] = P(filterAttr | filterType)
+  private def filterType[A: P]: P[Filter] = P(IgnoreCase("is:") ~ filterKeys) map { FilterType.apply }
+  private def filterAttr[A: P]: P[Filter] = P(IgnoreCase("in:") ~ filterKeys) map { FilterAttr.apply }
 
   // the keys part
-  private[this] def filterKeys[A: P]: P[Set[String]] = P(filterKey.rep(sep = ",")) map { l => l.toSet }
-  private[this] def filterKey[A:  P]: P[String]      = P(CharsWhileIn("""\\-._a-zA-Z0-9""").!)
+  private def filterKeys[A: P]: P[Set[String]] = P(filterKey.rep(sep = ",")) map { l => l.toSet }
+  private def filterKey[A:  P]: P[String]      = P(CharsWhileIn("""\\-._a-zA-Z0-9""").!)
 
   /////
   ///// simple elements: query string
   /////
 
   // we need to case, because regex are bad to look-ahead and see if there is still filter after. .+? necessary to stop at first filter
-  private[this] def queryInMiddle[A: P]: P[QueryString] = P((!("in:" | "is:") ~ AnyChar).rep(1).!) map { x => CharSeq(x.trim) }
-  private[this] def queryAtEnd[A:    P]: P[QueryString] = P(AnyChar.rep(1).!) map { x => CharSeq(x.trim) }
+  private def queryInMiddle[A: P]: P[QueryString] = P((!("in:" | "is:") ~ AnyChar).rep(1).!) map { x => CharSeq(x.trim) }
+  private def queryAtEnd[A:    P]: P[QueryString] = P(AnyChar.rep(1).!) map { x => CharSeq(x.trim) }
 
   /////
   ///// utility methods
@@ -203,7 +203,7 @@ object QSRegexQueryParser {
    * Check that the query is not empty (else, say it is the EmptyQuery),
    * and trimed it.
    */
-  private[this] def check(qs: QueryString) = qs match {
+  private def check(qs: QueryString) = qs match {
     case EmptyQuery => EmptyQuery
     case CharSeq(s) =>
       val trimed = s.trim
@@ -214,7 +214,7 @@ object QSRegexQueryParser {
       }
   }
 
-  private[this] def getMapping[T](names: Set[String], map: Map[String, T]): PureResult[(Set[T], Set[String])] = {
+  private def getMapping[T](names: Set[String], map: Map[String, T]): PureResult[(Set[T], Set[String])] = {
     val pairs  = names.flatMap { name =>
       map.get(name.toLowerCase) match {
         case Some(obj) => Some((obj, name))
@@ -240,7 +240,7 @@ object QSRegexQueryParser {
    * Returned the set of matching attribute, and set of matching names for the
    * inputs
    */
-  private[this] def getObjects(names: Set[String]): PureResult[(Set[QSObject], Set[String])] = {
+  private def getObjects(names: Set[String]): PureResult[(Set[QSObject], Set[String])] = {
     import QSMapping.*
     getMapping(names, objectNameMapping)
   }
@@ -249,7 +249,7 @@ object QSRegexQueryParser {
    * Mapping between a string and actual attributes.
    * We try to be kind with users: not case sensitive, not plural sensitive
    */
-  private[this] def getAttributes(names: Set[String]): PureResult[(Set[QSAttribute], Set[String])] = {
+  private def getAttributes(names: Set[String]): PureResult[(Set[QSAttribute], Set[String])] = {
     import QSMapping.*
     getMapping(names, attributeNameMapping).map {
       case (attrs, keys) =>

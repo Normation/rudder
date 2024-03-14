@@ -94,7 +94,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
   }
 
   // bound used section fields to
-  private[this] def boundUsedFields(section: SectionField, bounds: Map[String, Seq[String]]): SectionField = {
+  private def boundUsedFields(section: SectionField, bounds: Map[String, Seq[String]]): SectionField = {
     val allFields = section.getAllDirectVariables
     allFields.values.foreach { f =>
       bounds.get(f.id) match {
@@ -181,7 +181,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
     }
   }
 
-  private[this] def createVarField(varSpec: VariableSpec, valueOpt: Option[String]): (DirectiveField, (String, () => String)) = {
+  private def createVarField(varSpec: VariableSpec, valueOpt: Option[String]): (DirectiveField, (String, () => String)) = {
     val fieldKey = varSpec.name
     val field    = fieldFactory.forType(varSpec, fieldKey)
 
@@ -211,7 +211,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
     (field, varMappings)
   }
 
-  private[this] def createSingleSectionField(
+  private def createSingleSectionField(
       sectionSpec:  SectionSpec,
       valuesByName: Map[String, Seq[String]],
       sectionMap:   Map[String, Option[String]],
@@ -239,7 +239,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
     )
   }
 
-  private[this] def createSingleSectionFieldForMultisec(
+  private def createSingleSectionFieldForMultisec(
       sectionSpec: SectionSpec,
       sectionMap:  Map[String, Option[String]],
       isNewPolicy: Boolean,
@@ -336,7 +336,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
    * - Low priority => hidden
    * - High priority => displayed
    */
-  private[this] def priorityToVisibility(priority: DisplayPriority): Boolean = {
+  private def priorityToVisibility(priority: DisplayPriority): Boolean = {
     priority match {
       case LowDisplayPriority  => false
       case HighDisplayPriority => true

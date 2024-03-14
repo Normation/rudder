@@ -153,7 +153,7 @@ class CommitAndDeployChangeRequestServiceImpl(
   /**
    * Look if the configuration change request is mergeable
    */
-  private[this] def isMergeableConfigurationChangeRequest(
+  private def isMergeableConfigurationChangeRequest(
       changeRequest: ConfigurationChangeRequest
   )(implicit qc: QueryContext): Boolean = {
 
@@ -305,7 +305,7 @@ class CommitAndDeployChangeRequestServiceImpl(
    * So, what to do ?
    * Returns the modificationId, plus a boolean indicating if we need to trigger a deployment
    */
-  private[this] def saveConfigurationChangeRequest(cr: ConfigurationChangeRequest)(implicit cc: ChangeContext): Box[Boolean] = {
+  private def saveConfigurationChangeRequest(cr: ConfigurationChangeRequest)(implicit cc: ChangeContext): Box[Boolean] = {
     import cc.modId
 
     def doDirectiveChange(directiveChanges: DirectiveChanges): Box[TriggerDeploymentDiff] = {

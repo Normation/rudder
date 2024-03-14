@@ -111,7 +111,7 @@ class EventLogJdbcRepository(
    * see unreconized event log (even if it means looking to XML,
    * it's better than missing an important info)
    */
-  private[this] def toEventLog(pair: (String, EventLogDetails)): EventLog = {
+  private def toEventLog(pair: (String, EventLogDetails)): EventLog = {
     val (eventType, eventLogDetails) = pair
     EventLogReportsMapper.mapEventLog(
       EventTypeFactory(eventType),
@@ -301,7 +301,7 @@ private object EventLogReportsMapper extends NamedZioLogger {
 
   override def loggerName: String = this.getClass.getName
 
-  private[this] val logFilters = {
+  private val logFilters = {
     WorkflowStepChanged ::
     NodeEventLogsFilter.eventList :::
     AssetsEventLogsFilter.eventList :::

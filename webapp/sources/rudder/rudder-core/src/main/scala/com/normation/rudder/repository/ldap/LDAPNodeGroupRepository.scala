@@ -108,7 +108,7 @@ class RoLDAPNodeGroupRepository(
    * the given category which MUST be mapped to an entry with the given
    * DN in the LDAP backend, accessible with the given connection.
    */
-  private[this] def addSubEntries(category: NodeGroupCategory, dn: DN, con: RoLDAPConnection): IOResult[NodeGroupCategory] = {
+  private def addSubEntries(category: NodeGroupCategory, dn: DN, con: RoLDAPConnection): IOResult[NodeGroupCategory] = {
     for {
       res <- con.searchOne(
                dn,
@@ -493,7 +493,7 @@ class RoLDAPNodeGroupRepository(
     }
   }
 
-  private[this] def findGroupWithFilter(filter: Filter): IOResult[Seq[NodeGroupId]] = {
+  private def findGroupWithFilter(filter: Filter): IOResult[Seq[NodeGroupId]] = {
     groupLibMutex.readLock {
       for {
         con      <- ldap
@@ -659,7 +659,7 @@ class WoLDAPNodeGroupRepository(
   /**
    * Check if a group category exist with the given name
    */
-  private[this] def categoryExists(con: RoLDAPConnection, name: String, parentDn: DN): IOResult[Boolean] = {
+  private def categoryExists(con: RoLDAPConnection, name: String, parentDn: DN): IOResult[Boolean] = {
     groupLibMutex.readLock(
       con
         .searchOne(parentDn, AND(IS(OC_GROUP_CATEGORY), EQ(A_NAME, name)), A_GROUP_CATEGORY_UUID)
@@ -674,7 +674,7 @@ class WoLDAPNodeGroupRepository(
   /**
    * Check if a group category exist with the given name
    */
-  private[this] def categoryExists(
+  private def categoryExists(
       con:       RoLDAPConnection,
       name:      String,
       parentDn:  DN,
@@ -698,7 +698,7 @@ class WoLDAPNodeGroupRepository(
   /**
    * Check if a nodeGroup exists(id already exists) and name is unique
    */
-  private[this] def checkNodeGroupExists(con: RoLDAPConnection, group: NodeGroup): IOResult[Boolean] = {
+  private def checkNodeGroupExists(con: RoLDAPConnection, group: NodeGroup): IOResult[Boolean] = {
     groupLibMutex.readLock(
       con
         .searchSub(
@@ -719,7 +719,7 @@ class WoLDAPNodeGroupRepository(
   /**
    * Check if another nodeGroup exist with the given name
    */
-  private[this] def checkNameAlreadyInUse(con: RoLDAPConnection, name: String, id: NodeGroupId): IOResult[Boolean] = {
+  private def checkNameAlreadyInUse(con: RoLDAPConnection, name: String, id: NodeGroupId): IOResult[Boolean] = {
     groupLibMutex.readLock(
       con
         .searchSub(
@@ -735,7 +735,7 @@ class WoLDAPNodeGroupRepository(
     )
   }
 
-  private[this] def getContainerDn(con: RoLDAPConnection, id: NodeGroupCategoryId): IOResult[DN] = {
+  private def getContainerDn(con: RoLDAPConnection, id: NodeGroupCategoryId): IOResult[DN] = {
     groupLibMutex.readLock {
       con
         .searchSub(rudderDit.GROUP.dn, AND(IS(OC_GROUP_CATEGORY), EQ(A_GROUP_CATEGORY_UUID, id.value)), A_GROUP_CATEGORY_UUID)
@@ -1005,7 +1005,7 @@ class WoLDAPNodeGroupRepository(
     })
   }
 
-  private[this] def internalUpdate(
+  private def internalUpdate(
       nodeGroup:       NodeGroup,
       modId:           ModificationId,
       actor:           EventActor,

@@ -242,7 +242,7 @@ final case class DirectiveChange(
     val nextChanges:  Seq[DirectiveChangeItem]
 ) extends Change[(TechniqueName, Directive, Option[SectionSpec]), ChangeRequestDirectiveDiff, DirectiveChangeItem] {
   @scala.annotation.tailrec
-  private[this] def recChange(
+  private def recChange(
       previousState: Box[DirectiveChangeItem],
       nexts:         List[DirectiveChangeItem]
   ): Box[DirectiveChangeItem] = {
@@ -296,7 +296,7 @@ final case class NodeGroupChange(
     val nextChanges:  Seq[NodeGroupChangeItem]
 ) extends Change[NodeGroup, ChangeRequestNodeGroupDiff, NodeGroupChangeItem] {
   @scala.annotation.tailrec
-  private[this] def recChange(
+  private def recChange(
       previousState: Box[NodeGroupChangeItem],
       nexts:         List[NodeGroupChangeItem]
   ): Box[NodeGroupChangeItem] = {

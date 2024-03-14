@@ -134,7 +134,7 @@ trait ExtendableSnippet[T] extends DispatchSnippet {
     (ExtendableSnippet.chached[T](extendsAt, computeDispatch))(this)
   }
 
-  private[this] def computeDispatch(snippet: T): DispatchIt = {
+  private def computeDispatch(snippet: T): DispatchIt = {
     val all = (beforeSnippetExtensionSeq.map(_.compose(snippet)) :+
       mainDispatch) ++
       afterSnippetExtensionSeq.map(_.compose(snippet))
@@ -158,7 +158,7 @@ trait ExtendableSnippet[T] extends DispatchSnippet {
 object ExtendableSnippet {
   type DispatchIt = PartialFunction[String, NodeSeq => NodeSeq]
 
-  private[this] val cache = scala.collection.mutable.Map.empty[SnippetExtensionKey, _ => DispatchIt]
+  private val cache = scala.collection.mutable.Map.empty[SnippetExtensionKey, _ => DispatchIt]
 
   def chached[T](forSnippet: SnippetExtensionKey, withDefault: => T => DispatchIt): T => DispatchIt = {
     if (true) withDefault
