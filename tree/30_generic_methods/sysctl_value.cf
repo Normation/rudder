@@ -139,25 +139,31 @@ bundle agent sysctl_value(key, value, filename, option) {
       "check_equality"           not => "check_larger|check_smaller";
 
     pass1::
-      "correct_value"     expression => strcmp("${sysctl_var.${getKey}}", "${value}");
+      "correct_value"     expression => strcmp("${sysctl_var.${getKey}}", "${value}"),
+                             comment => "${report_data.method_id}";
 
       "correct_value"     expression => isgreaterthan("${sysctl_var.${getKey}}", "${value}"),
+                             comment => "${report_data.method_id}",
                                   if => "check_smaller";
 
       "correct_value"     expression => islessthan("${sysctl_var.${getKey}}", "${value}"),
+                             comment => "${report_data.method_id}",
                                   if => "check_larger";
 
     pass2::
       # check post modification
       "correct_value_post_modif"
                           expression => strcmp("${sysctl_var.${checkKey}}", "${value}"),
+                             comment => "${report_data.method_id}",
                                   if => "${inner_class_prefix_sysctl_reload}_repaired";
       "correct_value_post_modif"
                           expression => isgreaterthan("${sysctl_var.${getKey}}", "${value}"),
+                             comment => "${report_data.method_id}",
                                   if => "${inner_class_prefix_sysctl_reload}_repaired.check_smaller";
 
       "correct_value_post_modif"
                           expression => islessthan("${sysctl_var.${getKey}}", "${value}"),
+                             comment => "${report_data.method_id}",
                                   if => "${inner_class_prefix_sysctl_reload}_repaired.check_larger";
 
     any::
@@ -201,17 +207,33 @@ bundle agent sysctl_value(key, value, filename, option) {
                         if => "correct_value";
 
       "repaired" usebundle => _classes_repaired("${old_class_prefix}"),
-                        if => "${inner_class_prefix_key_value}_repaired.correct_value_post_modif";
+                        if => "correct_value_post_modif";
 
       "repaired" usebundle => _classes_repaired("${class_prefix}"),
-                        if => "${inner_class_prefix_key_value}_repaired.correct_value_post_modif";
+                        if => "correct_value_post_modif";
 
 
       "error"    usebundle => _classes_failure("${old_class_prefix}"),
-                        if => "!correct_value.(((${inner_class_prefix_key_value}_repaired|${inner_class_prefix_sysctl_reload}_repaired).!correct_value_post_modif)|${inner_class_prefix_variable_get}_error|${inner_class_prefix_key_value}_error|${inner_class_prefix_variable_check}_error|${inner_class_prefix_sysctl_reload}_error|!can_edit)";
+                        if => and("!correct_value",
+                                   or("!correct_value_post_modif",
+                                      "${inner_class_prefix_variable_get}_error",
+                                      "${inner_class_prefix_key_value}_error",
+                                      "${inner_class_prefix_variable_check}_error",
+                                      "${inner_class_prefix_sysctl_reload}_error",
+                                      "!can_edit"
+                                     )
+                                );
 
       "error"    usebundle => _classes_failure("${class_prefix}"),
-                        if => "!correct_value.(((${inner_class_prefix_key_value}_repaired|${inner_class_prefix_sysctl_reload}_repaired).!correct_value_post_modif)|${inner_class_prefix_variable_get}_error|${inner_class_prefix_key_value}_error|${inner_class_prefix_variable_check}_error|${inner_class_prefix_sysctl_reload}_error|!can_edit)";
+                        if => and("!correct_value",
+                                   or("!correct_value_post_modif",
+                                      "${inner_class_prefix_variable_get}_error",
+                                      "${inner_class_prefix_key_value}_error",
+                                      "${inner_class_prefix_variable_check}_error",
+                                      "${inner_class_prefix_sysctl_reload}_error",
+                                      "!can_edit"
+                                     )
+                                );
 
   pass3.can_edit::
       "report"   usebundle => _log_v3("Set sysctl value for key ${key}, using file ${filename} with option ${option}", "${key}", "${old_class_prefix}", "${class_prefix}", @{args});
