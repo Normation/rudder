@@ -10,6 +10,7 @@ use std::{
 #[cfg(not(feature = "embedded-lib"))]
 use anyhow::bail;
 use anyhow::{anyhow, Context, Result};
+use rudder_cli::custom_panic_hook_ignore_sigpipe;
 #[cfg(not(feature = "embedded-lib"))]
 use tracing::debug;
 
@@ -45,6 +46,8 @@ pub const DEFAULT_AGENT_PATH: &str = "/opt/rudder/bin/";
 /// The current process is to stop at first error, and move it up to `main()` where it will
 /// be displayed.
 pub fn run(args: MainArgs) -> Result<()> {
+    custom_panic_hook_ignore_sigpipe();
+
     let input = Path::new(TECHNIQUE_SRC);
     let cwd = PathBuf::from(".");
     let target = PathBuf::from(TARGET_DIR);
