@@ -226,7 +226,7 @@ class AcceptNode extends Loggable {
           $('#pendingNodeConfirm').dataTable({
             "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
-            "bFilter" :true,
+            "searching": false,
             "bLengthChange": true,
             "bPaginate": false,
             "bJQueryUI": false,
