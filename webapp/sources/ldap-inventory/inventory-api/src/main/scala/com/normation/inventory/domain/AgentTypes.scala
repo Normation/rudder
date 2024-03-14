@@ -98,7 +98,7 @@ sealed trait AgentType extends EnumEntry {
 
 object AgentType extends Enum[AgentType] {
 
-  final case object CfeEnterprise extends AgentType {
+  case object CfeEnterprise extends AgentType {
     override def id           = "cfengine-nova"
     override def oldShortName = "nova"
     override def displayName  = "CFEngine Enterprise"
@@ -109,7 +109,7 @@ object AgentType extends Enum[AgentType] {
     override val defaultPolicyExtension = ".cf"
   }
 
-  final case object CfeCommunity extends AgentType {
+  case object CfeCommunity extends AgentType {
     override def id           = "cfengine-community"
     override def oldShortName = "community"
     override def displayName  = "Rudder"
@@ -120,7 +120,7 @@ object AgentType extends Enum[AgentType] {
     override val defaultPolicyExtension = ".cf"
   }
 
-  final case object Dsc extends AgentType {
+  case object Dsc extends AgentType {
     override def id           = "dsc"
     override def oldShortName = "dsc"
     override def displayName  = "Rudder Windows"

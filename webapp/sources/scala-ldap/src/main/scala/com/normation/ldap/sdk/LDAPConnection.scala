@@ -591,7 +591,7 @@ class RwLDAPConnection(
     (req: DeleteRequest) => req.toLDIFChangeRecord,
     (req: DeleteRequest) => backed.delete(req),
     res => NO_SUCH_OBJECT == res || onlyReportOnDelete(res) // no such object only says it's already deleted
-  ) _
+  )
 
   /**
    * Specialized version of applyMods for AddRequest modification type
@@ -601,14 +601,14 @@ class RwLDAPConnection(
     (req: AddRequest) => req.toLDIFChangeRecord,
     (req: AddRequest) => backed.add(req),
     onlyReportOnAdd
-  ) _
+  )
 
   private val applyAdd = applyMod[AddRequest](
     "add",
     (req: AddRequest) => req.toLDIFChangeRecord,
     (req: AddRequest) => backed.add(req),
     onlyReportOnAdd
-  ) _
+  )
 
   /**
    * Specialized version of applyMods for ModifyRequest modification type
@@ -618,7 +618,7 @@ class RwLDAPConnection(
     (req: ModifyRequest) => req.toLDIFChangeRecord,
     (req: ModifyRequest) => backed.modify(req),
     onlyReportOnModify
-  ) _
+  )
 
   /**
    * Execute a plain modification.

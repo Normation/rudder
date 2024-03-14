@@ -89,7 +89,7 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
     case r :: _ =>
       // update RDN attribute content
       // start to delete old values, and then add new one (corner case with multivaluated attrs in rdn
-      for (attr: String <- r.getAttributeNames.toSet) this deleteAttribute attr
+      for (attr: String <- r.getAttributeNames.toSet) this.deleteAttribute(attr)
       for (i <- 0 until r.getAttributeNames.size) {
         this.addValues(r.getAttributeNames()(i), r.getAttributeValues()(i))
       }
@@ -358,7 +358,7 @@ object LDAPEntry {
     val emptyAttrs = Buffer[String]()
     for (a <- target.attributes.toSeq) {
       if (!a.hasValue) {
-        target deleteAttribute a.getName // remove the attribute
+        target.deleteAttribute(a.getName) // remove the attribute
         emptyAttrs += a.getName
       }
     }

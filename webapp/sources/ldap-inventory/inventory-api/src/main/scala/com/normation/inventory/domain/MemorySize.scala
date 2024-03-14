@@ -54,7 +54,7 @@ final case class MemorySize(size: Long) extends AnyVal {
 
 object MemorySize {
 
-  val ord: Ordering[MemorySize] = _.size compareTo _.size
+  val ord: Ordering[MemorySize] = Ordering.by(_.size)
 
   /*
    * We should accept:
