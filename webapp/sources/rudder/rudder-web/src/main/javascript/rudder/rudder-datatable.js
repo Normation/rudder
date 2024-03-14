@@ -1355,6 +1355,40 @@ function reloadTable(gridId) {
 }
 
 function createNodeTable(gridId, refresh) {
+  var isResizing = false,
+    offsetBottom = 250;
+
+  $(function () {
+    // apply resize to node table if in split mode and if drag element is found
+    var container = $('.main-details'),
+      top = $('.main-details > .tab-content-split'),
+      bottom = $('.main-details > .table-container'),
+      handle = $('#drag');
+
+    handle.on('mousedown', function (e) {
+      isResizing = true;
+      lastDownY = e.clientY;
+      return false;
+    });
+
+    $(document).on('mousemove', function (e) {
+      // we don't want to do anything if we aren't resizing.
+      if (!isResizing)
+        return;
+
+      offsetBottom = container.height() - (e.clientY - container.offset().top - (handle.height() * 2)); // need some offset to make the cursor exactly at drag point
+
+      // 120 at least to allow the "Properties tab to still be visible"
+      top.css('bottom', Math.max(offsetBottom, 120));
+      bottom.css('height', offsetBottom).css('margin-bottom', 0);
+      $("#" + gridId).parent().css('max-height', Math.max(0, offsetBottom - container.offset().top + handle.height()));
+    }).on('mouseup', function (e) {
+      // stop resizing
+      isResizing = false;
+      return false;
+    });
+  });
+
   var cacheId = gridId + "_columns"
   var cacheColumns = localStorage.getItem(cacheId)
   if (cacheColumns !== null) {
@@ -1391,6 +1425,8 @@ function createNodeTable(gridId, refresh) {
     , "deferRender" : true
     , "destroy" : true
     , "pagingType": "full_numbers"
+    , "scrollCollapse": true
+    , "scrollY": "200px"
     , "language": {
         "search": ""
     }
