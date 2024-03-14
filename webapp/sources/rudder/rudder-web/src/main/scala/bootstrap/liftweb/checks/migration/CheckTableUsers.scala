@@ -80,6 +80,7 @@ class CheckTableUsers(
     , authz        text[] NOT NULL DEFAULT '{}'
     , endDate      timestamp with time zone
     , endCause     text
+    , PRIMARY KEY(userId, sessionId)
     );"""
 
     transactIOResult(s"Error with 'Users' table creation")(xa => sql1.update.run.transact(xa)).unit *>
@@ -93,11 +94,28 @@ class CheckTableUsers(
     transactIOResult(s"Error with 'authz' column creation")(xa => sql.update.run.transact(xa)).unit
   }
 
+  // In 7.0.13, we missed the primary key for usersessions
+  def addPrimaryKey: IOResult[Unit] = {
+    val sql = {
+      sql"""
+        DO $$$$ BEGIN
+          IF NOT EXISTS (select constraint_name from information_schema.table_constraints
+                         where table_name = 'usersessions' and constraint_type = 'PRIMARY KEY'
+                        ) then
+            ALTER TABLE usersessions ADD PRIMARY KEY (userId,sessionId);
+          end if;
+        END $$$$;"""
+    }
+
+    transactIOResult(s"Error with primary key creation for usersessions")(xa => sql.update.run.transact(xa)).unit
+  }
+
   override def checks(): Unit = {
     val prog = {
       for {
         _ <- createUserTables
         _ <- createAuthzColumn
+        _ <- addPrimaryKey
       } yield ()
     }
 
