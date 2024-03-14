@@ -39,8 +39,8 @@ techniqueResource  resource =
     ]
 
 
-techniqueParameter :  Model -> Technique -> TechniqueParameter -> Bool -> Html Msg
-techniqueParameter model technique param opened =
+techniqueParameter :  Model -> Technique -> TechniqueParameter -> Html Msg
+techniqueParameter model technique param =
   let
     param_var_name = if (String.isEmpty param.name) then canonifyString param.description else param.name
     param_name =
@@ -75,17 +75,60 @@ techniqueParameter model technique param opened =
       else
         ("", text "")
 
-    checkboxId = ("paramRequired-" ++ param.id.value)
+    checkboxId = "paramRequired-" ++ param.id.value
+    nameId  = "name-"++param.id.value
+    varId  = "var-"++param.id.value
+    typeId  = "type-"++param.id.value
+    descriptionId = "description-"++param.id.value
+
+    selectTypeValue = if param.constraints.select == Nothing then "Text" else "Enum"
+    onInputType = \s ->
+              let newConstraint = {constraint | select =  if s == "Text" then Nothing else Just [ SelectOption "" Nothing ] }
+                in
+              TechniqueParameterModified param.id {param | constraints = newConstraint }
 
     constraint = param.constraints
   in
     li [] [
       span [ class "border" ] []
     , div [ class "param" ] [
-        div [ class "input-group form-group" ] [
-          input [readonly (not model.hasWriteRights), type_ "text",  class ("form-control " ++ invalidNameClass), value param.description, placeholder "Parameter name", onInput (\s -> TechniqueParameterModified param.id {param | description = s }), required True] []
-        , label [ class "input-group-text", for checkboxId]
-          [ input[type_ "checkbox", id checkboxId, checked (not param.mayBeEmpty), onCheck (\c ->
+        div [ class "gm-labels left"] [
+          div [ class "gm-label rudder-label gm-label-name "] [ text "Parameter" ]
+        ]
+      , div [ class "form-group" ] [
+          label [  for nameId] [ text "Display name"]
+        , input [ id nameId, readonly (not model.hasWriteRights), type_ "text",  class ("col-xs-8 form-control " ++ invalidNameClass), value param.description, placeholder "Parameter name", onInput (\s -> TechniqueParameterModified param.id {param | description = s }), required True] []
+        , invalidNameElem
+        ]
+
+      , div [ class " form-group" ] [
+          label [  for varId] [ text "Variable name"]
+        , div [class "input-group" ] [
+            input [id  varId, readonly (not model.hasWriteRights), type_ "text",  class ("form-control "++invalidParamClass), value param.name, placeholder (if (String.isEmpty param.description) then "Variable name" else (canonifyString param.description)) , onInput (\s -> TechniqueParameterModified param.id {param | name = s }), required True] []
+          , button [ class "btn btn-outline-secondary clipboard", title "Copy to clipboard" , onClick (Copy ("${" ++ param_var_name ++ "}")) ] [
+              i [ class "ion ion-clipboard" ] []
+            ]
+          ]
+        , invalidParamElem
+        ]
+
+      , div [ class " form-group" ] [
+          label [  for descriptionId] [ text "Description"]
+        , div [class "input-group" ] [
+            textarea [ id  descriptionId, readonly (not model.hasWriteRights),  class ("form-control")
+                     , rows 1,  value (Maybe.withDefault "" param.documentation), placeholder "description" , onInput (\s -> TechniqueParameterModified param.id {param | documentation = Just s }), required True] []
+          ]
+        ]
+
+      , div [ class " form-group" ] [
+          label [ for typeId] [ text "Type"]
+        , div [ class "input-group" ] [
+            select [id  typeId, readonly (not model.hasWriteRights), class ("form-select"), value selectTypeValue, onInput onInputType] [
+              option [ value "Text", selected ("Text" == selectTypeValue) ] [ text "Text"]
+            , option [ value "Enum", selected ("Enum" == selectTypeValue)  ] [ text "Enum"]
+            ]
+          , label [ class "input-group-text", for checkboxId]
+            [ input[type_ "checkbox", id checkboxId, checked (not param.mayBeEmpty), onCheck (\c ->
             let newConstraint = {constraint | allowEmpty = Just c}
             in
               (TechniqueParameterModified param.id {param | mayBeEmpty = not c, constraints = newConstraint }))][]
@@ -99,51 +142,47 @@ techniqueParameter model technique param opened =
             ] [ i [ class "text-info fa fa-question-circle" ] []]
           ]
         ]
-      , invalidNameElem
-      , div [ class "input-group form-group" ] [
-           input [readonly (not model.hasWriteRights), type_ "text",  class ("form-control "++invalidParamClass), value param.name, placeholder (if (String.isEmpty param.description) then "Variable name" else (canonifyString param.description)) , onInput (\s -> TechniqueParameterModified param.id {param | name = s }), required True] []
-        , button [ class "btn btn-outline-secondary clipboard", title "Copy to clipboard" , onClick (Copy ("${" ++ param_var_name ++ "}")) ] [
-            i [ class "ion ion-clipboard" ] []
-          ]
-        ]
-      , invalidParamElem
-      , div [ class "input-group form-group" ] [
-          label [ class "input-group-text", for "param_select"]
-            [ input[type_ "checkbox", id "param_select", checked (Maybe.Extra.isJust constraint.select ), onCheck (\c ->
-              let newConstraint = {constraint | select = if c then Just [ SelectOption "" Nothing ] else Nothing }
-                in
-              (TechniqueParameterModified param.id {param | constraints = newConstraint }))][]
-            , span [][text "  Select values from a list "]
-            ]
-          ]
+      ]
       , ( case constraint.select of
             Just l ->
              let displayValue = \ index currentValue ->
-                  li[] [div [ class "input-group form-group" ] [
-                     input [type_ "text",  class ("form-control "), value currentValue.value, placeholder "Value" ,
-                      onInput (\s ->
-                        let
-                          newConstraint = { constraint | select = Just (List.Extra.updateAt index (\val -> {val | value = s}) l  ) }
-                        in
-                          TechniqueParameterModified param.id {param | constraints = newConstraint }), required True] []
-                    , input [type_ "text",  class ("form-control "), value (Maybe.withDefault "" currentValue.name), placeholder "Name" ,
-                      onInput (\s ->
-                        let
-                          newConstraint = { constraint | select = Just (List.Extra.updateAt index (\val -> {val | name = if String.isEmpty s then Nothing else Just s}) l  ) }
-                        in
-                          TechniqueParameterModified param.id {param | constraints = newConstraint }), required True] []
-                    , button [ class "btn btn-outline-danger", title "Remove value" ,
-                      onClick (
-                        let
-                          newConstraint = { constraint | select = Just (List.Extra.removeAt index l  ) }
-                        in
-                          TechniqueParameterModified param.id {param | constraints = newConstraint }), required True] [
-                       i [ class "fa fa-times" ] []
-                     ]
-                   ]
+                  li[] [
+                    span [ class "border" ] []
+                  , div [ class "param" ] [
+                      div [ class "gm-labels left"] [
+                        div [ class "gm-label rudder-label gm-label-name "] [ text "Enum" ]
+                      ]
+                    , div [ class "form-group" ] [
+                        label [] [ text "Display name"]
+                      , input [ readonly (not model.hasWriteRights), type_ "text",  class "col-xs-8 form-control", placeholder "Name"
+                              , value (Maybe.withDefault "" currentValue.name), placeholder "Name" , onInput (\s ->
+                                  let
+                                    newConstraint = { constraint | select = Just (List.Extra.updateAt index (\val -> {val | name = if String.isEmpty s then Nothing else Just s}) l  ) }
+                                  in
+                                    TechniqueParameterModified param.id {param | constraints = newConstraint }), required True] []
+                      ]
+                    , div [ class " form-group" ] [
+                        label [ ] [ text "Value"]
+                      , div [class "input-group" ] [
+                          input [ readonly (not model.hasWriteRights), type_ "text",  class "form-control", value currentValue.value, placeholder "Value"
+                                , onInput (\s ->
+                                    let
+                                      newConstraint = { constraint | select = Just (List.Extra.updateAt index (\val -> {val | value = s}) l  ) }
+                                    in
+                                      TechniqueParameterModified param.id {param | constraints = newConstraint }), required True] []
+                        ]
+                      ]
+                    ]
+                  , div [ class "remove-item", onClick(
+                            let
+                              newConstraint = { constraint | select = Just (List.Extra.removeAt index l  ) }
+                            in
+                              TechniqueParameterModified param.id {param | constraints = newConstraint }) ] [
+                      i [ class "fa fa-times"] []
+                    ]
                   ]
              in
-             ul []
+             ul [ class "files-list parameters"]
               ( List.concat [
                 List.indexedMap displayValue l
               , [ button [
@@ -163,11 +202,6 @@ techniqueParameter model technique param opened =
             Nothing -> text ""
         )
       , div [] param_name
-      , button [ class "btn btn-sm btn-outline-primary",  style "margin-top" "5px" , onClick (TechniqueParameterToggle param.id)] [
-          text "Description "
-        , i [ class (if opened then "fa fa-times" else "ion ion-edit") ] []
-        ]
-      , if opened then textarea [ readonly (not model.hasWriteRights), style "margin-top" "10px",  class "form-control",  rows 1,  value (Maybe.withDefault "" param.documentation), onInput (\s -> TechniqueParameterModified param.id {param | documentation = if (String.isEmpty s) then Nothing else Just s })] [] else text "" -- msd-elastic
       ]
     , div [ class "remove-item", onClick (TechniqueParameterRemoved param.id) ] [
         i [ class "fa fa-times"] []
@@ -302,7 +336,7 @@ techniqueTab model technique creation ui =
               ]
             ]
           else
-            List.map (\p -> techniqueParameter model technique p (List.member p.id ui.openedParameters ) ) technique.parameters
+            List.map (\p -> techniqueParameter model technique p ) technique.parameters
       in
         div [ class "tab tab-parameters" ] [
           ul [ class "files-list parameters" ]

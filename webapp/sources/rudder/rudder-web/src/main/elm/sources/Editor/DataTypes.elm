@@ -268,7 +268,6 @@ type Msg =
   | TechniqueParameterModified ParameterId TechniqueParameter
   | TechniqueParameterRemoved ParameterId
   | TechniqueParameterAdded ParameterId
-  | TechniqueParameterToggle ParameterId
   | GenerateId (String -> Msg)
   | CallApi  (Model -> Cmd Msg)
   | SwitchTab Tab
