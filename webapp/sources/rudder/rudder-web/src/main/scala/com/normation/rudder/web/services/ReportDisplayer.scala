@@ -99,7 +99,7 @@ class ReportDisplayer(
   ): NodeSeq = {
     val callback = {
       SHtml.ajaxInvoke(() =>
-        SetHtml(containerId, displayReports(node, getReports, tableId, containerId, addOverriden, onlySystem))
+        SetHtml(containerId, displayReports(node, getReports, tabId, tableId, containerId, addOverriden, onlySystem))
       )
     }
     Script(OnLoad(JsRaw(s"""
@@ -363,6 +363,7 @@ class ReportDisplayer(
   private[this] def displayReports(
       node:         CoreNodeFact,
       getReports:   NodeId => Box[NodeStatusReport],
+      tabId:        String,
       tableId:      String,
       containerId:  String,
       addOverriden: Boolean,
@@ -460,17 +461,9 @@ class ReportDisplayer(
                               withCompliance = false,
                               onlySystem
                             )
-                            & "#AllLogButton  [class+]" #> { if (runDate.isEmpty || tableId != "reportsGrid") "hide" else "" }
-                            & "#AllLogButton  [onclick]" #> {
-                              if (runDate.nonEmpty || tableId == "reportsGrid") {
-                                val init    = AnonFunc(logDisplayer.asyncDisplay(node.id, runDate, "complianceLogsGrid"))
-                                val refresh = AnonFunc(logDisplayer.ajaxRefresh(node.id, runDate, "complianceLogsGrid"))
-                                s"""showHideRunLogs("#logRun", ${init.toJsCmd}, ${refresh.toJsCmd})"""
-                              } else ""
-                            }
                             & "lastreportgrid-missing" #> NodeSeq.Empty
                             & "lastreportgrid-unexpected" #> NodeSeq.Empty
-                          )(reportByNodeTemplate)
+                          )(reportByNodeTemplate) ++ displayRunLogs(node.id, runDate, tabId, tableId)
 
                         case _: Pending | _: ComputeCompliance =>
                           val missing    = getComponents(ReportType.Missing, report, directiveLib).toSet
@@ -484,17 +477,9 @@ class ReportDisplayer(
                               withCompliance = true,
                               onlySystem
                             )
-                            & "#AllLogButton [class+]" #> { if (runDate.isEmpty || tableId != "reportsGrid") "hide" else "" }
-                            & "#AllLogButton [onclick]" #> {
-                              if (runDate.nonEmpty || tableId == "reportsGrid") {
-                                val init    = AnonFunc(logDisplayer.asyncDisplay(node.id, runDate, "complianceLogsGrid"))
-                                val refresh = AnonFunc(logDisplayer.ajaxRefresh(node.id, runDate, "complianceLogsGrid"))
-                                s"""showHideRunLogs("#logRun",${init.toJsCmd}, ${refresh.toJsCmd})"""
-                              } else ""
-                            }
                             & "lastreportgrid-missing" #> showMissingReports(missing, tableId)
                             & "lastreportgrid-unexpected" #> showUnexpectedReports(unexpected, tableId)
-                          )(reportByNodeTemplate)
+                          )(reportByNodeTemplate) ++ displayRunLogs(node.id, runDate, tabId, tableId)
                       }
                     }
                   })
@@ -531,6 +516,36 @@ class ReportDisplayer(
                     |  }, 800);
                     |});
                     |""".stripMargin))
+  }
+
+  // Handle show/hide logic of buttons, and rewrite button/container ids to avoid conflicts between tabs
+  private[this] def displayRunLogs(nodeId: NodeId, runDate: Option[DateTime], tabId: String, tableId: String): NodeSeq = {
+    val btnId               = s"allLogButton-${tabId}"
+    val logRunId            = s"logRun-${tabId}"
+    val complianceLogGridId = s"complianceLogsGrid-${tabId}"
+
+    val classes               = "btn btn-primary" + (if (runDate.isEmpty || tableId != "reportsGrid") " hide" else "")
+    val onclick               = if (runDate.nonEmpty || tableId == "reportsGrid") {
+      val init    = AnonFunc(logDisplayer.asyncDisplay(nodeId, runDate, complianceLogGridId))
+      val refresh = AnonFunc(logDisplayer.ajaxRefresh(nodeId, runDate, complianceLogGridId))
+      s"""showHideRunLogs("#${logRunId}", "${tabId}", ${init.toJsCmd}, ${refresh.toJsCmd})"""
+    } else ""
+    val btnHtml               = <button id={btnId} class={classes} onclick={onclick}>Show logs <i class="fa fa-table"></i></button>
+    val hideBtnHtml           = <button id={s"hideLogButton-${tabId}"} class="btn btn-primary hide" onclick={
+      s"showHideRunLogs('#node-compliance-intro', '${tabId}')"
+    }>Hide logs</button>
+    val complianceLogGridHtml =
+      <table id={complianceLogGridId} cellspacing="0"></table>
+
+    val replaceBtnHtml = Replace("AllLogButton", btnHtml) & Replace("AllLogHideButton", hideBtnHtml) & Replace(
+      "complianceLogsGrid",
+      complianceLogGridHtml
+    )
+    // Assign the button only when it already is in the DOM : the extractInlineJavaScript Lift parameter binds the onclick too early
+    Script(OnLoad(JsRaw(s"""
+      $$('div[id="logRun"]').prop('id', '${logRunId}');
+      $$('button[id="AllLogButton"]').ready(${AnonFunc(replaceBtnHtml).toJsCmd});
+    """)))
   }
 
   // this method cannot return an IOResult, as it uses S.
