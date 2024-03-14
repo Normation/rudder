@@ -102,6 +102,21 @@ response:
                     }
                   }
                 ],
+                "hierarchyStatus":{
+                  "hasChildTypeConflicts":false,
+                  "fullHierarchy":[
+                    {
+                      "kind":"global",
+                      "valueType":"Object"
+                    },
+                    {
+                      "kind":"group",
+                      "name":"Real nodes",
+                      "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                      "valueType":"Object"
+                    }
+                  ]
+                },
                 "origval":{
                   "array":[5,6],
                   "group":"string",
@@ -119,6 +134,15 @@ response:
                     "value":"some string"
                   }
                 ],
+                "hierarchyStatus":{
+                  "hasChildTypeConflicts":false,
+                  "fullHierarchy":[
+                    {
+                      "kind":"global",
+                      "valueType":"String"
+                    }
+                  ]
+                },
                 "origval":"some string"
               },
               {
@@ -138,6 +162,21 @@ response:
                     "value":"string"
                   }
                 ],
+                "hierarchyStatus":{
+                  "hasChildTypeConflicts":false,
+                  "fullHierarchy":[
+                    {
+                      "kind":"global",
+                      "valueType":"String"
+                    },
+                    {
+                      "kind":"group",
+                      "name":"Real nodes",
+                      "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                      "valueType":"String"
+                    }
+                  ]
+                },
                 "origval":"string"
               },
               {
@@ -150,6 +189,15 @@ response:
                     "value":"some string"
                   }
                 ],
+                "hierarchyStatus":{
+                  "hasChildTypeConflicts":false,
+                  "fullHierarchy":[
+                    {
+                      "kind":"global",
+                      "valueType":"String"
+                    }
+                  ]
+                },
                 "origval":"some string"
               }
             ]
@@ -183,6 +231,21 @@ response:
                 },
                 "provider":"overridden",
                 "hierarchy":"<p>from <b>Global Parameter</b>:<pre>{\n \"array\":[\n 1,\n 3,\n 2\n ],\n \"json\":{\n \"var1\":\"val1\",\n \"var2\":\"val2\"\n },\n \"string\":\"a string\"\n}\n</pre></p><p>from <b>this group (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>{\n \"array\":[\n 5,\n 6\n ],\n \"group\":\"string\",\n \"json\":{\n \"g1\":\"g1\"\n }\n}\n</pre></p>",
+                "hierarchyStatus":{
+                  "hasChildTypeConflicts":false,
+                  "fullHierarchy":[
+                    {
+                      "kind":"global",
+                      "valueType":"Object"
+                    },
+                    {
+                      "kind":"group",
+                      "name":"Real nodes",
+                      "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                      "valueType":"Object"
+                    }
+                  ]
+                },
                 "origval":{
                   "array":[5,6],
                   "group":"string",
@@ -195,6 +258,15 @@ response:
                 "inheritMode":"opa",
                 "provider":"inherited",
                 "hierarchy":"<p>from <b>Global Parameter</b>:<pre>\"some string\"</pre></p>",
+                "hierarchyStatus":{
+                  "hasChildTypeConflicts":false,
+                  "fullHierarchy":[
+                    {
+                      "kind":"global",
+                      "valueType":"String"
+                    }
+                  ]
+                },
                 "origval":"some string"
               },
               {
@@ -203,6 +275,21 @@ response:
                 "inheritMode":"map",
                 "provider":"overridden",
                 "hierarchy":"<p>from <b>Global Parameter</b>:<pre>\"some string\"</pre></p><p>from <b>this group (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>\"string\"</pre></p>",
+                "hierarchyStatus":{
+                  "hasChildTypeConflicts":false,
+                  "fullHierarchy":[
+                    {
+                      "kind":"global",
+                      "valueType":"String"
+                    },
+                    {
+                      "kind":"group",
+                      "name":"Real nodes",
+                      "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                      "valueType":"String"
+                    }
+                  ]
+                },
                 "origval":"string"
               },
               {
@@ -210,6 +297,15 @@ response:
                 "value":"some string",
                 "provider":"inherited",
                 "hierarchy":"<p>from <b>Global Parameter</b>:<pre>\"some string\"</pre></p>",
+                "hierarchyStatus":{
+                  "hasChildTypeConflicts":false,
+                  "fullHierarchy":[
+                    {
+                      "kind":"global",
+                      "valueType":"String"
+                    }
+                  ]
+                },
                 "origval":"some string"
               }
             ]

@@ -29,5 +29,34 @@ decodeProperty =
     |> required "value"     value
     |> optional "provider"  (map Just string) Nothing
     |> optional "hierarchy" (map Just string) Nothing
+    |> optional "hierarchyStatus" (map Just decodeHierarchyStatus) Nothing
     |> optional "origval"   (map Just value) Nothing
 
+decodeHierarchyStatus : Decoder HierarchyStatus
+decodeHierarchyStatus =
+  succeed HierarchyStatus
+    |> required "hasChildTypeConflicts"      bool
+    |> required "fullHierarchy"     (list decodeParentProperty)
+
+decodeParentProperty : Decoder ParentProperty
+decodeParentProperty =
+  field "kind" string |> andThen (\s ->
+    case s of
+      "group" -> 
+        map3 ParentGroupProperty
+          (field "id" string)
+          (field "name" string)
+          (field "valueType" string)
+          |> map ParentGroup
+      "node" ->
+        map3 ParentNodeProperty
+          (field "id" string)
+          (field "name" string)
+          (field "valueType" string)
+          |> map ParentNode
+      "global" -> 
+        map ParentGlobalProperty
+          (field "valueType" string)
+          |> map ParentGlobal
+      _ -> fail "Invalid parent property kind"
+  )

@@ -1776,6 +1776,7 @@ object RudderConfigInit {
 
     lazy val groupApiService14 = {
       new GroupApiService14(
+        nodeFactRepository,
         roNodeGroupRepository,
         woNodeGroupRepository,
         roLDAPParameterRepository,

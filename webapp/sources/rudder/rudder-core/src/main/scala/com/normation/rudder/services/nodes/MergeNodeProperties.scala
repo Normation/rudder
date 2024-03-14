@@ -60,6 +60,7 @@ import com.normation.rudder.domain.queries._
 import com.normation.rudder.services.nodes.GroupProp._
 import com.softwaremill.quicklens._
 import com.typesafe.config.ConfigParseOptions
+import com.typesafe.config.ConfigRenderOptions
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.AsSubgraph
 import org.jgrapht.graph.DefaultDirectedGraph
@@ -565,6 +566,36 @@ object MergeNodeProperties {
                   }
                 }
     } yield sorted
+  }
+
+  /**
+    * Check that all properties have the same type in all down the hierarchy (comparing valueType of config).
+    * If not, report all downward elements that have overrides with a different type : 
+    * - inheriting groups that override the proprety
+    * - nodes that override the property
+    */
+  def checkValueTypes(properties: List[NodePropertyHierarchy]): PureResult[Unit] = {
+    properties
+      .traverse(v => {
+        val valueType = v.prop.value.valueType
+        val overrides = v.hierarchy.collect {
+          case ParentProperty.Group(name, id, value) =>
+            s"Group '${name}' (${id.serialize}) with value '${value.render(ConfigRenderOptions.concise())}'"
+          case ParentProperty.Node(name, id, value)  =>
+            s"Node '${name}' (${id.value}) with value '${value.render(ConfigRenderOptions.concise())}'"
+        }
+        if (v.hierarchy.exists(_.value.valueType != valueType)) {
+          Left(
+            Inconsistency(
+              s"Property '${v.prop.name}' has different types in the hierarchy. It's not allowed. " +
+              s"Downward elements with different types: ${overrides.mkString(", ")}"
+            )
+          )
+        } else {
+          Right(())
+        }
+      })
+      .void
   }
 
 }

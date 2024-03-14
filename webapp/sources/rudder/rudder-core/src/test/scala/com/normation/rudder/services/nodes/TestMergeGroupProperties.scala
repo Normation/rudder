@@ -343,7 +343,7 @@ class TestMergeGroupProperties extends Specification {
     def getOverrides(groups: List[NodeGroup]): Map[String, String] = {
 
       MergeNodeProperties.checkPropertyMerge(groups.map(_.toTarget), Map()) match {
-        case Left(_)  => throw new IllegalArgumentException(s"Error when overriding properties")
+        case Left(e)  => throw new IllegalArgumentException(s"Error when overriding properties: ${e.fullMsg}")
         case Right(v) => v.map(p => (p.prop.name, GenericProperty.serializeToHocon(p.prop.value))).toMap
       }
     }
@@ -388,7 +388,7 @@ class TestMergeGroupProperties extends Specification {
     }
     "override whatever by simple values" in {
       val child =
-        Map("s" -> "c", "arr" -> "c", "obj" -> "c")
+        Map("s" -> "c", "arr" -> """[-1]""", "obj" -> """{"a":"c"}""")
       val props = checkOverrides(
         Map("s" -> "p", "arr" -> "[1,2]", "obj" -> """{"a":"b"}"""),
         child

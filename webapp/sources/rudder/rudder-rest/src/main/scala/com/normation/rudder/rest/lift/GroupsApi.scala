@@ -53,6 +53,10 @@ import com.normation.rudder.apidata.implicits._
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.properties.NodePropertyHierarchy
+import com.normation.rudder.domain.properties.ParentProperty
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.CategoryAndNodeGroup
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
@@ -436,6 +440,7 @@ class GroupsApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
       NodeGroupId
         .parse(sid)
         .toIO
@@ -454,6 +459,7 @@ class GroupsApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
       NodeGroupId
         .parse(sid)
         .toIO
@@ -1047,6 +1053,7 @@ class GroupApiService6(
 }
 
 class GroupApiService14(
+    nodeFactRepo:         NodeFactRepository,
     readGroup:            RoNodeGroupRepository,
     writeGroup:           WoNodeGroupRepository,
     paramRepo:            RoParameterRepository,
@@ -1309,14 +1316,65 @@ class GroupApiService14(
   def getNodePropertiesTree(
       groupId:      NodeGroupId,
       renderInHtml: RenderInheritedProperties
-  ): IOResult[JRGroupInheritedProperties] = {
+  )(implicit qc:    QueryContext): IOResult[JRGroupInheritedProperties] = {
     for {
-      allGroups  <- readGroup.getFullGroupLibrary().map(_.allGroups)
-      params     <- paramRepo.getAllGlobalParameters()
-      properties <- MergeNodeProperties.forGroup(groupId, allGroups, params.map(p => (p.name, p)).toMap).toIO
+      groupLibrary <- readGroup.getFullGroupLibrary()
+      allGroups     = groupLibrary.allGroups
+      serverList    = allGroups.get(groupId).map(_.nodeGroup.serverList).getOrElse(Set.empty)
+
+      nodes <- nodeFactRepo.getAll().map(_.filterKeys(serverList.contains(_)).values.toList)
+
+      params           <- paramRepo.getAllGlobalParameters().map(_.map(p => (p.name, p)).toMap)
+      parentProperties <- MergeNodeProperties.forGroup(groupId, allGroups, params).toIO
+      properties       <- ZIO.foreach(nodes) { nodeFact =>
+                            // for each property, find merged properties for nodes in the group and report type conflict
+                            MergeNodeProperties
+                              .forNode(
+                                nodeFact.toNodeInfo,
+                                groupLibrary.getTarget(nodeFact).map(_._2).toList,
+                                params
+                              )
+                              .map(childProperties => {
+                                parentProperties
+                                  .map(p => {
+                                    val matchingChildProperties = childProperties.collect {
+                                      case cp if cp.prop.name == p.prop.name => cp.hierarchy
+                                    }
+                                    val hasConflicts            = MergeNodeProperties
+                                      .checkValueTypes(matchingChildProperties.map(NodePropertyHierarchy(p.prop, _)))
+                                      .isLeft
+                                    (
+                                      p,
+                                      matchingChildProperties.flatten,
+                                      hasConflicts
+                                    )
+                                  })
+                              })
+                              .toIO
+                          }
+
     } yield {
-      JRGroupInheritedProperties.fromGroup(groupId, properties, renderInHtml)
+      JRGroupInheritedProperties.fromGroup(
+        groupId,
+        properties.flatten
+          // merge node properties by property : the hierarchy adds up and conflict is combined with boolean OR
+          .groupMapReduce(_._1.prop.name) {
+            case (p, childProps, hasConflicts) =>
+              (p, childProps, hasConflicts)
+          } {
+            case ((p, a1, b1), (_, a2, b2)) => // property is the same under the same name
+              (p, mergeHierarchies(a1, a2), b1 || b2)
+          }
+          .values
+          .toList,
+        renderInHtml
+      )
     }
   }
 
+  // Ideally, this should be a set : some nodes may inherit the same hierarchy so we wan to avoid duplicates
+  // Also, we want to sort them by hierarchy
+  private[this] def mergeHierarchies(left: List[ParentProperty], right: List[ParentProperty]): List[ParentProperty] = {
+    (left ++ right).distinct.sorted
+  }
 }
