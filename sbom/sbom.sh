@@ -3,13 +3,6 @@
 set -ex
 export LANG=C
 
-# TODO create RSA key for signature, put in jenkins
-# publish in repo
-
-# TODO faire du README une doc supply-chain de Rudder
-
-# FXIME : version des outils Rust comme dans les sources
-
 # Should we work on private repositories
 PRIVATE="false"
 # Should we sign resulting SBOM files?
@@ -129,7 +122,6 @@ finish_sbom() {
     cyclonedx sign bom "${file}.cdx.xml"
   fi
 }
-
 
 rm -rf target rudder-sbom-*
 mkdir target
