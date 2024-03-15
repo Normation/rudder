@@ -138,6 +138,7 @@ $nav-underline-border-width : 0.2rem;
   }
   .nav-link {
     position: relative;
+    display: flex;
   }
   .nav-link.active, .show>.nav-link {
     font-weight: normal;
