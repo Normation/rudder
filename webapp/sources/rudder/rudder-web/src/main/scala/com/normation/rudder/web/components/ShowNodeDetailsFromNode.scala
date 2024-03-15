@@ -309,8 +309,8 @@ class ShowNodeDetailsFromNode(
     "#node_parameters -*" #> (if (node.rudderSettings.isPolicyServer) NodeSeq.Empty
                               else agentScheduleEditForm(node).cfagentScheduleConfiguration) &
     "#node_tabs [id]" #> s"details_${id}" &
-    "href=#node_summary -*" #> <span class={s"badge-compliance-score ${globalScore.value.value} sm"}></span> &
-    "href=#node_reports -*" #> <span class={
+    "data-bs-target=#node_summary -*" #> <span class={s"badge-compliance-score ${globalScore.value.value} sm"}></span> &
+    "data-bs-target=#node_reports -*" #> <span class={
       s"badge-compliance-score ${globalScore.details.find(_.scoreId == ComplianceScore.scoreId).map(_.value).getOrElse(NoScore).value} sm"
     }></span>).apply(serverDetailsTemplate)
   }
