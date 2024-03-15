@@ -76,7 +76,7 @@ pub fn run() -> Result<()> {
     // Setup logger early
     rudder_cli::logs::init(
         if args.debug { 1 } else { 0 },
-        false,
+        args.quiet,
         rudder_cli::logs::OutputFormat::Human,
     );
 
