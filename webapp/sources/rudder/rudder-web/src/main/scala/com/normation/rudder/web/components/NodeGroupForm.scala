@@ -317,39 +317,7 @@ class NodeGroupForm(
       </div>)
 
     def tabProperties = ChooseTemplate(List("templates-hidden", "components", "ComponentNodeProperties"), "nodeproperties-tab")
-    intro ++ tabProperties ++ Script(OnLoad(JsRaw(s"""
-            var main = document.getElementById("nodeproperties-app")
-                                                     |var initValues = {
-                                                     |    contextPath    : "${S.contextPath}"
-                                                     |  , hasNodeWrite   : CanWriteNode
-                                                     |  , hasNodeRead    : CanReadNode
-                                                     |  , nodeId         : "${group.id.uid.value}"
-                                                     |  , objectType     : 'group'
-                                                     |};
-                                                     |var app = Elm.Nodeproperties.init({node: main, flags: initValues});
-                                                     |app.ports.successNotification.subscribe(function(str) {
-                                                     |  createSuccessNotification(str)
-                                                     |});
-                                                     |app.ports.errorNotification.subscribe(function(str) {
-                                                     |  createErrorNotification(str)
-                                                     |});
-                                                     |// Initialize tooltips
-                                                     |app.ports.initTooltips.subscribe(function(msg) {
-                                                     |  setTimeout(function(){
-                                                     |    $$('.bs-tooltip').bsTooltip();
-                                                     |  }, 400);
-                                                     |});
-                                                     |app.ports.copy.subscribe(function(str) {
-                                                     |  navigator.clipboard.writeText(str);
-                                                     |});
-                                                     |app.ports.initInputs.subscribe(function(str) {
-                                                     |  setTimeout(function(){
-                                                     |    $$(".auto-resize").on("input", autoResize).each(function(){
-                                                     |      autoResize(this);
-                                                     |    });
-                                                     |  }, 10);
-                                                     |});
-                                                     |""".stripMargin)))
+    intro ++ tabProperties
   }
 
   ///////////// fields for category settings ///////////////////
