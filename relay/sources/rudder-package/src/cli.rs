@@ -38,6 +38,10 @@ pub struct Args {
     #[arg(short, long, default_value_t = false)]
     pub debug: bool,
 
+    /// Disable non-error logs
+    #[arg(short, long, default_value_t = false)]
+    pub quiet: bool,
+
     #[clap(subcommand)]
     pub command: Command,
 }
