@@ -128,7 +128,7 @@ impl Metadata {
             }
         };
         let mut package_script_logfile = package_script_path;
-        package_script_logfile.set_extension(".log");
+        package_script_logfile.set_extension("log");
         let file = std::fs::OpenOptions::new()
             .write(true)
             .create(true)
