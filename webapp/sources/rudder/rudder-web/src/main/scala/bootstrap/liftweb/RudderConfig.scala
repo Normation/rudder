@@ -3748,9 +3748,6 @@ object RudderConfigInit {
     cleanOldInventoryBatch.start()
     gitFactRepoGC.start()
     gitConfigRepoGC.start()
-    // todo: scheduler interval should be a property
-    ZioRuntime.unsafeRun(jsonReportsAnalyzer.start(5.seconds).forkDaemon.provideLayer(ZioRuntime.layers))
-    ZioRuntime.unsafeRun(MainCampaignService.start(mainCampaignService))
     rudderUserListProvider.registerCallback(UserRepositoryUpdateOnFileReload.createCallback(userRepository))
     userCleanupBatch.start()
 
