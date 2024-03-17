@@ -94,8 +94,7 @@ class CheckNcfTechniqueUpdate(
 
     def updateNcfTechniques = {
       for {
-        _                            <- BootstrapLogger.info("started")
-        _                            <- BootstrapLogger.info("techniques - update")
+        _                            <- BootstrapLogger.info("Started editor techniques update")
         res                          <- techniqueReader.readTechniquesMetadataFile
         (techniques, methods, errors) = res
         _                            <- if (errors.isEmpty) ().succeed
@@ -105,7 +104,6 @@ class CheckNcfTechniqueUpdate(
                                           )
                                         }
 
-        _                       <- BootstrapLogger.info("techniques - read")
         techniquesWithResources <-
           ZIO.foreach(techniques) { technique =>
             // Keep only non New Resources
@@ -117,19 +115,30 @@ class CheckNcfTechniqueUpdate(
         written                 <- ZIO.foreach(techniquesWithResources) { t =>
                                      techniqueWrite
                                        .writeTechnique(t, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value))
-                                       .chainError(s"An error occured while writing technique '${t.id.value}'")
+                                       .chainError(s"An error occurred while writing technique '${t.id.value}'")
+                                       .either
                                    }
+        _                       <- ZIO.foreach(written) {
+                                     case Right(_)  => ().succeed
+                                     case Left(err) => BootstrapLogger.error(err.fullMsg)
+                                   }
+
+        _         <-
+          BootstrapLogger.info(
+            s"${written.filter(_.isRight).size} techniques migrated, ${written.filter(_.isLeft).size} have an error. check errors above if any"
+          )
         // Update technique library once all technique are updated
-        libUpdate               <- techLibUpdate
-                                     .update(
-                                       ModificationId(uuidGen.newUuid),
-                                       EventActor(systemApiToken.name.value),
-                                       Some(s"Update Technique library after updating all techniques at start up")
-                                     )
-                                     .toIO
-                                     .chainError(s"An error occured during techniques update after update of all techniques from the editor")
+        libUpdate <- techLibUpdate
+                       .update(
+                         ModificationId(uuidGen.newUuid),
+                         EventActor(systemApiToken.name.value),
+                         Some(s"Update Technique library after updating all techniques at start up")
+                       )
+                       .toIO
+                       .chainError(s"An error occurred during techniques update after update of all techniques from the editor")
 
         flagDeleted <- IOResult.attempt(ncfTechniqueUpdateFlag.delete())
+        _           <- BootstrapLogger.info("Ended editor techniques update")
       } yield {
         techniques
       }
