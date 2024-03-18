@@ -41,12 +41,12 @@ import better.files.File
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.rudder.services.nodes.history.impl.InventoryHistoryJdbcRepository
-import com.normation.utils.CronParser._
-import com.normation.zio._
+import com.normation.utils.CronParser.*
+import com.normation.zio.*
 import cron4s.CronExpr
 import java.time.Instant
 import org.joda.time.DateTime
-import zio._
+import zio.*
 
 /**
  * A scheduler which deletes old inventory data:

@@ -38,17 +38,17 @@
 package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
+import com.normation.box.*
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.DisplayColumn
 import com.normation.rudder.web.components.RuleGrid
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.util.ClearClearable
-import net.liftweb.util.Helpers._
+import net.liftweb.util.Helpers.*
 import scala.xml.NodeSeq
 import scala.xml.Text
 
@@ -67,7 +67,7 @@ class ExpectedPolicyPopup(
     htmlId_popup: String,
     nodeSrv:      Srv
 ) extends DispatchSnippet with Loggable {
-  import ExpectedPolicyPopup._
+  import ExpectedPolicyPopup.*
 
   private[this] val ruleRepository  = RudderConfig.roRuleRepository
   private[this] val dynGroupService = RudderConfig.dynGroupService

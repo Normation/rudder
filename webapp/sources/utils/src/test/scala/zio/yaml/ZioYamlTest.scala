@@ -25,10 +25,10 @@
 package zio.yaml
 
 import org.junit.runner.RunWith
-import org.specs2.mutable._
+import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
-import zio.json._
-import zio.json.yaml._
+import zio.json.*
+import zio.json.yaml.*
 
 // test data
 final case class Param(id: String, mandatory: Boolean)

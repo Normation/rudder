@@ -41,8 +41,8 @@ import better.files.File
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.Unexpected
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 trait CampaignRepository {
   def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue]): IOResult[List[Campaign]]

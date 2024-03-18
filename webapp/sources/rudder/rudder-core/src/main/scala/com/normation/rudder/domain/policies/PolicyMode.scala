@@ -37,7 +37,7 @@
 package com.normation.rudder.domain.policies
 
 import ca.mrvisser.sealerate.values
-import com.normation.errors._
+import com.normation.errors.*
 
 sealed trait PolicyMode { def name: String }
 object PolicyMode       {

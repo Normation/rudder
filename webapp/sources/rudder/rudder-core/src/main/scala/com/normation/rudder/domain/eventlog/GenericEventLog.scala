@@ -38,6 +38,7 @@
 package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog.EventLog
+import com.normation.eventlog.EventLogCategory
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.EventLogType
@@ -45,15 +46,15 @@ import com.normation.eventlog.EventLogType
 final case class ApplicationStarted(
     override val eventDetails: EventLogDetails
 ) extends EventLog {
-  override val cause            = None
-  override val principal        = RudderEventActor
-  override val eventType        = ApplicationStarted.eventType
-  override def details          = EventLog.emptyDetails
-  override val eventLogCategory = RudderApplicationLogCategory
+  override val cause: Option[Int] = None
+  override val principal = RudderEventActor
+  override val eventType = ApplicationStarted.eventType
+  override def details   = EventLog.emptyDetails
+  override val eventLogCategory: EventLogCategory = RudderApplicationLogCategory
 }
 
 object ApplicationStarted extends EventLogFilter {
-  override val eventType = ApplicationStartedEventType
+  override val eventType: EventLogType = ApplicationStartedEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ApplicationStarted = ApplicationStarted(x._2)
 }
@@ -65,14 +66,14 @@ final case class ActivateRedButton(
     override val eventDetails: EventLogDetails
 ) extends EventLog {
 
-  override val eventType        = ActivateRedButton.eventType
-  override def details          = EventLog.emptyDetails
-  override val eventLogCategory = RedButtonLogCategory
+  override val eventType = ActivateRedButton.eventType
+  override def details   = EventLog.emptyDetails
+  override val eventLogCategory: EventLogCategory = RedButtonLogCategory
 
 }
 
 object ActivateRedButton extends EventLogFilter {
-  override val eventType = ActivateRedButtonEventType
+  override val eventType: EventLogType = ActivateRedButtonEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ActivateRedButton = ActivateRedButton(x._2)
 }
@@ -81,14 +82,14 @@ final case class ReleaseRedButton(
     override val eventDetails: EventLogDetails
 ) extends EventLog {
 
-  override val eventType        = ReleaseRedButton.eventType
-  override def details          = EventLog.emptyDetails
-  override val eventLogCategory = RedButtonLogCategory
+  override val eventType = ReleaseRedButton.eventType
+  override def details   = EventLog.emptyDetails
+  override val eventLogCategory: EventLogCategory = RedButtonLogCategory
 
 }
 
 object ReleaseRedButton extends EventLogFilter {
-  override val eventType = ReleaseRedButtonEventType
+  override val eventType: EventLogType = ReleaseRedButtonEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ReleaseRedButton = ReleaseRedButton(x._2)
 }
@@ -100,14 +101,14 @@ final case class ClearCacheEventLog(
     override val eventDetails: EventLogDetails
 ) extends EventLog {
 
-  override val eventType        = ClearCacheEventLog.eventType
-  override def details          = EventLog.emptyDetails
-  override val eventLogCategory = RudderApplicationLogCategory
+  override val eventType = ClearCacheEventLog.eventType
+  override def details   = EventLog.emptyDetails
+  override val eventLogCategory: EventLogCategory = RudderApplicationLogCategory
 
 }
 
 object ClearCacheEventLog extends EventLogFilter {
-  override val eventType = ClearCacheEventType
+  override val eventType: EventLogType = ClearCacheEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ClearCacheEventLog = ClearCacheEventLog(x._2)
 }

@@ -31,7 +31,7 @@ package com.normation.ldap.sdk.schema
  */
 class LDAPSchema {
   type S = scala.collection.immutable.Set[LDAPObjectClass]
-  import scala.collection.mutable.{Map => MutMap}
+  import scala.collection.mutable.Map as MutMap
   def S: Seq[LDAPObjectClass] => Set[LDAPObjectClass] = scala.collection.immutable.Set[LDAPObjectClass] _
 
   /**
@@ -120,7 +120,7 @@ class LDAPSchema {
   def objectClassNames(objectClass: String): List[String] = apply(objectClass).name :: parents(objectClass)
 
   def objectClasses(objectClass: String): LDAPObjectClasses =
-    LDAPObjectClasses(this.objectClassNames(objectClass).map(apply(_)): _*)
+    LDAPObjectClasses(this.objectClassNames(objectClass).map(apply(_))*)
 
   /**
    * Given a set of object classes which are ALL registered,

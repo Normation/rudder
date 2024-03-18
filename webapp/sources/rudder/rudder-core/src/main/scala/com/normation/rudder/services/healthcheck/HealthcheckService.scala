@@ -3,7 +3,7 @@ package com.normation.rudder.services.healthcheck
 import better.files.File.root
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
-import com.normation.rudder.domain.logger.{HealthcheckLoggerPure => logger}
+import com.normation.rudder.domain.logger.HealthcheckLoggerPure as logger
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.hooks.Cmd

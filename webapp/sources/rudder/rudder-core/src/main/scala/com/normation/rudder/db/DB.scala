@@ -37,16 +37,16 @@
 
 package com.normation.rudder.db
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.db.Doobie._
+import com.normation.rudder.db.Doobie.*
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.git.GitCommitId
-import com.normation.rudder.reports.execution.{AgentRun => RudderAgentRun}
+import com.normation.rudder.reports.execution.AgentRun as RudderAgentRun
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.reports.execution.AgentRunWithoutCompliance
-import doobie._
+import doobie.*
 import org.joda.time.DateTime
 
 /*

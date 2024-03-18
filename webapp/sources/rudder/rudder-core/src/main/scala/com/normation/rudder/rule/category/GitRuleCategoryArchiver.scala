@@ -38,7 +38,7 @@
 package com.normation.rudder.rule.category
 
 import com.normation.NamedZioLogger
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.Constants.RULE_CATEGORY_ARCHIVE_TAG
 import com.normation.rudder.git.GitArchiveId
@@ -47,13 +47,13 @@ import com.normation.rudder.git.GitConfigItemRepository
 import com.normation.rudder.git.GitPath
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.repository.GitModificationRepository
-import com.normation.rudder.repository.xml._
+import com.normation.rudder.repository.xml.*
 import com.normation.rudder.services.marshalling.RuleCategorySerialisation
 import java.io.File
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
-import zio._
+import zio.*
 
 trait GitRuleCategoryArchiver {
 

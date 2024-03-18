@@ -44,17 +44,17 @@ import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.PolicyModeOverrides._
+import com.normation.rudder.domain.policies.PolicyModeOverrides.*
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.web.model.JsTreeNode
 import net.liftweb.common.Loggable
 import net.liftweb.http.S
 import net.liftweb.http.SHtml
-import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmd
-import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers
 import scala.xml.Elem
 import scala.xml.NodeSeq
@@ -124,8 +124,8 @@ object DisplayDirectiveTree extends Loggable {
    * keep. By default, display everything.
    */
   def displayTree(
-      directiveLib: FullActiveTechniqueCategory,
-      globalMode:   GlobalPolicyMode, // set of all directives at least used by one rule
+      directiveLib:     FullActiveTechniqueCategory,
+      globalMode:       GlobalPolicyMode, // set of all directives at least used by one rule
       // the int is the number of rule which used it
 
       usedDirectiveIds: Seq[(DirectiveUid, Int)],
@@ -140,7 +140,7 @@ object DisplayDirectiveTree extends Loggable {
       keepTechnique:    FullActiveTechnique => Boolean = _ => true,
       keepDirective:    Directive => Boolean = _ => true
   ): NodeSeq = {
-    import scala.xml.Utility.{escape => escapeHTML}
+    import scala.xml.Utility.escape as escapeHTML
 
     def displayCategory(
         category: FullActiveTechniqueCategory,
@@ -241,7 +241,7 @@ object DisplayDirectiveTree extends Loggable {
           case Some(technique) =>
             val btnCreateDirective = createDirective match {
               case Some(newDirective) =>
-                import net.liftweb.http.js.JsExp._
+                import net.liftweb.http.js.JsExp.*
                 if (userService.getCurrentUser.checkRights(AuthorizationType.Directive.Write)) {
                   <span class="btn btn-success btn-xs create" style="opacity: 0;" onclick={
                     s"""event.preventDefault();event.stopPropagation();${SHtml.ajaxCall(
@@ -306,7 +306,7 @@ object DisplayDirectiveTree extends Loggable {
       val agentTypes  = technique.toList.flatMap(_.agentConfigs.map(_.agentType))
       val agentCompat = AgentCompat(agentTypes)
 
-      override def children = Nil
+      override def children: List[JsTreeNode] = Nil
 
       val classes = {
         val includedClass = if (included.contains(directive.id.uid)) { "included" }

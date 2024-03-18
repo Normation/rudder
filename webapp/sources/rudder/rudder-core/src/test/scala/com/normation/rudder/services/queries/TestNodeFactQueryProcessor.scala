@@ -38,24 +38,24 @@
 package com.normation.rudder.services.queries
 
 import com.normation.NamedZioLogger
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.Software
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
-import com.normation.rudder.domain.queries._
-import com.normation.rudder.facts.nodes._
+import com.normation.rudder.domain.queries.*
+import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.tenants.DefaultTenantService
-import com.normation.zio._
-import com.softwaremill.quicklens._
+import com.normation.zio.*
+import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import net.liftweb.common.Failure
-import org.junit._
+import org.junit.*
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /*
  * Test query parsing.
@@ -66,7 +66,7 @@ import zio.syntax._
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TestNodeFactQueryProcessor {
-  implicit def StringToNodeId(s: String):  NodeId      = NodeId(s)
+  implicit def StringToNodeId(s:  String): NodeId      = NodeId(s)
   implicit def StringToGroupId(s: String): NodeGroupId = NodeGroupId(NodeGroupUid(s))
 
   val logger: NamedZioLogger = NamedZioLogger(this.getClass.getPackageName + "." + this.getClass.getSimpleName)
@@ -128,7 +128,7 @@ class TestNodeFactQueryProcessor {
   }
 
   val internalLDAPQueryProcessor: InternalLDAPQueryProcessor = {
-    import MockLdapFactStorage._
+    import MockLdapFactStorage.*
     val rudderDit    = new RudderDit(new DN("ou=Rudder, cn=rudder-configuration"))
     val ditQueryData = new DitQueryData(acceptedDIT, nodeDit, rudderDit, queryData)
     new InternalLDAPQueryProcessor(ldapRo, acceptedDIT, nodeDit, ditQueryData, ldapMapper)
@@ -1296,7 +1296,7 @@ class TestNodeFactQueryProcessor {
   @Test def nodePropertiesFailingReq(): Unit = {
     def forceParse(q: String) = parser(q).openOrThrowException("Parsing the request must be ok for that test")
     // Failing request, see #10570
-    val failingRegexRequests  = {
+    val failingRegexRequests = {
       """
       { "select":"node", "where":[
         { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"f{o}o" }

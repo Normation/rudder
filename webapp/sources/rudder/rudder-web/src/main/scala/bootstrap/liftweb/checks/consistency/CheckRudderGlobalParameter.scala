@@ -37,15 +37,15 @@
 
 package bootstrap.liftweb.checks.consistency
 
-import better.files._
+import better.files.*
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
 import com.normation.GitVersion
-import com.normation.box._
+import com.normation.box.*
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.eventlog._
+import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.InheritMode
@@ -54,9 +54,9 @@ import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.ZioRuntime
-import net.liftweb.json._
-import zio._
-import zio.syntax._
+import net.liftweb.json.*
+import zio.*
+import zio.syntax.*
 
 /**
  * init or reset content of `rudder` global parameters to their default values.

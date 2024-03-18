@@ -37,15 +37,15 @@
 
 package com.normation.rudder.repository.jdbc
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.box.IOToBox
 import com.normation.errors.IOResult
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.repository.RudderPropertiesRepository
-import doobie._
-import doobie.implicits._
-import net.liftweb.common._
-import zio.interop.catz._
+import doobie.*
+import doobie.implicits.*
+import net.liftweb.common.*
+import zio.interop.catz.*
 
 class RudderPropertiesRepositoryImpl(
     db: Doobie
@@ -54,7 +54,7 @@ class RudderPropertiesRepositoryImpl(
   val PROP_REPORT_LAST_ID         = "reportLoggerLastId"
   val PROP_REPORT_HANDLER_LAST_ID = "reportHandlerLastId"
 
-  import db._
+  import db.*
 
   def getLastId(key: String): IOResult[Option[Long]] = {
     val sql = sql"select value from rudderproperties where name=${key}"

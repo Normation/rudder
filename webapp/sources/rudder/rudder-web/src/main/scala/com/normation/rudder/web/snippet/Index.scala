@@ -40,8 +40,8 @@ package com.normation.rudder.web.snippet
 //lift std import
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.users.CurrentUser
-import net.liftweb.http._
-import scala.xml._
+import net.liftweb.http.*
+import scala.xml.*
 
 /**
  * Manage redirection for index pages

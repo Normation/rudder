@@ -37,14 +37,14 @@
 
 package com.normation.rudder.reports.execution
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ComplianceDebugLoggerPure
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.repository.CachedRepository
-import com.normation.zio._
-import zio._
+import com.normation.zio.*
+import zio.*
 
 /**
  * Service for reading or storing execution of Nodes

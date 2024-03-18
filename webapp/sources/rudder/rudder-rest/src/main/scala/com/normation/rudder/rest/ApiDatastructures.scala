@@ -37,8 +37,8 @@
 
 package com.normation.rudder.rest
 
-import cats.data._
-import cats.implicits._
+import cats.data.*
+import cats.implicits.*
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.HttpAction
@@ -158,7 +158,7 @@ object ApiPath {
       case Nil    =>
         Left("The given is empty, it can't be a Rudder API path")
       case h :: t =>
-        Right(ApiPath.of(h, t: _*))
+        Right(ApiPath.of(h, t*))
     }
   }
 
@@ -166,7 +166,7 @@ object ApiPath {
   // Path are compatible when all subpath elements are equals, and when they are of the same size
   // (resource elements act as joker
   def compatible(p1: ApiPath, p2: ApiPath): Boolean = {
-    import ApiPathSegment._
+    import ApiPathSegment.*
     (p1.parts.size == p2.parts.size) && (p1.parts.toList.lazyZip(p2.parts.toList)).forall {
       case (Segment(a), Segment(b)) => a == b
       case (Resource(_), _)         => true
@@ -203,7 +203,7 @@ trait EndpointSchema {
   // ACTION+PATH couple.
   // typically, several version of the same API will have the
   // same name, but not the same path.
-  def name: String = {
+  def name:   String = {
     val n = this.getClass.getSimpleName()
     n(0).toLower.toString + n.substring(1, n.size - 1) // also remove the last '$'
   }
@@ -241,7 +241,7 @@ object EndpointSchema {
       def /(s: String) = (action, ApiPath.of(s))
     }
     implicit class AddPath(val pair: (HttpAction, ApiPath)) extends AnyVal {
-      def /(s: String)     = (pair._1, pair._2 / s)
+      def /(s:    String)  = (pair._1, pair._2 / s)
       def /(path: ApiPath) = (pair._1, ApiPath(pair._2.parts.concatNel(path.parts)))
     }
   }
@@ -269,9 +269,9 @@ trait StartsAtVersion19 extends EndpointSchema { val versions: ApiV.From = ApiV.
 trait StartsAtVersion20 extends EndpointSchema { val versions: ApiV.From = ApiV.From(20) }
 
 // utility extension trait to define the kind of API
-trait PublicApi   extends EndpointSchema { val kind = ApiKind.Public   }
-trait InternalApi extends EndpointSchema { val kind = ApiKind.Internal }
-trait GeneralApi  extends EndpointSchema { val kind = ApiKind.General  }
+trait PublicApi   extends EndpointSchema { val kind: ApiKind.Public.type = ApiKind.Public     }
+trait InternalApi extends EndpointSchema { val kind: ApiKind.Internal.type = ApiKind.Internal }
+trait GeneralApi  extends EndpointSchema { val kind: ApiKind.General.type = ApiKind.General   }
 
 // An utility that compare a schema path and a provided one, and returns
 // exactly the number of asked elements.

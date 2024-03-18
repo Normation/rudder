@@ -37,12 +37,12 @@
 
 package com.normation.rudder.domain
 
-import RudderLDAPConstants._
-import com.normation.inventory.domain._
-import com.normation.inventory.ldap.core._
-import com.normation.inventory.ldap.core.LDAPConstants._
-import com.normation.ldap.sdk._
-import com.unboundid.ldap.sdk._
+import RudderLDAPConstants.*
+import com.normation.inventory.domain.*
+import com.normation.inventory.ldap.core.*
+import com.normation.inventory.ldap.core.LDAPConstants.*
+import com.normation.ldap.sdk.*
+import com.unboundid.ldap.sdk.*
 
 class NodeDit(val BASE_DN: DN) extends AbstractDit {
   dit =>
@@ -63,13 +63,13 @@ class NodeDit(val BASE_DN: DN) extends AbstractDit {
 
       def nodeModel(uuid: NodeId): LDAPEntry = {
         val mod = LDAPEntry(this.dn(uuid.value))
-        mod.resetValuesTo(A_OC, OC.objectClassNames(OC_RUDDER_NODE).toSeq: _*)
+        mod.resetValuesTo(A_OC, OC.objectClassNames(OC_RUDDER_NODE).toSeq*)
         mod
       }
 
       def policyServerNodeModel(id: NodeId): LDAPEntry = {
         val mod = LDAPEntry(this.dn(id.value))
-        mod.resetValuesTo(A_OC, OC.objectClassNames(OC_POLICY_SERVER_NODE).toSeq: _*)
+        mod.resetValuesTo(A_OC, OC.objectClassNames(OC_POLICY_SERVER_NODE).toSeq*)
         mod
       }
     }

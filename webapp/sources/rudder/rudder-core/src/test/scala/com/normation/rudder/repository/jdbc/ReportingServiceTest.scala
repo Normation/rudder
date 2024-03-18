@@ -41,16 +41,16 @@ import com.normation.BoxSpecMatcher
 import com.normation.GitVersion
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.DB
 import com.normation.rudder.db.DBCommon
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports._
+import com.normation.rudder.domain.reports.*
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.NoopFactStorage
@@ -60,7 +60,7 @@ import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ResolvedAgentRunInterval
-import com.normation.rudder.reports.execution._
+import com.normation.rudder.reports.execution.*
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.ComplianceRepository
 import com.normation.rudder.repository.FullActiveTechniqueCategory
@@ -77,9 +77,9 @@ import com.normation.rudder.services.reports.NodeConfigurationServiceImpl
 import com.normation.rudder.services.reports.ReportingServiceImpl
 import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 import com.normation.rudder.tenants.DefaultTenantService
-import com.normation.zio._
-import com.softwaremill.quicklens._
-import doobie.implicits._
+import com.normation.zio.*
+import com.softwaremill.quicklens.*
+import doobie.implicits.*
 import net.liftweb.common.Box
 import net.liftweb.common.Empty
 import net.liftweb.common.Full
@@ -90,9 +90,9 @@ import org.specs2.runner.JUnitRunner
 import scala.annotation.nowarn
 import scala.collection.SortedMap
 import scala.concurrent.duration.FiniteDuration
-import zio._
-import zio.interop.catz._
-import zio.syntax._
+import zio.*
+import zio.interop.catz.*
+import zio.syntax.*
 
 /**
  *
@@ -129,29 +129,29 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
   val directivesLib = NodeConfigData.directives
   val directivesRepos: RoDirectiveRepository = new RoDirectiveRepository() {
-    def getFullDirectiveLibrary():                                                           IOResult[FullActiveTechniqueCategory]                     = directivesLib.succeed
-    def getDirective(directiveId: DirectiveUid):                                             IOResult[Option[Directive]]                               = ???
-    def getDirectiveWithContext(directiveId: DirectiveUid):                                  IOResult[Option[(Technique, ActiveTechnique, Directive)]] = ???
-    def getActiveTechniqueAndDirective(id: DirectiveId):                                     IOResult[Option[(ActiveTechnique, Directive)]]            = ???
-    def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean = false): IOResult[Seq[Directive]]                                  = ???
+    def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] = directivesLib.succeed
+    def getDirective(directiveId:               DirectiveUid): IOResult[Option[Directive]] = ???
+    def getDirectiveWithContext(directiveId:    DirectiveUid): IOResult[Option[(Technique, ActiveTechnique, Directive)]] = ???
+    def getActiveTechniqueAndDirective(id:      DirectiveId): IOResult[Option[(ActiveTechnique, Directive)]] = ???
+    def getDirectives(activeTechniqueId:        ActiveTechniqueId, includeSystem: Boolean = false): IOResult[Seq[Directive]] = ???
     def getActiveTechniqueByCategory(
         includeSystem: Boolean = false
     ): IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
-    def getActiveTechniqueByActiveTechnique(id: ActiveTechniqueId):                          IOResult[Option[ActiveTechnique]]                         = ???
-    def getActiveTechnique(techniqueName: TechniqueName):                                    IOResult[Option[ActiveTechnique]]                         = ???
-    def activeTechniqueBreadCrump(id: ActiveTechniqueId):                                    IOResult[List[ActiveTechniqueCategory]]                   = ???
-    def getActiveTechniqueLibrary:                                                           IOResult[ActiveTechniqueCategory]                         = ???
-    def getAllActiveTechniqueCategories(includeSystem: Boolean = false):                     IOResult[Seq[ActiveTechniqueCategory]]                    = ???
-    def getActiveTechniqueCategory(id: ActiveTechniqueCategoryId):                           IOResult[Option[ActiveTechniqueCategory]]                 = ???
-    def getParentActiveTechniqueCategory(id: ActiveTechniqueCategoryId):                     IOResult[ActiveTechniqueCategory]                         = ???
-    def getParentsForActiveTechniqueCategory(id: ActiveTechniqueCategoryId):                 IOResult[List[ActiveTechniqueCategory]]                   = ???
-    def getParentsForActiveTechnique(id: ActiveTechniqueId):                                 IOResult[ActiveTechniqueCategory]                         = ???
-    def containsDirective(id: ActiveTechniqueCategoryId):                                    UIO[Boolean]                                              = ???
+    def getActiveTechniqueByActiveTechnique(id: ActiveTechniqueId): IOResult[Option[ActiveTechnique]] = ???
+    def getActiveTechnique(techniqueName:       TechniqueName): IOResult[Option[ActiveTechnique]] = ???
+    def activeTechniqueBreadCrump(id:           ActiveTechniqueId): IOResult[List[ActiveTechniqueCategory]] = ???
+    def getActiveTechniqueLibrary: IOResult[ActiveTechniqueCategory] = ???
+    def getAllActiveTechniqueCategories(includeSystem: Boolean = false):           IOResult[Seq[ActiveTechniqueCategory]]    = ???
+    def getActiveTechniqueCategory(id:                 ActiveTechniqueCategoryId): IOResult[Option[ActiveTechniqueCategory]] = ???
+    def getParentActiveTechniqueCategory(id:           ActiveTechniqueCategoryId): IOResult[ActiveTechniqueCategory]         = ???
+    def getParentsForActiveTechniqueCategory(id:       ActiveTechniqueCategoryId): IOResult[List[ActiveTechniqueCategory]]   = ???
+    def getParentsForActiveTechnique(id:               ActiveTechniqueId):         IOResult[ActiveTechniqueCategory]         = ???
+    def containsDirective(id:                          ActiveTechniqueCategoryId): UIO[Boolean]                              = ???
 
   }
 
   val rulesRepos: RoRuleRepository = new RoRuleRepository {
-    def getOpt(ruleId: RuleId):                IOResult[Option[Rule]] = ???
+    def getOpt(ruleId:       RuleId):          IOResult[Option[Rule]] = ???
     def getAll(includeSytem: Boolean = false): IOResult[Seq[Rule]]    = ???
     def getIds(includeSytem: Boolean = false): IOResult[Set[RuleId]]  = ???
 
@@ -164,21 +164,21 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def nodeConfigrationService:                                                         NodeConfigurationService                = null
     def findDirectiveRuleStatusReportsByRule(ruleId: RuleId)(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] =
       null
-    def findNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext):                 Box[NodeStatusReport]                   = null
+    def findNodeStatusReport(nodeId:           NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = null
     def findStatusReportsForDirective(directiveId: DirectiveId)(implicit
-        qc:                                        QueryContext
+        qc: QueryContext
     ): IOResult[Map[NodeId, NodeStatusReport]] = null
-    def findUserNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext):             Box[NodeStatusReport]                   = null
-    def findSystemNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext):           Box[NodeStatusReport]                   = null
-    def getGlobalUserCompliance()(implicit qc: QueryContext):                            Box[Option[(ComplianceLevel, Long)]]    = null
-    def findUncomputedNodeStatusReports():                                               Box[Map[NodeId, NodeStatusReport]]      = null
+    def findUserNodeStatusReport(nodeId:       NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = null
+    def findSystemNodeStatusReport(nodeId:     NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = null
+    def getGlobalUserCompliance()(implicit qc: QueryContext): Box[Option[(ComplianceLevel, Long)]] = null
+    def findUncomputedNodeStatusReports(): Box[Map[NodeId, NodeStatusReport]] = null
 
     @nowarn()
-    def getUserNodeStatusReports()(implicit qc: QueryContext):                Box[Map[NodeId, NodeStatusReport]] = Full(Map())
+    def getUserNodeStatusReports()(implicit qc: QueryContext):                  Box[Map[NodeId, NodeStatusReport]] = Full(Map())
     def getSystemAndUserCompliance(
         optNodeIds: Option[Set[NodeId]]
-    )(implicit qc:  QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
-    def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)]    = None
+    )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
+    def computeComplianceFromReports(reports:   Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)]    = None
 
     override def batchSize: Int = 5000
 
@@ -208,7 +208,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   lazy val dummyChangesCache: CachedNodeChangesServiceImpl = {
     new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepo), () => Full(true)) {
       override def update(lowestId: Long, highestId: Long): Box[Unit] = Full(())
-      override def countChangesByRuleByInterval() = Empty
+      override def countChangesByRuleByInterval(): Box[(Long, ChangesByRule)] = Empty
     }
   }
 
@@ -948,9 +948,9 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //  }
 
   implicit def toReport(t: (DateTime, String, String, String, String, String, String, DateTime, String, String)): Reports = {
-    implicit def toRuleId(s: String)      = RuleId(RuleUid(s))
+    implicit def toRuleId(s:      String) = RuleId(RuleUid(s))
     implicit def toDirectiveId(s: String) = DirectiveId(DirectiveUid(s), GitVersion.DEFAULT_REV)
-    implicit def toNodeId(s: String)      = NodeId(s)
+    implicit def toNodeId(s:      String) = NodeId(s)
 
     Reports(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10)
   }
@@ -999,8 +999,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     (nodeId, lines.map(t => toReport((t._6, t._1, t._3, nodeId, t._2, t._4, t._5, t._6, t._7, t._8))))
   }
 
-  implicit def toRuleId(id: String):   RuleId       = RuleId(RuleUid(id))
-  implicit def toNodeId(id: String):   NodeId       = NodeId(id)
+  implicit def toRuleId(id:   String): RuleId       = RuleId(RuleUid(id))
+  implicit def toNodeId(id:   String): NodeId       = NodeId(id)
   implicit def toConfigId(id: String): NodeConfigId = NodeConfigId(id)
 
   implicit def agentRuns(runs: (String, Option[(DateTime, Option[String], Long)])*): Map[NodeId, Option[AgentRun]] = {

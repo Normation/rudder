@@ -37,14 +37,14 @@
 
 package com.normation.rudder.facts.nodes
 
-import better.files._
+import better.files.*
 import com.normation.inventory.ldap.core.FullInventoryRepositoryImpl
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryDitService
 import com.normation.inventory.ldap.core.InventoryDitServiceImpl
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.inventory.ldap.core.ReadOnlySoftwareDAOImpl
-import com.normation.inventory.ldap.provisioning._
+import com.normation.inventory.ldap.provisioning.*
 import com.normation.ldap.ldif.DefaultLDIFFileLogger
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
 import com.normation.ldap.sdk.LDAPConnectionProvider
@@ -55,7 +55,7 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.repository.ldap.ZioTReentrantLock
 import com.normation.utils.StringUuidGeneratorImpl
-import com.normation.zio._
+import com.normation.zio.*
 import com.unboundid.ldap.sdk.DN
 import zio.Ref
 

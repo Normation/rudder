@@ -42,8 +42,8 @@ import com.normation.errors.PureResult
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.SoftwareUpdate
 import com.normation.rudder.domain.reports.CompliancePercent
-import zio._
-import zio.json._
+import zio.*
+import zio.json.*
 import zio.json.ast.Json
 
 sealed trait ScoreValue {
@@ -78,7 +78,7 @@ object GlobalScoreService {
       case (newScore, acc) =>
         NoDetailsScore(newScore.scoreId, newScore.value, newScore.message) :: acc.filterNot(_.scoreId == newScore.scoreId)
     }
-    import ScoreValue._
+    import ScoreValue.*
     val score         = if (correctScores.exists(_.value == E)) { E }
     else if (correctScores.exists(_.value == D)) { D }
     else if (correctScores.exists(_.value == C)) {

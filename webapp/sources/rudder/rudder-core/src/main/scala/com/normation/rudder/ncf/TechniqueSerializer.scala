@@ -54,7 +54,7 @@ import net.liftweb.json.JValue
 
 class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
 
-  import zio.json._
+  import zio.json.*
 
   implicit val encoderParameterId:      JsonEncoder[ParameterId]      = JsonEncoder[String].contramap(_.value)
   implicit val encoderFieldParameterId: JsonFieldEncoder[ParameterId] = JsonFieldEncoder[String].contramap(_.value)
@@ -100,7 +100,7 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
 
   def serializeMethodMetadata(method: GenericMethod): JValue = {
 
-    import net.liftweb.json.JsonDSL._
+    import net.liftweb.json.JsonDSL.*
     def serializeMethodParameter(param: MethodParameter): JValue = {
 
       def serializeMethodConstraint(constraint: ncf.Constraint.Constraint): JField = {

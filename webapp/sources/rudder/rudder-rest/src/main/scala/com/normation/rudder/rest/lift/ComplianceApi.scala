@@ -37,8 +37,8 @@
 
 package com.normation.rudder.rest.lift
 
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.TimingDebugLogger
@@ -74,25 +74,25 @@ import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.rest._
-import com.normation.rudder.rest.{ComplianceApi => API}
+import com.normation.rudder.rest.*
+import com.normation.rudder.rest.ComplianceApi as API
 import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils._
-import com.normation.rudder.rest.data._
+import com.normation.rudder.rest.RestUtils.*
+import com.normation.rudder.rest.data.*
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.zio.currentTimeMillis
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.PlainTextResponse
 import net.liftweb.http.Req
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.*
+import net.liftweb.json.JsonDSL.*
 import scala.collection.MapView
 import scala.collection.immutable
 import zio.Chunk
 import zio.ZIO
-import zio.syntax._
+import zio.syntax.*
 
 class ComplianceApi(
     restExtractorService: RestExtractorService,
@@ -100,10 +100,10 @@ class ComplianceApi(
     readDirective:        RoDirectiveRepository
 ) extends LiftApiModuleProvider[API] {
 
-  import CsvCompliance._
-  import JsonCompliance._
+  import CsvCompliance.*
+  import JsonCompliance.*
 
-  def schemas = API
+  def schemas: ApiModuleProvider[API] = API
 
   /*
    * The actual builder for the compliance API.
@@ -134,7 +134,7 @@ class ComplianceApi(
   }
 
   object GetRules extends LiftApiModule0 {
-    val schema        = API.GetRulesCompliance
+    val schema: API.GetRulesCompliance.type = API.GetRulesCompliance
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action   = schema.name
@@ -221,7 +221,7 @@ class ComplianceApi(
   }
 
   object GetDirectiveId extends LiftApiModule {
-    val schema        = API.GetDirectiveComplianceId
+    val schema: API.GetDirectiveComplianceId.type = API.GetDirectiveComplianceId
     val restExtractor = restExtractorService
 
     def process(
@@ -270,7 +270,7 @@ class ComplianceApi(
   }
 
   object GetDirectives extends LiftApiModule0 {
-    val schema        = API.GetDirectivesCompliance
+    val schema: API.GetDirectivesCompliance.type = API.GetDirectivesCompliance
     val restExtractor = restExtractorService
 
     def process0(
@@ -317,7 +317,7 @@ class ComplianceApi(
   }
 
   object GetNodeGroupSummary extends LiftApiModule0 {
-    val schema        = API.GetNodeGroupComplianceSummary
+    val schema: API.GetNodeGroupComplianceSummary.type = API.GetNodeGroupComplianceSummary
     val restExtractor = restExtractorService
     def process0(
         version:    ApiVersion,
@@ -422,7 +422,7 @@ class ComplianceApi(
   }
 
   object GetNodes extends LiftApiModule0 {
-    val schema        = API.GetNodesCompliance
+    val schema: API.GetNodesCompliance.type = API.GetNodesCompliance
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action   = schema.name
@@ -521,7 +521,7 @@ class ComplianceApi(
   }
 
   object GetGlobal extends LiftApiModule0 {
-    val schema        = API.GetGlobalCompliance
+    val schema: API.GetGlobalCompliance.type = API.GetGlobalCompliance
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action   = schema.name
@@ -569,7 +569,7 @@ class ComplianceAPIService(
 
   private[this] def components(
       nodeFacts: MapView[NodeId, CoreNodeFact]
-  )(name:        String, nodeComponents: List[(NodeId, ComponentStatusReport)]): List[ByRuleComponentCompliance] = {
+  )(name: String, nodeComponents: List[(NodeId, ComponentStatusReport)]): List[ByRuleComponentCompliance] = {
 
     val (groupsComponents, uniqueComponents) = nodeComponents.partitionMap {
       case (a, b: BlockStatusReport) => Left((a, b))
@@ -616,7 +616,7 @@ class ComplianceAPIService(
       directives:    Seq[Directive],
       allDirectives: Map[DirectiveId, (FullActiveTechnique, Directive)], // to compute policy mode for each rule
       level:         Option[Int]
-  )(implicit qc:     QueryContext): IOResult[Seq[ByDirectiveCompliance]] = {
+  )(implicit qc: QueryContext): IOResult[Seq[ByDirectiveCompliance]] = {
     val computedLevel = level.getOrElse(10)
 
     for {
@@ -728,7 +728,7 @@ class ComplianceAPIService(
    * level 4 includes the nodes
    */
   private[this] def getByRulesCompliance(rules: Seq[Rule], level: Option[Int])(implicit
-      qc:                                       QueryContext
+      qc: QueryContext
   ): IOResult[Seq[ByRuleRuleCompliance]] = {
     val computedLevel = level.getOrElse(10)
 
@@ -887,7 +887,7 @@ class ComplianceAPIService(
       allRuleInfos:          Map[RuleId, (Chunk[NodeId], Option[PolicyMode])],
       level:                 Option[Int],
       isGlobalCompliance:    Boolean
-  )(implicit qc:             QueryContext): IOResult[ByNodeGroupCompliance] = {
+  )(implicit qc: QueryContext): IOResult[ByNodeGroupCompliance] = {
     val ruleMap = rules.map(r => (r.id, r)).toMap
     val ruleIds = ruleMap.keySet
 
@@ -1069,7 +1069,7 @@ class ComplianceAPIService(
       target:             SimpleTarget,
       level:              Option[Int],
       isGlobalCompliance: Boolean = true
-  )(implicit qc:          QueryContext): Box[ByNodeGroupCompliance] = {
+  )(implicit qc: QueryContext): Box[ByNodeGroupCompliance] = {
     for {
       t1          <- currentTimeMillis
       nodeFacts   <- nodeFactRepos.getAll()
@@ -1327,8 +1327,8 @@ class ComplianceAPIService(
     rulesRepo.getAll()
   }
   private[this] def getByNodesCompliance(
-      onlyNode:  Option[NodeId],
-      getRules:  => IOResult[Seq[Rule]]
+      onlyNode: Option[NodeId],
+      getRules: => IOResult[Seq[Rule]]
   )(implicit qc: QueryContext): IOResult[Seq[ByNodeNodeCompliance]] = {
 
     for {

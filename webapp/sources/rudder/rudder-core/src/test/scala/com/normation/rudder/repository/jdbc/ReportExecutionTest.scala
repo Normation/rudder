@@ -38,17 +38,17 @@
 package com.normation.rudder.repository.jdbc
 
 import com.normation.BoxSpecMatcher
-import com.normation.box._
+import com.normation.box.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.DB
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.reports.execution.RoReportsExecutionRepositoryImpl
 import com.normation.rudder.reports.execution.WoReportsExecutionRepositoryImpl
-import doobie.implicits._
+import doobie.implicits.*
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import zio.interop.catz._
+import zio.interop.catz.*
 
 /**
  *

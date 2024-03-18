@@ -62,13 +62,13 @@ import com.normation.rudder.score.ScoreService
 import com.normation.rudder.score.ScoreServiceManager
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.tenants.DefaultTenantService
-import com.normation.zio._
-import com.softwaremill.quicklens._
+import com.normation.zio.*
+import com.softwaremill.quicklens.*
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
-import org.specs2.mutable._
+import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
 import zio.Chunk
 import zio.syntax.ToZio
@@ -160,54 +160,54 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     var updated: List[NodeId] = Nil
 
     override def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports = new DefaultFindRuleNodeStatusReports() {
-      override def confExpectedRepo:                                                      FindExpectedReportRepository              = ???
-      override def reportsRepository:                                                     ReportsRepository                         = ???
-      override def agentRunRepository:                                                    RoReportsExecutionRepository              = ???
-      override def getGlobalComplianceMode:                                               () => Box[GlobalComplianceMode]           = ???
-      override def getUnexpectedInterpretation:                                           () => Box[UnexpectedReportInterpretation] = ???
+      override def confExpectedRepo:            FindExpectedReportRepository              = ???
+      override def reportsRepository:           ReportsRepository                         = ???
+      override def agentRunRepository:          RoReportsExecutionRepository              = ???
+      override def getGlobalComplianceMode:     () => Box[GlobalComplianceMode]           = ???
+      override def getUnexpectedInterpretation: () => Box[UnexpectedReportInterpretation] = ???
       override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId)(implicit
-          qc:                                                   QueryContext
+          qc: QueryContext
       ): IOResult[Map[NodeId, NodeStatusReport]] = ???
-      override def getUserNodeStatusReports()(implicit qc: QueryContext):                 Box[Map[NodeId, NodeStatusReport]]        = ???
+      override def getUserNodeStatusReports()(implicit qc: QueryContext): Box[Map[NodeId, NodeStatusReport]] = ???
       override def getSystemAndUserCompliance(
           optNodeIds: Option[Set[NodeId]]
-      )(implicit qc:  QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
-      override def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]):  Option[(ComplianceLevel, Long)]           = ???
-      override def getGlobalUserCompliance()(implicit qc: QueryContext):                  Box[Option[(ComplianceLevel, Long)]]      = ???
-      override def findNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext):       Box[NodeStatusReport]                     = ???
-      override def findUserNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext):   Box[NodeStatusReport]                     = ???
-      override def findSystemNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext): Box[NodeStatusReport]                     = ???
-      override def nodeConfigService:                                                     NodeConfigurationService                  = ???
-      override def jdbcMaxBatchSize:                                                      Int                                       = batchSize
+      )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
+      override def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = ???
+      override def getGlobalUserCompliance()(implicit qc: QueryContext): Box[Option[(ComplianceLevel, Long)]] = ???
+      override def findNodeStatusReport(nodeId:           NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = ???
+      override def findUserNodeStatusReport(nodeId:       NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = ???
+      override def findSystemNodeStatusReport(nodeId:     NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = ???
+      override def nodeConfigService: NodeConfigurationService = ???
+      override def jdbcMaxBatchSize:  Int                      = batchSize
       override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId])(implicit
-          qc:                                         QueryContext
+          qc: QueryContext
       ): Box[Map[NodeId, NodeStatusReport]] = {
         updated = (updated ++ nodeIds)
         Full(reports.filter(x => nodeIds.contains(x._1)))
       }
 
       def findStatusReportsForDirective(directiveId: DirectiveId)(implicit
-          qc:                                        QueryContext
+          qc: QueryContext
       ): IOResult[Map[NodeId, NodeStatusReport]] = ???
     }
     override def nodeFactRepository:               NodeFactRepository               = nodeFactRepo
 
     override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId)(implicit
-        qc:                                                   QueryContext
+        qc: QueryContext
     ): IOResult[Map[NodeId, NodeStatusReport]] = ???
-    override def findNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext):       Box[NodeStatusReport]                = ???
-    override def findUncomputedNodeStatusReports():                                     Box[Map[NodeId, NodeStatusReport]]   = ???
-    override def getUserNodeStatusReports()(implicit qc: QueryContext):                 Box[Map[NodeId, NodeStatusReport]]   = ???
-    override def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]):  Option[(ComplianceLevel, Long)]      = ???
-    override def getGlobalUserCompliance()(implicit qc: QueryContext):                  Box[Option[(ComplianceLevel, Long)]] = ???
-    override def findUserNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext):   Box[NodeStatusReport]                = ???
-    override def findSystemNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext): Box[NodeStatusReport]                = ???
+    override def findNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = ???
+    override def findUncomputedNodeStatusReports(): Box[Map[NodeId, NodeStatusReport]] = ???
+    override def getUserNodeStatusReports()(implicit qc: QueryContext): Box[Map[NodeId, NodeStatusReport]] = ???
+    override def computeComplianceFromReports(reports:   Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = ???
+    override def getGlobalUserCompliance()(implicit qc:  QueryContext): Box[Option[(ComplianceLevel, Long)]] = ???
+    override def findUserNodeStatusReport(nodeId:        NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = ???
+    override def findSystemNodeStatusReport(nodeId:      NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = ???
     override def getSystemAndUserCompliance(
         optNodeIds: Option[Set[NodeId]]
-    )(implicit qc:  QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
+    )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
 
     def findStatusReportsForDirective(directiveId: DirectiveId)(implicit
-        qc:                                        QueryContext
+        qc: QueryContext
     ): IOResult[Map[NodeId, NodeStatusReport]] = ???
 
     override def scoreServiceManager: ScoreServiceManager = new ScoreServiceManager(new ScoreService {

@@ -37,19 +37,19 @@
 package com.normation.rudder.domain.policies
 
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.json.JsonAST.JArray
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JString
 import org.junit.runner.RunWith
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 @RunWith(classOf[JUnitRunner])
 class TagsTest extends Specification with Loggable {
   def createTag(name: String): Tag = {
-    import Tag._
+    import Tag.*
     Tag(name, name + "-value")
   }
 

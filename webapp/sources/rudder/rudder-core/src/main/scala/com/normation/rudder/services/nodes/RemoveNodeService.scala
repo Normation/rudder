@@ -36,8 +36,8 @@
  */
 package com.normation.rudder.services.servers
 
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.AgentType
@@ -47,13 +47,13 @@ import com.normation.inventory.domain.PendingInventory
 import com.normation.inventory.domain.RemovedInventory
 import com.normation.inventory.domain.UndefinedKey
 import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
-import com.normation.ldap.sdk._
-import com.normation.ldap.sdk.BuildFilter._
+import com.normation.ldap.sdk.*
+import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.NodeDit
-import com.normation.rudder.domain.eventlog._
+import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.facts.nodes.ChangeContext
@@ -70,9 +70,9 @@ import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.repository.ldap.ScalaReadWriteLock
 import com.normation.rudder.services.policies.write.NodePoliciesPaths
 import com.normation.rudder.services.policies.write.PathComputer
-import com.normation.rudder.services.servers.DeletionResult._
+import com.normation.rudder.services.servers.DeletionResult.*
 import com.normation.utils.StringUuidGenerator
-import com.normation.zio._
+import com.normation.zio.*
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
 import com.unboundid.ldif.LDIFChangeRecord
@@ -83,9 +83,9 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.util.function.BiPredicate
 import java.util.function.Consumer
 import net.liftweb.common.Box
-import zio.{System => _, _}
-import zio.stream._
-import zio.syntax._
+import zio.{System as _, *}
+import zio.stream.*
+import zio.syntax.*
 
 sealed trait DeletionResult
 object DeletionResult {
@@ -127,7 +127,7 @@ trait PostNodeDeleteAction {
   // or zero (if only some things remain)
   // and if can optionnally have a nodeInfo
   def run(nodeId: NodeId, mode: DeleteMode, info: Option[CoreNodeFact], status: Set[InventoryStatus])(implicit
-      cc:         ChangeContext
+      cc: ChangeContext
   ): UIO[Unit]
 }
 
@@ -141,7 +141,7 @@ object PostNodeDeleteAction {
     }
   }
 }
-import PostNodeDeleteAction._
+import PostNodeDeleteAction.*
 
 trait RemoveNodeService {
 
@@ -359,7 +359,7 @@ class RemoveNodeServiceImpl(
                         x => Some(x).succeed
                       )
     } yield {
-      import scala.jdk.CollectionConverters._
+      import scala.jdk.CollectionConverters.*
       (
         HookEnvPairs.build(
           ("RUDDER_NODE_ID", nodeInfo.id.value),
@@ -371,7 +371,7 @@ class RemoveNodeServiceImpl(
           ("RUDDER_POLICIES_DIRECTORY_NEW", optNodePaths.map(_.newFolder).getOrElse("")),
           ("RUDDER_POLICIES_DIRECTORY_ARCHIVE", optNodePaths.flatMap(_.backupFolder).getOrElse(""))
         ),
-        HookEnvPairs.build(System.getenv.asScala.toSeq: _*)
+        HookEnvPairs.build(System.getenv.asScala.toSeq*)
       )
     }
   }
@@ -469,10 +469,10 @@ class RemoveNodeFromGroups(
 ) extends PostNodeDeleteAction {
 
   override def run(
-      nodeId:    NodeId,
-      mode:      DeleteMode,
-      info:      Option[CoreNodeFact],
-      status:    Set[InventoryStatus]
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[CoreNodeFact],
+      status: Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
     (for {
       _            <- NodeLoggerPure.Delete.debug(s"  - remove node ${nodeId.value} from his groups")
@@ -504,10 +504,10 @@ class RemoveNodeFromGroups(
  */
 class CloseNodeConfiguration(expectedReportsRepository: UpdateExpectedReportsRepository) extends PostNodeDeleteAction {
   override def run(
-      nodeId:    NodeId,
-      mode:      DeleteMode,
-      info:      Option[CoreNodeFact],
-      status:    Set[InventoryStatus]
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[CoreNodeFact],
+      status: Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
     for {
       _ <- NodeLoggerPure.Delete.debug(s"  - close expected reports for '${nodeId.value}'")
@@ -523,10 +523,10 @@ class CloseNodeConfiguration(expectedReportsRepository: UpdateExpectedReportsRep
 // when the node is a policy server, delete directive/rule/group related to it
 class DeletePolicyServerPolicies(policyServerManagement: PolicyServerManagementService) extends PostNodeDeleteAction {
   override def run(
-      nodeId:    NodeId,
-      mode:      DeleteMode,
-      info:      Option[CoreNodeFact],
-      status:    Set[InventoryStatus]
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[CoreNodeFact],
+      status: Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
     // we can avoid to do LDAP requests if we are sure the node wasn't a policy server
     info.map(_.rudderSettings.isPolicyServer) match {
@@ -548,10 +548,10 @@ class DeletePolicyServerPolicies(policyServerManagement: PolicyServerManagementS
 // clean up certification key status (only in move mode, not erase)
 class ResetKeyStatus(ldap: LDAPConnectionProvider[RwLDAPConnection], deletedDit: InventoryDit) extends PostNodeDeleteAction {
   override def run(
-      nodeId:    NodeId,
-      mode:      DeleteMode,
-      info:      Option[CoreNodeFact],
-      status:    Set[InventoryStatus]
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[CoreNodeFact],
+      status: Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
     if (mode == DeleteMode.MoveToRemoved) {
       NodeLoggerPure.Delete.debug(s"  - reset node key certification status for '${nodeId.value}'") *>
@@ -573,10 +573,10 @@ class ResetKeyStatus(ldap: LDAPConnectionProvider[RwLDAPConnection], deletedDit:
 // clean-up cfengine key - only possible if we still have an inventory
 class CleanUpCFKeys extends PostNodeDeleteAction {
   override def run(
-      nodeId:    NodeId,
-      mode:      DeleteMode,
-      info:      Option[CoreNodeFact],
-      status:    Set[InventoryStatus]
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[CoreNodeFact],
+      status: Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
     info match {
       case Some(i) =>
@@ -632,14 +632,14 @@ class CleanUpCFKeys extends PostNodeDeleteAction {
 
 // clean-up node files on FS
 class CleanUpNodePolicyFiles(varRudderShare: String) extends PostNodeDeleteAction {
-  import better.files._
-  import better.files.File._
+  import better.files.*
+  import better.files.File.*
 
   override def run(
-      nodeId:    NodeId,
-      mode:      DeleteMode,
-      info:      Option[CoreNodeFact],
-      status:    Set[InventoryStatus]
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[CoreNodeFact],
+      status: Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
     NodeLoggerPure.Delete.debug(s"  - clean-up node '${nodeId.value}' policy files in /var/rudder/share") *>
     cleanPoliciesRec(nodeId, File(varRudderShare)).runDrain.catchAll(err => {

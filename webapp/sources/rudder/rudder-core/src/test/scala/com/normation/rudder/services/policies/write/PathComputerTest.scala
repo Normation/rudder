@@ -47,7 +47,7 @@ import org.specs2.runner.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class PathComputerTest extends Specification {
 
-  import com.normation.rudder.services.policies.NodeConfigData._
+  import com.normation.rudder.services.policies.NodeConfigData.*
 
   val allNodeConfig: Map[NodeId, NodeConfiguration] =
     Map(root.id -> rootNodeConfig, node1.id -> node1NodeConfig, node2.id -> node2NodeConfig)
@@ -65,7 +65,7 @@ class PathComputerTest extends Specification {
   "The paths for " should {
     "the root node should raise an error" in {
       pathComputer.computeBaseNodePath(root.id, root.id, allNodeConfig.view.mapValues(_.nodeInfo).toMap) must beAnInstanceOf[
-        Left[Inconsistency, _]
+        Left[Inconsistency, ?]
       ]
     }
 
@@ -96,7 +96,7 @@ class PathComputerTest extends Specification {
       val badNode2  = node2NodeConfig.copy(nodeInfo = node2NodeConfig.nodeInfo.copy(policyServerId = node1.id))
       val badConfig = allNodeConfig + (node1.id -> badNode1) + (node2.id -> badNode2)
       pathComputer.computeBaseNodePath(node1.id, root.id, badConfig.view.mapValues(_.nodeInfo).toMap) must beAnInstanceOf[
-        Left[Inconsistency, _]
+        Left[Inconsistency, ?]
       ]
     }
   }

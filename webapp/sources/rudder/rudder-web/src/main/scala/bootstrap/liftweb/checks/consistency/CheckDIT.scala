@@ -39,18 +39,18 @@ package bootstrap.liftweb.checks.consistency
 
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.RudderDit
-import com.normation.zio._
+import com.normation.zio.*
 import com.unboundid.ldap.sdk.DN
 import javax.servlet.UnavailableException
-import net.liftweb.common._
-import zio._
-import zio.syntax._
+import net.liftweb.common.*
+import zio.*
+import zio.syntax.*
 
 /**
  * This class check that all DIT entries needed for the application

@@ -40,10 +40,10 @@ package com.normation.rudder.metrics
 import com.normation.zio.ZioRuntime
 import java.util.concurrent.TimeUnit
 import org.junit.runner.RunWith
-import org.specs2.mutable._
+import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
-import zio.{Scheduler => _, _}
-import zio.test._
+import zio.{Scheduler as _, *}
+import zio.test.*
 
 @RunWith(classOf[JUnitRunner])
 class SchedulerTest extends Specification {

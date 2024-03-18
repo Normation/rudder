@@ -53,15 +53,15 @@ package com.normation.rudder.web.components
  * limitations under the License.
  */
 
-import _root_.net.liftweb.common._
-import _root_.net.liftweb.http._
-import _root_.net.liftweb.http.js._
-import _root_.net.liftweb.util._
+import _root_.net.liftweb.common.*
+import _root_.net.liftweb.http.*
+import _root_.net.liftweb.http.js.*
+import _root_.net.liftweb.util.*
 import _root_.scala.xml.Elem
-import net.liftweb.http.S._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.util.Helpers._
+import net.liftweb.http.S.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.util.Helpers.*
 
 /**
  * A modified version of AutoComplete that accepts an OnSubmit with a JsCmd, and
@@ -69,7 +69,7 @@ import net.liftweb.util.Helpers._
  */
 object AutoCompleteAutoSubmit {
   def apply(start: String, options: (String, Int) => Seq[String], onSubmit: String => JsCmd, attrs: (String, String)*): Elem =
-    new AutoCompleteAutoSubmit().render(start, options, onSubmit, attrs: _*)
+    new AutoCompleteAutoSubmit().render(start, options, onSubmit, attrs*)
 
   def apply(
       start:       String,
@@ -77,7 +77,7 @@ object AutoCompleteAutoSubmit {
       onSubmit:    String => JsCmd,
       jsonOptions: List[(String, String)],
       attrs:       (String, String)*
-  ): Elem = new AutoCompleteAutoSubmit().render(start, options, onSubmit, jsonOptions, attrs: _*)
+  ): Elem = new AutoCompleteAutoSubmit().render(start, options, onSubmit, jsonOptions, attrs*)
 
   def autocompleteObj[T](options: Seq[(T, String)], default: Box[T], onSubmit: T => JsCmd): Elem =
     new AutoCompleteAutoSubmit().autocompleteObj(options, default, onSubmit)
@@ -135,7 +135,7 @@ class AutoCompleteAutoSubmit {
     val id = Helpers.nextFuncName
 
     fmapFunc(onSubmit) { hidden =>
-      val data = JsArray(options.map { case (nonce, name) => JsObj("name" -> name, "nonce" -> nonce) }: _*)
+      val data = JsArray(options.map { case (nonce, name) => JsObj("name" -> name, "nonce" -> nonce) }*)
 
       /* merge the options that the user wants */
       val jqOptions           = ("minChars", "0") ::
@@ -189,7 +189,7 @@ class AutoCompleteAutoSubmit {
   def render(start: String, options: (String, Int) => Seq[String], onSubmit: String => JsCmd, attrs: (String, String)*): Elem = {
 
     val jsonOptions: List[(String, String)] = List()
-    render(start, options, onSubmit, jsonOptions, attrs: _*)
+    render(start, options, onSubmit, jsonOptions, attrs*)
 
   }
 

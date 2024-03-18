@@ -39,7 +39,7 @@ package bootstrap.liftweb.checks.action
 
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
-import com.normation.box._
+import com.normation.box.*
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpectedReportAction
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports

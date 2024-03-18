@@ -37,6 +37,7 @@
 package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog.EventLog
+import com.normation.eventlog.EventLogCategory
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.EventLogType
@@ -45,17 +46,17 @@ import com.normation.rudder.domain.secret.Secret
 
 //final case class Secret(name: String, value: String, description: String)
 
-sealed trait SecretEventLog extends EventLog { final override val eventLogCategory = SecretLogCategory }
+sealed trait SecretEventLog extends EventLog { final override val eventLogCategory: EventLogCategory = SecretLogCategory }
 
 final case class AddSecret(
     override val eventDetails: EventLogDetails
 ) extends SecretEventLog {
-  override val cause     = None
+  override val cause: Option[Int] = None
   override val eventType = AddSecret.eventType
 }
 
 object AddSecret extends EventLogFilter {
-  override val eventType = AddSecretEventType
+  override val eventType: EventLogType = AddSecretEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): AddSecret = AddSecret(x._2)
 }
@@ -63,12 +64,12 @@ object AddSecret extends EventLogFilter {
 final case class ModifySecret(
     override val eventDetails: EventLogDetails
 ) extends SecretEventLog {
-  override val cause     = None
+  override val cause: Option[Int] = None
   override val eventType = ModifySecret.eventType
 }
 
 object ModifySecret extends EventLogFilter {
-  override val eventType = ModifySecretEventType
+  override val eventType: EventLogType = ModifySecretEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): ModifySecret = ModifySecret(x._2)
 }
@@ -76,12 +77,12 @@ object ModifySecret extends EventLogFilter {
 final case class DeleteSecret(
     override val eventDetails: EventLogDetails
 ) extends SecretEventLog {
-  override val cause     = None
+  override val cause: Option[Int] = None
   override val eventType = DeleteSecret.eventType
 }
 
 object DeleteSecret extends EventLogFilter {
-  override val eventType = DeleteSecretEventType
+  override val eventType: EventLogType = DeleteSecretEventType
 
   override def apply(x: (EventLogType, EventLogDetails)): DeleteSecret = DeleteSecret(x._2)
 }

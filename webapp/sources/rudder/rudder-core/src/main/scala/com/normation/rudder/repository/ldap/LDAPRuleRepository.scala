@@ -40,24 +40,24 @@ package ldap
 
 import com.normation.GitVersion
 import com.normation.NamedZioLogger
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.ldap.core.LDAPConstants.A_NAME
-import com.normation.ldap.sdk._
-import com.normation.ldap.sdk.BuildFilter._
-import com.normation.ldap.sdk.LDAPIOResult._
-import com.normation.ldap.sdk.syntax._
+import com.normation.ldap.sdk.*
+import com.normation.ldap.sdk.BuildFilter.*
+import com.normation.ldap.sdk.LDAPIOResult.*
+import com.normation.ldap.sdk.syntax.*
 import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.archives.RuleArchiveId
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.services.user.PersonIdentService
 import com.unboundid.ldif.LDIFChangeRecord
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 class RoLDAPRuleRepository(
     val rudderDit: RudderDit,
@@ -136,7 +136,7 @@ class WoLDAPRuleRepository(
 ) extends WoRuleRepository with NamedZioLogger {
   repo =>
 
-  import roLDAPRuleRepository._
+  import roLDAPRuleRepository.*
 
   override def loggerName: String = this.getClass.getName
 

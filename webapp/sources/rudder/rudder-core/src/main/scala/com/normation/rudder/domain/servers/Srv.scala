@@ -39,7 +39,7 @@ package com.normation.rudder.domain.servers
 
 import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.RudderLDAPConstants.*
 import org.joda.time.DateTime
 
 /**
@@ -58,7 +58,7 @@ final case class Srv(
 )
 
 object Srv {
-  import com.normation.inventory.ldap.core.LDAPConstants._
+  import com.normation.inventory.ldap.core.LDAPConstants.*
 
   /**
    * List of attributes needed to be able to map a Srv.

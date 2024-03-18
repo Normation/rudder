@@ -14,11 +14,11 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.repository.FullNodeGroupCategory
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import scala.collection.MapView
 
 @RunWith(classOf[JUnitRunner])

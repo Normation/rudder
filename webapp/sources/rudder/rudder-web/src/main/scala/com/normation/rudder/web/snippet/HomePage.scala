@@ -39,8 +39,8 @@ package com.normation.rudder.web.snippet
 
 //lift std import
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.inventory.domain.AixOS
 import com.normation.inventory.domain.BsdType
 import com.normation.inventory.domain.LinuxType
@@ -50,9 +50,9 @@ import com.normation.inventory.domain.SolarisOS
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.domain.WindowsType
 import com.normation.inventory.ldap.core.TimingDebugLoggerPure
-import com.normation.ldap.sdk.BuildFilter._
+import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.ldap.sdk.FALSE
-import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ComplianceLogger
 import com.normation.rudder.domain.logger.TimingDebugLogger
@@ -60,14 +60,14 @@ import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.CurrentUser
-import com.normation.zio._
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
+import com.normation.zio.*
+import net.liftweb.common.*
+import net.liftweb.http.*
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
 import scala.collection.MapView
-import scala.xml._
+import scala.xml.*
 
 sealed trait ComplianceLevelPieChart {
   def color: String
@@ -315,12 +315,12 @@ class HomePage extends StatefulSnippet {
       val data =
         JsObj("labels" -> JsArray(diagramData._1), "values" -> JsArray(diagramData._2), "colors" -> JsArray(diagramData._3))
 
-      val diagramColor = JsObj(sorted.map(_.jsColor): _*)
+      val diagramColor = JsObj(sorted.map(_.jsColor)*)
 
       // Data used for compliance bar, compliance without pending
       val (complianceBar, globalCompliance) = global match {
         case Some((bar, value)) =>
-          import com.normation.rudder.domain.reports.ComplianceLevelSerialisation._
+          import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.*
           (bar.copy(pending = 0).toJsArray, value)
         case None               =>
           (JsArray(Nil), -1L)
@@ -355,7 +355,7 @@ class HomePage extends StatefulSnippet {
 
     // mapping between os name and their string representation (printed on screen).
 
-    val osNames = JsObj(osTypes.map(os => (S.?("os.name." + os.name), Str(os.name))): _*)
+    val osNames = JsObj(osTypes.map(os => (S.?("os.name." + os.name), Str(os.name)))*)
 
     val machines             = HomePage.nodeFacts.get.values.map {
       _.machine.machineType match {

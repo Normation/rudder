@@ -42,7 +42,7 @@ import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.utils.Control.traverse
 import java.io.File
 import java.io.PrintWriter
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.json.Serialization.writePretty
 import org.joda.time.DateTime
 import org.slf4j
@@ -82,7 +82,7 @@ class NodeConfigurationLoggerImpl(
   }
 
   def log(nodeConfiguration: Seq[NodeConfiguration]): Box[Set[NodeId]] = {
-    import net.liftweb.json._
+    import net.liftweb.json.*
     implicit val formats                                 = DefaultFormats
     def writeIn[T](path: File)(f: PrintWriter => Box[T]) = {
       val printWriter = new java.io.PrintWriter(path)

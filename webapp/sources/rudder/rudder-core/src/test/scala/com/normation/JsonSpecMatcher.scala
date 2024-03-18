@@ -1,6 +1,6 @@
 package com.normation
 
-import _root_.zio.json._
+import _root_.zio.json.*
 import _root_.zio.json.ast.Json
 import org.specs2.execute.FailureDetails
 import org.specs2.matcher.EqualityMatcher
@@ -14,7 +14,7 @@ import org.specs2.mutable.Specification
 
 trait JsonSpecMatcher { self: MustMatchers with Specification =>
 
-  import JsonSpecMatcher._
+  import JsonSpecMatcher.*
 
   /**
       * Tests for a non-strict equality of json, by comparing the string.

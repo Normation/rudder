@@ -37,7 +37,7 @@
 package com.normation.rudder.services.policies
 
 import com.normation.GitVersion
-import com.normation.cfclerk.domain._
+import com.normation.cfclerk.domain.*
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
@@ -54,11 +54,11 @@ import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
-import com.normation.zio._
+import com.normation.zio.*
 import org.joda.time.DateTime
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import scala.collection.MapView
 import scala.collection.SortedMap
 

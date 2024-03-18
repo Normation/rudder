@@ -53,12 +53,12 @@ import com.normation.rudder.services.nodes.history.impl.FactLog
 import com.normation.rudder.services.nodes.history.impl.FactLogData
 import com.normation.rudder.services.nodes.history.impl.InventoryHistoryDelete
 import com.normation.rudder.services.nodes.history.impl.InventoryHistoryLogRepository
-import com.normation.zio._
-import doobie.implicits._
+import com.normation.zio.*
+import doobie.implicits.*
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
-import zio._
-import zio.interop.catz._
+import zio.*
+import zio.interop.catz.*
 
 /*
  * Before Rudder 8.0, we used to save the state of node when accepted in an LDIF file under
@@ -83,7 +83,7 @@ class MigrateNodeAcceptationInventories(
     MAX_KEEP_REFUSED:  Duration
 ) extends BootstrapChecks {
 
-  import doobie._
+  import doobie.*
 
   val msg = "old inventory accept/refuse facts to 'NodeFacts' database table"
 

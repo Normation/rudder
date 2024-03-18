@@ -37,12 +37,12 @@ package bootstrap.liftweb.checks.migration
  *************************************************************************************
  */
 
-import bootstrap.liftweb._
+import bootstrap.liftweb.*
 import com.normation.errors.IOResult
 import com.normation.rudder.db.Doobie
-import com.normation.zio._
-import doobie.implicits._
-import zio.interop.catz._
+import com.normation.zio.*
+import doobie.implicits.*
+import zio.interop.catz.*
 import zio.syntax.ToZio
 
 /*
@@ -52,7 +52,7 @@ class CheckTableScore(
     doobie: Doobie
 ) extends BootstrapChecks {
 
-  import doobie._
+  import doobie.*
 
   override def description: String = "Check if score databases exist"
 

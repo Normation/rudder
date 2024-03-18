@@ -37,7 +37,7 @@
 
 package com.normation.rudder.domain.reports
 
-import better.files._
+import better.files.*
 import com.normation.GitVersion
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.rudder.domain.policies.DirectiveId
@@ -47,7 +47,7 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
-import com.normation.rudder.domain.reports.ExpectedReportsSerialisation._
+import com.normation.rudder.domain.reports.ExpectedReportsSerialisation.*
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -77,8 +77,8 @@ class ExpectedReportTest extends Specification {
   sequential
 
   "Just a block" >> {
-    import zio.json._
-    import ExpectedReportsSerialisation.Version7_1._
+    import zio.json.*
+    import ExpectedReportsSerialisation.Version7_1.*
     val jsonMin  = {
       """
       {

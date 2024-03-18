@@ -39,12 +39,12 @@ package bootstrap.liftweb.checks.consistency
 
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
-import com.normation.box._
+import com.normation.box.*
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.repository.jdbc.RudderDatasourceProvider
 import javax.servlet.UnavailableException
-import net.liftweb.common._
+import net.liftweb.common.*
 
 /**
  * This class check that all external connection (LDAP, Postgres)

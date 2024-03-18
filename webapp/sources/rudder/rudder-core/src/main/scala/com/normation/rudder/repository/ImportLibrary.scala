@@ -37,7 +37,7 @@
 
 package com.normation.rudder.repository
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.policies.ActiveTechnique

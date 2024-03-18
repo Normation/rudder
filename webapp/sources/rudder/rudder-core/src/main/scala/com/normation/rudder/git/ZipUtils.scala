@@ -52,10 +52,10 @@ import java.util.zip.ZipOutputStream
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import scala.collection.Seq
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import zio.Chunk
 import zio.ZIO
-import zio.syntax._
+import zio.syntax.*
 
 object ZipUtils {
 
@@ -93,7 +93,7 @@ object ZipUtils {
 
   // unzip an input stream into zip entries
   def getZipEntries(name: String, zip: InputStream): IOResult[Chunk[(ZipEntry, Option[Array[Byte]])]] = {
-    import better.files._
+    import better.files.*
     // ah, Java. It was a long time ago. I didn't miss you.
 
     // effect-full and all horror, must be encapsulated.

@@ -37,7 +37,7 @@
 package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.RuleChangeRequest
@@ -45,15 +45,15 @@ import com.normation.rudder.services.workflows.RuleModAction
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
-import com.normation.rudder.web.model._
-import net.liftweb.common._
+import com.normation.rudder.web.model.*
+import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.SHtml
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.util.Helpers._
-import scala.xml._
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.util.Helpers.*
+import scala.xml.*
 
 /**
  * Validation pop-up for modification on rules only.
@@ -98,7 +98,7 @@ class RuleModificationValidationPopup(
     parentFormTracker: Option[FormTracker] = None
 ) extends DispatchSnippet with Loggable {
 
-  import RuleModificationValidationPopup._
+  import RuleModificationValidationPopup.*
 
   private[this] val userPropertyService = RudderConfig.userPropertyService
 
@@ -107,7 +107,7 @@ class RuleModificationValidationPopup(
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
 
   def popupContent(): NodeSeq = {
-    import RuleModAction._
+    import RuleModAction.*
     val (buttonName, classForButton) = (validationNeeded, changeRequest.action) match {
       case (false, Update)  => ("Update", "btn-success")
       case (false, Delete)  => ("Delete", "btn-danger")
@@ -164,7 +164,7 @@ class RuleModificationValidationPopup(
   ///////////// fields for category settings ///////////////////
 
   private[this] val crReasons = {
-    import com.normation.rudder.web.services.ReasonBehavior._
+    import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
       case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
@@ -224,7 +224,7 @@ class RuleModificationValidationPopup(
   }
 
   private[this] def ruleDiffFromAction(): Box[ChangeRequestRuleDiff] = {
-    import RuleModAction._
+    import RuleModAction.*
 
     changeRequest.previousRule match {
       case None =>

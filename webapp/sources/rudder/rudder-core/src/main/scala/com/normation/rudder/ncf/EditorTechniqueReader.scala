@@ -1,7 +1,7 @@
 package com.normation.rudder.ncf
 
-import better.files._
-import com.normation.errors._
+import better.files.*
+import com.normation.errors.*
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.eventlog.ModificationId
@@ -21,13 +21,13 @@ import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.repository.xml.XmlArchiverUtils
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
-import com.normation.zio._
+import com.normation.zio.*
 import java.time.Instant
 import zio.Ref
 import zio.ZIO
-import zio.ZIO._
-import zio.json._
-import zio.syntax._
+import zio.ZIO.*
+import zio.json.*
+import zio.syntax.*
 
 trait EditorTechniqueReader {
   def readTechniquesMetadataFile: IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])]
@@ -57,7 +57,7 @@ class EditorTechniqueReaderImpl(
   val methodsFile: File = ncfRootDir / "generic_methods.json"
 
   def getAllTechniqueFiles(currentPath: File): IOResult[List[File]] = {
-    import com.normation.errors._
+    import com.normation.errors.*
     for {
       subdirs      <- IOResult.attempt(s"error when getting subdirectories of ${currentPath.pathAsString}")(
                         currentPath.children.partition(_.isDirectory)._1.toList
@@ -190,7 +190,7 @@ final case class JsonGenericMethod(
     parameter_rename:   Option[List[JsonGenericMethodParameterRename]]
 ) {
   def toGenericMethod(id: BundleName, parameterTypeService: ParameterTypeService): PureResult[GenericMethod] = {
-    import cats.implicits._
+    import cats.implicits.*
 
     parameter
       .traverse(_.toMethodParameter(parameterTypeService))
@@ -249,7 +249,7 @@ final case class JsonParameterConstraint(
     select:                  Option[List[JsonParameterConstraintSelect]]
 ) {
   def toConstraint: List[Constraint] = {
-    import Constraint._
+    import Constraint.*
 
     AllowEmpty(allow_empty_string) ::
     AllowWhiteSpace(allow_whitespace_string) ::

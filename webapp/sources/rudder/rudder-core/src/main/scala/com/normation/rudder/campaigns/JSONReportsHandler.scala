@@ -37,13 +37,13 @@
 
 package com.normation.rudder.campaigns
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.RudderPropertiesRepository
 import com.normation.zio.currentTimeMillis
-import zio._
+import zio.*
 
 trait JSONReportsHandler {
   def handle: PartialFunction[Reports, IOResult[Reports]]

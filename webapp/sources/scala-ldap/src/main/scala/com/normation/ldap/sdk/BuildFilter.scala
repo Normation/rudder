@@ -21,7 +21,7 @@
 package com.normation.ldap.sdk
 
 import com.unboundid.ldap.sdk.Filter
-import com.unboundid.ldap.sdk.Filter._
+import com.unboundid.ldap.sdk.Filter.*
 
 object BuildFilter {
 
@@ -39,7 +39,7 @@ object BuildFilter {
    *
    * @return  The created AND search filter.
    */
-  def AND(andComponents: Filter*): Filter = createANDFilter(andComponents: _*)
+  def AND(andComponents: Filter*): Filter = createANDFilter(andComponents*)
 
   /**
    * Creates a new OR search filter with the provided components.
@@ -49,7 +49,7 @@ object BuildFilter {
    *
    * @return  The created OR search filter.
    */
-  def OR(orComponents: Filter*): Filter = createORFilter(orComponents: _*)
+  def OR(orComponents: Filter*): Filter = createORFilter(orComponents*)
 
   /**
    * Creates a new NOT search filter with the provided component.

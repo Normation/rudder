@@ -37,10 +37,10 @@
 
 package com.normation.rudder.migration
 
-import Migration_5_DATA_ChangeRequest._
-import Migration_5_DATA_Rule._
-import Migration_6_DATA_ChangeRequest._
-import Migration_6_DATA_Rule._
+import Migration_5_DATA_ChangeRequest.*
+import Migration_5_DATA_Rule.*
+import Migration_6_DATA_ChangeRequest.*
+import Migration_6_DATA_Rule.*
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable

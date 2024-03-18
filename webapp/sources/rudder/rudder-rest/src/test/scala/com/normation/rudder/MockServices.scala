@@ -124,10 +124,10 @@ import net.liftweb.common.Full
 import org.joda.time.DateTime
 import scala.collection.MapView
 import scala.collection.immutable.SortedMap
-import zio._
-import zio.{System => _}
-import zio.{Tag => _}
-import zio.syntax._
+import zio.*
+import zio.System as _
+import zio.Tag as _
+import zio.syntax.*
 
 /*
  * Mock services for test, especially repositories, and provides
@@ -221,21 +221,21 @@ class MockCompliance(mockDirectives: MockDirectives) {
       ).succeed
     }
 
-    def getNodeGroupCategory(id: NodeGroupId):                 IOResult[NodeGroupCategory]                                          = ???
-    def getAll():                                              IOResult[Seq[NodeGroup]]                                             = ???
-    def getAllByIds(ids: Seq[NodeGroupId]):                    IOResult[Seq[NodeGroup]]                                             = ???
-    def getAllNodeIds():                                       IOResult[Map[NodeGroupId, Set[NodeId]]]                              = ???
-    def getGroupsByCategory(includeSystem: Boolean):           IOResult[SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]] = ???
-    def findGroupWithAnyMember(nodeIds: Seq[NodeId]):          IOResult[Seq[NodeGroupId]]                                           = ???
-    def findGroupWithAllMember(nodeIds: Seq[NodeId]):          IOResult[Seq[NodeGroupId]]                                           = ???
-    def getRootCategory():                                     NodeGroupCategory                                                    = ???
-    def getRootCategoryPure():                                 IOResult[NodeGroupCategory]                                          = ???
-    def getCategoryHierarchy:                                  IOResult[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]]    = ???
-    def getAllGroupCategories(includeSystem: Boolean):         IOResult[Seq[NodeGroupCategory]]                                     = ???
-    def getGroupCategory(id: NodeGroupCategoryId):             IOResult[NodeGroupCategory]                                          = ???
-    def getParentGroupCategory(id: NodeGroupCategoryId):       IOResult[NodeGroupCategory]                                          = ???
-    def getParents_NodeGroupCategory(id: NodeGroupCategoryId): IOResult[List[NodeGroupCategory]]                                    = ???
-    def getAllNonSystemCategories():                           IOResult[Seq[NodeGroupCategory]]                                     = ???
+    def getNodeGroupCategory(id: NodeGroupId): IOResult[NodeGroupCategory] = ???
+    def getAll(): IOResult[Seq[NodeGroup]] = ???
+    def getAllByIds(ids: Seq[NodeGroupId]): IOResult[Seq[NodeGroup]] = ???
+    def getAllNodeIds(): IOResult[Map[NodeGroupId, Set[NodeId]]] = ???
+    def getGroupsByCategory(includeSystem: Boolean):     IOResult[SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]] = ???
+    def findGroupWithAnyMember(nodeIds:    Seq[NodeId]): IOResult[Seq[NodeGroupId]]                                           = ???
+    def findGroupWithAllMember(nodeIds:    Seq[NodeId]): IOResult[Seq[NodeGroupId]]                                           = ???
+    def getRootCategory():     NodeGroupCategory                                                 = ???
+    def getRootCategoryPure(): IOResult[NodeGroupCategory]                                       = ???
+    def getCategoryHierarchy:  IOResult[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = ???
+    def getAllGroupCategories(includeSystem: Boolean):             IOResult[Seq[NodeGroupCategory]]  = ???
+    def getGroupCategory(id:                 NodeGroupCategoryId): IOResult[NodeGroupCategory]       = ???
+    def getParentGroupCategory(id:           NodeGroupCategoryId): IOResult[NodeGroupCategory]       = ???
+    def getParents_NodeGroupCategory(id:     NodeGroupCategoryId): IOResult[List[NodeGroupCategory]] = ???
+    def getAllNonSystemCategories(): IOResult[Seq[NodeGroupCategory]] = ???
   }
 
   private object nodeFactRepo extends NodeFactRepository {
@@ -257,22 +257,22 @@ class MockCompliance(mockDirectives: MockDirectives) {
       ).map(n => (n.id, n)).toMap.view.succeed
     }
 
-    def registerChangeCallbackAction(callback: NodeFactChangeEventCallback):                   IOResult[Unit]                     = ???
-    def getStatus(id: NodeId)(implicit qc: QueryContext):                                      IOResult[InventoryStatus]          = ???
-    def get(nodeId: NodeId)(implicit qc: QueryContext, status: SelectNodeStatus):              IOResult[Option[CoreNodeFact]]     = ???
+    def registerChangeCallbackAction(callback: NodeFactChangeEventCallback): IOResult[Unit] = ???
+    def getStatus(id:                          NodeId)(implicit qc:   QueryContext): IOResult[InventoryStatus] = ???
+    def get(nodeId:                            NodeId)(implicit qc:   QueryContext, status:    SelectNodeStatus): IOResult[Option[CoreNodeFact]]  = ???
     def slowGet(
-        nodeId:    NodeId
+        nodeId: NodeId
     )(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): IOResult[Option[NodeFact]] = ???
-    def getNodesbySofwareName(softName: String):                                               IOResult[List[(NodeId, Software)]] = ???
-    def slowGetAll()(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): errors.IOStream[NodeFact]          = ???
-    def save(nodeFact: NodeFact)(implicit cc: ChangeContext, attrs: SelectFacts):              IOResult[NodeFactChangeEventCC]    = ???
-    def setSecurityTag(nodeId: NodeId, tag: Option[SecurityTag])(implicit cc: ChangeContext):  IOResult[NodeFactChangeEventCC]    =
+    def getNodesbySofwareName(softName:        String): IOResult[List[(NodeId, Software)]] = ???
+    def slowGetAll()(implicit qc:              QueryContext, status:  SelectNodeStatus, attrs: SelectFacts):      errors.IOStream[NodeFact]       = ???
+    def save(nodeFact:                         NodeFact)(implicit cc: ChangeContext, attrs:    SelectFacts):      IOResult[NodeFactChangeEventCC] = ???
+    def setSecurityTag(nodeId: NodeId, tag: Option[SecurityTag])(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] =
       ???
     def updateInventory(inventory: FullInventory, software: Option[Iterable[Software]])(implicit
-        cc:                        ChangeContext
+        cc: ChangeContext
     ): IOResult[NodeFactChangeEventCC] = ???
-    def changeStatus(nodeId: NodeId, into: InventoryStatus)(implicit cc: ChangeContext):       IOResult[NodeFactChangeEventCC]    = ???
-    def delete(nodeId: NodeId)(implicit cc: ChangeContext):                                    IOResult[NodeFactChangeEventCC]    = ???
+    def changeStatus(nodeId: NodeId, into: InventoryStatus)(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] = ???
+    def delete(nodeId: NodeId)(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] = ???
 
   }
 
@@ -285,23 +285,23 @@ class MockCompliance(mockDirectives: MockDirectives) {
       rules.succeed
     }
 
-    override def getIds(includeSytem: Boolean):                                                            IOResult[Set[RuleId]]    = ???
-    override def create(rule: Rule, modId: ModificationId, actor: EventActor, reason: Option[String]):     IOResult[AddRuleDiff]    = ???
+    override def getIds(includeSytem:             Boolean): IOResult[Set[RuleId]] = ???
+    override def create(rule:                     Rule, modId:   ModificationId, actor: EventActor, reason: Option[String]): IOResult[AddRuleDiff] = ???
     override def update(
         rule:   Rule,
         modId:  ModificationId,
         actor:  EventActor,
         reason: Option[String]
     ): IOResult[Option[ModifyRuleDiff]] = ???
-    override def load(rule: Rule, modId: ModificationId, actor: EventActor, reason: Option[String]):       IOResult[Unit]           = ???
-    override def unload(ruleId: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Unit]           = ???
+    override def load(rule:                       Rule, modId:   ModificationId, actor: EventActor, reason: Option[String]): IOResult[Unit]        = ???
+    override def unload(ruleId:                   RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Unit]        = ???
     override def updateSystem(
         rule:   Rule,
         modId:  ModificationId,
         actor:  EventActor,
         reason: Option[String]
     ): IOResult[Option[ModifyRuleDiff]] = ???
-    override def delete(id: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]):     IOResult[DeleteRuleDiff] =
+    override def delete(id: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[DeleteRuleDiff] =
       ???
     override def deleteSystemRule(
         id:     RuleId,
@@ -309,13 +309,13 @@ class MockCompliance(mockDirectives: MockDirectives) {
         actor:  EventActor,
         reason: Option[String]
     ): IOResult[DeleteRuleDiff] = ???
-    override def swapRules(newRules: Seq[Rule]):                                                           IOResult[RuleArchiveId]  = ???
-    override def deleteSavedRuleArchiveId(saveId: RuleArchiveId):                                          IOResult[Unit]           = ???
+    override def swapRules(newRules:              Seq[Rule]): IOResult[RuleArchiveId] = ???
+    override def deleteSavedRuleArchiveId(saveId: RuleArchiveId): IOResult[Unit] = ???
   }
 
   private def reportingService(statusReports: Map[NodeId, NodeStatusReport]): ReportingService = new ReportingService {
     def findRuleNodeStatusReports(nodeIds: Set[NodeId], filterByRules: Set[RuleId])(implicit
-        qc:                                QueryContext
+        qc: QueryContext
     ): Box[Map[NodeId, NodeStatusReport]] = {
       val filteredNodeReports = statusReports.view.filterKeys(nodeIds.contains(_)).toMap
       Full(
@@ -326,35 +326,35 @@ class MockCompliance(mockDirectives: MockDirectives) {
     def findDirectiveNodeStatusReports(
         nodeIds:            Set[NodeId],
         filterByDirectives: Set[DirectiveId]
-    )(implicit qc:          QueryContext): Box[Map[NodeId, NodeStatusReport]] = ???
+    )(implicit qc: QueryContext): Box[Map[NodeId, NodeStatusReport]] = ???
     def findUncomputedNodeStatusReports():                                               Box[Map[NodeId, NodeStatusReport]]      = ???
     def findRuleNodeCompliance(nodeIds: Set[NodeId], filterByRules: Set[RuleId])(implicit
-        qc:                             QueryContext
+        qc: QueryContext
     ): IOResult[Map[NodeId, ComplianceLevel]] = ???
     def findSystemAndUserRuleCompliances(
         nodeIds:             Set[NodeId],
         filterBySystemRules: Set[RuleId],
         filterByUserRules:   Set[RuleId]
-    )(implicit qc:           QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
+    )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
     def findDirectiveRuleStatusReportsByRule(ruleId: RuleId)(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] =
       ???
-    def findNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext):                 Box[NodeStatusReport]                   = ???
-    def findUserNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext):             Box[NodeStatusReport]                   = ???
-    def findSystemNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext):           Box[NodeStatusReport]                   = ???
-    def getUserNodeStatusReports()(implicit qc: QueryContext):                           Box[Map[NodeId, NodeStatusReport]]      = ???
+    def findNodeStatusReport(nodeId:            NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = ???
+    def findUserNodeStatusReport(nodeId:        NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = ???
+    def findSystemNodeStatusReport(nodeId:      NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = ???
+    def getUserNodeStatusReports()(implicit qc: QueryContext): Box[Map[NodeId, NodeStatusReport]] = ???
     def findStatusReportsForDirective(directiveId: DirectiveId)(implicit
-        qc:                                        QueryContext
+        qc: QueryContext
     ): IOResult[Map[NodeId, NodeStatusReport]] = ???
     def getSystemAndUserCompliance(
         optNodeIds: Option[Set[NodeId]]
-    )(implicit qc:  QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
-    def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]):            Option[(ComplianceLevel, Long)]         = ???
-    def getGlobalUserCompliance()(implicit qc: QueryContext):                            Box[Option[(ComplianceLevel, Long)]]    = ???
+    )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
+    def computeComplianceFromReports(reports:   Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = ???
+    def getGlobalUserCompliance()(implicit qc:  QueryContext): Box[Option[(ComplianceLevel, Long)]] = ???
   }
 
   val complianceAPIService: ComplianceAPIService = {
-    import simpleExample._
-    import complexExample._
+    import simpleExample.*
+    import complexExample.*
     buildComplianceService(
       simpleCustomRules ++ complexCustomRules,
       simpleCustomNodeGroups ++ complexCustomNodeGroups,
@@ -428,8 +428,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
 
     val simpleCustomNodeGroups: List[NodeGroup] = List(g1, g2, g3)
 
-    private def nodeId(id: Int):      NodeId      = NodeId("n" + id)
-    private def ruleId(id: Int):      RuleId      = RuleId(RuleUid("r" + id))
+    private def nodeId(id:      Int): NodeId      = NodeId("n" + id)
+    private def ruleId(id:      Int): RuleId      = RuleId(RuleUid("r" + id))
     private def nodeGroupId(id: Int): NodeGroupId = NodeGroupId(NodeGroupUid("g" + id))
   }
 
@@ -583,8 +583,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
     val complexCustomNodeGroups: List[NodeGroup] = List(g1, g2, g3, g4, g5, g6)
 
     // prefix all ids with "b" to avoid id collision with simpleExample
-    private def nodeId(id: Int):      NodeId      = NodeId("bn" + id)
-    private def ruleId(id: Int):      RuleId      = RuleId(RuleUid("br" + id))
+    private def nodeId(id:      Int): NodeId      = NodeId("bn" + id)
+    private def ruleId(id:      Int): RuleId      = RuleId(RuleUid("br" + id))
     private def nodeGroupId(id: Int): NodeGroupId = NodeGroupId(NodeGroupUid("bg" + id))
   }
 

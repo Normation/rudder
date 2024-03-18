@@ -39,14 +39,14 @@ package bootstrap.liftweb.checks.onetimeinit
 
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
-import com.normation.box._
+import com.normation.box.*
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.repository.ItemArchiveManager
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
-import net.liftweb.common._
-import zio._
+import net.liftweb.common.*
+import zio.*
 
 /**
  *

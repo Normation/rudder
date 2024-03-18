@@ -40,9 +40,9 @@ package com.normation.rudder.rest
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Rights
 import com.normation.rudder.Role
-import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
 import com.normation.rudder.api.AclPathSegment
 import com.normation.rudder.api.ApiAclElement
+import com.normation.rudder.api.ApiAuthorization as ApiAuthz
 
 /*
  * The goal of that class is to map Authorization to what API
@@ -103,7 +103,7 @@ object AuthorizationApiMapping {
   object Core extends AuthorizationApiMapping {
 
     override def mapAuthorization(authz: AuthorizationType): List[ApiAclElement] = {
-      import AuthorizationType._
+      import AuthorizationType.*
       // shorthand to get authz for a given api
       authz match {
         case NoRights  => Nil
@@ -239,7 +239,7 @@ class RoleApiMapping(mapper: AuthorizationApiMapping) {
     } else if (rights.authorizationTypes.contains(AuthorizationType.AnyRights)) {
       ApiAuthz.allAuthz.acl
     } else {
-      import cats.implicits._
+      import cats.implicits.*
       // problem: here, rights.authorizationTypes is a set, so not ordered. Acl ARE
       // ordered. But this is OK **IF** we don't user any double joker (exhaustive match)
       mergeToAcl(rights.authorizationTypes.toList.foldMap(mapAuthorization))

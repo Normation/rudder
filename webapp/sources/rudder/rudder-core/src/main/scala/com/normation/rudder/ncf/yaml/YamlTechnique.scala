@@ -40,16 +40,16 @@ package com.normation.rudder.ncf.yaml
 import com.normation.cfclerk.domain.LoadTechniqueError.Consistancy
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.ReportingLogic.WeightedReport
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.AccumulateErrors
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.PureResult
 import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.ncf._
-import zio.json._
-import zio.json.yaml._
+import com.normation.rudder.ncf.*
+import zio.json.*
+import zio.json.yaml.*
 
 /*
  * Here we provide the datatype used to communicate with rudderc
@@ -241,7 +241,7 @@ object YamlTechniqueSerializer {
 
   private def fromJsonMethodElem(methodElem: MethodElem): MethodItem = {
     def toReporting(logic: ReportingLogic): Reporting = {
-      import ReportingLogic._
+      import ReportingLogic.*
       logic match {
         case FocusReport(component)                                           =>
           Reporting(
@@ -282,7 +282,7 @@ object YamlTechniqueSerializer {
 }
 
 class YamlTechniqueSerializer(resourceFileService: ResourceFileService) {
-  import YamlTechniqueSerializer._
+  import YamlTechniqueSerializer.*
 
   // shortcut to avoid having to import yamlOps / toIO, but can be avoided
   def toYml(technique: Technique): IOResult[String] = technique.toYaml().toIO

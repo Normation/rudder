@@ -42,16 +42,16 @@ import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
 import com.normation.NamedZioLogger
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.rudder.ncf._
+import com.normation.rudder.ncf.*
 import com.normation.rudder.ncf.migration.MigrateJsonTechniquesService
 import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.utils.StringUuidGenerator
-import com.normation.zio._
-import zio._
+import com.normation.zio.*
+import zio.*
 
 /**
  * Check at webapp startup if ncf Technique needs to be rewritten by Rudder

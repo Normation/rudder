@@ -52,10 +52,10 @@ import com.normation.rudder.domain.reports.RuleStatusReport
 import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.services.policies.PolicyId
 import org.joda.time.DateTime
-import org.junit.runner._
+import org.junit.runner.*
 import org.specs2.matcher.MatchResult
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 @RunWith(classOf[JUnitRunner])
 class ReportingServiceUtilsTest extends Specification {
@@ -76,8 +76,8 @@ class ReportingServiceUtilsTest extends Specification {
   val expiration = new DateTime(0) // not used
 
   val noOverrides = Nil
-  def dirReport(id: DirectiveId):                                         (DirectiveId, DirectiveStatusReport) = (id, DirectiveStatusReport(id, Nil))
-  def rnReport(nodeId: NodeId, ruleId: RuleId, directives: DirectiveId*): RuleNodeStatusReport                 = {
+  def dirReport(id: DirectiveId): (DirectiveId, DirectiveStatusReport) = (id, DirectiveStatusReport(id, Nil))
+  def rnReport(nodeId: NodeId, ruleId: RuleId, directives: DirectiveId*): RuleNodeStatusReport = {
     RuleNodeStatusReport(nodeId, ruleId, None, None, directives.map(dirReport _).toMap, expiration)
   }
 

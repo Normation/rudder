@@ -37,20 +37,20 @@
 
 package com.normation.rudder.repository.ldap
 
-import cats.implicits._
-import com.normation.cfclerk.domain._
-import com.normation.errors._
-import com.normation.inventory.domain._
-import com.normation.inventory.ldap.core.{InventoryMappingRudderError => Err}
-import com.normation.inventory.ldap.core.LDAPConstants._
+import cats.implicits.*
+import com.normation.cfclerk.domain.*
+import com.normation.errors.*
+import com.normation.inventory.domain.*
+import com.normation.inventory.ldap.core.InventoryMappingRudderError as Err
+import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
-import com.normation.ldap.sdk._
-import com.normation.rudder.api._
+import com.normation.ldap.sdk.*
+import com.normation.rudder.api.*
 import com.normation.rudder.api.ApiAccountKind.PublicApi
-import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.nodes.*
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.AddGlobalParameterDiff
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GlobalParameter
@@ -60,7 +60,7 @@ import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.repository.json.DataExtractor
 import com.normation.rudder.rule.category.RuleCategoryId
-import com.normation.rudder.services.queries._
+import com.normation.rudder.services.queries.*
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType.ADD
@@ -70,7 +70,7 @@ import com.unboundid.ldif.LDIFAddChangeRecord
 import com.unboundid.ldif.LDIFChangeRecord
 import com.unboundid.ldif.LDIFModifyChangeRecord
 import com.unboundid.ldif.LDIFModifyDNChangeRecord
-import net.liftweb.common._
+import net.liftweb.common.*
 import scala.util.control.NonFatal
 
 class LDAPDiffMapper(

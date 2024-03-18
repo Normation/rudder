@@ -37,12 +37,12 @@
 
 package com.normation.rudder.reports.execution
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.DB
 import com.normation.rudder.db.Doobie
-import com.normation.rudder.db.Doobie._
+import com.normation.rudder.db.Doobie.*
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.reports.ExpectedReportsSerialisation
 import com.normation.rudder.domain.reports.NodeAndConfigId
@@ -50,14 +50,14 @@ import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.repository.jdbc.PostgresqlInClause
 import com.normation.rudder.services.reports.NodeConfigurationService
-import com.normation.zio._
-import doobie._
-import doobie.implicits._
-import net.liftweb.common._
+import com.normation.zio.*
+import doobie.*
+import doobie.implicits.*
+import net.liftweb.common.*
 import org.joda.time.DateTime
-import zio._
-import zio.interop.catz._
-import zio.syntax._
+import zio.*
+import zio.interop.catz.*
+import zio.syntax.*
 
 final case class RoReportsExecutionRepositoryImpl(
     db:                Doobie,
@@ -67,8 +67,8 @@ final case class RoReportsExecutionRepositoryImpl(
     jdbcMaxBatchSize:  Int
 ) extends RoReportsExecutionRepository with Loggable {
 
-  import Doobie._
-  import db._
+  import Doobie.*
+  import db.*
 
   /**
    * Retrieve all runs that were not processed - for the moment, there are no limitation nor ordering/grouping
@@ -243,7 +243,7 @@ final case class WoReportsExecutionRepositoryImpl(
     db: Doobie
 ) extends WoReportsExecutionRepository with Loggable {
 
-  import db._
+  import db.*
 
   def setComplianceComputationDate(runs: List[AgentRunWithoutCompliance]): IOResult[Int] = {
     val updateKeys = runs.map(x => (x.agentRunId.nodeId.value, x.agentRunId.date, x.nodeConfigVersion.map(_.value)))

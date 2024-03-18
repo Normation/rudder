@@ -57,11 +57,11 @@ import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.ExpectedReportsSerialisation.Version7_1.JsonRuleExpectedReports7_1
 import com.normation.rudder.domain.reports.RuleExpectedReports
 import org.joda.time.DateTime
-import org.junit.runner._
+import org.junit.runner.*
 import org.specs2.matcher.MatchResult
-import org.specs2.mutable._
+import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
-import zio.json._
+import zio.json.*
 
 /**
  * Test that a NodeConfiguration is correctly transformed to

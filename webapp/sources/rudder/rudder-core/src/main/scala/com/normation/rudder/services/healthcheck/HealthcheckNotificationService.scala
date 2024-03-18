@@ -35,9 +35,9 @@
  */
 
 package com.normation.rudder.services.healthcheck
-import com.normation.zio._
+import com.normation.zio.*
 import scala.annotation.nowarn
-import zio._
+import zio.*
 import zio.Ref
 
 class HealthcheckNotificationService(
