@@ -12,7 +12,7 @@
 
 // Test file specifications. Do we want several test cases in one file?
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use rudder_commons::{logs::ok_output, PolicyMode, Target};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -109,16 +109,15 @@ impl TestCase {
     }
 
     pub fn check(&self, dir: &Path, reports_file: &Path, target_dir: &Path) -> Result<()> {
+        let r = reports_file.canonicalize().unwrap();
         for s in &self.check {
             s.run(
                 self.target,
                 dir,
-                vec![(
-                    "REPORTS_FILE",
-                    &reports_file.canonicalize().unwrap().to_string_lossy(),
-                )],
+                vec![("REPORTS_FILE", &r.clone().to_string_lossy())],
                 target_dir,
-            )?;
+            )
+            .with_context(|| format!("Reporting file: {}", r.to_string_lossy()))?;
         }
         Ok(())
     }
