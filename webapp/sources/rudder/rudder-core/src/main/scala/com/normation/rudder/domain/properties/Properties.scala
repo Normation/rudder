@@ -846,6 +846,21 @@ object ParentProperty {
   final case class Global(value: ConfigValue)                               extends ParentProperty {
     val displayName = "Global Parameter"
   }
+
+  // The hierarchy of node properties from top to bottom : Global, Group, Node
+  implicit val ordering: Ordering[ParentProperty] = new Ordering[ParentProperty] {
+    override def compare(x: ParentProperty, y: ParentProperty): Int = {
+      (x, y) match {
+        case (Global(_), Global(_))           => 0
+        case (Global(_), _)                   => -1
+        case (_, Global(_))                   => 1
+        case (Group(_, _, _), Group(_, _, _)) => 0
+        case (Group(_, _, _), _)              => -1
+        case (_, Group(_, _, _))              => 1
+        case (Node(_, _, _), Node(_, _, _))   => 0
+      }
+    }
+  }
 }
 
 /**

@@ -5,6 +5,7 @@ import Html.Attributes exposing (id, class, href, type_, attribute, disabled, fo
 import Html.Events exposing (onClick, onInput)
 import Json.Decode exposing (decodeValue)
 import Maybe.Extra exposing (isJust)
+import List.Extra
 import Dict exposing (Dict)
 import Json.Encode exposing (..)
 import NaturalOrdering as N exposing (compare)
@@ -12,6 +13,8 @@ import SyntaxHighlight exposing (useTheme, gitHub, json, toInlineHtml)
 
 import NodeProperties.DataTypes exposing (..)
 import NodeProperties.ApiCalls exposing (deleteProperty)
+import Json.Decode exposing (decodeString)
+import Set exposing (Set)
 
 
 searchString : String -> String
@@ -58,11 +61,58 @@ getFormat pr =
     Ok _  ->  StringFormat
     Err _ -> JsonFormat
 
+
+checkExistingFormatConflict : Model -> String -> Bool
+checkExistingFormatConflict model propertyName =
+  let
+    ui = model.ui
+    editedFormat = 
+      case Dict.get propertyName ui.editedProperties of
+        Just p -> [p.format]
+        Nothing -> []
+      
+    valueFormatToString f = 
+      case f of
+        StringFormat -> "string"
+        JsonFormat -> "json"
+  in
+    getPossibleFormatsFromPropertyName model propertyName
+      |> List.append editedFormat
+      |> List.Extra.uniqueBy valueFormatToString >> List.length >> (\l -> l > 1)
+
+
 getFormatTxt : ValueFormat -> String
 getFormatTxt format =
     case format of
       StringFormat -> "String"
       JsonFormat -> "JSON"
+
+getParentPropertyDisplay : ParentProperty -> String
+getParentPropertyDisplay pp =
+  case pp of
+    ParentGlobal { valueType } -> "<span>Value of type: <strong>" ++ valueType ++ "</strong> for global parameter</span>"
+    ParentGroup { id, name, valueType } -> "<span>Value of type: <strong>" ++ valueType ++ "</strong> in group " ++ "\"" ++ name ++ "\" with id <em>" ++ id ++ "</em></span>"
+    ParentNode { id, name, valueType } -> "<span>Value of type: <strong>" ++ valueType ++ "</strong> in node " ++ "\"" ++ name ++ "\" with id <em>" ++ id ++ "</em></span>"
+
+
+getFormatConflictWarning : Property -> Html Msg
+getFormatConflictWarning property =
+  case property.hierarchyStatus of
+    Just hs ->
+      if hs.hasChildTypeConflicts then
+        span
+        [  
+            class "px-1"
+          , attribute "data-bs-toggle" "tooltip"
+          , attribute "data-bs-placement" "top"
+          , title (buildTooltipContent
+            "Conflicting types along the hierarchy of properties"
+            (String.join "<br>" (List.map getParentPropertyDisplay hs.fullHierarchy))
+          )
+        ] [ i [class "fa fa-exclamation-triangle text-danger"][] ]
+      else
+        text ""
+    Nothing -> text ""
 
 getSortFunction : Model -> Property -> Property -> Order
 getSortFunction model p1 p2 =
@@ -125,6 +175,7 @@ displayNodePropertyRow model =
         format = getFormat p
         formatTxt = getFormatTxt format
         origVal = Maybe.withDefault p.value p.origval
+        formatConflict = getFormatConflictWarning p
         defaultEditProperty = EditProperty p.name (displayJsonValue origVal) format True True False
 
         editedProperty = Dict.get p.name model.ui.editedProperties
@@ -165,7 +216,10 @@ displayNodePropertyRow model =
               ]
             , td []
               [ div []
-                [ text formatTxt ]
+                [ 
+                    text formatTxt 
+                  , formatConflict
+                ]
               ]
             , td [class "property-value"]
               [ div []
@@ -206,13 +260,15 @@ displayNodePropertyRow model =
               checkAlreadyUsedName = trimmedName /= p.name && checkUsedName trimmedName model.properties
               checkEmptyVal        = String.isEmpty trimmedVal
               checkPristineVal     = not eP.pristineValue
+              checkFormatConflict  = checkExistingFormatConflict model trimmedName
             in
             tr []
             [ td [class "is-edited"]
               [ div []
-                [ input [type_ "text", class "form-control input-sm", value eP.name, onInput (\s -> UpdateProperty p.name {eP | name = s, pristineName = False}) ][]
+                [ input [type_ "text", class "form-control input-sm", value eP.name, onInput (\s -> UpdateProperty p.name {eP | name = s, pristineName = False }) ][]
                 , ( if checkAlreadyUsedName then small [class "text-danger"][ text "This name is already used by another property" ] else text "" )
                 , ( if (checkEmptyName && checkPristineName) then small [class "text-danger"][text "Name is required"] else text "" )
+                , ( if checkFormatConflict then small [class "text-danger"][text "The selected format will conflict with some existing format of the same property"] else text "" )
                 ]
               ]
             , td [class "is-edited"]
@@ -270,3 +326,15 @@ modalDelete model =
           ]
         ]
       ]
+
+-- WARNING:
+--
+-- Here the content is an HTML so it need to be already escaped.
+buildTooltipContent : String -> String -> String
+buildTooltipContent title content =
+  let
+    headingTag = "<h4 class='tags-tooltip-title'>"
+    contentTag = "</h4><div class='tooltip-inner-content'>"
+    closeTag   = "</div>"
+  in
+    headingTag ++ title ++ contentTag ++ content ++ closeTag

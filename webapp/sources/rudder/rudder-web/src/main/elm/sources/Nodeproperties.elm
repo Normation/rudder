@@ -48,7 +48,21 @@ update msg model =
       ( model , apiCall model)
 
     UpdateNewProperty newProperty ->
-      ({model | newProperty = newProperty}, Cmd.none)
+      let
+        possibleFormats = getPossibleFormatsFromPropertyName model newProperty.name
+        prop = 
+          if newProperty.format /= model.newProperty.format then
+            { newProperty | format = newProperty.format }
+          else
+            -- infer format from existing properties
+            if List.length possibleFormats <= 1 then
+              case List.head possibleFormats of
+                Just format -> { newProperty | format = format }
+                Nothing -> newProperty
+            else
+              newProperty
+      in
+        ({model | newProperty = prop}, Cmd.none)
 
     UpdateProperty key newProperty ->
       let

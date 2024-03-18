@@ -1,5 +1,7 @@
 module NodeProperties.View exposing (..)
 
+import List.Extra
+
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
@@ -22,6 +24,7 @@ view model =
       checkAlreadyUsedName = checkUsedName trimmedName model.properties
       checkEmptyVal        = String.isEmpty trimmedVal
       checkPristineVal     = not newProperty.pristineValue
+      checkFormatConflict  = List.Extra.find (\p -> p.name == trimmedName && (getFormat p) /= newProperty.format) model.properties /= Nothing
       checkFormatVal       = newProperty.errorFormat
       checks  = [checkEmptyName, checkAlreadyUsedName, checkEmptyVal, checkFormatVal]
       filters = model.ui.filters
@@ -95,9 +98,10 @@ view model =
               ]
             ]
           , div[class "errors"]
-            [ (if (checkEmptyName && checkPristineName) then div [class "text-danger"][text "Name is required"] else text "")
-            , (if checkAlreadyUsedName then div [class "text-danger"][text "This name is already used by another property"] else text "")
-            , (if (checkEmptyVal && checkPristineVal)  then div [ class "text-danger"][text "Value is required"] else text "")
+            [ (if (checkEmptyName && checkPristineName) then div [class "text-danger"][text "Name is required."] else text "")
+            , (if checkAlreadyUsedName then div [class "text-danger"][text "This name is already used by another property."] else text "")
+            , (if (checkEmptyVal && checkPristineVal)  then div [ class "text-danger"][text "Value is required."] else text "")
+            , (if checkFormatConflict then div [ class "text-danger"][text "The selected format is conflicting with the format of the existing property."] else text "")
             ]
           ]
           else

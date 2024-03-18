@@ -607,23 +607,69 @@ object JsonResponseObjects {
     }
   }
 
+  final case class JRPropertyHierarchyStatus(
+      hasChildTypeConflicts: Boolean,
+      fullHierarchy:         List[JRParentPropertyDetails]
+  )
+
+  @jsonDiscriminator("kind") sealed trait JRParentPropertyDetails {
+    def valueType: String
+  }
+
+  object JRParentPropertyDetails {
+    @jsonHint("global")
+    final case class JRParentGlobalDetails(
+        valueType: String
+    ) extends JRParentPropertyDetails
+    @jsonHint("group")
+    final case class JRParentGroupDetails(
+        name:      String,
+        id:        String,
+        valueType: String
+    ) extends JRParentPropertyDetails
+    @jsonHint("node")
+    final case class JRParentNodeDetails(
+        name:      String,
+        id:        String,
+        valueType: String
+    ) extends JRParentPropertyDetails
+
+    def fromParentProperty(p: ParentProperty): JRParentPropertyDetails = {
+      def serializeValueType(v: ConfigValue): String = v.valueType.name().toLowerCase().capitalize
+      p match {
+        case ParentProperty.Group(name, id, value) =>
+          JRParentGroupDetails(name, id.serialize, serializeValueType(value))
+        case ParentProperty.Node(name, id, value)  =>
+          JRParentNodeDetails(name, id.value, serializeValueType(value))
+        case ParentProperty.Global(value)          =>
+          JRParentGlobalDetails(serializeValueType(value))
+      }
+    }
+  }
+
   // similar to JRGlobalParameter but s/id/name and no changeRequestId
   final case class JRProperty(
-      name:        String,
-      value:       ConfigValue,
-      description: Option[String],
-      inheritMode: Option[InheritMode],
-      provider:    Option[PropertyProvider],
-      hierarchy:   Option[JRPropertyHierarchy],
-      origval:     Option[ConfigValue]
+      name:            String,
+      value:           ConfigValue,
+      description:     Option[String],
+      inheritMode:     Option[InheritMode],
+      provider:        Option[PropertyProvider],
+      hierarchy:       Option[JRPropertyHierarchy],
+      hierarchyStatus: Option[JRPropertyHierarchyStatus],
+      origval:         Option[ConfigValue]
   )
   object JRProperty {
     def fromGroupProp(p: GroupProperty): JRProperty = {
       val desc = if (p.description.trim.isEmpty) None else Some(p.description)
-      JRProperty(p.name, p.value, desc, p.inheritMode, p.provider, None, None)
+      JRProperty(p.name, p.value, desc, p.inheritMode, p.provider, None, None, None)
     }
 
-    def fromNodePropertyHierarchy(prop: NodePropertyHierarchy, renderInHtml: RenderInheritedProperties): JRProperty = {
+    def fromNodePropertyHierarchy(
+        prop:                  NodePropertyHierarchy,
+        hasChildTypeConflicts: Boolean,
+        fullHierarchy:         List[ParentProperty],
+        renderInHtml:          RenderInheritedProperties
+    ): JRProperty = {
       val (parents, origval) = prop.hierarchy.reverse match {
         case Nil  => (None, None)
         case list =>
@@ -641,8 +687,23 @@ object JsonResponseObjects {
           }
           (Some(parents), prop.hierarchy.headOption.map(_.value))
       }
+      val hierarchyStatus    = Some(
+        JRPropertyHierarchyStatus(
+          hasChildTypeConflicts,
+          fullHierarchy.map(JRParentPropertyDetails.fromParentProperty(_))
+        )
+      )
       val desc               = if (prop.prop.description.trim.isEmpty) None else Some(prop.prop.description)
-      JRProperty(prop.prop.name, prop.prop.value, desc, prop.prop.inheritMode, prop.prop.provider, parents, origval)
+      JRProperty(
+        prop.prop.name,
+        prop.prop.value,
+        desc,
+        prop.prop.inheritMode,
+        prop.prop.provider,
+        parents,
+        hierarchyStatus,
+        origval
+      )
     }
   }
 
@@ -683,13 +744,20 @@ object JsonResponseObjects {
 
   object JRGroupInheritedProperties {
     def fromGroup(
-        groupId:      NodeGroupId,
-        properties:   List[NodePropertyHierarchy],
+        groupId:    NodeGroupId,
+        properties: List[
+          (NodePropertyHierarchy, List[ParentProperty], Boolean)
+        ], // parent properties, child properties, has conflicts
         renderInHtml: RenderInheritedProperties
     ): JRGroupInheritedProperties = {
       JRGroupInheritedProperties(
         groupId.serialize,
-        properties.sortBy(_.prop.name).map(JRProperty.fromNodePropertyHierarchy(_, renderInHtml))
+        properties
+          .sortBy(_._1.prop.name)
+          .map {
+            case (parentProperties, childProperties, hasConflicts) =>
+              JRProperty.fromNodePropertyHierarchy(parentProperties, hasConflicts, childProperties, renderInHtml)
+          }
       )
     }
   }
@@ -921,6 +989,8 @@ trait RudderJsonEncoders {
       }
     }
   }
+  implicit val propertyDetailsEncoder:          JsonEncoder[JRParentPropertyDetails]    = DeriveJsonEncoder.gen
+  implicit val propertyHierarchyStatusEncoder:  JsonEncoder[JRPropertyHierarchyStatus]  = DeriveJsonEncoder.gen
   implicit val propertyEncoder:                 JsonEncoder[JRProperty]                 = DeriveJsonEncoder.gen
   implicit val criteriumEncoder:                JsonEncoder[JRCriterium]                = DeriveJsonEncoder.gen
   implicit val queryEncoder:                    JsonEncoder[JRQuery]                    = DeriveJsonEncoder.gen
@@ -936,10 +1006,12 @@ trait RudderJsonEncoders {
 object JsonResponseObjectDecodes extends RudderJsonDecoders {
   import JsonResponseObjects._
 
-  implicit lazy val decodeJRParentProperty:    JsonDecoder[JRParentProperty]    = DeriveJsonDecoder.gen
-  implicit lazy val decodeJRPropertyHierarchy: JsonDecoder[JRPropertyHierarchy] = DeriveJsonDecoder.gen
-  implicit lazy val decodePropertyProvider:    JsonDecoder[PropertyProvider]    = JsonDecoder.string.map(s => PropertyProvider(s))
-  implicit lazy val decodeJRProperty:          JsonDecoder[JRProperty]          = DeriveJsonDecoder.gen
+  implicit lazy val decodeJRParentProperty:          JsonDecoder[JRParentProperty]          = DeriveJsonDecoder.gen
+  implicit lazy val decodeJRPropertyHierarchy:       JsonDecoder[JRPropertyHierarchy]       = DeriveJsonDecoder.gen
+  implicit lazy val decodePropertyProvider:          JsonDecoder[PropertyProvider]          = JsonDecoder.string.map(s => PropertyProvider(s))
+  implicit lazy val decodeJRParentPropertyDetails:   JsonDecoder[JRParentPropertyDetails]   = DeriveJsonDecoder.gen
+  implicit lazy val decodeJRPropertyHierarchyStatus: JsonDecoder[JRPropertyHierarchyStatus] = DeriveJsonDecoder.gen
+  implicit lazy val decodeJRProperty:                JsonDecoder[JRProperty]                = DeriveJsonDecoder.gen
 
   implicit lazy val decodeJRCriterium:           JsonDecoder[JRCriterium]           = DeriveJsonDecoder.gen
   implicit lazy val decodeJRDirectiveSectionVar: JsonDecoder[JRDirectiveSectionVar] = DeriveJsonDecoder.gen
