@@ -112,6 +112,13 @@ $nav-underline-border-width : 0.2rem;
     box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
   }
 }
+
+// --- FORM-CONTROL
+.form-control::placeholder{
+  color: $rudder-txt-secondary;
+  opacity: .8;
+}
+
 // --- FORM-GROUP
 .form-group{
   margin-bottom: 10px;
