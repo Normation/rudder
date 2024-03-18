@@ -1152,7 +1152,7 @@ ul li.hide-method {
   background-color: #d1a9dd;
 }
 
-.method .method-info .method-condition:not(.hidden) ~ div:before,
+.method .method-info .method-condition:not(.visually-hidden) ~ div:before,
 .card-method.active > .method > .method-info.condition > .block-name-container:before,
 .card-method.active > .method > .method-info.condition > .method-details:before,
 .card-method:not(.active) > .method > .method-info.condition .method-condition:before,
@@ -1171,7 +1171,7 @@ ul li.hide-method {
 .card-method.showMethodCall .method .method-info .method-condition{
   padding-left: 10px;
 }
-.method .method-info .method-condition:not(.hidden),
+.method .method-info .method-condition:not(.visually-hidden),
 .method .method-info .method-condition.visually-hidden ~ .method-name{
   padding-top: 25px;
 }
@@ -1655,13 +1655,13 @@ ul li.hide-method {
   background-color:#da291c;
   color: #ffffff;
 }
-.method-info .method-condition:not(.hidden) + .method-name .gm-label-name{
+.method-info .method-condition:not(.visually-hidden) + .method-name .gm-label-name{
   top: -26px;
 }
-.method-info:not(.closed) .method-condition:not(.hidden) + .method-name .gm-label-name{
+.method-info:not(.closed) .method-condition:not(.visually-hidden) + .method-name .gm-label-name{
   top: -40px;
 }
-.method-info.closed .method-condition.hidden + .method-name .gm-label-name{
+.method-info.closed .method-condition.visually-hidden + .method-name .gm-label-name{
   top: -2px;
 }
 .reporting-checkbox {
