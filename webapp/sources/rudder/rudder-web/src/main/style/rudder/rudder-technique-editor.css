@@ -626,7 +626,7 @@ ul.files-list > li {
   position: relative;
   background-color: #fff;
   padding-right: 50px;
-  margin-bottom: 4px;
+  margin-bottom: 10px;
   border-left-width: 0px;
   box-shadow: 0px 5px 4px -3px rgba(0,0,0,.1);
 }
@@ -636,17 +636,28 @@ ul.files-list.parameters > li{
   padding: 0;
 }
 ul.files-list.parameters > li > .param{
-  padding: 10px 10px 10px 12px;
+  padding: 0px 20px 20px;
   flex: 1;
 }
+
 ul.files-list.parameters > li > .param .input-group > label.input-group-text{
   border-left: none;
   border-color: #D6DEEF;
   background: #F8F9FC;
   cursor: pointer;
 }
+ul.files-list.parameters > li > .param > div.form-group {
+  padding-top: 25px;
+}
+
+ul.files-list.parameters > li > .param > div.form-group ~ div.form-group {
+  padding-top: 0px;
+}
+.param .input-group-text span {
+  padding-left:5px;
+}
 ul.files-list > li > .border{
-  background-color: #ccc;
+  background-color: #337ab7;
   opacity: .6;
   position: absolute;
   top: -1px;
