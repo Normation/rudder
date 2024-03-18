@@ -255,7 +255,11 @@ displayModals model =
                                         "none"
                                     )
                                 ]
-                                [ h4 [] [ text "Select tenants for account:" ]
+                                [ if modalUI.displayTenants then
+                                    h4 [] [ text "Select tenants for account:" ]
+
+                                  else
+                                    text ""
                                 , div [ id "tenantapiaccounts-content" ] []
                                 ]
 
@@ -270,7 +274,11 @@ displayModals model =
                                         "none"
                                     )
                                 ]
-                                [ h4 [] [ text "Select ACL for account:" ]
+                                [ if modalUI.displayTenants then
+                                    h4 [] [ text "Select ACL for account:" ]
+
+                                  else
+                                    text ""
                                 , div [ id "apiauthorization-content" ] []
                                 ]
                             ]
