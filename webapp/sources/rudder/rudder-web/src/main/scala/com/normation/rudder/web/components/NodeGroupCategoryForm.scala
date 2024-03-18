@@ -186,7 +186,7 @@ class NodeGroupCategoryForm(
                </div>
                <div class="modal-body">
                  <div class="row">
-                   <div class="col-lg-12">
+                   <div class="col-xl-12">
                      <h4 class="text-center">
                        Are you sure that you want to completely delete this category ?
                      </h4>
@@ -293,7 +293,7 @@ class NodeGroupCategoryForm(
     SetHtml(htmlIdCategory, showForm())
   }
 
-  private[this] def error(msg: String) = <span class="col-xs-12 errors-container">{msg}</span>
+  private[this] def error(msg: String) = <span class="col-sm-12 errors-container">{msg}</span>
 
   private[this] def onSuccess: JsCmd = {
 

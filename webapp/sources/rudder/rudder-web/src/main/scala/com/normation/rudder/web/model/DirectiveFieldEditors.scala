@@ -975,7 +975,7 @@ class FileField(
   def display(xml: String => NodeSeq): Box[NodeSeq] = {
     val formId     = Helpers.nextFuncName
     val valueInput =
-      SHtml.text(toClient, s => parseClient(s), ("class", "form-control input-sm col-xs-12"), ("id", formId + "-fileInput"))
+      SHtml.text(toClient, s => parseClient(s), ("class", "form-control input-sm col-sm-12"), ("id", formId + "-fileInput"))
 
     val form = (".input-group -*" #> valueInput).apply(xml(formId))
     Full(form)

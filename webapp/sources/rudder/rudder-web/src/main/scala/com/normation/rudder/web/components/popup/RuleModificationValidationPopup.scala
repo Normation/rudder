@@ -81,7 +81,7 @@ object RuleModificationValidationPopup extends Loggable {
 
   private def explanationMessages(action: RuleModAction) = {
     <div class="row">
-      <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+      <h4 class="col-xl-12 col-md-12 col-sm-12 text-center">
           Are you sure that you want to {action.name} this Rule?
       </h4>
     </div>
@@ -121,7 +121,7 @@ class RuleModificationValidationPopup(
     val titleWorkflow = validationNeeded match {
       case true  =>
         <h4 class="text-center titleworkflow">Are you sure that you want to {changeRequest.action.name} this rule?</h4>
-          <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Request</h4>
+          <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Request</h4>
           <hr class="css-fix"/>
           <div class="text-center alert alert-info">
             <span class="fa fa-info-circle"></span>
@@ -145,7 +145,7 @@ class RuleModificationValidationPopup(
           <div>
             {
             if (!validationNeeded) {
-              <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
+              <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Audit Log</h4>
             }
           }
               {f.toForm_!}
@@ -193,7 +193,7 @@ class RuleModificationValidationPopup(
 
   private[this] val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
     override def setFilter      = notNull _ :: trim _ :: Nil
-    override def errorClassName = "col-lg-12 errors-container"
+    override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex" -> "1")
     override def validations =
@@ -296,7 +296,7 @@ class RuleModificationValidationPopup(
     if (notifications.isEmpty) NodeSeq.Empty
     else {
       val html = {
-        <div id="notifications" class="alert alert-danger text-center col-lg-12 col-xs-12 col-sm-12" role="alert"><ul class="text-danger">{
+        <div id="notifications" class="alert alert-danger text-center col-xl-12 col-sm-12 col-md-12" role="alert"><ul class="text-danger">{
           notifications.map(n => <li>{n}</li>)
         }</ul></div>
       }

@@ -28,7 +28,7 @@ view model =
     in
       div[]
       [ div [class "row", id "nodeProp"]
-        [ div [ class "col-xs-12" ] [
+        [ div [ class "col-sm-12" ] [
             div [ class "alert alert-info" ] [
                 text "These are node properties that can be used in directive inputs with the "
               , b [ class "code" ] [ text "${node.properties[NAME]}" ]
@@ -36,7 +36,7 @@ view model =
               ]
           ]
         , ( if model.ui.hasNodeWrite then
-          div[class "col-lg-7 col-md-8 col-xs-12 add-prop-form"]
+          div[class "col-xl-7 col-lg-8 col-sm-12 add-prop-form"]
           [ label[for "newPropName"][text "Add a new property:"]
           , table[id "addPropTable"]
             [ tbody[]
@@ -104,7 +104,7 @@ view model =
             div[][]
           )
         -- Properties Table
-        , div [class "col-xs-12 tab-table-content"]
+        , div [class "col-sm-12 tab-table-content"]
           [ div [class "table-header"]
             [ input [type_ "text", placeholder "Filter", class "input-sm form-control", onInput (\s -> UpdateTableFilters {filters | filter = s})][]
             , button [class "btn btn-default", onClick (CallApi getNodeProperties)] [ i [class "fa fa-refresh"][] ]

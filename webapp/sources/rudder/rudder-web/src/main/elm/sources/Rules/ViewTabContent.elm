@@ -141,7 +141,7 @@ informationTab model details =
         div [][]
     ruleForm =
       ( if model.ui.hasWriteRights then
-        Html.form[class "col-xs-12 col-sm-6 col-lg-7"]
+        Html.form[class "col-sm-12 col-md-6 col-xl-7"]
         [ div [class "form-group"]
           [ label[for "rule-name"][text "Name"]
           , div[]
@@ -179,7 +179,7 @@ informationTab model details =
           ]
         ]
         else
-        Html.form [class "col-xs-12 col-sm-6 col-lg-7 readonly-form"]
+        Html.form [class "col-sm-12 col-md-6 col-xl-7 readonly-form"]
         [ div [class "form-group"]
           [ label[for "rule-name"][text "Name"]
           , div[][text rule.name]
@@ -220,7 +220,7 @@ informationTab model details =
     pendingCrWarning = case model.ui.crSettings of
       Just settings ->
         if settings.enableChangeRequest && not (List.isEmpty settings.pendingChangeRequests) then
-          div [class "col-sm-12"]
+          div [class "col-md-12"]
           [ div[class ("callout-fade callout-info callout-cr" ++ if settings.collapsePending then " list-hidden" else ""), id "accordionCR"]
             [ p[]
               [ b[]
@@ -268,7 +268,7 @@ informationTab model details =
     div[class "row"]
     [ pendingCrWarning
     , ruleForm
-    , div [class "col-xs-12 col-sm-6 col-lg-5"][ rightCol ]
+    , div [class "col-sm-12 col-md-6 col-xl-5"][ rightCol ]
     ]
 
 tabContent: Model -> RuleDetails  -> Html Msg
@@ -611,7 +611,7 @@ directivesTab model details =
           Nothing -> (rule.directives == [], [])
       in
         div[class "row flex-container"]
-        [ div[class "list-edit col-xs-12 col-sm-6 col-lg-7"]
+        [ div[class "list-edit col-sm-12 col-md-6 col-xl-7"]
           [ div[class "list-container"]
             [ div[class "list-heading"]
               [ h4[][text "Apply these directives"]
@@ -637,7 +637,7 @@ directivesTab model details =
               )
             ]
           ]
-            , div [class "tree-edit col-xs-12 col-sm-6 col-lg-5"]
+            , div [class "tree-edit col-sm-12 col-md-6 col-xl-5"]
               [ div [class "tree-container"]
                 [ div [class "tree-heading"]
                   [ h4 [][ text "Select directives" ]
@@ -789,7 +789,7 @@ groupsTab model details =
   in
     if not details.ui.editGroups then
       div [class "row lists"]
-      [ div[class "list-edit col-xs-12 col-sm-6"]
+      [ div[class "list-edit col-sm-12 col-md-6"]
         [ div[class "list-container"]
           [ div[class "list-heading"]
             [ h4[][text "Applied to Nodes in any of these Groups"]
@@ -813,7 +813,7 @@ groupsTab model details =
             )
           ]
         ]
-      , div[class "list-edit col-xs-12 col-sm-6"]
+      , div[class "list-edit col-sm-12 col-md-6"]
         [ div[class "list-container"]
           [ div[class "list-heading except"]
             [ h4[][text "Except to Nodes in any of these Groups"]
@@ -908,7 +908,7 @@ groupsTab model details =
           Nothing -> (rule.targets == [], [])
       in
         div[class "row flex-container"]
-        [ div[class "list-edit col-xs-12 col-sm-6 col-lg-7"]
+        [ div[class "list-edit col-sm-12 col-md-6 col-xl-7"]
           [ div[class "list-container"]
             [ div[class "list-heading"]
               [ h4[][text "Apply to Nodes in any of these Groups"]
@@ -949,7 +949,7 @@ groupsTab model details =
               )
             ]
           ]
-        , div [class "tree-edit col-xs-12 col-sm-6 col-lg-5"]
+        , div [class "tree-edit col-sm-12 col-md-6 col-xl-5"]
           [ div [class "tree-container"]
             [ div [class "tree-heading"]
               [ h4 [][ text "Select groups" ]

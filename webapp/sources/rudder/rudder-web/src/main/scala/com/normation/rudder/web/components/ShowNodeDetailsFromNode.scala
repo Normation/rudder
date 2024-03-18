@@ -199,7 +199,7 @@ class ShowNodeDetailsFromNode(
     nodeFactRepo.get(nodeId).toBox match {
       case Full(None) =>
         (<ul id="NodeDetailsTabMenu" class="nav nav-underline"></ul>
-          <div class="col-xs-12">
+          <div class="col-sm-12">
             <div class="info-card critical">
               <div class="card-info">
                 <h4><span>Node not found</span> <i class="info-icon ion ion-alert-circled"></i></h4>

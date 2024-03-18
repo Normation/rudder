@@ -52,7 +52,7 @@ displayHooksList root categories =
             )
           ]
   in
-    ul[class "hooks-list col-lg-8"](List.map (\k -> displayCategory k) kindList)
+    ul[class "hooks-list col-xl-8"](List.map (\k -> displayCategory k) kindList)
 
 displayNavList : List Category -> Html Msg
 displayNavList categories =

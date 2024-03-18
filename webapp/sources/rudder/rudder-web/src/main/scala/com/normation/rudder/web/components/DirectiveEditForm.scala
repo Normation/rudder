@@ -207,8 +207,8 @@ class DirectiveEditForm(
 
     val versionSelect               = if (isADirectiveCreation) {
       <div id="version" class="row wbBaseField form-group">
-        <label for="version" class="col-xs-12 wbBaseFieldLabel"><span class="text-fit"><b>Technique version</b></span></label>
-        <div  class="col-xs-12"><input  name="version" class="form-control" readonly="" value={
+        <label for="version" class="col-sm-12 wbBaseFieldLabel"><span class="text-fit"><b>Technique version</b></span></label>
+        <div  class="col-sm-12"><input  name="version" class="form-control" readonly="" value={
         directive.techniqueVersion.serialize
       }/></div>
       </div>
@@ -457,8 +457,8 @@ class DirectiveEditForm(
   private[this] val directiveName = new WBTextField("Name", directive.name) {
     override def setFilter             = notNull _ :: trim _ :: Nil
     override def className             = "form-control"
-    override def labelClassName        = "col-xs-12"
-    override def subContainerClassName = "col-xs-12"
+    override def labelClassName        = "col-sm-12"
+    override def subContainerClassName = "col-sm-12"
     override def errorClassName        = ""
     override def validations           =
       valMinLen(1, "Name must not be empty") _ :: Nil
@@ -467,8 +467,8 @@ class DirectiveEditForm(
   private[this] val directiveShortDescription = {
     new WBTextField("Short description", directive.shortDescription) {
       override def className             = "form-control"
-      override def labelClassName        = "col-xs-12"
-      override def subContainerClassName = "col-xs-12"
+      override def labelClassName        = "col-sm-12"
+      override def subContainerClassName = "col-sm-12"
       override def setFilter             = notNull _ :: trim _ :: Nil
       override val maxLen                = 255
       override def validations           = Nil
@@ -534,8 +534,8 @@ class DirectiveEditForm(
         </div>
       }
       override def className             = "form-select"
-      override def labelClassName        = "col-xs-12"
-      override def subContainerClassName = "col-xs-12"
+      override def labelClassName        = "col-sm-12"
+      override def subContainerClassName = "col-sm-12"
     }
   }
 
@@ -626,7 +626,7 @@ class DirectiveEditForm(
       override def setFilter             = notNull _ :: trim _ :: Nil
       override def className             = "checkbox-group policymode-group"
       override def labelClassName        = "visually-hidden"
-      override def subContainerClassName = "col-xs-12"
+      override def subContainerClassName = "col-sm-12"
     }
   }
 
@@ -649,7 +649,7 @@ class DirectiveEditForm(
 
       override def className = "form-select"
 
-      override def labelClassName = "col-xs-12 text-bold"
+      override def labelClassName = "col-sm-12 text-bold"
 
       override def subContainerClassName = "version-group"
     }

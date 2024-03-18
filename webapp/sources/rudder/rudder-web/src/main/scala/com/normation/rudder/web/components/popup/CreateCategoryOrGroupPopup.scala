@@ -130,7 +130,7 @@ class CreateCategoryOrGroupPopup(
       & "item-itemreason" #> {
         piReasons.map { f =>
           <div>
-            <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
+            <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Audit Log</h4>
             {f.toForm_!}
           </div>
         }
@@ -151,7 +151,7 @@ class CreateCategoryOrGroupPopup(
   ///////////// fields for category settings ///////////////////
   private[this] val piName = new WBTextField("Name", "") {
     override def setFilter      = notNull _ :: trim _ :: Nil
-    override def errorClassName = "col-lg-12 errors-container"
+    override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createCOGSaveButton')") % ("tabindex" -> "2") % ("autofocus" -> "true")
     override def validations =
@@ -161,7 +161,7 @@ class CreateCategoryOrGroupPopup(
   private[this] val piDescription = new WBTextAreaField("Description", "") {
     override def setFilter      = notNull _ :: trim _ :: Nil
     override def inputField     = super.inputField % ("style" -> "height:5em") % ("tabindex" -> "4")
-    override def errorClassName = "col-lg-12 errors-container"
+    override def errorClassName = "col-xl-12 errors-container"
     override def validations    = Nil
 
   }
@@ -183,7 +183,7 @@ class CreateCategoryOrGroupPopup(
   ) {
     override def setFilter      = notNull _ :: trim _ :: Nil
     override def className      = "align-radio-generate-input"
-    override def errorClassName = "col-lg-12 errors-container"
+    override def errorClassName = "col-xl-12 errors-container"
     override def inputField     = super.inputField % ("onkeydown" -> "return processKey(event , 'createCOGSaveButton')")
     override def validations    =
       valMinLen(1, "Please choose a group type.") _ :: Nil
@@ -204,7 +204,7 @@ class CreateCategoryOrGroupPopup(
     ) {
       override def setFilter      = notNull _ :: trim _ :: Nil
       override def className      = "align-radio-generate-input"
-      override def errorClassName = "col-lg-12 errors-container"
+      override def errorClassName = "col-xl-12 errors-container"
       override def inputField     = super.inputField % ("onkeydown" -> "return processKey(event , 'createCOGSaveButton')")
       override def validations    =
         valMinLen(1, "Please choose between group or category.") _ :: Nil
@@ -216,8 +216,8 @@ class CreateCategoryOrGroupPopup(
     (categoryHierarchyDisplayer.getCategoriesHierarchy(rootCategory, None).map { case (id, name) => (id.value -> name) }),
     selectedCategory.map(_.value).getOrElse("")
   ) {
-    override def errorClassName = "col-lg-12 errors-container"
-    override def className      = "col-lg-12 col-sm-12 col-xs-12 form-select"
+    override def errorClassName = "col-xl-12 errors-container"
+    override def className      = "col-xl-12 col-md-12 col-sm-12 form-select"
     override def inputField     =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createCOGSaveButton')") % ("tabindex" -> "3")
     override def validations =
@@ -323,7 +323,7 @@ class CreateCategoryOrGroupPopup(
       override def setFilter  = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField %
         ("style" -> "height:5em;") % ("placeholder" -> { userPropertyService.reasonsFieldExplanation })
-      override def errorClassName = "col-lg-12 errors-container"
+      override def errorClassName = "col-xl-12 errors-container"
       override def validations    = {
         if (mandatory) {
           valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
@@ -345,7 +345,7 @@ class CreateCategoryOrGroupPopup(
     if (notifications.isEmpty) NodeSeq.Empty
     else {
       val html = {
-        <div id="notifications" class="alert alert-danger text-center col-lg-12 col-xs-12 col-sm-12" role="alert"><ul class="text-danger">{
+        <div id="notifications" class="alert alert-danger text-center col-xl-12 col-sm-12 col-md-12" role="alert"><ul class="text-danger">{
           notifications.map(n => <li>{n}</li>)
         }</ul></div>
       }

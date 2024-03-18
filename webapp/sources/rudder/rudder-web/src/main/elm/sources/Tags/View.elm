@@ -51,7 +51,7 @@ displayTags newTag tags addAction removeAction editForm isFilter filterTags =
           )
         ]
   in
-    div [class ("tags-container form-group row col-xs-12" ++ (if List.isEmpty tags then " noTags" else ""))]
+    div [class ("tags-container form-group row col-sm-12" ++ (if List.isEmpty tags then " noTags" else ""))]
     ( tags |> List.map displayTag )
 
 displayTagForm : Tag -> List Tag -> List CompletionValue -> List CompletionValue -> (Completion -> Tag -> msg) -> (Action -> List Tag -> msg) -> Bool -> Html msg
@@ -60,10 +60,10 @@ displayTagForm newTag tags completionKeys completionValues updateAction addActio
     alreadyExist = List.member newTag tags
   in
     div [class "form-group"]
-    [ label [for "newTagKey", class "col-xs-12 row"]
+    [ label [for "newTagKey", class "col-sm-12 row"]
       [ span [][ text "Tags" ]
       ]
-    , div [class "input-group input-sm col-xs-6"]
+    , div [class "input-group input-sm col-sm-6"]
       [ input [id "newTagKey", class "form-control input-key", list "completion-key-list", placeholder "key", value newTag.key, onInput (\s -> (updateAction Key {newTag | key = s}))][]
       , datalist [id "completion-key-list"]
         ( List.map (\c -> option[value c.value][]) completionKeys )

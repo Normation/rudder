@@ -151,7 +151,7 @@ class TechniqueEditForm(
           "#deleteItemDependencies *" #> dialogDeleteTree("deleteItemDependencies", activeTechnique) &
           ".reasonsFieldset" #> {
             crReasonsDisablePopup.map { f =>
-              "#explanationMessage" #> <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4> &
+              "#explanationMessage" #> <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Audit Log</h4> &
               "#reasonsField" #> f.toForm_!
             }
           } &
@@ -172,7 +172,7 @@ class TechniqueEditForm(
           "#disableItemDependencies *" #> dialogDisableTree("disableItemDependencies", activeTechnique) &
           ".reasonsFieldset" #> {
             crReasonsDisablePopup.map { f =>
-              "#explanationMessage" #> <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4> &
+              "#explanationMessage" #> <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Audit Log</h4> &
               "#reasonsField" #> f.toForm_!
             }
           } &
@@ -200,7 +200,7 @@ class TechniqueEditForm(
               "#dialogdisableWarning" #> dialogDisableWarning(activeTechnique) &
               ".reasonsFieldset" #> {
                 crReasonsDisablePopup.map { f =>
-                  "#explanationMessage" #> <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4> &
+                  "#explanationMessage" #> <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Audit Log</h4> &
                   "#reasonsField" #> f.toForm_!
                 }
               }

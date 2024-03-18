@@ -101,7 +101,7 @@ class CreateOrCloneRulePopup(
         & "item-itemreason" #> {
           reason.map { f =>
             <div>
-            <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
+            <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Audit Log</h4>
             {f.toForm_!}
         </div>
 
@@ -146,7 +146,7 @@ class CreateOrCloneRulePopup(
       override def inputField     = super.inputField % ("style" -> "height:5em;") % ("tabindex" -> "3") % ("placeholder" -> {
         userPropertyService.reasonsFieldExplanation
       })
-      override def errorClassName = "col-lg-12 errors-container"
+      override def errorClassName = "col-xl-12 errors-container"
       override def validations    = {
         if (mandatory) {
           valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
@@ -159,7 +159,7 @@ class CreateOrCloneRulePopup(
 
   private[this] val ruleName = new WBTextField("Name", clonedRule.map(r => "Copy of <%s>".format(r.name)).getOrElse("")) {
     override def setFilter      = notNull _ :: trim _ :: Nil
-    override def errorClassName = "col-lg-12 errors-container"
+    override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createCRSaveButton')") % ("tabindex" -> "1")
     override def validations =
@@ -169,7 +169,7 @@ class CreateOrCloneRulePopup(
   private[this] val ruleShortDescription = new WBTextAreaField("Description", clonedRule.map(_.shortDescription).getOrElse("")) {
     override def setFilter      = notNull _ :: trim _ :: Nil
     override def inputField     = super.inputField % ("style" -> "height:7em") % ("tabindex" -> "2")
-    override def errorClassName = "col-lg-12 errors-container"
+    override def errorClassName = "col-xl-12 errors-container"
     override def validations    = Nil
 
   }
@@ -180,7 +180,7 @@ class CreateOrCloneRulePopup(
       categoryHierarchyDisplayer.getRuleCategoryHierarchy(rootRuleCategory, None).map { case (id, name) => (id.value -> name) },
       selectedCategory.value
     ) {
-      override def className   = "form-select col-lg-12 col-sm-12 col-xs-12"
+      override def className   = "form-select col-xl-12 col-md-12 col-sm-12"
       override def validations =
         valMinLen(1, "Please select a category") _ :: Nil
     }
@@ -190,7 +190,7 @@ class CreateOrCloneRulePopup(
 
   private[this] var notifications = List.empty[NodeSeq]
 
-  private[this] def error(msg: String) = <span class="col-lg-12 errors-container">{msg}</span>
+  private[this] def error(msg: String) = <span class="col-xl-12 errors-container">{msg}</span>
 
   private[this] def closePopup(): JsCmd = {
     JsRaw("""hideBsModal('createRulePopup');""")
@@ -255,7 +255,7 @@ class CreateOrCloneRulePopup(
     if (notifications.isEmpty) NodeSeq.Empty
     else {
       val html = {
-        <div id="notifications" class="alert alert-danger text-center col-lg-12 col-xs-12 col-sm-12" role="alert"><ul class="text-danger">{
+        <div id="notifications" class="alert alert-danger text-center col-xl-12 col-sm-12 col-md-12" role="alert"><ul class="text-danger">{
           notifications.map(n => <li>{n}</li>)
         }</ul></div>
       }

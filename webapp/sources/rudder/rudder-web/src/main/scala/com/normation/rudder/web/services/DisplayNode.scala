@@ -608,7 +608,7 @@ object DisplayNode extends Loggable {
     <div id="nodeDetails">
       {globalScoreApp ++ complianceScoreApp ++ systemUpdateApp}
       <div class="row">
-        <div class="rudder-info col-lg-6 col-sm-7 col-xs-12">
+        <div class="rudder-info col-xl-6 col-md-7 col-sm-12">
           {nodeApp}
           <h3>Rudder information</h3>
           <div>
@@ -702,7 +702,7 @@ object DisplayNode extends Loggable {
 
         </div>
 
-        <div class="status-info col-lg-6 col-sm-5 col-xs-12">
+        <div class="status-info col-xl-6 col-md-5 col-sm-12">
           <h3>Monitoring</h3>
           <div>
             <label>Inventory created (node local time):</label>  {
@@ -796,12 +796,12 @@ object DisplayNode extends Loggable {
     <div id={htmlId(jsId, "sd_" + eltName + "_")} class="sInventory tab-pane">{
       optSeq match {
         case Empty                                           =>
-          <div class="col-xs-12 alert alert-warning">
+          <div class="col-sm-12 alert alert-warning">
             <span>No matching components detected on this node</span>
           </div>
         case Failure(m, _, _)                                => <span class="error">Error when trying to fetch file systems. Reported message: {m}</span>
         case Full(seq) if (seq.isEmpty && eltName != "soft") =>
-          <div class="col-xs-12 alert alert-warning">
+          <div class="col-sm-12 alert alert-warning">
             <span>No matching components detected on this node</span>
           </div>
         case Full(seq)                                       =>

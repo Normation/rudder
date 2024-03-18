@@ -365,7 +365,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
         // We want to fold categories if there are more than 11 (10 + 1 taking into account the hidden root node)
         val foldCategories = lib.allCategories.size > 11
         (
-          <div id={htmlId_groupTree} class="col-xs-12">
+          <div id={htmlId_groupTree} class="col-sm-12">
           <ul>{
             DisplayNodeGroupTree.displayTree(
               lib,

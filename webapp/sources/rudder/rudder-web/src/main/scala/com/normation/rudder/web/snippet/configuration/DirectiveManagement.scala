@@ -175,7 +175,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    */
   def displayDirectiveLibrary(): NodeSeq = {
     (
-      <div id={htmlId_activeTechniquesTree} class="col-xs-12">{
+      <div id={htmlId_activeTechniquesTree} class="col-sm-12">{
         (directiveLibrary.toBox, rules.toBox, configService.rudder_global_policy_mode().toBox) match {
           case (Full(activeTechLib), Full(allRules), Full(globalMode)) =>
             val usedDirectives = allRules.flatMap {
@@ -472,7 +472,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private[this] def showDirectiveDetails(): NodeSeq = {
     currentDirectiveSettingForm.get match {
       case Failure(m, ex, _) =>
-        <div id={htmlId_policyConf} class="col-md-offset-2 col-md-8" style="margin-top:50px">
+        <div id={htmlId_policyConf} class="col-lg-offset-2 col-lg-8" style="margin-top:50px">
           <h4 class="text-warning">An error happened when trying to load directive configuration.</h4>
           <div class="bs-callout bs-callout-danger">
             <strong>Error message was:</strong>
