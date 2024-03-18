@@ -93,7 +93,7 @@ view model =
         Maybe.Extra.filter (\_ -> model.ruleTree /= emptyCategory) treeItem
   
   in 
-    div [class "shadow-none col-6 col-md-8 col-lg-7"]
+    div [class "shadow-none col-6 col-lg-8 col-xl-7"]
     [ div [class "template-main-header"]
       [ div [class "header-title"]
         [ label[][text "Related rules tree"]

@@ -358,7 +358,7 @@ showTechnique model technique origin ui editInfo =
               ]
             ]
           , if (editInfo.open) then
-              div [class "col-xs-12"]
+              div [class "col-sm-12"]
               [ textarea
                 [ -- to deactivate plugin "Grammarly" or "Language Tool" from
                   -- adding HTML that make disapear textarea (see  https://issues.rudder.io/issues/21172)

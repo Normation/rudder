@@ -151,8 +151,8 @@ class RuleCategoryPopup(
 
   private[this] val categoryName = new WBTextField("Name", targetCategory.map(_.name).getOrElse("")) {
     override def setFilter             = notNull _ :: trim _ :: Nil
-    override def subContainerClassName = "col-lg-9 col-sm-12 col-xs-12"
-    override def errorClassName        = "col-lg-12 errors-container"
+    override def subContainerClassName = "col-xl-9 col-md-12 col-sm-12"
+    override def errorClassName        = "col-xl-12 errors-container"
     override def inputField            =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createRuleCategorySaveButton')") % ("tabindex" -> "2")
     override def validations =
@@ -160,10 +160,10 @@ class RuleCategoryPopup(
   }
 
   private[this] val categoryDescription = new WBTextAreaField("Description", targetCategory.map(_.description).getOrElse("")) {
-    override def subContainerClassName = "col-lg-9 col-sm-12 col-xs-12"
+    override def subContainerClassName = "col-xl-9 col-md-12 col-sm-12"
     override def setFilter             = notNull _ :: trim _ :: Nil
     override def inputField            = super.inputField % ("tabindex" -> "4")
-    override def errorClassName        = "col-lg-12 errors-container"
+    override def errorClassName        = "col-xl-12 errors-container"
     override def validations           = Nil
 
   }
@@ -176,9 +176,9 @@ class RuleCategoryPopup(
       categoryHierarchyDisplayer.getRuleCategoryHierarchy(categories, None).map { case (id, name) => (id.value -> name) },
       parentCategory.getOrElse(selectedCategory.value)
     ) {
-      override def subContainerClassName = "col-lg-9 col-sm-12 col-xs-12"
+      override def subContainerClassName = "col-xl-9 col-md-12 col-sm-12"
       override def inputField            = super.inputField % ("tabindex" -> "3")
-      override def className             = "col-lg-12 col-sm-12 col-xs-12 form-select"
+      override def className             = "col-xl-12 col-md-12 col-sm-12 form-select"
       override def validations           =
         valMinLen(1, "Please select a category") _ :: Nil
     }
@@ -188,7 +188,7 @@ class RuleCategoryPopup(
 
   private[this] var notifications = List.empty[NodeSeq]
 
-  private[this] def error(msg: String) = <span class="col-lg-12 errors-container">{msg}</span>
+  private[this] def error(msg: String) = <span class="col-xl-12 errors-container">{msg}</span>
 
   private[this] def closePopup(): JsCmd = {
     JsRaw("""hideBsModal('createRuleCategoryPopup');""")
@@ -278,7 +278,7 @@ class RuleCategoryPopup(
     if (notifications.isEmpty) NodeSeq.Empty
     else {
       val html = {
-        <div id="notifications" class="alert alert-danger text-center col-lg-12 col-xs-12 col-sm-12" role="alert"><ul class="text-danger">{
+        <div id="notifications" class="alert alert-danger text-center col-xl-12 col-sm-12 col-md-12" role="alert"><ul class="text-danger">{
           notifications.map(n => <li>{n}</li>)
         }</ul></div>
       }

@@ -781,7 +781,7 @@ class NodeGroupForm(
             case None      => popup.popupContent()
             case Some(msg) =>
               val cssSel: CssSel = "#explanationMessageZone *+" #>
-                <div id="dialogSubgroupWarning" class="col-lg-12 col-sm-12 col-xs-12 alert alert-warning text-center">
+                <div id="dialogSubgroupWarning" class="col-xl-12 col-md-12 col-sm-12 alert alert-warning text-center">
                   This group is used as a subgroups of group {msg}. If you delete it, they will be impacted.
                 </div>
 

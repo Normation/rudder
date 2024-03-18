@@ -83,7 +83,7 @@ class GiveReasonPopup(
       (
         "item-reason" #> crReasons.map { f =>
           <div>
-            <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
+            <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Audit Log</h4>
             {f.toForm_!}
          </div>
         }
@@ -130,7 +130,7 @@ class GiveReasonPopup(
     new FormTracker(fields)
   }
 
-  private[this] def error(msg: String) = <span class="col-lg-12 errors-container">{msg}</span>
+  private[this] def error(msg: String) = <span class="col-xl-12 errors-container">{msg}</span>
 
   private[this] def closePopup(): JsCmd = {
     JsRaw("""hideBsModal('createActiveTechniquePopup');""")

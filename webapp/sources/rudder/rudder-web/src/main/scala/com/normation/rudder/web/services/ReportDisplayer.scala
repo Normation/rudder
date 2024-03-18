@@ -371,7 +371,7 @@ class ReportDisplayer(
   ): NodeSeq = {
     val boxXml = (if (node.rudderSettings.state == NodeState.Ignored) {
                     Full(
-                      <div><div class="col-sm-3"><p class="center alert alert-info" style="padding: 25px; margin:5px;">This node is disabled.</p></div></div>
+                      <div><div class="col-md-3"><p class="center alert alert-info" style="padding: 25px; margin:5px;">This node is disabled.</p></div></div>
                     )
                   } else {
                     for {

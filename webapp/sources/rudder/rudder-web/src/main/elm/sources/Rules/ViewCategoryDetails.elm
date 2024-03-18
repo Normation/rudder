@@ -45,7 +45,7 @@ editionTemplateCat model details =
        Just cat -> text cat.name
     categoryForm =
       if writeRights then
-        form[class "col-xs-12 col-sm-6 col-lg-7", onSubmit Ignore]
+        form[class "col-sm-12 col-md-6 col-xl-7", onSubmit Ignore]
         [ div [class "form-group"]
           [ label[for "category-name"][text "Name"]
           , div[]
@@ -65,7 +65,7 @@ editionTemplateCat model details =
           ]
         ]
       else
-        form[class "col-xs-12 col-sm-6 col-lg-7 readonly-form", onSubmit Ignore]
+        form[class "col-sm-12 col-md-6 col-xl-7 readonly-form", onSubmit Ignore]
         [ div [class "form-group"]
           [ label[for "category-name"][text "Name"]
           , div[][text category.name]
@@ -84,7 +84,7 @@ editionTemplateCat model details =
       if(details.tab == Information) then
         div[class "row"]
         [ categoryForm
-        , div [class "col-xs-12 col-sm-6 col-lg-5"][] -- <== Right column
+        , div [class "col-sm-12 col-md-6 col-xl-5"][] -- <== Right column
         ]
       else
         div [class "main-table"]

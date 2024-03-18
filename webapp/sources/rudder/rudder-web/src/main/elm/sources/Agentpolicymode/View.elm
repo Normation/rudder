@@ -141,7 +141,7 @@ view model =
         ]
       ]
       else
-      div [class "col-xs-12 policymode-group readonly"]
+      div [class "col-sm-12 policymode-group readonly"]
       [ label[][text "Policy mode:"]
        , policyModeLabel model.currentSettings.policyMode
       ]
