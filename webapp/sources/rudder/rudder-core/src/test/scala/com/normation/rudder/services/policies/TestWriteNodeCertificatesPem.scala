@@ -53,6 +53,7 @@ import org.junit.runner.RunWith
 import org.slf4j.LoggerFactory
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+import zio._
 
 @RunWith(classOf[JUnitRunner])
 class TestWriteNodeCertificatesPem extends Specification {
@@ -181,11 +182,10 @@ class TestWriteNodeCertificatesPem extends Specification {
     // exec
     writer.writeCerticatesAsync(dest, nodes)
 
-    Thread.sleep(100)
-
-    val output = new String(os.toByteArray, StandardCharsets.UTF_8)
-
-    (output must beMatching("""(?s).*Unexpected: Error when executing reload command.*code: -2147483648.*""".r)) and
-    (dest.contentAsString(StandardCharsets.UTF_8) must beEqualTo(cert1 + "\n" + cert2 + "\n"))
+    (new String(os.toByteArray, StandardCharsets.UTF_8) must beMatching(
+      """(?s).*Unexpected: Error when executing reload command.*code: -2147483648.*""".r
+    )
+      .eventually(10, 100.millis.asScala)) and
+    (dest.contentAsString(StandardCharsets.UTF_8) must beEqualTo(cert1 + "\n" + cert2 + "\n").eventually(10, 100.millis.asScala))
   }
 }
