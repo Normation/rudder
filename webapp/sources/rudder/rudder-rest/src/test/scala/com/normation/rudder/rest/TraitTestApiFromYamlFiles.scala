@@ -181,15 +181,18 @@ trait TraitTestApiFromYamlFiles extends Specification with BoxSpecMatcher with J
     // file are copier directly into destDir
     def copyTransform(orig: Path, destDir: File): IOResult[(String, IOManaged[InputStream])] = {
       // for now, nothing more
-      val name = orig.getFileName.toString
-      val dest = destDir / name
-      for {
-        f <- IOResult
-               .attempt(Resource.asString(orig.toString).map(s => dest.write(transform(name, s))))
-               .notOptional(s"Missing source file: ${orig}")
-      } yield {
-        (name, ZIO.acquireRelease(IOResult.attempt(f.newInputStream))(is => effectUioUnit(is.close())))
-      }
+      val name         = orig.getFileName.toString
+      val dest         = destDir / name
+      val emptyManaged = IOManaged.make("".inputStream)(is => effectUioUnit(is.close()))
+
+      IOResult
+        .attempt(Resource.asString(orig.toString).map(s => dest.write(transform(name, s))))
+        .option
+        .flatMap {
+          case Some(Some(f)) =>
+            (name, ZIO.acquireRelease(IOResult.attempt(f.newInputStream))(is => effectUioUnit(is.close()))).succeed
+          case _             => effectUioUnit(println(s"Ignoring missing file: ${orig}")) *> (name, emptyManaged).succeed
+        }
     }
 
     // the list anyref here is Yaml objects

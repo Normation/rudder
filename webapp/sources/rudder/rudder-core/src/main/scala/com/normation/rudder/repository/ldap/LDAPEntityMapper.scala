@@ -1144,6 +1144,7 @@ class LDAPEntityMapper(
     mod.resetValuesTo(A_DESCRIPTION, principal.description)
     mod.resetValuesTo(A_IS_ENABLED, principal.isEnabled.toLDAPString)
     mod.resetValuesTo(A_API_KIND, principal.kind.kind.name)
+    mod.resetValuesTo(A_API_TENANT, principal.tenants.serialize)
 
     principal.kind match {
       case ApiAccountKind.PublicApi(authz, exp) =>
