@@ -96,7 +96,7 @@ class CreateActiveTechniqueCategoryPopup(
 ///////////// fields for category settings ///////////////////
   private[this] val categoryName = new WBTextField("Name", "") {
     override def setFilter      = notNull _ :: trim _ :: Nil
-    override def errorClassName = "col-lg-12 errors-container"
+    override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createATCSaveButton')") % ("tabindex" -> "1")
     override def validations =
@@ -105,15 +105,15 @@ class CreateActiveTechniqueCategoryPopup(
 
   private[this] val categoryDescription = new WBTextAreaField("Description", "") {
     override def setFilter      = notNull _ :: trim _ :: Nil
-    override def inputField     = super.inputField % ("class" -> "form-control col-lg-12 col-sm-12 col-xs-12") % ("tabindex" -> "2")
-    override def errorClassName = "col-lg-12 errors-container"
+    override def inputField     = super.inputField % ("class" -> "form-control col-xl-12 col-md-12 col-sm-12") % ("tabindex" -> "2")
+    override def errorClassName = "col-xl-12 errors-container"
     override def validations    = Nil
 
   }
 
   private[this] val categoryContainer = {
     new WBSelectField("Parent category: ", (categories.getOrElse(Seq()).map(x => (x.id.value -> x.name))), "") {
-      override def className   = "form-select col-lg-12 col-sm-12 col-xs-12"
+      override def className   = "form-select col-xl-12 col-md-12 col-sm-12"
       override def validations =
         valMinLen(1, "Please select a category") _ :: Nil
     }
@@ -182,7 +182,7 @@ class CreateActiveTechniqueCategoryPopup(
     if (notifications.isEmpty) NodeSeq.Empty
     else {
       val html = {
-        <div id="notifications" class="alert alert-danger text-center col-lg-12 col-xs-12 col-sm-12" role="alert"><ul class="text-danger">{
+        <div id="notifications" class="alert alert-danger text-center col-xl-12 col-sm-12 col-md-12" role="alert"><ul class="text-danger">{
           notifications.map(n => <li>{n}</li>)
         }</ul></div>
       }

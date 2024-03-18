@@ -259,7 +259,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
                 </div>
                 <div class="modal-body">
                     <div class="row space-bottom">
-                        <div class="col-lg-12">
+                        <div class="col-xl-12">
                             <h4 class="text-center">
                                 Policy update process was stopped due to an error:
                             </h4>
@@ -287,7 +287,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
           </div>
           <div class="modal-body">
             <div class="row space-bottom">
-              <div class="col-lg-12">
+              <div class="col-xl-12">
                 <h4 class="text-center">
                   Are you sure that you want to regenerate all policies ?
                 </h4>

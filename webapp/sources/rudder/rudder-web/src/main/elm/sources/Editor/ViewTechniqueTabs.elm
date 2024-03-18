@@ -65,13 +65,13 @@ techniqueParameter model technique param opened =
 
     (invalidParamClass, invalidParamElem) =
       if (Regex.contains ((Regex.fromString >> Maybe.withDefault Regex.never) "[^_a-zA-Z\\d]") param.name) then
-        ("error",  ul [class "row"] [ li [ class "text-danger col-sm-8" ] [ text "The variable name is invalid, only alphanumerical characters and _ are accepted" ] ] )
+        ("error",  ul [class "row"] [ li [ class "text-danger col-md-8" ] [ text "The variable name is invalid, only alphanumerical characters and _ are accepted" ] ] )
       else
         ("", text "")
 
     (invalidNameClass, invalidNameElem) =
       if (String.isEmpty param.description) then
-        ("error",  ul [class "row"] [ li [ class "text-danger col-sm-8" ] [ text "Parameter name cannot be empty" ] ] )
+        ("error",  ul [class "row"] [ li [ class "text-danger col-md-8" ] [ text "Parameter name cannot be empty" ] ] )
       else
         ("", text "")
 
@@ -224,11 +224,11 @@ techniqueTab model technique creation ui =
   case ui.tab of
     General -> div [ class "tab tab-general" ] [
                          div [ class "row form-group", style "margin-top" "15px" ] [
-                           label [ for "techniqueName", class "col-xs-12" ]
+                           label [ for "techniqueName", class "col-sm-12" ]
                            [ text "Name"
                            , span [class "mandatory-param"] [text " *"]
                            ]
-                         , div  [ class "col-sm-8" ] [
+                         , div  [ class "col-md-8" ] [
                              input [readonly (not model.hasWriteRights), type_ "text" , id "techniqueName",  name "name",  class ("form-control" ++ classErrorName) , placeholder "Technique name", value technique.name
                               , onInput (\newName -> UpdateTechnique {technique | name = newName, id = TechniqueId(if creation then canonifyHelper (Value (String.toLower newName)) else technique.id.value) })
                               ] []
@@ -237,53 +237,53 @@ techniqueTab model technique creation ui =
                              InvalidState errors -> ul []
                                                       (List.map (
                                                         \err -> case err of
-                                                          AlreadyTakenName -> li [ class "text-danger col-sm-8" ] [ text "Technique name must be unique" ]
-                                                          EmptyName -> li [ class "text-danger col-sm-8" ] [ text "Technique name is required" ]
+                                                          AlreadyTakenName -> li [ class "text-danger col-md-8" ] [ text "Technique name must be unique" ]
+                                                          EmptyName -> li [ class "text-danger col-md-8" ] [ text "Technique name is required" ]
                                                       ) errors)
                              _ -> text ""
                          ]
                        , div [ class "row form-group" ] [
-                             label [ for "techniqueDescription", class "col-xs-12 control-label" ] [ text "Description"  ]
-                           , div  [ class "col-sm-8" ] [
+                             label [ for "techniqueDescription", class "col-sm-12 control-label" ] [ text "Description"  ]
+                           , div  [ class "col-md-8" ] [
                                input [readonly (not model.hasWriteRights), type_ "text" , id "techniqueDescription",  name "description",  class ("form-control") , placeholder "Technique description", value technique.description
                                  , onInput (\newDesc -> UpdateTechnique {technique | description = newDesc })
                                ] []
                              ]
                          ]
                        , div [ class "row form-group" ] [
-                           label [ for "techniqueDocumentation", class "col-xs-12 control-label" ] [
+                           label [ for "techniqueDocumentation", class "col-sm-12 control-label" ] [
                              span [ class "text-fit" ] [ text "Documentation" ]
                            , img  [ class "markdown-icon tooltip-icon popover-bs",  src ( model.contextPath ++ "/images/markdown-mark-solid.svg" ) ] []
                            ]
-                         , div [ class "col-sm-8" ] [
+                         , div [ class "col-md-8" ] [
                              textarea [  readonly (not model.hasWriteRights), name "documentation",  class "form-control technique-description", id "techniqueDocumentation", rows  4, value technique.documentation, placeholder "Documentation"
                              , onInput (\desc -> UpdateTechnique {technique | documentation = desc })
                              ] []
                            ]
                          ]
                        , div [ class "row form-group" ] [
-                           label [ for "bundleName", class "col-xs-12 control-label"] [ text "Technique ID" ]
-                         , div [ class "col-sm-8" ] [
+                           label [ for "bundleName", class "col-sm-12 control-label"] [ text "Technique ID" ]
+                         , div [ class "col-md-8" ] [
                              input [ readonly True,  id "bundleName", name "bundle_name", class ("form-control" ++ classErrorInputId), value technique.id.value ] [] -- bundlename ng-model="selectedTechnique.bundle_name" ng-maxlength="252" ng-pattern="/^[^_].*$/">
                            ]
                          , case ui.idState of
                              InvalidState errors -> ul []
                                                       (List.map (
                                                         \err -> case err of
-                                                          TooLongId -> li [ class "text-danger col-sm-8" ] [text "Technique IDs longer than 255 characters won't work on most filesystems." ]
-                                                          AlreadyTakenId -> li [ class "text-danger col-sm-8" ] [ text "Technique ID must be unique." ]
-                                                          InvalidStartId -> li [ class "text-danger col-sm-8"] [ text "Technique ID should start with an alphanumeric character." ]
+                                                          TooLongId -> li [ class "text-danger col-md-8" ] [text "Technique IDs longer than 255 characters won't work on most filesystems." ]
+                                                          AlreadyTakenId -> li [ class "text-danger col-md-8" ] [ text "Technique ID must be unique." ]
+                                                          InvalidStartId -> li [ class "text-danger col-md-8"] [ text "Technique ID should start with an alphanumeric character." ]
                                                       ) errors)
                              _ -> if String.length technique.id.value > 100 then
-                                    span [ class "rudder-text-warning col-sm-8 col-sm-offset-3" ] [
+                                    span [ class "rudder-text-warning col-md-8 col-md-offset-3" ] [
                                       b [] [ span [ class "fa fa-exclamation-triangle" ] [] ]
                                     , text "Technique IDs longer than 100 characters may not work on some filesystems (Windows, in particular)."
                                     ]
                                   else text ""
                          ]
                        , div [ class "row form-group" ] [
-                           label [ for "category", class "col-xs-12 control-label"][ text "Category" ]
-                         , div [ class "col-sm-8" ] [
+                           label [ for "category", class "col-sm-12 control-label"][ text "Category" ]
+                         , div [ class "col-md-8" ] [
                              disableCategory
                            -- Used to be a else on creation with a readonly input a tried a readonly select <input  ng-if="originalTechnique.bundle_name !== undefined" readonly id="category" bundlename name="category" class="form-control" ng-model="getCategory(selectedTechnique.category).value">
                            ]
@@ -356,14 +356,14 @@ techniqueTab model technique creation ui =
         Just out ->
          div [ class "tab tab-general" ] [
            div [ class "row form-group" ] [
-             label [ class "col-xs-12 control-label" ] [ text "Compiled by"  ]
-           , div  [ class "col-sm-8" ] [
+             label [ class "col-sm-12 control-label" ] [ text "Compiled by"  ]
+           , div  [ class "col-md-8" ] [
                input [readonly True, type_ "text", class "form-control", value out.compiler ] []
              ]
            ]
          , div [ class "row form-group" ] [
-             label [ class "col-xs-12 control-label" ] [ text "Result code"  ]
-           , div  [ class "col-sm-8" ] [
+             label [ class "col-sm-12 control-label" ] [ text "Result code"  ]
+           , div  [ class "col-md-8" ] [
                input [readonly True, type_ "text", class "form-control", value (String.fromInt out.resultCode) ] []
              ]
            ]
@@ -371,8 +371,8 @@ techniqueTab model technique creation ui =
              text ""
            else
              div [ class "row form-group" ] [
-               label [ class "col-xs-12 control-label" ] [ text "Message"  ]
-             ,  div  [ class "col-xs-12" ] [
+               label [ class "col-sm-12 control-label" ] [ text "Message"  ]
+             ,  div  [ class "col-sm-12" ] [
                   pre [class "command-output pre-scrollable"] [  text out.msg ]
                 ]
              ]
@@ -380,8 +380,8 @@ techniqueTab model technique creation ui =
              text ""
            else
              div [ class "row form-group" ] [
-               label [ class "col-xs-12 control-label" ] [ text "Standard out"  ]
-             , div  [ class "col-xs-12" ] [
+               label [ class "col-sm-12 control-label" ] [ text "Standard out"  ]
+             , div  [ class "col-sm-12" ] [
                  pre [class "command-output pre-scrollable"] [ text out.stdout ]
                ]
              ]
@@ -389,8 +389,8 @@ techniqueTab model technique creation ui =
              text ""
            else
              div [ class "row form-group" ] [
-               label [ class "col-xs-12 control-label" ] [ text "Error out"  ]
-             , div  [ class "col-xs-12" ] [
+               label [ class "col-sm-12 control-label" ] [ text "Error out"  ]
+             , div  [ class "col-sm-12" ] [
                  pre [class "command-output pre-scrollable"] [ text out.stderr ]
                ]
              ]

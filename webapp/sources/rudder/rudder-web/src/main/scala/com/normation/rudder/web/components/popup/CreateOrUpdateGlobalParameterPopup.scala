@@ -91,7 +91,7 @@ class CreateOrUpdateGlobalParameterPopup(
   private[this] val workflowEnabled = workflowService.needExternalValidation()
   private[this] val titleWorkflow   = workflowEnabled match {
     case true  =>
-      <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Request</h4>
+      <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Request</h4>
               <hr class="css-fix"/>
               <div class="text-center alert alert-info">
                 <span class="fa fa-info-circle"></span>
@@ -201,7 +201,7 @@ class CreateOrUpdateGlobalParameterPopup(
     if (notifications.isEmpty) {
       NodeSeq.Empty
     } else {
-      <div id="notifications" class="alert alert-danger text-center col-lg-12 col-xs-12 col-sm-12" role="alert">
+      <div id="notifications" class="alert alert-danger text-center col-xl-12 col-sm-12 col-md-12" role="alert">
         <ul class="text-danger">{notifications.map(n => <li>{n}</li>)}</ul>
       </div>
     }
@@ -212,7 +212,7 @@ class CreateOrUpdateGlobalParameterPopup(
 
   private[this] val parameterName = new WBTextField("Name", change.previousGlobalParam.map(_.name).getOrElse("")) {
     override def setFilter      = notNull _ :: trim _ :: Nil
-    override def errorClassName = "col-lg-12 errors-container"
+    override def errorClassName = "col-xl-12 errors-container"
     override def inputField     = (change.previousGlobalParam match {
       case Some(entry) => super.inputField % ("disabled" -> "true")
       case None        => super.inputField
@@ -259,7 +259,7 @@ class CreateOrUpdateGlobalParameterPopup(
         case GlobalParamModAction.Delete => super.inputField % ("disabled" -> "true")
         case _                           => super.inputField
       }) % ("style" -> "height:4em") % ("tabindex" -> "2")
-      override def errorClassName = "col-lg-12 errors-container"
+      override def errorClassName = "col-xl-12 errors-container"
       override def validations    = Nil
     }
   }
@@ -271,7 +271,7 @@ class CreateOrUpdateGlobalParameterPopup(
         case GlobalParamModAction.Delete => super.inputField % ("disabled" -> "true")
         case _                           => super.inputField
       }) % ("tabindex" -> "3")
-      override def errorClassName = "col-lg-12 errors-container"
+      override def errorClassName = "col-xl-12 errors-container"
       override def validations    = Nil
     }
   }
@@ -284,7 +284,7 @@ class CreateOrUpdateGlobalParameterPopup(
         case GlobalParamModAction.Delete => super.inputField % ("disabled" -> "true")
         case _                           => super.inputField
       }) % ("tabindex" -> "4"))
-      override def errorClassName = "col-lg-12 errors-container"
+      override def errorClassName = "col-xl-12 errors-container"
       override def validations    = Nil
       override val helpAsHtml     = Full(
         <div class="text-muted small">Define inheritance behavior for the value with 3 chars: first for
@@ -303,7 +303,7 @@ class CreateOrUpdateGlobalParameterPopup(
     s"${change.action.name.capitalize} Global Parameter " + change.previousGlobalParam.map(_.name).getOrElse("")
   private[this] val changeRequestName  = new WBTextField("Change request title", defaultRequestName) {
     override def setFilter      = notNull _ :: trim _ :: Nil
-    override def errorClassName = "col-lg-12 errors-container"
+    override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex" -> "5")
     override def validations =
@@ -326,7 +326,7 @@ class CreateOrUpdateGlobalParameterPopup(
       override def setFilter  = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField %
         ("style" -> "height:5em;") % ("tabindex" -> "6") % ("placeholder" -> { userPropertyService.reasonsFieldExplanation })
-      override def errorClassName = "col-lg-12 errors-container"
+      override def errorClassName = "col-xl-12 errors-container"
       override def validations    = {
         if (mandatory) {
           valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
@@ -383,7 +383,7 @@ class CreateOrUpdateGlobalParameterPopup(
           <div>
           {
             if (!workflowEnabled) {
-              <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
+              <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Audit Log</h4>
             }
           }
             {f.toForm_!}

@@ -91,7 +91,7 @@ class TechniqueCategoryEditForm(
             </div>
             <div class="modal-body">
                 <div class="row">
-                    <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+                    <h4 class="col-xl-12 col-md-12 col-sm-12 text-center">
                         Are you sure that you want to completely delete this item?
                     </h4>
                 </div>

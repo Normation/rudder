@@ -143,13 +143,13 @@ abstract class RudderBaseField extends BaseField {
   def inputField: Elem
 
   // Class used for the elements
-  def subContainerClassName: String                = "col-lg-9 col-sm-12 col-xs-12"
+  def subContainerClassName: String                = "col-xl-9 col-md-12 col-sm-12"
   // def className : String = "rudderBaseFieldClassName"
-  def className:             String                = "rudderBaseFieldClassName form-control vresize col-lg-12 col-sm-12"
+  def className:             String                = "rudderBaseFieldClassName form-control vresize col-xl-12 col-md-12"
   // def labelClassName : String = "threeCol"
   def containerClassName:    String                = ""
-  def labelClassName:        String                = "col-lg-3 col-sm-12 col-xs-12 text-end"
-  def errorClassName:        String                = "col-lg-9 col-lg-offset-3 col-sm-12 col-xs-12 col-xs-offset-0 col-sm-offset-0"
+  def labelClassName:        String                = "col-xl-3 col-md-12 col-sm-12 text-end"
+  def errorClassName:        String                = "col-xl-9 col-xl-offset-3 col-md-12 col-sm-12 col-sm-offset-0 col-md-offset-0"
   def inputAttributes:       Seq[(String, String)] = Seq.empty
   ///////// method to optionnaly override //////////
 

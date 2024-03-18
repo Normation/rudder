@@ -112,69 +112,69 @@ object ModificationValidationPopup extends Loggable {
   private def explanationMessages(item: String, action: DGModAction, disabled: Boolean) = action match {
     case DGModAction.Enable            =>
       <div class="row">
-        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+        <h4 class="col-xl-12 col-md-12 col-sm-12 text-center">
             Are you sure that you want to enable this {item}?
         </h4>
     </div>
-        <div id="dialogDisableWarning" class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center space-top">
+        <div id="dialogDisableWarning" class="col-xl-12 col-md-12 col-sm-12 alert alert-info text-center space-top">
             Enabling this {item} will have an impact on the following Rules which apply it.
         </div>
     case DGModAction.Disable           =>
       <div class="row">
-        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+        <h4 class="col-xl-12 col-md-12 col-sm-12 text-center">
             Are you sure that you want to disable this {item}?
         </h4>
     </div>
-        <div id="dialogDisableWarning" class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center space-top">
+        <div id="dialogDisableWarning" class="col-xl-12 col-md-12 col-sm-12 alert alert-info text-center space-top">
             Disabling this {item} will have an impact on the following Rules which apply it.
         </div>
     case DGModAction.Delete            =>
       <div class="row">
-        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+        <h4 class="col-xl-12 col-md-12 col-sm-12 text-center">
             Are you sure that you want to delete this {item}?
         </h4>
     </div>
-        <div id="dialogDisableWarning" class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center space-top">
+        <div id="dialogDisableWarning" class="col-xl-12 col-md-12 col-sm-12 alert alert-info text-center space-top">
             Deleting this {item} will have an impact on the following Rules which apply it.
         </div>
     case DGModAction.Update            =>
       <div class="row">
-            <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+            <h4 class="col-xl-12 col-md-12 col-sm-12 text-center">
                 Are you sure that you want to update this {item}?
             </h4>
         </div> ++ {
         if (disabled) {
-          <div class="col-lg-12 col-sm-12 col-xs-12 alert alert-warning text-center" role="alert" >
-                  <div class="col-lg-12 col-sm-12 col-xs-12 text-center">
+          <div class="col-xl-12 col-md-12 col-sm-12 alert alert-warning text-center" role="alert" >
+                  <div class="col-xl-12 col-md-12 col-sm-12 text-center">
                   <b>Warning:</b> This {item} is currently disabled. Your changes will not take effect until it is enabled.
                   </div>
                 </div>
         } else NodeSeq.Empty
       } ++
-      <div id="dialogDisableWarning" class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center">
+      <div id="dialogDisableWarning" class="col-xl-12 col-md-12 col-sm-12 alert alert-info text-center">
             Updating this {item} will have an impact on the following Rules which apply it.
         </div>
     case DGModAction.CreateSolo        =>
       <div class="row">
-        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+        <h4 class="col-xl-12 col-md-12 col-sm-12 text-center">
             Are you sure you want to create this {item}?
         </h4>
     </div>
     case DGModAction.CreateAndModRules =>
       <div class="row">
-        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+        <h4 class="col-xl-12 col-md-12 col-sm-12 text-center">
             Are you sure that you want to create this {item}?
         </h4>
     </div> ++ {
         if (disabled) {
-          <div class="alert alert-warning col-lg-12 col-sm-12 col-xs-12 text-center">
-            <div class="col-lg-12 col-sm-12 col-xs-12 text-center">
+          <div class="alert alert-warning col-xl-12 col-md-12 col-sm-12 text-center">
+            <div class="col-xl-12 col-md-12 col-sm-12 text-center">
               <b>Warning:</b> This {item} is currently disabled. Your changes will not take effect until it is enabled.
             </div>
           </div>
         } else NodeSeq.Empty
       } ++
-      <div id="dialogDisableWarning" class="alert alert-info col-lg-12 col-sm-12 col-xs-12 text-center space-bottom">
+      <div id="dialogDisableWarning" class="alert alert-info col-xl-12 col-md-12 col-sm-12 text-center space-bottom">
       <b>Info:</b> Updating this {item} will have an impact on the following Rules which apply it.
     </div>
   }
@@ -299,9 +299,9 @@ class ModificationValidationPopup(
   def popupContent(): NodeSeq = {
 
     def workflowMessage(directiveCreation: Boolean): NodeSeq = (
-      <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Request</h4>
+      <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Request</h4>
       <hr class="css-fix"/>
-      <div class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center">
+      <div class="col-xl-12 col-md-12 col-sm-12 alert alert-info text-center">
         <span class="fa fa-info-circle"></span>
         Workflows are enabled in Rudder, your change has to be validated in a Change request
         {
@@ -336,9 +336,9 @@ class ModificationValidationPopup(
           <div>
               {
             (validationRequired, action) match {
-              case (true, DGModAction.CreateSolo) => <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
+              case (true, DGModAction.CreateSolo) => <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Audit Log</h4>
               case (true, _)                      => NodeSeq.Empty
-              case _                              => <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
+              case _                              => <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Audit Log</h4>
             }
           }
               {f.toForm_!}
@@ -393,7 +393,7 @@ class ModificationValidationPopup(
 
   private[this] val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
     override def setFilter      = notNull _ :: trim _ :: Nil
-    override def errorClassName = "col-lg-12 errors-container"
+    override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex" -> "1")
     override def validations =
@@ -403,7 +403,7 @@ class ModificationValidationPopup(
   private[this] val changeRequestDescription = new WBTextAreaField("Description", "") {
     override def setFilter      = notNull _ :: trim _ :: Nil
     override def inputField     = super.inputField % ("style" -> "height:7em") % ("tabindex" -> "2") % ("class" -> "nodisplay")
-    override def errorClassName = "col-lg-12 errors-container"
+    override def errorClassName = "col-xl-12 errors-container"
     override def validations    = Nil
 
   }
@@ -423,7 +423,7 @@ class ModificationValidationPopup(
     }
   }
 
-  private[this] def error(msg: String) = <span class="col-lg-12 errors-container">{msg}</span>
+  private[this] def error(msg: String) = <span class="col-xl-12 errors-container">{msg}</span>
 
   private[this] def closePopup(): JsCmd = {
     JsRaw("""hideBsModal('confirmUpdateActionDialog');
@@ -681,7 +681,7 @@ class ModificationValidationPopup(
     if (notifications.isEmpty) NodeSeq.Empty
     else {
       val html = {
-        <div id="notifications" class="alert alert-danger text-center col-lg-12 col-xs-12 col-sm-12" role="alert"><ul class="text-danger">{
+        <div id="notifications" class="alert alert-danger text-center col-xl-12 col-sm-12 col-md-12" role="alert"><ul class="text-danger">{
           notifications.map(n => <li>{n}</li>)
         }</ul></div>
       }

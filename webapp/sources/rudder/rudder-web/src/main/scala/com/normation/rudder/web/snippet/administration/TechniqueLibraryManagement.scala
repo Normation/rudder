@@ -231,7 +231,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             val f = eb ?~! "Error when trying to get the root category of active techniques"
             logger.error(f.messageChain)
             f.rootExceptionCause.foreach(ex => logger.error("Exception causing the error was:", ex))
-            <div class="col-xs-12">
+            <div class="col-sm-12">
               <span class="error">An error occured when trying to get information from the database. Please contact your administrator of retry latter.</span>
             </div>
           case Full(activeTechLib) =>

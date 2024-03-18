@@ -54,27 +54,27 @@ ul {
 .content-wrapper .row.col-small-padding{
   padding: 0 8px;
 }
-.content-wrapper .row.col-small-padding > .col-xs-1, .content-wrapper .row.col-small-padding > .col-sm-1, .content-wrapper .row.col-small-padding > .col-md-1, .content-wrapper .row.col-small-padding > .col-lg-1,
-.content-wrapper .row.col-small-padding > .col-xs-2, .content-wrapper .row.col-small-padding > .col-sm-2, .content-wrapper .row.col-small-padding > .col-md-2, .content-wrapper .row.col-small-padding > .col-lg-2,
-.content-wrapper .row.col-small-padding > .col-xs-3, .content-wrapper .row.col-small-padding > .col-sm-3, .content-wrapper .row.col-small-padding > .col-md-3, .content-wrapper .row.col-small-padding > .col-lg-3,
-.content-wrapper .row.col-small-padding > .col-xs-4, .content-wrapper .row.col-small-padding > .col-sm-4, .content-wrapper .row.col-small-padding > .col-md-4, .content-wrapper .row.col-small-padding > .col-lg-4,
-.content-wrapper .row.col-small-padding > .col-xs-5, .content-wrapper .row.col-small-padding > .col-sm-5, .content-wrapper .row.col-small-padding > .col-md-5, .content-wrapper .row.col-small-padding > .col-lg-5,
-.content-wrapper .row.col-small-padding > .col-xs-6, .content-wrapper .row.col-small-padding > .col-sm-6, .content-wrapper .row.col-small-padding > .col-md-6, .content-wrapper .row.col-small-padding > .col-lg-6,
-.content-wrapper .row.col-small-padding > .col-xs-7, .content-wrapper .row.col-small-padding > .col-sm-7, .content-wrapper .row.col-small-padding > .col-md-7, .content-wrapper .row.col-small-padding > .col-lg-7,
-.content-wrapper .row.col-small-padding > .col-xs-8, .content-wrapper .row.col-small-padding > .col-sm-8, .content-wrapper .row.col-small-padding > .col-md-8, .content-wrapper .row.col-small-padding > .col-lg-8,
-.content-wrapper .row.col-small-padding > .col-xs-9, .content-wrapper .row.col-small-padding > .col-sm-9, .content-wrapper .row.col-small-padding > .col-md-9, .content-wrapper .row.col-small-padding > .col-lg-9,
-.content-wrapper .row.col-small-padding > .col-xs-10, .content-wrapper .row.col-small-padding > .col-sm-10, .content-wrapper .row.col-small-padding > .col-md-10, .content-wrapper .row.col-small-padding > .col-lg-10,
-.content-wrapper .row.col-small-padding > .col-xs-11, .content-wrapper .row.col-small-padding > .col-sm-11, .content-wrapper .row.col-small-padding > .col-md-11, .content-wrapper .row.col-small-padding > .col-lg-11,
-.content-wrapper .row.col-small-padding > .col-xs-12, .content-wrapper .row.col-small-padding > .col-sm-12, .content-wrapper .row.col-small-padding > .col-md-12, .content-wrapper .row.col-small-padding > .col-lg-12{
+.content-wrapper .row.col-small-padding > .col-sm-1, .content-wrapper .row.col-small-padding > .col-md-1, .content-wrapper .row.col-small-padding > .col-lg-1, .content-wrapper .row.col-small-padding > .col-xl-1,
+.content-wrapper .row.col-small-padding > .col-sm-2, .content-wrapper .row.col-small-padding > .col-md-2, .content-wrapper .row.col-small-padding > .col-lg-2, .content-wrapper .row.col-small-padding > .col-xl-2,
+.content-wrapper .row.col-small-padding > .col-sm-3, .content-wrapper .row.col-small-padding > .col-md-3, .content-wrapper .row.col-small-padding > .col-lg-3, .content-wrapper .row.col-small-padding > .col-xl-3,
+.content-wrapper .row.col-small-padding > .col-sm-4, .content-wrapper .row.col-small-padding > .col-md-4, .content-wrapper .row.col-small-padding > .col-lg-4, .content-wrapper .row.col-small-padding > .col-xl-4,
+.content-wrapper .row.col-small-padding > .col-sm-5, .content-wrapper .row.col-small-padding > .col-md-5, .content-wrapper .row.col-small-padding > .col-lg-5, .content-wrapper .row.col-small-padding > .col-xl-5,
+.content-wrapper .row.col-small-padding > .col-sm-6, .content-wrapper .row.col-small-padding > .col-md-6, .content-wrapper .row.col-small-padding > .col-lg-6, .content-wrapper .row.col-small-padding > .col-xl-6,
+.content-wrapper .row.col-small-padding > .col-sm-7, .content-wrapper .row.col-small-padding > .col-md-7, .content-wrapper .row.col-small-padding > .col-lg-7, .content-wrapper .row.col-small-padding > .col-xl-7,
+.content-wrapper .row.col-small-padding > .col-sm-8, .content-wrapper .row.col-small-padding > .col-md-8, .content-wrapper .row.col-small-padding > .col-lg-8, .content-wrapper .row.col-small-padding > .col-xl-8,
+.content-wrapper .row.col-small-padding > .col-sm-9, .content-wrapper .row.col-small-padding > .col-md-9, .content-wrapper .row.col-small-padding > .col-lg-9, .content-wrapper .row.col-small-padding > .col-xl-9,
+.content-wrapper .row.col-small-padding > .col-sm-10, .content-wrapper .row.col-small-padding > .col-md-10, .content-wrapper .row.col-small-padding > .col-lg-10, .content-wrapper .row.col-small-padding > .col-xl-10,
+.content-wrapper .row.col-small-padding > .col-sm-11, .content-wrapper .row.col-small-padding > .col-md-11, .content-wrapper .row.col-small-padding > .col-lg-11, .content-wrapper .row.col-small-padding > .col-xl-11,
+.content-wrapper .row.col-small-padding > .col-sm-12, .content-wrapper .row.col-small-padding > .col-md-12, .content-wrapper .row.col-small-padding > .col-lg-12, .content-wrapper .row.col-small-padding > .col-xl-12{
   padding-left:7px;
   padding-right:7px;
 }
 
 @media (min-width: 992px){
-  .content-wrapper .col-sm-30 {
+  .content-wrapper .col-md-30 {
     width: 30%;
   }
-  .content-wrapper .col-sm-70 {
+  .content-wrapper .col-md-70 {
     width: 70%;
     padding: 0 0 0 15px;
   }

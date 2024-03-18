@@ -225,14 +225,14 @@ class RuleDisplayer(
       case Full(ruleCategoryTree) =>
         <div>
           <div class="row col-small-padding">
-            <div class="col-xs-12 col-lg-3 col-md-4">
+            <div class="col-sm-12 col-xl-3 col-lg-4">
               <div class="box">
                 <div class="box-header with-border">
                   <h3 class="box-title"><i class="fa fa-filter" aria-hidden="true"></i>Filters</h3>
                 </div>
                 <div class="box-body">
                   <div class="row">
-                    <div class="col-xs-12">
+                    <div class="col-sm-12">
                       <div id="showFiltersRules" ng-controller="filterTagCtrl" ng-init="initRule()" class="filters" ng-cloak="">
                         <div>
                           <div class="filterTag">
@@ -302,14 +302,14 @@ class RuleDisplayer(
                 </div>
                 <div class="box-body" id="boxTreeRules">
                   <div class="row">
-                    <div class="col-xs-12" id="categoryTreeParent">
+                    <div class="col-sm-12" id="categoryTreeParent">
                       {viewCategories(ruleCategoryTree)}
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            <div class="col-lg-9 col-xs-12 col-md-8">
+            <div class="col-xl-9 col-sm-12 col-lg-8">
               <div class="box">
                 <div class="box-header with-border">
                   <h3 class="box-title"><i class="fa fa-gears" aria-hidden="true"></i>Rules</h3>
@@ -322,7 +322,7 @@ class RuleDisplayer(
                 </div>
                 <div class="box-body">
                   <div class="row">
-                    <div class="col-xs-12" id={gridId}>
+                    <div class="col-sm-12" id={gridId}>
                       {viewRules}
                     </div>
                   </div>
