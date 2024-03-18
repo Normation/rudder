@@ -86,7 +86,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        npm = false
+                        errors.add("npm")
                         failedBuild = true
                         //notifier.notifyResult("scala-team")
                         slackSend(channel: slackResponse.threadId, message: "Dependency check error on npm - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
