@@ -4,6 +4,7 @@ import Accounts.ApiCalls exposing (..)
 import Accounts.DataTypes exposing (..)
 import Accounts.DatePickerUtils exposing (..)
 import Accounts.JsonDecoder exposing (parseTenants)
+import Accounts.JsonEncoder exposing (encodeTenants)
 import Html exposing (..)
 import Html.Attributes exposing (attribute, checked, class, disabled, for, id, name, placeholder, readonly, selected, size, style, title, type_, value)
 import Html.Events exposing (custom, onCheck, onClick, onInput)
@@ -127,22 +128,26 @@ displayModals model =
 
                                 -- if the plugin is disable, only show a read-only view of tenants. Else, it's an option among all, none, a list
                                 displayTenantAccess =
-                                    select [ id "newAccount-tenants", class "form-select", onInput (\s -> UpdateAccountForm { account | tenantMode = Tuple.first (parseTenants s) }) ]
-                                        [ option [ value "*", selected (account.tenantMode == AllAccess), disabled (not model.tenantsPluginEnabled) ] [ text "Access to all tenants" ]
-                                        , option [ value "-", selected (account.tenantMode == NoAccess), disabled (not model.tenantsPluginEnabled) ] [ text "Access to no tenant" ]
-                                        , option [ value "list", selected (account.tenantMode == ByTenants), disabled (not model.tenantsPluginEnabled) ]
-                                            [ text
-                                                ("Access to restricted list of tenants: "
-                                                    ++ (case account.selectedTenants of
-                                                            Just tenants ->
-                                                                String.join ", " tenants
+                                    if model.tenantsPluginEnabled then
+                                        select [ id "newAccount-tenants", class "form-select", onInput (\s -> UpdateAccountForm { account | tenantMode = Tuple.first (parseTenants s) }) ]
+                                            [ option [ value "*", selected (account.tenantMode == AllAccess) ] [ text "Access to all tenants" ]
+                                            , option [ value "-", selected (account.tenantMode == NoAccess) ] [ text "Access to no tenant" ]
+                                            , option [ value "list", selected (account.tenantMode == ByTenants) ]
+                                                [ text
+                                                    ("Access to restricted list of tenants: "
+                                                        ++ (case account.selectedTenants of
+                                                                Just tenants ->
+                                                                    String.join ", " tenants
 
-                                                            Nothing ->
-                                                                "-"
-                                                       )
-                                                )
+                                                                Nothing ->
+                                                                    "-"
+                                                           )
+                                                    )
+                                                ]
                                             ]
-                                        ]
+
+                                    else
+                                        span [] [ text (": " ++ encodeTenants account.tenantMode account.selectedTenants) ]
                             in
                             ModalUI (account.authorisationType == "acl")
                                 (account.tenantMode == ByTenants)

@@ -1059,7 +1059,7 @@ final case class RestExtractorService(
       expirationValue   <- extractJsonString(json, "expirationDate", DateFormaterService.parseDateTimePicker(_).toBox)
       authType          <- extractJsonString(json, "authorizationType", ApiAuthorizationKind.parse)
       tenants           <- extractJsonString(json, "tenants", s => NodeSecurityContext.parse(Some(s)).toBox)
-      acl <- extractJsonArray(json, "acl")((extractApiACLFromJSON _)).map(_.getOrElse(Nil))
+      acl               <- extractJsonArray(json, "acl")((extractApiACLFromJSON _)).map(_.getOrElse(Nil))
     } yield {
 
       val auth       = authType match {
