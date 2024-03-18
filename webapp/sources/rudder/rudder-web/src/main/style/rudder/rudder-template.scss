@@ -1045,6 +1045,43 @@ ul {
 .rudder-template .main-details .table-container > .dataTable{
   border-left: none;
 }
+.rudder-template .main-container .main-details {
+  overflow-x: hidden;
+  & > .tab-content.tab-content-split {
+    position: absolute;
+    padding-top: inherit;
+    padding-left: inherit;
+    padding-right: inherit;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 100px;
+    overflow-y: scroll;
+  }
+  & > .table-container {
+    position: absolute;
+    padding-left: inherit;
+    padding-right: inherit;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: fit-content;
+    margin-bottom: 5px;
+    z-index: 10000;
+    & > #drag {
+      position: absolute;
+      top: -4px;
+      left: 0;
+      right: 0;
+      height: 12px;
+      cursor: ns-resize;
+
+      &:active {
+        cursor: ns-resize;
+      }
+    }
+  }
+}
 .jstree span.badge-disabled {
   background-color: #b1bbcb;
   font-size: 0.7em;
