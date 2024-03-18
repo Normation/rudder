@@ -683,7 +683,8 @@ object ApiAccountSerialisation {
             (expirationDate.map(DateFormaterService.getDisplayDateTimePicker), Some(authz.kind.name), acl)
         }
       }
-      ("id" -> account.id.value) ~
+
+      ("id"                    -> account.id.value) ~
       ("name"                  -> account.name.value) ~
       ("token"                 -> account.token.value) ~
       ("tokenGenerationDate"   -> DateFormaterService.serialize(account.tokenGenerationDate)) ~
@@ -694,7 +695,8 @@ object ApiAccountSerialisation {
       ("expirationDate"        -> expirationDate) ~
       ("expirationDateDefined" -> expirationDate.isDefined) ~
       ("authorizationType"     -> authzType) ~
-      ("acl"                   -> acl.map(x => Extraction.decompose(x)))
+      ("acl"                   -> acl.map(x => Extraction.decompose(x))) ~
+      ("tenants"               -> account.tenants.serialize)
     }
   }
 }

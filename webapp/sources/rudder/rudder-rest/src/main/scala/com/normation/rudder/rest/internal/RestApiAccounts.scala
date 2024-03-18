@@ -302,15 +302,16 @@ final case class RestApiAccount(
 
   // Id cannot change if already defined
   def update(account: ApiAccount): ApiAccount = {
-    val nameUpdate   = name.getOrElse(account.name)
-    val enableUpdate = enabled.getOrElse(account.isEnabled)
-    val descUpdate   = description.getOrElse(account.description)
-    val kind         = account.kind match {
+    val nameUpdate    = name.getOrElse(account.name)
+    val enableUpdate  = enabled.getOrElse(account.isEnabled)
+    val descUpdate    = description.getOrElse(account.description)
+    val tenantsUpdate = tenants.getOrElse(account.tenants)
+    val kind          = account.kind match {
       case ApiAccountKind.PublicApi(a, e) =>
         ApiAccountKind.PublicApi(authz.getOrElse(a), expiration.getOrElse(e))
       case x                              => x
     }
 
-    account.copy(name = nameUpdate, isEnabled = enableUpdate, description = descUpdate, kind = kind)
+    account.copy(name = nameUpdate, isEnabled = enableUpdate, description = descUpdate, kind = kind, tenants = tenantsUpdate)
   }
 }
