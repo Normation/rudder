@@ -68,7 +68,7 @@ object ComputePolicyMode {
   }
 
   def directiveModeOnNode(nodeMode: Option[PolicyMode], globalMode: GlobalPolicyMode)(
-      directiveMode:                Option[PolicyMode]
+      directiveMode: Option[PolicyMode]
   ): (String, String) = {
     globalMode.overridable match {
       case PolicyModeOverrides.Unoverridable =>
@@ -246,7 +246,7 @@ object ComputePolicyMode {
   // Used to compute mode applied on a Rule depending on the Node state and directive from the Rule
   // Used in compliance table in node page
   def ruleModeOnNode(nodeMode: Option[PolicyMode], globalMode: GlobalPolicyMode)(
-      directivesMode:          Set[Option[PolicyMode]]
+      directivesMode: Set[Option[PolicyMode]]
   ): (String, String) = {
     val mixed =
       "This Rule has at least one Directive that will <b class='text-Enforce'>enforces</b> configurations, and at least one that will <b class='text-Audit'>audits</b> them."
@@ -256,7 +256,7 @@ object ComputePolicyMode {
   // Used to computed mode applied by a Node depending on it's mode and directive it applies
   // Used in Node compliance table in Rule page
   def nodeModeOnRule(nodeMode: Option[PolicyMode], globalMode: GlobalPolicyMode)(
-      directivesMode:          Set[Option[PolicyMode]]
+      directivesMode: Set[Option[PolicyMode]]
   ): (String, String) = {
     val mixed =
       "This Node applies at least one Directive that will <b class='text-Enforce'>enforces</b> configurations, and at least one that will <b class='text-Audit'>audits</b> them."
@@ -266,7 +266,7 @@ object ComputePolicyMode {
   // Used to computed mode applied on a Directive depending on it's mode and and all Nodes appliying it
   // Used in Node compliance table in Rule page
   def directiveModeOnRule(nodeModes: Set[Option[PolicyMode]], globalMode: GlobalPolicyMode)(
-      directiveMode:                 Option[PolicyMode]
+      directiveMode: Option[PolicyMode]
   ): (String, String) = {
     val mixed =
       "This Directive is applied on at least one Node that will <b class='text-Enforce'>enforces</b> configurations, and at least one that will <b class='text-Audit'>audits</b> them."

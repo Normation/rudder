@@ -46,11 +46,12 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.db.DB
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitConfigItemRepository
+import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.repository.xml.XmlArchiverUtils
-import com.normation.zio._
+import com.normation.zio.*
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
@@ -63,8 +64,8 @@ import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import scala.annotation.nowarn
 import scala.util.Random
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  * Details of tests executed in each instances of
@@ -96,13 +97,13 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
 
   val repo:    GitRepositoryProviderImpl                     = GitRepositoryProviderImpl.make(gitRoot.pathAsString).runNow
   val archive: GitConfigItemRepository with XmlArchiverUtils = new GitConfigItemRepository with XmlArchiverUtils {
-    override val gitRepo = repo
-    override def relativePath: String = ""
+    override val gitRepo:      GitRepositoryProvider = repo
+    override def relativePath: String                = ""
     override def xmlPrettyPrinter = new RudderPrettyPrinter(Int.MaxValue, 2)
     override def encoding:                  String                    = "UTF-8"
     override def gitModificationRepository: GitModificationRepository = new GitModificationRepository {
-      override def getCommits(modificationId: ModificationId):            IOResult[Option[GitCommitId]] = None.succeed
-      override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin]    =
+      override def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]] = None.succeed
+      override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin] =
         DB.GitCommitJoin(commit, modId).succeed
     }
 

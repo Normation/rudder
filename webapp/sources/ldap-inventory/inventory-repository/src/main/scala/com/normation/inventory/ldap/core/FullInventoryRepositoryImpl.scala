@@ -38,14 +38,14 @@
 package com.normation.inventory.ldap.core
 
 import cats.data.NonEmptyList
-import com.normation.errors._
-import com.normation.inventory.domain._
+import com.normation.errors.*
+import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.LDAPConstants.A_CONTAINER_DN
 import com.normation.inventory.ldap.core.LDAPConstants.A_NODE_UUID
-import com.normation.inventory.services.core._
-import com.normation.ldap.sdk._
+import com.normation.inventory.services.core.*
+import com.normation.ldap.sdk.*
 import com.normation.ldap.sdk.BuildFilter.EQ
-import com.normation.ldap.sdk.LDAPIOResult._
+import com.normation.ldap.sdk.LDAPIOResult.*
 import com.normation.utils.HostnameRegex
 import com.normation.utils.NodeIdRegex
 import com.unboundid.ldap.sdk.DN
@@ -53,8 +53,8 @@ import com.unboundid.ldap.sdk.Filter
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
 import com.unboundid.ldif.LDIFChangeRecord
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 trait LDAPFullInventoryRepository extends FullInventoryRepository[Seq[LDIFChangeRecord]]
 
@@ -161,7 +161,7 @@ class FullInventoryRepositoryImpl(
   def getNodesForMachine(con: RwLDAPConnection, id: MachineUuid): LDAPIOResult[Map[InventoryStatus, Set[LDAPEntry]]] = {
 
     val status   = Seq(PendingInventory, AcceptedInventory, RemovedInventory)
-    val orFilter = BuildFilter.OR(status.map(x => EQ(A_CONTAINER_DN, dnMachine(id, x).toString)): _*)
+    val orFilter = BuildFilter.OR(status.map(x => EQ(A_CONTAINER_DN, dnMachine(id, x).toString))*)
 
     def machineForNodeStatus(con: RwLDAPConnection, inventoryStatus: InventoryStatus) = {
       con.searchOne(nodeDn(inventoryStatus), orFilter, A_NODE_UUID).map(_.toSet)
@@ -316,7 +316,7 @@ class FullInventoryRepositoryImpl(
         .map(dnToString)
         .sorted
         .map(a => Filter.create(s"entryDN:dnSubtreeMatch:=${a}"))
-      BuildFilter.OR(dnFilters: _*)
+      BuildFilter.OR(dnFilters*)
     }
 
     for {

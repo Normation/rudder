@@ -40,8 +40,8 @@ package com.normation.rudder.score
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.inventory.domain.NodeId
-import com.normation.zio._
-import zio._
+import com.normation.zio.*
+import zio.*
 import zio.syntax.ToZio
 
 trait ScoreService {

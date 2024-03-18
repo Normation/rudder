@@ -37,16 +37,16 @@
 
 package com.normation.rudder.git
 
-import better.files._
-import com.normation.errors._
+import better.files.*
+import com.normation.errors.*
 import com.normation.rudder.domain.logger.GitRepositoryLogger
-import com.normation.zio._
+import com.normation.zio.*
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.internal.storage.file.FileRepository
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  * A service that gives access to the Git

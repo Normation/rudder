@@ -37,18 +37,18 @@
 
 package com.normation.cfclerk.domain
 
-import com.normation.cfclerk.domain.HashAlgoConstraint._
-import com.normation.cfclerk.xmlparsers._
+import com.normation.cfclerk.domain.HashAlgoConstraint.*
+import com.normation.cfclerk.xmlparsers.*
 import com.normation.rudder.services.policies.write.CFEngineAgentSpecificGeneration
 import java.io.FileNotFoundException
-import org.joda.time.format._
+import org.joda.time.format.*
 import org.junit.runner.RunWith
 import org.specs2.matcher.MatchResult
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import org.xml.sax.SAXParseException
 import scala.collection.mutable
-import scala.xml._
+import scala.xml.*
 
 @RunWith(classOf[JUnitRunner])
 class VariableTest extends Specification {
@@ -159,8 +159,8 @@ class VariableTest extends Specification {
         gui_only,
         rawVar
       )
-      variables must haveKeys((1 to 6).map("password" + _): _*)
-      variables must haveKeys(Seq("", "_AIX").map(s => "password_master" + s): _*)
+      variables must haveKeys((1 to 6).map("password" + _)*)
+      variables must haveKeys(Seq("", "_AIX").map(s => "password_master" + s)*)
 
     }
   }

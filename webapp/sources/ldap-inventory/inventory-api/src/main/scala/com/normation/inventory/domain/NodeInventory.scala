@@ -536,19 +536,19 @@ object KeyStatus {
 final case class AgentCapability(value: String) extends AnyVal
 
 final case class NodeInventory(
-    main:               NodeSummary,
-    name:               Option[String] = None,
-    description:        Option[String] = None,
-    ram:                Option[MemorySize] = None,
-    swap:               Option[MemorySize] = None,
-    inventoryDate:      Option[DateTime] = None,
-    receiveDate:        Option[DateTime] = None,
-    archDescription:    Option[String] = None,
-    lastLoggedUser:     Option[String] = None,
-    lastLoggedUserTime: Option[DateTime] = None,
-    agents:             Seq[AgentInfo] = Seq(),
-    serverIps:          Seq[String] = Seq(),
-    machineId:          Option[(MachineUuid, InventoryStatus)] =
+    main:                 NodeSummary,
+    name:                 Option[String] = None,
+    description:          Option[String] = None,
+    ram:                  Option[MemorySize] = None,
+    swap:                 Option[MemorySize] = None,
+    inventoryDate:        Option[DateTime] = None,
+    receiveDate:          Option[DateTime] = None,
+    archDescription:      Option[String] = None,
+    lastLoggedUser:       Option[String] = None,
+    lastLoggedUserTime:   Option[DateTime] = None,
+    agents:               Seq[AgentInfo] = Seq(),
+    serverIps:            Seq[String] = Seq(),
+    machineId:            Option[(MachineUuid, InventoryStatus)] =
       None, // if we want several ids, we would have to ass an "alternate machine" field
 
     softwareIds:          Seq[SoftwareUuid] = Seq(),

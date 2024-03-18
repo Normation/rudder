@@ -42,7 +42,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.domain.logger.ChangeRequestLogger
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 
@@ -84,7 +84,7 @@ class DiffServiceImpl extends DiffService {
       newRootSection: Option[SectionSpec],
       techniqueName:  TechniqueName
   ): ModifyDirectiveDiff = {
-    import com.normation.rudder.domain.policies.SectionVal._
+    import com.normation.rudder.domain.policies.SectionVal.*
 
     def toDirectiveDiff[T]: (Directive => T) => Option[SimpleDiff[T]] = toDiff[Directive, T](reference, newItem) _
     val refSectionVal        = refRootSection.map(directiveValToSectionVal(_, reference.parameters))

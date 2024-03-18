@@ -37,14 +37,14 @@
 
 package com.normation.rudder.facts.nodes
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
 import com.normation.errors.RudderError
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain._
-import com.normation.inventory.domain.{Version => SVersion}
+import com.normation.inventory.domain.*
+import com.normation.inventory.domain.Version as SVersion
 import com.normation.rudder.apidata.NodeDetailLevel
 import com.normation.rudder.domain.eventlog
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
@@ -60,12 +60,12 @@ import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.servers.Srv
-import com.normation.rudder.reports._
+import com.normation.rudder.reports.*
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.ParseVersion
 import com.normation.utils.Version
-import com.normation.zio._
-import com.softwaremill.quicklens._
+import com.normation.zio.*
+import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.config.ConfigValue
 import java.net.InetAddress
@@ -73,13 +73,13 @@ import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.json.JsonAST
-import net.liftweb.json.JsonAST._
+import net.liftweb.json.JsonAST.*
 import net.liftweb.json.JsonAST.JValue
 import org.joda.time.DateTime
-import zio._
-import zio.json._
+import zio.*
+import zio.json.*
 import zio.json.ast.Json
-import zio.json.ast.Json._
+import zio.json.ast.Json.*
 import zio.json.internal.Write
 
 /**
@@ -197,7 +197,7 @@ object SoftwareFact {
   }
 
   def fromSoftware(s: Software): Option[SoftwareFact] = {
-    import NodeFact._
+    import NodeFact.*
     s.toFact
   }
 }
@@ -421,7 +421,7 @@ object NodeFact {
     def toChunk: Chunk[A] = Chunk.fromIterable(it)
   }
 
-  implicit class EitherToChunk[A](either: Either[_, A]) {
+  implicit class EitherToChunk[A](either: Either[?, A]) {
     def toChunk: Chunk[A] = {
       either match {
         case Left(_)  => Chunk.empty
@@ -820,7 +820,7 @@ object NodeFact {
   }
 
   def updateNode(node: NodeFact, n: Node): NodeFact = {
-    import com.softwaremill.quicklens._
+    import com.softwaremill.quicklens.*
     node
       .modify(_.description)
       .setTo(Some(n.description))
@@ -1020,7 +1020,7 @@ final case class CoreNodeFact(
 object CoreNodeFact {
 
   def updateNode(node: CoreNodeFact, n: Node): CoreNodeFact = {
-    import com.softwaremill.quicklens._
+    import com.softwaremill.quicklens.*
     node
       .modify(_.description)
       .setTo(Some(n.description))
@@ -1407,15 +1407,15 @@ object SelectFacts {
 }
 
 final case class NodeFact(
-    id:             NodeId,
-    description:    Option[String],
+    id:                NodeId,
+    description:       Option[String],
     @jsonField("hostname")
-    fqdn:           String,
-    os:             OsDetails,
-    machine:        MachineInfo,
-    rudderSettings: RudderSettings,
-    rudderAgent:    RudderAgent,
-    properties:     Chunk[NodeProperty],
+    fqdn:              String,
+    os:                OsDetails,
+    machine:           MachineInfo,
+    rudderSettings:    RudderSettings,
+    rudderAgent:       RudderAgent,
+    properties:        Chunk[NodeProperty],
 // what the point ? Derive from RudderAgent ? At least details.
 //    managementTechnology:        Chunk[ManagementTechnology],
 //    managementTechnologyDetails: ManagementTechnologyDetails,
@@ -1761,8 +1761,8 @@ object NodeFactSerialisation {
   // scalac: Error while emitting com/normation/rudder/facts/nodes/NodeFactSerialisation$
   // Method too large: com/normation/rudder/facts/nodes/NodeFactSerialisation$.<clinit> ()V
 
-  import com.normation.inventory.domain.JsonSerializers.implicits.{decoderDateTime => _, encoderDateTime => _, _}
-  import com.normation.utils.DateFormaterService.json._
+  import com.normation.inventory.domain.JsonSerializers.implicits.{decoderDateTime as _, encoderDateTime as _, *}
+  import com.normation.utils.DateFormaterService.json.*
 
   object SimpleCodec {
 
@@ -1943,7 +1943,7 @@ object NodeFactSerialisation {
       JsonCodec.string.transform[SoftwareEditor](SoftwareEditor(_), _.name)
   }
 
-  import SimpleCodec._
+  import SimpleCodec.*
 
   implicit val codecBios: JsonCodec[Bios] = DeriveJsonCodec.gen
 

@@ -38,9 +38,9 @@
 package com.normation.inventory.domain
 
 import com.normation.zio.ZioRuntime
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 /**
  * Test properties about agent type, especially regarding serialisation

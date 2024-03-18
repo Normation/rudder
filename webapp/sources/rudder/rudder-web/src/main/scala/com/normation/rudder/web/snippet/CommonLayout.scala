@@ -4,10 +4,10 @@ import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.users.CurrentUser
 import net.liftweb.http.DispatchSnippet
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.util._
-import net.liftweb.util.CanBind._
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.util.*
+import net.liftweb.util.CanBind.*
 import scala.xml.Elem
 import scala.xml.NodeSeq
 

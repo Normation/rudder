@@ -38,7 +38,7 @@
 package com.normation.rudder.services.eventlog
 
 import com.normation.GitVersion.ParseRev
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
@@ -48,14 +48,14 @@ import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.SecurityToken
-import com.normation.rudder.api._
+import com.normation.rudder.api.*
 import com.normation.rudder.batch.CurrentDeploymentStatus
-import com.normation.rudder.domain.Constants._
+import com.normation.rudder.domain.Constants.*
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
-import com.normation.rudder.domain.eventlog._
-import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.eventlog.*
+import com.normation.rudder.domain.nodes.*
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.AddGlobalParameterDiff
 import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
 import com.normation.rudder.domain.properties.GenericProperty
@@ -66,24 +66,24 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.secret.Secret
-import com.normation.rudder.domain.workflows._
+import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
-import com.normation.rudder.reports._
+import com.normation.rudder.reports.*
 import com.normation.rudder.rule.category.RuleCategoryId
-import com.normation.rudder.services.marshalling._
+import com.normation.rudder.services.marshalling.*
 import com.normation.rudder.services.marshalling.TestFileFormat
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.utils.Control.traverse
 import com.typesafe.config.ConfigValue
-import net.liftweb.common._
-import net.liftweb.common.Box._
+import net.liftweb.common.*
+import net.liftweb.common.Box.*
 import net.liftweb.util.Helpers.tryo
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import scala.xml._
+import scala.xml.*
 
 /**
  * A service that helps mapping event log details to there structured data model.
@@ -888,7 +888,7 @@ class EventLogDetailsServiceImpl(
   }
 
   def getApiAccountModifyDetails(xml: NodeSeq): Box[ModifyApiAccountDiff] = {
-    import cats.implicits._
+    import cats.implicits.*
 
     for {
       entry             <- getEntryContent(xml)

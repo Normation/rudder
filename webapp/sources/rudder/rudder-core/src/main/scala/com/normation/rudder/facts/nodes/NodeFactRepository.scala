@@ -37,20 +37,20 @@
 
 package com.normation.rudder.facts.nodes
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.IOResult
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.tenants.TenantService
-import com.softwaremill.quicklens._
+import com.softwaremill.quicklens.*
 import scala.collection.MapView
-import zio._
+import zio.*
 import zio.concurrent.ReentrantLock
 import zio.stream.ZStream
-import zio.syntax._
+import zio.syntax.*
 
 /*
  * NodeFactRepository is the main interface between Rudder user space and nodes. It manages
@@ -100,7 +100,7 @@ trait NodeFactRepository {
    * Translation between old inventory status and new SelectNodeStatus for IOResult methods
    */
   def statusCompat[A](status: InventoryStatus, f: (QueryContext, SelectNodeStatus) => IOResult[A])(implicit
-      qc:                     QueryContext
+      qc: QueryContext
   ): IOResult[A] = {
     status match {
       case AcceptedInventory => f(qc, SelectNodeStatus.Accepted)
@@ -113,7 +113,7 @@ trait NodeFactRepository {
    * Translation between old inventory status and new SelectNodeStatus for IOStream methods
    */
   def statusStreamCompat[A](status: InventoryStatus, f: (QueryContext, SelectNodeStatus) => IOStream[A])(implicit
-      qc:                           QueryContext
+      qc: QueryContext
   ): IOStream[A] = {
     status match {
       case AcceptedInventory => f(qc, SelectNodeStatus.Accepted)
@@ -126,7 +126,7 @@ trait NodeFactRepository {
    * Get node on given status
    */
   def get(
-      nodeId:    NodeId
+      nodeId: NodeId
   )(implicit qc: QueryContext, status: SelectNodeStatus = SelectNodeStatus.Any): IOResult[Option[CoreNodeFact]]
 
   def getCompat(nodeId: NodeId, status: InventoryStatus)(implicit qc: QueryContext): IOResult[Option[CoreNodeFact]] = {
@@ -138,13 +138,13 @@ trait NodeFactRepository {
    * the fields from select mode "ignored" set to empty.
    */
   def slowGet(nodeId: NodeId)(implicit
-      qc:             QueryContext,
-      status:         SelectNodeStatus = SelectNodeStatus.Any,
-      attrs:          SelectFacts = SelectFacts.default
+      qc:     QueryContext,
+      status: SelectNodeStatus = SelectNodeStatus.Any,
+      attrs:  SelectFacts = SelectFacts.default
   ): IOResult[Option[NodeFact]]
 
   def slowGetCompat(nodeId: NodeId, status: InventoryStatus, attrs: SelectFacts)(implicit
-      qc:                   QueryContext
+      qc: QueryContext
   ): IOResult[Option[NodeFact]] = {
     statusCompat(status, (qc, s) => slowGet(nodeId)(qc, s, attrs))
   }
@@ -163,7 +163,7 @@ trait NodeFactRepository {
   ): IOResult[MapView[NodeId, CoreNodeFact]]
 
   def getAllCompat(status: InventoryStatus, attrs: SelectFacts)(implicit
-      qc:                  QueryContext
+      qc: QueryContext
   ): IOResult[MapView[NodeId, CoreNodeFact]] = {
     statusCompat(status, (qc, s) => getAll()(qc, s))
   }
@@ -194,7 +194,7 @@ trait NodeFactRepository {
    * SecurityTag must not be updated with that method, but it can be initially set.
    */
   def save(
-      nodeFact:  NodeFact
+      nodeFact: NodeFact
   )(implicit cc: ChangeContext, attrs: SelectFacts = SelectFacts.all): IOResult[NodeFactChangeEventCC]
 
   /*
@@ -224,7 +224,7 @@ trait NodeFactRepository {
    * pending or in accepted.
    */
   def updateInventory(inventory: FullInventory, software: Option[Iterable[Software]])(implicit
-      cc:                        ChangeContext
+      cc: ChangeContext
   ): IOResult[NodeFactChangeEventCC]
 
   /*
@@ -234,7 +234,7 @@ trait NodeFactRepository {
    * - if target status is "removed", persisted inventory is deleted
    */
   def changeStatus(nodeId: NodeId, into: InventoryStatus)(implicit
-      cc:                  ChangeContext
+      cc: ChangeContext
   ): IOResult[NodeFactChangeEventCC]
 
   /*
@@ -346,7 +346,7 @@ class CoreNodeFactRepository(
     lock:           ReentrantLock,
     cbTimeout:      zio.Duration = 5.seconds
 ) extends NodeFactRepository {
-  import NodeFactChangeEvent._
+  import NodeFactChangeEvent.*
 
   // debug log
 //  (for {
@@ -385,7 +385,7 @@ class CoreNodeFactRepository(
   }
 
   private[nodes] def getOnRef(ref: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
-      qc:                          QueryContext
+      qc: QueryContext
   ): IOResult[Option[CoreNodeFact]] = {
     tenantService.nodeGetMapView(ref, nodeId)
   }
@@ -420,7 +420,7 @@ class CoreNodeFactRepository(
   }
 
   override def get(
-      nodeId:    NodeId
+      nodeId: NodeId
   )(implicit qc: QueryContext, status: SelectNodeStatus = SelectNodeStatus.Any): IOResult[Option[CoreNodeFact]] = {
     status match {
       case SelectNodeStatus.Pending  =>
@@ -433,7 +433,7 @@ class CoreNodeFactRepository(
   }
 
   override def slowGet(
-      nodeId:    NodeId
+      nodeId: NodeId
   )(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): IOResult[Option[NodeFact]] = {
     for {
       optCNF <- get(nodeId)(qc, status)
@@ -474,7 +474,7 @@ class CoreNodeFactRepository(
   }
 
   private[nodes] def getAllOnRef[A](
-      ref:       Ref[Map[NodeId, CoreNodeFact]]
+      ref: Ref[Map[NodeId, CoreNodeFact]]
   )(implicit qc: QueryContext): IOResult[MapView[NodeId, CoreNodeFact]] = {
     tenantService.nodeFilterMapView(ref)
   }
@@ -530,7 +530,7 @@ class CoreNodeFactRepository(
   }
 
   private def deleteOn(ref: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
-      cc:                   ChangeContext
+      cc: ChangeContext
   ): IOResult[StorageChangeEventDelete] = {
     tenantService
       .getTenants()
@@ -554,8 +554,8 @@ class CoreNodeFactRepository(
 
   private[nodes] def checkRootProperties(node: NodeFact): IOResult[Unit] = {
     // use cats validation
-    import cats.data._
-    import cats.implicits._
+    import cats.data.*
+    import cats.implicits.*
 
     type ValidationResult = ValidatedNel[String, Unit]
     val ok = ().validNel
@@ -609,7 +609,7 @@ class CoreNodeFactRepository(
    * In the first case, we use the existing coreNodeFact for save.
    */
   private def internalSave(
-      node:      Either[NodeFact, (NodeId, Option[SecurityTag])]
+      node: Either[NodeFact, (NodeId, Option[SecurityTag])]
   )(implicit cc: ChangeContext, attrs: SelectFacts): IOResult[NodeFactChangeEventCC] = {
     ZIO.scoped(
       for {
@@ -666,13 +666,13 @@ class CoreNodeFactRepository(
   }
 
   override def setSecurityTag(nodeId: NodeId, tag: Option[SecurityTag])(implicit
-      cc:                             ChangeContext
+      cc: ChangeContext
   ): IOResult[NodeFactChangeEventCC] = {
     internalSave(Right((nodeId, tag)))(cc, SelectFacts.none)
   }
 
   override def save(
-      nodeFact:  NodeFact
+      nodeFact: NodeFact
   )(implicit cc: ChangeContext, attrs: SelectFacts = SelectFacts.all): IOResult[NodeFactChangeEventCC] = {
     checkRootProperties(nodeFact) *>
     checkAgentKey(nodeFact) *>
@@ -680,7 +680,7 @@ class CoreNodeFactRepository(
   }
 
   override def changeStatus(nodeId: NodeId, into: InventoryStatus)(implicit
-      cc:                           ChangeContext
+      cc: ChangeContext
   ): IOResult[NodeFactChangeEventCC] = {
     if (nodeId == Constants.ROOT_POLICY_SERVER_ID && into != AcceptedInventory) {
       Inconsistency(s"Rudder server (id='root' must be accepted").fail
@@ -768,7 +768,7 @@ class CoreNodeFactRepository(
   }
 
   override def updateInventory(inventory: FullInventory, software: Option[Iterable[Software]])(implicit
-      cc:                                 ChangeContext
+      cc: ChangeContext
   ): IOResult[NodeFactChangeEventCC] = {
     val nodeId         = inventory.node.main.id
     implicit val attrs = if (software.isEmpty) SelectFacts.noSoftware else SelectFacts.all

@@ -45,12 +45,12 @@ import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.zio._
+import com.normation.zio.*
 import net.liftweb.common.Full
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.mocks.MockHttpServletRequest
 import org.junit.runner.RunWith
-import org.specs2.mutable._
+import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.BeforeAfterAll
 
@@ -66,7 +66,7 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
     .asInstanceOf[ch.qos.logback.classic.Logger]
     .setLevel(ch.qos.logback.classic.Level.OFF)
   val env = RestTestSetUp.newEnv
-  import com.softwaremill.quicklens._
+  import com.softwaremill.quicklens.*
   val rule: Rule = env.mockRules.ruleRepo
     .get(RuleId(RuleUid("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f")))
     .runNow

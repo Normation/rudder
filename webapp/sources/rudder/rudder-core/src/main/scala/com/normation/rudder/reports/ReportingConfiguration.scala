@@ -39,7 +39,7 @@ package com.normation.rudder.reports
 
 import com.normation.errors.RudderError
 import com.normation.errors.Unexpected
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.joda.time.Duration
 
 /**

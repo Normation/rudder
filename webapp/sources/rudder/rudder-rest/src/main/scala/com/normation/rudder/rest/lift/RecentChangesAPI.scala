@@ -45,19 +45,19 @@ import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.ResultRepairedReport
-import com.normation.rudder.rest.{ChangesApi => API}
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.ChangesApi
+import com.normation.rudder.rest.ChangesApi as API
 import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils._
+import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.services.reports.NodeChangesService
 import com.normation.utils.DateFormaterService
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonDSL.*
 import org.joda.time.DateTime
 import org.joda.time.Interval
 import zio.syntax.ToZio

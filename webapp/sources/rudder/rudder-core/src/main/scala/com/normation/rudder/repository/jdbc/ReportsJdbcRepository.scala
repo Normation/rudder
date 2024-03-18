@@ -37,28 +37,28 @@
 
 package com.normation.rudder.repository.jdbc
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
-import com.normation.rudder.db.Doobie._
+import com.normation.rudder.db.Doobie.*
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports._
+import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.repository.ReportsRepository
-import doobie._
-import doobie.implicits._
+import doobie.*
+import doobie.implicits.*
 import java.sql.Timestamp
-import net.liftweb.common._
-import org.joda.time._
+import net.liftweb.common.*
+import org.joda.time.*
 import org.joda.time.format.ISODateTimeFormat
-import zio.interop.catz._
+import zio.interop.catz.*
 
 class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Loggable {
-  import doobie._
+  import doobie.*
 
   val reports      = "ruddersysevents"
   val archiveTable = "archivedruddersysevents"
@@ -73,9 +73,9 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
   // just an utility to remove multiple spaces in query so that we can vertically align them an see what part are changing - the use
   // of greek p is to discurage use elsewhere
   private[this] def þ(s: String) = s.replaceAll("""\s+""", " ")
-  private[this] val baseQuery    = þ(s"select     ${common_reports_column} from RudderSysEvents         where 1=1 ")
-  private[this] val typedQuery   = þ(s"select     ${typed_reports_column}  from RudderSysEvents         where 1=1 ")
-  private[this] val idQuery      = þ(s"select id, ${common_reports_column} from ruddersysevents         where 1=1 ")
+  private[this] val baseQuery  = þ(s"select     ${common_reports_column} from RudderSysEvents         where 1=1 ")
+  private[this] val typedQuery = þ(s"select     ${typed_reports_column}  from RudderSysEvents         where 1=1 ")
+  private[this] val idQuery    = þ(s"select id, ${common_reports_column} from ruddersysevents         where 1=1 ")
 
   // We assume that this method is called with a limited list of runs
   override def getExecutionReports(

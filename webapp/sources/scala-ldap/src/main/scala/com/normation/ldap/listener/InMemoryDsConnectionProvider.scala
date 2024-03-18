@@ -20,14 +20,14 @@
 
 package com.normation.ldap.listener
 
-import com.normation.ldap.ldif._
-import com.normation.ldap.sdk._
+import com.normation.ldap.ldif.*
+import com.normation.ldap.sdk.*
 import com.normation.ldap.sdk.syntax.UnboundidLDAPConnection
-import com.normation.zio._
+import com.normation.zio.*
 import com.unboundid.ldap.listener.InMemoryDirectoryServer
 import com.unboundid.ldap.listener.InMemoryDirectoryServerConfig
 import com.unboundid.ldap.sdk.schema.Schema
-import zio._
+import zio.*
 
 /**
  * A class that provides a connection provider which use an
@@ -77,8 +77,8 @@ object InMemoryDsConnectionProvider {
      * The configuration only allows one schema file. Just concatenate them all
      */
 
-    val schema = Schema.getSchema(schemaLDIFPaths: _*)
-    val config = new InMemoryDirectoryServerConfig(baseDNs: _*)
+    val schema = Schema.getSchema(schemaLDIFPaths*)
+    val config = new InMemoryDirectoryServerConfig(baseDNs*)
     config.setSchema(schema)
     new InMemoryDsConnectionProvider[CON](config, bootstrapLDIFPaths, ldifFileLogger)
   }

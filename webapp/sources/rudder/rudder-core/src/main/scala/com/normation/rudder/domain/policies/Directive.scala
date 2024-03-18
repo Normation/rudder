@@ -41,7 +41,7 @@ import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueVersion
-import scala.xml._
+import scala.xml.*
 
 /*
  * Two way of modeling the couple (directiveId, rev) :

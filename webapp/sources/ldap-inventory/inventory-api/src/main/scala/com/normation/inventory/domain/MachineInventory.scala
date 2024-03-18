@@ -153,8 +153,8 @@ object VmType {
   case object OpenVZ        extends VmType("openvz")
   case object LXC           extends VmType("lxc")
 
-  def all:              Set[VmType] = ca.mrvisser.sealerate.values[VmType]
-  def parse(s: String): VmType      = all.find(_.name == s.toLowerCase).getOrElse(UnknownVmType)
+  def all: Set[VmType] = ca.mrvisser.sealerate.values[VmType]
+  def parse(s: String): VmType = all.find(_.name == s.toLowerCase).getOrElse(UnknownVmType)
 }
 
 /**

@@ -37,9 +37,9 @@
 
 package com.normation.rudder.repository.ldap
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.NamedZioLogger
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
@@ -55,10 +55,10 @@ import com.normation.ldap.sdk.BuildFilter.NOT
 import com.normation.ldap.sdk.BuildFilter.OR
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPEntry
-import com.normation.ldap.sdk.LDAPIOResult._
+import com.normation.ldap.sdk.LDAPIOResult.*
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.ldap.sdk.RwLDAPConnection
-import com.normation.ldap.sdk.syntax._
+import com.normation.ldap.sdk.syntax.*
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.A_GROUP_CATEGORY_UUID
 import com.normation.rudder.domain.RudderLDAPConstants.A_IS_ENABLED
@@ -68,10 +68,10 @@ import com.normation.rudder.domain.RudderLDAPConstants.A_RULE_TARGET
 import com.normation.rudder.domain.RudderLDAPConstants.OC_GROUP_CATEGORY
 import com.normation.rudder.domain.RudderLDAPConstants.OC_RUDDER_NODE_GROUP
 import com.normation.rudder.domain.RudderLDAPConstants.OC_SPECIAL_TARGET
-import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.repository.CategoryAndNodeGroup
 import com.normation.rudder.repository.EventLogRepository
@@ -86,10 +86,10 @@ import com.normation.utils.StringUuidGenerator
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Filter
 import com.unboundid.ldif.LDIFChangeRecord
-import net.liftweb.common._
+import net.liftweb.common.*
 import scala.collection.immutable.SortedMap
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 class RoLDAPNodeGroupRepository(
     val rudderDit:     RudderDit,
@@ -141,7 +141,7 @@ class RoLDAPNodeGroupRepository(
   }
 
   def getSGEntry(con: RoLDAPConnection, id: NodeGroupId, attributes: String*): IOResult[Option[LDAPEntry]] = {
-    con.searchSub(rudderDit.GROUP.dn, EQ(A_NODE_GROUP_UUID, id.serialize), attributes: _*).flatMap { srvEntries =>
+    con.searchSub(rudderDit.GROUP.dn, EQ(A_NODE_GROUP_UUID, id.serialize), attributes*).flatMap { srvEntries =>
       srvEntries.size match {
         case 0 => None.succeed
         case 1 => Some(srvEntries(0)).succeed
@@ -159,7 +159,7 @@ class RoLDAPNodeGroupRepository(
    */
   def getCategoryEntry(con: RoLDAPConnection, id: NodeGroupCategoryId, attributes: String*): IOResult[Option[LDAPEntry]] = {
     groupLibMutex.readLock {
-      con.searchSub(rudderDit.GROUP.dn, EQ(A_GROUP_CATEGORY_UUID, id.value), attributes: _*)
+      con.searchSub(rudderDit.GROUP.dn, EQ(A_GROUP_CATEGORY_UUID, id.value), attributes*)
     }.flatMap { categoryEntries =>
       categoryEntries.size match {
         case 0 => None.succeed
@@ -434,7 +434,7 @@ class RoLDAPNodeGroupRepository(
       con     <- ldap
       // for each directive entry, map it. if one fails, all fails
       entries <-
-        groupLibMutex.readLock(con.searchSub(rudderDit.GROUP.dn, OR(ids.map(id => EQ(A_NODE_GROUP_UUID, id.serialize)): _*)))
+        groupLibMutex.readLock(con.searchSub(rudderDit.GROUP.dn, OR(ids.map(id => EQ(A_NODE_GROUP_UUID, id.serialize))*)))
       groups  <- ZIO.foreach(entries)(groupEntry => {
                    mapper
                      .entry2NodeGroup(groupEntry)
@@ -505,7 +505,7 @@ class RoLDAPNodeGroupRepository(
   def findGroupWithAnyMember(nodeIds: Seq[NodeId]): IOResult[Seq[NodeGroupId]] = {
     val filter = AND(
       IS(OC_RUDDER_NODE_GROUP),
-      OR(nodeIds.distinct.map(nodeId => EQ(LDAPConstants.A_NODE_UUID, nodeId.value)): _*)
+      OR(nodeIds.distinct.map(nodeId => EQ(LDAPConstants.A_NODE_UUID, nodeId.value))*)
     )
     findGroupWithFilter(filter)
   }
@@ -519,7 +519,7 @@ class RoLDAPNodeGroupRepository(
   def findGroupWithAllMember(nodeIds: Seq[NodeId]): IOResult[Seq[NodeGroupId]] = {
     val filter = AND(
       IS(OC_RUDDER_NODE_GROUP),
-      AND(nodeIds.distinct.map(nodeId => EQ(LDAPConstants.A_NODE_UUID, nodeId.value)): _*)
+      AND(nodeIds.distinct.map(nodeId => EQ(LDAPConstants.A_NODE_UUID, nodeId.value))*)
     )
     findGroupWithFilter(filter)
   }
@@ -561,7 +561,7 @@ class RoLDAPNodeGroupRepository(
      */
 
     val emptyAll = AllMaps(Map(), Map(), Map())
-    import rudderDit.GROUP._
+    import rudderDit.GROUP.*
 
     def mappingError(current: AllMaps, e: LDAPEntry, err: RudderError): AllMaps = {
       val error =
@@ -639,7 +639,7 @@ class WoLDAPNodeGroupRepository(
 ) extends WoNodeGroupRepository with Loggable {
   repo =>
 
-  import roGroupRepo._
+  import roGroupRepo.*
 
   /**
    * Check if a group category exist with the given name

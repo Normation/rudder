@@ -46,17 +46,18 @@ import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.ldap.sdk.LDAPEntry
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.RudderLDAPConstants._
-import com.normation.rudder.domain.properties.GenericProperty._
+import com.normation.rudder.domain.RudderLDAPConstants.*
+import com.normation.rudder.domain.properties.GenericProperty.*
 import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.queries.ObjectCriterion
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.DefaultStringQueryParser
 import com.normation.rudder.services.queries.JsonQueryLexer
 import com.typesafe.config.ConfigValueType
 import com.unboundid.ldap.sdk.DN
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 /**
  * A test that checks that an global parameter in 6.0 is correctly parsed as a string in
@@ -96,7 +97,9 @@ class GlobalParamMigration61Test extends Specification {
 
     val rudderDit       = new RudderDit(new DN("ou=Rudder, cn=rudder-configuration"))
     val nodeDit         = new NodeDit(new DN("ou=Nodes, ou=Rudder, cn=rudder-configuration"))
-    val cmdbQueryParser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer { val criterionObjects = Map() }
+    val cmdbQueryParser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
+      val criterionObjects: Map[String, ObjectCriterion] = Map()
+    }
 
     new LDAPEntityMapper(rudderDit, nodeDit, acceptedNodesDitImpl, cmdbQueryParser, inventoryMapper)
   }

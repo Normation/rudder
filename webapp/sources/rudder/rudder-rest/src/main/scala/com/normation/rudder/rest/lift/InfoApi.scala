@@ -39,12 +39,12 @@ package com.normation.rudder.rest.lift
 
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.HttpAction
-import com.normation.rudder.rest._
-import com.normation.rudder.rest.{InfoApi => API}
+import com.normation.rudder.rest.*
+import com.normation.rudder.rest.InfoApi as API
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.*
+import net.liftweb.json.JsonDSL.*
 
 /*
  * Information about the API
@@ -56,7 +56,7 @@ class InfoApi(
 ) extends LiftApiModuleProvider[API] {
   api =>
 
-  def schemas = API
+  def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints
@@ -136,7 +136,7 @@ class InfoApi(
   }
 
   object ApiGeneralInformations extends LiftApiModule0 {
-    val schema        = API.ApiGeneralInformations
+    val schema: API.ApiGeneralInformations.type = API.ApiGeneralInformations
     val restExtractor = api.restExtractor
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val json = list(None)

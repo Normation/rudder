@@ -87,12 +87,12 @@ package com.normation.rudder.web.model
  * for the reader ;)
  */
 
-import Perm._
+import Perm.*
 import com.normation.utils.Utils.isEmpty
 import scala.collection.BitSet
 
 trait Perm {
-  def bits: BitSet
+  def bits:       BitSet
   lazy val octal: Int = bitSetToInt(bits)
 
   def +(p: Perm): Perm = Perm(p.bits | bits)
@@ -234,12 +234,12 @@ final case class PermSet(file: FilePerms, perms: (Perm => Unit, () => Perm)*) {
   def octal: String = perms.foldLeft("")((s, p) => s + p._2().octal.toString)
 
   // simule erad/write/exec vars
-  def read:                Boolean = perms.foldLeft(true)((b, p) => b & p._2().read)
-  def read_=(b: Boolean):  Unit    = { if (b) this + (r) else this - (r) }
-  def write:               Boolean = perms.foldLeft(true)((b, p) => b & p._2().write)
-  def write_=(b: Boolean): Unit    = { if (b) this + (w) else this - (w) }
-  def exec:                Boolean = perms.foldLeft(true)((b, p) => b & p._2().exec)
-  def exec_=(b: Boolean):  Unit    = { if (b) this + (x) else this - (x) }
+  def read: Boolean = perms.foldLeft(true)((b, p) => b & p._2().read)
+  def read_=(b: Boolean): Unit = { if (b) this + (r) else this - (r) }
+  def write: Boolean = perms.foldLeft(true)((b, p) => b & p._2().write)
+  def write_=(b: Boolean): Unit = { if (b) this + (w) else this - (w) }
+  def exec: Boolean = perms.foldLeft(true)((b, p) => b & p._2().exec)
+  def exec_=(b: Boolean): Unit = { if (b) this + (x) else this - (x) }
 
 }
 

@@ -38,11 +38,11 @@
 package com.normation.cfclerk.xmlparsers
 
 import com.normation.cfclerk.domain.LoadTechniqueError
-import org.junit.Assert._
+import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-import scala.xml._
+import scala.xml.*
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TestXmlUtils {
@@ -57,7 +57,7 @@ class TestXmlUtils {
 
   def child_A(child: Node): Elem = <child_A>{child}</child_A>
   def child_B(child: Node): Elem = <child_B>{child}</child_B>
-  val child_C:              Elem = <child_C></child_C>
+  val child_C: Elem = <child_C></child_C>
 
   val sub_A: Node = <subchild_A></subchild_A>
   val sub_B: Node = <subchild_B></subchild_B>

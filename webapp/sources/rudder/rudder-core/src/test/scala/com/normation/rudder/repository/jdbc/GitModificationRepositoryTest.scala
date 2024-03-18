@@ -37,19 +37,19 @@
 
 package com.normation.rudder.repository.jdbc
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.BoxSpecMatcher
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.db.DB
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.git.GitCommitId
-import com.normation.zio._
-import doobie.implicits._
+import com.normation.zio.*
+import doobie.implicits.*
 import net.liftweb.common.Box
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import zio.interop.catz._
+import zio.interop.catz.*
 
 /**
  *
@@ -62,7 +62,7 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
   lazy val repos = new GitModificationRepositoryImpl(doobie)
 
   implicit def toCommitId(s: String): GitCommitId    = GitCommitId(s)
-  implicit def toModId(s: String):    ModificationId = ModificationId(s)
+  implicit def toModId(s:    String): ModificationId = ModificationId(s)
 
   sequential
 

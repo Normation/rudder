@@ -23,9 +23,9 @@ package com.normation.ldap.sdk
 import cats.data.NonEmptyList
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
-import com.normation.ldap.sdk.syntax._
-import zio._
-import zio.syntax._
+import com.normation.ldap.sdk.syntax.*
+import zio.*
+import zio.syntax.*
 
 sealed trait LDAPRudderError extends RudderError {
   def msg: String

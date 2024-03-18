@@ -37,7 +37,7 @@
 
 package com.normation.rudder.reports
 
-import net.liftweb.common._
+import net.liftweb.common.*
 
 /**
  * Define level of compliance:

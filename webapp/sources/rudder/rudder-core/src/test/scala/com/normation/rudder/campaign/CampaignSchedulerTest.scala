@@ -47,10 +47,10 @@ import com.normation.rudder.campaigns.Second
 import com.normation.rudder.campaigns.SecondLast
 import com.normation.rudder.campaigns.Sunday
 import com.normation.rudder.campaigns.Third
-import com.normation.zio._
+import com.normation.zio.*
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
-import org.specs2.mutable._
+import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])

@@ -37,7 +37,7 @@
 
 package com.normation.rudder.domain.eventlog
 
-import com.normation.eventlog._
+import com.normation.eventlog.*
 
 ///// Define intersting categories /////
 case object UserLogCategory                extends EventLogCategory

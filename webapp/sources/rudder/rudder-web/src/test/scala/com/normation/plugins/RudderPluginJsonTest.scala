@@ -39,11 +39,11 @@ package com.normation.plugins
 
 import com.normation.utils.ParseVersion
 import com.normation.utils.Version
-import com.normation.zio._
+import com.normation.zio.*
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.RunWith
-import org.specs2.mutable._
+import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])

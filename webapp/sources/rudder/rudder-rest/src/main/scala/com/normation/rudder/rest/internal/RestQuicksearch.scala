@@ -37,23 +37,23 @@
 
 package com.normation.rudder.rest.internal
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.rest.OldInternalApiAuthz
-import com.normation.rudder.rest.RestUtils._
+import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.quicksearch.QSObject
 import com.normation.rudder.services.quicksearch.QuickSearchResult
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.UserService
 import com.normation.rudder.web.model.LinkUtil
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JArray
-import net.liftweb.json.JsonAST._
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonAST.*
+import net.liftweb.json.JsonDSL.*
 import scala.collection.Seq
 
 /**
@@ -109,7 +109,7 @@ class RestQuicksearch(
   }
 
   private[this] def filter(results: Set[QuickSearchResult]) = {
-    import com.normation.rudder.services.quicksearch.QuickSearchResultId._
+    import com.normation.rudder.services.quicksearch.QuickSearchResultId.*
 
     val user = userService.getCurrentUser
 
@@ -206,10 +206,10 @@ class RestQuicksearch(
     import com.normation.rudder.domain.nodes.NodeGroupId
     import com.normation.rudder.domain.policies.DirectiveUid
     import com.normation.rudder.domain.policies.RuleId
-    import com.normation.rudder.services.quicksearch.QuickSearchResultId._
+    import com.normation.rudder.services.quicksearch.QuickSearchResultId.*
 
     def toJson: JObject = {
-      import linkUtil._
+      import linkUtil.*
       val url = r.id match {
         case QRNodeId(v)      => nodeLink(NodeId(v))
         case QRRuleId(v)      => ruleLink(RuleId(RuleUid(v)))

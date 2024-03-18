@@ -41,9 +41,9 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.utils.Control.traverse
-import net.liftweb.common._
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
+import net.liftweb.common.*
+import net.liftweb.json.*
+import net.liftweb.json.JsonDSL.*
 import scala.collection.MapView
 import scala.util.matching.Regex
 import zio.Chunk
@@ -153,7 +153,7 @@ sealed trait TargetComposition extends CompositeRuleTarget {
  * Union of all Targets, Should take all Nodes from these targets
  */
 final case class TargetUnion(targets: Set[RuleTarget] = Set()) extends TargetComposition {
-  override val toJson:               JValue            = {
+  override val toJson: JValue = {
     ("or" -> targets.map(_.toJson))
   }
   def addTarget(target: RuleTarget): TargetComposition = TargetUnion(targets + target)
@@ -163,7 +163,7 @@ final case class TargetUnion(targets: Set[RuleTarget] = Set()) extends TargetCom
  * Intersection of all Targets, Should take Nodes belongings to all targets
  */
 final case class TargetIntersection(targets: Set[RuleTarget] = Set()) extends TargetComposition {
-  override val toJson:               JValue            = {
+  override val toJson: JValue = {
     ("and" -> targets.map(_.toJson))
   }
   def addTarget(target: RuleTarget): TargetComposition = TargetIntersection(targets + target)

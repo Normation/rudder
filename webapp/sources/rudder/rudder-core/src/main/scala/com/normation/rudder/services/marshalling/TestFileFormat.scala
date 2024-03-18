@@ -38,7 +38,7 @@
 package com.normation.rudder.services.marshalling
 
 import com.normation.rudder.domain.Constants
-import net.liftweb.common._
+import net.liftweb.common.*
 import scala.xml.Node
 
 object TestFileFormat {

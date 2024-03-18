@@ -38,8 +38,8 @@
 package com.normation.rudder.web.snippet.administration
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.appconfig._
-import com.normation.box._
+import com.normation.appconfig.*
+import com.normation.box.*
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.batch.AutomaticStartDeployment
@@ -49,21 +49,21 @@ import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.services.policies.SendMetrics
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
-import com.normation.rudder.services.servers.RelaySynchronizationMethod._
+import com.normation.rudder.services.servers.RelaySynchronizationMethod.*
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.AgentPolicyModeEditForm
 import com.normation.rudder.web.components.AgentScheduleEditForm
 import com.normation.rudder.web.components.ComplianceModeEditForm
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.PosixFilePermission
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.http.SHtml._
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.util._
-import net.liftweb.util.Helpers._
+import net.liftweb.common.*
+import net.liftweb.http.*
+import net.liftweb.http.SHtml.*
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.util.*
+import net.liftweb.util.Helpers.*
 import scala.xml.NodeSeq
 import scala.xml.Text
 
@@ -645,7 +645,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
    */
   def getHookPerm(isExec: Boolean): Set[PosixFilePermission] = {
     // property file should be either rwxr--r-- or rw-r--r--
-    import java.nio.file.attribute.PosixFilePermission._
+    import java.nio.file.attribute.PosixFilePermission.*
     val perms = Set(OWNER_READ, OWNER_WRITE, GROUP_READ, OTHERS_READ)
     if (isExec) perms + OWNER_EXECUTE + GROUP_EXECUTE + OTHERS_EXECUTE
     else perms
@@ -653,7 +653,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
   def generationHookCfpromise: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
     {
-      import better.files._
+      import better.files.*
       val hook = File("/opt/rudder/etc/hooks.d/policy-generation-node-ready/10-cf-promise-check")
 
       val disabled  = !(hook.exists() && hook.isWritable)
@@ -710,7 +710,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   }
 
   def generationHookTriggerNodeUpdate: NodeSeq => NodeSeq = {
-    import better.files._
+    import better.files.*
     type Result[T] = Either[String, T]
     val hookPath = "/opt/rudder/etc/hooks.d/policy-generation-finished/60-trigger-node-update"
     val propPath = hookPath + ".properties"
@@ -1012,7 +1012,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   }
 
   def directiveScriptEngineConfiguration: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
-    import com.normation.rudder.domain.appconfig.FeatureSwitch._
+    import com.normation.rudder.domain.appconfig.FeatureSwitch.*
 
     (configService.rudder_featureSwitch_directiveScriptEngine().toBox match {
       case Full(initialValue) =>
@@ -1155,7 +1155,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   }
 
   def unexpectedReportInterpretation: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
-    import com.normation.rudder.services.reports.UnexpectedReportBehavior._
+    import com.normation.rudder.services.reports.UnexpectedReportBehavior.*
 
     (configService.rudder_compliance_unexpected_report_interpretation().toBox match {
       case Full(initialValue) =>

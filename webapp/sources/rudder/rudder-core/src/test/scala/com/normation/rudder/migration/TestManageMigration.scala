@@ -39,11 +39,11 @@ package com.normation.rudder.migration
 
 import com.normation.BoxSpecMatcher
 import com.normation.rudder.db.DBCommon
-import doobie.implicits._
+import doobie.implicits.*
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import zio.interop.catz._
+import zio.interop.catz.*
 
 /**
  * Test how the migration run with a Database context
@@ -68,7 +68,7 @@ class TestManageMigration_5_6 extends DBCommon with BoxSpecMatcher {
       detectedFileFormat:  Long,
       migrationStartTime:  Option[DateTime] = None,
       migrationFileFormat: Option[Long] = None
-  )(f:                     () => A): A = {
+  )(f: () => A): A = {
     val id = migrationEventLogRepository.createNewStatusLine(detectedFileFormat).map(_.id).toOption.get // because test
     migrationStartTime.foreach(time => migrationEventLogRepository.setMigrationStartTime(id, time))
     migrationFileFormat.foreach(format => migrationEventLogRepository.setMigrationFileFormat(id, format, now))

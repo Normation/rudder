@@ -36,7 +36,7 @@
  */
 package com.normation.appconfig
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.ldap.sdk.BuildFilter.IS
@@ -49,8 +49,8 @@ import com.normation.rudder.domain.eventlog.ModifyGlobalPropertyEventType
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.utils.StringUuidGenerator
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  * A basic config repository, NOT typesafe.

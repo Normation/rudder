@@ -39,13 +39,13 @@ package com.normation.rudder.web.components
 
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.web.ChooseTemplate
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
 import net.liftweb.http.SHtml
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.util.Helpers._
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.util.Helpers.*
 import scala.xml.NodeSeq
 
 /**
@@ -90,7 +90,7 @@ class AgentScheduleEditForm(
    * Parse a json input into a cf-agent Scedule
    */
   def parseJsonSchedule(s: String): Box[AgentRunInterval] = {
-    import net.liftweb.json._
+    import net.liftweb.json.*
     val json = parse(s)
 
     (for {

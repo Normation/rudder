@@ -37,10 +37,10 @@
 
 package com.normation.rudder.rest
 
-import better.files._
+import better.files.*
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.utils.ParseVersion
-import com.normation.zio._
+import com.normation.zio.*
 import net.liftweb.http.LiftRules
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner

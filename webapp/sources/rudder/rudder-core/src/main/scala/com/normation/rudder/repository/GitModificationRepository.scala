@@ -1,6 +1,6 @@
 package com.normation.rudder.repository
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.db.DB
 import com.normation.rudder.git.GitCommitId

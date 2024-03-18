@@ -40,16 +40,16 @@ package com.normation.rudder.ncf.migration
 import better.files.File
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.ReportingLogic.WeightedReport
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
-import com.normation.rudder.ncf._
+import com.normation.rudder.ncf.*
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.xml.TechniqueFiles
 import java.nio.charset.StandardCharsets
-import zio._
-import zio.json._
-import zio.json.yaml._
+import zio.*
+import zio.json.*
+import zio.json.yaml.*
 
 /**
  * An object able to migrate a (set of) old techniques with a
@@ -164,7 +164,7 @@ object MigrateJsonTechniquesService {
    * Read a JSON string in old Rudder 7.3 metadata format as an Editor technique
    */
   def fromOldJsonTechnique(json: String): PureResult[EditorTechnique] = {
-    import OldTechniqueSerializer._
+    import OldTechniqueSerializer.*
     json
       .fromJson[EditorTechnique]
       .left
@@ -175,7 +175,7 @@ object MigrateJsonTechniquesService {
    * transform a JSON string in old Rudder 7.3 format into a YAML string in 8.0 format
    */
   def toYaml(json: String): PureResult[String] = {
-    import YamlTechniqueSerializer._
+    import YamlTechniqueSerializer.*
 
     for {
       technique <- fromOldJsonTechnique(json).left.map(err =>

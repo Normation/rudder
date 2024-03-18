@@ -42,7 +42,7 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -53,8 +53,8 @@ import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.zio.currentTimeMillis
 import java.nio.charset.StandardCharsets
-import zio._
-import zio.json.yaml._
+import zio.*
+import zio.json.yaml.*
 
 /*
  * This service is in charge of writing an editor technique and it's related files.
@@ -180,7 +180,7 @@ class TechniqueWriterImpl(
 
   // write the given EditorTechnique as YAML file in ${technique.path}/technique.yml
   def writeYaml(technique: EditorTechnique): IOResult[String] = {
-    import YamlTechniqueSerializer._
+    import YamlTechniqueSerializer.*
 
     val metadataPath = s"${technique.path}/${TechniqueFiles.yaml}"
     val path         = s"${baseConfigRepoPath}/${metadataPath}"

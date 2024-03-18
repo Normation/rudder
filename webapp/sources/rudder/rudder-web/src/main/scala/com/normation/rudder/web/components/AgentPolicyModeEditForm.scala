@@ -2,10 +2,10 @@ package com.normation.rudder.web.components
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.web.ChooseTemplate
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
 import scala.xml.NodeSeq
 
 class AgentPolicyModeEditForm extends DispatchSnippet with Loggable {

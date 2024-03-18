@@ -37,11 +37,11 @@
 
 package com.normation.rudder.rest
 
-import better.files._
+import better.files.*
 import com.normation.BoxSpecMatcher
 import com.normation.JsonSpecMatcher
 import com.normation.box.IOManaged
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.errors.effectUioUnit
 import com.normation.rudder.AuthorizationType
@@ -52,8 +52,8 @@ import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.lift.LiftApiProcessingLogger
 import com.normation.rudder.rest.lift.LiftHandler
-import com.normation.rudder.users._
-import com.normation.zio._
+import com.normation.rudder.users.*
+import com.normation.zio.*
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
@@ -68,14 +68,14 @@ import net.liftweb.http.LiftRules
 import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.util.Helpers.tryo
 import org.specs2.matcher.Matcher
-import org.specs2.mutable._
+import org.specs2.mutable.*
 import org.specs2.specification.core.Fragment
 import org.specs2.specification.core.Fragments
 import org.yaml.snakeyaml.Yaml
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.control.NonFatal
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /*
  * Utily data structures
@@ -101,7 +101,7 @@ final case class TestRequest(
 
 object TraitTestApiFromYamlFiles {
 
-  def buildLiftRules[A <: LiftApiModuleProvider[_ <: EndpointSchema]](
+  def buildLiftRules[A <: LiftApiModuleProvider[? <: EndpointSchema]](
       modules:     List[A],
       versions:    List[ApiVersion],
       userService: Option[UserService]
@@ -109,13 +109,13 @@ object TraitTestApiFromYamlFiles {
     implicit val userServiceImp = userService match {
       case None    =>
         new UserService {
-          val user           = new AuthenticatedUser {
-            val account                              = RudderAccount.User("test-user", "pass")
+          val user = new AuthenticatedUser {
+            val account: RudderAccount = RudderAccount.User("test-user", "pass")
             def checkRights(auth: AuthorizationType) = true
-            def getApiAuthz                          = ApiAuthorization.allAuthz
-            def nodePerms: NodeSecurityContext = NodeSecurityContext.All
+            def getApiAuthz: ApiAuthorization    = ApiAuthorization.allAuthz
+            def nodePerms:   NodeSecurityContext = NodeSecurityContext.All
           }
-          val getCurrentUser = user
+          val getCurrentUser: AuthenticatedUser = user
         }
       case Some(u) => u
     }
@@ -248,8 +248,8 @@ trait TraitTestApiFromYamlFiles extends Specification with BoxSpecMatcher with J
    * a Map[String, Object]. Which not much better. Expects other cast along the line.
    */
   def readSpecification(obj: Object): Box[TestRequest] = {
-    import java.util.{Map => JUMap}
-    import java.util.{ArrayList => JUList}
+    import java.util.Map as JUMap
+    import java.util.ArrayList as JUList
     type YMap = JUMap[String, Any]
 
     // transform parameter "Any" to a scala List[(String, String)] where key can be repeated.
@@ -257,7 +257,7 @@ trait TraitTestApiFromYamlFiles extends Specification with BoxSpecMatcher with J
     def paramsToScala(t: Any): List[(String, String)] = {
       t.asInstanceOf[JUMap[String, Any]].asScala.toList.flatMap {
         case (k, v: String)    => List((k, v))
-        case (k, v: JUList[_]) => v.asScala.map(x => (k, x.toString)).toList
+        case (k, v: JUList[?]) => v.asScala.map(x => (k, x.toString)).toList
         case (k, x)            =>
           throw new IllegalArgumentException(s"Can not parse '${x}:${x.getClass.getName}' as either a string or a list of string")
       }
@@ -305,13 +305,13 @@ trait TraitTestApiFromYamlFiles extends Specification with BoxSpecMatcher with J
       readYamlFiles(yamlSourceDirectory, yamlDestTmpDirectory, f => limitToFiles.exists(n => f.endsWith(n))).runNow
     }
 
-    def equalsBox[A](m: Matcher[A])(name: String): Matcher[Box[A]]      = (_: Box[A]).mustMatch(m, name)
+    def equalsBox[A](m:       Matcher[A])(name: String): Matcher[Box[A]] = (_: Box[A]).mustMatch(m, name)
     // Full(1) must equalsBoxStrict(1)
-    def equalsBoxStrict[A](a: A)(name: String):    Matcher[Box[A]]      = equalsBox[A](be_==(a))(name)
+    def equalsBoxStrict[A](a: A)(name:          String): Matcher[Box[A]] = equalsBox[A](be_==(a))(name)
     // Full("[3,4]") must equalsBoxJson("[3, 4]")
-    def compareJson(s: String):                    Matcher[String]      =
+    def compareJson(s: String): Matcher[String] =
       if (semanticJson) equalsJsonSemantic(s) else equalsJson(s)
-    def equalsBoxJson(s: String)(name: String):    Matcher[Box[String]] = equalsBox(compareJson(s))(name)
+    def equalsBoxJson(s: String)(name: String): Matcher[Box[String]] = equalsBox(compareJson(s))(name)
 
     Fragments.foreach(files) {
       case (name, yamls) =>

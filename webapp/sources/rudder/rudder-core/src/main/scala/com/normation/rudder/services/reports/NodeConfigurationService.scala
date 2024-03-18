@@ -37,7 +37,7 @@
 
 package com.normation.rudder.services.reports
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ReportLoggerPure
 import com.normation.rudder.domain.policies.DirectiveId
@@ -48,9 +48,9 @@ import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.repository.FindExpectedReportRepository
-import com.normation.zio._
-import zio._
-import zio.syntax._
+import com.normation.zio.*
+import zio.*
+import zio.syntax.*
 
 /**
  * That service retrieve node configurations (nodeexpectedreports) from the expectedreportsjdbcrepository, unless its already in cache
@@ -192,7 +192,7 @@ class CachedNodeConfigurationService(
    * Do something with the action we received
    */
   private[this] def performAction(action: CacheExpectedReportAction): IOResult[Unit] = {
-    import CacheExpectedReportAction._
+    import CacheExpectedReportAction.*
     // in a semaphore
     semaphore.withPermit(
       (action match {

@@ -40,7 +40,7 @@ package com.normation.rudder.migration
 import scala.xml.Elem
 
 object DATA_6 {
-  import Migration_6_DATA_Rule._
+  import Migration_6_DATA_Rule.*
 
   def e(xml: Elem): Elem = <entry>{xml}</entry>
 

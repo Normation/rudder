@@ -66,7 +66,7 @@ import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.filepaths
 import com.normation.templates.FillTemplatesService
-import com.normation.zio._
+import com.normation.zio.*
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.util.regex.Pattern
@@ -85,7 +85,7 @@ import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import org.specs2.text.LinesContent
 import scala.collection.MapView
-import zio.syntax._
+import zio.syntax.*
 
 /**
  * Details of tests executed in each instances of
@@ -104,7 +104,7 @@ class TestSystemData {
 
   //////////// init ////////////
   val data = new TestNodeConfiguration()
-  import data._
+  import data.*
 
   val logNodeConfig = new NodeConfigurationLoggerImpl(abstractRoot.getPath + "/lognodes")
 
@@ -234,8 +234,8 @@ final private case class RegexFileContent(regex: List[String]) extends LinesCont
 trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher with ContentMatchers with AfterAll {
 
   val testSystemData = new TestSystemData()
-  import testSystemData._
-  import testSystemData.data._
+  import testSystemData.*
+  import testSystemData.data.*
 
   /*
    * put regex for line you don't want to be compared for difference
@@ -286,8 +286,8 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
 
 @RunWith(classOf[JUnitRunner])
 class WriteSystemTechniquesTest extends TechniquesTest {
-  import testSystemData._
-  import testSystemData.data._
+  import testSystemData.*
+  import testSystemData.data.*
 
   val parallelism: Int = Integer.max(1, java.lang.Runtime.getRuntime.availableProcessors() / 2)
 
@@ -551,8 +551,8 @@ class WriteSystemTechniquesTest extends TechniquesTest {
 
 @RunWith(classOf[JUnitRunner])
 class WriteSystemTechniques500Test extends TechniquesTest {
-  import testSystemData._
-  import testSystemData.data._
+  import testSystemData.*
+  import testSystemData.data.*
 
   val parallelism: Int = Integer.max(1, java.lang.Runtime.getRuntime.availableProcessors() / 2)
 
@@ -646,8 +646,8 @@ class WriteSystemTechniques500Test extends TechniquesTest {
 
 @RunWith(classOf[JUnitRunner])
 class WriteSystemTechniqueWithRevisionTest extends TechniquesTest {
-  import testSystemData._
-  import testSystemData.data._
+  import testSystemData.*
+  import testSystemData.data.*
 
   val parallelism: Int               = Integer.max(1, java.lang.Runtime.getRuntime.availableProcessors() / 2)
   val rnc:         NodeConfiguration = rootNodeConfig.copy(
@@ -676,10 +676,10 @@ class WriteSystemTechniqueWithRevisionTest extends TechniquesTest {
    * It can't check for directive revision since we don't store them here.
    */
   "Check that revision work for techniques" should {
-    import com.softwaremill.quicklens._
+    import com.softwaremill.quicklens.*
     val APPENED_TEXT = "# the file is modified on HEAD\n"
 
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
     def getCurrentCommitId = (repo.git
       .log()
       .setMaxCount(1)

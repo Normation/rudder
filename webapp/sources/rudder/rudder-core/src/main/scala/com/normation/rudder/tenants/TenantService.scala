@@ -49,9 +49,9 @@ import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.QueryContext
 import scala.collection.MapView
-import zio._
+import zio.*
 import zio.stream.ZStream
-import zio.syntax._
+import zio.syntax.*
 
 /*
  * This interface provide the main entry point for other part of Rudder to know
@@ -83,7 +83,7 @@ trait TenantService {
    * Get the node with ID if it exists on ref map and qc/tenants allows to get it
    */
   def nodeGetMapView(nodes: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
-      qc:                   QueryContext
+      qc: QueryContext
   ): IOResult[Option[CoreNodeFact]]
 
   /*
@@ -150,7 +150,7 @@ class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: 
   }
 
   override def nodeFilterMapView(
-      nodes:     Ref[Map[NodeId, CoreNodeFact]]
+      nodes: Ref[Map[NodeId, CoreNodeFact]]
   )(implicit qc: QueryContext): IOResult[MapView[NodeId, CoreNodeFact]] = {
     if (qc.nodePerms.isNone) {
       MapView().succeed
@@ -173,7 +173,7 @@ class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: 
   }
 
   override def nodeGetMapView(nodes: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
-      qc:                            QueryContext
+      qc: QueryContext
   ): IOResult[Option[CoreNodeFact]] = {
     if (qc.nodePerms.isNone) None.succeed
     else {
@@ -230,7 +230,7 @@ class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: 
                      }
                  }
                } else {
-                 import com.softwaremill.quicklens._
+                 import com.softwaremill.quicklens.*
                  updated.modify(_.rudderSettings.security).setTo(existing.rudderSettings.security).succeed
                }
              } else {

@@ -37,7 +37,7 @@
 
 package com.normation.inventory.ldap.core
 
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 import com.unboundid.ldap.sdk.DN
 
 /**

@@ -36,11 +36,11 @@
 
 package com.normation.inventory.services.provisioning
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.IOResult
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
-import zio.syntax._
+import zio.syntax.*
 
 class InventoryDigestServiceV1(
     getExistingNode: NodeId => IOResult[Option[CoreNodeFact]]

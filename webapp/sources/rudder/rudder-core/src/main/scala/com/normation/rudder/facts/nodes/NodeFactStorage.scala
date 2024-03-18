@@ -37,18 +37,18 @@
 
 package com.normation.rudder.facts.nodes
 
-import NodeFactSerialisation._
+import NodeFactSerialisation.*
 import better.files.File
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.IOResult
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.FullInventoryRepositoryImpl
 import com.normation.inventory.ldap.core.InventoryDitService
 import com.normation.inventory.ldap.core.InventoryMapper
-import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.inventory.services.provisioning.SoftwareDNFinderAction
-import com.normation.ldap.sdk.BuildFilter._
+import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPEntry
 import com.normation.ldap.sdk.One
@@ -65,17 +65,17 @@ import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.repository.ldap.ScalaReadWriteLock
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.utils.StringUuidGenerator
-import com.normation.zio._
-import com.softwaremill.quicklens._
+import com.normation.zio.*
+import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import java.nio.charset.StandardCharsets
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import scala.annotation.nowarn
-import zio._
-import zio.json._
+import zio.*
+import zio.json.*
 import zio.stream.ZStream
-import zio.syntax._
+import zio.syntax.*
 
 /*
  * This file contains the base to persist facts into a git repository. There is a lot of question
@@ -181,8 +181,8 @@ object StorageChangeEventSave {
         s:      InventoryStatus,
         cc:     ChangeContext
     ): NodeFactChangeEventCC = {
-      import NodeFactChangeEvent.{Noop => NoopCE}
-      import NodeFactChangeEvent.{Updated => UpdatedCE, _}
+      import NodeFactChangeEvent.Noop as NoopCE
+      import NodeFactChangeEvent.{Updated as UpdatedCE, *}
       s match {
         case RemovedInventory  => // this case is ignored, we don't delete node based on status value
           NodeFactChangeEventCC(NoopCE(nodeId, SelectFacts.all), cc)
@@ -247,7 +247,7 @@ object StorageChangeEventDelete {
         s:   InventoryStatus,
         cc:  ChangeContext
     ): NodeFactChangeEventCC = {
-      import NodeFactChangeEvent.{Noop => NoopCE, Deleted => DeletedCE, _}
+      import NodeFactChangeEvent.{Noop as NoopCE, Deleted as DeletedCE, *}
 
       def patternMatch(
           event:   StorageChangeEventDelete,
@@ -322,11 +322,11 @@ object NoopFactStorage extends NodeFactStorage {
   override def delete(nodeId: NodeId)(implicit attrs: SelectFacts):                         IOResult[StorageChangeEventDelete] =
     StorageChangeEventDelete.Noop(nodeId).succeed
   @nowarn("msg=parameter attrs in method getAllPending is never used")
-  override def getAllPending()(implicit attrs: SelectFacts = SelectFacts.default):          IOStream[NodeFact]                 = ZStream.empty
+  override def getAllPending()(implicit attrs:  SelectFacts = SelectFacts.default): IOStream[NodeFact] = ZStream.empty
   @nowarn("msg=parameter attrs in method getAllAccepted is never used")
-  override def getAllAccepted()(implicit attrs: SelectFacts = SelectFacts.default):         IOStream[NodeFact]                 = ZStream.empty
-  override def getPending(nodeId: NodeId)(implicit attrs: SelectFacts):                     IOResult[Option[NodeFact]]         = None.succeed
-  override def getAccepted(nodeId: NodeId)(implicit attrs: SelectFacts):                    IOResult[Option[NodeFact]]         = None.succeed
+  override def getAllAccepted()(implicit attrs: SelectFacts = SelectFacts.default): IOStream[NodeFact] = ZStream.empty
+  override def getPending(nodeId:               NodeId)(implicit attrs: SelectFacts): IOResult[Option[NodeFact]] = None.succeed
+  override def getAccepted(nodeId:              NodeId)(implicit attrs: SelectFacts): IOResult[Option[NodeFact]] = None.succeed
 }
 
 /*
@@ -395,7 +395,7 @@ class GitNodeFactStorageImpl(
    * As we want it to be human readable and searchable, we will use an indented format.
    */
   def toJson(nodeFact: NodeFact): IOResult[String] = {
-    import GitNodeFactStorageImpl._
+    import GitNodeFactStorageImpl.*
     val node = nodeFact
       .modify(_.accounts)
       .using(_.sorted)
@@ -636,7 +636,7 @@ object LdapNodeFactStorage {
     selectFacts.software.mode == SelectMode.Retrieve
   }
 
-  def inventoryFacts(s: SelectFacts): List[SelectFactConfig[_ <: Equals with IterableOnce[Serializable] with Serializable]] = {
+  def inventoryFacts(s: SelectFacts): List[SelectFactConfig[? <: Equals with IterableOnce[Serializable] with Serializable]] = {
     List(
       s.swap,
       s.accounts,
@@ -798,7 +798,7 @@ class LdapNodeFactStorage(
   private[nodes] def getNodeFact(nodeId: NodeId, status: InventoryStatus, attrs: SelectFacts): IOResult[Option[NodeFact]] = {
 
     def getNodeEntry(con: RwLDAPConnection, id: NodeId): IOResult[Option[LDAPEntry]] = {
-      con.get(nodeDit.NODES.NODE.dn(nodeId.value), NodeInfoService.nodeInfoAttributes: _*)
+      con.get(nodeDit.NODES.NODE.dn(nodeId.value), NodeInfoService.nodeInfoAttributes*)
     }
     def getSoftware(
         con:          RwLDAPConnection,
@@ -853,14 +853,14 @@ class LdapNodeFactStorage(
       // mostly copied from com.normation.rudder.services.nodes.NodeInfoServiceCachedImpl # getBackendLdapNodeInfo
       val ldapAttrs = (if (needSoftware) Seq(A_SOFTWARE_DN) else Seq()) ++ NodeInfoService.nodeInfoAttributes
 
-      con.get(inventoryDitService.getDit(status).NODES.NODE.dn(nodeId.value), ldapAttrs: _*).flatMap {
+      con.get(inventoryDitService.getDit(status).NODES.NODE.dn(nodeId.value), ldapAttrs*).flatMap {
         case None      => // end of game, no node here
           None.succeed
         case Some(inv) =>
           for {
             optM <- inv(A_CONTAINER_DN) match {
                       case None    => None.succeed
-                      case Some(m) => con.get(new DN(m), ldapAttrs: _*)
+                      case Some(m) => con.get(new DN(m), ldapAttrs*)
                     }
             info <- nodeMapper.convertEntriesToNodeInfos(nodeEntry, inv, optM)
             soft <- getSoftware(con, fullInventoryRepository.getSoftwareUuids(inv), needSoftware)

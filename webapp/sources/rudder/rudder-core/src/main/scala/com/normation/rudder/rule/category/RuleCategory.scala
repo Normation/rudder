@@ -38,7 +38,7 @@
 package com.normation.rudder.rule.category
 
 import com.normation.rudder.domain.policies.Rule
-import net.liftweb.common._
+import net.liftweb.common.*
 import scala.annotation.nowarn
 
 /**

@@ -39,10 +39,10 @@ package net.liftweb.http
 
 import java.io.InputStream
 import java.util.Locale
-import net.liftweb.common._
-import net.liftweb.util._
+import net.liftweb.common.*
+import net.liftweb.util.*
 import org.springframework.core.io.ClassPathResource
-import scala.xml._
+import scala.xml.*
 
 /**
  * That class is mostly a copy&paste of net.liftweb.http.Templates,

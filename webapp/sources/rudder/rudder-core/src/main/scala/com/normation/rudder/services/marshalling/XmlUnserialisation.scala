@@ -52,10 +52,10 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.SectionVal
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.secret.Secret
-import com.normation.rudder.domain.workflows._
+import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.rule.category.RuleCategory
 import net.liftweb.common.Box
-import scala.xml.{Node => XNode}
+import scala.xml.Node as XNode
 import scala.xml.NodeSeq
 
 trait XmlUnserializer {

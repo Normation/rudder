@@ -3,7 +3,7 @@ package com.normation.rudder.rest
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PendingInventory
-import com.normation.zio._
+import com.normation.zio.*
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.json.JsonParser

@@ -158,7 +158,7 @@ class CacheInvalidateNodeFactEventCallback(
     cacheToClear:         List[CachedRepository]
 ) extends NodeFactChangeEventCallback {
 
-  import com.normation.rudder.services.reports.CacheExpectedReportAction._
+  import com.normation.rudder.services.reports.CacheExpectedReportAction.*
 
   override def name: String = "node-fact-cec: invalidate caches"
 

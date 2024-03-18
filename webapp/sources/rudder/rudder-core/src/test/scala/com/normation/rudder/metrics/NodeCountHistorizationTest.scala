@@ -37,7 +37,7 @@
 
 package com.normation.rudder.metrics
 
-import better.files._
+import better.files.*
 import com.normation.errors
 import com.normation.errors.IOResult
 import com.normation.zio.ZioRuntime
@@ -46,10 +46,10 @@ import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.RunWith
-import org.specs2.mutable._
+import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
-import zio.{System => _, _}
-import zio.test._
+import zio.{System as _, *}
+import zio.test.*
 
 @RunWith(classOf[JUnitRunner])
 class NodeCountHistorizationTest extends Specification with BeforeAfter {

@@ -37,8 +37,8 @@
 
 package com.normation.rudder.web.model
 
-import net.liftweb.util.Helpers._
-import scala.xml._
+import net.liftweb.util.Helpers.*
+import scala.xml.*
 
 /**
  * Something that is displayable as a tree node.
@@ -70,7 +70,7 @@ trait JsTreeNode {
  * An empty JsTreeNode - display nothing
  */
 object EmptyJsTreeNode extends JsTreeNode {
-  override val body     = NodeSeq.Empty
-  override val children = Nil
-  override val toXml    = NodeSeq.Empty
+  override val body = NodeSeq.Empty
+  override val children: List[JsTreeNode] = Nil
+  override val toXml = NodeSeq.Empty
 }

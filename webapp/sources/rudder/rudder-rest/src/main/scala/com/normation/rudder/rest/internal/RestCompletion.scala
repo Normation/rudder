@@ -37,14 +37,14 @@
 
 package com.normation.rudder.rest.internal
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.rest.OldInternalApiAuthz
-import com.normation.rudder.rest.RestUtils._
-import net.liftweb.common._
+import com.normation.rudder.rest.RestUtils.*
+import net.liftweb.common.*
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonDSL.*
 
 class RestCompletion(
     completion: RestCompletionService

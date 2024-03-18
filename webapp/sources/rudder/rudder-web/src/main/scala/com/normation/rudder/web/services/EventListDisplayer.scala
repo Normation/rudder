@@ -36,23 +36,23 @@
  */
 package com.normation.rudder.web.services
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.eventlog.EventLog
-import com.normation.rudder.repository._
-import doobie._
-import doobie.implicits._
-import doobie.implicits.javasql._
-import net.liftweb.common._
+import com.normation.rudder.repository.*
+import doobie.*
+import doobie.implicits.*
+import doobie.implicits.javasql.*
+import net.liftweb.common.*
 import net.liftweb.http.S
 import net.liftweb.http.SHtml
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.json._
-import net.liftweb.util.Helpers._
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.json.*
+import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import scala.xml._
+import scala.xml.*
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment),

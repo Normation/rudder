@@ -38,14 +38,14 @@
 package com.normation.rudder.web.services
 
 import com.normation.appconfig.ReadConfigService
-import com.normation.box._
+import com.normation.box.*
 import com.normation.inventory.domain.PhysicalMachineType
 import com.normation.inventory.domain.UnknownMachineType
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.PolicyModeOverrides._
+import com.normation.rudder.domain.policies.PolicyModeOverrides.*
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository.RoRuleRepository
@@ -53,17 +53,17 @@ import com.normation.rudder.score.ScoreService
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.Utils.isEmpty
-import com.normation.zio._
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.http.SHtml._
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
+import com.normation.zio.*
+import net.liftweb.common.*
+import net.liftweb.http.*
+import net.liftweb.http.SHtml.*
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
 import org.slf4j
 import org.slf4j.LoggerFactory
-import scala.xml._
-import zio._
+import scala.xml.*
+import zio.*
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
@@ -283,5 +283,5 @@ final case class NodeLine(
     )
   }
 
-  val json: JsObj = baseFields +* JsObj(optCallback.toSeq: _*)
+  val json: JsObj = baseFields +* JsObj(optCallback.toSeq*)
 }

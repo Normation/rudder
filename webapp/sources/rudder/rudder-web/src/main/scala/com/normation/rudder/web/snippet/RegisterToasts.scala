@@ -37,15 +37,15 @@
 
 package com.normation.rudder.web.snippet
 
-import net.liftweb.http._
-import net.liftweb.http.js.JE._
+import net.liftweb.http.*
+import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmd
-import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js.JsCmds.*
 import scala.xml.NodeSeq
 import scala.xml.Utility
 
 sealed trait ToastNotification {
-  def in: String
+  def in:      String
   def message: String = Utility.escape(in).replaceAll("""\n""", " ")
 }
 

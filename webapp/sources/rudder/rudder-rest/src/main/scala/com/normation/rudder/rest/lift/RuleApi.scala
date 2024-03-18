@@ -38,20 +38,20 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.GitVersion
-import com.normation.box._
-import com.normation.errors._
-import com.normation.eventlog._
+import com.normation.box.*
+import com.normation.errors.*
+import com.normation.eventlog.*
 import com.normation.eventlog.EventActor
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.DetailLevel
 import com.normation.rudder.apidata.FullDetails
-import com.normation.rudder.apidata.JsonQueryObjects._
-import com.normation.rudder.apidata.JsonResponseObjects._
+import com.normation.rudder.apidata.JsonQueryObjects.*
+import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.MinimalDetails
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
-import com.normation.rudder.apidata.implicits._
+import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.configuration.ConfigurationRepository
@@ -73,8 +73,7 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.WoRuleRepository
-import com.normation.rudder.rest._
-import com.normation.rudder.rest.{RuleApi => API}
+import com.normation.rudder.rest.*
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestExtractorService
@@ -82,9 +81,10 @@ import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.RestUtils.getActor
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
-import com.normation.rudder.rest.data._
-import com.normation.rudder.rest.implicits._
-import com.normation.rudder.rule.category._
+import com.normation.rudder.rest.RuleApi as API
+import com.normation.rudder.rest.data.*
+import com.normation.rudder.rest.implicits.*
+import com.normation.rudder.rule.category.*
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.policies.RuleApplicationStatusService
 import com.normation.rudder.services.workflows.ChangeRequestService
@@ -100,12 +100,12 @@ import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json._
+import net.liftweb.json.*
 import net.liftweb.json.JArray
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonDSL.*
 import scala.collection.MapView
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 class RuleApi(
     restExtractorService: RestExtractorService,
@@ -116,24 +116,24 @@ class RuleApi(
     uuidGen:              StringUuidGenerator
 ) extends LiftApiModuleProvider[API] {
 
-  import RestUtils._
+  import RestUtils.*
 
   def response(function: Box[JValue], req: Req, errorMessage: String, dataName: String)(implicit action: String): LiftResponse = {
     RestUtils.response(restExtractorService, dataName, None)(function, req, errorMessage)
   }
 
   def actionResponse(
-      function:      Box[ActionType],
-      req:           Req,
-      errorMessage:  String,
-      id:            Option[String],
-      actor:         EventActor,
-      dataName:      String
+      function:     Box[ActionType],
+      req:          Req,
+      errorMessage: String,
+      id:           Option[String],
+      actor:        EventActor,
+      dataName:     String
   )(implicit action: String): LiftResponse = {
     RestUtils.actionResponse2(restExtractorService, dataName, uuidGen, id)(function, req, errorMessage)(action, actor)
   }
 
-  def schemas = API
+  def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => {
@@ -155,7 +155,7 @@ class RuleApi(
   }
 
   object ListRules extends LiftApiModule0 {
-    val schema        = API.ListRules
+    val schema: API.ListRules.type = API.ListRules
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       serviceV2.listRules(req)
@@ -163,7 +163,7 @@ class RuleApi(
   }
 
   object CreateRule extends LiftApiModule0 {
-    val schema        = API.CreateRule
+    val schema: API.CreateRule.type = API.CreateRule
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       var action = "createRule"
@@ -185,7 +185,7 @@ class RuleApi(
   }
 
   object RuleDetails extends LiftApiModuleString {
-    val schema        = API.RuleDetails
+    val schema: API.RuleDetails.type = API.RuleDetails
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -200,7 +200,7 @@ class RuleApi(
   }
 
   object DeleteRule extends LiftApiModuleString {
-    val schema        = API.DeleteRule
+    val schema: API.DeleteRule.type = API.DeleteRule
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -215,7 +215,7 @@ class RuleApi(
   }
 
   object UpdateRule extends LiftApiModuleString {
-    val schema        = API.UpdateRule
+    val schema: API.UpdateRule.type = API.UpdateRule
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -241,7 +241,7 @@ class RuleApi(
   }
 
   object GetRuleTree extends LiftApiModule0 {
-    val schema        = API.GetRuleTree
+    val schema: API.GetRuleTree.type = API.GetRuleTree
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       response(
@@ -254,7 +254,7 @@ class RuleApi(
   }
 
   object GetRuleCategoryDetails extends LiftApiModuleString {
-    val schema        = API.GetRuleCategoryDetails
+    val schema: API.GetRuleCategoryDetails.type = API.GetRuleCategoryDetails
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -274,7 +274,7 @@ class RuleApi(
   }
 
   object DeleteRuleCategory extends LiftApiModuleString {
-    val schema        = API.DeleteRuleCategory
+    val schema: API.DeleteRuleCategory.type = API.DeleteRuleCategory
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -296,7 +296,7 @@ class RuleApi(
   }
 
   object UpdateRuleCategory extends LiftApiModuleString {
-    val schema        = API.UpdateRuleCategory
+    val schema: API.UpdateRuleCategory.type = API.UpdateRuleCategory
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -334,7 +334,7 @@ class RuleApi(
   }
 
   object CreateRuleCategory extends LiftApiModule0 {
-    val schema        = API.CreateRuleCategory
+    val schema: API.CreateRuleCategory.type = API.CreateRuleCategory
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val restData = if (req.json_?) {
@@ -363,15 +363,15 @@ class RuleApi(
   //////////////////// new API using only zio_json ////////////////////
 
   object ListRulesV14 extends LiftApiModule0 {
-    val schema = API.ListRules
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.ListRules.type = API.ListRules
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse       = {
       implicit val qc: QueryContext = authzToken.qc
       serviceV14.listRules().toLiftResponseList(params, schema)
     }
   }
 
   object RuleDetailsV14 extends LiftApiModuleString {
-    val schema = API.RuleDetails
+    val schema: API.RuleDetails.type = API.RuleDetails
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -389,7 +389,7 @@ class RuleApi(
   }
 
   object CreateRuleV14 extends LiftApiModule0 {
-    val schema = API.CreateRule
+    val schema: API.CreateRule.type = API.CreateRule
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
@@ -410,7 +410,7 @@ class RuleApi(
   }
 
   object UpdateRuleV14 extends LiftApiModuleString {
-    val schema = API.UpdateRule
+    val schema: API.UpdateRule.type = API.UpdateRule
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -431,7 +431,7 @@ class RuleApi(
   }
 
   object DeleteRuleV14 extends LiftApiModuleString {
-    val schema = API.DeleteRule
+    val schema: API.DeleteRule.type = API.DeleteRule
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -450,7 +450,7 @@ class RuleApi(
   }
 
   object GetRuleTreeV14 extends LiftApiModule0 {
-    val schema = API.GetRuleTree
+    val schema: API.GetRuleTree.type = API.GetRuleTree
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
@@ -459,7 +459,7 @@ class RuleApi(
   }
 
   object GetRuleCategoryDetailsV14 extends LiftApiModuleString {
-    val schema = API.GetRuleCategoryDetails
+    val schema: API.GetRuleCategoryDetails.type = API.GetRuleCategoryDetails
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -473,8 +473,8 @@ class RuleApi(
   }
 
   object CreateRuleCategoryV14 extends LiftApiModule0 {
-    val schema = API.CreateRuleCategory
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.CreateRuleCategory.type = API.CreateRuleCategory
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                = {
       (for {
         cat <- zioJsonExtractor.extractRuleCategory(req).toIO
         res <- serviceV14.createCategory(cat, () => uuidGen.newUuid, params, authzToken.qc.actor)
@@ -485,7 +485,7 @@ class RuleApi(
   }
 
   object UpdateRuleCategoryV14 extends LiftApiModuleString {
-    val schema = API.UpdateRuleCategory
+    val schema: API.UpdateRuleCategory.type = API.UpdateRuleCategory
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -504,7 +504,7 @@ class RuleApi(
   }
 
   object DeleteRuleCategoryV14 extends LiftApiModuleString {
-    val schema = API.DeleteRuleCategory
+    val schema: API.DeleteRuleCategory.type = API.DeleteRuleCategory
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -520,7 +520,7 @@ class RuleApi(
   }
 
   object LoadRuleRevisionForGeneration extends LiftApiModuleString {
-    val schema = API.LoadRuleRevisionForGeneration
+    val schema: API.LoadRuleRevisionForGeneration.type = API.LoadRuleRevisionForGeneration
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -539,7 +539,7 @@ class RuleApi(
   }
 
   object UnloadRuleRevisionForGeneration extends LiftApiModuleString {
-    val schema = API.UnloadRuleRevisionForGeneration
+    val schema: API.UnloadRuleRevisionForGeneration.type = API.UnloadRuleRevisionForGeneration
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -565,16 +565,16 @@ class RuleApiService2(
     workflowLevelService: WorkflowLevelService,
     restExtractor:        RestExtractorService,
     restDataSerializer:   RestDataSerializer
-)(implicit userService:   UserService) {
+)(implicit userService: UserService) {
 
-  import restDataSerializer.{serializeRule => serialize}
+  import restDataSerializer.serializeRule as serialize
 
   private[this] def createChangeRequestAndAnswer(
-      id:            String,
-      diff:          ChangeRequestRuleDiff,
-      change:        RuleChangeRequest,
-      actor:         EventActor,
-      req:           Req
+      id:     String,
+      diff:   ChangeRequestRuleDiff,
+      change: RuleChangeRequest,
+      actor:  EventActor,
+      req:    Req
   )(implicit action: String, prettify: Boolean) = {
     (for {
       workflow <- workflowLevelService.getForRule(actor, change)
@@ -621,7 +621,7 @@ class RuleApiService2(
 
   def actualRuleCreation(
       change: RuleChangeRequest
-  )(actor:    EventActor, modId: ModificationId, reason: Option[String]): Box[JArray] = {
+  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JArray] = {
     (for {
       _ <- writeRule.create(change.newRule, modId, actor, reason).toBox
     } yield {
@@ -806,7 +806,7 @@ class RuleApiService6(
   def updateCategory(
       id:       RuleCategoryId,
       restData: RestRuleCategory
-  )(actor:      EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
+  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     logger.info(restData)
     for {
       root              <- readRuleCategory.getRootCategory()
@@ -831,7 +831,7 @@ class RuleApiService6(
   def createCategory(
       restData:  RestRuleCategory,
       defaultId: () => RuleCategoryId
-  )(actor:       EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
+  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     for {
       name     <- restData.name.notOptional("Could not create Rule Category, cause name is not defined").toBox
       update    = RuleCategory(restData.id.getOrElse(defaultId()), name, restData.description.getOrElse(""), Nil)
@@ -867,10 +867,10 @@ class RuleApiService14(
   val MISSING_RULE_CAT_ID: RuleCategoryId = RuleCategoryId("ui-missing-rule-category")
 
   private def createChangeRequest(
-      diff:      ChangeRequestRuleDiff,
-      change:    RuleChangeRequest,
-      params:    DefaultParams,
-      actor:     EventActor
+      diff:   ChangeRequestRuleDiff,
+      change: RuleChangeRequest,
+      params: DefaultParams,
+      actor:  EventActor
   )(implicit qc: QueryContext) = {
     for {
       workflow     <- workflowLevelService.getForRule(actor, change).toIO
@@ -940,11 +940,11 @@ class RuleApiService14(
   }
 
   def createRule(
-      restRule:  JQRule,
-      ruleId:    RuleId,
-      clone:     Option[RuleId],
-      params:    DefaultParams,
-      actor:     EventActor
+      restRule: JQRule,
+      ruleId:   RuleId,
+      clone:    Option[RuleId],
+      params:   DefaultParams,
+      actor:    EventActor
   )(implicit qc: QueryContext): IOResult[JRRule] = {
     // decide if we should create a new rule or clone an existing one
     // Return the source rule to use in each case.
@@ -1179,7 +1179,7 @@ class RuleApiService14(
     def recFind(root: RuleCategory, id: RuleCategoryId): Option[(RuleCategory, RuleCategory)] = {
       root.childs.foldLeft(Option.empty[(RuleCategory, RuleCategory)]) {
         case (None, cat)     => if (cat.id == id) Some((root, cat)) else recFind(cat, id)
-        case (x: Some[_], _) => x
+        case (x: Some[?], _) => x
       }
     }
     for {

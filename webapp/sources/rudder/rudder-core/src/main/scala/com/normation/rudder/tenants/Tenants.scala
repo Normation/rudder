@@ -38,7 +38,7 @@
 package com.normation.rudder.tenants
 
 import scala.util.matching.Regex
-import zio.json._
+import zio.json.*
 
 /*
  * A node can belong to one (or technically more, but we will limit that for now) `tenant`.

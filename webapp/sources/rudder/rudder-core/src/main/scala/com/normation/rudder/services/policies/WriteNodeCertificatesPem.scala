@@ -39,7 +39,7 @@ package com.normation.rudder.services.policies
 
 import better.files.File
 import com.normation.NamedZioLogger
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeInfo
@@ -47,9 +47,9 @@ import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.RunNuCommand
 import com.normation.zio.ZioRuntime
 import java.nio.charset.StandardCharsets
-import zio._
+import zio.*
 import zio.Duration
-import zio.syntax._
+import zio.syntax.*
 
 /**
  * This class will generate a file containing all nodes certificates concatenated.

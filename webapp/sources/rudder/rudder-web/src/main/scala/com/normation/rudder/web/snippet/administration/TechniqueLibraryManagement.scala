@@ -38,20 +38,20 @@
 package com.normation.rudder.web.snippet.administration
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
-import com.normation.cfclerk.domain._
+import com.normation.box.*
+import com.normation.cfclerk.domain.*
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.users.CurrentUser
-import com.normation.rudder.web.components._
+import com.normation.rudder.web.components.*
 import com.normation.rudder.web.components.popup.CreateActiveTechniqueCategoryPopup
 import com.normation.rudder.web.components.popup.GiveReasonPopup
 import com.normation.rudder.web.model.JsTreeNode
 import com.normation.rudder.web.services.AgentCompat
-import com.normation.rudder.web.services.ReasonBehavior._
-import net.liftweb.common._
+import com.normation.rudder.web.services.ReasonBehavior.*
+import net.liftweb.common.*
 import net.liftweb.common.Box.box2Option
 import net.liftweb.common.Box.option2Box
 import net.liftweb.http.DispatchSnippet
@@ -59,12 +59,12 @@ import net.liftweb.http.LocalSnippet
 import net.liftweb.http.S
 import net.liftweb.http.SHtml
 import net.liftweb.http.SHtml.ElemAttr.pairToBasic
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.json._
-import net.liftweb.util.Helpers._
-import scala.xml._
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.json.*
+import net.liftweb.util.Helpers.*
+import scala.xml.*
 
 /**
  * Snippet for managing the System and User Technique libraries.
@@ -78,7 +78,7 @@ import scala.xml._
  */
 class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
-  import TechniqueLibraryManagement._
+  import TechniqueLibraryManagement.*
 
   private[this] val techniqueRepository         = RudderConfig.techniqueRepository
   private[this] val updatePTLibService          = RudderConfig.updateTechniqueLibrary
@@ -633,7 +633,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       val agentTypes  = technique.agentConfigs.map(_.agentType).toSet
       val agentCompat = AgentCompat(agentTypes)
 
-      override def body = {
+      override def body: NodeSeq = {
 
         val tooltipContent = s"""
           <h3>${technique.name}</h3>
@@ -649,8 +649,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
           }>{agentCompat.icon}{technique.name}</span>
         )
       }
-      override def children = Nil
-      override val attrs    = {
+      override def children: List[JsTreeNode] = Nil
+      override val attrs = {
         ("data-jstree"       -> """{ "type" : "template" }""") ::
         ("id"                -> ("ref-technique-" + technique.id.name.value)) ::
         ("activeTechniqueId" -> technique.id.name.value) ::
@@ -660,7 +660,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
     new JsTreeNode {
       // actually transform a technique category to jsTree nodes:
-      override def body     = {
+      override def body: NodeSeq = {
         val tooltipContent = s"<h3>${category.name}</h3\n<div>${category.description}</div>"
         <a href="#">
           <span class="treeActiveTechniqueCategoryName" data-bs-toggle="tooltip" title={tooltipContent}>{
@@ -716,7 +716,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       optTechnique match {
         case Some(technique) =>
           new JsTreeNode {
-            override def body     = {
+            override def body:     NodeSeq          = {
               val tooltipContent = s"""<h3>${technique.name}</h3><div>
                 <p>${technique.escapedDescription}</p>
                 ${agentCompat.techniqueText}
@@ -739,8 +739,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                 )
               )
             }
-            override def children = Nil
-            override val attrs    = {
+            override def children: List[JsTreeNode] = Nil
+            override val attrs = {
               ("data-jstree"       -> """{ "type" : "template" }""") ::
               ("activeTechniqueId" -> technique.id.name.value) ::
               Nil :::
@@ -769,7 +769,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
           }
 
           new JsTreeNode {
-            override def body     = {
+            override def body:     NodeSeq          = {
               val tooltipContent =
                 s"<h3>Missing technique ${activeTechnique.techniqueName.value}</h3>\n<div>The technique is missing on the repository. Active technique based on it are disable until the technique is putted back on the repository</div>"
               SHtml.a(
@@ -779,8 +779,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                 }</span>
               )
             }
-            override def children = Nil
-            override val attrs    = {
+            override def children: List[JsTreeNode] = Nil
+            override val attrs = {
               ("data-jstree"       -> """{ "type" : "template" }""") ::
               ("activeTechniqueId" -> activeTechnique.techniqueName.value) ::
               Nil :::
@@ -814,7 +814,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         ("catId"       -> category.id.value) ::
         Nil
       }
-      override def body     = {
+      override def body: NodeSeq = {
         val tooltipContent = s"<h3>${category.name}</h3>\n<div>${category.description}</div>"
         SHtml.a(
           onClickUserCategory _,

@@ -37,17 +37,17 @@
 
 package com.normation.rudder.services.eventlog
 
-import cats.data._
-import com.normation.box._
+import cats.data.*
+import com.normation.box.*
 import com.normation.errors
-import com.normation.eventlog._
+import com.normation.eventlog.*
 import com.normation.rudder.batch.CurrentDeploymentStatus
-import com.normation.rudder.domain.eventlog._
+import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.repository.EventLogRepository
-import doobie._
-import doobie.implicits._
-import net.liftweb.common._
-import zio.syntax._
+import doobie.*
+import doobie.implicits.*
+import net.liftweb.common.*
+import zio.syntax.*
 
 class EventLogDeploymentService(
     val repository:             EventLogRepository,
@@ -94,7 +94,7 @@ class EventLogDeploymentService(
       case Nil    => Nil.succeed
       case h :: t =>
         val query =
-          Fragments.and(Fragments.in(fr"eventtype", NonEmptyList.of(h, t: _*)), fr" id > ${lastSuccess.id.getOrElse(0)}")
+          Fragments.and(Fragments.in(fr"eventtype", NonEmptyList.of(h, t*)), fr" id > ${lastSuccess.id.getOrElse(0)}")
         repository.getEventLogByCriteria(Some(query), None, List(Fragment.const("id DESC")), None)
     }
   }

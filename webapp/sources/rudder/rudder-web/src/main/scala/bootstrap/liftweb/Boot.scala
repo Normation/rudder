@@ -55,9 +55,9 @@ import com.normation.rudder.domain.eventlog.LogoutEventLog
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.logger.PluginLogger
-import com.normation.rudder.rest.{InfoApi => InfoApiDef}
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.EndpointSchema
+import com.normation.rudder.rest.InfoApi as InfoApiDef
 import com.normation.rudder.rest.lift.InfoApi
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.v1.RestStatus
@@ -66,20 +66,20 @@ import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.web.snippet.CustomPageJs
 import com.normation.rudder.web.snippet.WithCachedResource
 import com.normation.rudder.web.snippet.WithNonce
-import com.normation.zio._
+import com.normation.zio.*
 import java.net.URI
 import java.net.URLConnection
 import java.util.Locale
-import net.liftweb.common._
-import net.liftweb.http._
+import net.liftweb.common.*
+import net.liftweb.http.*
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.sitemap._
-import net.liftweb.sitemap.Loc._
+import net.liftweb.sitemap.*
+import net.liftweb.sitemap.Loc.*
 import net.liftweb.sitemap.Loc.LocGroup
 import net.liftweb.sitemap.Loc.TestAccess
 import net.liftweb.sitemap.Menu
-import net.liftweb.util.TimeHelpers._
+import net.liftweb.util.TimeHelpers.*
 import net.liftweb.util.Vendor
 import org.joda.time.DateTime
 import org.reflections.Reflections
@@ -87,13 +87,13 @@ import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
 import scala.concurrent.duration.DAYS
 import scala.concurrent.duration.Duration
-import scala.util.chaining._
+import scala.util.chaining.*
 import scala.util.matching.Regex
 import scala.xml.Elem
 import scala.xml.Node
 import scala.xml.NodeSeq
-import zio.{System => _, _}
-import zio.syntax._
+import zio.{System as _, *}
+import zio.syntax.*
 
 /*
  * Utilities about rights
@@ -119,7 +119,7 @@ object Boot {
     * We use it as default vendor for headers with our custom routing logic of CSP headers for instance.
     */
   final class RequestHeadersFactoryVendor(csp: ContentSecurityPolicy) extends Vendor[List[(String, String)]] {
-    import RequestHeadersFactoryVendor._
+    import RequestHeadersFactoryVendor.*
 
     LiftRules.registerInjection(this)
 
@@ -181,7 +181,7 @@ object Boot {
       * Returns all headers depending on page url, using current request nonce and add all other initial CSP directives
       */
     private def replaceCSPRestrictionDirectives(key: String, value: String)(
-        directives:                                  List[(String, String)]
+        directives: List[(String, String)]
     ): List[(String, String)] = {
       directives.map {
         case (k, _) if key == k => key -> value
@@ -239,7 +239,7 @@ object PluginsInfo {
             case None    => recApi(apis, tail)
             case Some(x) =>
               x.schemas match {
-                case p: ApiModuleProvider[_] => recApi(p.endpoints ::: apis, tail)
+                case p: ApiModuleProvider[?] => recApi(p.endpoints ::: apis, tail)
                 case _ => recApi(apis, tail)
               }
           }
@@ -426,7 +426,7 @@ object FindCurrentUser {
  */
 class Boot extends Loggable {
 
-  import Boot._
+  import Boot.*
 
   def boot(): Unit = {
 
@@ -899,7 +899,7 @@ class Boot extends Loggable {
     // not sur why we are using that ?
     // SiteMap.enforceUniqueLinks = false
 
-    LiftRules.setSiteMapFunc(() => SiteMap(newSiteMap: _*))
+    LiftRules.setSiteMapFunc(() => SiteMap(newSiteMap*))
 
     // load users from rudder-users.xml
     RudderConfig.rudderUserListProvider.reload()
@@ -954,7 +954,7 @@ class Boot extends Loggable {
   }
 
   private[this] def initPlugins(): List[RudderPluginDef] = {
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
 
     val reflections = new Reflections("bootstrap.rudder.plugin", "com.normation.plugins")
 
@@ -1008,7 +1008,7 @@ class Boot extends Loggable {
       plugin.init
 
       // add APIs
-      plugin.apis.foreach { (api: LiftApiModuleProvider[_]) =>
+      plugin.apis.foreach { (api: LiftApiModuleProvider[?]) =>
         RudderConfig.rudderApi.addModules(api.getLiftEndpoints())
         RudderConfig.authorizationApiMapping.addMapper(api.schemas.authorizationApiMapping)
       }

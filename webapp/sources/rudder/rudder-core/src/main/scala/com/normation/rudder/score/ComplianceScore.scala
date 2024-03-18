@@ -46,9 +46,9 @@ import com.normation.rudder.score.ScoreValue.B
 import com.normation.rudder.score.ScoreValue.C
 import com.normation.rudder.score.ScoreValue.D
 import com.normation.rudder.score.ScoreValue.E
-import zio._
-import zio.json._
-import zio.syntax._
+import zio.*
+import zio.json.*
+import zio.syntax.*
 
 object ComplianceScore {
   val scoreId = "compliance"

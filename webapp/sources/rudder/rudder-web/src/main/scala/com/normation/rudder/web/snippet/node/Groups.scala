@@ -38,31 +38,31 @@
 package com.normation.rudder.web.snippet.node
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
+import com.normation.box.*
 import com.normation.eventlog.ModificationId
 import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.AuthorizationType
-import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.repository._
+import com.normation.rudder.repository.*
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.NodeGroupCategoryForm
 import com.normation.rudder.web.components.NodeGroupForm
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
 import com.normation.rudder.web.services.DisplayNodeGroupTree
-import net.liftweb.common._
-import net.liftweb.http._
+import net.liftweb.common.*
+import net.liftweb.http.*
 import net.liftweb.http.LocalSnippet
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.json._
-import net.liftweb.util._
-import scala.xml._
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.json.*
+import net.liftweb.util.*
+import scala.xml.*
 
 object Groups {
   val htmlId_groupTree           = "groupTree"
@@ -78,7 +78,7 @@ object Groups {
 }
 
 class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with Loggable {
-  import Groups._
+  import Groups.*
 
   private[this] val getFullGroupLibrary   = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private[this] val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
@@ -182,7 +182,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
                |app.ports.createGroupModal.subscribe(function(msg) {
                |  createGroupCallback()
                |});
-               | 
+               |
                |// We need to notify the Elm app when an action could have been executed to refresh the display
                |$$("#createGroupPopup").on("hidden.bs.modal", function () {
                |  app.ports.closeModal.send(null)

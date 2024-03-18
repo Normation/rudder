@@ -38,13 +38,13 @@
 package com.normation.rudder.repository.ldap
 
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.ldap.core.LDAPConstants.A_OC
 import com.normation.ldap.sdk.GeneralizedTime
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
@@ -56,8 +56,8 @@ import com.normation.rudder.repository.ImportTechniqueLibrary
 import com.unboundid.ldap.sdk.DN
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 class ImportTechniqueLibraryImpl(
     rudderDit:    RudderDit,

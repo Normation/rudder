@@ -54,8 +54,8 @@ sealed trait HashAlgoConstraint {
    * Serialize an input to the storage format:
    * algotype:hash
    */
-  def serialize(input: Array[Byte]): String             = s"${prefix}:${hash(input)}"
-  def unserialize(value: String):    PureResult[String] = HashAlgoConstraint.unserialize(value) match {
+  def serialize(input: Array[Byte]): String = s"${prefix}:${hash(input)}"
+  def unserialize(value: String): PureResult[String] = HashAlgoConstraint.unserialize(value) match {
     case Right((algo, v)) if algo == this => Right(v)
     case Right((algo, _))                 => Left(Inconsistency(s"Bad algorithm prefix: found ${algo.prefix}, was expecting ${this.prefix}"))
     case Left(eb)                         => Left(eb)

@@ -38,9 +38,9 @@
 package com.normation.rudder.services.queries
 
 import com.normation.rudder.domain.queries.NodeReturnType
-import net.liftweb.common._
-import org.junit._
-import org.junit.Assert._
+import net.liftweb.common.*
+import org.junit.*
+import org.junit.Assert.*
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
 

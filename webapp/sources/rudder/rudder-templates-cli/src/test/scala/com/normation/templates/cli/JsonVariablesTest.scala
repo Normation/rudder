@@ -38,7 +38,7 @@
 package com.normation.templates.cli
 
 import com.normation.templates.STVariable
-import com.normation.zio._
+import com.normation.zio.*
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner

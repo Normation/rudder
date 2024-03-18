@@ -70,7 +70,7 @@ import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.eventlog.EventLogFactory
-import doobie._
+import doobie.*
 import org.joda.time.DateTime
 
 trait EventLogRepository {

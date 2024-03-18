@@ -59,13 +59,13 @@ trait ReportingService {
    * find node status reports for all rules)
    */
   def findRuleNodeStatusReports(nodeIds: Set[NodeId], filterByRules: Set[RuleId])(implicit
-      qc:                                QueryContext
+      qc: QueryContext
   ): Box[Map[NodeId, NodeStatusReport]]
 
   def findDirectiveNodeStatusReports(
       nodeIds:            Set[NodeId],
       filterByDirectives: Set[DirectiveId]
-  )(implicit qc:          QueryContext): Box[Map[NodeId, NodeStatusReport]]
+  )(implicit qc: QueryContext): Box[Map[NodeId, NodeStatusReport]]
 
   def findUncomputedNodeStatusReports(): Box[Map[NodeId, NodeStatusReport]]
 
@@ -75,7 +75,7 @@ trait ReportingService {
    * find node status reports for all rules)
    */
   def findRuleNodeCompliance(nodeIds: Set[NodeId], filterByRules: Set[RuleId])(implicit
-      qc:                             QueryContext
+      qc: QueryContext
   ): IOResult[Map[NodeId, ComplianceLevel]]
 
   /**
@@ -87,7 +87,7 @@ trait ReportingService {
       nodeIds:             Set[NodeId],
       filterBySystemRules: Set[RuleId],
       filterByUserRules:   Set[RuleId]
-  )(implicit qc:           QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])]
+  )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])]
 
   /**
    * A specialised version of `findRuleNodeStatusReports` to find node status reports for a given rule.
@@ -121,7 +121,7 @@ trait ReportingService {
    */
   def getSystemAndUserCompliance(
       optNodeIds: Option[Set[NodeId]]
-  )(implicit qc:  QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])]
+  )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])]
 
   /**
    * * Get the global compliance for reports passed in parameters

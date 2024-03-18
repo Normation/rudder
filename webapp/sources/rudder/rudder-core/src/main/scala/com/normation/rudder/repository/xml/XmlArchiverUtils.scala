@@ -37,7 +37,7 @@
 
 package com.normation.rudder.repository.xml
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.rudder.domain.logger.GitArchiveLogger
 import java.io.File
 import java.nio.charset.Charset
@@ -70,10 +70,10 @@ trait XmlArchiverUtils {
    * Perms are defined in /opt/rudder/bin/rudder-fix-repository-configuration
    */
   def writeXml(fileName: File, elem: Elem, logMessage: String): IOResult[File] = {
-    import better.files._
+    import better.files.*
 
-    import java.nio.file.StandardOpenOption._
-    import java.nio.file.attribute.PosixFilePermission._
+    import java.nio.file.StandardOpenOption.*
+    import java.nio.file.attribute.PosixFilePermission.*
     val filePerms      = Set[PosixFilePermission](OWNER_READ, OWNER_WRITE, /* no exec, */ GROUP_READ, GROUP_WRITE /* no exec, */ )
     val directoryPerms = Set[PosixFilePermission](OWNER_READ, OWNER_WRITE, OWNER_EXECUTE, GROUP_READ, GROUP_WRITE, GROUP_EXECUTE)
 

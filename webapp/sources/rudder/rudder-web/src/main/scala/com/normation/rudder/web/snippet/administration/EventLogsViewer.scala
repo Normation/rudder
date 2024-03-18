@@ -38,10 +38,10 @@
 package com.normation.rudder.web.snippet.administration
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
+import com.normation.box.*
 import com.normation.eventlog.EventLog
-import doobie._
-import net.liftweb.common._
+import doobie.*
+import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import scala.xml.NodeSeq
 
