@@ -483,10 +483,9 @@ update msg model =
             TechniqueDetails t o ui editInfo->
               let
                 parameters = List.Extra.filterNot (\c -> paramId == c.id ) t.parameters
-                newUI = {ui | openedParameters = List.Extra.remove paramId ui.openedParameters }
                 technique = { t | parameters = parameters }
               in
-                { model | mode = TechniqueDetails technique o newUI editInfo }
+                { model | mode = TechniqueDetails technique o ui editInfo }
             _ -> model
       in
         updatedStoreTechnique newModel
@@ -504,18 +503,6 @@ update msg model =
       in
         ({ model | mode = newMode}, Cmd.none )
 
-    TechniqueParameterToggle paramId ->
-      let
-        newMode =
-          case model.mode of
-            TechniqueDetails t o ui editInfo->
-              let
-                newUI = {ui | openedParameters = (if List.member paramId ui.openedParameters then List.Extra.remove else (::) ) paramId ui.openedParameters }
-              in
-                TechniqueDetails t o newUI editInfo
-            _ -> model.mode
-      in
-        ({ model | mode = newMode}, Cmd.none )
 
 
 -- Edit a technique: resource tab, file manager, etc.
