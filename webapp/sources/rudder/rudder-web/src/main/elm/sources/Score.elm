@@ -30,11 +30,19 @@ update msg model =
     GetScore res ->
       case res of
         Ok complianceScore ->
-          ( { model | complianceScore = Just complianceScore }
+          ( { model | score = Just complianceScore }
           , Cmd.none
           )
         Err err ->
           processApiError "Getting global score" err model
+    GetScoreInfo res ->
+      case res of
+        Ok scoreInfo ->
+          ( { model | scoreInfo = scoreInfo }
+          , Cmd.none
+          )
+        Err err ->
+          processApiError "Getting score info" err model
 
 processApiError : String -> Http.Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =

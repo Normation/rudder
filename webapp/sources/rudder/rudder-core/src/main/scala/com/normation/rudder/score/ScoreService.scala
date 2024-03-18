@@ -46,12 +46,12 @@ import zio.syntax.ToZio
 
 trait ScoreService {
   def getAll(): IOResult[Map[NodeId, GlobalScore]]
-  def getGlobalScore(nodeId:    NodeId):                   IOResult[GlobalScore]
-  def getScoreDetails(nodeId:   NodeId):                   IOResult[List[Score]]
-  def cleanScore(name:          String):                   IOResult[Unit]
+  def getGlobalScore(nodeId:    NodeId): IOResult[GlobalScore]
+  def getScoreDetails(nodeId:   NodeId): IOResult[List[Score]]
+  def cleanScore(name:          String): IOResult[Unit]
   def update(newScores:         Map[NodeId, List[Score]]): IOResult[Unit]
-  def registerScore(newScoreId: String):                   IOResult[Unit]
-  def getAvailableScore(): IOResult[List[String]]
+  def registerScore(newScoreId: String, displayName: String): IOResult[Unit]
+  def getAvailableScore(): IOResult[List[(String, String)]]
   def init():              IOResult[Unit]
 }
 
@@ -59,8 +59,8 @@ class ScoreServiceImpl(globalScoreRepository: GlobalScoreRepository, scoreReposi
   private[this] val cache:      Ref[Map[NodeId, GlobalScore]] = Ref.make(Map.empty[NodeId, GlobalScore]).runNow
   private[this] val scoreCache: Ref[Map[NodeId, List[Score]]] = Ref.make(Map.empty[NodeId, List[Score]]).runNow
 
-  private[this] val availableScore: Ref[List[String]] =
-    Ref.make(ComplianceScore.scoreId :: SystemUpdateScore.scoreId :: Nil).runNow
+  private[this] val availableScore: Ref[List[(String, String)]] =
+    Ref.make((ComplianceScore.scoreId, "Compliance") :: (SystemUpdateScore.scoreId, "System updates") :: Nil).runNow
 
   def init(): IOResult[Unit] = {
     for {
@@ -77,8 +77,8 @@ class ScoreServiceImpl(globalScoreRepository: GlobalScoreRepository, scoreReposi
     } yield {
       scoreIds.foldLeft(globalScore) {
         case (score, id) =>
-          if (score.details.exists(_.scoreId == id)) score
-          else score.copy(details = score.details :+ (NoDetailsScore(id, ScoreValue.NoScore, "")))
+          if (score.details.exists(_.scoreId == id._1)) score
+          else score.copy(details = score.details :+ (NoDetailsScore(id._1, ScoreValue.NoScore, "")))
 
       }
     }
@@ -151,11 +151,11 @@ class ScoreServiceImpl(globalScoreRepository: GlobalScoreRepository, scoreReposi
 
   }
 
-  def registerScore(newScoreId: String): IOResult[Unit] = {
-    availableScore.update(_ :+ newScoreId)
+  def registerScore(newScoreId: String, displayName: String): IOResult[Unit] = {
+    availableScore.update(_ :+ (newScoreId, displayName))
   }
 
-  def getAvailableScore(): IOResult[List[String]] = {
+  def getAvailableScore(): IOResult[List[(String, String)]] = {
     availableScore.get
   }
 }

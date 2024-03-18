@@ -13,6 +13,11 @@ import NodeCompliance.DataTypes exposing (NodeId)
 
 type ScoreValue = A | B | C | D | E | F | X
 
+type alias ScoreInfo =
+  { id : String
+  , name : String
+  }
+
 type alias GlobalScore =
   { value   : ScoreValue -- "A/B/C/D/E/F/-"
   , message : String -- "un message en markdown"
@@ -40,9 +45,10 @@ type alias SystemUpdatesDetails =
   }
 
 type alias Model =
-  { nodeId          : NodeId
-  , complianceScore : Maybe GlobalScore
-  , contextPath     : String
+  { nodeId      : NodeId
+  , score       : Maybe GlobalScore
+  , contextPath : String
+  , scoreInfo   : List ScoreInfo
   }
 
-type Msg = GetScore (Result Error GlobalScore )
+type Msg = GetScore (Result Error GlobalScore) | GetScoreInfo (Result Error (List ScoreInfo))

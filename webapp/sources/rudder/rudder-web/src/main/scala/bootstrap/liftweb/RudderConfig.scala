@@ -2218,7 +2218,8 @@ object RudderConfigInit {
         new RulesInternalApi(ruleInternalApiService, ruleApiService13),
         campaignApi,
         new HookApi(hookApiService),
-        archiveApi
+        archiveApi,
+        new ScoreApiImpl(restExtractorService, scoreService)
         // info api must be resolved latter, because else it misses plugin apis !
       )
 
