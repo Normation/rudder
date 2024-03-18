@@ -6,11 +6,9 @@ import Accounts.DatePickerUtils exposing (..)
 import Accounts.JsonDecoder exposing (parseTenants)
 import Accounts.JsonEncoder exposing (encodeTenants)
 import Html exposing (..)
-import Html.Attributes exposing (attribute, checked, class, disabled, for, id, name, placeholder, readonly, selected, size, style, title, type_, value)
-import Html.Events exposing (custom, onCheck, onClick, onInput)
-import SingleDatePicker exposing (Settings, TimePickerVisibility(..), defaultSettings, defaultTimePickerSettings)
-import Task
-import Time exposing (Month(..), Posix, Zone)
+import Html.Attributes exposing (attribute, checked, class, disabled, for, id, name, placeholder, selected, style, title, type_, value)
+import Html.Events exposing (onCheck, onClick, onInput)
+import SingleDatePicker exposing (Settings, TimePickerVisibility(..))
 import Time.Extra as Time exposing (Interval(..), add)
 
 
@@ -91,9 +89,6 @@ displayModals model =
 
                         Just account ->
                             let
-                                datePickerValue =
-                                    getDateString model.ui.datePickerInfo model.ui.datePickerInfo.pickedTime
-
                                 ( expirationDate, selectedDate ) =
                                     case account.expirationDate of
                                         Just d ->
@@ -107,14 +102,6 @@ displayModals model =
 
                                         Nothing ->
                                             ( "Never", add Month 1 model.ui.datePickerInfo.zone model.ui.datePickerInfo.currentTime )
-
-                                aclList =
-                                    case account.acl of
-                                        Just l ->
-                                            l
-
-                                        Nothing ->
-                                            []
 
                                 displayWarningName =
                                     if checkEmptyWarning then
@@ -149,8 +136,8 @@ displayModals model =
                                     else
                                         span [] [ text (": " ++ encodeTenants account.tenantMode account.selectedTenants) ]
                             in
-                            ModalUI (account.authorisationType == "acl")
-                                (account.tenantMode == ByTenants)
+                            ModalUI (account.authorisationType == "acl" && model.aclPluginEnabled)
+                                (account.tenantMode == ByTenants && model.tenantsPluginEnabled)
                                 (CallApi (saveAccount account))
                                 (form
                                     [ name "newAccount"
@@ -274,7 +261,7 @@ displayModals model =
                                         "none"
                                     )
                                 ]
-                                [ if modalUI.displayTenants then
+                                [ if modalUI.displayAcl then
                                     h4 [] [ text "Select ACL for account:" ]
 
                                   else

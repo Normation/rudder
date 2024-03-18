@@ -2,7 +2,6 @@ module Accounts.JsonDecoder exposing (..)
 
 import Accounts.DataTypes as TenantMode exposing (..)
 import Accounts.DatePickerUtils exposing (stringToPosix)
-import Dict exposing (Dict)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import List exposing (drop, head)
