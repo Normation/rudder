@@ -43,6 +43,14 @@ update msg model =
           )
         Err err ->
           processApiError "Getting score details" err model
+    GetScoreInfo res ->
+      case res of
+        Ok scoreInfo ->
+          ( { model | scoreInfo = scoreInfo }
+          , Cmd.none
+          )
+        Err err ->
+          processApiError "Getting score list" err model
     ReceiveDetails name value ->
         case Html.Parser.run value of
           Ok htmlString ->

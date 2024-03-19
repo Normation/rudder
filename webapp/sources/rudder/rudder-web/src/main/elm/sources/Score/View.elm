@@ -11,14 +11,14 @@ view : Model -> Html Msg
 view model =
   div[ class "compliance-score d-flex flex-column mb-4" ]
   [ div[class "global-score d-flex"]
-    ( case model.complianceScore of
+    ( case model.score of
       Just complianceScore ->
         [ div[class "score-badge"]
           [ getScoreBadge complianceScore.value [] False
           ]
         , div[class "score-breakdown ps-5 flex-grow-1 flex-column"]
            [ h3[][text "Score breakdown"]
-           , div[class "d-flex"](scoreBreakdownList complianceScore.details)
+           , div[class "d-flex"](scoreBreakdownList complianceScore.details model.scoreInfo)
            ]
         , div[class "score-explanation ps-3 flex-grow-1"]
           ( Markdown.toHtml Nothing complianceScore.message )

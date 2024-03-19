@@ -1136,7 +1136,7 @@ class NodeApiService(
                              nodeFactRepository.getAll().map(_.filterKeys(id => nodeIds.contains(id)))
                          }
       scores          <- scoreService.getAll()
-      allScoreId      <- scoreService.getAvailableScore()
+      allScoreId      <- scoreService.getAvailableScore().map(_.map(_._1))
       n2              <- currentTimeMillis
       _               <- TimingDebugLoggerPure.trace(s"Getting node infos: ${n2 - n1}ms")
       runs            <- reportsExecutionRepository.getNodesLastRun(nodes.keySet.toSet)

@@ -4,7 +4,7 @@ import Http exposing (..)
 import Url.Builder exposing (QueryParameter)
 
 import Score.DataTypes exposing (..)
-import Score.JsonDecoder exposing (decodeGetScore)
+import Score.JsonDecoder exposing (decodeGetInfo, decodeGetScore)
 
 --
 -- This files contains all API calls for the Directive compliance UI
@@ -45,6 +45,23 @@ getScoreDetails model =
         , url     = getUrl model url []
         , body    = emptyBody
         , expect  = expectJson GetScore decodeGetScore
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+  in
+    req
+
+getScoreInfo : Model -> Cmd Msg
+getScoreInfo model =
+  let
+    url = ["scores" , "list"]
+    req =
+      request
+        { method  = "GET"
+        , headers = []
+        , url     = getUrl model url []
+        , body    = emptyBody
+        , expect  = expectJson GetScoreInfo decodeGetInfo
         , timeout = Nothing
         , tracker = Nothing
         }

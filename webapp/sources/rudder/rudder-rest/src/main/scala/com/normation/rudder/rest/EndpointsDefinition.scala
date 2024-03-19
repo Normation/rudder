@@ -794,6 +794,22 @@ object RuleInternalApi       extends ApiModuleProvider[RuleInternalApi]         
 
 }
 
+sealed trait ScoreApi extends EndpointSchema with InternalApi with SortIndex {
+  override def dataContainer: Option[String] = Some("scores")
+}
+object ScoreApi       extends ApiModuleProvider[ScoreApi]                    {
+
+  final case object GetScoreList extends ScoreApi with ZeroParam with StartsAtVersion19 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "List all info of all available scores"
+    val (action, path) = GET / "scores" / "list"
+
+    override def dataContainer = None
+  }
+  def endpoints: List[ScoreApi] = ca.mrvisser.sealerate.values[ScoreApi].toList.sortBy(_.z)
+
+}
+
 sealed trait SystemApi extends EndpointSchema with GeneralApi with SortIndex {
   override def dataContainer = None // nothing normalized here ?
 }

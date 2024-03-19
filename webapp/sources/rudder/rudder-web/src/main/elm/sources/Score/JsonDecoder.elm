@@ -12,6 +12,11 @@ decodeGetScore =
 decodeGetDetails : Decoder (List DetailedScore)
 decodeGetDetails =
   at [ "data" ] (list decodeDetailedScore)
+
+decodeGetInfo : Decoder (List ScoreInfo)
+decodeGetInfo =
+  at [ "data" ] (list decodeScoreInfo)
+
 decodeGlobalScore : Decoder GlobalScore
 decodeGlobalScore =
   succeed GlobalScore
@@ -26,6 +31,11 @@ decodeScore =
     |> required "scoreId"    string
     |> required "message" string
 
+decodeScoreInfo : Decoder ScoreInfo
+decodeScoreInfo =
+  succeed ScoreInfo
+    |> required "id"   string
+    |> required "name" string
 
 decodeDetailedScore : Decoder DetailedScore
 decodeDetailedScore =
