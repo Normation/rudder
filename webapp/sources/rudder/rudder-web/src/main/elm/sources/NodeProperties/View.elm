@@ -39,62 +39,46 @@ view model =
               ]
           ]
         , ( if model.ui.hasNodeWrite then
-          div[class "col-xl-7 col-lg-8 col-sm-12 add-prop-form"]
-          [ label[for "newPropName"][text "Add a new property:"]
-          , table[id "addPropTable"]
-            [ tbody[]
-              [ tr[]
-                [ td [class ("form-group" ++ if ((checkEmptyName && checkPristineName) || checkAlreadyUsedName) then " has-error" else "")]
-                  [ input
-                    [ placeholder "Name"
-                    , class "form-control input-key"
-                    , id "newPropName"
-                    , name "newPropName"
-                    , value newProperty.name
-                    , onInput (\s -> UpdateNewProperty { newProperty | name = s, pristineName = False})
-                    -- to deactivate plugin "Grammarly" or "Language Tool" from
-                    -- adding HTML that make disapear textarea (see  https://issues.rudder.io/issues/21172)
-                    , attribute "data-gramm" "false"
-                    , attribute "data-gramm_editor" "false"
-                    , attribute "data-enable-grammarly" "false"
-                    , spellcheck False
-                    ][]
-                  ]
-                , td []
-                  [ span [class "input-group-text addon-json"][text "="]
-                  ]
-                , td [class ("form-group" ++ if ((checkEmptyVal && checkPristineVal) || checkFormatVal) then " has-error" else "")]
-                  [ textarea
-                    [ placeholder "Value"
-                    , class "form-control input-value auto-resize code"
-                    , attribute "rows" "1"
-                    , name "newPropValue"
-                    , value newProperty.value
-                    , onInput (\s -> UpdateNewProperty { newProperty | value = s, pristineValue = False, errorFormat = False})
-                    , attribute "data-gramm" "false"
-                    , attribute "data-gramm_editor" "false"
-                    , attribute "data-enable-grammarly" "false"
-                    , spellcheck False
-                    ][]
-                  ]
-                , td [class "json-check-col"]
-                  [ div[]
-                    [ button [type_ "button", class "btn btn-default dropdown-toggle", attribute "data-bs-toggle" "dropdown"]
-                      [ text (if isJson then "JSON " else "String ")
-                      , span [class "caret"][]
-                      ]
-                    , ul [class "dropdown-menu"]
-                      [ li[][ a[class "dropdown-item", onClick (UpdateNewProperty { newProperty | format = StringFormat })] [text "String"] ]
-                      , li[][ a[class "dropdown-item", onClick (UpdateNewProperty { newProperty | format = JsonFormat   })] [text "JSON"  ] ]
-                      ]
-                    ]
-                  ]
-                , td[]
-                  [ button [type_ "button",  class "btn btn-success", disabled (List.any (\c -> c == True) checks), onClick AddProperty]
-                    [ span [class "fa fa-plus"] []
-                    ]
-                  ]
-                ]
+          div[class "col-lg-7 col-md-8 col-xs-12 add-prop-form"]
+          [ label[for "newPropName", class "fw-bold"][text "Add a new property:"]
+          , div[ class "input-group has-validation align-items-start"]
+            [ input
+              [ placeholder "Name"
+              , class ("form-control input-key" ++ if ((checkEmptyName && checkPristineName) || checkAlreadyUsedName) then " is-invalid" else "")
+              , id "newPropName"
+              , name "newPropName"
+              , value newProperty.name
+              , onInput (\s -> UpdateNewProperty { newProperty | name = s, pristineName = False})
+              -- to deactivate plugin "Grammarly" or "Language Tool" from
+              -- adding HTML that make disapear textarea (see  https://issues.rudder.io/issues/21172)
+              , attribute "data-gramm" "false"
+              , attribute "data-gramm_editor" "false"
+              , attribute "data-enable-grammarly" "false"
+              , spellcheck False
+              ][]
+            , span [class "input-group-text addon-json"][text "="]
+            , textarea
+              [ placeholder "Value"
+              , class ("form-control input-value auto-resize code" ++ if ((checkEmptyVal && checkPristineVal) || checkFormatVal) then " is-invalid" else "")
+              , attribute "rows" "1"
+              , name "newPropValue"
+              , value newProperty.value
+              , onInput (\s -> UpdateNewProperty { newProperty | value = s, pristineValue = False, errorFormat = False})
+              , attribute "data-gramm" "false"
+              , attribute "data-gramm_editor" "false"
+              , attribute "data-enable-grammarly" "false"
+              , spellcheck False
+              ][]
+            , button [type_ "button", class "btn btn-default dropdown-toggle", attribute "data-bs-toggle" "dropdown"]
+              [ text (if isJson then "JSON " else "String ")
+              , span [class "caret"][]
+              ]
+            , ul [class "dropdown-menu"]
+              [ li[][ a[class "dropdown-item", onClick (UpdateNewProperty { newProperty | format = StringFormat })] [text "String"] ]
+              , li[][ a[class "dropdown-item", onClick (UpdateNewProperty { newProperty | format = JsonFormat   })] [text "JSON"  ] ]
+              ]
+            , button [type_ "button",  class "btn btn-success", disabled (List.any (\c -> c == True) checks), onClick AddProperty]
+              [ span [class "fa fa-plus"] []
               ]
             ]
           , div[class "errors"]
