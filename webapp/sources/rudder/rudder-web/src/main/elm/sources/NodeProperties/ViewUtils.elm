@@ -273,9 +273,8 @@ displayNodePropertyRow model =
               ]
             , td [class "is-edited"]
               [ div [class "format-container"]
-                [ button [type_ "button", class "btn btn-default btn-sm dropdown-toggle", attribute "data-bs-toggle" "dropdown"]
+                [ button [type_ "button", class "btn btn-default dropdown-toggle", attribute "data-bs-toggle" "dropdown"]
                   [ text (if eP.format == JsonFormat then "JSON" else "String")
-                  , span [ class "caret"][]
                   ]
                 , ul [class "dropdown-menu"]
                   [ li[][ a[ class "dropdown-item", onClick (UpdateProperty p.name {eP | format = StringFormat}) ][ text "String" ]]

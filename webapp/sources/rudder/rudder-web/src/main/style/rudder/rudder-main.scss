@@ -34,6 +34,9 @@
 *
 *************************************************************************************
 */
+// Modules
+@use 'rudder-variables' as *;
+
 body {
   height: 100%;
 }
@@ -503,6 +506,28 @@ label.text-fit{
   padding: 0px 6px;
   margin-left: 4px;
 }
+
+/* --- PROPERTIES TAB --- */
+#nodeProp .tab-table-content{
+  margin-top: 20px;
+}
+#nodeProp .table-header, #nodeProp .table-container {
+  width: 100%;
+  margin: 0;
+}
+#nodeProp .table-header,
+#nodeProp .table-container > .dataTable{
+  border-left: 1px solid $rudder-border-color-default;
+  border-right: 1px solid $rudder-border-color-default;
+}
+#nodeProp .btn-success.new-icon{
+  margin: 5px 0 7px 0;
+}
+#nodeProp .addon-json + textarea,
+#nodeProp .value-container textarea{
+  min-height:35px;
+}
+
 /* --- LABEL --- */
 #badge-apm{
   margin-left: 5px;
