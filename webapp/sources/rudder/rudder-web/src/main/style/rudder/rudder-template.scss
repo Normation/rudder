@@ -1069,15 +1069,17 @@ ul {
     margin-bottom: 5px;
     z-index: 10000;
     & > #drag {
-      position: absolute;
-      top: -4px;
-      left: 0;
-      right: 0;
-      height: 12px;
+      line-height: 6px;
+      font-size: 10px;
       cursor: ns-resize;
-
+      border-top: 1px $rudder-border-color-default solid;
+      text-align: center;
+      background-color: $rudder-bg-gray;
       &:active {
         cursor: ns-resize;
+      }
+      & > i.fa {
+        opacity : 0.4;
       }
     }
   }

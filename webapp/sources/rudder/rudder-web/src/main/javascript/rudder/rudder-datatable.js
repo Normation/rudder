@@ -1356,6 +1356,7 @@ function reloadTable(gridId) {
 
 function createNodeTable(gridId, refresh) {
   var isResizing = false,
+    hasHandle = false,
     offsetBottom = 250;
 
   $(function () {
@@ -1365,6 +1366,9 @@ function createNodeTable(gridId, refresh) {
       bottom = $('.main-details > .table-container'),
       handle = $('#drag');
 
+    if (handle.length > 0) {
+      hasHandle = true;
+    }
     handle.on('mousedown', function (e) {
       isResizing = true;
       lastDownY = e.clientY;
@@ -1425,8 +1429,8 @@ function createNodeTable(gridId, refresh) {
     , "deferRender" : true
     , "destroy" : true
     , "pagingType": "full_numbers"
-    , "scrollCollapse": true
-    , "scrollY": "200px"
+    , "scrollCollapse": hasHandle
+    , "scrollY": hasHandle ? "200px" : null
     , "language": {
         "search": ""
     }

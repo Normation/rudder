@@ -3,6 +3,10 @@
   line-height: 1.42857143;
 }
 
+#groupNodesTable_wrapper .dataTables_wrapper_top {
+  border-top : none;
+}
+
 /* <WRAPPER TOP> */
 .dataTables_wrapper_top,
 .dataTables_wrapper_bottom {
