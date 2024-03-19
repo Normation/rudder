@@ -7,7 +7,7 @@ import Groups.DataTypes exposing (..)
 import Compliance.DataTypes exposing (..)
 
 
-init : { contextPath : String, hasWriteRights : Bool } -> ( Model, Cmd Msg )
+init : { contextPath : String, hasGroupToDisplay : Bool, hasWriteRights : Bool } -> ( Model, Cmd Msg )
 init flags =
   let
     initCategory = Category "" "" "" (SubCategories []) []
@@ -17,7 +17,7 @@ init flags =
     initUI       = UI initFilters NoModal flags.hasWriteRights True
     initModel    = Model flags.contextPath Loading initUI initCategory Dict.empty
     listInitActions =
-      [ getGroupsTree initModel True
+      [ getGroupsTree initModel (not flags.hasGroupToDisplay)
       ]
   in
     ( initModel
