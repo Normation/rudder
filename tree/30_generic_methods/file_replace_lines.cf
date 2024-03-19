@@ -29,6 +29,11 @@
 # Content can be captured in regular expression, and be reused with the notation `${match.1}` (for first matched
 # content), `${match.2}` for second, etc, and the special captured group `${match.0}` for the whole text.
 #
+# **This regular expression must not match the string used as a replacement.** 
+# For example, to set `kernel.shmmax=5678`, the regular expression would be `kernel.shmmax=(?!5678$).*`
+# and the string used as remplacement `kernel.shmmax=5678`
+# Note that if you want to replace a key-value line, method `File key-value present` is more suited.
+#
 # #### Example
 #
 # Here is an example to remove enclosing specific tags
