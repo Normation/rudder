@@ -125,7 +125,18 @@ class NodeFactQueryProcessor(
   def process(query:       Query): Box[Seq[NodeId]] = processPure(query).map(_.toList.map(_.id)).toBox
   def processOnlyId(query: Query): Box[Seq[NodeId]] = processPure(query).map(_.toList.map(_.id)).toBox
 
-  def check(query: Query, nodeIds: Option[Seq[NodeId]])(implicit qc: QueryContext): IOResult[Set[NodeId]] = { ??? }
+  def check(query: Query, nodeIds: Option[Seq[NodeId]])(implicit qc: QueryContext): IOResult[Set[NodeId]] = {
+    // make a 0 criteria request raise an error like LDAP would do,
+    // see: https://www.rudder-project.org/redmine/issues/12338
+    if (query.criteria.isEmpty) {
+      InternalLDAPQueryProcessorLoggerPure.debug(
+        s"Checking a query with 0 criterium will always lead to 0 nodes: ${query}"
+      ) *> Set.empty[NodeId].succeed
+    } else {
+      processPure(query).map(nodeFacts => nodeIds.map(_.toSet).getOrElse(Set.empty).intersect(nodeFacts.map(_.id).toSet))
+    }
+  }
+
   def processPure(query: Query): IOResult[Chunk[CoreNodeFact]] = {
     def process(s: SelectNodeStatus) = {
       for {
