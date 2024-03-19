@@ -653,6 +653,10 @@ class LDAPDiffMapper(
                                 } yield {
                                   d.copy(modAccountAcl = Some(SimpleDiff(oldAcl, acl)))
                                 }
+                              case A_API_TENANT                  =>
+                                diff.map(
+                                  _.copy(modAPITenants = Some(SimpleDiff(oldAccount.tenants.serialize, mod.getOptValueDefault("-"))))
+                                )
 
                               case x => Left(Err.UnexpectedObject("Unknown diff attribute: " + x))
                             }
