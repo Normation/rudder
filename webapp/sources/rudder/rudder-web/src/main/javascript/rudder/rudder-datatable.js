@@ -42,6 +42,7 @@ var recentChangesCount = {};
 var inventories = {};
 var recentGraphs = {};
 var nodeIds = undefined;
+var scoreList = [];
 /* Create an array with the values of all the checkboxes in a column */
 $.fn.dataTable.ext.order['dom-checkbox'] = function  ( settings, col )
 {
@@ -1192,7 +1193,9 @@ var allColumns = {
                  }
   , "Score details" :
     function(scoreId) {
-      var title = "Score '"+scoreId+"'"
+      var score = scoreList.find((element) => element.id === scoreId);
+      var scoreName = score !== undefined ? score.name : scoreId;
+      var title = "'"+scoreName+"' Score";
       return { "data": function ( row, type, val, meta ) {
                              if (type === 'set') {
                                return;
@@ -1465,6 +1468,14 @@ function createNodeTable(gridId, refresh) {
     , "dom": ' <"dataTables_wrapper_top newFilter "<"#first_line_header" f <"dataTables_refresh"> <"#edit-columns">> <"#select-columns"> >rt<"dataTables_wrapper_bottom"lip>'
   };
 
+  $.ajax({
+    type: 'GET',
+    url: "/rudder/secure/api/scores/list",
+    success: function (data) {
+      scoreList = data.data
+    },
+  });
+
   createTable(gridId, [] , columns, params, contextPath, refresh, "nodes");
   $("#first_line_header input").addClass("form-control")
 
@@ -1567,12 +1578,12 @@ function createNodeTable(gridId, refresh) {
       $(this).toggleClass("btn-success").toggleClass("btn-default").toggleHtml(confirmTxt, editTxt)
     });
     $("#edit-columns").append(editColBtn)
-    var select = "<div class='form-inline-flex'> <div> <select placeholder='Select column to add' class='form-select'>"
+    var select = "<div class='form-inline-flex'> <div> <select id='column-select' placeholder='Select column to add' class='form-select'>"
     for (var key in dynColumns) {
       value = dynColumns[key]
       select += "<option value='"+value+"'>"+value+"</option>"
     }
-    select += "</select></div><div><input class='form-control' id='colValue' type='text'></div><label for='colCheckbox' class='input-group'><span class='input-group-text'><input id='colCheckbox' type='checkbox'></span><div class='form-control'>Show inherited properties</div></label><button id='add-column' class='btn btn-default btn-icon'>Add column <i class='fa fa-plus-circle'></i></button><button id='reset-columns' class='btn btn-default btn-icon'>Reset columns <i class='fa fa-rotate-left'></i></button></div>"
+    select += "</select></div><div><select id='selectScoreDetails' class='form-select'></select></div><div><input class='form-control' id='colValue' type='text'></div><label for='colCheckbox' class='input-group'><span class='input-group-text'><input id='colCheckbox' type='checkbox'></span><div class='form-control'>Show inherited properties</div></label><button id='add-column' class='btn btn-default btn-icon'>Add column <i class='fa fa-plus-circle'></i></button><button id='reset-columns' class='btn btn-default btn-icon'>Reset columns <i class='fa fa-rotate-left'></i></button></div>"
     editOpen ? $("#select-columns").show() : $("#select-columns").hide()
     $("#select-columns").html(select)
     var selectedColumns =""
@@ -1587,22 +1598,38 @@ function createNodeTable(gridId, refresh) {
     $("#select-columns").append(colsContainer)
     if (dynColumns[0] != "Property" && dynColumns[0] !="Software" && dynColumns[0] !="Score details" ) {
       $("#select-columns input").parent().hide()
+      $("#select-columns select#selectScoreDetails").hide()
       $("#colCheckbox").parent().parent().hide()
     }
-    $("#select-columns select").change(function(e) {
-      if (this.value =="Property" || this.value =="Software" || this.value =="Score details" ) {
+    $("#select-columns select#column-select").change(function(e) {
+      if (this.value =="Property" || this.value =="Software"  ) {
         $("#select-columns input").parent().show()
+        $("#select-columns select#selectScoreDetails").hide()
         $("#select-columns input").attr('placeholder', this.value + " name" )
         if (this.value == "Property" ) {
           $("#colCheckbox").parent().parent().show()
+        } else {
+          $("#colCheckbox").parent().parent().hide()
         }
-      } else {
+      } else if ( this.value =="Score details"){
+          $("#select-columns input").parent().hide()
+          var options = scoreList.map((elem) => "<option value='"+elem.id+"'>"+elem.name+"</option>")
+          $("#select-columns select#selectScoreDetails").html(options.join(''))
+          $("#select-columns select#selectScoreDetails").show()
+          $("#colCheckbox").parent().parent().hide()
+        } else {
         $("#select-columns input").parent().hide()
+        $("#select-columns select#selectScoreDetails").hide()
         $("#colCheckbox").parent().parent().hide()
       }
     })
     $("#select-columns div button#add-column").click(function(e) {
-      addColumn($("#select-columns select").val(), $("#select-columns input#colValue").val(), $("#colCheckbox").prop("checked"))
+      var column = $("#select-columns select").val()
+      var value = $("#select-columns input#colValue").val()
+      if ( column =="Score details") {
+        value = $("#select-columns select#selectScoreDetails").val()
+      }
+      addColumn(column, value, $("#colCheckbox").prop("checked"))
     })
     $("#select-columns div button#reset-columns").click(function(e) {
       resetColumns()

@@ -805,7 +805,6 @@ function autoResize(e) {
     elem.style.height = 'auto';
     var height = elem.scrollHeight > 0 ? elem.scrollHeight + 'px' : 'auto';
     elem.style.height = height;
-    console.log(height)
   }
 }
 
