@@ -66,48 +66,50 @@
   </div>
   <div class="main-details">
     <div class="tab-content tab-content-split">
-      <div id="groupParametersTab" class="tab-pane active main-form row d-flex">
-        <div class="col-12 col-md-6 col-xl-7">
-          <div class="main-form">
-            <group-notifications ></group-notifications>
-            <group-pendingchangerequest></group-pendingchangerequest>
-            <group-name></group-name>
-            <div id="longDescriptionFieldMarkdownContainer" class="form-group">
-              <label><span class="text-fit">Description</span>
-                <lift:authz role="group_write">
-                  <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Edit description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i>
-                </lift:authz>
-              </label>
-              <div class="markdown">
-                <div id="longDescriptionFieldMarkdown"></div>
-                <p id="longDescriptionFieldMarkdownEmpty" class="nodisplay half-opacity">No description defined, click on <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> to edit </p>
+      <div id="groupParametersTab" class="tab-pane active main-form">
+        <div class="row d-flex">
+          <div class="col-12 col-md-6 col-xl-7">
+            <div class="main-form">
+              <group-notifications ></group-notifications>
+              <group-pendingchangerequest></group-pendingchangerequest>
+              <group-name></group-name>
+              <div id="longDescriptionFieldMarkdownContainer" class="form-group">
+                <label><span class="text-fit">Description</span>
+                  <lift:authz role="group_write">
+                    <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Edit description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i>
+                  </lift:authz>
+                </label>
+                <div class="markdown">
+                  <div id="longDescriptionFieldMarkdown"></div>
+                  <p id="longDescriptionFieldMarkdownEmpty" class="nodisplay half-opacity">No description defined, click on <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> to edit </p>
+                </div>
               </div>
+              <div id="longDescriptionFieldContainer" class="d-flex visually-hidden">
+                <div id="longDescriptionField" class="col-6">
+                  Here comes the longDescription field
+                </div>
+                <div id="longDescriptionFieldMarkdownPreviewContainer" class="col-6 ps-2">
+                  <label><span class="text-fit">Preview</span></label>
+                  <div id="longDescriptionFieldPreviewMarkdown" class="markdown"></div>
+                </div>
+              </div>
+              <group-rudderid></group-rudderid>
+              <group-container></group-container>
+              <group-cfeclasses></group-cfeclasses>
             </div>
-            <div id="longDescriptionFieldContainer" class="d-flex visually-hidden">
-              <div id="longDescriptionField" class="col-6">
-                Here comes the longDescription field
-              </div>
-              <div id="longDescriptionFieldMarkdownPreviewContainer" class="col-6 ps-2">
-                <label><span class="text-fit">Preview</span></label>
-                <div id="longDescriptionFieldPreviewMarkdown" class="markdown"></div>
-              </div>
-            </div>
-            <group-rudderid></group-rudderid>
-            <group-container></group-container>
-            <group-cfeclasses></group-cfeclasses>
           </div>
-        </div>
-        <div class="col-12 col-md-6 col-xl-5">
-          <div class="form-group show-compliance">
-            <div id="groupComplianceSummary">
-              <label data-bs-toggle="tooltip" data-bs-placement="right" title="<div class='tooltip-inner-content'>Compliance that takes into account all rules that apply directives to a node within this group</div>">
-                Global compliance
-              </label>
-              <div class="groupGlobalComplianceProgressBar"></div>
-              <label data-bs-toggle="tooltip" data-bs-placement="right" title="<div class='tooltip-inner-content'>Compliance that takes into account only rules that explicitly include this group in their target</div>">
-                Targeted compliance
-              </label>
-              <div class="groupTargetedComplianceProgressBar"></div>
+          <div class="col-12 col-md-6 col-xl-5">
+            <div class="form-group show-compliance">
+              <div id="groupComplianceSummary">
+                <label data-bs-toggle="tooltip" data-bs-placement="right" title="<div class='tooltip-inner-content'>Compliance that takes into account all rules that apply directives to a node within this group</div>">
+                  Global compliance
+                </label>
+                <div class="groupGlobalComplianceProgressBar"></div>
+                <label data-bs-toggle="tooltip" data-bs-placement="right" title="<div class='tooltip-inner-content'>Compliance that takes into account only rules that explicitly include this group in their target</div>">
+                  Targeted compliance
+                </label>
+                <div class="groupTargetedComplianceProgressBar"></div>
+              </div>
             </div>
           </div>
         </div>
