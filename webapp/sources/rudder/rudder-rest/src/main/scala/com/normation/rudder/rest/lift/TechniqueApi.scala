@@ -279,10 +279,10 @@ class TechniqueApi(
   }
 
   object GetTechniques extends LiftApiModule0 {
-    val schema:                                                                                                API.GetTechniques.type = API.GetTechniques
-    implicit val dataName:                                                                                     String                 = "techniques"
+    val schema:            API.GetTechniques.type = API.GetTechniques
+    implicit val dataName: String                 = "techniques"
 
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse           = {
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       serviceV14.getTechniquesWithData().toLiftResponseList(params, schema)
     }
 
@@ -325,8 +325,6 @@ class TechniqueApi(
   }
 
   object UpdateTechniques extends LiftApiModule0 {
-    import techniqueSerializer.*
-
     import techniqueSerializer.*
 
     val schema: API.UpdateTechniques.type = API.UpdateTechniques
@@ -589,7 +587,7 @@ class TechniqueApi(
   object ListTechniquesV14 extends LiftApiModule0 {
     val schema: API.ListTechniques.type = API.ListTechniques
 
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse            = {
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       serviceV14.listTechniques.toLiftResponseList(params, schema)
     }
   }

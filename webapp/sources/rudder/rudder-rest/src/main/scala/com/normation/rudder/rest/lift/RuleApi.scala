@@ -391,7 +391,7 @@ class RuleApi(
   object CreateRuleV14 extends LiftApiModule0 {
     val schema: API.CreateRule.type = API.CreateRule
 
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse        = {
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
       (for {
         restRule <- zioJsonExtractor.extractRule(req).chainError(s"Could not extract rule parameters from request").toIO
@@ -452,7 +452,7 @@ class RuleApi(
   object GetRuleTreeV14 extends LiftApiModule0 {
     val schema: API.GetRuleTree.type = API.GetRuleTree
 
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse         = {
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
       serviceV14.getCategoryTree().toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
     }
