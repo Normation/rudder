@@ -357,7 +357,7 @@ class NodeApi(
 
       val mode = restExtractor
         .extractString(deleteModeKey)(req) { m =>
-          val found = DeleteMode.all.find(_.name == m)
+          val found = DeleteMode.values.find(_.name == m)
           Full(found.getOrElse(deleteDefaultMode))
         }
         .map(_.getOrElse(deleteDefaultMode))

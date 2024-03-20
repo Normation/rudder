@@ -1931,7 +1931,7 @@ object NodeFactSerialisation {
       _ match {
         case UnknownMachineType.kind  => UnknownMachineType
         case PhysicalMachineType.kind => PhysicalMachineType
-        case x                        => VirtualMachineType(VmType.parse(x))
+        case x                        => VirtualMachineType(VmType.parse(x).getOrElse(VmType.UnknownVmType))
       },
       _.kind
     )

@@ -39,6 +39,7 @@ package com.normation.cfclerk.domain
 
 import com.normation.inventory.domain.AgentType
 import com.normation.utils.Utils.*
+import enumeratum.*
 
 /**
  * A name, used as an identifier, for a policy.
@@ -137,42 +138,38 @@ final case class AgentConfig(
  * A type that tells if the Technique supports directive by directive
  * generation or not.
  */
-sealed trait TechniqueGenerationMode {
-  def name: String
+sealed abstract class TechniqueGenerationMode(override val entryName: String) extends EnumEntry {
+  def name: String = entryName
 }
 
-object TechniqueGenerationMode {
+object TechniqueGenerationMode extends Enum[TechniqueGenerationMode] {
 
   /*
    * This technique does not support mutiple directives on the same node
    * but if the directive parameters are merged.
    * This is the historical way of working for Rudder techniques.
    */
-  final case object MergeDirectives extends TechniqueGenerationMode {
-    override val name = "merged"
-  }
+  final case object MergeDirectives extends TechniqueGenerationMode("merged")
 
   /*
    * The technique supports several independant directives (and so,
    * several technique version or modes).
    */
-  final case object MultipleDirectives extends TechniqueGenerationMode {
-    override val name = "separated"
-  }
+  final case object MultipleDirectives extends TechniqueGenerationMode("separated")
 
   /*
    * The technique supports several independant directives (and so,
    * several technique version or modes).
    */
-  final case object MultipleDirectivesWithParameters extends TechniqueGenerationMode {
-    override val name = "separated-with-parameters"
-  }
+  final case object MultipleDirectivesWithParameters extends TechniqueGenerationMode("separated-with-parameters")
 
-  def allValues: Set[TechniqueGenerationMode] = ca.mrvisser.sealerate.values[TechniqueGenerationMode]
+  def values: IndexedSeq[TechniqueGenerationMode] = findValues
 
-  def parse(value: String): Option[TechniqueGenerationMode] = {
-    val v = value.toLowerCase
-    allValues.find(_.name == v)
+  def parse(value: String): Either[String, TechniqueGenerationMode] = {
+    withNameInsensitiveOption(value)
+      .toRight(
+        s"Value '${value}' is not recognized as TechniqueGenerationMode. Accepted values are: '${values.map(_.name).mkString("', '")}'"
+      )
   }
 }
 

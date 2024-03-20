@@ -86,6 +86,7 @@ import com.normation.rudder.repository.WoRuleRepository
 import com.normation.rudder.repository.xml.TechniqueArchiverImpl
 import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
+import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.ArchiveApi as API
 import com.normation.rudder.rest.AuthzToken
@@ -95,6 +96,7 @@ import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rest.lift.ImportAnswer.*
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.zio.*
+import enumeratum.*
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.io.OutputStream
@@ -138,8 +140,8 @@ final case class FeatureSwitch0[A <: LiftApiModule0](enable: A, disable: A)(feat
   }
 }
 
-sealed trait ArchiveScope { def value: String }
-object ArchiveScope       {
+sealed trait ArchiveScope extends EnumEntry          { def value: String }
+object ArchiveScope       extends Enum[ArchiveScope] {
 
   // using nodep/alldep to avoid confusion with "none" in scala code
   final case object AllDep     extends ArchiveScope { val value = "all"        }
@@ -148,26 +150,26 @@ object ArchiveScope       {
   final case object Techniques extends ArchiveScope { val value = "techniques" }
   final case object Groups     extends ArchiveScope { val value = "groups"     }
 
-  def values:           List[ArchiveScope]           = ca.mrvisser.sealerate.values[ArchiveScope].toList.sortBy(_.value)
+  val values:           IndexedSeq[ArchiveScope]     = findValues
   def parse(s: String): Either[String, ArchiveScope] = {
     values.find(_.value == s.toLowerCase.strip()) match {
       case None    =>
         Left(
-          s"Error: can not parse '${s}' as a scope for dependency resolution in archive. Accepted values are: ${values.mkString(", ")}"
+          s"Error: can not parse '${s}' as a scope for dependency resolution in archive. Accepted values are: ${values.sortBy(_.value).mkString(", ")}"
         )
       case Some(x) => Right(x)
     }
   }
 }
 
-sealed trait MergePolicy { def value: String }
-object MergePolicy       {
+sealed trait MergePolicy extends EnumEntry         { def value: String }
+object MergePolicy       extends Enum[MergePolicy] {
   // Default merge policy is "override everything", ie what is in the archive replace whatever exists in Rudder
   final case object OverrideAll    extends MergePolicy { val value = "override-all"     }
   // A merge policy that will keep current groups for rule with an ID common with one of the archive
   final case object KeepRuleGroups extends MergePolicy { val value = "keep-rule-groups" }
 
-  def values: List[MergePolicy] = ca.mrvisser.sealerate.values[MergePolicy].toList.sortBy(_.value)
+  val values: IndexedSeq[MergePolicy] = findValues
 
   def parse(s: String): Either[String, MergePolicy] = {
     values.find(_.value == s.toLowerCase.strip()) match {
@@ -188,7 +190,7 @@ class ArchiveApi(
     checkArchiveService:   CheckArchiveService
 ) extends LiftApiModuleProvider[API] {
 
-  def schemas = API
+  def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map(e => {
@@ -203,7 +205,7 @@ class ArchiveApi(
    * This API does not returns a standard JSON response, it returns a ZIP archive.
    */
   object ExportSimple extends LiftApiModule0 {
-    val schema = API.ExportSimple
+    val schema:                                                                                                API.ExportSimple.type = API.ExportSimple
     /*
      * Request format:
      *   ../archives/export/rules=rule_ids&directives=dir_ids&techniques=tech_ids&groups=group_ids&include=scope
@@ -214,7 +216,7 @@ class ArchiveApi(
      * - tech_ids = techniqueName/1.0[,other tech ids]
      * - scope = all (default), none, directives, techniques (implies directive), groups
      */
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse          = {
 
       // we use lots of comma separated arg, factor out the splitting logic
       def splitArg(req: Req, name: String): List[String]                 =
@@ -282,9 +284,9 @@ class ArchiveApi(
   }
 
   object Import extends LiftApiModule0 {
-    val schema = API.Import
+    val schema: API.Import.type = API.Import
     // name of the form multipart that holds the archive binary content
-    val FILE   = "archive"
+    val FILE = "archive"
 
     /*
      * We expect a binary file in multipart/form-data, not in application/x-www-form-urlencodedcontent

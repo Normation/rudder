@@ -40,6 +40,7 @@ package com.normation.rudder.campaigns
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.NamedZioLogger
+import enumeratum.*
 import org.joda.time.DateTime
 import zio.json.jsonDiscriminator
 import zio.json.jsonField
@@ -99,15 +100,15 @@ object CampaignId                                                            {
   }
 }
 
-sealed trait CampaignStatusValue {
+sealed trait CampaignStatusValue extends EnumEntry {
   def value: String
 }
 @jsonDiscriminator("value")
-sealed trait CampaignStatus      {
+sealed trait CampaignStatus {
   def value: CampaignStatusValue
 }
 
-object CampaignStatusValue {
+object CampaignStatusValue extends Enum[CampaignStatusValue] {
   case object Enabled  extends CampaignStatusValue {
     val value = "enabled"
   }
@@ -117,24 +118,25 @@ object CampaignStatusValue {
   case object Archived extends CampaignStatusValue {
     val value = "archived"
   }
-  val allValues: Set[CampaignStatusValue] = ca.mrvisser.sealerate.values
-  def getValue(s: String): Either[String, CampaignStatusValue] = allValues.find(_.value == s.toLowerCase()) match {
-    case None    => Left(s"${s} is not valid status value, accepted values are ${allValues.map(_.value).mkString(", ")}")
+  val values: IndexedSeq[CampaignStatusValue] = findValues
+
+  def getValue(s: String): Either[String, CampaignStatusValue] = values.find(_.value == s.toLowerCase()) match {
+    case None    => Left(s"${s} is not valid status value, accepted values are ${values.map(_.value).mkString(", ")}")
     case Some(v) => Right(v)
   }
 }
 
 @jsonHint("enabled")
 case object Enabled                                 extends CampaignStatus {
-  val value = CampaignStatusValue.Enabled
+  val value: CampaignStatusValue = CampaignStatusValue.Enabled
 }
 @jsonHint("disabled")
 case class Disabled(reason: String)                 extends CampaignStatus {
-  val value = CampaignStatusValue.Disabled
+  val value: CampaignStatusValue = CampaignStatusValue.Disabled
 }
 @jsonHint("archived")
 case class Archived(reason: String, date: DateTime) extends CampaignStatus {
-  val value = CampaignStatusValue.Archived
+  val value: CampaignStatusValue = CampaignStatusValue.Archived
 }
 
 @jsonDiscriminator("type")

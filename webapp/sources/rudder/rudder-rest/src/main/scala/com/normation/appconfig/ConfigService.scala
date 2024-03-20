@@ -479,7 +479,7 @@ class GenericConfigService(
   }
 
   implicit private[this] def toOptionPolicyMode(p: RudderWebProperty): Option[PolicyMode] = {
-    PolicyMode.allModes.find(_.name == p.value.toLowerCase())
+    PolicyMode.values.find(_.name == p.value.toLowerCase())
   }
 
   implicit private[this] def serOptionPolicyMode(x: Option[PolicyMode]): String = x match {
@@ -504,7 +504,7 @@ class GenericConfigService(
   }
 
   implicit private[this] def toNodeState(p: RudderWebProperty): NodeState = {
-    NodeState.values.find(_.name == p.value.toLowerCase()).getOrElse(NodeState.Enabled) // default value is "enabled"
+    NodeState.parse(p.value).getOrElse(NodeState.Enabled) // default value is "enabled"
   }
 
   implicit private[this] def serState(x: NodeState): String = x.name

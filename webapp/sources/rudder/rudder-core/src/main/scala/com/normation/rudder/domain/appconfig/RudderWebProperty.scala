@@ -37,7 +37,7 @@
 
 package com.normation.rudder.domain.appconfig
 
-import ca.mrvisser.sealerate
+import enumeratum.*
 import java.util.regex.Pattern
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
@@ -62,13 +62,13 @@ final case class RudderWebProperty(
  * A little domain language for feature switches
  * (just enabled/disabled with the parsing)
  */
-sealed trait FeatureSwitch { def name: String }
-object FeatureSwitch       {
+sealed trait FeatureSwitch extends EnumEntry           { def name: String }
+object FeatureSwitch       extends Enum[FeatureSwitch] {
 
   final case object Enabled  extends FeatureSwitch { override val name = "enabled"  }
   final case object Disabled extends FeatureSwitch { override val name = "disabled" }
 
-  final val all: Set[FeatureSwitch] = sealerate.values[FeatureSwitch]
+  val values: IndexedSeq[FeatureSwitch] = findValues
 
   def parse(value: String): Box[FeatureSwitch] = {
     value match {
@@ -79,7 +79,7 @@ object FeatureSwitch       {
           case Disabled.name => Full(Disabled)
           case _             =>
             Failure(
-              s"Cannot parse the given value as a valid feature switch status: '${value}'. Authorised values are: '${all.map(_.name).mkString(", ")}'"
+              s"Cannot parse the given value as a valid feature switch status: '${value}'. Authorised values are: '${values.map(_.name).mkString(", ")}'"
             )
         }
     }

@@ -612,7 +612,7 @@ class VariableTest extends Specification {
   private[this] def haveNoAlgo(implicit variable: Variable) = {
     s"Have an user defined hash algorithm (and so none constrained)" in {
       variable.spec.constraint.typeName match {
-        case PasswordVType(algos) => algos must containTheSameElementsAs(HashAlgoConstraint.algorithms.toSeq)
+        case PasswordVType(algos) => algos must containTheSameElementsAs(HashAlgoConstraint.values)
         case _                    => ko("Variable is not a password input")
       }
     }

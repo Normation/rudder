@@ -46,6 +46,7 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.services.policies.ParameterEntry
 import com.typesafe.config.*
+import enumeratum.*
 import java.util.regex.Pattern
 import net.liftweb.json.*
 import net.liftweb.json.JsonDSL.*
@@ -94,31 +95,45 @@ final case class InheritMode(
   def value: String = s"${forObject.value}${forArray.value}${forString.value}"
 }
 object InheritMode {
-  sealed trait ObjectMode      { def value: Char }
-  final case object ObjectMode {
+  sealed trait ObjectMode extends EnumEntry {
+    def value: Char
+  }
+
+  final case object ObjectMode extends Enum[ObjectMode] {
     final case object Override extends ObjectMode { override val value = 'o' }
     final case object Merge    extends ObjectMode { override val value = 'm' }
 
-    def all: List[ObjectMode] = ca.mrvisser.sealerate.values[ObjectMode].toList
-    def parse(c: Char): Option[ObjectMode] = all.find(c == _.value)
+    val values: IndexedSeq[ObjectMode] = findValues
+
+    def parse(c: Char): Option[ObjectMode] = values.find(c == _.value)
   }
-  sealed trait ArrayMode       { def value: Char }
-  final case object ArrayMode  {
+
+  sealed trait ArrayMode extends EnumEntry {
+    def value: Char
+  }
+
+  final case object ArrayMode extends Enum[ArrayMode] {
     final case object Override extends ArrayMode { override val value = 'o' }
     final case object Append   extends ArrayMode { override val value = 'a' }
     final case object Prepend  extends ArrayMode { override val value = 'p' }
 
-    def all: List[ArrayMode] = ca.mrvisser.sealerate.values[ArrayMode].toList
-    def parse(c: Char): Option[ArrayMode] = all.find(c == _.value)
+    val values: IndexedSeq[ArrayMode] = findValues
+
+    def parse(c: Char): Option[ArrayMode] = values.find(c == _.value)
   }
-  sealed trait StringMode      { def value: Char }
-  final case object StringMode {
+
+  sealed trait StringMode extends EnumEntry {
+    def value: Char
+  }
+
+  final case object StringMode extends Enum[StringMode] {
     final case object Override extends StringMode { override val value = 'o' }
     final case object Append   extends StringMode { override val value = 'a' }
     final case object Prepend  extends StringMode { override val value = 'p' }
 
-    def all: List[StringMode] = ca.mrvisser.sealerate.values[StringMode].toList
-    def parse(c: Char): Option[StringMode] = all.find(c == _.value)
+    val values: IndexedSeq[StringMode] = findValues
+
+    def parse(c: Char): Option[StringMode] = values.find(c == _.value)
   }
 
   def parseString(s: String): PureResult[InheritMode] = s.toList match {

@@ -53,6 +53,7 @@ import com.normation.rudder.rest.data.NodeTemplate.AcceptedNodeTemplate
 import com.normation.rudder.rest.data.NodeTemplate.PendingNodeTemplate
 import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigValue
+import enumeratum.*
 import java.util.regex.Pattern
 import net.liftweb.json.JArray
 import net.liftweb.json.JField
@@ -309,7 +310,7 @@ object Validation {
     }
   }
 
-  sealed trait Machine {
+  sealed trait Machine extends EnumEntry     {
     def tpe:        MachineType
     final def name: String = tpe match {
       case PhysicalMachineType               => "physical"
@@ -318,7 +319,7 @@ object Validation {
       case VirtualMachineType(vm)            => vm.name
     }
   }
-  object Machine       {
+  object Machine       extends Enum[Machine] {
     case object MPhysical      extends Machine { val tpe: MachineType = PhysicalMachineType                      }
     case object MUnknownVmType extends Machine { val tpe: VirtualMachineType = VirtualMachineType(UnknownVmType) }
     case object MSolarisZone   extends Machine { val tpe: VirtualMachineType = VirtualMachineType(SolarisZone)   }
@@ -330,7 +331,7 @@ object Validation {
     case object MHyperV        extends Machine { val tpe: VirtualMachineType = VirtualMachineType(HyperV)        }
     case object MBSDJail       extends Machine { val tpe: VirtualMachineType = VirtualMachineType(BSDJail)       }
 
-    val values: Set[Machine] = ca.mrvisser.sealerate.values[Machine]
+    val values: IndexedSeq[Machine] = findValues
   }
 
   sealed trait NodeValidationError { def msg: String }
@@ -345,7 +346,7 @@ object Validation {
       val msg: String = s"Node 'status' must be one of ${names(allStatus)(_.name)} but '${x}' provided"
     }
     final case class PolicyMode(x: String)    extends NodeValidationError {
-      val msg: String = s"Node's policy mode must be one of ${names(PM.allModes)(_.name)} but '${x}' provided"
+      val msg: String = s"Node's policy mode must be one of ${names(PM.values)(_.name)} but '${x}' provided"
     }
     case object PolicyModeOnBadStatus         extends NodeValidationError {
       val msg: String = s"Policy mode can not be specified when status=pending"
@@ -363,7 +364,7 @@ object Validation {
       val msg: String = s"Machine type must be one of ${names(Machine.values)(_.name)} but '${x}' provided"
     }
     final case class Agent(x: String)         extends NodeValidationError {
-      val msg: String = s"Agent's management technology must be one of ${names(AgentType.allValues)(_.id)} but '${x}' provided"
+      val msg: String = s"Agent's management technology must be one of ${names(AgentType.values)(_.id)} but '${x}' provided"
     }
     final case class KeyStatus(x: String)     extends NodeValidationError {
       val msg: String = s"Key status must be '${CertifiedKey.value}' or '${UndefinedKey.value}' but '${x}' provided"
@@ -466,7 +467,7 @@ object Validation {
     case None     => None.validNel
     case Some(pm) =>
       if (status == PendingInventory) NodeValidationError.PolicyModeOnBadStatus.invalidNel
-      else checkFind(pm, NodeValidationError.PolicyMode(pm))(x => PM.allModes.find(_.name == x).map(Some(_)))
+      else checkFind(pm, NodeValidationError.PolicyMode(pm))(x => PM.values.find(_.name == x).map(Some(_)))
   }
 
   // this part is adapted from inventory extraction. It should be factored out

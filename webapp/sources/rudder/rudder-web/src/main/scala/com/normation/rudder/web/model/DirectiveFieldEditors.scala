@@ -731,7 +731,7 @@ class PasswordField(
                         case JString(hash) => Full(hash)
                         case _             => Failure("Could not parse 'hash' field in password input")
                       }
-      algo          = HashAlgoConstraint.fromString(hash).getOrElse(currentAlgo.getOrElse(PLAIN))
+      algo          = HashAlgoConstraint.parse(hash).getOrElse(currentAlgo.getOrElse(PLAIN))
     } yield {
       currentAction = action
       if (!keep) {

@@ -102,9 +102,9 @@ trait InventoryJsonDecoders {
     JsonDecoder[String].mapOrFail(d => JsonSerializers.parseSoftwareUpdateDateTime(d))
 
   implicit val decoderSoftwareUpdateKind:     JsonDecoder[SoftwareUpdateKind]     =
-    JsonDecoder[String].map(s => SoftwareUpdateKind.parse(s))
+    JsonDecoder[String].map(s => SoftwareUpdateKind.parse(s).getOrElse(SoftwareUpdateKind.Other(s)))
   implicit val decoderSoftwareUpdateSeverity: JsonDecoder[SoftwareUpdateSeverity] =
-    JsonDecoder[String].map(s => SoftwareUpdateSeverity.parse(s))
+    JsonDecoder[String].map(s => SoftwareUpdateSeverity.parse(s).getOrElse(SoftwareUpdateSeverity.Other(s)))
 
   implicit val decoderSoftwareUpdate: JsonDecoder[SoftwareUpdate] = DeriveJsonDecoder.gen
 }

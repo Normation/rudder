@@ -42,15 +42,16 @@ import com.normation.errors.PureResult
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.SoftwareUpdate
 import com.normation.rudder.domain.reports.CompliancePercent
+import enumeratum.*
 import zio.*
 import zio.json.*
 import zio.json.ast.Json
 
-sealed trait ScoreValue {
+sealed trait ScoreValue extends EnumEntry {
   def value: String
 }
 
-object ScoreValue {
+object ScoreValue extends Enum[ScoreValue] {
   case object A       extends ScoreValue { val value = "A" }
   case object B       extends ScoreValue { val value = "B" }
   case object C       extends ScoreValue { val value = "C" }
@@ -58,10 +59,10 @@ object ScoreValue {
   case object E       extends ScoreValue { val value = "E" }
   case object NoScore extends ScoreValue { val value = "X" }
 
-  val allValues: Set[ScoreValue] = ca.mrvisser.sealerate.values
+  val values: IndexedSeq[ScoreValue] = findValues
 
-  def fromString(s: String): Either[String, ScoreValue] = allValues.find(_.value == s.toUpperCase()) match {
-    case None    => Left(s"${s} is not valid status value, accepted values are ${allValues.map(_.value).mkString(", ")}")
+  def fromString(s: String): Either[String, ScoreValue] = values.find(_.value == s.toUpperCase()) match {
+    case None    => Left(s"${s} is not valid status value, accepted values are ${values.map(_.value).mkString(", ")}")
     case Some(v) => Right(v)
   }
 }

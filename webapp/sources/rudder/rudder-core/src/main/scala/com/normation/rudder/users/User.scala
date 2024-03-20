@@ -39,6 +39,7 @@ package com.normation.rudder.users
 
 import com.normation.eventlog.EventActor
 import com.normation.utils.DateFormaterService
+import enumeratum.*
 import org.joda.time.DateTime
 import zio.json.*
 import zio.json.ast.*
@@ -59,16 +60,16 @@ import zio.json.ast.*
  *   cleaned-up and if added anew, it will be considered pristine.
  *
  */
-sealed trait UserStatus {
+sealed trait UserStatus extends EnumEntry {
   def value: String
 }
 
-object UserStatus {
+object UserStatus extends Enum[UserStatus] {
   case object Active   extends UserStatus { override def value = "active"   }
   case object Disabled extends UserStatus { override def value = "disabled" }
   case object Deleted  extends UserStatus { override def value = "deleted"  }
 
-  def values:           Set[UserStatus]            = ca.mrvisser.sealerate.values[UserStatus]
+  val values:           IndexedSeq[UserStatus]     = findValues
   def parse(s: String): Either[String, UserStatus] = {
     values
       .find(_.value == s.toLowerCase)

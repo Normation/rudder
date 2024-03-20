@@ -76,6 +76,7 @@ import com.normation.zio.*
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
 import com.unboundid.ldif.LDIFChangeRecord
+import enumeratum.*
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -105,13 +106,16 @@ object DeletionResult {
 
 }
 
-sealed trait DeleteMode { def name: String }
-object DeleteMode       {
+sealed trait DeleteMode extends EnumEntry {
+  def name: String
+}
+
+object DeleteMode extends Enum[DeleteMode] {
 
   final case object MoveToRemoved extends DeleteMode { val name = "move"  }
   final case object Erase         extends DeleteMode { val name = "erase" }
 
-  def all: Set[DeleteMode] = ca.mrvisser.sealerate.values[DeleteMode]
+  val values: IndexedSeq[DeleteMode] = findValues
 }
 
 /*

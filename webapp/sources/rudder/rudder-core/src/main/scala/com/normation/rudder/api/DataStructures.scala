@@ -40,6 +40,7 @@ import cats.data.*
 import cats.implicits.*
 import com.normation.rudder.api.ApiToken.prefixV2
 import com.normation.rudder.facts.nodes.NodeSecurityContext
+import enumeratum.*
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import org.bouncycastle.util.encoders.Hex
@@ -106,20 +107,22 @@ case class ApiVersion(
 /*
  * HTTP verbs
  */
-sealed trait HttpAction      { def name: String }
-final case object HttpAction {
+sealed abstract class HttpAction(override val entryName: String) extends EnumEntry        {
+  def name: String = entryName
+}
+final case object HttpAction                                     extends Enum[HttpAction] {
 
-  final case object HEAD   extends HttpAction { val name = "head"   }
-  final case object GET    extends HttpAction { val name = "get"    }
+  final case object HEAD   extends HttpAction("head")
+  final case object GET    extends HttpAction("get")
   // perhaps we should have an "accepted content type"
   // for update verbs
-  final case object PUT    extends HttpAction { val name = "put"    }
-  final case object POST   extends HttpAction { val name = "post"   }
-  final case object DELETE extends HttpAction { val name = "delete" }
+  final case object PUT    extends HttpAction("put")
+  final case object POST   extends HttpAction("post")
+  final case object DELETE extends HttpAction("delete")
 
   // no PATCH for now
 
-  def values: Set[HttpAction] = ca.mrvisser.sealerate.values[HttpAction]
+  def values: IndexedSeq[HttpAction] = findValues
 
   // sort the action by the importance of the action, please DON'T FORGET TO ADD NEW VALUES HERE
   implicit val orderingHttpAction: Ordering[HttpAction] = new Ordering[HttpAction] {
@@ -130,8 +133,10 @@ final case object HttpAction {
   }
 
   def parse(action: String): Either[String, HttpAction] = {
-    val lower = action.toLowerCase()
-    values.find(_.name == lower).toRight(s"Action '${action}' is not recognized as a supported HTTP action")
+    withNameInsensitiveOption(action)
+      .toRight(
+        s"Action '${action}' is not recognized as a supported HTTP action, supported actions are ${values.mkString("', '")}"
+      )
   }
 }
 
@@ -244,14 +249,15 @@ object AclPath {
  * is no authorization for that path.
  */
 final case class ApiAclElement(path: AclPath, actions: Set[HttpAction]) {
-  def display: String = path.display + ":" + actions.toList.sorted.map(_.name.toUpperCase()).mkString("[", ",", "]")
+  def display: String = path.value + ":" + actions.map(_.name.toUpperCase()).mkString("[", ",", "]")
 }
 
-sealed trait ApiAuthorizationKind { def name: String }
-object ApiAuthorizationKind       {
-  final case object None extends ApiAuthorizationKind { override val name = "none" }
-  final case object RO   extends ApiAuthorizationKind { override val name = "ro"   }
-  final case object RW   extends ApiAuthorizationKind { override val name = "rw"   }
+sealed abstract class ApiAuthorizationKind(override val entryName: String) extends EnumEntry { def name: String = entryName }
+
+object ApiAuthorizationKind extends Enum[ApiAuthorizationKind] {
+  final case object None extends ApiAuthorizationKind("none")
+  final case object RO   extends ApiAuthorizationKind("ro")
+  final case object RW   extends ApiAuthorizationKind("rw")
   /*
    * An ACL (Access Control List) is the exhaustive list of
    * authorized path + the set of action on each path.
@@ -259,17 +265,17 @@ object ApiAuthorizationKind       {
    * It's a list, so ordered. If a path matches several entries in the
    * ACL list, only the first one is considered.
    */
-  final case object ACL  extends ApiAuthorizationKind { override val name = "acl"  }
+  final case object ACL  extends ApiAuthorizationKind("acl")
 
-  def values: Set[ApiAuthorizationKind] = ca.mrvisser.sealerate.values[ApiAuthorizationKind]
+  def values: IndexedSeq[ApiAuthorizationKind] = findValues
 
   def parse(s: String): Either[String, ApiAuthorizationKind] = {
-    val lc = s.toLowerCase
-    values.find(_.name == lc) match {
-      case scala.None => Left(s"Unserialization error: '${s}' is not a known API authorization kind ")
-      case Some(x)    => Right(x)
-    }
+    withNameInsensitiveOption(s)
+      .toRight(
+        s"Unserialization error: '${s}' is not a known API authorization kind, possible values are '${values.map(_.name).mkString("', '")}'"
+      )
   }
+
 }
 
 /**
@@ -281,19 +287,18 @@ object ApiAuthorizationKind       {
  */
 sealed trait ApiAuthorization { def kind: ApiAuthorizationKind }
 object ApiAuthorization       {
-  case object None                               extends ApiAuthorization { override val kind = ApiAuthorizationKind.None }
-  case object RW                                 extends ApiAuthorization { override val kind = ApiAuthorizationKind.RW   }
-  case object RO                                 extends ApiAuthorization { override val kind = ApiAuthorizationKind.RO   }
+  case object None                               extends ApiAuthorization { override val kind: ApiAuthorizationKind = ApiAuthorizationKind.None }
+  case object RW                                 extends ApiAuthorization { override val kind: ApiAuthorizationKind = ApiAuthorizationKind.RW   }
+  case object RO                                 extends ApiAuthorization { override val kind: ApiAuthorizationKind = ApiAuthorizationKind.RO   }
   final case class ACL(acl: List[ApiAclElement]) extends ApiAuthorization {
-    override def kind = ApiAuthorizationKind.ACL
-    def debugString: String = acl.map(_.display).mkString(";")
+    override def kind: ApiAuthorizationKind = ApiAuthorizationKind.ACL
   }
 
   /**
    * An authorization object with ALL authorization,
    * present and future.
    */
-  val allAuthz: ACL = ACL(List(ApiAclElement(AclPath.Root(Nil), HttpAction.values)))
+  val allAuthz: ACL = ACL(List(ApiAclElement(AclPath.Root(Nil), HttpAction.values.toSet)))
 }
 
 /**
@@ -305,8 +310,8 @@ object ApiAuthorization       {
  * - Standard account are used for public API acess.
  *
  */
-sealed trait ApiAccountType { def name: String }
-object ApiAccountType       {
+sealed trait ApiAccountType extends EnumEntry            { def name: String }
+object ApiAccountType       extends Enum[ApiAccountType] {
   // system token get special authorization and lifetime
   final case object System    extends ApiAccountType { val name = "system" }
   // a token linked to an user account
@@ -314,13 +319,13 @@ object ApiAccountType       {
   // a standard API token, that can be only for public API access
   final case object PublicApi extends ApiAccountType { val name = "public" }
 
-  def values: Set[ApiAccountType] = ca.mrvisser.sealerate.values[ApiAccountType]
+  def values: IndexedSeq[ApiAccountType] = findValues
 }
 
 sealed trait ApiAccountKind { def kind: ApiAccountType }
 object ApiAccountKind       {
   final case object System extends ApiAccountKind { val kind: ApiAccountType.System.type = ApiAccountType.System }
-  final case object User   extends ApiAccountKind { val kind = ApiAccountType.User                               }
+  final case object User   extends ApiAccountKind { val kind: ApiAccountType.User.type = ApiAccountType.User     }
   final case class PublicApi(
       authorizations: ApiAuthorization,
       expirationDate: Option[DateTime]

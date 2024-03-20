@@ -44,29 +44,20 @@ import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.ldap.sdk.*
 import com.normation.ldap.sdk.BuildFilter.*
-import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.services.queries.*
-import com.normation.zio.*
 import com.unboundid.ldap.sdk.*
+import enumeratum.Enum
+import enumeratum.EnumEntry
 import java.util.Locale
 import java.util.regex.PatternSyntaxException
-import net.liftweb.common.*
-import net.liftweb.http.SHtml
-import net.liftweb.http.SHtml.ElemAttr.*
-import net.liftweb.http.SHtml.SelectableOption
-import net.liftweb.http.js.*
-import net.liftweb.http.js.JE.*
-import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json.*
 import net.liftweb.json.JsonDSL.*
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
-import scala.xml.*
 
 sealed trait CriterionComparator {
   val id: String
@@ -96,12 +87,13 @@ sealed trait SpecialComparator extends BaseComparator
 case object Regex              extends SpecialComparator { override val id = "regex"    }
 case object NotRegex           extends SpecialComparator { override val id = "notRegex" }
 
-sealed trait KeyValueComparator extends BaseComparator
-object KeyValueComparator {
+sealed trait KeyValueComparator extends EnumEntry with BaseComparator
+
+object KeyValueComparator extends Enum[KeyValueComparator] {
   final case object HasKey     extends KeyValueComparator { override val id = "hasKey"     }
   final case object JsonSelect extends KeyValueComparator { override val id = "jsonSelect" }
 
-  def values: Set[KeyValueComparator] = ca.mrvisser.sealerate.values[KeyValueComparator]
+  val values: IndexedSeq[KeyValueComparator] = findValues
 }
 
 object NodePropertyMatcherUtils {
@@ -160,20 +152,7 @@ object OrderedComparators extends ComparatorList {
 }
 
 sealed trait CriterionType extends ComparatorList {
-  /*
-   * validate the value and returns a normalized one
-   * for the field.
-   * DO NOT FORGET TO USE attrs ! (especially 'id')
-   */
-  def toForm(value:    String, func: String => Any, attrs: (String, String)*): Elem = SHtml.text(value, func, attrs*)
-  def initForm(formId: String): JsCmd = Noop
-  def destroyForm(formId: String):               JsCmd              = {
-    OnLoad(
-      JsRaw(
-        """$('#%s').datepicker( "destroy" );""".format(formId)
-      )
-    )
-  }
+
   // Base validation, subclass only have to define validateSubCase
   def validate(value: String, compName: String): PureResult[String] = comparatorForString(compName) match {
     case Some(c) =>
@@ -239,9 +218,6 @@ sealed trait NodeCriterionType extends CriterionType {
 
 case object NodeStateComparator extends NodeCriterionType {
 
-  // this need to be lazy, else access to "S." at boot will lead to NPE.
-  lazy val nodeStates: List[(String, String)] = NodeState.labeledPairs.map { case (x, label) => (x.name, label) }
-
   override def comparators: Seq[BaseComparator] = Seq(Equals, NotEquals)
 
   override protected def validateSubCase(v: String, comparator: CriterionComparator): PureResult[String] = {
@@ -255,14 +231,6 @@ case object NodeStateComparator extends NodeCriterionType {
     }
   }
 
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*): Elem = {
-    SHtml.select(
-      nodeStates,
-      Box(nodeStates.find(_._1 == value).map(_._1)),
-      func,
-      attrs*
-    )
-  }
 }
 
 case object NodeOstypeComparator extends NodeCriterionType {
@@ -279,19 +247,9 @@ case object NodeOstypeComparator extends NodeCriterionType {
     }
   }
 
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*): Elem = {
-    SHtml.select(
-      (osTypes map (e => (e, e))).toSeq,
-      if (osTypes.contains(value)) Full(value) else Empty,
-      func,
-      attrs*
-    )
-  }
 }
 
 case object NodeOsNameComparator extends NodeCriterionType {
-
-  import net.liftweb.http.S
 
   val osNames: List[OsType] = AixOS ::
     BsdType.allKnownTypes.sortBy(_.name) :::
@@ -313,24 +271,6 @@ case object NodeOsNameComparator extends NodeCriterionType {
     }
   }
 
-  private[this] def distribName(x: OsType): String = {
-    x match {
-      // add linux: for linux
-      case _: LinuxType => "Linux - " + S.?("os.name." + x.name)
-      case _: BsdType   => "BSD - " + S.?("os.name." + x.name)
-      // nothing special for windows, Aix and Solaris
-      case _ => S.?("os.name." + x.name)
-    }
-  }
-
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*): Elem = {
-    SHtml.select(
-      osNames.map(e => (e.name, distribName(e))).toSeq,
-      osNames.find(x => x.name == value).map(_.name),
-      func,
-      attrs*
-    )
-  }
 }
 
 final case class NodeStringComparator(access: NodeInfo => String) extends NodeCriterionType {
@@ -589,14 +529,7 @@ case object DateComparator extends LDAPCriterionType {
     case e: Exception =>
       Left(error(v, e))
   }
-  // init a jquery datepicker
-  override def initForm(formId: String):                                              JsCmd              = OnLoad(JsRaw("""var init = $.datepicker.regional['en'];
-       init['showOn'] = 'focus';
-       init['dateFormat'] = 'dd/mm/yy';
-       $('#%s').datepicker(init);
-       """.format(formId)))
-  override def destroyForm(formId: String): JsCmd                       = OnLoad(JsRaw("""$('#%s').datepicker( "destroy" );""".format(formId)))
-  override def toLDAP(value:       String): Either[RudderError, String] = parseDate(value).map(GeneralizedTime(_).toString)
+  override def toLDAP(value: String): Either[RudderError, String] = parseDate(value).map(GeneralizedTime(_).toString)
 
   private[this] def parseDate(value: String): PureResult[DateTime] = try {
     val date = frenchFmt.parseDateTime(value)
@@ -701,15 +634,6 @@ case object MachineComparator extends LDAPCriterionType {
       case _      => NOT(IS(v))
     }
   }
-
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*): Elem = {
-    SHtml.select(
-      (machineTypes map (e => (e, e))).toSeq,
-      if (machineTypes.contains(value)) Full(value) else Empty,
-      func,
-      attrs*
-    )
-  }
 }
 
 final case object VmTypeComparator extends LDAPCriterionType {
@@ -742,15 +666,6 @@ final case object VmTypeComparator extends LDAPCriterionType {
       case _      => NOT(IS(v))
     }
   }
-
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*): Elem = {
-    SHtml.select(
-      (vmTypes map (e => (e._1, e._2))),
-      Box(vmTypes.find(_._1 == value).map(_._1)),
-      func,
-      attrs*
-    )
-  }
 }
 
 /*
@@ -768,7 +683,7 @@ case object AgentComparator extends LDAPCriterionType {
   val ANY_CFENGINE          = "cfengine"
   val (cfeTypes, cfeAgents) =
     ((ANY_CFENGINE, "Any CFEngine based agent"), (ANY_CFENGINE, AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil))
-  val allAgents             = AgentType.allValues.toList
+  private val allAgents     = AgentType.values.toList
 
   val agentTypes: List[(String, String)]       = (cfeTypes :: allAgents.map(a => (a.oldShortName, (a.displayName)))).sortBy(_._2)
   val agentMap:   Map[String, List[AgentType]] = (cfeAgents :: allAgents.map(a => (a.oldShortName, a :: Nil))).toMap
@@ -809,15 +724,6 @@ case object AgentComparator extends LDAPCriterionType {
         NOT(OR(filters*))
     }
   }
-
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*): Elem = {
-    SHtml.select(
-      agentTypes,
-      Box(agentTypes.find(_._1 == value)).map(_._1),
-      func,
-      attrs*
-    )
-  }
 }
 
 case object EditorComparator extends LDAPCriterionType {
@@ -825,14 +731,7 @@ case object EditorComparator extends LDAPCriterionType {
   override val comparators = BaseComparators.comparators
   override protected def validateSubCase(v: String, comparator: CriterionComparator): PureResult[String] =
     if (editors.contains(v)) Right(v) else Left(Inconsistency(s"Invalide editor : '${v}'"))
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*):  Elem               = {
-    SHtml.select(
-      (editors map (e => (e, e))).toSeq,
-      if (editors.contains(value)) Full(value) else Empty,
-      func,
-      attrs*
-    )
-  }
+
   override def toLDAP(value: String): PureResult[String] = Right(value)
 }
 
@@ -958,40 +857,6 @@ final case class SubGroupComparator(subGroupComparatorRepo: () => SubGroupCompar
     // whatever the comparator it should be treated like Equals
     case _ => escapedFilter(attributeName, value)
   }
-
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*): Elem = {
-    // we need to query for the list of groups here
-    val subGroups: Seq[SelectableOption[String]] = {
-      (for {
-        res <- subGroupComparatorRepo().getGroups
-      } yield {
-        val g = res.map { case SubGroupChoice(id, name) => SelectableOption(id.serialize, name) }
-        // if current value is defined but not in the list, add it with a "missing group" label
-        if (value != "") {
-          g.find(_.value == value) match {
-            case None    => SelectableOption(value, "Missing group") +: g
-            case Some(_) => g
-          }
-        } else {
-          g
-        }
-      }).either.runNow match {
-        case Right(list) => list.sortBy(_.label)
-        case Left(error) => // if an error occure, log and display the error in place of the label
-          ApplicationLogger.error(
-            s"An error happens when trying to find the list of groups to use in sub-groups: ${error.fullMsg}"
-          )
-          SelectableOption(value, "Error when looking for available groups") :: Nil
-      }
-    }
-
-    SHtml.selectObj[String](
-      subGroups,
-      Box(subGroups.find(_.value == value).map(_.value)),
-      func,
-      attrs*
-    )
-  }
 }
 
 /**
@@ -1070,16 +935,17 @@ case object NodeAndRootServerReturnType extends QueryReturnType {
   override val value = "nodeAndPolicyServer"
 }
 
-sealed trait ResultTransformation {
+sealed trait ResultTransformation extends EnumEntry {
   def value: String
 }
-object ResultTransformation       {
+
+object ResultTransformation extends Enum[ResultTransformation] {
   // no result transformation
   final case object Identity extends ResultTransformation { val value = "identity" }
   // invert result: substract from "all nodes" the one matching that query
   final case object Invert   extends ResultTransformation { val value = "invert"   }
 
-  def all: Set[ResultTransformation] = ca.mrvisser.sealerate.values[ResultTransformation]
+  val values: IndexedSeq[ResultTransformation] = findValues
 
   def parse(value: String): PureResult[ResultTransformation] = {
     value.toLowerCase match {
@@ -1088,7 +954,7 @@ object ResultTransformation       {
       case _                       =>
         Left(
           Inconsistency(
-            s"Can not parse '${value}' as a result transformation; expecting: ${all.map(_.value).mkString("'", "', '", "'")}"
+            s"Can not parse '${value}' as a result transformation; expecting: ${values.map(_.value).mkString("'", "', '", "'")}"
           )
         )
     }

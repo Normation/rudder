@@ -59,6 +59,7 @@ import com.normation.rudder.services.policies.InterpolatedValueCompiler
 import com.normation.utils.Control
 import com.normation.zio.currentTimeMillis
 import com.normation.zio.currentTimeNanos
+import enumeratum.*
 import java.nio.charset.StandardCharsets
 import java.nio.file.CopyOption
 import java.nio.file.Files
@@ -161,12 +162,15 @@ trait TechniqueCompiler {
  * We have a third option, `rudderc-unix-only`, which relies on the webapp
  * to still generate non-unix files (like ps1).
  */
-sealed trait TechniqueCompilerApp { def name: String }
-object TechniqueCompilerApp       {
+sealed trait TechniqueCompilerApp extends EnumEntry {
+  def name: String
+}
+
+object TechniqueCompilerApp extends Enum[TechniqueCompilerApp] {
   case object Webapp  extends TechniqueCompilerApp { val name = "webapp"  }
   case object Rudderc extends TechniqueCompilerApp { val name = "rudderc" }
 
-  def values: Set[TechniqueCompilerApp] = ca.mrvisser.sealerate.values[TechniqueCompilerApp]
+  val values: IndexedSeq[TechniqueCompilerApp] = findValues
 
   def parse(value: String): Option[TechniqueCompilerApp] = {
     values.find(_.name == value.toLowerCase())

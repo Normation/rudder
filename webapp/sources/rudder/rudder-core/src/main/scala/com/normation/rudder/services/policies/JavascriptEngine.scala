@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.policies
 
-import ca.mrvisser.sealerate
 import com.normation.cfclerk.domain.AbstactPassword
 import com.normation.cfclerk.domain.AixPasswordHashAlgo
 import com.normation.cfclerk.domain.HashAlgoConstraint.*
@@ -46,8 +45,8 @@ import com.normation.errors.*
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.logger.JsDirectiveParamLogger
 import com.normation.rudder.domain.logger.JsDirectiveParamLoggerPure
-import com.normation.rudder.services.policies.HashOsType.*
 import com.normation.rudder.services.policies.JsEngine.*
+import enumeratum.*
 import java.security.NoSuchAlgorithmException
 import java.util.concurrent.*
 import java.util.concurrent.Callable
@@ -66,13 +65,13 @@ import scala.concurrent.duration.FiniteDuration
 import zio.*
 import zio.syntax.*
 
-sealed trait HashOsType
+sealed trait HashOsType extends EnumEntry
 
-object HashOsType {
+object HashOsType extends Enum[HashOsType] {
   final case object AixHash   extends HashOsType
   final case object CryptHash extends HashOsType // linux, bsd,...
 
-  def all: Set[HashOsType] = sealerate.values[HashOsType]
+  val values: IndexedSeq[HashOsType] = findValues
 }
 
 /*
@@ -270,7 +269,10 @@ trait JsLibPassword extends ImplicitGetBytes {
  *   * unix generated Unix crypt password compatible hashes (Linux, BSD, ...)
  *   * aix generates AIX password compatible hashes
  */
+
+import com.normation.rudder.services.policies.HashOsType.*
 import org.graalvm.polyglot.*
+
 final class JsRudderLibImpl(
     hashKind: HashOsType
 ) extends ProxyObject {

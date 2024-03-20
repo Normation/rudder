@@ -37,7 +37,7 @@
 
 package com.normation.rudder.services.quicksearch
 
-import ca.mrvisser.sealerate
+import enumeratum.*
 
 /**
  * This file contains domains objects for the quick search service.
@@ -58,12 +58,14 @@ final case class Query(
 /**
  * A backend for quicksearch, i.e something that is producing quicksearch results
  */
-sealed trait QSBackend
-object QSBackend {
+sealed trait QSBackend extends EnumEntry
+
+object QSBackend extends Enum[QSBackend] {
   final case object LdapBackend      extends QSBackend
   final case object DirectiveBackend extends QSBackend
   final case object NodeFactBackend  extends QSBackend
-  final val all: Set[QSBackend] = sealerate.values[QSBackend]
+
+  final val values: IndexedSeq[QSBackend] = findValues
 }
 
 /*
@@ -75,11 +77,12 @@ object QSBackend {
  * This does not hold for directive, because we don't have a real variable
  * parameter
  */
-sealed trait QSAttribute {
+sealed trait QSAttribute extends EnumEntry {
   def name:    String
   def display: String = name.capitalize.replace("_", " ")
 }
-object QSAttribute       {
+
+object QSAttribute extends Enum[QSAttribute] {
 
   // common
   case object Name            extends QSAttribute { override val name = "name"             }
@@ -196,18 +199,21 @@ object QSAttribute       {
   case object DirectiveIds extends QSAttribute { override val name = "directives" }
   case object Targets      extends QSAttribute { override val name = "groups"     }
 
-  ////// all attributes /////
-  final val all: Set[QSAttribute] = sealerate.values[QSAttribute]
-
+  final val values: IndexedSeq[QSAttribute] = findValues
+  final val all:    Set[QSAttribute]        = values.toSet
 }
 
 /*
  * Objects on which we are able to perform
  * quicksearch
  */
-sealed trait QSObject { def name: String; def attributes: Set[QSAttribute] }
+sealed trait QSObject extends EnumEntry {
+  def name: String;
 
-object QSObject {
+  def attributes: Set[QSAttribute]
+}
+
+object QSObject extends Enum[QSObject] {
   import QSAttribute.*
 
   val tagsAttribute: Set[QSAttribute] = Set(Tags, TagKeys, TagValues)
@@ -261,7 +267,8 @@ object QSObject {
     override val attributes: Set[QSAttribute] = Common.attributes ++ tagsAttribute ++ Set(RuleId, DirectiveIds, Targets)
   }
 
-  final val all: Set[QSObject] = sealerate.values[QSObject]
+  final val values: IndexedSeq[QSObject] = findValues
+  final val all:    Set[QSObject]        = values.toSet
 
   // default sort for QuickSearchResult:
   // - by type
@@ -293,10 +300,10 @@ object QSMapping {
    * We try to be kind with users: not case sensitive, not plural sensitive
    */
   val objectNameMapping: Map[String, QSObject] = {
-    QSObject.all.map { obj =>
+    QSObject.values.flatMap { obj =>
       val n = obj.name.toLowerCase
       (n -> obj) :: (n + "s" -> obj) :: Nil
-    }.flatten.toMap
+    }.toMap
   }
 
   // set of names by attribute
@@ -307,7 +314,7 @@ object QSMapping {
       Set("node.props", "nodeprops", "node_properties", "nodeproperties") ++
       Set("group.props", "groupprops", "group_properties", "groupproperties")
 
-    QSAttribute.all.map { a =>
+    QSAttribute.values.map { a =>
       a match {
         case Name              => (a, Set(Name.name, "display_name", "displayName"))
         case Description       => (a, descriptions)
