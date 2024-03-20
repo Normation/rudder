@@ -20,10 +20,10 @@
 
 package com.normation.ldap.sdk
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.ldap.ldif.ToLDIFRecords
 import com.normation.ldap.ldif.ToLDIFString
-import com.normation.ldap.sdk.LDAPIOResult._
+import com.normation.ldap.sdk.LDAPIOResult.*
 import com.normation.ldap.sdk.LDAPRudderError.Consistancy
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
@@ -31,7 +31,7 @@ import com.unboundid.ldif.LDIFRecord
 import org.slf4j.Logger
 import scala.collection.mutable.Buffer
 import scala.collection.mutable.HashMap
-import zio.syntax._
+import zio.syntax.*
 
 /*
  * An LDAP tree of entries.
@@ -121,7 +121,7 @@ object LDAPTree {
   def move(tree: LDAPTree, newRdn: Option[RDN], newParentDn: Option[DN]): LDAPTree = {
     val rdn      = newRdn.orElse(tree.root.rdn)
     val parentDn = newParentDn.orElse(tree.root.parentDn)
-    val newRoot  = LDAPEntry(rdn, parentDn, tree.root.attributes.toSeq: _*)
+    val newRoot  = LDAPEntry(rdn, parentDn, tree.root.attributes.toSeq*)
     apply(newRoot, tree._children.map(kv => (kv._1, LDAPTree.move(kv._2, None, newRoot.optDn))))
   }
 

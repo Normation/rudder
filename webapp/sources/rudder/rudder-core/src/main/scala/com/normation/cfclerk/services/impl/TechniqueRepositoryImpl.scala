@@ -37,9 +37,9 @@
 
 package com.normation.cfclerk.services.impl
 
-import com.normation.cfclerk.domain._
-import com.normation.cfclerk.services._
-import com.normation.errors._
+import com.normation.cfclerk.domain.*
+import com.normation.cfclerk.services.*
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.TechniqueReaderLoggerPure
@@ -47,9 +47,9 @@ import com.normation.utils.Control
 import com.normation.utils.StringUuidGenerator
 import java.io.File
 import java.io.InputStream
-import net.liftweb.common._
+import net.liftweb.common.*
 import scala.collection.SortedSet
-import zio.syntax._
+import zio.syntax.*
 
 class TechniqueRepositoryImpl(
     techniqueReader: TechniqueReader,
@@ -102,7 +102,7 @@ class TechniqueRepositoryImpl(
       actor:  EventActor,
       reason: Option[String]
   ): Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = {
-    import TechniqueCategoryModType._
+    import TechniqueCategoryModType.*
     try {
       val modifiedPackages = techniqueReader.getModifiedTechniques
       if (techniqueReader.needReload() || /* first time init */ null == techniqueInfosCache) {
@@ -217,12 +217,12 @@ class TechniqueRepositoryImpl(
     techniqueReader.getMetadataContent(techniqueId)(useIt)
 
   override def getFileContent[T](techniqueResourceId: TechniqueResourceId)(
-      useIt:                                          Option[InputStream] => IOResult[T]
+      useIt: Option[InputStream] => IOResult[T]
   ): IOResult[T] =
     techniqueReader.getResourceContent(techniqueResourceId, None)(useIt)
 
   override def getTemplateContent[T](techniqueResourceId: TechniqueResourceId)(
-      useIt:                                              Option[InputStream] => IOResult[T]
+      useIt: Option[InputStream] => IOResult[T]
   ): IOResult[T] =
     techniqueReader.getResourceContent(techniqueResourceId, Some(TechniqueTemplate.templateExtension))(useIt)
 

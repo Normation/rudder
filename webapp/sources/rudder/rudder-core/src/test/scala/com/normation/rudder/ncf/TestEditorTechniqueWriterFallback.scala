@@ -38,18 +38,18 @@
 package com.normation.rudder.ncf
 
 import better.files.File
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Version
 import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
-import com.normation.rudder.ncf.TechniqueCompilerApp._
+import com.normation.rudder.ncf.TechniqueCompilerApp.*
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
 import com.normation.rudder.services.policies.InterpolatedValueCompilerImpl
-import com.normation.zio._
-import com.softwaremill.quicklens._
-import java.io.{File => JFile}
+import com.normation.zio.*
+import com.softwaremill.quicklens.*
+import java.io.File as JFile
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
@@ -60,7 +60,7 @@ import org.specs2.runner.JUnitRunner
 import org.specs2.specification.BeforeAfterAll
 import scala.annotation.nowarn
 import zio.Chunk
-import zio.syntax._
+import zio.syntax.*
 
 /*
  * Test the fallback logic for the technique writer
@@ -91,7 +91,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
     case object CreatedByRudderc extends OutputFileStatus
     case object CreatedByWebapp  extends OutputFileStatus
   }
-  import OutputFileStatus._
+  import OutputFileStatus.*
 
   object Content {
     val ruddercMetadata = "I'm not really an XML"
@@ -171,7 +171,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
   val valueCompiler        = new InterpolatedValueCompilerImpl(new PropertyEngineServiceImpl(List.empty))
   val parameterTypeService = new PlugableParameterTypeService
 
-  import ParameterType._
+  import ParameterType.*
 
   val defaultConstraint = Constraint.AllowEmpty(false) :: Constraint.AllowWhiteSpace(false) :: Constraint.MaxLength(16384) :: Nil
 
@@ -385,8 +385,8 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
   }
 
   s"Compiler WITH local compilation override" should {
-    import zio.json.yaml._
-    import TechniqueCompilationIO._
+    import zio.json.yaml.*
+    import TechniqueCompilationIO.*
 
     val rootPath                                         = basePath + "/override"
     implicit val compiler                                = newCompilerWithBase(rootPath)

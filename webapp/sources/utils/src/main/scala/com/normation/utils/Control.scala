@@ -21,7 +21,7 @@
 package com.normation.utils
 
 import cats.Applicative
-import net.liftweb.common._
+import net.liftweb.common.*
 
 /**
  *
@@ -30,7 +30,7 @@ import net.liftweb.common._
  */
 object Control {
 
-  import cats.syntax.traverse._
+  import cats.syntax.traverse.*
 
   implicit private val boxApplicative: Applicative[Box] = new Applicative[Box] {
     override def pure[A](x: A): Box[A] = Full(x)

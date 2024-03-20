@@ -38,12 +38,12 @@
 package com.normation.rudder.domain.reports
 
 import com.normation.cfclerk.domain.ReportingLogic
-import com.normation.cfclerk.domain.ReportingLogic._
+import com.normation.cfclerk.domain.ReportingLogic.*
 import com.normation.cfclerk.domain.WorstReportReportingLogic
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.services.reports._
+import com.normation.rudder.services.reports.*
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
 
@@ -335,7 +335,7 @@ final case class BlockStatusReport(
     subComponents.collect { case g: BlockStatusReport => g }.flatMap(_.findChildren(componentName))
   }
   def compliance:                          ComplianceLevel             = {
-    import ReportingLogic._
+    import ReportingLogic.*
     reportingLogic match {
       // simple weighted compliance, as usual
       case WeightedReport => ComplianceLevel.sum(subComponents.map(_.compliance))
@@ -426,7 +426,7 @@ object ComponentStatusReport extends Loggable {
         val groupComponent  = reports.collect { case c: BlockStatusReport => c }.toList match {
           case Nil => Nil
           case r   =>
-            import ReportingLogic._
+            import ReportingLogic.*
             val reportingLogic = r
               .map(_.reportingLogic)
               .reduce((a, b) => {
@@ -511,8 +511,8 @@ object MessageStatusReport {
 
 object NodeStatusReportSerialization {
 
-  import net.liftweb.json._
-  import net.liftweb.json.JsonDSL._
+  import net.liftweb.json.*
+  import net.liftweb.json.JsonDSL.*
 
   def jsonRunInfo(runInfo: RunAndConfigInfo): JValue = {
 
@@ -593,7 +593,7 @@ object NodeStatusReportSerialization {
   }
 
   implicit class SetRuleNodeStatusReportToJs(reports: Set[RuleNodeStatusReport]) {
-    import ComplianceLevelSerialisation._
+    import ComplianceLevelSerialisation.*
 
     def componentValueToJson(c: ComponentStatusReport): JValue = {
       c match {

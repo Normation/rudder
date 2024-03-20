@@ -44,18 +44,18 @@ import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.logger.ReportLoggerPure
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
-import com.normation.rudder.domain.reports._
+import com.normation.rudder.domain.reports.*
 import com.normation.rudder.services.system.DatabaseManager
 import com.normation.rudder.services.system.DeleteCommand
-import com.normation.zio._
+import com.normation.zio.*
 import com.unboundid.ldap.sdk.DN
 import net.liftweb.actor.LAPinger
 import net.liftweb.actor.SpecializedLiftActor
-import net.liftweb.common._
-import org.joda.time._
+import net.liftweb.common.*
+import org.joda.time.*
 import scala.annotation.nowarn
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  *  An helper object designed to help building automatic reports cleaning
@@ -144,8 +144,8 @@ object AutomaticReportsCleaning {
   // what we are looking for in node run interval JSON
   final case class RunInterval(interval: Int)
   def getMaxRunMinutes(ldapCon: LDAPConnectionProvider[RoLDAPConnection]): IOResult[Int] = {
-    import com.normation.ldap.sdk._
-    import net.liftweb.json._
+    import com.normation.ldap.sdk.*
+    import net.liftweb.json.*
     implicit val format = DefaultFormats
 
     val runIntervalAttr = "serializedAgentRunInterval"

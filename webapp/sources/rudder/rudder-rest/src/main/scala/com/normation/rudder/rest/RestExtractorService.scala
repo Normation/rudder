@@ -38,24 +38,24 @@
 package com.normation.rudder.rest
 
 import com.normation.GitVersion
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.InventoryError
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.SecurityToken
-import com.normation.rudder.api.{ApiAuthorization => ApiAuthz}
 import com.normation.rudder.api.AclPath
 import com.normation.rudder.api.ApiAccountId
 import com.normation.rudder.api.ApiAccountName
 import com.normation.rudder.api.ApiAclElement
+import com.normation.rudder.api.ApiAuthorization as ApiAuthz
 import com.normation.rudder.api.ApiAuthorizationKind
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.apidata.CustomDetailLevel
@@ -64,7 +64,7 @@ import com.normation.rudder.apidata.FullDetailLevel
 import com.normation.rudder.apidata.MinimalDetailLevel
 import com.normation.rudder.apidata.NodeDetailLevel
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GroupProperty
@@ -75,16 +75,16 @@ import com.normation.rudder.domain.queries.NodeReturnType
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
 import com.normation.rudder.domain.reports.CompliancePrecision
-import com.normation.rudder.domain.workflows._
+import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
-import com.normation.rudder.repository._
+import com.normation.rudder.repository.*
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.repository.ldap.NodeStateEncoder
-import com.normation.rudder.rest.data._
+import com.normation.rudder.rest.data.*
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.policies.PropertyParser
 import com.normation.rudder.services.queries.CmdbQueryParser
-import com.normation.rudder.services.queries.CmdbQueryParser._
+import com.normation.rudder.services.queries.CmdbQueryParser.*
 import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.services.queries.StringCriterionLine
 import com.normation.rudder.services.queries.StringQuery
@@ -92,21 +92,21 @@ import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.web.services.ReasonBehavior
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.utils.Control
-import com.normation.utils.Control._
+import com.normation.utils.Control.*
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import java.io.StringReader
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.common.Box.option2Box
 import net.liftweb.http.Req
-import net.liftweb.json._
+import net.liftweb.json.*
 import net.liftweb.json.JObject
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonDSL.*
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import org.bouncycastle.cert.X509CertificateHolder
 import org.bouncycastle.openssl.PEMParser
-import zio.{Tag => _, _}
-import zio.syntax._
+import zio.{Tag as _, *}
+import zio.syntax.*
 
 final case class RestExtractorService(
     readRule:             RoRuleRepository,
@@ -120,13 +120,13 @@ final case class RestExtractorService(
     parameterTypeService: ParameterTypeService
 ) extends Loggable {
 
-  import com.normation.rudder.repository.json.DataExtractor.OptionnalJson._
+  import com.normation.rudder.repository.json.DataExtractor.OptionnalJson.*
   /*
    * Params Extractors
    */
 
   private[this] def extractOneValue[T](params: Map[String, List[String]], key: String)(
-      to:                                      (String) => Box[T] = ((value: String) => Full(value))
+      to: (String) => Box[T] = ((value: String) => Full(value))
   ) = {
     params.get(key) match {
       case None               => Full(None)
@@ -136,7 +136,7 @@ final case class RestExtractorService(
   }
 
   private[this] def extractList[T](params: Map[String, List[String]], key: String)(
-      to:                                  (List[String]) => Box[T]
+      to: (List[String]) => Box[T]
   ): Box[Option[T]] = {
     params.get(key) match {
       case None       => Full(None)
@@ -455,7 +455,7 @@ final case class RestExtractorService(
   }
 
   def extractReason(req: Req): Box[Option[String]] = {
-    import ReasonBehavior._
+    import ReasonBehavior.*
     userPropertyService.reasonsFieldBehavior match {
       case Disabled => Full(None)
       case mode     =>
@@ -573,7 +573,7 @@ final case class RestExtractorService(
   }
 
   def toTag(s: String):                               Box[Tag]      = {
-    import Tag._
+    import Tag.*
     val list  = s.split(":")
     val name  = list.headOption.getOrElse(s)
     val value = list.tail.headOption.getOrElse("")
@@ -662,8 +662,8 @@ final case class RestExtractorService(
   }
 
   def extractProperties[A](params: Map[String, List[String]], make: (String, String) => PureResult[A]): Box[Option[List[A]]] = {
-    import cats.implicits._
-    import com.normation.box._
+    import cats.implicits.*
+    import com.normation.box.*
 
     extractList(params, "properties") { props =>
       (props.traverse { prop =>
@@ -865,7 +865,7 @@ final case class RestExtractorService(
   }
 
   def toTagJson(json: JValue): Box[Tag] = {
-    import Tag._
+    import Tag.*
     json match {
       case JObject(JField(name, JString(value)) :: Nil) => Full(Tag(name, value))
       case _                                            => Failure("Not valid format for tags")
@@ -1206,10 +1206,10 @@ final case class RestExtractorService(
   }
 
   def extractMap[T, U](key: String)(req: Req)(
-      keyFun:               String => T,
-      jsonValueFun:         JValue => U,
-      paramValueFun:        String => U,
-      paramMapSepartor:     String
+      keyFun:           String => T,
+      jsonValueFun:     JValue => U,
+      paramValueFun:    String => U,
+      paramMapSepartor: String
   ): Box[Option[Map[T, U]]] = {
     req.json match {
       case Full(json) =>

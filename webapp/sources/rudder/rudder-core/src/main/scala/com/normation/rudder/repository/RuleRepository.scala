@@ -36,11 +36,11 @@
  */
 
 package com.normation.rudder.repository
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.archives.RuleArchiveId
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 
 /**
  * The directive repository.

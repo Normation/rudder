@@ -37,15 +37,15 @@
 
 package com.normation.rudder.rest
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.rudder.rest.lift.DefaultParams
 import com.normation.rudder.rest.lift.LiftApiProcessingLogger
-import com.normation.zio._
+import com.normation.zio.*
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
 import scala.annotation.nowarn
 import scala.collection.immutable
-import zio.json._
+import zio.json.*
 import zio.json.DeriveJsonEncoder
 
 /*
@@ -134,9 +134,9 @@ object RudderJsonResponse {
   // Success
   @nowarn("msg=parameter encoder .* is never used") // used by magnolia macro
   def successOne[A](schema: ResponseSchema, obj: A, id: Option[String])(implicit
-      prettify:             Boolean,
-      encoder:              JsonEncoder[A]
-  ): LiftJsonResponse[_ <: JsonRudderApiResponse[_]] = {
+      prettify: Boolean,
+      encoder: JsonEncoder[A]
+  ): LiftJsonResponse[? <: JsonRudderApiResponse[?]] = {
     schema.dataContainer match {
       case Some(key) =>
         implicit val enc: JsonEncoder[JsonRudderApiResponse[Map[String, List[A]]]] = DeriveJsonEncoder.gen
@@ -148,10 +148,10 @@ object RudderJsonResponse {
   }
   @nowarn("msg=parameter encoder .* is never used") // used by magnolia macro
   def successList[A](schema: ResponseSchema, objs: List[A])(implicit
-      prettify:              Boolean,
-      encoder:               JsonEncoder[A]
+      prettify: Boolean,
+      encoder: JsonEncoder[A]
   ): LiftJsonResponse[
-    _ <: JsonRudderApiResponse[_ <: immutable.Iterable[Any] with PartialFunction[Int with String, Any] with Equals]
+    ? <: JsonRudderApiResponse[? <: immutable.Iterable[Any] with PartialFunction[Int with String, Any] with Equals]
   ] = {
     schema.dataContainer match {
       case None      =>
@@ -163,30 +163,30 @@ object RudderJsonResponse {
     }
   }
   def successZero(schema: ResponseSchema, msg: String)(implicit
-      prettify:           Boolean
+      prettify: Boolean
   ): LiftJsonResponse[JsonRudderApiResponse[String]] = {
     implicit val enc = DeriveJsonEncoder.gen[JsonRudderApiResponse[String]]
     generic.success(JsonRudderApiResponse.success(schema, None, msg))
   }
   // errors
   implicit val nothing:      JsonEncoder[Option[Unit]]                = new JsonEncoder[Option[Unit]] {
-    def unsafeEncode(n: Option[Unit], indent: Option[Int], out: zio.json.internal.Write): Unit    = out.write("null")
-    override def isNothing(a: Option[Unit]):                                              Boolean = true
+    def unsafeEncode(n:       Option[Unit], indent: Option[Int], out: zio.json.internal.Write): Unit = out.write("null")
+    override def isNothing(a: Option[Unit]): Boolean = true
   }
   implicit val errorEncoder: JsonEncoder[JsonRudderApiResponse[Unit]] = DeriveJsonEncoder.gen
 
   def internalError(schema: ResponseSchema, errorMsg: String)(implicit
-      prettify:             Boolean
+      prettify: Boolean
   ): LiftJsonResponse[JsonRudderApiResponse[Unit]] = {
     generic.internalError(JsonRudderApiResponse.error(schema, errorMsg))
   }
   def notFoundError(schema: ResponseSchema, errorMsg: String)(implicit
-      prettify:             Boolean
+      prettify: Boolean
   ): LiftJsonResponse[JsonRudderApiResponse[Unit]] = {
     generic.notFoundError(JsonRudderApiResponse.error(schema, errorMsg))
   }
   def forbiddenError(schema: ResponseSchema, errorMsg: String)(implicit
-      prettify:              Boolean
+      prettify: Boolean
   ): LiftJsonResponse[JsonRudderApiResponse[Unit]] = {
     generic.forbiddenError(JsonRudderApiResponse.error(schema, errorMsg))
   }
@@ -213,7 +213,7 @@ object RudderJsonResponse {
     }
     implicit class ToLiftResponseOne[A](result: IOResult[A])       {
       def toLiftResponseOne(params: DefaultParams, schema: ResponseSchema, id: A => Option[String])(implicit
-          encoder:                  JsonEncoder[A]
+          encoder: JsonEncoder[A]
       ): LiftResponse = {
         implicit val prettify = params.prettify
         result
@@ -227,15 +227,15 @@ object RudderJsonResponse {
           .runNow
       }
       def toLiftResponseOne(params: DefaultParams, schema: EndpointSchema, id: A => Option[String])(implicit
-          encoder:                  JsonEncoder[A]
+          encoder: JsonEncoder[A]
       ): LiftResponse = {
         toLiftResponseOne(params, ResponseSchema.fromSchema(schema), id)
       }
       // when the computation give the response schema
       def toLiftResponseOneMap[B](
-          params:         DefaultParams,
-          errorSchema:    ResponseSchema,
-          map:            A => (ResponseSchema, B, Option[String])
+          params:      DefaultParams,
+          errorSchema: ResponseSchema,
+          map:         A => (ResponseSchema, B, Option[String])
       )(implicit encoder: JsonEncoder[B]): LiftResponse = {
         implicit val prettify = params.prettify
         result

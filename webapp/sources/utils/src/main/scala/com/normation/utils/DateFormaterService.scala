@@ -49,7 +49,7 @@ import org.joda.time.format.DateTimeFormatterBuilder
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.format.PeriodFormatterBuilder
 import scala.util.control.NonFatal
-import zio.json._
+import zio.json.*
 
 object DateFormaterService {
 

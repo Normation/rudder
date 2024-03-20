@@ -37,16 +37,16 @@
 
 package com.normation.inventory.ldap.provisioning
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.Inventory
 import com.normation.inventory.domain.InventoryProcessingLogger
-import com.normation.inventory.ldap.core._
-import com.normation.inventory.services.provisioning._
+import com.normation.inventory.ldap.core.*
+import com.normation.inventory.services.provisioning.*
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
-import com.normation.zio._
+import com.normation.zio.*
 import com.unboundid.ldif.LDIFChangeRecord
-import zio._
+import zio.*
 import zio.syntax.ToZio
 
 /**

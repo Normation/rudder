@@ -38,7 +38,7 @@
 package com.normation.cfclerk.services
 
 import com.normation.GitVersion
-import com.normation.cfclerk.domain._
+import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.services.impl.GitTechniqueReader
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
@@ -46,7 +46,7 @@ import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.SimpleGitRevisionProvider
-import com.normation.zio._
+import com.normation.zio.*
 import java.io.File
 import java.nio.charset.StandardCharsets
 import net.liftweb.common.Loggable
@@ -59,7 +59,7 @@ import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
-import zio.syntax._
+import zio.syntax.*
 
 /**
  * Details of tests executed in each instances of
@@ -282,10 +282,10 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
  */
 @RunWith(classOf[JUnitRunner])
 class JGitPackageReader_SameRootTest extends JGitPackageReaderSpec {
-  lazy val gitRoot         = new File("/tmp/test-jgit-" + DateTime.now().toString())
-  lazy val ptLib           = gitRoot
-  lazy val relativePathArg = None
-  def postInitHook(): Unit = {}
+  lazy val gitRoot = new File("/tmp/test-jgit-" + DateTime.now().toString())
+  lazy val ptLib   = gitRoot
+  lazy val relativePathArg: Option[String] = None
+  def postInitHook():       Unit           = {}
 }
 
 /**

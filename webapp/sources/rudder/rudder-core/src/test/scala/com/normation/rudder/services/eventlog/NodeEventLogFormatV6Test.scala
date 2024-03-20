@@ -42,7 +42,7 @@ import com.normation.rudder.domain.eventlog.EventTypeFactory
 import com.normation.rudder.domain.eventlog.ModifyNodeEventType
 import com.normation.rudder.domain.nodes.ModifyNodeDiff
 import com.normation.rudder.domain.policies.SimpleDiff
-import com.normation.rudder.domain.properties.GenericProperty._
+import com.normation.rudder.domain.properties.GenericProperty.*
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.HeartbeatConfiguration

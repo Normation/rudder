@@ -42,15 +42,15 @@ import com.normation.errors.IOResult
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.utils.DateFormaterService
-import com.softwaremill.quicklens._
-import doobie._
-import doobie.free.connection.{unit => connectionUnit}
-import doobie.implicits._
-import doobie.postgres.implicits._
+import com.softwaremill.quicklens.*
+import doobie.*
+import doobie.free.connection.unit as connectionUnit
+import doobie.implicits.*
+import doobie.postgres.implicits.*
 import org.joda.time.DateTime
-import zio._
-import zio.interop.catz._
-import zio.json.ast._
+import zio.*
+import zio.interop.catz.*
+import zio.json.ast.*
 
 /*
  * Repository that deals with users and sessions
@@ -536,9 +536,9 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
  */
 class JdbcUserRepository(doobie: Doobie) extends UserRepository {
   import com.normation.rudder.db.Doobie.DateTimeMeta
-  import com.normation.rudder.db.json.implicits._
-  import com.normation.rudder.users.UserSerialization._
-  import doobie._
+  import com.normation.rudder.db.json.implicits.*
+  import com.normation.rudder.users.UserSerialization.*
+  import doobie.*
 
   implicit val statusHistoryMeta: Meta[List[StatusHistory]] = new Meta(pgDecoderGet, pgEncoderPut)
   implicit val otherInfoMeta:     Meta[Json.Obj]            = new Meta(pgDecoderGet, pgEncoderPut)
@@ -556,7 +556,19 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
     Read[
       (String, DateTime, String, String, Option[String], Option[String], Option[DateTime], List[StatusHistory], Json.Obj)
     ].map {
-      u: ((String, DateTime, String, String, Option[String], Option[String], Option[DateTime], List[StatusHistory], Json.Obj)) =>
+      (u: (
+          (
+              String,
+              DateTime,
+              String,
+              String,
+              Option[String],
+              Option[String],
+              Option[DateTime],
+              List[StatusHistory],
+              Json.Obj
+          )
+      )) =>
         UserInfo(
           u._1,
           u._2,
@@ -647,7 +659,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
       case h :: t =>
         // get managed (all from that origin) and zombies (in the given list of existing, but deleted)
         val updatable = sql"""select * from users where managedby = ${origin} or (status = 'deleted' and """ ++
-          Fragments.in(fr"id", NonEmptyList.of(h, t: _*)) ++
+          Fragments.in(fr"id", NonEmptyList.of(h, t*)) ++
           fr")"
 
         def update(updated: Vector[UserInfo]): ConnectionIO[Int] = {
@@ -686,7 +698,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
   // predicate used as condition for selecting users for both delete/disable and purge
   private[users] def predicateUser(userIds: List[String]): Option[Fragment] = userIds match {
     case Nil    => None
-    case h :: t => Some(Fragments.in(fr"id", NonEmptyList.of(h, t: _*)))
+    case h :: t => Some(Fragments.in(fr"id", NonEmptyList.of(h, t*)))
   }
 
   private[users] def predicateLogDate(lastLogin: Option[DateTime]): Option[Fragment] = lastLogin match {
@@ -698,7 +710,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
   // this one is inverted: origin empty means you can always purge (but only preselected user from other filters)
   private[users] def predicateNotOrigin(origins: List[String]): Option[Fragment] = origins match {
     case Nil    => None
-    case h :: t => Some(Fragments.notIn(fr"managedby", NonEmptyList.of(h, t: _*)))
+    case h :: t => Some(Fragments.notIn(fr"managedby", NonEmptyList.of(h, t*)))
   }
 
   // select users ID and StatusHistory based on previous predicate and possibly further refinements.
@@ -868,7 +880,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
     params match {
       case Nil       => ZIO.unit
       case h :: tail =>
-        val sql = fr"""update users""" ++ Fragments.set(h, tail: _*) ++ fr"""where id = ${id}"""
+        val sql = fr"""update users""" ++ Fragments.set(h, tail*) ++ fr"""where id = ${id}"""
 
         transactIOResult(s"Error when updating user information for '${id}'")(xa => sql.update.run.transact(xa)).unit
     }

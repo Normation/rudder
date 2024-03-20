@@ -1,6 +1,6 @@
 package com.normation.rudder.services
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogDetails
@@ -13,7 +13,7 @@ import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRepository
 import com.normation.utils.StringUuidGenerator
-import com.normation.zio._
+import com.normation.zio.*
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full

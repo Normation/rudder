@@ -38,13 +38,13 @@
 package com.normation.plugins
 
 import better.files.File
-import com.normation.errors._
+import com.normation.errors.*
 import java.nio.charset.StandardCharsets
-import net.liftweb.json._
+import net.liftweb.json.*
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /*
  * This file is able to read information from /var/rudder/packages/index.json

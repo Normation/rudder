@@ -41,10 +41,10 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.eventlog._
+import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.utils.StringUuidGenerator
-import com.normation.zio._
+import com.normation.zio.*
 import net.liftweb.common.Loggable
 import org.springframework.context.ApplicationEvent
 import org.springframework.context.ApplicationListener

@@ -37,7 +37,7 @@
 
 package com.normation.rudder.services.queries
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
@@ -46,7 +46,7 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
-import net.liftweb.common._
+import net.liftweb.common.*
 
 /**
  * A container for a dynamic group update.

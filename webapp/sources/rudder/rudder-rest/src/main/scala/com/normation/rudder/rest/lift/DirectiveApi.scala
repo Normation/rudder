@@ -38,22 +38,22 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.GitVersion
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
-import com.normation.rudder.apidata.JsonQueryObjects._
-import com.normation.rudder.apidata.JsonResponseObjects._
+import com.normation.rudder.apidata.JsonQueryObjects.*
+import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.JRDirective
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
-import com.normation.rudder.apidata.implicits._
+import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.configuration.ConfigurationRepository
@@ -69,30 +69,30 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
-import com.normation.rudder.rest._
-import com.normation.rudder.rest.{DirectiveApi => API}
+import com.normation.rudder.rest.*
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
+import com.normation.rudder.rest.DirectiveApi as API
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
-import com.normation.rudder.rest.data._
-import com.normation.rudder.rest.implicits._
+import com.normation.rudder.rest.data.*
+import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.web.model.DirectiveEditor
 import com.normation.rudder.web.services.DirectiveEditorService
-import com.normation.utils.Control._
+import com.normation.utils.Control.*
 import com.normation.utils.StringUuidGenerator
-import com.softwaremill.quicklens._
-import net.liftweb.common._
+import com.softwaremill.quicklens.*
+import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonAST.JValue
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 class DirectiveApi(
     readDirective:        RoDirectiveRepository,
@@ -105,29 +105,29 @@ class DirectiveApi(
 
   private val dataName = "directives"
 
-  def schemas = API
+  def schemas: ApiModuleProvider[API] = API
 
   def response(function: Box[JValue], req: Req, errorMessage: String, id: Option[String])(implicit
-      action:            String
+      action: String
   ): LiftResponse = {
     RestUtils.response(restExtractorService, dataName, id)(function, req, errorMessage)
   }
 
   type ActionType = RestUtils.ActionType
   def actionResponse(function: Box[ActionType], req: Req, errorMessage: String, id: Option[String], actor: EventActor)(implicit
-      action:                  String
+      action: String
   ): LiftResponse = {
     RestUtils.actionResponse2(restExtractorService, dataName, uuidGen, id)(function, req, errorMessage)(action, actor)
   }
 
   type WorkflowType = RestUtils.WorkflowType
   def workflowResponse(
-      function:      Box[WorkflowType],
-      req:           Req,
-      errorMessage:  String,
-      id:            Option[String],
-      defaultName:   String,
-      actor:         EventActor
+      function:     Box[WorkflowType],
+      req:          Req,
+      errorMessage: String,
+      id:           Option[String],
+      defaultName:  String,
+      actor:        EventActor
   )(implicit action: String): LiftResponse = {
     RestUtils.workflowResponse2(restExtractorService, dataName, uuidGen, id)(function, req, errorMessage, defaultName)(
       action,
@@ -153,7 +153,7 @@ class DirectiveApi(
   }
 
   object ListDirective extends LiftApiModule0 {
-    val schema        = API.ListDirectives
+    val schema: API.ListDirectives.type = API.ListDirectives
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action = "listDirectives"
@@ -162,7 +162,7 @@ class DirectiveApi(
   }
 
   object DirectiveDetails extends LiftApiModuleString {
-    val schema        = API.DirectiveDetails
+    val schema: API.DirectiveDetails.type = API.DirectiveDetails
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -178,7 +178,7 @@ class DirectiveApi(
   }
 
   object CreateDirective extends LiftApiModule0 {
-    val schema        = API.CreateDirective
+    val schema: API.CreateDirective.type = API.CreateDirective
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       var action   = "createDirective"
@@ -203,7 +203,7 @@ class DirectiveApi(
   }
 
   object DeleteDirective extends LiftApiModuleString {
-    val schema        = API.DeleteDirective
+    val schema: API.DeleteDirective.type = API.DeleteDirective
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -226,7 +226,7 @@ class DirectiveApi(
   }
 
   object CheckDirective extends LiftApiModuleString {
-    val schema        = API.CheckDirective
+    val schema: API.CheckDirective.type = API.CheckDirective
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -249,7 +249,7 @@ class DirectiveApi(
   }
 
   object UpdateDirective extends LiftApiModuleString {
-    val schema        = API.UpdateDirective
+    val schema: API.UpdateDirective.type = API.UpdateDirective
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -280,14 +280,14 @@ class DirectiveApi(
   }
 
   object ListDirectiveV14 extends LiftApiModule0 {
-    val schema = API.ListDirectives
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.ListDirectives.type = API.ListDirectives
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse            = {
       serviceV14.listDirectives().toLiftResponseList(params, schema)
     }
   }
   object DirectiveTree    extends LiftApiModule0 {
-    val schema = API.DirectiveTree
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.DirectiveTree.type = API.DirectiveTree
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse           = {
       (for {
         includeSystem <- restExtractorService.extractBoolean("includeSystem")(req)(identity).toIO
         res           <- serviceV14.directiveTree(includeSystem.getOrElse(false))
@@ -298,7 +298,7 @@ class DirectiveApi(
   }
 
   object DirectiveDetailsV14 extends LiftApiModuleString {
-    val schema = API.DirectiveDetails
+    val schema: API.DirectiveDetails.type = API.DirectiveDetails
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -315,7 +315,7 @@ class DirectiveApi(
   }
 
   object DirectiveRevisionsV14 extends LiftApiModuleString {
-    val schema = API.DirectiveRevisions
+    val schema: API.DirectiveRevisions.type = API.DirectiveRevisions
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -329,8 +329,8 @@ class DirectiveApi(
   }
 
   object CreateDirectiveV14 extends LiftApiModule0 {
-    val schema = API.CreateDirective
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.CreateDirective.type = API.CreateDirective
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse             = {
 
       (for {
         restDirective <-
@@ -351,7 +351,7 @@ class DirectiveApi(
   }
 
   object UpdateDirectiveV14 extends LiftApiModuleString {
-    val schema = API.UpdateDirective
+    val schema: API.UpdateDirective.type = API.UpdateDirective
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -371,7 +371,7 @@ class DirectiveApi(
   }
 
   object DeleteDirectiveV14 extends LiftApiModuleString {
-    val schema = API.DeleteDirective
+    val schema: API.DeleteDirective.type = API.DeleteDirective
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -385,7 +385,7 @@ class DirectiveApi(
   }
 
   object CheckDirectiveV14 extends LiftApiModuleString {
-    val schema = API.CheckDirective
+    val schema: API.CheckDirective.type = API.CheckDirective
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -450,7 +450,7 @@ class DirectiveApiService2(
       directive:       Directive,
       initialState:    Option[Directive],
       action:          DGModAction
-  )(actor:             EventActor, reason: Option[String], crName: String, crDescription: String): Box[JValue] = {
+  )(actor: EventActor, reason: Option[String], crName: String, crDescription: String): Box[JValue] = {
     val change = DirectiveChangeRequest(
       action,
       technique.id.name,
@@ -510,7 +510,7 @@ class DirectiveApiService2(
       baseDirective:   Directive,
       activeTechnique: ActiveTechnique,
       technique:       Technique
-  )(actor:             EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
+  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
     val newDirective = restDirective.updateDirective(baseDirective)
     val modId        = ModificationId(uuidGen.newUuid)
     for {

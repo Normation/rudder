@@ -40,9 +40,9 @@ package com.normation.rudder.web.snippet.administration
 import bootstrap.liftweb.PluginsInfo
 import bootstrap.liftweb.RudderConfig
 import com.normation.plugins.RudderPluginDef
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
-import net.liftweb.util.Helpers._
+import net.liftweb.util.Helpers.*
 import scala.xml.NodeSeq
 
 class PluginManagement extends DispatchSnippet with Loggable {

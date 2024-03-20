@@ -37,11 +37,11 @@
 
 package com.normation.cfclerk.services
 
-import com.normation.cfclerk.domain._
+import com.normation.cfclerk.domain.*
 import com.normation.errors.IOResult
 import java.io.InputStream
 import scala.collection.immutable.SortedMap
-import scala.collection.mutable.{Map => MutMap}
+import scala.collection.mutable.Map as MutMap
 
 final case class TechniquesInfo(
     rootCategory: RootTechniqueCategory,
@@ -112,7 +112,7 @@ trait TechniqueReader {
    * stream and any I/O exception.
    */
   def getResourceContent[T](techniqueResourceId: TechniqueResourceId, postfixName: Option[String])(
-      useIt:                                     Option[InputStream] => IOResult[T]
+      useIt: Option[InputStream] => IOResult[T]
   ): IOResult[T]
 
   /**

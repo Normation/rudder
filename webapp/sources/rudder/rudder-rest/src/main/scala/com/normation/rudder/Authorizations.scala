@@ -36,17 +36,17 @@
  */
 package com.normation.rudder
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.PureResult
 import com.normation.rudder.Role.Builtin
 import com.normation.rudder.Role.BuiltinName
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
-import com.normation.zio._
+import com.normation.zio.*
 import scala.collection.immutable.SortedMap
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  * Base class for Authorization types.
@@ -217,14 +217,14 @@ object AuthorizationType {
    */
   def allKind: Set[AuthorizationType] = allKindsMap
 
-  private[this] var allKindsMap:                     Set[AuthorizationType] = {
+  private[this] var allKindsMap: Set[AuthorizationType] = {
     Set(
       AnyRights
     ) ++ Administration.values ++ Compliance.values ++ Configuration.values ++ Deployer.values ++ Deployment.values ++
     Directive.values ++ Group.values ++ Node.values ++ Rule.values ++ Parameter.values ++ Technique.values ++
     UserAccount.values ++ Validator.values
   }
-  def addAuthKind(newKinds: Set[AuthorizationType]): Unit                   = allKindsMap = allKindsMap ++ newKinds
+  def addAuthKind(newKinds: Set[AuthorizationType]): Unit = allKindsMap = allKindsMap ++ newKinds
 
   /*
    * Parse a right string (ie: object_operation) as a set of authorization type, taking care of the special keyword "all"
@@ -331,12 +331,12 @@ object Rights {
  * make sense from a rudder usage point of view.
  */
 sealed trait Role {
-  def name:   String
-  def rights: Rights
+  def name:        String
+  def rights:      Rights
   def debugString: String = name
 }
 object Role       {
-  import com.normation.rudder.{AuthorizationType => A}
+  import com.normation.rudder.AuthorizationType as A
   // for now, all account type also have the "user account" rights
   val ua = A.UserAccount.values
 
@@ -387,7 +387,7 @@ object Role       {
 
   // standard predefined built-in roles
   def standardBuiltIn: Map[BuiltinName, Role] = {
-    import BuiltinName._
+    import BuiltinName.*
     List(
       Builtin(User, Rights(ua ++ A.nodeKind ++ A.configurationKind)),
       Builtin(AdministrationOnly, Rights(ua ++ A.Administration.values.map(identity))),
@@ -402,7 +402,7 @@ object Role       {
     ).map(r => (r._name, r)).toMap
   }
 
-  def forRight(right: AuthorizationType):        Custom = Custom(Rights.forAuthzs(right))
+  def forRight(right:   AuthorizationType):      Custom = Custom(Rights.forAuthzs(right))
   def forRights(rights: Set[AuthorizationType]): Custom = Custom(Rights(rights))
 
   // this is the named custom roles defined in <custom-roles> tag
@@ -462,7 +462,7 @@ object RudderRoles {
 
   // built-in roles are provided by Rudder core and can be provided by plugins. We assume people knows what they are doing
   // and fewer check are done on them.
-  private val builtInCoreRoles = SortedMap[String, Role](Role.allBuiltInRoles.toList: _*)
+  private val builtInCoreRoles = SortedMap[String, Role](Role.allBuiltInRoles.toList*)
 
   // this is the actual set of currently knowed builin roles
   val builtInRoles: Ref[SortedMap[String, Role]] = Ref.make(builtInCoreRoles).runNow
@@ -493,7 +493,7 @@ object RudderRoles {
     for {
       crs <- customRoles.updateAndGet(existing => {
                val newRoles = roles.map(r => (r.name.toLowerCase, r))
-               if (resetExisting) SortedMap(newRoles: _*) else existing ++ newRoles
+               if (resetExisting) SortedMap(newRoles*) else existing ++ newRoles
              })
       all <- computeAllRoles
       _   <- allRoles.set(all)
@@ -644,7 +644,7 @@ object RudderRoles {
 
     // utility sub-function to resolve one role list in the context of `knownRoles`.
     def resolveOne(knownRoles: Map[String, Role], role: PendingRole): Either[PendingRole, Role.NamedCustom] = {
-      import com.softwaremill.quicklens._
+      import com.softwaremill.quicklens.*
       // role can't be duplicate (case insensitive)
       val toResolve = role.pending.distinctBy(_.toLowerCase)
       val firstPass = toResolve.foldLeft(role.modify(_.pending).setTo(Nil)) {

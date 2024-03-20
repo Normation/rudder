@@ -47,7 +47,7 @@ import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ResolvedAgentRunInterval
-import com.normation.rudder.services.reports._
+import com.normation.rudder.services.reports.*
 import com.normation.utils.Utils.DateToIsoString
 import java.util.concurrent.TimeUnit
 import net.liftweb.common.Logger
@@ -76,7 +76,7 @@ object ComplianceDebugLogger extends Logger {
     .expireAfterWrite(10, TimeUnit.MINUTES)
     .build(
       new CacheLoader[String, Logger]() {
-        def load(key: String) = {
+        def load(key: String): Logger = {
           new Logger() {
             override protected def _logger = LoggerFactory.getLogger(s"explain_compliance.${key}")
           }

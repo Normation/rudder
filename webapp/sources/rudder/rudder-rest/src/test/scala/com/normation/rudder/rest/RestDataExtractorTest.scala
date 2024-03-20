@@ -42,17 +42,17 @@ import com.normation.rudder.MockDirectives
 import com.normation.rudder.MockGitConfigRepo
 import com.normation.rudder.MockRules
 import com.normation.rudder.MockTechniques
-import com.normation.rudder.apidata.JsonQueryObjects._
-import com.normation.rudder.apidata.JsonResponseObjects._
-import com.normation.rudder.apidata.JsonResponseObjects.JRRuleTarget._
-import com.normation.rudder.apidata.implicits._
+import com.normation.rudder.apidata.JsonQueryObjects.*
+import com.normation.rudder.apidata.JsonResponseObjects.*
+import com.normation.rudder.apidata.JsonResponseObjects.JRRuleTarget.*
+import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.utils.StringUuidGeneratorImpl
 import net.liftweb.json.JValue
 import org.junit.runner.RunWith
-import org.specs2.mutable._
+import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.core.Fragments
 

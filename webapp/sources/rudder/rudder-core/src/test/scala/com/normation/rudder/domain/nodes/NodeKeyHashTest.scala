@@ -38,11 +38,11 @@
 package com.normation.rudder.domain.nodes
 
 import com.normation.inventory.domain.PublicKey
-import com.normation.zio._
-import net.liftweb.common._
+import com.normation.zio.*
+import net.liftweb.common.*
 import org.junit.runner.RunWith
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 @RunWith(classOf[JUnitRunner])
 class NodeKeyHashTest extends Specification with Loggable {

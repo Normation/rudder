@@ -37,8 +37,8 @@
 
 package com.normation.rudder.reports.execution
 
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.batch.FindNewReportsExecution
 import com.normation.rudder.db.DB
@@ -49,7 +49,7 @@ import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.UpdateCompliance
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.joda.time.DateTime
 import org.joda.time.format.PeriodFormat
 import scala.concurrent.duration.FiniteDuration

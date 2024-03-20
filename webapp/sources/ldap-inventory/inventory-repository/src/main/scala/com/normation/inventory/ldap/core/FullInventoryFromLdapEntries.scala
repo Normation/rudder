@@ -37,7 +37,7 @@
 
 package com.normation.inventory.ldap.core
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.FullInventory
 import com.normation.ldap.sdk.LDAPEntry
 

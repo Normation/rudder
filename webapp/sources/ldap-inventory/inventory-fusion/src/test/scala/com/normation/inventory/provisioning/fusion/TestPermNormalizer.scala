@@ -38,8 +38,8 @@
 package com.normation.inventory.provisioning
 package fusion
 
-import org.junit._
-import org.junit.Assert._
+import org.junit.*
+import org.junit.Assert.*
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
 

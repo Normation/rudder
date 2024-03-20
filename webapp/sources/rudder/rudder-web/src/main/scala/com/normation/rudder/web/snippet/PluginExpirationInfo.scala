@@ -39,8 +39,8 @@ package com.normation.rudder.web.snippet
 
 import bootstrap.liftweb.PluginsInfo
 import com.normation.plugins.PluginStatusInfo
-import com.softwaremill.quicklens._
-import net.liftweb.common._
+import com.softwaremill.quicklens.*
+import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import org.joda.time.DateTime
 import scala.xml.NodeSeq

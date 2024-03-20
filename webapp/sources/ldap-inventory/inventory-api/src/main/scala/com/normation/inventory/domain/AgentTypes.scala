@@ -37,9 +37,9 @@
 
 package com.normation.inventory.domain
 
-import com.normation.errors._
-import zio._
-import zio.syntax._
+import com.normation.errors.*
+import zio.*
+import zio.syntax.*
 
 /**
  * The enumeration holding the values for the agent
@@ -114,9 +114,9 @@ object AgentType {
     override def displayName  = "Rudder"
     override def toRulesPath  = "/cfengine-community"
     override def inventoryAgentNames: Set[String] = Set("cfengine-community", "community")
-    override val inventorySoftwareName                           = "rudder-agent"
+    override val inventorySoftwareName = "rudder-agent"
     override def toAgentVersionName(softwareVersionName: String) = softwareVersionName
-    override val defaultPolicyExtension                          = ".cf"
+    override val defaultPolicyExtension = ".cf"
   }
 
   final case object Dsc extends AgentType {
@@ -125,9 +125,9 @@ object AgentType {
     override def displayName  = "Rudder Windows"
     override def toRulesPath  = "/dsc"
     override def inventoryAgentNames: Set[String] = Set("dsc")
-    override val inventorySoftwareName                           = "Rudder agent (DSC)"
+    override val inventorySoftwareName = "Rudder agent (DSC)"
     override def toAgentVersionName(softwareVersionName: String) = softwareVersionName
-    override val defaultPolicyExtension                          =
+    override val defaultPolicyExtension =
       "" // no extension - .ps1 extension is already in the template name (more by convention than anything else)
   }
 
@@ -162,9 +162,9 @@ final case class AgentInfo(
 )
 
 object AgentInfoSerialisation {
-  import com.normation.inventory.domain.AgentType._
-  import net.liftweb.json._
-  import net.liftweb.json.JsonDSL._
+  import com.normation.inventory.domain.AgentType.*
+  import net.liftweb.json.*
+  import net.liftweb.json.JsonDSL.*
 
   implicit class ToJson(val agent: AgentInfo) extends AnyVal {
 

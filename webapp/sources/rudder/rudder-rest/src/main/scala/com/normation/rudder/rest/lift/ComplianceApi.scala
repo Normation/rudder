@@ -37,8 +37,8 @@
 
 package com.normation.rudder.rest.lift
 
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.TimingDebugLogger
@@ -61,23 +61,23 @@ import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.rest._
-import com.normation.rudder.rest.{ComplianceApi => API}
+import com.normation.rudder.rest.*
+import com.normation.rudder.rest.ComplianceApi as API
 import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils._
-import com.normation.rudder.rest.data._
+import com.normation.rudder.rest.RestUtils.*
+import com.normation.rudder.rest.data.*
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.zio.currentTimeMillis
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.PlainTextResponse
 import net.liftweb.http.Req
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.*
+import net.liftweb.json.JsonDSL.*
 import scala.collection.immutable
-import zio.syntax._
+import zio.syntax.*
 
 class ComplianceApi(
     restExtractorService: RestExtractorService,
@@ -85,10 +85,10 @@ class ComplianceApi(
     readDirective:        RoDirectiveRepository
 ) extends LiftApiModuleProvider[API] {
 
-  import CsvCompliance._
-  import JsonCompliance._
+  import CsvCompliance.*
+  import JsonCompliance.*
 
-  def schemas = API
+  def schemas: ApiModuleProvider[API] = API
 
   /*
    * The actual builder for the compliance API.
@@ -116,7 +116,7 @@ class ComplianceApi(
   }
 
   object GetRules extends LiftApiModule0 {
-    val schema        = API.GetRulesCompliance
+    val schema: API.GetRulesCompliance.type = API.GetRulesCompliance
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action   = schema.name
@@ -200,8 +200,8 @@ class ComplianceApi(
   }
 
   object GetDirectiveId extends LiftApiModule {
-    val schema        = API.GetDirectiveComplianceId
-    val restExtractor = restExtractorService
+    val schema:        API.GetDirectiveComplianceId.type = API.GetDirectiveComplianceId
+    val restExtractor: RestExtractorService              = restExtractorService
     def process(
         version:     ApiVersion,
         path:        ApiPath,
@@ -247,7 +247,7 @@ class ComplianceApi(
   }
 
   object GetDirectives extends LiftApiModule0 {
-    val schema        = API.GetDirectivesCompliance
+    val schema: API.GetDirectivesCompliance.type = API.GetDirectivesCompliance
     val restExtractor = restExtractorService
     def process0(
         version:    ApiVersion,
@@ -292,7 +292,7 @@ class ComplianceApi(
   }
 
   object GetNodes extends LiftApiModule0 {
-    val schema        = API.GetNodesCompliance
+    val schema: API.GetNodesCompliance.type = API.GetNodesCompliance
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action   = schema.name
@@ -387,7 +387,7 @@ class ComplianceApi(
   }
 
   object GetGlobal extends LiftApiModule0 {
-    val schema        = API.GetGlobalCompliance
+    val schema: API.GetGlobalCompliance.type = API.GetGlobalCompliance
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action   = schema.name
@@ -426,7 +426,7 @@ class ComplianceAPIService(
 
   private[this] def components(
       nodeInfos: Map[NodeId, NodeInfo]
-  )(name:        String, nodeComponents: List[(NodeId, ComponentStatusReport)]): List[ByRuleComponentCompliance] = {
+  )(name: String, nodeComponents: List[(NodeId, ComponentStatusReport)]): List[ByRuleComponentCompliance] = {
 
     val (groupsComponents, uniqueComponents) = nodeComponents.partitionMap {
       case (a, b: BlockStatusReport) => Left((a, b))

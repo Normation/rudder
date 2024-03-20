@@ -38,6 +38,6 @@
 package com.normation.rudder.web.model
 
 //lift std import
-import net.liftweb.http._ // For implicits
+import net.liftweb.http.* // For implicits
 
 object CurrentDirectiveEditor extends SessionVar[Option[DirectiveEditor]](None)

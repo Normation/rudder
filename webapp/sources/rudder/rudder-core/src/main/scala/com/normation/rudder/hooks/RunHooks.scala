@@ -38,9 +38,9 @@
 package com.normation.rudder.hooks
 
 import com.normation.NamedZioLogger
-import com.normation.box._
-import com.normation.errors._
-import com.normation.zio._
+import com.normation.box.*
+import com.normation.errors.*
+import com.normation.zio.*
 import java.io.File
 import java.nio.charset.StandardCharsets
 import net.liftweb.common.Box
@@ -50,8 +50,8 @@ import net.liftweb.common.Logger
 import org.slf4j
 import org.slf4j.LoggerFactory
 import scala.util.control.NonFatal
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /*
  * The goal of that file is to give a simple abstraction to run hooks in
@@ -99,7 +99,7 @@ object HookEnvPairs {
   def toListPairs(values: (String, String)*): List[HookEnvPair] = values.map(p => HookEnvPair(p._1, p._2)).toList
 
   def build(values: (String, String)*): HookEnvPairs = {
-    HookEnvPairs(toListPairs(values: _*))
+    HookEnvPairs(toListPairs(values*))
   }
 }
 
@@ -202,7 +202,7 @@ object RunHooks {
       unitKillAfter:   Duration = 5.minutes
   ): IOResult[(HookReturnCode, Long)] = {
 
-    import HookReturnCode._
+    import HookReturnCode.*
 
     def logReturnCode(result: HookReturnCode): IOResult[Unit] = {
       for {

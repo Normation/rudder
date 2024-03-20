@@ -46,14 +46,14 @@ import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PublicKey
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.zio.ZioRuntime
-import com.softwaremill.quicklens._
+import com.softwaremill.quicklens.*
 import java.io.ByteArrayOutputStream
 import java.nio.charset.StandardCharsets
 import org.junit.runner.RunWith
 import org.slf4j.LoggerFactory
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-import zio._
+import zio.*
 
 @RunWith(classOf[JUnitRunner])
 class TestWriteNodeCertificatesPem extends Specification {
@@ -150,7 +150,7 @@ class TestWriteNodeCertificatesPem extends Specification {
 
     val writer = new WriteNodeCertificatesPemImpl(Some("/non/existing/command"))
 
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
 
     val log = writer.logger.logEffect.asInstanceOf[ch.qos.logback.classic.Logger]
 

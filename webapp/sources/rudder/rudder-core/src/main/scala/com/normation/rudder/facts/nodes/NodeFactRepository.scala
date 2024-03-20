@@ -37,20 +37,20 @@
 
 package com.normation.rudder.facts.nodes
 
-import NodeFactSerialisation._
+import NodeFactSerialisation.*
 import better.files.File
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.IOResult
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.git.GitItemRepository
 import com.normation.rudder.git.GitRepositoryProvider
 import java.nio.charset.StandardCharsets
 import org.eclipse.jgit.lib.PersonIdent
-import zio._
-import zio.json._
+import zio.*
+import zio.json.*
 import zio.stream.ZStream
-import zio.syntax._
+import zio.syntax.*
 
 /*
  * Serialize a fact type (to/from JSON), for example nodes.
@@ -106,11 +106,11 @@ trait NodeFactStorage {
  * in-memory version of the nodeFactRepos is needed.
  */
 object NoopFactStorage extends NodeFactStorage {
-  override def save(nodeFact: NodeFact):                              IOResult[Unit]     = ZIO.unit
-  override def changeStatus(nodeId: NodeId, status: InventoryStatus): IOResult[Unit]     = ZIO.unit
-  override def delete(nodeId: NodeId):                                IOResult[Unit]     = ZIO.unit
-  override def getAllPending():                                       IOStream[NodeFact] = ZStream.empty
-  override def getAllAccepted():                                      IOStream[NodeFact] = ZStream.empty
+  override def save(nodeFact:       NodeFact): IOResult[Unit] = ZIO.unit
+  override def changeStatus(nodeId: NodeId, status: InventoryStatus): IOResult[Unit] = ZIO.unit
+  override def delete(nodeId:       NodeId): IOResult[Unit] = ZIO.unit
+  override def getAllPending():  IOStream[NodeFact] = ZStream.empty
+  override def getAllAccepted(): IOStream[NodeFact] = ZStream.empty
 }
 
 /*
@@ -179,7 +179,7 @@ class GitNodeFactRepositoryImpl(
    * As we want it to be human readable and searchable, we will use an indented format.
    */
   def toJson(nodeFact: NodeFact): IOResult[String] = {
-    import GitNodeFactRepositoryImpl._
+    import GitNodeFactRepositoryImpl.*
     NodeFactArchive(entity, fileFormat, nodeFact).toJsonPretty.succeed
   }
 

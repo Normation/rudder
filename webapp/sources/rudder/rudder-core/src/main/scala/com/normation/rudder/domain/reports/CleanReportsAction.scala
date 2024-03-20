@@ -1,10 +1,10 @@
 package com.normation.rudder.domain.reports
 
-import com.normation.rudder.batch._
+import com.normation.rudder.batch.*
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.services.system.DatabaseManager
 import com.normation.rudder.services.system.DeleteCommand
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.joda.time.DateTime
 
 /*
@@ -13,10 +13,10 @@ import org.joda.time.DateTime
  */
 
 sealed trait CleanReportAction {
-  def name:     String
-  def past:     String
-  def continue: String
-  def actor:    DatabaseCleanerActor
+  def name:        String
+  def past:        String
+  def continue:    String
+  def actor:       DatabaseCleanerActor
   def actorIsIdle: Boolean = actor.isIdle
   def progress:    String  = if (actor.isIdle) "idle" else "in progress"
   def act(reports: DeleteCommand.Reports, complianceLevel: Option[DeleteCommand.ComplianceLevel]): Box[Int]

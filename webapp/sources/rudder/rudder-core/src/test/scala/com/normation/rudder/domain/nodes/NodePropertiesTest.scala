@@ -41,14 +41,14 @@ import com.normation.BoxSpecMatcher
 import com.normation.errors.PureResult
 import com.normation.rudder.domain.properties.CompareProperties
 import com.normation.rudder.domain.properties.GenericProperty
-import com.normation.rudder.domain.properties.GenericProperty._
+import com.normation.rudder.domain.properties.GenericProperty.*
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.typesafe.config.ConfigValue
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.junit.runner.RunWith
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 @RunWith(classOf[JUnitRunner])
 class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher {
@@ -129,7 +129,7 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
         updateAndDelete(NodeProperty("none", "xxx".toConfigValue, None, P2)),
         updateAndDelete(NodeProperty("default", "xxx".toConfigValue, None, P1)),
         updateAndDelete(NodeProperty("default", "xxx".toConfigValue, None, P2))
-      ).flatten must contain((res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[_, _]]).foreach
+      ).flatten must contain((res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[?, ?]]).foreach
     }
 
     "works if providers goes from anything to system" in {
@@ -138,7 +138,7 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
         updateAndDelete(NodeProperty("p1", "xxx".toConfigValue, None, Some(PropertyProvider.systemPropertyProvider))),
         updateAndDelete(NodeProperty("default", "xxx".toConfigValue, None, Some(PropertyProvider.systemPropertyProvider))),
         updateAndDelete(NodeProperty("default", "xxx".toConfigValue, None, Some(PropertyProvider.systemPropertyProvider)))
-      ).flatten must contain((res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[_, _]]).foreach
+      ).flatten must contain((res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[?, ?]]).foreach
     }
 
     "fails for different, non default providers" in {
@@ -149,14 +149,14 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
         updateAndDelete(NodeProperty("p2", "xxx".toConfigValue, None, None)),
         updateAndDelete(NodeProperty("p2", "xxx".toConfigValue, None, RudderP)),
         updateAndDelete(NodeProperty("p2", "xxx".toConfigValue, None, P1))
-      ).flatten must contain((res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Left[_, _]]).foreach
+      ).flatten must contain((res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Left[?, ?]]).foreach
     }
 
     "be ok with compatible one (default)" in {
       List(
         updateAndDelete(NodeProperty("none", "xxx".toConfigValue, None, RudderP)),
         updateAndDelete(NodeProperty("default", "xxx".toConfigValue, None, None))
-      ).flatten must contain((res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[_, _]]).foreach
+      ).flatten must contain((res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[?, ?]]).foreach
     }
   }
 }

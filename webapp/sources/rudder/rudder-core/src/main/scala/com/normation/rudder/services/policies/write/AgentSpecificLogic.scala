@@ -66,7 +66,7 @@ trait AgentSpecificStringEscape {
 
 //how do we write bundle sequence / input files system variable for the agent?
 trait AgentFormatBundleVariables {
-  import BuildBundleSequence._
+  import BuildBundleSequence.*
   def getBundleVariables(
       systemInputs: List[InputFile],
       sytemBundles: List[TechniqueBundles],
@@ -162,7 +162,7 @@ class AgentRegister {
    */
   def traverseMap[T](
       agentNodeProps: AgentNodeProperties
-  )(default:          () => Box[List[T]], f: AgentSpecificGeneration => Box[List[T]]): Box[List[T]] = {
+  )(default: () => Box[List[T]], f: AgentSpecificGeneration => Box[List[T]]): Box[List[T]] = {
     (traverse(pipeline) { handler =>
       if (handler.handle(agentNodeProps)) {
         f(handler)

@@ -37,16 +37,16 @@
 
 package com.normation.inventory.ldap.provisioning
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.SystemError
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 import com.normation.inventory.domain.Inventory
-import com.normation.inventory.ldap.core._
-import com.normation.inventory.services.core._
-import com.normation.inventory.services.provisioning._
+import com.normation.inventory.ldap.core.*
+import com.normation.inventory.services.core.*
+import com.normation.inventory.services.provisioning.*
 import com.unboundid.ldif.LDIFChangeRecord
-import net.liftweb.common._
-import zio.syntax._
+import net.liftweb.common.*
+import zio.syntax.*
 
 /*
  * This file contains post commit action to

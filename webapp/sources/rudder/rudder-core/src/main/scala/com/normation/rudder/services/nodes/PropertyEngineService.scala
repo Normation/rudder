@@ -1,7 +1,7 @@
 package com.normation.rudder.services.nodes
 
-import com.normation.errors._
-import com.normation.zio._
+import com.normation.errors.*
+import com.normation.zio.*
 import zio.Ref
 
 final case class EngineOption(name: String, value: String)

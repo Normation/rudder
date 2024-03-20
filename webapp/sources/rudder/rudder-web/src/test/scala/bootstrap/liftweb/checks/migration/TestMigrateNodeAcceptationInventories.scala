@@ -39,7 +39,7 @@ package bootstrap.liftweb.checks.migration
 
 import better.files.File
 import bootstrap.liftweb.BootstrapLogger
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.NodeId
@@ -64,17 +64,17 @@ import com.normation.rudder.services.nodes.history.impl.InventoryHistoryLogRepos
 import com.normation.rudder.services.nodes.history.impl.NodeDeleteEvent
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.utils.DateFormaterService
-import com.normation.zio._
+import com.normation.zio.*
 import com.unboundid.ldap.sdk.DN
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import org.specs2.specification.AfterAll
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  * Check that historical inventories are correctly migrated.
@@ -168,13 +168,13 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
    * Store migrated inventories under rootDir/migrated as a nodeid/date.json files
    */
   object fileFactLog extends HistoryLogRepository[NodeId, DateTime, FactLogData, FactLog] with InventoryHistoryDelete {
-    import com.normation.rudder.facts.nodes.NodeFactSerialisation._
-    import zio.json._
+    import com.normation.rudder.facts.nodes.NodeFactSerialisation.*
+    import zio.json.*
 
     val root = testDir / "migrated"
     root.createDirectories()
 
-    def nodeDir(nodeId: NodeId):                  File = root / nodeId.value
+    def nodeDir(nodeId: NodeId): File = root / nodeId.value
     def factFile(nodeId: NodeId, date: DateTime): File = {
       nodeDir(nodeId) / (dateFormat.print(date) + ".json")
     }
@@ -238,12 +238,12 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
   // fb0096f3-a928-454d-9776-e8079d48cdd8 => deleted, age ok
   // fb0096f4-a928-454d-9776-e8079d48cdd8 => deleted, too old
   object nodeInfoService extends NodeInfoService {
-    import com.softwaremill.quicklens._
-    val n                       = NodeConfigData.node1
+    import com.softwaremill.quicklens.*
+    val n = NodeConfigData.node1
     def success(nodeId: NodeId) = Some(n.modify(_.node.id).setTo(nodeId)).succeed
 
-    override def getAll():                              IOResult[Map[NodeId, NodeInfo]] = ???
-    override def getNodeInfo(nodeId: NodeId):           IOResult[Option[NodeInfo]]      = nodeId.value match {
+    override def getAll():                    IOResult[Map[NodeId, NodeInfo]] = ???
+    override def getNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]]      = nodeId.value match {
       case "0afa1d13-d125-4c91-9d71-24c47dc867e9" => None.succeed
       case "0bd58a1f-3faa-4783-a7a2-52d84021663a" => success(nodeId)
       case "1bd58a1f-3faa-4783-a7a2-52d84021663a" => success(nodeId)
@@ -252,17 +252,17 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
       case "fb0096f3-a928-454d-9776-e8079d48cdd8" => None.succeed
       case "fb0096f4-a928-454d-9776-e8079d48cdd8" => None.succeed
     }
-    override def getNodeInfos(nodeIds: Set[NodeId]):    IOResult[Set[NodeInfo]]         = ???
-    override def getNodeInfosSeq(nodesId: Seq[NodeId]): IOResult[Seq[NodeInfo]]         = ???
-    override def getNumberOfManagedNodes:               Int                             = ???
-    override def getAllNodesIds():                      IOResult[Set[NodeId]]           = ???
-    override def getAllNodes():                         IOResult[Map[NodeId, Node]]     = ???
-    override def getAllSystemNodeIds():                 IOResult[Seq[NodeId]]           = ???
-    override def getPendingNodeInfos():                 IOResult[Map[NodeId, NodeInfo]] = ???
-    override def getPendingNodeInfo(nodeId: NodeId):    IOResult[Option[NodeInfo]]      = ???
-    override def getDeletedNodeInfos():                 IOResult[Map[NodeId, NodeInfo]] = ???
-    override def getDeletedNodeInfo(nodeId: NodeId):    IOResult[Option[NodeInfo]]      = ???
-    override def getAllNodeInfos():                     IOResult[Seq[NodeInfo]]         = ???
+    override def getNodeInfos(nodeIds: Set[NodeId]): IOResult[Set[NodeInfo]] = ???
+    override def getNodeInfosSeq(nodesId: Seq[NodeId]): IOResult[Seq[NodeInfo]] = ???
+    override def getNumberOfManagedNodes: Int                             = ???
+    override def getAllNodesIds():        IOResult[Set[NodeId]]           = ???
+    override def getAllNodes():           IOResult[Map[NodeId, Node]]     = ???
+    override def getAllSystemNodeIds():   IOResult[Seq[NodeId]]           = ???
+    override def getPendingNodeInfos():   IOResult[Map[NodeId, NodeInfo]] = ???
+    override def getPendingNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
+    override def getDeletedNodeInfos(): IOResult[Map[NodeId, NodeInfo]] = ???
+    override def getDeletedNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
+    override def getAllNodeInfos(): IOResult[Seq[NodeInfo]] = ???
   }
 
   lazy val migration = new MigrateNodeAcceptationInventories(nodeInfoService, null, fileLog, testFactLog, 365.days)

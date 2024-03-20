@@ -38,20 +38,20 @@
 package com.normation.rudder.services.nodes
 
 import com.normation.NamedZioLogger
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.IOResult
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryMapper
-import com.normation.inventory.ldap.core.LDAPConstants._
-import com.normation.ldap.sdk._
-import com.normation.ldap.sdk.BuildFilter._
+import com.normation.inventory.ldap.core.LDAPConstants.*
+import com.normation.ldap.sdk.*
+import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.ldap.sdk.LDAPConnectionProvider
-import com.normation.ldap.sdk.LDAPIOResult._
-import com.normation.ldap.sdk.syntax._
+import com.normation.ldap.sdk.LDAPIOResult.*
+import com.normation.ldap.sdk.syntax.*
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.NodeDit
-import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
@@ -62,14 +62,14 @@ import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.nodes.NodeInfoService.A_MOD_TIMESTAMP
 import com.normation.rudder.services.nodes.NodeInfoServiceCached.UpdatedNodeEntries
 import com.normation.rudder.services.nodes.NodeInfoServiceCached.buildInfoMaps
-import com.normation.zio._
-import com.unboundid.ldap.sdk._
+import com.normation.zio.*
+import com.unboundid.ldap.sdk.*
 import org.joda.time.DateTime
-import scala.collection.mutable.{Map => MutMap}
 import scala.collection.mutable.Buffer
+import scala.collection.mutable.Map as MutMap
 import scala.concurrent.duration.FiniteDuration
-import zio.{System => _, _}
-import zio.syntax._
+import zio.{System as _, *}
+import zio.syntax.*
 
 /*
  * General logic for the cache implementation of NodeInfo.
@@ -264,8 +264,8 @@ object NodeInfoServiceCached {
 
   // utility class to move node updates around
   final case class NodeUpdates(
-      updated:    Buffer[LDAPNodeInfo] = Buffer(),
-      nodeErrors: Buffer[String] =
+      updated:         Buffer[LDAPNodeInfo] = Buffer(),
+      nodeErrors:      Buffer[String] =
         Buffer(), // that's actually nodeId, but we are in perf/mem sensitive part and avoid object instanciation
 
       containerErrors: Buffer[String] = Buffer() // that's actually a container DN
@@ -553,7 +553,7 @@ object NodeInfoServiceCached {
 }
 
 trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with CachedRepository {
-  import NodeInfoService._
+  import NodeInfoService.*
 
   def ldap:            LDAPConnectionProvider[RoLDAPConnection]
   def nodeDit:         NodeDit
@@ -636,7 +636,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
    * That's the method that do all the logic
    */
   private[this] def withUpToDateCache[T](
-      label:  String
+      label: String
   )(useCache: Map[NodeId, (LDAPNodeInfo, NodeInfo)] => IOResult[T]): IOResult[T] = {
     /*
      * Get all relevant info from backend along with the
@@ -860,7 +860,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
    * node really nodes (pending or deleted).
    */
   private[this] def getNotAcceptedNodeDataFromBackend(status: InventoryStatus): IOResult[Map[NodeId, NodeInfo]] = {
-    import scala.collection.mutable.{Map => MutMap}
+    import scala.collection.mutable.Map as MutMap
 
     for {
       con        <- ldap
@@ -910,7 +910,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
 
     for {
       con          <- ldap
-      optNodeEntry <- con.get(dit.NODES.NODE.dn(nodeId), searchAttributes: _*)
+      optNodeEntry <- con.get(dit.NODES.NODE.dn(nodeId), searchAttributes*)
       nodeInfo     <- (optNodeEntry match {
                         case None            => None.succeed
                         case Some(nodeEntry) =>
@@ -918,7 +918,7 @@ trait NodeInfoServiceCached extends NodeInfoService with NamedZioLogger with Cac
                             case None     => None.succeed
                             case Some(dn) =>
                               for {
-                                machineEntry <- con.get(dn, searchAttributes: _*)
+                                machineEntry <- con.get(dn, searchAttributes*)
                                 nodeInfo     <- ldapMapper.convertEntriesToSpecialNodeInfos(nodeEntry, machineEntry)
                               } yield {
                                 Some(nodeInfo)
@@ -1019,10 +1019,10 @@ class NaiveNodeInfoServiceCachedImpl(
       lastModification: Option[DateTime]
   ): LDAPIOResult[Seq[LDAPEntry]] = {
     for {
-      nodeInvs    <- con.search(inventoryDit.NODES.dn, One, BuildFilter.ALL, searchAttributes: _*)
-      machineInvs <- con.search(inventoryDit.MACHINES.dn, One, BuildFilter.ALL, searchAttributes: _*)
+      nodeInvs    <- con.search(inventoryDit.NODES.dn, One, BuildFilter.ALL, searchAttributes*)
+      machineInvs <- con.search(inventoryDit.MACHINES.dn, One, BuildFilter.ALL, searchAttributes*)
       nodes       <- if (status == AcceptedInventory) {
-                       con.search(nodeDit.NODES.dn, One, BuildFilter.ALL, searchAttributes: _*)
+                       con.search(nodeDit.NODES.dn, One, BuildFilter.ALL, searchAttributes*)
                      } else {
                        Seq().succeed
                      }
@@ -1053,7 +1053,7 @@ class NodeInfoServiceCachedImpl(
     override val inventoryMapper: InventoryMapper,
     minimumCacheValidity:         FiniteDuration
 ) extends NodeInfoServiceCached {
-  import NodeInfoService._
+  import NodeInfoService.*
   val minimumCacheValidityMillis = minimumCacheValidity.toMillis
 
   override def loggerName: String = this.getClass.getName
@@ -1128,7 +1128,7 @@ class NodeInfoServiceCachedImpl(
               AND(IS(OC_RUDDER_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${nodeDit.NODES.dn.toString}"))
             ),
             GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(lastKnowModification).toString),
-            NOT(OR(lastModEntryCSN.map(csn => EQ("entryCSN", csn)): _*))
+            NOT(OR(lastModEntryCSN.map(csn => EQ("entryCSN", csn))*))
           ),
           "1.1"
         )
@@ -1194,7 +1194,7 @@ class NodeInfoServiceCachedImpl(
       case Some(d) => AND(filterNodes, GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(d).toString))
     }
 
-    con.search(nodeDit.BASE_DN, Sub, filter, searchAttributes: _*)
+    con.search(nodeDit.BASE_DN, Sub, filter, searchAttributes*)
   }
 
   // Utility method to construct infomaps for getBackEnd methods
@@ -1210,19 +1210,19 @@ class NodeInfoServiceCachedImpl(
     for {
       con         <- ldap
       nodeEntries <-
-        con.search(nodeDit.NODES.dn, One, OR(nodeIds.map(id => EQ(A_NODE_UUID, id)): _*), NodeInfoService.nodeInfoAttributes: _*)
+        con.search(nodeDit.NODES.dn, One, OR(nodeIds.map(id => EQ(A_NODE_UUID, id))*), NodeInfoService.nodeInfoAttributes*)
       nodeInvs    <- con.search(
                        inventoryDit.NODES.dn,
                        One,
-                       OR(nodeIds.map(id => EQ(A_NODE_UUID, id)): _*),
-                       NodeInfoService.nodeInfoAttributes: _*
+                       OR(nodeIds.map(id => EQ(A_NODE_UUID, id))*),
+                       NodeInfoService.nodeInfoAttributes*
                      )
       containers   = nodeInvs.flatMap(e => e(A_CONTAINER_DN).map(dn => new DN(dn).getRDN.getAttributeValues()(0)))
       machineInvs <- con.search(
                        inventoryDit.MACHINES.dn,
                        One,
-                       OR(containers.map(id => EQ(A_MACHINE_UUID, id)): _*),
-                       NodeInfoService.nodeInfoAttributes: _*
+                       OR(containers.map(id => EQ(A_MACHINE_UUID, id))*),
+                       NodeInfoService.nodeInfoAttributes*
                      )
       infoMaps    <- IOResult.attempt(constructInfoMaps(nodeEntries, nodeInvs, machineInvs))
       res         <- NodeInfoServiceCached.constructNodesFromAllEntries(infoMaps, checkRoot = false)
@@ -1242,18 +1242,18 @@ class NodeInfoServiceCachedImpl(
       machineInvs <- con.search(
                        inventoryDit.MACHINES.dn,
                        One,
-                       OR(containers.map(id => EQ(A_MACHINE_UUID, id)): _*),
-                       NodeInfoService.nodeInfoAttributes: _*
+                       OR(containers.map(id => EQ(A_MACHINE_UUID, id))*),
+                       NodeInfoService.nodeInfoAttributes*
                      )
       nodeInvs    <- con.search(
                        inventoryDit.NODES.dn,
                        One,
-                       OR(containersDn.map(container => EQ(A_CONTAINER_DN, container)): _*),
-                       NodeInfoService.nodeInfoAttributes: _*
+                       OR(containersDn.map(container => EQ(A_CONTAINER_DN, container))*),
+                       NodeInfoService.nodeInfoAttributes*
                      )
       nodeIds      = nodeInvs.flatMap(_(A_NODE_UUID))
       nodeEntries <-
-        con.search(nodeDit.NODES.dn, One, OR(nodeIds.map(id => EQ(A_NODE_UUID, id)): _*), NodeInfoService.nodeInfoAttributes: _*)
+        con.search(nodeDit.NODES.dn, One, OR(nodeIds.map(id => EQ(A_NODE_UUID, id))*), NodeInfoService.nodeInfoAttributes*)
       infoMaps    <- IOResult.attempt(constructInfoMaps(nodeEntries, nodeInvs, machineInvs))
       res         <- NodeInfoServiceCached.constructNodesFromAllEntries(infoMaps, checkRoot = false)
     } yield {

@@ -37,10 +37,10 @@
 
 package com.normation.rudder.services.workflows
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AsyncDeploymentActor
@@ -51,20 +51,20 @@ import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.properties._
-import com.normation.rudder.domain.workflows._
-import com.normation.rudder.repository._
+import com.normation.rudder.domain.policies.*
+import com.normation.rudder.domain.properties.*
+import com.normation.rudder.domain.workflows.*
+import com.normation.rudder.repository.*
 import com.normation.rudder.services.marshalling.XmlSerializer
 import com.normation.rudder.services.marshalling.XmlUnserializer
 import com.normation.rudder.services.policies.DependencyAndDeletionService
 import com.normation.rudder.services.queries.DynGroupUpdaterService
-import com.normation.utils.Control._
+import com.normation.utils.Control.*
 import com.normation.utils.StringUuidGenerator
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
-import net.liftweb.common._
-import scala.xml._
+import net.liftweb.common.*
+import scala.xml.*
 
 /**
  * A service responsible to actually commit a change request,
@@ -209,55 +209,55 @@ class CommitAndDeployChangeRequestServiceImpl(
     implicit val changeRequestId = changeRequest.id.value
 
     final case object CheckRule extends CheckChanges[Rule] {
-      def failureMessage(rule: Rule)                  = s"Rule ${rule.name} (id: ${rule.id.serialize})"
-      def getCurrentValue(rule: Rule)                 = roRuleRepository.get(rule.id).toBox
+      def failureMessage(rule:   Rule) = s"Rule ${rule.name} (id: ${rule.id.serialize})"
+      def getCurrentValue(rule:  Rule) = roRuleRepository.get(rule.id).toBox
       def compareMethod(initial: Rule, current: Rule) = CheckDivergenceForMerge.compareRules(initial, current)
-      def xmlSerialize(rule: Rule)                    = Full(xmlSerializer.rule.serialise(rule))
-      def xmlUnserialize(xml: Node)                   = xmlUnserializer.rule.unserialise(xml)
+      def xmlSerialize(rule:     Rule): Box[Node] = Full(xmlSerializer.rule.serialise(rule))
+      def xmlUnserialize(xml:    Node) = xmlUnserializer.rule.unserialise(xml)
     }
 
     // For now we only check the Directive, not the SectionSpec and the TechniqueName.
     // The SectionSpec could be a problem (ie : A mono valued param was changed to multi valued without changing the technique version).
     final case class CheckDirective(changes: DirectiveChanges) extends CheckChanges[Directive] {
       // used in serialisation
-      val directiveContext                                      = {
+      val directiveContext                      = {
         // Option is None, if this is a Directive creation, but serialisation won't be used in this case (see check method)
         changes.changes.initialState match {
           case Some((techniqueName, _, rootSection)) => Full((techniqueName, rootSection))
           case None                                  => Failure("could not find directive context from initial state")
         }
       }
-      def failureMessage(directive: Directive)                  = s"Directive ${directive.name} (id: ${directive.id.serialize})"
-      def getCurrentValue(directive: Directive)                 = roDirectiveRepo.getDirective(directive.id.uid).toBox.flatMap {
+      def failureMessage(directive: Directive) = s"Directive ${directive.name} (id: ${directive.id.serialize})"
+      def getCurrentValue(directive: Directive) = roDirectiveRepo.getDirective(directive.id.uid).toBox.flatMap {
         case None      => Empty
         case Some(dir) => Full(dir)
       }
       def compareMethod(initial: Directive, current: Directive) = CheckDivergenceForMerge.compareDirectives(initial, current)
-      def xmlSerialize(directive: Directive)                    = {
+      def xmlSerialize(directive: Directive)    = {
         directiveContext.map {
           case (techniqueName, rootSection) =>
             xmlSerializer.directive.serialise(techniqueName, rootSection, directive)
         }
       }
-      def xmlUnserialize(xml: Node)                             = xmlUnserializer.directive.unserialise(xml).map(_._2)
+      def xmlUnserialize(xml: Node) = xmlUnserializer.directive.unserialise(xml).map(_._2)
     }
 
     case object CheckGroup extends CheckChanges[NodeGroup] {
-      def failureMessage(group: NodeGroup)                      = s"Group ${group.name} (id: ${group.id.serialize})"
-      def getCurrentValue(group: NodeGroup)                     = roNodeGroupRepo.getNodeGroup(group.id).map(_._1).toBox
+      def failureMessage(group:  NodeGroup) = s"Group ${group.name} (id: ${group.id.serialize})"
+      def getCurrentValue(group: NodeGroup) = roNodeGroupRepo.getNodeGroup(group.id).map(_._1).toBox
       def compareMethod(initial: NodeGroup, current: NodeGroup) = CheckDivergenceForMerge.compareGroups(initial, current)
-      def xmlSerialize(group: NodeGroup)                        = Full(xmlSerializer.group.serialise(group))
-      def xmlUnserialize(xml: Node)                             = xmlUnserializer.group.unserialise(xml)
+      def xmlSerialize(group:    NodeGroup): Box[Node] = Full(xmlSerializer.group.serialise(group))
+      def xmlUnserialize(xml:    Node) = xmlUnserializer.group.unserialise(xml)
     }
 
     case object CheckGlobalParameter extends CheckChanges[GlobalParameter] {
-      def failureMessage(param: GlobalParameter)                            = s"Parameter ${param.name}"
+      def failureMessage(param: GlobalParameter) = s"Parameter ${param.name}"
       def getCurrentValue(param: GlobalParameter)                           =
         roParameterRepository.getGlobalParameter(param.name).notOptional(s"Parameter '${param.name}' was not found").toBox
       def compareMethod(initial: GlobalParameter, current: GlobalParameter) =
         CheckDivergenceForMerge.compareGlobalParameter(initial, current)
-      def xmlSerialize(param: GlobalParameter)                              = Full(xmlSerializer.globalParam.serialise(param))
-      def xmlUnserialize(xml: Node)                                         = xmlUnserializer.globalParam.unserialise(xml)
+      def xmlSerialize(param: GlobalParameter): Box[Node] = Full(xmlSerializer.globalParam.serialise(param))
+      def xmlUnserialize(xml: Node) = xmlUnserializer.globalParam.unserialise(xml)
     }
 
     /*

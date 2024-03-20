@@ -38,26 +38,26 @@
 package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueCategory
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.services.policies._
+import com.normation.rudder.domain.policies.*
+import com.normation.rudder.services.policies.*
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
-import com.normation.rudder.web.model._
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.util._
-import net.liftweb.util.Helpers._
+import com.normation.rudder.web.model.*
+import net.liftweb.common.*
+import net.liftweb.http.*
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.util.*
+import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
-import scala.xml._
+import scala.xml.*
 
 object TechniqueEditForm {
 
@@ -99,7 +99,7 @@ class TechniqueEditForm(
     onSuccessCallback:   () => JsCmd = { () => Noop },
     onFailureCallback:   () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
-  import TechniqueEditForm._
+  import TechniqueEditForm.*
 
   // find Technique
   private[this] val techniqueRepository         = RudderConfig.techniqueRepository
@@ -257,7 +257,7 @@ class TechniqueEditForm(
   }
 
   private[this] val crReasons = {
-    import com.normation.rudder.web.services.ReasonBehavior._
+    import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
       case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
@@ -266,7 +266,7 @@ class TechniqueEditForm(
   }
 
   private[this] val crReasonsRemovePopup = {
-    import com.normation.rudder.web.services.ReasonBehavior._
+    import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
       case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
@@ -275,7 +275,7 @@ class TechniqueEditForm(
   }
 
   private[this] val crReasonsDisablePopup = {
-    import com.normation.rudder.web.services.ReasonBehavior._
+    import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
       case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))

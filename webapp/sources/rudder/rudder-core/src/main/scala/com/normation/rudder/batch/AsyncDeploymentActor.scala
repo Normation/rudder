@@ -37,7 +37,7 @@
 
 package com.normation.rudder.batch
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.errors.PureResult
 import com.normation.errors.Unexpected
@@ -46,21 +46,21 @@ import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.eventlog._
+import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.rudder.services.eventlog.EventLogDeploymentService
 import com.normation.rudder.services.marshalling.DeploymentStatusSerialisation
 import com.normation.rudder.services.policies.PromiseGenerationService
-import com.normation.zio._
-import net.liftweb.actor._
-import net.liftweb.common._
+import com.normation.zio.*
+import net.liftweb.actor.*
+import net.liftweb.common.*
 import net.liftweb.http.ListenerManager
-import org.joda.time._
+import org.joda.time.*
 import scala.concurrent.duration.Duration
 import scala.xml.NodeSeq
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 sealed trait StartDeploymentMessage
 

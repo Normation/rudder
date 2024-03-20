@@ -42,14 +42,14 @@ import com.normation.errors.IOResult
 import com.normation.errors.PureResult
 import com.normation.errors.SystemError
 import com.normation.errors.Unexpected
-import com.normation.rudder._
-import com.normation.rudder.api._
+import com.normation.rudder.*
+import com.normation.rudder.api.*
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.rest.RoleApiMapping
-import com.normation.rudder.users._
-import com.normation.zio._
+import com.normation.rudder.users.*
+import com.normation.zio.*
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
@@ -61,8 +61,8 @@ import org.joda.time.DateTime
 import org.xml.sax.SAXParseException
 import scala.collection.immutable.SortedMap
 import scala.xml.Elem
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  * This file contains data structure defining Rudder "user details" and how to
@@ -117,7 +117,7 @@ object PasswordEncoder {
   }
 
   val PlainText: PasswordEncoder = new PasswordEncoder() {
-    override def encode(rawPassword: CharSequence):                           String  = rawPassword.toString
+    override def encode(rawPassword:  CharSequence): String = rawPassword.toString
     override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = rawPassword.toString == encodedPassword
   }
   // Unsalted hash functions :

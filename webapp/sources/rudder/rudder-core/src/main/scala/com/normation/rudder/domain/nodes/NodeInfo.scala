@@ -37,26 +37,26 @@
 
 package com.normation.rudder.domain.nodes
 
-import com.normation.box._
-import com.normation.errors._
-import com.normation.inventory.domain._
+import com.normation.box.*
+import com.normation.errors.*
+import com.normation.inventory.domain.*
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
-import com.normation.zio._
+import com.normation.zio.*
 import java.io.StringReader
 import java.security.KeyFactory
 import java.security.MessageDigest
 import java.security.interfaces.RSAPublicKey
 import java.security.spec.X509EncodedKeySpec
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.apache.commons.codec.binary.Base64
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import org.bouncycastle.openssl.PEMParser
 import org.bouncycastle.util.encoders.Hex
 import org.joda.time.DateTime
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 final case class MachineInfo(
     id:           MachineUuid,

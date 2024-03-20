@@ -37,13 +37,13 @@
 
 package com.normation.rudder.rest.lift
 
-import cats.data._
+import cats.data.*
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.domain.logger.ApiLogger
-import com.normation.rudder.rest._
-import net.liftweb.common._
-import net.liftweb.http._
+import com.normation.rudder.rest.*
+import net.liftweb.common.*
+import net.liftweb.http.*
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST.JString
 import scala.util.control.NonFatal
@@ -149,12 +149,12 @@ trait LiftApiModuleProvider[A <: EndpointSchema] {
 }
 
 object LiftApiProcessingLogger extends Log {
-  protected def _logger:     Logger = ApiLogger
-  def trace(msg: => String): Unit   = _logger.trace(msg)
-  def debug(msg: => String): Unit   = _logger.debug(msg)
-  def info(msg: => String):  Unit   = _logger.info(msg)
-  def warn(msg: => String):  Unit   = _logger.warn(msg)
-  def error(msg: => String): Unit   = _logger.error(msg)
+  protected def _logger: Logger = ApiLogger
+  def trace(msg: => String): Unit = _logger.trace(msg)
+  def debug(msg: => String): Unit = _logger.debug(msg)
+  def info(msg:  => String): Unit = _logger.info(msg)
+  def warn(msg:  => String): Unit = _logger.warn(msg)
+  def error(msg: => String): Unit = _logger.error(msg)
 }
 
 class LiftHandler(
@@ -164,14 +164,14 @@ class LiftHandler(
     val forceVersion:      Option[ApiVersion] // always behave as if that version is passed in header parameter
 ) extends BuildHandler[Req, Full[LiftResponse], AuthzToken, DefaultParams] {
 
-  val logger = LiftApiProcessingLogger
+  val logger: Log = LiftApiProcessingLogger
 
   private[this] var _apis = List.empty[LiftApiModule]
-  def apis()              = _apis
-  def addModule(module: LiftApiModule):         Unit = {
+  def apis():                                   List[LiftApiModule] = _apis
+  def addModule(module: LiftApiModule):         Unit                = {
     _apis = _apis :+ module
   }
-  def addModules(modules: List[LiftApiModule]): Unit = {
+  def addModules(modules: List[LiftApiModule]): Unit                = {
     _apis = _apis ::: modules
   }
 
@@ -209,7 +209,7 @@ class LiftHandler(
 
   def getRequestInfo(req: Req, supportedVersions: List[ApiVersion]): Either[ApiError, RequestInfo] = {
     def getAction() = {
-      import HttpAction._
+      import HttpAction.*
       req.requestType match {
         case GetRequest    => Right(GET)
         case PostRequest   => Right(POST)
@@ -299,7 +299,7 @@ trait LiftApiModuleN[R]                                              extends Lif
 }
 
 final case class ChooseApiN[R](old: LiftApiModuleN[R], current: LiftApiModuleN[R]) extends LiftApiModule {
-  override val schema = old.schema
+  override val schema: old.Aux[R] = old.schema
   override def process(
       version:    ApiVersion,
       path:       ApiPath,

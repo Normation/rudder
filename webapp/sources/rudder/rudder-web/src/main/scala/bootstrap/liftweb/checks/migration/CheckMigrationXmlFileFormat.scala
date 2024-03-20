@@ -39,8 +39,8 @@ package bootstrap.liftweb.checks.migration
 
 import bootstrap.liftweb.BootstrapChecks
 import com.normation.rudder.domain.logger.MigrationLogger
-import com.normation.rudder.migration._
-import net.liftweb.common._
+import com.normation.rudder.migration.*
+import net.liftweb.common.*
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Success

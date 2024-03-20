@@ -37,11 +37,11 @@
 
 package com.normation.rudder.web.services
 
-import com.normation.cfclerk.domain._
+import com.normation.cfclerk.domain.*
 import com.normation.rudder.domain.policies.DirectiveUid
-import com.normation.rudder.web.model._
+import com.normation.rudder.web.model.*
 import com.normation.utils.Control.traverse
-import net.liftweb.common._
+import net.liftweb.common.*
 
 /**
  * Create web representation of Directive in the goal
@@ -307,7 +307,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
   private def createDefaultMap(section: SectionSpec): Map[String, Option[String]] =
     section.getVariables.map(varSpec => (varSpec.name, varSpec.constraint.default)).toMap
 
-  private def setValueForField(value: String, currentField: DirectiveField, unserializer: Unserializer[_]): Unit = {
+  private def setValueForField(value: String, currentField: DirectiveField, unserializer: Unserializer[?]): Unit = {
     // if the var is not a GUI only var, just find the field unserializer and use it
     unserializer.get("self") match {
       case Some(unser) =>

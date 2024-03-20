@@ -43,7 +43,7 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
-import com.normation.rudder.domain.reports.ReportType._
+import com.normation.rudder.domain.reports.ReportType.*
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.reports.Pending
 import org.joda.time.DateTime

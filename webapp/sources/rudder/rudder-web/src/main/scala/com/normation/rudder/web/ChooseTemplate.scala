@@ -37,9 +37,9 @@
 
 package com.normation.rudder.web
 
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.util.Helpers._
+import net.liftweb.common.*
+import net.liftweb.http.*
+import net.liftweb.util.Helpers.*
 import scala.xml.NodeSeq
 
 /**

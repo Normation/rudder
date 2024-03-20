@@ -43,7 +43,7 @@ import net.liftweb.http.IdMemoizeTransform
 import net.liftweb.http.S
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JsCmd
-import net.liftweb.util.Helpers._
+import net.liftweb.util.Helpers.*
 import scala.xml.NodeSeq
 import scala.xml.Text
 

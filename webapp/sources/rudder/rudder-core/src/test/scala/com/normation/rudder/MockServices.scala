@@ -37,19 +37,19 @@
 
 package com.normation.rudder
 
-import better.files._
+import better.files.*
 import com.normation.GitVersion
-import com.normation.box._
-import com.normation.cfclerk.domain._
-import com.normation.cfclerk.services.impl._
+import com.normation.box.*
+import com.normation.cfclerk.domain.*
+import com.normation.cfclerk.services.impl.*
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryDitService
@@ -85,8 +85,8 @@ import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.archives.ParameterArchiveId
 import com.normation.rudder.domain.archives.RuleArchiveId
-import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.nodes.*
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.AddGlobalParameterDiff
 import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
 import com.normation.rudder.domain.properties.GenericProperty.StringToConfigValue
@@ -95,7 +95,7 @@ import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.properties.PropertyProvider
-import com.normation.rudder.domain.queries._
+import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.queries.CriterionComposition
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.domain.servers.Srv
@@ -104,15 +104,15 @@ import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.git.SimpleGitRevisionProvider
 import com.normation.rudder.migration.XmlEntityMigration
-import com.normation.rudder.reports._
-import com.normation.rudder.repository._
+import com.normation.rudder.reports.*
+import com.normation.rudder.repository.*
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.WoRuleRepository
 import com.normation.rudder.repository.xml.GitParseGroupLibrary
 import com.normation.rudder.repository.xml.GitParseRules
 import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
-import com.normation.rudder.rule.category._
+import com.normation.rudder.rule.category.*
 import com.normation.rudder.services.marshalling.NodeGroupCategoryUnserialisationImpl
 import com.normation.rudder.services.marshalling.NodeGroupUnserialisationImpl
 import com.normation.rudder.services.marshalling.RuleUnserialisationImpl
@@ -122,7 +122,7 @@ import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.SystemVariableServiceImpl
-import com.normation.rudder.services.queries._
+import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.NewNodeManager
 import com.normation.rudder.services.servers.PolicyServerManagementService
@@ -131,7 +131,7 @@ import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGeneratorImpl
-import com.normation.zio._
+import com.normation.zio.*
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFChangeRecord
@@ -146,10 +146,10 @@ import scala.collection.SortedMap
 import scala.collection.immutable
 import scala.util.control.NonFatal
 import scala.xml.Elem
-import zio.{System => _, Tag => _, _}
+import zio.{System as _, Tag as _, *}
 import zio.json.jsonDiscriminator
 import zio.json.jsonHint
-import zio.syntax._
+import zio.syntax.*
 
 /*
  * Mock services for test, especially repositories, and provides
@@ -185,7 +185,7 @@ object TestActor {
 }
 
 object revisionRepo {
-  import com.normation.GitVersion._
+  import com.normation.GitVersion.*
 
   val revisionsMap = Ref.Synchronized.make(Map[Revision, RevisionInfo]()).runNow
 
@@ -286,8 +286,8 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     ).succeed
     override def getPolicyServers():                         IOResult[PolicyServers]        = ???
 
-    override def savePolicyServers(policyServers: PolicyServers):  IOResult[PolicyServers]                     = ???
-    override def getAllAllowedNetworks():                          IOResult[Map[NodeId, List[AllowedNetwork]]] = ???
+    override def savePolicyServers(policyServers: PolicyServers): IOResult[PolicyServers] = ???
+    override def getAllAllowedNetworks(): IOResult[Map[NodeId, List[AllowedNetwork]]] = ???
     override def updatePolicyServers(
         commands: List[PolicyServersUpdateCommand],
         modId:    ModificationId,
@@ -306,7 +306,7 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
         modId:          ModificationId,
         actor:          EventActor
     ): IOResult[List[AllowedNetwork]] = ???
-    override def deleteRelaySystemObjects(policyServerId: NodeId): IOResult[Unit]                              = ???
+    override def deleteRelaySystemObjects(policyServerId: NodeId): IOResult[Unit] = ???
   }
 
   val systemVariableService = new SystemVariableServiceImpl(
@@ -770,7 +770,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
     }
 
     override def activeTechniqueBreadCrump(id: ActiveTechniqueId): IOResult[List[ActiveTechniqueCategory]] = {
-      import cats.implicits._
+      import cats.implicits.*
 
       rootActiveTechniqueCategory.get.map(root => {
         root.fullIndex.find {
@@ -1057,7 +1057,7 @@ class MockRules() {
 
   object ruleCategoryRepo extends RoRuleCategoryRepository with WoRuleCategoryRepository {
 
-    import com.softwaremill.quicklens._
+    import com.softwaremill.quicklens.*
 
     // returns (parents, rule) if found
     def recGet(root: RuleCategory, id: RuleCategoryId): Option[(List[RuleCategory], RuleCategory)] = {
@@ -1504,10 +1504,10 @@ class MockConfigRepo(
 }
 
 class MockGlobalParam() {
-  import com.normation.rudder.domain.properties.GenericProperty._
+  import com.normation.rudder.domain.properties.GenericProperty.*
 
   val mode = {
-    import com.normation.rudder.domain.properties.InheritMode._
+    import com.normation.rudder.domain.properties.InheritMode.*
     InheritMode(ObjectMode.Override, ArrayMode.Prepend, StringMode.Append)
   }
 
@@ -1847,7 +1847,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   val node2Node = node1Node.copy(id = id2, name = id2.value)
   val node2     = node1.copy(node = node2Node, hostname = hostname2, policyServerId = root.id)
   val nodeInventory2: NodeInventory = {
-    import com.softwaremill.quicklens._
+    import com.softwaremill.quicklens.*
     nodeInventory1
       .copy()
       .modify(_.main)
@@ -1969,11 +1969,11 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       nodeBase.get.map(_.collect { case (id, n) if (n.info.isSystem) => id }.toSeq)
     }
 
-    override def getPendingNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]]      = getGenericOne(nodeId, PendingInventory, _info)
-    override def getPendingNodeInfos():              IOResult[Map[NodeId, NodeInfo]] = getGenericAll(PendingInventory, _info)
+    override def getPendingNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = getGenericOne(nodeId, PendingInventory, _info)
+    override def getPendingNodeInfos(): IOResult[Map[NodeId, NodeInfo]] = getGenericAll(PendingInventory, _info)
 
-    override def getDeletedNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]]      = getGenericOne(nodeId, RemovedInventory, _info)
-    override def getDeletedNodeInfos():              IOResult[Map[NodeId, NodeInfo]] = getGenericAll(RemovedInventory, _info)
+    override def getDeletedNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = getGenericOne(nodeId, RemovedInventory, _info)
+    override def getDeletedNodeInfos(): IOResult[Map[NodeId, NodeInfo]] = getGenericAll(RemovedInventory, _info)
 
     override def get(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Option[FullInventory]] =
       getGenericOne(id, inventoryStatus, _fullInventory)
@@ -2031,16 +2031,16 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     // not implemented yet
     override def getNumberOfManagedNodes: Int = ???
 
-    override def delete(id: NodeId, inventoryStatus: InventoryStatus):               IOResult[Seq[LDIFChangeRecord]] = ???
-    override def move(id: NodeId, from: InventoryStatus, into: InventoryStatus):     IOResult[Seq[LDIFChangeRecord]] = ???
-    override def moveNode(id: NodeId, from: InventoryStatus, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
+    override def delete(id:   NodeId, inventoryStatus: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
+    override def move(id:     NodeId, from:            InventoryStatus, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
+    override def moveNode(id: NodeId, from:            InventoryStatus, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = ???
 
     override def updateNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = {
       nodeBase.modifyZIO { nodes =>
         nodes.get(node.id) match {
           case None    => Inconsistency(s"Node ${node.id.value} does not exists").fail
           case Some(n) =>
-            import com.softwaremill.quicklens._
+            import com.softwaremill.quicklens.*
             val newN = n.modify(_.info.node).setTo(node)
             (node, (nodes + ((node.id, newN)))).succeed
         }
@@ -2178,9 +2178,9 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   }
 
   object queryProcessor extends QueryProcessor {
-    import cats.implicits._
-    import com.normation.inventory.ldap.core.LDAPConstants._
-    import com.normation.rudder.domain.RudderLDAPConstants._
+    import cats.implicits.*
+    import com.normation.inventory.ldap.core.LDAPConstants.*
+    import com.normation.rudder.domain.RudderLDAPConstants.*
 
     // return the value to corresponding to the given object/attribute
     def buildValues(objectName: String, attribute: String): PureResult[NodeDetails => List[String]] = {
@@ -2295,7 +2295,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
         nodes.get(id) match {
           case None    => Inconsistency(s"node is missing").fail
           case Some(x) =>
-            import com.softwaremill.quicklens._
+            import com.softwaremill.quicklens.*
             val xx = x.modify(_.nInv.main.status).setTo(AcceptedInventory)
             (FullInventory(xx.nInv, xx.mInv), nodes + ((id, xx))).succeed
         }
@@ -2448,7 +2448,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     // So, if there is a non-empty list, head is direct parent: replace toAdd in children, then recurse
     @tailrec
     def recUpdateCat(toAdd: FullNodeGroupCategory, parents: List[FullNodeGroupCategory]): FullNodeGroupCategory = {
-      import com.softwaremill.quicklens._
+      import com.softwaremill.quicklens.*
       parents match {
         case Nil     => toAdd
         case p :: pp =>
@@ -2460,7 +2460,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     }
 
     def inDeleteCat(root: FullNodeGroupCategory, id: NodeGroupCategoryId): FullNodeGroupCategory = {
-      import com.softwaremill.quicklens._
+      import com.softwaremill.quicklens.*
       recGetCat(root, id) match {
         case Some((p :: pp, x)) => recUpdateCat(p.modify(_.subCategories).using(_.filterNot(_.id == id)), pp.reverse)
         case _                  => root
@@ -2505,7 +2505,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
             group.isEnabled,
             group.isSystem
           )
-          import com.softwaremill.quicklens._
+          import com.softwaremill.quicklens.*
           val c       =
             cat.modify(_.targetInfos).using(children => t :: children.filterNot(_.target.target.target == t.target.target.target))
           val parents = recGetParent(root, c.id)
@@ -2633,7 +2633,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
         into: FullNodeGroupCategory,
         root: FullNodeGroupCategory
     ): FullNodeGroupCategory = {
-      import com.softwaremill.quicklens._
+      import com.softwaremill.quicklens.*
       val c       = into.modify(_.subCategories).using(children => t :: children.filterNot(_.id == t.id))
       val parents = recGetParent(root, c.id)
       recUpdateCat(c, parents)
@@ -2865,7 +2865,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
 
 class MockLdapQueryParsing(mockGit: MockGitConfigRepo, mockNodeGroups: MockNodeGroups) {
   ///// query parsing ////
-  def DN(rdn: String, parent: DN)      = new DN(new RDN(rdn), parent)
+  def DN(rdn: String, parent: DN) = new DN(new RDN(rdn), parent)
   val LDAP_BASEDN                      = new DN("cn=rudder-configuration")
   val LDAP_INVENTORIES_BASEDN          = DN("ou=Inventories", LDAP_BASEDN)
   val LDAP_INVENTORIES_SOFTWARE_BASEDN = LDAP_INVENTORIES_BASEDN
@@ -2899,7 +2899,7 @@ class MockLdapQueryParsing(mockGit: MockGitConfigRepo, mockNodeGroups: MockNodeG
     new NodeGroupCategoryUnserialisationImpl(),
     new NodeGroupUnserialisationImpl(new CmdbQueryParser {
       override def parse(query: StringQuery): Box[Query]       = ???
-      override def lex(query: String):        Box[StringQuery] = ???
+      override def lex(query:   String):      Box[StringQuery] = ???
     }),
     mockGit.gitRepo,
     xmlEntityMigration,
@@ -2988,8 +2988,8 @@ class MockCampaign() {
   }
 
   object dumbCampaignTranslator extends JSONTranslateCampaign {
-    import com.normation.rudder.campaigns.CampaignSerializer._
-    import zio.json._
+    import com.normation.rudder.campaigns.CampaignSerializer.*
+    import zio.json.*
     implicit val dumbCampaignDetailsDecoder: JsonDecoder[DumbCampaignDetails] = DeriveJsonDecoder.gen
     implicit val dumbCampaignDecoder:        JsonDecoder[DumbCampaignTrait]   = DeriveJsonDecoder.gen
     implicit val dumbCampaignDetailsEncoder: JsonEncoder[DumbCampaignDetails] = DeriveJsonEncoder.gen

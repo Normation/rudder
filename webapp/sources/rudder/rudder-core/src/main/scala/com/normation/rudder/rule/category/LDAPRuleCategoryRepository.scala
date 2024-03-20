@@ -37,28 +37,28 @@
 
 package com.normation.rudder.rule.category
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.NamedZioLogger
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
-import com.normation.ldap.sdk._
-import com.normation.ldap.sdk.BuildFilter._
+import com.normation.ldap.sdk.*
+import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPEntry
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.repository.ldap.ScalaReadWriteLock
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Utils
 import com.unboundid.ldap.sdk.DN
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  * Here is the ordering for a List[RuleCategoryId]
@@ -107,7 +107,7 @@ class RoLDAPRuleCategoryRepository(
       attributes: String*
   ): IOResult[Option[LDAPEntry]] = {
     categoryMutex.readLock {
-      con.searchSub(rudderDit.RULECATEGORY.dn, EQ(A_RULE_CATEGORY_UUID, id.value), attributes: _*)
+      con.searchSub(rudderDit.RULECATEGORY.dn, EQ(A_RULE_CATEGORY_UUID, id.value), attributes*)
     }.flatMap { categoryEntries =>
       categoryEntries.size match {
         case 0 => None.succeed
@@ -129,7 +129,7 @@ class RoLDAPRuleCategoryRepository(
 
     categoryMutex.readLock(for {
       con          <- ldap
-      entries      <- con.searchSub(rudderDit.RULECATEGORY.dn, IS(OC_RULE_CATEGORY), catAttributes: _*)
+      entries      <- con.searchSub(rudderDit.RULECATEGORY.dn, IS(OC_RULE_CATEGORY), catAttributes*)
       // look for sub categories
       categories   <- ZIO.foreach(entries) { entry =>
                         mapper
@@ -175,7 +175,7 @@ class WoLDAPRuleCategoryRepository(
 ) extends WoRuleCategoryRepository with NamedZioLogger {
   repo =>
 
-  import roruleCategoryRepo._
+  import roruleCategoryRepo.*
 
   override def loggerName: String = this.getClass.getName
 

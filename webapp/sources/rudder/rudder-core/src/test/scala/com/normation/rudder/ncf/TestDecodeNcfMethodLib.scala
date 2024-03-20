@@ -39,7 +39,7 @@ package com.normation.rudder.ncf
 
 import better.files.Resource
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
-import com.normation.zio._
+import com.normation.zio.*
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner

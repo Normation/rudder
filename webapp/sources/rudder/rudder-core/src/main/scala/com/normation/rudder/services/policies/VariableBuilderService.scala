@@ -39,7 +39,7 @@ package com.normation.rudder.services.policies
 
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.domain.VariableSpec
-import net.liftweb.common._
+import net.liftweb.common.*
 
 /**
  * A service that try to build  variables from a list of VariableSpec and

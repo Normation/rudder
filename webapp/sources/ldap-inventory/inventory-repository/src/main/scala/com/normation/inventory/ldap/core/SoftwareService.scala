@@ -1,14 +1,14 @@
 package com.normation.inventory.ldap.core
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.inventory.services.core.WriteOnlySoftwareDAO
 import com.normation.utils.DateFormaterService
-import com.normation.zio._
+import com.normation.zio.*
 import org.joda.time.DateTime
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 trait SoftwareService {
   def deleteUnreferencedSoftware(): UIO[Int]
@@ -54,8 +54,8 @@ class SoftwareServiceImpl(
                               s"[purge unreferenced software] Found ${extraSoftware.size} unreferenced software in ou=software, going to delete them"
                             )
                           _  <- InventoryProcessingLogger.ifDebugEnabled {
-                                  import better.files._
-                                  import better.files.Dsl._
+                                  import better.files.*
+                                  import better.files.Dsl.*
                                   (for {
                                     f <- IOResult.attempt {
                                            val dir = File("/var/rudder/tmp/purgeSoftware")

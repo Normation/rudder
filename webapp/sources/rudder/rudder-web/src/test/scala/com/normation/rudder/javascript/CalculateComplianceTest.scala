@@ -41,10 +41,10 @@ import com.normation.cfclerk.domain.Variable
 import com.normation.errors.RudderError
 import com.normation.rudder.services.policies.JsEngine
 import com.normation.rudder.services.policies.JsRudderLibBinding
-import com.normation.zio._
+import com.normation.zio.*
 import org.junit.runner.RunWith
 import org.specs2.matcher.Matcher
-import org.specs2.mutable._
+import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
 import scala.util.matching.Regex
 

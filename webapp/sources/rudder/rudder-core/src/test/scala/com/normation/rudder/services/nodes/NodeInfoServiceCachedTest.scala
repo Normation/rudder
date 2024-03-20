@@ -53,8 +53,8 @@ import com.normation.rudder.services.servers.AcceptFullInventoryInNodeOu
 import com.normation.rudder.services.servers.AcceptInventory
 import com.normation.rudder.services.servers.UnitAcceptInventory
 import com.normation.rudder.services.servers.UnitRefuseInventory
-import com.normation.zio._
-import com.softwaremill.quicklens._
+import com.normation.zio.*
+import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Filter
 import com.unboundid.ldap.sdk.RDN
@@ -64,8 +64,8 @@ import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-import scala.collection.mutable.{Map => MutMap}
 import scala.collection.mutable.Buffer
+import scala.collection.mutable.Map as MutMap
 import scala.concurrent.duration.FiniteDuration
 
 /*
@@ -77,7 +77,7 @@ class NodeInfoServiceCachedTest extends Specification {
   sequential
 
   def DN(rdn: String, parent: DN) = new DN(new RDN(rdn), parent)
-  val LDAP_BASEDN                 = new DN("cn=rudder-configuration")
+  val LDAP_BASEDN = new DN("cn=rudder-configuration")
   val LDAP_INVENTORIES_BASEDN: DN = DN("ou=Inventories", LDAP_BASEDN)
   val LDAP_INVENTORIES_SOFTWARE_BASEDN = LDAP_INVENTORIES_BASEDN
 
@@ -356,9 +356,9 @@ class NodeInfoServiceCachedTest extends Specification {
         }
 
         for {
-          res1 <- con.search(dit.NODES.dn, One, filter(IS(OC_NODE)), searchAttributes: _*)
-          res2 <- con.search(dit.MACHINES.dn, One, filter(IS(OC_MACHINE)), searchAttributes: _*)
-          res3 <- con.search(this.nodeDit.NODES.dn, One, filter(IS(OC_RUDDER_NODE)), searchAttributes: _*)
+          res1 <- con.search(dit.NODES.dn, One, filter(IS(OC_NODE)), searchAttributes*)
+          res2 <- con.search(dit.MACHINES.dn, One, filter(IS(OC_MACHINE)), searchAttributes*)
+          res3 <- con.search(this.nodeDit.NODES.dn, One, filter(IS(OC_RUDDER_NODE)), searchAttributes*)
         } yield res1 ++ res2 ++ res3
       }
     }

@@ -184,6 +184,7 @@ limitations under the License.
               -Xlint:_,-nullary-unit,-missing-interpolator -Yno-adapted-args -Ywarn-dead-code -Ywarn-extra-implicit -Ywarn-inaccessible
               -Ywarn-infer-any -Ywarn-nullary-override -Ywarn-numeric-widen -Ywarn-unused:imports -Ywarn-unused:locals -Ywarn-unused:privates
             -->
+            <arg>-Xsource:3</arg>
             <arg>-deprecation</arg>                  <!-- Emit warning and location for usages of deprecated APIs. -->
             <arg>-explaintypes</arg>                 <!-- Explain type errors in more detail. -->
             <arg>-feature</arg>                      <!-- Emit warning and location for usages of features that should be imported explicitly. -->
@@ -209,7 +210,9 @@ limitations under the License.
             <arg>-Ybackend-parallelism</arg><arg>8</arg>         <!-- Enable parallelization — change to desired number! -->
             <arg>-Ycache-plugin-class-loader:last-modified</arg> <!-- Enables caching of classloaders for compiler plugins -->
             <arg>-Ycache-macro-class-loader:last-modified</arg>  <!-- and macro definitions. This can lead to performance improvements. -->
-<!--        fastparse 3.0.1 emits false unused warning. We must silence them on related files. See: https://github.com/com-lihaoyi/fastparse/issues/285-->
+            <!-- this warning is no an actual issue, our smart constructor usage is fine with a scala 3 compiler-->
+            <arg>-Wconf:msg=constructor modifiers are assumed by synthetic:s</arg>
+            <!-- fastparse 3.0.1 emits false unused warning. We must silence them on related files. See: https://github.com/com-lihaoyi/fastparse/issues/285-->
             <arg>-Wconf:cat=unused-nowarn&amp;src=com/normation/utils/Version.scala:s,cat=unused-nowarn&amp;src=com/normation/rudder/services/policies/InterpolatedValueCompiler.scala:s</arg>
           </args>
           <jvmArgs>
@@ -288,6 +291,7 @@ limitations under the License.
             </excludes>
 
             <scalafmt>
+              <version>3.7.17</version>
               <file>.scalafmt.conf</file>
             </scalafmt>
 

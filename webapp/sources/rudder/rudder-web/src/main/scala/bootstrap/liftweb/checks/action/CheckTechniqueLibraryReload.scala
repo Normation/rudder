@@ -44,7 +44,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.utils.StringUuidGenerator
 import java.io.File
-import net.liftweb.common._
+import net.liftweb.common.*
 
 /**
  * Check at webapp startup if Rudder Technique library has to be reloaded

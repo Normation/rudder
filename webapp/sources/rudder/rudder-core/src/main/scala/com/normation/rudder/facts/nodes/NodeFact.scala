@@ -37,8 +37,8 @@
 
 package com.normation.rudder.facts.nodes
 
-import com.normation.inventory.domain._
-import com.normation.inventory.domain.{Version => SVersion}
+import com.normation.inventory.domain.*
+import com.normation.inventory.domain.Version as SVersion
 import com.normation.rudder.domain.nodes.MachineInfo
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
@@ -50,21 +50,21 @@ import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.servers.Srv
-import com.normation.rudder.reports._
+import com.normation.rudder.reports.*
 import com.normation.utils.ParseVersion
 import com.normation.utils.Version
-import com.softwaremill.quicklens._
+import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.config.ConfigValue
 import java.net.InetAddress
 import net.liftweb.json.JsonAST
-import net.liftweb.json.JsonAST._
+import net.liftweb.json.JsonAST.*
 import net.liftweb.json.JsonAST.JValue
 import org.joda.time.DateTime
 import zio.Chunk
-import zio.json._
+import zio.json.*
 import zio.json.ast.Json
-import zio.json.ast.Json._
+import zio.json.ast.Json.*
 import zio.json.internal.Write
 
 /**
@@ -288,7 +288,7 @@ object NodeFact {
     def toChunk: Chunk[A] = Chunk.fromIterable(it)
   }
 
-  implicit class EitherToChunk[A](either: Either[_, A]) {
+  implicit class EitherToChunk[A](either: Either[?, A]) {
     def toChunk: Chunk[A] = {
       either match {
         case Left(_)  => Chunk.empty
@@ -666,7 +666,7 @@ object NodeFact {
   }
 
   def updateNode(node: NodeFact, n: Node): NodeFact = {
-    import com.softwaremill.quicklens._
+    import com.softwaremill.quicklens.*
     node
       .modify(_.description)
       .setTo(Some(n.description))
@@ -687,15 +687,15 @@ object NodeFact {
 }
 
 final case class NodeFact(
-    id:             NodeId,
-    description:    Option[String],
+    id:                NodeId,
+    description:       Option[String],
     @jsonField("hostname")
-    fqdn:           String,
-    os:             OsDetails,
-    machine:        MachineInfo,
-    rudderSettings: RudderSettings,
-    rudderAgent:    RudderAgent,
-    properties:     Chunk[NodeProperty],
+    fqdn:              String,
+    os:                OsDetails,
+    machine:           MachineInfo,
+    rudderSettings:    RudderSettings,
+    rudderAgent:       RudderAgent,
+    properties:        Chunk[NodeProperty],
 // what the point ? Derive from RudderAgent ? At least details.
 //    managementTechnology:        Chunk[ManagementTechnology],
 //    managementTechnologyDetails: ManagementTechnologyDetails,
@@ -781,8 +781,8 @@ object NodeFactSerialisation {
   // scalac: Error while emitting com/normation/rudder/facts/nodes/NodeFactSerialisation$
   // Method too large: com/normation/rudder/facts/nodes/NodeFactSerialisation$.<clinit> ()V
 
-  import com.normation.inventory.domain.JsonSerializers.implicits.{decoderDateTime => _, encoderDateTime => _, _}
-  import com.normation.utils.DateFormaterService.json._
+  import com.normation.inventory.domain.JsonSerializers.implicits.{decoderDateTime as _, encoderDateTime as _, *}
+  import com.normation.utils.DateFormaterService.json.*
 
   object SimpleCodec {
 
@@ -962,7 +962,7 @@ object NodeFactSerialisation {
       JsonCodec.string.transform[SoftwareEditor](SoftwareEditor(_), _.name)
   }
 
-  import SimpleCodec._
+  import SimpleCodec.*
 
   implicit val codecBios: JsonCodec[Bios] = DeriveJsonCodec.gen
 

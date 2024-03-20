@@ -41,14 +41,14 @@ import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
 import com.normation.errors.RudderError
 import com.normation.rudder.db.Doobie
-import com.normation.zio._
+import com.normation.zio.*
 import doobie.ConnectionIO
 import doobie.Transactor
-import doobie.implicits._
+import doobie.implicits.*
 import doobie.util.fragment.Fragment
 import doobie.util.update.Update0
-import zio._
-import zio.interop.catz._
+import zio.*
+import zio.interop.catz.*
 
 /*
  * Ths migration applies a change in the schema of the event logs table :
@@ -59,7 +59,7 @@ class MigrateEventLogEnforceSchema(
     doobie: Doobie
 ) extends BootstrapChecks {
 
-  import doobie._
+  import doobie.*
 
   protected def tableName: String = "eventlog"
   private def table = Fragment.const(tableName)

@@ -37,7 +37,7 @@
 
 package com.normation.rudder.services.policies
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.TechniqueCategoryModType
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
@@ -49,7 +49,7 @@ import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.ReloadTechniqueLibrary
 import com.normation.rudder.repository.EventLogRepository
-import net.liftweb.common._
+import net.liftweb.common.*
 
 class DeployOnTechniqueCallback(
     override val name:    String,

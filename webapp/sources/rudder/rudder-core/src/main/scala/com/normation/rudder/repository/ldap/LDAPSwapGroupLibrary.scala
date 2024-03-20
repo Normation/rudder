@@ -38,13 +38,13 @@
 package com.normation.rudder.repository.ldap
 
 import com.normation.NamedZioLogger
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
-import com.normation.ldap.sdk.syntax._
+import com.normation.ldap.sdk.syntax.*
 import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.RudderLDAPConstants._
-import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.RudderLDAPConstants.*
+import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.repository.ImportGroupLibrary
 import com.normation.rudder.repository.NodeGroupCategoryContent
@@ -54,8 +54,8 @@ import com.unboundid.ldap.sdk.RDN
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.annotation.tailrec
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 trait LDAPImportLibraryUtil extends NamedZioLogger {
 
@@ -74,7 +74,7 @@ trait LDAPImportLibraryUtil extends NamedZioLogger {
     // we may miss a parent. But it should not be allowed, so we consider such cases
     // as errors
     import com.normation.ldap.sdk.BuildFilter.EQ
-    import com.normation.ldap.sdk._
+    import com.normation.ldap.sdk.*
 
     // a method that change the root of a dn from archive to user lib root
     def setUserLibRoot(dn: DN): Option[DN] = {

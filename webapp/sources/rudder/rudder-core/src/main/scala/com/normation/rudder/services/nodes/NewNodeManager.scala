@@ -37,7 +37,7 @@
 
 package com.normation.rudder.services.servers
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -48,7 +48,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PendingInventory
 import com.normation.inventory.domain.RemovedInventory
 import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.inventory.services.core.FullInventoryRepository
 import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
@@ -97,15 +97,15 @@ import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.reports.CacheExpectedReportAction.InsertNodeInCache
 import com.normation.rudder.services.reports.InvalidateCache
 import com.normation.utils.Control.traverse
-import com.softwaremill.quicklens._
+import com.softwaremill.quicklens.*
 import net.liftweb.common.Box
 import net.liftweb.common.Empty
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import org.joda.time.DateTime
-import zio.{System => _, _}
-import zio.syntax._
+import zio.{System as _, *}
+import zio.syntax.*
 
 /**
  * A newNodeManager hook is a class that accept callbacks.
@@ -179,8 +179,8 @@ class PostNodeAcceptanceHookScripts(
 
   override def run(nodeId: NodeId): Unit = {
     val systemEnv = {
-      import scala.jdk.CollectionConverters._
-      HookEnvPairs.build(System.getenv.asScala.toSeq: _*)
+      import scala.jdk.CollectionConverters.*
+      HookEnvPairs.build(System.getenv.asScala.toSeq*)
     }
 
     val postHooksTime = System.currentTimeMillis
@@ -279,7 +279,7 @@ class LdapListNewNode(
   override def listNewNodes: Box[Seq[Srv]] = {
     for {
       con  <- ldap
-      seq  <- con.searchOne(pendingNodesDit.NODES.dn, ALL, Srv.ldapAttributes: _*)
+      seq  <- con.searchOne(pendingNodesDit.NODES.dn, ALL, Srv.ldapAttributes*)
       srvs <- ZIO.foreach(seq) { e =>
                 serverSummaryService
                   .makeSrv(e)
@@ -709,9 +709,9 @@ class AcceptInventory(
     sms
   ) // nothing to do
 
-  override val fromInventoryStatus = PendingInventory
+  override val fromInventoryStatus: InventoryStatus = PendingInventory
 
-  override val toInventoryStatus = AcceptedInventory
+  override val toInventoryStatus: InventoryStatus = AcceptedInventory
 
   def acceptOne(sm: FullInventory, modId: ModificationId, actor: EventActor): Box[FullInventory] = {
 

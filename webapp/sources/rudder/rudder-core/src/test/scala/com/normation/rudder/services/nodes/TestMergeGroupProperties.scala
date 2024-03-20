@@ -40,7 +40,7 @@ package com.normation.rudder.services.nodes
 import com.normation.GitVersion
 import com.normation.errors.PureResult
 import com.normation.errors.RudderError
-import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.policies.GroupTarget
@@ -48,21 +48,21 @@ import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.InheritMode
-import com.normation.rudder.domain.properties.JsonPropertySerialisation._
+import com.normation.rudder.domain.properties.JsonPropertySerialisation.*
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.properties.ParentProperty
-import com.normation.rudder.domain.queries._
-import com.normation.rudder.domain.queries.ResultTransformation._
+import com.normation.rudder.domain.queries.*
+import com.normation.rudder.domain.queries.ResultTransformation.*
 import com.normation.rudder.services.policies.NodeConfigData
-import com.softwaremill.quicklens._
+import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigValue
 import com.typesafe.config.ConfigValueFactory
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import net.liftweb.json.*
+import net.liftweb.json.JsonDSL.*
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 /*
  * This class test the JsEngine. 6.0

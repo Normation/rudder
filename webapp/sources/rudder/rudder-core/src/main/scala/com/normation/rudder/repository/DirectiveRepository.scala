@@ -44,14 +44,14 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Utils
-import com.softwaremill.quicklens._
+import com.softwaremill.quicklens.*
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import org.joda.time.DateTime
@@ -661,8 +661,8 @@ class InitDirectivesTree(
     woDirectiveRepository: WoDirectiveRepository,
     uuidGen:               StringUuidGenerator
 ) {
-  import com.normation.box._
-  import com.normation.utils.Control._
+  import com.normation.box.*
+  import com.normation.utils.Control.*
 
   def copyReferenceLib(includeSystem: Boolean = false): Box[Seq[ActiveTechniqueCategory]] = {
     def genUserCatId(fromCat: TechniqueCategory):                                         ActiveTechniqueCategoryId    = {

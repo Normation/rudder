@@ -37,7 +37,7 @@
 
 package com.normation.rudder.services.policies.write
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.inventory.domain.AgentType.CfeEnterprise

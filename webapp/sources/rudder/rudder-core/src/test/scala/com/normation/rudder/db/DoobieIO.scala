@@ -1,6 +1,6 @@
 package com.normation.rudder.db
 
-import doobie._
+import doobie.*
 import javax.sql.DataSource
 
 class DoobieIO(dataSource: DataSource) extends Doobie(dataSource) {

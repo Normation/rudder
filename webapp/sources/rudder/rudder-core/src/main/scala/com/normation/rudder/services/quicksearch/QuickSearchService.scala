@@ -38,7 +38,7 @@
 package com.normation.rudder.services.quicksearch
 
 import com.normation.NamedZioLogger
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RoLDAPConnection
@@ -65,7 +65,7 @@ class FullQuickSearchService(implicit
     val nodeInfos:      NodeInfoService
 ) {
 
-  import QuickSearchService._
+  import QuickSearchService.*
   val logger = FullQuickSearchServiceLoggerPure
 
   /**
@@ -105,15 +105,15 @@ object QuickSearchService {
   }
 
   implicit class QSBackendImpl(b: QSBackend)(implicit
-      directiveRepo:              RoDirectiveRepository,
-      ldap:                       LDAPConnectionProvider[RoLDAPConnection],
-      inventoryDit:               InventoryDit,
-      nodeDit:                    NodeDit,
-      rudderDit:                  RudderDit,
-      nodeInfos:                  NodeInfoService
+      directiveRepo: RoDirectiveRepository,
+      ldap:          LDAPConnectionProvider[RoLDAPConnection],
+      inventoryDit:  InventoryDit,
+      nodeDit:       NodeDit,
+      rudderDit:     RudderDit,
+      nodeInfos:     NodeInfoService
   ) {
 
-    import QSBackend._
+    import QSBackend.*
 
     def search(query: Query): Box[Iterable[QuickSearchResult]] = b match {
       case LdapBackend      => QSLdapBackend.search(query)

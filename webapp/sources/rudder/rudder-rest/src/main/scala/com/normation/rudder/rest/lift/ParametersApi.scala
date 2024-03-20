@@ -38,8 +38,8 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.GitVersion
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.rudder.api.ApiVersion
@@ -47,22 +47,23 @@ import com.normation.rudder.apidata.JsonQueryObjects.JQGlobalParameter
 import com.normation.rudder.apidata.JsonResponseObjects.JRGlobalParameter
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
-import com.normation.rudder.apidata.implicits._
-import com.normation.rudder.domain.properties._
+import com.normation.rudder.apidata.implicits.*
+import com.normation.rudder.domain.properties.*
 import com.normation.rudder.domain.properties.ChangeRequestGlobalParameterDiff
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
-import com.normation.rudder.rest.{ParameterApi => API}
+import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
+import com.normation.rudder.rest.ParameterApi as API
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.RestUtils.getActor
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.data.RestParameter
-import com.normation.rudder.rest.implicits._
+import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
@@ -76,9 +77,9 @@ import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JArray
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonDSL.*
 import net.liftweb.json.JString
-import zio.syntax._
+import zio.syntax.*
 
 class ParameterApi(
     restExtractorService: RestExtractorService,
@@ -87,7 +88,7 @@ class ParameterApi(
     serviceV14:           ParameterApiService14
 ) extends LiftApiModuleProvider[API] {
 
-  def schemas = API
+  def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints
@@ -104,7 +105,7 @@ class ParameterApi(
   }
 
   object ListParameters extends LiftApiModule0 {
-    val schema        = API.ListParameters
+    val schema: API.ListParameters.type = API.ListParameters
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       serviceV2.listParameters(req)
@@ -112,7 +113,7 @@ class ParameterApi(
   }
 
   object CreateParameter extends LiftApiModule0 {
-    val schema        = API.CreateParameter
+    val schema: API.CreateParameter.type = API.CreateParameter
     val restExtractor = restExtractorService
     implicit val action:                                                                                       String       = "createParameter"
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
@@ -148,7 +149,7 @@ class ParameterApi(
   }
 
   object ParameterDetails extends LiftApiModuleString {
-    val schema        = API.ParameterDetails
+    val schema: API.ParameterDetails.type = API.ParameterDetails
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -163,7 +164,7 @@ class ParameterApi(
   }
 
   object DeleteParameter extends LiftApiModuleString {
-    val schema        = API.DeleteParameter
+    val schema: API.DeleteParameter.type = API.DeleteParameter
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -178,7 +179,7 @@ class ParameterApi(
   }
 
   object UpdateParameter extends LiftApiModuleString {
-    val schema        = API.UpdateParameter
+    val schema: API.UpdateParameter.type = API.UpdateParameter
     val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
@@ -206,14 +207,14 @@ class ParameterApi(
   }
 
   object ListParametersV14 extends LiftApiModule0 {
-    val schema = API.ListParameters
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.ListParameters.type = API.ListParameters
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse            = {
       serviceV14.listParameters().toLiftResponseList(params, schema)
     }
   }
 
   object ParameterDetailsV14 extends LiftApiModuleString {
-    val schema = API.ParameterDetails
+    val schema: API.ParameterDetails.type = API.ParameterDetails
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -227,8 +228,8 @@ class ParameterApi(
   }
 
   object CreateParameterV14 extends LiftApiModule0 {
-    val schema = API.CreateParameter
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.CreateParameter.type = API.CreateParameter
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse             = {
 
       (for {
         restParam <-
@@ -241,7 +242,7 @@ class ParameterApi(
   }
 
   object DeleteParameterV14 extends LiftApiModuleString {
-    val schema = API.DeleteParameter
+    val schema: API.DeleteParameter.type = API.DeleteParameter
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -255,7 +256,7 @@ class ParameterApi(
   }
 
   object UpdateParameterV14 extends LiftApiModuleString {
-    val schema = API.UpdateParameter
+    val schema: API.UpdateParameter.type = API.UpdateParameter
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -282,19 +283,19 @@ class ParameterApiService2(
     workflowLevelService: WorkflowLevelService,
     restExtractor:        RestExtractorService,
     restDataSerializer:   RestDataSerializer
-)(implicit userService:   UserService)
+)(implicit userService: UserService)
     extends Loggable {
 
-  import restDataSerializer.{serializeParameter => serialize}
+  import restDataSerializer.serializeParameter as serialize
 
   private[this] def createChangeRequestAndAnswer(
-      id:            String,
-      diff:          ChangeRequestGlobalParameterDiff,
-      parameter:     GlobalParameter,
-      initialState:  Option[GlobalParameter],
-      actor:         EventActor,
-      req:           Req,
-      act:           GlobalParamModAction
+      id:           String,
+      diff:         ChangeRequestGlobalParameterDiff,
+      parameter:    GlobalParameter,
+      initialState: Option[GlobalParameter],
+      actor:        EventActor,
+      req:          Req,
+      act:          GlobalParamModAction
   )(implicit action: String, prettify: Boolean) = {
 
     val change = GlobalParamChangeRequest(act, initialState)
@@ -346,7 +347,7 @@ class ParameterApiService2(
 
     restParameter match {
       case Full(restParameter) =>
-        import GenericProperty._
+        import GenericProperty.*
         val parameter =
           restParameter.updateParameter(GlobalParameter(parameterName, GitVersion.DEFAULT_REV, "".toConfigValue, None, "", None))
 
@@ -476,7 +477,7 @@ class ParameterApiService14(
   }
 
   def createParameter(restParameter: JQGlobalParameter, params: DefaultParams, actor: EventActor): IOResult[JRGlobalParameter] = {
-    import GenericProperty._
+    import GenericProperty.*
     val baseParameter = GlobalParameter.apply("", GitVersion.DEFAULT_REV, "".toConfigValue, None, "", None)
     val parameter     = restParameter.updateParameter(baseParameter)
     val diff          = AddGlobalParameterDiff(parameter)

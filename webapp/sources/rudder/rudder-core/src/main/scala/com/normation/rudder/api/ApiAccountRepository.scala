@@ -36,7 +36,7 @@
  */
 package com.normation.rudder.api
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.ldap.core.LDAPConstants
@@ -53,11 +53,11 @@ import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.ldap.LDAPDiffMapper
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.user.PersonIdentService
-import com.normation.zio._
+import com.normation.zio.*
 import java.security.MessageDigest
 import org.joda.time.DateTime
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  * A repository to retrieve API Accounts

@@ -36,8 +36,8 @@
  */
 package com.normation.rudder.api
 
-import cats.data._
-import cats.implicits._
+import cats.data.*
+import cats.implicits.*
 import com.normation.rudder.api.ApiToken.prefixV2
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
@@ -166,7 +166,7 @@ object AclPathSegment {
  *
  */
 sealed trait AclPath extends Any {
-  def value: String = parts.toList.map(_.value).mkString("/")
+  def value:   String = parts.toList.map(_.value).mkString("/")
   def parts:   NonEmptyList[AclPathSegment]
   def display: String
 }
@@ -221,7 +221,7 @@ object AclPath {
   implicit val orderingaAclPath: Ordering[AclPath] = new Ordering[AclPath] {
     // compare: negative if x < y
     override def compare(x: AclPath, y: AclPath): Int = {
-      import AclPathSegment._
+      import AclPathSegment.*
       if (x.parts.size == y.parts.size) {
         (x.parts.last, y.parts.last) match {
           case (p1, p2) if (p1 == p2)   => 0
@@ -318,13 +318,13 @@ object ApiAccountType       {
 
 sealed trait ApiAccountKind { def kind: ApiAccountType }
 object ApiAccountKind       {
-  final case object System extends ApiAccountKind { val kind = ApiAccountType.System }
-  final case object User   extends ApiAccountKind { val kind = ApiAccountType.User   }
+  final case object System extends ApiAccountKind { val kind: ApiAccountType = ApiAccountType.System }
+  final case object User   extends ApiAccountKind { val kind = ApiAccountType.User                   }
   final case class PublicApi(
       authorizations: ApiAuthorization,
       expirationDate: Option[DateTime]
   ) extends ApiAccountKind {
-    val kind = ApiAccountType.PublicApi
+    val kind: ApiAccountType = ApiAccountType.PublicApi
   }
 }
 

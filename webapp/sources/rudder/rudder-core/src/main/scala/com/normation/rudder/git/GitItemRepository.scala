@@ -38,20 +38,20 @@
 package com.normation.rudder.git
 
 import com.normation.NamedZioLogger
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.GitArchiveLogger
 import com.normation.rudder.domain.logger.GitArchiveLoggerPure
-import com.normation.rudder.repository._
+import com.normation.rudder.repository.*
 import com.normation.rudder.repository.xml.ArchiveMode
 import com.normation.utils.DateFormaterService
 import java.io.File
 import org.eclipse.jgit.lib.PersonIdent
 import org.eclipse.jgit.revwalk.RevTag
 import org.joda.time.DateTime
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.control.NonFatal
-import zio._
+import zio.*
 
 /**
  * Utility trait that factor out file commits.
@@ -383,8 +383,8 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
    */
   private[this] def listTagWorkaround: IOResult[Seq[RevTag]] = {
     import org.eclipse.jgit.errors.IncorrectObjectTypeException
-    import org.eclipse.jgit.lib._
-    import org.eclipse.jgit.revwalk._
+    import org.eclipse.jgit.lib.*
+    import org.eclipse.jgit.revwalk.*
 
     import scala.collection.mutable.ArrayBuffer
 

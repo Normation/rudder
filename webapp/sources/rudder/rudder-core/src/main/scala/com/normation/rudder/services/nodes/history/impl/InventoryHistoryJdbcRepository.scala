@@ -20,7 +20,7 @@
 
 package com.normation.rudder.services.nodes.history.impl
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.InventoryStatus
@@ -30,15 +30,15 @@ import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.services.nodes.history.HistoryLog
 import com.normation.rudder.services.nodes.history.HistoryLogRepository
 import com.normation.utils.DateFormaterService
-import com.normation.utils.DateFormaterService.json._
+import com.normation.utils.DateFormaterService.json.*
 import doobie.Meta
 import doobie.Read
 import doobie.Write
-import doobie.implicits._
+import doobie.implicits.*
 import doobie.implicits.toSqlInterpolator
 import org.joda.time.DateTime
-import zio.interop.catz._
-import zio.json._
+import zio.interop.catz.*
+import zio.json.*
 
 /*
  * Store inventory information about a node for when it is accepted/refused.
@@ -89,9 +89,9 @@ class InventoryHistoryJdbcRepository(
 ) extends HistoryLogRepository[NodeId, DateTime, FactLogData, FactLog] with InventoryHistoryDelete {
 
   import com.normation.rudder.db.Doobie.DateTimeMeta
-  import com.normation.rudder.db.json.implicits._
-  import com.normation.rudder.facts.nodes.NodeFactSerialisation._
-  import doobie._
+  import com.normation.rudder.db.json.implicits.*
+  import com.normation.rudder.facts.nodes.NodeFactSerialisation.*
+  import doobie.*
 
   implicit val nodeAcceptRefuseEventaMeta: Meta[NodeAcceptRefuseEvent] = new Meta(pgDecoderGet, pgEncoderPut)
   implicit val nodeDeleteEventaMeta:       Meta[NodeDeleteEvent]       = new Meta(pgDecoderGet, pgEncoderPut)

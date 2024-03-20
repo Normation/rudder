@@ -42,9 +42,9 @@ import com.normation.utils.PartType
 import com.normation.utils.Separator
 import com.normation.utils.Version
 import com.normation.utils.VersionPart
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 @RunWith(classOf[JUnitRunner])
 class TechniqueVersionTest extends Specification {

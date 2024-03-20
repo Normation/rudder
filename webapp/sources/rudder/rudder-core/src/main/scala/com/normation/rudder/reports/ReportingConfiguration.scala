@@ -37,13 +37,13 @@
 
 package com.normation.rudder.reports
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.errors.RudderError
 import com.normation.errors.Unexpected
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.services.nodes.NodeInfoService
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.joda.time.Duration
 
 /**

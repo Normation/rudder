@@ -41,7 +41,7 @@ import com.normation.rudder.db.DBCommon
 import com.normation.rudder.db.Doobie
 import com.normation.zio.UnsafeRun
 import doobie.specs2.IOChecker
-import doobie.syntax.all._
+import doobie.syntax.all.*
 import doobie.util.fragment
 import doobie.util.fragments.whereAnd
 import doobie.util.transactor.Transactor
@@ -51,12 +51,12 @@ import org.specs2.specification.core.Fragments
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-import zio._
-import zio.interop.catz._
+import zio.*
+import zio.interop.catz.*
 
 @RunWith(classOf[JUnitRunner])
 class TestMigrateEventLogEnforceSchema extends DBCommon with IOChecker {
-  import TestMigrateEventLogEnforceSchema._
+  import TestMigrateEventLogEnforceSchema.*
 
   private lazy val migrateEventLogRepository = new MigrateEventLogEnforceSchemaTempTable(doobie)
 

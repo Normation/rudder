@@ -37,25 +37,25 @@
 
 package com.normation.rudder.services.queries
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.ldap.core._
-import com.normation.ldap.ldif._
+import com.normation.inventory.ldap.core.*
+import com.normation.ldap.ldif.*
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
-import com.normation.ldap.sdk._
-import com.normation.rudder.domain._
-import com.normation.rudder.domain.queries._
+import com.normation.ldap.sdk.*
+import com.normation.rudder.domain.*
+import com.normation.rudder.domain.queries.*
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.nodes.NaiveNodeInfoServiceCachedImpl
-import com.normation.zio._
-import com.softwaremill.quicklens._
+import com.normation.zio.*
+import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
-import net.liftweb.common._
-import org.junit._
-import org.junit.Assert._
+import net.liftweb.common.*
+import org.junit.*
+import org.junit.Assert.*
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-import zio.syntax._
+import zio.syntax.*
 
 /*
  * Test query parsing.
@@ -1314,7 +1314,7 @@ class TestQueryProcessor extends Loggable {
   @Test def nodePropertiesFailingReq(): Unit = {
     def forceParse(q: String) = parser(q).openOrThrowException("Parsing the request must be ok for that test")
     // Failing request, see #10570
-    val failingRegexRequests  = {
+    val failingRegexRequests = {
       """
       { "select":"node", "where":[
         { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"regex", "value":"f{o}o" }

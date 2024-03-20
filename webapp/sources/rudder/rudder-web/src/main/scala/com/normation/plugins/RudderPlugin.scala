@@ -44,11 +44,11 @@ import bootstrap.liftweb.RudderProperties
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
-import com.normation.utils._
-import com.normation.utils.PartType._
+import com.normation.utils.*
+import com.normation.utils.PartType.*
 import com.normation.utils.Separator.Dot
 import com.normation.utils.Separator.Minus
-import com.normation.utils.VersionPart._
+import com.normation.utils.VersionPart.*
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import net.liftweb.sitemap.Menu
@@ -192,14 +192,14 @@ trait RudderPluginDef {
   /*
    * If the plugin contributes APIs, they must be declared here.
    */
-  def apis: Option[LiftApiModuleProvider[_ <: EndpointSchema]] = None
+  def apis: Option[LiftApiModuleProvider[? <: EndpointSchema]] = None
 
   /*
    * A visual representation of status/license information, with a
    * default (overridable) rendering
    */
   def statusInformation(): NodeSeq = {
-    import net.liftweb.util.Helpers._
+    import net.liftweb.util.Helpers.*
 
     val info = (
       <div class="license-card">

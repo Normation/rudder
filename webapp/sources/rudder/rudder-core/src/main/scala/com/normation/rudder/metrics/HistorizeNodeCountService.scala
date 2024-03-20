@@ -37,15 +37,15 @@
 
 package com.normation.rudder.metrics
 
-import better.files._
-import com.normation.errors._
+import better.files.*
+import com.normation.errors.*
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.reports.ReportingService
-import com.normation.zio._
+import com.normation.zio.*
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 import org.apache.commons.csv.CSVFormat
@@ -56,7 +56,7 @@ import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
 import org.joda.time.format.ISODateTimeFormat
-import zio._
+import zio.*
 
 /*
  * First part describe API of main services, then there is default implementation
@@ -225,7 +225,7 @@ class WriteNodeCSV(
    * Format data in one line of CSV according to parameters.
    */
   def csv(date: DateTime, metrics: FrequentNodeMetrics): String = {
-    csvFormat.format((date.toString(ISODateTimeFormat.dateTimeNoMillis()) :: metrics.asList): _*) + "\n"
+    csvFormat.format((date.toString(ISODateTimeFormat.dateTimeNoMillis()) :: metrics.asList)*) + "\n"
   }
 
   /**

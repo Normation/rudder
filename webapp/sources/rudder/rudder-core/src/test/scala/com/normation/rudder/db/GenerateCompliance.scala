@@ -37,19 +37,19 @@
 
 package com.normation.rudder.db
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.ldap.sdk.ROPooledSimpleAuthConnectionProvider
 import com.normation.ldap.sdk.RWPooledSimpleAuthConnectionProvider
-import com.normation.rudder.db.Doobie._
+import com.normation.rudder.db.Doobie.*
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.repository.jdbc.RudderDatasourceProvider
-import com.normation.zio._
+import com.normation.zio.*
 import com.unboundid.ldap.sdk.DN
-import doobie._
-import doobie.implicits._
-import doobie.postgres.implicits._
+import doobie.*
+import doobie.implicits.*
+import doobie.postgres.implicits.*
 import java.io.ByteArrayInputStream
 import java.io.Closeable
 import java.nio.charset.StandardCharsets
@@ -57,7 +57,7 @@ import java.util.Properties
 import javax.sql.DataSource
 import org.joda.time.DateTime
 import scala.util.Random
-import zio.interop.catz._
+import zio.interop.catz.*
 
 /*
  * Allow to generate false compliance for testing purpose
@@ -404,7 +404,7 @@ object GenerateCompliance {
   }
 
   def main(args: Array[String]): Unit = {
-    import com.normation.ldap.sdk.BuildFilter._
+    import com.normation.ldap.sdk.BuildFilter.*
     import ch.qos.logback.classic.Level
     import ch.qos.logback.classic.Logger
     import org.slf4j.LoggerFactory

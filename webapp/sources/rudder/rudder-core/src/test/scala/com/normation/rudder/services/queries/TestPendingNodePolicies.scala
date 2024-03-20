@@ -37,8 +37,8 @@
 
 package com.normation.rudder.services.queries
 
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core.LDAPConstants.A_MACHINE_UUID
 import com.normation.inventory.ldap.core.LDAPConstants.OC_MACHINE
@@ -54,7 +54,7 @@ import com.normation.rudder.domain.queries.ExactStringComparator
 import com.normation.rudder.domain.queries.ObjectCriterion
 import com.normation.rudder.domain.queries.Or
 import com.normation.rudder.domain.queries.Query
-import com.normation.rudder.domain.queries.ResultTransformation._
+import com.normation.rudder.domain.queries.ResultTransformation.*
 import com.normation.rudder.domain.queries.StringComparator
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
@@ -63,7 +63,7 @@ import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-import zio.syntax._
+import zio.syntax.*
 
 /**
  * Test pending node policies with group of groups
@@ -108,7 +108,7 @@ class TestPendingNodePolicies extends Specification {
   // a query line for sub group
   def sub(g: NodeGroup): CriterionLine = CriterionLine(groupCriterion, groupCriterion.criteria.head, Equals, g.id.serialize)
   // a random query that will be added as dummy content - query checker will returns pre-defined things
-  val cl:                CriterionLine = CriterionLine(
+  val cl: CriterionLine = CriterionLine(
     ObjectCriterion(OC_MACHINE, Seq(Criterion(A_MACHINE_UUID, StringComparator))),
     Criterion(A_MACHINE_UUID, StringComparator),
     Equals,
@@ -122,10 +122,10 @@ class TestPendingNodePolicies extends Specification {
     Query(null, Or, Identity, List(cl, sub(g), cl))
   }
 
-  def andQuery(g: NodeGroup):     Query = Query(null, And, Identity, List(cl, sub(g), cl))
+  def andQuery(g:     NodeGroup): Query = Query(null, And, Identity, List(cl, sub(g), cl))
   def onlySubQuery(g: NodeGroup): Query = Query(null, And, Identity, List(sub(g)))
-  val dummyQuery0:                Query = Query(null, And, Identity, List(cl)) // will return 0 node
-  val dummyQuery1:                Query = Query(null, Or, Identity, List(cl))  // will return 1 node
+  val dummyQuery0: Query = Query(null, And, Identity, List(cl)) // will return 0 node
+  val dummyQuery1: Query = Query(null, Or, Identity, List(cl))  // will return 1 node
 
   def ng(id: String, q: Query, dyn: Boolean = true): NodeGroup = {
     NodeGroup(NodeGroupId(NodeGroupUid(id)), id, id, Nil, Some(q), dyn, Set(), true, false)
@@ -175,7 +175,7 @@ class TestPendingNodePolicies extends Specification {
     )
 
     def getAllDynGroupsWithandWithoutDependencies(): Box[(Seq[NodeGroupId], Seq[NodeGroupId])] = ???
-    override def changesSince(lastTime: DateTime):   Box[Boolean]                              = Full(true)
+    override def changesSince(lastTime: DateTime): Box[Boolean] = Full(true)
   }
 
   // a fake query checker
