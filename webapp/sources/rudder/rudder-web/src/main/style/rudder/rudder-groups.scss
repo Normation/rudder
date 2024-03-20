@@ -34,6 +34,10 @@
 *************************************************************************************
 */
 
+.main-table table tbody > tr {
+  cursor: pointer;
+}
+
 .rudder-template .header-title h1 .group-system:before,
 .rudder-template .header-title h1 .group-system:after{
   margin-left: 8px;
