@@ -182,7 +182,7 @@ class NodeGroupForm(
   def showForm(): NodeSeq = {
     val html = SHtml.ajaxForm(body)
 
-    nodeGroup match {
+    (nodeGroup match {
       case Left(target)                     =>
         showFormTarget(target)(html) ++ showRelatedRulesTree(target) ++ showGroupCompliance(target.target)
       case Right(group) if (group.isSystem) =>
@@ -193,7 +193,7 @@ class NodeGroupForm(
         showFormNodeGroup(group)(html) ++ showRelatedRulesTree(GroupTarget(group.id)) ++ showGroupCompliance(
           group.id.uid.value
         )
-    }
+    }) ++ Script(OnLoad(JsRaw(s"""new ClipboardJS('[data-clipboard-text]');""")))
   }
 
   private[this] def showRelatedRulesTree(target: RuleTarget): NodeSeq = {
@@ -288,7 +288,14 @@ class NodeGroupForm(
       & "group-name" #> groupName.toForm_!
       & "group-rudderid" #> <div class="form-group">
                       <label class="wbBaseFieldLabel">Group ID</label>
-                      <input readonly="" class="form-control" value={nodeGroup.id.serialize}/>
+                      <div class="position-relative align-items-center">
+                        <input readonly="" class="form-control" value={nodeGroup.id.serialize}/>
+                          <a class="my-2 mx-3 position-absolute end-0 top-0" title="Copy to clipboard" data-clipboard-text={
+        nodeGroup.id.serialize
+      }>
+                            <i class="fa fa-clipboard"></i>
+                        </a>
+                      </div>
                     </div>
       & "group-cfeclasses" #> <div class="form-group">
                           <label class="wbBaseFieldLabel toggle-cond cond-hidden" onclick="$(this).toggleClass('cond-hidden')"><span class="text-fit">Agent conditions</span><i class="fa fa-chevron-down"></i></label>
@@ -345,7 +352,6 @@ class NodeGroupForm(
         ".groupTargetedComplianceProgressBar",
         loadComplianceBar(false)
       )
-      & ".id-value *" #> nodeGroup.id.serialize
     )
   }
 
@@ -366,7 +372,14 @@ class NodeGroupForm(
                          </ul>
     & "group-rudderid" #> <div>
                     <label class="wbBaseFieldLabel">Group ID</label>
-                    <input readonly="" class="form-control" value={target.target}/>
+                    <div class="position-relative align-items-center">
+                      <input readonly="" class="form-control" value={target.target}/>
+                        <a class="my-2 mx-3 position-absolute end-0 top-0" title="Copy to clipboard" data-clipboard-text={
+      target.target
+    }>
+                          <i class="fa fa-clipboard"></i>
+                      </a>
+                    </div>
                   </div>
     & "group-cfeclasses" #> NodeSeq.Empty
     & "#longDescriptionField" #> (groupDescription.toForm_! ++ Script(
@@ -391,9 +404,7 @@ class NodeGroupForm(
     & ".groupTargetedComplianceProgressBar *" #> showComplianceForGroup(
       ".groupTargetedComplianceProgressBar",
       loadComplianceBar(false)
-    )
-    & ".id-label" #> NodeSeq.Empty
-    & ".id-container" #> NodeSeq.Empty)
+    ))
   }
 
   def showGroupProperties(group: NodeGroup): NodeSeq = {
@@ -537,7 +548,7 @@ class NodeGroupForm(
     (categoryHierarchyDisplayer.getCategoriesHierarchy(rootCategory, None).map { case (id, name) => (id.value -> name) }),
     parentCategoryId.value
   ) {
-    override def className             = "form-select"
+    override def className             = "form-select w-100"
     override def labelClassName        = ""
     override def subContainerClassName = ""
   }
