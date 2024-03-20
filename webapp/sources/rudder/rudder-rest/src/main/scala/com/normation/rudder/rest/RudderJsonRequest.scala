@@ -44,7 +44,7 @@ import zio.json.*
 
 /**
   * This class exposes utility methods regarding JSON requests.
-  * 
+  *
   * @see RudderJsonResponse for the response counterpart.
   */
 object RudderJsonRequest {

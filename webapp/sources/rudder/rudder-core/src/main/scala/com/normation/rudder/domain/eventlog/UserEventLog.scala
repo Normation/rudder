@@ -99,7 +99,7 @@ final case class CreateAPIAccountEventLog(
     override val eventDetails: EventLogDetails
 ) extends APIAccountEventLog {
 
-  override val eventType = CreateAPIAccountEventLog.eventType
+  override val eventType: EventLogType = CreateAPIAccountEventLog.eventType
 }
 
 object CreateAPIAccountEventLog extends EventLogFilter {
