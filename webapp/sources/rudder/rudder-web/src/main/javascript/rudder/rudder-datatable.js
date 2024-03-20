@@ -1195,7 +1195,7 @@ var allColumns = {
     function(scoreId) {
       var score = scoreList.find((element) => element.id === scoreId);
       var scoreName = score !== undefined ? score.name : scoreId;
-      var title = "'"+scoreName+"' Score";
+      var title = scoreName + " Score";
       return { "data": function ( row, type, val, meta ) {
                              if (type === 'set') {
                                return;
