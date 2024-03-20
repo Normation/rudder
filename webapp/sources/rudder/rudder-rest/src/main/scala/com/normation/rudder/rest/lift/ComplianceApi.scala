@@ -221,8 +221,8 @@ class ComplianceApi(
   }
 
   object GetDirectiveId extends LiftApiModule {
-    val schema: API.GetDirectiveComplianceId.type = API.GetDirectiveComplianceId
-    val restExtractor = restExtractorService
+    val schema:        API.GetDirectiveComplianceId.type = API.GetDirectiveComplianceId
+    val restExtractor: RestExtractorService              = restExtractorService
 
     def process(
         version:     ApiVersion,

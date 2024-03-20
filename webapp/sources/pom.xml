@@ -211,7 +211,7 @@ limitations under the License.
             <arg>-Ycache-plugin-class-loader:last-modified</arg> <!-- Enables caching of classloaders for compiler plugins -->
             <arg>-Ycache-macro-class-loader:last-modified</arg>  <!-- and macro definitions. This can lead to performance improvements. -->
 
-<!--        fastparse 3.0.1 emits false unused warning. We must silence them on related files. See: https://github.com/com-lihaoyi/fastparse/issues/285-->
+            <!-- fastparse 3.0.1 emits false unused warning. We must silence them on related files. See: https://github.com/com-lihaoyi/fastparse/issues/285-->
             <arg>-Wconf:cat=unused-nowarn&amp;src=com/normation/utils/Version.scala:s,cat=unused-nowarn&amp;src=com/normation/rudder/services/policies/InterpolatedValueCompiler.scala:s</arg>
 
             <!-- this warning is no an actual issue, our smart constructor usage is fine with a scala 3 compiler-->
