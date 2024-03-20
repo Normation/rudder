@@ -815,12 +815,12 @@ object DisplayNode extends Loggable {
 
   private def displayTabSoftwareUpdates(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
     displayTabGrid(jsId)("softUpdates", Full(sm.node.softwareUpdates)) {
-      ("Name", { x: SoftwareUpdate => Text(x.name) }) ::
-      ("Version", { x: SoftwareUpdate => Text(x.version.getOrElse("-")) }) ::
-      ("Architecture", { x: SoftwareUpdate => Text(x.arch.getOrElse("-")) }) ::
-      ("From", { x: SoftwareUpdate => Text(x.from.getOrElse("-")) }) ::
-      ("Kind", { x: SoftwareUpdate => Text(x.kind.name) }) ::
-      ("Source", { x: SoftwareUpdate => ?(x.source) }) ::
+      ("Name", { (x: SoftwareUpdate) => Text(x.name) }) ::
+      ("Version", { (x: SoftwareUpdate) => Text(x.version.getOrElse("-")) }) ::
+      ("Architecture", { (x: SoftwareUpdate) => Text(x.arch.getOrElse("-")) }) ::
+      ("From", { (x: SoftwareUpdate) => Text(x.from.getOrElse("-")) }) ::
+      ("Kind", { (x: SoftwareUpdate) => Text(x.kind.name) }) ::
+      ("Source", { (x: SoftwareUpdate) => ?(x.source) }) ::
       Nil
     }
   }

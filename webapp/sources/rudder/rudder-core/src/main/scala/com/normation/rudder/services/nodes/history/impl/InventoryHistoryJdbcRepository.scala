@@ -105,7 +105,7 @@ class InventoryHistoryJdbcRepository(
   }
 
   implicit val logRead: Read[FactLog] = {
-    Read[(String, NodeAcceptRefuseEvent, NodeFact)].map { d: (String, NodeAcceptRefuseEvent, NodeFact) =>
+    Read[(String, NodeAcceptRefuseEvent, NodeFact)].map { (d: (String, NodeAcceptRefuseEvent, NodeFact)) =>
       FactLog(
         NodeId(d._1),
         d._2.date,

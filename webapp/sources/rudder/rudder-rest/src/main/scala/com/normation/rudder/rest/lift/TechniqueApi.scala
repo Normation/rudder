@@ -416,6 +416,7 @@ class TechniqueApi(
 
     val schema: API.CreateTechnique.type = API.CreateTechnique
     val restExtractor = restExtractorService
+
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val modId = ModificationId(uuidGen.newUuid) // copied from `Req.forcedBodyAsJson`
 
@@ -463,6 +464,7 @@ class TechniqueApi(
   object ListTechniques extends LiftApiModule0 {
     val schema: API.ListTechniques.type = API.ListTechniques
     val restExtractor = restExtractorService
+
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       response(
         restExtractor,
@@ -477,9 +479,10 @@ class TechniqueApi(
   }
 
   object CheckTechnique extends LiftApiModule0 {
-    val schema        = API.CheckTechnique
+    override val schema: API.CheckTechnique.type = API.CheckTechnique
     val restExtractor = restExtractorService
-    implicit val dataName:                                                                                     String       = "techniques"
+    implicit val dataName: String = "techniques"
+
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       def charset: String = RestUtils.getCharset(req)
 
@@ -524,6 +527,7 @@ class TechniqueApi(
   object ListTechniquesDirectives extends LiftApiModuleString {
     val schema: API.ListTechniquesDirectives.type = API.ListTechniquesDirectives
     val restExtractor = restExtractorService
+
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -548,6 +552,7 @@ class TechniqueApi(
   object ListTechniqueDirectives extends LiftApiModuleString2 {
     val schema: API.ListTechniqueDirectives.type = API.ListTechniqueDirectives
     val restExtractor = restExtractorService
+
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -579,14 +584,16 @@ class TechniqueApi(
   }
 
   object ListTechniquesV14 extends LiftApiModule0 {
-    val schema:                                                                                                API.ListTechniques.type = API.ListTechniques
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse            = {
+    val schema: API.ListTechniques.type = API.ListTechniques
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       serviceV14.listTechniques.toLiftResponseList(params, schema)
     }
   }
 
   object ListTechniquesDirectivesV14 extends LiftApiModuleString {
     val schema: API.ListTechniquesDirectives.type = API.ListTechniquesDirectives
+
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -602,6 +609,7 @@ class TechniqueApi(
 
   object ListTechniqueDirectivesV14 extends LiftApiModuleString2 {
     val schema: API.ListTechniqueDirectives.type = API.ListTechniqueDirectives
+
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -626,6 +634,7 @@ class TechniqueApi(
 
   object GetTechniqueDetailsAllVersion extends LiftApiModuleString {
     val schema: API.GetTechniqueAllVersion.type = API.GetTechniqueAllVersion
+
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -641,6 +650,7 @@ class TechniqueApi(
 
   object GetTechnique extends LiftApiModuleString2 {
     val schema: API.GetTechnique.type = API.GetTechnique
+
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -667,6 +677,7 @@ class TechniqueApi(
 
   object TechniqueRevisions extends LiftApiModuleString2 {
     val schema: API.TechniqueRevisions.type = API.TechniqueRevisions
+
     def process(
         version:    ApiVersion,
         path:       ApiPath,
