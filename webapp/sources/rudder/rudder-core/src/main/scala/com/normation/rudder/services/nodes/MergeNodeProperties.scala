@@ -37,9 +37,9 @@
 
 package com.normation.rudder.services.nodes
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.GitVersion
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -56,16 +56,16 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.properties.ParentProperty
 import com.normation.rudder.domain.properties.PropertyProvider
-import com.normation.rudder.domain.queries._
-import com.normation.rudder.services.nodes.GroupProp._
-import com.softwaremill.quicklens._
+import com.normation.rudder.domain.queries.*
+import com.normation.rudder.services.nodes.GroupProp.*
+import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigParseOptions
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.AsSubgraph
 import org.jgrapht.graph.DefaultDirectedGraph
 import org.jgrapht.graph.DefaultEdge
 import org.jgrapht.traverse.TopologicalOrderIterator
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /**
  * This file handle how node properties are merged with other (global, groups, etc)
@@ -236,7 +236,7 @@ object MergeNodeProperties {
         allGroups: Map[NodeGroupId, FullGroupTarget],
         acc:       Map[NodeGroupId, FullGroupTarget]
     ): PureResult[Map[NodeGroupId, FullGroupTarget]] = {
-      import cats.implicits._
+      import cats.implicits.*
       currents match {
         case Nil  => Right(acc)
         case list =>
@@ -247,7 +247,7 @@ object MergeNodeProperties {
                 case Right(acc) =>
                   if (acc.isDefinedAt(g.nodeGroup.id)) Right(acc) // already done previously
                   else {
-                    import com.normation.rudder.services.nodes.GroupProp._
+                    import com.normation.rudder.services.nodes.GroupProp.*
                     for {
                       prop    <- g.nodeGroup.toGroupProp
                       parents <- prop.parentGroups.traverse { parentId =>

@@ -37,17 +37,17 @@
 
 package com.normation.inventory.ldap.provisioning
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.Chained
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 import com.normation.inventory.domain.Inventory
-import com.normation.inventory.ldap.core._
-import com.normation.inventory.services.provisioning._
+import com.normation.inventory.ldap.core.*
+import com.normation.inventory.services.provisioning.*
 import com.normation.utils.StringUuidGenerator
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 object UuidMergerPreCommit {
   val logger: Logger = LoggerFactory.getLogger(classOf[UuidMergerPreCommit])

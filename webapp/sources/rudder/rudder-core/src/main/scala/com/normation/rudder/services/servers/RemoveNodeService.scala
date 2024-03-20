@@ -36,8 +36,8 @@
  */
 package com.normation.rudder.services.servers
 
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AcceptedInventory
@@ -48,14 +48,14 @@ import com.normation.inventory.domain.PendingInventory
 import com.normation.inventory.domain.RemovedInventory
 import com.normation.inventory.domain.UndefinedKey
 import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
-import com.normation.ldap.sdk._
-import com.normation.ldap.sdk.BuildFilter._
+import com.normation.ldap.sdk.*
+import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.eventlog._
+import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
@@ -78,8 +78,8 @@ import com.normation.rudder.services.reports.CacheComplianceQueueAction.Expected
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.reports.CachedNodeConfigurationService
 import com.normation.rudder.services.reports.CacheExpectedReportAction.RemoveNodeInCache
-import com.normation.rudder.services.servers.DeletionResult._
-import com.normation.zio._
+import com.normation.rudder.services.servers.DeletionResult.*
+import com.normation.zio.*
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
 import com.unboundid.ldif.LDIFChangeRecord
@@ -91,9 +91,9 @@ import java.util.function.BiPredicate
 import java.util.function.Consumer
 import net.liftweb.common.Box
 import org.joda.time.DateTime
-import zio.{System => _, _}
-import zio.stream._
-import zio.syntax._
+import zio.{System as _, *}
+import zio.stream.*
+import zio.syntax.*
 
 sealed trait DeletionResult
 object DeletionResult {
@@ -143,7 +143,7 @@ object PostNodeDeleteAction {
     }
   }
 }
-import PostNodeDeleteAction._
+import PostNodeDeleteAction.*
 
 trait RemoveNodeService {
 
@@ -403,7 +403,7 @@ class RemoveNodeServiceImpl(
                         x => Some(x).succeed
                       )
     } yield {
-      import scala.jdk.CollectionConverters._
+      import scala.jdk.CollectionConverters.*
       (
         HookEnvPairs.build(
           ("RUDDER_NODE_ID", nodeInfo.id.value),
@@ -415,7 +415,7 @@ class RemoveNodeServiceImpl(
           ("RUDDER_POLICIES_DIRECTORY_NEW", optNodePaths.map(_.newFolder).getOrElse("")),
           ("RUDDER_POLICIES_DIRECTORY_ARCHIVE", optNodePaths.flatMap(_.backupFolder).getOrElse(""))
         ),
-        HookEnvPairs.build(System.getenv.asScala.toSeq: _*)
+        HookEnvPairs.build(System.getenv.asScala.toSeq*)
       )
     }
   }
@@ -642,8 +642,8 @@ class CleanUpCFKeys extends PostNodeDeleteAction {
 
 // clean-up node files on FS
 class CleanUpNodePolicyFiles(varRudderShare: String) extends PostNodeDeleteAction {
-  import better.files._
-  import better.files.File._
+  import better.files.*
+  import better.files.File.*
 
   override def run(nodeId: NodeId, mode: DeleteMode, info: Option[NodeInfo], status: Set[InventoryStatus]): UIO[Unit] = {
     NodeLoggerPure.Delete.debug(s"  - clean-up node '${nodeId.value}' policy files in /var/rudder/share") *>

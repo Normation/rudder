@@ -20,17 +20,17 @@
 
 package com.normation.history.impl
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.RudderError
 import com.normation.zio.ZioRuntime
 import java.io.File
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
-import org.junit._
-import org.junit.Assert._
+import org.junit.*
+import org.junit.Assert.*
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-import zio._
+import zio.*
 
 final case class SystemError(cause: Throwable) extends RudderError {
   def msg = "Error in test"
@@ -38,7 +38,7 @@ final case class SystemError(cause: Throwable) extends RudderError {
 
 object StringMarshaller extends FileMarshalling[String] {
   // simply read / write file content
-  override def fromFile(in: File):              IOResult[String] = ZIO.attempt(FileUtils.readFileToString(in, "UTF-8")).mapError(SystemError)
+  override def fromFile(in: File): IOResult[String] = ZIO.attempt(FileUtils.readFileToString(in, "UTF-8")).mapError(SystemError)
   override def toFile(out: File, data: String): IOResult[String] = ZIO.attempt {
     FileUtils.writeStringToFile(out, data, "UTF-8")
     data
@@ -46,11 +46,11 @@ object StringMarshaller extends FileMarshalling[String] {
 }
 
 object StringId extends IdToFilenameConverter[String] {
-  override def idToFilename(id: String):   String = id
+  override def idToFilename(id:   String): String = id
   override def filenameToId(name: String): String = name
 }
 
-import com.normation.history.impl.TestFileHistoryLogRepository._
+import com.normation.history.impl.TestFileHistoryLogRepository.*
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TestFileHistoryLogRepository {

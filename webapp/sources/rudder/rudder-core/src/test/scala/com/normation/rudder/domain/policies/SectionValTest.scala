@@ -37,11 +37,11 @@
 
 package com.normation.rudder.domain.policies
 
-import com.normation.cfclerk.domain._
-import net.liftweb.common._
+import com.normation.cfclerk.domain.*
+import net.liftweb.common.*
 import org.junit.runner.RunWith
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 @RunWith(classOf[JUnitRunner])
 class SectionValTest extends Specification with Loggable {

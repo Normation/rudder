@@ -37,13 +37,13 @@
 
 package com.normation.rudder.repository.xml
 
-import com.normation.errors._
+import com.normation.errors.*
 import java.io.InputStream
 import org.xml.sax.SAXParseException
 import scala.xml.Elem
 import scala.xml.XML
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 object ParseXml {
 

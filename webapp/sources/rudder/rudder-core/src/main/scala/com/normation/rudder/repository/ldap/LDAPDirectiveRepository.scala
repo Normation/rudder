@@ -37,7 +37,7 @@
 
 package com.normation.rudder.repository.ldap
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.GitVersion
 import com.normation.NamedZioLogger
 import com.normation.cfclerk.domain.SectionSpec
@@ -46,20 +46,20 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.ldap.core.LDAPConstants.A_NAME
 import com.normation.inventory.ldap.core.LDAPConstants.A_OC
 import com.normation.inventory.ldap.core.LDAPConstants.A_REV_ID
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
-import com.normation.ldap.sdk._
-import com.normation.ldap.sdk.BuildFilter._
-import com.normation.ldap.sdk.LDAPIOResult._
-import com.normation.ldap.sdk.syntax._
+import com.normation.ldap.sdk.*
+import com.normation.ldap.sdk.BuildFilter.*
+import com.normation.ldap.sdk.LDAPIOResult.*
+import com.normation.ldap.sdk.syntax.*
 import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.RudderLDAPConstants._
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.RudderLDAPConstants.*
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.repository.ActiveTechniqueCategoryOrdering
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.EventLogRepository
@@ -77,8 +77,8 @@ import com.unboundid.ldap.sdk.Filter
 import net.liftweb.json.JsonAST
 import org.joda.time.DateTime
 import scala.collection.immutable.SortedMap
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 class RoLDAPDirectiveRepository(
     val rudderDit:           RudderDit,
@@ -99,7 +99,7 @@ class RoLDAPDirectiveRepository(
       case r                      => AND(EQ(A_DIRECTIVE_UUID, id.uid.value), EQ(A_REV_ID, r.value))
     }
     con
-      .searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter, attributes: _*)
+      .searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter, attributes*)
       .flatMap(piEntries => {
         piEntries.size match {
           case 0 => None.succeed
@@ -239,7 +239,7 @@ class RoLDAPDirectiveRepository(
       .readLock(for {
         con      <- ldap
         category <- getCategoryEntry(con, id).notOptional(s"Entry with ID '${id.value}' was not found")
-        entries  <- con.searchSub(category.dn, IS(OC_DIRECTIVE), Seq[String](): _*)
+        entries  <- con.searchSub(category.dn, IS(OC_DIRECTIVE), Seq[String]()*)
         results  <- ZIO.foreach(entries)(x => mapper.entry2Directive(x).toIO)
       } yield {
         results.nonEmpty
@@ -356,7 +356,7 @@ class RoLDAPDirectiveRepository(
   def getCategoryEntry(con: RoLDAPConnection, id: ActiveTechniqueCategoryId, attributes: String*): IOResult[Option[LDAPEntry]] = {
     userLibMutex.readLock(for {
       categoryEntries <-
-        con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, EQ(A_TECHNIQUE_CATEGORY_UUID, id.value), attributes: _*)
+        con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, EQ(A_TECHNIQUE_CATEGORY_UUID, id.value), attributes*)
       entry           <-
         categoryEntries.size match {
           case 0 => None.succeed
@@ -511,7 +511,7 @@ class RoLDAPDirectiveRepository(
 
   def getUPTEntry(con: RoLDAPConnection, id: ActiveTechniqueId, attributes: String*): IOResult[Option[LDAPEntry]] = {
     userLibMutex.readLock {
-      getUPTEntry[ActiveTechniqueId](con, id, id => EQ(A_ACTIVE_TECHNIQUE_UUID, id.value), attributes: _*)
+      getUPTEntry[ActiveTechniqueId](con, id, id => EQ(A_ACTIVE_TECHNIQUE_UUID, id.value), attributes*)
     }
   }
 
@@ -527,7 +527,7 @@ class RoLDAPDirectiveRepository(
       attributes: String*
   ): LDAPIOResult[Option[LDAPEntry]] = {
     for {
-      uptEntries <- con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter(id), attributes: _*)
+      uptEntries <- con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter(id), attributes*)
       entry      <- uptEntries.size match {
                       case 0 => None.succeed
                       case 1 => Some(uptEntries(0)).succeed
@@ -571,8 +571,8 @@ class RoLDAPDirectiveRepository(
       FullActiveTechnique(
         id = at.id,
         techniqueName = at.techniqueName,
-        techniques = SortedMap(techniqueRepository.getByName(at.techniqueName).toSeq: _*),
-        acceptationDatetimes = SortedMap(at.acceptationDatetimes.toSeq: _*),
+        techniques = SortedMap(techniqueRepository.getByName(at.techniqueName).toSeq*),
+        acceptationDatetimes = SortedMap(at.acceptationDatetimes.toSeq*),
         directives = maps.directivesByActiveTechnique.getOrElse(at.id, Nil),
         isEnabled = at.isEnabled,
         isSystem = at.isSystem
@@ -615,7 +615,7 @@ class RoLDAPDirectiveRepository(
      */
 
     val emptyAll = AllMaps(Map(), Map(), Map(), Map(), Map())
-    import rudderDit.ACTIVE_TECHNIQUES_LIB._
+    import rudderDit.ACTIVE_TECHNIQUES_LIB.*
 
     def mappingError(current: AllMaps, e: LDAPEntry, err: RudderError): AllMaps = {
       val error = Chained(s"Error when mapping entry with DN '${e.dn.toString}' from directive library", err)
@@ -708,7 +708,7 @@ class WoLDAPDirectiveRepository(
     autoExportOnModify: Boolean
 ) extends WoDirectiveRepository with NamedZioLogger {
 
-  import roDirectiveRepos._
+  import roDirectiveRepos.*
 
   override def loggerName: String = this.getClass.getName
 

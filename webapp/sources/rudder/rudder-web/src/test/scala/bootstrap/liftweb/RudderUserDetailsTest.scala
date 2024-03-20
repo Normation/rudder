@@ -51,9 +51,9 @@ import com.normation.rudder.UncheckedCustomRole
 import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.rest.AuthorizationApiMapping
 import com.normation.rudder.rest.RoleApiMapping
-import com.normation.zio._
+import com.normation.zio.*
 import org.junit.runner.RunWith
-import org.specs2.mutable._
+import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.core.Fragments
 import scala.annotation.nowarn
@@ -147,7 +147,7 @@ class RudderUserDetailsTest extends Specification {
   </authentication>
 
   "general rules around custom roles definition and error should be parsed correctly" >> {
-    import AuthorizationType._
+    import AuthorizationType.*
 
     // add a plugin built-in role and check it is available too
 

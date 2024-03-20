@@ -37,22 +37,22 @@
 
 package com.normation.inventory.ldap.core
 
-import com.normation.errors._
-import com.normation.inventory.domain._
+import com.normation.errors.*
+import com.normation.inventory.domain.*
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.zio.ZioRuntime
-import com.softwaremill.quicklens._
+import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
-import org.junit.runner._
+import org.junit.runner.*
 import org.specs2.matcher.MatchResult
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.specs2.mutable.*
+import org.specs2.runner.*
 import scala.annotation.nowarn
-import zio._
+import zio.*
 
 final case class SystemError(cause: Throwable) extends RudderError {
   def msg = "Error in test"

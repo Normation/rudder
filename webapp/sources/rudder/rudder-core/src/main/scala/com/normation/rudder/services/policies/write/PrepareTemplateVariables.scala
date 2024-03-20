@@ -37,10 +37,10 @@
 
 package com.normation.rudder.services.policies.write
 
-import com.normation.cfclerk.domain._
+import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.NodeId
@@ -54,11 +54,11 @@ import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.rudder.services.policies.Policy
 import com.normation.templates.STVariable
-import com.normation.zio._
+import com.normation.zio.*
 import org.joda.time.DateTime
 import scala.collection.immutable.ArraySeq
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 case class PrepareTemplateTimer(
     buildBundleSeq:  Ref[Long],
@@ -124,7 +124,7 @@ class PrepareTemplateVariablesImpl(
       timer:             PrepareTemplateTimer
   ): IOResult[AgentNodeWritableConfiguration] = {
 
-    import com.normation.rudder.services.policies.SystemVariableService._
+    import com.normation.rudder.services.policies.SystemVariableService.*
 
     val nodeId = agentNodeConfig.config.nodeInfo.id
 

@@ -23,9 +23,9 @@ package com.normation.ldap.sdk
 import com.normation.NamedZioLogger
 import com.normation.ldap.ldif.LDIFFileLogger
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
-import com.normation.ldap.sdk.LDAPIOResult._
+import com.normation.ldap.sdk.LDAPIOResult.*
 import com.normation.ldap.sdk.LDAPRudderError.BackendException
-import com.normation.ldap.sdk.syntax._
+import com.normation.ldap.sdk.syntax.*
 import com.unboundid.ldap.sdk.AddRequest
 import com.unboundid.ldap.sdk.DeleteRequest
 import com.unboundid.ldap.sdk.DN
@@ -38,12 +38,12 @@ import com.unboundid.ldap.sdk.ModifyRequest
 import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldap.sdk.ReadOnlyLDAPRequest
 import com.unboundid.ldap.sdk.ResultCode
-import com.unboundid.ldap.sdk.ResultCode._
+import com.unboundid.ldap.sdk.ResultCode.*
 import com.unboundid.ldap.sdk.SearchRequest
 import com.unboundid.ldif.LDIFChangeRecord
-import scala.jdk.CollectionConverters._
-import zio._
-import zio.syntax._
+import scala.jdk.CollectionConverters.*
+import zio.*
+import zio.syntax.*
 
 /*
  * Logger for LDAP connection related information.
@@ -95,7 +95,7 @@ trait ReadOnlyEntryLDAPConnection {
    *   The sequence of entries matching search request parameters.
    */
   def search(baseDn: DN, scope: SearchScope, filter: Filter, attributes: String*): LDAPIOResult[Seq[LDAPEntry]] = {
-    search(new SearchRequest(baseDn.toString, scope.toUnboundid, filter, attributes: _*))
+    search(new SearchRequest(baseDn.toString, scope.toUnboundid, filter, attributes*))
   }
 
   /**
@@ -122,7 +122,7 @@ trait ReadOnlyEntryLDAPConnection {
    *   Empty otherwise
    */
   def get(baseDn: DN, filter: Filter, attributes: String*): LDAPIOResult[Option[LDAPEntry]] = {
-    searchOne(baseDn, filter, attributes: _*).map {
+    searchOne(baseDn, filter, attributes*).map {
       case buf if (buf.isEmpty) => None
       case buf                  => Some(buf(0))
     }
@@ -156,7 +156,7 @@ trait ReadOnlyEntryLDAPConnection {
    *   The sequence of entries matching search request parameters.
    */
   def searchOne(baseDn: DN, filter: Filter, attributes: String*): LDAPIOResult[Seq[LDAPEntry]] =
-    search(baseDn, One, filter, attributes: _*)
+    search(baseDn, One, filter, attributes*)
 
   /**
    * Search method restricted to scope = SubTree
@@ -173,7 +173,7 @@ trait ReadOnlyEntryLDAPConnection {
    *   The sequence of entries matching search request parameters.
    */
   def searchSub(baseDn: DN, filter: Filter, attributes: String*): LDAPIOResult[Seq[LDAPEntry]] =
-    search(baseDn, Sub, filter, attributes: _*)
+    search(baseDn, Sub, filter, attributes*)
 }
 
 trait WriteOnlyEntryLDAPConnection {
@@ -297,7 +297,7 @@ trait UnboundidBackendLDAPConnection {
 }
 
 object RoLDAPConnection {
-  import ResultCode._
+  import ResultCode.*
 
   /**
    * Default error on which we don't want to throw an exception
@@ -345,7 +345,7 @@ sealed class RoLDAPConnection(
     blocking {
       val e = {
         if (attributes.isEmpty) backed.getEntry(dn.toString)
-        else backed.getEntry(dn.toString, attributes: _*)
+        else backed.getEntry(dn.toString, attributes*)
       }
       e match {
         case null => None
@@ -392,7 +392,7 @@ sealed class RoLDAPConnection(
 }
 
 object RwLDAPConnection {
-  import ResultCode._
+  import ResultCode.*
 
   /**
    * Default error on which we don't want to throw an exception
@@ -510,7 +510,7 @@ class RwLDAPConnection(
       toLDIFChangeRecord: MOD => LDIFChangeRecord,
       backendAction:      MOD => LDAPResult,
       onlyReportThat:     ResultCode => Boolean
-  )(reqs:                 List[MOD]): LDAPIOResult[Seq[LDIFChangeRecord]] = {
+  )(reqs: List[MOD]): LDAPIOResult[Seq[LDIFChangeRecord]] = {
     if (reqs.isEmpty) ZIO.succeed(Seq())
     else {
       ZIO.succeed(ldifFileLogger.records(reqs map (toLDIFChangeRecord(_)))) *>
@@ -533,7 +533,7 @@ class RwLDAPConnection(
       toLDIFChangeRecord: MOD => LDIFChangeRecord,
       backendAction:      MOD => LDAPResult,
       onlyReportThat:     ResultCode => Boolean
-  )(req:                  MOD): LDAPIOResult[LDIFChangeRecord] = {
+  )(req: MOD): LDAPIOResult[LDIFChangeRecord] = {
     val record = toLDIFChangeRecord(req)
     blocking {
       ldifFileLogger.records(Seq(record)) // ignore return value
@@ -621,7 +621,7 @@ class RwLDAPConnection(
    * the error in other case.
    */
   override def modify(dn: DN, modifications: Modification*): LDAPIOResult[LDIFChangeRecord] = {
-    applyModify(new ModifyRequest(dn.toString, modifications: _*))
+    applyModify(new ModifyRequest(dn.toString, modifications*))
   }
 
   override def move(dn: DN, newParentDn: DN, newRDN: Option[RDN] = None): LDAPIOResult[LDIFChangeRecord] = {
@@ -657,7 +657,7 @@ class RwLDAPConnection(
       }
     }
     synchronized {
-      get(entry.dn, attributes: _*) flatMap { // TODO if removeMissing is false, only get attribute in entry (we don't care of others)
+      get(entry.dn, attributes*) flatMap { // TODO if removeMissing is false, only get attribute in entry (we don't care of others)
         case None           =>
           applyAdd(new AddRequest(entry.backed))
         case Some(existing) =>

@@ -40,9 +40,9 @@ package com.normation.rudder.web.snippet.configuration
 import bootstrap.liftweb.RudderConfig
 import com.normation.GitVersion
 import com.normation.GitVersion.ParseRev
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.Technique
-import com.normation.cfclerk.domain.TechniqueGenerationMode._
+import com.normation.cfclerk.domain.TechniqueGenerationMode.*
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors
@@ -61,19 +61,19 @@ import com.normation.rudder.web.components.DirectiveEditForm
 import com.normation.rudder.web.services.AgentCompat
 import com.normation.rudder.web.services.DisplayDirectiveTree
 import com.normation.utils.DateFormaterService
-import com.normation.zio._
-import net.liftweb.common._
-import net.liftweb.common.Box._
-import net.liftweb.http._
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
+import com.normation.zio.*
+import net.liftweb.common.*
+import net.liftweb.common.Box.*
+import net.liftweb.http.*
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JE.JsArray
-import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json
-import net.liftweb.util.Helpers._
+import net.liftweb.util.Helpers.*
 import net.liftweb.util.Helpers.TimeSpan
 import org.joda.time.DateTime
-import scala.xml._
+import scala.xml.*
 
 final case class JsonDirectiveRId(directiveId: String, rev: Option[String])
 
@@ -88,7 +88,7 @@ final case class JsonDirectiveRId(directiveId: String, rev: Option[String])
  *
  */
 class DirectiveManagement extends DispatchSnippet with Loggable {
-  import DirectiveManagement._
+  import DirectiveManagement.*
 
   private[this] val techniqueRepository = RudderConfig.techniqueRepository
   private[this] val getDirectiveLib     = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()

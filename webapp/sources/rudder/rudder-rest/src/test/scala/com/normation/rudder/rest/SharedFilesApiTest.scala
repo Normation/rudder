@@ -37,14 +37,14 @@
 
 package com.normation.rudder.rest
 
-import better.files._
-import com.normation.rudder.rest.internal.SharedFilesAPI._
+import better.files.*
+import com.normation.rudder.rest.internal.SharedFilesAPI.*
 import com.normation.zio.ZioRuntime
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 @RunWith(classOf[JUnitRunner])
 class SharedFilesApiTest extends Specification {

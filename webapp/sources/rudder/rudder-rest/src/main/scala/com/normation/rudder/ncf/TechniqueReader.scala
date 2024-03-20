@@ -1,7 +1,7 @@
 package com.normation.rudder.ncf
 
-import better.files._
-import com.normation.errors._
+import better.files.*
+import com.normation.errors.*
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.eventlog.ModificationId
@@ -17,15 +17,15 @@ import com.normation.rudder.repository.xml.XmlArchiverUtils
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
-import com.normation.zio._
+import com.normation.zio.*
 import java.time.Instant
 import net.liftweb.json.JsonAST.JArray
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.parse
 import zio.Ref
 import zio.ZIO
-import zio.ZIO._
-import zio.syntax._
+import zio.ZIO.*
+import zio.syntax.*
 
 class TechniqueReader(
     restExtractor:                          RestExtractorService,
@@ -43,7 +43,7 @@ class TechniqueReader(
   val methodsFile: File = ncfRootDir / "generic_methods.json"
 
   def getAllTechniqueFiles(currentPath: File): IOResult[List[File]]                                              = {
-    import com.normation.errors._
+    import com.normation.errors.*
     for {
       subdirs      <- IOResult.attempt(s"error when getting subdirectories of ${currentPath.pathAsString}")(
                         currentPath.children.partition(_.isDirectory)._1.toList

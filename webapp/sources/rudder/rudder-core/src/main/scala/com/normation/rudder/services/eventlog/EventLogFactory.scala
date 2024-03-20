@@ -40,14 +40,14 @@ package com.normation.rudder.services.eventlog
 import com.normation.GitVersion
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.eventlog._
+import com.normation.eventlog.*
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.api._
+import com.normation.rudder.api.*
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.appconfig.RudderWebProperty
-import com.normation.rudder.domain.eventlog._
-import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.eventlog.*
+import com.normation.rudder.domain.nodes.*
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.AddGlobalParameterDiff
 import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
 import com.normation.rudder.domain.properties.GenericProperty
@@ -56,11 +56,11 @@ import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.queries.QueryTrait
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.WorkflowStepChange
-import com.normation.rudder.services.marshalling._
-import net.liftweb.util.Helpers._
+import com.normation.rudder.services.marshalling.*
+import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import scala.xml._
+import scala.xml.*
 import scala.xml.Text
 
 trait EventLogFactory {

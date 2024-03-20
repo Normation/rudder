@@ -20,7 +20,7 @@
 
 package com.normation.ldap.sdk
 
-import com.normation.ldap.sdk.syntax._
+import com.normation.ldap.sdk.syntax.*
 import com.unboundid.ldap.sdk.Attribute
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.DN.NULL_DN
@@ -31,7 +31,7 @@ import com.unboundid.ldif.LDIFRecord
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import scala.collection.mutable.Buffer
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import zio.Chunk
 
 /**
@@ -68,7 +68,7 @@ import zio.Chunk
 class LDAPEntry(private val _backed: UnboundidEntry) {
 
   // copy constructor, needed for special case, when mixing LDAPEntry with other types
-  def this(e: LDAPEntry) = this(new UnboundidEntry(e._backed.getParsedDN, e._backed.getAttributes.asScala.toSeq: _*))
+  def this(e: LDAPEntry) = this(new UnboundidEntry(e._backed.getParsedDN, e._backed.getAttributes.asScala.toSeq*))
 
   // define a read only view of the backed entry, usefull in ldap connection to not have to override everything defined by Unboundid
   def backed = new com.unboundid.ldap.sdk.ReadOnlyEntry(_backed)
@@ -81,7 +81,7 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
 
   private val _parentDn: Option[DN] = listRdns match {
     case r :: Nil => None
-    case r :: p   => Some(new DN(p.toSeq: _*))
+    case r :: p   => Some(new DN(p.toSeq*))
     case _        => None
   }
 
@@ -192,20 +192,20 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
 
   //////  Methods to retrieve the first value of attribute in typed way  //////
 
-  def getAsBoolean(attributeName: String): Option[Boolean]         = _backed.getAttributeValueAsBoolean(attributeName) match {
+  def getAsBoolean(attributeName: String): Option[Boolean]        = _backed.getAttributeValueAsBoolean(attributeName) match {
     case null => None
     case b    => Some(b.booleanValue)
   }
-  def getAsDate(attributeName: String):    Option[java.util.Date]  = _backed.getAttributeValueAsDate(attributeName) match {
+  def getAsDate(attributeName: String):    Option[java.util.Date] = _backed.getAttributeValueAsDate(attributeName) match {
     case null => None
     case x    => Some(x)
   }
-  def getAsGTime(attributeName: String):   Option[GeneralizedTime] = apply(attributeName) flatMap { x => GeneralizedTime.parse(x) }
-  def getAsDn(attributeName: String):      Option[DN]              = _backed.getAttributeValueAsDN(attributeName) match {
+  def getAsGTime(attributeName: String): Option[GeneralizedTime] = apply(attributeName) flatMap { x => GeneralizedTime.parse(x) }
+  def getAsDn(attributeName: String):      Option[DN]             = _backed.getAttributeValueAsDN(attributeName) match {
     case null => None
     case x    => Some(x)
   }
-  def getAsInt(attributeName: String):     Option[Int]             = _backed.getAttributeValueAsInteger(attributeName) match {
+  def getAsInt(attributeName: String):     Option[Int]            = _backed.getAttributeValueAsInteger(attributeName) match {
     case null => None
     case x    => Some(x.intValue)
   }
@@ -260,9 +260,9 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
   //////  Standard methods (toString/equal etc) and LDIF method  //////
 
   override def toString() = _backed.toString
-  def toLDIFString(sb: java.lang.StringBuilder): Unit       = _backed.toLDIFString(sb)
-  def toLDIFString():                            String     = _backed.toLDIFString()
-  def toLDIFRecord:                              LDIFRecord = _backed
+  def toLDIFString(sb: java.lang.StringBuilder): Unit = _backed.toLDIFString(sb)
+  def toLDIFString(): String     = _backed.toLDIFString()
+  def toLDIFRecord:   LDIFRecord = _backed
 
   /*
    * A set which take an option, and remove the given attribute
@@ -294,9 +294,9 @@ object LDAPEntry {
    */
   val logger: Logger = LoggerFactory.getLogger(classOf[LDAPEntry])
 
-  def apply(e: UnboundidEntry):                                                                LDAPEntry = new LDAPEntry(e.duplicate()) // val e = LDAPEntry(unboundidEntry)
-  def apply(dn: DN, attributes: Attribute*):                                                   LDAPEntry = LDAPEntry(new UnboundidEntry(dn, attributes: _*))
-  def apply(dn: DN, attributes: Iterable[Attribute]):                                          LDAPEntry = LDAPEntry(new UnboundidEntry(dn, attributes.toSeq: _*))
+  def apply(e:  UnboundidEntry): LDAPEntry = new LDAPEntry(e.duplicate()) // val e = LDAPEntry(unboundidEntry)
+  def apply(dn: DN, attributes: Attribute*):          LDAPEntry = LDAPEntry(new UnboundidEntry(dn, attributes*))
+  def apply(dn: DN, attributes: Iterable[Attribute]): LDAPEntry = LDAPEntry(new UnboundidEntry(dn, attributes.toSeq*))
   def apply(rdnAttribute: String, rdnValue: String, parentDn: String, attributes: Attribute*): LDAPEntry = {
     require(rdnValue != null && rdnValue.nonEmpty)
     apply(new DN(s"${rdnAttribute}=${rdnValue},${parentDn}"), attributes)
@@ -341,7 +341,7 @@ object LDAPEntry {
       targetEntry.backed.getParsedDN,
       targetEntry.backed.getAttributes.asScala.map { a =>
         if (ignoreCaseOnAttributes.contains(a.getName)) a
-        else new Attribute(a.getName, rule, a.getValues: _*)
+        else new Attribute(a.getName, rule, a.getValues*)
       }
     )
 
@@ -350,7 +350,7 @@ object LDAPEntry {
       sourceEntry.backed.getParsedDN,
       sourceEntry.backed.getAttributes.asScala.map { a =>
         if (ignoreCaseOnAttributes.contains(a.getName)) a
-        else new Attribute(a.getName, rule, a.getValues: _*)
+        else new Attribute(a.getName, rule, a.getValues*)
       }
     )
 
@@ -377,7 +377,7 @@ object LDAPEntry {
           target.backed,
           true,
           false,
-          attrs.toSeq: _*
+          attrs.toSeq*
         ) // false: use replace in LDIF
       }
     } else { // only compare attributes in e
@@ -386,13 +386,13 @@ object LDAPEntry {
         target.backed,
         true,
         false,
-        targetEntry.attributes.toSeq.map(_.getName): _*
+        targetEntry.attributes.toSeq.map(_.getName)*
       )
     }
     mods
   }.asScala
 
   def diff(sourceEntry: LDAPEntry, targetEntry: LDAPEntry, onlyAttributes: Seq[String]): Buffer[Modification] = {
-    com.unboundid.ldap.sdk.Entry.diff(sourceEntry.backed, targetEntry.backed, true, false, onlyAttributes: _*).asScala
+    com.unboundid.ldap.sdk.Entry.diff(sourceEntry.backed, targetEntry.backed, true, false, onlyAttributes*).asScala
   }
 }

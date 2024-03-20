@@ -37,15 +37,15 @@
 
 package com.normation.cfclerk.xmlparsers
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.NamedZioLogger
-import com.normation.cfclerk.domain._
-import com.normation.cfclerk.domain.implicits._
+import com.normation.cfclerk.domain.*
+import com.normation.cfclerk.domain.implicits.*
 import com.normation.cfclerk.services.SystemVariableSpecService
-import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
+import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.*
 import com.normation.inventory.domain.AgentType
 import scala.util.matching.Regex
-import scala.xml._
+import scala.xml.*
 
 /**
  * Parse a technique (metadata.xml file)
@@ -105,7 +105,7 @@ class TechniqueParser(
             }
             otherAgents        <- (xml \ "AGENT").toList.traverse(agent => parseAgentConfig(id, agent)).map(_.flatten)
             agentConfigs        = (compatibilityAgent ++ otherAgents
-                                  // we need to filter back for totally empty agent (most likely default one added for nothing)
+                                    // we need to filter back for totally empty agent (most likely default one added for nothing)
                                   ).filter(a => !List(a.templates, a.files, a.bundlesequence, a.runHooks).forall(_.isEmpty))
             _                  <- { // all agent config types must be different
               val duplicated =

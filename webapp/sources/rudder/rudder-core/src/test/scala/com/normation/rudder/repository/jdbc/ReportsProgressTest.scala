@@ -41,11 +41,11 @@ import com.normation.BoxSpecMatcher
 import com.normation.rudder.db.DB.StatusUpdate
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.reports.execution.LastProcessedReportRepositoryImpl
-import doobie.implicits._
+import doobie.implicits.*
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import zio.interop.catz._
+import zio.interop.catz.*
 
 /**
  *

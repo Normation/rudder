@@ -37,7 +37,7 @@
 
 package com.normation.rudder.hooks
 
-import better.files._
+import better.files.*
 import com.normation.rudder.hooks.HookReturnCode.Ok
 import com.normation.rudder.hooks.HookReturnCode.ScriptError
 import com.normation.rudder.hooks.HookReturnCode.SystemError
@@ -49,8 +49,8 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
-import scala.jdk.CollectionConverters._
-import zio.{System => _, _}
+import scala.jdk.CollectionConverters.*
+import zio.{System as _, *}
 
 /**
  * Test properties about NuProcess command, especially about

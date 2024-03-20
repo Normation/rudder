@@ -37,17 +37,17 @@
 
 package com.normation.rudder.services.queries
 
-import cats.implicits._
-import com.normation.box._
-import com.normation.errors._
+import cats.implicits.*
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core.LDAPConstants
-import com.normation.inventory.ldap.core.LDAPConstants._
-import com.normation.ldap.sdk._
-import com.normation.ldap.sdk.BuildFilter._
-import com.normation.ldap.sdk.syntax._
+import com.normation.inventory.ldap.core.LDAPConstants.*
+import com.normation.ldap.sdk.*
+import com.normation.ldap.sdk.BuildFilter.*
+import com.normation.ldap.sdk.syntax.*
 import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.logger.DynamicGroupLoggerPure
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
@@ -66,10 +66,10 @@ import com.unboundid.ldap.sdk.Filter
 import com.unboundid.ldap.sdk.LDAPSearchException
 import com.unboundid.ldap.sdk.ResultCode
 import com.unboundid.ldap.sdk.SearchRequest
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.joda.time.DateTime
-import zio.{System => _, _}
-import zio.syntax._
+import zio.{System as _, *}
+import zio.syntax.*
 
 /**
  * A service used to manage dynamic groups : find
@@ -122,7 +122,7 @@ class DynGroupServiceImpl(
   override def getAllDynGroups(): Box[Seq[NodeGroup]] = {
     for {
       con       <- ldap
-      entries   <- con.searchSub(rudderDit.GROUP.dn, dynGroupFilter, dynGroupAttrs: _*)
+      entries   <- con.searchSub(rudderDit.GROUP.dn, dynGroupFilter, dynGroupAttrs*)
       dyngroups <- ZIO.foreach(entries) { entry =>
                      mapper.entry2NodeGroup(entry).toIO.chainError(s"Can not map entry to a node group: ${entry}")
                    }
@@ -139,7 +139,7 @@ class DynGroupServiceImpl(
   def getAllDynGroupsWithandWithoutDependencies(): Box[(Seq[NodeGroupId], Seq[NodeGroupId])] = {
     (for {
       con       <- ldap
-      entries   <- con.searchSub(rudderDit.GROUP.dn, dynGroupFilter, dynGroupAttrs: _*)
+      entries   <- con.searchSub(rudderDit.GROUP.dn, dynGroupFilter, dynGroupAttrs*)
       dyngroups <- ZIO.foreach(entries) { entry =>
                      mapper.entry2NodeGroup(entry).toIO.chainError(s"Can not map entry to a node group: ${entry}")
                    }
@@ -254,7 +254,7 @@ object CheckPendingNodeInDynGroups {
 class CheckPendingNodeInDynGroups(
     queryChecker: QueryChecker
 ) {
-  import CheckPendingNodeInDynGroups._
+  import CheckPendingNodeInDynGroups.*
 
   /**
    * For each node in the list, find
@@ -318,7 +318,7 @@ class CheckPendingNodeInDynGroups(
         blocked: List[DynGroup],
         done:    List[(NodeGroupId, Set[NodeId])]
     ): IOResult[List[(NodeGroupId, Set[NodeId])]] = {
-      import com.normation.rudder.domain.queries.{And => CAnd}
+      import com.normation.rudder.domain.queries.And as CAnd
 
       NodeLogger.PendingNode.Policies.trace("TODO   :" + todo.debugString)
       NodeLogger.PendingNode.Policies.trace("BLOCKED:" + blocked.debugString)

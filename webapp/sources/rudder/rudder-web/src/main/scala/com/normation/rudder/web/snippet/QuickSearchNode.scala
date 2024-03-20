@@ -39,10 +39,10 @@ package com.normation.rudder.web.snippet
 
 import com.normation.rudder.services.quicksearch.QSMapping
 import com.normation.rudder.services.quicksearch.QSObject
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
-import net.liftweb.util.Helpers._
+import net.liftweb.util.Helpers.*
 import scala.xml.NodeSeq
 
 /**
@@ -63,10 +63,10 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
 
   // json view of the aliases
   val jsonDocinfo: String = {
-    import net.liftweb.json._
-    import net.liftweb.json.JsonAST.{compactRender => _, _}
-    import net.liftweb.json.JsonDSL._
-    import com.normation.rudder.services.quicksearch.QSObject._
+    import net.liftweb.json.*
+    import net.liftweb.json.JsonAST.{compactRender as _, *}
+    import net.liftweb.json.JsonDSL.*
+    import com.normation.rudder.services.quicksearch.QSObject.*
 
     val objs: List[JObject] = QSObject.all.toList.sortWith(sortQSObject).map { obj =>
       (

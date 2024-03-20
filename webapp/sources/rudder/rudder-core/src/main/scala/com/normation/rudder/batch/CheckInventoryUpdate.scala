@@ -43,10 +43,10 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.services.nodes.NodeInfoServiceCachedImpl
 import com.normation.utils.StringUuidGenerator
-import com.normation.zio._
+import com.normation.zio.*
 import org.joda.time.DateTime
 import scala.annotation.nowarn
-import zio._
+import zio.*
 
 /**
  * A scheduler which checks every N seconds if inventories are updated.

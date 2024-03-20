@@ -39,11 +39,11 @@ package com.normation.rudder.web.services
 
 import com.normation.utils.Utils.isEmpty
 import java.util.Locale
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.apache.commons.io.FilenameUtils
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
-import scala.collection.mutable.{Map => MutMap}
+import scala.collection.mutable.Map as MutMap
 
 class Serializer[T](techniques: (String, T => String)*) {
   // all the known properties for that type
@@ -107,7 +107,7 @@ class Translator[T](val to: Serializer[T], val from: Unserializer[T])
 
 class Translators {
 
-  private val reg: MutMap[Manifest[_], Translator[_]] = MutMap()
+  private val reg: MutMap[Manifest[?], Translator[?]] = MutMap()
 
   /**
    * Add a translator for the given type.

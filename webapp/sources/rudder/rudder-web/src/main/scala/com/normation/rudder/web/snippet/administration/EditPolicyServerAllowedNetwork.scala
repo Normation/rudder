@@ -39,7 +39,7 @@ package com.normation.rudder.web.snippet.administration
 
 import bootstrap.liftweb.RudderConfig
 import collection.mutable.Buffer
-import com.normation.box._
+import com.normation.box.*
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
@@ -49,16 +49,16 @@ import com.normation.rudder.domain.eventlog.AuthorizedNetworkModification
 import com.normation.rudder.domain.eventlog.UpdatePolicyServer
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.users.CurrentUser
-import com.normation.zio._
-import net.liftweb._
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
+import com.normation.zio.*
+import net.liftweb.*
+import net.liftweb.common.*
+import net.liftweb.http.*
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.CssSel
 import scala.xml.NodeSeq
-import util.Helpers._
+import util.Helpers.*
 
 class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
 

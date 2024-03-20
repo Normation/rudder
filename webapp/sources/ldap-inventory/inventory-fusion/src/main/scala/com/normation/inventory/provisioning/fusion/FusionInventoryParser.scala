@@ -37,24 +37,24 @@
 
 package com.normation.inventory.provisioning.fusion
 
-import com.normation.errors._
-import com.normation.inventory.domain._
-import com.normation.inventory.domain.AgentType._
+import com.normation.errors.*
+import com.normation.inventory.domain.*
+import com.normation.inventory.domain.AgentType.*
 import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.inventory.domain.NodeTimezone
-import com.normation.inventory.services.provisioning._
+import com.normation.inventory.services.provisioning.*
 import com.normation.utils.HostnameRegex
 import com.normation.utils.StringUuidGenerator
-import com.softwaremill.quicklens._
+import com.softwaremill.quicklens.*
 import java.net.InetAddress
 import java.util.Locale
 import net.liftweb.json.JsonAST.JString
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
-import scala.xml._
-import zio._
-import zio.syntax._
+import scala.xml.*
+import zio.*
+import zio.syntax.*
 
 class FusionInventoryParser(
     uuidGen:                      StringUuidGenerator,
@@ -285,7 +285,7 @@ class FusionInventoryParser(
 
   // the whole content of the CUSTOM_PROPERTIES attribute should be valid JSON Array
   def processCustomProperties(xml: NodeSeq): List[CustomProperty] = {
-    import net.liftweb.json._
+    import net.liftweb.json.*
 
     parseOpt(xml.text) match {
       case None       => Nil
@@ -894,7 +894,7 @@ class FusionInventoryParser(
   }
 
   def processNetworks(n: NodeSeq): Option[Network] = {
-    import com.normation.inventory.domain.InetAddressUtils._
+    import com.normation.inventory.domain.InetAddressUtils.*
     // in fusion inventory, we may have several IP address separated by comma
     def getAddresses(addressString: String): Seq[InetAddress] = {
       for {

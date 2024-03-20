@@ -38,8 +38,8 @@
 package com.normation.rudder.ncf
 
 import better.files.File
-import cats.implicits._
-import com.normation.box._
+import cats.implicits.*
+import com.normation.box.*
 import com.normation.cfclerk.domain
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueId
@@ -47,7 +47,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
 import com.normation.eventlog.EventActor
@@ -75,10 +75,10 @@ import java.nio.file.Paths
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
-import scala.xml.{Node => XmlNode}
+import scala.xml.Node as XmlNode
 import scala.xml.NodeSeq
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 sealed trait NcfError extends RudderError {
   def message:   String
@@ -530,7 +530,7 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
   // We need to add a reporting bundle for this method to generate a na report for any method with a condition != any/cfengine (which ~= true
   def truthyCondition(condition: String): Boolean = condition.isEmpty || condition == "any" || condition == "cfengine-community"
   def methodCallNeedReporting(methods: Map[BundleName, GenericMethod], parentBlock: List[MethodBlock])(
-      call:                            MethodCall
+      call: MethodCall
   ): Boolean = {
     val condition = formatCondition(call, parentBlock)
     methods
@@ -540,7 +540,7 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
   }
 
   def elemNeedReportingBundle(methods: Map[BundleName, GenericMethod], parentBlock: List[MethodBlock])(
-      elem:                            MethodElem
+      elem: MethodElem
   ): Boolean = {
     elem match {
       case c: MethodCall  => methodCallNeedReporting(methods, parentBlock)(c)
@@ -565,7 +565,7 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
   }
 
   // regex to match double quote characters not preceded by a backslash, and backslash not preceded by backslash or not followed by a backslash or a quote (simple or double)
-  def escapeCFEngineString(value: String):                                   String = value.replaceAll("""\\""", """\\\\""").replaceAll(""""""", """\\"""")
+  def escapeCFEngineString(value: String): String = value.replaceAll("""\\""", """\\\\""").replaceAll(""""""", """\\"""")
   def reportingContext(methodCall: MethodCall, classParameterValue: String): String = {
     val component = escapeCFEngineString(methodCall.component)
     val value     = escapeCFEngineString(classParameterValue)
@@ -708,8 +708,8 @@ class ClassicTechniqueWriter(basePath: String, parameterTypeService: ParameterTy
     val methodsCalls  = bundleAndMethodCallsList.map(_._2).mkString("")
 
     val content = {
-      import net.liftweb.json.JsonDSL._
-      import net.liftweb.json._
+      import net.liftweb.json.JsonDSL.*
+      import net.liftweb.json.*
 
       s"""# @name ${technique.name}
          |# @description ${technique.description.replaceAll("\\R", "\n# ")}
@@ -921,7 +921,7 @@ class DSCTechniqueWriter(
     s"techniques/${technique.category}/${technique.bundleName.value}/${technique.version.value}/technique.ps1"
 
   def formatDscMethodBlock(techniqueName: String, methods: Map[BundleName, GenericMethod], parentBlocks: List[MethodBlock])(
-      method:                             MethodElem
+      method: MethodElem
   ): PureResult[List[String]] = {
     method match {
       case c: MethodCall =>

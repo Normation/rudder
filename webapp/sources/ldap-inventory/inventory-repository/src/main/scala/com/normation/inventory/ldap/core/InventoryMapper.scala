@@ -37,23 +37,23 @@
 
 package com.normation.inventory.ldap.core
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.errors.RudderError
-import com.normation.inventory.domain._
-import com.normation.inventory.domain.InetAddressUtils._
+import com.normation.inventory.domain.*
+import com.normation.inventory.domain.InetAddressUtils.*
 import com.normation.inventory.domain.NodeTimezone
-import com.normation.inventory.ldap.core.InventoryMappingResult._
-import com.normation.inventory.ldap.core.InventoryMappingRudderError._
-import com.normation.inventory.ldap.core.LDAPConstants._
-import com.normation.ldap.sdk._
+import com.normation.inventory.ldap.core.InventoryMappingResult.*
+import com.normation.inventory.ldap.core.InventoryMappingRudderError.*
+import com.normation.inventory.ldap.core.LDAPConstants.*
+import com.normation.ldap.sdk.*
 import com.normation.ldap.sdk.schema.LDAPObjectClass
-import com.softwaremill.quicklens._
-import com.unboundid.ldap.sdk.{Version => _, _}
+import com.softwaremill.quicklens.*
+import com.unboundid.ldap.sdk.{Version as _, *}
 import java.net.InetAddress
-import net.liftweb.json._
+import net.liftweb.json.*
 import org.joda.time.DateTime
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 sealed trait InventoryMappingRudderError extends RudderError
 object InventoryMappingRudderError {
@@ -91,7 +91,7 @@ object InventoryMappingResult {
 ////////////////// Node Custom Properties /////////////////////////
 object CustomPropertiesSerialization {
 
-  import net.liftweb.json._
+  import net.liftweb.json.*
 
   /*
    * CustomProperty serialization must follow NodeProperties one:
@@ -496,7 +496,7 @@ class InventoryMapper(
       }
     }
     val machineTypes = objectClassNames.filter(x => machineTypesNames.exists(y => x.equalsIgnoreCase(y)))
-    val types = OC.demux(machineTypes.toSeq: _*) - OC(OC_MACHINE)
+    val types = OC.demux(machineTypes.toSeq*) - OC(OC_MACHINE)
     if (types.size == 1) objectClass2MachineType(types.head) else None
   }
 
@@ -560,7 +560,7 @@ class InventoryMapper(
         path: MachineInventory => PathModify[MachineInventory, Seq[T]]
     ): UIO[MachineInventory] = mapAndAddElementGeneric[MachineInventory, T](machine, entry, name, f, path)
 
-    import com.softwaremill.quicklens._
+    import com.softwaremill.quicklens.*
 
     entry match {
       case e if (e.isA(OC_MEMORY))     => mapAndAdd("memory slot", memorySlotFromEntry, _.modify(_.memories))
@@ -647,7 +647,7 @@ class InventoryMapper(
       if (list.isEmpty) {
         e deleteAttribute attr
       } else {
-        e.resetValuesTo(attr, list.map(_.getHostAddress): _*)
+        e.resetValuesTo(attr, list.map(_.getHostAddress)*)
       }
     }
 
@@ -720,7 +720,7 @@ class InventoryMapper(
   ////////////////// Node Custom Properties /////////////////////////
   object CustomPropertiesSerialization {
 
-    import net.liftweb.json._
+    import net.liftweb.json.*
 
     /*
      * CustomProperty serialization must follow NodeProperties one:
@@ -832,7 +832,7 @@ class InventoryMapper(
   // This won't include the Process in it, it needs to be done with method
   // processesFromNode below
   def treeFromNode(server: NodeInventory): LDAPTree = {
-    import com.normation.inventory.domain.AgentInfoSerialisation._
+    import com.normation.inventory.domain.AgentInfoSerialisation.*
 
     val dit  = ditService.getDit(server.main.status)
     // the root entry of the tree: the machine inventory
@@ -853,19 +853,19 @@ class InventoryMapper(
     root.setOpt(server.lastLoggedUserTime, A_LAST_LOGGED_USER_TIME, (x: DateTime) => GeneralizedTime(x).toString)
     root.setOpt(server.inventoryDate, A_INVENTORY_DATE, (x: DateTime) => GeneralizedTime(x).toString)
     root.setOpt(server.receiveDate, A_RECEIVE_DATE, (x: DateTime) => GeneralizedTime(x).toString)
-    root.resetValuesTo(A_AGENTS_NAME, server.agents.map(x => x.toJsonString):                        _*)
-    root.resetValuesTo(A_SOFTWARE_DN, server.softwareIds.map(x => dit.SOFTWARE.SOFT.dn(x).toString): _*)
-    root.resetValuesTo(A_EV, server.environmentVariables.map(x => Serialization.write(x)):           _*)
-    root.resetValuesTo(A_LIST_OF_IP, server.serverIps.distinct:                                      _*)
+    root.resetValuesTo(A_AGENTS_NAME, server.agents.map(x => x.toJsonString)*)
+    root.resetValuesTo(A_SOFTWARE_DN, server.softwareIds.map(x => dit.SOFTWARE.SOFT.dn(x).toString)*)
+    root.resetValuesTo(A_EV, server.environmentVariables.map(x => Serialization.write(x))*)
+    root.resetValuesTo(A_LIST_OF_IP, server.serverIps.distinct*)
     // we don't know their dit...
     root.resetValuesTo(
       A_CONTAINER_DN,
       server.machineId.map {
         case (id, status) =>
           ditService.getDit(status).MACHINES.MACHINE.dn(id).toString
-      }.toSeq:                                                                                       _*
+      }.toSeq*
     )
-    root.resetValuesTo(A_ACCOUNT, server.accounts:                                                   _*)
+    root.resetValuesTo(A_ACCOUNT, server.accounts*)
     server.timezone.foreach { timezone =>
       root.resetValuesTo(A_TIMEZONE_NAME, timezone.name)
       root.resetValuesTo(A_TIMEZONE_OFFSET, timezone.offset)
@@ -875,8 +875,8 @@ class InventoryMapper(
       root.addValues(A_CUSTOM_PROPERTY, cp.toJson)
     }
     server.softwareUpdates.foreach { s =>
-      import zio.json._
-      import JsonSerializers.implicits._
+      import zio.json.*
+      import JsonSerializers.implicits.*
       root.addValues(A_SOFTWARE_UPDATE, s.toJson)
     }
 
@@ -895,7 +895,7 @@ class InventoryMapper(
     val entry = createNodeModelFromServer(node)
 
     // convert the processes
-    entry.resetValuesTo(A_PROCESS, node.processes.map(x => Serialization.write(x)): _*)
+    entry.resetValuesTo(A_PROCESS, node.processes.map(x => Serialization.write(x))*)
     entry
   }
 
@@ -1108,8 +1108,8 @@ class InventoryMapper(
         })
       }
       softwareUpdates   <- ZIO.foreach(entry.valuesFor(A_SOFTWARE_UPDATE)) { a =>
-                             import JsonSerializers.implicits._
-                             import zio.json._
+                             import JsonSerializers.implicits.*
+                             import zio.json.*
                              a.fromJson[SoftwareUpdate] match {
                                case Left(err)    =>
                                  InventoryProcessingLogger.warn(

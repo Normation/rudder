@@ -37,18 +37,18 @@
 
 package com.normation.rudder.services.quicksearch
 
-import net.liftweb.common._
-import org.junit.runner._
+import net.liftweb.common.*
+import org.junit.runner.*
 import org.specs2.matcher.MatchResult
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 @RunWith(classOf[JUnitRunner])
 class QSRegexQueryParserTest extends Specification {
 
   import QSRegexQueryParser.parse
-  import com.normation.rudder.services.quicksearch.QSAttribute._
-  import com.normation.rudder.services.quicksearch.QSObject._
+  import com.normation.rudder.services.quicksearch.QSAttribute.*
+  import com.normation.rudder.services.quicksearch.QSObject.*
 
   implicit class BoxMustFails[T](t: Box[T]) {
     def mustFails(): MatchResult[Any] = t match {

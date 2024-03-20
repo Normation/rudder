@@ -45,7 +45,7 @@ import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.utils.StringUuidGenerator
-import com.normation.zio._
+import com.normation.zio.*
 
 class RemoveFaultyLdapEntries(
     woLDAPDirectiveRepository: WoDirectiveRepository,

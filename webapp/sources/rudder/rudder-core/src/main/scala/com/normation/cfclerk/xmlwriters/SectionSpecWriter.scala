@@ -1,9 +1,9 @@
 package com.normation.cfclerk.xmlwriters
 
-import com.normation.cfclerk.domain._
-import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
-import net.liftweb.common._
-import scala.xml._
+import com.normation.cfclerk.domain.*
+import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.*
+import net.liftweb.common.*
+import scala.xml.*
 
 trait SectionSpecWriter {
 

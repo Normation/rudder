@@ -40,13 +40,13 @@ package com.normation.rudder.web.components
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.web.ChooseTemplate
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
 import net.liftweb.http.SHtml
 import net.liftweb.http.SHtml.SelectableOption
-import net.liftweb.http.js._
-import net.liftweb.util.Helpers._
+import net.liftweb.http.js.*
+import net.liftweb.util.Helpers.*
 import scala.xml.NodeSeq
 
 /**

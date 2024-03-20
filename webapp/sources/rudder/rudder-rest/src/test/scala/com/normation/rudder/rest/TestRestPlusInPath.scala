@@ -42,15 +42,15 @@ import com.normation.inventory.domain.NodeInventory
 import com.normation.inventory.domain.NodeSummary
 import com.normation.rudder.NodeDetails
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.zio._
+import com.normation.zio.*
 import net.liftweb.common.Full
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.mocks.MockHttpServletRequest
 import org.junit.runner.RunWith
-import org.specs2.mutable._
+import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.BeforeAfterAll
-import zio.syntax._
+import zio.syntax.*
 
 // test that the "+" in path is correctly kept as a "+", not changed into " "
 // See: https://issues.rudder.io/issues/20943
@@ -64,7 +64,7 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
     .asInstanceOf[ch.qos.logback.classic.Logger]
     .setLevel(ch.qos.logback.classic.Level.OFF)
   val env = RestTestSetUp.newEnv
-  import com.softwaremill.quicklens._
+  import com.softwaremill.quicklens.*
   val myNode:               NodeInfo =
     env.mockNodes.node1.modify(_.node.id.value).setTo("my+node").modify(_.hostname).setTo("my+node.rudder.local")
   val nodeCom:              NodeInfo = env.mockNodes.node1.modify(_.node.id.value).setTo("node@domain.com")

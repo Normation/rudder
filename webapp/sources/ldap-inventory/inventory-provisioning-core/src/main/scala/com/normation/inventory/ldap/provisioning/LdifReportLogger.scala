@@ -40,9 +40,9 @@ package com.normation.inventory.ldap.provisioning
 import com.normation.NamedZioLogger
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType.REPLACE
-import com.unboundid.ldif._
+import com.unboundid.ldif.*
 import org.joda.time.DateTime
-import zio._
+import zio.*
 /*
  * Log given LDIF record in a file
  * with given name (a timestamp will be added)

@@ -37,7 +37,7 @@
 
 package com.normation.rudder.web.services
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.configuration.ConfigurationRepository
@@ -47,17 +47,17 @@ import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.web.ChooseTemplate
-import com.normation.rudder.web.model._
+import com.normation.rudder.web.model.*
 import com.normation.utils.DateFormaterService
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
+import net.liftweb.common.*
+import net.liftweb.http.*
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json.JsonAST.JString
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-import scala.collection._
+import scala.collection.*
 
 /**
  * Show the reports from cfengine (raw data)

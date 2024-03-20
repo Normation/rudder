@@ -40,7 +40,7 @@ package com.normation.inventory.domain
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormatter
 import org.joda.time.format.ISODateTimeFormat
-import zio.json._
+import zio.json.*
 
 /*
  * This file provide serializer for core inventory objects.

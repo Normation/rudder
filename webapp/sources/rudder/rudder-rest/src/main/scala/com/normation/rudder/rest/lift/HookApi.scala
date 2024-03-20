@@ -4,21 +4,22 @@ import better.files.File
 import com.normation.errors.IOResult
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonResponseObjects.JRHooks
-import com.normation.rudder.apidata.implicits._
+import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.hooks.RunHooks
-import com.normation.rudder.rest.{HookApi => API}
+import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.implicits._
+import com.normation.rudder.rest.HookApi as API
+import com.normation.rudder.rest.implicits.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import zio._
+import zio.*
 
 class HookApi(
     apiVService: HookApiService
 ) extends LiftApiModuleProvider[API] {
 
-  def schemas = API
+  def schemas: ApiModuleProvider[API] = API
 
   override def getLiftEndpoints(): List[LiftApiModule] = {
 
@@ -30,7 +31,7 @@ class HookApi(
   }
 
   object GetHooks extends LiftApiModule0 {
-    val schema = API.GetHooks
+    val schema: API.GetHooks.type = API.GetHooks
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       apiVService.listHooks().toLiftResponseList(params, schema)

@@ -37,12 +37,12 @@
 
 package com.normation.inventory.services.provisioning
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.Inventory
 import com.normation.inventory.domain.InventoryProcessingLogger
-import com.normation.zio._
+import com.normation.zio.*
 import net.liftweb.common.Loggable
-import zio._
+import zio.*
 
 /**
  *

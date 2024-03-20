@@ -38,13 +38,13 @@
 package com.normation.rudder.services.policies
 
 import com.normation.NamedZioLogger
-import com.normation.box._
+import com.normation.box.*
 import com.normation.cfclerk.domain.RootTechniqueCategoryId
 import com.normation.cfclerk.domain.SubTechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.cfclerk.services._
-import com.normation.errors._
+import com.normation.cfclerk.services.*
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
@@ -54,11 +54,11 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.utils.StringUuidGenerator
-import com.normation.zio._
+import com.normation.zio.*
 import net.liftweb.common.Box
 import org.joda.time.DateTime
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  * This handler is in charge to maintain a correct state

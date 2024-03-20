@@ -36,29 +36,29 @@
  */
 
 package com.normation.rudder.rest.internal
-import cats.syntax.all._
-import com.normation.box._
-import com.normation.eventlog._
+import cats.syntax.all.*
+import com.normation.box.*
+import com.normation.eventlog.*
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils._
+import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.users.CurrentUser
-import com.normation.rudder.web.services._
+import com.normation.rudder.web.services.*
 import com.normation.utils.DateFormaterService
-import doobie._
-import doobie.implicits._
-import doobie.implicits.javasql._
-import net.liftweb.common._
+import doobie.*
+import doobie.implicits.*
+import doobie.implicits.javasql.*
+import net.liftweb.common.*
 import net.liftweb.http.JsonResponse
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.S
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonAST
-import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonDSL.*
 import net.liftweb.json.JValue
 import net.liftweb.util.Helpers.tryo
 import org.joda.time.DateTime
@@ -75,7 +75,7 @@ class EventLogAPI(
   }
 
   def serialize(event: EventLog): JValue = {
-    import net.liftweb.json.JsonDSL._
+    import net.liftweb.json.JsonDSL.*
 
     (("id"           -> event.id)
     ~ ("date"        -> DateFormaterService.getDisplayDate(event.creationDate))

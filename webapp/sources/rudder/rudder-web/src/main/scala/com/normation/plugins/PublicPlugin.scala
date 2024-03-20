@@ -48,7 +48,7 @@ import net.liftweb.util.Helpers
 import scala.xml.NodeSeq
 
 trait PluginEnableImpl extends PluginStatus {
-  override val current     = PluginStatusInfo.EnabledNoLicense
+  override val current: PluginStatusInfo = PluginStatusInfo.EnabledNoLicense
   override def isEnabled() = true
 }
 
@@ -158,7 +158,7 @@ trait DefaultPluginDef extends RudderPluginDef {
               PluginLogger.error(s"There is already a menu with id (${newMenu.loc.name}, please contact Plugin team")
               m
             } else {
-              Menu(l, (m.kids :+ newMenu).sortBy(_.loc.name): _*)
+              Menu(l, (m.kids :+ newMenu).sortBy(_.loc.name)*)
             }
           case m                                     => m
         }

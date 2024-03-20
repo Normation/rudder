@@ -52,9 +52,9 @@ import com.normation.rudder.ncf.TechniqueReader
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.utils.StringUuidGenerator
-import com.normation.zio._
-import zio._
-import zio.syntax._
+import com.normation.zio.*
+import zio.*
+import zio.syntax.*
 
 sealed trait NcfTechniqueUpgradeError extends RudderError {
   def msg:       String
@@ -92,7 +92,7 @@ class CheckNcfTechniqueUpdate(
 
     val ncfTechniqueUpdateFlag = File("/opt/rudder/etc/force_ncf_technique_update")
 
-    import com.normation.errors._
+    import com.normation.errors.*
 
     def updateNcfTechniques = {
       for {

@@ -38,11 +38,11 @@
 package com.normation.ldap.sdk
 
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
-import com.normation.zio._
+import com.normation.zio.*
 import com.unboundid.ldap.sdk.DN
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 /**
  * A simple test class to check that the demo data file is up to date
@@ -105,7 +105,7 @@ class LoadDemoDataTest extends Specification {
        * 'biosName=bios1,machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration' because the parent for the new DN
        * 'biosName=bios1,machineId=machine-does-not-exists,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration' does not exist.
        */
-      res must beAnInstanceOf[Left[LDAPRudderError, _]] and (
+      res must beAnInstanceOf[Left[LDAPRudderError, ?]] and (
         ldap.newConnection.flatMap(_.exists(dn)).runNow must beTrue
       )
 
@@ -119,7 +119,7 @@ class LoadDemoDataTest extends Specification {
 
       val res = ldap.newConnection.flatMap(_.save(entry)).either.runNow
 
-      res must beAnInstanceOf[Left[LDAPRudderError, _]]
+      res must beAnInstanceOf[Left[LDAPRudderError, ?]]
     }
   }
 }

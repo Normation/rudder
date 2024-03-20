@@ -37,15 +37,15 @@
 
 package com.normation.inventory.ldap.core
 
-import com.normation.errors._
-import com.normation.history.impl._
-import com.normation.inventory.domain._
+import com.normation.errors.*
+import com.normation.history.impl.*
+import com.normation.inventory.domain.*
 import com.normation.ldap.sdk.LDAPEntry
 import com.unboundid.ldap.sdk.Entry
-import com.unboundid.ldif._
+import com.unboundid.ldif.*
 import java.io.File
 import java.io.FileNotFoundException
-import zio._
+import zio.*
 
 /**
  * A service that write and read ServerAndMachine inventory data to/from file.
@@ -94,7 +94,7 @@ class FullInventoryFileParser(
 }
 
 object NodeIdConverter extends IdToFilenameConverter[NodeId] {
-  override def idToFilename(id: NodeId):   String = id.value
+  override def idToFilename(id:   NodeId): String = id.value
   override def filenameToId(name: String): NodeId = NodeId(name)
 }
 

@@ -37,7 +37,7 @@
 package com.normation.appconfig
 
 import com.normation.NamedZioLogger
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.rudder.batch.AsyncWorkflowInfo
 import com.normation.rudder.batch.PolicyGenerationTrigger
@@ -55,9 +55,9 @@ import com.normation.rudder.domain.eventlog.ModifySendServerMetricsEventType
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.domain.policies.PolicyMode._
+import com.normation.rudder.domain.policies.PolicyMode.*
 import com.normation.rudder.domain.policies.PolicyModeOverrides
-import com.normation.rudder.reports._
+import com.normation.rudder.reports.*
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.FullCompliance
@@ -65,7 +65,7 @@ import com.normation.rudder.services.policies.SendMetrics
 import com.normation.rudder.services.reports.UnexpectedReportBehavior
 import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
-import com.normation.rudder.services.servers.RelaySynchronizationMethod._
+import com.normation.rudder.services.servers.RelaySynchronizationMethod.*
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.services.workflows.WorkflowUpdate
 import com.typesafe.config.Config
@@ -73,8 +73,8 @@ import com.typesafe.config.ConfigFactory
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import scala.concurrent.duration.Duration
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /**
  * A service that Read mutable (runtime) configuration properties
@@ -160,7 +160,7 @@ trait ReadConfigService {
       GlobalPolicyMode(mode, if (overridable) PolicyModeOverrides.Always else PolicyModeOverrides.Unoverridable)
     }
   }
-  def rudder_policy_mode_name(): IOResult[PolicyMode]
+  def rudder_policy_mode_name():   IOResult[PolicyMode]
   def rudder_policy_overridable(): IOResult[Boolean]
 
   /**
@@ -480,21 +480,21 @@ class GenericConfigService(
   }
 
   private[this] def save[T](name: String, value: T, modifyGlobalPropertyInfo: Option[ModifyGlobalPropertyInfo] = None)(implicit
-      ser:                        T => String
+      ser: T => String
   ): IOResult[RudderWebProperty] = {
     val p = RudderWebProperty(RudderWebPropertyName(name), ser(value), "")
     repos.saveConfigParameter(p, modifyGlobalPropertyInfo)
   }
 
-  implicit private[this] def serInt(x: Int):                     String = x.toString
-  implicit private[this] def serPolicyMode(x: PolicyMode):       String = x.name
+  implicit private[this] def serInt(x:           Int):           String = x.toString
+  implicit private[this] def serPolicyMode(x:    PolicyMode):    String = x.name
   implicit private[this] def serFeatureSwitch(x: FeatureSwitch): String = x.name
 
   implicit private[this] def toBoolean(p: RudderWebProperty): Boolean = p.value.toLowerCase match {
     case "true" | "1" => true
     case _            => false
   }
-  implicit private[this] def serBoolean(x: Boolean):          String  = if (x) "true" else "false"
+  implicit private[this] def serBoolean(x: Boolean): String = if (x) "true" else "false"
 
   // default is HTTPS, in particular for ""
   implicit private[this] def toReportProtocol(p: RudderWebProperty): AgentReportingProtocol = p.value match {
@@ -581,12 +581,12 @@ class GenericConfigService(
       FeatureSwitch.Disabled
   }
 
-  def rudder_ui_changeMessage_enabled():                      IOResult[Boolean] = get("rudder_ui_changeMessage_enabled")
-  def rudder_ui_changeMessage_mandatory():                    IOResult[Boolean] = get("rudder_ui_changeMessage_mandatory")
-  def rudder_ui_changeMessage_explanation():                  IOResult[String]  = get("rudder_ui_changeMessage_explanation")
-  def set_rudder_ui_changeMessage_enabled(value: Boolean):    IOResult[Unit]    = save("rudder_ui_changeMessage_enabled", value)
-  def set_rudder_ui_changeMessage_mandatory(value: Boolean):  IOResult[Unit]    = save("rudder_ui_changeMessage_mandatory", value)
-  def set_rudder_ui_changeMessage_explanation(value: String): IOResult[Unit]    = save("rudder_ui_changeMessage_explanation", value)
+  def rudder_ui_changeMessage_enabled():     IOResult[Boolean] = get("rudder_ui_changeMessage_enabled")
+  def rudder_ui_changeMessage_mandatory():   IOResult[Boolean] = get("rudder_ui_changeMessage_mandatory")
+  def rudder_ui_changeMessage_explanation(): IOResult[String]  = get("rudder_ui_changeMessage_explanation")
+  def set_rudder_ui_changeMessage_enabled(value:     Boolean): IOResult[Unit] = save("rudder_ui_changeMessage_enabled", value)
+  def set_rudder_ui_changeMessage_mandatory(value:   Boolean): IOResult[Unit] = save("rudder_ui_changeMessage_mandatory", value)
+  def set_rudder_ui_changeMessage_explanation(value: String):  IOResult[Unit] = save("rudder_ui_changeMessage_explanation", value)
 
   ///// workflows /////
   def rudder_workflow_enabled():                        IOResult[Boolean] = {
@@ -602,7 +602,7 @@ class GenericConfigService(
   def set_rudder_workflow_validate_all(value: Boolean): IOResult[Unit]    =
     save("rudder_workflow_validate_all", value).unit
 
-  def set_rudder_workflow_enabled(value: Boolean):         IOResult[Unit] = {
+  def set_rudder_workflow_enabled(value: Boolean): IOResult[Unit] = {
     if (workflowLevel.workflowLevelAllowsEnable) {
       save("rudder_workflow_enabled", value) <*
       IOResult.attempt(workflowUpdate ! WorkflowUpdate)
@@ -616,18 +616,18 @@ class GenericConfigService(
   def set_rudder_workflow_self_deployment(value: Boolean): IOResult[Unit] = save("rudder_workflow_self_deployment", value)
 
   ///// CFEngine server /////
-  def cfengine_server_denybadclocks():                   IOResult[Boolean] = get("cfengine_server_denybadclocks")
-  def set_cfengine_server_denybadclocks(value: Boolean): IOResult[Unit]    = save("cfengine_server_denybadclocks", value)
-  def cfengine_server_skipidentify():                    IOResult[Boolean] = get("cfengine_server_skipidentify")
-  def set_cfengine_server_skipidentify(value: Boolean):  IOResult[Unit]    = save("cfengine_server_skipidentify", value)
+  def cfengine_server_denybadclocks(): IOResult[Boolean] = get("cfengine_server_denybadclocks")
+  def set_cfengine_server_denybadclocks(value: Boolean): IOResult[Unit] = save("cfengine_server_denybadclocks", value)
+  def cfengine_server_skipidentify(): IOResult[Boolean] = get("cfengine_server_skipidentify")
+  def set_cfengine_server_skipidentify(value: Boolean): IOResult[Unit] = save("cfengine_server_skipidentify", value)
 
   // Relay synchronization configuration
-  def relay_server_sync_method():                                      IOResult[RelaySynchronizationMethod] = get("relay.sync.method")
-  def set_relay_server_sync_method(value: RelaySynchronizationMethod): IOResult[Unit]                       = save("relay.sync.method", value.value)
-  def relay_server_syncpromises():                                     IOResult[Boolean]                    = get("relay.sync.promises")
-  def set_relay_server_syncpromises(value: Boolean):                   IOResult[Unit]                       = save("relay.sync.promises", value)
-  def relay_server_syncsharedfiles():                                  IOResult[Boolean]                    = get("relay.sync.sharedfiles")
-  def set_relay_server_syncsharedfiles(value: Boolean):                IOResult[Unit]                       = save("relay.sync.sharedfiles", value)
+  def relay_server_sync_method(): IOResult[RelaySynchronizationMethod] = get("relay.sync.method")
+  def set_relay_server_sync_method(value: RelaySynchronizationMethod): IOResult[Unit] = save("relay.sync.method", value.value)
+  def relay_server_syncpromises(): IOResult[Boolean] = get("relay.sync.promises")
+  def set_relay_server_syncpromises(value: Boolean): IOResult[Unit] = save("relay.sync.promises", value)
+  def relay_server_syncsharedfiles(): IOResult[Boolean] = get("relay.sync.sharedfiles")
+  def set_relay_server_syncsharedfiles(value: Boolean): IOResult[Unit] = save("relay.sync.sharedfiles", value)
 
   def agent_run_interval():                                                          IOResult[Int]  = getIO("agent_run_interval")
   def set_agent_run_interval(value: Int, actor: EventActor, reason: Option[String]): IOResult[Unit] = {
@@ -654,10 +654,10 @@ class GenericConfigService(
   }
 
   ///// CFEngine server /////
-  def cfengine_modified_files_ttl():               IOResult[Int]  = getIO("cfengine_modified_files_ttl")
+  def cfengine_modified_files_ttl(): IOResult[Int] = getIO("cfengine_modified_files_ttl")
   def set_cfengine_modified_files_ttl(value: Int): IOResult[Unit] = save("cfengine_modified_files_ttl", value)
-  def cfengine_outputs_ttl():                      IOResult[Int]  = getIO("cfengine_outputs_ttl")
-  def set_cfengine_outputs_ttl(value: Int):        IOResult[Unit] = save("cfengine_outputs_ttl", value)
+  def cfengine_outputs_ttl(): IOResult[Int] = getIO("cfengine_outputs_ttl")
+  def set_cfengine_outputs_ttl(value: Int): IOResult[Unit] = save("cfengine_outputs_ttl", value)
 
   /**
    * Compliance mode
@@ -706,8 +706,8 @@ class GenericConfigService(
   /**
    * Should we display recent changes graphs  ?
    */
-  def display_changes_graph():                           IOResult[Boolean] = get("display_changes_graph")
-  def set_display_changes_graph(displayGraphs: Boolean): IOResult[Unit]    = save("display_changes_graph", displayGraphs)
+  def display_changes_graph(): IOResult[Boolean] = get("display_changes_graph")
+  def set_display_changes_graph(displayGraphs: Boolean): IOResult[Unit] = save("display_changes_graph", displayGraphs)
 
   /**
    * Should we always display compliance/recent change columns ?
@@ -730,8 +730,8 @@ class GenericConfigService(
   /**
    * Should we enable import/export archive API?
    */
-  def rudder_featureSwitch_archiveApi():                          IOResult[FeatureSwitch] = get("rudder_featureSwitch_archiveApi")
-  def set_rudder_featureSwitch_archiveApi(status: FeatureSwitch): IOResult[Unit]          = save("rudder_featureSwitch_archiveApi", status)
+  def rudder_featureSwitch_archiveApi(): IOResult[FeatureSwitch] = get("rudder_featureSwitch_archiveApi")
+  def set_rudder_featureSwitch_archiveApi(status: FeatureSwitch): IOResult[Unit] = save("rudder_featureSwitch_archiveApi", status)
 
   /**
    * Default value for node properties after acceptation:
@@ -749,8 +749,8 @@ class GenericConfigService(
    * Do we allow duplicate hostname for nodes?
    * (true: yes, duplicate hostname are accepted)
    */
-  def node_accept_duplicated_hostname():                    IOResult[Boolean] = get("node_accept_duplicated_hostname")
-  def set_node_accept_duplicated_hostname(accept: Boolean): IOResult[Unit]    = save("node_accept_duplicated_hostname", accept)
+  def node_accept_duplicated_hostname(): IOResult[Boolean] = get("node_accept_duplicated_hostname")
+  def set_node_accept_duplicated_hostname(accept: Boolean): IOResult[Unit] = save("node_accept_duplicated_hostname", accept)
 
   def rudder_compliance_unexpected_report_interpretation():                                         IOResult[UnexpectedReportInterpretation] = {
     for {
@@ -774,34 +774,34 @@ class GenericConfigService(
   }
 
   ///// debug / perf /////
-  def rudder_compute_changes():                                IOResult[Boolean] = get("rudder_compute_changes")
-  def set_rudder_compute_changes(value: Boolean):              IOResult[Unit]    = save("rudder_compute_changes", value)
-  def rudder_generation_compute_dyngroups():                   IOResult[Boolean] = get("rudder_generation_compute_dyngroups")
-  def set_rudder_generation_compute_dyngroups(value: Boolean): IOResult[Unit]    = save("rudder_generation_compute_dyngroups", value)
-  def rudder_save_db_compliance_levels():                      IOResult[Boolean] = get("rudder_save_db_compliance_levels")
-  def set_rudder_save_db_compliance_levels(value: Boolean):    IOResult[Unit]    = save("rudder_save_db_compliance_levels", value)
-  def rudder_save_db_compliance_details():                     IOResult[Boolean] = get("rudder_save_db_compliance_details")
-  def set_rudder_save_db_compliance_details(value: Boolean):   IOResult[Unit]    = save("rudder_save_db_compliance_details", value)
+  def rudder_compute_changes(): IOResult[Boolean] = get("rudder_compute_changes")
+  def set_rudder_compute_changes(value: Boolean): IOResult[Unit] = save("rudder_compute_changes", value)
+  def rudder_generation_compute_dyngroups(): IOResult[Boolean] = get("rudder_generation_compute_dyngroups")
+  def set_rudder_generation_compute_dyngroups(value: Boolean): IOResult[Unit] = save("rudder_generation_compute_dyngroups", value)
+  def rudder_save_db_compliance_levels(): IOResult[Boolean] = get("rudder_save_db_compliance_levels")
+  def set_rudder_save_db_compliance_levels(value: Boolean): IOResult[Unit] = save("rudder_save_db_compliance_levels", value)
+  def rudder_save_db_compliance_details(): IOResult[Boolean] = get("rudder_save_db_compliance_details")
+  def set_rudder_save_db_compliance_details(value: Boolean): IOResult[Unit] = save("rudder_save_db_compliance_details", value)
 
   /// generation: js timeout, parallelism
-  def rudder_generation_max_parallelism():                  IOResult[String] = get("rudder_generation_max_parallelism")
-  def set_rudder_generation_max_parallelism(value: String): IOResult[Unit]   = save("rudder_generation_max_parallelism", value)
-  def rudder_generation_js_timeout():                       IOResult[Int]    = getIO("rudder_generation_js_timeout")
-  def set_rudder_generation_js_timeout(value: Int):         IOResult[Unit]   = save("rudder_generation_js_timeout", value)
+  def rudder_generation_max_parallelism(): IOResult[String] = get("rudder_generation_max_parallelism")
+  def set_rudder_generation_max_parallelism(value: String): IOResult[Unit] = save("rudder_generation_max_parallelism", value)
+  def rudder_generation_js_timeout(): IOResult[Int] = getIO("rudder_generation_js_timeout")
+  def set_rudder_generation_js_timeout(value: Int): IOResult[Unit] = save("rudder_generation_js_timeout", value)
 
-  def rudder_generation_continue_on_error():                   IOResult[Boolean] = get("rudder_generation_continue_on_error")
-  def set_rudder_generation_continue_on_error(value: Boolean): IOResult[Unit]    = save("rudder_generation_continue_on_error", value)
+  def rudder_generation_continue_on_error(): IOResult[Boolean] = get("rudder_generation_continue_on_error")
+  def set_rudder_generation_continue_on_error(value: Boolean): IOResult[Unit] = save("rudder_generation_continue_on_error", value)
 
-  def rudder_generation_delay():                    IOResult[Duration] = getIO("rudder_generation_delay")
-  def set_rudder_generation_delay(value: Duration): IOResult[Unit]     = save("rudder_generation_delay", value.toString)
+  def rudder_generation_delay(): IOResult[Duration] = getIO("rudder_generation_delay")
+  def set_rudder_generation_delay(value: Duration): IOResult[Unit] = save("rudder_generation_delay", value.toString)
 
-  def rudder_generation_trigger():                                   IOResult[PolicyGenerationTrigger] = getIO("rudder_generation_trigger")
-  def set_rudder_generation_trigger(value: PolicyGenerationTrigger): IOResult[Unit]                    = save("rudder_generation_trigger", value)
+  def rudder_generation_trigger(): IOResult[PolicyGenerationTrigger] = getIO("rudder_generation_trigger")
+  def set_rudder_generation_trigger(value: PolicyGenerationTrigger): IOResult[Unit] = save("rudder_generation_trigger", value)
 
   def rudder_compute_dyngroups_max_parallelism():                  IOResult[String] = get("rudder_compute_dyngroups_max_parallelism")
   def set_rudder_compute_dyngroups_max_parallelism(value: String): IOResult[Unit]   =
     save("rudder_compute_dyngroups_max_parallelism", value)
 
-  def rudder_setup_done():                   IOResult[Boolean] = get("rudder_setup_done")
-  def set_rudder_setup_done(value: Boolean): IOResult[Unit]    = save("rudder_setup_done", value)
+  def rudder_setup_done(): IOResult[Boolean] = get("rudder_setup_done")
+  def set_rudder_setup_done(value: Boolean): IOResult[Unit] = save("rudder_setup_done", value)
 }

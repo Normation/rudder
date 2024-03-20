@@ -39,8 +39,8 @@ package com.normation.rudder.services.servers
 
 import com.normation.inventory.domain.NodeId
 import inet.ipaddr.IPAddressString
-import io.scalaland.chimney.dsl._
-import zio.json._
+import io.scalaland.chimney.dsl.*
+import zio.json.*
 
 /*
  * All policy servers. A root and 0 or more relays

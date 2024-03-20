@@ -39,14 +39,14 @@ package com.normation.rudder.migration
 
 import com.normation.rudder.db.DB
 import com.normation.rudder.db.Doobie
-import com.normation.rudder.db.Doobie._
-import doobie.implicits._
+import com.normation.rudder.db.Doobie.*
+import doobie.implicits.*
 import org.joda.time.DateTime
-import zio.interop.catz._
+import zio.interop.catz.*
 
 class MigrationEventLogRepository(val db: Doobie) {
 
-  import db._
+  import db.*
 
   val table = "migrationeventlog"
 

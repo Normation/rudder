@@ -37,18 +37,18 @@
 
 package com.normation.inventory.ldap.provisioning
 
-import com.normation.errors._
-import com.normation.inventory.domain._
-import com.normation.inventory.ldap.core._
-import com.normation.inventory.ldap.core.LDAPConstants._
-import com.normation.inventory.services.provisioning._
-import com.normation.ldap.sdk._
-import com.normation.ldap.sdk.BuildFilter._
-import com.normation.ldap.sdk.LDAPIOResult._
+import com.normation.errors.*
+import com.normation.inventory.domain.*
+import com.normation.inventory.ldap.core.*
+import com.normation.inventory.ldap.core.LDAPConstants.*
+import com.normation.inventory.services.provisioning.*
+import com.normation.ldap.sdk.*
+import com.normation.ldap.sdk.BuildFilter.*
+import com.normation.ldap.sdk.LDAPIOResult.*
 import com.unboundid.ldap.sdk.DN
-import net.liftweb.common._
-import zio._
-import zio.syntax._
+import net.liftweb.common.*
+import zio.*
+import zio.syntax.*
 
 /////
 ///// these finders are used for VMs. For the machine linked to a node, the ID is derived from nodeId.

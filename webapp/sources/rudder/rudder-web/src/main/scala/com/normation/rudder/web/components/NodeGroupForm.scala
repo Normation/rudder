@@ -38,12 +38,12 @@
 package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
+import com.normation.box.*
 import com.normation.errors.IOResult
 import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.AuthorizationType
-import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.nodes.*
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.NewQuery
 import com.normation.rudder.domain.queries.Query
@@ -58,18 +58,18 @@ import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.popup.CreateCloneGroupPopup
 import com.normation.rudder.web.components.popup.ModificationValidationPopup
-import com.normation.rudder.web.model._
-import com.normation.zio._
-import net.liftweb.common._
-import net.liftweb.http._
+import com.normation.rudder.web.model.*
+import com.normation.zio.*
+import net.liftweb.common.*
+import net.liftweb.http.*
 import net.liftweb.http.LocalSnippet
-import net.liftweb.http.js._
-import net.liftweb.http.js.JE._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.util._
-import net.liftweb.util.Helpers._
-import scala.xml._
-import zio.syntax._
+import net.liftweb.http.js.*
+import net.liftweb.http.js.JE.*
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.util.*
+import net.liftweb.util.Helpers.*
+import scala.xml.*
+import zio.syntax.*
 
 object NodeGroupForm {
   val templatePath: List[String] = "templates-hidden" :: "components" :: "NodeGroupForm" :: Nil
@@ -104,7 +104,7 @@ class NodeGroupForm(
     },
     onFailureCallback: () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with DefaultExtendableSnippet[NodeGroupForm] with Loggable {
-  import NodeGroupForm._
+  import NodeGroupForm.*
 
   private[this] val nodeInfoService            = RudderConfig.nodeInfoService
   private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer

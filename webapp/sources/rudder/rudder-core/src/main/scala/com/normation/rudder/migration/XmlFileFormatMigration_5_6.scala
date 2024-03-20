@@ -99,7 +99,7 @@ class ControlXmlFileFormatMigration_5_6(
     override val previousMigrationController: Option[ControlXmlFileFormatMigration],
     val batchSize:                            Int = 1000
 ) extends ControlXmlFileFormatMigration with Migration_5_6_Definition {
-  override val batchMigrators: List[BatchElementMigration[_ <: MigrableEntity] with Migration_5_6_Definition] = (
+  override val batchMigrators: List[BatchElementMigration[? <: MigrableEntity] with Migration_5_6_Definition] = (
     new EventLogsMigration_5_6(doobie, batchSize)
       :: new ChangeRequestsMigration_5_6(doobie, batchSize)
       :: Nil

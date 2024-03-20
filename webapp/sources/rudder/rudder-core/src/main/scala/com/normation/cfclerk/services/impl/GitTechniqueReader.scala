@@ -38,22 +38,22 @@
 package com.normation.cfclerk.services.impl
 
 import com.normation.GitVersion
-import com.normation.cfclerk.domain._
-import com.normation.cfclerk.services._
-import com.normation.cfclerk.services.impl.GitTechniqueReader._
+import com.normation.cfclerk.domain.*
+import com.normation.cfclerk.services.*
+import com.normation.cfclerk.services.impl.GitTechniqueReader.*
 import com.normation.cfclerk.xmlparsers.TechniqueParser
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.rudder.domain.logger.TechniqueReaderLoggerPure
 import com.normation.rudder.git.ExactFileTreeFilter
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRevisionProvider
-import com.normation.zio._
+import com.normation.zio.*
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.io.IOException
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.eclipse.jgit.diff.DiffEntry.ChangeType
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.errors.MissingObjectException
@@ -63,11 +63,11 @@ import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.treewalk.TreeWalk
 import org.xml.sax.SAXParseException
 import scala.collection.immutable.SortedMap
-import scala.collection.mutable.{Map => MutMap}
-import scala.jdk.CollectionConverters._
-import scala.xml._
-import zio._
-import zio.syntax._
+import scala.collection.mutable.Map as MutMap
+import scala.jdk.CollectionConverters.*
+import scala.xml.*
+import zio.*
+import zio.syntax.*
 
 /**
  *
@@ -404,7 +404,7 @@ class GitTechniqueReader(
   }
 
   override def getResourceContent[T](techniqueResourceId: TechniqueResourceId, postfixName: Option[String])(
-      useIt:                                              Option[InputStream] => IOResult[T]
+      useIt: Option[InputStream] => IOResult[T]
   ): IOResult[T] = {
     // build a treewalk with the path, given by TechniqueTemplateId
     // here, we don't use rev in path, it will be used (if necessary) during walk
@@ -586,7 +586,7 @@ class GitTechniqueReader(
         }
       }
     }
-    import scala.jdk.CollectionConverters._
+    import scala.jdk.CollectionConverters.*
     prop.asScala.toMap
 
   }

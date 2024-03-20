@@ -47,7 +47,7 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.zio._
+import com.normation.zio.*
 import net.liftweb.common.Loggable
 import net.liftweb.http.S
 import net.liftweb.http.js.JsCmd

@@ -40,15 +40,15 @@ package com.normation.rudder.domain.nodes
 import com.normation.BoxSpecMatcher
 import com.normation.errors.PureResult
 import com.normation.rudder.domain.properties.GenericProperty
-import com.normation.rudder.domain.properties.GenericProperty._
+import com.normation.rudder.domain.properties.GenericProperty.*
 import com.normation.rudder.domain.properties.NodeProperty
 import com.typesafe.config.ConfigValueFactory
-import java.util.{ArrayList => JList}
-import java.util.{HashMap => JMap}
-import net.liftweb.common._
+import java.util.ArrayList as JList
+import java.util.HashMap as JMap
+import net.liftweb.common.*
 import org.junit.runner.RunWith
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 @RunWith(classOf[JUnitRunner])
 class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatcher {

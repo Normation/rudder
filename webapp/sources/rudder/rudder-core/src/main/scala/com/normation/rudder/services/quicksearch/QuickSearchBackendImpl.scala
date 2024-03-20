@@ -37,10 +37,10 @@
 
 package com.normation.rudder.services.quicksearch
 
-import com.normation.box._
+import com.normation.box.*
 import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.inventory.ldap.core.LDAPConstants._
-import com.normation.ldap.sdk.BuildFilter._
+import com.normation.inventory.ldap.core.LDAPConstants.*
+import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.ldap.sdk.LDAPBoolean
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPEntry
@@ -48,7 +48,7 @@ import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.ldap.sdk.Sub
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.policies.Tag
 import com.normation.rudder.domain.policies.TagName
 import com.normation.rudder.domain.policies.TagValue
@@ -83,8 +83,8 @@ object QSPattern {
  */
 
 object QSDirectiveBackend extends Loggable {
-  import QSAttribute.{DirectiveId => QSDirectiveId, _}
-  import QSObject.{Directive => QSDirective}
+  import QSAttribute.{DirectiveId as QSDirectiveId, *}
+  import QSObject.Directive as QSDirective
   import QuickSearchResultId.QRDirectiveId
   import com.normation.rudder.domain.policies.Directive
   import com.normation.rudder.repository.FullActiveTechnique
@@ -201,8 +201,8 @@ object QSDirectiveBackend extends Loggable {
  * but not Directives.
  */
 object QSLdapBackend {
-  import QSAttribute._
-  import QSObject._
+  import QSAttribute.*
+  import QSObject.*
 
   /**
    * The actual search logic, everything else is just glue to make it works.
@@ -218,8 +218,8 @@ object QSLdapBackend {
     val ocFilter           = query.objectClass.map(_.filter).flatten.toSeq
     val attrFilter         = query.attributes.map(_.filter(query.userToken)).flatten.toSeq
     val filter             = AND(
-      OR(ocFilter:   _*),
-      OR(attrFilter: _*)
+      OR(ocFilter*),
+      OR(attrFilter*)
     )
     // the ldap query part. It should be in a box, but the person who implemented ldap backend was
     // not really strict on the semantic
@@ -230,7 +230,7 @@ object QSLdapBackend {
     for {
       connection <- ldap
       nodeIds    <- nodeInfos.getAllNodesIds()
-      entries    <- connection.search(nodeDit.BASE_DN, Sub, filter, returnedAttributes: _*)
+      entries    <- connection.search(nodeDit.BASE_DN, Sub, filter, returnedAttributes*)
     } yield {
 
       if (ocFilter.isEmpty || attrFilter.isEmpty) { // nothing to search for in that backend
@@ -373,7 +373,7 @@ object QSLdapBackend {
   }
 
   implicit class QSAttributeLdapFilter(val a: QSAttribute) extends AnyVal {
-    import QSAttributeLdapFilter._
+    import QSAttributeLdapFilter.*
 
     def filter(token: String): Option[Filter] = {
       a match {
@@ -441,15 +441,15 @@ object QSLdapBackend {
 
       a match {
         case Tags      =>
-          def matcher(t: Tag)     = pattern.matcher(t.name.value).matches || pattern.matcher(t.value.value).matches
+          def matcher(t:     Tag) = pattern.matcher(t.name.value).matches || pattern.matcher(t.value.value).matches
           def transform(tag: Tag) = s"${tag.name.value}=${tag.value.value}"
           parseTag(value, matcher, transform)
         case TagKeys   =>
-          def matcher(t: Tag)     = pattern.matcher(t.name.value).matches
+          def matcher(t:     Tag) = pattern.matcher(t.name.value).matches
           def transform(tag: Tag) = tag.name.value
           parseTag(value, matcher, transform)
         case TagValues =>
-          def matcher(t: Tag)     = pattern.matcher(t.value.value).matches
+          def matcher(t:     Tag) = pattern.matcher(t.value.value).matches
           def transform(tag: Tag) = tag.value.value
           parseTag(value, matcher, transform)
 
@@ -463,9 +463,9 @@ object QSLdapBackend {
    * Build LDAP filter for a QSObject
    */
   implicit final class QSObjectLDAPFilter(obj: QSObject)(implicit
-      inventoryDit:                            InventoryDit,
-      nodeDit:                                 NodeDit,
-      rudderDit:                               RudderDit
+      inventoryDit: InventoryDit,
+      nodeDit:      NodeDit,
+      rudderDit:    RudderDit
   ) {
 
     def filter: List[Filter] = obj match {
@@ -486,8 +486,8 @@ object QSLdapBackend {
    * correctly transform entry to a result, putting what is needed in type and description
    */
   implicit final class EntryToSearchResult(val e: LDAPEntry)(implicit val nodeInfos: NodeInfoService) {
-    import QSAttributeLdapFilter._
-    import QuickSearchResultId._
+    import QSAttributeLdapFilter.*
+    import QuickSearchResultId.*
 
     def toResult(query: Query): Option[QuickSearchResult] = {
       def getId(e: LDAPEntry): Option[QuickSearchResultId] = {
@@ -568,7 +568,7 @@ object QSLdapBackend {
         val defaultName = e(A_HOSTNAME).orElse(e(A_NAME)).getOrElse(id.value)
         val name        = {
           if (e.isA(OC_NODE) || e.isA(OC_RUDDER_NODE)) {
-            import com.normation.zio._
+            import com.normation.zio.*
             getId(e)
               .flatMap(id => nodeInfos.getNodeInfo(com.normation.inventory.domain.NodeId(id.value)).runNow.map(_.hostname))
               .getOrElse(defaultName)

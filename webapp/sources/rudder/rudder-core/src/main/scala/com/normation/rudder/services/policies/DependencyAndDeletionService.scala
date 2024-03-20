@@ -38,16 +38,16 @@
 package com.normation.rudder.services.policies
 
 import com.normation.NamedZioLogger
-import com.normation.box._
-import com.normation.errors._
+import com.normation.box.*
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.ldap.sdk.BuildFilter._
+import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.ldap.sdk.LDAPConnectionProvider
-import com.normation.ldap.sdk.LDAPIOResult._
+import com.normation.ldap.sdk.LDAPIOResult.*
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.domain.policies.CompositeRuleTarget
 import com.normation.rudder.domain.policies.Directive
@@ -57,11 +57,11 @@ import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
-import com.normation.rudder.repository._
+import com.normation.rudder.repository.*
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
-import net.liftweb.common._
-import zio._
-import zio.syntax._
+import net.liftweb.common.*
+import zio.*
+import zio.syntax.*
 
 /**
  * A container for items which depend on directives

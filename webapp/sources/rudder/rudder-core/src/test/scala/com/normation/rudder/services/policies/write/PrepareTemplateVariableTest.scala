@@ -48,11 +48,11 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.services.policies.NodeRunHook
 import com.normation.rudder.services.policies.PolicyId
-import com.normation.rudder.services.policies.write.BuildBundleSequence._
+import com.normation.rudder.services.policies.write.BuildBundleSequence.*
 import com.normation.templates.FillTemplatesService
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 @RunWith(classOf[JUnitRunner])
 class PrepareTemplateVariableTest extends Specification {

@@ -37,14 +37,14 @@
 
 package com.normation.rudder.repository.xml
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.Constants.FULL_ARCHIVE_TAG
-import com.normation.rudder.domain.eventlog._
+import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.logger.GitArchiveLoggerPure
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.git.GitArchiveId
@@ -52,20 +52,20 @@ import com.normation.rudder.git.GitArchiverFullCommitUtils
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRevisionProvider
-import com.normation.rudder.repository._
+import com.normation.rudder.repository.*
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.rule.category.GitRuleCategoryArchiver
 import com.normation.rudder.rule.category.ImportRuleCategoryLibrary
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.services.queries.DynGroupUpdaterService
-import com.normation.zio._
+import com.normation.zio.*
 import java.io.File
 import org.apache.commons.io.FileUtils
-import org.eclipse.jgit.api._
+import org.eclipse.jgit.api.*
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 class ItemArchiveManagerImpl(
     roRuleRepository:                   RoRuleRepository,
@@ -642,7 +642,7 @@ trait ArchiveMode extends Any {
  * To be counted as a directory the last character have to be a /.
  */
 final case class PartialArchive(directory: String) extends AnyVal with ArchiveMode {
-  def configureRm(rmCmd: RmCommand):             RmCommand       = rmCmd.addFilepattern(directory)
+  def configureRm(rmCmd:       RmCommand):       RmCommand       = rmCmd.addFilepattern(directory)
   def configureCheckout(coCmd: CheckoutCommand): CheckoutCommand = coCmd.addPath(directory)
 }
 
@@ -654,10 +654,10 @@ object PartialArchive {
   val parameterArchive: PartialArchive = PartialArchive("parameters/")
 }
 
-import com.normation.rudder.repository.xml.PartialArchive._
+import com.normation.rudder.repository.xml.PartialArchive.*
 
 case object TechniqueLibraryArchive extends ArchiveMode {
-  def configureRm(rmCmd: RmCommand):             RmCommand       = directiveArchive.configureRm(ncfArchive.configureRm(rmCmd))
+  def configureRm(rmCmd: RmCommand): RmCommand = directiveArchive.configureRm(ncfArchive.configureRm(rmCmd))
   def configureCheckout(coCmd: CheckoutCommand): CheckoutCommand =
     directiveArchive.configureCheckout(ncfArchive.configureCheckout(coCmd))
 }

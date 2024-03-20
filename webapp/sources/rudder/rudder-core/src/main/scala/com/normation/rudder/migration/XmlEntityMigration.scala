@@ -1,19 +1,19 @@
 package com.normation.rudder.migration
 
-import cats.implicits._
+import cats.implicits.*
 import com.normation.rudder.db.DB
 import com.normation.rudder.db.Doobie
-import com.normation.rudder.db.Doobie._
+import com.normation.rudder.db.Doobie.*
 import com.normation.rudder.domain.logger.MigrationLogger
-import com.normation.utils.Control._
-import doobie._
-import doobie.implicits._
-import net.liftweb.common._
+import com.normation.utils.Control.*
+import doobie.*
+import doobie.implicits.*
+import net.liftweb.common.*
 import org.joda.time.DateTime
 import scala.xml.Elem
 import scala.xml.Node
 import scala.xml.NodeSeq
-import zio.interop.catz._
+import zio.interop.catz.*
 
 /**
  * specify from/to version
@@ -145,7 +145,7 @@ final case class MigrationChangeRequest(
 trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
 
   def migrationEventLogRepository: MigrationEventLogRepository
-  def batchMigrators:              List[BatchElementMigration[_]]
+  def batchMigrators:              List[BatchElementMigration[?]]
   def previousMigrationController: Option[ControlXmlFileFormatMigration]
 
   def migrate: Box[MigrationStatus] = {

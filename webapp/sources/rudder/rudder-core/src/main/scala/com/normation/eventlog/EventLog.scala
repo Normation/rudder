@@ -22,7 +22,7 @@ package com.normation.eventlog
 
 import com.normation.utils.StringUuidGeneratorImpl
 import org.joda.time.DateTime
-import scala.xml._
+import scala.xml.*
 
 final case class EventActor(name: String) extends AnyVal
 
@@ -180,19 +180,19 @@ trait EventLog {
 final case class UnspecializedEventLog(
     override val eventDetails: EventLogDetails
 ) extends EventLog {
-  override val eventType        = UnspecializedEventLog.eventType
-  override val eventLogCategory = UnknownLogCategory
+  override val eventType = UnspecializedEventLog.eventType
+  override val eventLogCategory: EventLogCategory = UnknownLogCategory
 }
 
 object UnspecializedEventLog extends EventLogFilter {
-  override val eventType = UnknownEventLogType
+  override val eventType: EventLogType = UnknownEventLogType
 
   override def apply(x: (EventLogType, EventLogDetails)): UnspecializedEventLog = UnspecializedEventLog(x._2)
 }
 
 object EventLog {
   def withContent(nodes: NodeSeq): Elem = <entry>{nodes}</entry>
-  val emptyDetails:                Elem = withContent(NodeSeq.Empty)
+  val emptyDetails: Elem = withContent(NodeSeq.Empty)
 }
 
 case object UnknownEventLogType extends NoRollbackEventLogType {

@@ -39,19 +39,19 @@ package com.normation.rudder.web.snippet.administration
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.inventory.domain.MemorySize
-import com.normation.rudder.domain.reports._
+import com.normation.rudder.domain.reports.*
 import com.normation.utils.DateFormaterService
-import net.liftweb.common._
-import net.liftweb.http._
+import net.liftweb.common.*
+import net.liftweb.http.*
 import net.liftweb.http.DispatchSnippet
-import net.liftweb.http.js._
+import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.JsRaw
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.util.Helpers._
+import net.liftweb.http.js.JsCmds.*
+import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
-import scala.xml._
+import scala.xml.*
 
 class DatabaseManagement extends DispatchSnippet with Loggable {
 

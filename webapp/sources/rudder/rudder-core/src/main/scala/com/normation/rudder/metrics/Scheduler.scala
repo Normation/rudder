@@ -37,10 +37,10 @@
 
 package com.normation.rudder.metrics
 
-import com.normation.errors._
+import com.normation.errors.*
 import java.util.concurrent.TimeUnit
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /*
  * Scheduler to write logs in file. We want to log a new status line when interesting

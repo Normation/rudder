@@ -36,13 +36,13 @@
  */
 package com.normation.rudder.services.servers
 
-import better.files._
+import better.files.*
 import com.normation.inventory.domain.NodeId
-import com.normation.zio._
+import com.normation.zio.*
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.RunWith
-import org.specs2.mutable._
+import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 

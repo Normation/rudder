@@ -37,10 +37,10 @@
 
 package com.normation.rudder.inventory
 
-import com.normation.errors._
-import com.normation.inventory.domain._
+import com.normation.errors.*
+import com.normation.inventory.domain.*
 import com.normation.inventory.domain.Inventory
-import com.normation.inventory.services.provisioning._
+import com.normation.inventory.services.provisioning.*
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.PureHooksLogger
@@ -48,8 +48,8 @@ import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.zio.currentTimeMillis
 import com.unboundid.ldif.LDIFChangeRecord
-import zio._
-import zio.syntax._
+import zio.*
+import zio.syntax.*
 
 /*
  * This file contains post commit action to
@@ -64,14 +64,14 @@ class PostCommitInventoryHooks(
     HOOKS_D:               String,
     HOOKS_IGNORE_SUFFIXES: List[String]
 ) extends PostCommit[Seq[LDIFChangeRecord]] {
-  import scala.jdk.CollectionConverters._
+  import scala.jdk.CollectionConverters.*
 
   override val name = "post_commit_inventory:run_node-inventory-received_hooks"
 
   override def apply(inventory: Inventory, records: Seq[LDIFChangeRecord]): IOResult[Seq[LDIFChangeRecord]] = {
     val node  = inventory.node.main
     val hooks = (for {
-      systemEnv <- IOResult.attempt(java.lang.System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq: _*))
+      systemEnv <- IOResult.attempt(java.lang.System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq*))
       hooks     <- if (node.status == PendingInventory) {
                      RunHooks.getHooksPure(HOOKS_D + "/node-inventory-received-pending", HOOKS_IGNORE_SUFFIXES)
                    } else if (node.status == AcceptedInventory) {

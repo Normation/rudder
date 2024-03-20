@@ -37,24 +37,24 @@
 
 package com.normation.rudder.repository.jdbc
 
-import cats.implicits._
+import cats.implicits.*
 import cats.syntax.list.catsSyntaxList
 import com.normation.NamedZioLogger
-import com.normation.errors._
-import com.normation.eventlog._
+import com.normation.errors.*
+import com.normation.eventlog.*
 import com.normation.rudder.db.Doobie
-import com.normation.rudder.db.Doobie._
-import com.normation.rudder.domain.eventlog._
+import com.normation.rudder.db.Doobie.*
+import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.services.eventlog.EventLogFactory
-import doobie._
-import doobie.implicits._
-import doobie.postgres.implicits._
+import doobie.*
+import doobie.implicits.*
+import doobie.postgres.implicits.*
 import doobie.util.fragments
-import scala.xml._
-import zio.interop.catz._
-import zio.syntax._
+import scala.xml.*
+import zio.interop.catz.*
+import zio.syntax.*
 
 /**
  * The EventLog repository
@@ -68,7 +68,7 @@ class EventLogJdbcRepository(
     override val eventLogFactory: EventLogFactory
 ) extends EventLogRepository with NamedZioLogger {
 
-  import doobie._
+  import doobie.*
 
   override def loggerName: String = this.getClass.getName
 

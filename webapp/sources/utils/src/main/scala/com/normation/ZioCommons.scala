@@ -24,10 +24,10 @@
 
 package com.normation
 
-import _root_.zio._
-import _root_.zio.syntax._
-import cats.data._
-import cats.implicits._
+import _root_.zio.*
+import _root_.zio.syntax.*
+import cats.data.*
+import cats.implicits.*
 import cats.kernel.Order
 import com.normation.errors.Chained
 import com.normation.errors.IOResult
@@ -36,7 +36,7 @@ import com.normation.errors.RudderError
 import com.normation.errors.SystemError
 import com.normation.errors.effectUioUnit
 import java.util.concurrent.TimeUnit
-import net.liftweb.common.{Logger => _, _}
+import net.liftweb.common.{Logger as _, *}
 import org.slf4j.Logger
 
 /**
@@ -174,7 +174,7 @@ object errors {
   trait BaseChainError[E <: RudderError] extends RudderError {
     def cause: E
     def hint:  String
-    def msg: String = s"${hint}; cause was: ${cause.fullMsg}"
+    def msg:   String = s"${hint}; cause was: ${cause.fullMsg}"
   }
 
   final case class Chained[E <: RudderError](hint: String, cause: E) extends BaseChainError[E] {
@@ -268,7 +268,7 @@ object errors {
 
     private def toNEL[E, B](tuple: (Iterable[E], Iterable[B])): ZIO[Any, NonEmptyList[E], List[B]] = {
       (tuple._1.toList, tuple._2.toList) match {
-        case ((h :: t), _) => NonEmptyList.of(h, t: _*).fail
+        case ((h :: t), _) => NonEmptyList.of(h, t*).fail
         case (Nil, res)    => res.succeed
       }
     }
@@ -327,7 +327,7 @@ object errors {
       case Right(res) => Right(res)
     }
     def accumulateEitherDiscard: PureResult[Unit]    = in.collect { case Left(e) => e }.toList match {
-      case err :: t => Left(Accumulated(NonEmptyList.of(err, t: _*)))
+      case err :: t => Left(Accumulated(NonEmptyList.of(err, t*)))
       case Nil      => Right(())
     }
   }
@@ -364,7 +364,7 @@ object errors {
   }
 
   implicit class BoxToEither[E <: RudderError, A](val res: Box[A]) extends AnyVal {
-    import cats.instances.either._
+    import cats.instances.either.*
     def toPureResult: PureResult[A] = BoxUtil.fold[E, A, PureResult](
       err => Left(err),
       suc => Right(suc)
@@ -372,7 +372,7 @@ object errors {
   }
 
   implicit class BoxToIO[E <: RudderError, A](res: => Box[A]) {
-    import _root_.zio.interop.catz._
+    import _root_.zio.interop.catz.*
     def toIO: IOResult[A] = IOResult
       .attempt(res)
       .flatMap(x => {
@@ -395,7 +395,7 @@ object zio {
    * Default ZIO Runtime used everywhere.
    */
   object ZioRuntime {
-    import _root_.zio.internal._
+    import _root_.zio.internal.*
 
     /*
      * Create a signal handler for signal USR2 that dumps Fibers on log. Can be
@@ -451,9 +451,9 @@ object zio {
    * When porting a class is too hard
    */
   implicit class UnsafeRun[A](io: IOResult[A]) {
-    def runNow:                                      A    = ZioRuntime.runNow(io)
+    def runNow: A = ZioRuntime.runNow(io)
     def runNowLogError(logger: RudderError => Unit): Unit = ZioRuntime.runNowLogError(logger)(io)
-    def runOrDie(throwEx: RudderError => Throwable): A    = ZioRuntime.runNow(io.either) match {
+    def runOrDie(throwEx: RudderError => Throwable): A = ZioRuntime.runNow(io.either) match {
       case Right(a)  => a
       case Left(err) => throw throwEx(err)
     }
@@ -544,9 +544,9 @@ trait ZioLogger {
 
   final def trace(msg: => String): UIO[Unit] = ZIO.when(logEffect.isTraceEnabled())(logAndForgetResult(_.trace(msg))).unit
   final def debug(msg: => String): UIO[Unit] = ZIO.when(logEffect.isDebugEnabled())(logAndForgetResult(_.debug(msg))).unit
-  final def info(msg: => String):  UIO[Unit] = ZIO.when(logEffect.isInfoEnabled())(logAndForgetResult(_.info(msg))).unit
+  final def info(msg:  => String): UIO[Unit] = ZIO.when(logEffect.isInfoEnabled())(logAndForgetResult(_.info(msg))).unit
   final def error(msg: => String): UIO[Unit] = ZIO.when(logEffect.isErrorEnabled())(logAndForgetResult(_.error(msg))).unit
-  final def warn(msg: => String):  UIO[Unit] = ZIO.when(logEffect.isWarnEnabled())(logAndForgetResult(_.warn(msg))).unit
+  final def warn(msg:  => String): UIO[Unit] = ZIO.when(logEffect.isWarnEnabled())(logAndForgetResult(_.warn(msg))).unit
 
   final def trace(msg: => String, t: Throwable): UIO[Unit] =
     ZIO.when(logEffect.isTraceEnabled())(logAndForgetResult(_.trace(msg, t))).unit
@@ -561,8 +561,8 @@ trait ZioLogger {
 
   final def ifTraceEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(logEffect.isTraceEnabled())(action).unit
   final def ifDebugEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(logEffect.isDebugEnabled())(action).unit
-  final def ifInfoEnabled[T](action: UIO[T]):  UIO[Unit] = ZIO.when(logEffect.isInfoEnabled())(action).unit
-  final def ifWarnEnabled[T](action: UIO[T]):  UIO[Unit] = ZIO.when(logEffect.isErrorEnabled())(action).unit
+  final def ifInfoEnabled[T](action:  UIO[T]): UIO[Unit] = ZIO.when(logEffect.isInfoEnabled())(action).unit
+  final def ifWarnEnabled[T](action:  UIO[T]): UIO[Unit] = ZIO.when(logEffect.isErrorEnabled())(action).unit
   final def ifErrorEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(logEffect.isWarnEnabled())(action).unit
 }
 
@@ -595,14 +595,14 @@ object json {
    * costly. Avoid translation if possible.
    */
 
-  import _root_.zio.json._
-  import _root_.zio.json.ast._
-  import _root_.zio.json.ast.Json._
-  import net.liftweb.json._
+  import _root_.zio.json.*
+  import _root_.zio.json.ast.*
+  import _root_.zio.json.ast.Json.*
+  import net.liftweb.json.*
 
   def zioToLift(json: Json): JValue = {
     json match {
-      case Json.Obj(fields)   => JObject(fields.map { case (k, j) => JField(k, zioToLift(j)) }: _*)
+      case Json.Obj(fields)   => JObject(fields.map { case (k, j) => JField(k, zioToLift(j)) }*)
       case Json.Arr(elements) => JArray(elements.map(zioToLift(_)).toList)
       case Json.Bool(value)   => JBool(value)
       case Json.Str(value)    => JString(value)
@@ -624,8 +624,8 @@ object json {
       case JsonAST.JDouble(num) => Num(num)
       case JsonAST.JInt(num)    => Num(BigDecimal(num))
       case JsonAST.JBool(value) => Bool(value)
-      case JsonAST.JObject(obj) => Obj(obj.map(jf => (jf.name, liftToZio(jf.value))): _*)
-      case JsonAST.JArray(arr)  => Arr(arr.map(v => liftToZio(v)): _*)
+      case JsonAST.JObject(obj) => Obj(obj.map(jf => (jf.name, liftToZio(jf.value)))*)
+      case JsonAST.JArray(arr)  => Arr(arr.map(v => liftToZio(v))*)
     }
   }
 

@@ -37,9 +37,9 @@
 
 package com.normation.utils
 
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
+import org.junit.runner.*
+import org.specs2.mutable.*
+import org.specs2.runner.*
 
 @RunWith(classOf[JUnitRunner])
 class VersionTest extends Specification {
@@ -54,9 +54,9 @@ class VersionTest extends Specification {
   sequential
 
   "parse version" >> {
-    import PartType._
-    import Separator._
-    import VersionPart._
+    import PartType.*
+    import Separator.*
+    import VersionPart.*
     def parse(s: String) = ParseVersion.parse(s).getOrElse(throw new RuntimeException(s"Can not parse: ${s}"))
 
     parse("1.0") === com.normation.utils.Version(0, Numeric(1), After(Dot, Numeric(0)) :: Nil)

@@ -42,17 +42,17 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.reports._
+import com.normation.rudder.domain.policies.*
+import com.normation.rudder.domain.reports.*
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.utils.DateFormaterService
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.http.js.JE._
+import net.liftweb.common.*
+import net.liftweb.http.*
+import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsExp
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.util.Helpers._
+import net.liftweb.util.Helpers.*
 import org.joda.time.Interval
 
 /*
@@ -118,7 +118,7 @@ object ChangeLine {
       }
     }
 
-    JsArray(jsonChanges.toSeq: _*)
+    JsArray(jsonChanges.toSeq*)
   }
 }
 

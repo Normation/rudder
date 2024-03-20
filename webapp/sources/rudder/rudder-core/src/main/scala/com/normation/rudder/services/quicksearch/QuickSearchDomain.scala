@@ -76,7 +76,7 @@ object QSBackend {
  * parameter
  */
 sealed trait QSAttribute {
-  def name: String
+  def name:    String
   def display: String = name.capitalize.replace("_", " ")
 }
 object QSAttribute       {
@@ -208,7 +208,7 @@ object QSAttribute       {
 sealed trait QSObject { def name: String; def attributes: Set[QSAttribute] }
 
 object QSObject {
-  import QSAttribute._
+  import QSAttribute.*
 
   val tagsAttribute: Set[QSAttribute] = Set(Tags, TagKeys, TagValues)
 
@@ -301,7 +301,7 @@ object QSMapping {
 
   // set of names by attribute
   val attributeNames: Map[QSAttribute, Set[String]] = {
-    import QSAttribute._
+    import QSAttribute.*
     val descriptions = Set(Description, LongDescription).map(_.name) ++ Set("descriptions")
     val properties   = Set(Properties, GroupProperties, CustomProperties).map(_.name) ++
       Set("node.props", "nodeprops", "node_properties", "nodeproperties") ++
@@ -388,13 +388,19 @@ object QSMapping {
 sealed trait QuickSearchResultId extends Any { def value: String; def tpe: QSObject }
 
 object QuickSearchResultId {
-  import QSObject._
+  import QSObject.*
 
-  final case class QRNodeId(value: String)      extends AnyVal with QuickSearchResultId { override def tpe = Node      }
-  final case class QRGroupId(value: String)     extends AnyVal with QuickSearchResultId { override def tpe = Group     }
-  final case class QRDirectiveId(value: String) extends AnyVal with QuickSearchResultId { override def tpe = Directive }
-  final case class QRParameterId(value: String) extends AnyVal with QuickSearchResultId { override def tpe = Parameter }
-  final case class QRRuleId(value: String)      extends AnyVal with QuickSearchResultId { override def tpe = Rule      }
+  final case class QRNodeId(value: String)      extends AnyVal with QuickSearchResultId { override def tpe: QSObject.Node.type = Node }
+  final case class QRGroupId(value: String)     extends AnyVal with QuickSearchResultId {
+    override def tpe: QSObject.Group.type = Group
+  }
+  final case class QRDirectiveId(value: String) extends AnyVal with QuickSearchResultId {
+    override def tpe: QSObject.Directive.type = Directive
+  }
+  final case class QRParameterId(value: String) extends AnyVal with QuickSearchResultId {
+    override def tpe: QSObject.Parameter.type = Parameter
+  }
+  final case class QRRuleId(value: String)      extends AnyVal with QuickSearchResultId { override def tpe: QSObject.Rule.type = Rule }
 }
 
 final case class QuickSearchResult(

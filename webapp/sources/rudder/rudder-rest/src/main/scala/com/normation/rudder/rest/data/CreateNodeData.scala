@@ -37,10 +37,10 @@
 
 package com.normation.rudder.rest.data
 
-import cats.data._
-import cats.implicits._
+import cats.data.*
+import cats.implicits.*
 import com.normation.NamedZioLogger
-import com.normation.inventory.domain._
+import com.normation.inventory.domain.*
 import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.inventory.domain.AgentType.Dsc
 import com.normation.rudder.domain.nodes.NodeState
@@ -50,7 +50,7 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.rest.data.Creation.CreationError
 import com.normation.rudder.rest.data.NodeTemplate.AcceptedNodeTemplate
 import com.normation.rudder.rest.data.NodeTemplate.PendingNodeTemplate
-import com.softwaremill.quicklens._
+import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigValue
 import java.util.regex.Pattern
 import net.liftweb.json.JArray
@@ -117,8 +117,8 @@ object Rest {
   object JsonCodecNodeDetails {
 
     import com.typesafe.config.ConfigRenderOptions
-    import zio.json._
-    import zio.json.ast._
+    import zio.json.*
+    import zio.json.ast.*
     import zio.json.internal.Write
 
     implicit val codecConfigValue: JsonCodec[ConfigValue] = JsonCodec(
@@ -193,7 +193,7 @@ object ResultHolder {
   implicit class ResultHolderToJson(res: ResultHolder) {
 
     def toJson(): JValue = {
-      import net.liftweb.json.JsonDSL._
+      import net.liftweb.json.JsonDSL.*
       (
         ("created"  -> JArray(res.created.map(id => JString(id.value))))
         ~ ("failed" ->
@@ -240,11 +240,11 @@ object Creation {
 }
 
 object Validation {
-  import Rest._
-  import Validated._
+  import Rest.*
+  import Validated.*
   import com.normation.inventory.domain.AcceptedInventory
   import com.normation.inventory.domain.PendingInventory
-  import com.normation.rudder.domain.policies.{PolicyMode => PM}
+  import com.normation.rudder.domain.policies.PolicyMode as PM
 
   type Validation[T] = ValidatedNel[NodeValidationError, T]
 
@@ -309,7 +309,7 @@ object Validation {
   }
 
   sealed trait Machine {
-    def tpe: MachineType
+    def tpe:        MachineType
     final def name: String = tpe match {
       case PhysicalMachineType               => "physical"
       case VirtualMachineType(UnknownVmType) => "vm"
@@ -317,7 +317,7 @@ object Validation {
     }
   }
   object Machine       {
-    case object MPhysical      extends Machine { val tpe = PhysicalMachineType                                   }
+    case object MPhysical      extends Machine { val tpe: MachineType = PhysicalMachineType                      }
     case object MUnknownVmType extends Machine { val tpe: VirtualMachineType = VirtualMachineType(UnknownVmType) }
     case object MSolarisZone   extends Machine { val tpe: VirtualMachineType = VirtualMachineType(SolarisZone)   }
     case object MVirtualBox    extends Machine { val tpe: VirtualMachineType = VirtualMachineType(VirtualBox)    }
@@ -415,7 +415,7 @@ object Validation {
 
   def checkAgent(osType: OsType, agent: AgentKey): Validation[AgentInfo] = {
     def checkSecurityToken(agent: AgentType, token: String): Validation[SecurityToken] = {
-      import net.liftweb.json.JsonDSL._
+      import net.liftweb.json.JsonDSL.*
       val tpe = if (token.contains("BEGIN CERTIFICATE")) Certificate.kind else PublicKey.kind
       AgentInfoSerialisation.parseSecurityToken(agent, ("type" -> tpe) ~ ("value" -> token), None) match {
         case Left(err) => NodeValidationError.SecurityVal(err.fullMsg).invalidNel

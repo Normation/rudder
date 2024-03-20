@@ -26,7 +26,7 @@ import java.util.regex.Pattern
 
 trait RegexValidation {
   def stringPattern: String
-  lazy val pattern:               Pattern = Pattern.compile(stringPattern)
+  lazy val pattern:  Pattern = Pattern.compile(stringPattern)
   def isValid(candidate: String): Boolean = pattern.matcher(candidate).matches
 }
 

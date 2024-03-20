@@ -37,7 +37,7 @@
 
 package com.normation.inventory.services.core
 
-import com.normation.errors._
+import com.normation.errors.*
 import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.Software

@@ -38,14 +38,14 @@
 package com.normation.rudder.web.snippet
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box._
+import com.normation.box.*
 import com.normation.rudder.AuthorizationType.Administration
 import com.normation.rudder.users.CurrentUser
-import net.liftweb.common._
+import net.liftweb.common.*
 import net.liftweb.http.CurrentReq
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js.JsCmd
-import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js.JsCmds.*
 import scala.xml.NodeSeq
 
 class SetupRedirect extends DispatchSnippet with Loggable {

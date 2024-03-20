@@ -39,19 +39,19 @@ package bootstrap.liftweb.checks.onetimeinit
 
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
-import com.normation.box._
-import com.normation.cfclerk.services._
+import com.normation.box.*
+import com.normation.cfclerk.services.*
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.ldap.core.LDAPConstants.A_OC
-import com.normation.ldap.sdk._
+import com.normation.ldap.sdk.*
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.rudder.repository._
+import com.normation.rudder.repository.*
 import com.normation.utils.StringUuidGenerator
-import net.liftweb.common._
+import net.liftweb.common.*
 import org.joda.time.DateTime
 
 /**

@@ -37,7 +37,7 @@
 
 package com.normation.rudder.web.services
 
-import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
@@ -104,7 +104,7 @@ final case class Modified[T](
 
 class DiffDisplayer(linkUtil: LinkUtil) extends Loggable {
 
-  implicit private[this] def displayDirective(directiveId: DirectiveId) = {
+  implicit private[this] def displayDirective(directiveId: DirectiveId): Elem = {
     <span> Directive {linkUtil.createDirectiveLink(directiveId.uid)}</span>
   }
   def displayDirectiveChangeList(

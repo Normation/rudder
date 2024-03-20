@@ -42,7 +42,7 @@ import com.normation.rudder.db.Doobie
 import com.normation.zio.UnsafeRun
 import doobie.Transactor
 import doobie.specs2.analysisspec.IOChecker
-import doobie.syntax.all._
+import doobie.syntax.all.*
 import doobie.util.fragment
 import doobie.util.fragments.and
 import doobie.util.fragments.whereOr
@@ -52,12 +52,12 @@ import org.specs2.specification.core.Fragments
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-import zio._
-import zio.interop.catz._
+import zio.*
+import zio.interop.catz.*
 
 @RunWith(classOf[JUnitRunner])
 class TestMigrateChangeValidationEnforceSchema extends DBCommon with IOChecker {
-  import TestMigrateChangeValidationEnforceSchema._
+  import TestMigrateChangeValidationEnforceSchema.*
 
   private lazy val migrateChangeValidation = new MigrateChangeValidationEnforceSchemaTempTable(doobie)
 
