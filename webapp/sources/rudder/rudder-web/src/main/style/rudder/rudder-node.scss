@@ -38,9 +38,6 @@
 // Modules
 @use 'rudder-variables' as *;
 
-// Variables
-$node-state-size: 14px;
-
 // Override Rudder template
 .rudder-template {
   .header-title{
@@ -64,6 +61,12 @@ $node-state-size: 14px;
   padding: 15px 15px 10px;
   color: $rudder-txt-primary !important;
   font-size: 24px !important;
+}
+
+#nodeHeaderInfo {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .page-title-description{
@@ -103,33 +106,50 @@ $node-state-size: 14px;
 }
 
 .node-state{
-  display: inline-block;
-  width: $node-state-size;
-  height: $node-state-size;
-  border-radius: 50%;
+  display: inline-flex;
+  padding: 6px 8px;
+  border-radius: 4px;
   background-color: #4eb934;
+  color: #fff;
+  font-size: 0.8rem;
+  align-items: baseline;
 
-  &.ignored:after{
+  &:after{
+    content : "ENABLED";
+  }
+  &.ignored{
     background-color: #a4aebf;
+    &:after{
+      content : "IGNORED";
+    }
   }
-  &.empty-policies:after{
+  &.empty-policies{
     background-color: #7591c599;
+    &:after{
+      content : "EMPTY POLICIES";
+    }
   }
-  &.initializing:after{
-    color: #08a3ef;
+  &.initializing{
+    background-color: #08a3ef;
+    &:after{
+      content : "INITIALIZING";
+    }
+    &:before{
     content: "\f1ce";
-    font: normal normal normal 14px/1 inherit;
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    background-color: transparent;
-    font-weight: bold;
-    font-size: 1.1em;
-    animation: fa-spin 2s infinite linear;
-    height: 14px;
-    width: auto;
+      font-family: "Font Awesome 5 Free";
+      font-weight: 900;
+      background-color: transparent;
+      font-weight: bold;
+      font-size: 1.1em;
+      animation: fa-spin 2s infinite linear;
+      margin-right: 4px;
+    }
   }
   &.preparing-eol:after{
     background-color: #EF9600;
+    &:after{
+      content : "PREPARING EOL";
+    }
   }
 }
 .machine-os-info {

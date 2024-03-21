@@ -483,9 +483,7 @@ object DisplayNode extends Loggable {
     }
 
     val nodeStateIcon = (
-      <span class={"node-state " ++ getNodeState(node.rudderSettings.state).toLowerCase} title={
-        getNodeState(node.rudderSettings.state)
-      }></span>
+      <span class={"node-state " ++ getNodeState(node.rudderSettings.state).toLowerCase}></span>
     )
 
     <div class="header-title">
