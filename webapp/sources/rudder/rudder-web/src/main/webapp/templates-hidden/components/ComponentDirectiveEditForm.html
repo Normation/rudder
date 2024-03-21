@@ -29,8 +29,6 @@
     }
   </style>
   <link rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-filemanager.css" />
-  <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-filemanager.js"></script>
-  <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-tags.js"></script>
 
   <script>
     var hasWriteRights = false;
@@ -41,27 +39,6 @@
       var hasWriteRights = true;
     </script>
   </lift:authz>
-  <script>
-  var baseUrl = contextPath ? contextPath : "/rudder";
-  var apiPath = baseUrl + '/secure/api/sharedfile';
-
-  var container = document.getElementById("filemanager-editor")
-  var fm = Elm.FileManager.init({
-      node: container,
-      flags: {
-        api: apiPath,
-        thumbnailsUrl: apiPath,
-        downloadsUrl: apiPath,
-        dir: "/",
-        hasWriteRights : hasWriteRights,
-        initRun : true;
-      }
-    });
-
-  fm.ports.errorNotification.subscribe(function(errorMessage) {
-    createErrorNotification(errorMessage);
-  });
-  </script>
 
   <div id="editForm">
     <div class="main-header">
