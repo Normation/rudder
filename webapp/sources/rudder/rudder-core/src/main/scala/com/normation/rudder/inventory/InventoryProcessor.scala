@@ -364,6 +364,35 @@ trait InventoryMoveWhenProcessed {
  * This class managed what need to be done after inventories are saved
  * in LDAP
  */
+object InventoryMover {
+  /*
+   * The expected new format is uuid_dateRFC3339: f56cf90d-e9d5-4496-abf8-b8db44a230fc_2024-03-21T16:07:29+01:00
+   * But we used to have a hostname, so old nodes can still send something "_" in the first part.
+   */
+  val timestampPattern = """(.*?)(_[0-9]{4}-[0-9]{2}-[0-9]{2}.+)?""".r
+
+  /*
+   * We want to avoid having several version of inventories for the same node even once we have https://issues.rudder.io/issues/24560
+   * corrected to ensure unicity of pair.
+   * So if the file ends with a unique part (a date) that needs to be removed.
+   */
+  def normalizeReceivedName(f: File): String = {
+    val ext  = f.extension(includeDot = true, includeAll = true).getOrElse("")
+    val name = f.nameWithoutExtension(true)
+
+    // any file should match first part, but in case it doesn't work: log an error, return the whole filename
+    name match {
+      case timestampPattern(n, _) =>
+        n + ext
+      case _                      =>
+        InventoryProcessingLogger.logEffect.warn(
+          s"Inventory file '${name}' format does not match pattern ending with date, copying it as is in destination directory"
+        )
+        name + ext
+    }
+  }
+}
+
 class InventoryMover(
     receivedInventoryPath: String,
     failedInventoryPath:   String,
@@ -414,8 +443,14 @@ class InventoryMover(
     result match {
       case InventoryProcessStatus.Saved(_, _)                                               =>
         // move to received dir
-        safeMove(signature, signature.moveTo(received / signature.name)(File.CopyOptions(overwrite = true))) *>
-        safeMove(inventory, inventory.moveTo(received / inventory.name)(File.CopyOptions(overwrite = true)))
+        safeMove(
+          signature,
+          signature.moveTo(received / InventoryMover.normalizeReceivedName(signature))(File.CopyOptions(overwrite = true))
+        ) *>
+        safeMove(
+          inventory,
+          inventory.moveTo(received / InventoryMover.normalizeReceivedName(inventory))(File.CopyOptions(overwrite = true))
+        )
       case _: InventoryProcessStatus.SignatureInvalid | _: InventoryProcessStatus.SaveError =>
         val failedName = failed / inventory.name
         safeMove(signature, signature.moveTo(failed / signature.name)(File.CopyOptions(overwrite = true))) *>
