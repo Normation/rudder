@@ -82,6 +82,7 @@ fn parse_runinfo_v2(i: &str) -> IResult<&str, RunInfo> {
     })(i)?;
     let (i, _) = tag(".log")(i)?;
     let (i, _) = opt(tag(".gz"))(i)?;
+    let (i, _) = opt(tag(".zip"))(i)?;
     let (_, _) = eof(i)?;
 
     if node_id.is_empty() {
