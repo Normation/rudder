@@ -142,7 +142,7 @@ final case object HttpAction                                     extends Enum[Ht
 
 /*
  * An authorization control is done in a path (so we are managing
- * tree by essense).
+ * tree by essence).
  *
  * The path can be composed of 3 kinds of segments (as called in rfc3986):
  * - a named segment (ie the name of resources)
@@ -220,7 +220,7 @@ object AclPath {
   }
 
   /**
-   * A compare method on path that sort them from "most specific" to "most genereric"
+   * A compare method on path that sort them from "most specific" to "most generic"
    * so that!
    * - Segment < Wildcard < DoubleWildcard
    */
@@ -245,7 +245,7 @@ object AclPath {
 
 /*
  * one API authorization is an API with a set of authorized action.
- * A path may have 0 authorized action, which explicity mean that there
+ * A path may have 0 authorized action, which explicitly means that there
  * is no authorization for that path.
  */
 final case class ApiAclElement(path: AclPath, actions: Set[HttpAction]) {
@@ -272,7 +272,7 @@ object ApiAuthorizationKind extends Enum[ApiAuthorizationKind] {
   def parse(s: String): Either[String, ApiAuthorizationKind] = {
     withNameInsensitiveOption(s)
       .toRight(
-        s"Unserialization error: '${s}' is not a known API authorization kind, possible values are '${values.map(_.name).mkString("', '")}'"
+        s"Deserialization error: '${s}' is not a known API authorization kind, possible values are '${values.map(_.name).mkString("', '")}'"
       )
   }
 
@@ -292,6 +292,7 @@ object ApiAuthorization       {
   case object RO                                 extends ApiAuthorization { override val kind: ApiAuthorizationKind = ApiAuthorizationKind.RO   }
   final case class ACL(acl: List[ApiAclElement]) extends ApiAuthorization {
     override def kind: ApiAuthorizationKind = ApiAuthorizationKind.ACL
+    def debugString:   String               = acl.map(_.display).mkString(";")
   }
 
   /**
@@ -303,11 +304,11 @@ object ApiAuthorization       {
 
 /**
  * We have several kind of API accounts:
- * - the "system" account is a success in-memory one, whose token is genererated at each start.
+ * - the "system" account is a success in-memory one, whose token is generated at each start.
  *   It has super authz.
  * - User API accounts are linked to a given user. They get the same rights has their user.
- *   They are only available when a spcecific plugin enable them.
- * - Standard account are used for public API acess.
+ *   They are only available when a specific plugin enable them.
+ * - Standard account are used for public API access.
  *
  */
 sealed trait ApiAccountType extends EnumEntry            { def name: String }
