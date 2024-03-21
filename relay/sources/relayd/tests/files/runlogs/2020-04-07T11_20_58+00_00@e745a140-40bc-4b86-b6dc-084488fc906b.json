@@ -116,7 +116,7 @@
       "component": "end",
       "key_value": "20200407-053748-e976e8d5",
       "event_type": "control",
-      "msg": "End execution",
+      "msg": "End �xecution with non-utf8",
       "policy": "Common",
       "node_id": "e745a140-40bc-4b86-b6dc-084488fc906b",
       "execution_datetime": "2020-04-07T11:20:58+00:00",
@@ -124,4 +124,3 @@
     }
   ]
 }
-
