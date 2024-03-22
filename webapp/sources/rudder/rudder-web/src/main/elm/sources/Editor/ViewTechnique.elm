@@ -168,6 +168,7 @@ showTechnique model technique origin ui editInfo =
     -- Keep the ID of the method in the UI if it contains invalid parameters value
     areErrorOnMethodParameters = List.isEmpty (Dict.keys statesByMethodIdParameter)
     areErrorOnMethodCondition = List.isEmpty (Dict.keys statesByMethodIdCondition)
+    isMethodListEmpty = List.isEmpty (technique.elems)
     isUnchanged = case origin of
                     Edit t -> t == technique
                     Creation _ -> False
@@ -299,7 +300,7 @@ showTechnique model technique origin ui editInfo =
               text (if (editInfo.open) then "Visual editor " else "YAML editor")
             , i [ class "fa fa-pen"] []
             ]
-          , btnSave ui.saving (isUnchanged || not (isValid technique ui) || String.isEmpty technique.name || not areErrorOnMethodParameters || not areErrorOnMethodCondition || not areBlockOnError) StartSaving
+          , btnSave ui.saving (isUnchanged || not (isValid technique ui) || String.isEmpty technique.name || isMethodListEmpty || not areErrorOnMethodParameters || not areErrorOnMethodCondition || not areBlockOnError) StartSaving
           ]
         ]
       ]
