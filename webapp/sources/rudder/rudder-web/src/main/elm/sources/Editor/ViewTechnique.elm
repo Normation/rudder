@@ -339,7 +339,7 @@ showTechnique model technique origin ui editInfo =
             li [ class (activeTabClass Output)  , onClick (SwitchTab Output)] [
               a [] [
                 text "Compilation output "
-              , span [  class  ( "fa ") ] []
+              , span [  class  ( "fas fa-cogs ") ] []
               ]
             ]
             else
