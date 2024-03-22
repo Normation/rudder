@@ -29,7 +29,7 @@ type alias Constraint =
   { allowEmpty : Maybe Bool
   , allowWhiteSpace:  Maybe Bool
   , maxLength: Maybe Int
-  ,  minLength: Maybe Int
+  , minLength: Maybe Int
   , matchRegex: Maybe String
   , notMatchRegex: Maybe String
   , select: Maybe (List SelectOption)

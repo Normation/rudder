@@ -88,6 +88,20 @@ techniqueParameter model technique param =
               TechniqueParameterModified param.id {param | constraints = newConstraint }
 
     constraint = param.constraints
+    (invalidEnumTypeClass, invalidEnumTypeElem) =
+        if ("Enum" == selectTypeValue) then
+          case param.constraints.select of
+            Nothing ->
+              ("error",  ul [class "row"] [ li [ class "text-danger col-md-8" ] [ text "Enum type should contain at least one element" ] ] )
+            Just opts ->
+              if(List.isEmpty opts) then
+                ("error",  ul [class "row"] [ li [ class "text-danger col-md-8" ] [ text "Enum type should contain at least one element" ] ] )
+              else
+                ("", text "")
+        else
+          ("", text "")
+
+
   in
     li [] [
       span [ class "border" ] []
@@ -123,9 +137,9 @@ techniqueParameter model technique param =
       , div [ class " form-group" ] [
           label [ for typeId] [ text "Type"]
         , div [ class "input-group" ] [
-            select [id  typeId, readonly (not model.hasWriteRights), class ("form-select"), value selectTypeValue, onInput onInputType] [
+            select [id  typeId, readonly (not model.hasWriteRights), class ("form-select " ++ invalidEnumTypeClass), value selectTypeValue, onInput onInputType] [
               option [ value "Text", selected ("Text" == selectTypeValue) ] [ text "Text"]
-            , option [ value "Enum", selected ("Enum" == selectTypeValue)  ] [ text "Enum"]
+            , option [ value "Enum", selected ("Enum" == selectTypeValue) ] [ text "Enum"]
             ]
           , label [ class "input-group-text", for checkboxId]
             [ input[type_ "checkbox", id checkboxId, checked (not param.mayBeEmpty), onCheck (\c ->
@@ -142,45 +156,62 @@ techniqueParameter model technique param =
             ] [ i [ class "text-info fa fa-question-circle" ] []]
           ]
         ]
+      , invalidEnumTypeElem
       ]
       , ( case constraint.select of
             Just l ->
-             let displayValue = \ index currentValue ->
-                  li[] [
-                    span [ class "border" ] []
-                  , div [ class "param" ] [
-                      div [ class "gm-labels left"] [
-                        div [ class "gm-label rudder-label gm-label-name "] [ text "Enum" ]
-                      ]
-                    , div [ class "form-group" ] [
-                        label [] [ text "Display name"]
-                      , input [ readonly (not model.hasWriteRights), type_ "text",  class "col-xs-8 form-control", placeholder "Name"
-                              , value (Maybe.withDefault "" currentValue.name), placeholder "Name" , onInput (\s ->
-                                  let
-                                    newConstraint = { constraint | select = Just (List.Extra.updateAt index (\val -> {val | name = if String.isEmpty s then Nothing else Just s}) l  ) }
-                                  in
-                                    TechniqueParameterModified param.id {param | constraints = newConstraint }), required True] []
-                      ]
-                    , div [ class " form-group" ] [
-                        label [ ] [ text "Value"]
-                      , div [class "input-group" ] [
-                          input [ readonly (not model.hasWriteRights), type_ "text",  class "form-control", value currentValue.value, placeholder "Value"
-                                , onInput (\s ->
+             let
+               displayValue =
+                 \index currentValue ->
+                    let
+                       (invalidEnumNameClass, invalidEnumName) =
+                         if (String.isEmpty (Maybe.withDefault "" currentValue.name)) then
+                           ("error",  ul [class "row"] [ li [ class "text-danger col-md-8" ] [ text "Enum name cannot be empty" ] ] )
+                         else
+                           ("", text "")
+                       (invalidEnumValueClass, invalidEnumValue) =
+                         if (String.isEmpty (currentValue.value) && Maybe.withDefault True constraint.allowEmpty ) then
+                           ("error",  ul [class "row"] [ li [ class "text-danger col-md-8" ] [ text "Required is checked so the value cannot be left empty" ] ] )
+                         else
+                           ("", text "")
+                    in
+                    li[] [
+                      span [ class "border" ] []
+                    , div [ class "param" ] [
+                        div [ class "gm-labels left"] [
+                          div [ class "gm-label rudder-label gm-label-name "] [ text "Enum" ]
+                        ]
+                      , div [ class "form-group" ] [
+                          label [] [ text "Display name"]
+                        , input [ readonly (not model.hasWriteRights), type_ "text",  class ("col-xs-8 form-control " ++ invalidEnumNameClass), placeholder "Name"
+                                , value (Maybe.withDefault "" currentValue.name), placeholder "Name" , onInput (\s ->
                                     let
-                                      newConstraint = { constraint | select = Just (List.Extra.updateAt index (\val -> {val | value = s}) l  ) }
+                                      newConstraint = { constraint | select = Just (List.Extra.updateAt index (\val -> {val | name = if String.isEmpty s then Nothing else Just s}) l  ) }
                                     in
                                       TechniqueParameterModified param.id {param | constraints = newConstraint }), required True] []
+                        , invalidEnumName
+                        ]
+                      , div [ class "form-group" ] [
+                          label [ ] [ text "Value"]
+                        , div [class "form-group" ] [
+                            input [ readonly (not model.hasWriteRights), type_ "text",  class ("col-xs-8 form-control " ++ invalidEnumValueClass), value currentValue.value, placeholder "Value"
+                                  , onInput (\s ->
+                                      let
+                                        newConstraint = { constraint | select = Just (List.Extra.updateAt index (\val -> {val | value = s}) l  ) }
+                                      in
+                                        TechniqueParameterModified param.id {param | constraints = newConstraint }), required True] []
+                          , invalidEnumValue
+                          ]
                         ]
                       ]
+                    , div [ class "remove-item", onClick(
+                              let
+                                newConstraint = { constraint | select = Just (List.Extra.removeAt index l  ) }
+                              in
+                                TechniqueParameterModified param.id {param | constraints = newConstraint }) ] [
+                        i [ class "fa fa-times"] []
+                      ]
                     ]
-                  , div [ class "remove-item", onClick(
-                            let
-                              newConstraint = { constraint | select = Just (List.Extra.removeAt index l  ) }
-                            in
-                              TechniqueParameterModified param.id {param | constraints = newConstraint }) ] [
-                      i [ class "fa fa-times"] []
-                    ]
-                  ]
              in
              ul [ class "files-list parameters"]
               ( List.concat [
@@ -194,8 +225,8 @@ techniqueParameter model technique param =
                         TechniqueParameterModified param.id {param | constraints = newConstraint }
                     ), required True
                   ] [
-                    i [ class "fa fa-plus" ] []
-                  , text "Add value"
+                    text "Add value"
+                  , i [ class "fa fa-plus" ] []
                   ]
                 ]
               ])

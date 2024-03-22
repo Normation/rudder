@@ -169,6 +169,34 @@ showTechnique model technique origin ui editInfo =
     areErrorOnMethodParameters = List.isEmpty (Dict.keys statesByMethodIdParameter)
     areErrorOnMethodCondition = List.isEmpty (Dict.keys statesByMethodIdCondition)
     isMethodListEmpty = List.isEmpty (technique.elems)
+    -- Check if enum type is chosen, then we should verify that the list on enum is not empty
+    isEnumListIsEmpty =
+      if (List.isEmpty technique.parameters) then
+        False
+      else
+        let
+          listEnumInputs =
+            List.map (\parameter ->
+              case parameter.constraints.select of
+                Nothing -> False
+                Just e  -> List.isEmpty e
+            )
+            technique.parameters
+        in
+          List.any identity listEnumInputs
+    -- Check if enum type is chosen, then verify if there is at least one input (Display name or Value name) who is empty
+    isEnumWithEmptyInputs =
+      if (List.isEmpty technique.parameters) then
+        False
+      else
+        let
+          listEnumInputs =
+            List.concatMap (\parameter ->
+              List.concatMap (\opt -> [opt.value, Maybe.withDefault "" opt.name ]) (Maybe.withDefault [] parameter.constraints.select)
+            )
+            technique.parameters
+        in
+          List.any String.isEmpty listEnumInputs
     isUnchanged = case origin of
                     Edit t -> t == technique
                     Creation _ -> False
@@ -300,7 +328,7 @@ showTechnique model technique origin ui editInfo =
               text (if (editInfo.open) then "Visual editor " else "YAML editor")
             , i [ class "fa fa-pen"] []
             ]
-          , btnSave ui.saving (isUnchanged || not (isValid technique ui) || String.isEmpty technique.name || isMethodListEmpty || not areErrorOnMethodParameters || not areErrorOnMethodCondition || not areBlockOnError) StartSaving
+          , btnSave ui.saving (isUnchanged || not (isValid technique ui) || String.isEmpty technique.name || isMethodListEmpty || not areErrorOnMethodParameters || not areErrorOnMethodCondition || not areBlockOnError || isEnumListIsEmpty || isEnumWithEmptyInputs) StartSaving
           ]
         ]
       ]
