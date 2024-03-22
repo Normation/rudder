@@ -66,10 +66,18 @@ getSortFunction model g1 g2 =
             allComplianceValues = getAllComplianceValues c.complianceDetails
           in
             if ( allComplianceValues.okStatus.value + allComplianceValues.nonCompliant.value + allComplianceValues.error.value + allComplianceValues.unexpected.value + allComplianceValues.pending.value + allComplianceValues.reportsDisabled.value + allComplianceValues.noReport.value == 0 ) then
-              -1.0
+              -- We always want "No data available" to be at the bottom. see https://issues.rudder.io/issues/24567
+              if model.ui.groupFilters.tableFilters.sortOrder == Asc then
+                101.0
+              else
+                -1.0
             else
               c.compliance
-        Nothing -> -2.0
+        Nothing ->
+          if model.ui.groupFilters.tableFilters.sortOrder == Asc then
+            102.0
+          else
+            -2.0
     groupGlobalCompliance g = getCompliance <| Maybe.map (.global) (getGroupCompliance model g.id)
     groupTargetedCompliance g = getCompliance <| Maybe.map (.targeted) (getGroupCompliance model g.id)
     order = case model.ui.groupFilters.tableFilters.sortBy of
