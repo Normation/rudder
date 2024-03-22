@@ -24,10 +24,12 @@ port displayGroupDetails    : String -> Cmd msg
 port adjustComplianceCols   : () -> Cmd msg
 port createGroupModal       : () -> Cmd msg
 port closeModal             : (() -> msg) -> Sub msg
+port loadGroupTable         : (() -> msg) -> Sub msg
 
 subscriptions : Model -> Sub Msg
 subscriptions _ = Sub.batch
   [ closeModal (\_ -> CloseModal)
+  , loadGroupTable (\_ -> LoadGroupTable)
   ]
 
 main =
@@ -55,6 +57,21 @@ update msg model =
         ui = model.ui
       in
         ({ model | ui = { ui | modal = NoModal, loadingGroups = True } }, Cmd.batch [ getGroupsTree model False ])
+    LoadGroupTable -> 
+      let
+        ui = model.ui
+        newModel = 
+          if Dict.isEmpty model.groupsCompliance then 
+            { model | mode = LoadingTable, ui = { ui | loadingGroups = True } }
+          else
+            { model | mode = GroupTable, ui = { ui | loadingGroups = False } }
+        actions = 
+          if Dict.isEmpty model.groupsCompliance then 
+            getGroupsCompliance False (nextGroupIds model) model
+          else
+            Cmd.none
+      in
+        (newModel, actions)
     OpenGroupDetails groupId ->
       ({ model | mode = ExternalTemplate }, Cmd.batch [pushUrl (getIdAnchorKey groupId.value, groupId.value), displayGroupDetails groupId.value])
     OpenCategoryDetails catId ->

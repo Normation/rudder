@@ -70,7 +70,7 @@ pub enum Command {
         force: bool,
 
         #[clap(
-            help = "Plugin name(s). You can specify a precise version with 'name:version' (like 'cve:8.1.0-1.2')"
+            help = "Plugin name(s) or file path(s). You can specify a precise version with 'name:version' (like 'cve:8.1.0-1.2')"
         )]
         package: Vec<String>,
     },

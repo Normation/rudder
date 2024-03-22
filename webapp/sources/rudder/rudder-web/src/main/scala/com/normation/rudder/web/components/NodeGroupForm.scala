@@ -310,6 +310,13 @@ class NodeGroupForm(
       & "group-container" #> groupContainer.toForm_!
       & "group-static" #> groupStatic.toForm_!
       & "group-showgroup" #> nodes
+      & "group-close" #>
+      <button class="btn btn-default" onclick={
+        s"""$$('#${htmlIdCategory}').trigger("group-close-detail")"""
+      }>
+        Close
+        <i class="fa fa-times"></i>
+      </button>
       & "group-clone" #> {
         if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
           SHtml.ajaxButton(
@@ -333,7 +340,7 @@ class NodeGroupForm(
         } else NodeSeq.Empty
       }
       & "group-delete" #> SHtml.ajaxButton(
-        <span>Delete <i class="fa fa-times-circle"></i></span>,
+        <span>Delete <i class="fa fa-trash"></i></span>,
         () => onSubmitDelete(),
         ("class" -> " btn btn-danger btn-icon")
       )
@@ -389,6 +396,13 @@ class NodeGroupForm(
     & "group-static" #> NodeSeq.Empty
     & "group-showgroup" #> NodeSeq.Empty
     & "group-clone" #> NodeSeq.Empty
+    & "group-close" #>
+    <button class="btn btn-default" onclick={
+      s"""$$('#${htmlIdCategory}').trigger("group-close-detail")"""
+    }>
+      Close
+      <i class="fa fa-times"></i>
+    </button>
     & "group-save" #> NodeSeq.Empty
     & "group-delete" #> NodeSeq.Empty
     & "group-notifications" #> NodeSeq.Empty

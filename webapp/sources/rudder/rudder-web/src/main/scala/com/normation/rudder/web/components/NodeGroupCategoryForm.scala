@@ -109,6 +109,7 @@ class NodeGroupCategoryForm(
             </h1>
             <lift:authz role="group_edit">
               <div class="header-buttons">
+                <directive-close></directive-close>
                 <lift:authz role="node_write">
                   <directive-delete></directive-delete>
                   <directive-save></directive-save>
@@ -130,7 +131,7 @@ class NodeGroupCategoryForm(
             <directive-name></directive-name>
             <directive-description></directive-description>
             <directive-container></directive-container>
-            <div class="form-group row">
+            <div class="form-group">
               <label class="wbBaseFieldLabel">Group category ID</label>
               <input readonly="" class="form-control" value={nodeGroupCategory.id.value}/>
             </div>
@@ -152,7 +153,7 @@ class NodeGroupCategoryForm(
              & "directive-save" #> SHtml.ajaxSubmit("Update", onSubmit _, ("class", "btn btn-success"))
              & "directive-delete" #> deleteButton
            )
-         } else
+         } else {
            (
              "directive-save" #> (
                if (CurrentUser.checkRights(AuthorizationType.Group.Edit))
@@ -163,7 +164,16 @@ class NodeGroupCategoryForm(
                if (CurrentUser.checkRights(AuthorizationType.Group.Write)) deleteButton
                else NodeSeq.Empty
              )
-           ))
+           )
+         })
+      & "directive-close" #> (
+        <button class="btn btn-default" onclick={
+          s"""$$('#${htmlIdCategory}').trigger("group-close-detail")"""
+        }>
+          Close
+          <i class="fa fa-times"></i>
+        </button>
+      )
     )(html)
   }
 
@@ -278,7 +288,7 @@ class NodeGroupCategoryForm(
         },
         parentCategoryId
       ) {
-        override def className             = "form-select"
+        override def className             = "form-select w-100"
         override def labelClassName        = ""
         override def subContainerClassName = ""
         override def validations           =

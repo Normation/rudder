@@ -148,7 +148,7 @@ abstract class RudderBaseField extends BaseField {
   def className:             String                = "rudderBaseFieldClassName form-control vresize col-xl-12 col-md-12"
   // def labelClassName : String = "threeCol"
   def containerClassName:    String                = ""
-  def labelClassName:        String                = "col-xl-3 col-md-12 col-sm-12 text-end"
+  def labelClassName:        String                = "col-xl-3 col-md-12 col-sm-12"
   def errorClassName:        String                = "col-xl-9 col-xl-offset-3 col-md-12 col-sm-12 col-sm-offset-0 col-md-offset-0"
   def inputAttributes:       Seq[(String, String)] = Seq.empty
   ///////// method to optionnaly override //////////

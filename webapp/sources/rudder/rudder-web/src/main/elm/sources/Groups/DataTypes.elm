@@ -121,6 +121,7 @@ rootGroupCategoryId = "GroupRoot"
 type Msg
   = OpenModal
   | CloseModal
+  | LoadGroupTable
   | LoadMore
   | OpenGroupDetails GroupId
   | OpenCategoryDetails String

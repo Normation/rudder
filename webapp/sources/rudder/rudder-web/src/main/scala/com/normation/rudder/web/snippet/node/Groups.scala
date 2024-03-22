@@ -196,6 +196,11 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
                |$$("#createCloneGroupPopup").on("hidden.bs.modal", function () {
                |  app.ports.closeModal.send(null)
                |});
+               |// When custom event to close group details fires, we load the group table state in the Elm app
+               |$$("#${htmlId_item}").on("group-close-detail", function () { 
+               |  $$("#${htmlId_item} .main-container").hide(); // guarantee to hide details
+               |  app.ports.loadGroupTable.send(null)
+               |});
                |
                |// Initialize tooltips
                |app.ports.initTooltips.subscribe(function(msg) {
