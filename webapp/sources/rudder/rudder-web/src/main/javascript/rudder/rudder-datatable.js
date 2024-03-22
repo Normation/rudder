@@ -1359,7 +1359,7 @@ function reloadTable(gridId) {
 
 function createNodeTable(gridId, refresh) {
   var isResizing = false,
-    hasHandle = false,
+    hasHandle = $('#drag').length > 0,
     offsetBottom = 250;
 
   $(function () {
@@ -1369,9 +1369,6 @@ function createNodeTable(gridId, refresh) {
       bottom = $('.main-details > .table-container'),
       handle = $('#drag');
 
-    if (handle.length > 0) {
-      hasHandle = true;
-    }
     handle.on('mousedown', function (e) {
       isResizing = true;
       lastDownY = e.clientY;
@@ -1384,6 +1381,12 @@ function createNodeTable(gridId, refresh) {
         return;
 
       offsetBottom = container.height() - (e.clientY - container.offset().top - (handle.height() * 2)); // need some offset to make the cursor exactly at drag point
+
+      // we don't want to resize above top
+      if (top.offset().top > e.clientY) {
+        e.stopPropagation();
+        return;
+      }
 
       // 120 at least to allow the "Properties tab to still be visible"
       top.css('bottom', Math.max(offsetBottom, 120));
