@@ -100,7 +100,7 @@ final case class FullNodeGroupCategory(
 
   /**
    * Get the list of categories, starting by that one,
-   * and with chlidren sorted with the given ordering.
+   * and with children sorted with the given ordering.
    * So we get:
    * cat1
    *  - cat1.1

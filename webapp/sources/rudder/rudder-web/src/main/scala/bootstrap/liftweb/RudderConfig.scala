@@ -1981,8 +1981,14 @@ object RudderConfigInit {
     }
 
     lazy val archiveApi = {
-      val archiveBuilderService =
-        new ZipArchiveBuilderService(new FileArchiveNameService(), configurationRepository, gitParseTechniqueLibrary)
+      val archiveBuilderService = {
+        new ZipArchiveBuilderService(
+          new FileArchiveNameService(),
+          configurationRepository,
+          gitParseTechniqueLibrary,
+          roLdapNodeGroupRepository
+        )
+      }
       // fixe archive name to make it simple to test
       val rootDirName           = "archive".succeed
       new com.normation.rudder.rest.lift.ArchiveApi(

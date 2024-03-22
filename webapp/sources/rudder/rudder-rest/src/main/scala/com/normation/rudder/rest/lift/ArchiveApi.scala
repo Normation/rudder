@@ -68,6 +68,9 @@ import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.FullGroupTarget
+import com.normation.rudder.domain.policies.FullRuleTargetInfo
+import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
@@ -75,6 +78,7 @@ import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.git.ZipUtils.Zippable
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
+import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
@@ -384,6 +388,22 @@ class FileArchiveNameService(
 
 }
 
+// a simple Json-able object for group categories
+case class JGroupCategory(
+    id:          String,
+    name:        String,
+    description: String
+)
+object JGroupCategory {
+
+  implicit val encoderJGroupCategory: JsonEncoder[JGroupCategory] = DeriveJsonEncoder.gen
+  implicit val decoderJGroupCategory: JsonDecoder[JGroupCategory] = DeriveJsonDecoder.gen
+
+  def fromFullNodeGroupCategory(g: FullNodeGroupCategory): JGroupCategory = {
+    JGroupCategory(g.id.value, g.name, g.description)
+  }
+}
+
 /**
  * That class is in charge of building a archive of a set of rudder objects.
  * It knows how to get objects from their ID, serialise them to the expected
@@ -398,7 +418,8 @@ class FileArchiveNameService(
 class ZipArchiveBuilderService(
     fileArchiveNameService: FileArchiveNameService,
     configRepo:             ConfigurationRepository,
-    techniqueRevisionRepo:  TechniqueRevisionRepository
+    techniqueRevisionRepo:  TechniqueRevisionRepository,
+    groupRepo:              RoNodeGroupRepository
 ) {
 
   // names of directories under the root directory of the archive
@@ -406,6 +427,9 @@ class ZipArchiveBuilderService(
   val GROUPS_DIR     = "groups"
   val DIRECTIVES_DIR = "directives"
   val TECHNIQUES_DIR = "techniques"
+
+  val GROUP_CAT_FILENAME = "category.json"
+  val RULE_CATS          = "rule-categories.json"
 
   /*
    * get the content of the JSON string in the format expected by Zippable
@@ -467,6 +491,10 @@ class ZipArchiveBuilderService(
   }
 
   /*
+   * Retrieve the group using first cache, then the config service, and update cache accordingly
+   */
+
+  /*
    * Getting technique zippable is more complex than other items because we can have a lot of
    * files. The strategy used is to always copy ALL files for the given technique
    * TechniquesDir is the path where techniques are stored, ie for technique "user/1.0", we have:
@@ -503,6 +531,113 @@ class ZipArchiveBuilderService(
                   )
     } yield {
       zips
+    }
+  }
+
+  /*
+   * Get the list of all group category or group as Zip object, in the order they need to be created
+   * (ie first categories from root to leaves, then groups)
+   */
+  def getGroupLibZippable(
+      ids:         Seq[NodeGroupId],
+      groupsDir:   String,
+      usedNames:   Ref[Map[String, Set[String]]],
+      rootDirName: String,
+      groupLib:    FullNodeGroupCategory
+  ): IOResult[Seq[Zippable]] = {
+
+    import com.softwaremill.quicklens.*
+    // filter the group category, keeping only groups from list, then non-empty cat, recursively
+    def recFilter(ids: Seq[NodeGroupId], cat: FullNodeGroupCategory): Option[FullNodeGroupCategory] = {
+      if (ids.isEmpty) None
+      else {
+        val subCats   = cat.subCategories.flatMap(recFilter(ids, _))
+        val subGroups = cat.targetInfos.filter(t => {
+          t.target.target match {
+            case GroupTarget(id) => ids.contains(id)
+            case _               => false
+          }
+        })
+
+        if (subCats.isEmpty && subGroups.isEmpty) None
+        else {
+          Some(
+            cat
+              .modify(_.subCategories)
+              .setTo(subCats)
+              .modify(_.targetInfos)
+              .setTo(subGroups)
+          )
+        }
+      }
+    }
+
+    def missingGroups(ids: Iterable[NodeGroupId]): IOResult[Chunk[Zippable]] = {
+      Inconsistency(s"The following groups were not found in Rudder: '${ids.map(_.debugString).mkString("','")}'").fail
+    }
+
+    /*
+     * Map FullNodeGroupLibrary to a structure of zippable:
+     * To avoid root, we avoid current cat and only deal with children.
+     *
+     * - start with a base path (without ending /) to which are adding items
+     * - deep-first in sub-categories:
+     *   - find a name for the cat
+     *   - create the new base path with parent path + new cat name appended
+     *   - create zip "category.json" under it
+     *   - recurse in cat
+     * - then groups
+     * - for each level, maintain a list of used name to avoid duplicate which would override
+     *
+     * Here: base
+     */
+    def recMapToZippable(
+        basePath:    String,
+        cat:         FullNodeGroupCategory,
+        catFileName: String,
+        usedNames:   Ref[Map[String, Set[String]]]
+    ): IOResult[Chunk[Zippable]] = {
+      for {
+        ref   <- Ref.make(Chunk.empty[Zippable])
+        _     <- ZIO.foreach(cat.subCategories) { sub =>
+                   val c    = JGroupCategory.fromFullNodeGroupCategory(cat)
+                   val json = c.toJsonPretty
+                   for {
+                     catDir     <- findName(c.name, "", usedNames, basePath)
+                     path        = basePath + "/" + catDir
+                     catName    <- findName(catFileName, ".json", usedNames, path)
+                     catFilePath = path + "/" + catName
+                     _          <- ApplicationLoggerPure.Archive
+                                     .debug(s"Building archive '${rootDirName}': adding group category zippable: ${catFilePath}")
+                     zipHead     = Chunk(Zippable(catFilePath, Some(getJsonZippableContent(json))))
+                     children   <- recMapToZippable(path, sub, catFileName, usedNames)
+                     _          <- ref.update(_.appendedAll(children))
+                   } yield ()
+                 }
+        // we only archive non-system NodeGroups, other kind of special targets are ignored
+        groups = cat.targetInfos.collect { case FullRuleTargetInfo(FullGroupTarget(_, g), _, _, _, false) => g }
+        _     <- ZIO.foreach(groups) { g =>
+                   val json = JRGroup.fromGroup(g, cat.id, None).toJsonPretty
+                   for {
+                     name <- findName(g.name, ".json", usedNames, basePath)
+                     path  = basePath + "/" + name
+                     _    <- ApplicationLoggerPure.Archive
+                               .debug(s"Building archive '${rootDirName}': adding group zippable: ${path}")
+                     _    <- ref.update(_.appended(Zippable(path, Some(getJsonZippableContent(json)))))
+                   } yield ()
+                 }
+        zips  <- ref.get
+      } yield zips
+    }
+
+    recFilter(ids, groupLib) match {
+      case None      => if (ids.isEmpty) Nil.succeed else missingGroups(ids)
+      case Some(cat) =>
+        val missing = cat.allGroups.keySet.intersect(ids.toSet)
+        if (missing.nonEmpty) missingGroups(missing)
+        else {
+          recMapToZippable(groupsDir, cat, GROUP_CAT_FILENAME, usedNames)
+        }
     }
   }
 
@@ -558,7 +693,7 @@ class ZipArchiveBuilderService(
                                      name <- findName(rule.name, ".json", usedNames, RULES_DIR)
                                      path  = rulesDir + "/" + name
                                      _    <- ApplicationLoggerPure.Archive
-                                               .debug(s"Building archive '${rootDirName}': adding rule zipable: ${path}")
+                                               .debug(s"Building archive '${rootDirName}': adding rule zippable: ${path}")
                                    } yield {
                                      Some(Zippable(path, Some(getJsonZippableContent(json))))
                                    }
@@ -570,25 +705,8 @@ class ZipArchiveBuilderService(
       _               <- usedNames.update(_ + ((GROUPS_DIR, Set.empty[String])))
       groupsDirZip     = Zippable(groupsDir, None)
       depGroups       <- if (includeDepGroups) depGroupIds.get else Nil.succeed
-      groupsZip       <- ZIO
-                           .foreach(groupIds ++ depGroups) { groupId =>
-                             configRepo
-                               .getGroup(groupId)
-                               .notOptional(s"Group with id ${groupId.serialize} was not found in Rudder")
-                               .flatMap(gc => {
-                                 if (gc.group.isSystem) None.succeed
-                                 else {
-                                   val json = JRGroup.fromGroup(gc.group, gc.categoryId, None).toJsonPretty
-                                   for {
-                                     name <- findName(gc.group.name, ".json", usedNames, GROUPS_DIR)
-                                     path  = groupsDir + "/" + name
-                                     _    <- ApplicationLoggerPure.Archive
-                                               .debug(s"Building archive '${rootDirName}': adding group zipable: ${path}")
-                                   } yield Some(Zippable(path, Some(getJsonZippableContent(json))))
-                                 }
-                               })
-                           }
-                           .map(_.flatten)
+      groupLib        <- groupRepo.getFullGroupLibrary()
+      groupsZip       <- getGroupLibZippable(groupIds ++ depGroups, GROUPS_DIR, usedNames, rootDirName, groupLib)
       // directives need access to technique, but we don't want to look up several time the same one
       techniques      <- Ref.Synchronized.make(Map.empty[TechniqueId, (Chunk[TechniqueCategoryName], Technique)])
 
@@ -613,7 +731,7 @@ class ZipArchiveBuilderService(
                                      name <- findName(ad.directive.name, ".json", usedNames, DIRECTIVES_DIR)
                                      path  = directivesDir + "/" + name
                                      _    <- ApplicationLoggerPure.Archive
-                                               .debug(s"Building archive '${rootDirName}': adding directive zipable: ${path}")
+                                               .debug(s"Building archive '${rootDirName}': adding directive zippable: ${path}")
                                    } yield Some(Zippable(path, Some(getJsonZippableContent(json))))
                                  }
                                })
