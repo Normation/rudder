@@ -150,7 +150,7 @@ $(document).ready(function(){
       $(".method textarea.form-control").on("input", autoResize).each(function(){
         autoResize(this);
       });
-      initBsPopovers();
+      removeBsTooltips();
       initBsTooltips();
     }, 10);
   });
@@ -162,7 +162,6 @@ $(document).ready(function(){
     }, addDelay);
   });
 
-  initBsPopovers();
   initBsTooltips();
 
   // The timeout aims to wait that the tree is fully loaded to

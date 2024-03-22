@@ -405,7 +405,7 @@ callBody model ui techniqueUi call pid =
                    Just m -> m
                    Nothing -> Method call.methodName call.methodName.value "" "" (Maybe.withDefault (ParameterId "") (Maybe.map .id (List.head call.parameters))) [] [] Nothing Nothing Nothing
 
-    deprecatedClass = "fa fa-info-circle method-action text-info popover-bs" ++
+    deprecatedClass = "fa fa-info-circle method-action text-info" ++
                          case method.deprecated of
                            Just _ -> " deprecated-icon"
                            Nothing -> ""
@@ -425,57 +425,49 @@ callBody model ui techniqueUi call pid =
 
                 |> Dom.appendChild
                            ( element "i"
-                             |> addClass "popover-bs fas"
+                             |> addClass "fa"
                              |> addClassConditional "fa-cog" (ui.mode == Closed && not isHovered)
                              |> addClassConditional "fa-edit" isHovered
                              |> addClassConditional "fa-check" (ui.mode == Opened)
                              |> addClass textClass
                              |> addStyleConditional ("font-style", "20px") (ui.mode == Opened)
-                             |> addAttributeList
-                                  [ type_ "button", attribute "data-bs-content" ((if (ui.mode == Opened) then "Close method details<br/>" else "") ++ tooltipContent) , attribute "data-bs-toggle" "popover"
-                                  , attribute "data-bs-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "auto"
-                                  , attribute "data-bs-html" "true"
-                                  ]
+                             |> addAttribute (type_ "button")
                            )
                 |> addAction ("click",  UIMethodAction call.id {ui | mode = if(ui.mode == Opened) then Closed else Opened})
     cloneIcon = element "i" |> addClass "fa fa-clone"
     cloneButton = element "button"
-                  |> addClass "text-success method-action popover-bs"
+                  |> addClass "text-success method-action"
                   |> addActionStopAndPrevent ("click", GenerateId (\s -> CloneElem (Call pid call) (CallId s)))
                   |> addAttributeList
-                     [ type_ "button", attribute "data-bs-content" "Clone this method", attribute "data-bs-toggle" "popover"
-                     , attribute "data-bs-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "auto"
-                     , attribute "data-bs-html" "true"
+                     [ type_ "button"
+                     , title "Clone this method"
                      ]
                   |> appendChild cloneIcon
     removeIcon = element "i" |> addClass "fa fa-times-circle"
     removeButton = element "button"
-                  |> addClass "text-danger method-action popover-bs"
+                  |> addClass "text-danger method-action"
                   |> addActionStopAndPrevent ("click", RemoveMethod call.id)
                   |> addAttributeList
-                     [ type_ "button", attribute "data-bs-content" "Remove this method", attribute "data-bs-toggle" "popover"
-                       , attribute "data-bs-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "auto"
-                     , attribute "data-bs-html" "true"
+                     [ type_ "button"
+                     , title "Remove this method"
                      ]
                   |> appendChild removeIcon
     resetIcon = element "i" |> addClass "fa fa-rotate-right"
     resetButton = element "button"
-                  |> addClass "method-action popover-bs"
+                  |> addClass "method-action"
                   |> addActionStopAndPrevent ("click", ResetMethodCall (Call pid call))
                   |> addAttributeList
-                     [ type_ "button", attribute "data-bs-content" "Reset this method", attribute "data-bs-toggle" "popover"
-                     , attribute "data-bs-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "auto"
-                     , attribute "data-bs-html" "true"
+                     [ type_ "button"
+                     , title "Reset this method"
                      ]
                   |> appendChild resetIcon
     docIcon = element "i" |> addClass "fa fa-book"
     docButton = element "button"
-                  |> addClass "text-info method-action popover-bs"
+                  |> addClass "text-info method-action"
                   |> addActionStopAndPrevent ("click", ShowDoc call.methodName)
                   |> addAttributeList
-                     [ type_ "button", attribute "data-bs-content" "Show documentation", attribute "data-bs-toggle" "popover"
-                     , attribute "data-bs-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "auto"
-                     , attribute "data-bs-html" "true"
+                     [ type_ "button"
+                     , title "Show documentation"
                      ]
                   |> appendChild docIcon
 {--
@@ -667,9 +659,10 @@ callBody model ui techniqueUi call pid =
                     )
                     , element "span" |> addAttributeList
                                         [ class deprecatedClass
-                                        , attribute "data-bs-toggle" "popover", attribute "data-bs-trigger" "hover", attribute "data-bs-container" "body"
-                                        , attribute "data-bs-placement" "auto", attribute "data-bs-content" (getTooltipContent method)
+                                        , attribute "data-bs-toggle" "tooltip"
+                                        , attribute "data-bs-placement" "top"
                                         , attribute "data-bs-html" "true"
+                                        , title (getTooltipContent method)
                                         ]
                     ]
                )

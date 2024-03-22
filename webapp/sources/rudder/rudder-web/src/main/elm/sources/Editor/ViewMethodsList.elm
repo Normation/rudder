@@ -12,6 +12,8 @@ import String.Extra
 import Dom exposing (..)
 import Dom.DragDrop as DragDrop
 
+import Compliance.Utils exposing (buildTooltipContent)
+
 import Editor.DataTypes exposing (..)
 
 
@@ -29,7 +31,7 @@ getTooltipContent method =
       Nothing -> ""
       Just  m -> "<div class='deprecated-info'><div>This generic method is <b>deprecated</b>.</div> <div class='deprecated-message'><b>↳</b>"++ htmlEscape m ++"</div></div>"
   in
-    "<div>Method '<b style=\"color:#444;\">"++ htmlEscape method.name ++"</b>'.<br/>" ++ description ++ deprecation ++ "</div>"
+    buildTooltipContent ("Method '<b>"++ htmlEscape method.name ++"</b>'") (description ++ deprecation)
 
 htmlEscape : String -> String
 htmlEscape s =
@@ -183,12 +185,13 @@ showCategory  category allDeprecated =
     a [  onClick (ScrollCategory category) ]
       ( text category ::
         if (allDeprecated) then
-          [ span [ class "cursor-help popover-bs", attribute "data-bs-toggle" "popover"
-                 , attribute "data-bs-trigger" "hover", attribute "data-bs-container" "body"
-                 , attribute "data-bs-placement" "bottom", attribute "data-title" category
-                 , attribute "data-bs-content" "<div>All generic methods in this category are <b>deprecated</b>.</div>"
-                 , attribute "data-bs-html" "true"
-                 ] [ i [ class "fa fa-info-circle deprecated-icon" ] []]
+          [ span
+            [ class "cursor-help"
+            , attribute "data-bs-toggle" "tooltip"
+            , attribute "data-bs-placement" "top"
+            , attribute "data-bs-html" "true"
+            , title "<div>All generic methods in this category are <b>deprecated</b>.</div>"
+            ] [ i [ class "fa fa-info-circle deprecated-icon" ] []]
           ]
         else []
       )
@@ -227,11 +230,11 @@ showMethod ui method mode dnd =
                  |> appendChild
                     ( element "i"
                       |> addAttributeList
-                         [ class "fa fa-info-circle tooltip-icon deprecated-icon popover-bs"
-                         , attribute "data-bs-toggle" "popover", attribute "data-bs-trigger" "hover"
-                         , attribute "data-bs-container" "body", attribute "data-bs-placement" "top"
-                         , attribute "data-title" method.name, attribute "data-bs-content" (getTooltipContent method)
+                         [ class "fa fa-info-circle tooltip-icon deprecated-icon"
+                         , attribute "data-bs-toggle" "tooltip"
+                         , attribute "data-bs-placement" "top"
                          , attribute "data-bs-html" "true"
+                         , title ((getTooltipContent method))
                          ]
                     )
                ) (Maybe.Extra.isJust  method.deprecated )

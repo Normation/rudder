@@ -342,23 +342,25 @@ blockBody : Model -> Maybe CallId -> MethodBlock -> MethodBlockUiInfo -> Techniq
 blockBody model parentId block ui techniqueUi =
   let
     (textClass, tooltipContent) = case ui.validation of
-                  InvalidState _ -> ("text-danger", "This block is invalid")
+                  InvalidState _ -> ("text-danger", "<div class='tooltip-inner-content'>This block is invalid</div>")
                   Unchanged -> ("","")
-                  ValidState -> ("text-primary","This method was modified")
+                  ValidState -> ("text-primary","<div class='tooltip-inner-content'>This method was modified</div>")
     dragElem =  element "div"
                 |> addClass "cursorMove"
                 |> Dom.appendChild
                            ( element "i"
-                             |> addClass "popover-bs fa"
+                             |> addClass "fa"
                              |> addClassConditional "fa-cubes" (ui.mode == Closed)
                              |> addClassConditional "fa-check" (ui.mode == Opened)
                              |> addClass textClass
                              |> addStyleConditional ("font-style", "20px") (ui.mode == Opened)
                              |> addAttributeList
-                                  [ type_ "button", attribute "data-bs-content" ((if (ui.mode == Opened) then "Close details<br/>" else "") ++ tooltipContent) , attribute "data-bs-toggle" "popover"
-                                  , attribute "data-bs-trigger" "hover", attribute "data-bs-container" "body", attribute "data-bs-placement" "auto"
-                                  , attribute "data-bs-html" "true"
-                                  ]
+                                [ type_ "button"
+                                , attribute "data-bs-toggle" "tooltip"
+                                , attribute "data-bs-placement" "top"
+                                , attribute "data-bs-html" "true"
+                                , title tooltipContent
+                                ]
                            )
                 |> addAction ("click",  UIBlockAction block.id {ui | mode = if(ui.mode == Opened) then Closed else Opened})
 
@@ -367,9 +369,8 @@ blockBody model parentId block ui techniqueUi =
                   |> addClass "text-success method-action"
                   |> addActionStopPropagation ("click", GenerateId (\s -> CloneElem (Block parentId block) (CallId s)))
                   |> addAttributeList
-                     [ type_ "button", title "Clone this block", attribute "data-bs-toggle" "tooltip"
-                     , attribute "data-bs-placement" "left"
-
+                     [ type_ "button"
+                     , title "Clone this block"
                      ]
                   |> appendChild cloneIcon
     resetIcon = element "i" |> addClass "fa fa-rotate-right"
@@ -377,9 +378,8 @@ blockBody model parentId block ui techniqueUi =
                   |> addClass "method-action"
                   |> addActionStopPropagation ("click", ResetMethodCall (Block parentId block))
                   |> addAttributeList
-                     [ type_ "button", title "Reset this block", attribute "data-bs-toggle" "tooltip"
-                     , attribute "data-bs-placement" "left"
-
+                     [ type_ "button"
+                     , title "Reset this block"
                      ]
                   |> appendChild resetIcon
     removeIcon = element "i" |> addClass "fa fa-times-circle"
@@ -387,9 +387,8 @@ blockBody model parentId block ui techniqueUi =
                   |> addClass "text-danger method-action"
                   |> addActionStopPropagation ("click", RemoveMethod block.id)
                   |> addAttributeList
-                     [ type_ "button", title "Remove this block", attribute "data-bs-toggle" "tooltip"
-                     , attribute "data-bs-placement" "left"
-
+                     [ type_ "button"
+                     , title "Remove this block"
                      ]
                   |> appendChild removeIcon
     condition = element "div"
