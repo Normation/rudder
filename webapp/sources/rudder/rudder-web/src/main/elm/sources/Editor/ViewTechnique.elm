@@ -407,10 +407,11 @@ view model =
     , case model.modal of
         Nothing -> text ""
         Just (DeletionValidation technique) ->
-          div [ tabindex -1, class "modal fade ng-isolate-scope in", style "display"  "block" ]  [ -- modal-render="true" tabindex="-1" role="dialog" uib-modal-animation-class="fade" modal-in-class="in" ng-style="{'z-index': 1050 + index*10, display: 'block'}" uib-modal-window="modal-window" index="0" animate="animate" modal-animation="true" style="z-index: 1050; display: block;">
-            div [ class "modal-dialog" ] [
-              div [ class "modal-content" ]  [-- uib-modal-transclude="">
-                div [ class "modal-header ng-scope" ] [
+          div [class "modal fade show", style "display" "block" ]
+          [ div [class "modal-backdrop fade show"][]
+          , div [ class "modal-dialog" ] [
+              div [ class "modal-content" ] [
+                div [ class "modal-header" ] [
                   h5 [ class "modal-title" ] [ text "Delete Technique"]
                 ]
               , div [ class "modal-body" ] [
