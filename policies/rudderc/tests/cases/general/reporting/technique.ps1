@@ -1,4 +1,4 @@
-﻿function Reporting {
+﻿function Technique-Reporting {
     [CmdletBinding()]
     param (
         [parameter(Mandatory = $true)]

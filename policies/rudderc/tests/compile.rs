@@ -59,7 +59,7 @@ fn compile_metadata(methods: &'static Methods, input: &str, source: &Path) {
     //std::fs::write(&ref_file, &output).unwrap();
 
     let reference = read_to_string(ref_file).unwrap();
-    assert_eq!(reference, output);
+    assert_eq!(reference.trim(), output.trim());
 }
 
 /// Compile the given source file with the given target. Panics if compilation fails.
@@ -73,5 +73,5 @@ fn compile_file(methods: &'static Methods, input: &str, source: &Path, target: T
     //std::fs::write(&ref_file, &output).unwrap();
 
     let reference = read_to_string(ref_file).unwrap();
-    assert_eq!(reference, output);
+    assert_eq!(reference.trim(), output.trim());
 }

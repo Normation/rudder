@@ -1,4 +1,4 @@
-﻿function Ntp-Technique {
+﻿function Technique-Ntp-Technique {
     [CmdletBinding()]
     param (
         [parameter(Mandatory = $true)]

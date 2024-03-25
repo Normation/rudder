@@ -19,10 +19,10 @@
     "id": {
       "type": "string",
       "title": "id",
-      "description": "Technique id, must match the '^[a-zA-Z][a-zA-Z0-9_]+$' pattern",
-      "markdownDescription": "```Mandatory```\n\nTechnique id, must respect the ```^[a-zA-Z][a-zA-Z0-9_]+$``` pattern.\n\nUsed implicitly in technique parameters and resource folder variable definitions:\n\n* ```${<technique_id>.<parameter_name>}```\n* ```${<technique_id>.resources_dir}```",
-      "pattern": "^[a-zA-Z][a-zA-Z0-9_]+$",
-      "default": "my_new_technique",
+      "description": "Technique, must match the '^[a-zA-Z0-9_]+$' pattern",
+      "markdownDescription": "```Mandatory```\n\nTechnique id, must respect the ```^[a-zA-Z0-9_]+$``` pattern.\n\nUsed implicitly in technique parameters and resource folder variable definitions:\n\n* ```${<technique_id>.<parameter_name>}```\n* ```${<technique_id>.resources_dir}```",
+      "pattern": "^[a-zA-Z0-9_]+$",
+      "default": "my_technique",
       "examples": [
         "my_new_technique"
       ]
