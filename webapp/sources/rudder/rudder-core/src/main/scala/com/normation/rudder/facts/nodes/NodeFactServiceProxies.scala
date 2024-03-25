@@ -244,9 +244,21 @@ class WoFactNodeRepositoryProxy(backend: NodeFactRepository) extends WoNodeRepos
     } yield fact.toNode
   }
 
-  override def deleteNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = ???
+  override def deleteNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = {
+    for {
+      _ <- backend.delete(node.id)(ChangeContext(modId, actor, DateTime.now(), reason, None, todoQC.nodePerms))
+    } yield node
+  }
 
-  override def createNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = ???
+  override def createNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = {
+    val fact = CoreNodeFact.updateNode(fact, node)
+    for {
+      _ <- backend.save(NodeFact.fromMinimal(fact))(
+        ChangeContext(modId, actor, DateTime.now(), reason, None, todoQC.nodePerms),
+        SelectFacts.none
+      )
+    } yield fact.toNode
+  }
 
   override def updateNodeKeyInfo(
       nodeId:         NodeId,
