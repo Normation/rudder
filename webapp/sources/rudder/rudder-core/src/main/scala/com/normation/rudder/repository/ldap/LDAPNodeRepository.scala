@@ -213,30 +213,4 @@ class WoLDAPNodeRepository(
     ZIO.when(newNode.id == Constants.ROOT_POLICY_SERVER_ID)(validateRoot(newNode)).unit
   }
 
-  override def createNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = {
-    val entry = mapper.nodeToEntry(node)
-    nodeLibMutex.writeLock(for {
-      con <- ldap
-      _   <- con.save(entry).chainError(s"Cannot create node with id '${node.id.value}'")
-      a    = CacheExpectedReportAction.InsertNodeInCache(node.id)
-      _   <- cacheConfiguration.invalidateWithAction(Seq((node.id, CacheComplianceQueueAction.ExpectedReportAction(a))))
-      _   <- cacheExpectedReports.invalidateWithAction(Seq((node.id, a)))
-    } yield {
-      node
-    })
-  }
-
-  // this method is unused
-  override def deleteNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = {
-    val entry = mapper.nodeToEntry(node)
-    nodeLibMutex.writeLock(for {
-      con <- ldap
-      _   <- con.delete(entry.dn).chainError(s"Error when trying to delete node '${node.id.value}'")
-      a    = CacheExpectedReportAction.InsertNodeInCache(node.id)
-      _   <- cacheConfiguration.invalidateWithAction(Seq((node.id, CacheComplianceQueueAction.ExpectedReportAction(a))))
-      _   <- cacheExpectedReports.invalidateWithAction(Seq((node.id, a)))
-    } yield {
-      node
-    })
-  }
 }
