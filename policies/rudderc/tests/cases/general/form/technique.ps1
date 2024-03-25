@@ -1,4 +1,4 @@
-﻿function Form {
+﻿function Technique-Form {
     [CmdletBinding()]
     param (
         [parameter(Mandatory = $true)]

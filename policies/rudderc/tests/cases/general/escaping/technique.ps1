@@ -1,4 +1,4 @@
-﻿function Escaping {
+﻿function Technique-Escaping {
     [CmdletBinding()]
     param (
         [parameter(Mandatory = $true)]

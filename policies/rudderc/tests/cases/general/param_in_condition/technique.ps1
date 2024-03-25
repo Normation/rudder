@@ -1,4 +1,4 @@
-﻿function Param-In-Condition {
+﻿function Technique-Param-In-Condition {
     [CmdletBinding()]
     param (
         [parameter(Mandatory = $true)]
