@@ -244,10 +244,6 @@ class WoFactNodeRepositoryProxy(backend: NodeFactRepository) extends WoNodeRepos
     } yield fact.toNode
   }
 
-  override def deleteNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = ???
-
-  override def createNode(node: Node, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Node] = ???
-
   override def updateNodeKeyInfo(
       nodeId:         NodeId,
       agentKey:       Option[SecurityToken],
