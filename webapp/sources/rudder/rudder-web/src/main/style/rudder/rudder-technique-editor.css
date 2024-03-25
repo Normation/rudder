@@ -191,6 +191,12 @@ body > .ng-toast {
   display: block;
   overflow: hidden;
 }
+
+.icon-output {
+  margin-left: 5px;
+  margin-top: 5px;
+}
+
 /* ===== TECHNIQUES & METHODS ===== */
 .show-methods .col-techniques,
 .show-techniques .col-methods{
