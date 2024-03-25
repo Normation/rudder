@@ -576,7 +576,7 @@ update msg model =
         ui = model.methodsUI
         newDocs = if List.member methodId ui.docsOpen then ui.docsOpen else methodId :: ui.docsOpen
       in
-      ( { model | methodsUI = { ui | docsOpen = newDocs }, genericMethodsOpen = True } , scrollMethod ((not model.genericMethodsOpen) , methodId.value))
+      ( { model | methodsUI = { ui | docsOpen = newDocs }, genericMethodsOpen = True } , Cmd.batch [clearTooltips "", scrollMethod ((not model.genericMethodsOpen) , methodId.value)])
 
     AddMethod method newId ->
       if model.hasWriteRights then
