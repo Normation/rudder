@@ -58,8 +58,9 @@ update msg model =
                filterScript elem =
                    case elem of
                        Element "script" _ _ -> Text ""
+                       Element "i" attributes children -> Element "i" (attributes ++ [("class", "icon-state")]) (children |> List.map filterScript)
                        Element tag attributes children -> Element tag attributes (children |> List.map filterScript)
-                       s-> s
+                       s -> s
                html = Html.Parser.Util.toVirtualDom (htmlString |> List.map filterScript)
             in
               ( { model | detailsHtml = Dict.update name (always (Just html)) model.detailsHtml }
