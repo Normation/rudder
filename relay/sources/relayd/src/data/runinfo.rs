@@ -11,8 +11,9 @@ use std::{
 use anyhow::Error;
 use chrono::prelude::*;
 use nom::{
+    branch::alt,
     bytes::complete::{tag, take_until},
-    combinator::{map_res, opt},
+    combinator::{eof, map_res, opt},
     IResult,
 };
 use serde::{Deserialize, Serialize};
@@ -35,7 +36,10 @@ impl Display for RunInfo {
     }
 }
 
-fn parse_runinfo(i: &str) -> IResult<&str, RunInfo> {
+/// Rudder 6.0 to 8.0
+///
+/// `${datetime}@${node_id}.log`
+fn parse_runinfo_v1(i: &str) -> IResult<&str, RunInfo> {
     let (i, timestamp) = map_res(take_until("@"), |d: &str| {
         // On Windows, filenames can't contain : so we replace them by underscores
         DateTime::parse_from_rfc3339(&d.replace('_', ":"))
@@ -61,11 +65,49 @@ fn parse_runinfo(i: &str) -> IResult<&str, RunInfo> {
     }
 }
 
+/// Rudder 8.1+
+///
+/// `${nodeid}_${datetime}.log`
+///
+/// * Replace `@` by a sane separator
+/// * Put the node id for better default sort
+///
+/// We explicitly still don't want to assume anything about the node id format, except that it does
+/// not contains underscores.
+fn parse_runinfo_v2(i: &str) -> IResult<&str, RunInfo> {
+    // node id, i.e. everything until first _
+    let (i, node_id) = take_until("_")(i)?;
+    let (i, _) = tag("_")(i)?;
+    let (i, timestamp) = map_res(take_until("."), |d: &str| {
+        // On Windows, filenames can't contain : so we replace them by underscores
+        DateTime::parse_from_str(&d.replace('_', ":"), "%+")
+    })(i)?;
+    let (i, _) = tag(".log")(i)?;
+    let (i, _) = opt(tag(".gz"))(i)?;
+    let (i, _) = opt(tag(".zip"))(i)?;
+    let (_, _) = eof(i)?;
+
+    if node_id.is_empty() {
+        Err(nom::Err::Failure(nom::error::Error::new(
+            i,
+            nom::error::ErrorKind::Many1,
+        )))
+    } else {
+        Ok((
+            i,
+            RunInfo {
+                timestamp,
+                node_id: node_id.to_string(),
+            },
+        ))
+    }
+}
+
 impl FromStr for RunInfo {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match parse_runinfo(s) {
+        match alt((parse_runinfo_v1, parse_runinfo_v2))(s) {
             Ok(raw_runinfo) => {
                 debug!("Parsed run info {:#?}", raw_runinfo.1);
                 Ok(raw_runinfo.1)
@@ -132,6 +174,13 @@ mod tests {
         assert_eq!(
             RunInfo::from_str(
                 "2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log.gz"
+            )
+            .unwrap(),
+            reference
+        );
+        assert_eq!(
+            RunInfo::from_str(
+                "e745a140-40bc-4b86-b6dc-084488fc906b_2018-08-24T15:55:01+00:00.log.gz"
             )
             .unwrap(),
             reference
