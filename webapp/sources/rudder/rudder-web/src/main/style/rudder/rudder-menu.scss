@@ -480,25 +480,25 @@ header.main-header .logo-lg img{
   list-style: none;
   overflow-x: hidden
 }
-.navbar-nav .notifications-menu>.dropdown-menu > li > a,
+.navbar-nav .notifications-menu>.dropdown-menu > li a,
 .navbar-nav>.tasks-menu>.dropdown-menu > li > a {
   display: block;
   white-space: nowrap;
   border-bottom: 1px solid #f4f4f4
 }
-.navbar-nav .notifications-menu>.dropdown-menu > li > a:hover,
+.navbar-nav .notifications-menu>.dropdown-menu > li a:hover,
 .navbar-nav>.tasks-menu>.dropdown-menu > li > a:hover {
   background: $navbar-hover-color;
   text-decoration: none
 }
-.navbar-nav .notifications-menu>.dropdown-menu > li > a {
+.navbar-nav .notifications-menu>.dropdown-menu > li a {
   color: #444;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   padding: 10px
 }
-.navbar-nav .notifications-menu>.dropdown-menu > li > a > .fa, .navbar-nav .notifications-menu>.dropdown-menu > li > a > .ion {
+.navbar-nav .notifications-menu>.dropdown-menu > li a > .fa, .navbar-nav .notifications-menu>.dropdown-menu > li > a > .ion {
   width: 20px
 }
 
@@ -634,10 +634,10 @@ header.main-header .logo-lg img{
   }
 }
 
-.navbar-custom-menu>.navbar-nav>li {
+.navbar-nav>li {
   position: relative
 }
-.navbar-custom-menu>.navbar-nav>li>.dropdown-menu {
+.navbar-nav>li>.dropdown-menu {
   position: absolute;
   right: 0;
   left: auto
