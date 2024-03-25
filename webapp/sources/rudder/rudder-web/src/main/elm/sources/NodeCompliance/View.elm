@@ -74,7 +74,7 @@ view model =
                   ]
                 else if List.length children == 0 then
                   [ tr[]
-                    [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "No nodes match your filter."] ]
+                    [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "No rules match your filter."] ]
                   ]
                 else
                   List.concatMap (\d ->  showComplianceDetails fun d "" filters.openedRows mod) children
