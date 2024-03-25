@@ -95,7 +95,8 @@ pub fn signature(input: &[u8], certs: &Stack<X509>) -> Result<String, Error> {
 
     // We have validated the presence of a plain text MIME type, let's parse
     // content as a string.
-    Ok(String::from_utf8(message)?)
+    // Don't fail on non UTF-8 input
+    Ok(String::from_utf8_lossy(&message).into_owned())
 }
 
 #[cfg(test)]

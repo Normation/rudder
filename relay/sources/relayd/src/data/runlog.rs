@@ -8,7 +8,8 @@ use std::{
     collections::HashSet,
     convert::TryFrom,
     fmt::{self, Display},
-    fs::read_to_string,
+    fs::File,
+    io::Read,
     path::Path,
     str::FromStr,
 };
@@ -108,7 +109,12 @@ impl RunLog {
                     RudderError::InvalidRunInfo(path.as_ref().to_str().unwrap_or("").to_string())
                 })?,
         )?;
-        RunLog::try_from((info, read_to_string(path)?.as_ref()))
+        let mut runlog_file = File::open(path)?;
+        let mut buffer = Vec::new();
+        let _ = runlog_file.read_to_end(&mut buffer)?;
+        // Don't fail on non UTF-8 input
+        let runlog_str = String::from_utf8_lossy(&buffer);
+        RunLog::try_from((info, runlog_str.as_ref()))
     }
 
     pub fn without_types(&self, types: &HashSet<String>) -> Self {
@@ -215,7 +221,7 @@ impl TryFrom<(RunInfo, Vec<RawReport>)> for RunLog {
 
 #[cfg(test)]
 mod tests {
-    use std::fs::read_dir;
+    use std::fs::{read_dir, read_to_string};
 
     use chrono::DateTime;
 
