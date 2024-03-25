@@ -1695,8 +1695,11 @@ ul li.hide-method {
 }
 .error{
   animation: shake 0.2s ease-in-out 0s 2;
-  box-shadow: 0 0 0.5em;
   border-color: #DA291C !important;
+}
+.form-select:focus.error{
+   outline: 0;
+   box-shadow: 0 0 0 0.25rem #DA291C30;
 }
 @keyframes shake {
   0% { margin-left: 0rem; }
