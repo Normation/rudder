@@ -1005,18 +1005,19 @@ object DisplayNode extends Loggable {
   def displayTabInventoryVariable(jsId: JsNodeId, node: CoreNodeFact, sm: FullInventory): NodeSeq = {
     def displayLine(name: String, value: String): NodeSeq = {
       <tr>
-        <td>{name}<button class="btn btn-xs btn-default btn-clipboard" data-clipboard-text={
-        s"""$${node.inventory[${name}]"""
-      }><i class="ion ion-clipboard"></i></button></td>
+        <td>{name}</td>
+        <td>
+          <span class="ion ion-clipboard copy-actions" data-clipboard-text={s"""$${node.inventory[${name}]}"""}></span>
+        </td>
         {
         if (value.strip().isEmpty) {
           <td></td>
         } else {
           <td>
             <pre class="json-inventory-vars">{value}</pre>
-            <button class="btn btn-xs btn-default btn-clipboard" data-clipboard-text={value}>
-              <i class="ion ion-clipboard"></i>
-            </button>
+          </td>
+          <td>
+            <span class="ion ion-clipboard copy-actions" data-clipboard-text={value}></span>
           </td>
         }
       }
@@ -1060,11 +1061,13 @@ object DisplayNode extends Loggable {
         <div class="alert alert-info">
           These are the node inventory variables that can be used in directive inputs with the <b class="code">${{node.inventory[NAME]}}</b> syntax.
         </div>
-        <table class="no-footer dataTable">
+        <table id="inventoryVariablesTab" class="no-footer dataTable">
           <thead>
             <tr class="head">
               <th class="sorting sorting_desc">Name</th>
+              <th></th>
               <th class="sorting">Value</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>

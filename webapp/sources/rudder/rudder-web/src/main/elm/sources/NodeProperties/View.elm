@@ -102,8 +102,10 @@ view model =
                 [ thead[]
                   [ tr [class "head"]
                     [ th [class (thClass model.ui.filters Name   ), onClick (UpdateTableFilters (sortTable filters Name   ))][ text "Name"   ]
+                    , th [ (class " col")][] -- column for copy to clipboard property name
                     , th [class (thClass model.ui.filters Format ), onClick (UpdateTableFilters (sortTable filters Format ))][ text "Format" ]
-                    , th [class (thClass model.ui.filters Value  ), onClick (UpdateTableFilters (sortTable filters Value  ))][ text "Value"  ]
+                    , th [class (thClass model.ui.filters Value ++ (" col-8")), onClick (UpdateTableFilters (sortTable filters Value  ))][ text "Value"  ]
+                    , th [][] -- column for copy to clipboard property value
                     , th[class "sorting"] [text "Actions" ]
                     ]
                   ]

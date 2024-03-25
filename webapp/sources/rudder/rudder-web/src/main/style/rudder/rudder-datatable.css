@@ -445,6 +445,23 @@ td.listclose:after {
   opacity: 1;
 }
 
+.copy-actions {
+  cursor: pointer;
+}
+#nodePropertiesTab > tbody > tr > td > span.copy-actions{
+  opacity:0;
+}
+#nodePropertiesTab > tbody > tr:hover > td > span.copy-actions{
+  opacity: 1;
+}
+
+#inventoryVariablesTab > tbody > tr > td > span.copy-actions{
+  opacity:0;
+}
+#inventoryVariablesTab > tbody > tr:hover > td > span.copy-actions{
+  opacity: 1;
+}
+
 #nodePropertiesTab th:first-child{
   width: 20% !important;
 }
