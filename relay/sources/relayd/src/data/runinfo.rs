@@ -67,7 +67,7 @@ fn parse_runinfo_v1(i: &str) -> IResult<&str, RunInfo> {
 ///
 /// `${nodeid}_${datetime}.log`
 ///
-/// * Remplace `@` by a sane separator
+/// * Replace `@` by a sane separator
 /// * Put the node id for better default sort
 ///
 /// We explicitly still don't want to assume anything about the node id format, except that it does
