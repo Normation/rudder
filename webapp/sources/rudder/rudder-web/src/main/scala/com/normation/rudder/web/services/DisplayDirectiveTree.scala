@@ -537,5 +537,4 @@ object DisplayDirectiveTree extends Loggable {
     )
     directiveLib.subCategories.filterNot(_.isSystem).sortBy(_.name).flatMap(cat => displayCategory(cat, cat.id.value).toXml)
   }
-
 }

@@ -44,14 +44,14 @@ displayTags newTag tags addAction removeAction editForm isFilter filterTags =
           ]
         , ( if editForm then
           button [ type_ "button", class "btn btn-default", onClick (removeAction Remove (remove tag tags))]
-          [ span [class "fa fa-times text-danger"][]
+          [ span [class "fa fa-times"][]
           ]
           else
           text ""
           )
         ]
   in
-    div [class ("tags-container form-group row col-sm-12" ++ (if List.isEmpty tags then " noTags" else ""))]
+    div [class ("tags-container form-group col-sm-12" ++ (if List.isEmpty tags then " noTags" else ""))]
     ( tags |> List.map displayTag )
 
 displayTagForm : Tag -> List Tag -> List CompletionValue -> List CompletionValue -> (Completion -> Tag -> msg) -> (Action -> List Tag -> msg) -> Bool -> Html msg
@@ -71,7 +71,7 @@ displayTagForm newTag tags completionKeys completionValues updateAction addActio
       , input [id "newTagValue", class "form-control input-value", list "completion-val-list", placeholder "value", value newTag.value, onInput (\s -> (updateAction Val {newTag | value = s}))][]
       , datalist [id "completion-val-list"]
         ( List.map (\c -> option[value c.value][]) completionValues )
-      , button [type_ "button", class "btn btn-default btn-sm", onClick (addAction Add (newTag :: tags)), disabled (alreadyExist || disableBtn)]
+      , button [type_ "button", class "btn btn-default", onClick (addAction Add (newTag :: tags)), disabled (alreadyExist || disableBtn)]
         [ span [class "fa fa-plus"][]
         ]
       ]

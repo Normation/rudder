@@ -675,7 +675,12 @@ function showHideRunLogs(scrollTarget, tabId, init, refresh) {
 }
 
 function initDatePickers(id, action) {
+  var dateNow = new Date();
+  var twoHoursBefore = new Date();
+  twoHoursBefore.setHours(twoHoursBefore.getHours() - 2);
   $(id + ' .pickStartInput, ' + id + ' .pickEndInput').datetimepicker({dateFormat:'yy-mm-dd', timeFormat: 'HH:mm:ss', timeInput: true});
+  $(".pickStartInput").datetimepicker("setDate", twoHoursBefore);
+  $(".pickEndInput").datetimepicker("setDate", dateNow);
   $(id+"Button").click(function () {
     var param = '{"start":"'+$(id +" .pickStartInput").val()+'", "end":"'+$(id +" .pickEndInput").val()+'"}'
     action(param)

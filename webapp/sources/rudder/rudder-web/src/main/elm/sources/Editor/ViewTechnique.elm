@@ -336,7 +336,7 @@ showTechnique model technique origin ui editInfo =
           [ button
             [ attribute "role" "tab", type_ "button", class ("nav-link " ++ (activeTabClass Output)), onClick (SwitchTab Output)]
             [ text "Compilation output "
-            , span [ class  ( "fa fa-check") ] []
+            , span [ class  ( "fa fa-cogs") ] []
             ]
           ]
           else

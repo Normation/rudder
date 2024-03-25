@@ -5,15 +5,15 @@
   <link media="screen" data-lift="with-cached-resource" href="/style/rudder/rudder-directives.css" rel="stylesheet" type="text/css">
   <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/tree-tag-plugin.js"></script>
   <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/directive.js"></script>
-  <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-directivecompliance.js"></script>
-  <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-filters.js"></script>
-  <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-techniqueversion.js"></script>
+  <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-directivecompliance.js"></script>
+  <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-filters.js"></script>
+  <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-techniqueversion.js"></script>
+  <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-filemanager.js"></script>
+  <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-tags.js"></script>
 </head>
 
 <div data-lift="configuration.DirectiveManagement.head"></div>
 
-  <div id="filemanager-editor">
-  </div>
 <div class="rudder-template">
 
 
@@ -34,6 +34,25 @@
         </div>
       </div>
       <div data-lift="configuration.DirectiveManagement.userLibrary" ></div>
+      <script>
+        var main = document.getElementById("filters-app")
+        var initValues = {
+            contextPath : contextPath,
+            objectType  : "directive"
+        };
+        filterApp = Elm.Filters.init({node: main, flags: initValues});
+        filterApp.ports.toggleTree.subscribe(function(result) {
+          toggleTree('#activeTechniquesTree', this);
+        });
+        filterApp.ports.searchTree.subscribe(function(filters) {
+          $("#activeTechniquesTree").jstree("searchtag", filters.filter, filters.tags, {"key":false , "value":false});
+        });
+        filterApp.ports.sendFilterTags.subscribe(function(tags) {
+          if (typeof tagsApp === "undefined") return false;
+          tagsApp.ports.getFilterTags.send(tags);
+        });
+        $(".bsTooltip").bsTooltip({container: "#boxDirectiveTree" })
+      </script>
     </div>
   </div>
 
