@@ -1,4 +1,4 @@
-﻿function Windows-Long-Param-Names {
+﻿function Technique-Windows-Long-Param-Names {
     [CmdletBinding()]
     param (
         [parameter(Mandatory = $true)]

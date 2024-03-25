@@ -18,7 +18,62 @@ use crate::ir::condition::Condition;
 
 pub const TECHNIQUE_FORMAT_VERSION: usize = 1;
 
-/// Valid id for techniques, methods, etc.
+/// Valid id for techniques.
+///
+/// Similar to `Id`, but does now allow dashes.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Hash)]
+#[serde(transparent)]
+pub struct TechniqueId {
+    inner: String,
+}
+
+impl AsRef<String> for TechniqueId {
+    fn as_ref(&self) -> &String {
+        &self.inner
+    }
+}
+
+impl From<TechniqueId> for String {
+    fn from(id: TechniqueId) -> Self {
+        id.inner
+    }
+}
+
+impl FromStr for TechniqueId {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        fn valid_char(c: char) -> bool {
+            c.is_ascii_alphanumeric() || c == '_'
+        }
+
+        if s.chars().all(valid_char) {
+            Ok(TechniqueId {
+                inner: s.to_string(),
+            })
+        } else {
+            bail!("Invalid technique id: {}", s)
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for TechniqueId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        FromStr::from_str(&s).map_err(de::Error::custom)
+    }
+}
+
+impl Display for TechniqueId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.inner)
+    }
+}
+
+/// Valid id for blocks, methods, etc.
 ///
 /// Lowest common denominator between target platforms.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Hash)]
@@ -235,7 +290,7 @@ impl Default for Technique {
     fn default() -> Self {
         Self {
             format: TECHNIQUE_FORMAT_VERSION,
-            id: Id::from_str("my_technique").unwrap(),
+            id: TechniqueId::from_str("my_technique").unwrap(),
             name: "My technique".to_string(),
             version: "1.0".to_string(),
             tags: None,
@@ -254,7 +309,7 @@ pub struct Technique {
     #[serde(default = "Technique::default_format")]
     #[serde(skip_serializing_if = "Technique::format_is_default")]
     pub format: usize,
-    pub id: Id,
+    pub id: TechniqueId,
     pub name: String,
     pub version: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -331,7 +386,7 @@ pub struct DeserItem {
 pub struct DeserTechnique {
     #[serde(default = "Technique::default_format")]
     pub format: usize,
-    pub id: Id,
+    pub id: TechniqueId,
     pub name: String,
     pub version: String,
     pub tags: Option<Value>,

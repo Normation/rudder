@@ -17,7 +17,7 @@ use crate::{
     },
     ir::{
         condition::Condition,
-        technique::{Id, LeafReportingMode, Method},
+        technique::{LeafReportingMode, Method, TechniqueId},
     },
 };
 
@@ -31,7 +31,7 @@ use crate::{
 ///
 /// Plus a calling `Promise`
 pub fn method_call(
-    technique_id: &Id,
+    technique_id: &TechniqueId,
     m: Method,
     condition: Condition,
 ) -> Result<(Promise, Bundle)> {

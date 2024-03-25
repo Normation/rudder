@@ -1,4 +1,4 @@
-﻿function Min {
+﻿function Technique-Min {
     [CmdletBinding()]
     param (
         [parameter(Mandatory = $true)]

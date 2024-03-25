@@ -15,7 +15,7 @@ use crate::{
     ir::{
         self,
         condition::Condition,
-        technique::{Id, ItemKind},
+        technique::{ItemKind, TechniqueId},
     },
 };
 
@@ -40,7 +40,7 @@ impl Unix {
     }
 
     /// To call the technique in standalone policies
-    fn prelude(technique_id: Id, params: Vec<String>) -> String {
+    fn prelude(technique_id: TechniqueId, params: Vec<String>) -> String {
         // Static content including parts of the system techniques required to run most techniques,
         // i.e. lib loading and global vars (`g.X`).
         let static_prelude = include_str!("unix/prelude.cf");
@@ -76,7 +76,7 @@ impl Backend for Unix {
         fn resolve_module(
             r: ItemKind,
             context: Condition,
-            technique_id: &Id,
+            technique_id: &TechniqueId,
         ) -> Result<Vec<(Promise, Bundle)>> {
             match r {
                 ItemKind::Block(r) => {
