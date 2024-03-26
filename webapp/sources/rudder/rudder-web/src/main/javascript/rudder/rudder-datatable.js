@@ -1449,154 +1449,21 @@ function createNodeTable(gridId, refresh) {
        , "visible" : true
       }
     ]
-    , "data":
-      [
-        ["server.rudder.local", "root", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root2", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root3", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root4", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root5", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root6", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root7", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root8", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root9", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root10", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root11", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root12", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root13", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root14", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root15", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root15", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root15", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root15", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root15", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root15", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root15", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root15", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root15", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root15", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ],
-        ["server.rudder.local", "root15", "enforce", "default", "1.0-dummy-version", "not-init", "root", "unknownMachineType", "", "enabled",
-          [
-            [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-          ], true, [], "Never", "1969-12-31 23:00:00+0100", {}, {}, {}, ["E", { "system-updates": "A", "compliance": "E" }]
-        ]
-      ].map(row => Object.fromEntries([
-        "name",
-        "policyServerId",
-        "policyMode",
-        "globalModeOverride",
-        "kernel",
-        "agentVersion",
-        "id",
-        "machineType",
-        "os",
-        "state",
-        "compliance",
-        "systemError",
-        "ipAddresses",
-        "lastRun",
-        "lastInventory",
-        "software",
-        "properties",
-        "inheritedProperties",
-        "score"
-      ].map((element, index) => [element, row[index]])))
+    , "ajax": {
+      "url": contextPath + "/secure/api/nodes/details"
+      , "type": "POST"
+      , "contentType": "application/json"
+      , "data": function (d) {
+        var data = d
+        var softwareList = columns.filter(function (c) { return ((typeof c.data) !== "function" && c.data.startsWith("software")) }).map(function (c) { return c.data.split(/\.(.+)/)[1] })
+
+        var properties = columns.filter(function (c) { return c.title.startsWith("Property") }).map(function (c) { return { "value": c.value, "inherited": c.inherited } })
+        data = $.extend({}, d, { "software": softwareList, "properties": properties })
+        if (nodeIds !== undefined) { data = $.extend({}, d, { "nodeIds": nodeIds, "software": softwareList, "properties": properties }) }
+        return JSON.stringify(data)
+      }
+      , "dataSrc": ""
+    }
     , "drawCallback": function( oSettings ) {
         initBsTooltips();
       }
