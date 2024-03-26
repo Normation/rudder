@@ -142,6 +142,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
                |var main = document.getElementById("groups-app");
                |var initValues = {
                |  contextPath    : contextPath
+               |, hasGroupToDisplay : hasGroupToDisplay
                |, hasWriteRights : hasWriteRights
                |};
                |var app = Elm.Groups.init({node: main, flags: initValues});
@@ -237,13 +238,19 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
    * We want to look for #{ "groupId":"XXXXXXXXXXXX" } or #{"targer":"....."}
    */
   private[this] def parseJsArg(rootCategory: Box[FullNodeGroupCategory]): JsCmd = {
-    def displayDetailsGroup(groupId: String)     = {
+    def displayGroupNotFound:                     JsCmd = SetHtml(
+      htmlId_item,
+      <div class="jumbotron">
+        <h2>Group not found</h2>
+      </div>
+    )
+    def displayDetailsGroup(groupId: String):     JsCmd = {
       val gid = NodeGroupId(NodeGroupUid(groupId))
       rootCategory match {
-        case eb: EmptyBox => Noop
+        case eb: EmptyBox => displayGroupNotFound
         case Full(lib) =>
           lib.allGroups.get(gid) match {
-            case None                  => Noop
+            case None                  => displayGroupNotFound
             case Some(fullGroupTarget) => // so we also have its parent category
               // no modification, so no refreshGroupLib
               refreshTree(htmlTreeNodeId(groupId)) &
@@ -252,13 +259,13 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
           }
       }
     }
-    def displayDetailsTarget(targetName: String) = {
+    def displayDetailsTarget(targetName: String): JsCmd = {
       RuleTarget.unser(targetName) match {
         case Some(t: NonGroupRuleTarget) =>
           refreshTree(htmlTreeNodeId(targetName)) &
           showGroupSection(Left(t), NodeGroupCategoryId("SystemGroups")) &
           JsRaw("initBsTooltips()")
-        case _                           => Noop
+        case _                           => displayGroupNotFound
       }
     }
 
@@ -275,8 +282,10 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
         }
         if( groupId != null && groupId.length > 0) {
           ${SHtml.ajaxCall(JsVar("groupId"), displayDetailsGroup _)._2.toJsCmd};
+          hasGroupToDisplay = true;
         } else if( targetName != null && targetName.length > 0) {
           ${SHtml.ajaxCall(JsVar("targetName"), displayDetailsTarget _)._2.toJsCmd};
+          hasGroupToDisplay = true;
         }
     """)
   }
