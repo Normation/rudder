@@ -97,17 +97,15 @@ class SrvGrid(
   /**
    * Display and init the display for the list of server
    * @param tableId : the id of the table
-   * @param callback : Optionnal callback to use on node, if missing, replaced by a link to that node
    */
   def displayAndInit(
       nodes:        Option[Seq[NodeInfo]],
       tableId:      String,
-      callback:     Option[(String, Boolean) => JsCmd] = None,
-      refreshNodes: Option[() => Option[Seq[NodeInfo]]] = None
+      additionalJs: Option[JsCmd] = None
   ): NodeSeq = {
     val script = {
       configService.rudder_global_policy_mode().toBox match {
-        case Full(globalPolicyMode) => Script(OnLoad(initJs(tableId, nodes, globalPolicyMode, callback, refreshNodes)))
+        case Full(globalPolicyMode) => Script(OnLoad(initJs(tableId, nodes, additionalJs)))
         case eb: EmptyBox =>
           val fail = eb ?~! "Could not find global policy Mode"
           logger.error(fail.messageChain)
@@ -124,17 +122,15 @@ class SrvGrid(
    * and the optionnal callback
    */
   def initJs(
-      tableId:          String,
-      nodes:            Option[Seq[NodeInfo]],
-      globalPolicyMode: GlobalPolicyMode,
-      callback:         Option[(String, Boolean) => JsCmd],
-      refreshNodes:     Option[() => Option[Seq[NodeInfo]]]
+      tableId:      String,
+      nodes:        Option[Seq[NodeInfo]],
+      additionalJs: Option[JsCmd]
   ): JsCmd = {
 
     val nodeIds = nodes.map(nodes => JsArray(nodes.map(n => Str(n.id.value)).toList).toJsCmd).getOrElse("undefined")
     JsRaw(s"""nodeIds = ${nodeIds};
              | createNodeTable("${tableId}",function() {reloadTable("${tableId}")} );
-                   """.stripMargin)
+                   """.stripMargin) & (additionalJs.getOrElse(Noop))
   }
 
   def getTableData(
