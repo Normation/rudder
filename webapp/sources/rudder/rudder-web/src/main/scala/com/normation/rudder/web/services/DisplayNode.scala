@@ -632,13 +632,6 @@ object DisplayNode extends Loggable {
       s"${nodeFact.rudderAgent.agentType.displayName} (${nodeFact.rudderAgent.version.value} with ${capabilities})"
     }</div>
           {displayPolicyServerInfos(nodeFact.toFullInventory)}
-          <div>
-            {
-      creationDate.map { creation =>
-        <xml:group><label>Accepted since:</label> {DateFormaterService.getDisplayDate(creation)}</xml:group>
-      }.getOrElse(NodeSeq.Empty)
-    }
-          </div>
           {
 
       val checked     = (nodeFact.rudderSettings.status, nodeFact.rudderSettings.keyStatus) match {
@@ -712,6 +705,13 @@ object DisplayNode extends Loggable {
           <div>
             <label>Inventory received:</label>  {
       DateFormaterService.getDisplayDate(nodeFact.factProcessedDate)
+    }
+          </div>
+          <div>
+            {
+      creationDate.map { creation =>
+        <xml:group><label>Accepted since:</label> {DateFormaterService.getDisplayDate(creation)}</xml:group>
+      }.getOrElse(NodeSeq.Empty)
     }
           </div>
           <div>
