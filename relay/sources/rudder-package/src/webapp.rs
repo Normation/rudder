@@ -9,7 +9,7 @@ use std::{
     process::Command,
 };
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use quick_xml::{
     events::{BytesEnd, BytesStart, BytesText, Event},
     reader::Reader,
@@ -38,7 +38,12 @@ impl Webapp {
 
     /// Return currently loaded jars
     pub fn jars(&self) -> Result<Vec<String>> {
-        let mut reader = Reader::from_file(&self.path)?;
+        let mut reader = Reader::from_file(&self.path).with_context(|| {
+            format!(
+                "Failed to read from webapp config file '{}'",
+                &self.path.to_string_lossy()
+            )
+        })?;
         let mut buf = Vec::new();
         let mut in_extra_classpath = false;
 
