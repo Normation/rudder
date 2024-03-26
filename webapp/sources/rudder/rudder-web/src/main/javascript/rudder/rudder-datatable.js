@@ -1367,8 +1367,7 @@ function createNodeTable(gridId, refresh) {
     var container = $('.main-details'),
       top = $('.main-details > .tab-content-split'),
       bottom = $('.main-details > .table-container'),
-      handle = $('#drag'),
-      table = $(".dataTables_scrollBody");
+      handle = $('#drag');
 
     handle.on('mousedown', function (e) {
       isResizing = true;
@@ -1390,7 +1389,7 @@ function createNodeTable(gridId, refresh) {
       }
 
       top.css('bottom', offsetBottom);
-      bottom.css('height', offsetBottom).css('margin-bottom', 0);
+      bottom.css('height', offsetBottom).css('margin-bottom', '');
       $("#" + gridId).parent().css('max-height', Math.max(0, offsetBottom - container.offset().top + handle.height()));
     }).on('mouseup', function (e) {
       // stop resizing
