@@ -77,7 +77,8 @@ object DemoteRelay extends EventLogFilter {
 object NodeEventLogsFilter {
   final val eventList: List[EventLogFilter] = List(
     ModifyNode,
-    PromoteNode
+    PromoteNode,
+    DemoteRelay
     // one day: create, delete
   )
 }
