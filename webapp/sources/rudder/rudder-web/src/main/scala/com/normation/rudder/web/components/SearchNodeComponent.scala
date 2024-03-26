@@ -383,10 +383,7 @@ class SearchNodeComponent(
    */
   def showNodesTableByTab(): JsCmd = {
     val tabs = List("groupParametersTab", "groupCriteriaTab")
-    // NO -> YES => show
-    // YES -> NO => hide
-    // _ => do nothing
-    // Use click element height as initial height for the table
+    // Click element height is the same as drag element and has "clickable" class 
     JE.JsRaw(s"""
         var clickToShowTableEventHandler = function (e) {
           var clickEl = $$(e.target);

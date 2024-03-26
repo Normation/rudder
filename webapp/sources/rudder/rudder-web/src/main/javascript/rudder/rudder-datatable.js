@@ -1778,7 +1778,15 @@ function handleNodesTableDisplayByGroupTab(show, clickEventHandler) {
       bottom = $('.main-details > .table-container'),
       handle = $('#drag');
 
-  if (show) {
+  if (!show) {
+    top.css("bottom", handle.height());
+    bottom.css("height", handle.height());
+    // Set handle to "draggable", replace content icon
+    handle.addClass("clickable").children("i.fa").addClass("fa-caret-up").removeClass("fa-grip-lines");
+    // Set the table as hidden
+    handle.parent().children(".main-table").addClass("d-none")
+    handle.on("click", clickEventHandler);
+  } else {
     // revert state to initial one, as in "createNodeTable"
     top.css("bottom", "");
     bottom.css("height", "");
@@ -1786,15 +1794,6 @@ function handleNodesTableDisplayByGroupTab(show, clickEventHandler) {
     handle.removeClass("clickable").children("i.fa").removeClass("fa-caret-up").addClass("fa-grip-lines");
     handle.parent().children(".main-table").removeClass("d-none")
     handle.off("click", clickEventHandler);
-  } else {
-    top.css("bottom", handle.height());
-    bottom.css("height", handle.height());
-    // Set handle to "draggable", replace content icon
-    handle.addClass("clickable").children("i.fa").addClass("fa-caret-up").removeClass("fa-grip-lines");
-    // Set the table as hidden
-    handle.parent().children(".main-table").addClass("d-none")
-    // Set event handling as showing the table on click
-    handle.on("click", clickEventHandler);
   }
 }
 
