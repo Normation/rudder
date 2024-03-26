@@ -61,21 +61,21 @@ class TestRenameReceived extends Specification {
   }
 
   "new format should be renamed" >> {
-    val f = "2bb4e01b-be7e-4c9e-9c30-177aada44869_2024-03-21T16:07:29+01:00.ocs"
-    val s = "2bb4e01b-be7e-4c9e-9c30-177aada44869_2024-03-21T16:07:29+01:00.ocs.sign"
+    val f          = "2bb4e01b-be7e-4c9e-9c30-177aada44869_2024-03-21T16:07:29+01:00.ocs"
+    val s          = "2bb4e01b-be7e-4c9e-9c30-177aada44869_2024-03-21T16:07:29+01:00.ocs.sign"
     val normalized = "2bb4e01b-be7e-4c9e-9c30-177aada44869"
 
-    (InventoryMover.normalizeReceivedName(File(f)) === normalized+".ocs") and
-    (InventoryMover.normalizeReceivedName(File(s)) === normalized+".ocs.sign")
+    (InventoryMover.normalizeReceivedName(File(f)) === normalized + ".ocs") and
+    (InventoryMover.normalizeReceivedName(File(s)) === normalized + ".ocs.sign")
   }
 
   "actually, we should be able to handle _ in the first part too" in {
-    val f = "dev_www_2bb4e01b-be7e-4c9e-9c30-177aada44869_2024-03-21T16:07:29+01:00.ocs"
-    val s = "dev_www_2bb4e01b-be7e-4c9e-9c30-177aada44869_2024-03-21T16:07:29+01:00.ocs.sign"
+    val f          = "dev_www_2bb4e01b-be7e-4c9e-9c30-177aada44869_2024-03-21T16:07:29+01:00.ocs"
+    val s          = "dev_www_2bb4e01b-be7e-4c9e-9c30-177aada44869_2024-03-21T16:07:29+01:00.ocs.sign"
     val normalized = "dev_www_2bb4e01b-be7e-4c9e-9c30-177aada44869"
 
-    (InventoryMover.normalizeReceivedName(File(f)) === normalized+".ocs") and
-    (InventoryMover.normalizeReceivedName(File(s)) === normalized+".ocs.sign")
+    (InventoryMover.normalizeReceivedName(File(f)) === normalized + ".ocs") and
+    (InventoryMover.normalizeReceivedName(File(s)) === normalized + ".ocs.sign")
   }
 
 }
