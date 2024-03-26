@@ -170,7 +170,7 @@ techniqueParameter model technique param =
                          else
                            ("", text "")
                        (invalidEnumValueClass, invalidEnumValue) =
-                         if (String.isEmpty (currentValue.value) && Maybe.withDefault True constraint.allowEmpty ) then
+                         if (String.isEmpty (currentValue.value) && not param.mayBeEmpty ) then
                            ("error",  ul [class "row"] [ li [ class "text-danger col-md-8" ] [ text "Required is checked so the value cannot be left empty" ] ] )
                          else
                            ("", text "")
