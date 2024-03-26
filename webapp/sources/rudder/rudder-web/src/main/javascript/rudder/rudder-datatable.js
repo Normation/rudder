@@ -1449,20 +1449,20 @@ function createNodeTable(gridId, refresh) {
        , "visible" : true
       }
     ]
-    , "ajax": {
-      "url": contextPath + "/secure/api/nodes/details"
-      , "type": "POST"
-      , "contentType": "application/json"
-      , "data": function (d) {
-        var data = d
-        var softwareList = columns.filter(function (c) { return ((typeof c.data) !== "function" && c.data.startsWith("software")) }).map(function (c) { return c.data.split(/\.(.+)/)[1] })
+    , "ajax" : {
+    "url" : contextPath + "/secure/api/nodes/details"
+    , "type" : "POST"
+    , "contentType" : "application/json"
+    , "data" : function (d) {
+      var data = d
+      var softwareList = columns.filter(function (c) { return ((typeof c.data) !== "function" && c.data.startsWith("software")) }).map(function (c) { return c.data.split(/\.(.+)/)[1] })
 
-        var properties = columns.filter(function (c) { return c.title.startsWith("Property") }).map(function (c) { return { "value": c.value, "inherited": c.inherited } })
-        data = $.extend({}, d, { "software": softwareList, "properties": properties })
-        if (nodeIds !== undefined) { data = $.extend({}, d, { "nodeIds": nodeIds, "software": softwareList, "properties": properties }) }
-        return JSON.stringify(data)
-      }
-      , "dataSrc": ""
+      var properties = columns.filter(function (c) { return c.title.startsWith("Property") }).map(function (c) { return { "value": c.value, "inherited": c.inherited } })
+      data = $.extend({}, d, { "software": softwareList, "properties": properties })
+      if (nodeIds !== undefined) { data = $.extend({}, d, { "nodeIds": nodeIds, "software": softwareList, "properties" : properties }) }
+      return JSON.stringify(data)
+    }
+    , "dataSrc" : ""
     }
     , "drawCallback": function( oSettings ) {
         initBsTooltips();
