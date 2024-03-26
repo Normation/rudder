@@ -50,7 +50,7 @@ class Nodes extends StatefulSnippet with Loggable {
   }
 
   def table(html: NodeSeq): NodeSeq = {
-    srvGrid.displayAndInit(None, "nodes", None, Some(() => None))
+    srvGrid.displayAndInit(None, "nodes")
   }
 
 }

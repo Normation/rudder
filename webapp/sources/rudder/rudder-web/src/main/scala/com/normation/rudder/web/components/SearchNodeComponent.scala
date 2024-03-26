@@ -356,7 +356,11 @@ class SearchNodeComponent(
     def showQueryAndGridContent(): NodeSeq = {
       (
         "content-query" #> NodeSeq.Empty
-        & "update-nodestable" #> srvGrid.displayAndInit(Some(Seq()), "groupNodesTable") // we need to set something, or IE moans
+        & "update-nodestable" #> srvGrid.displayAndInit(
+          Some(Seq()),
+          "groupNodesTable",
+          Some(showNodesTableByTab())
+        ) // we need to set something, or IE moans
       )(nodesTable)
     }
     showQueryAndGridContent() ++ Script(OnLoad(ajaxGridRefresh(true)))
@@ -371,6 +375,42 @@ class SearchNodeComponent(
   def ajaxGridRefresh(isGroupPage: Boolean): JsCmd = {
     activateButtonOnChange() &
     gridResult(isGroupPage)
+  }
+
+  /**
+   * Display the nodes tables by default only for some known tabs
+   * @return
+   */
+  def showNodesTableByTab(): JsCmd = {
+    val tabs = List("groupParametersTab", "groupCriteriaTab")
+    // NO -> YES => show
+    // YES -> NO => hide
+    // _ => do nothing
+    // Use click element height as initial height for the table
+    JE.JsRaw(s"""
+        var clickToShowTableEventHandler = function (e) {
+          var clickEl = $$(e.target);
+          var table = clickEl.parent();
+          table.css("height", "").find(".main-table").removeClass("d-none");
+          table.parent().children(".tab-content-split").css("bottom", table.height());
+          clickEl.removeClass("clickable").children("i.fa").removeClass("fa-caret-up").addClass("fa-grip-lines");
+          return false;
+        };
+        var tabs = ${tabs.map(s => s"'${s}'").mkString("[", ",", "]")};
+        $$('#groupTabMenu').ready(function () {
+          $$('#groupTabMenu [role="tab"]').on("show.bs.tab", function (e) {
+            var isNextTabShowing = tabs.includes(e.target.getAttribute('aria-controls'));
+            var isPreviousTabShowing = 
+              !e.relatedTarget || tabs.includes(e.relatedTarget.getAttribute('aria-controls')); // initial tab shows nodes table
+            if (!isPreviousTabShowing && isNextTabShowing) {
+              handleNodesTableDisplayByGroupTab(true, clickToShowTableEventHandler);
+            } 
+            if (isPreviousTabShowing && !isNextTabShowing) {
+              handleNodesTableDisplayByGroupTab(false, clickToShowTableEventHandler);
+            }
+          })
+        })
+      """)
   }
 
   /**
