@@ -383,16 +383,7 @@ class SearchNodeComponent(
    */
   def showNodesTableByTab(): JsCmd = {
     val tabs = List("groupParametersTab", "groupCriteriaTab")
-    // Click element height is the same as drag element and has "clickable" class 
     JE.JsRaw(s"""
-        var clickToShowTableEventHandler = function (e) {
-          var clickEl = $$(e.target);
-          var table = clickEl.parent();
-          table.css("height", "").find(".main-table").removeClass("d-none");
-          table.parent().children(".tab-content-split").css("bottom", table.height());
-          clickEl.removeClass("clickable").children("i.fa").removeClass("fa-caret-up").addClass("fa-grip-lines");
-          return false;
-        };
         var tabs = ${tabs.map(s => s"'${s}'").mkString("[", ",", "]")};
         $$('#groupTabMenu').ready(function () {
           $$('#groupTabMenu [role="tab"]').on("show.bs.tab", function (e) {
@@ -400,10 +391,10 @@ class SearchNodeComponent(
             var isPreviousTabShowing = 
               !e.relatedTarget || tabs.includes(e.relatedTarget.getAttribute('aria-controls')); // initial tab shows nodes table
             if (!isPreviousTabShowing && isNextTabShowing) {
-              handleNodesTableDisplayByGroupTab(true, clickToShowTableEventHandler);
+              handleNodesTableDisplayByGroupTab(true);
             } 
             if (isPreviousTabShowing && !isNextTabShowing) {
-              handleNodesTableDisplayByGroupTab(false, clickToShowTableEventHandler);
+              handleNodesTableDisplayByGroupTab(false);
             }
           })
         })

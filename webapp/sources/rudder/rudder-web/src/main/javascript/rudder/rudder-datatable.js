@@ -1773,11 +1773,21 @@ function createNodeTable(gridId, refresh) {
    columnSelect(false)
 }
 
-function handleNodesTableDisplayByGroupTab(show, clickEventHandler) {
+/**
+ * Make it possible toggle the status of showing the table.
+ * This is using the same draggable element as a "click" target.
+ */
+function handleNodesTableDisplayByGroupTab(show) {
   var top = $('.main-details > .tab-content-split'),
       bottom = $('.main-details > .table-container'),
       handle = $('#drag');
 
+  var clickEventHandler = function () {
+    bottom.css("height", "").find(".main-table").removeClass("d-none");
+    bottom.parent().children(".tab-content-split").css("bottom", bottom.height());
+    handle.removeClass("clickable").children("i.fa").removeClass("fa-caret-up").addClass("fa-grip-lines");
+    return false;
+  }
   if (!show) {
     top.css("bottom", handle.height());
     bottom.css("height", handle.height());
