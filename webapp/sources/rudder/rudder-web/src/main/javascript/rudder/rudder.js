@@ -817,7 +817,7 @@ function logout(cb){
 function initBsTooltips(){
   var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
   return tooltipTriggerList.map(function (tooltipTriggerEl) {
-    return new bootstrap.Tooltip(tooltipTriggerEl,{container : "body", html : true});
+    return new bootstrap.Tooltip(tooltipTriggerEl,{container : "body", html : true, trigger : 'hover'});
   });
 }
 function removeBsTooltips(){
