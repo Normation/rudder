@@ -108,7 +108,12 @@ pub fn run_inner(args: Args) -> Result<()> {
     let mut webapp = Webapp::new(PathBuf::from(WEBAPP_XML_PATH), webapp_version);
     let mut db = Database::read(Path::new(PACKAGES_DATABASE_PATH))?;
 
-    create_dir_all(TMP_PLUGINS_FOLDER).context("Create temporary directory")?;
+    create_dir_all(TMP_PLUGINS_FOLDER).with_context(|| {
+        format!(
+            "Failed to create temporary directory in '{}'",
+            TMP_PLUGINS_FOLDER
+        )
+    })?;
 
     match args.command {
         Command::Install { force, package } => {

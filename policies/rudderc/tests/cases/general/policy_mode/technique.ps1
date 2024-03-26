@@ -1,4 +1,4 @@
-﻿function Test-Audit {
+﻿function Technique-Test-Audit {
     [CmdletBinding()]
     param (
         [parameter(Mandatory = $true)]

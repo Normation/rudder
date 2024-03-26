@@ -4,7 +4,7 @@
 use core::fmt;
 use std::{cmp::Ordering, fmt::Display, fs, str::FromStr};
 
-use anyhow::{bail, Error, Result};
+use anyhow::{bail, Context, Error, Result};
 use regex::Regex;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use tracing::debug;
@@ -130,7 +130,8 @@ impl RudderVersion {
     }
 
     pub fn from_path(path: &str) -> Result<Self, Error> {
-        let content = fs::read_to_string(path)?;
+        let content = fs::read_to_string(path)
+            .with_context(|| format!("Failed to read the Rudder version file '{}'", path))?;
         let re = Regex::new(r"rudder_version=(?<raw_rudder_version>.*)")?;
         let caps = match re.captures(&content) {
             None => bail!(
