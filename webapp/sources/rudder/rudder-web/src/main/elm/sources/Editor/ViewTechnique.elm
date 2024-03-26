@@ -184,19 +184,43 @@ showTechnique model technique origin ui editInfo =
             technique.parameters
         in
           List.any identity listEnumInputs
-    -- Check if enum type is chosen, then verify if there is at least one input (Display name or Value name) who is empty
-    isEnumWithEmptyInputs =
+
+    -- An Enum name cannot should not be empty
+    isEnumWithEmptyName =
       if (List.isEmpty technique.parameters) then
         False
       else
         let
-          listEnumInputs =
+          -- Each enum's name
+          listEnumName =
             List.concatMap (\parameter ->
-              List.concatMap (\opt -> [opt.value, Maybe.withDefault "" opt.name ]) (Maybe.withDefault [] parameter.constraints.select)
-            )
-            technique.parameters
+                List.map (\enum -> Maybe.withDefault "" enum.name) (Maybe.withDefault [] parameter.constraints.select)
+            ) technique.parameters
         in
-          List.any String.isEmpty listEnumInputs
+          List.any String.isEmpty listEnumName
+
+    -- Empty value are allowed only if "Required" option is not checked
+    isEnumWithEmptyValue =
+      if (List.isEmpty technique.parameters) then
+        False
+      else
+        let
+          -- List (required: Bool, values: List String)
+          listEnumConstraintValues =
+            List.map (\parameter ->
+              ( (not parameter.mayBeEmpty)
+              , List.map (\enum -> enum.value) (Maybe.withDefault [] parameter.constraints.select)
+              )
+            ) technique.parameters
+        in
+         List.any identity
+         ( listEnumConstraintValues
+             -- required = True  and emptiness = True       ==> ERROR
+             -- required = True  and emptiness = False      ==> OK
+             -- required = False and emptiness = True/False ==> OK
+             |> List.map (\(required, values) -> required && List.any String.isEmpty values)
+         )
+
     isUnchanged = case origin of
                     Edit t -> t == technique
                     Creation _ -> False
@@ -328,7 +352,7 @@ showTechnique model technique origin ui editInfo =
               text (if (editInfo.open) then "Visual editor " else "YAML editor")
             , i [ class "fa fa-pen"] []
             ]
-          , btnSave ui.saving (isUnchanged || not (isValid technique ui) || String.isEmpty technique.name || isMethodListEmpty || not areErrorOnMethodParameters || not areErrorOnMethodCondition || not areBlockOnError || isEnumListIsEmpty || isEnumWithEmptyInputs) StartSaving
+          , btnSave ui.saving (isUnchanged || not (isValid technique ui) || String.isEmpty technique.name || isMethodListEmpty || not areErrorOnMethodParameters || not areErrorOnMethodCondition || not areBlockOnError || isEnumListIsEmpty || isEnumWithEmptyName || isEnumWithEmptyValue) StartSaving
           ]
         ]
       ]
@@ -364,7 +388,7 @@ showTechnique model technique origin ui editInfo =
           [ button
             [ attribute "role" "tab", type_ "button", class ("nav-link " ++ (activeTabClass Output)), onClick (SwitchTab Output)]
             [ text "Compilation output "
-            , span [ class  ( "fa fa-cogs") ] []
+            , span [ class  ( "icon-output fa fa-cogs") ] []
             ]
           ]
           else
