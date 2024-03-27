@@ -494,7 +494,7 @@ object DisplayNode extends Loggable {
         <span class="machine-os-info">
           <span class="machine-info">{sm.node.main.osDetails.fullName}</span>
           <span class="machine-info ram">{sm.node.ram.map(_.toStringMo).getOrElse("-")}</span>
-          <span class="fa fa-info-circle icon-info" data-bs-toggle="tooltip" data-bs-placement="bottom" title={
+          <span class="fa fa-info-circle icon-info me-1" data-bs-toggle="tooltip" data-bs-placement="bottom" title={
       machineTooltip
     }></span>
         </span>
