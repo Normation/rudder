@@ -438,8 +438,8 @@ limitations under the License.
     <commons-fileupload>1.5</commons-fileupload>
     <commons-csv-version>1.10.0</commons-csv-version>
     <jgit-version>6.7.0.202309050840-r</jgit-version>
-    <spring-version>5.3.30</spring-version>
-    <spring-security-version>5.7.11</spring-security-version>
+    <spring-version>5.3.33</spring-version>
+    <spring-security-version>5.7.12</spring-security-version>
     <cglib-version>3.3.0</cglib-version>
     <asm-version>9.4</asm-version>
     <!-- Level of Java compatibility, here 1.8+ -->
@@ -450,7 +450,7 @@ limitations under the License.
     <quicklens-version>1.9.0</quicklens-version>
     <hikaricp-version>5.0.1</hikaricp-version>
     <nuprocess-version>2.0.5</nuprocess-version>
-    <postgresql-version>42.6.0</postgresql-version>
+    <postgresql-version>42.6.2</postgresql-version>
     <json-path-version>2.7.0</json-path-version>
     <json-smart-version>2.4.11</json-smart-version>
     <scalaj-version>2.4.2</scalaj-version>
