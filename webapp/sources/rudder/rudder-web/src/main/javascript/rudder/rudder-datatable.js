@@ -1397,6 +1397,9 @@ function createNodeTable(gridId, refresh) {
       isResizing = false;
       return false;
     });
+
+    // we need to assign an initial bottom to the top and bottom elements in order to make them initially scrollable
+    top.css('bottom', Math.max(bottom.height(), 120));
   });
 
   var cacheId = gridId + "_columns"
