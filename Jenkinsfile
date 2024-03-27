@@ -5,10 +5,6 @@ def version = "8.0"
 def slackResponse = null
 def changeUrl = env.CHANGE_URL
 
-if (changeUrl == null) {
-  slackResponse = slackSend(channel: "ci", message: "${version} - build - <"+currentBuild.absoluteUrl+"|Link>", color: "#00A8E1")
-}
-
 def errors = []
 def running = []
 
