@@ -49,6 +49,7 @@ import com.normation.rudder.git.GitRepositoryProvider
 trait ResourceFileService {
   def getResources(technique:            EditorTechnique): IOResult[List[ResourceFile]]
   def getResourcesFromDir(resourcesPath: String, techniqueName: String, techniqueVersion: String): IOResult[List[ResourceFile]]
+  def cloneResourcesFromTechnique(draftId: String, techniqueId: String, techniqueVersion: String, category: String): IOResult[Unit]
 }
 class GitResourceFileService(gitReposProvider: GitRepositoryProvider) extends ResourceFileService {
   def getResources(technique: EditorTechnique) = {
@@ -114,5 +115,18 @@ class GitResourceFileService(gitReposProvider: GitRepositoryProvider) extends Re
       // Create a new list with all a
       filesNotCommitted ::: untouched
     }
+  }
+
+  override def cloneResourcesFromTechnique(draftId: String, techniqueId: String, techniqueVersion: String, category : String): IOResult[Unit] = {
+
+    IOResult.attempt(s"An error occurred while copying resources of technique ${techniqueId}/${techniqueVersion} to a new draft technique ${draftId}") {
+      val resourceDir = gitReposProvider.rootDirectory / s"techniques/${category}/${techniqueId}/${techniqueVersion}/resources"
+      val workspace = gitReposProvider.rootDirectory / s"workspace/${draftId}/${techniqueVersion}"
+      if (resourceDir.exists) {
+        workspace.createDirectoryIfNotExists(true)
+        resourceDir.copyToDirectory(workspace)
+      }
+    }
+
   }
 }

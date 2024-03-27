@@ -93,7 +93,7 @@ mainInit initValues =
   in
     (model, Cmd.batch ( [ getDrafts (), getMethods model, getTechniquesCategories model]) )
 
-updatedStoreTechnique: Model -> (Model, Cmd msg)
+updatedStoreTechnique: Model -> (Model, Cmd Msg)
 updatedStoreTechnique model =
   case model.mode of
     TechniqueDetails t o _ editInfo ->
@@ -116,7 +116,7 @@ updatedStoreTechnique model =
               let
                draft = Draft  t Nothing id.value (Time.millisToPosix 0)
               in
-                (Dict.insert draft.id draft model.drafts, Cmd.batch[initInputs "", clearTooltips "", storeDraft (encodeDraft draft)] )
+                (Dict.insert draft.id draft model.drafts, Cmd.batch[initInputs "", clearTooltips "", storeDraft (encodeDraft draft), copyResourcesToDraft draft.id origin model] )
       in
          ({ model | drafts = drafts }, action)
     _ -> (model, Cmd.batch[initInputs "", clearTooltips ""])
@@ -219,7 +219,10 @@ update msg model =
 
     UpdateTechniqueFilter treeFilter ->
       ( { model | techniqueFilter = treeFilter } , Cmd.none )
-
+    CopyResources (Ok ()) ->
+      ( model, Cmd.none )
+    CopyResources (Err err) ->
+      ( model ,  errorNotification  ("Error when copying technique resources to draft" ) )
     SelectTechnique technique ->
       case model.mode of
         TechniqueDetails t _ _ editInfo ->
