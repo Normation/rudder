@@ -334,8 +334,8 @@ class DirectiveEditForm(
                         }) &
       "#directiveRulesTab *" #> ruleDisplayer &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) % ("class" -> "btn btn-success") } &
-      "#notifications" #> updateAndDisplayNotifications() &
-      "#showTechnical *" #> <button type="button" class="btn btn-technical-details btn-default" onclick="$('#technicalDetails').toggle(400);$(this).toggleClass('opened');">technical details</button> &
+      "#notifications" #> displayNotifications() &
+      "#showTechnical *" #> <button type="button" class="btn btn-technical-details btn-default" onclick="$('#technicalDetails').toggle(400);$(this).toggleClass('opened');">Technical details</button> &
       "#isSingle *" #> showIsSingle() &
       "#paramInfo *" #> showParametersLink() &
       displayDeprecationWarning
@@ -391,14 +391,25 @@ class DirectiveEditForm(
 
   def addFormMsg(msg: NodeSeq): Unit = formTracker.addFormError(msg)
 
-  private[this] def onFailure(): JsCmd = {
+  private[this] def onFailure(hasVariableErrors: Boolean = false): JsCmd = {
     formTracker.addFormError(error("There was a problem with your request."))
-    showErrorNotifications()
+    val cmd = if (hasVariableErrors) {
+      showVariablesErrorNotifications()
+    } else {
+      showErrorNotifications()
+    }
+    formTracker.cleanErrors
+    cmd
   }
 
   private[this] def onNothingToDo(): JsCmd = {
     formTracker.addFormError(error("There are no modifications to save."))
     showErrorNotifications()
+  }
+
+  private[this] def showVariablesErrorNotifications(): JsCmd = {
+    // only replace notification container to avoid resetting the tab state
+    onFailureCallback() & Replace("notification", displayNotifications())
   }
 
   private[this] def showErrorNotifications(): JsCmd = {
@@ -654,22 +665,26 @@ class DirectiveEditForm(
 
   private[this] def error(msg: String) = <span class="error">{msg}</span>
 
-  private[this] def checkVariables(): Unit = {
-    for (vars <- parameterEditor.mapValueSeq) {
+  // Returns true if there is any error
+  private[this] def checkVariables(): Boolean = {
+    !parameterEditor.mapValueSeq.forall { vars =>
       try {
-        val s = Seq((parameterEditor.variableSpecs(vars._1).toVariable(vars._2)))
+        val s = Seq(parameterEditor.variableSpecs(vars._1).toVariable(vars._2))
         RudderLDAPConstants.variableToSeq(s)
+        true
       } catch {
-        case e: Exception => formTracker.addFormError(error(e.getMessage))
+        case e: Exception =>
+          formTracker.addFormError(error(e.getMessage))
+          false
       }
     }
   }
 
   private[this] def onSubmitSave(): JsCmd = {
-    checkVariables()
+    val hasVariableErrors = checkVariables()
 
     if (formTracker.hasErrors) {
-      onFailure()
+      onFailure(hasVariableErrors)
     } else {
       val (addRules, removeRules) = directiveApp.checkRulesToUpdate
       val baseRules               = (addRules ++ removeRules).sortBy(_.id.serialize)
@@ -825,7 +840,7 @@ class DirectiveEditForm(
             onSuccessCallback = successCallback,
             onFailureCallback = failureCallback,
             onCreateSuccessCallBack = (result => onSuccessCallback(result) & successNotification("")),
-            onCreateFailureCallBack = onFailure _,
+            onCreateFailureCallBack = () => onFailure(),
             parentFormTracker = formTracker
           )
         }
@@ -840,15 +855,13 @@ class DirectiveEditForm(
     }
   }
 
-  private[this] def updateAndDisplayNotifications(): NodeSeq = {
-
+  private[this] def displayNotifications(): NodeSeq = {
     val notifications = formTracker.formErrors
-    formTracker.cleanErrors
 
     if (notifications.isEmpty) {
-      NodeSeq.Empty
+      <div id="notification"></div>
     } else {
-      <div class="main-alert alert alert-danger">
+      <div id="notification" class="main-alert alert alert-danger">
         <ul>{notifications.map(n => <li>{n}</li>)}</ul>
       </div>
     }

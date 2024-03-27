@@ -1,7 +1,7 @@
 
 
 def version = "8.0"
-def slackResponse = slackSend(channel: "ci-security", message: "${version} - dependency check - <"+currentBuild.absoluteUrl+"|Link>", color: "#00A8E1")
+def slackResponse = null
 
 def errors = []
 def running = []
@@ -9,7 +9,6 @@ def running = []
 def changeUrl = env.CHANGE_URL
 
 
-updateSlack(errors, running, slackResponse, version, changeUrl)
 
 // Check vulns in dependencies on repo branches
 def failedBuild = false
@@ -32,7 +31,6 @@ pipeline {
             steps {
                 script {
                     running.add("webapp")
-                    updateSlack(errors, running, slackResponse, version, changeUrl)
                 }
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                     dir('webapp/sources') {
@@ -50,16 +48,14 @@ pipeline {
                 failure {
                     script {
                         errors.add("webapp")
-                        webapp = false
                         failedBuild = true
-                        //notifier.notifyResult("scala-team")
+                        slackResponse = updateSlack(errors, running, slackResponse, version, changeUrl)
                         slackSend(channel: slackResponse.threadId, message: "Dependency check error on webapp - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
                     }
                 }
                 cleanup {
                     script {
                         running.remove("webapp")
-                        updateSlack(errors, running, slackResponse, version, changeUrl)
                     }
                 }
             }
@@ -76,6 +72,9 @@ pipeline {
                 }
             }
             steps {
+                script {
+                    running.add("npm")
+                }
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                     dir('webapp/sources/rudder/rudder-web/src/main/') {
                         sh script: 'npm_config_loglevel=error npm ci --no-audit', label: "install dependencies"
@@ -88,8 +87,13 @@ pipeline {
                     script {
                         errors.add("npm")
                         failedBuild = true
-                        //notifier.notifyResult("scala-team")
+                        slackResponse = updateSlack(errors, running, slackResponse, version, changeUrl)
                         slackSend(channel: slackResponse.threadId, message: "Dependency check error on npm - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
+                    }
+                }
+                cleanup {
+                    script {
+                        running.remove("npm")
                     }
                 }
             }
@@ -105,6 +109,9 @@ pipeline {
                 }
             }
             steps {
+                script {
+                    running.add("relay")
+                }
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                     dir('relay/sources/relayd') {
                         sh script: 'mkdir -p target', label: 'create target directory'
@@ -118,15 +125,14 @@ pipeline {
                     script {
                         errors.add("relay")
                         failedBuild = true
+                        slackResponse = updateSlack(errors, running, slackResponse, version, changeUrl)
                         slackSend(channel: slackResponse.threadId, message: "Dependency check error on relayd - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
-                        //notifier.notifyResult("rust-team")
                     }
                 }
 
                 cleanup {
                     script {
                         running.remove("relay")
-                        updateSlack(errors, running, slackResponse, version, changeUrl)
                     }
                 }
                 always {
@@ -145,6 +151,9 @@ pipeline {
                 }
             }
             steps {
+                script {
+                    running.add("policies")
+                }
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                     dir('policies') {
                         sh script: 'mkdir -p target', label: 'create target directory'
@@ -158,14 +167,13 @@ pipeline {
                     script {
                         errors.add("policies")
                         failedBuild = true
-                        //notifier.notifyResult("rust-team")
+                        slackResponse = updateSlack(errors, running, slackResponse, version, changeUrl)
                         slackSend(channel: slackResponse.threadId, message: "Dependency check error on policies - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
                     }
                 }
                 cleanup {
                     script {
                         running.remove("policies")
-                        updateSlack(errors, running, slackResponse, version, changeUrl)
                     }
                 }
                 always {
@@ -176,6 +184,7 @@ pipeline {
         stage('End') {
             steps {
                 script {
+                    updateSlack(errors, running, slackResponse, version, changeUrl)
                     if (failedBuild) {
                         error 'End of build'
                     } else {
@@ -187,31 +196,27 @@ pipeline {
     }
 }
 
-
 def updateSlack(errors, running, slackResponse, version, changeUrl) {
+  def msg ="*${version} - rudder dependency check* - <"+currentBuild.absoluteUrl+"|Link>"
 
-echo env.CHANGE_URL
+  if (changeUrl == null) {
 
-def msg ="*${version} - dependency check* - <"+currentBuild.absoluteUrl+"|Link>"
+      def fixed = currentBuild.resultIsBetterOrEqualTo("SUCCESS") && currentBuild.previousBuild.resultIsWorseOrEqualTo("UNSTABLE") 
+      if (errors.isEmpty() && running.isEmpty() && fixed) {
+        msg +=  " => No security issues found! :white_check_mark:"
+        def color = "good"
+        slackSend(channel: "ci-security", message: msg, color: color)
+      } 
+      
 
-if (changeUrl != null) {
-  msg ="*${version} PR - dependency check* - <"+currentBuild.absoluteUrl+"|Link> - <"+changeUrl+"|Pull request>"
+      if (! errors.isEmpty()) {
+          msg += "\n*Errors* :x: ("+errors.size()+")\n  • " + errors.join("\n  • ")
+          def color = "#CC3421"
+          if (slackResponse == null) {
+            slackResponse = slackSend(channel: "ci-security", message: msg, color: color)
+          }
+          slackSend(channel: slackResponse.channelId, message: msg, timestamp: slackResponse.ts, color: color)
+      }
+      return slackResponse
+  }
 }
-
-def color = "#00A8E1"
-
-if (! errors.isEmpty()) {
-    msg += "\n*Errors* :x: ("+errors.size()+")\n  • " + errors.join("\n  • ")
-    color = "#CC3421"
-}
-if (! running.isEmpty()) {
-    msg += "\n*Running* :arrow_right: ("+running.size()+")\n  • " + running.join("\n  • ")
-}
-
-if (errors.isEmpty() && running.isEmpty()) {
-    msg +=  " => All dependencies checked! :white_check_mark:"
-	color = "good"
-}
-  slackSend(channel: slackResponse.channelId, message: msg, timestamp: slackResponse.ts, color: color)
-}
-
