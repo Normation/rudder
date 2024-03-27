@@ -7,7 +7,6 @@
    ]]></notes>
    <packageUrl regex="true">^pkg:javascript/YUI@2.6.0$</packageUrl>
    <cve>CVE-2010-4207</cve>
-   <cve>CVE-2010-4207</cve>
    <cve>CVE-2010-4208</cve>
    <cve>CVE-2010-4710</cve>
    <cve>CVE-2012-5881</cve>
@@ -16,7 +15,7 @@
 <!-- jquery embeded in liftweb is not used -->
 <suppress>
    <notes><![CDATA[
-   file name: lift-webkit_2.13-3.4.x.jar: jquery.js
+   file name: lift-webkit_2.13-3.x.x.jar: jquery.js
    ]]></notes>
    <packageUrl regex="true">^pkg:javascript/jquery@1\.[34]\.[24]</packageUrl>
    <cve>CVE-2011-4969</cve>
@@ -34,6 +33,8 @@
    ]]></notes>
    <packageUrl regex="true">^pkg:javascript/ExtJS@3.1.0</packageUrl>
    <cve>CVE-2007-2285</cve>
+   <cve>CVE-2010-4207</cve>
+   <cve>CVE-2012-5881</cve>
 </suppress>
 <suppress>
    <notes><![CDATA[
@@ -78,7 +79,10 @@
    <cve>CVE-2017-7868</cve>
    <cve>CVE-2017-14952</cve>
    <cve>CVE-2017-17484</cve>
+   <cve>CVE-2017-15396</cve>
+   <cve>CVE-2017-15422</cve>
    <cve>CVE-2020-10531</cve>
+   <cve>CVE-2020-21913</cve>
 </suppress>
 <suppress>
    <notes><![CDATA[
