@@ -43,6 +43,7 @@ import com.normation.box.*
 import com.normation.cfclerk.domain.HashAlgoConstraint.SHA1
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.*
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.NodeInfo
@@ -61,6 +62,7 @@ import com.normation.rudder.web.snippet.RegisterToasts
 import com.normation.rudder.web.snippet.ToastNotification
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
+import com.softwaremill.quicklens.*
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
@@ -75,6 +77,7 @@ import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import scala.xml.*
 import scala.xml.Utility.escape
+import zio.syntax.*
 
 /**
  * A service used to display details about a server
@@ -97,6 +100,7 @@ object DisplayNode extends Loggable {
   private[this] val nodeInfoService       = RudderConfig.nodeInfoService
   private[this] val linkUtil              = RudderConfig.linkUtil
   private[this] val reportingService      = RudderConfig.reportingService
+  private[this] val nodeRepo              = RudderConfig.woNodeRepository
   private[this] val deleteNodePopupHtmlId = "deleteNodePopupHtmlId"
   private[this] val errorPopupHtmlId      = "errorPopupHtmlId"
   private[this] val successPopupHtmlId    = "successPopupHtmlId"
@@ -525,78 +529,7 @@ object DisplayNode extends Loggable {
     }</div>
           {displayPolicyServerInfos(sm)}
           <div><label>Administrator account:</label> {sm.node.main.rootUser}</div>
-          {
-      sm.node.agents.headOption match {
-        case Some(agent) =>
-          val checked     = (sm.node.main.status, sm.node.main.keyStatus) match {
-            case (AcceptedInventory, CertifiedKey) =>
-              <span>
-                    <span class="glyphicon glyphicon-ok text-success tooltipable" title="" tooltipid={
-                s"tooltip-key-${sm.node.main.id.value}"
-              }></span>
-                    <span class="tooltipContent" id={s"tooltip-key-${sm.node.main.id.value}"}>
-                      Inventories for this Node must be signed with this key
-                    </span>
-                  </span>
-            case (AcceptedInventory, UndefinedKey) =>
-              <span>
-                    <span class="glyphicon glyphicon-exclamation-sign text-warning tooltipable" title="" tooltipid={
-                s"tooltip-key-${sm.node.main.id.value}"
-              }></span>
-                    <span class="tooltipContent" id={s"tooltip-key-${sm.node.main.id.value}"}>
-                      Certificate for this node has been reset, next inventory will be trusted automatically
-                    </span>
-                  </span>
-            case _                                 => // not accepted inventory? Should not get there
-              NodeSeq.Empty
-          }
-          val nodeId      = sm.node.main.id
-          val publicKeyId = s"publicKey-${nodeId.value}"
-          val cfKeyHash   = nodeInfoService.getNodeInfo(nodeId).either.runNow match {
-            case Right(Some(nodeInfo)) if (nodeInfo.keyHashCfengine.nonEmpty) =>
-              <div><label>Key hash:</label> <samp>{nodeInfo.keyHashCfengine}</samp></div>
-            case _                                                            => NodeSeq.Empty
-          }
-          val curlHash    = nodeInfoService.getNodeInfo(nodeId).either.runNow match {
-            case Right(Some(nodeInfo)) if (nodeInfo.keyHashCfengine.nonEmpty) =>
-              <div><label>Key hash:</label> <samp>sha256//{nodeInfo.keyHashBase64Sha256}</samp></div>
-            case _                                                            => NodeSeq.Empty
-          }
-
-          val tokenKind = agent.securityToken match {
-            case _: PublicKey   => "Public key"
-            case _: Certificate => "Certificate"
-          }
-          <div class="security-info">
-                {
-            agent.securityToken match {
-              case _: PublicKey   => NodeSeq.Empty
-              case c: Certificate =>
-                c.cert.either.runNow match {
-                  case Left(e)     => <span title={e.fullMsg}>Error while reading certificate information</span>
-                  case Right(cert) => (
-                    <div><label>SHA1 Fingerprint: </label> <samp>{
-                      SHA1.hash(cert.getEncoded).grouped(2).mkString(":")
-                    }</samp></div>
-                        <div><label>Expiration date: </label> {
-                      DateFormaterService.getDisplayDate(new DateTime(cert.getNotAfter))
-                    }</div>
-                  )
-                }
-            }
-          }
-                {curlHash}
-                {cfKeyHash}
-                <button type="button" class="toggle-security-info btn btn-default" onclick={
-            s"$$('#${publicKeyId}').toggle(300); $$(this).toggleClass('opened'); return false;"
-          }> <b>{tokenKind}</b> {checked}</button>
-                <pre id={publicKeyId} class="display-keys" style="display:none;"><div>{agent.securityToken.key}</div></pre>{
-            Script(OnLoad(JsRaw(s"""createTooltip();""")))
-          }
-              </div>
-        case None        => NodeSeq.Empty
-      }
-    }
+          {displaySecurityInfo(sm.node)}
         </div>
 
         <div class="status-info col-lg-6 col-sm-5 col-xs-12">
@@ -628,6 +561,126 @@ object DisplayNode extends Loggable {
     </div> ++ Script(OnLoad(JsRaw(s"""
         $$(".node-compliance-bar").html(buildComplianceBar(${compliance.toJsCmd}))
       """)))
+  }
+
+  /*
+   * Display the div with ID `security-info` with cfenfine and curl key/certificate hash,
+   * the key/certificate detail, and the button to untrust the key
+   */
+  private def displaySecurityInfo(node: NodeInventory): NodeSeq = {
+    node.agents.headOption match {
+      case Some(agent) =>
+        val checked     = (node.main.status, node.main.keyStatus) match {
+          case (AcceptedInventory, CertifiedKey) =>
+            <span>
+                    <span class="glyphicon glyphicon-ok text-success tooltipable" title="" tooltipid={
+              s"tooltip-key-${node.main.id.value}"
+            }></span>
+                    <span class="tooltipContent" id={s"tooltip-key-${node.main.id.value}"}>
+                      Inventories for this Node must be signed with this key
+                    </span>
+                  </span>
+          case (AcceptedInventory, UndefinedKey) =>
+            <span>
+                    <span class="glyphicon glyphicon-exclamation-sign text-warning tooltipable" title="" tooltipid={
+              s"tooltip-key-${node.main.id.value}"
+            }></span>
+                    <span class="tooltipContent" id={s"tooltip-key-${node.main.id.value}"}>
+                      Certificate for this node has been reset, next inventory will be trusted automatically
+                    </span>
+                  </span>
+          case _                                 => // not accepted inventory? Should not get there
+            NodeSeq.Empty
+        }
+        val nodeId      = node.main.id
+        val publicKeyId = s"publicKey-${nodeId.value}"
+        val cfKeyHash   = nodeInfoService.getNodeInfo(nodeId).either.runNow match {
+          case Right(Some(nodeInfo)) if (nodeInfo.keyHashCfengine.nonEmpty) =>
+            <div><label>Key hash:</label> <samp>{nodeInfo.keyHashCfengine}</samp></div>
+          case _                                                            => NodeSeq.Empty
+        }
+        val curlHash    = nodeInfoService.getNodeInfo(nodeId).either.runNow match {
+          case Right(Some(nodeInfo)) if (nodeInfo.keyHashCfengine.nonEmpty) =>
+            <div><label>Key hash:</label> <samp>sha256//{nodeInfo.keyHashBase64Sha256}</samp></div>
+          case _                                                            => NodeSeq.Empty
+        }
+
+        val tokenKind = agent.securityToken match {
+          case _: PublicKey   => "Public key"
+          case _: Certificate => "Certificate"
+        }
+        <div class="security-info" id={"security-" + node.main.id.value}>{
+          agent.securityToken match {
+            case _: PublicKey   => NodeSeq.Empty
+            case c: Certificate =>
+              c.cert.either.runNow match {
+                case Left(e)     => <span title={e.fullMsg}>Error while reading certificate information</span>
+                case Right(cert) => (
+                  <div><label>SHA1 Fingerprint: </label> <samp>{
+                    SHA1.hash(cert.getEncoded).grouped(2).mkString(":")
+                  }</samp></div>
+                          <div><label>Expiration date: </label> {
+                    DateFormaterService.getDisplayDate(new DateTime(cert.getNotAfter))
+                  }</div>
+                )
+              }
+          }
+        }
+            {curlHash}
+            {cfKeyHash}
+            <button type="button" class="toggle-security-info btn btn-default" onclick={
+          s"$$('#${publicKeyId}').toggle(300); $$(this).toggleClass('opened'); return false;"
+        }> <b>{tokenKind}</b> {checked}</button>
+            <div>
+              {
+          if (CurrentUser.checkRights(AuthorizationType.Node.Write) && node.main.keyStatus == CertifiedKey) {
+            SHtml.ajaxButton(
+              "Reset status to be able to accept a different key",
+              () => resetKeyStatus(node, agent.securityToken)
+            ) % ("class", "btn btn-default btn-sm")
+          } else NodeSeq.Empty
+        }
+              <pre id={publicKeyId} class="display-keys" style="display:none;"><div>{agent.securityToken.key}</div></pre>{
+          Script(OnLoad(JsRaw(s"""createTooltip();""")))
+        }
+            </div>
+          </div>
+
+      case None => NodeSeq.Empty
+    }
+  }
+
+  /*
+   * Reset key status for given node and redisplay it's security <div>
+   */
+  private def resetKeyStatus(node: NodeInventory, st: SecurityToken): JsCmd = {
+
+    nodeRepo
+      .updateNodeKeyInfo(
+        node.main.id,
+        None,
+        Some(UndefinedKey),
+        ModificationId(RudderConfig.stringUuidGenerator.newUuid),
+        CurrentUser.actor,
+        Some("Trusted key status reset to accept new key (first use)")
+      )
+      .map { _ =>
+        val js: JsCmd = {
+          SetHtml(s"security-${node.main.id.value}", displaySecurityInfo(node.modify(_.main.keyStatus).setTo(UndefinedKey))) &
+          JsRaw(s"""createSuccessNotification("Key status for node '${node.main.id.value}' correctly changed.")""")
+        }
+        js
+      }
+      .catchAll { err =>
+        val js: JsCmd = JsRaw(
+          s"""createErrorNotification("${s"An error happened when trying to change key status of node '${node.main.hostname}' [${node.main.id.value}]. " +
+            "Please contact your server admin to resolve the problem. " +
+            s"Error was: '${err.fullMsg}'"}")"""
+        )
+        js.succeed
+      }
+      .runNow
+
   }
 
   private def htmlId(jsId:   JsNodeId, prefix: String): String = prefix + jsId.toString
