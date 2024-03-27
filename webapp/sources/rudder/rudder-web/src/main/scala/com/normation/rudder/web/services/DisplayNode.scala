@@ -490,7 +490,6 @@ object DisplayNode extends Loggable {
     <div class={"os-logo " ++ sm.node.main.osDetails.os.name.toLowerCase()} data-bs-toggle="tooltip" title={osTooltip}></div>
     <h1>
       <div id="nodeHeaderInfo">
-        {nodeStateIcon}
         <span>{sm.node.main.hostname}</span>
         <span class="machine-os-info">
           <span class="machine-info">{sm.node.main.osDetails.fullName}</span>
@@ -499,6 +498,7 @@ object DisplayNode extends Loggable {
       machineTooltip
     }></span>
         </span>
+        {nodeStateIcon}
       </div>
       <div class="header-subtitle">
         <a class="clipboard" title="Copy to clipboard" data-clipboard-text={sm.node.main.id.value}>

@@ -107,32 +107,31 @@
 
 .node-state{
   display: inline-flex;
-  padding: 6px 8px;
+  padding: 4px 6px;
   border-radius: 4px;
-  background-color: #4eb934;
   color: #fff;
   font-size: 0.8rem;
   align-items: baseline;
 
-  &:after{
-    content : "ENABLED";
+  &.enabled{
+    display: none;
   }
   &.ignored{
-    background-color: #a4aebf;
-    &:after{
-      content : "IGNORED";
+      background-color: #a4aebf;
+      &:after{
+        content : "Ignored";
+      }
     }
-  }
   &.empty-policies{
     background-color: #7591c599;
     &:after{
-      content : "EMPTY POLICIES";
+      content : "Empty policies";
     }
   }
   &.initializing{
     background-color: #08a3ef;
     &:after{
-      content : "INITIALIZING";
+      content : "Initializing";
     }
     &:before{
     content: "\f1ce";
@@ -145,10 +144,10 @@
       margin-right: 4px;
     }
   }
-  &.preparing-eol:after{
+  &.preparing-eol{
     background-color: #EF9600;
     &:after{
-      content : "PREPARING EOL";
+      content : "Preparing EOL";
     }
   }
 }
