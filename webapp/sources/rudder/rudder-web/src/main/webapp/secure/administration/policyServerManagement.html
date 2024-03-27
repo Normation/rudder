@@ -651,20 +651,21 @@
                   </div>
                   <div class="pull-left">
                   <form class="lift:form.ajax">
-
-                    <ul>
-                      <li class="rudder-form">
-                        <div class="input-group col-sm-12">
+                    <div class="row">
+                      <div class="d-inline-flex">
+                        <div class="input-group d-inline-flex w-auto">
                           <label class="input-group-text" for="sendMetricsCheckbox">
                             Send anonymous usage statistics
                           </label>
                           <input id="sendMetricsCheckbox" type="select" class="form-select">
                         </div>
-                      </li>
-                    </ul>
-                    <lift:authz role="administration_write">
-                      <input type="submit" value="Reload" id="sendMetricsSubmit"/>
-                    </lift:authz>
+                      </div>
+                      <lift:authz role="administration_write">
+                        <div class="d-infline-flex mt-3">
+                          <input type="submit" value="Reload" id="sendMetricsSubmit"/>
+                        </div>
+                      </lift:authz>
+                    </div>
                   </form>
 
                   </div>
