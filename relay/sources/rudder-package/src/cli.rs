@@ -42,7 +42,7 @@ pub struct Args {
     #[arg(short, long, default_value_t = false)]
     pub quiet: bool,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     pub command: Command,
 }
 
@@ -50,10 +50,10 @@ pub struct Args {
 pub enum Command {
     /// Update package index and licenses from the repository
     Update {
-        #[clap(long, short, help = "Only check for server connectivity and exit")]
+        #[arg(long, short, help = "Only check for server connectivity and exit")]
         check: bool,
 
-        #[clap(
+        #[arg(
             long,
             short,
             help = "Exit without error if the repository is not reachable"
@@ -62,64 +62,65 @@ pub enum Command {
     },
     /// Install plugins, locally or from the repository
     Install {
-        #[clap(
+        #[arg(
             long,
             short,
             help = "Bypass compatibility check and force installation of the given plugin version"
         )]
         force: bool,
 
-        #[clap(
-            help = "Plugin name(s) or file path(s). You can specify a precise version with 'name:version' (like 'cve:8.1.0-1.2')"
+        #[arg(
+            help = "Plugin name(s) or file path(s). You can specify a precise version with 'name:version' (like 'cve:8.1.0-1.2')",
+            required = true
         )]
         package: Vec<String>,
     },
     /// Upgrade plugins
     Upgrade {
-        #[clap(long, short, help = "Upgrade all installed plugins")]
+        #[arg(long, short, help = "Upgrade all installed plugins")]
         all: bool,
 
-        #[clap(long, help = "Run all the postinstall scripts of installed plugins")]
+        #[arg(long, help = "Run all the postinstall scripts of installed plugins")]
         all_postinstall: bool,
 
-        #[clap()]
+        #[arg()]
         package: Vec<String>,
     },
     /// Uninstall plugins
     Uninstall {
-        #[clap(help = "Plugin name(s)")]
+        #[arg(help = "Plugin name(s)", required = true)]
         package: Vec<String>,
     },
     /// Display the plugins list
     List {
-        #[clap(long, short, help = "Show all installed and available plugins")]
+        #[arg(long, short, help = "Show all installed and available plugins")]
         all: bool,
 
-        #[clap(long, short, help = "Show enabled plugins")]
+        #[arg(long, short, help = "Show enabled plugins")]
         enabled: bool,
 
-        #[clap(long, short, help = "Output format", default_value_t = Format::Human)]
+        #[arg(long, short, help = "Output format", default_value_t = Format::Human)]
         format: Format,
     },
     /// Show detailed information about a plugin
     Show {
-        #[clap(help = "Plugin name(s)")]
+        #[arg(help = "Plugin name(s)", required = true)]
         package: Vec<String>,
     },
     /// Show general information about plugin management
     Info {},
     /// Enable installed plugins
     Enable {
-        #[clap(help = "Plugin name(s)")]
+        #[arg(help = "Plugin name(s)")]
         package: Vec<String>,
 
-        #[clap(long, short, help = "Enable all installed plugins")]
+        #[arg(long, short, help = "Enable all installed plugins")]
         all: bool,
 
-        #[clap(long, short, help = "Snapshot the list of enabled plugins")]
+        #[arg(long, short, help = "Snapshot the list of enabled plugins")]
         save: bool,
 
-        #[clap(
+        #[arg(
             long,
             short,
             help = "Restore the list of enabled plugins from latest snapshot"
@@ -128,13 +129,13 @@ pub enum Command {
     },
     /// Disable installed plugins
     Disable {
-        #[clap(help = "Plugin name(s)")]
+        #[arg(help = "Plugin name(s)")]
         package: Vec<String>,
 
-        #[clap(long, short, help = "Disable all installed plugins")]
+        #[arg(long, short, help = "Disable all installed plugins")]
         all: bool,
 
-        #[clap(
+        #[arg(
             long,
             short,
             help = "Disable all installed plugins incompatible with the Web application version"
