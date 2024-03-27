@@ -53,6 +53,7 @@ import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.facts.nodes.SecurityTag
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.users.CurrentUser
@@ -623,7 +624,10 @@ object DisplayNode extends Loggable {
       }
     }
        </div>
-       {displayServerRole(nodeFact)}
+       {
+      displayServerRole(nodeFact) ++
+      displayTenant(nodeFact)
+    }
        <div><label>Agent:</label> {
       val capabilities = {
         if (nodeFact.rudderAgent.capabilities.isEmpty) "no extra capabilities"
@@ -739,6 +743,16 @@ object DisplayNode extends Loggable {
         <div><label>Role:</label> Deleted node</div>
       case PendingInventory  =>
         <div><label>Role:</label> Pending node</div>
+    }
+  }
+
+  // Display the node tenant if defined (ie if different from "no tenant"
+  private def displayTenant(nodeFact: NodeFact): NodeSeq = {
+    nodeFact.rudderSettings.security match {
+      case Some(SecurityTag(tenants)) if (tenants.nonEmpty) =>
+        <div><label>Tenant:</label> {tenants.map(_.value).mkString(", ")}</div>
+      case _                                                =>
+        NodeSeq.Empty
     }
   }
 
