@@ -1388,9 +1388,8 @@ function createNodeTable(gridId, refresh) {
         return;
       }
 
-      // 120 at least to allow the "Properties tab to still be visible"
-      top.css('bottom', Math.max(offsetBottom, 120));
-      bottom.css('height', offsetBottom).css('margin-bottom', 0);
+      top.css('bottom', offsetBottom);
+      bottom.css('height', offsetBottom).css('margin-bottom', '');
       $("#" + gridId).parent().css('max-height', Math.max(0, offsetBottom - container.offset().top + handle.height()));
     }).on('mouseup', function (e) {
       // stop resizing
@@ -1456,16 +1455,16 @@ function createNodeTable(gridId, refresh) {
     , "ajax" : {
     "url" : contextPath + "/secure/api/nodes/details"
     , "type" : "POST"
-    , "contentType": "application/json"
-    , "data" : function(d) {
-        var data = d
-        var softwareList= columns.filter(function(c) { return ((typeof c.data) !== "function" && c.data.startsWith("software"))}).map(function(c) {return c.data.split(/\.(.+)/)[1]})
+    , "contentType" : "application/json"
+    , "data" : function (d) {
+      var data = d
+      var softwareList = columns.filter(function (c) { return ((typeof c.data) !== "function" && c.data.startsWith("software")) }).map(function (c) { return c.data.split(/\.(.+)/)[1] })
 
-        var properties = columns.filter(function(c) { return c.title.startsWith("Property")}).map(function(c) {return { "value" : c.value, "inherited" : c.inherited } })
-        data = $.extend({}, d, {"software": softwareList, "properties": properties})
-        if (nodeIds !== undefined) { data = $.extend({}, d, {"nodeIds": nodeIds, "software": softwareList, "properties" : properties} ) }
-        return JSON.stringify(data)
-      }
+      var properties = columns.filter(function (c) { return c.title.startsWith("Property") }).map(function (c) { return { "value": c.value, "inherited": c.inherited } })
+      data = $.extend({}, d, { "software": softwareList, "properties": properties })
+      if (nodeIds !== undefined) { data = $.extend({}, d, { "nodeIds": nodeIds, "software": softwareList, "properties" : properties }) }
+      return JSON.stringify(data)
+    }
     , "dataSrc" : ""
     }
     , "drawCallback": function( oSettings ) {
@@ -1642,6 +1641,23 @@ function createNodeTable(gridId, refresh) {
     })
   }
    columnSelect(false)
+}
+
+/**
+ * Make it possible toggle the status of showing the table.
+ */
+function handleNodesTableDisplayByGroupTab(show) {
+  var top = $('.main-details > .tab-content-split'),
+      bottom = $('.main-details > .table-container');
+
+  if (!show) {
+    top.css("bottom", "");
+    bottom.css("height", "");
+    bottom.addClass("d-none");
+  } else {
+    // revert state to initial one, as in "createNodeTable"
+    bottom.removeClass("d-none");
+  }
 }
 
 

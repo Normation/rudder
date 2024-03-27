@@ -345,7 +345,7 @@ class SearchNodeComponent(
     def showQueryAndGridContent(): NodeSeq = {
       (
         "content-query" #> { (x: NodeSeq) => displayQuery(x, false) }
-        & "update-gridresult" #> srvGrid.displayAndInit(Some(Seq()), "serverGrid") // we need to set something, or IE moans
+        & "update-gridresult" #> srvGrid.displayAndInit(Some(Seq()), "serverGrid")
       )(searchNodes)
     }
 
@@ -356,7 +356,11 @@ class SearchNodeComponent(
     def showQueryAndGridContent(): NodeSeq = {
       (
         "content-query" #> NodeSeq.Empty
-        & "update-nodestable" #> srvGrid.displayAndInit(Some(Seq()), "groupNodesTable") // we need to set something, or IE moans
+        & "update-nodestable" #> srvGrid.displayAndInit(
+          Some(Seq()),
+          "groupNodesTable",
+          Some(showNodesTableByTab())
+        )
       )(nodesTable)
     }
     showQueryAndGridContent() ++ Script(OnLoad(ajaxGridRefresh(true)))
@@ -371,6 +375,30 @@ class SearchNodeComponent(
   def ajaxGridRefresh(isGroupPage: Boolean): JsCmd = {
     activateButtonOnChange() &
     gridResult(isGroupPage)
+  }
+
+  /**
+   * Display the nodes tables by default only for some known tabs
+   * @return
+   */
+  def showNodesTableByTab(): JsCmd = {
+    val tabs = List("groupParametersTab", "groupCriteriaTab")
+    JE.JsRaw(s"""
+        var tabs = ${tabs.map(s => s"'${s}'").mkString("[", ",", "]")};
+        $$('#groupTabMenu').ready(function () {
+          $$('#groupTabMenu [role="tab"]').on("show.bs.tab", function (e) {
+            var isNextTabShowing = tabs.includes(e.target.getAttribute('aria-controls'));
+            var isPreviousTabShowing = 
+              !e.relatedTarget || tabs.includes(e.relatedTarget.getAttribute('aria-controls')); // initial tab shows nodes table
+            if (!isPreviousTabShowing && isNextTabShowing) {
+              handleNodesTableDisplayByGroupTab(true);
+            } 
+            if (isPreviousTabShowing && !isNextTabShowing) {
+              handleNodesTableDisplayByGroupTab(false);
+            }
+          })
+        })
+      """)
   }
 
   /**
