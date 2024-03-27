@@ -714,9 +714,6 @@ object DisplayNode extends Loggable {
       DateFormaterService.getDisplayDate(nodeFact.factProcessedDate)
     }
           </div>
-          <div>
-            <label>Software updates available:</label> {nodeFact.softwareUpdate.size}
-          </div>
         </div>
       </div>
     </div>
