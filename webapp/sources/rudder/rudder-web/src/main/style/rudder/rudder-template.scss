@@ -1076,10 +1076,6 @@ ul {
       text-align: center;
       background-color: $rudder-bg-gray;
 
-      &.clickable {
-        cursor: pointer;
-      }
-
       &:active {
         cursor: ns-resize;
       }

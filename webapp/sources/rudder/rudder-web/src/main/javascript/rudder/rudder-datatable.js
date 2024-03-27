@@ -1642,35 +1642,18 @@ function createNodeTable(gridId, refresh) {
 
 /**
  * Make it possible toggle the status of showing the table.
- * This is using the same draggable element as a "click" target.
  */
 function handleNodesTableDisplayByGroupTab(show) {
   var top = $('.main-details > .tab-content-split'),
-      bottom = $('.main-details > .table-container'),
-      handle = $('#drag');
+      bottom = $('.main-details > .table-container');
 
-  var clickEventHandler = function () {
-    bottom.css("height", "").find(".main-table").removeClass("d-none");
-    bottom.parent().children(".tab-content-split").css("bottom", bottom.height());
-    handle.removeClass("clickable").children("i.fa").removeClass("fa-caret-up").addClass("fa-grip-lines");
-    return false;
-  }
   if (!show) {
-    top.css("bottom", handle.height());
-    bottom.css("height", handle.height());
-    // Set handle to "draggable", replace content icon
-    handle.addClass("clickable").children("i.fa").addClass("fa-caret-up").removeClass("fa-grip-lines");
-    // Set the table as hidden
-    handle.parent().children(".main-table").addClass("d-none")
-    handle.on("click", clickEventHandler);
-  } else {
-    // revert state to initial one, as in "createNodeTable"
     top.css("bottom", "");
     bottom.css("height", "");
-    // Set drag to default "clickable", replace content icon
-    handle.removeClass("clickable").children("i.fa").removeClass("fa-caret-up").addClass("fa-grip-lines");
-    handle.parent().children(".main-table").removeClass("d-none")
-    handle.off("click", clickEventHandler);
+    bottom.addClass("d-none");
+  } else {
+    // revert state to initial one, as in "createNodeTable"
+    bottom.removeClass("d-none");
   }
 }
 

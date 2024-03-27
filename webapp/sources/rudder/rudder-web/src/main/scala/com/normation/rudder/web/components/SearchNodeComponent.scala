@@ -345,7 +345,7 @@ class SearchNodeComponent(
     def showQueryAndGridContent(): NodeSeq = {
       (
         "content-query" #> { (x: NodeSeq) => displayQuery(x, false) }
-        & "update-gridresult" #> srvGrid.displayAndInit(Some(Seq()), "serverGrid") // we need to set something, or IE moans
+        & "update-gridresult" #> srvGrid.displayAndInit(Some(Seq()), "serverGrid")
       )(searchNodes)
     }
 
@@ -360,7 +360,7 @@ class SearchNodeComponent(
           Some(Seq()),
           "groupNodesTable",
           Some(showNodesTableByTab())
-        ) // we need to set something, or IE moans
+        )
       )(nodesTable)
     }
     showQueryAndGridContent() ++ Script(OnLoad(ajaxGridRefresh(true)))
