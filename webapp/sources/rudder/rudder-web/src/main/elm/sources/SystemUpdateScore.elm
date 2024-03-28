@@ -3,7 +3,7 @@ port module SystemUpdateScore exposing (..)
 import Browser
 import Html
 import Html.String exposing (..)
-import Html.String.Attributes exposing (class, title, attribute)
+import Html.String.Attributes exposing (class, title, attribute, style)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import String.Extra
@@ -53,13 +53,29 @@ buildScoreDetails details =
             ]
             [ i[class ("fa fa-" ++ iconClass)][], text (" " ++ valueTxt) ]
         Nothing -> text ""
+
   in
-        div[]
-          [ toBadge "security"    "warning" details.security
-          , toBadge "bugfix"      "bug"     details.defect
-          , toBadge "enhancement" "plus"    details.enhancement
-          , toBadge "update"      "box"     details.patch
-          ]
+    if(details.nbPackages == 0) then
+      div[]
+      [ span
+        [ class "badge badge-type up-to-date"
+        , attribute "data-bs-toggle" "tooltip"
+        , attribute "data-bs-placement" "top"
+        , title (buildTooltipContent "System updates" "Everything is up-to-date!")
+        ]
+        [ i[class "fa fa-check-circle", style "margin-right" "0px"][]
+        ]
+      , text ""
+      , text ""
+      , text ""
+      ]
+    else
+      div[]
+        [ toBadge "security"    "warning"      details.security
+        , toBadge "bugfix"      "bug"          details.defect
+        , toBadge "enhancement" "plus"         details.enhancement
+        , toBadge "update"      "box"          details.patch
+        ]
 
 main =
   Browser.element

@@ -344,6 +344,9 @@ $small-prefix : "sm-";
   &.update{
     background-color: #72829D !important;
   }
+  &.up-to-date{
+    background-color: #00a65a !important;
+  }
 
   & .icon-state {
     margin-right: 6px;
