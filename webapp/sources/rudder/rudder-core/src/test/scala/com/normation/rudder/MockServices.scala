@@ -2835,11 +2835,11 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     FullRuleTargetInfo(
       FullGroupTarget(gt._1, gt._2),
       name = "",
-          description = "",
-          isEnabled = true,
-          isSystem = false
-        )
-      }
+      description = "",
+      isEnabled = true,
+      isSystem = false
+    )
+  }
 
   val groupLib: FullNodeGroupCategory = FullNodeGroupCategory(
     NodeGroupCategoryId("GroupRoot"),
