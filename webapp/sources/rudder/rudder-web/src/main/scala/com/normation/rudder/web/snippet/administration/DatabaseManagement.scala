@@ -179,8 +179,9 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
       JsRaw(""" $('#archiveReports').show();
                 $('#cleanParam').show(); """)
     }
-
-    val dialog = {
+    val btnClass = if (action.name == "archive") { "btn-primary" }
+    else { "btn-danger" }
+    val dialog   = {
       <div class="callout-fade callout-info">
         <div class="marker"><span class="fa fa-exclamation-triangle"></span></div>
         Are you sure you want to
@@ -202,7 +203,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
             JsRaw("""$('#cleanResultText').html('%s, you can see more details in the webapp log file (<span class="text-bold">/var/log/rudder/core/rudder-webapp.log</span>)');
                  $('#cleanResult').show();""".format(askResult)) & cancel & updateValue
           },
-          ("class", "btn btn-action")
+          ("class", ("btn " ++ btnClass))
         )
       }
         </div>
