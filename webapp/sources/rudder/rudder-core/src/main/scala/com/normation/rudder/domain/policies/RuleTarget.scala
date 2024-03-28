@@ -37,6 +37,7 @@
 
 package com.normation.rudder.domain.policies
 
+import cats.implicits.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -47,6 +48,7 @@ import net.liftweb.json.JsonDSL.*
 import scala.collection.MapView
 import scala.util.matching.Regex
 import zio.Chunk
+import zio.interop.catz.chunkStdInstances
 
 /**
  * A target is either
@@ -247,52 +249,49 @@ object RuleTarget extends Loggable {
       allNodesAreThere: Boolean = true // if we are working on a subset of node, set to false
   ): Set[NodeId] = {
 
-    targets.foldLeft(Set[NodeId]()) {
-      case (nodes, target) =>
-        target match {
-          case AllTarget                    => return allNodes.keySet.toSet
-          case AllTargetExceptPolicyServers => nodes ++ allNodes.collect { case (k, isPolicyServer) if (!isPolicyServer) => k }
-          case AllPolicyServers             => nodes ++ allNodes.collect { case (k, isPolicyServer) if (isPolicyServer) => k }
-          case PolicyServerTarget(nodeId)   =>
-            if (allNodesAreThere) {
-              nodes + nodeId
-            } else {
-              // nodeId may not be in allNodes
-              allNodes.keySet.contains(nodeId) match {
-                case true => nodes + nodeId
-                case _    => nodes
-              }
-            }
-
-          // here, if we don't find the group, we consider it's an error in the
-          // target recording, but don't fail, just log it.
-          case GroupTarget(groupId)         =>
-            nodes ++ groups.getOrElse(groupId, Set())
-
-          case TargetIntersection(targets) =>
-            val nodeSets     = targets.map(t => getNodeIds(Set(t), allNodes, groups, allNodesAreThere))
-            // Compute the intersection of the sets of Nodes
-            val intersection = nodeSets.foldLeft(allNodes.keySet) {
-              case (currentIntersection, nodes) => currentIntersection.intersect(nodes)
-            }
-            nodes ++ intersection
-
-          case TargetUnion(targets) =>
-            val nodeSets = targets.map(t => getNodeIds(Set(t), allNodes, groups, allNodesAreThere))
-            // Compute the union of the sets of Nodes
-            val union    = nodeSets.foldLeft(Set[NodeId]()) { case (currentUnion, nodes) => currentUnion.union(nodes) }
-            nodes ++ union
-
-          case TargetExclusion(included, excluded) =>
-            // Compute the included Nodes
-            val includedNodes = getNodeIds(Set(included), allNodes, groups, allNodesAreThere)
-            // Compute the excluded Nodes
-            val excludedNodes = getNodeIds(Set(excluded), allNodes, groups, allNodesAreThere)
-            // Remove excluded nodes from included nodes
-            val result        = includedNodes -- excludedNodes
-            nodes ++ result
+    targets.toList.traverse {
+      case AllTarget                    => Left(allNodes.keySet.toSet)
+      case AllTargetExceptPolicyServers => Right(allNodes.collect { case (k, isPolicyServer) if (!isPolicyServer) => k }.toSet)
+      case AllPolicyServers             => Right(allNodes.collect { case (k, isPolicyServer) if (isPolicyServer) => k }.toSet)
+      case PolicyServerTarget(nodeId)   =>
+        if (allNodesAreThere) {
+          Right(Set(nodeId))
+        } else {
+          // nodeId may not be in allNodes
+          allNodes.keySet.contains(nodeId) match {
+            case true => Right(Set(nodeId))
+            case _    => Right(Set.empty)
+          }
         }
-    }
+
+      // here, if we don't find the group, we consider it's an error in the
+      // target recording, but don't fail, just log it.
+      case GroupTarget(groupId)         =>
+        Right(groups.getOrElse(groupId, Set.empty))
+
+      case TargetIntersection(targets) =>
+        val nodeSets     = targets.map(t => getNodeIds(Set(t), allNodes, groups, allNodesAreThere))
+        // Compute the intersection of the sets of Nodes
+        val intersection = nodeSets.foldLeft(allNodes.keySet.toSet) {
+          case (currentIntersection, nodes) => currentIntersection.intersect(nodes)
+        }
+        Right(intersection)
+
+      case TargetUnion(targets) =>
+        val nodeSets = targets.map(t => getNodeIds(Set(t), allNodes, groups, allNodesAreThere))
+        // Compute the union of the sets of Nodes
+        val union    = nodeSets.foldLeft(Set[NodeId]()) { case (currentUnion, nodes) => currentUnion.union(nodes) }
+        Right(union)
+
+      case TargetExclusion(included, excluded) =>
+        // Compute the included Nodes
+        val includedNodes = getNodeIds(Set(included), allNodes, groups, allNodesAreThere)
+        // Compute the excluded Nodes
+        val excludedNodes = getNodeIds(Set(excluded), allNodes, groups, allNodesAreThere)
+        // Remove excluded nodes from included nodes
+        val result        = includedNodes -- excludedNodes
+        Right(result)
+    }.map(_.toSet.flatten).merge
   }
 
   /**
@@ -319,48 +318,40 @@ object RuleTarget extends Loggable {
       groups:   Map[NodeGroupId, Chunk[NodeId]]
   ): Chunk[NodeId] = {
 
-    targets.foldLeft(Chunk[NodeId]()) {
-      case (nodes, target) =>
-        target match {
-          case AllTarget                    => return Chunk.fromIterable(allNodes.keys)
-          case AllTargetExceptPolicyServers => nodes ++ allNodes.collect { case (k, isPolicyServer) if (!isPolicyServer) => k }
-          case AllPolicyServers             => nodes ++ allNodes.collect { case (k, isPolicyServer) if (isPolicyServer) => k }
-          case PolicyServerTarget(nodeId)   =>
-            nodes :+ nodeId
+    targets.traverse {
+      case AllTarget                    => Left(Chunk.fromIterable(allNodes.keys))
+      case AllTargetExceptPolicyServers => Right(allNodes.collect { case (k, isPolicyServer) if (!isPolicyServer) => k })
+      case AllPolicyServers             => Right(allNodes.collect { case (k, isPolicyServer) if (isPolicyServer) => k })
+      case PolicyServerTarget(nodeId)   => Right(Set(nodeId))
 
-          // here, if we don't find the group, we consider it's an error in the
-          // target recording, but don't fail, just log it.
-          case GroupTarget(groupId)         =>
-            val groupNodes = groups.getOrElse(groupId, Chunk.empty)
-            val filtered   = {
-              groupNodes
-            }
-            nodes ++ filtered
 
-          case TargetIntersection(targets) =>
-            val nodeSets     = targets.map(t => getNodeIdsChunkRec(Chunk(t), allNodes, groups))
-            // Compute the intersection of the sets of Nodes
-            val intersection = nodeSets.foldLeft(Chunk.fromIterable(allNodes.keys)) {
-              case (currentIntersection, nodes) => currentIntersection.intersect(nodes)
-            }
-            nodes ++ intersection
+      // here, if we don't find the group, we consider it's an error in the
+      // target recording, but don't fail, just log it.
+      case GroupTarget(groupId)         => Right(groups.getOrElse(groupId, Chunk.empty))
 
-          case TargetUnion(targets) =>
-            val nodeSets = targets.map(t => getNodeIdsChunkRec(Chunk(t), allNodes, groups))
-            // Compute the union of the sets of Nodes
-            val union    = nodeSets.foldLeft(Chunk[NodeId]()) { case (currentUnion, nodes) => currentUnion.concat(nodes) }
-            nodes ++ union
-
-          case TargetExclusion(included, excluded) =>
-            // Compute the included Nodes
-            val includedNodes = getNodeIdsChunkRec(Chunk(included), allNodes, groups)
-            // Compute the excluded Nodes
-            val excludedNodes = getNodeIdsChunkRec(Chunk(excluded), allNodes, groups)
-            // Remove excluded nodes from included nodes
-            val result        = includedNodes.filterNot(id => excludedNodes.contains(id))
-            nodes ++ result
+      case TargetIntersection(targets) =>
+        val nodeSets     = targets.map(t => getNodeIdsChunkRec(Chunk(t), allNodes, groups))
+        // Compute the intersection of the sets of Nodes
+        val intersection = nodeSets.foldLeft(Chunk.fromIterable(allNodes.keys)) {
+          case (currentIntersection, nodes) => currentIntersection.intersect(nodes)
         }
-    }
+        Right(intersection)
+
+      case TargetUnion(targets) =>
+        val nodeSets = targets.map(t => getNodeIdsChunkRec(Chunk(t), allNodes, groups))
+        // Compute the union of the sets of Nodes
+        val union    = nodeSets.foldLeft(Chunk[NodeId]()) { case (currentUnion, nodes) => currentUnion.concat(nodes) }
+        Right(union)
+
+      case TargetExclusion(included, excluded) =>
+        // Compute the included Nodes
+        val includedNodes = getNodeIdsChunkRec(Chunk(included), allNodes, groups)
+        // Compute the excluded Nodes
+        val excludedNodes = getNodeIdsChunkRec(Chunk(excluded), allNodes, groups)
+        // Remove excluded nodes from included nodes
+        val result        = includedNodes.filterNot(id => excludedNodes.contains(id))
+        Right(result)
+    }.map(_.flatten).merge
   }
 
   /**

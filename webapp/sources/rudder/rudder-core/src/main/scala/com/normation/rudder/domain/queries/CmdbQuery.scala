@@ -135,12 +135,8 @@ object NodePropertyMatcherUtils {
 sealed trait ComparatorList {
 
   def comparators:                    Seq[CriterionComparator]
-  def comparatorForString(s: String): Option[CriterionComparator] = {
-    for (comp <- comparators) {
-      if (s.equalsIgnoreCase(comp.id)) return Some(comp)
-    }
-    None
-  }
+  def comparatorForString(s: String): Option[CriterionComparator] =
+    comparators.find(comp => s.equalsIgnoreCase(comp.id))
 }
 
 object BaseComparators extends ComparatorList {
@@ -880,12 +876,8 @@ case class ObjectCriterion(val objectType: String, val criteria: Seq[Criterion])
   require(criteria.nonEmpty, "You must at least have one criterion for the line")
 
   // optionally retrieve the criterion from a "string" attribute
-  def criterionForName(name: String): (Option[Criterion]) = {
-    for (c <- criteria) {
-      if (name.equalsIgnoreCase(c.name)) return Some(c)
-    }
-    None
-  }
+  def criterionForName(name: String): (Option[Criterion]) =
+    criteria.find(c => name.equalsIgnoreCase(c.name))
 
   def criterionComparatorForName(name: String, comparator: String): (Option[Criterion], Option[CriterionComparator]) = {
     criterionForName(name) match {

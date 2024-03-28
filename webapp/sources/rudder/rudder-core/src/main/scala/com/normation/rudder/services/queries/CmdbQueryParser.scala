@@ -127,38 +127,35 @@ trait DefaultStringQueryParser extends StringQueryParser {
 
   def parseLine(line: StringCriterionLine): Box[CriterionLine] = {
 
-    val objectType = criterionObjects.getOrElse(
-      line.objectType,
-      return Failure(
-        s"The object type '${line.objectType}' is unknown in line 'line'. Possible object types: [${criterionObjects.keySet.toList.sorted
-            .mkString(",")}] ".format(line)
-      )
-    )
+    (for {
+      objectType <-
+        criterionObjects
+          .get(line.objectType)
+          .toRight(
+            s"The object type '${line.objectType}' is unknown in line 'line'. Possible object types: [${criterionObjects.keySet.toList.sorted
+                .mkString(",")}] ".format(line)
+          )
+      criterion  <- objectType.criterionForName(line.attribute).toRight {
+                      s"The attribute '${line.attribute}' is unknown for type '${line.objectType}' in line '${line}'. Possible attributes: [${objectType.criteria.map(_.name).sorted.mkString(", ")}]"
+                    }
 
-    val criterion = objectType.criterionForName(line.attribute).getOrElse {
-      return Failure(
-        s"The attribute '${line.attribute}' is unknown for type '${line.objectType}' in line '${line}'. Possible attributes: [${objectType.criteria.map(_.name).sorted.mkString(", ")}]"
-      )
-    }
+      comparator <- criterion.cType.comparatorForString(line.comparator).toRight {
+                      s"The comparator '${line.comparator}' is unknown for attribute '${line.attribute}' in line '${line}'. Possible comparators:: [${criterion.cType.comparators.map(_.id).sorted.mkString(", ")}]"
+                    }
 
-    val comparator = criterion.cType.comparatorForString(line.comparator).getOrElse {
-      return Failure(
-        s"The comparator '${line.comparator}' is unknown for attribute '${line.attribute}' in line '${line}'. Possible comparators:: [${criterion.cType.comparators.map(_.id).sorted.mkString(", ")}]"
-      )
-    }
+      /*
+       * Only validate the fact that if the comparator requires a value, then a value is provided.
+       * Providing an error when none is required is not an error
+       */
+      value      <- line.value match {
+                      case Some(x) => Right(x)
+                      case None    =>
+                        if (comparator.hasValue)
+                          Left("Missing required value for comparator '%s' in line '%s'".format(line.comparator, line))
+                        else Right("")
+                    }
+    } yield CriterionLine(objectType, criterion, comparator, value)).toBox
 
-    /*
-     * Only validate the fact that if the comparator require a value, then a value is provided.
-     * Providing an error when none is required is not an error
-     */
-    val value = line.value match {
-      case Some(x) => x
-      case None    =>
-        if (comparator.hasValue)
-          return Failure("Missing required value for comparator '%s' in line '%s'".format(line.comparator, line))
-        else ""
-    }
-    Full(CriterionLine(objectType, criterion, comparator, value))
   }
 
 }
@@ -261,14 +258,6 @@ trait JsonQueryLexer extends QueryLexer {
   }
 
   def parseCriterion(json: Any): Box[StringCriterionLine] = {
-    def failureMissing(param: String, line: Map[String, String])          = Failure(
-      "Missing expected '%s' query parameter in criterion '%s'".format(OBJECT, line)
-    )
-    def failureEmpty(param: String, line: Map[String, String])            = Failure(
-      "Parameter '%s' must be non empty in criterion '%s'".format(OBJECT, line)
-    )
-    def failureBadParam(param: String, line: Map[String, String], x: Any) =
-      Failure("Bad query format for '%s' parameter in line '%s'. Expecting a string, found '%s'".format(OBJECT, line, x))
 
     json match {
       case l: Map[?, ?] =>
@@ -277,35 +266,22 @@ trait JsonQueryLexer extends QueryLexer {
             val line = l.asInstanceOf[Map[String, String]] // is map always homogenous ?
             // First, parse the line. Then, try to bind name with object
 
-            // mandatory object type, attribute, comparator ; optionnal value
-            // object type
-            val objectType = line.get(OBJECT) match {
-              case None            => return failureMissing(OBJECT, line)
-              case Some(x: String) => if (x.nonEmpty) x else return failureEmpty(OBJECT, line)
-              case Some(x)         => return failureBadParam(OBJECT, line, x)
+            def getMandatoryAttribute(attribute: String) = {
+              line.get(attribute) match {
+                case None                  => Failure("Missing expected '%s' query parameter in criterion '%s'".format(attribute, line))
+                case Some(x) if x.nonEmpty => Full(x)
+                case Some(x)               => Failure("Parameter '%s' must be non empty in criterion '%s'".format(attribute, line))
+              }
             }
 
-            // attribute
-            val attribute = line.get(ATTRIBUTE) match {
-              case None            => return failureMissing(ATTRIBUTE, line)
-              case Some(x: String) => if (x.nonEmpty) x else return failureEmpty(ATTRIBUTE, line)
-              case Some(x)         => return failureBadParam(ATTRIBUTE, line, x)
-            }
+            def getOptionalAttribute(attribute: String) = line.get(attribute).filter(_.nonEmpty)
 
-            // comparator
-            val comparator = line.get(COMPARATOR) match {
-              case None            => return failureMissing(COMPARATOR, line)
-              case Some(x: String) => if (x.nonEmpty) x else return failureEmpty(COMPARATOR, line)
-              case Some(x)         => return failureBadParam(COMPARATOR, line, x)
-            }
-
-            // value
-            val value = line.get(VALUE) match {
-              case None            => None
-              case Some(x: String) => if (x.nonEmpty) Some(x) else None
-              case Some(x)         => return failureBadParam(VALUE, line, x)
-            }
-            Full(StringCriterionLine(objectType, attribute, comparator, value))
+            for {
+              objectType <- getMandatoryAttribute(OBJECT)
+              attribute  <- getMandatoryAttribute(ATTRIBUTE)
+              comparator <- getMandatoryAttribute(COMPARATOR)
+              value       = getOptionalAttribute(VALUE)
+            } yield StringCriterionLine(objectType, attribute, comparator, value)
 
           case _ => Failure("Bad query format for criterion line. Expecting an (string,string), found '%s'".format(l.head))
         }
