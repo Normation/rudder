@@ -208,7 +208,7 @@ class UpdateDynamicGroups(
       }
     }
 
-    override protected def messageHandler: PartialFunction[GroupUpdateMessage, Unit] = {
+    override protected def messageHandler: PartialFunction[GroupUpdateMessage, Unit] = PartialFunction.fromFunction {
 
       //
       // Ask for a new dynamic group update
@@ -286,11 +286,6 @@ class UpdateDynamicGroups(
           asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
           needDeployment = false
         }
-
-      //
-      // Unexpected messages
-      //
-      case x                                                                      => DynamicGroupLoggerPure.logEffect.debug(s"Dynamic group updater can't process this message: '${x}'")
     }
 
     private object LAUpdateDyngroup extends SpecializedLiftActor[StartDynamicUpdate] {

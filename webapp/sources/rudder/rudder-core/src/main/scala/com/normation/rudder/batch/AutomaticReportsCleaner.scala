@@ -483,7 +483,7 @@ class AutomaticReportsCleaning(
       }
     }
 
-    override protected def messageHandler: PartialFunction[DatabaseCleanerMessage, Unit] = {
+    override protected def messageHandler: PartialFunction[DatabaseCleanerMessage, Unit] = PartialFunction.fromFunction {
       /*
        * Ask to check if need to be launched
        * If idle   => check
@@ -565,8 +565,6 @@ class AutomaticReportsCleaning(
           case ActiveCleaner => reportLogger.info("Reports database: A database cleaning is already running, please try later")
         }
       }
-      case _                  =>
-        reportLogger.error("Wrong message for automatic reports %s ".format(cleanaction.name.toLowerCase()))
     }
   }
 }

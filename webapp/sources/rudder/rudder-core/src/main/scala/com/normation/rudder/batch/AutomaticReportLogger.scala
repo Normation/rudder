@@ -107,7 +107,7 @@ class AutomaticReportLogger(
       )
     }
 
-    override protected def messageHandler: PartialFunction[StartAutomaticReporting.type, Unit] = {
+    override protected def messageHandler: PartialFunction[StartAutomaticReporting.type, Unit] = PartialFunction.fromFunction {
       case StartAutomaticReporting =>
         propertyRepository.getReportLoggerLastId match {
           // Report logger was not running before, try to log the last hundred reports and initialize lastId
@@ -159,8 +159,6 @@ class AutomaticReportLogger(
         LAPinger.schedule(this, StartAutomaticReporting, reportLogInterval * 1000L * 60)
         () // ok for the unit value discarded
 
-      case _ =>
-        logger.error("Wrong message received by non compliant reports logger, do nothing")
     }
 
     /*
