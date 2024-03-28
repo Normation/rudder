@@ -874,7 +874,8 @@ class RestTestSetUp {
     val archiveBuilderService = new ZipArchiveBuilderService(
       new FileArchiveNameService(),
       mockConfigRepo.configurationRepository,
-      mockTechniques.techniqueRevisionRepo
+      mockTechniques.techniqueRevisionRepo,
+      mockNodeGroups.groupsRepo
     )
 
     // archive name in a Ref to make it simple to change in tests
