@@ -42,6 +42,7 @@ import cats.data.*
 import com.normation.NamedZioLogger
 import com.normation.box.*
 import com.normation.errors.*
+import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
@@ -178,7 +179,7 @@ object Doobie {
   implicit val DateTimeMeta: Meta[DateTime] =
     Meta[java.sql.Timestamp].imap(ts => new DateTime(ts.getTime()))(dt => new java.sql.Timestamp(dt.getMillis))
 
-  implicit val ReadRuleId:       Get[RuleId]      = {
+  implicit val ReadRuleId: Get[RuleId] = {
     Get[String].map(r => {
       RuleId.parse(r) match {
         case Right(rid) => rid
@@ -187,9 +188,19 @@ object Doobie {
       }
     })
   }
-  implicit val PutRuleId:        Put[RuleId]      = {
+  implicit val PutRuleId:  Put[RuleId] = {
     Put[String].contramap(_.serialize)
   }
+
+  implicit val GetNodeId: Get[NodeId] = Get[String].tmap(NodeId.apply)
+  implicit val PutNodeId: Put[NodeId] = Put[String].tcontramap(_.value)
+
+  implicit val GetNodeConfigId: Get[NodeConfigId] = Get[String].tmap(NodeConfigId.apply)
+  implicit val PutNodeConfigId: Put[NodeConfigId] = Put[String].tcontramap(_.value)
+
+  implicit val GetModificationId: Get[ModificationId] = Get[String].tmap(ModificationId.apply)
+  implicit val PutModificationId: Put[ModificationId] = Put[String].tcontramap(_.value)
+
   implicit val ReadDirectiveId:  Get[DirectiveId] = {
     Get[String].map(r => {
       DirectiveId.parse(r) match {
