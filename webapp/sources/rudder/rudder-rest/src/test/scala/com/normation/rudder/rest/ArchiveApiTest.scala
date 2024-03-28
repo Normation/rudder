@@ -108,7 +108,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     }
   }
 
-  def children(f: File): List[String] = f.listRecursively.toList.map(_.name)
+  def children(f:       File): List[String] = f.listRecursively.toList.map(_.name)
   def directChildren(f: File): List[String] = f.list.toList.map(_.name)
 
   // format: off
@@ -640,7 +640,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     // so that we have a yaml technique
     FileUtils.copyDirectory((testDir / "archive-technique-yaml").toJava, dest.toJava)
     // add a group
-    (testDir / "archive-group" / "groups" / "category_1"/ "Real_nodes.json").copyToDirectory(dest / "groups")
+    (testDir / "archive-group" / "groups" / "category_1" / "Real_nodes.json").copyToDirectory(dest / "groups")
 
     // save content before upload
     val tech     = restTestSetUp.mockTechniques.techniqueRepo

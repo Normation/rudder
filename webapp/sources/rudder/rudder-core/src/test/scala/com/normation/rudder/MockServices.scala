@@ -2721,7 +2721,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
       .getOrElse(null) // for test
   )
 
-  val g0     = NodeGroup(
+  val g0 = NodeGroup(
     NodeGroupId(NodeGroupUid("0000f5d3-8c61-4d20-88a7-bb947705ba8a")),
     "Real nodes",
     "",
@@ -2731,9 +2731,9 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     Set(nodesRepo.rootId, nodesRepo.node1.id, nodesRepo.node2.id),
     true
   )
-  val g1     =
+  val g1 =
     NodeGroup(NodeGroupId(NodeGroupUid("1111f5d3-8c61-4d20-88a7-bb947705ba8a")), "Empty group", "", Nil, None, false, Set(), true)
-  val g2     = NodeGroup(
+  val g2 = NodeGroup(
     NodeGroupId(NodeGroupUid("2222f5d3-8c61-4d20-88a7-bb947705ba8a")),
     "only root",
     "",
@@ -2743,7 +2743,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     Set(NodeId("root")),
     true
   )
-  val g3     = NodeGroup(
+  val g3 = NodeGroup(
     NodeGroupId(NodeGroupUid("3333f5d3-8c61-4d20-88a7-bb947705ba8a")),
     "Even nodes",
     "",
@@ -2753,7 +2753,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     nodesRepo.nodeIds.filter(_.value.toInt % 2 == 0),
     true
   )
-  val g4     = NodeGroup(
+  val g4 = NodeGroup(
     NodeGroupId(NodeGroupUid("4444f5d3-8c61-4d20-88a7-bb947705ba8a")),
     "Odd nodes",
     "",
@@ -2763,7 +2763,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     nodesRepo.nodeIds.filter(_.value.toInt % 2 != 0),
     true
   )
-  val g5     = NodeGroup(
+  val g5 = NodeGroup(
     NodeGroupId(NodeGroupUid("5555f5d3-8c61-4d20-88a7-bb947705ba8a")),
     "Nodes id divided by 3",
     "",
@@ -2773,7 +2773,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     nodesRepo.nodeIds.filter(_.value.toInt % 3 == 0),
     true
   )
-  val g6     = NodeGroup(
+  val g6 = NodeGroup(
     NodeGroupId(NodeGroupUid("6666f5d3-8c61-4d20-88a7-bb947705ba8a")),
     "Nodes id divided by 5",
     "",
@@ -2853,7 +2853,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
         true,
         true
       )
-    )  ++ groupsTargetInfos.drop(1),
+    ) ++ groupsTargetInfos.drop(1),
     true
   )
 
