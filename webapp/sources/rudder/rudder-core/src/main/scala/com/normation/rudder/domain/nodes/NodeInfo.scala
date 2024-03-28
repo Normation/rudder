@@ -158,12 +158,6 @@ final case class NodeInfo(
         )
         ""
 
-      case Some((_, _)) =>
-        PolicyGenerationLogger.info(
-          s"Node '${hostname}' (${id.value}) has an unsuported key type (CFEngine agent with certificate?) and a we do not know how to generate a hash yet"
-        )
-        ""
-
       case None =>
         PolicyGenerationLogger.info(s"Node '${hostname}' (${id.value}) doesn't have a registered public key")
         ""

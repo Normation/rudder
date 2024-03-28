@@ -597,8 +597,6 @@ object ExpectedReportsSerialisation {
         }
       case Right(v: Version7_1.JsonNodeExpectedReports7_1) =>
         Full(v.transform)
-      case Right(_)                                        =>
-        Failure(s"Error: found node expected report in an unsupported format, please force regenerate policies: '${s}'")
     }
   }
 

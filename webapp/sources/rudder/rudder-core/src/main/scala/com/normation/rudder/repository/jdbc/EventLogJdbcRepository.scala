@@ -54,7 +54,6 @@ import doobie.postgres.implicits.*
 import doobie.util.fragments
 import scala.xml.*
 import zio.interop.catz.*
-import zio.syntax.*
 
 /**
  * The EventLog repository
@@ -97,11 +96,6 @@ class EventLogJdbcRepository(
         } yield {
           saved
         }
-
-      case _ =>
-        Inconsistency(
-          s"Eventlog with type '${eventLog.eventType} has invalid XML for details (it must be a well formed document with only one root): ${eventLog.details}'"
-        ).fail
     }
   }
 

@@ -732,10 +732,6 @@ class InternalLDAPQueryProcessor(
                            }
 
                            (filterToApply, currentAttributes ++ getAdditionnalAttributes(Set(r))).succeed
-
-                         case (_, sf) =>
-                           Inconsistency("Unknow special filter, can not build a request with it: " + sf).fail
-
                        }
         finalFilter <- params._1 match {
                          case None    => Inconsistency("No filter (neither standard nor special) for request, can not process!").fail
@@ -795,7 +791,6 @@ class InternalLDAPQueryProcessor(
       val sf = specialFilters.groupBy {
         case r: RegexFilter    => "regex"
         case r: NotRegexFilter => "notregex"
-        case _ => "other"
       }
 
       for {
@@ -980,8 +975,6 @@ class InternalLDAPQueryProcessor(
 
         case SimpleNotRegexFilter(attr, regexText) =>
           regexNotMatch(attr, regexText, entries, x => Some(x))
-
-        case x => Inconsistency(s"Don't know how to post process query results for filter '${x}'").fail
       }
     }
 

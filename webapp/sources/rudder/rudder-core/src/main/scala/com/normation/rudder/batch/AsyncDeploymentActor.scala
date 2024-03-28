@@ -178,7 +178,6 @@ final class AsyncDeploymentActor(
     case NoStatus => 0L
     case a: SuccessStatus => a.id
     case a: ErrorStatus   => a.id
-    case _ => 0L
   }
 
   def getStatus:       CurrentDeploymentStatus = lastFinishedDeployement

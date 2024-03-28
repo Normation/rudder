@@ -951,12 +951,6 @@ trait MinimalNodeFactInterface {
           s"Node '${fqdn}' (${id.value}) is a Windows node and a we do not know how to generate a hash yet"
         )
         ""
-
-      case (_, _) =>
-        PolicyGenerationLogger.info(
-          s"Node '${fqdn}' (${id.value}) has an unsuported key type (CFEngine agent with certificate?) and a we do not know how to generate a hash yet"
-        )
-        ""
     }
   }
 
