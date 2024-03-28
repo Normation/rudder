@@ -37,13 +37,13 @@ class RestApiAccounts(
 
   serve {
     case Get("secure" :: "apiaccounts" :: Nil, req) =>
-      implicit val prettify = restExtractor
+      implicit val prettify: Boolean = restExtractor
         .extractBoolean("prettify")(req)(identity)
         .getOrElse(Some(false))
         .getOrElse(
           false
         )
-      implicit val action: String = "getAllAccounts"
+      implicit val action:   String  = "getAllAccounts"
 
       // here, 'write' and not 'read' because some tokens may have admin write access,
       // and we want to avoid escalation
@@ -76,13 +76,13 @@ class RestApiAccounts(
       })
 
     case "secure" :: "apiaccounts" :: Nil JsonPut body -> req =>
-      implicit val prettify = restExtractor
+      implicit val prettify: Boolean = restExtractor
         .extractBoolean("prettify")(req)(identity)
         .getOrElse(Some(false))
         .getOrElse(
           false
         )
-      implicit val action: String = "updateAccount"
+      implicit val action:   String  = "updateAccount"
 
       OldInternalApiAuthz.withWriteAdmin(req.json match {
         case Full(json) =>
@@ -145,14 +145,14 @@ class RestApiAccounts(
       })
 
     case "secure" :: "apiaccounts" :: tokenId :: Nil JsonPost body -> req =>
-      val apiTokenId        = ApiAccountId(tokenId)
-      implicit val prettify = restExtractor
+      val apiTokenId = ApiAccountId(tokenId)
+      implicit val prettify: Boolean = restExtractor
         .extractBoolean("prettify")(req)(identity)
         .getOrElse(Some(false))
         .getOrElse(
           false
         )
-      implicit val action: String = "updateAccount"
+      implicit val action:   String  = "updateAccount"
 
       OldInternalApiAuthz.withWriteAdmin(req.json match {
         case Full(json) =>
@@ -182,14 +182,14 @@ class RestApiAccounts(
       })
 
     case Delete("secure" :: "apiaccounts" :: tokenId :: Nil, req) =>
-      val apiTokenId        = ApiAccountId(tokenId)
-      implicit val prettify = restExtractor
+      val apiTokenId = ApiAccountId(tokenId)
+      implicit val prettify: Boolean = restExtractor
         .extractBoolean("prettify")(req)(identity)
         .getOrElse(Some(false))
         .getOrElse(
           false
         )
-      implicit val action: String = "deleteAccount"
+      implicit val action:   String  = "deleteAccount"
 
       OldInternalApiAuthz.withWriteAdmin(readApi.getById(apiTokenId).either.runNow match {
         case Right(Some(account)) =>
@@ -214,14 +214,14 @@ class RestApiAccounts(
       })
 
     case Post("secure" :: "apiaccounts" :: tokenId :: "regenerate" :: Nil, req) =>
-      val apiTokenId        = ApiAccountId(tokenId)
-      implicit val prettify = restExtractor
+      val apiTokenId = ApiAccountId(tokenId)
+      implicit val prettify: Boolean = restExtractor
         .extractBoolean("prettify")(req)(identity)
         .getOrElse(Some(false))
         .getOrElse(
           false
         )
-      implicit val action: String = "regenerateAccount"
+      implicit val action:   String  = "regenerateAccount"
 
       OldInternalApiAuthz.withWriteAdmin(readApi.getById(apiTokenId).either.runNow match {
         case Right(Some(account)) =>

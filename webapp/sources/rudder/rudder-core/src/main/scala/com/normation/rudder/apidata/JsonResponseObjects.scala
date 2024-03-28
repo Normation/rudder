@@ -1060,19 +1060,21 @@ trait RudderJsonEncoders {
     case Some(x)                                               => Some(x.value)
   }
   implicit val inheritModeEncoder:      JsonEncoder[InheritMode]              = JsonEncoder[String].contramap(_.value)
-  implicit val globalParameterEncoder:  JsonEncoder[JRGlobalParameter]        = DeriveJsonEncoder.gen.contramap(g => {
-    // when inheritMode or property provider are set to their default value, don't write them
-    g.modify(_.inheritMode)
-      .using {
-        case Some(InheritMode.Default) => None
-        case x                         => x
-      }
-      .modify(_.provider)
-      .using {
-        case Some(PropertyProvider.defaultPropertyProvider) => None
-        case x                                              => x
-      }
-  })
+  implicit val globalParameterEncoder:  JsonEncoder[JRGlobalParameter]        = DeriveJsonEncoder
+    .gen[JRGlobalParameter]
+    .contramap(g => {
+      // when inheritMode or property provider are set to their default value, don't write them
+      g.modify(_.inheritMode)
+        .using {
+          case Some(InheritMode.Default) => None
+          case x                         => x
+        }
+        .modify(_.provider)
+        .using {
+          case Some(PropertyProvider.defaultPropertyProvider) => None
+          case x                                              => x
+        }
+    })
 
   implicit val propertyJRParentProperty: JsonEncoder[JRParentProperty] = DeriveJsonEncoder.gen
 
