@@ -14,3 +14,4 @@ colored = "2"
 # Compile dev and release with trace logs enabled
 tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_trace"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-appender = { version = "0.2.3" }

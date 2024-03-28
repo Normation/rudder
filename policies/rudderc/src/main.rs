@@ -19,7 +19,7 @@ fn main() {
     }
 
     let args = MainArgs::parse();
-    logs::init(args.verbose, args.quiet, args.message_format);
+    let _guard = logs::init(args.verbose, args.quiet, args.message_format, None);
     debug!(
         "Running {} v{}",
         env!("CARGO_PKG_NAME"),
