@@ -221,7 +221,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       ).succeed
     }
 
-    def getNodeGroupCategory(id: NodeGroupId): IOResult[NodeGroupCategory] = ???
+    def categoryExists(id:       NodeGroupCategoryId): IOResult[Boolean]           = ???
+    def getNodeGroupCategory(id: NodeGroupId):         IOResult[NodeGroupCategory] = ???
     def getAll(): IOResult[Seq[NodeGroup]] = ???
     def getAllByIds(ids: Seq[NodeGroupId]): IOResult[Seq[NodeGroup]] = ???
     def getAllNodeIds(): IOResult[Map[NodeGroupId, Set[NodeId]]] = ???
