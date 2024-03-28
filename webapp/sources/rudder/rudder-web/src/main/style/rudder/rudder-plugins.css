@@ -92,3 +92,7 @@
 .tooltip > .tooltip-inner {
   padding: 0px !important;
 }
+
+.rudder-package-doc {
+  margin-top: 25px;
+}
