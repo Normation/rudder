@@ -483,24 +483,22 @@ object DisplayNode extends Loggable {
     }
 
     val nodeStateIcon = (
-      <span class={"node-state " ++ getNodeState(node.rudderSettings.state).toLowerCase} title={
-        getNodeState(node.rudderSettings.state)
-      }></span>
+      <span class={"node-state " ++ getNodeState(node.rudderSettings.state).toLowerCase}></span>
     )
 
     <div class="header-title">
     <div class={"os-logo " ++ sm.node.main.osDetails.os.name.toLowerCase()} data-bs-toggle="tooltip" title={osTooltip}></div>
     <h1>
       <div id="nodeHeaderInfo">
-        {nodeStateIcon}
         <span>{sm.node.main.hostname}</span>
         <span class="machine-os-info">
           <span class="machine-info">{sm.node.main.osDetails.fullName}</span>
           <span class="machine-info ram">{sm.node.ram.map(_.toStringMo).getOrElse("-")}</span>
-          <span class="fa fa-info-circle icon-info" data-bs-toggle="tooltip" data-bs-placement="bottom" title={
+          <span class="fa fa-info-circle icon-info me-1" data-bs-toggle="tooltip" data-bs-placement="bottom" title={
       machineTooltip
     }></span>
         </span>
+        {nodeStateIcon}
       </div>
       <div class="header-subtitle">
         <a class="clipboard" title="Copy to clipboard" data-clipboard-text={sm.node.main.id.value}>
