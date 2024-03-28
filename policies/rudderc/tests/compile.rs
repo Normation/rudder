@@ -24,7 +24,7 @@ static INIT: Once = Once::new();
 /// We can only initialize the logger once
 pub fn init_logs() {
     INIT.call_once(|| {
-        logs::init(0, false, Default::default());
+        let _guard = logs::init(0, false, Default::default(), None);
     });
 }
 
