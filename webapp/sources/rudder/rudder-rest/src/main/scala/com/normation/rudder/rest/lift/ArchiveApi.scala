@@ -64,10 +64,14 @@ import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.FullGroupTarget
+import com.normation.rudder.domain.policies.FullRuleTargetInfo
+import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
@@ -77,6 +81,7 @@ import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
 import com.normation.rudder.ncf.migration.MigrateJsonTechniquesService
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
+import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
@@ -363,6 +368,33 @@ class FileArchiveNameService(
 
 }
 
+// a simple Json-able object for group categories
+case class JGroupCategory(
+    id:          String,
+    name:        String,
+    description: String
+)
+object JGroupCategory {
+
+  implicit val encoderJGroupCategory: JsonEncoder[JGroupCategory] = DeriveJsonEncoder.gen
+  implicit val decoderJGroupCategory: JsonDecoder[JGroupCategory] = DeriveJsonDecoder.gen
+
+  def fromFullNodeGroupCategory(g: FullNodeGroupCategory): JGroupCategory = {
+    JGroupCategory(g.id.value, g.name, g.description)
+  }
+}
+
+object ZipArchiveBuilderService {
+  // names of directories under the root directory of the archive
+  val RULES_DIR      = "rules"
+  val GROUPS_DIR     = "groups"
+  val DIRECTIVES_DIR = "directives"
+  val TECHNIQUES_DIR = "techniques"
+
+  val GROUP_CAT_FILENAME = "category.json"
+  val RULE_CATS          = "rule-categories.json"
+}
+
 /**
  * That class is in charge of building a archive of a set of rudder objects.
  * It knows how to get objects from their ID, serialise them to the expected
@@ -377,14 +409,11 @@ class FileArchiveNameService(
 class ZipArchiveBuilderService(
     fileArchiveNameService: FileArchiveNameService,
     configRepo:             ConfigurationRepository,
-    techniqueRevisionRepo:  TechniqueRevisionRepository
+    techniqueRevisionRepo:  TechniqueRevisionRepository,
+    groupRepo:              RoNodeGroupRepository
 ) {
 
-  // names of directories under the root directory of the archive
-  val RULES_DIR      = "rules"
-  val GROUPS_DIR     = "groups"
-  val DIRECTIVES_DIR = "directives"
-  val TECHNIQUES_DIR = "techniques"
+  import ZipArchiveBuilderService.*
 
   /*
    * get the content of the JSON string in the format expected by Zippable
@@ -414,12 +443,18 @@ class ZipArchiveBuilderService(
     val name = fileArchiveNameService.toFileName(origName) + extension
 
     // find a free name, avoiding overwriting a previous similar one
-    usedNames.modify(m => {
-      val realName = if (m(category).contains(name)) {
-        findRecName(m(category), name, 1)
-      } else name
-      (realName, m + ((category, m(category) + realName)))
-    })
+    usedNames.modify { m =>
+      m.get(category) match {
+        case None                           =>
+          (name, m + ((category, Set(name))))
+        case Some(c) if (!c.contains(name)) =>
+          (name, m + ((category, c + name)))
+        case Some(c)                        =>
+          val realName = findRecName(c, name, 1)
+          (realName, m + ((category, m(category) + realName)))
+      }
+
+    }
   }
 
   /*
@@ -444,6 +479,10 @@ class ZipArchiveBuilderService(
       }
     })
   }
+
+  /*
+   * Retrieve the group using first cache, then the config service, and update cache accordingly
+   */
 
   /*
    * Getting technique zippable is more complex than other items because we can have a lot of
@@ -489,10 +528,121 @@ class ZipArchiveBuilderService(
                    }
                    .reverse ++ filtered.map { case (p, opt) => Zippable.make(basePath + p, opt) }
       _       <- ApplicationLoggerPure.Archive.debug(
-                   s"Building archive '${archiveName}': adding technique zipables: ${zips.map(_.path).mkString(", ")}"
+                   s"Building archive '${archiveName}': adding technique zippables: ${zips.map(_.path).mkString(", ")}"
                  )
     } yield {
       zips
+    }
+  }
+
+  /*
+   * Get the list of all group category or group as Zip object, in the order they need to be created
+   * (ie first categories from root to leaves, then groups)
+   */
+  def getGroupLibZippable(
+      ids:         Seq[NodeGroupId],
+      groupsDir:   String,
+      usedNames:   Ref[Map[String, Set[String]]],
+      rootDirName: String,
+      groupLib:    FullNodeGroupCategory
+  ): IOResult[Seq[Zippable]] = {
+
+    import com.softwaremill.quicklens.*
+
+    // filter the group category, keeping only groups from list, then non-empty cat, recursively
+    def recFilter(ids: Seq[NodeGroupId], cat: FullNodeGroupCategory): Option[FullNodeGroupCategory] = {
+      if (ids.isEmpty) None
+      else {
+        val subCats   = cat.subCategories.flatMap(recFilter(ids, _))
+        val subGroups = cat.targetInfos.filter { t =>
+          t.target.target match {
+            case GroupTarget(id) => ids.contains(id)
+            case _               => false
+          }
+        }
+
+        if (subCats.isEmpty && subGroups.isEmpty) None
+        else {
+          Some(
+            cat
+              .modify(_.subCategories)
+              .setTo(subCats)
+              .modify(_.targetInfos)
+              .setTo(subGroups)
+          )
+        }
+      }
+    }
+
+    def missingGroups(ids: Iterable[NodeGroupId]): IOResult[Chunk[Zippable]] = {
+      Inconsistency(s"The following groups were not found in Rudder: '${ids.map(_.debugString).mkString("','")}'").fail
+    }
+
+    /*
+     * Map FullNodeGroupLibrary to a structure of zippable:
+     * To avoid root, we avoid current cat and only deal with children.
+     *
+     * - start with a base path (without ending /) to which are adding items
+     * - deep-first in sub-categories:
+     *   - find a name for the cat
+     *   - create the new base path with parent path + new cat name appended
+     *   - create zip "category.json" under it
+     *   - recurse in cat
+     * - then groups
+     * - for each level, maintain a list of used name to avoid duplicate which would override
+     *
+     * Here: base
+     */
+    def recMapToZippable(
+        basePath:    String,
+        cat:         FullNodeGroupCategory,
+        catFileName: String,
+        usedNames:   Ref[Map[String, Set[String]]]
+    ): IOResult[Chunk[Zippable]] = {
+      for {
+        ref   <- Ref.make(Chunk.empty[Zippable])
+        _     <- ZIO.foreach(cat.subCategories) { sub =>
+                   val c    = JGroupCategory.fromFullNodeGroupCategory(sub)
+                   val json = c.toJsonPretty
+                   for {
+                     catDir     <- findName(c.name, "", usedNames, basePath)
+                     path        = basePath + "/" + catDir
+                     catName    <- findName(catFileName, ".json", usedNames, path)
+                     catFilePath = path + "/" + catName
+                     _          <- ApplicationLoggerPure.Archive
+                                     .debug(s"Building archive '${rootDirName}': adding group category zippable: ${catFilePath}")
+                     _          <- ref.update(_.appended(Zippable(catFilePath, Some(getJsonZippableContent(json)))))
+                     children   <- recMapToZippable(path, sub, catFileName, usedNames)
+                     _          <- ref.update(_.appendedAll(children))
+                   } yield ()
+                 }
+        // we only archive non-system NodeGroups, other kind of special targets are ignored
+        groups = cat.targetInfos.collect { case FullRuleTargetInfo(FullGroupTarget(_, g), _, _, _, false) => g }
+        _     <- ZIO.foreach(groups) { g =>
+                   val json = JRGroup.fromGroup(g, cat.id, None).toJsonPretty
+                   for {
+                     name <- findName(g.name, ".json", usedNames, basePath)
+                     path  = basePath + "/" + name
+                     _    <- ApplicationLoggerPure.Archive
+                               .debug(s"Building archive '${rootDirName}': adding group zippable: ${path}")
+                     _    <- ref.update(_.appended(Zippable(path, Some(getJsonZippableContent(json)))))
+                   } yield ()
+                 }
+        zips  <- ref.get
+      } yield zips
+    }
+
+    // we need the file name without extension
+    val GROUP_CAT_WITHOUT_EXT = GROUP_CAT_FILENAME.split("\\.")(0)
+
+    recFilter(ids, groupLib) match {
+      case None      => if (ids.isEmpty) Nil.succeed else missingGroups(ids)
+      case Some(cat) =>
+        val missing = cat.allGroups.keySet -- ids
+        if (missing.nonEmpty) missingGroups(missing)
+        else {
+          recMapToZippable(groupsDir, cat, GROUP_CAT_WITHOUT_EXT, usedNames)
+        }
     }
   }
 
@@ -548,7 +698,7 @@ class ZipArchiveBuilderService(
                                      name <- findName(rule.name, ".json", usedNames, RULES_DIR)
                                      path  = rulesDir + "/" + name
                                      _    <- ApplicationLoggerPure.Archive
-                                               .debug(s"Building archive '${rootDirName}': adding rule zipable: ${path}")
+                                               .debug(s"Building archive '${rootDirName}': adding rule zippable: ${path}")
                                    } yield {
                                      Some(Zippable(path, Some(getJsonZippableContent(json))))
                                    }
@@ -560,25 +710,9 @@ class ZipArchiveBuilderService(
       _               <- usedNames.update(_ + ((GROUPS_DIR, Set.empty[String])))
       groupsDirZip     = Zippable(groupsDir, None)
       depGroups       <- if (includeDepGroups) depGroupIds.get else Nil.succeed
-      groupsZip       <- ZIO
-                           .foreach(groupIds ++ depGroups) { groupId =>
-                             configRepo
-                               .getGroup(groupId)
-                               .notOptional(s"Group with id ${groupId.serialize} was not found in Rudder")
-                               .flatMap(gc => {
-                                 if (gc.group.isSystem) None.succeed
-                                 else {
-                                   val json = JRGroup.fromGroup(gc.group, gc.categoryId, None).toJsonPretty
-                                   for {
-                                     name <- findName(gc.group.name, ".json", usedNames, GROUPS_DIR)
-                                     path  = groupsDir + "/" + name
-                                     _    <- ApplicationLoggerPure.Archive
-                                               .debug(s"Building archive '${rootDirName}': adding group zipable: ${path}")
-                                   } yield Some(Zippable(path, Some(getJsonZippableContent(json))))
-                                 }
-                               })
-                           }
-                           .map(_.flatten)
+      groupLib        <- groupRepo.getFullGroupLibrary()
+      groupDir         = root + "/" + GROUPS_DIR
+      groupsZip       <- getGroupLibZippable(groupIds ++ depGroups, groupDir, usedNames, rootDirName, groupLib)
       // directives need access to technique, but we don't want to look up several time the same one
       techniques      <- Ref.Synchronized.make(Map.empty[TechniqueId, (Chunk[TechniqueCategoryName], Technique)])
 
@@ -603,7 +737,7 @@ class ZipArchiveBuilderService(
                                      name <- findName(ad.directive.name, ".json", usedNames, DIRECTIVES_DIR)
                                      path  = directivesDir + "/" + name
                                      _    <- ApplicationLoggerPure.Archive
-                                               .debug(s"Building archive '${rootDirName}': adding directive zipable: ${path}")
+                                               .debug(s"Building archive '${rootDirName}': adding directive zippable: ${path}")
                                    } yield Some(Zippable(path, Some(getJsonZippableContent(json))))
                                  }
                                })
@@ -657,6 +791,11 @@ final case class DirectiveArchive(
     technique: TechniqueName,
     directive: Directive
 )
+final case class GroupCategoryArchive(
+    category: JGroupCategory,
+    // the path for that cat
+    catPath:  String
+)
 final case class GroupArchive(
     group:    NodeGroup,
     category: NodeGroupCategoryId
@@ -670,29 +809,33 @@ final case class PolicyArchive(
     metadata:   PolicyArchiveMetadata,
     techniques: Chunk[TechniqueArchive],
     directives: Chunk[DirectiveArchive],
+    groupCats:  Chunk[GroupCategoryArchive],
     groups:     Chunk[GroupArchive],
     rules:      Chunk[Rule]
 ) {
   def debugString: String = {
     s"""Archive ${metadata.filename}:
-       | - techniques: ${techniques.map(_.technique.id.serialize).sorted.mkString(", ")}
-       | - directives: ${directives.map(d => s"'${d.directive.name}' [${d.directive.id.serialize}]").sorted.mkString(", ")}
-       | - groups    : ${groups.map(d => s"'${d.group.name}' [${d.group.id.serialize}]").sorted.mkString(", ")}
-       | - rules     : ${rules.map(d => s"'${d.name}' [${d.id.serialize}]").sorted.mkString(", ")}""".stripMargin
+       | - techniques      : ${techniques.map(_.technique.id.serialize).sorted.mkString(", ")}
+       | - directives      : ${directives.map(d => s"'${d.directive.name}' [${d.directive.id.serialize}]").sorted.mkString(", ")}
+       | - group categories: ${groupCats.map(c => s"'${c.category.name}' [${c.category.id}]").sorted.mkString(", ")}
+       | - groups          : ${groups.map(g => s"'${g.group.name}' [${g.group.id.serialize}]").sorted.mkString(", ")}
+       | - rules           : ${rules.map(r => s"'${r.name}' [${r.id.serialize}]").sorted.mkString(", ")}""".stripMargin
   }
 }
 object PolicyArchive {
-  def empty: PolicyArchive = PolicyArchive(PolicyArchiveMetadata.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty)
+  def empty: PolicyArchive =
+    PolicyArchive(PolicyArchiveMetadata.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty)
 }
 
 final case class SortedEntries(
     techniques: Chunk[(String, Array[Byte])],
     directives: Chunk[(String, Array[Byte])],
+    groupCats:  Chunk[(String, Array[Byte])],
     groups:     Chunk[(String, Array[Byte])],
     rules:      Chunk[(String, Array[Byte])]
 )
 object SortedEntries {
-  def empty: SortedEntries = SortedEntries(Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty)
+  def empty: SortedEntries = SortedEntries(Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty)
 }
 
 final case class PolicyArchiveUnzip(
@@ -735,6 +878,7 @@ class ZipArchiveReaderImpl(
   val jsonRegex:      Regex = s"""(.+)/${TechniqueType.Json.name}""".r
   val metadataRegex:  Regex = s"""(.+)/${TechniqueType.Metadata.name}""".r
   val directiveRegex: Regex = """(.*/|)directives/(.+.json)""".r
+  val groupCatsRegex: Regex = """(.*/|)groups/(.*category.json)""".r
   val groupRegex:     Regex = """(.*/|)groups/(.+.json)""".r
   val ruleRegex:      Regex = """(.*/|)rules/(.+.json)""".r
 
@@ -858,6 +1002,15 @@ class ZipArchiveReaderImpl(
       .toIO
       .flatMap(_.toDirective().map(t => DirectiveArchive(t._1, t._2)))
   }
+  def parseGroupCat(name: String, content: Array[Byte])(implicit
+      dec: JsonDecoder[JGroupCategory]
+  ): IOResult[GroupCategoryArchive] = {
+    // we need to keep path to be able to find back hierarchy later on
+    (new String(content, StandardCharsets.UTF_8))
+      .fromJson[JGroupCategory]
+      .toIO
+      .map(c => GroupCategoryArchive(c, File(name).parent.pathAsString))
+  }
   def parseGroup(name: String, content: Array[Byte])(implicit dec: JsonDecoder[JRGroup]):         IOResult[GroupArchive]     = {
     (new String(content, StandardCharsets.UTF_8))
       .fromJson[JRGroup]
@@ -904,6 +1057,11 @@ class ZipArchiveReaderImpl(
   ): IOResult[PolicyArchiveUnzip] = {
     parseSimpleFile(arch, directives, modifyLens[PolicyArchiveUnzip](_.policies.directives), parseDirective)
   }
+  def parseGroupCats(arch: PolicyArchiveUnzip, cats: Chunk[(String, Array[Byte])])(implicit
+      dec: JsonDecoder[JGroupCategory]
+  ): IOResult[PolicyArchiveUnzip] = {
+    parseSimpleFile(arch, cats, modifyLens[PolicyArchiveUnzip](_.policies.groupCats), parseGroupCat)
+  }
   def parseGroups(arch: PolicyArchiveUnzip, groups: Chunk[(String, Array[Byte])])(implicit
       dec: JsonDecoder[JRGroup]
   ): IOResult[PolicyArchiveUnzip] = {
@@ -927,6 +1085,9 @@ class ZipArchiveReaderImpl(
           case (directiveRegex(_, x), Some(content)) =>
             ApplicationLoggerPure.Archive.logEffect.trace(s"Archive '${archiveName}': found directive file ${x}")
             arch.modify(_.directives).using(_ :+ (x, content))
+          case (groupCatsRegex(_, x), Some(content)) =>
+            ApplicationLoggerPure.Archive.logEffect.trace(s"Archive '${archiveName}': found group category file ${x}")
+            arch.modify(_.groupCats).using(_ :+ (x, content))
           case (groupRegex(_, x), Some(content))     =>
             ApplicationLoggerPure.Archive.logEffect.trace(s"Archive '${archiveName}': found group file ${x}")
             arch.modify(_.groups).using(_ :+ (x, content))
@@ -984,7 +1145,11 @@ class ZipArchiveReaderImpl(
       _              <- ApplicationLoggerPure.Archive.debug(
                           s"Processing archive '${archiveName}': groups: '${sortedEntries.groups.map(_._1).mkString("', '")}'"
                         )
-      withGroups     <- parseGroups(withDirectives, sortedEntries.groups)
+      withGroupCats  <- parseGroupCats(withDirectives, sortedEntries.groupCats)
+      _              <- ApplicationLoggerPure.Archive.debug(
+                          s"Processing archive '${archiveName}': rules: '${sortedEntries.rules.map(_._1).mkString("', '")}'"
+                        )
+      withGroups     <- parseGroups(withGroupCats, sortedEntries.groups)
       _              <- ApplicationLoggerPure.Archive.debug(
                           s"Processing archive '${archiveName}': rules: '${sortedEntries.rules.map(_._1).mkString("', '")}'"
                         )
@@ -1140,6 +1305,8 @@ class SaveArchiveServicebyRepo(
     asyncDeploy:       AsyncDeploymentActor
 ) extends SaveArchiveService {
 
+  val GroupRootId = NodeGroupCategoryId("GroupRoot")
+
   /*
    * Saving a techniques:
    * - override all files that are coming from archive
@@ -1213,13 +1380,65 @@ class SaveArchiveServicebyRepo(
       _  <- woDirectiveRepos.saveDirective(at.id, d.directive, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
     } yield ()
   }
+  def saveGroupCat(
+      eventMetadata: EventMetadata,
+      cat:           GroupCategoryArchive,
+      catMap:        Map[String, NodeGroupCategoryId]
+  ): IOResult[Unit] = {
+    for {
+      _       <- ApplicationLoggerPure.Archive.debug(s"Adding group category from archive: '${cat.category.name}' (${cat.category.id})")
+      /*
+       * Categories are sorted by parents-first in the archive, so we are sure at that
+       * point that at least all parents exists. But perhaps not that one.
+       */
+      id       = NodeGroupCategoryId(cat.category.id)
+      exists  <- roGroupRepos.categoryExists(id)
+      parentId = catMap.get(File(cat.catPath).parent.pathAsString) match {
+                   case Some(p) => p
+                   case None    => GroupRootId
+                 }
+      category = NodeGroupCategory(id, cat.category.name, cat.category.description, Nil, Nil)
+      _       <- if (exists) {
+                   woGroupRepos.saveGroupCategory(category, parentId, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
+                 } else {
+                   woGroupRepos.addGroupCategorytoCategory(
+                     category,
+                     parentId,
+                     eventMetadata.modId,
+                     eventMetadata.actor,
+                     eventMetadata.msg
+                   )
+                 }
+    } yield ()
+  }
   def saveGroup(eventMetadata: EventMetadata, g: GroupArchive):                  IOResult[Unit] = {
     for {
       _ <- ApplicationLoggerPure.Archive.debug(s"Adding group from archive: '${g.group.name}' (${g.group.id.serialize})")
+      // normally, at that point the category of the group exists because we took care to create them before.
+      // But we used to have a bug where categories where not exported, so until Rudder 9 we need to check for that
+      // if category of group doesn't exist, we need to create one using the UUID as name
+      c <- roGroupRepos.categoryExists(g.category)
+      _ <- ZIO.when(!c) {
+             woGroupRepos.addGroupCategorytoCategory(
+               NodeGroupCategory(g.category, g.category.value, "", Nil, Nil),
+               GroupRootId,
+               eventMetadata.modId,
+               eventMetadata.actor,
+               eventMetadata.msg
+             )
+           }
+      // now we can check if we create a new group or update one
       x <- roGroupRepos.getNodeGroupOpt(g.group.id)
       _ <- x match {
-             case Some(value) => woGroupRepos.update(g.group, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
-             case None        => woGroupRepos.create(g.group, g.category, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
+             case Some((_, parentId)) =>
+               woGroupRepos.update(g.group, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg) *>
+               // we need to check if the group moved
+               ZIO.when(parentId != g.category) {
+                 woGroupRepos.move(g.group.id, g.category, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
+               }
+
+             case None =>
+               woGroupRepos.create(g.group, g.category, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
            }
     } yield ()
   }
@@ -1250,6 +1469,9 @@ class SaveArchiveServicebyRepo(
       _ <- ZIO.foreach(archive.techniques)(saveTechnique(eventMetadata, _))
       _ <- IOResult.attempt(techniqueReader.readTechniques)
       _ <- ZIO.foreach(archive.directives)(saveDirective(eventMetadata, _))
+      // we need the map of all (categoryPath -> id) in the archive
+      m  = archive.groupCats.map(c => (c.catPath, NodeGroupCategoryId(c.category.id))).toMap
+      _ <- ZIO.foreach(archive.groupCats)(saveGroupCat(eventMetadata, _, m))
       _ <- ZIO.foreach(archive.groups)(saveGroup(eventMetadata, _))
       _ <- ZIO.foreach(archive.rules)(saveRule(eventMetadata, mergePolicy, _))
       // update technique lib, regenerate policies
