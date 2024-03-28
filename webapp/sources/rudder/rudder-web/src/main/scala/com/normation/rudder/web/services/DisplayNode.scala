@@ -1008,18 +1008,23 @@ object DisplayNode extends Loggable {
   def displayTabInventoryVariable(jsId: JsNodeId, node: CoreNodeFact, sm: FullInventory): NodeSeq = {
     def displayLine(name: String, value: String): NodeSeq = {
       <tr>
-        <td>{name}<button class="btn btn-xs btn-default btn-clipboard" data-clipboard-text={
-        s"""$${node.inventory[${name}]"""
-      }><i class="ion ion-clipboard"></i></button></td>
+        <td>{name}</td>
+        <td>
+          <a class="clipboard" data-clipboard-text={s"""$${node.inventory[${name}]"""}>
+            <i class="ion ion-clipboard"></i>
+          </a>
+        </td>
         {
         if (value.strip().isEmpty) {
           <td></td>
         } else {
           <td>
             <pre class="json-inventory-vars">{value}</pre>
-            <button class="btn btn-xs btn-default btn-clipboard" data-clipboard-text={value}>
+          </td>
+          <td>
+            <a class="clipboard" data-clipboard-text={value}>
               <i class="ion ion-clipboard"></i>
-            </button>
+            </a>
           </td>
         }
       }
@@ -1067,7 +1072,9 @@ object DisplayNode extends Loggable {
           <thead>
             <tr class="head">
               <th class="sorting sorting_desc">Name</th>
+              <th></th>
               <th class="sorting">Value</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
