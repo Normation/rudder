@@ -282,6 +282,13 @@ class RoLDAPNodeGroupRepository(
     else getParentGroupCategory(id).flatMap(parent => getParentsForCategory(parent.id, root).map(parents => parent :: parents))
   }
 
+  override def categoryExists(id: NodeGroupCategoryId): IOResult[Boolean] = {
+    for {
+      con           <- ldap
+      categoryEntry <- groupLibMutex.readLock(getCategoryEntry(con, id, "dn"))
+    } yield categoryEntry.nonEmpty
+  }
+
   /**
    * Get a group category by its id
    * */

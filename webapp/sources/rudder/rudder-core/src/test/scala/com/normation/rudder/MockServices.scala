@@ -2332,6 +2332,10 @@ class MockNodeGroups(nodesRepo: MockNodes) {
       .make(FullNodeGroupCategory(NodeGroupCategoryId("GroupRoot"), "GroupRoot", "root of group categories", Nil, Nil, true))
       .runNow
 
+    override def categoryExists(id: NodeGroupCategoryId): IOResult[Boolean] = {
+      categories.get.map(_.allCategories.keySet.contains(id))
+    }
+
     override def getFullGroupLibrary(): IOResult[FullNodeGroupCategory] = categories.get
 
     override def getNodeGroupOpt(id: NodeGroupId):      IOResult[Option[(NodeGroup, NodeGroupCategoryId)]] = {
@@ -2792,24 +2796,19 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     MockNodes.nodeIds.filter(_.value.toInt % 5 == 0),
     true
   )
-  val groups: Set[(NodeGroupId, NodeGroup)] = Set(g0, g1, g2, g3, g4, g5, g6).map(g => (g.id, g))
+  val groups: Seq[(NodeGroupId, NodeGroup)] = List(g0, g1, g2, g3, g4, g5, g6).map(g => (g.id, g))
 
-  val groupsTargets: Set[(GroupTarget, NodeGroup)] = groups.map { case (id, g) => (GroupTarget(g.id), g) }
+  val groupsTargets: Seq[(GroupTarget, NodeGroup)] = groups.map { case (id, g) => (GroupTarget(g.id), g) }
 
-  val groupsTargetInfos: Map[NodeGroupId, FullRuleTargetInfo] = (groupsTargets
-    .map(gt => {
-      (
-        gt._1.groupId,
-        FullRuleTargetInfo(
-          FullGroupTarget(gt._1, gt._2),
-          "",
-          "",
-          true,
-          false
-        )
-      )
-    }))
-    .toMap
+  val groupsTargetInfos: Seq[FullRuleTargetInfo] = groupsTargets.map { gt =>
+    FullRuleTargetInfo(
+      FullGroupTarget(gt._1, gt._2),
+      "",
+      "",
+      true,
+      false
+    )
+  }
 
   val groupLib: FullNodeGroupCategory = FullNodeGroupCategory(
     NodeGroupCategoryId("GroupRoot"),
@@ -2821,7 +2820,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
         "category 1",
         "the first category",
         Nil,
-        Nil,
+        List(groupsTargetInfos.head), // that g0 id:0000f5d3-8c61-4d20-88a7-bb947705ba8
         false
       )
     ),
@@ -2867,7 +2866,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
         true,
         true
       )
-    ) ++ groupsTargetInfos.valuesIterator,
+    ) ++ groupsTargetInfos.drop(1),
     true
   )
 

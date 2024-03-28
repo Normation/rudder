@@ -208,6 +208,8 @@ trait RoNodeGroupRepository {
    */
   def getFullGroupLibrary(): IOResult[FullNodeGroupCategory]
 
+  def categoryExists(id: NodeGroupCategoryId): IOResult[Boolean]
+
   /**
    * Get a server group by its id. Fail if not present.
    * @param id
