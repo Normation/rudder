@@ -125,7 +125,7 @@ sealed trait AgentReportingProtocol extends EnumEntry {
   def value: String
 }
 
-final case object AgentReportingHTTPS extends AgentReportingProtocol {
+case object AgentReportingHTTPS extends AgentReportingProtocol {
   val value = "HTTPS"
 }
 

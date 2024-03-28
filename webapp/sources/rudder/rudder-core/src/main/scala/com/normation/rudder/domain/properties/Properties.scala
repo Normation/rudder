@@ -99,9 +99,9 @@ object InheritMode {
     def value: Char
   }
 
-  final case object ObjectMode extends Enum[ObjectMode] {
-    final case object Override extends ObjectMode { override val value = 'o' }
-    final case object Merge    extends ObjectMode { override val value = 'm' }
+  case object ObjectMode extends Enum[ObjectMode] {
+    case object Override extends ObjectMode { override val value = 'o' }
+    case object Merge    extends ObjectMode { override val value = 'm' }
 
     val values: IndexedSeq[ObjectMode] = findValues
 
@@ -112,10 +112,10 @@ object InheritMode {
     def value: Char
   }
 
-  final case object ArrayMode extends Enum[ArrayMode] {
-    final case object Override extends ArrayMode { override val value = 'o' }
-    final case object Append   extends ArrayMode { override val value = 'a' }
-    final case object Prepend  extends ArrayMode { override val value = 'p' }
+  case object ArrayMode extends Enum[ArrayMode] {
+    case object Override extends ArrayMode { override val value = 'o' }
+    case object Append   extends ArrayMode { override val value = 'a' }
+    case object Prepend  extends ArrayMode { override val value = 'p' }
 
     val values: IndexedSeq[ArrayMode] = findValues
 
@@ -126,10 +126,10 @@ object InheritMode {
     def value: Char
   }
 
-  final case object StringMode extends Enum[StringMode] {
-    final case object Override extends StringMode { override val value = 'o' }
-    final case object Append   extends StringMode { override val value = 'a' }
-    final case object Prepend  extends StringMode { override val value = 'p' }
+  case object StringMode extends Enum[StringMode] {
+    case object Override extends StringMode { override val value = 'o' }
+    case object Append   extends StringMode { override val value = 'a' }
+    case object Prepend  extends StringMode { override val value = 'p' }
 
     val values: IndexedSeq[StringMode] = findValues
 

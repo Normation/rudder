@@ -112,8 +112,8 @@ sealed trait DeleteMode extends EnumEntry {
 
 object DeleteMode extends Enum[DeleteMode] {
 
-  final case object MoveToRemoved extends DeleteMode { val name = "move"  }
-  final case object Erase         extends DeleteMode { val name = "erase" }
+  case object MoveToRemoved extends DeleteMode { val name = "move"  }
+  case object Erase         extends DeleteMode { val name = "erase" }
 
   val values: IndexedSeq[DeleteMode] = findValues
 }

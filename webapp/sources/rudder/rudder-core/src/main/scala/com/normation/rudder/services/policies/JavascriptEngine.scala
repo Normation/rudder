@@ -68,8 +68,8 @@ import zio.syntax.*
 sealed trait HashOsType extends EnumEntry
 
 object HashOsType extends Enum[HashOsType] {
-  final case object AixHash   extends HashOsType
-  final case object CryptHash extends HashOsType // linux, bsd,...
+  case object AixHash   extends HashOsType
+  case object CryptHash extends HashOsType // linux, bsd,...
 
   val values: IndexedSeq[HashOsType] = findValues
 }

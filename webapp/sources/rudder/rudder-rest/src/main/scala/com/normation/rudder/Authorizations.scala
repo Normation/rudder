@@ -86,9 +86,9 @@ object ActionType {
   // we restrict the set of action types to only these three one to avoid future problem with named custom role
   sealed trait VALUE extends EnumEntry   { def name: String }
   object VALUE       extends Enum[VALUE] {
-    final case object READ  extends VALUE { val name = "read"  }
-    final case object WRITE extends VALUE { val name = "write" }
-    final case object EDIT  extends VALUE { val name = "edit"  }
+    case object READ  extends VALUE { val name = "read"  }
+    case object WRITE extends VALUE { val name = "write" }
+    case object EDIT  extends VALUE { val name = "edit"  }
 
     val values: IndexedSeq[VALUE] = findValues
     val all:    Set[VALUE]        = values.toSet
@@ -117,87 +117,87 @@ object AuthorizationType {
   case object AnyRights extends AuthorizationType { val authzKind = "any"; val action = "rights" }
 
   // UIs and action related to Rudder app management (settings menu, etc)
-  final case object Administration extends Enum[Administration] {
-    final case object Read  extends Administration with ActionType.Read with AuthorizationType
-    final case object Edit  extends Administration with ActionType.Edit with AuthorizationType
-    final case object Write extends Administration with ActionType.Write with AuthorizationType
+  case object Administration extends Enum[Administration] {
+    case object Read  extends Administration with ActionType.Read with AuthorizationType
+    case object Edit  extends Administration with ActionType.Edit with AuthorizationType
+    case object Write extends Administration with ActionType.Write with AuthorizationType
     val values: IndexedSeq[Administration] = findValues
   }
   //
-  final case object Compliance     extends Enum[Compliance]     {
-    final case object Read  extends Compliance with ActionType.Read with AuthorizationType
-    final case object Edit  extends Compliance with ActionType.Edit with AuthorizationType
-    final case object Write extends Compliance with ActionType.Write with AuthorizationType
+  case object Compliance     extends Enum[Compliance]     {
+    case object Read  extends Compliance with ActionType.Read with AuthorizationType
+    case object Edit  extends Compliance with ActionType.Edit with AuthorizationType
+    case object Write extends Compliance with ActionType.Write with AuthorizationType
     val values: IndexedSeq[Compliance] = findValues
   }
   // configure param, techniques, directives, rules, groups
-  final case object Configuration  extends Enum[Configuration]  {
-    final case object Read  extends Configuration with ActionType.Read with AuthorizationType
-    final case object Edit  extends Configuration with ActionType.Edit with AuthorizationType
-    final case object Write extends Configuration with ActionType.Write with AuthorizationType
+  case object Configuration  extends Enum[Configuration]  {
+    case object Read  extends Configuration with ActionType.Read with AuthorizationType
+    case object Edit  extends Configuration with ActionType.Edit with AuthorizationType
+    case object Write extends Configuration with ActionType.Write with AuthorizationType
 
     val values: IndexedSeq[Configuration] = findValues
   }
   // in workflow, ability to merge a change
-  final case object Deployer       extends Enum[Deployer]       {
-    final case object Read  extends Deployer with ActionType.Read with AuthorizationType
-    final case object Edit  extends Deployer with ActionType.Edit with AuthorizationType
-    final case object Write extends Deployer with ActionType.Write with AuthorizationType
+  case object Deployer       extends Enum[Deployer]       {
+    case object Read  extends Deployer with ActionType.Read with AuthorizationType
+    case object Edit  extends Deployer with ActionType.Edit with AuthorizationType
+    case object Write extends Deployer with ActionType.Write with AuthorizationType
     val values: IndexedSeq[Deployer] = findValues
   }
   // in rudder, ability to start/interact with a policy generation
-  final case object Deployment     extends Enum[Deployment]     {
-    final case object Read  extends Deployment with ActionType.Read with AuthorizationType
-    final case object Edit  extends Deployment with ActionType.Edit with AuthorizationType
-    final case object Write extends Deployment with ActionType.Write with AuthorizationType
+  case object Deployment     extends Enum[Deployment]     {
+    case object Read  extends Deployment with ActionType.Read with AuthorizationType
+    case object Edit  extends Deployment with ActionType.Edit with AuthorizationType
+    case object Write extends Deployment with ActionType.Write with AuthorizationType
     val values: IndexedSeq[Deployment] = findValues
   }
-  final case object Directive      extends Enum[Directive]      {
-    final case object Read  extends Directive with ActionType.Read with AuthorizationType
-    final case object Edit  extends Directive with ActionType.Edit with AuthorizationType
-    final case object Write extends Directive with ActionType.Write with AuthorizationType
+  case object Directive      extends Enum[Directive]      {
+    case object Read  extends Directive with ActionType.Read with AuthorizationType
+    case object Edit  extends Directive with ActionType.Edit with AuthorizationType
+    case object Write extends Directive with ActionType.Write with AuthorizationType
     val values: IndexedSeq[Directive] = findValues
   }
-  final case object Group          extends Enum[Group]          {
-    final case object Read  extends Group with ActionType.Read with AuthorizationType
-    final case object Edit  extends Group with ActionType.Edit with AuthorizationType
-    final case object Write extends Group with ActionType.Write with AuthorizationType
+  case object Group          extends Enum[Group]          {
+    case object Read  extends Group with ActionType.Read with AuthorizationType
+    case object Edit  extends Group with ActionType.Edit with AuthorizationType
+    case object Write extends Group with ActionType.Write with AuthorizationType
     val values: IndexedSeq[Group] = findValues
   }
-  final case object Node           extends Enum[Node]           {
-    final case object Read  extends Node with ActionType.Read with AuthorizationType
-    final case object Edit  extends Node with ActionType.Edit with AuthorizationType
-    final case object Write extends Node with ActionType.Write with AuthorizationType
+  case object Node           extends Enum[Node]           {
+    case object Read  extends Node with ActionType.Read with AuthorizationType
+    case object Edit  extends Node with ActionType.Edit with AuthorizationType
+    case object Write extends Node with ActionType.Write with AuthorizationType
     val values: IndexedSeq[Node] = findValues
   }
-  final case object Rule           extends Enum[Rule]           {
-    final case object Read  extends Rule with ActionType.Read with AuthorizationType
-    final case object Edit  extends Rule with ActionType.Edit with AuthorizationType
-    final case object Write extends Rule with ActionType.Write with AuthorizationType
+  case object Rule           extends Enum[Rule]           {
+    case object Read  extends Rule with ActionType.Read with AuthorizationType
+    case object Edit  extends Rule with ActionType.Edit with AuthorizationType
+    case object Write extends Rule with ActionType.Write with AuthorizationType
     val values: IndexedSeq[Rule] = findValues
   }
-  final case object Parameter      extends Enum[Parameter]      {
-    final case object Read  extends Parameter with ActionType.Read with AuthorizationType
-    final case object Edit  extends Parameter with ActionType.Edit with AuthorizationType
-    final case object Write extends Parameter with ActionType.Write with AuthorizationType
+  case object Parameter      extends Enum[Parameter]      {
+    case object Read  extends Parameter with ActionType.Read with AuthorizationType
+    case object Edit  extends Parameter with ActionType.Edit with AuthorizationType
+    case object Write extends Parameter with ActionType.Write with AuthorizationType
     val values: IndexedSeq[Parameter] = findValues
   }
-  final case object Technique      extends Enum[Technique]      {
-    final case object Read  extends Technique with ActionType.Read with AuthorizationType
-    final case object Edit  extends Technique with ActionType.Edit with AuthorizationType
-    final case object Write extends Technique with ActionType.Write with AuthorizationType
+  case object Technique      extends Enum[Technique]      {
+    case object Read  extends Technique with ActionType.Read with AuthorizationType
+    case object Edit  extends Technique with ActionType.Edit with AuthorizationType
+    case object Write extends Technique with ActionType.Write with AuthorizationType
     val values: IndexedSeq[Technique] = findValues
   }
-  final case object UserAccount    extends Enum[UserAccount]    {
-    final case object Read  extends UserAccount with ActionType.Read with AuthorizationType
-    final case object Edit  extends UserAccount with ActionType.Edit with AuthorizationType
-    final case object Write extends UserAccount with ActionType.Write with AuthorizationType
+  case object UserAccount    extends Enum[UserAccount]    {
+    case object Read  extends UserAccount with ActionType.Read with AuthorizationType
+    case object Edit  extends UserAccount with ActionType.Edit with AuthorizationType
+    case object Write extends UserAccount with ActionType.Write with AuthorizationType
     val values: IndexedSeq[UserAccount] = findValues
   }
-  final case object Validator      extends Enum[Validator]      {
-    final case object Read  extends Validator with ActionType.Read with AuthorizationType
-    final case object Edit  extends Validator with ActionType.Edit with AuthorizationType
-    final case object Write extends Validator with ActionType.Write with AuthorizationType
+  case object Validator      extends Enum[Validator]      {
+    case object Read  extends Validator with ActionType.Read with AuthorizationType
+    case object Edit  extends Validator with ActionType.Edit with AuthorizationType
+    case object Write extends Validator with ActionType.Write with AuthorizationType
     val values: IndexedSeq[Validator] = findValues
   }
 
@@ -369,14 +369,14 @@ object Role       extends Enum[Role] {
   }
 
   // a special account, with all rights, present and future, even if declared at runtime.
-  final case object Administrator extends Role {
+  case object Administrator extends Role {
     val name = "administrator";
 
     def rights = Rights.AnyRights
   }
 
   // a special Role that means that a user has no rights at all. That role must super-seed any other right given by other roles
-  final case object NoRights extends Role {
+  case object NoRights extends Role {
     val name = "no_rights";
 
     def rights: Rights = Rights(Set(A.NoRights))

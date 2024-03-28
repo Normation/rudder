@@ -90,8 +90,8 @@ case object NotRegex           extends SpecialComparator { override val id = "no
 sealed trait KeyValueComparator extends EnumEntry with BaseComparator
 
 object KeyValueComparator extends Enum[KeyValueComparator] {
-  final case object HasKey     extends KeyValueComparator { override val id = "hasKey"     }
-  final case object JsonSelect extends KeyValueComparator { override val id = "jsonSelect" }
+  case object HasKey     extends KeyValueComparator { override val id = "hasKey"     }
+  case object JsonSelect extends KeyValueComparator { override val id = "jsonSelect" }
 
   val values: IndexedSeq[KeyValueComparator] = findValues
 }
@@ -636,7 +636,7 @@ case object MachineComparator extends LDAPCriterionType {
   }
 }
 
-final case object VmTypeComparator extends LDAPCriterionType {
+case object VmTypeComparator extends LDAPCriterionType {
   final case class vm(obj: VmType, ldapClass: String, displayName: String)
   val vmTypes: List[(String, String)] = List(
     (OC_VM, "Any"), // we don't have a type for "unknown", only "it's a "    (LPAR, OC_VM_AIX_LPAR, "AIX LPAR"),
@@ -941,9 +941,9 @@ sealed trait ResultTransformation extends EnumEntry {
 
 object ResultTransformation extends Enum[ResultTransformation] {
   // no result transformation
-  final case object Identity extends ResultTransformation { val value = "identity" }
+  case object Identity extends ResultTransformation { val value = "identity" }
   // invert result: substract from "all nodes" the one matching that query
-  final case object Invert   extends ResultTransformation { val value = "invert"   }
+  case object Invert   extends ResultTransformation { val value = "invert"   }
 
   val values: IndexedSeq[ResultTransformation] = findValues
 

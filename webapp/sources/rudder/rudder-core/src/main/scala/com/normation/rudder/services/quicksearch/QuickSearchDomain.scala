@@ -61,9 +61,9 @@ final case class Query(
 sealed trait QSBackend extends EnumEntry
 
 object QSBackend extends Enum[QSBackend] {
-  final case object LdapBackend      extends QSBackend
-  final case object DirectiveBackend extends QSBackend
-  final case object NodeFactBackend  extends QSBackend
+  case object LdapBackend      extends QSBackend
+  case object DirectiveBackend extends QSBackend
+  case object NodeFactBackend  extends QSBackend
 
   final val values: IndexedSeq[QSBackend] = findValues
 }
