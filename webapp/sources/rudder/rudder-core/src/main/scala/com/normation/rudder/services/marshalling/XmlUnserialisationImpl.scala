@@ -269,10 +269,7 @@ class NodeGroupUnserialisationImpl(
       isSystem     <- (group \ "isSystem").headOption.flatMap(s =>
                         tryo(s.text.toBoolean)
                       ) ?~! ("Missing attribute 'isSystem' in entry type nodeGroup : " + entry)
-      properties   <- traverse((group \ "properties" \ "property").toList) {
-                        // format: off
-                        case <property>{p @ _*}</property> =>
-                        // format: on
+      properties: Seq[GroupProperty] <- traverse(group \ "properties" \ "property") { p =>
                           val name = (p \\ "name").text.trim
                           if (name.trim.isEmpty) {
                             Failure(s"Found unexpected xml under <properties> tag (name is blank): ${p}")
@@ -289,7 +286,6 @@ class NodeGroupUnserialisationImpl(
                               )
                               .toBox
                           }
-                        case xml                           => Failure(s"Found unexpected xml under <properties> tag: ${xml}")
                       }
     } yield {
       NodeGroup(
@@ -854,10 +850,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                             Full(ApiAuthorization.RO)
                           case Some(Text(text)) if text == ApiAuthorizationKind.RW.name =>
                             Full(ApiAuthorization.RW)
-                          // format: off
-                          case Some(<acl>{xml @ _*}</acl>) if (xml.nonEmpty) =>
-                          // format: on
-                            unserAcl(xml.head)
+                          case Some(xml @ <acl>{_}</acl>) if xml.child.nonEmpty => unserAcl(xml.child.head)
                           // all other case: serialization pb => None
                           case _                                                        => Full(ApiAuthorization.None)
                         }
