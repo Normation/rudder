@@ -251,6 +251,13 @@ pre.display-keys > label{
   margin-bottom: 10px;
 }
 
+/* === TABS === */
+#serverDetails .main-details > .tab-content > .tab-pane:not(:first-child) {
+  float: left;
+  width: 100%;
+  padding-bottom: 40px;
+}
+
 /* INVENTORY TAB */
 .sInventory .tab-pane > .alert:first-child{
   margin-top: 0;
