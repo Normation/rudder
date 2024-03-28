@@ -868,7 +868,8 @@ class RestTestSetUp {
     val archiveBuilderService = new ZipArchiveBuilderService(
       new FileArchiveNameService(),
       mockConfigRepo.configurationRepository,
-      mockTechniques.techniqueRevisionRepo
+      mockTechniques.techniqueRevisionRepo,
+      mockNodeGroups.groupsRepo
     )
     val featureSwitchState: Ref[FeatureSwitch] = Ref.make[FeatureSwitch](FeatureSwitch.Disabled).runNow
     // archive name in a Ref to make it simple to change in tests
