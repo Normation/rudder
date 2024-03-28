@@ -163,9 +163,11 @@ object ArchiveScope       {
 sealed trait MergePolicy { def value: String }
 object MergePolicy       {
   // Default merge policy is "override everything", ie what is in the archive replace whatever exists in Rudder
-  final case object OverrideAll    extends MergePolicy { val value = "override-all"     }
+  final case object OverrideAll            extends MergePolicy { val value = "override-all"              }
   // A merge policy that will keep current groups for rule with an ID common with one of the archive
-  final case object KeepRuleGroups extends MergePolicy { val value = "keep-rule-groups" }
+  final case object KeepRuleGroups         extends MergePolicy { val value = "keep-rule-groups"          }
+  // A merge policy that will always delete source groups of rule, and if rule exists, copy destination rule target (keep them)
+  final case object IgnoreSourceRuleGroups extends MergePolicy { val value = "ignore-source-rule-groups" }
 
   def values: List[MergePolicy] = ca.mrvisser.sealerate.values[MergePolicy].toList.sortBy(_.value)
 
@@ -1228,11 +1230,17 @@ class SaveArchiveServicebyRepo(
       _ <- x match {
              case Some(value) =>
                // if merge policy is `keep-rule-groups`, update rule from archive with existing groups before saving
-               val ruleToSave = if (mergePolicy == MergePolicy.KeepRuleGroups) {
-                 r.copy(targets = value.targets)
-               } else r
+               val ruleToSave = {
+                 if (mergePolicy == MergePolicy.KeepRuleGroups || mergePolicy == MergePolicy.IgnoreSourceRuleGroups) {
+                   r.copy(targets = value.targets)
+                 } else r
+               }
                woRuleRepos.update(ruleToSave, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
-             case None        => woRuleRepos.create(r, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
+             case None        =>
+               val ruleToSave = if (mergePolicy == MergePolicy.IgnoreSourceRuleGroups) {
+                 r.copy(targets = Set())
+               } else r
+               woRuleRepos.create(ruleToSave, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
            }
     } yield ()
   }
