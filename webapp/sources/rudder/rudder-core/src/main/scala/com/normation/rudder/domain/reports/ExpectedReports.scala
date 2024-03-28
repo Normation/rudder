@@ -206,7 +206,7 @@ object ExpectedReportsSerialisation {
    * This object will be used for the JSON serialisation
    * to / from database
    */
-  final case class JsonNodeExpectedReports protected (
+  final case class JsonNodeExpectedReports private[reports] (
       modes:               NodeModeConfig,
       ruleExpectedReports: List[RuleExpectedReports],
       overrides:           List[OverridenPolicy]
