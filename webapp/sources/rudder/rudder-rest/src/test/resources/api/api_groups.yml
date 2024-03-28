@@ -15,7 +15,7 @@ response:
             "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
             "displayName":"Real nodes",
             "description":"",
-            "category":"GroupRoot",
+            "category":"category1",
             "query":{
               "select":"nodeAndPolicyServer",
               "composition":"or",
@@ -245,7 +245,7 @@ response:
             "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
             "displayName":"Real nodes",
             "description":"",
-            "category":"GroupRoot",
+            "category":"category1",
             "query":{
               "select":"nodeAndPolicyServer",
               "composition":"or",
@@ -1329,7 +1329,7 @@ response:
             "219b9c98-3d1e-44c9-aff5-95b4fc7c4ada"
           ],
           "groups":[
-
+            "0000f5d3-8c61-4d20-88a7-bb947705ba8a"
           ],
           "targets":[]
         }

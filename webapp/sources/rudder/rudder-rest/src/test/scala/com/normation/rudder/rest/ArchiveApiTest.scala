@@ -59,6 +59,7 @@ import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
 import com.normation.rudder.rest.lift.CheckArchiveServiceImpl
 import com.normation.rudder.rest.lift.MergePolicy
+import com.normation.rudder.rest.lift.ZipArchiveBuilderService
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import java.io.FileOutputStream
@@ -319,7 +320,8 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     // group with ID 0000f5d3-8c61-4d20-88a7-bb947705ba8a defined in com/normation/rudder/MockServices.scala has name:
     // Real nodes
     // so: Real_nodes
-    val fileName = "Real_nodes.json"
+    val fileName     = "Real_nodes.json"
+    val categoryName = "category_1"
 
     val archiveName = "archive-group"
     restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
@@ -333,7 +335,10 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         // unzip
         ZipUtils.unzip(new ZipFile(zipFile.toJava), zipFile.parent.toJava).runNow
 
-        (children(testDir / s"${archiveName}/groups") must containTheSameElementsAs(List(fileName)))
+        (children(testDir / s"${archiveName}/groups") must containTheSameElementsAs(List(categoryName)))
+        (children(testDir / s"${archiveName}/groups/${categoryName}") must containTheSameElementsAs(
+          List(ZipArchiveBuilderService.GROUP_CAT_FILENAME, fileName)
+        )) and
         (children(testDir / s"${archiveName}/rules").isEmpty must beTrue) and
         (children(testDir / s"${archiveName}/directives").isEmpty must beTrue) and
         (children(testDir / s"${archiveName}/techniques").isEmpty must beTrue)
@@ -470,10 +475,13 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
      */
     val unzipped = testDir / "archive-rule-with-dep"
 
-    val dest = testDir / "import-rule-with-dep"
+    val dest      = testDir / "import-rule-with-dep"
     FileUtils.copyDirectory(unzipped.toJava, dest.toJava)
     // add a group
-    (testDir / "archive-group" / "groups" / "Real_nodes.json").copyToDirectory(testDir / "import-rule-with-dep" / "groups")
+    val subCatDir = testDir / "import-rule-with-dep" / "groups" / "category_1"
+    subCatDir.createDirectoryIfNotExists(createParents = true)
+    (testDir / "archive-group" / "groups" / "category_1" / "category.json").copyToDirectory(subCatDir)
+    (testDir / "archive-group" / "groups" / "category_1" / "Real_nodes.json").copyToDirectory(subCatDir)
 
     val tech  = restTestSetUp.mockTechniques.techniqueRepo
       .get(
@@ -512,7 +520,16 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       """"shortDescription" : """"",
       s""""shortDescription" : "${dir1.shortDescription}""""
     )
-    sed(dest / "groups" / "Real_nodes.json", """"description" : """"", s""""description" : "${group.description}"""")
+    sed(
+      dest / "groups" / "category_1" / "category.json",
+      """"description" : """"",
+      s""""description" : "a new category 1 description""""
+    )
+    sed(
+      dest / "groups" / "category_1" / "Real_nodes.json",
+      """"description" : """"",
+      s""""description" : "${group.description}""""
+    )
     sed(
       dest / "rules" / "10__Global_configuration_for_all_nodes.json",
       """global config for all nodes""",
