@@ -1,20 +1,20 @@
 module NodeProperties.ViewUtils exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (id, class, href, type_, attribute, disabled, for, checked, selected, value, title, placeholder, style, tabindex    )
+import Html.Attributes exposing (attribute, class, colspan, href, placeholder, style, tabindex, title, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode exposing (decodeValue)
 import Maybe.Extra exposing (isJust)
 import List.Extra
 import Dict exposing (Dict)
 import Json.Encode exposing (..)
-import NaturalOrdering as N exposing (compare)
+import NaturalOrdering as N
 import SyntaxHighlight exposing (useTheme, gitHub, json, toInlineHtml)
-
 import NodeProperties.DataTypes exposing (..)
-import NodeProperties.ApiCalls exposing (deleteProperty)
+import NodeProperties.ApiCalls exposing (deleteProperty, findPropertyUsage)
 import Json.Decode exposing (decodeString)
 import Set exposing (Set)
+
 
 
 searchString : String -> String
@@ -32,8 +32,8 @@ filterSearch filterString searchFields =
   in
     String.contains (searchString filterString) stringToCheck
 
-thClass : TableFilters -> SortBy -> String
-thClass tableFilters sortBy =
+thClassOnProperty : TableFiltersOnProperty -> SortBy -> String
+thClassOnProperty tableFilters sortBy =
   if sortBy == tableFilters.sortBy then
     case  tableFilters.sortOrder of
       Asc  -> "sorting_asc"
@@ -41,8 +41,17 @@ thClass tableFilters sortBy =
   else
     "sorting"
 
-sortTable : TableFilters -> SortBy -> TableFilters
-sortTable tableFilters sortBy =
+thClassOnUsage : TableFiltersOnUsage -> SortBy -> String
+thClassOnUsage tableFilters sortBy =
+  if sortBy == tableFilters.sortBy then
+    case  tableFilters.sortOrder of
+      Asc  -> "sorting_asc"
+      Desc -> "sorting_desc"
+  else
+    "sorting"
+
+sortTableOnProperty : TableFiltersOnProperty -> SortBy -> TableFiltersOnProperty
+sortTableOnProperty tableFilters sortBy =
   let
     order =
       case tableFilters.sortOrder of
@@ -54,6 +63,18 @@ sortTable tableFilters sortBy =
     else
       { tableFilters | sortBy = sortBy, sortOrder = Asc}
 
+sortTableOnUsage : TableFiltersOnUsage -> SortBy -> TableFiltersOnUsage
+sortTableOnUsage tableFilters sortBy =
+  let
+    order =
+      case tableFilters.sortOrder of
+        Asc -> Desc
+        Desc -> Asc
+  in
+    if sortBy == tableFilters.sortBy then
+      { tableFilters | sortOrder = order}
+    else
+      { tableFilters | sortBy = sortBy, sortOrder = Asc}
 
 getFormat : Property -> ValueFormat
 getFormat pr =
@@ -114,10 +135,23 @@ getFormatConflictWarning property =
         text ""
     Nothing -> text ""
 
+getSortFunctionUsage : Model -> UsageInfo -> UsageInfo -> Order
+getSortFunctionUsage model p1 p2 =
+  let
+    order = N.compare p1.name p2.name
+  in
+    if model.ui.filtersOnUsage.sortOrder == Asc then
+      order
+    else
+      case order of
+        LT -> GT
+        EQ -> EQ
+        GT -> LT
+
 getSortFunction : Model -> Property -> Property -> Order
 getSortFunction model p1 p2 =
   let
-    order = case model.ui.filters.sortBy of
+    order = case model.ui.filtersOnProperty.sortBy of
       Name    -> N.compare p1.name p2.name
       Format  ->
         let
@@ -131,7 +165,7 @@ getSortFunction model p1 p2 =
             (JsonFormat, StringFormat) -> LT
       Value   -> N.compare (Json.Encode.encode 0 p1.value) (Json.Encode.encode 0 p2.value)
   in
-    if model.ui.filters.sortOrder == Asc then
+    if model.ui.filtersOnProperty.sortOrder == Asc then
       order
     else
       case order of
@@ -166,7 +200,7 @@ displayNodePropertyRow model =
     properties = model.properties
 
     filteredProperties = properties
-      |> List.filter (\pp -> filterSearch model.ui.filters.filter (searchField pp))
+      |> List.filter (\pp -> filterSearch model.ui.filtersOnProperty.filter (searchField pp))
       |> List.sortWith (getSortFunction model)
 
     propertyRow : Property -> Html Msg
@@ -214,6 +248,9 @@ displayNodePropertyRow model =
               [ div[]
                 [ text p.name
                 , providerBadge
+                , span [class "btn btn-xs btn-default", title "Find usage of this property", onClick (CallApi (findPropertyUsage p.name ))]
+                  [ i [class "fas fa-search"][]
+                  ]
                 ]
               ]
             , td []
@@ -304,10 +341,93 @@ displayNodePropertyRow model =
     filteredProperties
     |> List.map (\p -> propertyRow p)
 
-modalDelete : Model -> Html Msg
-modalDelete model =
+showModal : Model -> Html Msg
+showModal model =
   case model.ui.modalState of
     NoModal -> text ""
+    Usage pName found ->
+      let
+        row = case model.ui.filtersOnUsage.findUsageIn of
+          Techniques ->
+            found.techniques
+              |> List.filter (\technique -> filterSearch model.ui.filtersOnUsage.filter [technique.name])
+              |> List.sortWith (getSortFunctionUsage model)
+              |> List.map (\info -> tr [][td [] [a [href ("/rudder/secure/configurationManager/techniqueEditor/technique/" ++ info.id)][text info.name]]])
+          Directives ->
+            found.directives
+              |> List.filter (\directive -> filterSearch model.ui.filtersOnUsage.filter [directive.name])
+              |> List.sortWith (getSortFunctionUsage model)
+              |> List.map (\info -> tr [][td [] [a [href ("/rudder/secure/configurationManager/directiveManagement#{\"directiveId\":\"" ++ info.id ++ "\"}")][text info.name]]])
+        activeClassTechniquesUsage =
+          case model.ui.filtersOnUsage.findUsageIn of
+            Techniques -> "active"
+            Directives -> ""
+        activeClassDirectivesUsage =
+          case model.ui.filtersOnUsage.findUsageIn of
+            Techniques -> ""
+            Directives -> "active"
+        messageNoUsageFound =
+          case model.ui.filtersOnUsage.findUsageIn of
+            Techniques -> "No usage found in Techniques"
+            Directives -> "No usage found in Directives"
+        filters = model.ui.filtersOnUsage
+      in
+      div [ class "modal fade in", style "z-index" "1050", style "display" "block" ]
+      [ div [class "modal-backdrop fade in"][]
+      , div [ class "modal-dialog modal-lg" ]
+        [ div [ class "modal-content" ]
+          [ div [ class "modal-header" ]
+            [ div [class "close", onClick (ClosePopup Ignore)] [span [][text "×"]]
+            , h3 [ class "modal-title" ] [text ("Find usage of property '" ++ pName ++ "'")]
+            ]
+          , div [ class "modal-body" ]
+            [ div [class "dataTables_wrapper no-footer"]
+              [ ul [class "ui-tabs-nav"]
+                [ li [class ("ui-tabs-tab ui-tab " ++ activeClassDirectivesUsage), onClick ChangeViewUsage]
+                  [ a[][text "In Directives"]
+                  , span [class "badge badge-secondary badge-resources tooltip-bs"]
+                    [ span [class "nb-resources"] [text (String.fromInt (List.length found.directives))]
+                    ]
+                  ]
+                , li [class ("ui-tabs-tab ui-tab " ++ activeClassTechniquesUsage), onClick ChangeViewUsage]
+                  [ a [][text "In Techniques"]
+                  , span [class "badge badge-secondary badge-resources tooltip-bs"]
+                    [ span [class "nb-resources"] [text (String.fromInt (List.length found.techniques))]
+                    ]
+                  ]
+                ]
+              , div [class "dataTables_wrapper_top"]
+                [ div [class "dataTables_filter"]
+                  [ label []
+                    [ input [type_ "text", placeholder "Filter", class "input-sm form-control", onInput (\s -> UpdateTableFiltersUsage {filters | filter = s})][]
+                    ]
+                  ]
+                ]
+              , table [class "dataTable compliance-table display no-footer"]
+                [ thead []
+                  [ tr [class "head"]
+                    [ th
+                      [ class (thClassOnUsage model.ui.filtersOnUsage Name)
+                      , onClick (UpdateTableFiltersUsage (sortTableOnUsage filters Name))
+                      ]
+                      [ text "Name" ]
+                    ]
+                  ]
+                , tbody []
+                  ( if(List.isEmpty row) then
+                      [ tr [] [ td [colspan 2, class "dataTables_empty" ] [ text messageNoUsageFound ] ] ]
+                    else
+                      row
+                  )
+               ]
+              ]
+            ]
+          , div [ class "modal-footer" ]
+            [ button [ class "btn btn-default", onClick (ClosePopup Ignore) ][ text "Close " ]
+            ]
+          ]
+        ]
+      ]
     Deletion name ->
       div [ tabindex -1, class "modal fade show", style "display" "block" ]
       [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]

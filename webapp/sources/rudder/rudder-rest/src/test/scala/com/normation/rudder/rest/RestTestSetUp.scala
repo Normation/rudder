@@ -924,7 +924,8 @@ class RestTestSetUp {
       nodeApiService,
       null,
       uuidGen,
-      DeleteMode.Erase
+      DeleteMode.Erase,
+      null
     ),
     new GroupsApi(
       mockNodeGroups.groupsRepo,
