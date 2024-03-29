@@ -1,8 +1,9 @@
 module NodeProperties.ApiCalls exposing (..)
 
 import Http exposing (..)
-import Url.Builder exposing (QueryParameter)
-import Json.Encode exposing (Value)
+import Json.Decode exposing (at, list)
+import QuickSearch.JsonDecoder exposing (decoderResult)
+import Url.Builder exposing (QueryParameter, int, string)
 
 import NodeProperties.DataTypes exposing (..)
 import NodeProperties.JsonDecoder exposing (..)
@@ -59,6 +60,27 @@ deleteProperty property model =
         , url     = getUrl model [] []
         , body    = encodeProperty model [property] "Delete" |> jsonBody
         , expect  = expectJson (SaveProperty successMsg) decoder
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+  in
+    req
+
+findPropertyUsage : String -> Model -> Cmd Msg
+findPropertyUsage propertyName model =
+  let
+    queryFilter = "is:Directive,Technique in:dir_param_value,technique_method_value "
+    property = "${node.properties[" ++ propertyName ++ "]"
+    param = string "value" (queryFilter ++ property)
+    paramLimit = int "limit" 1000
+    urlTest = Url.Builder.relative (model.contextPath :: "secure" :: "api"  :: "quicksearch" :: []) [ param, paramLimit ]
+    req =
+      request
+        { method  = "GET"
+        , headers = []
+        , url     = urlTest
+        , body    = emptyBody
+        , expect  = expectJson (FindPropertyUsage propertyName) (at ["data"] (list decoderResult))
         , timeout = Nothing
         , tracker = Nothing
         }

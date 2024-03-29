@@ -1013,9 +1013,7 @@ class TestNodeConfiguration(
     _isEnabled = true,
     isSystem = false
   )
-
   // we have one rule with several system technique for root server config
-
   // get variable's values based on the kind of spec for that: if the values are provided, use them.
   def getVariables(
       techiqueDebugId: String,

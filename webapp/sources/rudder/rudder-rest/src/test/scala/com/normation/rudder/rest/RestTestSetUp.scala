@@ -62,7 +62,6 @@ import com.normation.rudder.campaigns.CampaignSerializer
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -183,6 +182,7 @@ import scala.xml.Elem
 import scala.xml.NodeSeq
 import zio.*
 import zio.syntax.*
+import zio.test.*
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.
@@ -215,10 +215,10 @@ class RestTestSetUp {
 
   val fakeUpdatePTLibService: UpdateTechniqueLibrary = new UpdateTechniqueLibrary() {
     def update(
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = {
+                modId:  ModificationId,
+                actor:  EventActor,
+                reason: Option[String]
+              ): Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = {
       Full(Map())
     }
     def registerCallback(callback: TechniquesLibraryUpdateNotification): Unit = {}
@@ -226,14 +226,17 @@ class RestTestSetUp {
 
   val mockGitRepo = new MockGitConfigRepo("")
   val mockTechniques: MockTechniques = MockTechniques(mockGitRepo)
-  val mockDirectives       = new MockDirectives(mockTechniques)
-  val mockRules            = new MockRules()
-  val mockNodes            = new MockNodes()
-  val mockParameters       = new MockGlobalParam()
-  val mockNodeGroups       = new MockNodeGroups(mockNodes)
-  val mockLdapQueryParsing = new MockLdapQueryParsing(mockGitRepo, mockNodeGroups)
-  val uuidGen              = new StringUuidGeneratorImpl()
-  val mockConfigRepo       = new MockConfigRepo(mockTechniques, mockDirectives, mockRules, mockNodeGroups, mockLdapQueryParsing)
+  val mockDirectives                                 = new MockDirectives(mockTechniques)
+  val mockRules                                      = new MockRules()
+  val mockNodes                                      = new MockNodes()
+  val mockParameters                                 = new MockGlobalParam()
+  val mockNodeGroups                                 = new MockNodeGroups(mockNodes)
+  val mockLdapQueryParsing                           = new MockLdapQueryParsing(mockGitRepo, mockNodeGroups)
+  val uuidGen                                        = new StringUuidGeneratorImpl()
+  val mockConfigRepo                                 = new MockConfigRepo(mockTechniques, mockDirectives, mockRules, mockNodeGroups, mockLdapQueryParsing)
+  val mockScores                                     = new MockScores()
+  val mockCompliance                                 = new MockCompliance(mockDirectives)
+  val (mockUserManagementTmpDir, mockUserManagement) = MockUserManagement()
 
   val dynGroupUpdaterService =
     new DynGroupUpdaterServiceImpl(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, mockNodes.queryProcessor)
@@ -260,45 +263,45 @@ class RestTestSetUp {
 
     override def eventLogFactory: EventLogFactory = ???
     override def getEventLogByCriteria(
-        criteria:       Option[Fragment],
-        limit:          Option[Int],
-        orderBy:        List[Fragment],
-        extendedFilter: Option[Fragment]
-    ): IOResult[Seq[EventLog]] = ???
+                                        criteria:       Option[Fragment],
+                                        limit:          Option[Int],
+                                        orderBy:        List[Fragment],
+                                        extendedFilter: Option[Fragment]
+                                      ): IOResult[Seq[EventLog]] = ???
     override def getEventLogById(id: Long): IOResult[EventLog] = ???
     override def getEventLogCount(criteria:       Option[Fragment], extendedFilter: Option[Fragment]): IOResult[Long] = ???
     override def getEventLogByChangeRequest(
-        changeRequest:   ChangeRequestId,
-        xpath:           String,
-        optLimit:        Option[Int],
-        orderBy:         Option[String],
-        eventTypeFilter: List[EventLogFilter]
-    ): IOResult[Vector[EventLog]] = ???
+                                             changeRequest:   ChangeRequestId,
+                                             xpath:           String,
+                                             optLimit:        Option[Int],
+                                             orderBy:         Option[String],
+                                             eventTypeFilter: List[EventLogFilter]
+                                           ): IOResult[Vector[EventLog]] = ???
     override def getEventLogWithChangeRequest(id: Int): IOResult[Option[(EventLog, Option[ChangeRequestId])]] = ???
     override def getLastEventByChangeRequest(
-        xpath:           String,
-        eventTypeFilter: List[EventLogFilter]
-    ): IOResult[Map[ChangeRequestId, EventLog]] = ???
+                                              xpath:           String,
+                                              eventTypeFilter: List[EventLogFilter]
+                                            ): IOResult[Map[ChangeRequestId, EventLog]] = ???
 
     override def saveAddSecret(
-        modId:     ModificationId,
-        principal: EventActor,
-        secret:    Secret,
-        reason:    Option[String]
-    ): IOResult[EventLog] = ZIO.succeed(null)
+                                modId:     ModificationId,
+                                principal: EventActor,
+                                secret:    Secret,
+                                reason:    Option[String]
+                              ): IOResult[EventLog] = ZIO.succeed(null)
     override def saveDeleteSecret(
-        modId:     ModificationId,
-        principal: EventActor,
-        secret:    Secret,
-        reason:    Option[String]
-    ): IOResult[EventLog] = ZIO.succeed(null)
+                                   modId:     ModificationId,
+                                   principal: EventActor,
+                                   secret:    Secret,
+                                   reason:    Option[String]
+                                 ): IOResult[EventLog] = ZIO.succeed(null)
     override def saveModifySecret(
-        modId:     ModificationId,
-        principal: EventActor,
-        oldSec:    Secret,
-        newSec:    Secret,
-        reason:    Option[String]
-    ): IOResult[EventLog] = ZIO.succeed(null)
+                                   modId:     ModificationId,
+                                   principal: EventActor,
+                                   oldSec:    Secret,
+                                   newSec:    Secret,
+                                   reason:    Option[String]
+                                 ): IOResult[EventLog] = ZIO.succeed(null)
 
   }
   val eventLogger:                   EventLogDeploymentService     = new EventLogDeploymentService(eventLogRepo, null) {
@@ -326,79 +329,80 @@ class RestTestSetUp {
     override def UPDATED_NODE_IDS_PATH:       String                                  = ???
     override def GENERATION_FAILURE_MSG_PATH: String                                  = ???
     override def getAppliedRuleIds(
-        rules:        Seq[Rule],
-        groupLib:     FullNodeGroupCategory,
-        directiveLib: FullActiveTechniqueCategory,
-        allNodeInfos: MapView[NodeId, Boolean]
-    ): Set[RuleId] = ???
+                                    rules:        Seq[Rule],
+                                    groupLib:     FullNodeGroupCategory,
+                                    directiveLib: FullActiveTechniqueCategory,
+                                    allNodeInfos: MapView[NodeId, Boolean]
+                                  ): Set[RuleId] = ???
     override def findDependantRules():        Box[Seq[Rule]]                          = ???
     override def buildRuleVals(
-        activesRules: Set[RuleId],
-        rules:        Seq[Rule],
-        directiveLib: FullActiveTechniqueCategory,
-        groupLib:     FullNodeGroupCategory,
-        allNodeInfos: MapView[NodeId, Boolean]
-    ): Box[Seq[RuleVal]] = ???
+                                activesRules: Set[RuleId],
+                                rules:        Seq[Rule],
+                                directiveLib: FullActiveTechniqueCategory,
+                                groupLib:     FullNodeGroupCategory,
+                                allNodeInfos: MapView[NodeId, Boolean]
+                              ): Box[Seq[RuleVal]] = ???
     override def getNodeContexts(
-        nodeIds:              Set[NodeId],
-        allNodeInfos:         MapView[NodeId, CoreNodeFact],
-        allGroups:            FullNodeGroupCategory,
-        globalParameters:     List[GlobalParameter],
-        globalAgentRun:       AgentRunInterval,
-        globalComplianceMode: ComplianceMode,
-        globalPolicyMode:     GlobalPolicyMode
-    ): Box[NodesContextResult] = ???
+                                  nodeIds:              Set[NodeId],
+                                  allNodeInfos:         MapView[NodeId, CoreNodeFact],
+                                  allGroups:            FullNodeGroupCategory,
+                                  globalParameters:     List[GlobalParameter],
+                                  globalAgentRun:       AgentRunInterval,
+                                  globalComplianceMode: ComplianceMode,
+                                  globalPolicyMode:     GlobalPolicyMode
+                                ): Box[NodesContextResult] = ???
     override def getFilteredTechnique():      Map[NodeId, List[TechniqueName]]        = ???
     override def buildNodeConfigurations(
-        activeNodeIds:             Set[NodeId],
-        ruleVals:                  Seq[RuleVal],
-        nodeContexts:              Map[NodeId, InterpolationContext],
-        allNodeModes:              Map[NodeId, NodeModeConfig],
-        filter:                    Map[NodeId, List[TechniqueName]],
-        scriptEngineEnabled:       FeatureSwitch,
-        globalPolicyMode:          GlobalPolicyMode,
-        maxParallelism:            Int,
-        jsTimeout:                 FiniteDuration,
-        generationContinueOnError: Boolean
-    ): Box[NodeConfigurations] = ???
+                                          activeNodeIds:             Set[NodeId],
+                                          ruleVals:                  Seq[RuleVal],
+                                          nodeContexts:              Map[NodeId, InterpolationContext],
+                                          allNodeModes:              Map[NodeId, NodeModeConfig],
+                                          filter:                    Map[NodeId, List[TechniqueName]],
+                                          scriptEngineEnabled:       FeatureSwitch,
+                                          globalPolicyMode:          GlobalPolicyMode,
+                                          maxParallelism:            Int,
+                                          jsTimeout:                 FiniteDuration,
+                                          generationContinueOnError: Boolean
+                                        ): Box[NodeConfigurations] = ???
     override def forgetOtherNodeConfigurationState(keep: Set[NodeId]): Box[Set[NodeId]] = ???
     override def getNodeConfigurationHash():  Box[Map[NodeId, NodeConfigurationHash]] = ???
     override def getNodesConfigVersion(
-        allNodeConfigs: Map[NodeId, NodeConfiguration],
-        hashes:         Map[NodeId, NodeConfigurationHash],
-        generationTime: DateTime
-    ): Map[NodeId, NodeConfigId] = ???
+                                        allNodeConfigs: Map[NodeId, NodeConfiguration],
+                                        hashes:         Map[NodeId, NodeConfigurationHash],
+                                        generationTime: DateTime
+                                      ): Map[NodeId, NodeConfigId] = ???
     override def writeNodeConfigurations(
-        rootNodeId:       NodeId,
-        updated:          Map[NodeId, NodeConfigId],
-        allNodeConfig:    Map[NodeId, NodeConfiguration],
-        allNodeInfos:     Map[NodeId, NodeInfo],
-        globalPolicyMode: GlobalPolicyMode,
-        generationTime:   DateTime,
-        maxParallelism:   Int
-    ): Box[Set[NodeId]] = ???
+                                          rootNodeId:       NodeId,
+                                          updated:          Map[NodeId, NodeConfigId],
+                                          allNodeConfig:    Map[NodeId, NodeConfiguration],
+                                          allNodeInfos:     Map[NodeId, CoreNodeFact],
+                                          globalPolicyMode: GlobalPolicyMode,
+                                          generationTime:   DateTime,
+                                          maxParallelism:   Int
+                                        ): Box[Set[NodeId]] = ???
     override def computeExpectedReports(
-        allNodeConfigurations: Map[NodeId, NodeConfiguration],
-        updatedId:             Map[NodeId, NodeConfigId],
-        generationTime:        DateTime,
-        allNodeModes:          Map[NodeId, NodeModeConfig]
-    ): List[NodeExpectedReports] = ???
+                                         allNodeConfigurations: Map[NodeId, NodeConfiguration],
+                                         updatedId:             Map[NodeId, NodeConfigId],
+                                         generationTime:        DateTime,
+                                         allNodeModes:          Map[NodeId, NodeModeConfig]
+                                       ): List[NodeExpectedReports] = ???
     override def saveExpectedReports(expectedReports: List[NodeExpectedReports]): Box[Seq[NodeExpectedReports]] = ???
     override def runPreHooks(generationTime:        DateTime, systemEnv: HookEnvPairs): Box[Unit] = ???
+    override def runStartedHooks(generationTime:    DateTime, systemEnv: HookEnvPairs): Box[Unit] = ???
     override def runPostHooks(
-        generationTime:    DateTime,
-        endTime:           DateTime,
-        idToConfiguration: Map[NodeId, NodeInfo],
-        systemEnv:         HookEnvPairs,
-        nodeIdsPath:       String
-    ): Box[Unit] = ???
+                               generationTime:    DateTime,
+                               endTime:           DateTime,
+                               idToConfiguration: Map[NodeId, CoreNodeFact],
+                               systemEnv:         HookEnvPairs,
+                               nodeIdsPath:       String
+                             ): Box[Unit] = ???
     override def runFailureHooks(
-        generationTime:   DateTime,
-        endTime:          DateTime,
-        systemEnv:        HookEnvPairs,
-        errorMessage:     String,
-        errorMessagePath: String
-    ): Box[Unit] = ???
+                                  generationTime:   DateTime,
+                                  endTime:          DateTime,
+                                  systemEnv:        HookEnvPairs,
+                                  errorMessage:     String,
+                                  errorMessagePath: String
+                                ): Box[Unit] = ???
     override def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = ???
   }
   val bootGuard:                     Promise[Nothing, Unit]        = (for {
@@ -455,15 +459,15 @@ class RestTestSetUp {
       commitAndDeployChangeRequest
     )
   )
-  val restExtractorService:         RestExtractorService                = RestExtractorService(
+  val userPropertyService = new StatelessUserPropertyService(() => false.succeed, () => false.succeed, () => "".succeed)
+  val restExtractorService: RestExtractorService = RestExtractorService(
     mockRules.ruleRepo,
     mockDirectives.directiveRepo,
     null, // roNodeGroupRepository
 
     mockTechniques.techniqueRepo,
     mockLdapQueryParsing.queryParser, // queryParser
-
-    new StatelessUserPropertyService(() => false.succeed, () => false.succeed, () => "".succeed),
+    userPropertyService,
     workflowLevelService,
     uuidGen,
     null
@@ -492,80 +496,80 @@ class RestTestSetUp {
 
   class FakeItemArchiveManager extends ItemArchiveManager {
     override def exportAll(
-        commiter:      PersonIdent,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String],
-        includeSystem: Boolean
-    )(implicit qc: QueryContext): IOResult[(GitArchiveId, NotArchivedElements)] =
+                            commiter:      PersonIdent,
+                            modId:         ModificationId,
+                            actor:         EventActor,
+                            reason:        Option[String],
+                            includeSystem: Boolean
+                          )(implicit qc: QueryContext): IOResult[(GitArchiveId, NotArchivedElements)] =
       ZIO.succeed((fakeGitArchiveId, fakeNotArchivedElements))
     override def exportRules(
-        commiter:      PersonIdent,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String],
-        includeSystem: Boolean
-    ): IOResult[GitArchiveId] = ZIO.succeed(fakeGitArchiveId)
+                              commiter:      PersonIdent,
+                              modId:         ModificationId,
+                              actor:         EventActor,
+                              reason:        Option[String],
+                              includeSystem: Boolean
+                            ): IOResult[GitArchiveId] = ZIO.succeed(fakeGitArchiveId)
     override def exportTechniqueLibrary(
-        commiter:      PersonIdent,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String],
-        includeSystem: Boolean
-    ): IOResult[(GitArchiveId, NotArchivedElements)] = ZIO.succeed((fakeGitArchiveId, fakeNotArchivedElements))
+                                         commiter:      PersonIdent,
+                                         modId:         ModificationId,
+                                         actor:         EventActor,
+                                         reason:        Option[String],
+                                         includeSystem: Boolean
+                                       ): IOResult[(GitArchiveId, NotArchivedElements)] = ZIO.succeed((fakeGitArchiveId, fakeNotArchivedElements))
     override def exportGroupLibrary(
-        commiter:      PersonIdent,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String],
-        includeSystem: Boolean
-    )(implicit qc: QueryContext): IOResult[GitArchiveId] = ZIO.succeed(fakeGitArchiveId)
+                                     commiter:      PersonIdent,
+                                     modId:         ModificationId,
+                                     actor:         EventActor,
+                                     reason:        Option[String],
+                                     includeSystem: Boolean
+                                   )(implicit qc: QueryContext): IOResult[GitArchiveId] = ZIO.succeed(fakeGitArchiveId)
     override def exportParameters(
-        commiter:      PersonIdent,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String],
-        includeSystem: Boolean
-    ): IOResult[GitArchiveId] = ZIO.succeed(fakeGitArchiveId)
+                                   commiter:      PersonIdent,
+                                   modId:         ModificationId,
+                                   actor:         EventActor,
+                                   reason:        Option[String],
+                                   includeSystem: Boolean
+                                 ): IOResult[GitArchiveId] = ZIO.succeed(fakeGitArchiveId)
     override def importAll(
-        archiveId:     GitCommitId,
-        commiter:      PersonIdent,
-        includeSystem: Boolean
-    )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
+                            archiveId:     GitCommitId,
+                            commiter:      PersonIdent,
+                            includeSystem: Boolean
+                          )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def importRules(
-        archiveId:     GitCommitId,
-        commiter:      PersonIdent,
-        includeSystem: Boolean
-    )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
+                              archiveId:     GitCommitId,
+                              commiter:      PersonIdent,
+                              includeSystem: Boolean
+                            )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def importTechniqueLibrary(
-        archiveId:     GitCommitId,
-        commiter:      PersonIdent,
-        includeSystem: Boolean
-    )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
+                                         archiveId:     GitCommitId,
+                                         commiter:      PersonIdent,
+                                         includeSystem: Boolean
+                                       )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def importGroupLibrary(
-        archiveId:     GitCommitId,
-        commiter:      PersonIdent,
-        includeSystem: Boolean
-    )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
+                                     archiveId:     GitCommitId,
+                                     commiter:      PersonIdent,
+                                     includeSystem: Boolean
+                                   )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def importParameters(
-        archiveId:     GitCommitId,
-        commiter:      PersonIdent,
-        includeSystem: Boolean
-    )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
+                                   archiveId:     GitCommitId,
+                                   commiter:      PersonIdent,
+                                   includeSystem: Boolean
+                                 )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def rollback(
-        archiveId:        GitCommitId,
-        commiter:         PersonIdent,
-        rollbackedEvents: Seq[EventLog],
-        target:           EventLog,
-        rollbackType:     String,
-        includeSystem:    Boolean
-    )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
+                           archiveId:        GitCommitId,
+                           commiter:         PersonIdent,
+                           rollbackedEvents: Seq[EventLog],
+                           target:           EventLog,
+                           rollbackType:     String,
+                           includeSystem:    Boolean
+                         )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
 
     /**
-      * These methods are called by the Archive API to get the git archives.
-      * The API then provides the logic to transform the Box[Map][DateTime, GitArchiveId] into JSON
-      * Here, we want to make these methods returning fake archives for testing the API logic.
-      */
+     * These methods are called by the Archive API to get the git archives.
+     * The API then provides the logic to transform the Box[Map][DateTime, GitArchiveId] into JSON
+     * Here, we want to make these methods returning fake archives for testing the API logic.
+     */
     val fakeArchives:                     Map[DateTime, GitArchiveId]           = Map[DateTime, GitArchiveId](
       new DateTime(42) -> fakeGitArchiveId
     )
@@ -743,27 +747,27 @@ class RestTestSetUp {
 
   val nodeApiService: nodeApiService = new nodeApiService
   class nodeApiService extends NodeApiService(
-        null,
-        mockNodes.nodeFactRepo,
-        null,
-        null,
-        roReportsExecutionRepository,
-        null,
-        uuidGen,
-        null,
-        null,
-        null,
-        mockNodes.newNodeManager,
-        null,
-        restExtractorService,
-        restDataSerializer,
-        null,
-        mockNodes.queryProcessor,
-        null,
-        () => Full(GlobalPolicyMode(Audit, PolicyModeOverrides.Always)),
-        "relay",
-        null
-      ) {
+    null,
+    mockNodes.nodeFactRepo,
+    mockNodeGroups.groupsRepo,
+    mockParameters.paramsRepo,
+    roReportsExecutionRepository,
+    null,
+    uuidGen,
+    null,
+    null,
+    null,
+    mockNodes.newNodeManager,
+    mockNodes.removeNodeService,
+    restExtractorService,
+    restDataSerializer,
+    mockCompliance.reportingService(Map.empty),
+    mockNodes.queryProcessor,
+    null,
+    () => Full(GlobalPolicyMode(Audit, PolicyModeOverrides.Always)),
+    "relay",
+    mockScores.emptyScoreService
+  ) {
     implicit val testCC: ChangeContext = {
       ChangeContext(
         ModificationId(uuidGen.newUuid),
@@ -849,8 +853,7 @@ class RestTestSetUp {
   val techniqueRepository: TechniqueRepository   = null
   val techniqueSerializer: TechniqueSerializer   = null
   val resourceFileService: ResourceFileService   = null
-  val settingsService   = new MockSettings(workflowLevelService, new AsyncWorkflowInfo())
-  val complianceService = new MockCompliance(mockDirectives)
+  val settingsService = new MockSettings(workflowLevelService, new AsyncWorkflowInfo())
 
   object archiveAPIModule {
     val archiveBuilderService = new ZipArchiveBuilderService(
@@ -918,10 +921,15 @@ class RestTestSetUp {
     new RulesInternalApi(ruleInternalApiService, ruleApiService14),
     new GroupsInternalApi(groupInternalApiService),
     new NodeApi(
-      restExtractorService,
+      zioJsonExtractor,
       restDataSerializer,
       nodeApiService,
-      null,
+      userPropertyService,
+      new NodeApiInheritedProperties(
+        mockNodes.nodeFactRepo,
+        mockNodeGroups.groupsRepo,
+        mockParameters.paramsRepo
+      ),
       uuidGen,
       DeleteMode.Erase
     ),
@@ -947,18 +955,28 @@ class RestTestSetUp {
     campaignApiModule.api,
     new ComplianceApi(
       restExtractorService,
-      complianceService.complianceAPIService,
+      mockCompliance.complianceAPIService,
       mockDirectives.directiveRepo
+    ),
+    new UserManagementApiImpl(
+      mockUserManagement.userRepo,
+      mockUserManagement.userService,
+      mockUserManagement.userManagementService,
+      new RoleApiMapping(new ExtensibleAuthorizationApiMapping(AuthorizationApiMapping.Core :: Nil)),
+      () => mockUserManagement.providerRoleExtension,
+      () => mockUserManagement.authBackendProviders
     )
   )
 
   val apiVersions: List[ApiVersion] = {
     ApiVersion(14, deprecated = true) ::
-    ApiVersion(15, deprecated = true) ::
-    ApiVersion(16, deprecated = true) ::
-    ApiVersion(17, deprecated = true) ::
-    ApiVersion(18, deprecated = false) ::
-    Nil
+      ApiVersion(15, deprecated = true) ::
+      ApiVersion(16, deprecated = true) ::
+      ApiVersion(17, deprecated = true) ::
+      ApiVersion(18, deprecated = false) ::
+      ApiVersion(19, deprecated = false) ::
+      ApiVersion(20, deprecated = false) ::
+      Nil
   }
   val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))
 
@@ -966,30 +984,11 @@ class RestTestSetUp {
 
   val baseTempDirectory = mockGitRepo.abstractRoot
 
-  /*
-   * We will commit some revisions for packageManagement technique:
-   * - init commit: what is on repos
-   * - commit 1: change metadata section (impact on directive details, but not on variables)
-   * - commit 2: revert to initial state
-   */
-  def updatePackageManagementRevision(): Unit = {
-    val metadata = mockGitRepo.configurationRepositoryRoot / "techniques/applications/packageManagement/1.0/metadata.xml"
-
-    val orig = metadata.contentAsString(StandardCharsets.UTF_8)
-    val mod  = orig.replaceAll("""name="Package version" """, """name="AN OTHER REVISION OF TECHNIQUE PACKAGE MANAGEMENT" """)
-
-    metadata.write(mod)
-    mockGitRepo.gitRepo.git.add().setUpdate(true).addFilepattern(".").call()
-    mockGitRepo.gitRepo.git.commit().setMessage("new revision of packageManagement/1.0 technique").call()
-    metadata.write(orig)
-    mockGitRepo.gitRepo.git.add().setUpdate(true).addFilepattern(".").call()
-    mockGitRepo.gitRepo.git.commit().setMessage("revert to original content for packageManagement/1.0 technique").call()
-  }
-
   // a cleanup method that delete all test files
   def cleanup(): Unit = {
 
     FileUtils.deleteDirectory(mockGitRepo.abstractRoot.toJava)
+    FileUtils.deleteDirectory(mockUserManagementTmpDir.toJava)
 
   }
 
@@ -1025,6 +1024,40 @@ class RestTest(liftRules: LiftRules) {
    */
   def execRequestResponse[T](mockReq: MockHttpServletRequest)(tests: Box[LiftResponse] => MatchResult[T]): MatchResult[T] = {
     doReq(mockReq) { req =>
+      // the test logic is taken from LiftServlet#doServices.
+      // perhaps we should call directly that methods, but it need
+      // much more set-up, and I don't know for sure *how* to set-up things.
+      NamedPF
+        .applyBox(req, LiftRules.statelessDispatch.toList)
+        .map(_.apply() match {
+          case Full(a) => Full(LiftRules.convertResponse((a, Nil, S.responseCookies, req)))
+          case r       => r
+        }) match {
+        case Full(x) => tests(x)
+        case eb: EmptyBox => tests(eb)
+      }
+    }
+  }
+
+  /*
+   * Correctly build and scope mutable things to use the request in a safe
+   * way in the context of LiftRules.
+   */
+  def doReqZioTest[T](mockReq: MockHttpServletRequest)(tests: Req => TestResult): TestResult = {
+    LiftRulesMocker.devTestLiftRulesInstance.doWith(liftRules) {
+      MockWeb.useLiftRules.doWith(true) {
+        MockWeb.testReq(mockReq)(tests)
+      }
+    }
+  }
+
+  /**
+   * Execute the request and get the response.
+   * The request must be a stateless one, else a failure
+   * will follow.
+   */
+  def execRequestResponseZioTest[T](mockReq: MockHttpServletRequest)(tests: Box[LiftResponse] => TestResult): TestResult = {
+    doReqZioTest(mockReq) { req =>
       // the test logic is taken from LiftServlet#doServices.
       // perhaps we should call directly that methods, but it need
       // much more set-up, and I don't know for sure *how* to set-up things.
@@ -1079,12 +1112,12 @@ class RestTest(liftRules: LiftRules) {
 
   // url encode the data for param name
   def binaryPOST(
-      path:         String,
-      paramName:    String,
-      filename:     String,
-      data:         Array[Byte],
-      stringParams: Map[String, String] = Map()
-  ): MockHttpServletRequest = {
+                  path:         String,
+                  paramName:    String,
+                  filename:     String,
+                  data:         Array[Byte],
+                  stringParams: Map[String, String] = Map()
+                ): MockHttpServletRequest = {
     import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity
     val mockReq     = mockRequest(path, "POST")
     val filePart    = new FilePart(paramName, new ByteArrayPartSource(filename, data), null, StandardCharsets.UTF_8.name())
@@ -1117,14 +1150,14 @@ class RestTest(liftRules: LiftRules) {
     execRequestResponse(jsonPOST(path, json))(tests)
   }
   def testBinaryPOSTResponse[T](
-      path:         String,
-      paramName:    String,
-      filename:     String,
-      data:         Array[Byte],
-      stringParams: Map[String, String] = Map()
-  )(
-      tests:        Box[LiftResponse] => MatchResult[T]
-  ): MatchResult[T] = {
+                                 path:         String,
+                                 paramName:    String,
+                                 filename:     String,
+                                 data:         Array[Byte],
+                                 stringParams: Map[String, String] = Map()
+                               )(
+                                 tests:        Box[LiftResponse] => MatchResult[T]
+                               ): MatchResult[T] = {
     execRequestResponse(binaryPOST(path, paramName, filename, data, stringParams))(tests)
   }
   def testEmptyPostResponse[T](path: String)(tests: Box[LiftResponse] => MatchResult[T]):          MatchResult[T] = {

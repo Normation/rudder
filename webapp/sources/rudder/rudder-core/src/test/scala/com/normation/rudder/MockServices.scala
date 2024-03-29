@@ -116,7 +116,7 @@ import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.git.SimpleGitRevisionProvider
-import com.normation.rudder.migration.XmlEntityMigration
+import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.reports.*
 import com.normation.rudder.repository.*
 import com.normation.rudder.repository.RoRuleRepository
@@ -126,6 +126,9 @@ import com.normation.rudder.repository.xml.GitParseRules
 import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rule.category.*
+import com.normation.rudder.score.GlobalScore
+import com.normation.rudder.score.Score
+import com.normation.rudder.score.ScoreService
 import com.normation.rudder.services.marshalling.NodeGroupCategoryUnserialisationImpl
 import com.normation.rudder.services.marshalling.NodeGroupUnserialisationImpl
 import com.normation.rudder.services.marshalling.RuleUnserialisationImpl
@@ -137,11 +140,14 @@ import com.normation.rudder.services.policies.SystemVariableServiceImpl
 import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.FactListNewNodes
+import com.normation.rudder.services.servers.FactRemoveNodeBackend
 import com.normation.rudder.services.servers.NewNodeManager
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.PolicyServers
 import com.normation.rudder.services.servers.PolicyServersUpdateCommand
+import com.normation.rudder.services.servers.PostNodeDeleteAction
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
+import com.normation.rudder.services.servers.RemoveNodeServiceImpl
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGeneratorImpl
@@ -159,7 +165,6 @@ import org.joda.time.format.ISODateTimeFormat
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap as ISortedMap
 import scala.util.control.NonFatal
-import scala.xml.Elem
 import zio.{System as _, Tag as _, *}
 import zio.json.jsonDiscriminator
 import zio.json.jsonHint
@@ -288,11 +293,8 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
 
   val techniqueRevisionRepo: TechniqueRevisionRepository =
     new GitParseTechniqueLibrary(techniqueParser, mockGit.gitRepo, mockGit.revisionProvider, "techniques", "metadata.xml")
-  val xmlEntityMigration:    XmlEntityMigration          = new XmlEntityMigration {
-    override def getUpToDateXml(entity: Elem): Box[Elem] = Full(entity)
-  }
   val ruleRevisionRepo:      RuleRevisionRepository      =
-    new GitParseRules(new RuleUnserialisationImpl(), mockGit.gitRepo, xmlEntityMigration, "rules")
+    new GitParseRules(new RuleUnserialisationImpl(), mockGit.gitRepo, "rules")
 
   ///////////////////////////  policyServer and systemVariables  ///////////////////////////
 
@@ -305,23 +307,23 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     override def savePolicyServers(policyServers: PolicyServers): IOResult[PolicyServers] = ???
     override def getAllAllowedNetworks(): IOResult[Map[NodeId, List[AllowedNetwork]]] = ???
     override def updatePolicyServers(
-        commands: List[PolicyServersUpdateCommand],
-        modId:    ModificationId,
-        actor:    EventActor
-    ): IOResult[PolicyServers] = ???
+                                      commands: List[PolicyServersUpdateCommand],
+                                      modId:    ModificationId,
+                                      actor:    EventActor
+                                    ): IOResult[PolicyServers] = ???
     override def setAllowedNetworks(
-        policyServerId: NodeId,
-        networks:       Seq[AllowedNetwork],
-        modId:          ModificationId,
-        actor:          EventActor
-    ): IOResult[List[AllowedNetwork]] = ???
+                                     policyServerId: NodeId,
+                                     networks:       Seq[AllowedNetwork],
+                                     modId:          ModificationId,
+                                     actor:          EventActor
+                                   ): IOResult[List[AllowedNetwork]] = ???
     override def updateAllowedNetworks(
-        policyServerId: NodeId,
-        addNetworks:    Seq[AllowedNetwork],
-        deleteNetwork:  Seq[String],
-        modId:          ModificationId,
-        actor:          EventActor
-    ): IOResult[List[AllowedNetwork]] = ???
+                                        policyServerId: NodeId,
+                                        addNetworks:    Seq[AllowedNetwork],
+                                        deleteNetwork:  Seq[String],
+                                        modId:          ModificationId,
+                                        actor:          EventActor
+                                      ): IOResult[List[AllowedNetwork]] = ???
     override def deleteRelaySystemObjects(policyServerId: NodeId): IOResult[Unit] = ???
   }
 
@@ -589,8 +591,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
     )
 
     /**
-      * test for multiple generation
-      */
+     * test for multiple generation
+     */
     val DIRECTIVE_NAME_COPY_GIT_FILE = "directive-copyGitFile"
     val copyGitFileTechnique         = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("copyGitFile"), TV("2.3")))
     val copyGitFileDirective: Directive = Directive(
@@ -712,17 +714,17 @@ class MockDirectives(mockTechniques: MockTechniques) {
     s"""${indent}- ${fatc.id.value}
        |${fatc.activeTechniques.sortBy(_.id.value).map(t => displayTech(t, indent2)).mkString("", "\n", "")}
        |${fatc.subCategories
-        .sortBy(_.id.value)
-        .map(displayFullActiveTechniqueCategory(_, indent2))
-        .mkString("", "\n", "")}""".stripMargin
+      .sortBy(_.id.value)
+      .map(displayFullActiveTechniqueCategory(_, indent2))
+      .mkString("", "\n", "")}""".stripMargin
   }
 
   object directiveRepo extends RoDirectiveRepository with WoDirectiveRepository with DirectiveRevisionRepository {
 
     override def getDirectiveRevision(
-        uid: DirectiveUid,
-        rev: GitVersion.Revision
-    ): IOResult[Option[(ActiveTechnique, Directive)]] = {
+                                       uid: DirectiveUid,
+                                       rev: GitVersion.Revision
+                                     ): IOResult[Option[(ActiveTechnique, Directive)]] = {
       rootActiveTechniqueCategory.get.map(_.allDirectives.get(DirectiveId(uid, rev)).map {
         case (fat, d) => (fat.toActiveTechnique(), d)
       })
@@ -731,11 +733,11 @@ class MockDirectives(mockTechniques: MockTechniques) {
     override def getRevisions(uid: DirectiveUid): IOResult[List[GitVersion.RevisionInfo]] = {
       for {
         revs  <- rootActiveTechniqueCategory.get.map(_.allDirectives.keySet.toList.collect {
-                   case DirectiveId(x, rev) if (x == uid) => rev
-                 })
+          case DirectiveId(x, rev) if (x == uid) => rev
+        })
         infos <- ZIO.foreach(revs) { rev =>
-                   revisionRepo.getOpt(rev).notOptional(s"Missing revision infos for revision for revision '${rev.value}'")
-                 }
+          revisionRepo.getOpt(rev).notOptional(s"Missing revision infos for revision for revision '${rev.value}'")
+        }
       } yield {
         infos
       }
@@ -764,8 +766,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
     }
 
     override def getActiveTechniqueByCategory(
-        includeSystem: Boolean
-    ): IOResult[ISortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = {
+                                               includeSystem: Boolean
+                                             ): IOResult[ISortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = {
       implicit val ordering = ActiveTechniqueCategoryOrdering
       rootActiveTechniqueCategory.get.map(c => {
         ISortedMap.empty[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques] ++ c.fullIndex.map {
@@ -849,9 +851,9 @@ class MockDirectives(mockTechniques: MockTechniques) {
     override def containsDirective(id: ActiveTechniqueCategoryId): UIO[Boolean] = ???
 
     def buildDirectiveDiff(
-        old:     Option[(SectionSpec, TechniqueName, Directive)],
-        current: Directive
-    ): Option[ModifyDirectiveDiff] = {
+                            old:     Option[(SectionSpec, TechniqueName, Directive)],
+                            current: Directive
+                          ): Option[ModifyDirectiveDiff] = {
       (old, current) match {
         case (None, _)                     => None
         case (Some(t), c2) if (t._3 == c2) => None
@@ -877,9 +879,9 @@ class MockDirectives(mockTechniques: MockTechniques) {
       }
     }
     def saveGen(
-        inActiveTechniqueId: ActiveTechniqueId,
-        directive:           Directive
-    ): ZIO[Any, RudderError, Option[ModifyDirectiveDiff]] = {
+                 inActiveTechniqueId: ActiveTechniqueId,
+                 directive:           Directive
+               ): ZIO[Any, RudderError, Option[ModifyDirectiveDiff]] = {
       rootActiveTechniqueCategory
         .modifyZIO(r => {
           r.saveDirective(inActiveTechniqueId, directive)
@@ -897,23 +899,23 @@ class MockDirectives(mockTechniques: MockTechniques) {
         .map(buildDirectiveDiff(_, directive))
     }
     override def saveDirective(
-        inActiveTechniqueId: ActiveTechniqueId,
-        directive:           Directive,
-        modId:               ModificationId,
-        actor:               EventActor,
-        reason:              Option[String]
-    ): IOResult[Option[DirectiveSaveDiff]] = {
+                                inActiveTechniqueId: ActiveTechniqueId,
+                                directive:           Directive,
+                                modId:               ModificationId,
+                                actor:               EventActor,
+                                reason:              Option[String]
+                              ): IOResult[Option[DirectiveSaveDiff]] = {
       if (directive.isSystem) Inconsistency(s"Can not modify system directive '${directive.id}' here").fail
       else saveGen(inActiveTechniqueId, directive)
     }
 
     override def saveSystemDirective(
-        inActiveTechniqueId: ActiveTechniqueId,
-        directive:           Directive,
-        modId:               ModificationId,
-        actor:               EventActor,
-        reason:              Option[String]
-    ): IOResult[Option[DirectiveSaveDiff]] = {
+                                      inActiveTechniqueId: ActiveTechniqueId,
+                                      directive:           Directive,
+                                      modId:               ModificationId,
+                                      actor:               EventActor,
+                                      reason:              Option[String]
+                                    ): IOResult[Option[DirectiveSaveDiff]] = {
       if (!directive.isSystem) Inconsistency(s"Can not modify non system directive '${directive.id}' here").fail
       else saveGen(inActiveTechniqueId, directive)
     }
@@ -925,87 +927,87 @@ class MockDirectives(mockTechniques: MockTechniques) {
         .map(_.map(p => DeleteDirectiveDiff(p._1.techniqueName, p._2)))
     }
     override def delete(
-        id:     DirectiveUid,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[DeleteDirectiveDiff]] = {
+                         id:     DirectiveUid,
+                         modId:  ModificationId,
+                         actor:  EventActor,
+                         reason: Option[String]
+                       ): IOResult[Option[DeleteDirectiveDiff]] = {
       deleteGen(id)
     }
 
     override def deleteSystemDirective(
-        id:     DirectiveUid,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[DeleteDirectiveDiff]] = {
+                                        id:     DirectiveUid,
+                                        modId:  ModificationId,
+                                        actor:  EventActor,
+                                        reason: Option[String]
+                                      ): IOResult[Option[DeleteDirectiveDiff]] = {
       deleteGen(id)
     }
 
     override def addTechniqueInUserLibrary(
-        categoryId:    ActiveTechniqueCategoryId,
-        techniqueName: TechniqueName,
-        versions:      Seq[TechniqueVersion],
-        isSystem:      Boolean,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String]
-    ): IOResult[ActiveTechnique] = {
+                                            categoryId:    ActiveTechniqueCategoryId,
+                                            techniqueName: TechniqueName,
+                                            versions:      Seq[TechniqueVersion],
+                                            policyTypes:   PolicyTypes,
+                                            modId:         ModificationId,
+                                            actor:         EventActor,
+                                            reason:        Option[String]
+                                          ): IOResult[ActiveTechnique] = {
       val techs = techniqueRepos.getByName(techniqueName)
       for {
         all <-
           ZIO.foreach(versions)(v => techs.get(v).notOptional(s"Missing version '${v}' for technique '${techniqueName.value}'"))
         res <- rootActiveTechniqueCategory.modifyZIO { r =>
-                 val root = r.addActiveTechnique(categoryId, techniqueName, all)
-                 root.allCategories
-                   .get(categoryId)
-                   .flatMap(_.activeTechniques.find(_.id.value == techniqueName.value))
-                   .notOptional(s"bug: active tech should be here")
-                   .map(at => (at, root))
-               }
+          val root = r.addActiveTechnique(categoryId, techniqueName, all)
+          root.allCategories
+            .get(categoryId)
+            .flatMap(_.activeTechniques.find(_.id.value == techniqueName.value))
+            .notOptional(s"bug: active tech should be here")
+            .map(at => (at, root))
+        }
       } yield {
         res.toActiveTechnique()
       }
     }
 
     override def move(
-        id:            ActiveTechniqueId,
-        newCategoryId: ActiveTechniqueCategoryId,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+                       id:            ActiveTechniqueId,
+                       newCategoryId: ActiveTechniqueCategoryId,
+                       modId:         ModificationId,
+                       actor:         EventActor,
+                       reason:        Option[String]
+                     ): IOResult[ActiveTechniqueId] = ???
 
     override def changeStatus(
-        id:     ActiveTechniqueId,
-        status: Boolean,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+                               id:     ActiveTechniqueId,
+                               status: Boolean,
+                               modId:  ModificationId,
+                               actor:  EventActor,
+                               reason: Option[String]
+                             ): IOResult[ActiveTechniqueId] = ???
 
     override def setAcceptationDatetimes(
-        id:        ActiveTechniqueId,
-        datetimes: Map[TechniqueVersion, DateTime],
-        modId:     ModificationId,
-        actor:     EventActor,
-        reason:    Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+                                          id:        ActiveTechniqueId,
+                                          datetimes: Map[TechniqueVersion, DateTime],
+                                          modId:     ModificationId,
+                                          actor:     EventActor,
+                                          reason:    Option[String]
+                                        ): IOResult[ActiveTechniqueId] = ???
 
     override def deleteActiveTechnique(
-        id:     ActiveTechniqueId,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+                                        id:     ActiveTechniqueId,
+                                        modId:  ModificationId,
+                                        actor:  EventActor,
+                                        reason: Option[String]
+                                      ): IOResult[ActiveTechniqueId] = ???
 
     override def addActiveTechniqueCategory(
-        that:           ActiveTechniqueCategory,
-        into:           ActiveTechniqueCategoryId,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[ActiveTechniqueCategory] = {
+                                             that:           ActiveTechniqueCategory,
+                                             into:           ActiveTechniqueCategoryId,
+                                             modificationId: ModificationId,
+                                             actor:          EventActor,
+                                             reason:         Option[String]
+                                           ): IOResult[ActiveTechniqueCategory] = {
       rootActiveTechniqueCategory.updateAndGetZIO { root =>
         val full = FullActiveTechniqueCategory(
           that.id,
@@ -1020,28 +1022,28 @@ class MockDirectives(mockTechniques: MockTechniques) {
     }
 
     override def saveActiveTechniqueCategory(
-        category:       ActiveTechniqueCategory,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[ActiveTechniqueCategory] = ???
+                                              category:       ActiveTechniqueCategory,
+                                              modificationId: ModificationId,
+                                              actor:          EventActor,
+                                              reason:         Option[String]
+                                            ): IOResult[ActiveTechniqueCategory] = ???
 
     override def deleteCategory(
-        id:             ActiveTechniqueCategoryId,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String],
-        checkEmpty:     Boolean
-    ): IOResult[ActiveTechniqueCategoryId] = ???
+                                 id:             ActiveTechniqueCategoryId,
+                                 modificationId: ModificationId,
+                                 actor:          EventActor,
+                                 reason:         Option[String],
+                                 checkEmpty:     Boolean
+                               ): IOResult[ActiveTechniqueCategoryId] = ???
 
     override def move(
-        categoryId:     ActiveTechniqueCategoryId,
-        intoParent:     ActiveTechniqueCategoryId,
-        optionNewName:  Option[ActiveTechniqueCategoryId],
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[ActiveTechniqueCategoryId] = ???
+                       categoryId:     ActiveTechniqueCategoryId,
+                       intoParent:     ActiveTechniqueCategoryId,
+                       optionNewName:  Option[ActiveTechniqueCategoryId],
+                       modificationId: ModificationId,
+                       actor:          EventActor,
+                       reason:         Option[String]
+                     ): IOResult[ActiveTechniqueCategoryId] = ???
 
   }
 
@@ -1125,12 +1127,12 @@ class MockRules() {
     override def getRootCategory():       IOResult[RuleCategory] = categories.get
 
     override def create(
-        that:   RuleCategory,
-        into:   RuleCategoryId,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[RuleCategory] = {
+                         that:   RuleCategory,
+                         into:   RuleCategoryId,
+                         modId:  ModificationId,
+                         actor:  EventActor,
+                         reason: Option[String]
+                       ): IOResult[RuleCategory] = {
       categories
         .updateZIO(cats => {
           recGet(cats, into) match {
@@ -1147,12 +1149,12 @@ class MockRules() {
     }
 
     override def updateAndMove(
-        that:   RuleCategory,
-        into:   RuleCategoryId,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[RuleCategory] = {
+                                that:   RuleCategory,
+                                into:   RuleCategoryId,
+                                modId:  ModificationId,
+                                actor:  EventActor,
+                                reason: Option[String]
+                              ): IOResult[RuleCategory] = {
       categories
         .updateZIO(cats => {
           recGet(cats, that.id) match {
@@ -1174,12 +1176,12 @@ class MockRules() {
     }
 
     override def delete(
-        category:   RuleCategoryId,
-        modId:      ModificationId,
-        actor:      EventActor,
-        reason:     Option[String],
-        checkEmpty: Boolean
-    ): IOResult[RuleCategoryId] = {
+                         category:   RuleCategoryId,
+                         modId:      ModificationId,
+                         actor:      EventActor,
+                         reason:     Option[String],
+                         checkEmpty: Boolean
+                       ): IOResult[RuleCategoryId] = {
       categories.updateZIO(cats => inDelete(cats, category).succeed).map(_ => category)
     }
   }
@@ -1411,11 +1413,11 @@ class MockRules() {
     }
 
     override def update(
-        rule:   Rule,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[ModifyRuleDiff]] = {
+                         rule:   Rule,
+                         modId:  ModificationId,
+                         actor:  EventActor,
+                         reason: Option[String]
+                       ): IOResult[Option[ModifyRuleDiff]] = {
       rulesMap
         .modifyZIO(rules => {
           rules.get(rule.id) match {
@@ -1431,11 +1433,11 @@ class MockRules() {
     }
 
     override def updateSystem(
-        rule:   Rule,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[ModifyRuleDiff]] = {
+                               rule:   Rule,
+                               modId:  ModificationId,
+                               actor:  EventActor,
+                               reason: Option[String]
+                             ): IOResult[Option[ModifyRuleDiff]] = {
       rulesMap
         .modifyZIO(rules => {
           rules.get(rule.id) match {
@@ -1451,11 +1453,11 @@ class MockRules() {
     }
 
     override def delete(
-        id:     RuleId,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[DeleteRuleDiff] = {
+                         id:     RuleId,
+                         modId:  ModificationId,
+                         actor:  EventActor,
+                         reason: Option[String]
+                       ): IOResult[DeleteRuleDiff] = {
       rulesMap
         .modifyZIO(rules => {
           rules.get(id) match {
@@ -1472,11 +1474,11 @@ class MockRules() {
     }
 
     override def deleteSystemRule(
-        id:     RuleId,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[DeleteRuleDiff] = {
+                                   id:     RuleId,
+                                   modId:  ModificationId,
+                                   actor:  EventActor,
+                                   reason: Option[String]
+                                 ): IOResult[DeleteRuleDiff] = {
       rulesMap
         .modifyZIO(rules => {
           rules.get(id) match {
@@ -1510,12 +1512,12 @@ class MockRules() {
 }
 
 class MockConfigRepo(
-    mockTechniques:       MockTechniques,
-    mockDirectives:       MockDirectives,
-    mockRules:            MockRules,
-    mockNodeGroups:       MockNodeGroups,
-    mockLdapQueryParsing: MockLdapQueryParsing
-) {
+                      mockTechniques:       MockTechniques,
+                      mockDirectives:       MockDirectives,
+                      mockRules:            MockRules,
+                      mockNodeGroups:       MockNodeGroups,
+                      mockLdapQueryParsing: MockLdapQueryParsing
+                    ) {
   val configurationRepository = new ConfigurationRepositoryImpl(
     mockDirectives.directiveRepo,
     mockTechniques.techniqueRepo,
@@ -1576,11 +1578,11 @@ class MockGlobalParam() {
     }
 
     override def saveParameter(
-        parameter: GlobalParameter,
-        modId:     ModificationId,
-        actor:     EventActor,
-        reason:    Option[String]
-    ): IOResult[AddGlobalParameterDiff] = {
+                                parameter: GlobalParameter,
+                                modId:     ModificationId,
+                                actor:     EventActor,
+                                reason:    Option[String]
+                              ): IOResult[AddGlobalParameterDiff] = {
       paramsMap
         .updateZIO(params => {
           params.get(parameter.name) match {
@@ -1594,11 +1596,11 @@ class MockGlobalParam() {
     }
 
     override def updateParameter(
-        parameter: GlobalParameter,
-        modId:     ModificationId,
-        actor:     EventActor,
-        reason:    Option[String]
-    ): IOResult[Option[ModifyGlobalParameterDiff]] = {
+                                  parameter: GlobalParameter,
+                                  modId:     ModificationId,
+                                  actor:     EventActor,
+                                  reason:    Option[String]
+                                ): IOResult[Option[ModifyGlobalParameterDiff]] = {
       paramsMap
         .modifyZIO(params => {
           params.get(parameter.name) match {
@@ -1617,12 +1619,12 @@ class MockGlobalParam() {
     }
 
     override def delete(
-        parameterName: String,
-        provider:      Option[PropertyProvider],
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String]
-    ): IOResult[Option[DeleteGlobalParameterDiff]] = {
+                         parameterName: String,
+                         provider:      Option[PropertyProvider],
+                         modId:         ModificationId,
+                         actor:         EventActor,
+                         reason:        Option[String]
+                       ): IOResult[Option[DeleteGlobalParameterDiff]] = {
       paramsMap.modifyZIO(params => {
         params.get(parameterName) match {
           case Some(r) =>
@@ -1648,10 +1650,10 @@ class MockGlobalParam() {
 // internal storage format for node repository
 final case class NodeDetails(info: NodeInfo, nInv: NodeInventory, mInv: Option[MachineInventory])
 final case class NodeBase(
-    pending:  Map[NodeId, NodeDetails],
-    accepted: Map[NodeId, NodeDetails],
-    deleted:  Map[NodeId, NodeDetails]
-)
+                           pending:  Map[NodeId, NodeDetails],
+                           accepted: Map[NodeId, NodeDetails],
+                           deleted:  Map[NodeId, NodeDetails]
+                         )
 
 object MockNodes {
   val softwares: List[Software] = List(
@@ -1816,6 +1818,8 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     )
   )
 
+  val rootNodeFact = NodeFact.fromCompat(root, Right(FullInventory(rootInventory, None)), softwares.take(7), None)
+
   val node1Node: Node = Node(
     id1,
     "node1",
@@ -1894,6 +1898,8 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     )
   )
 
+  val node1NodeFact = NodeFact.fromCompat(node1, Right(FullInventory(nodeInventory1, None)), softwares.drop(5).take(10), None)
+
   // node1 us a relay
   val node2Node:      Node          = node1Node.copy(id = id2, name = id2.value)
   val node2:          NodeInfo      = node1.copy(node = node2Node, hostname = hostname2, policyServerId = root.id)
@@ -1916,6 +1922,8 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       .modify(_.softwareUpdates)
       .setTo(Nil)
   }
+
+  val node2NodeFact = NodeFact.fromCompat(node2, Right(FullInventory(nodeInventory2, None)), softwares.drop(5).take(10), None)
 
   val dscNode1Node: Node = Node(
     NodeId("node-dsc"),
@@ -1979,12 +1987,14 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     fileSystems = Seq()
   )
 
+  val dscNodeFact = NodeFact.fromCompat(dscNode1, Right(FullInventory(dscInventory1, None)), softwares.drop(5).take(7), None)
+
   val allNodesInfo:       Map[NodeId, NodeInfo] = Map(rootId -> root, node1.id -> node1, node2.id -> node2)
   val allNodeFacts:       Map[NodeId, NodeFact] = Map(
-    rootId      -> NodeFact.fromCompat(root, Right(FullInventory(rootInventory, None)), softwares.take(7), None),
-    node1.id    -> NodeFact.fromCompat(node1, Right(FullInventory(nodeInventory1, None)), softwares.drop(5).take(10), None),
-    node2.id    -> NodeFact.fromCompat(node2, Right(FullInventory(nodeInventory2, None)), softwares.drop(5).take(10), None),
-    dscNode1.id -> NodeFact.fromCompat(dscNode1, Right(FullInventory(dscInventory1, None)), softwares.drop(5).take(7), None)
+    rootId      -> rootNodeFact,
+    node1.id    -> node1NodeFact,
+    node2.id    -> node2NodeFact,
+    dscNode1.id -> dscNodeFact
   )
   val defaultModesConfig: NodeModeConfig        = NodeModeConfig(
     globalComplianceMode = GlobalComplianceMode(FullCompliance, 30),
@@ -1996,33 +2006,30 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   )
 
   val rootNodeConfig: NodeConfiguration = NodeConfiguration(
-    nodeInfo = root,
+    nodeInfo = rootNodeFact.toCore,
     modesConfig = defaultModesConfig,
     runHooks = List(),
     policies = List[Policy](),
     nodeContext = Map[String, Variable](),
-    parameters = Set[ParameterForConfiguration](),
-    isRootServer = true
+    parameters = Set[ParameterForConfiguration]()
   )
 
   val node1NodeConfig: NodeConfiguration = NodeConfiguration(
-    nodeInfo = node1,
+    nodeInfo = node1NodeFact.toCore,
     modesConfig = defaultModesConfig,
     runHooks = List(),
     policies = List[Policy](),
     nodeContext = Map[String, Variable](),
-    parameters = Set[ParameterForConfiguration](),
-    isRootServer = false
+    parameters = Set[ParameterForConfiguration]()
   )
 
   val node2NodeConfig: NodeConfiguration = NodeConfiguration(
-    nodeInfo = node2,
+    nodeInfo = node2NodeFact.toCore,
     modesConfig = defaultModesConfig,
     runHooks = List(),
     policies = List[Policy](),
     nodeContext = Map[String, Variable](),
-    parameters = Set[ParameterForConfiguration](),
-    isRootServer = false
+    parameters = Set[ParameterForConfiguration]()
   )
 
   /**
@@ -2034,7 +2041,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     } yield {
       NodeId(s"${i}")
     }
-  ).toSet
+    ).toSet
 
   def newNode(id: NodeId): Node = {
     Node(
@@ -2070,7 +2077,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
         None
       )
     }
-  ).map(n => (n.id, n)).toMap
+    ).map(n => (n.id, n)).toMap
 
 }
 
@@ -2185,15 +2192,11 @@ class MockNodes() {
       for {
         facts <- nodeFactRepo.slowGetAllCompat(AcceptedInventory, SelectFacts.softwareOnly).runCollect
       } yield {
-        facts.collect {
-          case f if (f.software.map(_.name).contains(f.id)) =>
-            (
-              f.id,
-              f.software
-                .find(_.name == softName)
-                .getOrElse(throw new IllegalArgumentException("for test - we just check it's here"))
-                .toSoftware
-            )
+        facts.flatMap { f =>
+          val software = f.software
+            .find(_.name == softName)
+            .map(_.toSoftware)
+          software.map(f.id -> _)
         }.toList
       }
     }
@@ -2272,10 +2275,10 @@ class MockNodes() {
     }
 
     def filterForLines(
-        lines:   List[CriterionLine],
-        combine: CriterionComposition,
-        nodes:   List[NodeFact]
-    ): PureResult[List[NodeFact]] = {
+                        lines:   List[CriterionLine],
+                        combine: CriterionComposition,
+                        nodes:   List[NodeFact]
+                      ): PureResult[List[NodeFact]] = {
       for {
         byLine <- lines.traverse(filterForLine(_, nodes))
       } yield {
@@ -2313,9 +2316,9 @@ class MockNodes() {
 
     override def accept(id: NodeId)(implicit cc: ChangeContext): IOResult[CoreNodeFact] = {
       nodeFactRepo.changeStatus(id, AcceptedInventory) *>
-      nodeFactRepo
-        .getCompat(id, AcceptedInventory)
-        .notOptional(s"Accepted node '${id.value}' is missing")
+        nodeFactRepo
+          .getCompat(id, AcceptedInventory)
+          .notOptional(s"Accepted node '${id.value}' is missing")
     }
 
     override def refuse(id: NodeId)(implicit cc: ChangeContext): IOResult[CoreNodeFact] = {
@@ -2333,6 +2336,20 @@ class MockNodes() {
 
     override def refuseAll(ids: Seq[NodeId])(implicit cc: ChangeContext): IOResult[Seq[CoreNodeFact]] = {
       ZIO.foreach(ids)(refuse)
+    }
+  }
+
+  val removeNodeService = new RemoveNodeServiceImpl(
+    new FactRemoveNodeBackend(nodeFactRepo),
+    nodeFactRepo,
+    null,
+    newNodeManager,
+    Ref.make(List.empty[PostNodeDeleteAction]).runNow,
+    "",
+    List.empty
+  ) {
+    override def buildHooksEnv(nodeInfo: CoreNodeFact): IOResult[(HookEnvPairs, HookEnvPairs)] = {
+      (HookEnvPairs(List.empty), HookEnvPairs(List.empty)).succeed
     }
   }
 }
@@ -2363,8 +2380,8 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     override def getFullGroupLibrary(): IOResult[FullNodeGroupCategory] = categories.get
 
     override def getNodeGroupOpt(
-        id: NodeGroupId
-    )(implicit qc: QueryContext): IOResult[Option[(NodeGroup, NodeGroupCategoryId)]] = {
+                                  id: NodeGroupId
+                                )(implicit qc: QueryContext): IOResult[Option[(NodeGroup, NodeGroupCategoryId)]] = {
       categories.get.map(root => {
         ((root.allGroups.get(id), root.categoryByGroupId.get(id)) match {
           case (Some(g), Some(c)) => Some((g.nodeGroup, c))
@@ -2391,14 +2408,14 @@ class MockNodeGroups(nodesRepo: MockNodes) {
       categories.get.map(_.allGroups.values.map(_.nodeGroup).map(g => (g.id, Chunk.fromIterable(g.serverList))).toMap)
 
     override def getGroupsByCategory(
-        includeSystem: Boolean
-    )(implicit
-        qc:            QueryContext
-    ): IOResult[ISortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]] = {
+                                      includeSystem: Boolean
+                                    )(implicit
+                                      qc:            QueryContext
+                                    ): IOResult[ISortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]] = {
       def getChildren(
-          parents: List[NodeGroupCategoryId],
-          root:    FullNodeGroupCategory
-      ): ISortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup] = {
+                       parents: List[NodeGroupCategoryId],
+                       root:    FullNodeGroupCategory
+                     ): ISortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup] = {
         val c = ISortedMap(
           (root.id :: parents, CategoryAndNodeGroup(root.toNodeGroupCategory, root.ownGroups.values.map(_.nodeGroup).toSet))
         )
@@ -2473,9 +2490,9 @@ class MockNodeGroups(nodesRepo: MockNodes) {
 
     // returns (parents, group) if found
     def recGetCat(
-        root: FullNodeGroupCategory,
-        id:   NodeGroupCategoryId
-    ): Option[(List[FullNodeGroupCategory], FullNodeGroupCategory)] = {
+                   root: FullNodeGroupCategory,
+                   id:   NodeGroupCategoryId
+                 ): Option[(List[FullNodeGroupCategory], FullNodeGroupCategory)] = {
       if (root.id == id) Some((Nil, root))
       else {
         root.subCategories.foldLeft(Option.empty[(List[FullNodeGroupCategory], FullNodeGroupCategory)]) {
@@ -2514,32 +2531,32 @@ class MockNodeGroups(nodesRepo: MockNodes) {
 
     // only used in relay plugin
     override def createPolicyServerTarget(
-        target: PolicyServerTarget,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[LDIFChangeRecord] = ???
+                                           target: PolicyServerTarget,
+                                           modId:  ModificationId,
+                                           actor:  EventActor,
+                                           reason: Option[String]
+                                         ): IOResult[LDIFChangeRecord] = ???
 
     // create group into Some(cat) (group must not exists) or update group (into=None, group must exists)
     def createOrUpdate(group: NodeGroup, into: Option[NodeGroupCategoryId]): IOResult[Option[NodeGroup]] = {
       categories.modifyZIO(root => {
         for {
           catId <- into match {
-                     case Some(catId) =>
-                       root.allGroups.get(group.id) match {
-                         case Some(n) => Inconsistency(s"Group with id '${n.nodeGroup.id.serialize}' already exists'").fail
-                         case None    => catId.succeed
-                       }
-                     case None        =>
-                       root.categoryByGroupId.get(group.id) match {
-                         case None     => Inconsistency(s"Group '${group.id.serialize}' not found").fail
-                         case Some(id) => id.succeed
-                       }
-                   }
+            case Some(catId) =>
+              root.allGroups.get(group.id) match {
+                case Some(n) => Inconsistency(s"Group with id '${n.nodeGroup.id.serialize}' already exists'").fail
+                case None    => catId.succeed
+              }
+            case None        =>
+              root.categoryByGroupId.get(group.id) match {
+                case None     => Inconsistency(s"Group '${group.id.serialize}' not found").fail
+                case Some(id) => id.succeed
+              }
+          }
           cat   <- root.allCategories.get(catId) match {
-                     case None      => Inconsistency(s"Category '${catId.value}' not found").fail
-                     case Some(cat) => cat.succeed
-                   }
+            case None      => Inconsistency(s"Category '${catId.value}' not found").fail
+            case Some(cat) => cat.succeed
+          }
           // previous group, for diff
           old    = cat.ownGroups.get(group.id).map(_.nodeGroup)
         } yield {
@@ -2560,12 +2577,12 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     }
 
     override def create(
-        group: NodeGroup,
-        into:  NodeGroupCategoryId,
-        modId: ModificationId,
-        actor: EventActor,
-        why:   Option[String]
-    ): IOResult[AddNodeGroupDiff] = {
+                         group: NodeGroup,
+                         into:  NodeGroupCategoryId,
+                         modId: ModificationId,
+                         actor: EventActor,
+                         why:   Option[String]
+                       ): IOResult[AddNodeGroupDiff] = {
       createOrUpdate(group, Some(into)).flatMap {
         case None    => AddNodeGroupDiff(group).succeed
         case Some(_) => Inconsistency(s"Group '${group.id.serialize}' was present'").fail
@@ -2573,11 +2590,11 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     }
 
     override def update(
-        group:          NodeGroup,
-        modId:          ModificationId,
-        actor:          EventActor,
-        whyDescription: Option[String]
-    ): IOResult[Option[ModifyNodeGroupDiff]] = {
+                         group:          NodeGroup,
+                         modId:          ModificationId,
+                         actor:          EventActor,
+                         whyDescription: Option[String]
+                       ): IOResult[Option[ModifyNodeGroupDiff]] = {
       createOrUpdate(group, None).flatMap {
         case None      => Inconsistency(s"Group '${group.id.serialize}' was missing").fail
         case Some(old) =>
@@ -2600,11 +2617,11 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     }
 
     override def delete(
-        id:             NodeGroupId,
-        modId:          ModificationId,
-        actor:          EventActor,
-        whyDescription: Option[String]
-    ): IOResult[DeleteNodeGroupDiff] = {
+                         id:             NodeGroupId,
+                         modId:          ModificationId,
+                         actor:          EventActor,
+                         whyDescription: Option[String]
+                       ): IOResult[DeleteNodeGroupDiff] = {
       def recDelete(id: NodeGroupId, current: FullNodeGroupCategory): FullNodeGroupCategory = {
         current.copy(
           targetInfos = current.targetInfos.filterNot(_.toTargetInfo.target.target == s"group:${id.serialize}"),
@@ -2621,12 +2638,12 @@ class MockNodeGroups(nodesRepo: MockNodes) {
         .map(g => DeleteNodeGroupDiff(g.nodeGroup))
     }
     override def delete(
-        id:             NodeGroupCategoryId,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String],
-        checkEmpty:     Boolean
-    ): IOResult[NodeGroupCategoryId] = {
+                         id:             NodeGroupCategoryId,
+                         modificationId: ModificationId,
+                         actor:          EventActor,
+                         reason:         Option[String],
+                         checkEmpty:     Boolean
+                       ): IOResult[NodeGroupCategoryId] = {
       def recDelete(id: NodeGroupCategoryId, current: FullNodeGroupCategory): FullNodeGroupCategory = {
         current.copy(subCategories = current.subCategories.filterNot(_.id == id).map(c => recDelete(id, c)))
       }
@@ -2641,40 +2658,40 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     }
 
     override def updateDiffNodes(
-        group:          NodeGroupId,
-        add:            List[NodeId],
-        delete:         List[NodeId],
-        modId:          ModificationId,
-        actor:          EventActor,
-        whyDescription: Option[String]
-    ): IOResult[Option[ModifyNodeGroupDiff]] = ???
+                                  group:          NodeGroupId,
+                                  add:            List[NodeId],
+                                  delete:         List[NodeId],
+                                  modId:          ModificationId,
+                                  actor:          EventActor,
+                                  whyDescription: Option[String]
+                                ): IOResult[Option[ModifyNodeGroupDiff]] = ???
 
     override def updateSystemGroup(
-        group:  NodeGroup,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[ModifyNodeGroupDiff]] = ???
+                                    group:  NodeGroup,
+                                    modId:  ModificationId,
+                                    actor:  EventActor,
+                                    reason: Option[String]
+                                  ): IOResult[Option[ModifyNodeGroupDiff]] = ???
 
     override def updateDynGroupNodes(
-        group:          NodeGroup,
-        modId:          ModificationId,
-        actor:          EventActor,
-        whyDescription: Option[String]
-    ): IOResult[Option[ModifyNodeGroupDiff]] = ???
+                                      group:          NodeGroup,
+                                      modId:          ModificationId,
+                                      actor:          EventActor,
+                                      whyDescription: Option[String]
+                                    ): IOResult[Option[ModifyNodeGroupDiff]] = ???
 
     override def move(
-        group:       NodeGroupId,
-        containerId: NodeGroupCategoryId
-    )(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = ???
+                       group:       NodeGroupId,
+                       containerId: NodeGroupCategoryId
+                     )(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = ???
 
     override def deletePolicyServerTarget(policyServer: PolicyServerTarget): IOResult[PolicyServerTarget] = ???
 
     def updateCategory(
-        t:    FullNodeGroupCategory,
-        into: FullNodeGroupCategory,
-        root: FullNodeGroupCategory
-    ): FullNodeGroupCategory = {
+                        t:    FullNodeGroupCategory,
+                        into: FullNodeGroupCategory,
+                        root: FullNodeGroupCategory
+                      ): FullNodeGroupCategory = {
       import com.softwaremill.quicklens.*
       val c       = into.modify(_.subCategories).using(children => t :: children.filterNot(_.id == t.id))
       val parents = recGetParent(root, c.id)
@@ -2682,12 +2699,12 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     }
 
     override def addGroupCategorytoCategory(
-        that:           NodeGroupCategory,
-        into:           NodeGroupCategoryId,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[NodeGroupCategory] = {
+                                             that:           NodeGroupCategory,
+                                             into:           NodeGroupCategoryId,
+                                             modificationId: ModificationId,
+                                             actor:          EventActor,
+                                             reason:         Option[String]
+                                           ): IOResult[NodeGroupCategory] = {
       categories
         .updateZIO(root => {
           for {
@@ -2701,11 +2718,11 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     }
 
     override def saveGroupCategory(
-        category:       NodeGroupCategory,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[NodeGroupCategory] = {
+                                    category:       NodeGroupCategory,
+                                    modificationId: ModificationId,
+                                    actor:          EventActor,
+                                    reason:         Option[String]
+                                  ): IOResult[NodeGroupCategory] = {
       categories
         .updateZIO(root => {
           for {
@@ -2719,12 +2736,12 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     }
 
     override def saveGroupCategory(
-        category:       NodeGroupCategory,
-        containerId:    NodeGroupCategoryId,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[NodeGroupCategory] = {
+                                    category:       NodeGroupCategory,
+                                    containerId:    NodeGroupCategoryId,
+                                    modificationId: ModificationId,
+                                    actor:          EventActor,
+                                    reason:         Option[String]
+                                  ): IOResult[NodeGroupCategory] = {
       categories
         .updateZIO(root => {
           for {
@@ -2944,17 +2961,13 @@ class MockLdapQueryParsing(mockGit: MockGitConfigRepo, mockNodeGroups: MockNodeG
     override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryDataImpl.criteriaMap
   }
 
-  val xmlEntityMigration: XmlEntityMigration      = new XmlEntityMigration {
-    override def getUpToDateXml(entity: Elem): Box[Elem] = Full(entity)
-  }
-  val groupRevisionRepo:  GroupRevisionRepository = new GitParseGroupLibrary(
+  val groupRevisionRepo: GroupRevisionRepository = new GitParseGroupLibrary(
     new NodeGroupCategoryUnserialisationImpl(),
     new NodeGroupUnserialisationImpl(new CmdbQueryParser {
       override def parse(query: StringQuery): Box[Query]       = ???
       override def lex(query:   String):      Box[StringQuery] = ???
     }),
     mockGit.gitRepo,
-    xmlEntityMigration,
     "groups"
   )
 
@@ -3073,16 +3086,16 @@ class MockCampaign() {
     }
 
     def getWithCriteria(
-        states:       List[String],
-        campaignType: List[CampaignType],
-        campaignId:   Option[CampaignId],
-        limit:        Option[Int],
-        offset:       Option[Int],
-        afterDate:    Option[DateTime],
-        beforeDate:   Option[DateTime],
-        order:        Option[String],
-        asc:          Option[String]
-    ): IOResult[List[CampaignEvent]] = {
+                         states:       List[String],
+                         campaignType: List[CampaignType],
+                         campaignId:   Option[CampaignId],
+                         limit:        Option[Int],
+                         offset:       Option[Int],
+                         afterDate:    Option[DateTime],
+                         beforeDate:   Option[DateTime],
+                         order:        Option[String],
+                         asc:          Option[String]
+                       ): IOResult[List[CampaignEvent]] = {
 
       val allEvents            = items.get.map(_.values.toList)
       val campaignIdFiltered   = campaignId match {
@@ -3142,13 +3155,13 @@ class MockCampaign() {
     def numberOfEventsByCampaign(campaignId: CampaignId): IOResult[Int] = items.get.map(_.size)
 
     def deleteEvent(
-        id:           Option[CampaignEventId],
-        states:       List[String],
-        campaignType: Option[CampaignType],
-        campaignId:   Option[CampaignId],
-        afterDate:    Option[DateTime],
-        beforeDate:   Option[DateTime]
-    ): IOResult[Unit] = {
+                     id:           Option[CampaignEventId],
+                     states:       List[String],
+                     campaignType: Option[CampaignType],
+                     campaignId:   Option[CampaignId],
+                     afterDate:    Option[DateTime],
+                     beforeDate:   Option[DateTime]
+                   ): IOResult[Unit] = {
 
       val eventIdFiltered: CampaignEvent => Boolean = id match {
         case None     => (_ => true)
@@ -3190,4 +3203,19 @@ class MockCampaign() {
 
   val mainCampaignService = new MainCampaignService(dumbCampaignEventRepository, repo, new StringUuidGeneratorImpl(), 0, 0)
 
+}
+
+class MockScores() {
+  object emptyScoreService extends ScoreService {
+    override def getAll(): IOResult[Map[NodeId, GlobalScore]] = Map.empty.succeed
+    override def getGlobalScore(nodeId:  NodeId): IOResult[GlobalScore] = ???
+    override def getScoreDetails(nodeId: NodeId): IOResult[List[Score]] = ???
+    override def clean(): IOResult[Unit] = ???
+    override def cleanScore(name:          String): IOResult[Unit] = ???
+    override def update(newScores:         Map[NodeId, List[Score]]): IOResult[Unit] = ???
+    override def registerScore(newScoreId: String, displayName: String): IOResult[Unit] = ???
+    override def getAvailableScore(): IOResult[List[(String, String)]] = List.empty.succeed
+    override def init():              IOResult[Unit]                   = ???
+    override def deleteNodeScore(nodeId: NodeId): IOResult[Unit] = ???
+  }
 }
