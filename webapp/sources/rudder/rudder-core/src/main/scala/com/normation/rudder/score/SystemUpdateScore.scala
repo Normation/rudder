@@ -30,7 +30,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
-
+ *
  *
  *************************************************************************************
  */
@@ -50,6 +50,7 @@ import com.normation.rudder.score.ScoreValue.B
 import com.normation.rudder.score.ScoreValue.C
 import com.normation.rudder.score.ScoreValue.D
 import com.normation.rudder.score.ScoreValue.E
+import com.normation.rudder.score.ScoreValue.F
 import zio.*
 import zio.json.*
 import zio.syntax.*
@@ -97,15 +98,29 @@ class SystemUpdateScoreHandler(nodeFactRepository: NodeFactRepository) extends S
         } yield {
           import SystemUpdateScore.scoreId
           val score = if (security == 0 && sum < 50) {
-            Score(scoreId, A, "Node has no security updates and less than 50 updates available", stats)
-          } else if (security < 5) {
-            Score(scoreId, B, s"Node has ${security} security updates available (less than 5)", stats)
-          } else if (security < 20) {
-            Score(scoreId, C, s"Node has ${security} security updates available (less than 20)", stats)
-          } else if (security < 50) {
-            Score(scoreId, D, s"Node has ${security} security updates available (less than 50)", stats)
+            val securityMessage = "No security update."
+            val updateMessage   = s"${sum} updates available (less than 50)."
+            Score(scoreId, A, s"${securityMessage}\n${updateMessage}", stats)
+          } else if (security < 5 && sum < 75) {
+            val securityMessage = if (security < 5) s"${security} security updates available (less than 5)." else ""
+            val updateMessage   = if (sum < 75) s"${sum} updates available (between 50 and 75)." else ""
+            Score(scoreId, B, s"${securityMessage}\n${updateMessage}", stats)
+          } else if (security < 20 && sum < 125) {
+            val securityMessage = if (security < 20) s"${security} security updates available (between 5 and 20)." else ""
+            val updateMessage   = if (sum < 125) s"${sum} updates available (between 75 and 125)." else ""
+            Score(scoreId, C, s"${securityMessage}\n${updateMessage}", stats)
+          } else if (security < 50 && sum < 175) {
+            val securityMessage = if (security < 50) s"${security} security updates available (between 20 and 50)." else ""
+            val updateMessage   = if (sum < 175) s"${sum} updates available (between 125 and 175)." else ""
+            Score(scoreId, D, s"${securityMessage}\n${updateMessage}", stats)
+          } else if (security < 80 && sum < 250) {
+            val securityMessage = if (security < 80) s"${security} security updates available (between 50 and 80)." else ""
+            val updateMessage   = if (sum < 250) s"${sum} updates available (between 175 and 250)." else ""
+            Score(scoreId, E, s"${securityMessage}\n${updateMessage}", stats)
           } else {
-            Score(scoreId, E, s"Node has ${security} security updates available (more than 50)", stats)
+            val securityMessage = if (security >= 80) s"${security} security updates available (more than 80)." else ""
+            val updateMessage   = if (sum >= 250) s"${sum} updates available (More than 250)." else ""
+            Score(scoreId, F, s"${securityMessage}\n${updateMessage}", stats)
           }
           ((n, score :: Nil) :: Nil)
         }) match {

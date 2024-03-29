@@ -2,7 +2,7 @@
  *************************************************************************************
  * Copyright 2017 Normation SAS
  *************************************************************************************
-
+ *
  * This file is part of Rudder.
  *
  * Rudder is free software: you can redistribute it and/or modify
@@ -30,7 +30,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
-
+ *
  *
  *************************************************************************************
  */

@@ -57,6 +57,7 @@ object ScoreValue extends Enum[ScoreValue] {
   case object C       extends ScoreValue { val value = "C" }
   case object D       extends ScoreValue { val value = "D" }
   case object E       extends ScoreValue { val value = "E" }
+  case object F       extends ScoreValue { val value = "F" }
   case object NoScore extends ScoreValue { val value = "X" }
 
   val values: IndexedSeq[ScoreValue] = findValues
@@ -80,14 +81,18 @@ object GlobalScoreService {
         NoDetailsScore(newScore.scoreId, newScore.value, newScore.message) :: acc.filterNot(_.scoreId == newScore.scoreId)
     }
     import ScoreValue.*
-    val score         = if (correctScores.exists(_.value == E)) { E }
+    val score         = if (correctScores.exists(_.value == F)) { F }
+    else if (correctScores.exists(_.value == E)) { E }
     else if (correctScores.exists(_.value == D)) { D }
-    else if (correctScores.exists(_.value == C)) {
-      C
-    } else if (correctScores.exists(_.value == B)) {
-      B
-    } else A
-    GlobalScore(score, s"There is at least a Score with ${score.value}", correctScores)
+    else if (correctScores.exists(_.value == C)) { C }
+    else if (correctScores.exists(_.value == B)) { B }
+    else A
+
+    if (correctScores.isEmpty) {
+      GlobalScore(NoScore, "No Score defined for this node", correctScores)
+    } else {
+      GlobalScore(score, s"Worst score for this node is ${score.value}", correctScores)
+    }
   }
 }
 

@@ -59,7 +59,7 @@ class CheckTableScore(
   def createScoreTables: IOResult[Unit] = {
 
     val checkType = sql"SELECT 1 FROM pg_type WHERE typname = 'score'"
-    val sqlType   = sql"""CREATE TYPE score AS enum ('A', 'B', 'C', 'D', 'E')"""
+    val sqlType   = sql"""CREATE TYPE score AS enum ('A', 'B', 'C', 'D', 'E', 'F', 'X')"""
     val sql1      = sql"""CREATE TABLE IF NOT EXISTS GlobalScore (
       nodeId  text primary key
     , score   score NOT NULL

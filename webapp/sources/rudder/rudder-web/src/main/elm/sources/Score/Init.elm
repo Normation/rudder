@@ -17,7 +17,7 @@ subscriptions _ = Sub.none
 init : { id : String, contextPath : String } -> ( Model, Cmd Msg )
 init flags =
   let
-    initModel = Model (NodeId flags.id) Nothing flags.contextPath []
+    initModel = Model (NodeId flags.id) Nothing flags.contextPath [] Nothing
 
     action = Cmd.batch [ getScore initModel, getScoreInfo initModel ]
   in
