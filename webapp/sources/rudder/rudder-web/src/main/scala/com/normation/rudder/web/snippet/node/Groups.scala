@@ -590,7 +590,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
              |window.location.hash = "#"+groupId;
              |
              |// When the tab is shown we need to initialize the Elm app
-             |$$('a[href="#groupPropertiesTab"]').on('show.bs.tab', function() {
+             |$$('#groupPropertiesLinkTab').on('show.bs.tab', function() {
              |  var main = document.getElementById("nodeproperties-app")
              |  if (main) {
              |    var initValues = {
@@ -610,7 +610,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
              |    // Initialize tooltips
              |    app.ports.initTooltips.subscribe(function(msg) {
              |      setTimeout(function(){
-             |        $$('.bs-tooltip').bsTooltip();
+             |        initBsTooltips();
              |      }, 400);
              |    });
              |    app.ports.copy.subscribe(function(str) {
