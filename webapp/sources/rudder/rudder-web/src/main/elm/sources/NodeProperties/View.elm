@@ -29,7 +29,7 @@ view model =
       checkFormatConflict  = List.Extra.find (\p -> p.name == trimmedName && (getFormat p) /= newProperty.format) model.properties /= Nothing
       checkFormatVal       = newProperty.errorFormat
       checks  = [checkEmptyName, checkAlreadyUsedName, checkEmptyVal, checkFormatVal]
-      filters = model.ui.filters
+      filters = model.ui.filtersOnProperty
     in
       div[]
       [ div [class "row", id "nodeProp"]
@@ -96,17 +96,17 @@ view model =
         -- Properties Table
         , div [class "col-sm-12 tab-table-content"]
           [ div [class "table-header"]
-            [ input [type_ "text", placeholder "Filter", class "input-sm form-control", onInput (\s -> UpdateTableFilters {filters | filter = s})][]
+            [ input [type_ "text", placeholder "Filter", class "input-sm form-control", onInput (\s -> UpdateTableFiltersProperty {filters | filter = s})][]
             , button [class "btn btn-default", onClick (CallApi getNodeProperties)] [ i [class "fa fa-refresh"][] ]
             ]
             , div [class "table-container"]
               [ table [class "no-footer dataTable", id "nodePropertiesTab"]
                 [ thead[]
                   [ tr [class "head"]
-                    [ th [class (thClass model.ui.filters Name   ), onClick (UpdateTableFilters (sortTable filters Name   ))][ text "Name"   ]
+                    [ th [class (thClassOnProperty model.ui.filtersOnProperty Name   ), onClick (UpdateTableFiltersProperty (sortTableOnProperty filters Name   ))][ text "Name"   ]
                     , th [ (class " col")][] -- column for copy to clipboard property name
-                    , th [class (thClass model.ui.filters Format ), onClick (UpdateTableFilters (sortTable filters Format ))][ text "Format" ]
-                    , th [class (thClass model.ui.filters Value ++ (" col-8")), onClick (UpdateTableFilters (sortTable filters Value  ))][ text "Value"  ]
+                    , th [class (thClassOnProperty model.ui.filtersOnProperty Format ), onClick (UpdateTableFiltersProperty (sortTableOnProperty filters Format ))][ text "Format" ]
+                    , th [class (thClassOnProperty model.ui.filtersOnProperty Value  ), onClick (UpdateTableFiltersProperty (sortTableOnProperty filters Value  ))][ text "Value"  ]
                     , th [][] -- column for copy to clipboard property value
                     , th[class "sorting"] [text "Actions" ]
                     ]
@@ -130,7 +130,7 @@ view model =
               ]
             ]
           ]
-    , modalDelete model
+    , showModal model
     ]
   else
     text "No rights"

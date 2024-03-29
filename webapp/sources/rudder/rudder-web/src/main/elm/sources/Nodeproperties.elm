@@ -3,9 +3,9 @@ port module Nodeproperties exposing (..)
 import Browser
 import Http exposing (..)
 import Result
-import Json.Decode exposing (decodeValue, value)
+import Json.Decode exposing (value)
 import Dict exposing (..)
-import List.Extra exposing (remove)
+import List.Extra
 
 import NodeProperties.ApiCalls exposing (..)
 import NodeProperties.DataTypes exposing (..)
@@ -71,8 +71,27 @@ update msg model =
       in
         ( { model | ui = {ui | editedProperties = newProperties} }, Cmd.none )
 
+    FindPropertyUsage pName res ->
+      case res of
+        Ok found ->
+          let
+            ui = model.ui
+            filtersModel = model.ui.filtersOnUsage
+            newModel = { model | ui = {ui | modalState = Usage pName found, filtersOnUsage = {filtersModel | findUsageIn = Directives}} }
+          in
+            (newModel, Cmd.batch [ initInputs "", initTooltips ""])
+        Err err ->
+          processApiError "Find node property usage" err model
+    ChangeViewUsage ->
+      let
+        switchView = if(model.ui.filtersOnUsage.findUsageIn == Directives) then Techniques else Directives
+        ui = model.ui
+        filtersModelUsage = model.ui.filtersOnUsage
+        newModel = { model | ui = {ui | filtersOnUsage = {filtersModelUsage | findUsageIn = switchView}} }
+      in
+      (newModel, Cmd.none)
     SaveProperty successMsg res ->
-      case  res of
+      case res of
         Ok p ->
           let
             ui  = model.ui
@@ -86,7 +105,7 @@ update msg model =
             , Cmd.batch [ initInputs "", initTooltips "" , successNotification successMsg, getNodeProperties newModel]
             )
         Err err ->
-          processApiError "saving node properties" err model
+          processApiError "Saving node properties" err model
 
     GetNodeProperties res ->
       case  res of
@@ -168,12 +187,17 @@ update msg model =
         in
           ( { model | ui = {ui | editedProperties = editedProperties} }, initInputs "" )
 
-    UpdateTableFilters tableFilters ->
+    UpdateTableFiltersProperty tableFilters ->
       let
         ui = model.ui
       in
-        ({model | ui = { ui | filters = tableFilters}}, Cmd.none)
+        ({model | ui = { ui | filtersOnProperty = tableFilters}}, Cmd.none)
 
+    UpdateTableFiltersUsage tableFilters ->
+      let
+        ui = model.ui
+      in
+        ({model | ui = { ui | filtersOnUsage = tableFilters}}, Cmd.none)
     ShowMore id ->
       let
         ui = model.ui
@@ -184,7 +208,8 @@ update msg model =
     ClosePopup callback ->
       let
         ui = model.ui
-        (nm,cmd) = update callback { model | ui = { ui | modalState = NoModal } }
+        filtersModel = model.ui.filtersOnUsage
+        (nm,cmd) = update callback { model | ui = { ui | modalState = NoModal, filtersOnUsage = {filtersModel | findUsageIn = Directives, filter = "", sortBy = Name, sortOrder = Asc} } }
       in
         (nm , cmd)
 

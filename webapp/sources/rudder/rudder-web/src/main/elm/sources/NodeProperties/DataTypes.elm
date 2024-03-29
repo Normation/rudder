@@ -11,7 +11,18 @@ import Ui.Datatable exposing (TableFilters)
 -- All our data types
 --
 
-type ModalState = NoModal | Deletion String
+type ModalState = NoModal | Deletion String | Usage String PropertyUsage
+
+type alias UsageInfo =
+  { id : String
+  , name : String
+  }
+type alias PropertyUsage =
+  { directives : List UsageInfo
+  , techniques : List UsageInfo
+  }
+
+type FindUsageIn = Techniques | Directives
 
 type alias EditProperty =
   { name      : String
@@ -48,14 +59,28 @@ type SortBy
   | Format
   | Value
 
+type alias TableFiltersOnProperty =
+  { sortBy    : SortBy
+  , sortOrder : SortOrder
+  , filter    : String
+  }
+
+type alias TableFiltersOnUsage =
+  { sortBy      : SortBy
+  , sortOrder   : SortOrder
+  , filter      : String
+  , findUsageIn : FindUsageIn
+  }
+
 type alias UI =
-  { hasNodeWrite     : Bool
-  , hasNodeRead      : Bool
-  , loading          : Bool
-  , modalState       : ModalState
-  , editedProperties : Dict String EditProperty
-  , showMore         : List String
-  , filters          : TableFilters SortBy
+  { hasNodeWrite      : Bool
+  , hasNodeRead       : Bool
+  , loading           : Bool
+  , modalState        : ModalState
+  , editedProperties  : Dict String EditProperty
+  , showMore          : List String
+  , filtersOnProperty : TableFiltersOnProperty
+  , filtersOnUsage    : TableFiltersOnUsage
   }
 
 type alias Model =
@@ -73,6 +98,7 @@ type Msg
   | CallApi (Model -> Cmd Msg)
   | SaveProperty String (Result Error (List Property))
   | GetNodeProperties (Result Error (List Property))
+  | FindPropertyUsage String (Result Error PropertyUsage)
   | UpdateNewProperty EditProperty
   | UpdateProperty String EditProperty
   | AddProperty
@@ -80,7 +106,9 @@ type Msg
   | ToggleEditPopup ModalState
   | ClosePopup Msg
   | ToggleEditProperty String EditProperty Bool
-  | UpdateTableFilters (TableFilters SortBy)
+  | UpdateTableFiltersProperty TableFiltersOnProperty
+  | UpdateTableFiltersUsage TableFiltersOnUsage
+  | ChangeViewUsage
   | ShowMore String
 
 valueTypeToValueFormat : String -> ValueFormat

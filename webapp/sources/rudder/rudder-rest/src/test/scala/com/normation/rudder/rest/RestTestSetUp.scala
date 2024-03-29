@@ -931,7 +931,8 @@ class RestTestSetUp {
         mockParameters.paramsRepo
       ),
       uuidGen,
-      DeleteMode.Erase
+      DeleteMode.Erase,
+      null
     ),
     new GroupsApi(
       mockNodeGroups.groupsRepo,

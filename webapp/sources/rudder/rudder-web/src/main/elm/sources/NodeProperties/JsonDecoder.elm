@@ -60,3 +60,18 @@ decodeParentProperty =
           |> map ParentGlobal
       _ -> fail "Invalid parent property kind"
   )
+
+decodeFindPropertyUsage =
+  at [ "data" ] decodeFindUsage
+
+decodeFindUsage : Decoder PropertyUsage
+decodeFindUsage =
+  succeed PropertyUsage
+    |> required "directives" (list decodeUsageInfo)
+    |> required "techniques" (list decodeUsageInfo)
+
+decodeUsageInfo : Decoder UsageInfo
+decodeUsageInfo =
+  succeed UsageInfo
+    |> required "id" string
+    |> required "name" string

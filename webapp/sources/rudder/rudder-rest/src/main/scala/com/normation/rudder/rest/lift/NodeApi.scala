@@ -63,6 +63,7 @@ import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.properties.CompareProperties
 import com.normation.rudder.domain.properties.NodeProperty
@@ -108,6 +109,7 @@ import com.normation.rudder.score.ScoreService
 import com.normation.rudder.score.ScoreValue
 import com.normation.rudder.services.nodes.MergeNodeProperties
 import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.services.nodes.PropertyUsageService
 import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.servers.DeleteMode
@@ -167,6 +169,7 @@ class NodeApi(
       e match {
         case API.ListPendingNodes               => ListPendingNodes
         case API.NodeDetails                    => NodeDetails
+        case API.NodeFindUsageProperty          => NodeFindUsageProperty
         case API.NodeInheritedProperties        => NodeInheritedProperties
         case API.NodeDisplayInheritedProperties => NodeDisplayInheritedProperties
         case API.PendingNodeDetails             => PendingNodeDetails
@@ -275,6 +278,67 @@ class NodeApi(
       } yield {
         res
       }).toLiftResponseOne(params, schema, _ => Some(id))
+    }
+  }
+
+  object NodeFindUsageProperty extends LiftApiModule {
+    val schema: OneParam = API.NodeFindUsageProperty
+    val restExtractor = restExtractorService
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        property:   String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      //      implicit val qc = authzToken.qc
+
+      def toJson(directives: List[(DirectiveId, String)], techniques: List[(BundleName, String)]): JValue = {
+        import net.liftweb.json.JsonDSL.*
+        (
+          ("directives"   ->
+          JArray(
+            directives.map {
+              case (id, name) =>
+                JObject(
+                  JField("id", JString(id.uid.value)) ::
+                  JField("name", JString(name)) ::
+                  Nil
+                )
+            }
+          ))
+          ~ ("techniques" ->
+          JArray(
+            techniques.map {
+              case (id, name) =>
+                JObject(
+                  JField("id", JString(id.value)) ::
+                  JField("name", JString(name)) ::
+                  Nil
+                )
+            }
+          ))
+        )
+      }
+
+      (for {
+        directives <- propertyUsageService.findPropertyInDirective(property)
+        techniques <- propertyUsageService.findPropertyInTechnique(property)
+      } yield {
+        toJsonResponse(None, toJson(directives, techniques))("usageOfProperty", params.prettify)
+      }).toBox match {
+        case Full(res) => res
+        case eb: EmptyBox =>
+          JsonResponse(
+            JObject(
+              JField(
+                "error",
+                (eb ?~! s"An error occurred while searching usage of property '${property}' in Directives and User techniques").messageChain
+              )
+            )
+          )
+      }
     }
   }
 
