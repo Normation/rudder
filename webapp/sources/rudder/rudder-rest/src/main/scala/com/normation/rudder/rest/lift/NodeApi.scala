@@ -1357,14 +1357,14 @@ class NodeApiService(
                            inventory = x.toFullInventory
                            software  = x.software.toList.map(_.toSoftware)
                          } yield {
-                           Some((x.toNodeInfo, runs, inventory, software))
+                           Some((x.toNodeInfo, runs, inventory, software, x.rudderSettings.security))
                          }
                      }
     } yield {
       nodeInfo.map {
-        case (node, runs, inventory, software) =>
+        case (node, runs, inventory, software, optTenant) =>
           val runDate = runs.get(nodeId).flatMap(_.map(_.agentRunId.date))
-          restSerializer.serializeInventory(node, state, runDate, Some(inventory), software, detailLevel)
+          restSerializer.serializeInventory(node, state, runDate, Some(inventory), software, optTenant, detailLevel)
       }
     }
   }
@@ -1440,6 +1440,7 @@ class NodeApiService(
           runDate,
           inventories.get(nodeId),
           software.getOrElse(nodeId, Seq()),
+          nodeFact.rudderSettings.security,
           detailLevel
         )
       }
