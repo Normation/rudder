@@ -178,10 +178,14 @@ object AuthorizationApiMapping {
           NodeApi.ListAcceptedNodes.x :: NodeApi.ListPendingNodes.x :: NodeApi.NodeDetails.x ::
           NodeApi.NodeInheritedProperties.x :: NodeApi.NodeDisplayInheritedProperties.x :: NodeApi.NodeDetailsTable.x ::
           NodeApi.PendingNodeDetails.x :: NodeApi.NodeDetailsSoftware.x :: NodeApi.NodeDetailsProperty.x ::
-          NodeApi.GetNodesStatus.x :: InventoryApi.QueueInformation.x ::
+          NodeApi.GetNodesStatus.x ::
+          // score about node
+          NodeApi.NodeGlobalScore.x :: NodeApi.NodeScoreDetails.x :: NodeApi.NodeScoreDetail.x ::
+          InventoryApi.QueueInformation.x ::
           // node read also allows to read some settings
           AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode") :: Nil) ::
           AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode_overridable") :: Nil) ::
+          ScoreApi.GetScoreList.x ::
           Nil
         case Node.Write =>
           NodeApi.DeleteNode.x :: NodeApi.ChangePendingNodeStatus.x :: NodeApi.ChangePendingNodeStatus2.x ::
@@ -190,7 +194,9 @@ object AuthorizationApiMapping {
 
         case Rule.Read  =>
           RuleApi.ListRules.x :: RuleApi.RuleDetails.x :: RuleApi.GetRuleTree.x ::
-          RuleApi.GetRuleCategoryDetails.x :: RuleInternalApi.GetRuleNodesAndDirectives.x :: Nil
+          RuleApi.GetRuleCategoryDetails.x :: RuleInternalApi.GetRuleNodesAndDirectives.x ::
+          RuleInternalApi.GetGroupRelatedRules.x ::
+          Nil
         case Rule.Write =>
           RuleApi.CreateRule.x :: RuleApi.DeleteRule.x :: RuleApi.CreateRuleCategory.x ::
           RuleApi.DeleteRuleCategory.x :: RuleApi.LoadRuleRevisionForGeneration.x :: RuleApi.UnloadRuleRevisionForGeneration.x ::
