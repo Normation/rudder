@@ -2,7 +2,21 @@
   <div id="tabPropsId">
     <h3 class="page-title foldable" onclick="$('#nodeProp').toggle(); $(this).toggleClass('folded');">Properties <i class="fa fa-chevron-down"></i></h3>
     <div id="nodeproperties-app" class="portlet-content"></div>
-
+    <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-nodeproperties.js"></script>
+    <script>
+      var CanWriteNode = false;
+      var CanReadNode  = false;
+    </script>
+    <lift:authz role="node_write">
+      <script>
+        CanWriteNode = true;
+      </script>
+    </lift:authz>
+    <lift:authz role="node_read">
+      <script>
+        CanReadNode = true;
+      </script>
+    </lift:authz>
     <div id="inventoryVariables"></div>
   </div>
 </nodeproperties-tab>
