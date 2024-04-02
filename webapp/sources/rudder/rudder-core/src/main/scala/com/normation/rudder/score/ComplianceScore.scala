@@ -77,7 +77,7 @@ object ComplianceScoreEventHandler extends ScoreEventHandler {
           } else if (percent.compliance >= 25) {
             Score(scoreId, E, "Compliance is between 5% and 20%", p)
           } else {
-            Score(scoreId, F, "Compliance is lower then 5%", p)
+            Score(scoreId, F, "Compliance is lower than 5%", p)
           }
           ((n, score :: Nil) :: Nil)
         }) match {
