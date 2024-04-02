@@ -173,7 +173,7 @@ editionTemplate model details =
     [ div [class "main-header "]
       [ div [class "header-title"]
         [ h1[class classDisabled]
-          [ badgePolicyMode model.policyMode rule.policyMode
+          [ ( if isNewRule then text "" else badgePolicyMode model.policyMode rule.policyMode )
           , ruleTitle
           , badgeDisabled
           ]
