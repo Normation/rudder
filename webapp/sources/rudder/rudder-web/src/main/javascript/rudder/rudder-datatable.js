@@ -1567,7 +1567,7 @@ async function createNodeTable(gridId, refresh) {
       createTable(gridId,data2, columns, params, contextPath, refresh, "nodes");
     }
     $("#first_line_header input").addClass("form-control")
-    columnSelect(true);
+    columnSelect(true, "Score details");
   }
 
   function removeColumn(columnIndex) {
@@ -1576,7 +1576,7 @@ async function createNodeTable(gridId, refresh) {
 
     table.destroy();
     $('#'+gridId).empty();
-    if (! (columns[columnIndex].title.startsWith("Software") || columns[columnIndex].title.startsWith("Property"))) {
+    if (! (columns[columnIndex].title.startsWith("Software") || columns[columnIndex].title.startsWith("Property")|| columns[columnIndex].title.endsWith("Score"))) {
       dynColumns.push(columns[columnIndex].title)
     }
     columns.splice(columnIndex, 1)
@@ -1587,7 +1587,7 @@ async function createNodeTable(gridId, refresh) {
     columnSelect(true);
   }
 
-  function columnSelect(editOpen) {
+  function columnSelect(editOpen, initialValue) {
     dynColumns.sort()
     var table = $('#'+gridId).DataTable();
     var editTxt    = "<span>Edit columns </span><i class=\"fa fa-pencil\"></i>"
@@ -1607,7 +1607,6 @@ async function createNodeTable(gridId, refresh) {
     select += "</select></div><div><select id='selectScoreDetails' class='form-select'></select></div><div><input class='form-control' id='colValue' type='text'></div><label for='colCheckbox' class='input-group'><span class='input-group-text'><input id='colCheckbox' type='checkbox'></span><div class='form-control'>Show inherited properties</div></label><button id='add-column' class='btn btn-default btn-icon'>Add column <i class='fa fa-plus-circle'></i></button><button id='reset-columns' class='btn btn-default btn-icon'>Reset columns <i class='fa fa-rotate-left'></i></button></div>"
     editOpen ? $("#select-columns").show() : $("#select-columns").hide()
     $("#select-columns").html(select)
-    var selectedColumns =""
     var colsContainer = $("<div class='column-tags-container'></div>")
     for (var key in columns) {
       var elem = $("<span class='rudder-label label-state'>" + columns[key].title + "</span>")
@@ -1622,6 +1621,18 @@ async function createNodeTable(gridId, refresh) {
       $("#select-columns select#selectScoreDetails").hide()
       $("#colCheckbox").parent().parent().hide()
     }
+    if (initialValue !== undefined) {
+      $("#select-columns select#column-select").val(initialValue)
+    }
+    function showSelectScoreDetails() {
+      var scoreColumnsValues = columns.map(({ value }) => (value)).filter((value) => value !== undefined)
+      var options = scoreList.map(({ id, name }) => !scoreColumnsValues.includes(id) ? "<option value='"+id+"'>"+name+"</option>" : "")
+      $("#select-columns select#selectScoreDetails").html(options.join(''))
+      $("#select-columns select#selectScoreDetails").show()
+    }
+    if (initialValue === "Score details") {
+      showSelectScoreDetails()
+    }
     $("#select-columns select#column-select").change(function(e) {
       if (this.value =="Property" || this.value =="Software"  ) {
         $("#select-columns input").parent().show()
@@ -1634,9 +1645,7 @@ async function createNodeTable(gridId, refresh) {
         }
       } else if ( this.value =="Score details"){
           $("#select-columns input").parent().hide()
-          var options = scoreList.map((elem) => "<option value='"+elem.id+"'>"+elem.name+"</option>")
-          $("#select-columns select#selectScoreDetails").html(options.join(''))
-          $("#select-columns select#selectScoreDetails").show()
+          showSelectScoreDetails()
           $("#colCheckbox").parent().parent().hide()
         } else {
         $("#select-columns input").parent().hide()
