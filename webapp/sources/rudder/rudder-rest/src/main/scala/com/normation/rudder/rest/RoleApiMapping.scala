@@ -178,6 +178,8 @@ object AuthorizationApiMapping {
           NodeApi.ListAcceptedNodes.x :: NodeApi.ListPendingNodes.x :: NodeApi.NodeDetails.x ::
           NodeApi.NodeInheritedProperties.x :: NodeApi.NodeDisplayInheritedProperties.x :: NodeApi.NodeDetailsTable.x ::
           NodeApi.PendingNodeDetails.x :: NodeApi.NodeDetailsSoftware.x :: NodeApi.NodeDetailsProperty.x ::
+          NodeApi.GetNodesStatus.x :: InventoryApi.QueueInformation.x ::
+          NodeApi.NodeGlobalScore.x :: NodeApi.NodeScoreDetail.x :: NodeApi.NodeScoreDetails.x ::
           NodeApi.GetNodesStatus.x ::
           // score about node
           NodeApi.NodeGlobalScore.x :: NodeApi.NodeScoreDetails.x :: NodeApi.NodeScoreDetail.x ::

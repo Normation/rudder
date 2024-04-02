@@ -462,7 +462,7 @@ buildTooltipContent : String -> String -> String
 buildTooltipContent title content =
   let
     headingTag = "<h4 class='tags-tooltip-title'>"
-    contentTag = "</h4><div class='tooltip-inner-content'>"
-    closeTag   = "</div>"
+    contentTag = "</h4><div class='tooltip-inner-content'><pre>"
+    closeTag   = "</pre></div>"
   in
     headingTag ++ title ++ contentTag ++ content ++ closeTag

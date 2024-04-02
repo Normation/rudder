@@ -35,6 +35,8 @@ update msg model =
           )
         Err err ->
           processApiError "Getting global score" err model
+    ShowScoreMessage optScore ->
+        ( {model | scoreToShow = optScore} , Cmd.none )
     GetScoreInfo res ->
       case res of
         Ok scoreInfo ->

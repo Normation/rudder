@@ -46,6 +46,7 @@ import com.normation.rudder.score.ScoreValue.B
 import com.normation.rudder.score.ScoreValue.C
 import com.normation.rudder.score.ScoreValue.D
 import com.normation.rudder.score.ScoreValue.E
+import com.normation.rudder.score.ScoreValue.F
 import zio.*
 import zio.json.*
 import zio.syntax.*
@@ -64,17 +65,19 @@ object ComplianceScoreEventHandler extends ScoreEventHandler {
           p <- ComplianceSerializable.fromPercent(percent).toJsonAST
         } yield {
           import ComplianceScore.scoreId
-          val score = if (percent.compliance >= 100) {
-            Score(scoreId, A, "Node is compliant at 100%", p)
-          } else if (percent.compliance >= 75) {
-            Score(scoreId, B, "Node is compliant at least at 75%", p)
+          val score = if (percent.compliance >= 95) {
+            Score(scoreId, A, "Compliance is over 95%", p)
+          } else if (percent.compliance >= 80) {
+            Score(scoreId, B, "Compliance is between 80% and 95%", p)
           } else if (percent.compliance >= 50) {
             ComplianceSerializable.fromPercent(percent)
-            Score(scoreId, C, "Node is compliant at least at 50%", p)
+            Score(scoreId, C, "Compliance is between 50% and 80%", p)
+          } else if (percent.compliance >= 20) {
+            Score(scoreId, D, "Compliance is between 20% and 50%", p)
           } else if (percent.compliance >= 25) {
-            Score(scoreId, D, "Node is compliant at least at 25%", p)
+            Score(scoreId, E, "Compliance is between 5% and 20%", p)
           } else {
-            Score(scoreId, E, "Node is compliant at less than 25%", p)
+            Score(scoreId, F, "Compliance is lower than 5%", p)
           }
           ((n, score :: Nil) :: Nil)
         }) match {
