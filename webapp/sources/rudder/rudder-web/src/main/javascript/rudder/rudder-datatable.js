@@ -1179,7 +1179,7 @@ var allColumns = {
   , "Score" :
                  { "data": "score.score"
                  , "title": "Score"
-                          , "defaultContent" : "<span class='text-muted'>N/A</span>"
+                 , "defaultContent" : "<span class='text-muted'>N/A</span>"
                  , "createdCell" :
                    function (nTd, sData, oData, iRow, iCol) {
                      $(nTd).empty();
@@ -1348,16 +1348,15 @@ function callbackElement(oData, displayCompliance) {
 
 
 var dynColumns = []
-var columns = []// allColumns["Hostname"],  allColumns["OS"],  allColumns["Compliance"],  allColumns["Last run"]];
 var defaultColumns = [ allColumns["Score"], allColumns["Hostname"],  allColumns["OS"],  allColumns["Policy mode"],  allColumns["Compliance"]];
 var allColumnsKeys =  Object.keys(allColumns)
-function reloadTable(gridId) {
+async function reloadTable(gridId) {
   var table = $('#'+gridId).DataTable();
   table.destroy();
-  createNodeTable(gridId, function(){reloadTable(gridId)})
+  await createNodeTable(gridId, function(){reloadTable(gridId)})
 }
 
-function createNodeTable(gridId, refresh) {
+async function createNodeTable(gridId, refresh) {
   var isResizing = false,
     hasHandle = $('#drag').length > 0,
     offsetBottom = 250;
@@ -1402,6 +1401,20 @@ function createNodeTable(gridId, refresh) {
     top.css('bottom', Math.max(bottom.height(), 120));
   });
 
+  await (new Promise(function (resolve, reject) {
+    $.ajax({
+      type: 'GET',
+      url: "/rudder/secure/api/scores/list",
+      success: function (data) {
+        scoreList = data.data
+        resolve(scoreList)
+      },
+      error: function (err) {
+        reject(err)
+      }
+    });
+  }));
+
   var cacheId = gridId + "_columns"
   var cacheColumns = localStorage.getItem(cacheId)
   if (cacheColumns !== null) {
@@ -1409,13 +1422,23 @@ function createNodeTable(gridId, refresh) {
     // Filter columns that are null, and columns that have a title that is  not a key in of AllColumns, or if data does not start by software or property
 
     var cache = JSON.parse(cacheColumns).filter(function(c) {
-      return c !== null && (allColumnsKeys.includes(c.title) || (c.data !== undefined && c.title.startsWith("Software")) || c.title.startsWith("Property") )
+      return c !== null 
+        && (
+          allColumnsKeys.includes(c.title) 
+          || (c.data !== undefined && c.title.startsWith("Software")) 
+          || c.title.startsWith("Property")
+          // it is possible that the column data is no longer found in scoresList (e.g. CVE plugin is uninstalled but CVE Score column is saved in cache)
+          || (c.value !== undefined && !!scoreList.find(({ id }) => c.title.endsWith("Score") && c.value === id))
+        )
     })
+    
     columns = cache.map(function(c) {
       if (c.title.startsWith("Property")) {
         return allColumns.Property(c.value,c.inherited);
-      } else { if (c.data.startsWith("software")) {
+      } else { if (c.data?.startsWith("software")) {
         return allColumns.Software(c.value);
+      } else if (/^.+\sScore$/.test(c.title)) {
+        return allColumns["Score details"](c.value);
       } else {
         return allColumns[c.title];
       } }
@@ -1473,14 +1496,6 @@ function createNodeTable(gridId, refresh) {
       }
     , "dom": ' <"dataTables_wrapper_top newFilter "<"#first_line_header" f <"dataTables_refresh"> <"#edit-columns">> <"#select-columns"> >rt<"dataTables_wrapper_bottom"lip>'
   };
-
-  $.ajax({
-    type: 'GET',
-    url: "/rudder/secure/api/scores/list",
-    success: function (data) {
-      scoreList = data.data
-    },
-  });
 
   createTable(gridId, [] , columns, params, contextPath, refresh, "nodes");
   $("#first_line_header input").addClass("form-control")
