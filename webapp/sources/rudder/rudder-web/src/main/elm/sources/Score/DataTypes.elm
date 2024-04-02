@@ -49,6 +49,7 @@ type alias Model =
   , score       : Maybe GlobalScore
   , contextPath : String
   , scoreInfo   : List ScoreInfo
+  , scoreToShow : Maybe String
   }
 
-type Msg = GetScore (Result Error GlobalScore) | GetScoreInfo (Result Error (List ScoreInfo))
+type Msg = GetScore (Result Error GlobalScore) | GetScoreInfo (Result Error (List ScoreInfo)) | ShowScoreMessage (Maybe String)
