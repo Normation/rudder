@@ -217,6 +217,7 @@ td.eventId{
 td.listopen,
 td.listclose{
   cursor: pointer;
+  background-color: inherit;
 }
 td.listopen:before,
 .listclose:before {
@@ -236,7 +237,7 @@ td.listclose:after {
   width: 14px;
   height: 14px;
   transform: rotate(45deg);
-  background-color: #e2f1ff;
+  background-color: inherit;
   border-bottom: 1px solid #c0d4e4;
   border-right: 1px solid #c0d4e4;
   bottom: -7px;
