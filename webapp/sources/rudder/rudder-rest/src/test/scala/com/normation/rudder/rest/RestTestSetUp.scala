@@ -38,6 +38,7 @@
 package com.normation.rudder.rest
 
 import com.normation.box.*
+import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.VariableSpec
 import com.normation.cfclerk.services.TechniqueRepository
@@ -62,6 +63,12 @@ import com.normation.rudder.campaigns.CampaignSerializer
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.policies.ActiveTechnique
+import com.normation.rudder.domain.policies.ActiveTechniqueCategory
+import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.rudder.domain.policies.ActiveTechniqueId
+import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -88,10 +95,7 @@ import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
 import com.normation.rudder.hooks.HookEnvPairs
-import com.normation.rudder.ncf.EditorTechniqueReader
-import com.normation.rudder.ncf.ResourceFileService
-import com.normation.rudder.ncf.TechniqueSerializer
-import com.normation.rudder.ncf.TechniqueWriter
+import com.normation.rudder.ncf.{EditorTechniqueReader, ResourceFileService, TechniqueSerializer, TechniqueWriter}
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -118,9 +122,11 @@ import com.normation.rudder.services.healthcheck.CheckFreeSpace
 import com.normation.rudder.services.healthcheck.HealthcheckNotificationService
 import com.normation.rudder.services.healthcheck.HealthcheckService
 import com.normation.rudder.services.marshalling.DeploymentStatusSerialisation
+import com.normation.rudder.services.nodes.PropertyUsageService
 import com.normation.rudder.services.policies.DependencyAndDeletionServiceImpl
 import com.normation.rudder.services.policies.FindDependencies
 import com.normation.rudder.services.policies.InterpolationContext
+import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.NodeConfigurations
 import com.normation.rudder.services.policies.NodesContextResult
@@ -149,6 +155,7 @@ import com.normation.rudder.web.services.Translator
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import doobie.*
+
 import java.nio.charset.StandardCharsets
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
@@ -173,7 +180,9 @@ import org.apache.commons.io.output.ByteArrayOutputStream
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.specs2.matcher.MatchResult
+
 import scala.collection.MapView
+import scala.collection.SortedMap
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
@@ -226,6 +235,7 @@ class RestTestSetUp {
 
   val mockGitRepo = new MockGitConfigRepo("")
   val mockTechniques: MockTechniques = MockTechniques(mockGitRepo)
+  val mockEditorTechniques                           = new MockEditorTechniques()
   val mockDirectives                                 = new MockDirectives(mockTechniques)
   val mockRules                                      = new MockRules()
   val mockNodes                                      = new MockNodes()
@@ -236,6 +246,7 @@ class RestTestSetUp {
   val mockConfigRepo                                 = new MockConfigRepo(mockTechniques, mockDirectives, mockRules, mockNodeGroups, mockLdapQueryParsing)
   val mockScores                                     = new MockScores()
   val mockCompliance                                 = new MockCompliance(mockDirectives)
+
   val (mockUserManagementTmpDir, mockUserManagement) = MockUserManagement()
 
   val dynGroupUpdaterService =
@@ -894,6 +905,34 @@ class RestTestSetUp {
     val api        = new CampaignApi(repo, translator, dumbCampaignEventRepository, mainCampaignService, restExtractorService, uuidGen)
   }
 
+  val directivesLib = NodeConfigData.directives
+  val directivesRepos: RoDirectiveRepository = new RoDirectiveRepository() {
+    def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] = directivesLib.succeed
+    def getDirective(directiveId:               DirectiveUid): IOResult[Option[Directive]] = ???
+    def getDirectiveWithContext(directiveId:    DirectiveUid): IOResult[Option[(Technique, ActiveTechnique, Directive)]] = ???
+    def getActiveTechniqueAndDirective(id:      DirectiveId): IOResult[Option[(ActiveTechnique, Directive)]] = ???
+    def getDirectives(activeTechniqueId:        ActiveTechniqueId, includeSystem: Boolean = false): IOResult[Seq[Directive]] = ???
+    def getActiveTechniqueByCategory(
+        includeSystem: Boolean = false
+    ): IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
+    def getActiveTechniqueByActiveTechnique(id: ActiveTechniqueId): IOResult[Option[ActiveTechnique]] = ???
+    def getActiveTechnique(techniqueName:       TechniqueName): IOResult[Option[ActiveTechnique]] = ???
+    def activeTechniqueBreadCrump(id:           ActiveTechniqueId): IOResult[List[ActiveTechniqueCategory]] = ???
+    def getActiveTechniqueLibrary: IOResult[ActiveTechniqueCategory] = ???
+    def getAllActiveTechniqueCategories(includeSystem: Boolean = false):           IOResult[Seq[ActiveTechniqueCategory]]    = ???
+    def getActiveTechniqueCategory(id:                 ActiveTechniqueCategoryId): IOResult[Option[ActiveTechniqueCategory]] = ???
+    def getParentActiveTechniqueCategory(id:           ActiveTechniqueCategoryId): IOResult[ActiveTechniqueCategory]         = ???
+    def getParentsForActiveTechniqueCategory(id:       ActiveTechniqueCategoryId): IOResult[List[ActiveTechniqueCategory]]   = ???
+    def getParentsForActiveTechnique(id:               ActiveTechniqueId):         IOResult[ActiveTechniqueCategory]         = ???
+    def containsDirective(id:                          ActiveTechniqueCategoryId): UIO[Boolean]                              = ???
+
+  }
+
+  val propertyUsageService = new PropertyUsageService(
+    directivesRepos,
+    mockEditorTechniques
+  )
+
   val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema with SortIndex]] = List(
     systemApi,
     new ParameterApi(restExtractorService, zioJsonExtractor, parameterApiService2, parameterApiService14),
@@ -902,7 +941,7 @@ class RestTestSetUp {
       techniqueAPIService6,
       techniqueAPIService14,
       ncfTechniqueWriter,
-      ncfTechniqueReader,
+      mockEditorTechniques,
       techniqueRepository,
       techniqueSerializer,
       uuidGen,
@@ -932,7 +971,7 @@ class RestTestSetUp {
       ),
       uuidGen,
       DeleteMode.Erase,
-      null
+      propertyUsageService
     ),
     new GroupsApi(
       mockNodeGroups.groupsRepo,

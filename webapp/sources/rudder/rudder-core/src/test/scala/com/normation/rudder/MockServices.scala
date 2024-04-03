@@ -41,6 +41,7 @@ import better.files.*
 import com.normation.GitVersion
 import com.normation.box.*
 import com.normation.cfclerk.domain.*
+import com.normation.cfclerk.domain.ReportingLogic.FocusReport
 import com.normation.cfclerk.services.impl.*
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.cfclerk.xmlparsers.TechniqueParser
@@ -117,6 +118,15 @@ import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.git.SimpleGitRevisionProvider
 import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.hooks.CmdResult
+import com.normation.rudder.migration.XmlEntityMigration
+import com.normation.rudder.ncf.BundleName
+import com.normation.rudder.ncf.EditorTechnique
+import com.normation.rudder.ncf.EditorTechniqueReader
+import com.normation.rudder.ncf.GenericMethod
+import com.normation.rudder.ncf.MethodBlock
+import com.normation.rudder.ncf.MethodCall
+import com.normation.rudder.ncf.ParameterId
 import com.normation.rudder.reports.*
 import com.normation.rudder.repository.*
 import com.normation.rudder.repository.RoRuleRepository
@@ -263,6 +273,68 @@ class MockGitConfigRepo(prefixTestResources: String = "", configRepoDirName: Str
       ZIO.unit
     }
   }
+}
+
+class MockEditorTechniques() extends EditorTechniqueReader {
+  def readTechniquesMetadataFile: IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])] = {
+    val methods: Map[BundleName, GenericMethod] = Map()
+    (
+      List(
+        EditorTechnique(
+          BundleName("technique_with_a_property_in_a_block"),
+          new Version("1.0"),
+          "Test technique with block and property 'toto'",
+          "ncf_techniques",
+          MethodBlock(
+            "id-block",
+            "Dummy block",
+            FocusReport("focus"),
+            "",
+            MethodCall(
+              BundleName("package_install"),
+              "id4",
+              Map((ParameterId("package_name"), s"$${node.properties[toto] | default = \"tutu\", opt1 = \"hello\"}")),
+              "redhat",
+              "Package install",
+              false
+            ) :: Nil
+          ) :: Nil,
+          "",
+          "",
+          Nil,
+          Nil,
+          Map(),
+          None
+        ),
+        EditorTechnique(
+          BundleName("technique_by_Rudder_with_common_property"),
+          new Version("1.0"),
+          "Test Technique with property 'common_property'",
+          "ncf_techniques",
+          MethodCall(
+            BundleName("package_install"),
+            "id4",
+            Map(
+              (ParameterId("package_name"), s"$${node.properties[common_property][subval]| default = \"tutu\", opt1 = \"hello\"}")
+            ),
+            "redhat",
+            "Package install",
+            false
+          ) :: Nil,
+          "",
+          "",
+          Nil,
+          Nil,
+          Map(),
+          None
+        )
+      ),
+      methods,
+      List.empty
+    ).succeed
+  }
+  def getMethodsMetadata:         IOResult[Map[BundleName, GenericMethod]]                                             = null
+  def updateMethodsMetadataFile:  IOResult[CmdResult]                                                                  = null
 }
 
 object MockTechniques {
@@ -420,6 +492,25 @@ class MockDirectives(mockTechniques: MockTechniques) {
       5,
       _isEnabled = true,
       isSystem = false
+    )
+
+    val findPropUsageTechnique =
+      techniqueRepos.unsafeGet(TechniqueId(TechniqueName("test_find_property_usage_in_technique"), TV("1.0")))
+    val findPropUsageDirective = Directive(
+      DirectiveId(DirectiveUid("test_find_property_usage_in_directive"), GitVersion.DEFAULT_REV),
+      TV("1.0"),
+      Map(
+        "idParam1" -> Seq(
+          "Hello world${node.properties[hello_world][subval1][subval2] | default = 'toto', opt1 = 'tutu', opt2 = 'titi'}"
+        )
+      ),
+      "test_find_property_usage_in_directive",
+      "",
+      None,
+      "",
+      5,
+      true,
+      false
     )
 
     // we have one rule with several system technique for root server config
@@ -680,14 +771,16 @@ class MockDirectives(mockTechniques: MockTechniques) {
       (ncf1Technique, ncf1Directive :: Nil),
       (pkgTechnique, pkgDirective :: Nil),
       (archiveTechnique, archiveDirective :: Nil),
+      (findPropUsageTechnique, findPropUsageDirective :: Nil),
       (rpmTechnique, rpmDirective :: Nil)
     )
   }
 
   val techniqueRepos = mockTechniques.techniqueRepo
   implicit class UnsafeGet(repo: TechniqueRepositoryImpl) {
-    def unsafeGet(id: TechniqueId): Technique =
+    def unsafeGet(id: TechniqueId): Technique = {
       repo.get(id).getOrElse(throw new RuntimeException(s"Bad init for test: technique '${id.debugString}' not found"))
+    }
   }
 
   val rootActiveTechniqueCategory: Ref.Synchronized[FullActiveTechniqueCategory] = Ref.Synchronized

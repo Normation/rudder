@@ -647,12 +647,33 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
   val d1:   Directive           = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1", None)
   val d2:   Directive           = Directive("d2", "1.0", Map("foo2" -> Seq("bar2")), "d2", "d2", Some(PolicyMode.Enforce))
   val d3:   Directive           = Directive("d3", "1.0", Map("foo3" -> Seq("bar3")), "d3", "d3", Some(PolicyMode.Audit))
+  val d4:   Directive           = Directive(
+    "dir_with_property_pouet",
+    "1.0",
+    Map("foo4" -> Seq(s"Testing property $${node.properties[pouet] | default = 'prout', opt1 = \"hihi\"} find usage")),
+    "Directive with property 'pouet'",
+    "short description",
+    Some(PolicyMode.Audit)
+  )
+  val d5:   Directive           = Directive(
+    "dir_with_property_common_property",
+    "1.0",
+    Map(
+      "foo5" -> Seq(
+        s"Nothing relevant",
+        s"Testing shared with technique property $${node.properties[common_property][sub_value1][sub_value2]|default='test',opt1=\"test2\"} find usage"
+      )
+    ),
+    "Directive with property 'common_property'",
+    "short description",
+    Some(PolicyMode.Audit)
+  )
   val fat1: FullActiveTechnique = FullActiveTechnique(
     "d1",
     "t1",
     SortedMap(toTV("1.0") -> DateTime.parse("2016-01-01T12:00:00.000+00:00")),
     SortedMap(toTV("1.0") -> t1),
-    d1 :: d2 :: Nil
+    d1 :: d2 :: d4 :: d5 :: Nil
   )
 
   val directives: FullActiveTechniqueCategory =
@@ -1009,6 +1030,28 @@ class TestNodeConfiguration(
     priority = 5,
     _isEnabled = true,
     isSystem = false
+  )
+
+  val findPropUsageTechnique: Technique = {
+    techniqueRepository.unsafeGet(
+      TechniqueId(TechniqueName("test_find_property_usage_in_technique"), TechniqueVersionHelper("1.0"))
+    )
+  }
+  val findPropUsageDirective: Directive = Directive(
+    DirectiveId(DirectiveUid("test_find_property_usage_in_directive"), GitVersion.DEFAULT_REV),
+    TechniqueVersionHelper("1.0"),
+    Map(
+      "idParam1" -> Seq(
+        "Hello world${node.properties[hello_world][subval1][subval2] | default = 'toto', opt1 = 'tutu', opt2 = 'titi'}"
+      )
+    ),
+    "test_find_property_usage_in_directive",
+    "",
+    None,
+    "",
+    5,
+    true,
+    false
   )
 
   // we have one rule with several system technique for root server config
