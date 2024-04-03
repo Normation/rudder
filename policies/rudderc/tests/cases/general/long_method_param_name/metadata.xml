@@ -15,7 +15,7 @@
   </AGENT>
   <AGENT type="dsc">
     <BUNDLES>
-      <NAME>Windows-Long-Param-Names</NAME>
+      <NAME>Technique-Windows-Long-Param-Names</NAME>
     </BUNDLES>
     <FILES>
       <FILE name="technique.ps1">

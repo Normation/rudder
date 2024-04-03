@@ -24,7 +24,7 @@
   </AGENT>
   <AGENT type="dsc">
     <BUNDLES>
-      <NAME>Ntp-Technique</NAME>
+      <NAME>Technique-Ntp-Technique</NAME>
     </BUNDLES>
     <FILES>
       <FILE name="technique.ps1">

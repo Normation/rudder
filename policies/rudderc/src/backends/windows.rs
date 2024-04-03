@@ -110,6 +110,10 @@ pub mod filters {
         Ok(s.to_string().replace('\"', "`\""))
     }
 
+    pub fn technique_name<T: Display>(s: T) -> askama::Result<String> {
+        Ok(super::Windows::technique_name(&s.to_string()))
+    }
+
     pub fn canonify_condition<T: Display>(s: T) -> askama::Result<String> {
         let s = s.to_string();
         if !s.contains("${") {
@@ -205,7 +209,7 @@ impl Windows {
     }
 
     pub fn technique_name(s: &str) -> String {
-        filters::dsc_case(s).unwrap()
+        format!("Technique-{}", filters::dsc_case(s).unwrap())
     }
 
     fn technique(src: Technique, resources: &Path) -> Result<String> {

@@ -1,5 +1,5 @@
 {#- Syntax: https://djc.github.io/askama/template_syntax.html -#}
-function Technique-{{ id|dsc_case }} {
+function {{ id|technique_name }} {
     [CmdletBinding()]
     param (
         [parameter(Mandatory = $true)]
