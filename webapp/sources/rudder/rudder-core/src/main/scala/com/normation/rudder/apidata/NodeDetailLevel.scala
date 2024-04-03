@@ -40,8 +40,10 @@ package com.normation.rudder.apidata
 import com.normation.inventory.domain.*
 import com.normation.rudder.domain.logger.ApiLogger
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.facts.nodes.SecurityTag
 import com.normation.utils.DateFormaterService
 import net.liftweb.json.*
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL.*
 import org.joda.time.DateTime
 
@@ -58,7 +60,8 @@ sealed trait NodeDetailLevel {
       status:     InventoryStatus,
       optRunDate: Option[DateTime],
       inventory:  Option[FullInventory],
-      software:   Seq[Software]
+      software:   Seq[Software],
+      optTenant:  Option[SecurityTag]
   ): JObject = {
 
     val jsonFields: List[JField] = NodeDetailLevel.allFields.filter(fields.contains).map { field =>
@@ -66,7 +69,7 @@ sealed trait NodeDetailLevel {
       val json = NodeDetailLevel.statusInfoFields
         .get(field)
         .map(_(status))
-        .orElse(NodeDetailLevel.nodeInfoFields.get(field).map(_((nodeInfo, optRunDate))))
+        .orElse(NodeDetailLevel.nodeInfoFields.get(field).map(_((nodeInfo, optRunDate, optTenant))))
         .orElse(inventory.flatMap(i => NodeDetailLevel.fullInventoryFields.get(field).map(_(i))))
         .orElse(NodeDetailLevel.softwareFields.get(field).map(_(software)))
         .getOrElse(JNothing)
@@ -135,7 +138,8 @@ object NodeDetailLevel {
     "managementTechnology",
     "properties",
     "policyMode",
-    "timezone"
+    "timezone",
+    "tenant"
   )
 
   val otherAllFields: List[String] = List(
@@ -175,7 +179,7 @@ object NodeDetailLevel {
     )
   }
 
-  type INFO = (NodeInfo, Option[DateTime])
+  type INFO = (NodeInfo, Option[DateTime], Option[SecurityTag])
   private val nodeInfoFields: Map[String, INFO => JValue] = {
 
     val id:            INFO => JValue = (info: INFO) => info._1.id.value
@@ -192,6 +196,8 @@ object NodeDetailLevel {
     val properties:    INFO => JValue = (info: INFO) => info._1.properties.sortBy(_.name).toApiJson
     val policyMode:    INFO => JValue = (info: INFO) => info._1.policyMode.map(_.name).getOrElse[String]("default")
     val timezone:      INFO => JValue = (info: INFO) => info._1.timezone.map(t => ("name" -> t.name) ~ ("offset" -> t.offset))
+    val tenant:        INFO => JValue = (info: INFO) =>
+      info._3.flatMap(_.tenants.headOption.map(t => JString(t.value))).getOrElse(JNothing)
 
     val os = { (info: INFO) =>
       val osType = info._1.osDetails.os match {
@@ -260,7 +266,8 @@ object NodeDetailLevel {
       ("architectureDescription" -> arch),
       ("properties"              -> properties),
       ("policyMode"              -> policyMode),
-      ("timezone"                -> timezone)
+      ("timezone"                -> timezone),
+      ("tenant"                  -> tenant)
     )
   }
 
