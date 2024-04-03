@@ -371,6 +371,25 @@ response:
             ]
           },
           {
+            "id":"test_find_property_usage_in_directive",
+            "displayName":"test_find_property_usage_in_directive",
+            "shortDescription":"",
+            "longDescription":"",
+            "techniqueName":"test_find_property_usage_in_technique",
+            "techniqueVersion":"1.0",
+            "parameters":{
+              "section":{
+                "name":"sections",
+                "sections":[]
+              }
+            },
+            "priority":5,
+            "enabled":true,
+            "system":false,
+            "policyMode":"default",
+            "tags":[]
+          },
+          {
             "id":"test_import_export_archive_directive",
             "displayName":"test_import_export_archive_directive",
             "shortDescription":"",
@@ -2049,6 +2068,31 @@ response:
                     "id": "technique_with_blocks",
                     "name": "technique with blocks",
                     "directives": []
+                  },
+                  {
+                    "id":"test_find_property_usage_in_technique",
+                    "name":"TestfindpropertyusageinTechnique",
+                    "directives":[
+                      {
+                        "id":"test_find_property_usage_in_directive",
+                        "displayName":"test_find_property_usage_in_directive",
+                        "shortDescription":"",
+                        "longDescription":"",
+                        "techniqueName":"test_find_property_usage_in_technique",
+                        "techniqueVersion":"1.0",
+                        "parameters":{
+                          "section":{
+                            "name":"sections",
+                            "sections":[]
+                          }
+                        },
+                        "priority":5,
+                        "enabled":true,
+                        "system":false,
+                        "policyMode":"default",
+                        "tags":[]
+                      }
+                    ]
                   },
                   {
                     "id": "test_import_export_archive",

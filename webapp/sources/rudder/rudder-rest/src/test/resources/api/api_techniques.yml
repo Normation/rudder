@@ -78,6 +78,12 @@ response:
             ]
           },
           {
+            "name":"test_find_property_usage_in_technique",
+            "versions":[
+              "1.0"
+            ]
+          },
+          {
             "name":"a_simple_yaml_technique",
             "versions":[
               "1.0"
