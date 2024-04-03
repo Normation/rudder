@@ -138,13 +138,7 @@ displayAccountsTable model =
             if isEmpty a.token then
                 td [class "token"] [ span [class "token-txt"][ text "[hashed]" ] ]
             else
-                td [class "token"]
-                [ span [class "token-txt"]
-                  [text (slice 0 5 a.token)]
-                  , span[class "fa hide-text"][]
-                , Html.a [ class "btn-goto clipboard", title "Copy to clipboard" , onClick (Copy a.token) ]
-                  [ i [class "ion ion-clipboard"][] ]
-                ]
+                td [class "token"] [ span [class "token-txt"][ text "TODO" ] ]
           else
             td [class "date"][ text (cleanDate a.creationDate) ]
         , td [class "date"][ text expirationDate ]
