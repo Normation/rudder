@@ -17,7 +17,7 @@
   </AGENT>
   <AGENT type="dsc">
     <BUNDLES>
-      <NAME>Escaping</NAME>
+      <NAME>Technique-Escaping</NAME>
     </BUNDLES>
     <FILES>
       <FILE name="technique.ps1">
