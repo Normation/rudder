@@ -56,6 +56,7 @@ import com.normation.rudder.domain.properties.*
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.domain.workflows.*
+import com.normation.rudder.facts.nodes.SecurityTag
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategory
@@ -124,6 +125,7 @@ trait RestDataSerializer {
       optRunDate:  Option[DateTime],
       inventory:   Option[FullInventory],
       software:    Seq[Software],
+      optTenant:   Option[SecurityTag],
       detailLevel: NodeDetailLevel
   ): JValue
 
@@ -171,9 +173,10 @@ final case class RestDataSerializerImpl(
       optRunDate:  Option[DateTime],
       inventory:   Option[FullInventory],
       software:    Seq[Software],
+      optTenant:   Option[SecurityTag],
       detailLevel: NodeDetailLevel
   ): JValue = {
-    detailLevel.toJson(nodeInfo, status, optRunDate, inventory, software)
+    detailLevel.toJson(nodeInfo, status, optRunDate, inventory, software, optTenant)
   }
 
   def serializeInventory(inventory: FullInventory, status: String): JValue = {
