@@ -15,7 +15,7 @@
   </AGENT>
   <AGENT type="dsc">
     <BUNDLES>
-      <NAME>Param-In-Condition</NAME>
+      <NAME>Technique-Param-In-Condition</NAME>
     </BUNDLES>
     <FILES>
       <FILE name="technique.ps1">
