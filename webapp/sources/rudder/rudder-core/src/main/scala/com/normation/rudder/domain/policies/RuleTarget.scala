@@ -329,7 +329,15 @@ object RuleTarget extends Loggable {
           // here, if we don't find the group, we consider it's an error in the
           // target recording, but don't fail, just log it.
           case GroupTarget(groupId)         =>
-            nodes ++ groups.getOrElse(groupId, Chunk.empty)
+            val groupNodes = groups.getOrElse(groupId, Chunk.empty)
+            val filtered   = {
+              if (allNodesAreThere) groupNodes
+              else {
+                val keys = Chunk.fromIterable(allNodes.keys)
+                groupNodes.filter(keys.contains(_))
+              }
+            }
+            nodes ++ filtered
 
           case TargetIntersection(targets) =>
             val nodeSets     = targets.map(t => getNodeIdsChunkRec(Chunk(t), allNodes, groups, allNodesAreThere))
