@@ -60,6 +60,8 @@ import org.joda.time.DateTime
 import zio.interop.catz.*
 import zio.syntax.*
 
+import scala.annotation.nowarn
+
 class PostgresqlInClause(
     // max number of element to switch from in (...) to in(values(...)) clause
     // Postgres guru seems to indicate 70 is a good value
@@ -697,7 +699,8 @@ object ComponentsValuesSerialiser {
     if (null == ids || ids.trim == "") List()
     else {
       implicit val formats = DefaultFormats
-      parse(ids).extract[List[String]]
+      // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+      parse(ids).extract[List[String]] : @nowarn("cat=deprecation")
     }
   }
 }

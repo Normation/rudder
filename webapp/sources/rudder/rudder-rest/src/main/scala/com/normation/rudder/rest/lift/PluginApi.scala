@@ -121,7 +121,8 @@ class PluginApi(
       val json             = {
         for {
           json <- req.json.toIO
-          conf <- IOResult.attempt(Serialization.read[PluginSettings](net.liftweb.json.compactRender(json)))
+          // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+          conf <- IOResult.attempt(Serialization.read[PluginSettings](net.liftweb.json.compactRender(json))) : @annotation.nowarn("cat=deprecation")
           _    <- pluginSettingsService.writePluginSettings(conf)
 
         } yield {

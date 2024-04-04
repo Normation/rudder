@@ -109,7 +109,8 @@ object CustomPropertiesSerialization {
     def toCustomProperty: Either[Throwable, CustomProperty] = {
       implicit val formats: Formats = DefaultFormats
       try {
-        Right(Serialization.read[CustomProperty](json))
+        // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+        Right(Serialization.read[CustomProperty](json)) : @annotation.nowarn("cat=deprecation")
       } catch {
         case ex: Exception => Left(ex)
       }
@@ -758,7 +759,8 @@ class InventoryMapper(
     implicit class Unserialize(json: String) {
       def toCustomProperty: IOResult[CustomProperty] = {
         implicit val formats: Formats = DefaultFormats
-        IOResult.attempt(Serialization.read[CustomProperty](json))
+        // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+        IOResult.attempt(Serialization.read[CustomProperty](json) : @annotation.nowarn("cat=deprecation"))
       }
     }
   }
@@ -1093,8 +1095,9 @@ class InventoryMapper(
       lastLoggedUser     = entry(A_LAST_LOGGED_USER)
       lastLoggedUserTime = entry.getAsGTime(A_LAST_LOGGED_USER_TIME).map(_.dateTime)
       publicKeys         = entry.valuesFor(A_PKEYS).map(k => PublicKey(k))
-      ev                 = entry.valuesFor(A_EV).toSeq.map(Serialization.read[EnvironmentVariable](_))
-      process            = entry.valuesFor(A_PROCESS).toSeq.map(Serialization.read[Process](_))
+      // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+      ev                 = entry.valuesFor(A_EV).toSeq.map(Serialization.read[EnvironmentVariable](_) : @annotation.nowarn("cat=deprecation"))
+      process            = entry.valuesFor(A_PROCESS).toSeq.map(Serialization.read[Process](_) : @annotation.nowarn("cat=deprecation"))
       softwareIds        = entry.valuesFor(A_SOFTWARE_DN).toSeq.flatMap(x => dit.SOFTWARE.SOFT.idFromDN(new DN(x)).toOption)
       machineId         <- mapSeqStringToMachineIdAndStatus(entry.valuesFor(A_CONTAINER_DN)).toList match {
                              case Nil                 => None.succeed

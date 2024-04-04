@@ -74,7 +74,8 @@ class CheckRudderGlobalParameter(
   def toParams(value: JValue): IOResult[List[GlobalParameter]] = {
     implicit val formats = DefaultFormats
     value match {
-      case JArray(list) => ZIO.foreach(list)(v => IOResult.attempt(v.extract[JsonParam].toGlobalParam))
+      // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+      case JArray(list) => ZIO.foreach(list)(v => IOResult.attempt(v.extract[JsonParam].toGlobalParam : @annotation.nowarn("cat=deprecation")))
       case x            =>
         Inconsistency(s"Resources `${resource}` must contain an array of json object with keys name, description, value`").fail
     }
