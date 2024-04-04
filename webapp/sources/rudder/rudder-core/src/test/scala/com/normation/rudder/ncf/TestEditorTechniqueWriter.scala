@@ -727,7 +727,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
 
     "Should not generate expected additional rudder reporting content for our technique" in {
       val resultFile = new JFile(s"${basePath}/${reportingPath_any}")
-      resultFile must not exist
+      resultFile must not(exist)
     }
   }
 

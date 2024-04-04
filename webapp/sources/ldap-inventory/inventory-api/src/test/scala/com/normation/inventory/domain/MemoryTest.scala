@@ -56,11 +56,11 @@ class MemoryTest extends Specification {
   "Parsing memory type" should {
 
     "work for all valid value" in {
-      validMemoryValue.map { case (value, result) => MemorySize.parse(value) mustEqual (Some(result)) }
+      validMemoryValue.map { case (value, result) => MemorySize.parse(value) must beSome(result) }
     }
 
     "fail for all invalid value" in {
-      invalidMemoryValue.map(MemorySize.parse(_) mustEqual (None))
+      invalidMemoryValue.map(MemorySize.parse(_) must beNone)
     }
 
   }

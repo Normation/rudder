@@ -77,10 +77,10 @@ class TestSelectFacts extends Specification {
 
   "masking 1" >> {
     (SelectFacts.mask(nodeFact1)(SelectFacts.all) === nodeFact1) and
-    (nodeFact1.software must not beEmpty) and
-    (nodeFact1.environmentVariables must not beEmpty) and
-    (nodeFact1.bios must not beEmpty) and
-    (nodeFact1.softwareUpdate must not beEmpty)
+    (nodeFact1.software must not(beEmpty)) and
+    (nodeFact1.environmentVariables must not(beEmpty)) and
+    (nodeFact1.bios must not(beEmpty)) and
+    (nodeFact1.softwareUpdate must not(beEmpty))
   }
 
   "masking 2" >> {

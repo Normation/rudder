@@ -48,7 +48,7 @@ import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
 import org.junit.runner.*
-import org.specs2.matcher.MatchResult
+import org.specs2.execute
 import org.specs2.mutable.*
 import org.specs2.runner.*
 import scala.annotation.nowarn
@@ -80,7 +80,7 @@ class TestInventory extends Specification {
   }
 
   implicit class TestIsOK[E, T](thing: ZIO[Any, E, T]) {
-    def isOK: MatchResult[Either[E, T]] = thing.testRun must beRight
+    def isOK: execute.Result = thing.testRun must beRight
   }
 
   implicit class ForceGetE[E, A](opt: Either[E, A]) {
@@ -227,12 +227,12 @@ class TestInventory extends Specification {
       // it throws exception if not success
       ldap.server.modify(dn, new Modification(ModificationType.ADD, "localAccountName", "TEST", "test"))
 
-      (try {
+      try {
         ldap.server.assertValueExists(dn, "localAccountName", java.util.Arrays.asList("TEST", "test"))
         ok("success")
       } catch {
         case ae: AssertionError => ko(ae.getMessage)
-      }): MatchResult[Any]
+      }
     }
   }
 
@@ -448,17 +448,17 @@ class TestInventory extends Specification {
   "Softwares" should {
     "Find 2 software referenced by nodes with the repository" in {
       val softwares = readOnlySoftware.getSoftwaresForAllNodes().testRun
-      softwares.map(_.size) must beEqualTo(Right(2))
+      softwares.map(_.size) must beRight(2)
     }
 
     "Find 3 software in ou=software with the repository" in {
       val softwares = readOnlySoftware.getAllSoftwareIds().testRun
-      softwares.map(_.size) must beEqualTo(Right(3))
+      softwares.map(_.size) must beRight(3)
     }
 
     "Purge one unreferenced software with the SoftwareService" in {
       val purgedSoftwares = softwareService.deleteUnreferencedSoftware().testRun
-      purgedSoftwares must beEqualTo(Right(1))
+      purgedSoftwares must beRight(1)
     }
   }
 

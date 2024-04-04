@@ -283,7 +283,7 @@ class TestFullInventoryRepoProxy extends Specification {
             node0 === n0_
             and node1 === n1_
             and node2 === n2_
-            and (node3 isLeft) // no move to delete
+            and (node3 must beLeft) // no move to delete
           )
         }
       )

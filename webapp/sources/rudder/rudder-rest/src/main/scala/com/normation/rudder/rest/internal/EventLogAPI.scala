@@ -141,13 +141,13 @@ class EventLogAPI(
         }
       }
 
-      implicit val prettify = restExtractor
+      implicit val prettify: Boolean = restExtractor
         .extractBoolean("prettify")(req)(identity)
         .getOrElse(Some(false))
         .getOrElse(
           false
         )
-      implicit val action: String = "eventFilterDetails"
+      implicit val action:   String  = "eventFilterDetails"
       OldInternalApiAuthz.withWriteAdmin((for {
         json   <- req.json
         draw   <- CompleteJson.extractJsonInt(json, "draw")
@@ -228,8 +228,9 @@ class EventLogAPI(
       })
 
     case Get(id :: "details" :: Nil, req) =>
-      implicit val prettify = restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
-      implicit val action: String = "eventDetails"
+      implicit val prettify: Boolean =
+        restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
+      implicit val action:   String  = "eventDetails"
       OldInternalApiAuthz.withReadAdmin((for {
         realId     <- Box.tryo(id.toLong)
         event      <- repos.getEventLogById(realId).toBox
@@ -254,8 +255,9 @@ class EventLogAPI(
       })
 
     case Get(id :: "details" :: "rollback" :: Nil, req) =>
-      implicit val prettify = restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
-      implicit val action: String = "eventRollback"
+      implicit val prettify: Boolean =
+        restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
+      implicit val action:   String  = "eventRollback"
 
       OldInternalApiAuthz.withReadAdmin((for {
         reqParam     <- req.params.get("action") match {

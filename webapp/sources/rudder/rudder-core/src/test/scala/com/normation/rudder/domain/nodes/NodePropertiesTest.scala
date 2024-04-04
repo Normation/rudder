@@ -116,7 +116,7 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
 
   "updating/deleting with different owners" should {
     // do an update and a delete of the prop
-    def updateAndDelete(prop: NodeProperty) = {
+    def updateAndDelete(prop: NodeProperty): List[PureResult[?]] = {
       List(
         CompareProperties.updateProperties(baseProps, Some(prop :: Nil)),
         CompareProperties.updateProperties(baseProps, Some(prop.withValue("") :: Nil))
@@ -124,39 +124,51 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
     }
 
     "works if providers goes from default to an other" in {
-      List(
-        updateAndDelete(NodeProperty("none", "xxx".toConfigValue, None, P1)),
-        updateAndDelete(NodeProperty("none", "xxx".toConfigValue, None, P2)),
-        updateAndDelete(NodeProperty("default", "xxx".toConfigValue, None, P1)),
-        updateAndDelete(NodeProperty("default", "xxx".toConfigValue, None, P2))
-      ).flatten must contain((res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[?, ?]]).foreach
+      val input  = {
+        List(
+          NodeProperty("none", "xxx".toConfigValue, None, P1),
+          NodeProperty("none", "xxx".toConfigValue, None, P2),
+          NodeProperty("default", "xxx".toConfigValue, None, P1),
+          NodeProperty("default", "xxx".toConfigValue, None, P2)
+        )
+      }
+      val actual = input.flatMap(updateAndDelete)
+      actual must contain((x: PureResult[?]) => x must beRight).foreach
     }
 
     "works if providers goes from anything to system" in {
-      List(
-        updateAndDelete(NodeProperty("none", "xxx".toConfigValue, None, Some(PropertyProvider.systemPropertyProvider))),
-        updateAndDelete(NodeProperty("p1", "xxx".toConfigValue, None, Some(PropertyProvider.systemPropertyProvider))),
-        updateAndDelete(NodeProperty("default", "xxx".toConfigValue, None, Some(PropertyProvider.systemPropertyProvider))),
-        updateAndDelete(NodeProperty("default", "xxx".toConfigValue, None, Some(PropertyProvider.systemPropertyProvider)))
-      ).flatten must contain((res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[?, ?]]).foreach
+      val input  = {
+        List(
+          NodeProperty("none", "xxx".toConfigValue, None, Some(PropertyProvider.systemPropertyProvider)),
+          NodeProperty("p1", "xxx".toConfigValue, None, Some(PropertyProvider.systemPropertyProvider)),
+          NodeProperty("default", "xxx".toConfigValue, None, Some(PropertyProvider.systemPropertyProvider)),
+          NodeProperty("default", "xxx".toConfigValue, None, Some(PropertyProvider.systemPropertyProvider))
+        )
+      }
+      val actual = input.flatMap(updateAndDelete)
+      actual must contain((x: PureResult[?]) => x must beRight).foreach
     }
 
     "fails for different, non default providers" in {
-      List(
-        updateAndDelete(NodeProperty("p1", "xxx".toConfigValue, None, None)),
-        updateAndDelete(NodeProperty("p1", "xxx".toConfigValue, None, RudderP)),
-        updateAndDelete(NodeProperty("p1", "xxx".toConfigValue, None, P2)),
-        updateAndDelete(NodeProperty("p2", "xxx".toConfigValue, None, None)),
-        updateAndDelete(NodeProperty("p2", "xxx".toConfigValue, None, RudderP)),
-        updateAndDelete(NodeProperty("p2", "xxx".toConfigValue, None, P1))
-      ).flatten must contain((res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Left[?, ?]]).foreach
+      val input = List(
+        NodeProperty("p1", "xxx".toConfigValue, None, None),
+        NodeProperty("p1", "xxx".toConfigValue, None, RudderP),
+        NodeProperty("p1", "xxx".toConfigValue, None, P2),
+        NodeProperty("p2", "xxx".toConfigValue, None, None),
+        NodeProperty("p2", "xxx".toConfigValue, None, RudderP),
+        NodeProperty("p2", "xxx".toConfigValue, None, P1)
+      )
+      val actual = input.flatMap(updateAndDelete)
+      actual must contain((x: PureResult[?]) => x must beLeft).foreach
     }
 
     "be ok with compatible one (default)" in {
-      List(
-        updateAndDelete(NodeProperty("none", "xxx".toConfigValue, None, RudderP)),
-        updateAndDelete(NodeProperty("default", "xxx".toConfigValue, None, None))
-      ).flatten must contain((res: PureResult[List[NodeProperty]]) => res must beAnInstanceOf[Right[?, ?]]).foreach
+      val input = List(
+        NodeProperty("none", "xxx".toConfigValue, None, RudderP),
+        NodeProperty("default", "xxx".toConfigValue, None, None)
+      )
+      val actual = input.flatMap(updateAndDelete)
+      actual must contain((x: PureResult[?]) => x must beRight).foreach
     }
   }
 }

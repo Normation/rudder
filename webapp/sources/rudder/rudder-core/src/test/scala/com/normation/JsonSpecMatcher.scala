@@ -65,7 +65,7 @@ private object JsonSpecMatcher {
     // intercept the match (json against json) to display 'expected' and 'actual' with prettifed format
     private def jsonMatchResult(s: Expectable[String]): MatchResult[Any] = stringAsJson(s) match {
       case MatchFailure(ok, ko, expectable, trace, FailureDetails(actual, expected)) =>
-        MatchFailure(ok, ko, expectable, trace, FailureDetails(prettyPrint(actual), prettyPrint(expected)))
+        MatchFailure.create(ok(), ko(), expectable, trace, FailureDetails(prettyPrint(actual), prettyPrint(expected)))
       case other                                                                     => other
     }
   }

@@ -544,7 +544,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
       )) and
       (receivedInventoryFile(nodeName).exists must beTrue) and
       (checkPendingNodeExists(nodeId) must beTrue) and
-      (factRepo.get(nodeId).runNow must beSome()) and
+      (factRepo.get(nodeId).runNow must beSome) and
       (getLogName must beEqualTo(Chunk("newPending")).eventually(2, 100.millis.asScala))
     }
 
