@@ -3,7 +3,6 @@
 
 use std::{process::Command, str};
 
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, warn};
 use which::which;
@@ -73,21 +72,27 @@ impl IsInstalled for PythonDependency {
 
 impl IsInstalled for AptDependency {
     fn is_installed(&self) -> bool {
-        let mut binding = Command::new("dpkg");
-        let cmd = binding.arg("-l");
-        // Retrieve package list
-        let package_list_output = match CmdOutput::new(cmd) {
+        let mut binding = Command::new("dpkg-query");
+        // # dpkg-query --show --showformat='${Status}' rudder-api-client
+        // install ok installed
+        let cmd = binding
+            .arg("--show")
+            .arg("--showformat='${Status}'")
+            .arg("--")
+            .arg(&self.0);
+        // Retrieve package status
+        let package_status_output = match CmdOutput::new(cmd) {
             Ok(a) => a,
             Err(e) => {
-                debug!("Could not check 'apt' base dependency, most likely because apt is not installed:\n{}", e);
+                warn!("Could not check 'apt' base dependency, most likely because apt is not installed:\n{}", e);
                 return false;
             }
         };
-        debug!("{}", package_list_output);
-        let re = Regex::new(&format!(r"^ii\s+{}\s+.*", self.0)).unwrap();
-        let found = re.is_match(&format!("{:?}", package_list_output.output.stdout));
+        debug!("Package status output: {}", package_status_output);
+        let found =
+            String::from_utf8_lossy(&package_status_output.output.stdout).contains("installed");
         if !found {
-            debug!("Could not find 'apt' base dependency '{}'", self.0);
+            warn!("Could not find 'apt' base dependency '{}'", self.0);
         } else {
             debug!("'apt' base dependency '{}' found on the system", self.0);
         }
@@ -102,12 +107,12 @@ impl IsInstalled for RpmDependency {
         let result = match CmdOutput::new(cmd) {
             Ok(a) => a,
             Err(e) => {
-                debug!("Could not check for 'rpm' base dependency, most likely because rpm is not installed,\n{}", e);
+                warn!("Could not check for 'rpm' base dependency, most likely because rpm is not installed,\n{}", e);
                 return false;
             }
         };
         if !result.output.status.success() {
-            debug!("Could not find 'rpm' base dependency '{}'", self.0);
+            warn!("Could not find 'rpm' base dependency '{}'", self.0);
         } else {
             debug!("'rpm' base dependency '{}' found on the system", self.0);
         }
@@ -123,7 +128,7 @@ impl IsInstalled for BinaryDependency {
                 true
             }
             Err(_) => {
-                debug!("Could not find 'binary' base dependency '{}'", self.0);
+                warn!("Could not find 'binary' base dependency '{}'", self.0);
                 false
             }
         }
