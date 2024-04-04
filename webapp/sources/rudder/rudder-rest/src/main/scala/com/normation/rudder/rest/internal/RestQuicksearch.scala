@@ -211,11 +211,11 @@ class RestQuicksearch(
     def toJson: JObject = {
       import linkUtil.*
       val url = r.id match {
-        case QRNodeId(v)      => nodeLink(NodeId(v))
-        case QRRuleId(v)      => ruleLink(RuleId(RuleUid(v)))
-        case QRDirectiveId(v) => directiveLink(DirectiveUid(v))
-        case QRGroupId(v)     => groupLink(NodeGroupId(NodeGroupUid(v)))
-        case QRParameterId(v) => globalParameterLink(v)
+        case QRNodeId(value)      => nodeLink(NodeId(value))
+        case QRRuleId(value)      => ruleLink(RuleId(RuleUid(value)))
+        case QRDirectiveId(value) => directiveLink(DirectiveUid(value))
+        case QRGroupId(value)     => groupLink(NodeGroupId(NodeGroupUid(value)))
+        case QRParameterId(value) => globalParameterLink(value)
       }
 
       // limit description length to avoid having a whole file printed

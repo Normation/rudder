@@ -215,7 +215,7 @@ class CreateCloneDirectivePopup(
               reasons.map(_.get)
             )
             .toBox match {
-            case Full(directive) => {
+            case Full(_) => {
               closePopup() & onSuccessCallback(cloneDirective)
             }
             case eb: EmptyBox =>

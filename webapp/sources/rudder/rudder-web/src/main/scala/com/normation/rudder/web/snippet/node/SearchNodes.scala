@@ -133,14 +133,14 @@ class SearchNodes extends StatefulSnippet with Loggable {
           Some(
             new NodeGroup(
               NodeGroupId(NodeGroupUid("temporary")),
-              null,
-              null,
-              Nil,
-              query,
-              true,
-              serverList.openOr(Seq[NodeInfo]()).map(_.id).toSet,
-              true,
-              false
+              name = null,
+              description = null,
+              properties = Nil,
+              query = query,
+              isDynamic = true,
+              serverList = serverList.openOr(Seq[NodeInfo]()).map(_.id).toSet,
+              _isEnabled = true,
+              isSystem = false
             )
           ),
           rootCategory = groupLibrary,

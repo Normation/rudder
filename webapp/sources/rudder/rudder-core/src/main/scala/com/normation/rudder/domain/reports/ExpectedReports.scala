@@ -212,7 +212,7 @@ object ExpectedReportsSerialisation {
       overrides:           List[OverridenPolicy]
   )
 
-  val v0: TechniqueVersion = TechniqueVersion
+  val v00: TechniqueVersion = TechniqueVersion
     .parse("0.0")
     .getOrElse(throw new IllegalArgumentException(s"Initialisation error for default technique version in overrides"))
 
@@ -397,7 +397,7 @@ object ExpectedReportsSerialisation {
     }
 
     final case class JsonPolicy7_1(rid: RuleId, did: DirectiveId)  {
-      def transform: PolicyId = PolicyId(rid, did, v0)
+      def transform: PolicyId = PolicyId(rid, did, v00)
     }
     implicit class _JsonPolicy7_1(x: PolicyId)                     {
       def transform: JsonPolicy7_1 = JsonPolicy7_1(x.ruleId, x.directiveId)

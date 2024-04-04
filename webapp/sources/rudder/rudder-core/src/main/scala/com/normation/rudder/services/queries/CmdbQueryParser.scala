@@ -273,7 +273,7 @@ trait JsonQueryLexer extends QueryLexer {
     json match {
       case l: Map[?, ?] =>
         l.head match {
-          case (x: String, y: String) =>
+          case (_: String, _: String) =>
             val line = l.asInstanceOf[Map[String, String]] // is map always homogenous ?
             // First, parse the line. Then, try to bind name with object
 

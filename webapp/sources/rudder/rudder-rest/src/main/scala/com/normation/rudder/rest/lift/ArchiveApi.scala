@@ -335,7 +335,7 @@ class ArchiveApi(
             _       <- checkArchiveService.check(archive)
             _       <- saveArchiveService.save(archive, merge)(authzToken.qc)
             _       <- ApplicationLoggerPure.Archive.info(s"Uploaded archive '${zip.fileName}' processed successfully")
-          } yield JRArchiveImported(true)
+          } yield JRArchiveImported(success = true)
       }).tapError(err => ApplicationLoggerPure.Archive.error(s"Error when processing uploaded archive: ${err.fullMsg}"))
 
       prog.toLiftResponseOne(params, schema, _ => None)

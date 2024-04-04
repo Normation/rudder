@@ -157,10 +157,10 @@ class GiveReasonPopup(
                         ActiveTechniqueCategoryId(destCatId.value),
                         ptName,
                         techniqueRepository.getTechniqueVersions(ptName).toSeq,
-                        false,
-                        ModificationId(uuidGen.newUuid),
-                        CurrentUser.actor,
-                        crReasons.map(_.get)
+                        isSystem = false,
+                        modId = ModificationId(uuidGen.newUuid),
+                        actor = CurrentUser.actor,
+                        reason = crReasons.map(_.get)
                       )
                       .toBox
                     ?~! errorMess.format(sourceActiveTechniqueId.value, destCatId.value)

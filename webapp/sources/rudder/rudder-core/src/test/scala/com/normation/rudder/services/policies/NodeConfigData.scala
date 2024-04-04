@@ -529,32 +529,83 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
    */
 
   val g0id:   NodeGroupId                   = NodeGroupId(NodeGroupUid("0"))
-  val g0:     NodeGroup                     = NodeGroup(g0id, "Real nodes", "", Nil, None, false, Set(rootId, node1.id, node2.id), true)
-  val g1:     NodeGroup                     = NodeGroup(NodeGroupId(NodeGroupUid("1")), "Empty group", "", Nil, None, false, Set(), true)
-  val g2:     NodeGroup                     = NodeGroup(NodeGroupId(NodeGroupUid("2")), "only root", "", Nil, None, false, Set(NodeId("root")), true)
-  val g3:     NodeGroup                     =
-    NodeGroup(NodeGroupId(NodeGroupUid("3")), "Even nodes", "", Nil, None, false, nodeIds.filter(_.value.toInt == 2), true)
-  val g4:     NodeGroup                     =
-    NodeGroup(NodeGroupId(NodeGroupUid("4")), "Odd nodes", "", Nil, None, false, nodeIds.filter(_.value.toInt != 2), true)
+  val g0:     NodeGroup                     = {
+    NodeGroup(
+      g0id,
+      name = "Real nodes",
+      description = "",
+      properties = Nil,
+      query = None,
+      isDynamic = false,
+      serverList = Set(rootId, node1.id, node2.id),
+      _isEnabled = true
+    )
+  }
+  val g1:     NodeGroup                     = NodeGroup(
+    NodeGroupId(NodeGroupUid("1")),
+    name = "Empty group",
+    description = "",
+    properties = Nil,
+    query = None,
+    isDynamic = false,
+    serverList = Set(),
+    _isEnabled = true
+  )
+  val g2:     NodeGroup                     = {
+    NodeGroup(
+      NodeGroupId(NodeGroupUid("2")),
+      name = "only root",
+      description = "",
+      properties = Nil,
+      query = None,
+      isDynamic = false,
+      serverList = Set(NodeId("root")),
+      _isEnabled = true
+    )
+  }
+  val g3:     NodeGroup                     = {
+    NodeGroup(
+      NodeGroupId(NodeGroupUid("3")),
+      name = "Even nodes",
+      description = "",
+      properties = Nil,
+      query = None,
+      isDynamic = false,
+      serverList = nodeIds.filter(_.value.toInt == 2),
+      _isEnabled = true
+    )
+  }
+  val g4:     NodeGroup                     = {
+    NodeGroup(
+      NodeGroupId(NodeGroupUid("4")),
+      name = "Odd nodes",
+      description = "",
+      properties = Nil,
+      query = None,
+      isDynamic = false,
+      serverList = nodeIds.filter(_.value.toInt != 2),
+      _isEnabled = true
+    )
+  }
   val g5:     NodeGroup                     = NodeGroup(
     NodeGroupId(NodeGroupUid("5")),
-    "Nodes id divided by 3",
-    "",
-    Nil,
-    None,
-    false,
-    nodeIds.filter(_.value.toInt == 3),
-    true
+    name = "Nodes id divided by 3",
+    description = "",
+    properties = Nil,
+    query = None,
+    isDynamic = false,
+    serverList = nodeIds.filter(_.value.toInt == 3),
+    _isEnabled = true
   )
   val g6:     NodeGroup                     = NodeGroup(
     NodeGroupId(NodeGroupUid("6")),
-    "Nodes id divided by 5",
-    "",
-    Nil,
-    None,
-    false,
-    nodeIds.filter(_.value.toInt == 5),
-    true
+    name = "Nodes id divided by 5",
+    description = "",
+    properties = Nil,
+    query = None,
+    isDynamic = false,
+    serverList = nodeIds.filter(_.value.toInt == 5),
+    _isEnabled = true
   )
   val groups: Set[(NodeGroupId, NodeGroup)] = Set(g0, g1, g2, g3, g4, g5, g6).map(g => (g.id, g))
 
@@ -566,10 +617,10 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
         gt._1.groupId,
         FullRuleTargetInfo(
           FullGroupTarget(gt._1, gt._2),
-          "",
-          "",
-          true,
-          false
+          name = "",
+          description = "",
+          isEnabled = true,
+          isSystem = false
         )
       )
     }))
@@ -802,11 +853,11 @@ class TestNodeConfiguration(
   // the group lib
   val emptyGroupLib: FullNodeGroupCategory = FullNodeGroupCategory(
     NodeGroupCategoryId("/"),
-    "/",
-    "root of group categories",
-    List(),
-    List(),
-    true
+    name = "/",
+    description = "root of group categories",
+    subCategories = List(),
+    targetInfos = List(),
+    isSystem = true
   )
 
   val groupLib: FullNodeGroupCategory = emptyGroupLib.copy(
@@ -816,41 +867,41 @@ class TestNodeConfiguration(
           GroupTarget(NodeGroupId(NodeGroupUid("a-group-for-root-only"))),
           NodeGroup(
             NodeGroupId(NodeGroupUid("a-group-for-root-only")),
-            "Serveurs [€ðŋ] cassés",
-            "Liste de l'ensemble de serveurs cassés à réparer",
-            Nil,
-            None,
-            true,
-            Set(NodeId("root")),
-            true,
-            false
+            name = "Serveurs [€ðŋ] cassés",
+            description = "Liste de l'ensemble de serveurs cassés à réparer",
+            properties = Nil,
+            query = None,
+            isDynamic = true,
+            serverList = Set(NodeId("root")),
+            _isEnabled = true,
+            isSystem = false
           )
         ),
-        "Serveurs [€ðŋ] cassés",
-        "Liste de l'ensemble de serveurs cassés à réparer",
-        true,
-        false
+        name = "Serveurs [€ðŋ] cassés",
+        description = "Liste de l'ensemble de serveurs cassés à réparer",
+        isEnabled = true,
+        isSystem = false
       ),
       FullRuleTargetInfo(
         FullOtherTarget(PolicyServerTarget(NodeId("root"))),
-        "special:policyServer_root",
-        "The root policy server",
-        true,
-        true
+        name = "special:policyServer_root",
+        description = "The root policy server",
+        isEnabled = true,
+        isSystem = true
       ),
       FullRuleTargetInfo(
         FullOtherTarget(AllTargetExceptPolicyServers),
-        "special:all_exceptPolicyServers",
-        "All groups without policy servers",
-        true,
-        true
+        name = "special:all_exceptPolicyServers",
+        description = "All groups without policy servers",
+        isEnabled = true,
+        isSystem = true
       ),
       FullRuleTargetInfo(
         FullOtherTarget(AllTarget),
-        "special:all",
-        "All nodes",
-        true,
-        true
+        name = "special:all",
+        description = "All nodes",
+        isEnabled = true,
+        isSystem = true
       )
     )
   )
@@ -928,13 +979,13 @@ class TestNodeConfiguration(
       ("POLICYSERVER_ID", Seq("${rudder.node.id}")),
       ("POLICYSERVER_ADMIN", Seq("${rudder.node.admin}"))
     ),
-    "common-root",
-    "",
-    None,
-    "",
-    5,
-    true,
-    true
+    name = "common-root",
+    shortDescription = "",
+    policyMode = None,
+    longDescription = "",
+    priority = 5,
+    _isEnabled = true,
+    isSystem = true
   )
 
   def common(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]): BoundPolicyDraft = {
@@ -953,14 +1004,14 @@ class TestNodeConfiguration(
   val archiveDirective: Directive = Directive(
     DirectiveId(DirectiveUid("test_import_export_archive_directive"), GitVersion.DEFAULT_REV),
     TechniqueVersionHelper("1.0"),
-    Map(),
-    "test_import_export_archive_directive",
-    "",
-    None,
-    "",
-    5,
-    true,
-    false
+    parameters = Map(),
+    name = "test_import_export_archive_directive",
+    shortDescription = "",
+    policyMode = None,
+    longDescription = "",
+    priority = 5,
+    _isEnabled = true,
+    isSystem = false
   )
 
   // we have one rule with several system technique for root server config
@@ -1070,12 +1121,12 @@ class TestNodeConfiguration(
     val id = PolicyId(RuleId("rule1"), DirectiveId(DirectiveUid("directive1+rev1")), TechniqueVersionHelper("1.0+rev2"))
     draft(
       id,
-      "10. Global configuration for all nodes",
-      "10. Clock Configuration",
-      clockTechnique,
-      clockVariables,
-      false,
-      Some(PolicyMode.Enforce)
+      ruleName = "10. Global configuration for all nodes",
+      directiveName = "10. Clock Configuration",
+      technique = clockTechnique,
+      variableMap = clockVariables,
+      system = false,
+      policyMode = Some(PolicyMode.Enforce)
     )
   }
   /*
@@ -1122,12 +1173,12 @@ class TestNodeConfiguration(
     val id = PolicyId(RuleId("rule2"), DirectiveId(DirectiveUid("directive2")), TechniqueVersionHelper("1.0"))
     draft(
       id,
-      "50. Deploy PLOP STACK",
-      "20. Install PLOP STACK main rpm",
-      rpmTechnique,
-      rpmVariables,
-      false,
-      Some(PolicyMode.Audit)
+      ruleName = "50. Deploy PLOP STACK",
+      directiveName = "20. Install PLOP STACK main rpm",
+      technique = rpmTechnique,
+      variableMap = rpmVariables,
+      system = false,
+      policyMode = Some(PolicyMode.Audit)
     )
   }
 
@@ -1154,12 +1205,12 @@ class TestNodeConfiguration(
     )
     draft(
       id,
-      "60-rule-technique-std-lib",
-      "Package management.",
-      pkgTechnique,
-      pkgVariables,
-      false,
-      Some(PolicyMode.Enforce)
+      ruleName = "60-rule-technique-std-lib",
+      directiveName = "Package management.",
+      technique = pkgTechnique,
+      variableMap = pkgVariables,
+      system = false,
+      policyMode = Some(PolicyMode.Enforce)
     )
   }
 
@@ -1188,12 +1239,12 @@ class TestNodeConfiguration(
     )
     draft(
       id,
-      "60-rule-technique-std-lib",
-      "10-File template 1",
-      fileTemplateTechnique,
-      fileTemplateVariables1,
-      false,
-      Some(PolicyMode.Enforce)
+      ruleName = "60-rule-technique-std-lib",
+      directiveName = "10-File template 1",
+      technique = fileTemplateTechnique,
+      variableMap = fileTemplateVariables1,
+      system = false,
+      policyMode = Some(PolicyMode.Enforce)
     )
   }
   lazy val fileTemplateVariables2 = {
@@ -1219,12 +1270,12 @@ class TestNodeConfiguration(
     )
     draft(
       id,
-      "60-rule-technique-std-lib",
-      "20-File template 2",
-      fileTemplateTechnique,
-      fileTemplateVariables2.map(a => (ComponentId(a._1, Nil, None), a._2)),
-      false,
-      Some(PolicyMode.Enforce)
+      ruleName = "60-rule-technique-std-lib",
+      directiveName = "20-File template 2",
+      technique = fileTemplateTechnique,
+      variableMap = fileTemplateVariables2.map(a => (ComponentId(a._1, Nil, None), a._2)),
+      system = false,
+      policyMode = Some(PolicyMode.Enforce)
     )
   }
 
@@ -1237,12 +1288,12 @@ class TestNodeConfiguration(
     )
     draft(
       id,
-      "99-rule-technique-std-lib",
-      "20-File template 2",
-      fileTemplateTechnique,
-      fileTemplateVariables2.map(a => (ComponentId(a._1, Nil, None), a._2)),
-      false,
-      Some(PolicyMode.Enforce)
+      ruleName = "99-rule-technique-std-lib",
+      directiveName = "20-File template 2",
+      technique = fileTemplateTechnique,
+      variableMap = fileTemplateVariables2.map(a => (ComponentId(a._1, Nil, None), a._2)),
+      system = false,
+      policyMode = Some(PolicyMode.Enforce)
     )
   }
 
@@ -1263,12 +1314,12 @@ class TestNodeConfiguration(
     )
     draft(
       id,
-      "50-rule-technique-ncf",
-      "Create a file",
-      ncf1Technique,
-      ncf1Variables.map(a => (ComponentId(a._1, Nil, Some(s"reportId_${a._1}")), a._2)),
-      false,
-      Some(PolicyMode.Enforce)
+      ruleName = "50-rule-technique-ncf",
+      directiveName = "Create a file",
+      technique = ncf1Technique,
+      variableMap = ncf1Variables.map(a => (ComponentId(a._1, Nil, Some(s"reportId_${a._1}")), a._2)),
+      system = false,
+      policyMode = Some(PolicyMode.Enforce)
     )
   }
 
@@ -1279,12 +1330,12 @@ class TestNodeConfiguration(
     val id = PolicyId(RuleId("rule1"), DirectiveId(DirectiveUid("directive1")), TechniqueVersionHelper("1.0"))
     draft(
       id,
-      "10. Global configuration for all nodes",
-      "10. test18205",
-      test18205Technique,
-      Map(),
-      false,
-      Some(PolicyMode.Enforce)
+      ruleName = "10. Global configuration for all nodes",
+      directiveName = "10. test18205",
+      technique = test18205Technique,
+      variableMap = Map(),
+      system = false,
+      policyMode = Some(PolicyMode.Enforce)
     )
   }
 
@@ -1323,12 +1374,12 @@ class TestNodeConfiguration(
     )
     draft(
       id,
-      "90-copy-git-file",
-      "Copy git file",
-      copyGitFileTechnique,
-      copyGitFileVariable(i).map(a => (ComponentId(a._1, Nil, None), a._2)),
-      false,
-      Some(PolicyMode.Enforce)
+      ruleName = "90-copy-git-file",
+      directiveName = "Copy git file",
+      technique = copyGitFileTechnique,
+      variableMap = copyGitFileVariable(i).map(a => (ComponentId(a._1, Nil, None), a._2)),
+      system = false,
+      policyMode = Some(PolicyMode.Enforce)
     )
   }
 
@@ -1390,12 +1441,12 @@ class TestNodeConfiguration(
     val id = PolicyId(RuleId("rule1"), DirectiveId(DirectiveUid("directive1")), TechniqueVersionHelper("1.0"))
     draft(
       id,
-      "10. Global configuration for all nodes",
-      "99. Generic Variable Def #1",
-      gvdTechnique,
-      gvdVariables1.map(a => (ComponentId(a._1, Nil, None), a._2)),
-      false,
-      Some(PolicyMode.Enforce)
+      ruleName = "10. Global configuration for all nodes",
+      directiveName = "99. Generic Variable Def #1",
+      technique = gvdTechnique,
+      variableMap = gvdVariables1.map(a => (ComponentId(a._1, Nil, None), a._2)),
+      system = false,
+      policyMode = Some(PolicyMode.Enforce)
     ).copy(
       priority = 0 // we want to make sure this one will be merged in first position
     )
@@ -1411,13 +1462,13 @@ class TestNodeConfiguration(
     val id = PolicyId(RuleId("rule1"), DirectiveId(DirectiveUid("directive2")), TechniqueVersionHelper("1.0"))
     draft(
       id,
-      "10. Global configuration for all nodes",
-      "00. Generic Variable Def #2", // sort name comes before sort name of directive 1
+      ruleName = "10. Global configuration for all nodes",
+      directiveName = "00. Generic Variable Def #2", // sort name comes before sort name of directive 1
 
-      gvdTechnique,
-      gvdVariables2.map(a => (ComponentId(a._1, Nil, None), a._2)),
-      false,
-      Some(PolicyMode.Enforce)
+      technique = gvdTechnique,
+      variableMap = gvdVariables2.map(a => (ComponentId(a._1, Nil, None), a._2)),
+      system = false,
+      policyMode = Some(PolicyMode.Enforce)
     ).copy(
       priority = 10 // we want to make sure this one will be merged in last position
     )

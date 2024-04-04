@@ -570,10 +570,10 @@ object QSLdapBackend {
 
     def toResult(query: Query): Option[QuickSearchResult] = {
       def getId(e: LDAPEntry): Option[QuickSearchResultId] = {
-        if (e.isA(OC_RULE)) { e(A_RULE_UUID).map(QRRuleId) }
-        else if (e.isA(OC_RUDDER_NODE_GROUP)) { e(A_NODE_GROUP_UUID).map(QRGroupId) }
+        if (e.isA(OC_RULE)) { e(A_RULE_UUID).map(QRRuleId.apply) }
+        else if (e.isA(OC_RUDDER_NODE_GROUP)) { e(A_NODE_GROUP_UUID).map(QRGroupId.apply) }
         else if (e.isA(OC_PARAMETER)) {
-          e(A_PARAMETER_NAME).map(QRParameterId)
+          e(A_PARAMETER_NAME).map(QRParameterId.apply)
           // no directive
         } else { None }
       }

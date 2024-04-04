@@ -188,7 +188,7 @@ object SoftwareFact {
       Some(sf.name),
       None,
       Some(sf.version),
-      sf.publisher.map(SoftwareEditor),
+      sf.publisher.map(SoftwareEditor.apply),
       None,
       sf.licenseName.map(l => License(l, sf.licenseDescription, sf.productId, sf.productKey, sf.oem, sf.expirationDate)),
       sf.sourceName,
@@ -771,7 +771,7 @@ object NodeFact {
       .modify(_.lastInventoryDate)
       .setTo(inventory.node.inventoryDate)
       .modify(_.ipAddresses)
-      .setTo(Chunk.fromIterable(inventory.node.serverIps.map(IpAddress)))
+      .setTo(Chunk.fromIterable(inventory.node.serverIps.map(IpAddress.apply)))
       .modify(_.timezone)
       .setTo(inventory.node.timezone)
       .modify(_.machine)

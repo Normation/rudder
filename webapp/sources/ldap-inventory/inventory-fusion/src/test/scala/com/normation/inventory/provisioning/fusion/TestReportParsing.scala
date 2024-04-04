@@ -177,7 +177,7 @@ class TestInventoryParsing extends Specification with Loggable {
 
       val expected = List(
         CustomProperty("hook1_k1", JInt(42)),
-        CustomProperty("hook1_k2", JBool(true)),
+        CustomProperty("hook1_k2", JBool(value = true)),
         CustomProperty("hook1_k3", JString("a string")),
         CustomProperty(
           "hook2",

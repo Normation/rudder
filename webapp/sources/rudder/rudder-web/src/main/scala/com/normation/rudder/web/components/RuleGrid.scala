@@ -170,7 +170,7 @@ class RuleGrid(
   )
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    case "rulesGrid" => { (_: NodeSeq) => rulesGridWithUpdatedInfo(None, true, false) }
+    case "rulesGrid" => { (_: NodeSeq) => rulesGridWithUpdatedInfo(None, showActionsColumn = true, isPopup = false) }
   }
 
   /**
@@ -507,7 +507,7 @@ class RuleGrid(
 
       val targetsInfo = traverse(rule.targets.toSeq) {
         case json: CompositeRuleTarget =>
-          val ruleTargetInfo = RuleTargetInfo(json, "", "", true, false)
+          val ruleTargetInfo = RuleTargetInfo(json, name = "", description = "", isEnabled = true, isSystem = false)
           Full(ruleTargetInfo)
         case target =>
           groupsLib.allTargets.get(target) match {

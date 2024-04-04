@@ -79,13 +79,13 @@ case object Node {
       inventory.node.main.hostname,
       inventory.node.description.getOrElse(""),
       NodeState.Enabled,
-      false,
-      false,
-      inventory.node.inventoryDate.getOrElse(new DateTime(0)),
-      ReportingConfiguration(None, None, None),
-      Nil,
-      None,
-      None
+      isSystem = false,
+      isPolicyServer = false,
+      creationDate = inventory.node.inventoryDate.getOrElse(new DateTime(0)),
+      nodeReportingConfiguration = ReportingConfiguration(None, None, None),
+      properties = Nil,
+      policyMode = None,
+      securityTag = None
     )
   }
 }

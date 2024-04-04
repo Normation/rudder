@@ -346,7 +346,7 @@ class SearchNodeComponent(
      */
     def showQueryAndGridContent(): NodeSeq = {
       (
-        "content-query" #> { (x: NodeSeq) => displayQuery(x, false) }
+        "content-query" #> { (x: NodeSeq) => displayQuery(x, isGroupPage = false) }
         & "update-gridresult" #> srvGrid.displayAndInit(Some(Seq()), "serverGrid")
       )(searchNodes)
     }
@@ -390,11 +390,11 @@ class SearchNodeComponent(
         $$('#groupTabMenu').ready(function () {
           $$('#groupTabMenu [role="tab"]').on("show.bs.tab", function (e) {
             var isNextTabShowing = tabs.includes(e.target.getAttribute('aria-controls'));
-            var isPreviousTabShowing = 
+            var isPreviousTabShowing =
               !e.relatedTarget || tabs.includes(e.relatedTarget.getAttribute('aria-controls')); // initial tab shows nodes table
             if (!isPreviousTabShowing && isNextTabShowing) {
               handleNodesTableDisplayByGroupTab(true);
-            } 
+            }
             if (isPreviousTabShowing && !isNextTabShowing) {
               handleNodesTableDisplayByGroupTab(false);
             }
@@ -527,10 +527,10 @@ object SearchNodeComponent {
     val comparators  = optionComparatorsFor(ot, a)
     val compNames    = comparators.map(_._1)
     val selectedComp = compNames match {
-      case a :: _ =>
+      case b :: _ =>
         compNames.filter(_ == c_oldVal) match {
           case x :: _ => x
-          case Nil    => a
+          case Nil    => b
         }
       case Nil    => ""
     }

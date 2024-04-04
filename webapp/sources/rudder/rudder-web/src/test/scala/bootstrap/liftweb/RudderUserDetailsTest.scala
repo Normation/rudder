@@ -85,7 +85,7 @@ class RudderUserDetailsTest extends Specification {
   // org.slf4j.LoggerFactory.getLogger("application.authorization").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
 
   def getUserDetailList(xml: Elem, debugName: String, extendedAuthz: Boolean = true): ValidatedUserList =
-    UserFileProcessing.parseXml(roleApiMapping, xml, debugName, extendedAuthz, false).force
+    UserFileProcessing.parseXml(roleApiMapping, xml, debugName, extendedAuthz, reload = false).force
 
   // also check that we accept both `role` and `roles` tags
   val userXML_1: Elem = <authentication hash="sha512" case-sensitivity="true">

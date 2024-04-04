@@ -136,7 +136,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
     for {
       tagHere <- {
         checkWithinNodeSeq(rudderNodeSeq, tag) catchAll { _ =>
-          checkNodeSeq(inventory, tag, true).chainError(
+          checkNodeSeq(inventory, tag, directChildren = true).chainError(
             s"Missing node ID attribute '${tag}' in inventory. This attribute is mandatory and must contains node ID."
           )
         }
@@ -191,7 +191,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
         ZIO.foldLeft(tags)(zero)((a, b) => {
           a match {
             case Right(x) => Right(x).succeed
-            case Left(_)  => checkNodeSeq(inventory, "OPERATINGSYSTEM", false, Some(b)).either
+            case Left(_)  => checkNodeSeq(inventory, "OPERATINGSYSTEM", directChildren = false, optChild = Some(b)).either
           }
         })
       )
@@ -210,36 +210,38 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
     val failure    = "Missing attribute OPERATINGSYSTEM>KERNEL_VERSION in inventory. This attribute is mandatory".inconsistency
     val aixFailure = "Missing attribute HARDWARE>OSVERSION in inventory. This attribute is mandatory".inconsistency
 
-    checkNodeSeq(inventory, "OPERATINGSYSTEM", false, Some("KERNEL_VERSION")).map(_ => inventory).catchAll { _ =>
-      // perhaps we are on AIX ?
-      checkNodeSeq(inventory, "OPERATINGSYSTEM", false, Some("KERNEL_NAME"))
-        .foldZIO(
-          _ => failure,
-          x => {
-            if (x.toLowerCase == "aix") { // ok, check for OSVERSION
-              checkNodeSeq(inventory, "HARDWARE", false, Some("OSVERSION")).foldZIO(
-                _ => aixFailure,
-                kernelVersion => { // update the inventory to put it in the right place
-                  (new scala.xml.transform.RuleTransformer(
-                    new AddChildrenTo("OPERATINGSYSTEM", <KERNEL_VERSION>{kernelVersion}</KERNEL_VERSION>)
-                  ).transform(inventory).head).succeed
-                }
-              )
-            } else {
-              // should not be empty given checkOS, but if so, fails. Also fails is not aix.
-              failure
+    checkNodeSeq(inventory, "OPERATINGSYSTEM", directChildren = false, optChild = Some("KERNEL_VERSION"))
+      .map(_ => inventory)
+      .catchAll { _ =>
+        // perhaps we are on AIX ?
+        checkNodeSeq(inventory, "OPERATINGSYSTEM", directChildren = false, optChild = Some("KERNEL_NAME"))
+          .foldZIO(
+            _ => failure,
+            x => {
+              if (x.toLowerCase == "aix") { // ok, check for OSVERSION
+                checkNodeSeq(inventory, "HARDWARE", directChildren = false, optChild = Some("OSVERSION")).foldZIO(
+                  _ => aixFailure,
+                  kernelVersion => { // update the inventory to put it in the right place
+                    (new scala.xml.transform.RuleTransformer(
+                      new AddChildrenTo("OPERATINGSYSTEM", <KERNEL_VERSION>{kernelVersion}</KERNEL_VERSION>)
+                    ).transform(inventory).head).succeed
+                  }
+                )
+              } else {
+                // should not be empty given checkOS, but if so, fails. Also fails is not aix.
+                failure
+              }
             }
-          }
-        )
-        .map(n => n: NodeSeq)
-    }
+          )
+          .map(n => n: NodeSeq)
+      }
   }
 
   // for check kernel version
   private[this] class AddChildrenTo(label: String, newChild: scala.xml.Node) extends scala.xml.transform.RewriteRule {
     override def transform(n: scala.xml.Node): scala.collection.Seq[Node] = n match {
       case Elem(prefix, "OPERATINGSYSTEM", attribs, scope, child*) =>
-        Elem(prefix, label, attribs, scope, false, child ++ newChild: _*)
+        Elem(prefix, label, attribs, scope, minimizeEmpty = false, child ++ newChild: _*)
       case other                                                   => other
     }
   }

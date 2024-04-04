@@ -368,11 +368,18 @@ class ModificationValidationPopup(
   private[this] def showDependentRules(rules: Set[Rule]): NodeSeq = {
     action match {
       case DGModAction.CreateSolo => NodeSeq.Empty
-      case x if (rules.size <= 0) => NodeSeq.Empty
-      case x                      =>
-        val noDisplay = DisplayColumn.Force(false)
-        val cmp       = new RuleGrid("remove_popup_grid", None, false, None, noDisplay, noDisplay)
-        cmp.rulesGridWithUpdatedInfo(Some(rules.toSeq), false, true)
+      case _ if (rules.size <= 0) => NodeSeq.Empty
+      case _                      =>
+        val noDisplay = DisplayColumn.Force(display = false)
+        val cmp       = new RuleGrid(
+          "remove_popup_grid",
+          None,
+          showCheckboxColumn = false,
+          directiveApplication = None,
+          columnCompliance = noDisplay,
+          graphRecentChanges = noDisplay
+        )
+        cmp.rulesGridWithUpdatedInfo(Some(rules.toSeq), showActionsColumn = false, isPopup = true)
     }
   }
 

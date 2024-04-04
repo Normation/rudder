@@ -279,7 +279,7 @@ object Doobie {
       (ps, n, e) => {
         val sqlXml = ps.getConnection.createSQLXML
         val osw    = new java.io.OutputStreamWriter(sqlXml.setBinaryStream())
-        XML.write(osw, e, "UTF-8", false, null)
+        XML.write(osw, e, "UTF-8", xmlDecl = false, doctype = null)
         osw.close()
         ps.setObject(n, sqlXml)
       },

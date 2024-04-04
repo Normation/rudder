@@ -1094,8 +1094,8 @@ class InventoryMapper(
       accounts           = entry.valuesFor(A_ACCOUNT).toSeq
       serverIps          = entry.valuesFor(A_LIST_OF_IP).toSeq
       timezone           = (entry(A_TIMEZONE_NAME), entry(A_TIMEZONE_OFFSET)) match {
-                             case (Some(name), Some(offset)) => Some(NodeTimezone(name, offset))
-                             case _                          => None
+                             case (Some(tzName), Some(offset)) => Some(NodeTimezone(tzName, offset))
+                             case _                            => None
                            }
       customProperties  <- {
         import CustomPropertiesSerialization.Unserialize

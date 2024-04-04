@@ -330,7 +330,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
 
   import ParameterType.*
   val defaultConstraint: List[Constraint.Constraint]    =
-    Constraint.AllowEmpty(false) :: Constraint.AllowWhiteSpace(false) :: Constraint.MaxLength(16384) :: Nil
+    Constraint.AllowEmpty(allow = false) :: Constraint.AllowWhiteSpace(allow = false) :: Constraint.MaxLength(16384) :: Nil
   val methods:           Map[BundleName, GenericMethod] = (GenericMethod(
     BundleName("package_install_version"),
     "Package install version",
@@ -447,8 +447,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
           ),
           "any",
           "Customized component",
-          false,
-          None
+          disabledReporting = false,
+          policyMode = None
         ) ::
         MethodCall(
           BundleName("command_execution"),
@@ -456,8 +456,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
           Map((ParameterId("command"), "Write-Host \"testing special characters ` è &é 'à é \"")),
           "windows",
           "Command execution",
-          true,
-          Some(Enforce)
+          disabledReporting = true,
+          policyMode = Some(Enforce)
         ) :: Nil,
         Some(Audit)
       ) ::
@@ -467,8 +467,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         Map((ParameterId("service_name"), "${node.properties[apache_package_name]}")),
         "package_install_version_${node.properties[apache_package_name]}_repaired",
         "Customized component",
-        false,
-        Some(Audit)
+        disabledReporting = false,
+        policyMode = Some(Audit)
       ) ::
       MethodCall(
         BundleName("package_install"),
@@ -476,8 +476,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         Map((ParameterId("package_name"), "openssh-server")),
         "redhat",
         "Package install",
-        false,
-        None
+        disabledReporting = false,
+        policyMode = None
       ) ::
       MethodCall(
         BundleName("command_execution"),
@@ -485,8 +485,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         Map((ParameterId("command"), "/bin/echo \"testing special characters ` è &é 'à é \"\\")),
         "cfengine-community",
         "Command execution",
-        false,
-        Some(Audit)
+        disabledReporting = false,
+        policyMode = Some(Audit)
       ) ::
       MethodCall(
         BundleName("package_state_windows"),
@@ -494,8 +494,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         Map((ParameterId("package_name"), "vim")),
         "dsc",
         "Package state windows",
-        false,
-        None
+        disabledReporting = false,
+        policyMode = None
       ) ::
       MethodCall(
         BundleName("_logger"),
@@ -503,8 +503,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         Map((ParameterId("message"), "NA"), (ParameterId("old_class_prefix"), "NA")),
         "any",
         "Not sure we should test it ...",
-        false,
-        None
+        disabledReporting = false,
+        policyMode = None
       ) :: Nil,
       "This Technique exists only to see if Rudder creates Technique correctly.",
       "",
@@ -514,8 +514,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         Some("technique parameter"),
         Some(" a long description, with line \n break within"),
         // we must ensure that it will lead to: [parameter(Mandatory=$false)]
-        true,
-        None
+        mayBeEmpty = true,
+        constraints = None
       ) :: Nil,
       Nil,
       Map(),
@@ -653,8 +653,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         ),
         "any",
         "Test component$&é)à\\'\"",
-        false,
-        Some(Audit)
+        disabledReporting = false,
+        policyMode = Some(Audit)
       ) :: Nil,
       "This Technique exists only to see if Rudder creates Technique correctly.",
       "",
@@ -663,8 +663,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "version",
         Some("package version"),
         Some("Package version to install"),
-        false,
-        None
+        mayBeEmpty = false,
+        constraints = None
       ) :: Nil,
       Nil,
       Map(),
@@ -745,8 +745,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         ),
         "${my_custom_condition}",
         "Command execution",
-        false,
-        None
+        disabledReporting = false,
+        policyMode = None
       ) :: Nil,
       "",
       "",
@@ -755,8 +755,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "my_custom_condition",
         Some("my custom condition"),
         None,
-        false,
-        None
+        mayBeEmpty = false,
+        constraints = None
       ) :: Nil,
       Nil,
       Map(),
@@ -872,12 +872,12 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       val value5 = "sdfsqdfsqfsdf sfhdskjhdfs jkhsdkfjhksqdhf"
       val value6 = ""
 
-      Constraint.AllowWhiteSpace(false).check(value1) must equalTo(Constraint.OK)
-      Constraint.AllowWhiteSpace(false).check(value2) must equalTo(Constraint.OK)
-      Constraint.AllowWhiteSpace(false).check(value3) must equalTo(Constraint.OK)
-      Constraint.AllowWhiteSpace(false).check(value4) must equalTo(Constraint.OK)
-      Constraint.AllowWhiteSpace(false).check(value5) must equalTo(Constraint.OK)
-      Constraint.AllowWhiteSpace(false).check(value6) must equalTo(Constraint.OK)
+      Constraint.AllowWhiteSpace(allow = false).check(value1) must equalTo(Constraint.OK)
+      Constraint.AllowWhiteSpace(allow = false).check(value2) must equalTo(Constraint.OK)
+      Constraint.AllowWhiteSpace(allow = false).check(value3) must equalTo(Constraint.OK)
+      Constraint.AllowWhiteSpace(allow = false).check(value4) must equalTo(Constraint.OK)
+      Constraint.AllowWhiteSpace(allow = false).check(value5) must equalTo(Constraint.OK)
+      Constraint.AllowWhiteSpace(allow = false).check(value6) must equalTo(Constraint.OK)
     }
 
     "Correctly refuse text starting or ending with withspace" in {
@@ -889,10 +889,10 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       val value3 = " "
       val value4 = "sdfsqdfsqfsdf sfhdskjhdfs jkhsdkfjhksqdhf "
 
-      Constraint.AllowWhiteSpace(false).check(value1) must haveClass[Constraint.NOK]
-      Constraint.AllowWhiteSpace(false).check(value2) must haveClass[Constraint.NOK]
-      Constraint.AllowWhiteSpace(false).check(value3) must haveClass[Constraint.NOK]
-      Constraint.AllowWhiteSpace(false).check(value4) must haveClass[Constraint.NOK]
+      Constraint.AllowWhiteSpace(allow = false).check(value1) must haveClass[Constraint.NOK]
+      Constraint.AllowWhiteSpace(allow = false).check(value2) must haveClass[Constraint.NOK]
+      Constraint.AllowWhiteSpace(allow = false).check(value3) must haveClass[Constraint.NOK]
+      Constraint.AllowWhiteSpace(allow = false).check(value4) must haveClass[Constraint.NOK]
     }
   }
 

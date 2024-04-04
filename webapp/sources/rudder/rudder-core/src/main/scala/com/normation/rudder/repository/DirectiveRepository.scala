@@ -289,8 +289,8 @@ final case class FullActiveTechniqueCategory(
             SortedMap[TechniqueVersion, DateTime]() ++ newTimes,
             SortedMap[TechniqueVersion, Technique]() ++ newTechs,
             Nil,
-            true,
-            false
+            isEnabled = true,
+            isSystem = false
           )
         case Some(fat) =>
           fat.modify(_.acceptationDatetimes).using(_ ++ newTimes).modify(_.techniques).using(_ ++ newTechs)

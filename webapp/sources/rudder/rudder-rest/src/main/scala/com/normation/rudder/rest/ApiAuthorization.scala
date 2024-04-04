@@ -204,9 +204,9 @@ object AuthzForApi {
   def withValues(api: EndpointSchema, values: List[AclPathSegment]): ApiAclElement = {
     def recReplace(api: List[ApiPathSegment], values: List[AclPathSegment]): List[AclPathSegment] = {
       api match {
-        case Nil                             => Nil
-        case ApiPathSegment.Segment(v) :: t  => AclPathSegment.Segment(v) :: recReplace(t, values)
-        case ApiPathSegment.Resource(v) :: t => // if we have a replacement value, use it
+        case Nil                               => Nil
+        case ApiPathSegment.Segment(v) :: t    => AclPathSegment.Segment(v) :: recReplace(t, values)
+        case (_: ApiPathSegment.Resource) :: t => // if we have a replacement value, use it
           values match {
             case Nil     => AclPathSegment.Wildcard :: recReplace(t, Nil)
             case v :: vv => v :: recReplace(t, vv)

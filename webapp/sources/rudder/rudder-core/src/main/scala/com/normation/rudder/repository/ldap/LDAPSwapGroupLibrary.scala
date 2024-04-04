@@ -198,7 +198,7 @@ class ImportGroupLibraryImpl(
             groups        <- ZIO.foreach(content.groups) { nodeGroup =>
                                val nodeGroupEntry = mapper.nodeGroupToLdap(nodeGroup, categoryEntry.dn)
                                con
-                                 .save(nodeGroupEntry, true)
+                                 .save(nodeGroupEntry, removeMissingAttributes = true)
                                  .chainError("Error when persisting group entry with DN '%s' in LDAP".format(nodeGroupEntry.dn))
                              }
             subCategories <- ZIO.foreach(content.categories)(cat => recSaveUserLib(categoryEntry.dn, cat))
@@ -320,7 +320,7 @@ class ImportGroupLibraryImpl(
               categoryIds += cat.id
               categoryNamesByParent += (cat.name -> (parent.id :: categoryNamesByParent.getOrElse(cat.name, Nil)))
 
-              val subCategories = content.categories.flatMap(c => recSanitizeCategory(c, cat, false)).toSet
+              val subCategories = content.categories.flatMap(c => recSanitizeCategory(c, cat, isRoot = false)).toSet
               val subNodeGroups = content.groups.flatMap(sanitizeNodeGroup(_)).toSet
 
               // remove from sub cat groups that where not correct
@@ -345,7 +345,7 @@ class ImportGroupLibraryImpl(
         }
       }
 
-      recSanitizeCategory(userLib, userLib.category, true).notOptional(
+      recSanitizeCategory(userLib, userLib.category, isRoot = true).notOptional(
         "Error when trying to sanitize serialised user library for consistency errors"
       )
     }

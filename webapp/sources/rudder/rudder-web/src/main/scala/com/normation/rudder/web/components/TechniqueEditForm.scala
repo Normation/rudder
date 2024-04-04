@@ -144,11 +144,11 @@ class TechniqueEditForm(
   def showRemovePopupForm(): NodeSeq = {
     currentActiveTechnique match {
       case e: EmptyBox => NodeSeq.Empty
-      case Full(activeTechnique) =>
+      case Full(activeTechnique_) =>
         (
           "#deleteActionDialog *" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
-          "#dialogDeleteButton" #> { deleteButton(activeTechnique.id) % ("id" -> "deleteButton") } &
-          "#deleteItemDependencies *" #> dialogDeleteTree("deleteItemDependencies", activeTechnique) &
+          "#dialogDeleteButton" #> { deleteButton(activeTechnique_.id) % ("id" -> "deleteButton") } &
+          "#deleteItemDependencies *" #> dialogDeleteTree("deleteItemDependencies", activeTechnique_) &
           ".reasonsFieldset" #> {
             crReasonsDisablePopup.map { f =>
               "#explanationMessage" #> <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Audit Log</h4> &
@@ -163,13 +163,13 @@ class TechniqueEditForm(
   def showDisactivatePopupForm(): NodeSeq = {
     currentActiveTechnique match {
       case e: EmptyBox => NodeSeq.Empty
-      case Full(activeTechnique) =>
+      case Full(activeTechnique_) =>
         (
           "#disableActionDialog *" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
-          "#dialogDisableButton" #> { disableButton(activeTechnique) % ("id" -> "disableButton") } &
-          "#dialogDisableTitle" #> { if (activeTechnique.isEnabled) "Disable" else "Enable" } &
-          "#dialogDisableLabel" #> { if (activeTechnique.isEnabled) "disable" else "enable" } &
-          "#disableItemDependencies *" #> dialogDisableTree("disableItemDependencies", activeTechnique) &
+          "#dialogDisableButton" #> { disableButton(activeTechnique_) % ("id" -> "disableButton") } &
+          "#dialogDisableTitle" #> { if (activeTechnique_.isEnabled) "Disable" else "Enable" } &
+          "#dialogDisableLabel" #> { if (activeTechnique_.isEnabled) "disable" else "enable" } &
+          "#disableItemDependencies *" #> dialogDisableTree("disableItemDependencies", activeTechnique_) &
           ".reasonsFieldset" #> {
             crReasonsDisablePopup.map { f =>
               "#explanationMessage" #> <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Audit Log</h4> &
@@ -373,7 +373,7 @@ class TechniqueEditForm(
           } yield {
             deploy
           }) match {
-            case Full(x)          =>
+            case Full(_)          =>
               formTrackerRemovePopup.clean
               onSuccessCallback() &
               SetHtml(htmlId_technique, <div id={htmlId_technique}>Technique successfully deleted</div>) &
@@ -571,7 +571,7 @@ class TechniqueEditForm(
     } yield {
       save
     }) match {
-      case Full(x) => onSuccess()
+      case Full(_) => onSuccess()
       case Empty   =>
         formTracker.addFormError(error("An error occurred while saving the Technique"))
         onFailure()

@@ -192,8 +192,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                 Some(onClickActiveTechnique),
                 Some(onClickDirective),
                 Some(newDirective),
-                false,
-                false
+                addEditLink = false,
+                addActionBtns = false
               )
             }</ul>
 
@@ -545,7 +545,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             None,
             "",
             5,
-            true
+            _isEnabled = true
           )
         }
         updateDirectiveSettingForm(
@@ -553,8 +553,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           activeTechnique.toActiveTechnique(),
           directive,
           None,
-          true,
-          globalMode
+          isADirectiveCreation = true,
+          globalMode = globalMode
         )
         // Update UI
         Replace(htmlId_policyConf, showDirectiveDetails()) &
@@ -599,7 +599,14 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           case Left(updatedDirective) => updatedDirective
           case _                      => directive // Only the id, get it from the library
         }
-        updateDirectiveSettingForm(techniques, activeTechnique, newDirective, oldDirective, false, globalMode)
+        updateDirectiveSettingForm(
+          techniques,
+          activeTechnique,
+          newDirective,
+          oldDirective,
+          isADirectiveCreation = false,
+          globalMode = globalMode
+        )
       case eb: EmptyBox =>
         currentDirectiveSettingForm.set(eb)
     }

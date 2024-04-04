@@ -67,7 +67,7 @@ class NodeCountHistorizationTest extends Specification with BeforeAfter {
   val rudder: CommitInformation = CommitInformation(
     "rudder-a32c5441-daa5-4244-8792-17f1a43cd9bd",
     Some("rudder+a32c5441-daa5-4244-8792-17f1a43cd9bd@rudder.io"),
-    false
+    sign = false
   )
 
   override def before: Any = {

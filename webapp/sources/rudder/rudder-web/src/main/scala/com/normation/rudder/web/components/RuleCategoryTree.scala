@@ -128,7 +128,7 @@ class RuleCategoryTree(
   def selectCategory(): JsCmd = {
     (for {
       rootCategory <- roRuleCategoryRepository.getRootCategory().toBox
-      fqdn         <- ruleCategoryService.bothFqdn(rootCategory, selectedCategoryId, true)
+      fqdn         <- ruleCategoryService.bothFqdn(rootCategory, selectedCategoryId, rootInCaps = true)
     } yield {
       fqdn
     }) match {

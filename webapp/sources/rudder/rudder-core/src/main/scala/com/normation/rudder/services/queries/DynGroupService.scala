@@ -421,15 +421,15 @@ class CheckPendingNodeInDynGroups(
     val (nodep, withdep) = dynGroups.partition(_.dependencies.isEmpty)
 
     // start the process ! End at the end, transform the result into a map.
-    val res = recProcess(nodep, withdep, Nil)
+    val result = recProcess(nodep, withdep, Nil)
     // end result
     NodeLoggerPure.PendingNode.Policies.ifDebugEnabled(
-      res.foldZIO(
+      result.foldZIO(
         err => NodeLoggerPure.PendingNode.Policies.debug(s"Errror when executing request: ${err.fullMsg}"),
         r => NodeLoggerPure.PendingNode.Policies.debug("Result: " + r.debugString)
       )
     ) *>
-    res
+    result
   }
 
   /**

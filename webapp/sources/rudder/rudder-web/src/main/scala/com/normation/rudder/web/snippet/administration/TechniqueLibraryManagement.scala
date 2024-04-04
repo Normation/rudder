@@ -516,10 +516,10 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                             ActiveTechniqueCategoryId(destCatId),
                             ptName,
                             techniqueRepository.getTechniqueVersions(ptName).toSeq,
-                            false,
-                            ModificationId(uuidGen.newUuid),
-                            CurrentUser.actor,
-                            Some("Active technique added by user from UI")
+                            isSystem = false,
+                            modId = ModificationId(uuidGen.newUuid),
+                            actor = CurrentUser.actor,
+                            reason = Some("Active technique added by user from UI")
                           )
                           .toBox
                         ?~! errorMess.format(sourceactiveTechniqueId, destCatId))
@@ -754,10 +754,10 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             rwActiveTechniqueRepository
               .changeStatus(
                 activeTechnique.id,
-                false,
-                ModificationId(uuidGen.newUuid),
-                RudderEventActor,
-                Some(msg)
+                status = false,
+                modId = ModificationId(uuidGen.newUuid),
+                actor = RudderEventActor,
+                reason = Some(msg)
               )
               .toBox match {
               case eb: EmptyBox =>

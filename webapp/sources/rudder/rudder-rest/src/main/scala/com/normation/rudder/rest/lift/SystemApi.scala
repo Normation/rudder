@@ -642,7 +642,7 @@ class SystemApiService13(
         RestUtils.toJsonResponse(None, JArray(json))
       case eb: EmptyBox =>
         val message = (eb ?~ s"Error when trying to run healthcheck").messageChain
-        RestUtils.toJsonError(None, message)(action, true)
+        RestUtils.toJsonError(None, message)(action, prettify = true)
     }
   }
 

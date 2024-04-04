@@ -182,16 +182,16 @@ class EventLogAPI(
                  }
 
         dateCriteria = (optStartDate, optEndDate) match {
-                         case (None, None)                                    => None
-                         case (Some(start), None)                             => Some(fr" creationDate >= ${start.toSql}")
-                         case (None, Some(end))                               => Some(fr" creationDate <= ${end.toSql}")
-                         case (Some(start), Some(end)) if end.isBefore(start) =>
+                         case (None, None)                                        => None
+                         case (Some(start_), None)                                => Some(fr" creationDate >= ${start_.toSql}")
+                         case (None, Some(end_))                                  => Some(fr" creationDate <= ${end_.toSql}")
+                         case (Some(start_), Some(end_)) if end_.isBefore(start_) =>
                            Some(
-                             fr" creationDate >= ${end.toSql} and creationDate <= ${start.toSql}"
+                             fr" creationDate >= ${end_.toSql} and creationDate <= ${start_.toSql}"
                            )
-                         case (Some(start), Some(end))                        =>
+                         case (Some(start_), Some(end_))                          =>
                            Some(
-                             fr" creationDate >= ${start.toSql} and creationDate <= ${end.toSql}"
+                             fr" creationDate >= ${start_.toSql} and creationDate <= ${end_.toSql}"
                            )
                        }
 

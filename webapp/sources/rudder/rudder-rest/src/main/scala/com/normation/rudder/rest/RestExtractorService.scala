@@ -725,14 +725,14 @@ final case class RestExtractorService(
     ((json \ "name"), (json \ "value")) match {
       case (JString(nameValue), value) =>
         val provider    = (json \ "provider") match {
-          case JString(value) => Some(PropertyProvider(value))
+          case JString(string) => Some(PropertyProvider(string))
           // if not defined of not a string, use default
-          case _              => None
+          case _               => None
         }
         val inheritMode = (json \ "inheritMode") match {
-          case JString(value) => InheritMode.parseString(value).toOption
+          case JString(string) => InheritMode.parseString(string).toOption
           // if not defined of not a string, use default
-          case _              => None
+          case _               => None
         }
         (for {
           _ <- PropertyParser.validPropertyName(nameValue)

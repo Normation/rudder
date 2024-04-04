@@ -247,7 +247,7 @@ object FillTemplateThreadUnsafe {
       _         = replaceId match {
                     case None             => // nothing
                     case Some((from, to)) =>
-                      val variable = STVariable(from, true, ArraySeq(to), true)
+                      val variable = STVariable(from, mayBeEmpty = true, values = ArraySeq(to), isSystem = true)
                       template.setAttribute(variable.name, variable.values.unsafeArray)
                   }
       t1       <- currentTimeNanos

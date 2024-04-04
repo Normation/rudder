@@ -287,16 +287,16 @@ class LDAPEntityMapper(
                     inventoryEntry(A_DESCRIPTION).getOrElse(""),
                     NodeState.Enabled,
                     inventoryEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false),
-                    false, // we don't know anymore if it was a policy server
+                    isPolicyServer = false, // we don't know anymore if it was a policy server
 
-                    new DateTime(0), // we don't know anymore the acceptation date
+                    creationDate = new DateTime(0), // we don't know anymore the acceptation date
 
                     ReportingConfiguration(None, None, None), // we don't know anymore agent run frequency
 
-                    Nil, // we forgot node properties
+                    properties = Nil, // we forgot node properties
 
-                    None,
-                    None
+                    policyMode = None,
+                    securityTag = None
                   )
       nodeInfo <- inventoryEntriesToNodeInfos(node, inventoryEntry, machineEntry)
     } yield {
@@ -570,7 +570,7 @@ class LDAPEntityMapper(
           case (v, d) =>
             TechniqueVersion
               .parse(v)
-              .leftMap(Unexpected)
+              .leftMap(Unexpected.apply)
               .flatMap(version => {
                 try {
                   Right((version, GeneralizedTime(d).dateTime))
@@ -678,7 +678,7 @@ class LDAPEntityMapper(
     if (e.isA(OC_RUDDER_NODE_GROUP)) {
       // OK, translate
       for {
-        id         <- e.required(A_NODE_GROUP_UUID).flatMap(NodeGroupId.parse(_).left.map(MalformedDN))
+        id         <- e.required(A_NODE_GROUP_UUID).flatMap(NodeGroupId.parse(_).left.map(MalformedDN.apply))
         name       <- e.required(A_NAME)
         query       = e(A_QUERY_NODE_GROUP)
         nodeIds     = e.valuesFor(A_NODE_UUID).map(x => NodeId(x))
@@ -726,7 +726,7 @@ class LDAPEntityMapper(
   def entryToGroupNodeIds(e: LDAPEntry): InventoryMappingPure[(NodeGroupId, Set[NodeId])] = {
     if (e.isA(OC_RUDDER_NODE_GROUP)) {
       for {
-        id     <- e.required(A_NODE_GROUP_UUID).flatMap(NodeGroupId.parse(_).left.map(MalformedDN))
+        id     <- e.required(A_NODE_GROUP_UUID).flatMap(NodeGroupId.parse(_).left.map(MalformedDN.apply))
         nodeIds = e.valuesFor(A_NODE_UUID).map(x => NodeId(x))
       } yield {
         (id, nodeIds)
@@ -742,7 +742,7 @@ class LDAPEntityMapper(
   def entryToGroupNodeIdsChunk(e: LDAPEntry): InventoryMappingPure[(NodeGroupId, Chunk[NodeId])] = {
     if (e.isA(OC_RUDDER_NODE_GROUP)) {
       for {
-        id     <- e.required(A_NODE_GROUP_UUID).flatMap(NodeGroupId.parse(_).left.map(MalformedDN))
+        id     <- e.required(A_NODE_GROUP_UUID).flatMap(NodeGroupId.parse(_).left.map(MalformedDN.apply))
         nodeIds = e.valuesForChunk(A_NODE_UUID).map(x => NodeId(x))
       } yield {
         (id, nodeIds)
@@ -832,7 +832,7 @@ class LDAPEntityMapper(
                              case None        => Right(None)
                              case Some(value) => PolicyMode.parse(value).map(Some(_))
                            }
-        version         <- TechniqueVersion.parse(s_version).leftMap(Unexpected)
+        version         <- TechniqueVersion.parse(s_version).leftMap(Unexpected.apply)
         name             = e(A_NAME).getOrElse(id)
         params           = parsePolicyVariables(e.valuesFor(A_DIRECTIVE_VARIABLES).toSeq)
         shortDescription = e(A_DESCRIPTION).getOrElse("")

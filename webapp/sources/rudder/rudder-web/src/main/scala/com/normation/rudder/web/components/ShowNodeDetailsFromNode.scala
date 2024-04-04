@@ -289,8 +289,8 @@ class ShowNodeDetailsFromNode(
       "reportsDetails",
       "reportsGrid",
       RudderConfig.reportingService.findUserNodeStatusReport(_),
-      true,
-      false
+      addOverriden = true,
+      onlySystem = false
     ) &
     "#systemStatus *" #> reportDisplayer.asyncDisplay(
       node,
@@ -298,8 +298,8 @@ class ShowNodeDetailsFromNode(
       "systemStatus",
       "systemStatusGrid",
       RudderConfig.reportingService.findSystemNodeStatusReport(_),
-      false,
-      true
+      addOverriden = false,
+      onlySystem = true
     ) &
     "#nodeProperties *" #> DisplayNode.displayTabProperties(id, nodeFact, sm) &
     "#logsDetails *" #> Script(OnLoad(logDisplayer.asyncDisplay(node.id, None, "logsGrid"))) &

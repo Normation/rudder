@@ -972,13 +972,13 @@ class NodeApiService(
         id.value,
         "",
         NodeState.Enabled,
-        false,
-        false,
-        DateTime.now,
-        ReportingConfiguration(None, None, None),
-        Nil,
-        None,
-        None
+        isSystem = false,
+        isPolicyServer = false,
+        creationDate = DateTime.now,
+        nodeReportingConfiguration = ReportingConfiguration(None, None, None),
+        properties = Nil,
+        policyMode = None,
+        securityTag = None
       )
     }
 
@@ -1599,8 +1599,10 @@ class NodeApiService(
 
     val readTimeout = 30.seconds
 
-    val request =
-      remoteRunRequest(nodeId, classes, true, false).timeout(connTimeoutMs = 1000, readTimeoutMs = readTimeout.toMillis.toInt)
+    val request = {
+      remoteRunRequest(nodeId, classes, keepOutput = true, asynchronous = false)
+        .timeout(connTimeoutMs = 1000, readTimeoutMs = readTimeout.toMillis.toInt)
+    }
 
     // copy will close `os`
     val copy = (os: OutputStream, timeout: Duration) => {
@@ -1673,7 +1675,7 @@ class NodeApiService(
           // remote run only works for CFEngine based agent
           val commandResult = {
             if (node.rudderAgent.agentType == AgentType.CfeEnterprise || node.rudderAgent.agentType == AgentType.CfeCommunity) {
-              val request = remoteRunRequest(node.id, classes, false, true)
+              val request = remoteRunRequest(node.id, classes, keepOutput = false, asynchronous = true)
               try {
                 val result = request.asString
                 if (result.isSuccess) {

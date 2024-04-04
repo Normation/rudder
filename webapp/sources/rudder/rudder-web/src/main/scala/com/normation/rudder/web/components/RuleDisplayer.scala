@@ -173,7 +173,8 @@ class RuleDisplayer(
       case Some(d) =>
         d.checkRules match {
           case (toCheck, toUncheck) =>
-            (toCheck.map(r => action(r.id, true)) ++ toUncheck.map(r => action(r.id, false))).foldLeft(Noop)(_ & _)
+            (toCheck.map(r => action(r.id, status = true)) ++ toUncheck.map(r => action(r.id, status = false)))
+              .foldLeft(Noop)(_ & _)
         }
       case None    => Noop
     }
@@ -209,7 +210,7 @@ class RuleDisplayer(
 
     <div>
       {
-      ruleGrid.rulesGridWithUpdatedInfo(None, !directive.isDefined, false) ++
+      ruleGrid.rulesGridWithUpdatedInfo(None, showActionsColumn = !directive.isDefined, isPopup = false) ++
       Script(OnLoad(ruleGrid.asyncDisplayAllRules(None).applied))
     }
     </div>

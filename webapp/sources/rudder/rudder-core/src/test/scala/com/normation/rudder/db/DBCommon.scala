@@ -37,7 +37,6 @@
 
 package com.normation.rudder.db
 
-import cats.implicits.*
 import com.normation.rudder.db.Doobie.*
 import com.normation.rudder.migration.MigrableEntity
 import com.normation.rudder.migration.MigrationEventLogRepository

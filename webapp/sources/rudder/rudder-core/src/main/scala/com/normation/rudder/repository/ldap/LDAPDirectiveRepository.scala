@@ -769,7 +769,7 @@ class WoLDAPDirectiveRepository(
                             ).fail
                           }
       piEntry           = mapper.userDirective2Entry(directive, uptEntry.dn)
-      result           <- con.save(piEntry, true)
+      result           <- con.save(piEntry, removeMissingAttributes = true)
       // for log event - perhaps put that elsewhere ?
       activeTechnique  <-
         getActiveTechniqueByActiveTechnique(inActiveTechniqueId).notOptional(
@@ -833,7 +833,7 @@ class WoLDAPDirectiveRepository(
       actor:               EventActor,
       reason:              Option[String]
   ): IOResult[Option[DirectiveSaveDiff]] = {
-    internalSaveDirective(inActiveTechniqueId, directive, modId, actor, reason, false)
+    internalSaveDirective(inActiveTechniqueId, directive, modId, actor, reason, systemCall = false)
   }
 
   override def saveSystemDirective(
@@ -843,7 +843,7 @@ class WoLDAPDirectiveRepository(
       actor:               EventActor,
       reason:              Option[String]
   ): IOResult[Option[DirectiveSaveDiff]] = {
-    internalSaveDirective(inActiveTechniqueId, directive, modId, actor, reason, true)
+    internalSaveDirective(inActiveTechniqueId, directive, modId, actor, reason, systemCall = true)
   }
 
   private[this] def directiveNameExists(con: RoLDAPConnection, name: String, id: DirectiveUid): IOResult[Boolean] = {
@@ -1188,7 +1188,7 @@ class WoLDAPDirectiveRepository(
                              isSystem = isSystem
                            )
       uptEntry           = mapper.activeTechnique2Entry(newActiveTechnique, categoryEntry.dn)
-      result            <- con.save(uptEntry, true)
+      result            <- con.save(uptEntry, removeMissingAttributes = true)
       // a new active technique is never system, see constructor call, using defvault value,
       // maybe we should check in its caller is the technique is system or not
       autoArchive       <- ZIO.when(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
@@ -1366,7 +1366,7 @@ class WoLDAPDirectiveRepository(
                                       activeTechniqueBreadCrump(uactiveTechniqueId)
                                     } else Nil.succeed
                     oldTechnique <- mapper.entry2ActiveTechnique(ldapEntryTechnique).toIO
-                    deleted      <- con.delete(activeTechnique.dn, false)
+                    deleted      <- con.delete(activeTechnique.dn, recurse = false)
                     diff          = DeleteTechniqueDiff(oldTechnique)
                     loggedAction <- actionLogger.saveDeleteTechnique(modId, principal = actor, deleteDiff = diff, reason = reason)
                     autoArchive  <- ZIO

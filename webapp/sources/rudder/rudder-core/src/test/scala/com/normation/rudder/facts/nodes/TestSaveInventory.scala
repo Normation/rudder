@@ -118,7 +118,7 @@ class TestSaveInventoryGit extends TestSaveInventory {
     val gitFactRepoGC       = new GitGC(gitFactRepoProvider, cronSchedule)
     gitFactRepoGC.start()
     // we need to use the default group available, not rudder, else CI complains
-    val storage             = new GitNodeFactStorageImpl(gitFactRepoProvider, None, true)
+    val storage             = new GitNodeFactStorageImpl(gitFactRepoProvider, None, actuallyCommit = true)
     storage.checkInit().runOrDie(err => new RuntimeException(s"Error when checking fact repository init: " + err.fullMsg))
 
     storage

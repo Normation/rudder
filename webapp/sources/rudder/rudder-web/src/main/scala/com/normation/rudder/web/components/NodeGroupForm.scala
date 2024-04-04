@@ -143,8 +143,8 @@ class NodeGroupForm(
     for {
       nodes <- nodeFactRepo.getAll()(CurrentUser.queryContext).toBox
       setIds = target match {
-                 case Right(nodeGroup) => nodeGroup.serverList
-                 case Left(target)     =>
+                 case Right(nodeGroup_) => nodeGroup_.serverList
+                 case Left(target)      =>
                    val allNodes = nodes.mapValues(_.rudderSettings.kind.isPolicyServer)
                    RuleTarget.getNodeIds(Set(target), allNodes, Map())
                }

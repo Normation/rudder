@@ -358,7 +358,7 @@ class FullInventoryRepositoryImpl(
   }
 
   override def get(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Option[FullInventory]] = {
-    getWithSoftware(id, inventoryStatus, false).map(_.map(_._1))
+    getWithSoftware(id, inventoryStatus, getSoftware = false).map(_.map(_._1))
   }
 
   // if getSoftware is true, return the seq of software UUIDs, else an empty seq in addition to inventory.

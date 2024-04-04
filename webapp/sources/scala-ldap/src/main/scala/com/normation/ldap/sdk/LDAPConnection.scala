@@ -666,7 +666,13 @@ class RwLDAPConnection(
         case None           =>
           applyAdd(new AddRequest(entry.backed))
         case Some(existing) =>
-          val mods = LDAPEntry.merge(existing, entry, false, removeMissingAttributes, forceKeepMissingAttributes)
+          val mods = LDAPEntry.merge(
+            existing,
+            entry,
+            ignoreRDN = false,
+            removeMissing = removeMissingAttributes,
+            forceKeepMissingAttributes = forceKeepMissingAttributes
+          )
           if (!mods.isEmpty) {
             applyModify(new ModifyRequest(entry.dn.toString, mods.asJava))
           } else LDIFNoopChangeRecord(entry.dn).succeed
@@ -721,7 +727,7 @@ class RwLDAPConnection(
             if (deleteRemoved) {
               delete(
                 tree.root,
-                true
+                recurse = true
               ) // TODO : do we want to actually only try to delete these entry and not cut the full subtree ? likely to be error prone
             } else Seq().succeed
           case Replace((dn, mods)) => ZIO.foreach(mods)(mod => modify(dn, mod))

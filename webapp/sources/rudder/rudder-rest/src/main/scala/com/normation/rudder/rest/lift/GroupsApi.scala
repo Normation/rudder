@@ -843,7 +843,8 @@ class GroupApiService2(
           // If enable is missing in parameter consider it to true
           val defaultEnabled = restGroup.enabled.getOrElse(true)
           // create from scratch - base rule is the same with default values
-          val baseGroup      = NodeGroup(groupId, name, "", Nil, None, true, Set(), defaultEnabled)
+          val baseGroup      =
+            NodeGroup(groupId, name, "", Nil, None, isDynamic = true, serverList = Set(), _isEnabled = defaultEnabled)
 
           // if only the name parameter is set, consider it to be enabled
           // if not if workflow are enabled, consider it to be disabled
@@ -1174,7 +1175,8 @@ class GroupApiService14(
           // If enable is missing in parameter consider it to true
           val defaultEnabled = restGroup.enabled.getOrElse(true)
           // create from scratch - base rule is the same with default values
-          val baseGroup      = NodeGroup(groupId, name, "", Nil, None, true, Set(), defaultEnabled)
+          val baseGroup      =
+            NodeGroup(groupId, name, "", Nil, None, isDynamic = true, serverList = Set(), _isEnabled = defaultEnabled)
 
           // if only the name parameter is set, consider it to be enabled
           // if not if workflow are enabled, consider it to be disabled

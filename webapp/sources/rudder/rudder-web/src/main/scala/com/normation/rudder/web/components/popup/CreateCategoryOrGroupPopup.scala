@@ -281,7 +281,7 @@ class CreateCategoryOrGroupPopup(
         val isDynamic = piStatic.get match { case "dynamic" => true; case _ => false }
         val srvList   = groupGenerator.map(_.serverList).getOrElse(Set[NodeId]())
         val nodeId    = NodeGroupId(NodeGroupUid(uuidGen.newUuid))
-        val nodeGroup = NodeGroup(nodeId, piName.get, piDescription.get, Nil, query, isDynamic, srvList, true)
+        val nodeGroup = NodeGroup(nodeId, piName.get, piDescription.get, Nil, query, isDynamic, srvList, _isEnabled = true)
         woNodeGroupRepository
           .create(
             nodeGroup,

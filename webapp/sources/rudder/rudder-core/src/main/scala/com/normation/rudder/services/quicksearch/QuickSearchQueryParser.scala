@@ -180,8 +180,8 @@ object QSRegexQueryParser {
 
   // deal with filters: they all start with "in:"
   private[this] def filter[A:     P]: P[Filter] = P(filterAttr | filterType)
-  private[this] def filterType[A: P]: P[Filter] = P(IgnoreCase("is:") ~ filterKeys) map { FilterType }
-  private[this] def filterAttr[A: P]: P[Filter] = P(IgnoreCase("in:") ~ filterKeys) map { FilterAttr }
+  private[this] def filterType[A: P]: P[Filter] = P(IgnoreCase("is:") ~ filterKeys) map { FilterType.apply }
+  private[this] def filterAttr[A: P]: P[Filter] = P(IgnoreCase("in:") ~ filterKeys) map { FilterAttr.apply }
 
   // the keys part
   private[this] def filterKeys[A: P]: P[Set[String]] = P(filterKey.rep(sep = ",")) map { l => l.toSet }

@@ -950,8 +950,14 @@ class RestTestSetUp {
     )
   )
 
-  val apiVersions: List[ApiVersion] =
-    ApiVersion(14, true) :: ApiVersion(15, true) :: ApiVersion(16, true) :: ApiVersion(17, true) :: ApiVersion(18, false) :: Nil
+  val apiVersions: List[ApiVersion] = {
+    ApiVersion(14, deprecated = true) ::
+    ApiVersion(15, deprecated = true) ::
+    ApiVersion(16, deprecated = true) ::
+    ApiVersion(17, deprecated = true) ::
+    ApiVersion(18, deprecated = false) ::
+    Nil
+  }
   val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))
 
   liftRules.statelessDispatch.append(RestStatus)

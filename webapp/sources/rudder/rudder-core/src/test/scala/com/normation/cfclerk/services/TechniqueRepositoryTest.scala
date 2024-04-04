@@ -160,8 +160,16 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
       ActiveTechnique(ActiveTechniqueId("empty"), techniqueName, Map()).succeed
     }
     // ALL the following methods are useless for our test
-    override def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] =
-      FullActiveTechniqueCategory(ActiveTechniqueCategoryId("Active Techniques"), "", "", Nil, Nil, true).succeed
+    override def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] = {
+      FullActiveTechniqueCategory(
+        ActiveTechniqueCategoryId("Active Techniques"),
+        name = "",
+        description = "",
+        subCategories = Nil,
+        activeTechniques = Nil,
+        isSystem = true
+      ).succeed
+    }
     override def getDirective(directiveId: DirectiveUid): IOResult[Option[Directive]] = ???
     override def getDirectiveWithContext(directiveId: DirectiveUid): IOResult[Option[(Technique, ActiveTechnique, Directive)]] =
       ???

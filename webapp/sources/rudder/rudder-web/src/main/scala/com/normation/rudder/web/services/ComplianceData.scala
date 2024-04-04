@@ -522,7 +522,7 @@ object ComplianceData extends Loggable {
       val techniqueName             =
         fullActiveTechnique.techniques.get(directive.techniqueVersion).map(_.name).getOrElse("Unknown technique")
       val techniqueVersion          = directive.techniqueVersion
-      val components                = getComponentsComplianceDetails(directiveStatus.components, true)
+      val components                = getComponentsComplianceDetails(directiveStatus.components, includeMessage = true)
       val (policyMode, explanation) = computeMode(directive.policyMode)
       val directiveTags             = JsonTagSerialisation.serializeTags(directive.tags)
       DirectiveComplianceLine(

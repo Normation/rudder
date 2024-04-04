@@ -316,7 +316,8 @@ class WoLDAPRuleRepository(
                              s"Cannot update rule with name ${rule.name}: this name is already in use.".fail
                            }
         crEntry          = mapper.rule2Entry(rule)
-        result          <- con.save(crEntry, true).chainError(s"Error when saving rule entry in repository: ${crEntry}")
+        result          <-
+          con.save(crEntry, removeMissingAttributes = true).chainError(s"Error when saving rule entry in repository: ${crEntry}")
         optDiff         <- diffMapper
                              .modChangeRecords2RuleDiff(existingEntry, result)
                              .toIO
@@ -341,7 +342,7 @@ class WoLDAPRuleRepository(
   }
 
   def update(rule: Rule, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[ModifyRuleDiff]] = {
-    internalUpdate(rule, modId, actor, reason, false)
+    internalUpdate(rule, modId, actor, reason, systemCall = false)
   }
 
   def updateSystem(
@@ -350,7 +351,7 @@ class WoLDAPRuleRepository(
       actor:  EventActor,
       reason: Option[String]
   ): IOResult[Option[ModifyRuleDiff]] = {
-    internalUpdate(rule, modId, actor, reason, true)
+    internalUpdate(rule, modId, actor, reason, systemCall = true)
   }
 
   /**

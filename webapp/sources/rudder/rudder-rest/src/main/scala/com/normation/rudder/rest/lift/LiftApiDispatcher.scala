@@ -263,7 +263,7 @@ class LiftHandler(
       case ApiError.BadParam(x, _)   => "Bad parameters for request: " + x
       case ApiError.Authz(x, _)      => "Authorization error: " + x
     }
-    Full(RestUtils.toJsonError(None, JString(msg))(error.apiName, true))
+    Full(RestUtils.toJsonError(None, JString(msg))(error.apiName, prettify = true))
   }
 
   // Get the lift object that can be added in lift rooting logic

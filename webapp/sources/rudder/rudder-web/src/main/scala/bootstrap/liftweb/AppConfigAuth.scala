@@ -302,7 +302,8 @@ class AppConfigAuth extends ApplicationContextAware {
 
     val authConfigProvider  = new UserDetailListProvider {
       // in the case of the root admin defined in config file, given is very specific use case, we enforce case sensitivity
-      override def authConfig: ValidatedUserList = ValidatedUserList(encoder, true, Nil, admins)
+      override def authConfig: ValidatedUserList =
+        ValidatedUserList(encoder, isCaseSensitive = true, customRoles = Nil, users = admins)
     }
     val rootAccountUserRepo = InMemoryUserRepository.make().runNow
     rootAccountUserRepo.setExistingUsers(
@@ -727,10 +728,10 @@ class RestAuthenticationFilter(
                 ApiAccountName(name),
                 ApiToken(name),
                 "API Account for un-authenticated API",
-                true,
-                new DateTime(0),
-                DateTime.now(),
-                NodeSecurityContext.None
+                isEnabled = true,
+                creationDate = new DateTime(0),
+                tokenGenerationDate = DateTime.now(),
+                tenants = NodeSecurityContext.None
               )
 
               authenticate(

@@ -118,8 +118,8 @@ class ExpectedReportTest extends Specification {
               DirectiveExpectedReports(
                 "common-hasPolicyServer-root",
                 None,
-                true,
-                List(
+                isSystem = true,
+                components = List(
                   ValueExpectedReport(
                     "Update",
                     List(
@@ -166,8 +166,8 @@ class ExpectedReportTest extends Specification {
               DirectiveExpectedReports(
                 "dc0eaf47-356a-4a44-877d-e3873f75385b",
                 None,
-                false,
-                List(
+                isSystem = false,
+                components = List(
                   ValueExpectedReport(
                     "Package",
                     List(
@@ -185,8 +185,8 @@ class ExpectedReportTest extends Specification {
               DirectiveExpectedReports(
                 "cbc2377f-ce6d-47fe-902b-8d92a484b184",
                 None,
-                false,
-                List(
+                isSystem = false,
+                components = List(
                   BlockExpectedReport(
                     "my main component",
                     ReportingLogic.WeightedReport,
@@ -216,8 +216,8 @@ class ExpectedReportTest extends Specification {
               DirectiveExpectedReports(
                 "rudder-service-apache-root",
                 None,
-                true,
-                List(
+                isSystem = true,
+                components = List(
                   ValueExpectedReport(
                     "Apache service",
                     List(
@@ -254,8 +254,8 @@ class ExpectedReportTest extends Specification {
               DirectiveExpectedReports(
                 "inventory-all",
                 None,
-                true,
-                List(
+                isSystem = true,
+                components = List(
                   ValueExpectedReport(
                     "Inventory",
                     List(

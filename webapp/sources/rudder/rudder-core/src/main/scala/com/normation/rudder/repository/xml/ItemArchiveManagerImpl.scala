@@ -351,10 +351,10 @@ class ItemArchiveManagerImpl(
     useSemaphoreOrFail(
       for {
         _           <- GitArchiveLoggerPure.info("Importing full archive with id '%s'".format(archiveId.value))
-        rules       <- importRulesAndDeploy(archiveId, includeSystem, false)
-        userLib     <- importTechniqueLibraryAndDeploy(archiveId, includeSystem, false)
-        groupLIb    <- importGroupLibraryAndDeploy(archiveId, includeSystem, false)
-        parameters  <- importParametersAndDeploy(archiveId, false)
+        rules       <- importRulesAndDeploy(archiveId, includeSystem, deploy = false)
+        userLib     <- importTechniqueLibraryAndDeploy(archiveId, includeSystem, deploy = false)
+        groupLIb    <- importGroupLibraryAndDeploy(archiveId, includeSystem, deploy = false)
+        parameters  <- importParametersAndDeploy(archiveId, includeSystem = false)
         eventLogged <- eventLogger.saveEventLog(modId, new ImportFullArchive(actor, archiveId, message))
         commit      <- restoreCommitAtHead(
                          commiter,
@@ -544,10 +544,10 @@ class ItemArchiveManagerImpl(
     useSemaphoreOrFail(
       for {
         _           <- GitArchiveLoggerPure.info(s"Importing full archive with id '${archiveId.value}'")
-        rules       <- importRulesAndDeploy(archiveId, includeSystem, false)
-        userLib     <- importTechniqueLibraryAndDeploy(archiveId, includeSystem, false)
-        groupLIb    <- importGroupLibraryAndDeploy(archiveId, includeSystem, false)
-        parameters  <- importParametersAndDeploy(archiveId, false)
+        rules       <- importRulesAndDeploy(archiveId, includeSystem, deploy = false)
+        userLib     <- importTechniqueLibraryAndDeploy(archiveId, includeSystem, deploy = false)
+        groupLIb    <- importGroupLibraryAndDeploy(archiveId, includeSystem, deploy = false)
+        parameters  <- importParametersAndDeploy(archiveId, includeSystem = false)
         eventLogged <- eventLogger.saveEventLog(modId, new Rollback(actor, rollbackedEvents, target, rollbackType, message))
         commit      <- restoreCommitAtHead(
                          commiter,

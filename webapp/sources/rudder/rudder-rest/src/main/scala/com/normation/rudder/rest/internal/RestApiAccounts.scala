@@ -255,7 +255,7 @@ class RestApiAccounts(
               logger.error(msg)
               toJsonError(None, s"Could not regenerate account ${tokenId} cause: ${err.fullMsg}")(
                 "regenerateAccount",
-                true
+                prettify = true
               )
           }
 

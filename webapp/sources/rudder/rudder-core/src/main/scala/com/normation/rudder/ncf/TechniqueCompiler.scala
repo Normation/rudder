@@ -118,12 +118,12 @@ trait TechniqueCompiler {
     val compileYaml = compileAtPath(techniquePath)
     val success     = TechniqueCompilationOutput(
       TechniqueCompilerApp.Rudderc,
-      false,
-      0,
-      Chunk.empty,
-      "no compilation needed: artifact are up-to-date",
-      "",
-      ""
+      fallbacked = false,
+      resultCode = 0,
+      fileStatus = Chunk.empty,
+      msg = "no compilation needed: artifact are up-to-date",
+      stdout = "",
+      stderr = ""
     ).succeed
 
     for {
@@ -452,7 +452,15 @@ class TechniqueCompilerWithFallback(
 
     // recover from rudderc if result says so
     def recoverIfNeeded(app: TechniqueCompilerApp, r: RuddercResult): IOResult[TechniqueCompilationOutput] = {
-      val ltc = TechniqueCompilationOutput(app, false, r.code, r.fileStatus, r.msg, r.stdout, r.stderr)
+      val ltc = TechniqueCompilationOutput(
+        app,
+        fallbacked = false,
+        resultCode = r.code,
+        fileStatus = r.fileStatus,
+        msg = r.msg,
+        stdout = r.stdout,
+        stderr = r.stderr
+      )
       r match {
         case _: RuddercResult.Fail =>
           // fallback but keep rudderc error for logs
@@ -468,9 +476,17 @@ class TechniqueCompilerWithFallback(
       case Some(TechniqueCompilerApp.Webapp)  => // in that case, we can't fallback even more, so the result is final
         fallbackCompiler.compileTechnique(technique)
       case Some(TechniqueCompilerApp.Rudderc) =>
-        ruddercAll.map(r =>
-          TechniqueCompilationOutput(TechniqueCompilerApp.Rudderc, false, r.code, r.fileStatus, r.msg, r.stdout, r.stderr)
-        )
+        ruddercAll.map(r => {
+          TechniqueCompilationOutput(
+            TechniqueCompilerApp.Rudderc,
+            fallbacked = false,
+            resultCode = r.code,
+            fileStatus = r.fileStatus,
+            msg = r.msg,
+            stdout = r.stdout,
+            stderr = r.stderr
+          )
+        })
     }
   }
 
@@ -539,12 +555,12 @@ class WebappTechniqueCompiler(
     } yield {
       TechniqueCompilationOutput(
         TechniqueCompilerApp.Webapp,
-        false,
-        0,
-        TechniqueFiles.Generated.all.map(f => ResourceFile(f, ResourceFileState.New)),
-        s"Technique '${getTechniqueRelativePath(technique)}' written by webapp",
-        "",
-        ""
+        fallbacked = false,
+        resultCode = 0,
+        fileStatus = TechniqueFiles.Generated.all.map(f => ResourceFile(f, ResourceFileState.New)),
+        msg = s"Technique '${getTechniqueRelativePath(technique)}' written by webapp",
+        stdout = "",
+        stderr = ""
       )
     }
   }
@@ -902,7 +918,7 @@ class ClassicTechniqueWriter(
                       }
           } yield {
             val condition = canonifyCondition(call, parentBlocks)
-            createCallingBundle(condition, call, classParameterValue, params, false)
+            createCallingBundle(condition, call, classParameterValue, params, forNaReport = false)
           })
         case block: MethodBlock =>
           val bundleAndMethodCallsList  = block.calls.flatMap(bundleMethodCall(block :: parentBlocks))
@@ -993,7 +1009,7 @@ class ClassicTechniqueWriter(
                 val params =
                   s""""${message}"""" :: s""""${escapedClassParameterValue}"""" :: s""""${classPrefix}"""" :: "@{args}" :: Nil
 
-                createCallingBundle(condition, call, classParameterValue, params, true)
+                createCallingBundle(condition, call, classParameterValue, params, forNaReport = true)
               }
 
               // Write report if the method does not support CFEngine ...

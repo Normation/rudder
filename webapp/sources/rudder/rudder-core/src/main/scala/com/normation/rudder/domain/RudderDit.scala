@@ -166,9 +166,9 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
       parentDN,
       name,
       description,
-      false,
-      OC_RULE_CATEGORY,
-      A_RULE_CATEGORY_UUID
+      isSystem = false,
+      objectClass = OC_RULE_CATEGORY,
+      objectClassUuid = A_RULE_CATEGORY_UUID
     )
   }
 

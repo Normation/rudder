@@ -79,11 +79,18 @@ class ExpectedPolicyPopup(
     // find the list of dyn groups on which that server would be and from that, the Rules
     val rulesGrid: NodeSeq = getDependantRulesForNode match {
       case Full(seq) =>
-        val noDisplay = DisplayColumn.Force(false)
-        (new RuleGrid("dependentRulesGrid", None, false, None, noDisplay, noDisplay)).rulesGridWithUpdatedInfo(
+        val noDisplay = DisplayColumn.Force(display = false)
+        (new RuleGrid(
+          "dependentRulesGrid",
+          None,
+          showCheckboxColumn = false,
+          directiveApplication = None,
+          columnCompliance = noDisplay,
+          graphRecentChanges = noDisplay
+        )).rulesGridWithUpdatedInfo(
           Some(seq),
-          false,
-          true
+          showActionsColumn = false,
+          isPopup = true
         )
       case e: EmptyBox =>
         val msg = "Error when trying to find dependencies for that group"
@@ -111,7 +118,7 @@ class ExpectedPolicyPopup(
       val pendingNode = Map((nodeSrv.id, nodeSrv.isPolicyServer))
       val groups      = groupTargets.map(x => (x, Set(nodeSrv.id))).toMap
 
-      rules.filter(r => RuleTarget.getNodeIds(r.targets, pendingNode.view, groups, false).nonEmpty)
+      rules.filter(r => RuleTarget.getNodeIds(r.targets, pendingNode.view, groups, allNodesAreThere = false).nonEmpty)
     }
   }
 

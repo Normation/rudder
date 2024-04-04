@@ -176,7 +176,7 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
   import ParameterType.*
 
   val defaultConstraint: List[Constraint.Constraint] =
-    Constraint.AllowEmpty(false) :: Constraint.AllowWhiteSpace(false) :: Constraint.MaxLength(16384) :: Nil
+    Constraint.AllowEmpty(allow = false) :: Constraint.AllowWhiteSpace(allow = false) :: Constraint.MaxLength(16384) :: Nil
 
   val methods: Map[BundleName, GenericMethod] = (
     GenericMethod(
@@ -232,8 +232,8 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
         Map((ParameterId("package_name"), "openssh-server")),
         "redhat",
         "Package install",
-        false,
-        Some(Enforce)
+        disabledReporting = false,
+        policyMode = Some(Enforce)
       ) :: Nil,
       "",
       "",
@@ -307,7 +307,17 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       initDirectories(compiler, technique)
       val res                = compiler.compileTechnique(technique).runNow
 
-      (res must beEqualTo(TechniqueCompilationOutput(Rudderc, false, 0, Chunk.empty, "ok", "stdout", ""))) and
+      (res must beEqualTo(
+        TechniqueCompilationOutput(
+          Rudderc,
+          fallbacked = false,
+          resultCode = 0,
+          fileStatus = Chunk.empty,
+          msg = "ok",
+          stdout = "stdout",
+          stderr = ""
+        )
+      )) and
       (compilationConfigFile.exists must beFalse) and
       (compilationOutputFile.exists must beFalse) and
       checkXML(CreatedByRudderc) and
@@ -320,7 +330,17 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       initDirectories(compiler, technique)
       val res                = compiler.compileTechnique(technique).runNow
 
-      (res must beEqualTo(TechniqueCompilationOutput(Rudderc, false, 7, Chunk.empty, "nok:user", "stdout", "stderr"))) and
+      (res must beEqualTo(
+        TechniqueCompilationOutput(
+          Rudderc,
+          fallbacked = false,
+          resultCode = 7,
+          fileStatus = Chunk.empty,
+          msg = "nok:user",
+          stdout = "stdout",
+          stderr = "stderr"
+        )
+      )) and
       (compilationConfigFile.exists must beFalse) and
       (compilationOutputFile.exists must beTrue) and
       checkXML(Missing) and
@@ -333,7 +353,17 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       initDirectories(compiler, technique)
       val res                = compiler.compileTechnique(technique).runNow
 
-      (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, -42, Chunk.empty, "nok:empty", "stdout", "stderr"))) and
+      (res must beEqualTo(
+        TechniqueCompilationOutput(
+          Webapp,
+          fallbacked = true,
+          resultCode = -42,
+          fileStatus = Chunk.empty,
+          msg = "nok:empty",
+          stdout = "stdout",
+          stderr = "stderr"
+        )
+      )) and
       (compilationConfigFile.exists must beFalse) and
       (compilationOutputFile.exists must beTrue) and
       checkXML(CreatedByWebapp) and
@@ -346,7 +376,17 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       initDirectories(compiler, technique)
       val res                = compiler.compileTechnique(technique).runNow
 
-      (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, 50, Chunk.empty, "nok:empty", "stdout", "stderr"))) and
+      (res must beEqualTo(
+        TechniqueCompilationOutput(
+          Webapp,
+          fallbacked = true,
+          resultCode = 50,
+          fileStatus = Chunk.empty,
+          msg = "nok:empty",
+          stdout = "stdout",
+          stderr = "stderr"
+        )
+      )) and
       (compilationConfigFile.exists must beFalse) and
       (compilationOutputFile.exists must beTrue) and
       checkXML(CreatedByWebapp) and
@@ -359,7 +399,17 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       initDirectories(compiler, technique)
       val res                = compiler.compileTechnique(technique).runNow
 
-      (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, 60, Chunk.empty, "nok:xml", "stdout", "stderr"))) and
+      (res must beEqualTo(
+        TechniqueCompilationOutput(
+          Webapp,
+          fallbacked = true,
+          resultCode = 60,
+          fileStatus = Chunk.empty,
+          msg = "nok:xml",
+          stdout = "stdout",
+          stderr = "stderr"
+        )
+      )) and
       (compilationConfigFile.exists must beFalse) and
       (compilationOutputFile.exists must beTrue) and
       checkXML(CreatedByWebapp) and
@@ -372,7 +422,17 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       initDirectories(compiler, technique)
       val res                = compiler.compileTechnique(technique).runNow
 
-      (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, 70, Chunk.empty, "nok:cfe", "stdout", "stderr"))) and
+      (res must beEqualTo(
+        TechniqueCompilationOutput(
+          Webapp,
+          fallbacked = true,
+          resultCode = 70,
+          fileStatus = Chunk.empty,
+          msg = "nok:cfe",
+          stdout = "stdout",
+          stderr = "stderr"
+        )
+      )) and
       (compilationConfigFile.exists must beFalse) and
       (compilationOutputFile.exists must beTrue) and
       checkXML(CreatedByWebapp) and
@@ -385,7 +445,17 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       initDirectories(compiler, technique)
       val res                = compiler.compileTechnique(technique).runNow
 
-      (res must beEqualTo(TechniqueCompilationOutput(Webapp, true, 80, Chunk.empty, "nok:ps1", "stdout", "stderr"))) and
+      (res must beEqualTo(
+        TechniqueCompilationOutput(
+          Webapp,
+          fallbacked = true,
+          resultCode = 80,
+          fileStatus = Chunk.empty,
+          msg = "nok:ps1",
+          stdout = "stdout",
+          stderr = "stderr"
+        )
+      )) and
       (compilationConfigFile.exists must beFalse) and
       (compilationOutputFile.exists must beTrue) and
       checkXML(CreatedByWebapp) and
@@ -418,17 +488,17 @@ class TestEditorTechniqueWriterFallback extends Specification with ContentMatche
       (res must beEqualTo(
         TechniqueCompilationOutput(
           Webapp,
-          false,
-          0,
-          Chunk(
+          fallbacked = false,
+          resultCode = 0,
+          fileStatus = Chunk(
             ResourceFile("metadata.xml", New),
             ResourceFile("rudder_reporting.cf", New),
             ResourceFile("technique.cf", New),
             ResourceFile("technique.ps1", New)
           ),
-          "Technique 'techniqueOK' written by webapp",
-          "",
-          ""
+          msg = "Technique 'techniqueOK' written by webapp",
+          stdout = "",
+          stderr = ""
         )
       )) and
       (compilationConfigFile.exists must beTrue) and

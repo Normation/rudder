@@ -139,8 +139,8 @@ object InheritMode {
   def parseString(s: String): PureResult[InheritMode] = s.toList match {
     case obj :: arr :: str :: Nil =>
       (ObjectMode.parse(obj), ArrayMode.parse(arr), StringMode.parse(str)) match {
-        case (Some(o), Some(a), Some(s)) => Right(InheritMode(o, a, s))
-        case _                           =>
+        case (Some(o), Some(a), Some(s_)) => Right(InheritMode(o, a, s_))
+        case _                            =>
           Left(Inconsistency(s"Impossible to parse string as inherit mode option, expecting: [mo][oap][oap] but got: ${s}"))
       }
     case _                        =>

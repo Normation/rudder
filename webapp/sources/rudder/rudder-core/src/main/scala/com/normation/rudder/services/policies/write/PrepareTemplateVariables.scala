@@ -254,8 +254,10 @@ class PrepareTemplateVariablesImpl(
       generationTimestamp: Long
   ): IOResult[Seq[PreparedTechnique]] = {
 
-    val rudderParametersVariable = STVariable(PARAMETER_VARIABLE, true, parameters.to(ArraySeq), true)
-    val generationVariable       = STVariable("GENERATIONTIMESTAMP", false, ArraySeq(generationTimestamp), true)
+    val rudderParametersVariable =
+      STVariable(PARAMETER_VARIABLE, mayBeEmpty = true, values = parameters.to(ArraySeq), isSystem = true)
+    val generationVariable       =
+      STVariable("GENERATIONTIMESTAMP", mayBeEmpty = false, values = ArraySeq(generationTimestamp), isSystem = true)
 
     for {
       variableHandler    <-

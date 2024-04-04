@@ -62,14 +62,14 @@ class JsonVariablesTest extends Specification {
          }
         """
       val variables = Seq(
-        STVariable("key1", true, ArraySeq(true), false),
-        STVariable("key2", true, ArraySeq("some value"), false),
-        STVariable("key3", true, ArraySeq("42"), false),
-        STVariable("key4", true, ArraySeq("some", "more", "values", true, false), false),
-        STVariable("key5", false, ArraySeq("k5"), true),
-        STVariable("key6", true, ArraySeq("a1", "a2", "a3"), false),
-        STVariable("key7", true, ArraySeq(""), false),
-        STVariable("key8", true, ArraySeq(), false)
+        STVariable("key1", mayBeEmpty = true, values = ArraySeq(true), isSystem = false),
+        STVariable("key2", mayBeEmpty = true, values = ArraySeq("some value"), isSystem = false),
+        STVariable("key3", mayBeEmpty = true, values = ArraySeq("42"), isSystem = false),
+        STVariable("key4", mayBeEmpty = true, values = ArraySeq("some", "more", "values", true, false), isSystem = false),
+        STVariable("key5", mayBeEmpty = false, values = ArraySeq("k5"), isSystem = true),
+        STVariable("key6", mayBeEmpty = true, values = ArraySeq("a1", "a2", "a3"), isSystem = false),
+        STVariable("key7", mayBeEmpty = true, values = ArraySeq(""), isSystem = false),
+        STVariable("key8", mayBeEmpty = true, values = ArraySeq(), isSystem = false)
       )
 
       ParseVariables.fromString(json).runNow must containTheSameElementsAs(variables)

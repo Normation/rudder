@@ -88,10 +88,10 @@ class RuleTest extends Specification with Loggable {
 
   val root: RuleCategory = RuleCategory(
     RuleCategoryId("rootRuleCategory"),
-    "Root category",
-    "base root category",
-    subCat,
-    true
+    name = "Root category",
+    description = "base root category",
+    childs = subCat,
+    isSystem = true
   )
 
   "Testing rule utility tools" should {
@@ -132,17 +132,17 @@ class RuleTest extends Specification with Loggable {
       )
       val cat1  = RuleCategory(
         RuleCategoryId("missing-cat1"),
-        "<missing-cat1>",
-        s"Category missing-cat1 has been deleted, please move rules to available categories",
-        List(),
-        false
+        name = "<missing-cat1>",
+        description = s"Category missing-cat1 has been deleted, please move rules to available categories",
+        childs = List(),
+        isSystem = false
       )
       val cat2  = RuleCategory(
         RuleCategoryId("missing-cat2"),
-        "<missing-cat2>",
-        s"Category missing-cat2 has been deleted, please move rules to available categories",
-        List(),
-        false
+        name = "<missing-cat2>",
+        description = s"Category missing-cat2 has been deleted, please move rules to available categories",
+        childs = List(),
+        isSystem = false
       )
       restTestSetUp.ruleApiService14.getMissingCategories(root, rules) shouldEqual (Set(cat1, cat2))
     }

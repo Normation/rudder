@@ -206,7 +206,7 @@ class RuleCategoryPopup(
     targetCategory match {
       case Some(category) =>
         val modId = new ModificationId(uuidGen.newUuid)
-        woRulecategoryRepository.delete(category.id, modId, CurrentUser.actor, None, true).toBox match {
+        woRulecategoryRepository.delete(category.id, modId, CurrentUser.actor, None, checkEmpty = true).toBox match {
           case Full(x) =>
             closePopup() &
             onSuccessCallback(x.value) &
@@ -235,7 +235,7 @@ class RuleCategoryPopup(
             categoryName.get,
             categoryDescription.get,
             Nil,
-            false
+            isSystem = false
           )
 
           val parent = RuleCategoryId(categoryParent.get)

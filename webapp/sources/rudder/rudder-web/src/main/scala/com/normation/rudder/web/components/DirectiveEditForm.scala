@@ -317,7 +317,7 @@ class DirectiveEditForm(
         } else NodeSeq.Empty
       } &
       "#nameField" #> { directiveName.toForm_! } &
-      "#tagField *" #> tagsEditForm.tagsForm("directiveTags", "directiveEditTagsApp", updateTag, false) &
+      "#tagField *" #> tagsEditForm.tagsForm("directiveTags", "directiveEditTagsApp", updateTag, isRule = false) &
       "#directiveID *" #> { directive.id.uid.value } &
       "#shortDescriptionField" #> directiveShortDescription.toForm_! &
       "#longDescriptionField" #> directiveLongDescription.toForm_! &

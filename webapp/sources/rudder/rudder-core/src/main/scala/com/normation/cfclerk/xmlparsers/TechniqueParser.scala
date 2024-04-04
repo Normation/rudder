@@ -109,7 +109,7 @@ class TechniqueParser(
                                   ).filter(a => !List(a.templates, a.files, a.bundlesequence, a.runHooks).forall(_.isEmpty))
             _                  <- { // all agent config types must be different
               val duplicated =
-                agentConfigs.map(_.agentType.id).groupBy(identity).collect { case (id, seq) if (seq.size > 1) => id }
+                agentConfigs.map(_.agentType.id).groupBy(identity).collect { case (id_, seq) if (seq.size > 1) => id_ }
               if (duplicated.nonEmpty) {
                 Left(
                   LoadTechniqueError.Parsing(
@@ -377,7 +377,7 @@ class TechniqueParser(
       // Default value for FILE is false, so we should only check if the value is true and if it is empty it
       val included = (xml \ PROMISE_TEMPLATE_INCLUDED).text == "true"
       for {
-        parsed <- parseResource(techniqueId, xml, false, None)
+        parsed <- parseResource(techniqueId, xml, isTemplate = false, agentType = None)
       } yield {
         TechniqueFile(parsed._1, parsed._2, included)
       }
@@ -390,7 +390,7 @@ class TechniqueParser(
     } else {
       val included = !((xml \ PROMISE_TEMPLATE_INCLUDED).text == "false")
       for {
-        parsed <- parseResource(techniqueId, xml, true, Some(agentType))
+        parsed <- parseResource(techniqueId, xml, isTemplate = true, agentType = Some(agentType))
       } yield {
         TechniqueTemplate(parsed._1, parsed._2, included)
       }

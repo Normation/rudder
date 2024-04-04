@@ -158,7 +158,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
       }
     }
 
-    val readOnlySection = section.children.collect { case x: PredefinedValuesVariableSpec => x }.size > 0
+    val readOnlySection = section.children.collect { case a: PredefinedValuesVariableSpec => a }.size > 0
     if (section.isMultivalued) {
       val sectionFields = {
         for (sectionMap <- seqOfSectionMap)
@@ -168,7 +168,10 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
         sectionFields,
         () => {
           // here, valuesByName is empty, we are creating a new map.
-          boundUsedFields(createSingleSectionField(section, Map(), createDefaultMap(section), true, usedFields), usedFields)
+          boundUsedFields(
+            createSingleSectionField(section, Map(), createDefaultMap(section), isNewPolicy = true, usedFields = usedFields),
+            usedFields
+          )
         },
         priorityToVisibility(section.displayPriority),
         readOnlySection

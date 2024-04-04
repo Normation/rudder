@@ -72,9 +72,9 @@ trait BoxSpecMatcher extends Specification with Loggable with NoShouldExpectatio
 
   implicit class BoxMustEquals[T](t: Box[T]) {
     private[this] def matchRes(f: T => MatchResult[Any]) = t match {
-      case f: Failure =>
-        val msg = s"I wasn't expecting the failure: ${f.messageChain}"
-        f.rootExceptionCause.foreach { ex =>
+      case failure: Failure =>
+        val msg = s"I wasn't expecting the failure: ${failure.messageChain}"
+        failure.rootExceptionCause.foreach { ex =>
           logger.error(msg)
           ex.printStackTrace()
         }

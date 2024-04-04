@@ -690,14 +690,14 @@ object DisplayNode extends Loggable {
     val nodeId      = nodeFact.id
     val publicKeyId = s"publicKey-${nodeId.value}"
     val cfKeyHash   = nodeFactRepository.get(nodeId).either.runNow match {
-      case Right(Some(nodeFact)) if (nodeFact.keyHashCfengine.nonEmpty) =>
-        <div><label>Key hash:</label> <samp>{nodeFact.keyHashCfengine}</samp></div>
-      case _                                                            => NodeSeq.Empty
+      case Right(Some(nodeFact_)) if (nodeFact_.keyHashCfengine.nonEmpty) =>
+        <div><label>Key hash:</label> <samp>{nodeFact_.keyHashCfengine}</samp></div>
+      case _                                                              => NodeSeq.Empty
     }
     val curlHash    = nodeFactRepository.get(nodeId).either.runNow match {
-      case Right(Some(nodeFact)) if (nodeFact.keyHashCfengine.nonEmpty) =>
-        <div><label>Key hash:</label> <samp>sha256//{nodeFact.keyHashBase64Sha256}</samp></div>
-      case _                                                            => NodeSeq.Empty
+      case Right(Some(nodeFact_)) if (nodeFact_.keyHashCfengine.nonEmpty) =>
+        <div><label>Key hash:</label> <samp>sha256//{nodeFact_.keyHashBase64Sha256}</samp></div>
+      case _                                                              => NodeSeq.Empty
     }
 
     val agent     = nodeFact.rudderAgent

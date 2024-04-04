@@ -361,19 +361,19 @@ class HistorizeNodeState(
     change.event match {
       case NodeFactChangeEvent.NewPending(node, attrs)                 =>
         NodeLoggerPure.debug(s"Save new  in node fact fs") *>
-        save(node, change.cc.eventDate, false, PendingInventory)
+        save(node, change.cc.eventDate, alsoJDBC = false, status = PendingInventory)
       case NodeFactChangeEvent.UpdatedPending(oldNode, newNode, attrs) =>
         NodeLoggerPure.debug(s"Update pending in node fact fs") *>
-        save(newNode, change.cc.eventDate, false, PendingInventory)
+        save(newNode, change.cc.eventDate, alsoJDBC = false, status = PendingInventory)
       case NodeFactChangeEvent.Accepted(node, attrs)                   =>
         NodeLoggerPure.debug(s"Accept in node fact fs and postgres") *>
-        save(node, change.cc.eventDate, true, AcceptedInventory) // callback done post accept
+        save(node, change.cc.eventDate, alsoJDBC = true, status = AcceptedInventory) // callback done post accept
       case NodeFactChangeEvent.Refused(node, attrs)                    =>
         NodeLoggerPure.debug(s"Refused in node fact fs and postgres") *>
-        save(node, change.cc.eventDate, true, AcceptedInventory)
+        save(node, change.cc.eventDate, alsoJDBC = true, status = AcceptedInventory)
       case NodeFactChangeEvent.Updated(oldNode, newNode, attrs)        =>
         NodeLoggerPure.debug(s"Update in node fact fs") *>
-        save(newNode, change.cc.eventDate, false, AcceptedInventory)
+        save(newNode, change.cc.eventDate, alsoJDBC = false, status = AcceptedInventory)
       case NodeFactChangeEvent.Deleted(node, attrs)                    =>
         NodeLoggerPure.debug(s"Delete in node fact fs") *>
         delete(node.id)

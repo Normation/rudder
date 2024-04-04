@@ -264,8 +264,8 @@ object StaticResourceRewrite extends RestHelper {
   // the resource directory we want to server that way
   val resources: Set[String] = Set("javascript", "style", "images", "toserve")
   serve {
-    case Get(prefix :: resource :: tail, req) if (resources.contains(resource)) =>
-      val resourcePath = req.uri.replaceFirst(prefix + "/", "")
+    case Get(prefix_ :: resource :: tail, req) if (resources.contains(resource)) =>
+      val resourcePath = req.uri.replaceFirst(prefix_ + "/", "")
       () => {
         for {
           url <- LiftRules.getResource(resourcePath)
