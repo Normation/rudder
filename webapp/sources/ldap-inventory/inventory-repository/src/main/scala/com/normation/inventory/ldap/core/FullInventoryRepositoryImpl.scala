@@ -446,7 +446,7 @@ class FullInventoryRepositoryImpl(
       _          <- NodeIdRegex.checkNodeId(inventory.node.main.id.value).toIO
       _          <- HostnameRegex.checkHostname(inventory.node.main.hostname).toIO
       con        <- ldap
-      resServer  <- con.saveTree(mapper.treeFromNode(inventory.node))
+      resServer  <- con.saveTree(mapper.treeFromNode(inventory.node), deleteRemoved = true)
       resMachine <- inventory.machine match {
                       case None    => Seq().succeed
                       case Some(m) => this.save(m)
