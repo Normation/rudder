@@ -125,7 +125,7 @@ class GenerationOnChange(
 
   private[nodes] def startGeneration(nodeId: NodeId): IOResult[Unit] = {
     NodeLoggerPure.info(
-      s"Update in node '${nodeId.value}' inventories main information detected: triggering dynmaci group update and a policy generation"
+      s"Update in node '${nodeId.value}' inventories main information detected: triggering dynamic group update and a policy generation"
     ) *>
     IOResult.attempt(updateDynamicGroups.startManualUpdate) *>
     IOResult.attempt(
