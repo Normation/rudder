@@ -5,6 +5,10 @@
        <div class="row">
          <lift:authz role="node_write">
            <div class="col-lg-7 col-md-8 col-xs-12 add-prop-form">
+             <div class="alert alert-warning" ng-class="">
+               <p>Properties' name are not case-sensitive on <b>nodes based on Windows agent</b>.</p>
+               <p>Please make sur that properties' name on Windows node have distinct names to prevent collision problem when using them.</p>
+             </div>
              <label for="newPropName">Add a new property:</label>
              <ng-form name="newPropForm">
                <table id="addPropTable">
