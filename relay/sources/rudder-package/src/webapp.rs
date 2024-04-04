@@ -183,12 +183,13 @@ impl Webapp {
                 Spinners::Dots,
                 "Restarting the Web application to apply changes".into(),
             );
-            let mut systemctl = Command::new("/usr/bin/systemctl");
+            let mut systemctl = Command::new("systemctl");
             systemctl
                 .arg("--no-ask-password")
                 .arg("restart")
                 .arg("rudder-jetty");
-            let _ = CmdOutput::new(&mut systemctl)?;
+            let _ = CmdOutput::new(&mut systemctl)
+                .context("Restarting the rudder-jetty service with systemctl")?;
             sp.stop_with_symbol("🗸");
             self.pending_changes = false;
         } else {
