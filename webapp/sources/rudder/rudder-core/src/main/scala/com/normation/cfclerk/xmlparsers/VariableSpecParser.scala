@@ -104,7 +104,7 @@ final case class EmptyReportKeysValue(sectionName: String) extends Exception(
 
 class VariableSpecParser extends Loggable {
 
-  private[this] val reservedVariableName = DEFAULT_COMPONENT_KEY :: TRACKINGKEY :: Nil
+  private val reservedVariableName = DEFAULT_COMPONENT_KEY :: TRACKINGKEY :: Nil
 
   def parseTrackerVariableSpec(node: Node): Either[LoadTechniqueError, TrackerVariableSpec] = {
     val id = (node \ ("@reporting")).headOption.map(_.text)
@@ -343,7 +343,7 @@ class VariableSpecParser extends Loggable {
     }
   }
 
-  private[this] def parseAlgoList(algos: String): Seq[HashAlgoConstraint] = {
+  private def parseAlgoList(algos: String): Seq[HashAlgoConstraint] = {
     if (algos.trim.isEmpty) HashAlgoConstraint.sort(HashAlgoConstraint.values)
     else {
       Control.traverse(algos.split(",").toSeq)(algo => HashAlgoConstraint.parse(algo.trim).toOption) match {

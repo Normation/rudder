@@ -61,7 +61,7 @@ trait UserPropertyService {
 
 class UserPropertyServiceImpl(val opt: ReasonsMessageInfo) extends UserPropertyService {
 
-  private[this] val impl =
+  private val impl =
     new StatelessUserPropertyService(() => opt.enabled.succeed, () => opt.mandatory.succeed, () => opt.explanation.succeed)
 
   override val reasonsFieldBehavior = impl.reasonsFieldBehavior

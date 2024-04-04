@@ -80,8 +80,8 @@ class PathComputerImpl(
     chainDepthLimit: Int = 20 // max number of relay, to detect cycles
 ) extends PathComputer with Loggable {
 
-  private[this] val promisesPrefix = "/rules"
-  private[this] val newPostfix     = ".new"
+  private val promisesPrefix = "/rules"
+  private val newPostfix     = ".new"
 
   /**
    * Compute

@@ -56,7 +56,7 @@ import zio.*
 @RunWith(classOf[JUnitRunner])
 class TestPreParsing extends Specification {
 
-  implicit private[this] class TestParser(pre: PreInventoryParser) {
+  implicit private class TestParser(pre: PreInventoryParser) {
 
     def fromXml(checkName: String, is: InputStream): IOResult[NodeSeq] = {
       ZIO.attempt(XML.load(is)).mapError(SystemError("error in test", _))

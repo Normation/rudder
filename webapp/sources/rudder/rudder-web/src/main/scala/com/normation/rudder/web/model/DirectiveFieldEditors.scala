@@ -61,6 +61,8 @@ import org.joda.time.LocalDate
 import org.joda.time.LocalTime
 import org.joda.time.Period
 import org.joda.time.format.DateTimeFormatter
+import scala.reflect.ClassTag
+import scala.reflect.classTag
 import scala.xml.*
 
 /**
@@ -118,7 +120,7 @@ class TextField(
     Full(form)
 
   }
-  def manifest: Manifest[String] = manifestOf[String]
+  def manifest: ClassTag[String] = classTag[String]
 
   override val uniqueFieldId: Full[String] = Full(id)
   def name = id
@@ -145,7 +147,7 @@ class ReadOnlyTextField(val id: String) extends DirectiveField {
     val attrs = if (isReadOnly) Seq(("readonly" -> "readonly")) else Seq()
     Full(SHtml.text(toClient, x => parseClient(x), attrs*))
   }
-  def manifest: Manifest[String] = manifestOf[String]
+  def manifest: ClassTag[String] = classTag[String]
 
   override val uniqueFieldId: Full[String] = Full(id)
   def name = id
@@ -247,7 +249,7 @@ class SelectField(val id: String, items: Seq[ValueLabel]) extends DirectiveField
     )
   }
 
-  def manifest: Manifest[ValueType] = manifestOf[ValueType]
+  def manifest: ClassTag[ValueType] = classTag[ValueType]
 
   override val uniqueFieldId: Full[String] = Full(id)
   def name = id
@@ -302,7 +304,7 @@ class SelectOneField(val id: String, valueslabels: Seq[ValueLabel]) extends Dire
 
   def dropDownList: Full[Elem] = Full(SHtml.select(valueslabels.map(_.tuple), Full(toClient), x => parseClient(x)))
 
-  def manifest: Manifest[String] = manifestOf[String]
+  def manifest: ClassTag[String] = classTag[String]
 
   override val uniqueFieldId: Full[String] = Full(id)
   def name = id
@@ -350,7 +352,7 @@ class UploadedFileField(basePath: String)(val id: String) extends DirectiveField
     val xml = SHtml.selectObj(listFiles, if (null == f) Empty else Full(f), (x: File) => set(x), ("id", id))
     Full(xml)
   }
-  def manifest:     Manifest[File] = manifestOf[File]
+  def manifest:     ClassTag[File] = classTag[File]
 
   override val uniqueFieldId: Full[String] = Full(id)
   def name = id
@@ -381,7 +383,7 @@ class DateField(format: DateTimeFormatter)(val id: String) extends DirectiveFiel
   private var errors: List[FieldError] = Nil
   def get = _x
   def set(x: ValueType): ValueType = { _x = x; _x }
-  def manifest: Manifest[LocalDate] = manifestOf[LocalDate]
+  def manifest: ClassTag[LocalDate] = classTag[LocalDate]
 
   override val uniqueFieldId: Full[String] = Full(id)
 
@@ -430,7 +432,7 @@ class TimeField(format: DateTimeFormatter)(val id: String) extends DirectiveFiel
   private var errors: List[FieldError] = Nil
   def get = _x
   def set(x: ValueType): ValueType = { _x = x; _x }
-  def manifest: Manifest[LocalTime] = manifestOf[LocalTime]
+  def manifest: ClassTag[LocalTime] = classTag[LocalTime]
 
   override val uniqueFieldId: Full[String] = Full(id)
 
@@ -481,7 +483,7 @@ class PeriodField(showSeconds: Boolean = true, showMinutes: Boolean = true, show
   private var errors: List[FieldError] = Nil
   def get = _x
   def set(x: ValueType): ValueType = { _x = x; _x }
-  def manifest: Manifest[Period] = manifestOf[Period]
+  def manifest: ClassTag[Period] = classTag[Period]
 
   override val uniqueFieldId: Full[String] = Full(id)
 
@@ -551,7 +553,7 @@ class FilePermsField(val id: String) extends DirectiveField {
 
   def get = _x
   def set(x: ValueType): ValueType = { _x.set(x); _x }
-  def manifest: Manifest[FilePerms] = manifestOf[FilePerms]
+  def manifest: ClassTag[FilePerms] = classTag[FilePerms]
 
   override val uniqueFieldId: Full[String] = Full(id)
   def name = id
@@ -602,7 +604,7 @@ class CheckboxField(val id: String) extends DirectiveField {
 
   def get = _x
   def set(x: String): String = { if (null == x) _x = "" else _x = x; _x }
-  def manifest: Manifest[String] = manifestOf[String]
+  def manifest: ClassTag[String] = classTag[String]
 
   override val uniqueFieldId: Full[String] = Full(id)
   def name = id
@@ -638,7 +640,7 @@ class PasswordField(
   type ValueType = String
   def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None // not supported in the general cases
   def getDefaultValue = ""
-  def manifest:               Manifest[String] = manifestOf[String]
+  def manifest:               ClassTag[String] = classTag[String]
   override val uniqueFieldId: Full[String]     = Full(id)
   def name = id
   def validate:       List[FieldError]                 = Nil
@@ -658,7 +660,7 @@ class PasswordField(
   protected var _x: String = getDefaultValue
 
   // the algo to use
-  private[this] var currentAlgo:   Option[HashAlgoConstraint] = {
+  private var currentAlgo:   Option[HashAlgoConstraint] = {
     if (algos.contains(HashAlgoConstraint.LinuxShadowSHA256)) {
       Some(HashAlgoConstraint.LinuxShadowSHA256)
     } else {
@@ -669,13 +671,11 @@ class PasswordField(
       }
     }
   }
-  private[this] var currentHash:   Option[String]             = None
-  private[this] var currentAction: String                     = "keep"
-  // to store the result
-  private[this] var currentValue:  Option[String]             = None
+  private var currentHash:   Option[String]             = None
+  private var currentAction: String                     = "keep"
 
-  private[this] var previousAlgo: Option[HashAlgoConstraint] = None
-  private[this] var previousHash: Option[String]             = None
+  private var previousAlgo: Option[HashAlgoConstraint] = None
+  private var previousHash: Option[String]             = None
 
   /*
    * find the new internal value of the hash given:
@@ -683,7 +683,7 @@ class PasswordField(
    * - blank required
    * - new value
    */
-  private[this] def newInternalValue(
+  private def newInternalValue(
       keepCurrentPwd: Boolean,
       blankPwd:       Boolean,
       pastValue:      String,
@@ -691,8 +691,6 @@ class PasswordField(
       chosenAlgo:     HashAlgoConstraint
   ): String = {
     slaves.foreach(s => s.updateValue(keepCurrentPwd, blankPwd, pastValue, newInput, chosenAlgo))
-
-    currentValue = Some(newInput)
 
     if (keepCurrentPwd) pastValue
     else if (blankPwd) ""
@@ -892,7 +890,7 @@ class DerivedPasswordField(val id: String, val derivedType: HashAlgoConstraint.D
   type ValueType = String
   def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None // not supported in the general cases
   def getDefaultValue = ""
-  def manifest:               Manifest[String] = manifestOf[String]
+  def manifest:               ClassTag[String] = classTag[String]
   override val uniqueFieldId: Full[String]     = Full(id)
   def name = id
   def validate:    List[FieldError]                 = Nil
@@ -900,7 +898,7 @@ class DerivedPasswordField(val id: String, val derivedType: HashAlgoConstraint.D
   def setFilter:   List[String => String]           = Nil
 
   // the actual backend value like: sha1:XXXXXX
-  private[this] var _x: String = getDefaultValue
+  private var _x: String = getDefaultValue
 
   // the mapping between source algo and corresponding algo
 
@@ -981,7 +979,7 @@ class FileField(
     Full(form)
 
   }
-  def manifest: Manifest[String] = manifestOf[String]
+  def manifest: ClassTag[String] = classTag[String]
 
   override val uniqueFieldId: Full[String] = Full(id)
   def name = id

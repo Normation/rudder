@@ -434,7 +434,7 @@ class GenericConfigService(
    * Parsing can't fail: in case of bad data in base, we still want to return a correct
    * value (not sure why ? At least, we could save back the value in base ?)
    */
-  private[this] def get[T](name: String)(implicit converter: RudderWebProperty => T): IOResult[T] = {
+  private def get[T](name: String)(implicit converter: RudderWebProperty => T): IOResult[T] = {
     for {
       params   <- repos.getConfigParameters()
       needSave <- Ref.make(false)
@@ -452,42 +452,42 @@ class GenericConfigService(
     } yield value
   }
 
-  private[this] def getIO[T](name: String)(implicit converter: RudderWebProperty => IOResult[T]): IOResult[T] = {
+  private def getIO[T](name: String)(implicit converter: RudderWebProperty => IOResult[T]): IOResult[T] = {
     get[IOResult[T]](name).flatten
   }
 
-  private[this] def save[T](name: String, value: T, modifyGlobalPropertyInfo: Option[ModifyGlobalPropertyInfo] = None)(implicit
+  private def save[T](name: String, value: T, modifyGlobalPropertyInfo: Option[ModifyGlobalPropertyInfo] = None)(implicit
       ser: T => String
   ): IOResult[RudderWebProperty] = {
     val p = RudderWebProperty(RudderWebPropertyName(name), ser(value), "")
     repos.saveConfigParameter(p, modifyGlobalPropertyInfo)
   }
 
-  implicit private[this] def serInt(x:           Int):           String = x.toString
-  implicit private[this] def serPolicyMode(x:    PolicyMode):    String = x.name
-  implicit private[this] def serFeatureSwitch(x: FeatureSwitch): String = x.name
+  implicit private def serInt(x:           Int):           String = x.toString
+  implicit private def serPolicyMode(x:    PolicyMode):    String = x.name
+  implicit private def serFeatureSwitch(x: FeatureSwitch): String = x.name
 
-  implicit private[this] def toBoolean(p: RudderWebProperty): Boolean = p.value.toLowerCase match {
+  implicit private def toBoolean(p: RudderWebProperty): Boolean = p.value.toLowerCase match {
     case "true" | "1" => true
     case _            => false
   }
-  implicit private[this] def serBoolean(x: Boolean): String = if (x) "true" else "false"
+  implicit private def serBoolean(x: Boolean): String = if (x) "true" else "false"
 
   // default is HTTPS, in particular for ""
-  implicit private[this] def toReportProtocol(p: RudderWebProperty): AgentReportingProtocol = p.value match {
+  implicit private def toReportProtocol(p: RudderWebProperty): AgentReportingProtocol = p.value match {
     case _ => AgentReportingHTTPS
   }
 
-  implicit private[this] def toOptionPolicyMode(p: RudderWebProperty): Option[PolicyMode] = {
+  implicit private def toOptionPolicyMode(p: RudderWebProperty): Option[PolicyMode] = {
     PolicyMode.values.find(_.name == p.value.toLowerCase())
   }
 
-  implicit private[this] def serOptionPolicyMode(x: Option[PolicyMode]): String = x match {
+  implicit private def serOptionPolicyMode(x: Option[PolicyMode]): String = x match {
     case None    => "default"
     case Some(p) => p.name
   }
 
-  implicit private[this] def toOptionSendMetrics(p: RudderWebProperty): Option[SendMetrics] = {
+  implicit private def toOptionSendMetrics(p: RudderWebProperty): Option[SendMetrics] = {
     p.value.toLowerCase match {
       case "true" | "1" | "complete" => Some(SendMetrics.CompleteMetrics)
       case "minimal"                 => Some(SendMetrics.MinimalMetrics)
@@ -496,30 +496,30 @@ class GenericConfigService(
     }
   }
 
-  implicit private[this] def serSendMetrics(x: Option[SendMetrics]): String = x match {
+  implicit private def serSendMetrics(x: Option[SendMetrics]): String = x match {
     case None                              => "default"
     case Some(SendMetrics.NoMetrics)       => "no"
     case Some(SendMetrics.MinimalMetrics)  => "minimal"
     case Some(SendMetrics.CompleteMetrics) => "complete"
   }
 
-  implicit private[this] def toNodeState(p: RudderWebProperty): NodeState = {
+  implicit private def toNodeState(p: RudderWebProperty): NodeState = {
     NodeState.parse(p.value).getOrElse(NodeState.Enabled) // default value is "enabled"
   }
 
-  implicit private[this] def serState(x: NodeState): String = x.name
+  implicit private def serState(x: NodeState): String = x.name
 
-  implicit private[this] def toRelaySynchronisationMethod(p: RudderWebProperty): RelaySynchronizationMethod = p.value match {
+  implicit private def toRelaySynchronisationMethod(p: RudderWebProperty): RelaySynchronizationMethod = p.value match {
     case Rsync.value    => Rsync
     case Disabled.value => Disabled
     case _              => Classic // default is classic
   }
 
-  implicit private[this] def toString(p: RudderWebProperty): String = p.value
+  implicit private def toString(p: RudderWebProperty): String = p.value
 
-  implicit private[this] def toUnit(p: IOResult[RudderWebProperty]): IOResult[Unit] = p.map(_ => ())
+  implicit private def toUnit(p: IOResult[RudderWebProperty]): IOResult[Unit] = p.map(_ => ())
 
-  implicit private[this] def toInt(p: RudderWebProperty): IOResult[Int] = {
+  implicit private def toInt(p: RudderWebProperty): IOResult[Int] = {
     try {
       Integer.parseInt(p).succeed
     } catch {
@@ -527,7 +527,7 @@ class GenericConfigService(
     }
   }
 
-  implicit private[this] def toDuration(p: RudderWebProperty): IOResult[Duration] = {
+  implicit private def toDuration(p: RudderWebProperty): IOResult[Duration] = {
     try {
       Duration(p).succeed
     } catch {
@@ -535,11 +535,11 @@ class GenericConfigService(
     }
   }
 
-  implicit private[this] def toPolicyGenerationTrigger(p: RudderWebProperty): IOResult[PolicyGenerationTrigger] = {
+  implicit private def toPolicyGenerationTrigger(p: RudderWebProperty): IOResult[PolicyGenerationTrigger] = {
     PolicyGenerationTrigger(p).toIO
   }
 
-  implicit private[this] def serPolicyGenerationTrigger(x: PolicyGenerationTrigger): String = {
+  implicit private def serPolicyGenerationTrigger(x: PolicyGenerationTrigger): String = {
     x match {
       case PolicyGenerationTrigger.AllGeneration        => "all"
       case PolicyGenerationTrigger.NoGeneration         => "none"
@@ -550,7 +550,7 @@ class GenericConfigService(
   /**
    * A feature switch is defaulted to Disabled is parsing fails.
    */
-  implicit private[this] def toFeatureSwitch(p: RudderWebProperty): FeatureSwitch = FeatureSwitch.parse(p.value) match {
+  implicit private def toFeatureSwitch(p: RudderWebProperty): FeatureSwitch = FeatureSwitch.parse(p.value) match {
     case Full(status) => status
     case eb: EmptyBox =>
       val e = eb ?~! s"Error when trying to parse property '${p.name.value}' with value '${p.value}' into a feature switch status"

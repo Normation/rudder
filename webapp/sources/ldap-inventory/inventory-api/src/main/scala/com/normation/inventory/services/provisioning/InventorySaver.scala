@@ -79,7 +79,7 @@ trait PipelinedInventorySaver[R] extends InventorySaver[R] with Loggable {
 
   val preCommitPipeline: Seq[PreCommit]
   val basePostPipeline:  Seq[PostCommit[R]]
-  private[this] val postCommitPipeline: Ref[Seq[PostCommit[R]]] = Ref.make(basePostPipeline).runNow
+  private val postCommitPipeline: Ref[Seq[PostCommit[R]]] = Ref.make(basePostPipeline).runNow
 
   def registerPostCommitHook(hook: PostCommit[R]): UIO[Unit] = postCommitPipeline.update(hook +: _)
 

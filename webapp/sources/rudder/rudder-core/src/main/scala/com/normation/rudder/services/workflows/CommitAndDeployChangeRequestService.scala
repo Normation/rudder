@@ -153,7 +153,7 @@ class CommitAndDeployChangeRequestServiceImpl(
   /**
    * Look if the configuration change request is mergeable
    */
-  private[this] def isMergeableConfigurationChangeRequest(
+  private def isMergeableConfigurationChangeRequest(
       changeRequest: ConfigurationChangeRequest
   )(implicit qc: QueryContext): Boolean = {
 
@@ -207,7 +207,7 @@ class CommitAndDeployChangeRequestServiceImpl(
 
     implicit val changeRequestId = changeRequest.id.value
 
-    final case object CheckRule extends CheckChanges[Rule] {
+    case object CheckRule extends CheckChanges[Rule] {
       def failureMessage(rule:   Rule) = s"Rule ${rule.name} (id: ${rule.id.serialize})"
       def getCurrentValue(rule:  Rule) = roRuleRepository.get(rule.id).toBox
       def compareMethod(initial: Rule, current: Rule) = CheckDivergenceForMerge.compareRules(initial, current)
@@ -305,7 +305,7 @@ class CommitAndDeployChangeRequestServiceImpl(
    * So, what to do ?
    * Returns the modificationId, plus a boolean indicating if we need to trigger a deployment
    */
-  private[this] def saveConfigurationChangeRequest(cr: ConfigurationChangeRequest)(implicit cc: ChangeContext): Box[Boolean] = {
+  private def saveConfigurationChangeRequest(cr: ConfigurationChangeRequest)(implicit cc: ChangeContext): Box[Boolean] = {
     import cc.modId
 
     def doDirectiveChange(directiveChanges: DirectiveChanges): Box[TriggerDeploymentDiff] = {

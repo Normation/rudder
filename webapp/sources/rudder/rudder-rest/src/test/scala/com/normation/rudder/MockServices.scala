@@ -213,13 +213,13 @@ class MockCompliance(mockDirectives: MockDirectives) {
     def getFullGroupLibrary(): IOResult[FullNodeGroupCategory] = {
       FullNodeGroupCategory(
         NodeGroupCategoryId("GroupRoot"),
-        "GroupRoot",
-        "root of group categories",
-        Nil,
-        nodeGroups.map(g => {
+        name = "GroupRoot",
+        description = "root of group categories",
+        subCategories = Nil,
+        targetInfos = nodeGroups.map(g => {
           FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, g.description, g.isEnabled, g.isSystem)
         }),
-        true
+        isSystem = true
       ).succeed
     }
 
@@ -397,11 +397,38 @@ class MockCompliance(mockDirectives: MockDirectives) {
       )
     )
 
-    val g1: NodeGroup = NodeGroup(nodeGroupId(1), "G1", "", Nil, None, false, (1 to 2).map(nodeId).toSet, true)
+    val g1: NodeGroup = NodeGroup(
+      nodeGroupId(1),
+      name = "G1",
+      description = "",
+      properties = Nil,
+      query = None,
+      isDynamic = false,
+      serverList = (1 to 2).map(nodeId).toSet,
+      _isEnabled = true
+    )
 
-    val g2: NodeGroup = NodeGroup(nodeGroupId(2), "G2", "", Nil, None, false, Set(nodeId(2)), true)
+    val g2: NodeGroup = NodeGroup(
+      nodeGroupId(2),
+      name = "G2",
+      description = "",
+      properties = Nil,
+      query = None,
+      isDynamic = false,
+      serverList = Set(nodeId(2)),
+      _isEnabled = true
+    )
 
-    val g3: NodeGroup = NodeGroup(nodeGroupId(3), "G3", "", Nil, None, false, Set(nodeId(1)), true)
+    val g3: NodeGroup = NodeGroup(
+      nodeGroupId(3),
+      name = "G3",
+      description = "",
+      properties = Nil,
+      query = None,
+      isDynamic = false,
+      serverList = Set(nodeId(1)),
+      _isEnabled = true
+    )
 
     val r1: Rule = Rule(
       ruleId(1),
@@ -457,12 +484,66 @@ class MockCompliance(mockDirectives: MockDirectives) {
     - R6, which applies D4 to G6 (so we will have skipped on N4 and N5)
      */
 
-    val g1: NodeGroup = NodeGroup(nodeGroupId(1), "G1", "", Nil, None, false, Set(nodeId(1), nodeId(2)), true)
-    val g2: NodeGroup = NodeGroup(nodeGroupId(2), "G2", "", Nil, None, false, Set(nodeId(2)), true)
-    val g3: NodeGroup = NodeGroup(nodeGroupId(3), "G3", "", Nil, None, false, Set(nodeId(1)), true)
-    val g4: NodeGroup = NodeGroup(nodeGroupId(4), "G4", "", Nil, None, false, Set(nodeId(3), nodeId(4), nodeId(5)), true)
-    val g5: NodeGroup = NodeGroup(nodeGroupId(5), "G5", "", Nil, None, false, Set(nodeId(2), nodeId(3)), true)
-    val g6: NodeGroup = NodeGroup(nodeGroupId(6), "G6", "", Nil, None, false, Set(nodeId(4), nodeId(5)), true)
+    val g1: NodeGroup = NodeGroup(
+      nodeGroupId(1),
+      name = "G1",
+      description = "",
+      properties = Nil,
+      query = None,
+      isDynamic = false,
+      serverList = Set(nodeId(1), nodeId(2)),
+      _isEnabled = true
+    )
+    val g2: NodeGroup = NodeGroup(
+      nodeGroupId(2),
+      name = "G2",
+      description = "",
+      properties = Nil,
+      query = None,
+      isDynamic = false,
+      serverList = Set(nodeId(2)),
+      _isEnabled = true
+    )
+    val g3: NodeGroup = NodeGroup(
+      nodeGroupId(3),
+      name = "G3",
+      description = "",
+      properties = Nil,
+      query = None,
+      isDynamic = false,
+      serverList = Set(nodeId(1)),
+      _isEnabled = true
+    )
+    val g4: NodeGroup = NodeGroup(
+      nodeGroupId(4),
+      name = "G4",
+      description = "",
+      properties = Nil,
+      query = None,
+      isDynamic = false,
+      serverList = Set(nodeId(3), nodeId(4), nodeId(5)),
+      _isEnabled = true
+    )
+    val g5: NodeGroup = NodeGroup(
+      nodeGroupId(5),
+      name = "G5",
+      description = "",
+      properties = Nil,
+      query = None,
+      isDynamic = false,
+      serverList = Set(nodeId(2), nodeId(3)),
+      _isEnabled = true
+    )
+    val g6: NodeGroup = NodeGroup(
+      nodeGroupId(6),
+      name = "G6",
+      description = "",
+      properties = Nil,
+      query = None,
+      isDynamic = false,
+      serverList = Set(nodeId(4), nodeId(5)),
+      _isEnabled = true
+    )
 
     val d1 = directives.fileTemplateDirecive1
     val d2 = directives.fileTemplateVariables2

@@ -630,7 +630,7 @@ class UpdateExpectedReportsJdbcRepository(
     })
   }
 
-  private[this] def updateNodeConfigIdInfo(configInfos: Map[NodeId, Vector[NodeConfigIdInfo]]): ConnectionIO[Set[NodeId]] = {
+  private def updateNodeConfigIdInfo(configInfos: Map[NodeId, Vector[NodeConfigIdInfo]]): ConnectionIO[Set[NodeId]] = {
     if (configInfos.isEmpty) {
       Set.empty[NodeId].pure[ConnectionIO]
     } else {

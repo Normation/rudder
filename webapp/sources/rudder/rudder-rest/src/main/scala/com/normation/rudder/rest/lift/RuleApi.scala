@@ -573,7 +573,7 @@ class RuleApiService2(
 
   import restDataSerializer.serializeRule as serialize
 
-  private[this] def createChangeRequestAndAnswer(
+  private def createChangeRequestAndAnswer(
       id:     String,
       diff:   ChangeRequestRuleDiff,
       change: RuleChangeRequest,
@@ -1152,7 +1152,7 @@ class RuleApiService14(
           s"<${rId.value}>",
           s"Category ${rId.value} has been deleted, please move rules to available categories",
           List(),
-          false
+          isSystem = false
         )
       })
   }

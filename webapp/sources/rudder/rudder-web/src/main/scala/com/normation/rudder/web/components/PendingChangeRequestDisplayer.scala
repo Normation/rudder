@@ -59,10 +59,10 @@ import scala.xml.NodeSeq
  */
 object PendingChangeRequestDisplayer extends Loggable {
 
-  private[this] val workflowLevel = RudderConfig.workflowLevelService
-  private[this] val linkUtil      = RudderConfig.linkUtil
+  private val workflowLevel = RudderConfig.workflowLevelService
+  private val linkUtil      = RudderConfig.linkUtil
 
-  private[this] def displayPendingChangeRequest(xml: NodeSeq, crs: Box[Seq[ChangeRequest]]): NodeSeq = {
+  private def displayPendingChangeRequest(xml: NodeSeq, crs: Box[Seq[ChangeRequest]]): NodeSeq = {
     crs match {
       case eb: EmptyBox =>
         val e = eb ?~! "Error when trying to lookup pending change request"
@@ -93,7 +93,7 @@ object PendingChangeRequestDisplayer extends Loggable {
 
   private type checkFunction[T] = (T, Boolean) => Box[Seq[ChangeRequest]]
 
-  private[this] def checkChangeRequest[T](
+  private def checkChangeRequest[T](
       xml:   NodeSeq,
       id:    T,
       check: checkFunction[T]

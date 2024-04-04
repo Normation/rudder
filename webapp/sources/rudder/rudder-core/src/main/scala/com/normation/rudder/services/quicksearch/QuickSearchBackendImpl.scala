@@ -113,7 +113,7 @@ object QSNodeFactBackend extends Loggable {
 
   implicit class QSAttributeFilter(val a: QSAttribute) extends AnyVal {
 
-    private[this] def toMatch(node: CoreNodeFact): Option[Set[(String, String)]] = {
+    private def toMatch(node: CoreNodeFact): Option[Set[(String, String)]] = {
 
       def someSet(v: String)         = Some(Set((v, v)))
       def optSet(v:  Option[String]) = v.map(x => Set((x, x)))
@@ -225,7 +225,7 @@ object QSDirectiveBackend extends Loggable {
 
   implicit class QSAttributeFilter(val a: QSAttribute) extends AnyVal {
 
-    private[this] def toMatch(at: FullActiveTechnique, dir: Directive): Option[Set[(String, String)]] = {
+    private def toMatch(at: FullActiveTechnique, dir: Directive): Option[Set[(String, String)]] = {
 
       val enableToken  = Set("true", "enable", "enabled", "isenable", "isenabled")
       val disableToken = Set("false", "disable", "disabled", "isdisable", "isdisabled")
@@ -345,7 +345,7 @@ object QSLdapBackend {
   /**
    * Mapping between attribute and their ldap name
    */
-  private[this] val attributeNameMapping: Map[QSAttribute, String] = {
+  private val attributeNameMapping: Map[QSAttribute, String] = {
     val m: Map[QSAttribute, String] = Map(
       Name              -> A_NAME,
       Description       -> A_DESCRIPTION,
@@ -570,10 +570,10 @@ object QSLdapBackend {
 
     def toResult(query: Query): Option[QuickSearchResult] = {
       def getId(e: LDAPEntry): Option[QuickSearchResultId] = {
-        if (e.isA(OC_RULE)) { e(A_RULE_UUID).map(QRRuleId) }
-        else if (e.isA(OC_RUDDER_NODE_GROUP)) { e(A_NODE_GROUP_UUID).map(QRGroupId) }
+        if (e.isA(OC_RULE)) { e(A_RULE_UUID).map(QRRuleId.apply) }
+        else if (e.isA(OC_RUDDER_NODE_GROUP)) { e(A_NODE_GROUP_UUID).map(QRGroupId.apply) }
         else if (e.isA(OC_PARAMETER)) {
-          e(A_PARAMETER_NAME).map(QRParameterId)
+          e(A_PARAMETER_NAME).map(QRParameterId.apply)
           // no directive
         } else { None }
       }

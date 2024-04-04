@@ -109,7 +109,7 @@ class CachedReportsExecutionRepository(
    * can be used for a given node) is given by the presence of the
    * nodeid in map's keys.
    */
-  private[this] var cache = Map[NodeId, Option[AgentRunWithNodeConfig]]()
+  private var cache = Map[NodeId, Option[AgentRunWithNodeConfig]]()
 
   override def clearCache(): Unit = semaphore
     .withPermit(IOResult.attempt {

@@ -368,7 +368,7 @@ trait CachedFindRuleNodeStatusReports
    * * we restart Rudder, in normal mode: we take the last (most recent execution) *computed*
    * * * we may have outdated info in this case, but that's not an ssue as it will restore itself really fast
    */
-  private[this] var cache = Map.empty[NodeId, NodeStatusReport]
+  private var cache = Map.empty[NodeId, NodeStatusReport]
 
   /**
    * The queue of invalidation request.
@@ -376,12 +376,12 @@ trait CachedFindRuleNodeStatusReports
    * It's a List and not a Set, because we want to keep the precedence in
    * invalidation request.
    */
-  private[this] val invalidateComplianceRequest = Queue.dropping[Chunk[(NodeId, CacheComplianceQueueAction)]](1).runNow
+  private val invalidateComplianceRequest = Queue.dropping[Chunk[(NodeId, CacheComplianceQueueAction)]](1).runNow
 
   /**
    * We need a semaphore to protect queue content merge-update
    */
-  private[this] val invalidateMergeUpdateSemaphore = Semaphore.make(1).runNow
+  private val invalidateMergeUpdateSemaphore = Semaphore.make(1).runNow
 
   /**
    * Update logic. We take message from queue one at a time, and process.
@@ -414,7 +414,7 @@ trait CachedFindRuleNodeStatusReports
    * Do something with the action we received
    * All actions must have *exactly* the *same* type
    */
-  private[this] def performAction(actions: Chunk[CacheComplianceQueueAction]): IOResult[Unit] = {
+  private def performAction(actions: Chunk[CacheComplianceQueueAction]): IOResult[Unit] = {
     import CacheComplianceQueueAction.*
     import CacheExpectedReportAction.*
 
@@ -490,13 +490,13 @@ trait CachedFindRuleNodeStatusReports
    * It is necessary to keep global order so that we serialize compliance in order
    * and don't loose information
    */
-  private[this] def groupQueueActionByType(l: Chunk[CacheComplianceQueueAction]): Chunk[Chunk[CacheComplianceQueueAction]] = {
+  private def groupQueueActionByType(l: Chunk[CacheComplianceQueueAction]): Chunk[Chunk[CacheComplianceQueueAction]] = {
     l.headOption.map { x =>
       val (h, t) = l.span(x.getClass == _.getClass); groupQueueActionByType(t).prepended(h)
     }.getOrElse(Chunk.empty)
   }
 
-  private[this] def cacheToLog(c: Map[NodeId, NodeStatusReport]): String = {
+  private def cacheToLog(c: Map[NodeId, NodeStatusReport]): String = {
     import com.normation.rudder.domain.logger.ComplianceDebugLogger.RunAndConfigInfoToLog
 
     // display compliance value and expiration date.
@@ -568,7 +568,7 @@ trait CachedFindRuleNodeStatusReports
    * This is handled in higher level of the app and leads to "no data available" in
    * place of compliance bar.
    */
-  private[this] def checkAndGetCache(
+  private def checkAndGetCache(
       nodeIdsToCheck: Set[NodeId]
   )(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] = {
     if (nodeIdsToCheck.isEmpty) {
@@ -920,7 +920,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
    * A value is return for ALL nodeIds, so the assertion nodeIds == returnedMap.keySet holds.
    *
    */
-  private[this] def getNodeRunInfos(
+  private def getNodeRunInfos(
       nodeIds:        Set[NodeId],
       complianceMode: GlobalComplianceMode
   ): IOResult[Map[NodeId, RunAndConfigInfo]] = {
@@ -990,7 +990,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
     }
   }
 
-  private[this] def getUnComputedNodeRunInfos(complianceMode: GlobalComplianceMode): Box[Map[NodeId, RunAndConfigInfo]] = {
+  private def getUnComputedNodeRunInfos(complianceMode: GlobalComplianceMode): Box[Map[NodeId, RunAndConfigInfo]] = {
     val t0 = System.currentTimeMillis
     for {
       runs              <- agentRunRepository.getNodesAndUncomputedCompliance().toBox
@@ -1017,7 +1017,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
    * Each runInfo get a result, even if we don't have information about it.
    * So runInfos.keySet == returnedMap.keySet holds.
    */
-  private[this] def buildNodeStatusReports(
+  private def buildNodeStatusReports(
       runInfos:                 Map[NodeId, RunAndConfigInfo],
       ruleIds:                  Set[RuleId],
       directiveIds:             Set[DirectiveId],

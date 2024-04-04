@@ -62,19 +62,19 @@ import util.Helpers.*
 
 class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
 
-  private[this] val psService            = RudderConfig.policyServerManagementService
-  private[this] val eventLogService      = RudderConfig.eventLogRepository
-  private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
-  private[this] val uuidGen              = RudderConfig.stringUuidGenerator
-  private[this] val nodeInfoService      = RudderConfig.nodeInfoService
-  private[this] var addNetworkField      = ""
+  private val psService            = RudderConfig.policyServerManagementService
+  private val eventLogService      = RudderConfig.eventLogRepository
+  private val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
+  private val uuidGen              = RudderConfig.stringUuidGenerator
+  private val nodeInfoService      = RudderConfig.nodeInfoService
+  private var addNetworkField      = ""
   /*
    * We are forced to use that class to deals with multiple request
    * not processed in order (ex: one request add an item, the second remove
    * item at index 0, the third remove item at index 0. Now, any order for
    * these requests have to be considered and lead to the same result.
    */
-  private[this] case class VH(id: Long = nextNum, var net: String = "") {
+  private case class VH(id: Long = nextNum, var net: String = "") {
     override def hashCode = id.hashCode
     override def equals(x: Any): Boolean = x match {
       case VH(i, _) => id == i
@@ -82,10 +82,10 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
     }
   }
 
-  private[this] val policyServers = nodeInfoService.getAllSystemNodeIds().toBox
+  private val policyServers = nodeInfoService.getAllSystemNodeIds().toBox
 
   // we need to store that out of the form, so that the changes are persisted at redraw
-  private[this] val allowedNetworksMap = scala.collection.mutable.Map[NodeId, Buffer[VH]]()
+  private val allowedNetworksMap = scala.collection.mutable.Map[NodeId, Buffer[VH]]()
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
     case "render" =>
@@ -267,7 +267,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
   }
 
   ///////////// success pop-up ///////////////
-  private[this] def successNotification: JsCmd = {
+  private def successNotification: JsCmd = {
     JsRaw(""" createSuccessNotification() """)
   }
 }

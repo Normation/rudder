@@ -56,7 +56,7 @@ class HealthcheckNotificationService(
     } yield {}
   }
 
-  private[this] def reloadCache(ref: Ref[List[HealthcheckResult]]): UIO[Unit] = {
+  private def reloadCache(ref: Ref[List[HealthcheckResult]]): UIO[Unit] = {
     for {
       checks <- healthcheckService.runAll
       _      <- ref.set(checks)

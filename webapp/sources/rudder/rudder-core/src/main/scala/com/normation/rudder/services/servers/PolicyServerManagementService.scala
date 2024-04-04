@@ -508,11 +508,11 @@ class PolicyServerManagementServiceImpl(
 sealed trait RelaySynchronizationMethod extends EnumEntry                        { def value: String }
 object RelaySynchronizationMethod       extends Enum[RelaySynchronizationMethod] {
 
-  final case object Classic extends RelaySynchronizationMethod { val value = "classic" }
+  case object Classic extends RelaySynchronizationMethod { val value = "classic" }
 
-  final case object Rsync extends RelaySynchronizationMethod { val value = "rsync" }
+  case object Rsync extends RelaySynchronizationMethod { val value = "rsync" }
 
-  final case object Disabled extends RelaySynchronizationMethod { val value = "disabled" }
+  case object Disabled extends RelaySynchronizationMethod { val value = "disabled" }
 
   final val values: IndexedSeq[RelaySynchronizationMethod] = findValues
 

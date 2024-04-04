@@ -398,9 +398,9 @@ class GitParseGroupLibrary(
                       group    <- groupUnserialiser.unserialise(groupXml).toIO
                       // h is path relative to config-repo, so may contains only one "/" (rules/ruleId.xml)
                       catId     = h.split('/').toList.reverse match {
-                                    case Nil | _ :: Nil      => // assume root category even if Nil
+                                    case Nil | _ :: Nil       => // assume root category even if Nil
                                       NodeGroupCategoryId("GroupRoot")
-                                    case group :: catId :: _ =>
+                                    case group_ :: catId :: _ =>
                                       NodeGroupCategoryId(catId)
                                   }
                       // we need to correct ID revision to the one we just looked-up.
@@ -462,7 +462,7 @@ class GitParseTechniqueLibrary(
   ): IOResult[Option[(Chunk[TechniqueCategoryName], Technique)]] = {
     val root = GitRootCategory.getGitDirectoryPath(libRootDirectory).root
     (for {
-      v      <- TechniqueVersion(version, rev).left.map(Inconsistency).toIO
+      v      <- TechniqueVersion(version, rev).left.map(Inconsistency.apply).toIO
       id      = TechniqueId(name, v)
       _      <- ConfigurationLoggerPure.revision.debug(s"Looking for technique: ${id.debugString}")
       treeId <- GitFindUtils.findRevTreeFromRevString(repo.db, rev.value)

@@ -84,10 +84,10 @@ class CreateOrCloneRulePopup(
     "rule-createrulepopup"
   )
 
-  private[this] val woRuleRepository           = RudderConfig.woRuleRepository
-  private[this] val uuidGen                    = RudderConfig.stringUuidGenerator
-  private[this] val userPropertyService        = RudderConfig.userPropertyService
-  private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
+  private val woRuleRepository           = RudderConfig.woRuleRepository
+  private val uuidGen                    = RudderConfig.stringUuidGenerator
+  private val userPropertyService        = RudderConfig.userPropertyService
+  private val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => _ => popupContent() }
 
@@ -132,7 +132,7 @@ class CreateOrCloneRulePopup(
 
   ///////////// fields for category settings ///////////////////
 
-  private[this] val reason = {
+  private val reason = {
     import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
@@ -158,7 +158,7 @@ class CreateOrCloneRulePopup(
     }
   }
 
-  private[this] val ruleName = new WBTextField("Name", clonedRule.map(r => "Copy of <%s>".format(r.name)).getOrElse("")) {
+  private val ruleName = new WBTextField("Name", clonedRule.map(r => "Copy of <%s>".format(r.name)).getOrElse("")) {
     override def setFilter      = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
@@ -167,7 +167,7 @@ class CreateOrCloneRulePopup(
       valMinLen(1, "Name must not be empty") _ :: Nil
   }
 
-  private[this] val ruleShortDescription = new WBTextAreaField("Description", clonedRule.map(_.shortDescription).getOrElse("")) {
+  private val ruleShortDescription = new WBTextAreaField("Description", clonedRule.map(_.shortDescription).getOrElse("")) {
     override def setFilter      = notNull _ :: trim _ :: Nil
     override def inputField     = super.inputField % ("style" -> "height:7em") % ("tabindex" -> "2")
     override def errorClassName = "col-xl-12 errors-container"
@@ -175,7 +175,7 @@ class CreateOrCloneRulePopup(
 
   }
 
-  private[this] val category = {
+  private val category = {
     new WBSelectField(
       "Category",
       categoryHierarchyDisplayer.getRuleCategoryHierarchy(rootRuleCategory, None).map { case (id, name) => (id.value -> name) },
@@ -187,24 +187,24 @@ class CreateOrCloneRulePopup(
     }
   }
 
-  private[this] val formTracker = new FormTracker(ruleName :: ruleShortDescription :: reason.toList)
+  private val formTracker = new FormTracker(ruleName :: ruleShortDescription :: reason.toList)
 
-  private[this] var notifications = List.empty[NodeSeq]
+  private var notifications = List.empty[NodeSeq]
 
-  private[this] def error(msg: String) = <span class="col-xl-12 errors-container">{msg}</span>
+  private def error(msg: String) = <span class="col-xl-12 errors-container">{msg}</span>
 
-  private[this] def closePopup(): JsCmd = {
+  private def closePopup(): JsCmd = {
     JsRaw("""hideBsModal('createRulePopup');""")
   }
 
   /**
    * Update the form when something happened
    */
-  private[this] def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide(): JsCmd = {
     SetHtml(htmlId_popupContainer, popupContent())
   }
 
-  private[this] def onSubmit(): JsCmd = {
+  private def onSubmit(): JsCmd = {
     if (formTracker.hasErrors) {
       onFailure & onFailureCallback()
     } else {
@@ -245,11 +245,11 @@ class CreateOrCloneRulePopup(
     }
   }
 
-  private[this] def onFailure: JsCmd = {
+  private def onFailure: JsCmd = {
     updateFormClientSide()
   }
 
-  private[this] def updateAndDisplayNotifications(): NodeSeq = {
+  private def updateAndDisplayNotifications(): NodeSeq = {
     notifications :::= formTracker.formErrors
     formTracker.cleanErrors
 

@@ -114,8 +114,8 @@ object AgentCompat {
 
 object DisplayDirectiveTree extends Loggable {
 
-  private[this] val linkUtil    = RudderConfig.linkUtil
-  private[this] val userService = RudderConfig.userService
+  private val linkUtil    = RudderConfig.linkUtil
+  private val userService = RudderConfig.userService
 
   /**
    * Display the directive tree, optionaly filtering out
@@ -146,17 +146,17 @@ object DisplayDirectiveTree extends Loggable {
         nodeId:   String
     ): JsTreeNode = new JsTreeNode {
 
-      private[this] val localOnClickTechnique = onClickTechnique.map(_.curried(category))
+      private val localOnClickTechnique = onClickTechnique.map(_.curried(category))
 
-      private[this] val localOnClickDirective = onClickDirective.map(_.curried(category))
+      private val localOnClickDirective = onClickDirective.map(_.curried(category))
 
-      private[this] val tooltipContent = s"""
+      private val tooltipContent = s"""
         <h4>${category.name}</h4>
         <div class="tooltip-content">
           <p>${category.description}</p>
         </div>
       """
-      private[this] val xml            = (
+      private val xml            = (
         <span class="treeActiveTechniqueCategoryName" data-bs-toggle="tooltip" data-bs-placement="top" title={
           tooltipContent
         }>
@@ -204,7 +204,7 @@ object DisplayDirectiveTree extends Loggable {
         onClickDirective: Option[FullActiveTechnique => Directive => JsCmd]
     ): JsTreeNode = new JsTreeNode {
 
-      private[this] val localOnClickDirective = onClickDirective.map(f => f(activeTechnique))
+      private val localOnClickDirective = onClickDirective.map(f => f(activeTechnique))
 
       def isDeprecated = {
         activeTechnique.techniques.values.forall(t => t.deprecrationInfo.isDefined)

@@ -354,7 +354,7 @@ object ParseVariables extends Loggable {
                 }
 
               // in any other case, parse as value
-              case (name, value)                    => Some(STVariable(name, true, parseAsValue(value), false))
+              case (name, value)                    => Some(STVariable(name, mayBeEmpty = true, values = parseAsValue(value), isSystem = false))
             }
           }.toSet
 

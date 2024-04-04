@@ -104,7 +104,7 @@ class DynGroupServiceImpl(
   /**
    * Get all dyn groups
    */
-  private[this] val dynGroupFilter = {
+  private val dynGroupFilter = {
     AND(
       IS(OC_RUDDER_NODE_GROUP),
       EQ(A_IS_DYNAMIC, true.toLDAPString),
@@ -116,7 +116,7 @@ class DynGroupServiceImpl(
    * don't get back
    * the list of members (we don't need them)
    */
-  private[this] def dynGroupAttrs = (LDAPConstants.OC(OC_RUDDER_NODE_GROUP).attributes - LDAPConstants.A_NODE_UUID).toSeq
+  private def dynGroupAttrs = (LDAPConstants.OC(OC_RUDDER_NODE_GROUP).attributes - LDAPConstants.A_NODE_UUID).toSeq
 
   override def getAllDynGroups(): Box[Seq[NodeGroup]] = {
     for {
@@ -421,22 +421,22 @@ class CheckPendingNodeInDynGroups(
     val (nodep, withdep) = dynGroups.partition(_.dependencies.isEmpty)
 
     // start the process ! End at the end, transform the result into a map.
-    val res = recProcess(nodep, withdep, Nil)
+    val result = recProcess(nodep, withdep, Nil)
     // end result
     NodeLoggerPure.PendingNode.Policies.ifDebugEnabled(
-      res.foldZIO(
+      result.foldZIO(
         err => NodeLoggerPure.PendingNode.Policies.debug(s"Errror when executing request: ${err.fullMsg}"),
         r => NodeLoggerPure.PendingNode.Policies.debug("Result: " + r.debugString)
       )
     ) *>
-    res
+    result
   }
 
   /**
    * Transform the map of (groupid => seq(nodeids) into a map of
    * (nodeid => seq(groupids)
    */
-  private[this] def swapMap(source: Seq[(NodeGroupId, Set[NodeId])]): Map[NodeId, Seq[NodeGroupId]] = {
+  private def swapMap(source: Seq[(NodeGroupId, Set[NodeId])]): Map[NodeId, Seq[NodeGroupId]] = {
     val dest = scala.collection.mutable.Map[NodeId, List[NodeGroupId]]()
     for {
       (gid, seqNodeIds) <- source

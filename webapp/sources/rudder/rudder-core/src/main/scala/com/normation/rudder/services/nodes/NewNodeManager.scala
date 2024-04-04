@@ -276,7 +276,7 @@ class ComposedNewNodeManager[A](
   /**
    * Refuse one server
    */
-  private[this] def refuseOne(cnf: CoreNodeFact)(implicit cc: ChangeContext): IOResult[Unit] = {
+  private def refuseOne(cnf: CoreNodeFact)(implicit cc: ChangeContext): IOResult[Unit] = {
     ZIO
       .foreach(unitRefusors)(r => {
         r.refuseOne(cnf)
@@ -399,8 +399,8 @@ class AcceptHostnameAndIp(
 ) extends UnitCheckAcceptInventory {
 
   // some constant data for the query about hostname on node
-  private[this] val objectType       = ditQueryData.criteriaMap(OC_NODE)
-  private[this] val hostnameCriteria = objectType.criteria
+  private val objectType       = ditQueryData.criteriaMap(OC_NODE)
+  private val hostnameCriteria = objectType.criteria
     .find(c => c.name == A_HOSTNAME)
     .getOrElse(
       throw new IllegalArgumentException(
@@ -412,7 +412,7 @@ class AcceptHostnameAndIp(
    * search in database nodes having the same hostname as one provided.
    * Only return existing hostname (and so again, we want that to be empty)
    */
-  private[this] def queryForDuplicateHostname(hostnames: Seq[String])(implicit qc: QueryContext): IOResult[Unit] = {
+  private def queryForDuplicateHostname(hostnames: Seq[String])(implicit qc: QueryContext): IOResult[Unit] = {
     val hostnameCriterion = hostnames.toList.map { h =>
       CriterionLine(
         objectType = objectType,

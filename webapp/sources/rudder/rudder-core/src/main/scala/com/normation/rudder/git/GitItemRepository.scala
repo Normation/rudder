@@ -381,7 +381,7 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
    * much easier access, since it returns a REF that need to be parsed..
    * So just keep the working workaround.
    */
-  private[this] def listTagWorkaround: IOResult[Seq[RevTag]] = {
+  private def listTagWorkaround: IOResult[Seq[RevTag]] = {
     import org.eclipse.jgit.errors.IncorrectObjectTypeException
     import org.eclipse.jgit.lib.*
     import org.eclipse.jgit.revwalk.*

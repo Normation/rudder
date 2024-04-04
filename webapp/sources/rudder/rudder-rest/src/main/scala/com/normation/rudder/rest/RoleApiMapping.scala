@@ -70,7 +70,7 @@ class AuthorizationMappingListEndpoint(endpoints: List[EndpointSchema]) extends 
  */
 class ExtensibleAuthorizationApiMapping(base: List[AuthorizationApiMapping]) extends AuthorizationApiMapping {
 
-  private[this] var mappers: List[AuthorizationApiMapping] = base
+  private var mappers: List[AuthorizationApiMapping] = base
 
   def addMapper(mapper: AuthorizationApiMapping): Unit = {
     // no need to add again and again the default mapper - it's ok, we have it.

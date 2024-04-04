@@ -69,8 +69,6 @@ import com.normation.rudder.domain.RudderLDAPConstants.OC_GROUP_CATEGORY
 import com.normation.rudder.domain.RudderLDAPConstants.OC_RUDDER_NODE_GROUP
 import com.normation.rudder.domain.RudderLDAPConstants.OC_SPECIAL_TARGET
 import com.normation.rudder.domain.nodes.*
-import com.normation.rudder.domain.nodes.NodeGroupCategory
-import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.facts.nodes.ChangeContext
@@ -110,7 +108,7 @@ class RoLDAPNodeGroupRepository(
    * the given category which MUST be mapped to an entry with the given
    * DN in the LDAP backend, accessible with the given connection.
    */
-  private[this] def addSubEntries(category: NodeGroupCategory, dn: DN, con: RoLDAPConnection): IOResult[NodeGroupCategory] = {
+  private def addSubEntries(category: NodeGroupCategory, dn: DN, con: RoLDAPConnection): IOResult[NodeGroupCategory] = {
     for {
       res <- con.searchOne(
                dn,
@@ -495,7 +493,7 @@ class RoLDAPNodeGroupRepository(
     }
   }
 
-  private[this] def findGroupWithFilter(filter: Filter): IOResult[Seq[NodeGroupId]] = {
+  private def findGroupWithFilter(filter: Filter): IOResult[Seq[NodeGroupId]] = {
     groupLibMutex.readLock {
       for {
         con      <- ldap
@@ -661,7 +659,7 @@ class WoLDAPNodeGroupRepository(
   /**
    * Check if a group category exist with the given name
    */
-  private[this] def categoryExists(con: RoLDAPConnection, name: String, parentDn: DN): IOResult[Boolean] = {
+  private def categoryExists(con: RoLDAPConnection, name: String, parentDn: DN): IOResult[Boolean] = {
     groupLibMutex.readLock(
       con
         .searchOne(parentDn, AND(IS(OC_GROUP_CATEGORY), EQ(A_NAME, name)), A_GROUP_CATEGORY_UUID)
@@ -676,7 +674,7 @@ class WoLDAPNodeGroupRepository(
   /**
    * Check if a group category exist with the given name
    */
-  private[this] def categoryExists(
+  private def categoryExists(
       con:       RoLDAPConnection,
       name:      String,
       parentDn:  DN,
@@ -700,7 +698,7 @@ class WoLDAPNodeGroupRepository(
   /**
    * Check if a nodeGroup exists(id already exists) and name is unique
    */
-  private[this] def checkNodeGroupExists(con: RoLDAPConnection, group: NodeGroup): IOResult[Boolean] = {
+  private def checkNodeGroupExists(con: RoLDAPConnection, group: NodeGroup): IOResult[Boolean] = {
     groupLibMutex.readLock(
       con
         .searchSub(
@@ -721,7 +719,7 @@ class WoLDAPNodeGroupRepository(
   /**
    * Check if another nodeGroup exist with the given name
    */
-  private[this] def checkNameAlreadyInUse(con: RoLDAPConnection, name: String, id: NodeGroupId): IOResult[Boolean] = {
+  private def checkNameAlreadyInUse(con: RoLDAPConnection, name: String, id: NodeGroupId): IOResult[Boolean] = {
     groupLibMutex.readLock(
       con
         .searchSub(
@@ -737,7 +735,7 @@ class WoLDAPNodeGroupRepository(
     )
   }
 
-  private[this] def getContainerDn(con: RoLDAPConnection, id: NodeGroupCategoryId): IOResult[DN] = {
+  private def getContainerDn(con: RoLDAPConnection, id: NodeGroupCategoryId): IOResult[DN] = {
     groupLibMutex.readLock {
       con
         .searchSub(rudderDit.GROUP.dn, AND(IS(OC_GROUP_CATEGORY), EQ(A_GROUP_CATEGORY_UUID, id.value)), A_GROUP_CATEGORY_UUID)
@@ -949,7 +947,7 @@ class WoLDAPNodeGroupRepository(
                        } else ZIO.unit
       categoryEntry <- getCategoryEntry(con, into).notOptional(s"Entry with ID '${into.value}' was not found")
       entry          = mapper.nodeGroupToLdap(nodeGroup, categoryEntry.dn)
-      result        <- con.save(entry, true)
+      result        <- con.save(entry, removeMissingAttributes = true)
       diff          <- diffMapper.addChangeRecords2NodeGroupDiff(entry.dn, result).toIO
       loggedAction  <- actionlogEffect.saveAddNodeGroup(modId, principal = actor, addDiff = diff, reason = reason)
       // We dont want to check if this is a system group or not, because new groups are not systems (see constructor)
@@ -982,7 +980,7 @@ class WoLDAPNodeGroupRepository(
                          categoryEntry.dn,
                          s"Only the ${policyServer.target} policy server"
                        )
-      result        <- con.save(entry, true)
+      result        <- con.save(entry, removeMissingAttributes = true)
     } yield {
       result
     })
@@ -1007,7 +1005,7 @@ class WoLDAPNodeGroupRepository(
     })
   }
 
-  private[this] def internalUpdate(
+  private def internalUpdate(
       nodeGroup:       NodeGroup,
       modId:           ModificationId,
       actor:           EventActor,
@@ -1084,7 +1082,7 @@ class WoLDAPNodeGroupRepository(
     // note: this is not protected by a lock because of the risk of calling it in a read lock
     // in a subclass. All callers must call it in a `writeLock`.
     for {
-      result       <- con.save(entry, true).chainError(s"Error when saving entry: ${entry}")
+      result       <- con.save(entry, removeMissingAttributes = true).chainError(s"Error when saving entry: ${entry}")
       optDiff      <- diffMapper
                         .modChangeRecords2NodeGroupDiff(existing, result)
                         .toIO
@@ -1118,7 +1116,7 @@ class WoLDAPNodeGroupRepository(
       actor:  EventActor,
       reason: Option[String]
   ): IOResult[Option[ModifyNodeGroupDiff]] = {
-    internalUpdate(group, modId, actor, reason, true, true)
+    internalUpdate(group, modId, actor, reason, systemCall = true, onlyUpdateNodes = true)
   }
 
   override def update(
@@ -1127,7 +1125,7 @@ class WoLDAPNodeGroupRepository(
       actor:     EventActor,
       reason:    Option[String]
   ): IOResult[Option[ModifyNodeGroupDiff]] = {
-    internalUpdate(nodeGroup, modId, actor, reason, false, false)
+    internalUpdate(nodeGroup, modId, actor, reason, systemCall = false, onlyUpdateNodes = false)
   }
 
   override def updateSystemGroup(
@@ -1136,7 +1134,7 @@ class WoLDAPNodeGroupRepository(
       actor:     EventActor,
       reason:    Option[String]
   ): IOResult[Option[ModifyNodeGroupDiff]] = {
-    internalUpdate(nodeGroup, modId, actor, reason, true, false)
+    internalUpdate(nodeGroup, modId, actor, reason, systemCall = true, onlyUpdateNodes = false)
   }
 
   // this one does not seem able to use internalUpdate

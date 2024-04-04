@@ -63,19 +63,19 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
   val reports      = "ruddersysevents"
   val archiveTable = "archivedruddersysevents"
 
-  private[this] val reportsExecutionTable = "reportsexecution"
-  private[this] val common_reports_column =
+  private val reportsExecutionTable = "reportsexecution"
+  private val common_reports_column =
     "executiondate, ruleid, directiveid, nodeid, reportid, component, keyvalue, executiontimestamp, eventtype, msg"
   // When we want reports we already know the type (request with where clause on eventtype) we do not want eventtype in request because it will be used as value for message in corresponding case class
-  private[this] val typed_reports_column  =
+  private val typed_reports_column  =
     "executiondate, ruleid, directiveid, nodeid, reportid, component, keyvalue, executiontimestamp, msg"
 
   // just an utility to remove multiple spaces in query so that we can vertically align them an see what part are changing - the use
   // of greek p is to discurage use elsewhere
-  private[this] def þ(s: String) = s.replaceAll("""\s+""", " ")
-  private[this] val baseQuery  = þ(s"select     ${common_reports_column} from RudderSysEvents         where 1=1 ")
-  private[this] val typedQuery = þ(s"select     ${typed_reports_column}  from RudderSysEvents         where 1=1 ")
-  private[this] val idQuery    = þ(s"select id, ${common_reports_column} from ruddersysevents         where 1=1 ")
+  private def þ(s: String) = s.replaceAll("""\s+""", " ")
+  private val baseQuery  = þ(s"select     ${common_reports_column} from RudderSysEvents         where 1=1 ")
+  private val typedQuery = þ(s"select     ${typed_reports_column}  from RudderSysEvents         where 1=1 ")
+  private val idQuery    = þ(s"select id, ${common_reports_column} from ruddersysevents         where 1=1 ")
 
   // We assume that this method is called with a limited list of runs
   override def getExecutionReports(
@@ -270,19 +270,19 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
   }
 
   // Utilitary methods for reliable archiving of reports
-  private[this] def getHighestArchivedReports(): Box[Option[Long]] = {
+  private def getHighestArchivedReports(): Box[Option[Long]] = {
     transactRunBox(xa =>
       query[Long]("select id from archivedruddersysevents order by id desc limit 1").option.transact(xa)
     ) ?~! "Could not fetch the highest archived report in the database"
   }
 
-  private[this] def getLowestReports(): Box[Option[Long]] = {
+  private def getLowestReports(): Box[Option[Long]] = {
     transactRunBox(xa =>
       query[Long]("select id from ruddersysevents order by id asc limit 1").option.transact(xa)
     ) ?~! "Could not fetch the lowest report in the database"
   }
 
-  private[this] def getHighestIdBeforeDate(date: DateTime): Box[Option[Long]] = {
+  private def getHighestIdBeforeDate(date: DateTime): Box[Option[Long]] = {
     transactRunBox(xa => {
       query[Long](
         s"select id from ruddersysevents where executionTimeStamp < '${date.toString("yyyy-MM-dd")}' order by id desc limit 1"

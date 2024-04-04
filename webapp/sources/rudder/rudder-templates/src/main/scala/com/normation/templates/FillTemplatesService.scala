@@ -247,7 +247,7 @@ object FillTemplateThreadUnsafe {
       _         = replaceId match {
                     case None             => // nothing
                     case Some((from, to)) =>
-                      val variable = STVariable(from, true, ArraySeq(to), true)
+                      val variable = STVariable(from, mayBeEmpty = true, values = ArraySeq(to), isSystem = true)
                       template.setAttribute(variable.name, variable.values.unsafeArray)
                   }
       t1       <- currentTimeNanos
@@ -282,7 +282,7 @@ class FillTemplatesService {
    * If a content is not in the cache, it will create the StringTemplate instance, and return it
    *
    */
-  private[this] val cache = ZioRuntime.unsafeRun(Ref.make(Map[String, Promise[RudderError, SynchronizedFileTemplate]]()))
+  private val cache = ZioRuntime.unsafeRun(Ref.make(Map[String, Promise[RudderError, SynchronizedFileTemplate]]()))
 
   def clearCache(): IOResult[Unit] = {
     cache.set(Map())

@@ -93,13 +93,13 @@ class ShowNodeDetailsFromNode(
 ) extends DispatchSnippet with DefaultExtendableSnippet[ShowNodeDetailsFromNode] with Loggable {
   import ShowNodeDetailsFromNode.*
 
-  private[this] val nodeFactRepo         = RudderConfig.nodeFactRepository
-  private[this] val reportDisplayer      = RudderConfig.reportDisplayer
-  private[this] val logDisplayer         = RudderConfig.logDisplayer
-  private[this] val uuidGen              = RudderConfig.stringUuidGenerator
-  private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
-  private[this] val configService        = RudderConfig.configService
-  private[this] val scoreService         = RudderConfig.rci.scoreService
+  private val nodeFactRepo         = RudderConfig.nodeFactRepository
+  private val reportDisplayer      = RudderConfig.reportDisplayer
+  private val logDisplayer         = RudderConfig.logDisplayer
+  private val uuidGen              = RudderConfig.stringUuidGenerator
+  private val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
+  private val configService        = RudderConfig.configService
+  private val scoreService         = RudderConfig.rci.scoreService
 
   def agentPolicyModeEditForm = new AgentPolicyModeEditForm()
 
@@ -193,7 +193,7 @@ class ShowNodeDetailsFromNode(
     dispatch(dispatchName)(NodeSeq.Empty)
   }
 
-  private[this] def privateDisplay(withinPopup: Boolean, displayDetailsMode: DisplayDetailsMode)(implicit
+  private def privateDisplay(withinPopup: Boolean, displayDetailsMode: DisplayDetailsMode)(implicit
       qr: QueryContext
   ): NodeSeq = {
     nodeFactRepo.get(nodeId).toBox match {
@@ -289,8 +289,8 @@ class ShowNodeDetailsFromNode(
       "reportsDetails",
       "reportsGrid",
       RudderConfig.reportingService.findUserNodeStatusReport(_),
-      true,
-      false
+      addOverriden = true,
+      onlySystem = false
     ) &
     "#systemStatus *" #> reportDisplayer.asyncDisplay(
       node,
@@ -298,8 +298,8 @@ class ShowNodeDetailsFromNode(
       "systemStatus",
       "systemStatusGrid",
       RudderConfig.reportingService.findSystemNodeStatusReport(_),
-      false,
-      true
+      addOverriden = false,
+      onlySystem = true
     ) &
     "#nodeProperties *" #> DisplayNode.displayTabProperties(id, nodeFact, sm) &
     "#logsDetails *" #> Script(OnLoad(logDisplayer.asyncDisplay(node.id, None, "logsGrid"))) &

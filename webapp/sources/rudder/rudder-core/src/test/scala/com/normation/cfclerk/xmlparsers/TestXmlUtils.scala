@@ -92,28 +92,28 @@ class TestXmlUtils {
   @Test def testGetOne(): Unit = {
 
     // C is unique in the subtree
-    sameNodes(c_n, child_C, false)
-    sameNodes(c_n, child_C, true)
+    sameNodes(c_n, child_C, treeScope = false)
+    sameNodes(c_n, child_C, treeScope = true)
 
     // B is unique only at the first level
-    sameNodes(b_n, child_B(sub_A), false)
-    errorNotUnique(b_n, true)
+    sameNodes(b_n, child_B(sub_A), treeScope = false)
+    errorNotUnique(b_n, treeScope = true)
 
     // A is not unique at any scope
-    errorNotUnique(a_n, true)
-    errorNotUnique(a_n, false)
+    errorNotUnique(a_n, treeScope = true)
+    errorNotUnique(a_n, treeScope = false)
 
     // X does not exist
-    errorNotUnique(x_n, true)
-    errorNotUnique(x_n, false)
+    errorNotUnique(x_n, treeScope = true)
+    errorNotUnique(x_n, treeScope = false)
 
     // Sub A does not exist at first level and is not unique in subtree
-    errorNotUnique(subA_n, true)
-    errorNotUnique(subA_n, false)
+    errorNotUnique(subA_n, treeScope = true)
+    errorNotUnique(subA_n, treeScope = false)
 
     // sub B does not exist at first level but is unique in subtree
-    errorNotUnique(subB_n, false)
-    sameNodes(subB_n, sub_B, true)
+    errorNotUnique(subB_n, treeScope = false)
+    sameNodes(subB_n, sub_B, treeScope = true)
 
   }
 

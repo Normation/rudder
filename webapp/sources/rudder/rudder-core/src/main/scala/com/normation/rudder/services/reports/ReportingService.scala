@@ -185,8 +185,8 @@ trait ReportingService {
       // BE CAREFUL: reports is a SET - and it's likely that
       // some compliance will be equals. So change to seq.
       ComplianceLevel.sum(report.reports.toSeq.collect {
-        case report if (ruleIds.contains(report.ruleId)) =>
-          report.compliance
+        case report_ if (ruleIds.contains(report_.ruleId)) =>
+          report_.compliance
       })
     }
   }
@@ -203,8 +203,8 @@ trait ReportingService {
       // BE CAREFUL: reports is a SET - and it's likely that
       // some compliance will be equals. So change to seq.
       ComplianceLevel.sum(report.reports.toSeq.collect {
-        case report if (ruleIds.contains(report.ruleId)) =>
-          report.compliance
+        case report_ if (ruleIds.contains(report_.ruleId)) =>
+          report_.compliance
       })
     }
   }

@@ -91,12 +91,12 @@ class PrepareTemplateVariableTest extends Specification {
         Promiser(x),
         DirectiveId(DirectiveUid(directiveId)),
         TID("not-used-here"),
-        Nil,
-        y :: Nil,
-        Nil,
-        false,
-        PolicyMode.Enforce,
-        false
+        pre = Nil,
+        main = y :: Nil,
+        post = Nil,
+        isSystem = false,
+        policyMode = PolicyMode.Enforce,
+        enableMethodReporting = false
       )
   }
 
@@ -106,11 +106,21 @@ class PrepareTemplateVariableTest extends Specification {
   "Preparing the string for writting usebundle of directives" should {
 
     "correctly write nothing at all when the list of bundle is emtpy" in {
-      CfengineBundleVariables.formatMethodsUsebundle(CFEngineAgentSpecificGeneration.escape, Nil, Nil, false) === List("")
+      CfengineBundleVariables.formatMethodsUsebundle(
+        CFEngineAgentSpecificGeneration.escape,
+        Nil,
+        Nil,
+        cleanDryRunEnd = false
+      ) === List("")
     }
 
     "write exactly - including escaped quotes" in {
-      val actual   = CfengineBundleVariables.formatMethodsUsebundle(CFEngineAgentSpecificGeneration.escape, bundles, Nil, false)
+      val actual   = CfengineBundleVariables.formatMethodsUsebundle(
+        CFEngineAgentSpecificGeneration.escape,
+        bundles,
+        Nil,
+        cleanDryRunEnd = false
+      )
       val expected = {
         List(
           raw"""      "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => set_dry_run_mode("false");
@@ -206,7 +216,12 @@ bundle agent run_directive5
 
       // spaces inserted at the begining of promises in rudder_directives.cf are due to string template, not the formated string - strange
 
-      val actual   = CfengineBundleVariables.formatMethodsUsebundle(CFEngineAgentSpecificGeneration.escape, bundles, hooks, false)
+      val actual   = CfengineBundleVariables.formatMethodsUsebundle(
+        CFEngineAgentSpecificGeneration.escape,
+        bundles,
+        hooks,
+        cleanDryRunEnd = false
+      )
       val expected = {
         List(
           raw"""      "pre-run-hook"                                                                      usebundle => package-install('{"parameters":{"package":"vim","action":"update-only"},"reports":[{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt1","value":"val1"},{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt1","value":"val1"}]}');

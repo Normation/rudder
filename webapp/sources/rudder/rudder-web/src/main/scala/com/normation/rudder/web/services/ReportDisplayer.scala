@@ -160,7 +160,7 @@ class ReportDisplayer(
     AnonFunc(ajaxCall)
   }
 
-  private[this] def displayIntro(report: NodeStatusReport): NodeSeq = {
+  private def displayIntro(report: NodeStatusReport): NodeSeq = {
 
     def explainCompliance(info: RunAndConfigInfo): NodeSeq = {
       val dateFormat = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ssZ")
@@ -360,7 +360,7 @@ class ReportDisplayer(
     </div>
   }
 
-  private[this] def displayReports(
+  private def displayReports(
       node:         CoreNodeFact,
       getReports:   NodeId => Box[NodeStatusReport],
       tabId:        String,
@@ -492,7 +492,7 @@ class ReportDisplayer(
     }
   }
 
-  private[this] def showReportDetail(
+  private def showReportDetail(
       node:           CoreNodeFact,
       withCompliance: Boolean,
       onlySystem:     Boolean
@@ -549,7 +549,7 @@ class ReportDisplayer(
   }
 
   // this method cannot return an IOResult, as it uses S.
-  private[this] def getComplianceData(
+  private def getComplianceData(
       nodeId:       NodeId,
       reportStatus: NodeStatusReport,
       addOverriden: Boolean
@@ -672,7 +672,7 @@ class ReportDisplayer(
     }
   }
 
-  private[this] def getComponents(
+  private def getComponents(
       status:            ReportType,
       nodeStatusReports: NodeStatusReport,
       directiveLib:      FullActiveTechniqueCategory
@@ -703,7 +703,7 @@ class ReportDisplayer(
     }
   }
 
-  private[this] def buildTable(name1: String, name2: String, colums: String): NodeSeq = {
+  private def buildTable(name1: String, name2: String, colums: String): NodeSeq = {
     Script(JsRaw(s"""
      var oTable${name1} = $$('#${name2}').dataTable({
        "asStripeClasses": [ 'color1', 'color2' ],

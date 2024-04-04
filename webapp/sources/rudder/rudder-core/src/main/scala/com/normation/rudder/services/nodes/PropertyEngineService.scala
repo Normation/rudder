@@ -20,7 +20,7 @@ trait PropertyEngineService {
 
 class PropertyEngineServiceImpl(listOfEngine: List[RudderPropertyEngine]) extends PropertyEngineService {
 
-  private[this] val engines: Ref[Map[String, RudderPropertyEngine]] = (for {
+  private val engines: Ref[Map[String, RudderPropertyEngine]] = (for {
     v <- Ref.make[Map[String, RudderPropertyEngine]](listOfEngine.map(e => e.name.toLowerCase -> e).toMap)
   } yield v).runNow
 

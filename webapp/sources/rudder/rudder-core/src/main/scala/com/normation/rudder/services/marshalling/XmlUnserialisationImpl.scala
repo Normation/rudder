@@ -423,7 +423,7 @@ class ActiveTechniqueCategoryUnserialisationImpl extends ActiveTechniqueCategory
 class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation {
 
   // we expect acceptation date to be in ISO-8601 format
-  private[this] val dateFormatter = ISODateTimeFormat.dateTime
+  private val dateFormatter = ISODateTimeFormat.dateTime
 
   def unserialise(entry: XNode): Box[ActiveTechnique] = {
     for {
@@ -780,7 +780,7 @@ class GlobalParameterUnserialisationImpl extends GlobalParameterUnserialisation 
 
 class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
   // we expect acceptation date to be in ISO-8601 format
-  private[this] val dateFormatter = ISODateTimeFormat.dateTime
+  private val dateFormatter = ISODateTimeFormat.dateTime
 
   // <acl>
   //   <authz path="/foo/bar/$baz", actions="get, post, patch" />

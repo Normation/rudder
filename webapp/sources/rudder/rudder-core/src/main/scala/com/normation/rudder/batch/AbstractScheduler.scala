@@ -136,7 +136,7 @@ trait AbstractScheduler {
       }
     }
 
-    override protected def messageHandler: PartialFunction[AbstractActorUpdateMessage, Unit] = {
+    override protected def messageHandler: PartialFunction[AbstractActorUpdateMessage, Unit] = PartialFunction.fromFunction {
 
       // --------------------------------------------
       // Ask for a new process
@@ -187,13 +187,9 @@ trait AbstractScheduler {
             }
         }
 
-      // --------------------------------------------
-      // Unexpected messages
-      // --------------------------------------------
-      case x                                                               => logger.debug(s"[${displayName}] scheduler don't know how to process message: '${x}'")
     }
 
-    private[this] object TaskProcessor extends SpecializedLiftActor[StartProcessing] {
+    private object TaskProcessor extends SpecializedLiftActor[StartProcessing] {
 
       override protected def messageHandler: PartialFunction[StartProcessing, Unit] = {
         // --------------------------------------------

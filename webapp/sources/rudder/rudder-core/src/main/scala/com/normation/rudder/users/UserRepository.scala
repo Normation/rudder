@@ -774,7 +774,13 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
       xa =>
         (
           for {
-            selected <- select(userIds, notLoggedSince, true, excludeFromOrigin, andSelectFragment)
+            selected <- select(
+                          userIds,
+                          notLoggedSince,
+                          defaultToNone = true,
+                          excludeFromOrigin = excludeFromOrigin,
+                          andSelectFragment = andSelectFragment
+                        )
             updated   = selected.map {
                           case (id, hist) =>
                             (
@@ -839,7 +845,13 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
       (for {
         // we need to give a date here, else select won't select anyone
         selected <-
-          select(userIds, None, false, excludeFromOrigin, Some(Fragment.const(s"status = '${UserStatus.Deleted.value}'")))
+          select(
+            userIds,
+            None,
+            defaultToNone = false,
+            excludeFromOrigin = excludeFromOrigin,
+            andSelectFragment = Some(Fragment.const(s"status = '${UserStatus.Deleted.value}'"))
+          )
         toDelete  = deletedSince match {
                       case None        => selected.map(_._1)
                       case Some(limit) =>

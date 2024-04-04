@@ -135,7 +135,7 @@ class GitRuleCategoryArchiverImpl(
 
   def getCategoryName(categoryId: RuleCategoryId): String = categoryId.value
 
-  private[this] def categoryFile(category: RuleCategoryId, parents: List[RuleCategoryId]) =
+  private def categoryFile(category: RuleCategoryId, parents: List[RuleCategoryId]) =
     newCategoryDirectory(category, parents).map(new File(_, categoryFileName))
 
   def archiveRuleCategory(

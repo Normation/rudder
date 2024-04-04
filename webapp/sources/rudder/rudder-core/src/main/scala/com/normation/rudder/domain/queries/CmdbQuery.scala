@@ -90,8 +90,8 @@ case object NotRegex           extends SpecialComparator { override val id = "no
 sealed trait KeyValueComparator extends EnumEntry with BaseComparator
 
 object KeyValueComparator extends Enum[KeyValueComparator] {
-  final case object HasKey     extends KeyValueComparator { override val id = "hasKey"     }
-  final case object JsonSelect extends KeyValueComparator { override val id = "jsonSelect" }
+  case object HasKey     extends KeyValueComparator { override val id = "hasKey"     }
+  case object JsonSelect extends KeyValueComparator { override val id = "jsonSelect" }
 
   val values: IndexedSeq[KeyValueComparator] = findValues
 }
@@ -135,12 +135,8 @@ object NodePropertyMatcherUtils {
 sealed trait ComparatorList {
 
   def comparators:                    Seq[CriterionComparator]
-  def comparatorForString(s: String): Option[CriterionComparator] = {
-    for (comp <- comparators) {
-      if (s.equalsIgnoreCase(comp.id)) return Some(comp)
-    }
-    None
-  }
+  def comparatorForString(s: String): Option[CriterionComparator] =
+    comparators.find(comp => s.equalsIgnoreCase(comp.id))
 }
 
 object BaseComparators extends ComparatorList {
@@ -531,7 +527,7 @@ case object DateComparator extends LDAPCriterionType {
   }
   override def toLDAP(value: String): Either[RudderError, String] = parseDate(value).map(GeneralizedTime(_).toString)
 
-  private[this] def parseDate(value: String): PureResult[DateTime] = try {
+  private def parseDate(value: String): PureResult[DateTime] = try {
     val date = frenchFmt.parseDateTime(value)
     Right(date)
   } catch {
@@ -636,7 +632,7 @@ case object MachineComparator extends LDAPCriterionType {
   }
 }
 
-final case object VmTypeComparator extends LDAPCriterionType {
+case object VmTypeComparator extends LDAPCriterionType {
   final case class vm(obj: VmType, ldapClass: String, displayName: String)
   val vmTypes: List[(String, String)] = List(
     (OC_VM, "Any"), // we don't have a type for "unknown", only "it's a "    (LPAR, OC_VM_AIX_LPAR, "AIX LPAR"),
@@ -700,7 +696,7 @@ case object AgentComparator extends LDAPCriterionType {
    * 4.1: a json is stored in AGENTS_NAME, but not with the same value than 4.2 (oldshortName instead of id is stored as agentType ...)
    * <4.1: AGENTS_NAME only contains the name of the agent (but a value that is different form the id, oldShortName)
    */
-  private[this] def filterAgent(agent: AgentType) = {
+  private def filterAgent(agent: AgentType) = {
     SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.id}""""), null) ::           // 4.2+
     SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.oldShortName}""""), null) :: // 4.1
     EQ(A_AGENTS_NAME, agent.oldShortName) ::                                             // 3.1 ( < 4.1 in fact)
@@ -880,12 +876,8 @@ case class ObjectCriterion(val objectType: String, val criteria: Seq[Criterion])
   require(criteria.nonEmpty, "You must at least have one criterion for the line")
 
   // optionally retrieve the criterion from a "string" attribute
-  def criterionForName(name: String): (Option[Criterion]) = {
-    for (c <- criteria) {
-      if (name.equalsIgnoreCase(c.name)) return Some(c)
-    }
-    None
-  }
+  def criterionForName(name: String): (Option[Criterion]) =
+    criteria.find(c => name.equalsIgnoreCase(c.name))
 
   def criterionComparatorForName(name: String, comparator: String): (Option[Criterion], Option[CriterionComparator]) = {
     criterionForName(name) match {
@@ -941,9 +933,9 @@ sealed trait ResultTransformation extends EnumEntry {
 
 object ResultTransformation extends Enum[ResultTransformation] {
   // no result transformation
-  final case object Identity extends ResultTransformation { val value = "identity" }
+  case object Identity extends ResultTransformation { val value = "identity" }
   // invert result: substract from "all nodes" the one matching that query
-  final case object Invert   extends ResultTransformation { val value = "invert"   }
+  case object Invert   extends ResultTransformation { val value = "invert"   }
 
   val values: IndexedSeq[ResultTransformation] = findValues
 

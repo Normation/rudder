@@ -277,7 +277,7 @@ class SharedFilesAPI(
               case Some(values)      =>
                 Failure("Too many values in request for path of file to download")
             }
-          case Some(action :: Nil)     =>
+          case Some(action_ :: Nil)    =>
             Failure("Action not supported")
           case Some(actions)           =>
             Failure("Too many values in request for action")

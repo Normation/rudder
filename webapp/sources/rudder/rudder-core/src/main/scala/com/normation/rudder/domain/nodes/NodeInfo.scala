@@ -71,9 +71,9 @@ sealed trait NodeKind extends EnumEntry      {
   def isPolicyServer: Boolean
 }
 object NodeKind       extends Enum[NodeKind] {
-  final case object Root  extends NodeKind { val name = "root"; val isPolicyServer = true  }
-  final case object Relay extends NodeKind { val name = "relay"; val isPolicyServer = true }
-  final case object Node  extends NodeKind { val name = "node"; val isPolicyServer = false }
+  case object Root  extends NodeKind { val name = "root"; val isPolicyServer = true  }
+  case object Relay extends NodeKind { val name = "relay"; val isPolicyServer = true }
+  case object Node  extends NodeKind { val name = "node"; val isPolicyServer = false }
 
   def values: IndexedSeq[NodeKind] = findValues
 
@@ -155,12 +155,6 @@ final case class NodeInfo(
       case Some((AgentType.Dsc, _)) =>
         PolicyGenerationLogger.info(
           s"Node '${hostname}' (${id.value}) is a Windows node and a we do not know how to generate a hash yet"
-        )
-        ""
-
-      case Some((_, _)) =>
-        PolicyGenerationLogger.info(
-          s"Node '${hostname}' (${id.value}) has an unsuported key type (CFEngine agent with certificate?) and a we do not know how to generate a hash yet"
         )
         ""
 

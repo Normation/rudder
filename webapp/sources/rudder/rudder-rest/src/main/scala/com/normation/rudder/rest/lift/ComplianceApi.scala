@@ -470,7 +470,7 @@ class ComplianceApi(
       (for {
         level     <- restExtractor.extractComplianceLevel(req.params)
         precision <- restExtractor.extractPercentPrecision(req.params)
-        node      <- complianceService.getNodeCompliance(NodeId(nodeId), false)
+        node      <- complianceService.getNodeCompliance(NodeId(nodeId), onlySystems = false)
       } yield {
         if (version.value <= 6) {
           node.toJsonV6
@@ -507,7 +507,7 @@ class ComplianceApi(
       (for {
         level     <- restExtractor.extractComplianceLevel(req.params)
         precision <- restExtractor.extractPercentPrecision(req.params)
-        node      <- complianceService.getNodeCompliance(NodeId(nodeId), true)
+        node      <- complianceService.getNodeCompliance(NodeId(nodeId), onlySystems = true)
       } yield {
         node.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2))
       }) match {
@@ -568,7 +568,7 @@ class ComplianceAPIService(
     getGlobalPolicyMode:     IOResult[GlobalPolicyMode]
 ) {
 
-  private[this] def components(
+  private def components(
       nodeFacts: MapView[NodeId, CoreNodeFact]
   )(name: String, nodeComponents: List[(NodeId, ComponentStatusReport)]): List[ByRuleComponentCompliance] = {
 
@@ -613,7 +613,7 @@ class ComplianceAPIService(
              })
   }
 
-  private[this] def getByDirectivesCompliance(
+  private def getByDirectivesCompliance(
       directives:    Seq[Directive],
       allDirectives: Map[DirectiveId, (FullActiveTechnique, Directive)], // to compute policy mode for each rule
       level:         Option[Int]
@@ -728,7 +728,7 @@ class ComplianceAPIService(
    * level 3 includes components, but not nodes
    * level 4 includes the nodes
    */
-  private[this] def getByRulesCompliance(rules: Seq[Rule], level: Option[Int])(implicit
+  private def getByRulesCompliance(rules: Seq[Rule], level: Option[Int])(implicit
       qc: QueryContext
   ): IOResult[Seq[ByRuleRuleCompliance]] = {
     val computedLevel = level.getOrElse(10)
@@ -902,7 +902,7 @@ class ComplianceAPIService(
     }
   }
 
-  private[this] def getByNodeGroupCompliance(
+  private def getByNodeGroupCompliance(
       nodeGroupComplianceId: String,
       nodeGroupName:         String,
       serverList:            Set[NodeId],
@@ -1309,7 +1309,7 @@ class ComplianceAPIService(
               targetedRulesByGroup(id),
               allRuleInfos,
               level,
-              false
+              isGlobalCompliance = false
             )).map(
               (id, _)
             )
@@ -1341,7 +1341,7 @@ class ComplianceAPIService(
   /**
    * Get the compliance for everything
    */
-  private[this] def getSystemRules()  = {
+  private def getSystemRules()  = {
     for {
       allRules  <- rulesRepo.getAll(true)
       userRules <- rulesRepo.getAll()
@@ -1349,10 +1349,10 @@ class ComplianceAPIService(
       allRules.diff(userRules)
     }
   }
-  private[this] def getAllUserRules() = {
+  private def getAllUserRules() = {
     rulesRepo.getAll()
   }
-  private[this] def getByNodesCompliance(
+  private def getByNodesCompliance(
       onlyNode: Option[NodeId],
       getRules: => IOResult[Seq[Rule]]
   )(implicit qc: QueryContext): IOResult[Seq[ByNodeNodeCompliance]] = {
@@ -1482,7 +1482,7 @@ class ComplianceAPIService(
     }
   }
 
-  private[this] def getRulePolicyMode(
+  private def getRulePolicyMode(
       rule:          Rule,
       allDirectives: Map[DirectiveId, (FullActiveTechnique, Directive)],
       nodesIds:      Set[NodeId],

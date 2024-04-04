@@ -110,15 +110,15 @@ case class ApiVersion(
 sealed abstract class HttpAction(override val entryName: String) extends EnumEntry        {
   def name: String = entryName
 }
-final case object HttpAction                                     extends Enum[HttpAction] {
+case object HttpAction                                           extends Enum[HttpAction] {
 
-  final case object HEAD   extends HttpAction("head")
-  final case object GET    extends HttpAction("get")
+  case object HEAD   extends HttpAction("head")
+  case object GET    extends HttpAction("get")
   // perhaps we should have an "accepted content type"
   // for update verbs
-  final case object PUT    extends HttpAction("put")
-  final case object POST   extends HttpAction("post")
-  final case object DELETE extends HttpAction("delete")
+  case object PUT    extends HttpAction("put")
+  case object POST   extends HttpAction("post")
+  case object DELETE extends HttpAction("delete")
 
   // no PATCH for now
 
@@ -255,9 +255,9 @@ final case class ApiAclElement(path: AclPath, actions: Set[HttpAction]) {
 sealed abstract class ApiAuthorizationKind(override val entryName: String) extends EnumEntry { def name: String = entryName }
 
 object ApiAuthorizationKind extends Enum[ApiAuthorizationKind] {
-  final case object None extends ApiAuthorizationKind("none")
-  final case object RO   extends ApiAuthorizationKind("ro")
-  final case object RW   extends ApiAuthorizationKind("rw")
+  case object None extends ApiAuthorizationKind("none")
+  case object RO   extends ApiAuthorizationKind("ro")
+  case object RW   extends ApiAuthorizationKind("rw")
   /*
    * An ACL (Access Control List) is the exhaustive list of
    * authorized path + the set of action on each path.
@@ -265,7 +265,7 @@ object ApiAuthorizationKind extends Enum[ApiAuthorizationKind] {
    * It's a list, so ordered. If a path matches several entries in the
    * ACL list, only the first one is considered.
    */
-  final case object ACL  extends ApiAuthorizationKind("acl")
+  case object ACL  extends ApiAuthorizationKind("acl")
 
   def values: IndexedSeq[ApiAuthorizationKind] = findValues
 
@@ -314,19 +314,19 @@ object ApiAuthorization       {
 sealed trait ApiAccountType extends EnumEntry            { def name: String }
 object ApiAccountType       extends Enum[ApiAccountType] {
   // system token get special authorization and lifetime
-  final case object System    extends ApiAccountType { val name = "system" }
+  case object System    extends ApiAccountType { val name = "system" }
   // a token linked to an user account
-  final case object User      extends ApiAccountType { val name = "user"   }
+  case object User      extends ApiAccountType { val name = "user"   }
   // a standard API token, that can be only for public API access
-  final case object PublicApi extends ApiAccountType { val name = "public" }
+  case object PublicApi extends ApiAccountType { val name = "public" }
 
   def values: IndexedSeq[ApiAccountType] = findValues
 }
 
 sealed trait ApiAccountKind { def kind: ApiAccountType }
 object ApiAccountKind       {
-  final case object System extends ApiAccountKind { val kind: ApiAccountType.System.type = ApiAccountType.System }
-  final case object User   extends ApiAccountKind { val kind: ApiAccountType.User.type = ApiAccountType.User     }
+  case object System extends ApiAccountKind { val kind: ApiAccountType.System.type = ApiAccountType.System }
+  case object User   extends ApiAccountKind { val kind: ApiAccountType.User.type = ApiAccountType.User     }
   final case class PublicApi(
       authorizations: ApiAuthorization,
       expirationDate: Option[DateTime]

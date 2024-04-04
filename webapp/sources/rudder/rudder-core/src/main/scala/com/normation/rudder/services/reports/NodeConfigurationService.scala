@@ -130,7 +130,7 @@ class CachedNodeConfigurationService(
    * Ref allows atomic action on the map, but concurrent non-atomic changes (ex: if
    * you need to something iterativelly to update the cache) still need to be behind a semaphore.
    */
-  private[this] val cache = Ref.make(Map.empty[NodeId, Option[NodeExpectedReports]]).runNow
+  private val cache = Ref.make(Map.empty[NodeId, Option[NodeExpectedReports]]).runNow
 
   /**
    * The queue of invalidation request.
@@ -139,12 +139,12 @@ class CachedNodeConfigurationService(
    * invalidation request.
    * // unsure if its a CacheComplianceQueueAction or another queueaction
    */
-  private[this] val invalidateNodeConfigurationRequest = Queue.dropping[Chunk[(NodeId, CacheExpectedReportAction)]](1).runNow
+  private val invalidateNodeConfigurationRequest = Queue.dropping[Chunk[(NodeId, CacheExpectedReportAction)]](1).runNow
 
   /**
    * We need a semaphore to protect queue content merge-update
    */
-  private[this] val invalidateMergeUpdateSemaphore = Semaphore.make(1).runNow
+  private val invalidateMergeUpdateSemaphore = Semaphore.make(1).runNow
 
   // Init to do
   // what's the best method ? init directly from db, fetching all nodeconfigurations
@@ -191,7 +191,7 @@ class CachedNodeConfigurationService(
   /**
    * Do something with the action we received
    */
-  private[this] def performAction(action: CacheExpectedReportAction): IOResult[Unit] = {
+  private def performAction(action: CacheExpectedReportAction): IOResult[Unit] = {
     import CacheExpectedReportAction.*
     // in a semaphore
     semaphore.withPermit(

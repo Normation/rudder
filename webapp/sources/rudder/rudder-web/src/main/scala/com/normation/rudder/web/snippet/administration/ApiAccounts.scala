@@ -48,7 +48,7 @@ import scala.xml.NodeSeq
 
 class ApiAccounts extends DispatchSnippet with DefaultExtendableSnippet[ApiAccounts] {
 
-  private[this] val relativePath = RudderConfig.restApiAccounts.relativePath.mkString("/", "/", "")
+  private val relativePath = RudderConfig.restApiAccounts.relativePath.mkString("/", "/", "")
 
   def mainDispatch: Map[String, NodeSeq => NodeSeq] = Map(
     "render" -> render,

@@ -79,13 +79,13 @@ case object Node {
       inventory.node.main.hostname,
       inventory.node.description.getOrElse(""),
       NodeState.Enabled,
-      false,
-      false,
-      inventory.node.inventoryDate.getOrElse(new DateTime(0)),
-      ReportingConfiguration(None, None, None),
-      Nil,
-      None,
-      None
+      isSystem = false,
+      isPolicyServer = false,
+      creationDate = inventory.node.inventoryDate.getOrElse(new DateTime(0)),
+      nodeReportingConfiguration = ReportingConfiguration(None, None, None),
+      properties = Nil,
+      policyMode = None,
+      securityTag = None
     )
   }
 }
@@ -96,11 +96,11 @@ sealed abstract class NodeState(override val entryName: String) extends EnumEntr
 
 object NodeState extends Enum[NodeState] {
 
-  final case object Initializing  extends NodeState("initializing")
-  final case object Enabled       extends NodeState("enabled")
-  final case object EmptyPolicies extends NodeState("empty-policies")
-  final case object Ignored       extends NodeState("ignored")
-  final case object PreparingEOL  extends NodeState("preparing-eol")
+  case object Initializing  extends NodeState("initializing")
+  case object Enabled       extends NodeState("enabled")
+  case object EmptyPolicies extends NodeState("empty-policies")
+  case object Ignored       extends NodeState("ignored")
+  case object PreparingEOL  extends NodeState("preparing-eol")
 
   def values: IndexedSeq[NodeState] = findValues
 

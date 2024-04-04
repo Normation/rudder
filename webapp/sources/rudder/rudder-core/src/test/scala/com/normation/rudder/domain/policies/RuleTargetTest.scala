@@ -30,8 +30,21 @@ class RuleTargetTest extends Specification with Loggable {
     NodeId(s"${i}")
   }).toSet
 
-  def newNode(id: NodeId): Node =
-    Node(id, "", "", NodeState.Enabled, false, false, DateTime.now, ReportingConfiguration(None, None, None), List(), None, None)
+  def newNode(id: NodeId): Node = {
+    Node(
+      id,
+      "",
+      "",
+      NodeState.Enabled,
+      isSystem = false,
+      isPolicyServer = false,
+      creationDate = DateTime.now,
+      nodeReportingConfiguration = ReportingConfiguration(None, None, None),
+      properties = List(),
+      policyMode = None,
+      securityTag = None
+    )
+  }
 
   val allNodeIds: Set[NodeId]           = nodeIds + NodeId("root")
   val nodes:      Map[NodeId, NodeInfo] = allNodeIds.map { id =>
@@ -63,9 +76,9 @@ class RuleTargetTest extends Specification with Loggable {
     "",
     Nil,
     None,
-    false,
-    Set(),
-    true
+    isDynamic = false,
+    serverList = Set(),
+    _isEnabled = true
   )
   val g2: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("2")),
@@ -73,9 +86,9 @@ class RuleTargetTest extends Specification with Loggable {
     "",
     Nil,
     None,
-    false,
-    Set(NodeId("root")),
-    true
+    isDynamic = false,
+    serverList = Set(NodeId("root")),
+    _isEnabled = true
   )
   val g3: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("3")),
@@ -83,9 +96,9 @@ class RuleTargetTest extends Specification with Loggable {
     "",
     Nil,
     None,
-    false,
-    nodeIds.filter(_.value.toInt == 2),
-    true
+    isDynamic = false,
+    serverList = nodeIds.filter(_.value.toInt == 2),
+    _isEnabled = true
   )
   val g4: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("4")),
@@ -93,9 +106,9 @@ class RuleTargetTest extends Specification with Loggable {
     "",
     Nil,
     None,
-    false,
-    nodeIds.filter(_.value.toInt != 2),
-    true
+    isDynamic = false,
+    serverList = nodeIds.filter(_.value.toInt != 2),
+    _isEnabled = true
   )
   val g5: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("5")),
@@ -103,9 +116,9 @@ class RuleTargetTest extends Specification with Loggable {
     "",
     Nil,
     None,
-    false,
-    nodeIds.filter(_.value.toInt == 3),
-    true
+    isDynamic = false,
+    serverList = nodeIds.filter(_.value.toInt == 3),
+    _isEnabled = true
   )
   val g6: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("6")),
@@ -113,9 +126,9 @@ class RuleTargetTest extends Specification with Loggable {
     "",
     Nil,
     None,
-    false,
-    nodeIds.filter(_.value.toInt == 5),
-    true
+    isDynamic = false,
+    serverList = nodeIds.filter(_.value.toInt == 5),
+    _isEnabled = true
   )
 
   val groups: Set[NodeGroup] = Set(g1, g2, g3, g4, g5, g6)
@@ -128,8 +141,8 @@ class RuleTargetTest extends Specification with Loggable {
         FullGroupTarget(gt._1, gt._2),
         "",
         "",
-        true,
-        false
+        isEnabled = true,
+        isSystem = false
       )
     }))
     .toList

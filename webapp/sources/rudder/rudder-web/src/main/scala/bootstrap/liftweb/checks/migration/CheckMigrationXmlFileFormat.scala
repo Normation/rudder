@@ -69,7 +69,7 @@ trait CheckMigrationXmlFileFormat extends BootstrapChecks {
     })
   }
 
-  private[this] def handleFailure(error: Either[EmptyBox, Throwable]): Unit = {
+  private def handleFailure(error: Either[EmptyBox, Throwable]): Unit = {
     val msg =
       s"Error when migrating XML FileFormat' datas from format ${controler.fromVersion} to ${controler.toVersion} in database"
     val e   = error match {

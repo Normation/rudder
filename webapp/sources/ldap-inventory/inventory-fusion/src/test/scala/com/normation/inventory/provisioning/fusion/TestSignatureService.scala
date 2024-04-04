@@ -58,7 +58,7 @@ class TestSignatureService extends Specification with Loggable {
 
   Security.addProvider(new BouncyCastleProvider())
 
-  private[this] def getInputStream(path: String): IOResult[InputStream] = {
+  private def getInputStream(path: String): IOResult[InputStream] = {
     ZIO.attempt {
       val url = this.getClass.getClassLoader.getResource(path)
       if (null == url) {
@@ -70,7 +70,7 @@ class TestSignatureService extends Specification with Loggable {
     }.mapError(e => SystemError(s"Error opening '${path}'", e))
   }
 
-  implicit private[this] class TestParser(parser: FusionInventoryParser) {
+  implicit private class TestParser(parser: FusionInventoryParser) {
     def parse(inventoryRelativePath: String): IOResult[Inventory] = {
       ZIO.acquireReleaseWith(getInputStream(inventoryRelativePath))(is => effectUioUnit(is.close)) { is =>
         parser.fromXml("inventory", is)
@@ -78,7 +78,7 @@ class TestSignatureService extends Specification with Loggable {
     }
   }
 
-  private[this] object TestInventoryDigestServiceV1 extends ParseInventoryDigestFileV1 with GetKey with CheckInventoryDigest {
+  private object TestInventoryDigestServiceV1 extends ParseInventoryDigestFileV1 with GetKey with CheckInventoryDigest {
 
     /**
      * Get key in V1 will get the key from inventory data.

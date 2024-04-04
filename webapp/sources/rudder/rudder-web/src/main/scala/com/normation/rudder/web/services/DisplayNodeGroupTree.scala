@@ -61,7 +61,7 @@ import scala.xml.NodeSeq.seqToNodeSeq
  */
 object DisplayNodeGroupTree extends Loggable {
 
-  private[this] val linkUtil = RudderConfig.linkUtil
+  private val linkUtil = RudderConfig.linkUtil
 
   /**
    * Display the group tree, optionnaly filtering out
@@ -83,10 +83,10 @@ object DisplayNodeGroupTree extends Loggable {
         category: FullNodeGroupCategory
     ): JsTreeNode = new JsTreeNode {
 
-      private[this] val localOnClickTarget = onClickTarget.map(_.curried(category))
+      private val localOnClickTarget = onClickTarget.map(_.curried(category))
 
-      private[this] val tooltipContent = s"<h4>${category.name}</h4>\n<div class='tooltip-content'>${category.description}</div>"
-      private[this] val xml            = (
+      private val tooltipContent = s"<h4>${category.name}</h4>\n<div class='tooltip-content'>${category.description}</div>"
+      private val xml            = (
         <span class="treeGroupCategoryName" data-bs-toggle="tooltip" title={tooltipContent}>{category.name}</span>
       )
 

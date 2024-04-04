@@ -294,7 +294,7 @@ class SettingsApi(
         case _          =>
           req.params.get("value") match {
             case Some(value :: Nil) => parseParam(value)
-            case Some(values)       => Failure("Too much values defined, only need one")
+            case Some(_)            => Failure("Too much values defined, only need one")
             case None               => Failure("No value defined in request")
           }
       }
@@ -312,7 +312,7 @@ class SettingsApi(
             case Some(value :: Nil) => parseParam(value).map(Some(_))
             // Not sure it can happen, but still treat it as empty value
             case Some(Nil)          => Full(None)
-            case Some(values)       => Failure("Too much values defined, only need one")
+            case Some(_)            => Failure("Too much values defined, only need one")
             case None               => Full(None)
           }
       }

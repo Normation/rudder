@@ -275,7 +275,7 @@ object ParameterType {
     }
 
     def addNewParameterService(service: ParameterTypeService): Unit = innerServices = service :: innerServices
-    private[this] var innerServices: List[ParameterTypeService] = new BasicParameterTypeService :: Nil
+    private var innerServices: List[ParameterTypeService] = new BasicParameterTypeService :: Nil
   }
 }
 

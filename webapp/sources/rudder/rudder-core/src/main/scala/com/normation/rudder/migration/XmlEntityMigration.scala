@@ -39,7 +39,7 @@ object TestLabel {
 
 object TestIsElem {
 
-  private[this] def failBadElemType(xml: NodeSeq) = {
+  private def failBadElemType(xml: NodeSeq) = {
     Failure("Not expected type of NodeSeq (wish it was an Elem): " + xml)
   }
 
@@ -392,7 +392,7 @@ trait BatchElementMigration[T <: MigrableEntity] extends XmlFileFormatMigration 
     recProcessOneBatch(MigrationProcessResult(0, 0))
   }
 
-  private[this] def migrate(
+  private def migrate(
       elements:    Vector[T],
       errorLogger: Failure => Unit
   ): Vector[T] = {
@@ -504,7 +504,7 @@ object DefaultXmlEventLogMigration extends XmlEntityMigration {
     }
   }
 
-  private[this] def migrate5_6(xml: Elem): Box[Elem] = {
+  private def migrate5_6(xml: Elem): Box[Elem] = {
     XmlMigration_5_6.other(xml)
   }
 }

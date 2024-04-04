@@ -86,11 +86,11 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
   }
 
   // Utilitary method to get only once the RUDDER and the AGENT
-  private[this] def getInTags(xml: NodeSeq, tag: String): NodeSeq = {
+  private def getInTags(xml: NodeSeq, tag: String): NodeSeq = {
     xml \\ tag
   }
 
-  private[this] def checkWithinNodeSeq(nodes: NodeSeq, child: String): IOResult[String] = {
+  private def checkWithinNodeSeq(nodes: NodeSeq, child: String): IOResult[String] = {
     val nodes2 = nodes \ child
 
     nodes2 match {
@@ -103,7 +103,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
     }
   }
 
-  private[this] def checkNodeSeq(
+  private def checkNodeSeq(
       xml:            NodeSeq,
       tag:            String,
       directChildren: Boolean = false,
@@ -131,12 +131,12 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
     }
   }
 
-  private[this] def checkId(rudderNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
+  private def checkId(rudderNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
     val tag = "UUID"
     for {
       tagHere <- {
         checkWithinNodeSeq(rudderNodeSeq, tag) catchAll { _ =>
-          checkNodeSeq(inventory, tag, true).chainError(
+          checkNodeSeq(inventory, tag, directChildren = true).chainError(
             s"Missing node ID attribute '${tag}' in inventory. This attribute is mandatory and must contains node ID."
           )
         }
@@ -147,7 +147,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
     }
   }
 
-  private[this] def checkRoot(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
+  private def checkRoot(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
     val agentTag = "OWNER"
     val tag      = "USER"
     for {
@@ -163,7 +163,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
     }
   }
 
-  private[this] def checkPolicyServer(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
+  private def checkPolicyServer(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
     val agentTag = "POLICY_SERVER_UUID"
     val tag      = "POLICY_SERVER"
     for {
@@ -179,7 +179,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
     }
   }
 
-  private[this] def checkOS(inventory: NodeSeq): IOResult[NodeSeq] = {
+  private def checkOS(inventory: NodeSeq): IOResult[NodeSeq] = {
     // VERSION is not mandatory on windows, it can't be added in that list
     val tags  = "FULL_NAME" :: "KERNEL_NAME" :: "NAME" :: Nil
     val error = InventoryError.Inconsistency(
@@ -191,7 +191,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
         ZIO.foldLeft(tags)(zero)((a, b) => {
           a match {
             case Right(x) => Right(x).succeed
-            case Left(_)  => checkNodeSeq(inventory, "OPERATINGSYSTEM", false, Some(b)).either
+            case Left(_)  => checkNodeSeq(inventory, "OPERATINGSYSTEM", directChildren = false, optChild = Some(b)).either
           }
         })
       )
@@ -205,46 +205,48 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
    * - (on AIX and non empty HARDWARE > OSVERSION )
    * Other cases are failure (missing required info)
    */
-  private[this] def checkKernelVersion(inventory: NodeSeq): IOResult[NodeSeq] = {
+  private def checkKernelVersion(inventory: NodeSeq): IOResult[NodeSeq] = {
 
     val failure    = "Missing attribute OPERATINGSYSTEM>KERNEL_VERSION in inventory. This attribute is mandatory".inconsistency
     val aixFailure = "Missing attribute HARDWARE>OSVERSION in inventory. This attribute is mandatory".inconsistency
 
-    checkNodeSeq(inventory, "OPERATINGSYSTEM", false, Some("KERNEL_VERSION")).map(_ => inventory).catchAll { _ =>
-      // perhaps we are on AIX ?
-      checkNodeSeq(inventory, "OPERATINGSYSTEM", false, Some("KERNEL_NAME"))
-        .foldZIO(
-          _ => failure,
-          x => {
-            if (x.toLowerCase == "aix") { // ok, check for OSVERSION
-              checkNodeSeq(inventory, "HARDWARE", false, Some("OSVERSION")).foldZIO(
-                _ => aixFailure,
-                kernelVersion => { // update the inventory to put it in the right place
-                  (new scala.xml.transform.RuleTransformer(
-                    new AddChildrenTo("OPERATINGSYSTEM", <KERNEL_VERSION>{kernelVersion}</KERNEL_VERSION>)
-                  ).transform(inventory).head).succeed
-                }
-              )
-            } else {
-              // should not be empty given checkOS, but if so, fails. Also fails is not aix.
-              failure
+    checkNodeSeq(inventory, "OPERATINGSYSTEM", directChildren = false, optChild = Some("KERNEL_VERSION"))
+      .map(_ => inventory)
+      .catchAll { _ =>
+        // perhaps we are on AIX ?
+        checkNodeSeq(inventory, "OPERATINGSYSTEM", directChildren = false, optChild = Some("KERNEL_NAME"))
+          .foldZIO(
+            _ => failure,
+            x => {
+              if (x.toLowerCase == "aix") { // ok, check for OSVERSION
+                checkNodeSeq(inventory, "HARDWARE", directChildren = false, optChild = Some("OSVERSION")).foldZIO(
+                  _ => aixFailure,
+                  kernelVersion => { // update the inventory to put it in the right place
+                    (new scala.xml.transform.RuleTransformer(
+                      new AddChildrenTo("OPERATINGSYSTEM", <KERNEL_VERSION>{kernelVersion}</KERNEL_VERSION>)
+                    ).transform(inventory).head).succeed
+                  }
+                )
+              } else {
+                // should not be empty given checkOS, but if so, fails. Also fails is not aix.
+                failure
+              }
             }
-          }
-        )
-        .map(n => n: NodeSeq)
-    }
+          )
+          .map(n => n: NodeSeq)
+      }
   }
 
   // for check kernel version
-  private[this] class AddChildrenTo(label: String, newChild: scala.xml.Node) extends scala.xml.transform.RewriteRule {
+  private class AddChildrenTo(label: String, newChild: scala.xml.Node) extends scala.xml.transform.RewriteRule {
     override def transform(n: scala.xml.Node): scala.collection.Seq[Node] = n match {
       case Elem(prefix, "OPERATINGSYSTEM", attribs, scope, child*) =>
-        Elem(prefix, label, attribs, scope, false, child ++ newChild: _*)
+        Elem(prefix, label, attribs, scope, minimizeEmpty = false, child ++ newChild: _*)
       case other                                                   => other
     }
   }
 
-  private[this] def checkAgentType(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
+  private def checkAgentType(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
     val agentTag = "AGENT_NAME"
     val tag      = "AGENTNAME"
     for {
@@ -261,7 +263,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
   }
 
   // since Rudder 6.0, an agent certificate is mandatory
-  private[this] def checkSecurityToken(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
+  private def checkSecurityToken(agentNodeSeq: NodeSeq)(inventory: NodeSeq): IOResult[NodeSeq] = {
     for {
       tagHere <- checkWithinNodeSeq(agentNodeSeq, "AGENT_CERT")
                    .chainError(

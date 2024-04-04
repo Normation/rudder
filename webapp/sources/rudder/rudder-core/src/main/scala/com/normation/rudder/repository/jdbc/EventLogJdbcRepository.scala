@@ -54,7 +54,6 @@ import doobie.postgres.implicits.*
 import doobie.util.fragments
 import scala.xml.*
 import zio.interop.catz.*
-import zio.syntax.*
 
 /**
  * The EventLog repository
@@ -97,11 +96,6 @@ class EventLogJdbcRepository(
         } yield {
           saved
         }
-
-      case _ =>
-        Inconsistency(
-          s"Eventlog with type '${eventLog.eventType} has invalid XML for details (it must be a well formed document with only one root): ${eventLog.details}'"
-        ).fail
     }
   }
 
@@ -111,7 +105,7 @@ class EventLogJdbcRepository(
    * see unreconized event log (even if it means looking to XML,
    * it's better than missing an important info)
    */
-  private[this] def toEventLog(pair: (String, EventLogDetails)): EventLog = {
+  private def toEventLog(pair: (String, EventLogDetails)): EventLog = {
     val (eventType, eventLogDetails) = pair
     EventLogReportsMapper.mapEventLog(
       EventTypeFactory(eventType),
@@ -301,7 +295,7 @@ private object EventLogReportsMapper extends NamedZioLogger {
 
   override def loggerName: String = this.getClass.getName
 
-  private[this] val logFilters = {
+  private val logFilters = {
     WorkflowStepChanged ::
     NodeEventLogsFilter.eventList :::
     AssetsEventLogsFilter.eventList :::

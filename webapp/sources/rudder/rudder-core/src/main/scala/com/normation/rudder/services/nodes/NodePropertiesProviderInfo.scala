@@ -75,7 +75,7 @@ final case class ProviderKeyInfo(
 
 class NodePropertiesProviderInfo() {
 
-  private[this] val providers = collection.mutable.Buffer[NodePropertiesProviderInfoExtension]()
+  private val providers = collection.mutable.Buffer[NodePropertiesProviderInfoExtension]()
 
   def getInfo(provider: PropertyProvider, key: String): Box[Option[ProviderKeyInfo]] = {
     providers.find(p => p.isDefined(provider)) match {

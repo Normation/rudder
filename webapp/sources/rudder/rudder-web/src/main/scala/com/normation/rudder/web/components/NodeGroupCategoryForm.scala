@@ -75,10 +75,10 @@ class NodeGroupCategoryForm(
 
   var _nodeGroupCategory: NodeGroupCategory = nodeGroupCategory.copy()
 
-  private[this] val roGroupCategoryRepository  = RudderConfig.roNodeGroupRepository
-  private[this] val woGroupCategoryRepository  = RudderConfig.woNodeGroupRepository
-  private[this] val uuidGen                    = RudderConfig.stringUuidGenerator
-  private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
+  private val roGroupCategoryRepository  = RudderConfig.roNodeGroupRepository
+  private val woGroupCategoryRepository  = RudderConfig.woNodeGroupRepository
+  private val uuidGen                    = RudderConfig.stringUuidGenerator
+  private val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
 
   val categories: Seq[NodeGroupCategory] = roGroupCategoryRepository.getAllNonSystemCategories().toBox match {
     case eb: EmptyBox =>
@@ -183,7 +183,7 @@ class NodeGroupCategoryForm(
    * Delete button is only enabled is that category
    * has zero child
    */
-  private[this] def deleteButton: NodeSeq = {
+  private def deleteButton: NodeSeq = {
 
     if (parentCategory.isDefined && _nodeGroupCategory.children.isEmpty && _nodeGroupCategory.items.isEmpty) {
       val popupContent = {
@@ -223,7 +223,7 @@ class NodeGroupCategoryForm(
     }
   }
 
-  private[this] def onDelete(): JsCmd = {
+  private def onDelete(): JsCmd = {
     woGroupCategoryRepository
       .delete(
         _nodeGroupCategory.id,
@@ -245,7 +245,7 @@ class NodeGroupCategoryForm(
   }
 
   ///////////// fields for category settings ///////////////////
-  private[this] val name = new WBTextField("Category name", _nodeGroupCategory.name) {
+  private val name = new WBTextField("Category name", _nodeGroupCategory.name) {
     override def setFilter             = notNull _ :: trim _ :: Nil
     override def className             = "form-control"
     override def labelClassName        = ""
@@ -254,7 +254,7 @@ class NodeGroupCategoryForm(
       valMinLen(1, "Name must not be empty") _ :: Nil
   }
 
-  private[this] val description = new WBTextAreaField("Category description", _nodeGroupCategory.description.toString) {
+  private val description = new WBTextAreaField("Category description", _nodeGroupCategory.description.toString) {
     override def setFilter             = notNull _ :: trim _ :: Nil
     override def className             = "form-control"
     override def labelClassName        = ""
@@ -266,7 +266,7 @@ class NodeGroupCategoryForm(
   /**
    * If there is no parent, it is its own parent
    */
-  private[this] val container = parentCategory match {
+  private val container = parentCategory match {
     case x: EmptyBox =>
       new WBSelectField(
         "Parent category: ",
@@ -296,28 +296,28 @@ class NodeGroupCategoryForm(
       }
   }
 
-  private[this] val formTracker = new FormTracker(name, description, container)
+  private val formTracker = new FormTracker(name, description, container)
 
-  private[this] var notifications = List.empty[NodeSeq]
+  private var notifications = List.empty[NodeSeq]
 
-  private[this] def updateFormClientSide: JsCmd = {
+  private def updateFormClientSide: JsCmd = {
     SetHtml(htmlIdCategory, showForm())
   }
 
-  private[this] def error(msg: String) = <span class="col-sm-12 errors-container">{msg}</span>
+  private def error(msg: String) = <span class="col-sm-12 errors-container">{msg}</span>
 
-  private[this] def onSuccess: JsCmd = {
+  private def onSuccess: JsCmd = {
 
     notifications ::= <span class="greenscala">Category was correctly updated</span>
     updateFormClientSide
   }
 
-  private[this] def onFailure: JsCmd = {
+  private def onFailure: JsCmd = {
     formTracker.addFormError(error("There was a problem with your request."))
     updateFormClientSide & JsRaw("""scrollToElement("notifications","#ajaxItemContainer");""")
   }
 
-  private[this] def onSubmit(): JsCmd = {
+  private def onSubmit(): JsCmd = {
     if (formTracker.hasErrors) {
       onFailure & onFailureCallback()
     } else {
@@ -357,7 +357,7 @@ class NodeGroupCategoryForm(
     }
   }
 
-  private[this] def updateAndDisplayNotifications(): NodeSeq = {
+  private def updateAndDisplayNotifications(): NodeSeq = {
 
     val notifications = formTracker.formErrors
     formTracker.cleanErrors
@@ -375,7 +375,7 @@ class NodeGroupCategoryForm(
   }
 
   ///////////// success pop-up ///////////////
-  private[this] def successPopup: JsCmd = {
+  private def successPopup: JsCmd = {
     JsRaw("""createSuccessNotification()""")
   }
 

@@ -158,7 +158,7 @@ trait WorkflowLevelService {
 // and default implementation is: no
 class DefaultWorkflowLevel(val defaultWorkflowService: WorkflowService) extends WorkflowLevelService {
   // Alternative level provider
-  private[this] var level: Option[WorkflowLevelService] = None
+  private var level: Option[WorkflowLevelService] = None
 
   def overrideLevel(l: WorkflowLevelService): Unit = {
     PluginLogger.info(s"Update Validation Workflow level to '${l.name}'")
