@@ -171,7 +171,7 @@ limitations under the License.
             <compilerPlugin>
               <groupId>org.scalameta</groupId>
               <artifactId>semanticdb-scalac_${scala-version}</artifactId>
-              <version>4.8.14</version>
+              <version>4.9.1</version>
             </compilerPlugin>
           </compilerPlugins>
           <args>
@@ -184,7 +184,7 @@ limitations under the License.
               -Xlint:_,-nullary-unit,-missing-interpolator -Yno-adapted-args -Ywarn-dead-code -Ywarn-extra-implicit -Ywarn-inaccessible
               -Ywarn-infer-any -Ywarn-nullary-override -Ywarn-numeric-widen -Ywarn-unused:imports -Ywarn-unused:locals -Ywarn-unused:privates
             -->
-            <arg>-Xsource:3</arg>
+            <arg>-Xsource:3-cross</arg>
             <arg>-deprecation</arg>                  <!-- Emit warning and location for usages of deprecated APIs. -->
             <arg>-explaintypes</arg>                 <!-- Explain type errors in more detail. -->
             <arg>-feature</arg>                      <!-- Emit warning and location for usages of features that should be imported explicitly. -->
@@ -213,9 +213,6 @@ limitations under the License.
 
             <!-- fastparse 3.0.1 emits false unused warning. We must silence them on related files. See: https://github.com/com-lihaoyi/fastparse/issues/285-->
             <arg>-Wconf:cat=unused-nowarn&amp;src=com/normation/utils/Version.scala:s,cat=unused-nowarn&amp;src=com/normation/rudder/services/policies/InterpolatedValueCompiler.scala:s</arg>
-
-            <!-- this warning is no an actual issue, our smart constructor usage is fine with a scala 3 compiler-->
-            <arg>-Wconf:msg=constructor modifiers are assumed by synthetic:s</arg>
           </args>
           <jvmArgs>
             <jvmArg>-Xmx${jvmArg-Xmx}</jvmArg>
@@ -422,7 +419,7 @@ limitations under the License.
     <rudder-major-version>8.1</rudder-major-version>
     <rudder-version>8.1.2-SNAPSHOT</rudder-version>
 
-    <scala-version>2.13.12</scala-version>
+    <scala-version>2.13.13</scala-version>
     <scala-binary-version>2.13</scala-binary-version>
     <!-- lift force us to remain with 1.3.0 because of
          java.lang.NoSuchMethodError: 'scala.collection.mutable.Stack scala.xml.parsing.NoBindingFactoryAdapter.scopeStack()'net.liftweb.util.Html5Parser.$anonfun$parse$1(HtmlParser.scala:373)
