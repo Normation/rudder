@@ -135,14 +135,15 @@ class ComplianceTest extends Specification {
       case Nil | _ :: Nil | _ :: _ :: Nil =>
         Failure(s"The file ${filename} is empty or contains only headers")
       case h :: lines                     =>
-        val fileHeaders = h.split("""\|""").map(_.trim.toLowerCase)
+        val fileHeaders: Array[String] = h.split("""\|""").map(_.trim.toLowerCase)
         val headerPairs = headers.map(_.trim.toLowerCase).zip(fileHeaders)
 
         if (fileHeaders.size == headers.size && headerPairs.forall { case (h1, h2) => h1 == h2 }) {
+          def splitLine(line: String): Array[String] =
+            line.split("""\|""").map(l => if (l.endsWith("+")) l.substring(0, l.size - 2).trim else l.trim)
+
           val cleaned = lines
-            .map(
-              _.split("""\|""").map(l => if (l.endsWith("+")) l.substring(0, l.size - 2).trim else l.trim)
-            )
+            .map(splitLine)
             .filter(_.size == headers.size)
 
           // merged line which need to be
