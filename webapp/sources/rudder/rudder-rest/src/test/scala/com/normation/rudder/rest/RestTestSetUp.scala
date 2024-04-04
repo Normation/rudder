@@ -182,6 +182,8 @@ import scala.xml.NodeSeq
 import zio.*
 import zio.syntax.*
 
+import scala.reflect.{ClassTag, classTag}
+
 /*
  * This file provides all the necessary plumbing to allow test REST API.
  *
@@ -662,7 +664,7 @@ class RestTestSetUp {
     override def forType(fieldType: VariableSpec, id: String): DirectiveField = default(id)
     override def default(withId: String): DirectiveField = new DirectiveField {
       self => type ValueType = String
-      def manifest = manifestOf[String]
+      def manifest: ClassTag[String] = classTag[String]
       lazy val id  = withId
       def name     = id
       override val uniqueFieldId: Box[String]                      = Full(id)
