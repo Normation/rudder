@@ -4,22 +4,21 @@
   <div class="portlet-content" id="nodeStateController">
     <div class="explanation-text">
       <div>
-        <p>A node can be assigned a state. State may be used to classify nodes (in search and groups).
-           Some states have also an impact on what Rudder does for a node.</p>
-        <p>By default, a node is in state <b>Enabled</b>.</p>
+        <p>A node has a state, which may be used to classify it (in search and groups).
+           Some states have also an impact on the node's behavior in Rudder.</p>
+        <p>By default, a node is in <b>Enabled</b> state.</p>
         <p>Available states are:</p>
         <ol>
-          <li><b>Enabled</b>: this is the default state for a node. Rudder generate policies for that node based on Rules and Groups.
-              The node is expected to report on these policies on each run, accordingly to its Policy Mode, Agen Run Schedule, and Compliance Mode.</li>
-          <li><b>Initializing</b>: this state is equivalent to <b>Enabled</b> state but may be used to create specific Rules and Groups for new nodes.</li>
-          <li><b>Preparing End Of Life</b>: this state is equivalent to <b>Enabled</b> state but may be used to create specific Rules and Groups for EOL nodes.</li>
-          <li><b>Ignored</b>: Rudder ignore node is this state. No policy are generated for them, and they are excluded from compliance reporting. The agent
-              for a node on that state doesn't get new policies, but it continues to runs as before. This state is typically used for a temporaly shutdowned
-              machine, or for a node for which the policy generation is broken for some reasons and get be fixed for now.</li>
-          <li><b>Empty policies</b>: When policies are generated, Rudder remove all non-system policies for nodes in this state. The agent continue to
-              run, but only with system policies. By consequences, the node is excluded from all non-system policy compliance calculation. This state
-              is perfect for a node which should not be managed by Rudder for a time but with the possibility to get back to managed without direct
-              connection to the node.</li>
+          <li><b>Enabled</b>: this is the default state for a node. Rudder generates policies for that node based on rules and groups.
+              The node is expected to report on these policies on each run, according to its policy mode, agent run schedule, and compliance mode.</li>
+          <li><b>Initializing</b>: this state is equivalent to <b>Enabled</b> state but may be used to create specific rules and groups for new nodes.</li>
+          <li><b>Preparing End Of Life</b>: this state is equivalent to <b>Enabled</b> state but may be used to create specific rules and groups for EOL nodes.</li>
+          <li><b>Ignored</b>: Rudder ignores nodes in this state. No policy are generated for them, and they are excluded from compliance reporting. The agent
+              for a node on that state doesn't get new policies, but it continues to run with existing policies. This state is typically used for a temporarily shutdowned
+              machine, or for a node for which the policy generation is broken for some reason and can't fixed for now.</li>
+          <li><b>Empty policies</b>: When policies are generated, Rudder removes all non-system policies for nodes in this state. The agent continues to
+              run, but only with system policies. By consequence, the node is excluded from all non-system policy compliance computation. This state
+              is perfect for a node which should not be managed by Rudder for some time, while preserving the ability to reenable it without local actions.</li>
         </ol>
       </div>
     </div>
