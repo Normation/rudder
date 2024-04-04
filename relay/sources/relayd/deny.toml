@@ -18,6 +18,7 @@ allow = [
 ignore = [
     # A DoS in h2
     "RUSTSEC-2023-0034",
+    "RUSTSEC-2024-0332",
 ]
 
 [bans]
