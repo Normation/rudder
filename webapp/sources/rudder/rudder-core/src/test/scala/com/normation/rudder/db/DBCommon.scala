@@ -114,12 +114,12 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
   override def beforeAll(): Unit = initDb()
   override def afterAll():  Unit = cleanDb()
 
-  def initDb(): AnyVal = {
+  def initDb(): Unit = {
     if (sqlInit.trim.size > 0) {
       // Postgres'JDBC driver just accept multiple statement
       // in one query. No need to try to split ";" etc.
       doobie.transactRunEither(xa => Update0(sqlInit, None).run.transact(xa)) match {
-        case Right(x) => x
+        case Right(_) => ()
         case Left(ex) => throw ex
       }
     }
@@ -127,7 +127,7 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
 
   def cleanDb(): Unit = {
     if (sqlClean.trim.size > 0) doobie.transactRunEither(xa => Update0(sqlClean, None).run.transact(xa)) match {
-      case Right(x) => x
+      case Right(x) => ()
       case Left(ex) => throw ex
     }
 
