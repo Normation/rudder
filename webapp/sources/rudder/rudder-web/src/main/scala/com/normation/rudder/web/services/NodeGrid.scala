@@ -256,7 +256,8 @@ final class NodeGrid(
 
     (for {
       json       <- tryo(parse(jsonArg)).toIO.chainError("Error when trying to parse argument for node")
-      arg        <- tryo(json.extract[JsonArg]).toIO
+      // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+      arg        <- tryo(json.extract[JsonArg]: @annotation.nowarn("cat=deprecation")).toIO
       status     <- InventoryStatus(arg.status).notOptional("Status parameter is mandatory")
       nodeId      = NodeId(arg.id)
       nodeFact   <- nodeFactRepo

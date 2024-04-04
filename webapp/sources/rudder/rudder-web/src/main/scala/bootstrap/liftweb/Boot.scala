@@ -116,7 +116,8 @@ object Boot {
     */
   final class RequestHeadersFactoryVendor(csp: ContentSecurityPolicy) extends Vendor[List[(String, String)]] {
 
-    LiftRules.registerInjection(this)
+    // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+    LiftRules.registerInjection(this): @annotation.nowarn("cat=deprecation")
 
     implicit override def make: Box[List[(String, String)]] = Empty // never used in LiftRules.supplementalHeaders, see `vend`
 
