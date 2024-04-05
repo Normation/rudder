@@ -11,7 +11,7 @@ use std::{
 
 use anyhow::{anyhow, bail, Context, Result};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use super::archive::Rpkg;
 use crate::{
@@ -221,19 +221,64 @@ impl Database {
             .map(|p| format!("enable {}", p.metadata.name))
             .collect::<Vec<String>>()
             .join("\n");
-        fs::write(backup_path, saved)?;
+        fs::write(backup_path, saved).with_context(|| {
+            format!(
+                "Failed to save the plugins statuses in the backup file {}",
+                backup_path.to_string_lossy()
+            )
+        })?;
+        info!(
+            "Plugins statuses saved in {}",
+            backup_path.to_string_lossy()
+        );
         Ok(())
     }
 
+    fn apply_plugin_status_line_from_backup(&self, line: &str, webapp: &mut Webapp) -> Result<()> {
+        let mut split = line.split_whitespace();
+        let status = split.next().with_context(|| {
+            format!(
+                "Failed to parse the plugin status from the status backup file line '{}'",
+                line
+            )
+        })?;
+        let plugin_name = split.next().with_context(|| {
+            format!(
+                "Failed to parse the plugin name from the status backup file line '{}'",
+                line
+            )
+        })?;
+        if plugin_name.ends_with(".jar") && plugin_name.starts_with('/') {
+            match status {
+                "disable" => webapp.disable_jars(&[plugin_name.to_owned()]),
+                "enable" => webapp.enable_jars(&[plugin_name.to_owned()]),
+                _ => bail!("Unexpected plugin status in the backup file: {}", line),
+            }
+        } else {
+            let i = self.plugins.get(plugin_name).context(format!(
+                "The plugin {} is not installed, it could not be enabled.",
+                plugin_name
+            ))?;
+            match status {
+                "disable" => i.disable(webapp),
+                "enable" => i.enable(webapp),
+                _ => bail!("Unexpected plugin status in the backup file: {}", line),
+            }
+        }
+    }
+
     pub fn enabled_plugins_restore(&self, backup_path: &Path, webapp: &mut Webapp) -> Result<()> {
-        for line in read_to_string(backup_path)?.lines() {
-            let plugin_name = line.trim().split(' ').nth(1);
-            match plugin_name {
-                None => debug!("Malformed line in plugin backup status file"),
-                Some(x) => match self.plugins.get(x) {
-                    None => debug!("Plugin {} is not installed, it could not be enabled", x),
-                    Some(y) => y.enable(webapp)?,
-                },
+        for line in read_to_string(backup_path)
+            .with_context(|| {
+                format!(
+                    "Failed to read the status backup file in {}",
+                    backup_path.to_string_lossy()
+                )
+            })?
+            .lines()
+        {
+            if let Err(e) = self.apply_plugin_status_line_from_backup(line, webapp) {
+                warn!("{:?}", e)
             }
         }
         Ok(())
@@ -300,9 +345,80 @@ mod tests {
     use ::std::fs::read_to_string;
     use assert_json_diff::assert_json_eq;
     use pretty_assertions::assert_eq;
+    use tempfile::TempDir;
 
     use super::*;
-    use crate::archive;
+    use crate::{archive, versions::RudderVersion};
+
+    #[test]
+    fn test_read_plugin_status_line_from_backup() {
+        let temp_dir = TempDir::new().unwrap();
+        let database_path = temp_dir.path().join("database.json");
+        let webapp_path = temp_dir.path().join("webappPath.json");
+        fs::copy(
+            "tests/status_backup_file/database.json",
+            database_path.clone(),
+        )
+        .unwrap();
+        fs::copy("tests/status_backup_file/webapp.xml", webapp_path.clone()).unwrap();
+        let mut w = Webapp::new(
+            webapp_path,
+            RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap(),
+        );
+        let d = Database::read(Path::new(&database_path)).unwrap();
+        // Enable >8.1 syntax
+        d.apply_plugin_status_line_from_backup("enable rudder-plugin-dsc", &mut w)
+            .unwrap();
+        assert!(w
+            .jars()
+            .unwrap()
+            .contains(&"/opt/rudder/share/plugins/dsc/dsc.jar".to_string()));
+
+        // Disable >8.1 syntax
+        d.apply_plugin_status_line_from_backup("disable rudder-plugin-dsc", &mut w)
+            .unwrap();
+        assert!(!w
+            .jars()
+            .unwrap()
+            .contains(&"/opt/rudder/share/plugins/dsc/dsc.jar".to_string()));
+
+        // Enable <8.0 syntax
+        d.apply_plugin_status_line_from_backup(
+            "enable /opt/rudder/share/plugins/dsc/dsc.jar",
+            &mut w,
+        )
+        .unwrap();
+        assert!(w
+            .jars()
+            .unwrap()
+            .contains(&"/opt/rudder/share/plugins/dsc/dsc.jar".to_string()));
+
+        // Disable <8.0 syntax
+        d.apply_plugin_status_line_from_backup(
+            "disable /opt/rudder/share/plugins/dsc/dsc.jar",
+            &mut w,
+        )
+        .unwrap();
+        assert!(!w
+            .jars()
+            .unwrap()
+            .contains(&"/opt/rudder/share/plugins/dsc/dsc.jar".to_string()));
+
+        // Unsupported plugin name syntax
+        assert!(d
+            .apply_plugin_status_line_from_backup("enable dsc", &mut w)
+            .is_err());
+
+        // Unsupported plugin status syntax
+        assert!(d
+            .apply_plugin_status_line_from_backup("eNable rudder-plugin-dsc", &mut w)
+            .is_err());
+
+        // Non installed plugin
+        assert!(d
+            .apply_plugin_status_line_from_backup("enable rudder-plugin-unknown", &mut w)
+            .is_err());
+    }
 
     #[test]
     fn test_plugin_database_parsing() {

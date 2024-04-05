@@ -57,6 +57,7 @@ const SIGNATURE_KEYRING_PATH: &str = "/opt/rudder/etc/rudder-pkg/rudder_plugins_
 const RUDDER_VERSION_PATH: &str = "/opt/rudder/share/versions/rudder-server-version";
 const REPOSITORY_INDEX_PATH: &str = "/var/rudder/tmp/plugins/rpkg.index";
 const TMP_PLUGINS_FOLDER: &str = "/var/rudder/tmp/plugins";
+const PLUGIN_STATUS_BACKUP_PATH: &str = "/tmp/rudder-plugins-upgrade";
 
 fn am_i_root() -> Result<bool> {
     let out = process::Command::new("id").arg("--user").output()?;
@@ -258,12 +259,12 @@ pub fn run_inner(args: Args) -> Result<()> {
                 long_names(package)
             };
             if to_enable.is_empty() {
-                let backup_path = Path::new(TMP_PLUGINS_FOLDER).join("plugins_status.backup");
+                let backup_path = Path::new(PLUGIN_STATUS_BACKUP_PATH);
                 if save {
-                    db.enabled_plugins_save(&backup_path, &mut webapp)?;
+                    db.enabled_plugins_save(backup_path, &mut webapp)?;
                     info!("Plugins status successfully saved");
                 } else if restore {
-                    db.enabled_plugins_restore(&backup_path, &mut webapp)?;
+                    db.enabled_plugins_restore(backup_path, &mut webapp)?;
                     info!("Plugins status successfully restored");
                 } else {
                     bail!("No plugin provided");
