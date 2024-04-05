@@ -593,18 +593,12 @@ function createBadgeAgentPolicyModeMixed(data){
 }
 
 function showFileManager(idField){
-
-  console.log(idField)
   fm.ports.onOpen.send(null);
-
   fm.ports.close.subscribe(function(files) {
-    console.log(files)
-
     if(files.length > 0){
       var inputField = $("#" + idField + "-fileInput")
       inputField.val(files[0].substring(1));
       }
-
   });
 }
 
