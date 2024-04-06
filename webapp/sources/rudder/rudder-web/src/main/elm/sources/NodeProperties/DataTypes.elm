@@ -101,7 +101,10 @@ type alias Model =
 
 getPageMax : TablePagination -> Int
 getPageMax pagination =
-  if(pagination.tableSize /= 0) then (pagination.totalRow // pagination.tableSize) + 1 else 1
+  if(pagination.tableSize /= 0 && pagination.tableSize /= pagination.totalRow) then
+    (pagination.totalRow // pagination.tableSize) + 1
+  else
+    1
 
 type Msg
   = Ignore
