@@ -37,3 +37,4 @@ flate2 = "1.0.28"
 cli-table = "0.4.7"
 spinners = "4.1.1"
 rudder_cli = { path = "../../../policies/rudder-cli" }
+itertools = "0.12.1"

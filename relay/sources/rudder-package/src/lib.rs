@@ -261,7 +261,7 @@ pub fn run_inner(args: Args) -> Result<()> {
             if to_enable.is_empty() {
                 let backup_path = Path::new(PLUGIN_STATUS_BACKUP_PATH);
                 if save {
-                    db.enabled_plugins_save(backup_path, &mut webapp)?;
+                    db.disabled_plugins_save(backup_path, &mut webapp)?;
                     info!("Plugins status successfully saved");
                 } else if restore {
                     db.enabled_plugins_restore(backup_path, &mut webapp)?;
