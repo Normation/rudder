@@ -10,13 +10,12 @@ import List.Extra
 import Dict exposing (Dict)
 import Json.Encode exposing (..)
 import NaturalOrdering as N
-import String exposing (fromInt, toInt)
+import String exposing (toInt)
 import SyntaxHighlight exposing (useTheme, gitHub, json, toInlineHtml)
 import NodeProperties.DataTypes exposing (..)
 import NodeProperties.ApiCalls exposing (deleteProperty, findPropertyUsage)
 import Json.Decode exposing (decodeString)
 import Set exposing (Set)
-
 
 
 searchString : String -> String
@@ -246,11 +245,11 @@ displayNodePropertyRow model =
         case editedProperty of
           Nothing ->
             tr []
-            [ td [class "property-name"]
+            [ td [class "default-actions"]
               [ div[]
                 [ text p.name
                 , providerBadge
-                , span [class "btn btn-xs btn-default", title "Find usage of this property", onClick (CallApi (findPropertyUsage p.name ))]
+                , span [class "action-icon", title "Find usage of this property", onClick (CallApi (findPropertyUsage p.name ))]
                   [ i [class "fas fa-search"][]
                   ]
                 ]
@@ -356,12 +355,11 @@ showModal model =
           Techniques -> pagination.pageTechnique
         tableSize = pagination.tableSize
         totalNbRow = pagination.totalRow
-        --start = if(page == 1) then 1 else (page - 1) * tableSize
         start = (page - 1) * tableSize
         end = min (start + tableSize) totalNbRow
         pagesOpt =
-          List.range 1 (getPageMax pagination)
-            |> List.map (\currentPage -> option [value (String.fromInt currentPage), selected (currentPage == page )][text (String.fromInt currentPage)])
+            List.range 1 (getPageMax pagination)
+              |> List.map (\currentPage -> option [value (String.fromInt currentPage), selected (currentPage == page )][text (String.fromInt currentPage)])
         classNextBtn = if(page >= getPageMax pagination) then "disabled" else ""
         classPreviousBtn = if(page <= 1) then "disabled" else ""
         row = case filters.findUsageIn of
@@ -444,7 +442,7 @@ showModal model =
                 [ div [class "dataTables_length"]
                   [ label []
                     [ text "Show"
-                    , select [onInput (\str -> UpdateTableSize (toInt str |> Maybe.withDefault 25))]
+                    , select [onInput (\str -> UpdateTableSize (toInt str |> Maybe.withDefault 10))]
                       [ option [value "10"][text "10"]
                       , option [value "25"][text "25"]
                       , option [value "50"][text "50"]
@@ -469,7 +467,6 @@ showModal model =
                   , a [class ("paginate_button last " ++ classNextBtn), onClick LastPage][text "Last"]
                   ]
                 ]
-
               ]
             ]
           , div [ class "modal-footer" ]

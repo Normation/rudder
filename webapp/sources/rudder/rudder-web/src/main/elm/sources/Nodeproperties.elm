@@ -6,7 +6,7 @@ import Result
 import Json.Decode exposing (value)
 import Dict exposing (..)
 import List.Extra
-
+import String
 import NodeProperties.ApiCalls exposing (..)
 import NodeProperties.DataTypes exposing (..)
 import NodeProperties.Init exposing (init)
@@ -141,7 +141,7 @@ update msg model =
         filtersModelUsage = model.ui.filtersOnUsage
         pageOnDir = pagination.pageDirective
         pageOnTech = pagination.pageTechnique
-        pageMax = if(pagination.tableSize /= 0) then (pagination.totalRow // pagination.tableSize) + 1 else 1
+        pageMax = getPageMax pagination
         newPageDir =
           case filtersModelUsage.findUsageIn of
             Directives -> min (pageOnDir + 1) pageMax
@@ -175,12 +175,14 @@ update msg model =
       case res of
         Ok found ->
           let
-            techs = UsageInfo "id" "This is a dummy technique"
-            dirs = UsageInfo "id" "This is a dummy directive"
+            techs =
+              List.range 0 231
+                |> List.map (\x -> UsageInfo "id" ((String.fromInt x) ++ " - technique "))
+            dirs =
+              List.range 0 482
+                |> List.map (\x -> UsageInfo "id" ((String.fromInt x) ++ " - directive"))
             fakeData =
-              PropertyUsage
-              [dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs]
-              [techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs]
+              PropertyUsage dirs techs
             maxNbRow = List.length fakeData.directives
             pagi = TablePagination 1 1 10 maxNbRow
             ui = model.ui
