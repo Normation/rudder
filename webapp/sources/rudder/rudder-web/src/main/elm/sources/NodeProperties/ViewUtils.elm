@@ -1,13 +1,15 @@
 module NodeProperties.ViewUtils exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (attribute, class, colspan, href, placeholder, style, tabindex, title, type_, value)
+import Html.Attributes exposing (attribute, class, colspan, href, id, name, placeholder, selected, style, tabindex, title, type_, value)
+import Html.Attributes.Extra exposing (role)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode exposing (decodeValue)
 import List.Extra
 import Dict exposing (Dict)
 import Json.Encode exposing (..)
 import NaturalOrdering as N
+import String exposing (fromInt, toInt)
 import SyntaxHighlight exposing (useTheme, gitHub, json, toInlineHtml)
 import NodeProperties.DataTypes exposing (..)
 import NodeProperties.ApiCalls exposing (deleteProperty, findPropertyUsage)
@@ -349,35 +351,53 @@ showModal model =
     NoModal -> text ""
     Usage pName found ->
       let
-        row = case model.ui.filtersOnUsage.findUsageIn of
+        pagination = model.ui.filtersOnUsage.pagination
+        filters = model.ui.filtersOnUsage
+        page = case filters.findUsageIn of
+          Directives -> pagination.pageDirective
+          Techniques -> pagination.pageTechnique
+        tableSize = pagination.tableSize
+        totalNbRow = pagination.totalRow
+        --start = if(page == 1) then 1 else (page - 1) * tableSize
+        start = (page - 1) * tableSize
+        end = min (start + tableSize) totalNbRow
+        pagesOpt =
+          List.range 1 (getPageMax pagination)
+            |> List.map (\currentPage -> option [value (String.fromInt currentPage), selected (currentPage == page )][text (String.fromInt currentPage)])
+        classNextBtn = if(page >= getPageMax pagination) then "disabled" else ""
+        classPreviousBtn = if(page <= 1) then "disabled" else ""
+        row = case filters.findUsageIn of
           Techniques ->
             found.techniques
               |> List.filter (\technique -> filterSearch model.ui.filtersOnUsage.filter [technique.name])
+              |> List.drop start
+              |> List.take (end - start)
               |> List.sortWith (getSortFunctionUsage model)
               |> List.map (\info -> tr [][td [] [a [href ("/rudder/secure/configurationManager/techniqueEditor/technique/" ++ info.id)][text info.name]]])
           Directives ->
             found.directives
               |> List.filter (\directive -> filterSearch model.ui.filtersOnUsage.filter [directive.name])
+              |> List.drop start
+              |> List.take (end - start)
               |> List.sortWith (getSortFunctionUsage model)
               |> List.map (\info -> tr [][td [] [a [href ("/rudder/secure/configurationManager/directiveManagement#{\"directiveId\":\"" ++ info.id ++ "\"}")][text info.name]]])
         activeClassTechniquesUsage =
-          case model.ui.filtersOnUsage.findUsageIn of
+          case filters.findUsageIn of
             Techniques -> "active"
             Directives -> ""
         activeClassDirectivesUsage =
-          case model.ui.filtersOnUsage.findUsageIn of
+          case filters.findUsageIn of
             Techniques -> ""
             Directives -> "active"
         messageNoUsageFound =
-          case model.ui.filtersOnUsage.findUsageIn of
+          case filters.findUsageIn of
             Techniques -> "No usage found in Techniques"
             Directives -> "No usage found in Directives"
-        filters = model.ui.filtersOnUsage
       in
-      div [ class "modal fade in", style "z-index" "1050", style "display" "block" ]
+      div [ class "modal fade in", style "z-index" "1050"]
       [ div [class "modal-backdrop fade in"][]
       , div [ class "modal-dialog modal-lg" ]
-        [ div [ class "modal-content" ]
+        [ div [ class "modal-content modal-find-prop" ]
           [ div [ class "modal-header" ]
             [ div [class "close", onClick (ClosePopup Ignore)] [span [][text "×"]]
             , h3 [ class "modal-title" ] [text ("Find usage of property '" ++ pName ++ "'")]
@@ -405,11 +425,11 @@ showModal model =
                     ]
                   ]
                 ]
-              , table [class "dataTable compliance-table display no-footer"]
+              , table [class "table-find-prop dataTable"]
                 [ thead []
                   [ tr [class "head"]
                     [ th
-                      [ class (thClassOnUsage model.ui.filtersOnUsage Name)
+                      [ class ("th-find-prop " ++ (thClassOnUsage model.ui.filtersOnUsage Name))
                       , onClick (UpdateTableFiltersUsage (sortTableOnUsage filters Name))
                       ]
                       [ text "Name" ]
@@ -422,6 +442,36 @@ showModal model =
                       row
                   )
                ]
+              , div [class "dataTables_wrapper_bottom"]
+                [ div [class "dataTables_length"]
+                  [ label []
+                    [ text "Show"
+                    , select [onInput (\str -> UpdateTableSize (toInt str |> Maybe.withDefault 25))]
+                      [ option [value "10"][text "10"]
+                      , option [value "25"][text "25"]
+                      , option [value "50"][text "50"]
+                      , option [value "100"][text "100"]
+                      , option [value "500"][text "500"]
+                      , option [value "1000"][text "1000"]
+                      , option [value "-1"][text "All"]
+                      ]
+                    , text "entries"
+                    ]
+                  ]
+                , div [class "dataTables_info"]
+                  [ text ("Showing " ++ (String.fromInt start) ++ " to " ++ (String.fromInt end) ++ " of " ++ (String.fromInt totalNbRow) ++ " entries") --Todo dynamic value
+                  ]
+                , div [id "props_paginate", class "dataTables_paginate paging_full_numbers"]
+                  [ a [id "node_previous", class ("paginate_button first " ++ classPreviousBtn), role "link", onClick FirstPage][text "First"]
+                  , a [id "node_previous", class ("paginate_button previous " ++ classPreviousBtn), role "link", onClick PreviousPage][text "Previous"]
+                  , span []
+                    [ select [class "page-find-prop", onInput (\str -> GoToPage (toInt str |> Maybe.withDefault 1))](pagesOpt)
+                    ]
+                  , a [class ("paginate_button next " ++ classNextBtn), onClick NexPage][text "Next"]
+                  , a [class ("paginate_button last " ++ classNextBtn), onClick LastPage][text "Last"]
+                  ]
+                ]
+
               ]
             ]
           , div [ class "modal-footer" ]

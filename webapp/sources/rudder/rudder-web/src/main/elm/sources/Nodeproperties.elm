@@ -70,14 +70,122 @@ update msg model =
         newProperties = Dict.update key (always (Just newProperty)) ui.editedProperties
       in
         ( { model | ui = {ui | editedProperties = newProperties} }, Cmd.none )
-
+    UpdateTableSize size ->
+      let
+        pagination = model.ui.filtersOnUsage.pagination
+        ui = model.ui
+        filtersModelUsage = model.ui.filtersOnUsage
+        newPagination = TablePagination 1 1 (if (size <= 0) then pagination.totalRow else size) pagination.totalRow
+        newModel = { model | ui = {ui | filtersOnUsage = {filtersModelUsage | pagination = newPagination }} }
+      in
+        (newModel, Cmd.batch [ initInputs "", initTooltips ""])
+    GoToPage page ->
+      let
+        pagination = model.ui.filtersOnUsage.pagination
+        ui = model.ui
+        filtersModelUsage = model.ui.filtersOnUsage
+        pageOnDir = pagination.pageDirective
+        pageOnTech = pagination.pageTechnique
+        newPageDir =
+          case filtersModelUsage.findUsageIn of
+            Directives -> if(page > (getPageMax pagination) || page < 1) then 1 else page
+            _ -> pageOnDir
+        newPageTech =
+          case filtersModelUsage.findUsageIn of
+            Techniques -> if(page > (getPageMax pagination) || page < 1) then 1 else page
+            _ -> pageOnTech
+        newModel = { model | ui = {ui | filtersOnUsage = {filtersModelUsage | pagination = { pagination | pageDirective = newPageDir, pageTechnique = newPageTech} }} }
+      in
+       (newModel, Cmd.none)
+    FirstPage ->
+      let
+        pagination = model.ui.filtersOnUsage.pagination
+        ui = model.ui
+        filtersModelUsage = model.ui.filtersOnUsage
+        pageOnDir = pagination.pageDirective
+        pageOnTech = pagination.pageTechnique
+        newPageDir =
+          case filtersModelUsage.findUsageIn of
+            Directives -> 1
+            _ -> pageOnDir
+        newPageTech =
+          case filtersModelUsage.findUsageIn of
+            Techniques -> 1
+            _ -> pageOnTech
+        newModel = { model | ui = {ui | filtersOnUsage = {filtersModelUsage | pagination = { pagination | pageDirective = newPageDir, pageTechnique = newPageTech} }} }
+      in
+       (newModel, Cmd.none)
+    LastPage ->
+      let
+        pagination = model.ui.filtersOnUsage.pagination
+        ui = model.ui
+        filtersModelUsage = model.ui.filtersOnUsage
+        pageOnDir = pagination.pageDirective
+        pageOnTech = pagination.pageTechnique
+        pageMax = getPageMax pagination
+        newPageDir =
+          case filtersModelUsage.findUsageIn of
+            Directives -> pageMax
+            _ -> pageOnDir
+        newPageTech =
+          case filtersModelUsage.findUsageIn of
+            Techniques -> pageMax
+            _ -> pageOnTech
+        newModel = { model | ui = {ui | filtersOnUsage = {filtersModelUsage | pagination = { pagination | pageDirective = newPageDir, pageTechnique = newPageTech} }} }
+      in
+       (newModel, Cmd.none)
+    NexPage ->
+      let
+        pagination = model.ui.filtersOnUsage.pagination
+        ui = model.ui
+        filtersModelUsage = model.ui.filtersOnUsage
+        pageOnDir = pagination.pageDirective
+        pageOnTech = pagination.pageTechnique
+        pageMax = if(pagination.tableSize /= 0) then (pagination.totalRow // pagination.tableSize) + 1 else 1
+        newPageDir =
+          case filtersModelUsage.findUsageIn of
+            Directives -> min (pageOnDir + 1) pageMax
+            _ -> pageOnDir
+        newPageTech =
+          case filtersModelUsage.findUsageIn of
+            Techniques -> min (pageOnTech + 1) pageMax
+            _ -> pageOnTech
+        newModel = { model | ui = {ui | filtersOnUsage = {filtersModelUsage | pagination = { pagination | pageDirective = newPageDir, pageTechnique = newPageTech} }} }
+      in
+       (newModel, Cmd.none)
+    PreviousPage ->
+      let
+        pagination = model.ui.filtersOnUsage.pagination
+        ui = model.ui
+        filtersModelUsage = model.ui.filtersOnUsage
+        pageOnDir = model.ui.filtersOnUsage.pagination.pageDirective
+        pageOnTech = model.ui.filtersOnUsage.pagination.pageTechnique
+        newPageDir =
+          case filtersModelUsage.findUsageIn of
+            Directives -> max (pageOnDir - 1) 1
+            _ -> pageOnDir
+        newPageTech =
+          case filtersModelUsage.findUsageIn of
+            Techniques -> max (pageOnTech - 1) 1
+            _ -> pageOnTech
+        newModel = { model | ui = {ui | filtersOnUsage = {filtersModelUsage | pagination = { pagination | pageDirective = newPageDir, pageTechnique = newPageTech} }} }
+      in
+       (newModel, Cmd.none)
     FindPropertyUsage pName res ->
       case res of
         Ok found ->
           let
+            techs = UsageInfo "id" "This is a dummy technique"
+            dirs = UsageInfo "id" "This is a dummy directive"
+            fakeData =
+              PropertyUsage
+              [dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs, dirs]
+              [techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs, techs]
+            maxNbRow = List.length fakeData.directives
+            pagi = TablePagination 1 1 10 maxNbRow
             ui = model.ui
             filtersModel = model.ui.filtersOnUsage
-            newModel = { model | ui = {ui | modalState = Usage pName found, filtersOnUsage = {filtersModel | findUsageIn = Directives}} }
+            newModel = { model | ui = {ui | modalState = Usage pName fakeData, filtersOnUsage = {filtersModel | findUsageIn = Directives, pagination = pagi}} }
           in
             (newModel, Cmd.batch [ initInputs "", initTooltips ""])
         Err err ->
@@ -87,7 +195,19 @@ update msg model =
         switchView = if(model.ui.filtersOnUsage.findUsageIn == Directives) then Techniques else Directives
         ui = model.ui
         filtersModelUsage = model.ui.filtersOnUsage
-        newModel = { model | ui = {ui | filtersOnUsage = {filtersModelUsage | findUsageIn = switchView}} }
+        directives = case model.ui.modalState of
+          Usage propName findUsage -> findUsage.directives
+          _ -> []
+        techniques = case model.ui.modalState of
+          Usage propName findUsage -> findUsage.techniques
+          _ -> []
+        nbRow = case switchView of
+          Techniques -> List.length techniques
+          Directives -> List.length directives
+        pageOnDir = model.ui.filtersOnUsage.pagination.pageDirective
+        pageOnTech = model.ui.filtersOnUsage.pagination.pageTechnique
+        pagination = model.ui.filtersOnUsage.pagination
+        newModel = { model | ui = {ui | filtersOnUsage = {filtersModelUsage | findUsageIn = switchView, pagination = { pagination | totalRow = nbRow} }} }
       in
       (newModel, Cmd.none)
     SaveProperty successMsg res ->
@@ -209,7 +329,8 @@ update msg model =
       let
         ui = model.ui
         filtersModel = model.ui.filtersOnUsage
-        (nm,cmd) = update callback { model | ui = { ui | modalState = NoModal, filtersOnUsage = {filtersModel | findUsageIn = Directives, filter = "", sortBy = Name, sortOrder = Asc} } }
+        initPagination = TablePagination 1 1 10 0
+        (nm,cmd) = update callback { model | ui = { ui | modalState = NoModal, filtersOnUsage = {filtersModel | pagination = initPagination, findUsageIn = Directives, filter = "", sortBy = Name, sortOrder = Asc} } }
       in
         (nm , cmd)
 
