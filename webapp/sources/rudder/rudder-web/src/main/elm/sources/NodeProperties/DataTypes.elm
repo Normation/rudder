@@ -70,8 +70,15 @@ type alias TableFiltersOnUsage =
   , sortOrder   : SortOrder
   , filter      : String
   , findUsageIn : FindUsageIn
+  , pagination  : TablePagination
   }
 
+type alias TablePagination =
+  { pageDirective : Int
+  , pageTechnique : Int
+  , tableSize: Int
+  , totalRow: Int
+  }
 type alias UI =
   { hasNodeWrite      : Bool
   , hasNodeRead       : Bool
@@ -92,6 +99,10 @@ type alias Model =
   , ui               : UI
   }
 
+getPageMax : TablePagination -> Int
+getPageMax pagination =
+  if(pagination.tableSize /= 0) then (pagination.totalRow // pagination.tableSize) + 1 else 1
+
 type Msg
   = Ignore
   | Copy String
@@ -110,6 +121,12 @@ type Msg
   | UpdateTableFiltersUsage TableFiltersOnUsage
   | ChangeViewUsage
   | ShowMore String
+  | UpdateTableSize Int
+  | NexPage
+  | PreviousPage
+  | LastPage
+  | FirstPage
+  | GoToPage Int
 
 valueTypeToValueFormat : String -> ValueFormat
 valueTypeToValueFormat valueType =
