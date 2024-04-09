@@ -70,6 +70,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext
 import org.springframework.ldap.core.DirContextAdapter
 import org.springframework.ldap.core.DirContextOperations
 import org.springframework.security.authentication.AuthenticationProvider
+import org.springframework.security.authentication.DisabledException
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.core.Authentication
@@ -402,6 +403,7 @@ class RudderInMemoryUserDetailsService(val authConfigProvider: UserDetailListPro
     extends UserDetailsService {
 
   @throws(classOf[UsernameNotFoundException])
+  @throws(classOf[DisabledException])
   override def loadUserByUsername(username: String): RudderUserDetail = {
     userRepository
       .get(username)
@@ -419,8 +421,9 @@ class RudderInMemoryUserDetailsService(val authConfigProvider: UserDetailListPro
         case _                                                 => None.succeed
       }
       .runNow match {
-      case None    => throw new UsernameNotFoundException(s"User '${username}' was not found in Rudder base")
-      case Some(u) => u
+      case None                                       => throw new UsernameNotFoundException(s"User '${username}' was not found in Rudder base")
+      case Some(u) if u.status == UserStatus.Disabled => throw new DisabledException("User is disabled")
+      case Some(u)                                    => u
     }
 
   }
