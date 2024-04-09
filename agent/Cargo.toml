@@ -1,0 +1,19 @@
+[package]
+name = "agent"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+#may or may not be used on old distro
+#openssl = { version = "0.10", features = ["vendored"] }
+openssl = { version = "*" }
+tokio = { version = "*", features = ["full", "tracing"] }
+tokio-childstream = "*"
+tokio-util = "*"
+tokio-openssl = "*"
+tracing = "*"
+tracing-subscriber = "*"
+toml = "*"
+serde = { version = "*", features = ["derive"] }
+serde-inline-default = "*"
+anyhow = "*"
