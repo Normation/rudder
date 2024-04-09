@@ -660,7 +660,7 @@ class WebappTechniqueCompiler(
       //     name       |   description
       <INPUT>
         <NAME>{parameter.id.value.toUpperCase()}</NAME>
-        <DESCRIPTION>{parameter.description}</DESCRIPTION>
+        <DESCRIPTION>{parameter.description.getOrElse(parameter.name)}</DESCRIPTION>
         <LONGDESCRIPTION>{parameter.documentation.getOrElse("")}</LONGDESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
@@ -908,7 +908,7 @@ class ClassicTechniqueWriter(
          |# @version ${technique.version.value}
          |${technique.parameters.map { p =>
           val param =
-            ("name" -> p.name) ~ ("id" -> p.id.value) ~ ("description" -> p.description.replaceAll("\\R", "£# "))
+            ("name" -> p.name) ~ ("id" -> p.id.value) ~ ("description" -> p.description.map(_.replaceAll("\\R", "£# ")))
           // for historical reason, we want to have real \n in the string, and not the char \n (because of how liftweb print them)
           s"""# @parameter ${compactRender(param).replaceAll("£#", "\n#")}"""
         }.mkString("\n")}

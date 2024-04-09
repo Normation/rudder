@@ -230,7 +230,7 @@ object JsonResponseObjects {
       JRTechniqueParameter(
         param.id.value,
         param.name,
-        param.description,
+        param.description.getOrElse(""),
         param.mayBeEmpty
       )
     }

@@ -6,6 +6,7 @@ import Html.Events exposing (..)
 
 import Editor.AgentValueParser exposing (..)
 import Editor.DataTypes exposing (..)
+import Maybe.Extra
 import Regex
 import String.Extra
 
@@ -40,9 +41,9 @@ techniqueResource  resource =
 techniqueParameter :  Model -> Technique -> TechniqueParameter -> Bool -> Html Msg
 techniqueParameter model technique param opened =
   let
-    param_var_name = if (String.isEmpty param.name) then canonifyString param.description else param.name
+    param_var_name = if (String.isEmpty param.name) then canonifyString (Maybe.withDefault "" param.description) else param.name
     param_name =
-      if (String.isEmpty param.name && String.isEmpty param.description ) then
+      if (String.isEmpty param.name && Maybe.Extra.isNothing param.description ) then
         [  div [ class "empty-name"] [ text "Set a parameter name" ]]
 
       else
@@ -67,9 +68,10 @@ techniqueParameter model technique param opened =
       else
         ("", text "")
 
-    (invalidNameClass, invalidNameElem) =
-      if (String.isEmpty param.description) then
+    (emptyNameClass, emptyNameElem) =
+      if (String.isEmpty param.name && Maybe.Extra.isNothing param.description) then
         ("error",  ul [class "row"] [ li [ class "text-danger col-sm-8" ] [ text "Parameter name cannot be empty" ] ] )
+
       else
         ("", text "")
 
@@ -79,7 +81,17 @@ techniqueParameter model technique param opened =
       span [ class "border" ] []
     , div [ class "param" ] [
         div [ class "input-group form-group" ] [
-          input [readonly (not model.hasWriteRights), type_ "text",  class ("form-control " ++ invalidNameClass), value param.description, placeholder "Parameter name", onInput (\s -> TechniqueParameterModified param.id {param | description = s }), required True] []
+           input [readonly (not model.hasWriteRights), type_ "text",  class (emptyNameClass ++" form-control "++invalidParamClass), value param.name, placeholder (if (Maybe.Extra.isNothing param.description) then "Variable name" else (canonifyString (param.description |> Maybe.withDefault "" ))) , onInput (\s -> TechniqueParameterModified param.id {param | name = s }), required True] []
+        , div [ class "input-group-btn" ] [
+            button [ class "btn btn-outline-secondary clipboard", title "Copy to clipboard" , onClick (Copy ("${" ++ param_var_name ++ "}")) ] [
+              i [ class "ion ion-clipboard" ] []
+            ]
+          ]
+        ]
+      , emptyNameElem
+      , invalidParamElem
+      , div [ class "input-group form-group" ] [
+          input [readonly (not model.hasWriteRights), type_ "text",  class ("form-control"), value (Maybe.withDefault "" param.description), placeholder "Display name", onInput (\s -> TechniqueParameterModified param.id {param | description = if String.isEmpty s then Nothing else Just s }), required True] []
         , label [ class "input-group-addon", for checkboxId]
           [ input[type_ "checkbox", id checkboxId, checked (not param.mayBeEmpty), onCheck (\c -> (TechniqueParameterModified param.id {param | mayBeEmpty = not c }))][]
           , span [][text " Required "]
@@ -92,16 +104,6 @@ techniqueParameter model technique param opened =
             ] [ i [ class "text-info fa fa-question-circle" ] []]
           ]
         ]
-      , invalidNameElem
-      , div [ class "input-group" ] [
-           input [readonly (not model.hasWriteRights), type_ "text",  class ("form-control "++invalidParamClass), value param.name, placeholder (if (String.isEmpty param.description) then "Variable name" else (canonifyString param.description)) , onInput (\s -> TechniqueParameterModified param.id {param | name = s }), required True] []
-        , div [ class "input-group-btn" ] [
-            button [ class "btn btn-outline-secondary clipboard", title "Copy to clipboard" , onClick (Copy ("${" ++ param_var_name ++ "}")) ] [
-              i [ class "ion ion-clipboard" ] []
-            ]
-          ]
-        ]
-      , invalidParamElem
       , div [] param_name
       , button [ class "btn btn-sm btn-outline-primary",  style "margin-top" "5px" , onClick (TechniqueParameterToggle param.id)] [
           text "Description "
