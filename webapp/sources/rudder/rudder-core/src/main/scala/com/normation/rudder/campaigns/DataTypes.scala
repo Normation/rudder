@@ -174,6 +174,11 @@ case object Sunday extends DayOfWeek {
   val value = 7
 }
 
+case class Time(hour: Int, minute: Int) {
+  val realHour:   Int = hour   % 24
+  val realMinute: Int = minute % 60
+}
+
 case class DayTime(
     day:    DayOfWeek,
     hour:   Int,
@@ -197,6 +202,9 @@ case class WeeklySchedule(
 ) extends CampaignSchedule
 @jsonHint("one-shot")
 case class OneShot(start: DateTime, end: DateTime) extends CampaignSchedule
+
+@jsonHint("daily")
+case class Daily(start: Time, end: Time) extends CampaignSchedule
 
 trait CampaignDetails
 

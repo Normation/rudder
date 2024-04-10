@@ -123,6 +123,7 @@ object CampaignSerializer {
   import scala.concurrent.duration.*
   implicit val durationEncoder:         JsonEncoder[Duration]                = JsonEncoder[Long].contramap(_.toMillis)
   implicit val statusInfoEncoder:       JsonEncoder[CampaignStatus]          = DeriveJsonEncoder.gen
+  implicit val time:                    JsonEncoder[Time]                    = DeriveJsonEncoder.gen
   implicit val dayTime:                 JsonEncoder[DayTime]                 = DeriveJsonEncoder.gen
   implicit val scheduleEncoder:         JsonEncoder[CampaignSchedule]        = DeriveJsonEncoder.gen
   implicit val campaignInfoEncoder:     JsonEncoder[CampaignInfo]            = DeriveJsonEncoder.gen
@@ -159,6 +160,7 @@ object CampaignSerializer {
 
   implicit val durationDecoder:     JsonDecoder[Duration]         = JsonDecoder[Long].map(_.millis)
   implicit val statusInfoDecoder:   JsonDecoder[CampaignStatus]   = DeriveJsonDecoder.gen
+  implicit val timeDecoder:         JsonDecoder[Time]             = DeriveJsonDecoder.gen
   implicit val dayTimeDecoder:      JsonDecoder[DayTime]          = DeriveJsonDecoder.gen
   implicit val scheduleDecoder:     JsonDecoder[CampaignSchedule] = DeriveJsonDecoder.gen
   implicit val campaignTypeDecoder: JsonDecoder[CampaignType]     = JsonDecoder[String].map(CampaignType.apply)
