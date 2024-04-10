@@ -329,9 +329,8 @@ final case class Windows(
 object ParseOSType {
 
   def getType(osType: String, osName: String, fullName: String): OsType = {
-    (osType, osName) match {
-      case ("mswin32", _) =>
-        val x = fullName.toLowerCase
+    (osType.toLowerCase, osName.toLowerCase, fullName.toLowerCase) match {
+      case ("mswin32", _, x) =>
         // in windows, relevant information are in the fullName string
         if (x contains "xp") WindowsXP
         else if (x contains "vista") WindowsVista
@@ -349,7 +348,7 @@ object ParseOSType {
         else if (x contains "2022") Windows2022
         else UnknownWindowsType
 
-      case ("linux", x) =>
+      case ("linux", x, _) =>
         if (x contains "debian") Debian
         else if (x contains "ubuntu") Ubuntu
         else if (x contains "kali") Kali
@@ -368,11 +367,11 @@ object ParseOSType {
         else if (x contains "raspbian") Raspbian
         else UnknownLinuxType
 
-      case ("solaris", _) => SolarisOS
+      case ("solaris", _, _) => SolarisOS
 
-      case ("aix", _) => AixOS
+      case ("aix", _, _) => AixOS
 
-      case ("freebsd", _) => FreeBSD
+      case ("freebsd", _, _) => FreeBSD
 
       case _ => UnknownOSType
     }

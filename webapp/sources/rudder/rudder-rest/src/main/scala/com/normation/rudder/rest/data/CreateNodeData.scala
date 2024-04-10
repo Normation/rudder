@@ -473,9 +473,6 @@ object Validation {
   // this part is adapted from inventory extraction. It should be factored out
   // and not duplicated, obviously
   def getos(tpe: String, name: String, vers: String, fullName: String, srvPk: Option[String]): OsDetails = {
-    val osType = tpe.toLowerCase
-    val osName = name.toLowerCase
-
     val kernelVersion = new Version("N/A")
 
     val version = new Version(vers match {
@@ -490,7 +487,7 @@ object Validation {
     }
 
     // find os type, and name
-    val os = ParseOSType.getType(osType, osName, osName + " " + fullName.toLowerCase)
+    val os = ParseOSType.getType(tpe, name, name + " " + fullName)
     ParseOSType.getDetails(os, fullName, version, servicePack, kernelVersion)
   }
 }
