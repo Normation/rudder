@@ -54,6 +54,7 @@ import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.zio.*
+import com.softwaremill.quicklens.*
 import net.liftweb.common.Box
 import zio.*
 import zio.syntax.*
@@ -97,9 +98,11 @@ object GroupAnd extends Group {
       case _           => NodeFactMatcher(s"(${a.debugString}) && (${b.debugString})", (n: CoreNodeFact) => (a.matches(n) && b.matches(n)))
     }
   }
-  def inverse(a: NodeFactMatcher):                     NodeFactMatcher =
+
+  def inverse(a: NodeFactMatcher): NodeFactMatcher =
     NodeFactMatcher(s"!(${a.debugString})", (n: CoreNodeFact) => a.matches(n).map(!_))
-  val zero:                                            NodeFactMatcher = NodeFactMatcher("true", _ => true.succeed)
+
+  val zero: NodeFactMatcher = NodeFactMatcher("and0_true", _ => true.succeed)
 }
 
 object GroupOr extends Group {
@@ -110,9 +113,26 @@ object GroupOr extends Group {
       case _           => NodeFactMatcher(s"(${a.debugString}) || (${b.debugString})", (n: CoreNodeFact) => (a.matches(n) || b.matches(n)))
     }
   }
-  def inverse(a: NodeFactMatcher):                     NodeFactMatcher =
+
+  def inverse(a: NodeFactMatcher): NodeFactMatcher =
     NodeFactMatcher(s"!(${a.debugString})", (n: CoreNodeFact) => a.matches(n).map(!_))
-  val zero:                                            NodeFactMatcher = NodeFactMatcher("false", _ => false.succeed)
+
+  val zero: NodeFactMatcher = NodeFactMatcher("or0_false", _ => false.succeed)
+}
+
+/*
+ * A case class to sort a list of criterion lines into the different kind we know about:
+ * - core node fact
+ * - sub group
+ * - ldap (historical)
+ */
+final case class CriterionLines(
+    coreNodeFact: Chunk[CriterionLine],
+    subGroup:     Chunk[CriterionLine],
+    ldap:         Chunk[CriterionLine]
+)
+object CriterionLines {
+  def empty: CriterionLines = CriterionLines(Chunk.empty, Chunk.empty, Chunk.empty)
 }
 
 class NodeFactQueryProcessor(
@@ -138,6 +158,19 @@ class NodeFactQueryProcessor(
   }
 
   def processPure(query: Query): IOResult[Chunk[CoreNodeFact]] = {
+
+    // Since we are just iterating on an array of facts, we want to keep a "by cpu" filling.
+    // Heuristic will need to be more fine tailored, for now:
+    // - it looks like it's worthy as early as 1000
+    // - it looks like split/merge cost does not pay for itself above nb-core - 2
+    // That was only checked on one t14s AMD Ryzen 7 PRO 6850U with test data, it *needs* more tailoring.
+    def parallelism(sizeFacts: Int): Int = {
+      if (sizeFacts < 1000) 1
+      else {
+        Math.max(1, java.lang.Runtime.getRuntime().availableProcessors() - 2)
+      }
+    }
+
     def process(s: SelectNodeStatus) = {
       for {
         t0  <- currentTimeMillis
@@ -146,9 +179,11 @@ class NodeFactQueryProcessor(
         _   <- FactQueryProcessorLoggerPure.Metrics.debug(s"Analyse query in ${t1 - t0} ms")
         res <- nodeFactRepo
                  .getAll()(QueryContext.todoQC, s)
-                 .flatMap(all =>
-                   ZIO.filter(all.values)(node => FactQueryProcessorLoggerPure.debug(m.debugString) *> processOne(m, node))
-                 )
+                 .flatMap { all =>
+                   ZIO
+                     .filterPar(all.values)(node => FactQueryProcessorLoggerPure.debug(m.debugString) *> processOne(m, node))
+                     .withParallelism(parallelism(all.size))
+                 }
                  .map(Chunk.fromIterable)
         t2  <- currentTimeMillis
         _   <- FactQueryProcessorLoggerPure.Metrics.debug(s"Run query in ${t2 - t1} ms")
@@ -167,7 +202,7 @@ class NodeFactQueryProcessor(
   /*
    * transform the query into a function to apply to a NodeFact and that say "yes" or "no"
    *
-   * We have different "querier":
+   * We have different "query-er":
    * - CoreNodeFact (we have info in cache)
    * - SubGroupQuery (we want to do only one query to external service for each line)
    * - LdapQuery (we want to have all lines of that kind grouped in a new query)
@@ -176,28 +211,36 @@ class NodeFactQueryProcessor(
     val group = if (query.composition == And) GroupAnd else GroupOr
 
     // we need a better pattern matching (extensible would be better) in place of `isInstanceOf`
-    val subgroupLines = subGroupMatcher(
-      query.criteria.collect {
-        case l if l.attribute.cType.isInstanceOf[SubGroupComparator] => l
-      },
-      groupRepo
-    )
-    val ldapLines     = ldapMatcher(
-      query.criteria.collect {
-        case l if l.attribute.cType.isInstanceOf[LDAPCriterionType] => l
-      },
-      query
-    )
-    val nodeLines     = nodeFactMatcher(query.criteria.collect {
-      case l if l.attribute.nodeCriterionMatcher != UnsupportedByNodeMinimalApi => l
-    })
+    // we prefer coreNodeFact matcher on top of LDAP, since the former is quick in cache, the latter needs IO
+    val sortedLinesIO = ZIO.foldLeft(query.criteria)(CriterionLines.empty) {
+      case (lines, l) =>
+        l match {
+          // if possible, always use that one for performance reason
+          case _ if l.attribute.nodeCriterionMatcher != UnsupportedByNodeMinimalApi =>
+            lines.modify(_.coreNodeFact).using(_.appended(l)).succeed
+          case _ if l.attribute.cType.isInstanceOf[SubGroupComparator]              =>
+            lines.modify(_.subGroup).using(_.appended(l)).succeed
+          case _ if l.attribute.cType.isInstanceOf[LDAPCriterionType]               =>
+            lines.modify(_.ldap).using(_.appended(l)).succeed
+          case _                                                                    =>
+            // ??? Should not happen, perhaps log ?
+            FactQueryProcessorLoggerPure.warn(
+              s"The criterion line with attribute '${l.attribute.name}' of type ${l.attribute.cType} can't be handled. Please report that error to maintainers"
+            ) *>
+            lines.succeed
+        }
+    }
 
     for {
       // build matcher for criterion lines
-      lineResult <- ZIO.foldLeft(subgroupLines ++ ldapLines ++ nodeLines)(group.zero) {
-                      case (matcher, line) =>
-                        line.map(group.compose(matcher, _))
-                    }
+      sortedLines  <- sortedLinesIO
+      subgroupLines = subGroupMatcher(sortedLines.subGroup, groupRepo)
+      ldapLines     = ldapMatcher(sortedLines.ldap, query)
+      nodeLines     = nodeFactMatcher(sortedLines.coreNodeFact)
+      lineResult   <- ZIO.foldLeft(subgroupLines ++ ldapLines ++ nodeLines)(group.zero) {
+                        case (matcher, line) =>
+                          line.map(group.compose(matcher, _))
+                      }
     } yield {
       // inverse now if needed, because we don't want to return root if not asked *even* when inverse is present
       val inv = if (query.transform == ResultTransformation.Invert) group.inverse(lineResult) else lineResult
@@ -216,15 +259,20 @@ class NodeFactQueryProcessor(
   // For now, we have to check the criterion to know, each external service is a special case
   def ldapMatcher(lines: Seq[CriterionLine], q: Query): Seq[IOResult[NodeFactMatcher]] = {
     // for LDAP, we rebuild a false query with only these lines and no transformation
-    val ldapQuery = q.copy(transform = ResultTransformation.Identity, criteria = lines.toList)
-    Seq(for {
-      nodeIds <- ldapQueryProc.rawInternalQueryProcessor(ldapQuery)
-    } yield {
-      NodeFactMatcher(
-        s"[sub-ldap query ${ldapQuery.toString()}]",
-        (n: CoreNodeFact) => nodeIds.contains(n.id).succeed
-      )
-    })
+    if (lines.nonEmpty) {
+      val ldapQuery = q.modify(_.transform).setTo(ResultTransformation.Identity).modify(_.criteria).setTo(lines.toList)
+      Seq(for {
+        t0      <- currentTimeMillis
+        nodeIds <- ldapQueryProc.rawInternalQueryProcessor(ldapQuery)
+        t1      <- currentTimeMillis
+        _       <- FactQueryProcessorLoggerPure.Metrics.debug(s"Analyse/exec ldap query in ${t1 - t0} ms")
+      } yield {
+        NodeFactMatcher(
+          s"[sub-ldap query ${ldapQuery.toString()}]",
+          (n: CoreNodeFact) => nodeIds.contains(n.id).succeed
+        )
+      })
+    } else Seq()
   }
 
   def nodeFactMatcher(lines: Seq[CriterionLine]): Seq[IOResult[NodeFactMatcher]] = {

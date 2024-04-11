@@ -440,13 +440,16 @@ class InternalLDAPQueryProcessor(
    * A raw execution without log, special optimisation case, invert, etc
    */
   def rawInternalQueryProcessor(query: Query, debugId: Long = 0L): IOResult[Seq[NodeId]] = {
-    for {
-      nq  <- normalize(query).toIO.chainError("Error when normalizing LDAP query")
-      ids <- getMapDn(nq, debugId).flatMap {
-               case None      => Seq().succeed
-               case Some(dns) => executeLdapQueries(dns, nq, Seq("1.1"), debugId)
-             }
-    } yield ids
+    if (query.criteria.isEmpty) Seq().succeed
+    else {
+      for {
+        nq  <- normalize(query).toIO.chainError("Error when normalizing LDAP query")
+        ids <- getMapDn(nq, debugId).flatMap {
+                 case None      => Seq().succeed
+                 case Some(dns) => executeLdapQueries(dns, nq, Seq("1.1"), debugId)
+               }
+      } yield ids
+    }
   }
 
   def getMapDn(nq: LDAPNodeQuery, debugId: Long): IOResult[Option[Map[DnType, Set[DN]]]] = {
