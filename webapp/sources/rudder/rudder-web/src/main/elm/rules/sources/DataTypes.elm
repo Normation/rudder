@@ -155,9 +155,9 @@ type alias DirectiveCompliance value =
   , name              : String
   , compliance        : Float
   , complianceDetails : ComplianceDetails
+  , skippedDetails    : Maybe SkippedDetails
   , components        : List (ComponentCompliance value)
   }
-
 
 type ComponentCompliance value = Block (BlockCompliance value) | Value (ComponentValueCompliance value)
 type alias BlockCompliance value =
@@ -189,6 +189,11 @@ type alias  ValueLine =
   {  value   : String
   , message : String
   , status  : String
+  }
+
+type alias SkippedDetails =
+  { overridingRuleId   : RuleId
+  , overridingRuleName : String
   }
 
 type alias Report =

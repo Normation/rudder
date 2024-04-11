@@ -216,7 +216,7 @@ byDirectiveCompliance mod subFun =
       List.sortWith sortFunction item.components
     )
     (\m i -> (Maybe.withDefault (Directive i.directiveId i.name "" "" "" False False "" []) (Dict.get i.directiveId.value m.directives), i ))
-    [ ("Directive", \(d,_)  -> span [] [ badgePolicyMode globalPolicy d.policyMode, text d.displayName, buildTagsTree d.tags, goToBtn (getDirectiveLink contextPath d.id) ],  (\(_,d1) (_,d2) -> N.compare d1.name d2.name ))
+    [ ("Directive", \(d,c)  -> span [] [ c.skippedDetails |> Maybe.map badgeSkipped |> Maybe.withDefault (badgePolicyMode globalPolicy d.policyMode), text d.displayName, buildTagsTree d.tags, goToBtn (getDirectiveLink contextPath d.id) ],  (\(_,d1) (_,d2) -> N.compare d1.name d2.name ))
     , ("Compliance", \(_,i) -> buildComplianceBar  i.complianceDetails,  (\(_,d1) (_,d2) -> Basics.compare d1.compliance d2.compliance ))
     ]
     (.directiveId >> .value)
@@ -465,6 +465,13 @@ badgePolicyMode globalPolicyMode policyMode =
 
   in
     span [class ("treeGroupName tooltipable bs-tooltip rudder-label label-sm label-" ++ mode), attribute "data-toggle" "tooltip", attribute "data-placement" "bottom", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Policy mode" msg)][]
+
+badgeSkipped : SkippedDetails -> Html Msg
+badgeSkipped { overridingRuleId, overridingRuleName } =
+  let
+    msg = "This directive is skipped because it is overridden by the rule <b>" ++ overridingRuleName ++ "</b> (with id " ++ overridingRuleId.value ++ ")."
+  in
+    span [class "treeGroupName tooltipable bs-tooltip rudder-label label-sm label-overriden", attribute "data-toggle" "tooltip", attribute "data-placement" "bottom", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Skipped directive" msg)][]
 
 -- WARNING:
 --

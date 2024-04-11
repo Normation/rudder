@@ -202,7 +202,14 @@ decodeDirectiveCompliance elem decoder =
     |> required "name"       string
     |> required "compliance" float
     |> required "complianceDetails" decodeComplianceDetails
+    |> optional "skippedDetails" (maybe decodeSkippedDirectiveDetails) Nothing
     |> required "components" (list (decodeComponentCompliance  elem decoder )  )
+
+decodeSkippedDirectiveDetails : Decoder SkippedDetails
+decodeSkippedDirectiveDetails =
+  succeed SkippedDetails
+    |> required "overridingRuleId" (map RuleId string)
+    |> required "overridingRuleName" string
 
 decodeRuleChanges: Decoder (Dict String (List Changes))
 decodeRuleChanges =
