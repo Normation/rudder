@@ -2659,13 +2659,9 @@ table a > i.fa-pencil:hover{
   padding-left: 0;
   padding-right: 0;
 }
-.markdown ul,
-.markdown ol,
-.markdown ul > li,
-.markdown ol > li{
+.markdown ul{
+  padding-left: 2rem;
   list-style: initial;
-  margin-left: 7px;
-  padding: initial;
 }
 .markdown > p:last-child{
   margin-bottom: 0;
