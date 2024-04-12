@@ -25,6 +25,10 @@ editionTemplate model details =
     originRule = details.originRule
 
     rule = details.rule
+    policyModeTitle =
+      case originRule of
+        Nothing -> div [][]
+        Just _  -> badgePolicyMode model.policyMode rule.policyMode
     (ruleTitle, isNewRule) = case originRule of
       Nothing -> (span[style "opacity" "0.4"][text "New rule"], True)
       Just r  -> (text r.name, False)
@@ -175,7 +179,7 @@ editionTemplate model details =
     [ div [class "main-header "]
       [ div [class "header-title"]
         [ h1[class classDisabled]
-          [ badgePolicyMode model.policyMode rule.policyMode
+          [ policyModeTitle
           , ruleTitle
           , badgeDisabled
           ]
