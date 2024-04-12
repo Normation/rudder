@@ -207,7 +207,7 @@ class DirectiveEditForm(
 
     val versionSelect               = if (isADirectiveCreation) {
       <div id="version" class="row wbBaseField form-group">
-        <label for="version" class="col-sm-12 wbBaseFieldLabel"><span class="text-fit"><b>Technique version</b></span></label>
+        <label for="version" class="col-sm-12 wbBaseFieldLabel">Technique version</label>
         <div  class="col-sm-12"><input  name="version" class="form-control" readonly="" value={
         directive.techniqueVersion.serialize
       }/></div>
@@ -538,7 +538,7 @@ class DirectiveEditForm(
       }
       override val displayHtml: NodeSeq = {
         <div>
-          <b>Priority</b>
+          Priority
           <span>
             <span class="ruddericon fa fa-question-circle" data-bs-toggle="tooltip" title={tooltipContent}></span>
           </span>
@@ -604,7 +604,7 @@ class DirectiveEditForm(
          |""".stripMargin
     }
     <label class="wbBaseFieldLabel">
-      <b>Policy mode</b>
+      Policy mode
       <span>
         <span class="ruddericon fa fa-question-circle" data-bs-toggle="tooltip" title={tooltipContent}></span>
       </span>

@@ -158,8 +158,8 @@ abstract class RudderBaseField extends BaseField {
   // override the field name look
   override def displayNameHtml: Box[NodeSeq]                        = {
     validations match {
-      case Nil => Some(<span class="text-fit">{displayName}</span>)
-      case _   => Some(<b>{displayName}</b>)
+      case Nil => Some(<span class="fw-normal">{displayName}</span>)
+      case _   => Some(<span>{displayName}</span>)
     }
   }
   // optionnaly override validate to add validation functions

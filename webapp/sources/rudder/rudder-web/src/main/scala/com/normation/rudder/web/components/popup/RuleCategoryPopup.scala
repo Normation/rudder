@@ -115,7 +115,7 @@ class RuleCategoryPopup(
         case None    => NodeSeq.Empty
         case Some(c) =>
           <div class="row form-group">
-                                        <label class="wbBaseFieldLabel"><b>Rudder ID</b></label>
+                                        <label class="wbBaseFieldLabel">Rudder ID</label>
                                         <input class="form-control" type="text" value={c.id.value} disabled="true"/>
                                       </div>
       }) &
