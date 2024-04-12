@@ -208,17 +208,19 @@ displayNodePropertyRow model =
         case editedProperty of
           Nothing ->
             tr []
-            [ td []
+            [ td [class "property-name"]
               [ div[]
                 [ text p.name
                 , providerBadge
                 ]
               ]
             , td []
+              [ span [class "ion ion-clipboard copy-actions", onClick (Copy  p.name)][]
+              ]
+            , td [class "property-type"]
               [ div []
-                [ 
-                    text formatTxt 
-                  , formatConflict
+                [ text formatTxt
+                , formatConflict
                 ]
               ]
             , td [class "property-value"]
@@ -235,10 +237,10 @@ displayNodePropertyRow model =
                       pre [class "json-beautify"][text (displayJsonValue p.value)]
                   ]
                 , span [class "toggle-icon"][]
-                , button [class "btn btn-xs btn-default btn-clipboard", title "Copy to clipboard", onClick (Copy (displayJsonValue p.value))]
-                  [ i [class "ion ion-clipboard"][]
-                  ]
                 ]
+              ]
+            , td []
+              [ span [class "ion ion-clipboard copy-actions", onClick (Copy (displayJsonValue p.value))][]
               ]
             , td [class "text-center default-actions"]
               [ (if (editRight) then
@@ -271,6 +273,7 @@ displayNodePropertyRow model =
                 , ( if checkFormatConflict then small [class "text-danger"][text "The selected format will conflict with some existing format of the same property"] else text "" )
                 ]
               ]
+            , td [][] -- empty column to clipboard icon for property name
             , td [class "is-edited"]
               [ div [class "format-container"]
                 [ button [type_ "button", class "btn btn-default dropdown-toggle", attribute "data-bs-toggle" "dropdown"]
