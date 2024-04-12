@@ -1,1 +1,0 @@
-curl --header "X-API-Token: yourToken" --request POST 'https://rudder.example.com/rudder/api/latest/securitytags/nodes' --data '[{"tenantId":"zone1","nodeIds":["node1","node2"]},{"tenantId":"zone2", "nodeIds":["node3"]}]'

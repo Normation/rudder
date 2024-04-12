@@ -26,18 +26,18 @@ get:
                 type: string
                 description: The id of the action
                 enum:
-                  - listGroups
+                  - getTenant
               data:
                 type: object
                 required:
                   - tenants
                 properties:
-                  groups:
+                  tenants:
                     type: array
                     items:
                       $ref: ../../components/schemas/tenant.yml
   tags:
-    - Tenants
+    - Multi-tenants
   x-codeSamples:
     - lang: curl
       source:
@@ -122,9 +122,9 @@ delete:
               data:
                 type: object
                 required:
-                  - groups
+                  - tenants
                 properties:
-                  groups:
+                  tenants:
                     type: array
                     items:
                       type: string
