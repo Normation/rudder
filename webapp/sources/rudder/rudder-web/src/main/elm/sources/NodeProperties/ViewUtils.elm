@@ -183,9 +183,9 @@ displayNodePropertyRow model =
           Just pr ->
             let
               pTitle = case pr of
-                "inherited" -> "This property is inherited from these group(s) or global parameter: <div>" ++ (Maybe.withDefault "" p.hierarchy) ++ "</div>."
-                "overridden" -> "This property is overridden on this object and was inherited from these group(s) or global parameter: <div>" ++ (Maybe.withDefault "" p.hierarchy) ++ "</div>."
-                _ -> "This property is managed by its provider <b>‘" ++ pr ++ "</b>’, and can not be modified manually. Check Rudder’s settings to adjust this provider’s configuration."
+                "inherited" -> "<h4 class='tags-tooltip-title'>Inherited</h4> <div class='tooltip-inner-content'>This property is inherited " ++ (Maybe.withDefault "" p.hierarchy) ++ "</div>."
+                "overridden" -> "<h4 class='tags-tooltip-title'>Overridden</h4> <div>This property is overridden on this object and was inherited " ++ (Maybe.withDefault "" p.hierarchy) ++ "</div>."
+                _ -> "<h4 class='tags-tooltip-title'>" ++ pr ++ "</h4> <div class='tooltip-inner-content'>This property is managed by its provider ‘<b>" ++ pr ++ "</b>’ and can not be modified manually. Check Rudder’s settings to adjust this provider’s configuration.</div>"
             in
               (span
               [ class "rudder-label label-provider label-sm"
