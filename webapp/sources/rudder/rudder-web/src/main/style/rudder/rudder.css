@@ -1186,11 +1186,6 @@ button.buttonMargin {
   display: none !important;
 }
 
-
-label span.text-fit{
-  font-weight: normal !important;
-}
-
 .bs-text-danger{
   color:#DA291C;
 }

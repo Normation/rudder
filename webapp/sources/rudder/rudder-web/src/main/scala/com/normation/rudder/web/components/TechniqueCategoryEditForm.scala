@@ -164,7 +164,7 @@ class TechniqueCategoryEditForm(
     )(
       <div class="wbBaseField">
         <field-errors></field-errors>
-        <label for={id} class="wbBaseFieldLabel threeCol textright"><b><field-label></field-label></b></label>
+        <label for={id} class="wbBaseFieldLabel threeCol textright"><field-label></field-label></label>
         <field-input></field-input>
         <field-infos></field-infos>
       </div>

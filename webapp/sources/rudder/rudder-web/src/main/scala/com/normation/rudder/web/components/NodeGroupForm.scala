@@ -298,7 +298,7 @@ class NodeGroupForm(
                       </div>
                     </div>
       & "group-cfeclasses" #> <div class="form-group">
-                          <label class="wbBaseFieldLabel toggle-cond cond-hidden" onclick="$(this).toggleClass('cond-hidden')"><span class="text-fit">Agent conditions</span><i class="fa fa-chevron-down"></i></label>
+                          <label class="wbBaseFieldLabel toggle-cond cond-hidden fw-normal" onclick="$(this).toggleClass('cond-hidden')">Agent conditions<i class="fa fa-chevron-down"></i></label>
                           <div class="well" id={s"cfe-${nodeGroup.id.serialize}"}>
                             {RuleTarget.toCFEngineClassName(nodeGroup.id.serialize)}<br/>
                             {RuleTarget.toCFEngineClassName(nodeGroup.name)}

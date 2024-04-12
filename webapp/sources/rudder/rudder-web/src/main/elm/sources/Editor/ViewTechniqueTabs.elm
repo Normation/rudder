@@ -317,7 +317,7 @@ techniqueTab model technique creation ui =
                          ]
                        , div [ class "row form-group" ] [
                            label [ for "techniqueDocumentation", class "col-sm-12 control-label" ] [
-                             span [ class "text-fit" ] [ text "Documentation" ]
+                             span [ class "fw-normal" ] [ text "Documentation" ]
                            , img  [ class "markdown-icon tooltip-icon",  src ( model.contextPath ++ "/images/markdown-mark-solid.svg" ) ] []
                            ]
                          , div [ class "col-md-8" ] [
