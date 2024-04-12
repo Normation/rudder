@@ -776,8 +776,8 @@ class FusionInventoryParser(
      * FQDN           : the fully qualified hostname
      */
     val osDetail: OsDetails = {
-      val osType = optText(xml \\ "KERNEL_NAME").getOrElse("").toLowerCase
-      val osName = optText(xml \\ "NAME").getOrElse("").toLowerCase
+      val osType = optText(xml \\ "KERNEL_NAME").getOrElse("")
+      val osName = optText(xml \\ "NAME").getOrElse("")
 
       val fullName      = optText(xml \\ "FULL_NAME").getOrElse("")
       val kernelVersion = new Version(optText(xml \\ "KERNEL_VERSION").getOrElse("N/A"))
