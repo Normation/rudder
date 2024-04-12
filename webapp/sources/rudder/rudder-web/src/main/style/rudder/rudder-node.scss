@@ -234,7 +234,7 @@
 .btn.toggle-security-info{
   min-width: 155px;
   margin-top: 8px;
-  transition-duration: .2;
+  transition-duration: .2s;
 }
 .btn.toggle-security-info:before{
   content: "Show ";
@@ -257,6 +257,7 @@ pre.display-keys{
   border: 1px solid $rudder-border-color-default;
   border-radius: 0px 4px 4px 4px;
   background-color: $rudder-bg-gray;
+  display: inline-block;
 }
 pre.display-keys > label:first-child{
   margin-top:0;
