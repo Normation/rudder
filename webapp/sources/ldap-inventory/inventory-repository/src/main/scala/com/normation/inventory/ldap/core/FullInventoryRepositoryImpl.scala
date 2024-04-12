@@ -192,7 +192,7 @@ class FullInventoryRepositoryImpl(
   override def save(machine: MachineInventory): IOResult[Seq[LDIFChangeRecord]] = {
     for {
       con <- ldap
-      res <- con.saveTree(mapper.treeFromMachine(machine))
+      res <- con.saveTree(mapper.treeFromMachine(machine), deleteRemoved = true)
     } yield res
   }.chainError(s"Error when saving machine with ID '${machine.id.value}'")
 
