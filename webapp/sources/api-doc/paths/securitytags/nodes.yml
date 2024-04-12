@@ -26,7 +26,7 @@ post:
                   description: a node ID on which the tenant must be defined
   responses:
     "200":
-      description: The list of tenants with their documentation information
+      description: The list of nodes on which the tenant was changed (unchanged nodes are not included)
       content:
         application/json:
           schema:
@@ -46,19 +46,84 @@ post:
                 type: string
                 description: The id of the action
                 enum:
-                  - listGroups
+                  - setNodeSecurityTag
               data:
                 type: object
                 required:
-                  - tenants
+                  - securitytags
                 properties:
-                  groups:
+                  securitytags:
                     type: array
                     items:
-                      $ref: ../../components/schemas/tenant.yml
+                      type: object
+                      required:
+                        - tenantId
+                        - nodeIds
+                      properties:
+                        tenantId:
+                          type: string
+                          description: the ID of the tenant set on nodes
+                        nodeIds:
+                          type: array
+                          items:
+                            type: string
+                            description: a node ID on which the tenant was changed and set to input value
   tags:
-    - Tenants
+    - Multi-tenants
   x-codeSamples:
     - lang: curl
       source:
-        $ref: ../../code_samples/curl/securitytags/nodes.sh
+        $ref: ../../code_samples/curl/securitytags/setOnNodes.sh
+
+delete:
+  summary: Remove tenant value on nodes
+  description: Remove defined tenant on the list of nodes. Nodes without a tenant are not changed.
+  operationId: deleteNodeSecurityTag
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            type: string
+            description: a node ID on which the tenant must be removed
+  responses:
+    "200":
+      description: The list of tenants
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - deleteNodeSecurityTag
+              data:
+                type: object
+                required:
+                  - nodes
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      type: string
+                      description: a node ID on which the tenant was removed
+  tags:
+    - Multi-tenants
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/securitytags/deleteOnNodes.sh
