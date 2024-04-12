@@ -609,9 +609,26 @@ object DisplayNode extends Loggable {
       <div class="row">
         <div class="rudder-info col-xl-6 col-md-7 col-sm-12">
           {nodeApp}
-          <h3>Rudder information</h3>
+        </div>
+
+        <div class="status-info col-xl-6 col-md-5 col-sm-12">
+          <h3>Monitoring</h3>
           <div>
-            {
+            <label>Inventory created (node local time):</label> {
+      nodeFact.lastInventoryDate.map(DateFormaterService.getDisplayDate(_)).getOrElse("Unknown")
+    }
+          </div>
+          <div>
+            <label>Inventory received:</label> {
+      DateFormaterService.getDisplayDate(nodeFact.factProcessedDate)
+    }
+          </div>
+        </div>
+      </div>
+      <div class="rudder-info">
+        <h3>Rudder information</h3>
+        <div>
+          {
       nodePolicyMode match {
         case (mode, explanation) =>
           <label>Policy mode:</label><span id="badge-apm"></span> ++
@@ -621,28 +638,27 @@ object DisplayNode extends Loggable {
               """)))
       }
     }
-       </div>
-       {
-      displayServerRole(nodeFact) ++
-      displayTenant(nodeFact)
-    }
-       <div><label>Agent:</label> {
+        </div>
+        {displayServerRole(nodeFact) ++ displayTenant(nodeFact)}
+        <div>
+          <label>Agent:</label>
+          {
       val capabilities = {
         if (nodeFact.rudderAgent.capabilities.isEmpty) "no extra capabilities"
         else "capabilities: " + nodeFact.rudderAgent.capabilities.map(_.value).toList.sorted.mkString(", ")
       }
       s"${nodeFact.rudderAgent.agentType.displayName} (${nodeFact.rudderAgent.version.value} with ${capabilities})"
-    }</div>
-          {displayPolicyServerInfos(nodeFact.toFullInventory)}
-          <div>
-            {
+    }
+            </div>
+            {displayPolicyServerInfos(nodeFact.toFullInventory)}
+            <div>
+              {
       creationDate.map { creation =>
         <xml:group><label>Accepted since:</label> {DateFormaterService.getDisplayDate(creation)}</xml:group>
       }.getOrElse(NodeSeq.Empty)
     }
-          </div>
-          {
-
+            </div>
+            {
       val checked     = (nodeFact.rudderSettings.status, nodeFact.rudderSettings.keyStatus) match {
         case (AcceptedInventory, CertifiedKey) =>
           <span>
@@ -674,7 +690,7 @@ object DisplayNode extends Loggable {
         case _: Certificate => "Certificate"
       }
       <div class="security-info">
-                {
+            {
         agent.securityToken match {
           case _: PublicKey   => NodeSeq.Empty
           case c: Certificate =>
@@ -684,39 +700,22 @@ object DisplayNode extends Loggable {
                 <div><label>Fingerprint (sha1): </label> <samp>{
                   SHA1.hash(cert.getEncoded).grouped(2).mkString(":")
                 }</samp></div>
-                        <div><label>Expiration date: </label> {
+                    <div><label>Expiration date: </label> {
                   DateFormaterService.getDisplayDate(new DateTime(cert.getNotAfter))
                 }</div>
               )
             }
         }
       }
-                {curlHash}
-                {cfKeyHash}
-                <button type="button" class="toggle-security-info btn btn-default" onclick={
+        {curlHash}
+        {cfKeyHash}
+        <button type="button" class="toggle-security-info btn btn-default" onclick={
         s"$$('#${publicKeyId}').toggle(300); $$(this).toggleClass('opened'); return false;"
-      }> <b>{tokenKind}</b> {checked}</button>
-                <pre id={publicKeyId} class="display-keys" style="display:none;"><div>{agent.securityToken.key}</div></pre>{
-        Script(OnLoad(JsRaw(s"""initBsTooltips();""")))
-      }
-              </div>
+      }> <b>{tokenKind}</b> {checked} </button>
+        <div><pre id={publicKeyId} class="display-keys" style="display:none;">{agent.securityToken.key}</pre></div>
+        {Script(OnLoad(JsRaw(s"""initBsTooltips();""")))}
+      </div>
     }
-
-        </div>
-
-        <div class="status-info col-xl-6 col-md-5 col-sm-12">
-          <h3>Monitoring</h3>
-          <div>
-            <label>Inventory created (node local time):</label>  {
-      nodeFact.lastInventoryDate.map(DateFormaterService.getDisplayDate(_)).getOrElse("Unknown")
-    }
-          </div>
-          <div>
-            <label>Inventory received:</label>  {
-      DateFormaterService.getDisplayDate(nodeFact.factProcessedDate)
-    }
-          </div>
-        </div>
       </div>
     </div>
   }
