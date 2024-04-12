@@ -1054,13 +1054,6 @@ ul li.hide-method {
   margin-bottom : 0px !important;
   display: none;
 }
-.show-method .method {
-  animation: slide-up 0.5s ease forwards;
-  }
-.hide-method .method {
-  animation: slide-down 0.5s ease forwards;
-  max-height: 0px;
-}
 .active .method {
   border-top-color: #a7d0f1;
   border-left-color: #a7d0f1;
@@ -1578,27 +1571,6 @@ ul li.hide-method {
 }
 .method-parameter {
   padding-bottom: 5px;
-}
-
-@keyframes slide-up {
-    0% {
-        opacity: 0;
-        transform: translateY(50px);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0);
-        max-height:10000px;
-    }
-}
-@keyframes slide-down {
-    0% {
-        opacity: 1;
-    }
-    100% {
-        opacity: 0;
-        transform: translateY(50px);
-    }
 }
 .component-name-wrapper {
   position: relative;
