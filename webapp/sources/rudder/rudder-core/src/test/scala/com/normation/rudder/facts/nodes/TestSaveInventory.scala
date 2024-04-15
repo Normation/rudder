@@ -129,25 +129,26 @@ class TestSaveInventoryGit extends TestSaveInventory {
 @RunWith(classOf[JUnitRunner])
 class TestSaveInventoryLdap extends TestSaveInventory {
 
+  lazy val mockLdapFactStorage = new MockLdapFactStorage()
   def nodeExists(id: String, dit: InventoryDit): Boolean = {
-    MockLdapFactStorage.testServer.entryExists(dit.NODES.NODE.dn(id).toString)
+    mockLdapFactStorage.testServer.entryExists(dit.NODES.NODE.dn(id).toString)
   }
 
   def nodeAsString(id: String, dit: InventoryDit): String = {
     val sb = new java.lang.StringBuilder()
     // we want to check also for the node entry, not only the inventory part
-    MockLdapFactStorage.testServer.getEntry(dit.NODES.NODE.dn(id).toString).toString(sb)
+    mockLdapFactStorage.testServer.getEntry(dit.NODES.NODE.dn(id).toString).toString(sb)
     // we want to check also for the node entry, not only the inventory part
-    MockLdapFactStorage.testServer.getEntry(MockLdapFactStorage.nodeDit.NODES.NODE.dn(id).toString).toString(sb)
+    mockLdapFactStorage.testServer.getEntry(mockLdapFactStorage.nodeDit.NODES.NODE.dn(id).toString).toString(sb)
     sb.toString()
   }
 
-  override def checkPendingNodeExists(id:  String): Boolean = nodeExists(id, MockLdapFactStorage.pendingDIT)
-  override def getPendingNodeAsString(id:  String): String  = nodeAsString(id, MockLdapFactStorage.pendingDIT)
-  override def checkAcceptedNodeExists(id: String): Boolean = nodeExists(id, MockLdapFactStorage.acceptedDIT)
-  override def getAcceptedNodeAsString(id: String): String  = nodeAsString(id, MockLdapFactStorage.acceptedDIT)
+  override def checkPendingNodeExists(id:  String): Boolean = nodeExists(id, mockLdapFactStorage.pendingDIT)
+  override def getPendingNodeAsString(id:  String): String  = nodeAsString(id, mockLdapFactStorage.pendingDIT)
+  override def checkAcceptedNodeExists(id: String): Boolean = nodeExists(id, mockLdapFactStorage.acceptedDIT)
+  override def getAcceptedNodeAsString(id: String): String  = nodeAsString(id, mockLdapFactStorage.acceptedDIT)
 
-  override lazy val factStorage: NodeFactStorage = MockLdapFactStorage.nodeFactStorage
+  override lazy val factStorage: NodeFactStorage = mockLdapFactStorage.nodeFactStorage
 
   //////// for LDAP reposiotyr, in addition to main acceptation test, we are
   //////// checking properties around certificate validation

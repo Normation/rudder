@@ -109,6 +109,8 @@ class TestNodeFactQueryProcessor {
   //org.slf4j.LoggerFactory.getLogger("com.normation.rudder.services.queries").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
   // format: on
 
+  val mockLdapFactStorage = new MockLdapFactStorage()
+
   val nodeRepository: CoreNodeFactRepository = {
 
     object NoopNodeBySoftware extends GetNodesbySofwareName {
@@ -119,7 +121,7 @@ class TestNodeFactQueryProcessor {
       t <- DefaultTenantService.make(Nil)
       r <- CoreNodeFactRepository
              .make(
-               MockLdapFactStorage.nodeFactStorage,
+               mockLdapFactStorage.nodeFactStorage,
                NoopNodeBySoftware,
                t,
                Chunk.empty
@@ -128,7 +130,7 @@ class TestNodeFactQueryProcessor {
   }
 
   val internalLDAPQueryProcessor: InternalLDAPQueryProcessor = {
-    import MockLdapFactStorage.*
+    import mockLdapFactStorage.*
     val rudderDit    = new RudderDit(new DN("ou=Rudder, cn=rudder-configuration"))
     val ditQueryData = new DitQueryData(acceptedDIT, nodeDit, rudderDit, queryData)
     new InternalLDAPQueryProcessor(ldapRo, acceptedDIT, nodeDit, ditQueryData, ldapMapper)
