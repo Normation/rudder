@@ -90,7 +90,7 @@ case class Reporting(
 case class TechniqueParameter(
     id:            ParameterId,
     name:          String,
-    description:   String,
+    description:   Option[String],
     documentation: Option[String],
     constraints:   Constraints
 )

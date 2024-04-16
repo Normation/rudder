@@ -40,7 +40,7 @@
     <SECTION name="Technique parameters">
       <INPUT>
         <NAME>345388B1-7F68-44BD-95BC-C8B66A5010E9</NAME>
-        <DESCRIPTION>The File To Check</DESCRIPTION>
+        <DESCRIPTION>The_File_To_Check</DESCRIPTION>
         <LONGDESCRIPTION></LONGDESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>

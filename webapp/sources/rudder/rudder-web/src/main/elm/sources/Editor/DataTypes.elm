@@ -111,7 +111,7 @@ type alias CallParameter =
 type alias TechniqueParameter =
   { id          : ParameterId
   , name        : String
-  , description : String
+  , description : Maybe String
   , documentation : Maybe String
   , mayBeEmpty  : Bool
   }
