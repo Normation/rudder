@@ -25,13 +25,14 @@ editionTemplate model details =
     originRule = details.originRule
 
     rule = details.rule
-    policyModeTitle =
-      case originRule of
-        Nothing -> div [][]
-        Just _  -> badgePolicyMode model.policyMode rule.policyMode
     (ruleTitle, isNewRule) = case originRule of
       Nothing -> (span[style "opacity" "0.4"][text "New rule"], True)
       Just r  -> (text r.name, False)
+    policyModeTitle =
+      if isNewRule then
+        text ""
+      else
+        badgePolicyMode model.policyMode rule.policyMode
     (classDisabled, badgeDisabled) = if (Maybe.withDefault True (Maybe.map .enabled originRule)) then
         ("", text "")
       else
