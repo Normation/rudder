@@ -246,11 +246,11 @@ displayNodePropertyRow model =
         case editedProperty of
           Nothing ->
             tr []
-            [ td [class "default-actions"]
+            [ td []
               [ div[]
                 [ text p.name
                 , providerBadge
-                , span [class "action-icon", title "Find usage of this property", onClick (CallApi (findPropertyUsage p.name ))]
+                , span [class "find-action action-icon", title "Find usage of this property", onClick (CallApi (findPropertyUsage p.name ))]
                   [ i [class "fas fa-search"][]
                   ]
                 ]
