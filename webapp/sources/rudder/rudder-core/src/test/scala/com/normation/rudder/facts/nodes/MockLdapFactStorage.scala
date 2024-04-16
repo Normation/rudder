@@ -59,7 +59,7 @@ import com.normation.zio.*
 import com.unboundid.ldap.sdk.DN
 import zio.Ref
 
-object MockLdapFactStorage {
+class MockLdapFactStorage {
 
   val tmp: File = File.newTemporaryDirectory("rudder-test-ldap-schema-files-")
   tmp.deleteOnExit(true)

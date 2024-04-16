@@ -81,19 +81,20 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
   // load bouncyCastle
   Security.addProvider(new BouncyCastleProvider())
+  val mockLdapFactStorage = new MockLdapFactStorage()
 
   def nodeExists(id: String, dit: InventoryDit): Boolean = {
-    MockLdapFactStorage.ldap.server.entryExists(dit.NODES.NODE.dn(id).toString)
+    mockLdapFactStorage.ldap.server.entryExists(dit.NODES.NODE.dn(id).toString)
   }
 
   def nodeAsString(id: String):    String = {
     val sb = new java.lang.StringBuilder()
-    MockLdapFactStorage.ldap.server.getEntry(s"nodeId=${id},ou=Nodes, cn=rudder-configuration").toString(sb)
+    mockLdapFactStorage.ldap.server.getEntry(s"nodeId=${id},ou=Nodes, cn=rudder-configuration").toString(sb)
     sb.toString()
   }
   def machineAsString(id: String): String = {
     val sb = new java.lang.StringBuilder()
-    MockLdapFactStorage.ldap.server
+    mockLdapFactStorage.ldap.server
       .getEntry(s"machineId=machine-for-${id},ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
       .toString(sb)
     sb.toString()
@@ -101,7 +102,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
   // a fact storage that keeps a trace of all call to it, so that we can debug/set expectation
   object factStorage extends NodeFactStorage {
-    val backend = MockLdapFactStorage.nodeFactStorage
+    val backend = mockLdapFactStorage.nodeFactStorage
     val callStack: Ref[List[String]] = Ref.make(List.empty[String]).runNow
 
     def clearCallStack: Unit = callStack.set(Nil).runNow
@@ -193,9 +194,9 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
   val nodeBySoftwareName = new SoftDaoGetNodesbySofwareName(
     new ReadOnlySoftwareDAOImpl(
-      MockLdapFactStorage.inventoryDitService,
-      MockLdapFactStorage.ldapRo,
-      MockLdapFactStorage.inventoryMapper
+      mockLdapFactStorage.inventoryDitService,
+      mockLdapFactStorage.ldapRo,
+      mockLdapFactStorage.inventoryMapper
     )
   )
 
@@ -517,17 +518,17 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       factRepo.save(updated)(testChangeContext, SelectFacts.all).runNow
 
       // check that ldap entries where modified
-      (MockLdapFactStorage.testServer
+      (mockLdapFactStorage.testServer
         .getEntry("nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
         .getAttributeValue("environmentVariable") must beEqualTo("""{"name":"envVAR","value":"envVALUE"}""")) and
-      (MockLdapFactStorage.testServer.entryExists(
+      (mockLdapFactStorage.testServer.entryExists(
         "networkInterface=eth0,nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration"
       ) must beTrue) and
-      (MockLdapFactStorage.testServer.entryExists(
+      (mockLdapFactStorage.testServer.entryExists(
         "portName=slot0,machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration"
       ) must beTrue) and
       (
-        MockLdapFactStorage.testServer
+        mockLdapFactStorage.testServer
           .search("ou=Software,ou=Inventories,cn=rudder-configuration", SearchScope.ONE, "(cn=s2)")
           .getSearchEntries
           .size()
@@ -555,22 +556,22 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       factRepo.save(updated)(testChangeContext, SelectFacts.none.modify(_.networks).using(_.toRetrieve)).runNow
 
       // check that ONLY network ldap entry was modified
-      (MockLdapFactStorage.testServer
+      (mockLdapFactStorage.testServer
         .getEntry("nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
         .getAttribute("environmentVariable")
         .hasValue("""{"name":"bad","value":"bad"}""") must beFalse) and
       (
-        MockLdapFactStorage.testServer.entryExists(
+        mockLdapFactStorage.testServer.entryExists(
           "networkInterface=eth1,nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration"
         ) must beTrue
       ) and
       (
-        MockLdapFactStorage.testServer.entryExists(
+        mockLdapFactStorage.testServer.entryExists(
           "portName=slot1,machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration"
         ) must beFalse
       ) and
       (
-        MockLdapFactStorage.testServer
+        mockLdapFactStorage.testServer
           .search("ou=Software,ou=Inventories,cn=rudder-configuration", SearchScope.ONE, "(cn=s3)")
           .getSearchEntries
           .size()
