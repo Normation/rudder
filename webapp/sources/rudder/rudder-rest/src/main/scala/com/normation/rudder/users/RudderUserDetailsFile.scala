@@ -149,7 +149,7 @@ object RudderPasswordEncoder {
   object SecurityLevel {
     // Allow simple non-salted hashes
     case object Legacy extends SecurityLevel
-    // Only allow dedicted password hashes (currently bcrypt only)
+    // Only allow dedicated password hashes
     case object Modern extends SecurityLevel
   }
 
@@ -228,8 +228,8 @@ case class RudderPasswordEncoder(
 
   override def encode(rawPassword: CharSequence):                           String  = {
     // The current user management plugin directly calls the encoder based on the
-    // selected hash in the xml file, and it the only place where we dynamically create passwords.
-    // We could (and likely should) use RudderPasswordProvider for encoding but we need to store the algorithm to use
+    // selected hash in the xml file, and it is the only place where we dynamically create passwords.
+    // We could (and likely should) use RudderPasswordProvider for encoding but we need it to store the algorithm to use
     // (as DelegatingPasswordEncoder does) based on the user configuration.
     //
     // This is hence NEVER called in Rudder.
@@ -525,7 +525,7 @@ object UserFileProcessing {
 
       // The rationale here is that if configured hash is bcrypt, it means before 8.2 non-bcrypt hash did not work
       // so no need for legacy support.
-      // FIXME: prevents using bcrypt for new users is still having legavy hashes
+      // FIXME: prevents using bcrypt for new users is still having legacy hashes
       val encoder = if (parsed.encoder == PasswordEncoderType.BCRYPT) { RudderPasswordEncoder(Modern, passwordEncoderDispatcher) }
       else { RudderPasswordEncoder(Legacy, passwordEncoderDispatcher) }
 
