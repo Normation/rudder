@@ -1523,11 +1523,13 @@ object RudderConfigInit {
 
     lazy val roleApiMapping = new RoleApiMapping(authorizationApiMapping)
 
+    lazy val passwordEncoderDispatcher = new PasswordEncoderDispatcher(RUDDER_BCRYPT_COST)
+
     // rudder user list
     lazy val rudderUserListProvider: FileUserDetailListProvider = {
       UserFileProcessing.getUserResourceFile().either.runNow match {
         case Right(resource) =>
-          new FileUserDetailListProvider(roleApiMapping, resource)
+          new FileUserDetailListProvider(roleApiMapping, resource, passwordEncoderDispatcher)
         case Left(err)       =>
           ApplicationLogger.error(err.fullMsg)
           // make the application not available
@@ -2230,7 +2232,7 @@ object RudderConfigInit {
           new UserManagementService(
             userRepository,
             rudderUserListProvider,
-            new PasswordEncoderDispatcher(RUDDER_BCRYPT_COST),
+            passwordEncoderDispatcher,
             UserFileProcessing.getUserResourceFile()
           ),
           roleApiMapping,

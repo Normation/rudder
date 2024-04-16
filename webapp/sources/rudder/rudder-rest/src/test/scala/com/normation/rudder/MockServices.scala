@@ -860,7 +860,7 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
 
     val roleApiMapping = new RoleApiMapping(AuthorizationApiMapping.Core)
 
-    val res = new FileUserDetailListProvider(roleApiMapping, usersFile)
+    val res = new FileUserDetailListProvider(roleApiMapping, usersFile, passwordEncoderDispatcher)
     res.reload()
     res
   }

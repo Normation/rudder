@@ -8,7 +8,6 @@ response:
       "action" : "getUserInfo",
       "result" : "success",
       "data" : {
-        "digest" : "BCRYPT",
         "roleListOverride" : "override",
         "authenticationBackends" : [
           "file"
@@ -187,7 +186,8 @@ response:
             },
             "tenants" : "none"
           }
-        ]
+        ],
+        "digest" : "BCRYPT"
       }
     }
 ---

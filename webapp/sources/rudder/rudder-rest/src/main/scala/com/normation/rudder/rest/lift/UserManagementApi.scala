@@ -71,7 +71,6 @@ import com.normation.rudder.users.JsonUpdatedUser
 import com.normation.rudder.users.JsonUpdatedUserInfo
 import com.normation.rudder.users.JsonUser
 import com.normation.rudder.users.JsonUserFormData
-import com.normation.rudder.users.PasswordEncoderType
 import com.normation.rudder.users.RudderAccount
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.users.Serialisation.*
@@ -335,7 +334,7 @@ class UserManagementApiImpl(
                 }
             })
       } yield {
-        serialize(jsonUsers.sortBy(_.id))(file.encoder)
+        serialize(jsonUsers.sortBy(_.id))
       }).chainError("Error when retrieving user list").toLiftResponseOne(params, schema, _ => None)
     }
   }
@@ -563,14 +562,13 @@ class UserManagementApiImpl(
 
   def serialize(
       users: List[JsonUser]
-  )(passwordEncoder: PasswordEncoderType): JsonAuthConfig = {
-    val encoder: String = passwordEncoder.displayName
+  ): JsonAuthConfig = {
     // Aggregate all provider properties, if any provider can override user roles then it means there is a global override
     val providerRoleExtensions = getProviderRoleExtensions()
     val roleListOverride       = providerRoleExtensions.values.max
     val providersProperties    = providerRoleExtensions.view.mapValues(_.transformInto[JsonProviderProperty]).toMap
 
-    JsonAuthConfig(encoder, roleListOverride, getAuthBackendsProviders(), providersProperties, users)
+    JsonAuthConfig(roleListOverride, getAuthBackendsProviders(), providersProperties, users)
   }
 
   private def transformUser(
