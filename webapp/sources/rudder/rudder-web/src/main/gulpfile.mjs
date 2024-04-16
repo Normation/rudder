@@ -1,21 +1,24 @@
-const fs = require('fs');
-const path = require('path');
-const { watch, series, parallel, src, dest } = require('gulp');
-const rename = require('gulp-rename');
-const mode = require('gulp-mode');
+import gulp from 'gulp';
+const { task, watch, series, parallel, src, dest } = gulp;
+import fs from 'fs';
+import path from 'path';
+import rename from 'gulp-rename';
+import mode from 'gulp-mode';
 const profile = mode();
-const terser = require('gulp-terser');
-const elm_p = require('gulp-elm');
-const merge = require('merge-stream');
-const del = require('del');
-const through = require('through2');
-const sass = require('gulp-sass')(require('sass'));
-const sourcemaps = require('gulp-sourcemaps');
+import terser from 'gulp-terser';
+import elm_p from 'gulp-elm';
+import merge2 from 'merge2';
+import { deleteSync } from 'del';
+import through from 'through2';
+import * as dartSass from 'sass';
+import gulpSass from 'gulp-sass';
+const sass = gulpSass(dartSass);
+import sourcemaps from 'gulp-sourcemaps';
 
 const paths = {
     'css': {
         'src': 'style/libs/**/*',
-        'dest': 'webapp/style/',
+        'dest': 'webapp/style',
     },
     'scss': {
         'src': 'style/rudder/**/*',
@@ -23,7 +26,7 @@ const paths = {
     },
     'login_scss': {
         'src': 'style/login.css',
-        'dest': 'webapp/style/',
+        'dest': 'webapp/style',
     },
     'js': {
         'src': 'javascript/**/*.js',
@@ -70,7 +73,20 @@ var grep = function(regex) {
 }
 
 function clean(cb) {
-    del.sync([paths.js.dest, paths.css.dest, paths.scss.dest]);
+    let mergeCleanPaths = function(){
+        let getCleanPaths = function(p){
+            let files  = (p + '/**');
+            let parent = ('!' + p);
+            return [files, parent];
+        }
+        return [].concat(
+            getCleanPaths(paths.scss.dest),
+            getCleanPaths(paths.css.dest),
+            getCleanPaths(paths.js.dest),
+        );
+    }
+    let cleanPaths = mergeCleanPaths();
+    deleteSync(cleanPaths);
     cb();
 }
 
@@ -160,17 +176,19 @@ function scss(cb) {
       .pipe(sass({outputStyle: 'compressed'}).on('error', sass.logError))
       .pipe(sourcemaps.write())
       .pipe(dest(paths.login_scss.dest));
-    merge(rudderScss, loginScss);
+    merge2(rudderScss, loginScss);
     cb();
 };
 
-exports.elm = series(clean, elm)
-exports.watch = series(clean, function() {
+task('elm', series(clean, elm));
+
+task('watch', series(clean, function() {
     watch(paths.elm.watch, { ignoreInitial: false }, elm);
     watch(paths.js.src, { ignoreInitial: false }, js);
     watch(paths.css.src, { ignoreInitial: false }, css);
     watch(paths.scss.src, { ignoreInitial: false }, scss);
     watch(paths.vendor_js.src, { ignoreInitial: false }, vendor_js);
     watch(paths.vendor_css.src, { ignoreInitial: false }, vendor_css);
-});
-exports.default = series(clean, parallel(elm, css, scss, js, vendor_css, vendor_js));
+}));
+
+task('default', series(clean, parallel(elm, css, scss, js, vendor_css, vendor_js)));
