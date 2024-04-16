@@ -202,7 +202,7 @@ object RudderPasswordEncoder {
     // Allow types: 2, 2x, 2y, 2a, 2b
     val bcryptRegex = "^\\$2[abxy]?\\$.+".r
 
-    val hexaRegex = "^[a-fA-F0-9]$"
+    val hexaRegex = "^[a-fA-F0-9]+$"
 
     if (encodedPassword.matches(bcryptRegex.regex)) {
       Right(PasswordEncoderType.BCRYPT)
@@ -216,7 +216,7 @@ object RudderPasswordEncoder {
         case l   => Left(s"Could not recognize a known hash format from hexadecimal encoded string of length ${l}")
       }
     } else {
-      Left(s"Could not recognize a known hash format from encoded password")
+      Left("Could not recognize a known hash format from encoded password")
     }
   }
 }
