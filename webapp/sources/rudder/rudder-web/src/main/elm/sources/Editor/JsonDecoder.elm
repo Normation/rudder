@@ -24,7 +24,7 @@ decodeTechniqueParameter =
   succeed TechniqueParameter
     |> required "id" (map ParameterId string)
     |> required "name" string
-    |> required "description" string
+    |> optional "description" (maybe string) Nothing
     |> optional "documentation" (maybe string) Nothing
     |> optional "mayBeEmpty" bool False
     |> optional "constraints" decodeConstraint defaultConstraint

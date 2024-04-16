@@ -496,7 +496,7 @@ update msg model =
           case model.mode of
             TechniqueDetails t o ui editInfo->
               let
-                parameters = List.append t.parameters [  TechniqueParameter paramId "" "" Nothing False defaultConstraint]
+                parameters = List.append t.parameters [  TechniqueParameter paramId "" Nothing Nothing False defaultConstraint]
               in
                 TechniqueDetails { t | parameters = parameters } o ui editInfo
             _ -> model.mode

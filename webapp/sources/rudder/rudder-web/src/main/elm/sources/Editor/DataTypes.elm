@@ -125,7 +125,7 @@ type ParameterType = StringParameter | SelectParameter (List String)
 type alias TechniqueParameter =
   { id          : ParameterId
   , name        : String
-  , description : String
+  , description : Maybe String
   , documentation : Maybe String
   , mayBeEmpty  : Bool
   , constraints : Constraint
