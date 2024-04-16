@@ -49,7 +49,6 @@ import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.web.model.JsTreeNode
 import net.liftweb.common.Loggable
-import net.liftweb.http.S
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JE.JsRaw
@@ -514,27 +513,6 @@ object DisplayDirectiveTree extends Loggable {
         }
       }
     }
-    S.appendJs(
-      JsRaw(s"""
-      var main = document.getElementById("filters-app")
-               |var initValues = {
-               |    contextPath : contextPath,
-               |    objectType  : "directive"
-               |};
-               |filterApp = Elm.Filters.init({node: main, flags: initValues});
-               |filterApp.ports.toggleTree.subscribe(function(result) {
-               |  toggleTree('#activeTechniquesTree', this);
-               |});
-               |filterApp.ports.searchTree.subscribe(function(filters) {
-               |  $$("#activeTechniquesTree").jstree("searchtag", filters.filter, filters.tags, {"key":false , "value":false});
-               |});
-               |filterApp.ports.sendFilterTags.subscribe(function(tags) {
-               |  if (typeof tagsApp === "undefined") return false;
-               |  tagsApp.ports.getFilterTags.send(tags);
-               |});
-               initBsTooltips();
-    """.stripMargin)
-    )
     directiveLib.subCategories.filterNot(_.isSystem).sortBy(_.name).flatMap(cat => displayCategory(cat, cat.id.value).toXml)
   }
 }

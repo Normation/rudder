@@ -42,9 +42,9 @@ techniqueResource  resource =
 techniqueParameter :  Model -> Technique -> TechniqueParameter -> Html Msg
 techniqueParameter model technique param =
   let
-    param_var_name = if (String.isEmpty param.name) then canonifyString param.description else param.name
+    param_var_name = if (String.isEmpty param.name) then canonifyString (Maybe.withDefault "" param.description) else param.name
     param_name =
-      if (String.isEmpty param.name && String.isEmpty param.description ) then
+      if (String.isEmpty param.name && Maybe.Extra.isNothing param.description ) then
         [  div [ class "empty-name"] [ text "Set a parameter name" ]]
 
       else
@@ -70,7 +70,7 @@ techniqueParameter model technique param =
         ("", text "")
 
     (invalidNameClass, invalidNameElem) =
-      if (String.isEmpty param.description) then
+      if (String.isEmpty param.name && Maybe.Extra.isNothing param.description) then
         ("error",  ul [class "row"] [ li [ class "text-danger col-md-8" ] [ text "Parameter name cannot be empty" ] ] )
       else
         ("", text "")
@@ -109,21 +109,23 @@ techniqueParameter model technique param =
         div [ class "gm-labels left"] [
           div [ class "gm-label rudder-label gm-label-name "] [ text "Parameter" ]
         ]
-      , div [ class "form-group" ] [
-          label [  for nameId] [ text "Display name"]
-        , input [ id nameId, readonly (not model.hasWriteRights), type_ "text",  class ("col-xs-8 form-control " ++ invalidNameClass), value param.description, placeholder "Parameter name", onInput (\s -> TechniqueParameterModified param.id {param | description = s }), required True] []
-        , invalidNameElem
-        ]
 
       , div [ class " form-group" ] [
           label [  for varId] [ text "Variable name"]
         , div [class "input-group" ] [
-            input [id  varId, readonly (not model.hasWriteRights), type_ "text",  class ("form-control "++invalidParamClass), value param.name, placeholder (if (String.isEmpty param.description) then "Variable name" else (canonifyString param.description)) , onInput (\s -> TechniqueParameterModified param.id {param | name = s }), required True] []
+            input [id  varId, readonly (not model.hasWriteRights), type_ "text",  class ("form-control "++invalidParamClass), value param.name, placeholder (if (Maybe.Extra.isNothing param.description) then "Variable name" else (canonifyString (Maybe.withDefault "" param.description))) , onInput (\s -> TechniqueParameterModified param.id {param | name = s }), required True] []
           , button [ class "btn btn-outline-secondary clipboard", title "Copy to clipboard" , onClick (Copy ("${" ++ param_var_name ++ "}")) ] [
               i [ class "ion ion-clipboard" ] []
             ]
           ]
+        , invalidNameElem
         , invalidParamElem
+        ]
+
+      , div [ class "form-group" ] [
+          label [  for nameId] [ text "Display name"]
+        , input [ id nameId, readonly (not model.hasWriteRights), type_ "text",  class ("col-xs-8 form-control " ++ invalidNameClass), value (Maybe.withDefault "" param.description), placeholder "Parameter name", onInput (\s -> TechniqueParameterModified param.id {param | description = if (String.isEmpty s) then Nothing else Just s }), required True] []
+
         ]
 
       , div [ class " form-group" ] [

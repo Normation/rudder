@@ -3,6 +3,7 @@
 <head>
   <title>Rudder - Directives Management</title>
   <link media="screen" data-lift="with-cached-resource" href="/style/rudder/rudder-directives.css" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-filemanager.css" />
   <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/tree-tag-plugin.js"></script>
   <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/directive.js"></script>
   <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-directivecompliance.js"></script>
@@ -15,7 +16,7 @@
 <div data-lift="configuration.DirectiveManagement.head"></div>
 
 <div class="rudder-template">
-
+  <div id="filemanager-editor"></div>
 
   <div class="template-sidebar sidebar-left">
 
@@ -34,25 +35,6 @@
         </div>
       </div>
       <div data-lift="configuration.DirectiveManagement.userLibrary" ></div>
-      <script>
-        var main = document.getElementById("filters-app")
-        var initValues = {
-            contextPath : contextPath,
-            objectType  : "directive"
-        };
-        filterApp = Elm.Filters.init({node: main, flags: initValues});
-        filterApp.ports.toggleTree.subscribe(function(result) {
-          toggleTree('#activeTechniquesTree', this);
-        });
-        filterApp.ports.searchTree.subscribe(function(filters) {
-          $("#activeTechniquesTree").jstree("searchtag", filters.filter, filters.tags, {"key":false , "value":false});
-        });
-        filterApp.ports.sendFilterTags.subscribe(function(tags) {
-          if (typeof tagsApp === "undefined") return false;
-          tagsApp.ports.getFilterTags.send(tags);
-        });
-        $(".bsTooltip").bsTooltip({container: "#boxDirectiveTree" })
-      </script>
     </div>
   </div>
 
@@ -94,14 +76,6 @@
               </ul>
             </div>
             <div id="techniqueversion-app"></div>
-            <script>
-              var hasWriteRights = false;
-            </script>
-            <lift:authz role="node_write">
-              <script>
-                hasWriteRights = true;
-              </script>
-            </lift:authz>
           </div>
         </div>
       </div>
@@ -111,5 +85,50 @@
     </div>
   </div>
 </div>
+<script>
+  var hasWriteRights = false;
+</script>
+<lift:authz role="directive_write">
+  <script>
+    var hasWriteRights = true;
+  </script>
+</lift:authz>
+<script>
+  var baseUrl = contextPath ? contextPath : "/rudder";
+  var apiPath = baseUrl + '/secure/api/sharedfile';
 
+  var container = document.getElementById("filemanager-editor");
+  var fm = Elm.FileManager.init({
+      node: container,
+      flags: {
+        api: apiPath,
+        thumbnailsUrl: apiPath,
+        downloadsUrl: apiPath,
+        dir: "/",
+        hasWriteRights : hasWriteRights,
+        initRun : true
+      }
+    });
+  fm.ports.errorNotification.subscribe(function(errorMessage) {
+    createErrorNotification(errorMessage);
+  });
+
+  var main = document.getElementById("filters-app")
+  var initValues = {
+      contextPath : contextPath,
+      objectType  : "directive"
+  };
+  filterApp = Elm.Filters.init({node: main, flags: initValues});
+  filterApp.ports.toggleTree.subscribe(function(result) {
+    toggleTree('#activeTechniquesTree', this);
+  });
+  filterApp.ports.searchTree.subscribe(function(filters) {
+    $("#activeTechniquesTree").jstree("searchtag", filters.filter, filters.tags, {"key":false , "value":false});
+  });
+  filterApp.ports.sendFilterTags.subscribe(function(tags) {
+    if (typeof tagsApp === "undefined") return false;
+    tagsApp.ports.getFilterTags.send(tags);
+  });
+  initBsTooltips();
+</script>
 </lift:surround>

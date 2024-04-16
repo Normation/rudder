@@ -502,7 +502,6 @@ function createBadgeAgentPolicyModeMixed(data){
 
 function showFileManager(idField){
   fm.ports.onOpen.send(null);
-
   fm.ports.close.subscribe(function(files) {
     if(files.length > 0){
       var inputField = $("#" + idField + "-fileInput")

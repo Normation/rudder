@@ -53,7 +53,7 @@ isValidState state =
     ValidState -> True
     InvalidState _ -> False
 
-checkParameter param = (not (String.isEmpty param.description)) && (not (Regex.contains ((Regex.fromString >> Maybe.withDefault Regex.never) "[^_a-zA-Z\\d]") param.name))
+checkParameter param = (not (Maybe.Extra.isNothing param.description && String.isEmpty param.name )) && (not (Regex.contains ((Regex.fromString >> Maybe.withDefault Regex.never) "[^_a-zA-Z\\d]") param.name))
 isValid: Technique -> TechniqueUiInfo -> Bool
 isValid t ui =
   (isValidState ui.idState )  && ( isValidState ui.nameState ) && (List.all (isValidState) (List.map .validation (Dict.values ui.callsUI)))

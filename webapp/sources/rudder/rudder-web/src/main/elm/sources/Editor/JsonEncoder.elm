@@ -90,13 +90,15 @@ encodeTechniqueParameters param =
                    []
                  else
                    [ ("constraints", encodeTechniqueConstraint param.constraints) ]
+    desc = case param.description of
+               Nothing -> []
+               Just s -> [ ( "description", string s)]
     base = [ ("id"         , string param.id.value)
-           , ("name"       , string (if (String.isEmpty param.name) then (canonifyString param.description) else param.name))
-           , ("description", string param.description)
+           , ("name"       , string (if (String.isEmpty param.name) then (canonifyString (Maybe.withDefault "" param.description)) else param.name))
            , ("mayBeEmpty" , bool   param.mayBeEmpty)
            ]
   in
-    object (List.concat [ base, doc, constraint ] )
+    object (List.concat [ base, doc, constraint, desc ] )
 
 
 appendPolicyMode: Maybe PolicyMode -> List (String, Value) -> Value
