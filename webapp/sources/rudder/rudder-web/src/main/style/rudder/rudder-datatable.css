@@ -462,6 +462,13 @@ td.listclose:after {
   opacity: 1;
 }
 
+#nodePropertiesTab > tbody > tr > td > div > span.find-action {
+  opacity:0;
+}
+#nodePropertiesTab > tbody > tr:hover > td > div > span.find-action {
+  opacity: 1;
+}
+
 #nodePropertiesTab th:first-child{
   width: 20% !important;
 }
