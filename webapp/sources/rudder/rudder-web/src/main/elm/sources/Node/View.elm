@@ -12,7 +12,7 @@ import String.Extra
 view : Model -> Html Msg
 view model =
   div[class "score-details d-flex flex-column mb-0"]
-    ( h3[][text "Score details"] :: (List.map (showScore model) model.details))
+    ( h3[][text "Score details"] :: (model.details |> List.sortBy .scoreId |> List.map (showScore model) ))
 
 showScore : Model -> DetailedScore ->  Html Msg
 showScore model score =
