@@ -357,6 +357,7 @@ trait CachedFindRuleNodeStatusReports
   def nodeFactRepository:               NodeFactRepository
   def batchSize:                        Int
   def scoreServiceManager:              ScoreServiceManager
+  def rulesRepo:                        RoRuleRepository
 
   /**
    * The cache is managed node by node.
@@ -419,6 +420,15 @@ trait CachedFindRuleNodeStatusReports
     import CacheComplianceQueueAction.*
     import CacheExpectedReportAction.*
 
+    def updateScore(nodeId: NodeId, compliance: NodeStatusReport): IOResult[Unit] = {
+      for {
+        userRules              <- rulesRepo.getIds(includeSytem = false)
+        complianceWithoutSystem = NodeStatusReport.filterByRules(compliance, userRules)
+        cp                      = complianceWithoutSystem.compliance.computePercent()
+        event                   = ComplianceScoreEvent(nodeId, cp)
+        _                      <- scoreServiceManager.handleEvent(event)
+      } yield ()
+    }
     // get type of action
     (actions.headOption match {
       case None    => ReportLoggerPure.Cache.debug("Nothing to do")
@@ -436,12 +446,7 @@ trait CachedFindRuleNodeStatusReports
                                       Inconsistency(s"Error: found an action of incorrect type in an 'update' for cache: ${x}").fail
                                   }
                               }
-              scoreUpdates <- ZIO.foreach(updates) {
-                                case (nodeId, compliance) =>
-                                  val cp    = compliance.compliance.computePercent()
-                                  val event = ComplianceScoreEvent(nodeId, cp)
-                                  scoreServiceManager.handleEvent(event)
-                              }
+              scoreUpdates <- ZIO.foreach(updates)((updateScore _).tupled)
               _            <- IOResult.attempt { cache = cache ++ updates }
             } yield ())
 
@@ -467,12 +472,7 @@ trait CachedFindRuleNodeStatusReports
                        updated      <- defaultFindRuleNodeStatusReports
                                          .findRuleNodeStatusReports(updatedNodes.toSet, Set())(QueryContext.systemQC)
                                          .toIO
-                       scoreUpdates <- ZIO.foreach(updated.toList) {
-                                         case (nodeId, compliance) =>
-                                           val cp    = compliance.compliance.computePercent()
-                                           val event = ComplianceScoreEvent(nodeId, cp)
-                                           scoreServiceManager.handleEvent(event)
-                                       }
+                       scoreUpdates <- ZIO.foreach(updated.toList)((updateScore _).tupled)
                        _            <- IOResult.attempt {
                                          cache = cache ++ updated
                                        }

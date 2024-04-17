@@ -183,6 +183,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     override def batchSize: Int = 5000
 
     override def scoreServiceManager: ScoreServiceManager = null
+
+    override def rulesRepo: RoRuleRepository = null
   }
 
   val RUDDER_JDBC_BATCH_MAX_SIZE = 5000
