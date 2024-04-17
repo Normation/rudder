@@ -78,6 +78,13 @@ impl Webapp {
         let mut in_extra_classpath = false;
         let mut extra_classpath_found = false;
 
+        if !present.is_empty() {
+            // We enable plugins and their version may have changed so we need to restart the webapp even if the file
+            // does not change.
+            // This is required when upgrading an installed plugin.
+            self.pending_changes = true;
+        }
+
         loop {
             match reader.read_event_into(&mut buf)? {
                 Event::Eof => break,
@@ -97,6 +104,7 @@ impl Webapp {
                         in_extra_classpath = false;
                         let jars_t = e.unescape()?;
                         let mut jars: HashSet<&str> = HashSet::from_iter(jars_t.split(','));
+                        // Trigger a restart if something changes
                         for p in present {
                             let changed = jars.insert(p);
                             if changed {
