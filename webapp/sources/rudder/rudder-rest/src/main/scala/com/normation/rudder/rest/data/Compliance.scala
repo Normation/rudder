@@ -38,12 +38,15 @@
 package com.normation.rudder.rest.data
 
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.reports.ComplianceModeName
+import com.normation.rudder.repository.FullActiveTechnique
 import java.lang
 import net.liftweb.json.*
 import net.liftweb.json.JsonAST
@@ -126,11 +129,12 @@ final case class ByDirectiveByNodeRuleCompliance(
 )
 
 final case class ByRuleDirectiveCompliance(
-    id:         DirectiveId,
-    name:       String,
-    compliance: ComplianceLevel,
-    policyMode: Option[PolicyMode],
-    components: Seq[ByRuleComponentCompliance]
+    id:             DirectiveId,
+    name:           String,
+    compliance:     ComplianceLevel,
+    skippedDetails: Option[SkippedDetails],
+    policyMode:     Option[PolicyMode],
+    components:     Seq[ByRuleComponentCompliance]
 )
 
 sealed trait ByRuleComponentCompliance {
@@ -199,6 +203,45 @@ final case class ByRuleByNodeByDirectiveByValueCompliance(
     compliance: ComplianceLevel,
     values:     Seq[ComponentValueStatusReport]
 ) extends ByRuleByNodeByDirectiveByComponentCompliance
+
+final case class SkippedDetails(
+    overridingRuleId:   RuleId,
+    overridingRuleName: String
+)
+final case class DirectiveComplianceOverride(
+    overridenRuleId:  RuleId,
+    directiveId:      DirectiveId,
+    directiveName:    String,
+    overridingRuleId: RuleId
+) {
+  def toComplianceByRule(rules: Map[RuleId, Rule]): ByRuleDirectiveCompliance = {
+    ByRuleDirectiveCompliance(
+      directiveId,
+      directiveName,
+      ComplianceLevel(),
+      Some(SkippedDetails(overridingRuleId, rules.get(overridingRuleId).map(_.name).getOrElse("unknown rule"))),
+      None, // should override have a policy mode ?
+      Seq.empty
+    )
+  }
+}
+
+object ComplianceOverrides {
+  def getOverridenDirective(
+      overrides:  List[OverridenPolicy],
+      directives: Map[DirectiveId, (FullActiveTechnique, Directive)]
+  ): List[DirectiveComplianceOverride] = {
+    val overridesData = for {
+      over               <- overrides
+      (_, overridenDir)  <- directives.get(over.policy.directiveId)
+      (_, overridingDir) <- directives.get(over.overridenBy.directiveId)
+    } yield {
+      DirectiveComplianceOverride(over.policy.ruleId, over.policy.directiveId, overridenDir.name, over.overridenBy.ruleId)
+
+    }
+    overridesData.toList
+  }
+}
 
 object GroupComponentCompliance {
   // This function do the recursive treatment of components, we will have each time a pair of Sequence of tuple (NodeId , component compliance structure)
@@ -671,6 +714,9 @@ object JsonCompliance {
             ~ ("compliance"        -> directive.compliance.complianceWithoutPending(precision))
             ~ ("policyMode"        -> directive.policyMode.map(_.name).getOrElse("default"))
             ~ ("complianceDetails" -> percents(directive.compliance, precision))
+            ~ ("skippedDetails"    -> directive.skippedDetails.map(s =>
+              ("overridingRuleId" -> s.overridingRuleId.serialize) ~ ("overridingRuleName" -> s.overridingRuleName)
+            ))
             ~ ("components"        -> components(directive.components, level, precision))
           )
         })
