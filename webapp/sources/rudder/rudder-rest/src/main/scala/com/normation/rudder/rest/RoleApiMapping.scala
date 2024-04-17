@@ -131,7 +131,7 @@ object AuthorizationApiMapping {
         case Compliance.Read  =>
           ComplianceApi.GetGlobalCompliance.x :: ComplianceApi.GetRulesCompliance.x :: ComplianceApi.GetRulesComplianceId.x ::
           ComplianceApi.GetNodesCompliance.x :: ComplianceApi.GetNodeComplianceId.x :: ChangesApi.GetRuleRepairedReports.x ::
-          ChangesApi.GetRecentChanges.x :: ComplianceApi.GetDirectiveComplianceId.x ::
+          ChangesApi.GetRecentChanges.x :: ComplianceApi.GetDirectiveComplianceId.x :: ComplianceApi.GetNodeSystemCompliance.x ::
           ComplianceApi.GetDirectivesCompliance.x :: ComplianceApi.GetNodeGroupComplianceId.x :: ComplianceApi.GetNodeGroupComplianceTargetId.x ::
           ComplianceApi.GetNodeGroupComplianceSummary.x :: Nil
         case Compliance.Write => Nil
