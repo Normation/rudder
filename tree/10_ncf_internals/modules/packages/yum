@@ -153,14 +153,14 @@ def list_updates(online):
             lastline = ""
 
         line = lastline + line
-        match = re.match("^\S+\s+\S+\s+\S+", line)
+        match = re.match(r"^\S+\s+\S+\s+\S+", line)
         if match is None:
             # Keep line
             lastline = line
             continue
 
         lastline = ""
-        match = re.match("^(?P<name>\S+)\.(?P<arch>[^.\s]+)\s+(?P<version>\S+)\s+\S+\s*$", line)
+        match = re.match(r"^(?P<name>\S+)\.(?P<arch>[^.\s]+)\s+(?P<version>\S+)\s+\S+\s*$", line)
         if match is not None:
             sys.stdout.write("Name=" + match.group("name") + "\n")
             sys.stdout.write("Version=" + match.group("version") + "\n")

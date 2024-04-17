@@ -207,7 +207,7 @@ def list_updates(online):
         #                               name                   old version       new version
         #                                 |                         |                 |
         #                         /-------+-------\              /--+--\       /------+-------\
-        match = re.match("^Inst\s+(?P<name>[^\s:]+)(?::\S+)?\s+\[[^]\s]+\]\s+\((?P<version>\S+)" +
+        match = re.match(r"^Inst\s+(?P<name>[^\s:]+)(?::\S+)?\s+\[[^]\s]+\]\s+\((?P<version>\S+)" +
 
         #                repository(ies)      arch (might be optional)
         #                       |               |
