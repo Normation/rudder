@@ -78,13 +78,6 @@ impl Webapp {
         let mut in_extra_classpath = false;
         let mut extra_classpath_found = false;
 
-        if !present.is_empty() {
-            // We enable plugins and their version may have changed so we need to restart the webapp even if the file
-            // does not change.
-            // This is required when upgrading an installed plugin.
-            self.pending_changes = true;
-        }
-
         loop {
             match reader.read_event_into(&mut buf)? {
                 Event::Eof => break,
@@ -182,6 +175,12 @@ impl Webapp {
 
     pub fn disable_jars(&mut self, jars: &[String]) -> Result<()> {
         self.modify_jars(&[], jars)
+    }
+
+    /// Used to ensure the webapp gets restarted even if the jars list has not changed.
+    /// To be used when the jar contents have changed on disk (i.e. plugin upgrade).
+    pub fn trigger_restart(&mut self) {
+        self.pending_changes = true;
     }
 
     /// Synchronous restart of the web application

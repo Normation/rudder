@@ -244,6 +244,9 @@ impl Rpkg {
         // Update the webapp xml file if the plugin contains one or more jar file
         debug!("Enabling the associated jars if any");
         webapp.enable_jars(&self.metadata.jar_files)?;
+        // We want to restart even if the enabled plugin list does not change
+        // as we have modified the plugin files.
+        webapp.trigger_restart();
         info!(
             "Plugin {} was successfully installed",
             self.metadata.short_name()
