@@ -31,6 +31,7 @@ getScoreBadge id score smallSize =
 
 scoreBreakdownList : List Score -> List ScoreInfo -> List (Html Msg)
 scoreBreakdownList scoreDetails scoreInfo = scoreDetails
+  |> List.sortBy .scoreId
   |> List.map(\sD ->
     let
       name = List.Extra.find (.id >> (==) sD.scoreId) scoreInfo |> Maybe.map .name |> Maybe.withDefault (String.Extra.humanize sD.scoreId)
