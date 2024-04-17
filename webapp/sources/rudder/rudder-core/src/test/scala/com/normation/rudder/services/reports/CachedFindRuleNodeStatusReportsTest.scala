@@ -40,6 +40,7 @@ package com.normation.rudder.services.reports
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.NodeConfigId
@@ -56,6 +57,7 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository.FindExpectedReportRepository
 import com.normation.rudder.repository.ReportsRepository
+import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.score.GlobalScore
 import com.normation.rudder.score.Score
 import com.normation.rudder.score.ScoreService
@@ -227,6 +229,27 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
 
       override def init(): IOResult[Unit] = ???
     })
+
+    override def rulesRepo: RoRuleRepository = new RoRuleRepository {
+
+      /**
+       * Try to find the rule with the given ID.
+       */
+      override def getOpt(ruleId: RuleId): IOResult[Option[Rule]] = ???
+
+      /**
+       * Return all rules.
+       * To get only applied one, you can post-filter the seq
+       * with the method RuleTargetService#isApplied
+       */
+      override def getAll(includeSytem: Boolean): IOResult[Seq[Rule]] = ???
+
+      /**
+       * Return all rules ids.
+       * Optionnaly include system rules
+       */
+      override def getIds(includeSytem: Boolean): IOResult[Set[RuleId]] = Set[RuleId]().succeed
+    }
   }
 
   implicit val qc: QueryContext = QueryContext.testQC
