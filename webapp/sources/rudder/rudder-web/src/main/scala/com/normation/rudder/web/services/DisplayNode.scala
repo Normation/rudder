@@ -43,6 +43,7 @@ import com.normation.box.*
 import com.normation.cfclerk.domain.HashAlgoConstraint.SHA1
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.*
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.NodeKind
@@ -62,6 +63,7 @@ import com.normation.rudder.web.snippet.RegisterToasts
 import com.normation.rudder.web.snippet.ToastNotification
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
+import com.softwaremill.quicklens.*
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
@@ -76,6 +78,7 @@ import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import scala.xml.*
 import scala.xml.Utility.escape
+import zio.syntax.*
 
 /**
  * A service used to display details about a server
@@ -658,70 +661,123 @@ object DisplayNode extends Loggable {
       }.getOrElse(NodeSeq.Empty)
     }
             </div>
-            {
-      val checked     = (nodeFact.rudderSettings.status, nodeFact.rudderSettings.keyStatus) match {
-        case (AcceptedInventory, CertifiedKey) =>
-          <span>
-                <span class="fa fa-check text-success" data-bs-toggle="tooltip" title="Inventories for this Node must be signed with this key"></span>
-              </span>
-        case (AcceptedInventory, UndefinedKey) =>
-          <span>
-                <span class="fa fa-exclamation-triangle text-warning" data-bs-toggle="tooltip" title="Certificate for this node has been reset, next inventory will be trusted automatically"></span>
-              </span>
-        case _                                 => // not accepted inventory? Should not get there
-          NodeSeq.Empty
-      }
-      val nodeId      = nodeFact.id
-      val publicKeyId = s"publicKey-${nodeId.value}"
-      val cfKeyHash   = nodeFactRepository.get(nodeId).either.runNow match {
-        case Right(Some(nodeFact)) if (nodeFact.keyHashCfengine.nonEmpty) =>
-          <div><label>Key hash:</label> <samp>{nodeFact.keyHashCfengine}</samp></div>
-        case _                                                            => NodeSeq.Empty
-      }
-      val curlHash    = nodeFactRepository.get(nodeId).either.runNow match {
-        case Right(Some(nodeFact)) if (nodeFact.keyHashCfengine.nonEmpty) =>
-          <div><label>Key hash:</label> <samp>sha256//{nodeFact.keyHashBase64Sha256}</samp></div>
-        case _                                                            => NodeSeq.Empty
-      }
-
-      val agent     = nodeFact.rudderAgent
-      val tokenKind = agent.securityToken match {
-        case _: PublicKey   => "Public key"
-        case _: Certificate => "Certificate"
-      }
-      <div class="security-info">
-            {
-        agent.securityToken match {
-          case _: PublicKey   => NodeSeq.Empty
-          case c: Certificate =>
-            c.cert.either.runNow match {
-              case Left(e)     => <span title={e.fullMsg}>Error while reading certificate information</span>
-              case Right(cert) => (
-                <div><label>Fingerprint (sha1): </label> <samp>{
-                  SHA1.hash(cert.getEncoded).grouped(2).mkString(":")
-                }</samp></div>
-                    <div><label>Expiration date: </label> {
-                  DateFormaterService.getDisplayDate(new DateTime(cert.getNotAfter))
-                }</div>
-              )
-            }
-        }
-      }
-        {curlHash}
-        {cfKeyHash}
-        <button type="button" class="toggle-security-info btn btn-default" onclick={
-        s"$$('#${publicKeyId}').toggle(300); $$(this).toggleClass('opened'); return false;"
-      }> <b>{tokenKind}</b> {checked} </button>
-        <div><pre id={publicKeyId} class="display-keys" style="display:none;">{agent.securityToken.key}</pre></div>
-        {Script(OnLoad(JsRaw(s"""initBsTooltips();""")))}
-      </div>
-    }
+            {displaySecurityInfo(nodeFact)}
       </div>
     </div>
   }
 
   private def htmlId(jsId:   JsNodeId, prefix: String): String = prefix + jsId.toString
   private def htmlId_#(jsId: JsNodeId, prefix: String): String = "#" + prefix + jsId.toString
+
+  /*
+   * Display the div with ID `security-info` with cfenfine and curl key/certificate hash,
+   * the key/certificate detail, and the button to untrust the key
+   */
+  private def displaySecurityInfo(nodeFact: NodeFact)(implicit qc: QueryContext): NodeSeq = {
+
+    val checked     = (nodeFact.rudderSettings.status, nodeFact.rudderSettings.keyStatus) match {
+      case (AcceptedInventory, CertifiedKey) =>
+        <span>
+                <span class="fa fa-check text-success" data-bs-toggle="tooltip" title="Inventories for this Node must be signed with this key"></span>
+              </span>
+      case (AcceptedInventory, UndefinedKey) =>
+        <span>
+                <span class="fa fa-exclamation-triangle text-warning" data-bs-toggle="tooltip" title="Certificate for this node has been reset, next inventory will be trusted automatically"></span>
+              </span>
+      case _                                 => // not accepted inventory? Should not get there
+        NodeSeq.Empty
+    }
+    val nodeId      = nodeFact.id
+    val publicKeyId = s"publicKey-${nodeId.value}"
+    val cfKeyHash   = nodeFactRepository.get(nodeId).either.runNow match {
+      case Right(Some(nodeFact)) if (nodeFact.keyHashCfengine.nonEmpty) =>
+        <div><label>Key hash:</label> <samp>{nodeFact.keyHashCfengine}</samp></div>
+      case _                                                            => NodeSeq.Empty
+    }
+    val curlHash    = nodeFactRepository.get(nodeId).either.runNow match {
+      case Right(Some(nodeFact)) if (nodeFact.keyHashCfengine.nonEmpty) =>
+        <div><label>Key hash:</label> <samp>sha256//{nodeFact.keyHashBase64Sha256}</samp></div>
+      case _                                                            => NodeSeq.Empty
+    }
+
+    val agent     = nodeFact.rudderAgent
+    val tokenKind = agent.securityToken match {
+      case _: PublicKey   => "Public key"
+      case _: Certificate => "Certificate"
+    }
+    <div class="security-info" id={"security-" + nodeFact.id.value}>{
+      agent.securityToken match {
+        case _: PublicKey   => NodeSeq.Empty
+        case c: Certificate =>
+          c.cert.either.runNow match {
+            case Left(e)     => <span title={e.fullMsg}>Error while reading certificate information</span>
+            case Right(cert) => (
+              <div><label>Fingerprint (sha1): </label> <samp>{
+                SHA1.hash(cert.getEncoded).grouped(2).mkString(":")
+              }</samp></div>
+                    <div><label>Expiration date: </label> {
+                DateFormaterService.getDisplayDate(new DateTime(cert.getNotAfter))
+              }</div>
+            )
+          }
+      }
+    }
+        {curlHash}
+        {cfKeyHash}
+        <button type="button" class="toggle-security-info btn btn-default" onclick={
+      s"$$('#${publicKeyId}').toggle(300); $$(this).toggleClass('opened'); return false;"
+    }> <b>{tokenKind}</b> {checked} </button>
+      <div>
+        {
+      if (CurrentUser.checkRights(AuthorizationType.Node.Write) && nodeFact.rudderSettings.keyStatus == CertifiedKey) {
+        SHtml.ajaxButton(
+          "Reset status to be able to accept a different key",
+          () => resetKeyStatus(nodeFact, agent.securityToken)
+        ) % ("class", "btn btn-default btn-sm")
+      } else NodeSeq.Empty
+    }
+        <pre id={publicKeyId} class="display-keys" style="display:none;"><div>{agent.securityToken.key}</div></pre>{
+      Script(OnLoad(JsRaw(s"""initBsTooltips();""")))
+    }
+      </div>
+    </div>
+  }
+
+  /*
+   * Reset key status for given node and redisplay it's security <div>
+   */
+  private def resetKeyStatus(nodeFact: NodeFact, st: SecurityToken)(implicit qc: QueryContext): JsCmd = {
+
+    RudderConfig.woNodeRepository
+      .updateNodeKeyInfo(
+        nodeFact.id,
+        None,
+        Some(UndefinedKey),
+        ModificationId(RudderConfig.stringUuidGenerator.newUuid),
+        CurrentUser.actor,
+        Some("Trusted key status reset to accept new key (first use)")
+      )
+      .map { _ =>
+        val js: JsCmd = {
+          SetHtml(
+            s"security-${nodeFact.id.value}",
+            displaySecurityInfo(nodeFact.modify(_.rudderSettings.keyStatus).setTo(UndefinedKey))
+          ) &
+          JsRaw(s"""createSuccessNotification("Key status for node '${nodeFact.id.value}' correctly changed.")""")
+        }
+        js
+      }
+      .catchAll { err =>
+        val js: JsCmd = JsRaw(
+          s"""createErrorNotification("${s"An error happened when trying to change key status of node '${nodeFact.fqdn}' [${nodeFact.id.value}]. " +
+            "Please contact your server admin to resolve the problem. " +
+            s"Error was: '${err.fullMsg}'"}")"""
+        )
+        js.succeed
+      }
+      .runNow
+
+  }
 
   // Display the role of the node
   private def displayServerRole(nodeFact: NodeFact): NodeSeq = {

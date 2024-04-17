@@ -430,7 +430,7 @@ object NodeApi       extends Enum[NodeApi] with ApiModuleProvider[NodeApi] {
   final case object NodeDisplayInheritedProperties
       extends NodeApi with InternalApi with OneParam with StartsAtVersion13 with SortIndex {
     val z: Int = implicitly[Line].value
-    val description    = "Get all proporeties for that node, included inherited ones, for displaying in node property tab (internal)"
+    val description    = "Get all properties for that node, included inherited ones, for displaying in node property tab (internal)"
     val (action, path) = GET / "nodes" / "{id}" / "displayInheritedProperties"
   }
   final case object NodeDetailsTable extends NodeApi with InternalApi with ZeroParam with StartsAtVersion13 with SortIndex {
