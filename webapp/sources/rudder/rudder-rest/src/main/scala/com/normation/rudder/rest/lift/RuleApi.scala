@@ -64,6 +64,7 @@ import com.normation.rudder.domain.policies.ModifyToRuleDiff
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
@@ -103,6 +104,7 @@ import net.liftweb.http.Req
 import net.liftweb.json.*
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonDSL.*
+import org.joda.time.DateTime
 import scala.collection.MapView
 import zio.*
 import zio.syntax.*
@@ -210,6 +212,7 @@ class RuleApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
       serviceV2.deleteRule(id, req)
     }
   }
@@ -225,6 +228,7 @@ class RuleApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
       if (req.json_?) {
         req.json match {
           case Full(arg) =>
@@ -575,7 +579,7 @@ class RuleApiService2(
       change: RuleChangeRequest,
       actor:  EventActor,
       req:    Req
-  )(implicit action: String, prettify: Boolean) = {
+  )(implicit action: String, prettify: Boolean, qc: QueryContext) = {
     (for {
       workflow <- workflowLevelService.getForRule(actor, change)
       reason   <- restExtractor.extractReason(req)
@@ -592,7 +596,11 @@ class RuleApiService2(
                     actor,
                     reason
                   )
-      id       <- workflowLevelService.getWorkflowService().startWorkflow(cr, actor, None)
+      id       <- workflowLevelService
+                    .getWorkflowService()
+                    .startWorkflow(cr)(
+                      ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), reason, None, qc.nodePerms)
+                    )
     } yield {
       (workflow.needExternalValidation(), id)
     }) match {
@@ -702,7 +710,7 @@ class RuleApiService2(
     }
   }
 
-  def deleteRule(id: String, req: Req): LiftResponse = {
+  def deleteRule(id: String, req: Req)(implicit qc: QueryContext): LiftResponse = {
     implicit val action   = "deleteRule"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor             = RestUtils.getActor(req)
@@ -721,7 +729,7 @@ class RuleApiService2(
     }
   }
 
-  def updateRule(id: String, req: Req, restValues: Box[RestRule]): LiftResponse = {
+  def updateRule(id: String, req: Req, restValues: Box[RestRule])(implicit qc: QueryContext): LiftResponse = {
     implicit val action   = "updateRule"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor             = getActor(req)
@@ -885,7 +893,11 @@ class RuleApiService14(
                         actor,
                         params.reason
                       )
-      id           <- workflow.startWorkflow(cr, actor, params.reason).toIO
+      id           <- workflow
+                        .startWorkflow(cr)(
+                          ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), params.reason, None, qc.nodePerms)
+                        )
+                        .toIO
       directiveLib <- readDirectives.getFullDirectiveLibrary()
       groupLib     <- readGroup.getFullGroupLibrary()
       nodesLib     <- nodeFactRepos.getAll()

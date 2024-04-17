@@ -237,7 +237,7 @@ class EventLogAPI(
                         case Full(Some((_, crId))) => crId
                         case _                     => None
                       })
-        htmlDetails = eventLogDetail.displayDetails(event, crId)
+        htmlDetails = eventLogDetail.displayDetails(event, crId)(CurrentUser.queryContext)
       } yield {
         val response = {
           (("id"           -> id)

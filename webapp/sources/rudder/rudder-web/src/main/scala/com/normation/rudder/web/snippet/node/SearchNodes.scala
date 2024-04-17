@@ -46,6 +46,8 @@ import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.SearchNodeComponent
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
 import net.liftweb.common.*
@@ -100,16 +102,16 @@ class SearchNodes extends StatefulSnippet with Loggable {
   var dispatch: DispatchIt = {
     case "showQuery"   =>
       searchNodeComponent.get match {
-        case Full(component) => { _ => queryForm(component) }
+        case Full(component) => { _ => queryForm(component)(CurrentUser.queryContext) }
         case _               => { _ => <div>loading...</div><div></div> }
       }
-    case "head"        => head _
+    case "head"        => head(_)(CurrentUser.queryContext)
     case "createGroup" => createGroup _
   }
 
   var activateSubmitButton = true
 
-  def head(html: NodeSeq): NodeSeq = {
+  def head(html: NodeSeq)(implicit qc: QueryContext): NodeSeq = {
 
     // add a function name to force reparse hashtag for other js elt of the page
 
@@ -180,7 +182,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
     )
   }
 
-  def queryForm(sc: SearchNodeComponent): Elem = {
+  def queryForm(sc: SearchNodeComponent)(implicit qc: QueryContext): Elem = {
     SHtml.ajaxForm(sc.buildQuery(false))
   }
 
@@ -194,7 +196,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
    * - pass an empty string if hash is undefined or empty
    * - pass a json-serialised structure in other cases
    */
-  private[this] def parseHashtag(): JsCmd = {
+  private[this] def parseHashtag()(implicit qc: QueryContext): JsCmd = {
     def executeQuery(query: String): JsCmd = {
       val sc = if (query.nonEmpty) {
         val parsed = queryParser(query)

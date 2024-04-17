@@ -42,6 +42,7 @@ import bootstrap.liftweb.BootstrapLogger
 import com.normation.box.*
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.ItemArchiveManager
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
@@ -81,7 +82,7 @@ class CheckInitXmlExport(
                     RudderEventActor,
                     Some("Initialising configuration-repository sub-system"),
                     false
-                  )
+                  )(QueryContext.systemQC)
                 } else {
                   BootstrapLogger.trace("At least a full archive of configuration items done, no need for further initialisation") *>
                   ZIO.unit

@@ -37,8 +37,10 @@
 package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
+import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.RuleModAction
@@ -53,6 +55,7 @@ import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
+import org.joda.time.DateTime
 import scala.xml.*
 
 /**
@@ -101,6 +104,7 @@ class RuleModificationValidationPopup(
   import RuleModificationValidationPopup.*
 
   private[this] val userPropertyService = RudderConfig.userPropertyService
+  private[this] val uuidGen             = RudderConfig.stringUuidGenerator
 
   val validationNeeded: Boolean = workflowService.needExternalValidation()
 
@@ -261,7 +265,16 @@ class RuleModificationValidationPopup(
                     CurrentUser.actor,
                     crReasons.map(_.get)
                   )
-          id   <- workflowService.startWorkflow(cr, CurrentUser.actor, crReasons.map(_.get))
+          id   <- workflowService.startWorkflow(cr)(
+                    ChangeContext(
+                      ModificationId(uuidGen.newUuid),
+                      CurrentUser.actor,
+                      new DateTime(),
+                      crReasons.map(_.get),
+                      None,
+                      CurrentUser.nodePerms
+                    )
+                  )
         } yield {
           id
         }

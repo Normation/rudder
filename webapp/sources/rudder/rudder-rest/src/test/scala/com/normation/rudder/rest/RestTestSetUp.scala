@@ -495,7 +495,8 @@ class RestTestSetUp {
         actor:         EventActor,
         reason:        Option[String],
         includeSystem: Boolean
-    ): IOResult[(GitArchiveId, NotArchivedElements)] = ZIO.succeed((fakeGitArchiveId, fakeNotArchivedElements))
+    )(implicit qc: QueryContext): IOResult[(GitArchiveId, NotArchivedElements)] =
+      ZIO.succeed((fakeGitArchiveId, fakeNotArchivedElements))
     override def exportRules(
         commiter:      PersonIdent,
         modId:         ModificationId,
@@ -516,7 +517,7 @@ class RestTestSetUp {
         actor:         EventActor,
         reason:        Option[String],
         includeSystem: Boolean
-    ): IOResult[GitArchiveId] = ZIO.succeed(fakeGitArchiveId)
+    )(implicit qc: QueryContext): IOResult[GitArchiveId] = ZIO.succeed(fakeGitArchiveId)
     override def exportParameters(
         commiter:      PersonIdent,
         modId:         ModificationId,
@@ -527,54 +528,36 @@ class RestTestSetUp {
     override def importAll(
         archiveId:     GitCommitId,
         commiter:      PersonIdent,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String],
         includeSystem: Boolean
-    ): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
+    )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def importRules(
         archiveId:     GitCommitId,
         commiter:      PersonIdent,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String],
         includeSystem: Boolean
-    ): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
+    )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def importTechniqueLibrary(
         archiveId:     GitCommitId,
         commiter:      PersonIdent,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String],
         includeSystem: Boolean
-    ): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
+    )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def importGroupLibrary(
         archiveId:     GitCommitId,
         commiter:      PersonIdent,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String],
         includeSystem: Boolean
-    ): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
+    )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def importParameters(
         archiveId:     GitCommitId,
         commiter:      PersonIdent,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String],
         includeSystem: Boolean
-    ): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
+    )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def rollback(
         archiveId:        GitCommitId,
         commiter:         PersonIdent,
-        modId:            ModificationId,
-        actor:            EventActor,
-        reason:           Option[String],
         rollbackedEvents: Seq[EventLog],
         target:           EventLog,
         rollbackType:     String,
         includeSystem:    Boolean
-    ): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
+    )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
 
     /**
       * These methods are called by the Archive API to get the git archives.
@@ -880,8 +863,8 @@ class RestTestSetUp {
     val zipArchiveReader = new ZipArchiveReaderImpl(mockLdapQueryParsing.queryParser, mockTechniques.techniqueParser)
     // a mock save archive that stores result in a ref
     object archiveSaver   extends SaveArchiveService  {
-      val base:                                                                               Ref[Option[(PolicyArchive, MergePolicy)]] = Ref.make(Option.empty[(PolicyArchive, MergePolicy)]).runNow
-      override def save(archive: PolicyArchive, mergePolicy: MergePolicy, actor: EventActor): IOResult[Unit]                            = {
+      val base:                                                                                       Ref[Option[(PolicyArchive, MergePolicy)]] = Ref.make(Option.empty[(PolicyArchive, MergePolicy)]).runNow
+      override def save(archive: PolicyArchive, mergePolicy: MergePolicy)(implicit qc: QueryContext): IOResult[Unit]                            = {
         base.set(Some((archive, mergePolicy))).unit
       }
     }

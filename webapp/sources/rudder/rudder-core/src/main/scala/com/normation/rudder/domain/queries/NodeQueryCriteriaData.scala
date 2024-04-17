@@ -52,6 +52,7 @@ import com.normation.rudder.domain.queries.KeyValueComparator.HasKey
 import com.normation.rudder.domain.queries.KeyValueComparator as KVC
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFact
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.utils.DateFormaterService
 import java.util.function.Predicate
@@ -64,13 +65,13 @@ import zio.*
 import zio.syntax.*
 
 trait SubGroupComparatorRepository {
-  def getNodeIds(groupId: NodeGroupId): IOResult[Chunk[NodeId]]
+  def getNodeIds(groupId: NodeGroupId)(implicit qc: QueryContext): IOResult[Chunk[NodeId]]
   def getGroups: IOResult[Chunk[SubGroupChoice]]
 }
 // default implementation out of test use GroupRepo for that
 class DefaultSubGroupComparatorRepository(repo: RoNodeGroupRepository) extends SubGroupComparatorRepository {
 
-  override def getNodeIds(groupId: NodeGroupId): IOResult[Chunk[NodeId]] = {
+  override def getNodeIds(groupId: NodeGroupId)(implicit qc: QueryContext): IOResult[Chunk[NodeId]] = {
     repo.getNodeGroupOpt(groupId).map {
       case None             => Chunk.empty
       case Some((group, _)) => Chunk.fromIterable(group.serverList)

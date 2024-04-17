@@ -51,6 +51,7 @@ import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.workflows.*
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
@@ -69,6 +70,7 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.FieldError
 import net.liftweb.util.Helpers.*
+import org.joda.time.DateTime
 import scala.xml.*
 
 /**
@@ -552,10 +554,16 @@ class ModificationValidationPopup(
           woNodeGroupRepository
             .move(
               nodeGroup.id,
-              parentCategoryId,
-              ModificationId(uuidGen.newUuid),
-              CurrentUser.actor,
-              crReasons.map(_.get)
+              parentCategoryId
+            )(
+              ChangeContext(
+                ModificationId(uuidGen.newUuid),
+                CurrentUser.actor,
+                new DateTime(),
+                crReasons.map(_.get),
+                None,
+                CurrentUser.nodePerms
+              )
             )
             .toBox match {
             case Full(_) => // ok, continue
@@ -587,7 +595,16 @@ class ModificationValidationPopup(
 
     (for {
       cr <- boxcr
-      id <- workflowService.startWorkflow(cr, CurrentUser.actor, crReasons.map(_.get))
+      id <- workflowService.startWorkflow(cr)(
+              ChangeContext(
+                ModificationId(uuidGen.newUuid),
+                CurrentUser.actor,
+                new DateTime(),
+                crReasons.map(_.get),
+                None,
+                CurrentUser.nodePerms
+              )
+            )
     } yield {
       id
     }) match {

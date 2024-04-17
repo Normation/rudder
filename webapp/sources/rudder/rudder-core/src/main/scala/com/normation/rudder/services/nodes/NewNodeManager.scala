@@ -367,7 +367,7 @@ class RefuseGroups(
       groupIds       <- roGroupRepo.findGroupWithAnyMember(Seq(cnf.id))
       modifiedGroups <- ZIO.foreach(groupIds) { groupId =>
                           for {
-                            groupPair <- roGroupRepo.getNodeGroup(groupId)
+                            groupPair <- roGroupRepo.getNodeGroup(groupId)(cc.toQuery)
                             modGroup   = groupPair._1.copy(serverList = groupPair._1.serverList - cnf.id)
                             msg        = Some("Automatic update of groups due to refusal of node " + cnf.id.value)
                             saved     <- {
@@ -412,7 +412,7 @@ class AcceptHostnameAndIp(
    * search in database nodes having the same hostname as one provided.
    * Only return existing hostname (and so again, we want that to be empty)
    */
-  private[this] def queryForDuplicateHostname(hostnames: Seq[String]): IOResult[Unit] = {
+  private[this] def queryForDuplicateHostname(hostnames: Seq[String])(implicit qc: QueryContext): IOResult[Unit] = {
     val hostnameCriterion = hostnames.toList.map { h =>
       CriterionLine(
         objectType = objectType,
@@ -442,7 +442,7 @@ class AcceptHostnameAndIp(
       acceptDuplicated <- acceptDuplicateHostnames
       _                <- ZIO.when(!acceptDuplicated) {
                             for {
-                              _ <- queryForDuplicateHostname(List(cnf.fqdn))
+                              _ <- queryForDuplicateHostname(List(cnf.fqdn))(cc.toQuery)
                             } yield ()
                           }
     } yield ()

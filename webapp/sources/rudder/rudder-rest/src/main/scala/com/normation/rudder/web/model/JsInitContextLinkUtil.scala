@@ -43,6 +43,7 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
@@ -140,7 +141,7 @@ class LinkUtil(
     }
   }
 
-  def createGroupLink(id: NodeGroupId): Elem = {
+  def createGroupLink(id: NodeGroupId)(implicit qc: QueryContext): Elem = {
     roGroupRepository.getNodeGroup(id).either.runNow match {
       case Right((group, _)) => <span> <a href={baseGroupLink(id)}>{group.name}</a> (Rudder ID: {id.serialize})</span>
       case Left(err)         =>

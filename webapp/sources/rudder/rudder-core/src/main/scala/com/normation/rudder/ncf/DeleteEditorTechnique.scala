@@ -53,11 +53,14 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowLevelService
+import org.joda.time.DateTime
 import zio.*
 import zio.syntax.*
 
@@ -137,7 +140,16 @@ class DeleteEditorTechniqueImpl(
                                       .map(createCr(_, technique.rootSection))
                                       .reduceOption(mergeCrs)
                                       .notOptional(s"Could not create a change request to delete '${techniqueId.serialize}' directives")
-                              _  <- wf.startWorkflow(cr, committer, Some(s"Deleting technique '${techniqueId.serialize}'")).toIO
+                              _  <- wf.startWorkflow(cr)(
+                                      ChangeContext(
+                                        modId,
+                                        committer,
+                                        new DateTime(),
+                                        Some(s"Deleting technique '${techniqueId.serialize}'"),
+                                        None,
+                                        QueryContext.todoQC.nodePerms
+                                      )
+                                    ).toIO
                             } yield ()
                           } else {
                             Unexpected(

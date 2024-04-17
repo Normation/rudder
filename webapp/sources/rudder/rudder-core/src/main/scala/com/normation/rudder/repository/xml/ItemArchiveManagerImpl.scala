@@ -47,6 +47,8 @@ import com.normation.rudder.domain.Constants.FULL_ARCHIVE_TAG
 import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.logger.GitArchiveLoggerPure
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitArchiverFullCommitUtils
 import com.normation.rudder.git.GitCommitId
@@ -137,7 +139,7 @@ class ItemArchiveManagerImpl(
       actor:         EventActor,
       reason:        Option[String],
       includeSystem: Boolean = false
-  ): IOResult[(GitArchiveId, NotArchivedElements)] = {
+  )(implicit qc: QueryContext): IOResult[(GitArchiveId, NotArchivedElements)] = {
     for {
       saveCrs        <- exportRules(commiter, modId, actor, reason, includeSystem)
       saveUserLib    <- exportTechniqueLibrary(commiter, modId, actor, reason, includeSystem)
@@ -290,7 +292,7 @@ class ItemArchiveManagerImpl(
       actor:         EventActor,
       reason:        Option[String],
       includeSystem: Boolean = false
-  ): IOResult[GitArchiveId] = {
+  )(implicit qc: QueryContext): IOResult[GitArchiveId] = {
     for {
       catWithGroups <- groupRepository.getGroupsByCategory(includeSystem = true)
       // remove systems categories, because we don't want them
@@ -343,19 +345,17 @@ class ItemArchiveManagerImpl(
   override def importAll(
       archiveId:     GitCommitId,
       commiter:      PersonIdent,
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String],
       includeSystem: Boolean = false
-  ): IOResult[GitCommitId] = {
+  )(implicit cc: ChangeContext): IOResult[GitCommitId] = {
+    import cc.*
     useSemaphoreOrFail(
       for {
         _           <- GitArchiveLoggerPure.info("Importing full archive with id '%s'".format(archiveId.value))
-        rules       <- importRulesAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
-        userLib     <- importTechniqueLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
-        groupLIb    <- importGroupLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
-        parameters  <- importParametersAndDeploy(archiveId, modId, actor, reason, false)
-        eventLogged <- eventLogger.saveEventLog(modId, new ImportFullArchive(actor, archiveId, reason))
+        rules       <- importRulesAndDeploy(archiveId, includeSystem, false)
+        userLib     <- importTechniqueLibraryAndDeploy(archiveId, includeSystem, false)
+        groupLIb    <- importGroupLibraryAndDeploy(archiveId, includeSystem, false)
+        parameters  <- importParametersAndDeploy(archiveId, false)
+        eventLogged <- eventLogger.saveEventLog(modId, new ImportFullArchive(actor, archiveId, message))
         commit      <- restoreCommitAtHead(
                          commiter,
                          "User %s requested full archive restoration to commit %s".format(actor.name, archiveId.value),
@@ -373,16 +373,14 @@ class ItemArchiveManagerImpl(
   override def importRules(
       archiveId:     GitCommitId,
       commiter:      PersonIdent,
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String],
       includeSystem: Boolean = false
-  ): ZIO[Any, RudderError, GitCommitId] = {
+  )(implicit cc: ChangeContext): ZIO[Any, RudderError, GitCommitId] = {
+    import cc.*
     val commitMsg = "User %s requested rule archive restoration to commit %s".format(actor.name, archiveId.value)
     useSemaphoreOrFail(
       for {
-        rulesArchiveId <- importRulesAndDeploy(archiveId, modId, actor, reason, includeSystem)
-        eventLogged    <- eventLogger.saveEventLog(modId, new ImportRulesArchive(actor, archiveId, reason))
+        rulesArchiveId <- importRulesAndDeploy(archiveId, includeSystem)
+        eventLogged    <- eventLogger.saveEventLog(modId, new ImportRulesArchive(actor, archiveId, message))
         commit         <- restoreCommitAtHead(commiter, commitMsg, archiveId, PartialArchive.ruleArchive, modId)
       } yield {
         archiveId
@@ -402,12 +400,10 @@ class ItemArchiveManagerImpl(
 
   private[this] def importRulesAndDeploy(
       archiveId:     GitCommitId,
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String],
       includeSystem: Boolean,
       deploy:        Boolean = true
-  ): IOResult[GitCommitId] = {
+  )(implicit cc: ChangeContext): IOResult[GitCommitId] = {
+    import cc.*
     for {
       _          <- GitArchiveLoggerPure.info("Importing rules archive with id '%s'".format(archiveId.value))
       categories <- importRuleCategories(archiveId)
@@ -427,16 +423,14 @@ class ItemArchiveManagerImpl(
   override def importTechniqueLibrary(
       archiveId:     GitCommitId,
       commiter:      PersonIdent,
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String],
       includeSystem: Boolean
-  ): IOResult[GitCommitId] = {
+  )(implicit cc: ChangeContext): IOResult[GitCommitId] = {
+    import cc.*
     val commitMsg = "User %s requested directive archive restoration to commit %s".format(actor.name, archiveId.value)
     useSemaphoreOrFail(
       for {
-        directivesArchiveId <- importTechniqueLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem)
-        eventLogged         <- eventLogger.saveEventLog(modId, new ImportTechniqueLibraryArchive(actor, archiveId, reason))
+        directivesArchiveId <- importTechniqueLibraryAndDeploy(archiveId, includeSystem)
+        eventLogged         <- eventLogger.saveEventLog(modId, new ImportTechniqueLibraryArchive(actor, archiveId, message))
         commit              <- restoreCommitAtHead(commiter, commitMsg, archiveId, TechniqueLibraryArchive, modId)
       } yield {
         archiveId
@@ -446,18 +440,15 @@ class ItemArchiveManagerImpl(
 
   private[this] def importTechniqueLibraryAndDeploy(
       archiveId:     GitCommitId,
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String],
       includeSystem: Boolean,
       deploy:        Boolean = true
-  ): IOResult[GitCommitId] = {
+  )(implicit cc: ChangeContext): IOResult[GitCommitId] = {
     for {
       _        <- GitArchiveLoggerPure.info(s"Importing technique library archive with id '${archiveId.value}'")
       parsed   <- parseActiveTechniqueLibrary.getArchive(archiveId)
       imported <- importTechniqueLibrary.swapActiveTechniqueLibrary(parsed, includeSystem)
     } yield {
-      if (deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
+      if (deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor) }
       archiveId
     }
   }
@@ -465,16 +456,14 @@ class ItemArchiveManagerImpl(
   override def importGroupLibrary(
       archiveId:     GitCommitId,
       commiter:      PersonIdent,
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String],
       includeSystem: Boolean
-  ): IOResult[GitCommitId] = {
+  )(implicit cc: ChangeContext): IOResult[GitCommitId] = {
+    import cc.*
     val commitMsg = "User %s requested group archive restoration to commit %s".format(actor.name, archiveId.value)
     useSemaphoreOrFail(
       for {
-        groupsArchiveId <- importGroupLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem)
-        eventLogged     <- eventLogger.saveEventLog(modId, new ImportGroupsArchive(actor, archiveId, reason))
+        groupsArchiveId <- importGroupLibraryAndDeploy(archiveId, includeSystem)
+        eventLogged     <- eventLogger.saveEventLog(modId, new ImportGroupsArchive(actor, archiveId, message))
         commit          <- restoreCommitAtHead(commiter, commitMsg, archiveId, PartialArchive.groupArchive, modId)
       } yield {
         archiveId
@@ -484,19 +473,16 @@ class ItemArchiveManagerImpl(
 
   private[this] def importGroupLibraryAndDeploy(
       archiveId:     GitCommitId,
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String],
       includeSystem: Boolean,
       deploy:        Boolean = true
-  ): IOResult[GitCommitId] = {
+  )(implicit cc: ChangeContext): IOResult[GitCommitId] = {
     for {
       _        <- GitArchiveLoggerPure.info(s"Importing groups archive with id '${archiveId.value}'")
       parsed   <- parseGroupLibrary.getArchive(archiveId)
       imported <- importGroupLibrary.swapGroupLibrary(parsed, includeSystem)
-      dynGroup <- updateDynamicGroups.updateAll(modId, actor, reason).toIO
+      dynGroup <- updateDynamicGroups.updateAll(cc.modId).toIO
     } yield {
-      if (deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
+      if (deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor) }
       archiveId
     }
   }
@@ -504,16 +490,14 @@ class ItemArchiveManagerImpl(
   override def importParameters(
       archiveId:     GitCommitId,
       commiter:      PersonIdent,
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String],
       includeSystem: Boolean = false
-  ): ZIO[Any, RudderError, GitCommitId] = {
+  )(implicit cc: ChangeContext): ZIO[Any, RudderError, GitCommitId] = {
+    import cc.*
     val commitMsg = "User %s requested Parameters archive restoration to commit %s".format(actor.name, archiveId.value)
     useSemaphoreOrFail(
       for {
-        parametersArchiveId <- importParametersAndDeploy(archiveId, modId, actor, reason, includeSystem)
-        eventLogged         <- eventLogger.saveEventLog(modId, new ImportParametersArchive(actor, archiveId, reason))
+        parametersArchiveId <- importParametersAndDeploy(archiveId, includeSystem)
+        eventLogged         <- eventLogger.saveEventLog(modId, new ImportParametersArchive(actor, archiveId, message))
         commit              <- restoreCommitAtHead(commiter, commitMsg, archiveId, PartialArchive.parameterArchive, modId)
       } yield {
         archiveId
@@ -523,12 +507,9 @@ class ItemArchiveManagerImpl(
 
   private[this] def importParametersAndDeploy(
       archiveId:     GitCommitId,
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String],
       includeSystem: Boolean,
       deploy:        Boolean = true
-  ): IOResult[GitCommitId] = {
+  )(implicit cc: ChangeContext): IOResult[GitCommitId] = {
     for {
       _        <- GitArchiveLoggerPure.info(s"Importing Parameters archive with id '${archiveId.value}'")
       parsed   <- parseGlobalParameters.getArchive(archiveId)
@@ -539,7 +520,7 @@ class ItemArchiveManagerImpl(
                     .catchAll(err =>
                       GitArchiveLoggerPure.warn(s"Error when trying to delete saved archive of old parameters: ${err.fullMsg}")
                     )
-      _        <- effectUioUnit(if (deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) })
+      _        <- effectUioUnit(if (deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor) })
     } yield {
       archiveId
     }
@@ -554,22 +535,20 @@ class ItemArchiveManagerImpl(
   override def rollback(
       archiveId:        GitCommitId,
       commiter:         PersonIdent,
-      modId:            ModificationId,
-      actor:            EventActor,
-      reason:           Option[String],
       rollbackedEvents: Seq[EventLog],
       target:           EventLog,
       rollbackType:     String,
       includeSystem:    Boolean = false
-  ): IOResult[GitCommitId] = {
+  )(implicit cc: ChangeContext): IOResult[GitCommitId] = {
+    import cc.*
     useSemaphoreOrFail(
       for {
         _           <- GitArchiveLoggerPure.info(s"Importing full archive with id '${archiveId.value}'")
-        rules       <- importRulesAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
-        userLib     <- importTechniqueLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
-        groupLIb    <- importGroupLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
-        parameters  <- importParametersAndDeploy(archiveId, modId, actor, reason, false)
-        eventLogged <- eventLogger.saveEventLog(modId, new Rollback(actor, rollbackedEvents, target, rollbackType, reason))
+        rules       <- importRulesAndDeploy(archiveId, includeSystem, false)
+        userLib     <- importTechniqueLibraryAndDeploy(archiveId, includeSystem, false)
+        groupLIb    <- importGroupLibraryAndDeploy(archiveId, includeSystem, false)
+        parameters  <- importParametersAndDeploy(archiveId, false)
+        eventLogged <- eventLogger.saveEventLog(modId, new Rollback(actor, rollbackedEvents, target, rollbackType, message))
         commit      <- restoreCommitAtHead(
                          commiter,
                          "User %s requested a rollback to a previous configuration : %s".format(actor.name, archiveId.value),

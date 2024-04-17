@@ -41,6 +41,7 @@ import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.users.CurrentUser
@@ -68,9 +69,9 @@ class ParameterManagement extends DispatchSnippet with Loggable {
   // the current GlobalParameterForm component
   private[this] val parameterPopup = new LocalSnippet[CreateOrUpdateGlobalParameterPopup]
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "display" => { _ => display() } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "display" => { _ => display()(CurrentUser.queryContext) } }
 
-  def display(): NodeSeq = {
+  def display()(implicit qc: QueryContext): NodeSeq = {
     (for {
       seq <- roParameterService.getAllGlobalParameters()
     } yield {
@@ -84,7 +85,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  def displayGridParameters(params: Seq[GlobalParameter], gridName: String): NodeSeq = {
+  def displayGridParameters(params: Seq[GlobalParameter], gridName: String)(implicit qc: QueryContext): NodeSeq = {
     (
       "tbody *" #> ("tr" #> params.map { param =>
         val lineHtmlId = Helpers.nextFuncName
@@ -233,7 +234,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
   private[this] def showPopup(
       action:    GlobalParamModAction,
       parameter: Option[GlobalParameter]
-  ): JsCmd = {
+  )(implicit qc: QueryContext): JsCmd = {
     val change = GlobalParamChangeRequest(action, parameter)
     workflowLevelService.getForGlobalParam(CurrentUser.actor, change) match {
       case eb: EmptyBox =>
@@ -259,7 +260,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
 
   private[this] def workflowCallBack(action: GlobalParamModAction, workflowEnabled: Boolean)(
       returns: Either[GlobalParameter, ChangeRequestId]
-  ): JsCmd = {
+  )(implicit qc: QueryContext): JsCmd = {
     if ((!workflowEnabled) & (action == GlobalParamModAction.Delete)) {
       closePopup() & onSuccessDeleteCallback()
     } else {
@@ -275,7 +276,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
   /**
     * Create the creation popup
     */
-  def createPopup: NodeSeq = {
+  def createPopup(implicit qc: QueryContext): NodeSeq = {
     parameterPopup.get match {
       case Failure(m, _, _) => <span class="error">Error: {m}</span>
       case Empty            => <div>The component is not set</div>
@@ -283,7 +284,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  private[this] def updateGrid(): JsCmd = {
+  private[this] def updateGrid()(implicit qc: QueryContext): JsCmd = {
     Replace(gridContainer, display())
   }
 
@@ -292,7 +293,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
     JsRaw("""createSuccessNotification()""")
   }
 
-  private[this] def onSuccessDeleteCallback(): JsCmd = {
+  private[this] def onSuccessDeleteCallback()(implicit qc: QueryContext): JsCmd = {
     updateGrid() & successPopup
   }
 

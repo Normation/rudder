@@ -20,7 +20,9 @@
 
 package com.normation.eventlog
 
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.utils.StringUuidGeneratorImpl
+import io.scalaland.chimney.Transformer
 import org.joda.time.DateTime
 import scala.xml.*
 
@@ -44,6 +46,9 @@ object EventMetadata {
   def withNewId(actor: EventActor, msg: Option[String] = None): EventMetadata = {
     EventMetadata(ModificationId(uuidGen.newUuid), actor, msg)
   }
+
+  implicit val transformChangeContext: Transformer[ChangeContext, EventMetadata] =
+    Transformer.define[ChangeContext, EventMetadata].withFieldRenamed(_.message, _.msg).buildTransformer
 }
 
 /**

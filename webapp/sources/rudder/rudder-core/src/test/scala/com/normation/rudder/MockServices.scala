@@ -2273,7 +2273,7 @@ class MockNodes() {
       }
     }
 
-    override def process(query: Query): Box[Seq[NodeId]] = {
+    override def process(query: Query)(implicit qc: QueryContext): Box[Seq[NodeId]] = {
       for {
         nodes    <- nodeFactStorage.nodeFactBase.get
         matching <- filterForLines(query.criteria, query.composition, nodes.map(_._2).toList).toIO
@@ -2282,7 +2282,7 @@ class MockNodes() {
       }
     }.toBox
 
-    override def processOnlyId(query: Query): Box[Seq[NodeId]] = process(query).map(_.toSeq)
+    override def processOnlyId(query: Query)(implicit qc: QueryContext): Box[Seq[NodeId]] = process(query).map(_.toSeq)
   }
 
   val nodeInfoService         = new NodeInfoServiceProxy(nodeFactRepo)
@@ -2325,7 +2325,7 @@ class MockNodes() {
 class MockNodeGroups(nodesRepo: MockNodes) {
 
   object groupsRepo extends RoNodeGroupRepository with WoNodeGroupRepository {
-
+    implicit val qc:       QueryContext                   = QueryContext.testQC
     implicit val ordering: NodeGroupCategoryOrdering.type = com.normation.rudder.repository.NodeGroupCategoryOrdering
 
     val categories: Ref.Synchronized[FullNodeGroupCategory] = Ref.Synchronized
@@ -2338,7 +2338,9 @@ class MockNodeGroups(nodesRepo: MockNodes) {
 
     override def getFullGroupLibrary(): IOResult[FullNodeGroupCategory] = categories.get
 
-    override def getNodeGroupOpt(id: NodeGroupId):      IOResult[Option[(NodeGroup, NodeGroupCategoryId)]] = {
+    override def getNodeGroupOpt(
+        id: NodeGroupId
+    )(implicit qc: QueryContext): IOResult[Option[(NodeGroup, NodeGroupCategoryId)]] = {
       categories.get.map(root => {
         ((root.allGroups.get(id), root.categoryByGroupId.get(id)) match {
           case (Some(g), Some(c)) => Some((g.nodeGroup, c))
@@ -2346,15 +2348,15 @@ class MockNodeGroups(nodesRepo: MockNodes) {
         })
       })
     }
-    override def getNodeGroupCategory(id: NodeGroupId): IOResult[NodeGroupCategory]                        = {
+    override def getNodeGroupCategory(id: NodeGroupId): IOResult[NodeGroupCategory] = {
       for {
         root <- categories.get
         cid  <- root.categoryByGroupId.get(id).notOptional(s"Category for group '${id.serialize}' not found")
         cat  <- root.allCategories.get(cid).map(_.toNodeGroupCategory).notOptional(s"Category '${cid.value}' not found")
       } yield cat
     }
-    override def getAll():                              IOResult[Seq[NodeGroup]]                           = categories.get.map(_.allGroups.values.map(_.nodeGroup).toSeq)
-    override def getAllByIds(ids: Seq[NodeGroupId]):    IOResult[Seq[NodeGroup]]                           = {
+    override def getAll():                              IOResult[Seq[NodeGroup]]    = categories.get.map(_.allGroups.values.map(_.nodeGroup).toSeq)
+    override def getAllByIds(ids: Seq[NodeGroupId]):    IOResult[Seq[NodeGroup]]    = {
       categories.get.map(_.allGroups.values.map(_.nodeGroup).filter(g => ids.contains(g.id)).toSeq)
     }
 
@@ -2366,6 +2368,8 @@ class MockNodeGroups(nodesRepo: MockNodes) {
 
     override def getGroupsByCategory(
         includeSystem: Boolean
+    )(implicit
+        qc:            QueryContext
     ): IOResult[ISortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]] = {
       def getChildren(
           parents: List[NodeGroupCategoryId],
@@ -2636,12 +2640,9 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     ): IOResult[Option[ModifyNodeGroupDiff]] = ???
 
     override def move(
-        group:          NodeGroupId,
-        containerId:    NodeGroupCategoryId,
-        modId:          ModificationId,
-        actor:          EventActor,
-        whyDescription: Option[String]
-    ): IOResult[Option[ModifyNodeGroupDiff]] = ???
+        group:       NodeGroupId,
+        containerId: NodeGroupCategoryId
+    )(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = ???
 
     override def deletePolicyServerTarget(policyServer: PolicyServerTarget): IOResult[PolicyServerTarget] = ???
 
@@ -2876,6 +2877,9 @@ class MockNodeGroups(nodesRepo: MockNodes) {
 }
 
 class MockLdapQueryParsing(mockGit: MockGitConfigRepo, mockNodeGroups: MockNodeGroups) {
+
+  implicit val qc: QueryContext = QueryContext.testQC
+
   ///// query parsing ////
   def DN(rdn: String, parent: DN) = new DN(new RDN(rdn), parent)
   val LDAP_BASEDN = new DN("cn=rudder-configuration")

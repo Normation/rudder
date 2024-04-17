@@ -48,6 +48,8 @@ import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.*
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.NodeGroupCategoryForm
@@ -62,6 +64,7 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json.*
 import net.liftweb.util.*
+import org.joda.time.DateTime
 import scala.xml.*
 
 object Groups {
@@ -91,8 +94,8 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     Map(
       "head"           -> head _,
       "detailsPopup"   -> { (_: NodeSeq) => NodeGroupForm.staticBody },
-      "initRightPanel" -> { (_: NodeSeq) => initRightPanel() },
-      "groupHierarchy" -> groupHierarchy(boxGroupLib)
+      "initRightPanel" -> { (_: NodeSeq) => initRightPanel()(CurrentUser.queryContext) },
+      "groupHierarchy" -> groupHierarchy(boxGroupLib)(CurrentUser.queryContext)
     )
   }
 
@@ -121,7 +124,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
    * @param html
    * @return
    */
-  def groupHierarchy(rootCategory: Box[FullNodeGroupCategory]): CssSel = {
+  def groupHierarchy(rootCategory: Box[FullNodeGroupCategory])(implicit qc: QueryContext): CssSel = {
     val newItemCallback        = AnonFunc(
       SHtml.ajaxCall(JsVar("hasWriteRights"), (hasWriteRights) => if (hasWriteRights.toBoolean) showPopup() else Noop)
     )
@@ -227,7 +230,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
    * Does the init part (showing the right component and highlighting
    * the tree if necessary)
    */
-  def initRightPanel(): NodeSeq = {
+  def initRightPanel()(implicit qc: QueryContext): NodeSeq = {
     Script(OnLoad(parseJsArg(boxGroupLib)))
   }
 
@@ -237,7 +240,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
    *
    * We want to look for #{ "groupId":"XXXXXXXXXXXX" } or #{"targer":"....."}
    */
-  private[this] def parseJsArg(rootCategory: Box[FullNodeGroupCategory]): JsCmd = {
+  private[this] def parseJsArg(rootCategory: Box[FullNodeGroupCategory])(implicit qc: QueryContext): JsCmd = {
     def displayGroupNotFound:                     JsCmd = SetHtml(
       htmlId_item,
       <div class="jumbotron">
@@ -298,7 +301,9 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
    *  Manage the state of what should be displayed on the right panel.
    * It could be nothing, a group edit form, or a category edit form.
    */
-  private[this] def setAndShowRightPanel(panel: RightPanel, rootCategory: FullNodeGroupCategory): NodeSeq = {
+  private[this] def setAndShowRightPanel(panel: RightPanel, rootCategory: FullNodeGroupCategory)(implicit
+      qc: QueryContext
+  ): NodeSeq = {
     panel match {
       case NoPanel                       => NodeSeq.Empty
       case GroupForm(group, parentCatId) =>
@@ -331,7 +336,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
   }
 
   // utility to refresh right panel
-  private[this] def refreshRightPanel(panel: RightPanel): JsCmd = {
+  private[this] def refreshRightPanel(panel: RightPanel)(implicit qc: QueryContext): JsCmd = {
     boxGroupLib match {
       case Full(lib) => SetHtml(htmlId_item, setAndShowRightPanel(panel, lib))
       case eb: EmptyBox =>
@@ -347,7 +352,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     boxGroupLib = getFullGroupLibrary().toBox
   }
 
-  private[this] def setCreationPopup(rootCategory: FullNodeGroupCategory): Unit = {
+  private[this] def setCreationPopup(rootCategory: FullNodeGroupCategory)(implicit qc: QueryContext): Unit = {
     creationPopup.set(
       Full(
         new CreateCategoryOrGroupPopup(
@@ -362,12 +367,14 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     )
   }
 
-  private[this] def onSuccessCallback() = { (id: String) => { refreshGroupLib(); refreshTree(htmlTreeNodeId(id)) } }
+  private[this] def onSuccessCallback()(implicit qc: QueryContext) = { (id: String) =>
+    { refreshGroupLib(); refreshTree(htmlTreeNodeId(id)) }
+  }
 
   /**
    * build the tree of categories and group and init its JS
    */
-  private[this] def buildGroupTree(selectedNode: String): NodeSeq = {
+  private[this] def buildGroupTree(selectedNode: String)(implicit qc: QueryContext): NodeSeq = {
     boxGroupLib match {
       case eb: EmptyBox =>
         val e = eb ?~! "Can not get the group library"
@@ -438,7 +445,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
   }
 
   ///////////////////// Callback function for Drag'n'drop in the tree /////////////////////
-  private[this] def moveGroup(lib: FullNodeGroupCategory)(arg: String): JsCmd = {
+  private[this] def moveGroup(lib: FullNodeGroupCategory)(arg: String)(implicit qc: QueryContext): JsCmd = {
     // parse arg, which have to  be json object with sourceGroupId, destCatId
     try {
       (for {
@@ -454,10 +461,16 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
               woNodeGroupRepository
                 .move(
                   NodeGroupId(NodeGroupUid(sourceGroupId)),
-                  NodeGroupCategoryId(destCatId),
-                  ModificationId(uuidGen.newUuid),
-                  CurrentUser.actor,
-                  Some("Group moved by user")
+                  NodeGroupCategoryId(destCatId)
+                )(
+                  ChangeContext(
+                    ModificationId(uuidGen.newUuid),
+                    qc.actor,
+                    new DateTime(),
+                    Some("Group moved by user"),
+                    None,
+                    qc.nodePerms
+                  )
                 )
                 .toBox ?~! "Error while trying to move group with requested id '%s' to category id '%s'"
                 .format(sourceGroupId, destCatId)
@@ -490,7 +503,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     }
   }
 
-  private[this] def moveCategory(lib: FullNodeGroupCategory)(arg: String): JsCmd = {
+  private[this] def moveCategory(lib: FullNodeGroupCategory)(arg: String)(implicit qc: QueryContext): JsCmd = {
     // parse arg, which have to  be json object with sourceGroupId, destCatId
     try {
       (for {
@@ -547,7 +560,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
 
   ////////////////////
 
-  private[this] def refreshTree(selectedNode: String): JsCmd = {
+  private[this] def refreshTree(selectedNode: String)(implicit qc: QueryContext): JsCmd = {
     Replace(htmlId_groupTree, buildGroupTree(selectedNode))
   }
 
@@ -558,7 +571,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
   /**
     * @return None if the category is not found
     */
-  private[this] def displayCategory(categoryId: String): Option[JsCmd] = {
+  private[this] def displayCategory(categoryId: String)(implicit qc: QueryContext): Option[JsCmd] = {
     for {
       groupLib <- boxGroupLib.toOption
       category <- groupLib.allCategories.get(NodeGroupCategoryId(categoryId))
@@ -567,7 +580,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     }
   }
 
-  private[this] def displayCategory(category: NodeGroupCategory): JsCmd = {
+  private[this] def displayCategory(category: NodeGroupCategory)(implicit qc: QueryContext): JsCmd = {
     selectedCategoryId = Full(category.id)
     // update UI - no modification here, so no refreshGroupLib
     refreshRightPanel(CategoryForm(category)) &
@@ -575,9 +588,13 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
   }
 
   // adaptater
-  private[this] def fullDisplayCategory(category: FullNodeGroupCategory) = displayCategory(category.toNodeGroupCategory)
+  private[this] def fullDisplayCategory(category: FullNodeGroupCategory)(implicit qc: QueryContext) = displayCategory(
+    category.toNodeGroupCategory
+  )
 
-  private[this] def showGroupSection(g: Either[NonGroupRuleTarget, NodeGroup], parentCategoryId: NodeGroupCategoryId) = {
+  private[this] def showGroupSection(g: Either[NonGroupRuleTarget, NodeGroup], parentCategoryId: NodeGroupCategoryId)(implicit
+      qc: QueryContext
+  ) = {
     val value = g.fold(_.target, _.id.serialize)
     val js    = g match {
       case Left(_)  => s"'target':'${value}'"
@@ -629,7 +646,9 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
 
   }
 
-  private[this] def showTargetInfo(parentCategory: FullNodeGroupCategory, targetInfo: FullRuleTargetInfo): JsCmd = {
+  private[this] def showTargetInfo(parentCategory: FullNodeGroupCategory, targetInfo: FullRuleTargetInfo)(implicit
+      qc: QueryContext
+  ): JsCmd = {
     // update UI - no modeification here, so no refreshGroupLib
 
     // action only for node group
@@ -641,7 +660,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     }
   }
 
-  private[this] def showPopup(): JsCmd = {
+  private[this] def showPopup()(implicit qc: QueryContext): JsCmd = {
 
     boxGroupLib match {
       case eb: EmptyBox => Alert("Error when trying to get the list of categories")

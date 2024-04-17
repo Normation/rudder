@@ -51,6 +51,8 @@ import com.normation.rudder.domain.queries.And
 import com.normation.rudder.domain.queries.CriterionComposition
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Or
+import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
@@ -142,7 +144,7 @@ class SearchNodeComponent(
    */
   def getQuery(): Option[Query] = query
 
-  var dispatch: DispatchIt = { case "showQuery" => { _ => buildQuery(false) } }
+  var dispatch: DispatchIt = { case "showQuery" => { _ => buildQuery(false)(CurrentUser.queryContext) } }
 
   var initUpdate = true // this is true when we arrive on the page, or when we've done an search
 
@@ -152,7 +154,7 @@ class SearchNodeComponent(
 
   val errors: mutable.Map[CriterionLine, String] = MutMap[CriterionLine, String]()
 
-  def buildQuery(isGroupsPage: Boolean): NodeSeq = {
+  def buildQuery(isGroupsPage: Boolean)(implicit qc: QueryContext): NodeSeq = {
 
     if (None == query) query = Some(Query(NodeReturnType, And, ResultTransformation.Identity, List(defaultLine)))
     val lines       = ArrayBuffer[CriterionLine]()

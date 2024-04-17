@@ -47,7 +47,6 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.Directive
@@ -88,7 +87,6 @@ trait RoConfigurationRepository {
   def getDirective(id: DirectiveId): IOResult[Option[ActiveDirective]]
   def getTechnique(id: TechniqueId): IOResult[Option[(Chunk[TechniqueCategoryName], Technique)]]
   def getRule(id:      RuleId):      IOResult[Option[Rule]]
-  def getGroup(id:     NodeGroupId): IOResult[Option[GroupAndCat]]
 
   def getDirectiveLibrary(ids: Set[DirectiveId]): IOResult[FullActiveTechniqueCategory]
 
@@ -152,15 +150,6 @@ class ConfigurationRepositoryImpl(
         roRuleRepository.getOpt(id)
       case r                      =>
         ruleRevisionRepo.getRuleRevision(id.uid, id.rev)
-    }
-  }
-
-  override def getGroup(id: NodeGroupId): IOResult[Option[GroupAndCat]] = {
-    id.rev match {
-      case GitVersion.DEFAULT_REV =>
-        roNodeGroupRepository.getNodeGroupOpt(id).map(_.map { case (g, c) => GroupAndCat(g, c) })
-      case r                      =>
-        groupRevisionRepo.getGroupRevision(id.uid, id.rev)
     }
   }
 
