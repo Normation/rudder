@@ -80,6 +80,7 @@ import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.services.reports.ReportingService
+import com.normation.rudder.services.reports.ReportingServiceUtils
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.zio.currentTimeMillis
 import net.liftweb.common.*
@@ -762,6 +763,33 @@ class ComplianceAPIService(
       t6            <- currentTimeMillis
       _             <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - findRuleNodeStatusReports in ${t6 - t5} ms")
 
+      reportsByRule = reportsByNode.flatMap { case (_, status) => status.reports }.groupBy(_.ruleId)
+      t7            = System.currentTimeMillis()
+      _            <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - group reports by rules in ${t7 - t6} ms")
+
+      // make a map of directive overrides for each rule, to add to the directives of a rule
+      directiveOverridesByRules = ruleObjects.keys.map { ruleId =>
+                                    val overridenDirectives = ComplianceOverrides
+                                      .getOverridenDirective(
+                                        ReportingServiceUtils.buildRuleStatusReport(ruleId, reportsByNode).overrides,
+                                        directives
+                                      )
+                                    ruleId -> overridenDirectives
+                                  }.toMap
+
+      // we need to fetch info for rules pulled from overriden directives of our rules
+      allRuleObjects           <-
+        ZIO
+          .foreach(
+            directiveOverridesByRules.values.toList
+              .flatMap(_.map(_.overridingRuleId))
+          )(rulesRepo.getOpt(_))
+          .map(rules => ruleObjects ++ rules.flatten.map(r => (r.id, r)).toMap)
+
+      directivesOverrides = directiveOverridesByRules.view.mapValues(_.map(_.toComplianceByRule(allRuleObjects)))
+
+      t8               <- currentTimeMillis
+      _                <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - get directive overrides and rules infos in ${t8 - t7} ms")
       globalPolicyMode <- getGlobalPolicyMode
 
       nodeAndPolicyModeByRules = rules.map { rule =>
@@ -786,10 +814,6 @@ class ComplianceAPIService(
                                  }.toMap
 
     } yield {
-
-      val reportsByRule = reportsByNode.flatMap { case (_, status) => status.reports }.groupBy(_.ruleId)
-      val t7            = System.currentTimeMillis()
-      TimingDebugLoggerPure.logEffect.trace(s"getByRulesCompliance - group reports by rules in ${t7 - t6} ms")
 
       // for each rule for each node, we want to have a
       // directiveId -> reporttype map
@@ -816,10 +840,10 @@ class ComplianceAPIService(
                   ComplianceLevel.sum(
                     nodeDirectives.map(_._2.compliance)
                   ),
-                  directives.get(directiveId).flatMap(_._2.policyMode),
-                  // here we want the compliance by components of the directive.
-                  // if level is high enough, get all components and group by their name
-                  {
+                  None,
+                  directives.get(directiveId).flatMap(_._2.policyMode), {
+                    // here we want the compliance by components of the directive.
+                    // if level is high enough, get all components and group by their name
                     val byComponents: Map[String, immutable.Iterable[(NodeId, ComponentStatusReport)]] = if (computedLevel < 3) {
                       Map()
                     } else {
@@ -868,7 +892,9 @@ class ComplianceAPIService(
       )
 
       // return the full list
-      val result = nonEmptyRules ++ initializedCompliances
+      val singleRuleCompliance = nonEmptyRules ++ initializedCompliances
+      // add overrides to that result
+      val result               = singleRuleCompliance.map(r => r.copy(directives = r.directives ++ directivesOverrides(r.id)))
 
       val t10 = System.currentTimeMillis()
       TimingDebugLoggerPure.logEffect.trace(s"getByRulesCompliance - Compute result in ${t10 - t9} ms")
