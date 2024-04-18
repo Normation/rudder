@@ -624,8 +624,9 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
   }
 
   override def getLastPreviousLogin(userId: String, closedSessionsOnly: Boolean = true): IOResult[Option[UserSession]] = {
+    // COALESCE: avoid fatal error on login when NULL was previously - see https://issues.rudder.io/issues/24755
     val selectPart  =
-      fr"select userid, sessionid, creationdate, authmethod, permissions, authz, enddate, endcause from usersessions"
+      fr"select userid, COALESCE (sessionid, '<missing>'), creationdate, authmethod, permissions, authz, enddate, endcause from usersessions"
     val wherePart   = {
       Fragments.whereAndOpt(
         Some(fr"userid = ${userId}"),
