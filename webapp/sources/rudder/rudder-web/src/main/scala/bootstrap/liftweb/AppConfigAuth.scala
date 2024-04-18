@@ -329,7 +329,7 @@ class AppConfigAuth extends ApplicationContextAware {
    * Map an user from XML user config file
    */
   @Bean def rudderXMLUserDetails: UserDetailsContextMapper = {
-    new RudderXmlUserDetailsContextMapper(RudderConfig.rudderUserListProvider)
+    new RudderXmlUserDetailsContextMapper(rudderUserDetailsService)
   }
 
   // userSessionLogEvent must not be lazy, because not used by anybody directly
@@ -432,7 +432,7 @@ class RudderInMemoryUserDetailsService(val authConfigProvider: UserDetailListPro
 /**
  * Spring context mapper
  */
-class RudderXmlUserDetailsContextMapper(authConfigProvider: UserDetailListProvider) extends UserDetailsContextMapper {
+class RudderXmlUserDetailsContextMapper(userDetailsService: UserDetailsService) extends UserDetailsContextMapper {
   // we are not able to try to save user in the XML file
   def mapUserToContext(user: UserDetails, ctx: DirContextAdapter): Unit = ()
 
@@ -441,11 +441,7 @@ class RudderXmlUserDetailsContextMapper(authConfigProvider: UserDetailListProvid
       username:    String,
       authorities: Collection[? <: GrantedAuthority]
   ): UserDetails = {
-    authConfigProvider.authConfig.users
-      .getOrElse(
-        username,
-        RudderUserDetail(RudderAccount.User(username, ""), UserStatus.Disabled, Set(Role.NoRights), ApiAuthorization.None)
-      )
+    userDetailsService.loadUserByUsername(username)
   }
 }
 
