@@ -250,6 +250,7 @@ $small-prefix : "sm-";
   label{
     color: #72829D;
     font-weight: bold;
+    white-space: nowrap;
   }
   .score-breakdown {
     .badge-compliance-score{
@@ -262,7 +263,6 @@ $small-prefix : "sm-";
   .score-explanation {
     border-left: 2px solid #D6DEEF;
     position: relative;
-
     &:before {
       height: 14px;
       width: 14px;

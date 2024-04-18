@@ -29,7 +29,7 @@ view model =
         [ div[class "score-badge"]
           [ getScoreBadge Nothing complianceScore.value False
           ]
-        , div[class "score-breakdown ps-5 flex-grow-1 flex-column"]
+        , div[class "score-breakdown ps-5 flex-column"]
            [ h3[][text "Score breakdown"]
            , div[class "d-flex"](scoreBreakdownList complianceScore.details model.scoreInfo)
            ]
