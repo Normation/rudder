@@ -68,8 +68,8 @@ import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.reports.ReportingService
-import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.rudder.services.reports.ReportingServiceUtils
+import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.zio.currentTimeMillis
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
@@ -642,8 +642,8 @@ class ComplianceAPIService(
 
       directivesOverrides = directiveOverridesByRules.view.mapValues(_.map(_.toComplianceByRule(allRuleObjects)))
 
-      t8 <- currentTimeMillis
-      _  <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - get directive overrides and rules infos in ${t8 - t7} ms")
+      t8               <- currentTimeMillis
+      _                <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - get directive overrides and rules infos in ${t8 - t7} ms")
       globalPolicyMode <- getGlobalPolicyMode()
 
       nodeAndPolicyModeByRules = rules.map { rule =>
@@ -683,7 +683,7 @@ class ComplianceAPIService(
                   ),
                   None,
                   directives.get(directiveId).flatMap(_._2.policyMode), {
-                  // here we want the compliance by components of the directive.
+                    // here we want the compliance by components of the directive.
                     // if level is high enough, get all components and group by their name
                     val byComponents: Map[String, immutable.Iterable[(NodeId, ComponentStatusReport)]] = if (computedLevel < 3) {
                       Map()
