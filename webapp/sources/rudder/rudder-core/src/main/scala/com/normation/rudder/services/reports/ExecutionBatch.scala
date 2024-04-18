@@ -709,9 +709,10 @@ object ExecutionBatch extends Loggable {
                         )
                       } else {
                         // standard case: we changed version and are waiting for a run with the new one.
+                        // Pending status expires in expirationDate.
                         runType(
                           s"last run at ${t} was for expired configId ${rv.value} and no report received for current configId ${currentConfig.nodeConfigId.value}, but ${now} is before expiration time ${configurationExpirationTime}, Pending",
-                          Pending(currentConfig, Some((t, runConfig)), eolExpiration)
+                          Pending(currentConfig, Some((t, runConfig)), configurationExpirationTime)
                         )
                       }
                     }
