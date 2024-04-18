@@ -11,6 +11,8 @@ import Html.Events exposing (onCheck, onClick, onInput)
 import SingleDatePicker exposing (Settings, TimePickerVisibility(..))
 import Time.Extra as Time exposing (Interval(..), add)
 
+accountsModalId : String
+accountsModalId = "api-accounts-modal"
 
 displayModals : Model -> Html Msg
 displayModals model =
@@ -220,7 +222,7 @@ displayModals model =
     in
     case model.ui.copyState of
         NoCopy ->
-            div [ class ("modal modal-account fade " ++ modalClass) ]
+            div [ id accountsModalId, class ("modal modal-account fade " ++ modalClass), attribute "aria-modal" "true", attribute "role" "dialog" ]
                 [ div [ class "modal-backdrop fade show", onClick (ToggleEditPopup NoModal) ] []
                 , div [ class "modal-dialog" ]
                     [ div [ class "modal-content" ]

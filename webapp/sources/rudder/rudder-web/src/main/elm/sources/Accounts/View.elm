@@ -5,7 +5,7 @@ import Accounts.DataTypes exposing (..)
 import Accounts.ViewModals exposing (..)
 import Accounts.ViewUtils exposing (..)
 import Html exposing (..)
-import Html.Attributes exposing (class, disabled, href, placeholder, selected, type_, value)
+import Html.Attributes exposing (attribute, class, disabled, href, placeholder, selected, type_, value)
 import Html.Events exposing (onClick, onInput)
 import List
 import String
@@ -48,7 +48,7 @@ view model =
 
                                   else
                                     text ""
-                                , button [ class "btn btn-success new-icon", onClick (ToggleEditPopup NewAccount) ] [ text "Create an account" ]
+                                , button [ class "btn btn-success new-icon", onClick (ToggleEditPopup NewAccount), attribute "data-bs-target" ("#" ++ accountsModalId), attribute "data-bs-toggle" "modal" ] [ text "Create an account" ]
                                 , div [ class "main-table" ]
                                     [ div [ class "table-container" ]
                                         [ div [ class "dataTables_wrapper_top table-filter" ]
