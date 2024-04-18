@@ -135,7 +135,7 @@ pub fn run_inner(args: Args) -> Result<()> {
                 }
             }
             if errors {
-                bail!("Some plugin installation failed");
+                error!("Some plugin installation failed");
             }
             info!("Installation ran successfully");
         }
@@ -148,7 +148,7 @@ pub fn run_inner(args: Args) -> Result<()> {
                 }
             }
             if errors {
-                bail!("Some plugin uninstallation failed");
+                error!("Some plugin uninstallation failed");
             }
             info!("Uninstallation ran successfully");
         }
@@ -174,7 +174,7 @@ pub fn run_inner(args: Args) -> Result<()> {
                     }
                 }
                 if errors {
-                    bail!("Some scripts failed");
+                    error!("Some scripts failed");
                 }
                 info!("All postinstall scripts ran successfully");
             } else {
@@ -201,7 +201,7 @@ pub fn run_inner(args: Args) -> Result<()> {
                     }
                 }
                 if errors {
-                    bail!("Some plugins were not upgraded correctly");
+                    error!("Some plugins were not upgraded correctly");
                 }
                 info!("All plugins were upgraded successfully");
             }
