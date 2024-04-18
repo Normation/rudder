@@ -105,4 +105,4 @@ update msg model =
               in
                 (model, cmd)
             Err err ->
-               (model, errorNotification(("Error while reading compliance score details, error is:" ++ (errorToString err))))
+               (model, errorNotification(("Error while reading system update score details, error is:" ++ (errorToString err))))
