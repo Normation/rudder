@@ -10,6 +10,7 @@ import NaturalOrdering as N exposing (compare)
 import Accounts.ApiCalls exposing (..)
 import Accounts.DataTypes exposing (..)
 import Accounts.DatePickerUtils exposing (posixToString, checkIfExpired)
+import Accounts.ViewModals exposing (accountsModalId)
 import String exposing (isEmpty, length, slice)
 
 
@@ -149,9 +150,21 @@ displayAccountsTable model =
             td [class "date"][ text (cleanDate a.creationDate) ]
         , td [class "date"][ text expirationDate ]
         , td []
-          [ button [class "btn btn-default reload-token", title ("Generated: " ++ (cleanDate a.tokenGenerationDate)), onClick (ToggleEditPopup (Confirm Regenerate a.name (CallApi (regenerateToken a))))]
+          [ button 
+            [ class "btn btn-default reload-token"
+            , title ("Generated: " ++ (cleanDate a.tokenGenerationDate))
+            , onClick (ToggleEditPopup (Confirm Regenerate a.name (CallApi (regenerateToken a))))
+            , attribute "data-bs-target" ("#" ++ accountsModalId)
+            , attribute "data-bs-toggle" "modal"
+            ]
             [ span [class "fa fa-repeat"][] ]
-          , button [class "btn btn-default", onClick (ToggleEditPopup (EditAccount a))] [span [class "fa fa-pencil"] [] ]
+          , button 
+            [ class "btn btn-default"
+            , onClick (ToggleEditPopup (EditAccount a))
+            , attribute "data-bs-target" ("#" ++ accountsModalId)
+            , attribute "data-bs-toggle" "modal"
+            ]
+            [ span [class "fa fa-pencil"] [] ]
           , label [for inputId, class "custom-toggle"]
             [ input [type_ "checkbox", id inputId, checked a.enabled, onCheck (\c -> CallApi (saveAccount {a | enabled = c}))][]
             , label [for inputId, class "custom-toggle-group"]
@@ -160,7 +173,13 @@ displayAccountsTable model =
               , label [for inputId, class "toggle-disabled"][text "Disabled"]
               ]
             ]
-          , button [class "btn btn-danger delete-button", onClick (ToggleEditPopup (Confirm Delete a.name (CallApi (deleteAccount a))))] [span [class "fa fa-times-circle"] [] ]
+          , button 
+            [ class "btn btn-danger delete-button"
+            , onClick (ToggleEditPopup (Confirm Delete a.name (CallApi (deleteAccount a)))) 
+            , attribute "data-bs-target" ("#" ++ accountsModalId)
+            , attribute "data-bs-toggle" "modal"
+            ]
+            [ span [class "fa fa-times-circle"] [] ]
           ]
         ]
     filters = model.ui.tableFilters
