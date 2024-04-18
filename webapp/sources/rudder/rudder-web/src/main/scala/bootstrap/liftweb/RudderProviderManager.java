@@ -19,8 +19,12 @@ package bootstrap.liftweb;
 import com.normation.rudder.AuthorizationType;
 import com.normation.rudder.domain.logger.ApplicationLogger;
 import com.normation.rudder.users.*;
+import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.MessageSource;
 import org.springframework.context.MessageSourceAware;
@@ -164,7 +168,19 @@ public class RudderProviderManager implements org.springframework.security.authe
                                 // game, spring is not helping
                                 String sessionId = null;
                                 if(result.getDetails() instanceof WebAuthenticationDetails) {
-                                  sessionId = ((WebAuthenticationDetails)result.getDetails()).getSessionId();
+																  WebAuthenticationDetails authDetails = ((WebAuthenticationDetails)result.getDetails());
+																	if (authDetails.getSessionId() != null) {
+                 	                  sessionId = authDetails.getSessionId();
+																	} else {
+																		// Session has not been generated yet, do it now so that we are able to log it later
+																		RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+																    if (requestAttributes instanceof ServletRequestAttributes) {
+																			sessionId = ((ServletRequestAttributes) requestAttributes).getSessionId();
+																		} else {
+																		  ApplicationLogger.warn(() -> "Rudder does not know how to get sessionId on this authentication using " + requestAttributes.getClass().getName() + ". It could happen when previous session has not been closed properly. Please retry to log in after clearing the browser cache.");
+																			throw new IllegalStateException("Unknown request attributes type for session id retrieval: " + requestAttributes.getClass().getName() + ", aborting authentication");
+																		}
+																	}
                                 } else {
                                   final String className = result.getDetails().getClass().getName();
                                   ApplicationLogger.warn(() -> "Rudder does not know how to get sessionId from '"+className+"'. Please report to developers that message");
