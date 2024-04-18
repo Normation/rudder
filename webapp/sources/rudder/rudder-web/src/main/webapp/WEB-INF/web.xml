@@ -73,6 +73,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   </listener>
 
   <listener>
+    <!-- this is needed to be able to create a session id in exceptional cases when we authenticate but don't have one yet -->
+    <listener-class>org.springframework.web.context.request.RequestContextListener</listener-class>
+  </listener>
+
+  <listener>
     <!-- this is needed to actually destroy session in spring-security register when they are invalidated -->
     <listener-class>org.springframework.security.web.session.HttpSessionEventPublisher</listener-class>
   </listener>
