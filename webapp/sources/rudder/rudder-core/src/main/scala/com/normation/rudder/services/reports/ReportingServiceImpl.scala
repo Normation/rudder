@@ -120,8 +120,6 @@ object CacheComplianceQueueAction       {
   final case class ExpectedReportAction(action: CacheExpectedReportAction)            extends CacheComplianceQueueAction {
     def nodeId = action.nodeId
   }
-  final case class InitializeCompliance(nodeId: NodeId, nodeCompliance: Option[NodeStatusReport])
-      extends CacheComplianceQueueAction // do we need this?
   final case class UpdateCompliance(nodeId: NodeId, nodeCompliance: NodeStatusReport) extends CacheComplianceQueueAction
   final case class SetNodeNoAnswer(nodeId: NodeId, actionDate: DateTime)              extends CacheComplianceQueueAction
   final case class ExpiredCompliance(nodeId: NodeId)                                  extends CacheComplianceQueueAction
@@ -539,7 +537,12 @@ trait CachedFindRuleNodeStatusReports
     val nodeWithOutdatedCompliance = cache.filter {
       case (id, compliance) =>
         compliance.runInfo match {
-          case t: ExpiringStatus => t.expirationDateTime.isBefore(now)
+          // here, we have a special case for unexpected version: it is useless to recompute compliance until we don't have a new run,
+          // ie the node config was changed elsewhere. It means that "unexpected version" wins above "No report in interval",
+          // ie that that error is bigger.
+          case _: UnexpectedVersion => false
+          // other expiring status
+          case t: ExpiringStatus    => t.expirationDateTime.isBefore(now)
           case _ => false
         }
     }.toSeq
