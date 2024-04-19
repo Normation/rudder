@@ -39,7 +39,6 @@ package com.normation.rudder.web.snippet.node
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
-import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.TimingDebugLogger
@@ -60,8 +59,6 @@ import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json.*
 import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
-import org.springframework.security.core.context.SecurityContextHolder
-import org.springframework.security.core.userdetails.UserDetails
 import scala.xml.*
 
 /**
@@ -79,19 +76,7 @@ class AcceptNode extends Loggable {
   val historyRepos     = RudderConfig.inventoryHistoryJdbcRepository
   val logRepository    = RudderConfig.eventLogRepository
   val acceptedNodesDit = RudderConfig.acceptedNodesDit
-  val pendingNodeDit   = RudderConfig.pendingNodesDit
   val uuidGen          = RudderConfig.stringUuidGenerator
-
-  val gridHtmlId = "acceptNodeGrid"
-
-  def authedUser: EventActor = {
-    SecurityContextHolder.getContext.getAuthentication.getPrincipal match {
-      case u: UserDetails => EventActor(u.getUsername)
-      case _ =>
-        logger.error("No authenticated user !")
-        EventActor("Unknown user")
-    }
-  }
 
   def acceptTemplate: NodeSeq = ChooseTemplate(
     List("templates-hidden", "Popup", "accept_new_server"),
@@ -127,21 +112,6 @@ class AcceptNode extends Loggable {
     }
   }
 
-  // Retrieve the list of selected server when submiting
-  def nodeIdsFromClient(): Seq[NodeId] = {
-    S.params("serverids").map(x => NodeId(x))
-  }
-
-  /**
-   * Retrieve the last inventory for the selected server
-   */
-  def retrieveLastVersions(uuid: NodeId): Option[DateTime] = {
-    historyRepos.versions(uuid).toBox match {
-      case Full(list) if (list.nonEmpty) => Some(list.head)
-      case _                             => None
-    }
-  }
-
   def addNodes(listNode: Seq[NodeId]): Unit = {
 
     val modId = ModificationId(uuidGen.newUuid)
@@ -174,7 +144,7 @@ class AcceptNode extends Loggable {
         case e: EmptyBox =>
           logger.error(s"Add new node '$id.value' lead to Failure.", e)
           S.error(<span class="error">Error while accepting node(s).</span>)
-        case Full(inventory) =>
+        case Full(_) =>
           logger.debug(s"Successfully added node '${id.value}'")
       }
     }
@@ -201,7 +171,7 @@ class AcceptNode extends Loggable {
         case e: EmptyBox =>
           logger.error(s"Refuse node '${id.value}' lead to Failure.", e)
           S.error(<span class="error">Error while refusing node(s).</span>)
-        case Full(srv) =>
+        case Full(_) =>
           logger.debug(s"Successfully refused node '${id.value}'")
       }
     }
@@ -264,7 +234,7 @@ class AcceptNode extends Loggable {
 
     nodeFactRepository
       .getAll()(QueryContext.todoQC, SelectNodeStatus.Pending)
-      .map(_.values)
+      .map(_.collect { case (id, n) if listNode.contains(id) => n })
       .toBox match {
       case Full(servers) =>
         val lines: NodeSeq = servers.flatMap(displayServerLine).toSeq
@@ -295,7 +265,7 @@ class AcceptNode extends Loggable {
           )(template)
         )
       case e: EmptyBox =>
-        val error = e ?~! "An error occured when trying to get server details for displaying them in the popup"
+        val error = e ?~! "An error occurred when trying to get server details for displaying them in the popup"
         logger.debug(error.messageChain, e)
         NodeSeq.Empty
     }
@@ -341,7 +311,7 @@ class AcceptNode extends Loggable {
           (selectAll, { e => <input type="checkbox" name="serverids" value={e.id.value.toString}/> })
         ),
         """,{ "sWidth": "10%" },{ "sWidth": "11%", "bSortable":false },{ "sWidth": "2%", "bSortable":false }""",
-        true
+        paginate = true
       )
     }
 
