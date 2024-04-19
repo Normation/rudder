@@ -149,7 +149,7 @@ function vendor_js(cb) {
 };
 
 function css(cb) {
-    src(paths.css.src)
+    src(paths.css.src, { encoding: false })
         .pipe(dest(paths.css.dest));
     cb();
 };
