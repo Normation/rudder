@@ -1866,6 +1866,8 @@ object RudderConfigInit {
     lazy val ruleInternalApiService =
       new RuleInternalApiService(roRuleRepository, roNodeGroupRepository, roRuleCategoryRepository, nodeFactRepository)
 
+    lazy val groupInternalApiService = new GroupInternalApiService(roNodeGroupRepository)
+
     lazy val complianceAPIService = new ComplianceAPIService(
       roRuleRepository,
       nodeFactRepository,
@@ -2222,6 +2224,7 @@ object RudderConfigInit {
         new PluginApi(restExtractorService, pluginSettingsService),
         new RecentChangesAPI(recentChangesService, restExtractorService),
         new RulesInternalApi(ruleInternalApiService, ruleApiService13),
+        new GroupsInternalApi(groupInternalApiService),
         campaignApi,
         new HookApi(hookApiService),
         archiveApi,

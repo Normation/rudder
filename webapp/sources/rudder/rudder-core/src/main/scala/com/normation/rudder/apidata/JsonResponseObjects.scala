@@ -67,6 +67,7 @@ import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.TechniqueParameter
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
@@ -76,6 +77,7 @@ import com.normation.utils.DateFormaterService
 import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.config.ConfigValue
+import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.dsl.*
 import zio.*
 import zio.Tag as _
@@ -477,6 +479,21 @@ object JsonResponseObjects {
         override def toRuleTarget: TargetComposition = TargetUnion(list.map(_.toRuleTarget).toSet)
       }
     }
+
+    implicit val transformer: Transformer[RuleTarget, JRRuleTarget] = apply _
+  }
+
+  final case class JRRuleTargetInfo(
+      id:                              JRRuleTarget,
+      @jsonField("displayName") name:  String,
+      description:                     String,
+      @jsonField("enabled") isEnabled: Boolean,
+      target:                          JRRuleTarget
+  )
+
+  object JRRuleTargetInfo {
+    implicit val transformer: Transformer[RuleTargetInfo, JRRuleTargetInfo] =
+      Transformer.define[RuleTargetInfo, JRRuleTargetInfo].withFieldRenamed(_.target, _.id).buildTransformer
   }
 
   // CategoryKind is either JRRuleCategory or String (category id)
@@ -870,6 +887,66 @@ object JsonResponseObjects {
     }
   }
 
+  /**
+   * Representation of a group category with bare minimum group information
+   */
+  final case class JRGroupCategoryInfo(
+      id:                                     String,
+      name:                                   String,
+      description:                            String,
+      @jsonField("categories") subCategories: List[JRGroupCategoryInfo],
+      groups:                                 List[JRGroupCategoryInfo.JRGroupInfo],
+      @jsonField("targets") targetInfos:      List[JRRuleTargetInfo]
+  )
+
+  object JRGroupCategoryInfo {
+    final case class JRGroupInfo(
+        id:                              NodeGroupId,
+        @jsonField("displayName") name:  String,
+        description:                     String,
+        category:                        Option[NodeGroupCategoryId],
+        @jsonField("dynamic") isDynamic: Boolean,
+        @jsonField("enabled") isEnabled: Boolean,
+        target:                          String
+    )
+    object JRGroupInfo {
+      implicit def transformer(implicit categoryId: Option[NodeGroupCategoryId]): Transformer[NodeGroup, JRGroupInfo] = {
+        Transformer
+          .define[NodeGroup, JRGroupInfo]
+          .enableBeanGetters
+          .withFieldConst(_.category, categoryId)
+          .withFieldComputed(_.target, x => GroupTarget(x.id).target)
+          .buildTransformer
+      }
+
+    }
+
+    implicit lazy val transformer: Transformer[FullNodeGroupCategory, JRGroupCategoryInfo] = {
+      Transformer
+        .define[FullNodeGroupCategory, JRGroupCategoryInfo]
+        .withFieldComputed(
+          _.subCategories,
+          _.subCategories.sortBy(_.id.value).transformInto[List[JRGroupCategoryInfo]]
+        )
+        .withFieldComputed(
+          _.groups,
+          cat => {
+            cat.ownGroups.values.toList.map(t => {
+              implicit val categoryId: Option[NodeGroupCategoryId] = cat.categoryByGroupId.get(t.nodeGroup.id)
+              t.nodeGroup.transformInto[JRGroupInfo]
+            })
+          }
+        )
+        .withFieldComputed(
+          _.targetInfos,
+          _.targetInfos.collect {
+            case t @ FullRuleTargetInfo(_: FullOtherTarget, _, _, _, _) => t.toTargetInfo.transformInto[JRRuleTargetInfo]
+          }
+        )
+        .buildTransformer
+    }
+  }
+
   final case class JRRuleNodesDirectives(
       id: String, // id is in format uid+rev
 
@@ -923,7 +1000,11 @@ trait RudderJsonEncoders {
     }
   }
 
-  implicit val ruleIdEncoder: JsonEncoder[RuleId] = JsonEncoder[String].contramap(_.serialize)
+  implicit val ruleTargetInfoEncoder: JsonEncoder[JRRuleTargetInfo] = DeriveJsonEncoder.gen[JRRuleTargetInfo]
+
+  implicit val ruleIdEncoder:          JsonEncoder[RuleId]              = JsonEncoder[String].contramap(_.serialize)
+  implicit val groupIdEncoder:         JsonEncoder[NodeGroupId]         = JsonEncoder[String].contramap(_.serialize)
+  implicit val groupCategoryIdEncoder: JsonEncoder[NodeGroupCategoryId] = JsonEncoder[String].contramap(_.value)
 
   implicit val applicationStatusEncoder: JsonEncoder[JRApplicationStatus] = DeriveJsonEncoder.gen
 
@@ -996,6 +1077,10 @@ trait RudderJsonEncoders {
   implicit val queryEncoder:                    JsonEncoder[JRQuery]                    = DeriveJsonEncoder.gen
   implicit val groupEncoder:                    JsonEncoder[JRGroup]                    = DeriveJsonEncoder.gen
   implicit val objectInheritedObjectProperties: JsonEncoder[JRGroupInheritedProperties] = DeriveJsonEncoder.gen
+
+  implicit val groupInfoEncoder:              JsonEncoder[JRGroupCategoryInfo.JRGroupInfo] =
+    DeriveJsonEncoder.gen[JRGroupCategoryInfo.JRGroupInfo]
+  implicit lazy val groupCategoryInfoEncoder: JsonEncoder[JRGroupCategoryInfo]             = DeriveJsonEncoder.gen[JRGroupCategoryInfo]
 
   implicit val revisionInfoEncoder: JsonEncoder[JRRevisionInfo] = DeriveJsonEncoder.gen
 }

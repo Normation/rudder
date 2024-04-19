@@ -103,6 +103,8 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.rest.data.Creation
 import com.normation.rudder.rest.data.Creation.CreationError
 import com.normation.rudder.rest.data.NodeSetup
+import com.normation.rudder.rest.internal.GroupInternalApiService
+import com.normation.rudder.rest.internal.GroupsInternalApi
 import com.normation.rudder.rest.internal.RuleInternalApiService
 import com.normation.rudder.rest.internal.RulesInternalApi
 import com.normation.rudder.rest.lift.*
@@ -643,14 +645,14 @@ class RestTestSetUp {
     restDataSerializer
   )
 
-  val ruleCategoryService    = new RuleCategoryService()
-  val ruleApiService6        = new RuleApiService6(
+  val ruleCategoryService     = new RuleCategoryService()
+  val ruleApiService6         = new RuleApiService6(
     mockRules.ruleCategoryRepo,
     mockRules.ruleRepo,
     mockRules.ruleCategoryRepo,
     restDataSerializer
   )
-  val ruleApiService14       = new RuleApiService14(
+  val ruleApiService14        = new RuleApiService14(
     mockRules.ruleRepo,
     mockRules.ruleRepo,
     mockConfigRepo.configurationRepository,
@@ -665,12 +667,13 @@ class RestTestSetUp {
     () => GlobalPolicyMode(Enforce, Always).succeed,
     new RuleApplicationStatusServiceImpl()
   )
-  val ruleInternalApiService = new RuleInternalApiService(
+  val ruleInternalApiService  = new RuleInternalApiService(
     mockRules.ruleRepo,
     mockNodeGroups.groupsRepo,
     mockRules.ruleCategoryRepo,
     mockNodes.nodeFactRepo
   )
+  val groupInternalApiService = new GroupInternalApiService(mockNodeGroups.groupsRepo)
 
   val fieldFactory:         DirectiveFieldFactory = new DirectiveFieldFactory {
     override def forType(fieldType: VariableSpec, id: String): DirectiveField = default(id)
@@ -928,6 +931,7 @@ class RestTestSetUp {
     ),
     new RuleApi(restExtractorService, zioJsonExtractor, ruleApiService2, ruleApiService6, ruleApiService14, uuidGen),
     new RulesInternalApi(ruleInternalApiService, ruleApiService14),
+    new GroupsInternalApi(groupInternalApiService),
     new NodeApi(
       restExtractorService,
       restDataSerializer,

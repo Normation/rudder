@@ -38,7 +38,7 @@ getGroupsTree model chainInitTable =
       request
         { method  = "GET"
         , headers = []
-        , url     = getUrl model ["groups", "tree"] []
+        , url     = getUrl model ["groupsinternal", "categorytree"] []
         , body    = emptyBody
         , expect  = expectJson (\r -> GetGroupsTreeResult r chainInitTable) decodeGetGroupsTree 
         , timeout = Nothing

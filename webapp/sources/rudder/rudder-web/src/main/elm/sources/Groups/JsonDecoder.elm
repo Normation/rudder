@@ -27,7 +27,7 @@ decodeComplianceSummaryValue =
 
 decodeGetGroupsTree : Decoder (Category Group)
 decodeGetGroupsTree =
-  at ["data", "groupCategories"] decodeCategoryGroupTarget
+  at ["data"] decodeCategoryGroupTarget
 
 decodeCategoryGroupTarget : Decoder (Category Group)
 decodeCategoryGroupTarget =
@@ -52,7 +52,6 @@ decodeGroup =
     |> required "displayName" string
     |> required "description" string
     |> optional "category"    (map Just string) Nothing
-    |> required "nodeIds"    (list string)
     |> required "dynamic"     bool
     |> required "enabled"     bool
     |> required "target"      string
@@ -64,7 +63,6 @@ decodeTarget =
     |> required "displayName" string
     |> required "description" string
     |> optional "category"    (map Just string) Nothing
-    |> hardcoded []
     |> hardcoded True
     |> required "enabled"     bool
     |> required "target"      string
