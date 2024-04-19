@@ -312,7 +312,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
       date:              DateTime
   ): IOResult[Unit] = {
     sessionBase.update(
-      UserSession(userId, sessionId, date, authenticatorName, permissions.sorted, authz.sorted, tenants, None, None) :: _
+      UserSession(userId, sessionId, date, authenticatorName, permissions.sorted, authz.sorted, Some(tenants), None, None) :: _
     ) *>
     userBase.update(_.map { case (k, v) => if (k == userId) (k, v.modify(_.lastLogin).setTo(Some(date))) else (k, v) })
   }
