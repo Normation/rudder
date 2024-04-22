@@ -70,11 +70,10 @@ object ComplianceScoreEventHandler extends ScoreEventHandler {
           } else if (percent.compliance >= 80) {
             Score(scoreId, B, "Compliance is between 80% and 95%", p)
           } else if (percent.compliance >= 50) {
-            ComplianceSerializable.fromPercent(percent)
             Score(scoreId, C, "Compliance is between 50% and 80%", p)
           } else if (percent.compliance >= 20) {
             Score(scoreId, D, "Compliance is between 20% and 50%", p)
-          } else if (percent.compliance >= 25) {
+          } else if (percent.compliance >= 5) {
             Score(scoreId, E, "Compliance is between 5% and 20%", p)
           } else {
             Score(scoreId, F, "Compliance is lower than 5%", p)
