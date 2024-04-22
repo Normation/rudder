@@ -136,7 +136,7 @@ pub fn insert_runlog(pool: &PgPool, runlog: &RunLog) -> Result<RunlogInsertion, 
             let report_id = insert_into(ruddersysevents)
                 .values(&runlog.reports)
                 .get_results::<QueryableReport>(connection)?
-                .get(0)
+                .first()
                 .expect("inserted runlog cannot be empty")
                 .id;
 

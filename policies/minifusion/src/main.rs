@@ -5,12 +5,12 @@ mod properties;
 use std::{env, fs, fs::read_to_string, path::PathBuf, process::Command, str};
 
 use anyhow::{anyhow, bail, Result};
-use chrono::{DateTime, Local, NaiveDateTime};
+use chrono::{DateTime, Local};
 use clap::Parser;
 use os_release::OsRelease;
 use quick_xml::se::Serializer;
 use serde::Serialize;
-use sysinfo::{CpuExt, ProcessExt, System, SystemExt, UserExt};
+use sysinfo::{System, Users};
 #[cfg(unix)]
 use uname_rs::Uname;
 
@@ -141,11 +141,11 @@ impl Inventory {
             .map_err(|_| anyhow!("Non-utf8 hostname"))?;
         let os_release = OsRelease::new()?;
 
-        let mut sys = System::new();
-        sys.refresh_users_list();
+        let users_src = Users::new_with_refreshed_list();
 
-        let users = sys
-            .users()
+        let mut sys = System::new();
+
+        let users = users_src
             .iter()
             .map(|u| User {
                 id: u.id().to_string(),
@@ -170,18 +170,17 @@ impl Inventory {
             .iter()
             .map(|(pid, p)| Process {
                 cmd: match p.cmd().join(" ").trim() {
-                    "" => p.exe().to_string_lossy().to_string(),
+                    "" => p.exe().unwrap().to_string_lossy().to_string(),
                     c => c.to_string(),
                 },
                 cpu_usage: p.cpu_usage().to_string(),
                 pid: pid.to_string(),
                 // <STARTED>2022-12-16 11:55</STARTED>
                 started: {
-                    let naive_datetime =
-                        NaiveDateTime::from_timestamp_opt(p.start_time() as i64, 0).unwrap();
-                    naive_datetime.format("%Y-%m-%d %H:%M").to_string()
+                    let datetime = DateTime::from_timestamp(p.start_time() as i64, 0).unwrap();
+                    datetime.format("%Y-%m-%d %H:%M").to_string()
                 },
-                user: sys
+                user: users_src
                     .get_user_by_id(p.user_id().unwrap())
                     .unwrap()
                     .name()

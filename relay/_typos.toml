@@ -7,3 +7,5 @@ passin = "passin"
 flate = "flate"
 # html...
 thead = "thead"
+# python variable name
+iy = "iy"
