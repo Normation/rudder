@@ -69,7 +69,7 @@ impl OsRelease {
     /// Attempt to parse the contents of `/etc/os-release`.
     pub fn new() -> io::Result<OsRelease> {
         let file = BufReader::new(File::open("/etc/os-release")?);
-        Ok(OsRelease::from_iter(file.lines().flatten()))
+        Ok(OsRelease::from_iter(file.lines().map_while(Result::ok)))
     }
 }
 
