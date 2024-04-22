@@ -817,6 +817,23 @@ object RuleInternalApi       extends Enum[RuleInternalApi] with ApiModuleProvide
   def values = findValues
 }
 
+sealed trait GroupInternalApi extends EnumEntry with EndpointSchema with InternalApi with SortIndex {
+  override def dataContainer: Option[String] = Some("groupsinternal")
+}
+
+object GroupInternalApi extends Enum[GroupInternalApi] with ApiModuleProvider[GroupInternalApi] {
+  final case object GetGroupCategoryTree extends GroupInternalApi with ZeroParam with StartsAtVersion14 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get the tree of groups with bare minimum group information"
+    val (action, path) = GET / "groupsinternal" / "categorytree"
+    override def dataContainer: Option[String] = None
+  }
+
+  def endpoints: List[GroupInternalApi] = values.toList.sortBy(_.z)
+
+  def values = findValues
+}
+
 sealed trait ScoreApi extends EnumEntry with EndpointSchema with InternalApi with SortIndex {
   override def dataContainer: Option[String] = Some("scores")
 }

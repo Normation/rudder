@@ -48,7 +48,6 @@ type alias Group =
   , name        : String
   , description : String
   , category    : Maybe String
-  , nodeIds     : List String
   , dynamic     : Bool
   , enabled     : Bool
   , target      : String
