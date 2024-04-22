@@ -142,8 +142,8 @@ class NodeFactQueryProcessor(
     status:        InventoryStatus = AcceptedInventory
 ) extends QueryProcessor with QueryChecker {
 
-  def process(query:       Query): Box[Seq[NodeId]] = processPure(query).map(_.toList.map(_.id)).toBox
-  def processOnlyId(query: Query): Box[Seq[NodeId]] = processPure(query).map(_.toList.map(_.id)).toBox
+  def process(query:       Query)(implicit qc: QueryContext): Box[Seq[NodeId]] = processPure(query).map(_.toList.map(_.id)).toBox
+  def processOnlyId(query: Query)(implicit qc: QueryContext): Box[Seq[NodeId]] = processPure(query).map(_.toList.map(_.id)).toBox
 
   def check(query: Query, nodeIds: Option[Seq[NodeId]])(implicit qc: QueryContext): IOResult[Set[NodeId]] = {
     // make a 0 criteria request raise an error like LDAP would do,
@@ -157,7 +157,7 @@ class NodeFactQueryProcessor(
     }
   }
 
-  def processPure(query: Query): IOResult[Chunk[CoreNodeFact]] = {
+  def processPure(query: Query)(implicit qc: QueryContext): IOResult[Chunk[CoreNodeFact]] = {
 
     // Since we are just iterating on an array of facts, we want to keep a "by cpu" filling.
     // Heuristic will need to be more fine tailored, for now:
@@ -207,7 +207,7 @@ class NodeFactQueryProcessor(
    * - SubGroupQuery (we want to do only one query to external service for each line)
    * - LdapQuery (we want to have all lines of that kind grouped in a new query)
    */
-  def analyzeQuery(query: Query): IOResult[NodeFactMatcher] = {
+  def analyzeQuery(query: Query)(implicit qc: QueryContext): IOResult[NodeFactMatcher] = {
     val group = if (query.composition == And) GroupAnd else GroupOr
 
     // we need a better pattern matching (extensible would be better) in place of `isInstanceOf`
@@ -287,7 +287,7 @@ class NodeFactQueryProcessor(
   def subGroupMatcher(
       lines:     Seq[CriterionLine],
       groupRepo: SubGroupComparatorRepository
-  ): Seq[IOResult[NodeFactMatcher]] = {
+  )(implicit qc: QueryContext): Seq[IOResult[NodeFactMatcher]] = {
     lines.map { c =>
       for {
         groupNodes <- groupRepo.getNodeIds(NodeGroupId(NodeGroupUid(c.value)))

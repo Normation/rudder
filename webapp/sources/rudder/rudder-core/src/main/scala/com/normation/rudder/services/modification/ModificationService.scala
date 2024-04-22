@@ -39,12 +39,15 @@ package com.normation.rudder.services.modification
 
 import com.normation.box.*
 import com.normation.eventlog.*
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.repository.*
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.*
 import org.eclipse.jgit.lib.PersonIdent
+import org.joda.time.DateTime
 
 class ModificationService(
     eventLogRepository:        EventLogRepository,
@@ -76,13 +79,19 @@ class ModificationService(
                         .rollback(
                           x,
                           commiter,
-                          ModificationId(uuidGen.newUuid),
-                          eventLog.principal,
-                          None,
                           rollbackedEvents,
                           target,
                           "after",
                           false
+                        )(
+                          ChangeContext(
+                            ModificationId(uuidGen.newUuid),
+                            eventLog.principal,
+                            new DateTime(),
+                            None,
+                            None,
+                            QueryContext.systemQC.nodePerms
+                          )
                         )
                         .toBox
                   }
@@ -109,13 +118,19 @@ class ModificationService(
                         .rollback(
                           parentCommit,
                           commiter,
-                          ModificationId(uuidGen.newUuid),
-                          eventLog.principal,
-                          None,
                           rollbackedEvents,
                           target,
                           "before",
                           false
+                        )(
+                          ChangeContext(
+                            ModificationId(uuidGen.newUuid),
+                            eventLog.principal,
+                            new DateTime(),
+                            None,
+                            None,
+                            QueryContext.systemQC.nodePerms
+                          )
                         )
                         .toBox
                   }

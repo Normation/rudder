@@ -38,12 +38,13 @@
 package com.normation.rudder.services.queries
 
 import com.normation.box.*
-import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.DynamicGroupLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
 import net.liftweb.common.*
@@ -79,11 +80,11 @@ trait DynGroupUpdaterService {
    *
    * @return
    */
-  def update(dynGroupId: NodeGroupId, modId: ModificationId, actor: EventActor, reason: Option[String]): Box[DynGroupDiff]
+  def update(dynGroupId: NodeGroupId)(implicit cc: ChangeContext): Box[DynGroupDiff]
 
-  def updateAll(modId: ModificationId, actor: EventActor, reason: Option[String]): Box[Seq[DynGroupDiff]]
+  def updateAll(modId: ModificationId)(implicit cc: ChangeContext): Box[Seq[DynGroupDiff]]
 
-  def computeDynGroup(group: NodeGroup): Box[NodeGroup]
+  def computeDynGroup(group: NodeGroup)(implicit qc: QueryContext): Box[NodeGroup]
 }
 
 class DynGroupUpdaterServiceImpl(
@@ -92,7 +93,7 @@ class DynGroupUpdaterServiceImpl(
     queryProcessor:        QueryProcessor
 ) extends DynGroupUpdaterService {
 
-  override def computeDynGroup(group: NodeGroup): Box[NodeGroup] = {
+  override def computeDynGroup(group: NodeGroup)(implicit qc: QueryContext): Box[NodeGroup] = {
     for {
       _               <- if (group.isDynamic) Full("OK") else Failure("Can not update a not dynamic group")
       timePreCompute   = System.currentTimeMillis
@@ -109,16 +110,16 @@ class DynGroupUpdaterServiceImpl(
     }
   }
 
-  override def updateAll(modId: ModificationId, actor: EventActor, reason: Option[String]): Box[Seq[DynGroupDiff]] = {
+  override def updateAll(modId: ModificationId)(implicit cc: ChangeContext): Box[Seq[DynGroupDiff]] = {
     for {
       allGroups <- roNodeGroupRepository.getAll().toBox
       dynGroups  = allGroups.filter(_.isDynamic)
       result    <- com.normation.utils.Control.traverse(dynGroups) { group =>
                      for {
-                       newGroup   <- computeDynGroup(group)
+                       newGroup   <- computeDynGroup(group)(cc.toQuery)
                        savedGroup <-
                          woNodeGroupRepository
-                           .updateDynGroupNodes(newGroup, modId, actor, reason)
+                           .updateDynGroupNodes(newGroup, cc.modId, cc.actor, cc.message)
                            .toBox ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.serialize})"
                      } yield {
                        DynGroupDiff(newGroup, group)
@@ -130,17 +131,14 @@ class DynGroupUpdaterServiceImpl(
   }
 
   override def update(
-      dynGroupId: NodeGroupId,
-      modId:      ModificationId,
-      actor:      EventActor,
-      reason:     Option[String]
-  ): Box[DynGroupDiff] = {
+      dynGroupId: NodeGroupId
+  )(implicit cc: ChangeContext): Box[DynGroupDiff] = {
     val timePreUpdate = System.currentTimeMillis
     for {
-      (group, _)     <- roNodeGroupRepository.getNodeGroup(dynGroupId).toBox
-      newGroup       <- computeDynGroup(group)
+      (group, _)     <- roNodeGroupRepository.getNodeGroup(dynGroupId)(cc.toQuery).toBox
+      newGroup       <- computeDynGroup(group)(cc.toQuery)
       savedGroup     <- woNodeGroupRepository
-                          .updateDynGroupNodes(newGroup, modId, actor, reason)
+                          .updateDynGroupNodes(newGroup, cc.modId, cc.actor, cc.message)
                           .toBox ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.serialize})"
       timeGroupUpdate = (System.currentTimeMillis - timePreUpdate)
       _               = DynamicGroupLoggerPure.Timing.logEffect.trace(

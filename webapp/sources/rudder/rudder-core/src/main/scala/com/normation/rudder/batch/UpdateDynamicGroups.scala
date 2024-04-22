@@ -46,6 +46,8 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.DynamicGroupLoggerPure
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.queries.*
 import com.normation.rudder.utils.ParseMaxParallelism
 import com.normation.utils.StringUuidGenerator
@@ -319,11 +321,15 @@ class UpdateDynamicGroups(
               results <- dynGroupIds.accumulateParN(maxParallelism) {
                            case dynGroupId =>
                              dynGroupUpdaterService
-                               .update(
-                                 dynGroupId,
-                                 modId,
-                                 RudderEventActor,
-                                 Some("Update group due to batch update of dynamic groups")
+                               .update(dynGroupId)(
+                                 ChangeContext(
+                                   modId,
+                                   RudderEventActor,
+                                   new DateTime(),
+                                   Some("Update group due to batch update of dynamic groups"),
+                                   None,
+                                   QueryContext.systemQC.nodePerms
+                                 )
                                )
                                .toIO
                                .either
@@ -339,11 +345,15 @@ class UpdateDynamicGroups(
               results2 <- dynGroupsWithDependencyIds.accumulateParN(1) {
                             case dynGroupId =>
                               dynGroupUpdaterService
-                                .update(
-                                  dynGroupId,
-                                  modId,
-                                  RudderEventActor,
-                                  Some("Update group due to batch update of dynamic groups")
+                                .update(dynGroupId)(
+                                  ChangeContext(
+                                    modId,
+                                    RudderEventActor,
+                                    new DateTime(),
+                                    Some("Update group due to batch update of dynamic groups"),
+                                    None,
+                                    QueryContext.systemQC.nodePerms
+                                  )
                                 )
                                 .toIO
                                 .either

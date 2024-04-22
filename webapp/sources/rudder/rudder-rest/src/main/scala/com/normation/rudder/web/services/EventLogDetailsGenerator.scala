@@ -53,6 +53,7 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.reports.AgentRunInterval
@@ -250,7 +251,7 @@ class EventLogDetailsGenerator(
     }
   }
 
-  def displayDetails(event: EventLog, changeRequestId: Option[ChangeRequestId]): NodeSeq = {
+  def displayDetails(event: EventLog, changeRequestId: Option[ChangeRequestId])(implicit qc: QueryContext): NodeSeq = {
 
     val groupLib         = nodeGroupRepository
       .getFullGroupLibrary()
@@ -1242,7 +1243,9 @@ class EventLogDetailsGenerator(
 
   }
 
-  private[this] def ruleDetails(xml: NodeSeq, rule: Rule, groupLib: FullNodeGroupCategory, rootRuleCategory: RuleCategory) = {
+  private[this] def ruleDetails(xml: NodeSeq, rule: Rule, groupLib: FullNodeGroupCategory, rootRuleCategory: RuleCategory)(
+      implicit qc: QueryContext
+  ) = {
     (
       "#ruleID" #> rule.id.serialize &
       "#ruleName" #> rule.name &

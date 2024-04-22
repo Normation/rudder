@@ -40,6 +40,7 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.GitVersion
 import com.normation.box.*
 import com.normation.errors.PureResult
+import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.rudder.domain.properties.AddGlobalParameterDiff
 import com.normation.rudder.domain.properties.ChangeRequestGlobalParameterDiff
@@ -49,6 +50,8 @@ import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.ModifyToGlobalParameterDiff
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
@@ -66,6 +69,7 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.FieldError
 import net.liftweb.util.Helpers.*
+import org.joda.time.DateTime
 import scala.xml.*
 
 class CreateOrUpdateGlobalParameterPopup(
@@ -76,8 +80,11 @@ class CreateOrUpdateGlobalParameterPopup(
 ) extends DispatchSnippet with Loggable {
 
   private[this] val userPropertyService = RudderConfig.userPropertyService
+  private[this] val uuidGen             = RudderConfig.stringUuidGenerator
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "popupContent" => { _ => popupContent()(CurrentUser.queryContext) }
+  }
 
   /* Text variation for
    * - Global Parameter
@@ -129,7 +136,7 @@ class CreateOrUpdateGlobalParameterPopup(
     }
   }
 
-  private[this] def onSubmit(): JsCmd = {
+  private[this] def onSubmit()(implicit qc: QueryContext): JsCmd = {
     if (formTracker.hasErrors) {
       onFailure
     } else {
@@ -158,7 +165,16 @@ class CreateOrUpdateGlobalParameterPopup(
                      CurrentUser.actor,
                      paramReasons.map(_.get)
                    )
-          id    <- workflowService.startWorkflow(cr, CurrentUser.actor, paramReasons.map(_.get))
+          id    <- workflowService.startWorkflow(cr)(
+                     ChangeContext(
+                       ModificationId(uuidGen.newUuid),
+                       qc.actor,
+                       new DateTime(),
+                       paramReasons.map(_.get),
+                       None,
+                       qc.nodePerms
+                     )
+                   )
         } yield {
           if (workflowEnabled) {
             closePopup() & onSuccessCallback(Right(id))
@@ -179,7 +195,7 @@ class CreateOrUpdateGlobalParameterPopup(
     }
   }
 
-  private[this] def onFailure: JsCmd = {
+  private[this] def onFailure(implicit qc: QueryContext): JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them"))
     updateFormClientSide()
   }
@@ -191,7 +207,7 @@ class CreateOrUpdateGlobalParameterPopup(
   /**
    * Update the form when something happened
    */
-  private[this] def updateFormClientSide(): JsCmd = {
+  private[this] def updateFormClientSide()(implicit qc: QueryContext): JsCmd = {
     SetHtml(CreateOrUpdateGlobalParameterPopup.htmlId_popupContainer, popupContent())
   }
 
@@ -348,7 +364,7 @@ class CreateOrUpdateGlobalParameterPopup(
 
   private[this] def error(msg: String) = Text(msg)
 
-  def popupContent(): NodeSeq = {
+  def popupContent()(implicit qc: QueryContext): NodeSeq = {
     val (buttonName, classForButton) = workflowEnabled match {
       case true  =>
         ("Open Request", "wideButton btn-primary")

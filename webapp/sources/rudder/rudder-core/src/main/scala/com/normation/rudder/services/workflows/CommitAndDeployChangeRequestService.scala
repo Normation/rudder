@@ -41,8 +41,6 @@ import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
@@ -54,6 +52,8 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.*
 import com.normation.rudder.domain.workflows.*
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.*
 import com.normation.rudder.services.marshalling.XmlSerializer
 import com.normation.rudder.services.marshalling.XmlUnserializer
@@ -79,7 +79,7 @@ trait CommitAndDeployChangeRequestService {
    * the changes it contains and the actual current
    * state of configuration.
    */
-  def save(changeRequest: ChangeRequest, actor: EventActor, reason: Option[String]): Box[ChangeRequest]
+  def save(changeRequest: ChangeRequest)(implicit cc: ChangeContext): Box[ChangeRequest]
 
   /**
    * Check if a changeRequest can be merged as it is.
@@ -87,7 +87,7 @@ trait CommitAndDeployChangeRequestService {
    * return either it is ok to merge (and the corresponding
    * merge) or the conflict.
    */
-  def isMergeable(changeRequest: ChangeRequest): Boolean
+  def isMergeable(changeRequest: ChangeRequest)(implicit qc: QueryContext): Boolean
 }
 
 /**
@@ -116,37 +116,34 @@ class CommitAndDeployChangeRequestServiceImpl(
 
   val logger = ChangeRequestLogger
 
-  def save(changeRequest: ChangeRequest, actor: EventActor, reason: Option[String]): Box[ChangeRequest] = {
+  def save(changeRequest: ChangeRequest)(implicit cc: ChangeContext): Box[ChangeRequest] = {
+    implicit val qc: QueryContext = cc.toQuery
+
     workflowEnabled().toBox.foreach {
       if (_) {
         logger.info(s"Saving and deploying change request ${changeRequest.id.value}")
       }
     }
     for {
-      (cr, modId, trigger) <- changeRequest match {
-                                case config: ConfigurationChangeRequest =>
-                                  if (!isMergeableConfigurationChangeRequest(config)) {
-                                    ChangeRequestLogger.info(
-                                      s"Merging change request #${config.id.value} while configurations have diverged: ${config.info.name}: ${config.info.description}"
-                                    )
-                                  }
-                                  for {
-                                    (modId, triggerDeployment) <- saveConfigurationChangeRequest(config)
-                                    updatedCr                   = ChangeRequest.setModId(config, modId)
-                                  } yield {
-                                    (updatedCr, modId, triggerDeployment)
-                                  }
-                                case x => Failure("We don't know how to deploy change request like this one: " + x)
-                              }
+      (config, trigger) <- changeRequest match {
+                             case config: ConfigurationChangeRequest =>
+                               if (!isMergeableConfigurationChangeRequest(config)) {
+                                 ChangeRequestLogger.info(
+                                   s"Merging change request #${config.id.value} while configurations have diverged: ${config.info.name}: ${config.info.description}"
+                                 )
+                               }
+                               saveConfigurationChangeRequest(config).map(config -> _)
+                             case x => Failure("We don't know how to deploy change request like this one: " + x)
+                           }
     } yield {
       if (trigger) {
-        asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
+        asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, RudderEventActor)
       }
-      cr
+      ChangeRequest.setModId(config, cc.modId)
     }
   }
 
-  def isMergeable(changeRequest: ChangeRequest): Boolean = {
+  def isMergeable(changeRequest: ChangeRequest)(implicit qc: QueryContext): Boolean = {
     changeRequest match {
       case cr: ConfigurationChangeRequest => isMergeableConfigurationChangeRequest(cr)
       case _ => false
@@ -156,7 +153,9 @@ class CommitAndDeployChangeRequestServiceImpl(
   /**
    * Look if the configuration change request is mergeable
    */
-  private[this] def isMergeableConfigurationChangeRequest(changeRequest: ConfigurationChangeRequest): Boolean = {
+  private[this] def isMergeableConfigurationChangeRequest(
+      changeRequest: ConfigurationChangeRequest
+  )(implicit qc: QueryContext): Boolean = {
 
     trait CheckChanges[T] {
       // Logging function
@@ -306,9 +305,10 @@ class CommitAndDeployChangeRequestServiceImpl(
    * So, what to do ?
    * Returns the modificationId, plus a boolean indicating if we need to trigger a deployment
    */
-  private[this] def saveConfigurationChangeRequest(cr: ConfigurationChangeRequest): Box[(ModificationId, Boolean)] = {
+  private[this] def saveConfigurationChangeRequest(cr: ConfigurationChangeRequest)(implicit cc: ChangeContext): Box[Boolean] = {
+    import cc.modId
 
-    def doDirectiveChange(directiveChanges: DirectiveChanges, modId: ModificationId): Box[TriggerDeploymentDiff] = {
+    def doDirectiveChange(directiveChanges: DirectiveChanges): Box[TriggerDeploymentDiff] = {
       def save(tn: TechniqueName, d: Directive, change: DirectiveChangeItem): Box[Option[DirectiveSaveDiff]] = {
         for {
           activeTechnique <- roDirectiveRepo.getActiveTechnique(tn).notOptional(s"Missing active technique with name ${tn}")
@@ -337,7 +337,7 @@ class CommitAndDeployChangeRequestServiceImpl(
       }
     }
 
-    def doNodeGroupChange(change: NodeGroupChanges, modId: ModificationId): Box[TriggerDeploymentDiff] = {
+    def doNodeGroupChange(change: NodeGroupChanges)(implicit qc: QueryContext): Box[TriggerDeploymentDiff] = {
       for {
         change <- change.changes.change
         diff   <- change.diff match {
@@ -349,7 +349,7 @@ class CommitAndDeployChangeRequestServiceImpl(
                       Failure("You should not be able to create a group with a change request")
                     case ModifyToNodeGroupDiff(n) =>
                       // we first need to refresh the node list if it's a dynamic group
-                      val group = if (n.isDynamic) updateDynamicGroups.computeDynGroup(n) else Full(n)
+                      val group = if (n.isDynamic) updateDynamicGroups.computeDynGroup(n)(qc) else Full(n)
 
                       // If we could get a nodeList, then we apply the change, else we bubble up the error
                       group.flatMap { resultingGroup =>
@@ -365,7 +365,7 @@ class CommitAndDeployChangeRequestServiceImpl(
       }
     }
 
-    def doRuleChange(change: RuleChanges, modId: ModificationId): Box[TriggerDeploymentDiff] = {
+    def doRuleChange(change: RuleChanges): Box[TriggerDeploymentDiff] = {
       for {
         change <- change.changes.change
         diff   <- (change.diff match {
@@ -382,7 +382,7 @@ class CommitAndDeployChangeRequestServiceImpl(
       }
     }
 
-    def doParamChange(change: GlobalParameterChanges, modId: ModificationId): Box[TriggerDeploymentDiff] = {
+    def doParamChange(change: GlobalParameterChanges): Box[TriggerDeploymentDiff] = {
       for {
         change <- change.changes.change
         diff   <- (change.diff match {
@@ -405,7 +405,6 @@ class CommitAndDeployChangeRequestServiceImpl(
         diff
       }
     }
-    val modId = ModificationId(uuidGen.newUuid)
 
     /*
      * Logic to commit Change request with multiple changes:
@@ -491,10 +490,10 @@ class CommitAndDeployChangeRequestServiceImpl(
         }).openOr(true)
     }
 
-    val params     = bestEffort(sortedParam)(param => doParamChange(param, modId))
-    val groups     = bestEffort(sortedGroups)(nodeGroupChange => doNodeGroupChange(nodeGroupChange, modId))
-    val directives = bestEffort(sortedDirectives)(directiveChange => doDirectiveChange(directiveChange, modId))
-    val rules      = bestEffort(sortedRules)(rule => doRuleChange(rule, modId))
+    val params     = bestEffort(sortedParam)(param => doParamChange(param))
+    val groups     = bestEffort(sortedGroups)(nodeGroupChange => doNodeGroupChange(nodeGroupChange)(cc.toQuery))
+    val directives = bestEffort(sortedDirectives)(directiveChange => doDirectiveChange(directiveChange))
+    val rules      = bestEffort(sortedRules)(rule => doRuleChange(rule))
     // TODO: we will want to keep tracks of all the modification done, and in
     // particular of all the error
     // not fail on the first erroneous, but in case of error, get them all.
@@ -505,7 +504,7 @@ class CommitAndDeployChangeRequestServiceImpl(
                             }
     } yield {
       // If one of the step require a deployment, then we need to trigger a deployment
-      (modId, triggerDeployments.contains(true))
+      triggerDeployments.contains(true)
     }
 
   }

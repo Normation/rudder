@@ -42,6 +42,8 @@ import com.normation.box.*
 import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.repository.*
@@ -68,18 +70,35 @@ class Archives extends DispatchSnippet with Loggable {
   private[this] val noElements = NotArchivedElements(Seq(), Seq(), Seq())
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    case "allForm"              => allForm
+    case "allForm"              => allForm(CurrentUser.queryContext)
     case "rulesForm"            => rulesForm
-    case "groupLibraryForm"     => groupLibraryForm
+    case "groupLibraryForm"     => groupLibraryForm(CurrentUser.queryContext)
     case "directiveLibraryForm" => directiveLibraryForm
     case "parametersForm"       => parametersForm
+  }
+
+  // TODO: this can be rewritten more easily with context function types in Scala 3
+  type ImportFuncParams = (GitCommitId, PersonIdent, Boolean)
+  private def restoreWithImport(
+      importFunction: ImportFuncParams => ChangeContext => IOResult[GitCommitId]
+  ): (GitCommitId, PersonIdent, Boolean) => IOResult[GitCommitId] = (commit, commiter, includeSystem) => {
+    implicit val qc: QueryContext  = CurrentUser.queryContext
+    implicit val cc: ChangeContext = ChangeContext(
+      ModificationId(uuidGen.newUuid),
+      qc.actor,
+      new DateTime(),
+      Some("User requested archive restoration to commit %s".format(commit.value)),
+      None,
+      qc.nodePerms
+    )
+    importFunction((commit, commiter, false))(cc)
   }
 
   /**
    * Export all items (CR, Active Techniques library, groups)
    * Advertise on success and error
    */
-  private[this] def allForm = {
+  private[this] def allForm(implicit qc: QueryContext) = {
     actionFormBuilder(
       formName = "allForm",
       archiveButtonId = "exportAllButton",
@@ -92,7 +111,8 @@ class Archives extends DispatchSnippet with Loggable {
       archiveListFunction = () => itemArchiver.getFullArchiveTags,
       restoreButtonId = "importAllButton",
       restoreButtonName = "Restore everything",
-      restoreFunction = itemArchiver.importAll,
+      restoreFunction =
+        restoreWithImport((ps: ImportFuncParams) => (cc: ChangeContext) => (itemArchiver.importAll(ps._1, ps._2, ps._3)(cc))),
       restoreErrorMessage = "Error when importing groups, parameters, directive library and rules.",
       restoreSuccessDebugMessage = "Importing groups, parameters, directive library and rules on user request",
       downloadButtonId = "downloadAllButton",
@@ -113,7 +133,8 @@ class Archives extends DispatchSnippet with Loggable {
       archiveListFunction = () => itemArchiver.getRulesTags,
       restoreButtonId = "importRulesButton",
       restoreButtonName = "Restore rules",
-      restoreFunction = itemArchiver.importRules,
+      restoreFunction =
+        restoreWithImport((ps: ImportFuncParams) => (cc: ChangeContext) => (itemArchiver.importRules(ps._1, ps._2, ps._3)(cc))),
       restoreErrorMessage = "Error when importing rules.",
       restoreSuccessDebugMessage = "Importing rules on user request",
       downloadButtonId = "downloadRulesButton",
@@ -134,7 +155,9 @@ class Archives extends DispatchSnippet with Loggable {
       archiveListFunction = () => itemArchiver.getTechniqueLibraryTags,
       restoreButtonId = "importDirectiveLibraryButton",
       restoreButtonName = "Restore directive library",
-      restoreFunction = itemArchiver.importTechniqueLibrary,
+      restoreFunction = restoreWithImport((ps: ImportFuncParams) =>
+        (cc: ChangeContext) => (itemArchiver.importTechniqueLibrary(ps._1, ps._2, ps._3)(cc))
+      ),
       restoreErrorMessage = "Error when importing directive library.",
       restoreSuccessDebugMessage = "Importing directive library on user request",
       downloadButtonId = "downloadDirectiveLibraryButton",
@@ -143,7 +166,7 @@ class Archives extends DispatchSnippet with Loggable {
     )
   }
 
-  private[this] def groupLibraryForm = {
+  private[this] def groupLibraryForm(implicit qc: QueryContext) = {
     actionFormBuilder(
       formName = "groupLibraryForm",
       archiveButtonId = "exportGroupLibraryButton",
@@ -155,7 +178,9 @@ class Archives extends DispatchSnippet with Loggable {
       archiveListFunction = () => itemArchiver.getGroupLibraryTags,
       restoreButtonId = "importGroupLibraryButton",
       restoreButtonName = "Restore groups",
-      restoreFunction = itemArchiver.importGroupLibrary,
+      restoreFunction = restoreWithImport((ps: ImportFuncParams) =>
+        (cc: ChangeContext) => (itemArchiver.importGroupLibrary(ps._1, ps._2, ps._3)(cc))
+      ),
       restoreErrorMessage = "Error when importing groups.",
       restoreSuccessDebugMessage = "Importing groups on user request",
       downloadButtonId = "downloadGroupLibraryButton",
@@ -176,7 +201,9 @@ class Archives extends DispatchSnippet with Loggable {
       archiveListFunction = () => itemArchiver.getParametersTags,
       restoreButtonId = "importParametersButton",
       restoreButtonName = "Restore Parameters",
-      restoreFunction = itemArchiver.importParameters,
+      restoreFunction = restoreWithImport((ps: ImportFuncParams) =>
+        (cc: ChangeContext) => (itemArchiver.importParameters(ps._1, ps._2, ps._3)(cc))
+      ),
       restoreErrorMessage = "Error when importing global properties.",
       restoreSuccessDebugMessage = "Importing global properties on user request",
       downloadButtonId = "downloadParametersButton",
@@ -216,9 +243,6 @@ class Archives extends DispatchSnippet with Loggable {
       restoreFunction: (
           GitCommitId,
           PersonIdent,
-          ModificationId,
-          EventActor,
-          Option[String],
           Boolean
       ) => IOResult[GitCommitId], // the actual logic to execute the action
 
@@ -299,9 +323,6 @@ class Archives extends DispatchSnippet with Loggable {
             archive  <- restoreFunction(
                           commit,
                           commiter,
-                          ModificationId(uuidGen.newUuid),
-                          CurrentUser.actor,
-                          Some("User requested archive restoration to commit %s".format(commit.value)),
                           false
                         )
           } yield archive).toBox match {

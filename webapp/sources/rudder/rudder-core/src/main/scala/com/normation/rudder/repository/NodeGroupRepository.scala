@@ -43,7 +43,9 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.utils.Utils
 import com.unboundid.ldif.LDIFChangeRecord
 import scala.collection.MapView
@@ -215,14 +217,18 @@ trait RoNodeGroupRepository {
    * @param id
    * @return
    */
-  def getNodeGroup(id: NodeGroupId): IOResult[(NodeGroup, NodeGroupCategoryId)] = {
+  def getNodeGroup(id: NodeGroupId)(implicit
+      qc: QueryContext
+  ): IOResult[(NodeGroup, NodeGroupCategoryId)] = {
     getNodeGroupOpt(id).notOptional(s"Group with id '${id.serialize}' was not found'")
   }
 
   /**
    * Get the node group corresponding to that ID, or None if none were found.
    */
-  def getNodeGroupOpt(id: NodeGroupId): IOResult[Option[(NodeGroup, NodeGroupCategoryId)]]
+  def getNodeGroupOpt(id: NodeGroupId)(implicit
+      qc: QueryContext
+  ): IOResult[Option[(NodeGroup, NodeGroupCategoryId)]]
 
   /**
    * Fetch the parent category of the NodeGroup
@@ -235,6 +241,7 @@ trait RoNodeGroupRepository {
   /**
    * Get all node groups defined in that repository
    */
+  // TODO: add QC
   def getAll(): IOResult[Seq[NodeGroup]]
 
   /**
@@ -266,7 +273,9 @@ trait RoNodeGroupRepository {
    *   ...    *
    *
    */
-  def getGroupsByCategory(includeSystem: Boolean = false): IOResult[SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]]
+  def getGroupsByCategory(includeSystem: Boolean = false)(implicit
+      qc: QueryContext
+  ): IOResult[SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]]
 
   /**
    * Retrieve all groups that have at least one of the given
@@ -456,12 +465,9 @@ trait WoNodeGroupRepository {
    * if needed
    */
   def move(
-      group:          NodeGroupId,
-      containerId:    NodeGroupCategoryId,
-      modId:          ModificationId,
-      actor:          EventActor,
-      whyDescription: Option[String]
-  ): IOResult[Option[ModifyNodeGroupDiff]]
+      group:       NodeGroupId,
+      containerId: NodeGroupCategoryId
+  )(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]]
 
   /**
    * Delete the given nodeGroup.

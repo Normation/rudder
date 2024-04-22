@@ -6,6 +6,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.FormTracker
@@ -46,9 +47,11 @@ class CreateCloneGroupPopup(
 
   var createContainer = false
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "popupContent" => { _ => popupContent()(CurrentUser.queryContext) }
+  }
 
-  def popupContent(): NodeSeq = {
+  def popupContent()(implicit qc: QueryContext): NodeSeq = {
     S.appendJs(initJs)
     SHtml.ajaxForm(
       (
@@ -84,14 +87,14 @@ class CreateCloneGroupPopup(
     JsRaw("""hideBsModal('createCloneGroupPopup');""")
   }
 
-  private[this] def onFailure(): JsCmd = {
+  private[this] def onFailure()(implicit qc: QueryContext): JsCmd = {
     onFailureCallback() &
     updateFormClientSide()
   }
 
   private[this] def error(msg: String) = <span class="col-xl-12 errors-container">{msg}</span>
 
-  private[this] def onSubmit(): JsCmd = {
+  private[this] def onSubmit()(implicit qc: QueryContext): JsCmd = {
     nodeGroup match {
       case None     => Noop
       case Some(ng) =>
@@ -291,7 +294,7 @@ class CreateCloneGroupPopup(
     new FormTracker(groupName, groupDescription, groupContainer, isStatic)
   }
 
-  private[this] def updateFormClientSide(): JsCmd = {
+  private[this] def updateFormClientSide()(implicit qc: QueryContext): JsCmd = {
     SetHtml("createCloneGroupContainer", popupContent())
   }
 }

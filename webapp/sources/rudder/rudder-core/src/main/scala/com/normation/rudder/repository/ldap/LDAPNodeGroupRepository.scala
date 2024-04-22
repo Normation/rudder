@@ -73,6 +73,9 @@ import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.policies.GroupTarget
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.CategoryAndNodeGroup
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.FullNodeGroupCategory
@@ -95,6 +98,7 @@ class RoLDAPNodeGroupRepository(
     val rudderDit:     RudderDit,
     val ldap:          LDAPConnectionProvider[RoLDAPConnection],
     val mapper:        LDAPEntityMapper,
+    val nodeFactRepo:  NodeFactRepository,
     val groupLibMutex: ScalaReadWriteLock // that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends RoNodeGroupRepository with NamedZioLogger {
   repo =>
@@ -174,6 +178,8 @@ class RoLDAPNodeGroupRepository(
 
   def getGroupsByCategory(
       includeSystem: Boolean = false
+  )(implicit
+      qc:            QueryContext
   ): IOResult[SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]] = {
     groupLibMutex.readLock {
       for {
@@ -204,18 +210,22 @@ class RoLDAPNodeGroupRepository(
     }
   }
 
-  def getNodeGroupOpt(id: NodeGroupId): IOResult[Option[(NodeGroup, NodeGroupCategoryId)]] = {
+  def getNodeGroupOpt(id: NodeGroupId)(implicit qc: QueryContext): IOResult[Option[(NodeGroup, NodeGroupCategoryId)]] = {
     groupLibMutex.readLock(for {
       con     <- ldap
       sgEntry <- getSGEntry(con, id)
       sg      <- sgEntry match {
                    case None    => None.succeed
                    case Some(x) =>
-                     mapper
-                       .entry2NodeGroup(x)
-                       .toIO
-                       .chainError(s"Error when mapping server group entry to its entity. Entry: ${sgEntry}")
-                       .map(y => Some((y, mapper.dn2NodeGroupCategoryId(x.dn.getParent))))
+                     for {
+                       g        <- mapper
+                                     .entry2NodeGroup(x)
+                                     .toIO
+                                     .chainError(s"Error when mapping server group entry to its entity. Entry: ${sgEntry}")
+                       allNodes <- nodeFactRepo.getAll()
+                       nodeIds   = g.serverList.intersect(allNodes.keySet.toSet)
+                       y         = g.copy(serverList = nodeIds)
+                     } yield Some((y, mapper.dn2NodeGroupCategoryId(x.dn.getParent)))
                  }
     } yield {
       sg
@@ -1156,11 +1166,9 @@ class WoLDAPNodeGroupRepository(
 
   override def move(
       nodeGroupId: NodeGroupId,
-      containerId: NodeGroupCategoryId,
-      modId:       ModificationId,
-      actor:       EventActor,
-      reason:      Option[String]
-  ): IOResult[Option[ModifyNodeGroupDiff]] = {
+      containerId: NodeGroupCategoryId
+  )(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
+    import cc.*
     groupLibMutex.writeLock(for {
       con         <- ldap
       oldParents  <- if (autoExportOnModify) {
@@ -1190,19 +1198,19 @@ class WoLDAPNodeGroupRepository(
       loggedAction  <- optDiff match {
                          case None       => ZIO.unit
                          case Some(diff) =>
-                           actionlogEffect.saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = reason)
+                           actionlogEffect.saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = message)
                        }
-      res           <- getNodeGroup(nodeGroupId)
+      res           <- getNodeGroup(nodeGroupId)(cc.toQuery)
       (nodeGroup, _) = res
       autoArchive   <-
         ZIO
           .when(autoExportOnModify && optDiff.isDefined && !nodeGroup.isSystem) { // only persists if that was a real move (not a move in the same category)
             for {
-              get      <- getNodeGroup(nodeGroupId)
+              get      <- getNodeGroup(nodeGroupId)(cc.toQuery)
               (ng, cId) = get
               parents  <- getParents_NodeGroupCategory(cId)
               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-              moved    <- gitArchiver.moveNodeGroup(ng, oldParents, cId :: parents.map(_.id), Some((modId, commiter, reason)))
+              moved    <- gitArchiver.moveNodeGroup(ng, oldParents, cId :: parents.map(_.id), Some((modId, commiter, message)))
             } yield {
               moved
             }

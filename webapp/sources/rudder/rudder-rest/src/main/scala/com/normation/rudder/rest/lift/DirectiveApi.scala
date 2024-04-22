@@ -66,6 +66,8 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.ModifyToDirectiveDiff
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
@@ -91,6 +93,7 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonAST.JValue
+import org.joda.time.DateTime
 import zio.*
 import zio.syntax.*
 
@@ -213,6 +216,7 @@ class DirectiveApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
       implicit val action = "deleteDirective"
       workflowResponse(
         serviceV2.deleteDirective(DirectiveUid(id)),
@@ -259,7 +263,8 @@ class DirectiveApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      val directiveId     = DirectiveUid(id)
+      val directiveId = DirectiveUid(id)
+      implicit val qc: QueryContext = authzToken.qc
       implicit val action = "updateDirective"
       val response        = for {
         restDirective <- restExtractor.extractDirective(req) ?~! s"Could not extract values from request."
@@ -360,6 +365,7 @@ class DirectiveApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
       (for {
         id            <- DirectiveId.parse(sid).toIO
         restDirective <- zioJsonExtractor.extractDirective(req).chainError(s"Could not extract a directive from request.").toIO
@@ -380,6 +386,7 @@ class DirectiveApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
       serviceV14.deleteDirective(DirectiveUid(id), params, authzToken.qc.actor).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
@@ -450,7 +457,7 @@ class DirectiveApiService2(
       directive:       Directive,
       initialState:    Option[Directive],
       action:          DGModAction
-  )(actor: EventActor, reason: Option[String], crName: String, crDescription: String): Box[JValue] = {
+  )(actor: EventActor, reason: Option[String], crName: String, crDescription: String)(implicit qc: QueryContext): Box[JValue] = {
     val change = DirectiveChangeRequest(
       action,
       technique.id.name,
@@ -460,6 +467,14 @@ class DirectiveApiService2(
       initialState,
       Nil,
       Nil
+    )
+    implicit val cc: ChangeContext = ChangeContext(
+      ModificationId(uuidGen.newUuid),
+      actor,
+      new DateTime(),
+      reason,
+      None,
+      qc.nodePerms
     )
 
     for {
@@ -476,9 +491,7 @@ class DirectiveApiService2(
                         reason
                       )
       id           <- workflow.startWorkflow(
-                        cr,
-                        actor,
-                        None
+                        cr
                       ) ?~! s"Could not start workflow for change request creation on Directive '${directive.name}'"
       optCrId       = if (workflow.needExternalValidation()) Some(id) else None
       jsonDirective = JArray(List(serialize(technique, directive, optCrId)))
@@ -620,7 +633,9 @@ class DirectiveApiService2(
     }
   }
 
-  def deleteDirective(id: DirectiveUid): Box[(EventActor, Option[String], String, String) => Box[JValue]] = {
+  def deleteDirective(
+      id: DirectiveUid
+  )(implicit qc: QueryContext): Box[(EventActor, Option[String], String, String) => Box[JValue]] = {
     for {
       (technique, activeTechnique, directive) <-
         readDirective.getDirectiveWithContext(id).notOptional(s"Could not find Directive ${id.value}").toBox
@@ -694,7 +709,7 @@ class DirectiveApiService2(
   def updateDirective(
       directiveId:   DirectiveUid,
       restDirective: RestDirective
-  ): Box[(EventActor, Option[String], String, String) => Box[JValue]] = {
+  )(implicit qc: QueryContext): Box[(EventActor, Option[String], String, String) => Box[JValue]] = {
     for {
       directiveUpdate <- updateDirectiveModel(directiveId, restDirective)
 
@@ -878,7 +893,7 @@ class DirectiveApiService14(
       change:    DirectiveChangeRequest,
       params:    DefaultParams,
       actor:     EventActor
-  ) = {
+  )(implicit cc: ChangeContext) = {
     for {
       workflow <- workflowLevelService.getForDirective(actor, change).toIO
       cr        = ChangeRequestService.createChangeRequestFromDirective(
@@ -895,7 +910,7 @@ class DirectiveApiService14(
                     params.reason
                   )
       id       <- workflow
-                    .startWorkflow(cr, actor, None)
+                    .startWorkflow(cr)
                     .toIO
                     .chainError(s"Could not start workflow for change request creation on Directive '${change.newDirective.name}'")
     } yield {
@@ -904,7 +919,17 @@ class DirectiveApiService14(
     }
   }
 
-  def updateDirective(restDirective: JQDirective, params: DefaultParams, actor: EventActor): IOResult[JRDirective] = {
+  def updateDirective(restDirective: JQDirective, params: DefaultParams, actor: EventActor)(implicit
+      qc: QueryContext
+  ): IOResult[JRDirective] = {
+    implicit val cc: ChangeContext = ChangeContext(
+      ModificationId(uuidGen.newUuid),
+      actor,
+      new DateTime(),
+      params.reason,
+      None,
+      qc.nodePerms
+    )
     for {
       id              <- restDirective.id.notOptional(s"Directive id is mandatory in update")
       directiveUpdate <- updateDirectiveModel(id.uid, restDirective)
@@ -927,7 +952,17 @@ class DirectiveApiService14(
     } yield result
   }
 
-  def deleteDirective(id: DirectiveUid, params: DefaultParams, actor: EventActor): IOResult[JRDirective] = {
+  def deleteDirective(id: DirectiveUid, params: DefaultParams, actor: EventActor)(implicit
+      qc: QueryContext
+  ): IOResult[JRDirective] = {
+    implicit val cc: ChangeContext = ChangeContext(
+      ModificationId(uuidGen.newUuid),
+      actor,
+      new DateTime(),
+      params.reason,
+      None,
+      qc.nodePerms
+    )
     // TODO: manage rev
     readDirective.getDirectiveWithContext(id).flatMap {
       case Some((technique, activeTechnique, directive)) =>

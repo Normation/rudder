@@ -50,8 +50,8 @@ import com.normation.cfclerk.services.TechniquesInfo
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventMetadata
+import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonResponseObjects.JRDirective
 import com.normation.rudder.apidata.JsonResponseObjects.JRGroup
@@ -75,6 +75,8 @@ import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.git.ZipUtils.Zippable
 import com.normation.rudder.ncf.ResourceFile
@@ -100,8 +102,10 @@ import com.normation.rudder.rest.RudderJsonResponse.ResponseSchema
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rest.lift.ImportAnswer.*
 import com.normation.rudder.services.queries.CmdbQueryParser
+import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import enumeratum.*
+import io.scalaland.chimney.syntax.*
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.io.OutputStream
@@ -113,6 +117,7 @@ import net.liftweb.http.FileParamHolder
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.OutputStreamResponse
 import net.liftweb.http.Req
+import org.joda.time.DateTime
 import scala.util.matching.Regex
 import scala.xml.XML
 import zio.*
@@ -328,7 +333,7 @@ class ArchiveApi(
             merge   <- parseMergePolicy(req)
             archive <- parseArchive(zip)
             _       <- checkArchiveService.check(archive)
-            _       <- saveArchiveService.save(archive, merge, authzToken.qc.actor)
+            _       <- saveArchiveService.save(archive, merge)(authzToken.qc)
             _       <- ApplicationLoggerPure.Archive.info(s"Uploaded archive '${zip.fileName}' processed successfully")
           } yield JRArchiveImported(true)
       }).tapError(err => ApplicationLoggerPure.Archive.error(s"Error when processing uploaded archive: ${err.fullMsg}"))
@@ -1242,7 +1247,7 @@ trait SaveArchiveService {
    * - what was not
    * - what may be partially
    */
-  def save(archive: PolicyArchive, mergePolicy: MergePolicy, actor: EventActor): IOResult[Unit]
+  def save(archive: PolicyArchive, mergePolicy: MergePolicy)(implicit qc: QueryContext): IOResult[Unit]
 }
 
 object SaveArchiveServicebyRepo {
@@ -1302,7 +1307,8 @@ class SaveArchiveServicebyRepo(
     roRuleRepos:       RoRuleRepository,
     woRuleRepos:       WoRuleRepository,
     techLibUpdate:     UpdateTechniqueLibrary,
-    asyncDeploy:       AsyncDeploymentActor
+    asyncDeploy:       AsyncDeploymentActor,
+    uuidGen:           StringUuidGenerator
 ) extends SaveArchiveService {
 
   val GroupRootId = NodeGroupCategoryId("GroupRoot")
@@ -1411,7 +1417,8 @@ class SaveArchiveServicebyRepo(
                  }
     } yield ()
   }
-  def saveGroup(eventMetadata: EventMetadata, g: GroupArchive):                  IOResult[Unit] = {
+  def saveGroup(g: GroupArchive)(implicit cc: ChangeContext):                    IOResult[Unit] = {
+    import cc.*
     for {
       _ <- ApplicationLoggerPure.Archive.debug(s"Adding group from archive: '${g.group.name}' (${g.group.id.serialize})")
       // normally, at that point the category of the group exists because we took care to create them before.
@@ -1422,23 +1429,23 @@ class SaveArchiveServicebyRepo(
              woGroupRepos.addGroupCategorytoCategory(
                NodeGroupCategory(g.category, g.category.value, "", Nil, Nil),
                GroupRootId,
-               eventMetadata.modId,
-               eventMetadata.actor,
-               eventMetadata.msg
+               modId,
+               actor,
+               message
              )
            }
       // now we can check if we create a new group or update one
-      x <- roGroupRepos.getNodeGroupOpt(g.group.id)
+      x <- roGroupRepos.getNodeGroupOpt(g.group.id)(cc.toQuery)
       _ <- x match {
              case Some((_, parentId)) =>
-               woGroupRepos.update(g.group, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg) *>
+               woGroupRepos.update(g.group, modId, actor, message) *>
                // we need to check if the group moved
                ZIO.when(parentId != g.category) {
-                 woGroupRepos.move(g.group.id, g.category, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
+                 woGroupRepos.move(g.group.id, g.category)
                }
 
              case None =>
-               woGroupRepos.create(g.group, g.category, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
+               woGroupRepos.create(g.group, g.category, modId, actor, message)
            }
     } yield ()
   }
@@ -1463,8 +1470,16 @@ class SaveArchiveServicebyRepo(
    * For techniques, we just write them in fs, commit, reload tech lib.
    * Starts with techniques then other things.
    */
-  override def save(archive: PolicyArchive, mergePolicy: MergePolicy, actor: EventActor): IOResult[Unit] = {
-    val eventMetadata = EventMetadata.withNewId(actor, Some(s"Importing archive '${archive.metadata.filename}'"))
+  override def save(archive: PolicyArchive, mergePolicy: MergePolicy)(implicit qc: QueryContext): IOResult[Unit] = {
+    implicit val cc: ChangeContext = ChangeContext(
+      ModificationId(uuidGen.newUuid),
+      qc.actor,
+      new DateTime(),
+      Some(s"Importing archive '${archive.metadata.filename}'"),
+      None,
+      qc.nodePerms
+    )
+    val eventMetadata = cc.transformInto[EventMetadata]
     for {
       _ <- ZIO.foreach(archive.techniques)(saveTechnique(eventMetadata, _))
       _ <- IOResult.attempt(techniqueReader.readTechniques)
@@ -1472,18 +1487,18 @@ class SaveArchiveServicebyRepo(
       // we need the map of all (categoryPath -> id) in the archive
       m  = archive.groupCats.map(c => (c.catPath, NodeGroupCategoryId(c.category.id))).toMap
       _ <- ZIO.foreach(archive.groupCats)(saveGroupCat(eventMetadata, _, m))
-      _ <- ZIO.foreach(archive.groups)(saveGroup(eventMetadata, _))
+      _ <- ZIO.foreach(archive.groups)(saveGroup(_))
       _ <- ZIO.foreach(archive.rules)(saveRule(eventMetadata, mergePolicy, _))
       // update technique lib, regenerate policies
       _ <- ZIO.when(archive.techniques.nonEmpty) {
              techLibUpdate
-               .update(eventMetadata.modId, eventMetadata.actor, Some(s"Update Technique library after import of and archive"))
+               .update(cc.modId, cc.actor, Some(s"Update Technique library after import of and archive"))
                .toIO
                .chainError(
                  s"An error occurred during technique update after import of archive"
                )
            }
-      _ <- IOResult.attempt(asyncDeploy ! AutomaticStartDeployment(eventMetadata.modId, eventMetadata.actor))
+      _ <- IOResult.attempt(asyncDeploy ! AutomaticStartDeployment(cc.modId, cc.actor))
     } yield ()
   }
 }

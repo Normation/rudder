@@ -66,6 +66,7 @@ import zio.syntax.*
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TestNodeFactQueryProcessor {
+  implicit val qc: QueryContext = QueryContext.testQC
   implicit def StringToNodeId(s:  String): NodeId      = NodeId(s)
   implicit def StringToGroupId(s: String): NodeGroupId = NodeGroupId(NodeGroupUid(s))
 
@@ -80,7 +81,7 @@ class TestNodeFactQueryProcessor {
       (SubGroupChoice("AIXSystems", "AIXSystems"), Chunk[NodeId]())
     )
 
-    override def getNodeIds(groupId: NodeGroupId): IOResult[Chunk[NodeId]] = {
+    override def getNodeIds(groupId: NodeGroupId)(implicit qc: QueryContext): IOResult[Chunk[NodeId]] = {
       (groups.find(_._1.id == groupId) match {
         case Some(kv) => kv._2
         case None     => Chunk.empty

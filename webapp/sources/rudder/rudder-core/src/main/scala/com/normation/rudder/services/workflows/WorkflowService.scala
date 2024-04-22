@@ -51,6 +51,8 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.workflows.*
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.QueryContext
 import net.liftweb.common.*
 
 case object WorkflowUpdate
@@ -213,7 +215,7 @@ trait WorkflowService {
    *
    * Return the updated ChangeRequestId
    */
-  def startWorkflow(changeRequest: ChangeRequest, actor: EventActor, reason: Option[String]): Box[ChangeRequestId]
+  def startWorkflow(changeRequest: ChangeRequest)(implicit cc: ChangeContext): Box[ChangeRequestId]
 
   def openSteps:   List[WorkflowNodeId]
   def closedSteps: List[WorkflowNodeId]
@@ -224,7 +226,7 @@ trait WorkflowService {
       currentUserRights: Seq[String],
       currentStep:       WorkflowNodeId,
       isCreator:         Boolean
-  ): WorkflowAction
+  )(implicit qc: QueryContext): WorkflowAction
 
   def findBackSteps(
       currentUserRights: Seq[String],
@@ -277,7 +279,7 @@ class NoWorkflowServiceImpl(
       currentUserRights: Seq[String],
       currentStep:       WorkflowNodeId,
       isCreator:         Boolean
-  ): WorkflowAction = NoWorkflowAction
+  )(implicit qc: QueryContext): WorkflowAction = NoWorkflowAction
 
   def findBackSteps(
       currentUserRights: Seq[String],
@@ -293,10 +295,10 @@ class NoWorkflowServiceImpl(
   val closedSteps: List[WorkflowNodeId] = List()
   val stepsValue:  List[WorkflowNodeId] = List()
 
-  def startWorkflow(changeRequest: ChangeRequest, actor: EventActor, reason: Option[String]): Box[ChangeRequestId] = {
+  def startWorkflow(changeRequest: ChangeRequest)(implicit cc: ChangeContext): Box[ChangeRequestId] = {
     logger.debug("Automatically saving change")
     for {
-      result <- commit.save(changeRequest, actor, reason)
+      result <- commit.save(changeRequest)
     } yield {
       // and return a no workflow
       result.id

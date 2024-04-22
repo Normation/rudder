@@ -2109,7 +2109,8 @@ object RudderConfigInit {
           roRuleRepository,
           woRuleRepository,
           updateTechniqueLibrary,
-          asyncDeploymentAgent
+          asyncDeploymentAgent,
+          stringUuidGenerator
         ),
         new CheckArchiveServiceImpl(techniqueRepository)
       )
@@ -2785,6 +2786,7 @@ object RudderConfigInit {
       rudderDitImpl,
       roLdap,
       ldapEntityMapper,
+      nodeFactRepository,
       groupLibReadWriteMutex
     )
     lazy val roNodeGroupRepository: RoNodeGroupRepository = roLdapNodeGroupRepository
@@ -3583,7 +3585,7 @@ object RudderConfigInit {
 
       lazy val internalPendingQueryProcessor = {
         val subGroup = new SubGroupComparatorRepository {
-          override def getNodeIds(groupId: NodeGroupId): IOResult[Chunk[NodeId]] = Chunk.empty.succeed
+          override def getNodeIds(groupId: NodeGroupId)(implicit qc: QueryContext): IOResult[Chunk[NodeId]] = Chunk.empty.succeed
 
           override def getGroups: IOResult[Chunk[SubGroupChoice]] = Chunk.empty.succeed
         }

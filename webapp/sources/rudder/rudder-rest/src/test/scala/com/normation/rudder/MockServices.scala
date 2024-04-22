@@ -204,7 +204,9 @@ class MockCompliance(mockDirectives: MockDirectives) {
       nodesByGroup.succeed
     }
 
-    override def getNodeGroupOpt(id: NodeGroupId): IOResult[Option[(NodeGroup, NodeGroupCategoryId)]] = {
+    override def getNodeGroupOpt(
+        id: NodeGroupId
+    )(implicit qc: QueryContext): IOResult[Option[(NodeGroup, NodeGroupCategoryId)]] = {
       nodeGroups.find(_.id == id).map((_, NodeGroupCategoryId("cat1"))).succeed
     }
 
@@ -226,9 +228,11 @@ class MockCompliance(mockDirectives: MockDirectives) {
     def getAll(): IOResult[Seq[NodeGroup]] = ???
     def getAllByIds(ids: Seq[NodeGroupId]): IOResult[Seq[NodeGroup]] = ???
     def getAllNodeIds(): IOResult[Map[NodeGroupId, Set[NodeId]]] = ???
-    def getGroupsByCategory(includeSystem: Boolean):     IOResult[SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]] = ???
-    def findGroupWithAnyMember(nodeIds:    Seq[NodeId]): IOResult[Seq[NodeGroupId]]                                           = ???
-    def findGroupWithAllMember(nodeIds:    Seq[NodeId]): IOResult[Seq[NodeGroupId]]                                           = ???
+    def getGroupsByCategory(includeSystem: Boolean)(implicit
+        qc: QueryContext
+    ): IOResult[SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]] = ???
+    def findGroupWithAnyMember(nodeIds: Seq[NodeId]): IOResult[Seq[NodeGroupId]] = ???
+    def findGroupWithAllMember(nodeIds: Seq[NodeId]): IOResult[Seq[NodeGroupId]] = ???
     def getRootCategory():     NodeGroupCategory                                                 = ???
     def getRootCategoryPure(): IOResult[NodeGroupCategory]                                       = ???
     def getCategoryHierarchy:  IOResult[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = ???

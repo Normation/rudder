@@ -38,6 +38,7 @@
 package com.normation.rudder.web.services
 
 import com.normation.rudder.domain.policies.*
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
@@ -138,7 +139,7 @@ class DiffDisplayer(linkUtil: LinkUtil) extends Loggable {
       oldTargets: Seq[RuleTarget],
       newTargets: Seq[RuleTarget],
       groupLib:   FullNodeGroupCategory
-  ): NodeSeq = {
+  )(implicit qc: QueryContext): NodeSeq = {
 
     implicit def displayNodeGroup(target: RuleTarget): NodeSeq = {
       target match {
