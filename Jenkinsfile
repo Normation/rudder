@@ -132,7 +132,7 @@ pipeline {
                     agent {
                         dockerfile {
                             filename 'ci/typos.Dockerfile'
-                            additionalBuildArgs  '--build-arg VERSION=1.16.5'
+                            additionalBuildArgs  '--build-arg VERSION=1.20.9'
                         }
                     }
 
