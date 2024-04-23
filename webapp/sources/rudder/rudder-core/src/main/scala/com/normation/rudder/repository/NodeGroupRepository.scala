@@ -353,7 +353,7 @@ object RoNodeGroupRepository {
       allNodeInfos: Map[NodeId, NodeInfo]
   ): Chunk[NodeId] = {
     val allNodes = allNodeInfos.view.mapValues(x => (x.isPolicyServer))
-    RuleTarget.getNodeIdsChunk(targets, allNodes.toMap, allGroups, false)
+    RuleTarget.getNodeIdsChunk(targets, allNodes.toMap, allGroups)
   }
 }
 
