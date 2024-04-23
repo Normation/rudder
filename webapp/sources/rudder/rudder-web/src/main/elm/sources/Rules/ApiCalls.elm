@@ -3,7 +3,6 @@ module Rules.ApiCalls exposing (..)
 import Http exposing (..)
 import Time.Iso8601
 import Time.ZonedDateTime exposing (ZonedDateTime)
-import Url
 import Url.Builder exposing (QueryParameter, int, string)
 import Maybe.Extra exposing (isJust)
 import List.Extra exposing (find)
@@ -12,6 +11,8 @@ import Rules.DataTypes exposing (..)
 import Rules.JsonDecoder exposing (..)
 import Rules.JsonEncoder exposing (..)
 import Rules.ChangeRequest exposing (changeRequestParameters, decodeGetChangeRequestSettings, decodePendingChangeRequests)
+
+import Ui.Datatable exposing (getAllElems, Category)
 
 --
 -- This files contains all API calls for the Rules UI

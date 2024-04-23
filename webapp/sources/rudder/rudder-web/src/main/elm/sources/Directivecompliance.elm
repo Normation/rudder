@@ -16,6 +16,8 @@ import DirectiveCompliance.DataTypes exposing (..)
 import DirectiveCompliance.Init exposing (init)
 import DirectiveCompliance.View exposing (view)
 
+import Ui.Datatable exposing (SortOrder(..))
+
 
 -- PORTS / SUBSCRIPTIONS
 port errorNotification   : String -> Cmd msg

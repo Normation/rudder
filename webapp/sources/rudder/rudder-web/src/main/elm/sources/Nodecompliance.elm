@@ -10,6 +10,8 @@ import NodeCompliance.DataTypes exposing (..)
 import NodeCompliance.Init exposing (init)
 import NodeCompliance.View exposing (view)
 
+import Ui.Datatable exposing (SortOrder(..))
+
 
 -- PORTS / SUBSCRIPTIONS
 port errorNotification   : String -> Cmd msg

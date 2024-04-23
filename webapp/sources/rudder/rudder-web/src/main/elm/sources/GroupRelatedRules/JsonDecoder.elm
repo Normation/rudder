@@ -2,7 +2,11 @@ module GroupRelatedRules.JsonDecoder exposing (..)
 
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
+
 import GroupRelatedRules.DataTypes exposing (..)
+
+import Ui.Datatable exposing (Category, SubCategories(..))
+
 
 decodeGetRulesTree : Decoder (Category Rule)
 decodeGetRulesTree =
@@ -14,7 +18,7 @@ decodeCategory idIdentifier categoryIdentifier elemIdentifier elemDecoder =
     |> required idIdentifier  string
     |> required "name"        string
     |> required "description" string
-    |> required categoryIdentifier (map SubCategories  (list (lazy (\_ -> (decodeCategory idIdentifier categoryIdentifier elemIdentifier elemDecoder)))))
+    |> required categoryIdentifier (map Ui.Datatable.SubCategories  (list (lazy (\_ -> (decodeCategory idIdentifier categoryIdentifier elemIdentifier elemDecoder)))))
     |> required elemIdentifier      (list elemDecoder)
 
 decodeRule : Decoder Rule

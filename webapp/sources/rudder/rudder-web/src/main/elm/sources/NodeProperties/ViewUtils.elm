@@ -1,58 +1,19 @@
 module NodeProperties.ViewUtils exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (id, class, href, type_, attribute, disabled, for, checked, selected, value, title, placeholder, style, tabindex    )
+import Html.Attributes exposing (id, class, type_, attribute, value, title, placeholder, style, tabindex)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode exposing (decodeValue)
-import Maybe.Extra exposing (isJust)
 import List.Extra
 import Dict exposing (Dict)
 import Json.Encode exposing (..)
-import NaturalOrdering as N exposing (compare)
+import NaturalOrdering as N
 import SyntaxHighlight exposing (useTheme, gitHub, json, toInlineHtml)
 
 import NodeProperties.DataTypes exposing (..)
 import NodeProperties.ApiCalls exposing (deleteProperty)
-import Json.Decode exposing (decodeString)
-import Set exposing (Set)
 
-
-searchString : String -> String
-searchString str = str
-  |> String.toLower
-  |> String.trim
-
-filterSearch : String -> List String -> Bool
-filterSearch filterString searchFields =
-  let
-    -- Join all the fields into one string to simplify the search
-    stringToCheck = searchFields
-      |> String.join "|"
-      |> String.toLower
-  in
-    String.contains (searchString filterString) stringToCheck
-
-thClass : TableFilters -> SortBy -> String
-thClass tableFilters sortBy =
-  if sortBy == tableFilters.sortBy then
-    case  tableFilters.sortOrder of
-      Asc  -> "sorting_asc"
-      Desc -> "sorting_desc"
-  else
-    "sorting"
-
-sortTable : TableFilters -> SortBy -> TableFilters
-sortTable tableFilters sortBy =
-  let
-    order =
-      case tableFilters.sortOrder of
-        Asc -> Desc
-        Desc -> Asc
-  in
-    if sortBy == tableFilters.sortBy then
-      { tableFilters | sortOrder = order}
-    else
-      { tableFilters | sortBy = sortBy, sortOrder = Asc}
+import Ui.Datatable exposing (SortOrder(..), filterSearch)
 
 
 getFormat : Property -> ValueFormat
@@ -118,7 +79,6 @@ getSortFunction : Model -> Property -> Property -> Order
 getSortFunction model p1 p2 =
   let
     order = case model.ui.filters.sortBy of
-      Name    -> N.compare p1.name p2.name
       Format  ->
         let
           formatP1 = getFormat p1
@@ -130,6 +90,7 @@ getSortFunction model p1 p2 =
             (StringFormat, JsonFormat) -> GT
             (JsonFormat, StringFormat) -> LT
       Value   -> N.compare (Json.Encode.encode 0 p1.value) (Json.Encode.encode 0 p2.value)
+      _       -> N.compare p1.name p2.name
   in
     if model.ui.filters.sortOrder == Asc then
       order

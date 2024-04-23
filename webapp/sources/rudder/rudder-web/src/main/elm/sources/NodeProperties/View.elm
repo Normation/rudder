@@ -10,6 +10,8 @@ import NodeProperties.DataTypes exposing (..)
 import NodeProperties.ViewUtils exposing (..)
 import NodeProperties.ApiCalls exposing (getNodeProperties)
 
+import Ui.Datatable exposing (thClass, sortTable)
+
 
 view : Model -> Html Msg
 view model =

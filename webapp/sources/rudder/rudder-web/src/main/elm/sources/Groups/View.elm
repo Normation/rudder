@@ -11,6 +11,9 @@ import Groups.DataTypes exposing (..)
 import Groups.ViewGroupsTable exposing (..)
 import Groups.ViewUtils exposing (..)
 
+import Ui.Datatable exposing (filterSearch, Category, generateLoadingTable)
+
+
 view : Model -> Html Msg
 view model = 
   let
@@ -86,8 +89,8 @@ view model =
     treeFilters = groupFilters.treeFilters
 
     templateMain = case model.mode of
-      Loading -> generateLoadingTable
-      LoadingTable -> generateLoadingTable
+      Loading -> generateLoadingTable False 5
+      LoadingTable -> generateLoadingTable False 5
       GroupTable   ->
         div [class "main-table"]
         [ div [class "table-container"]

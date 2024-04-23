@@ -4,14 +4,15 @@ import Dict
 
 import Groups.ApiCalls exposing (..)
 import Groups.DataTypes exposing (..)
-import Compliance.DataTypes exposing (..)
+
+import Ui.Datatable exposing (defaultTableFilters, Category, SubCategories(..))
 
 
 init : { contextPath : String, hasGroupToDisplay : Bool, hasWriteRights : Bool } -> ( Model, Cmd Msg )
 init flags =
   let
     initCategory = Category "" "" "" (SubCategories []) []
-    initTableFilters  = (TableFilters Name Asc "")
+    initTableFilters  = defaultTableFilters Name
     initTreeFilters   = (TreeFilters "" [])
     initFilters       = Filters initTableFilters initTreeFilters
     initUI       = UI initFilters NoModal flags.hasWriteRights True

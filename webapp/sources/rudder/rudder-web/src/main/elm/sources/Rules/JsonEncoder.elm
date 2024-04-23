@@ -3,7 +3,9 @@ module Rules.JsonEncoder exposing (..)
 import Json.Encode exposing (..)
 
 import Rules.DataTypes exposing (..)
-import Rules.ChangeRequest exposing (ChangeRequestSettings)
+
+import Ui.Datatable exposing (Category)
+
 
 encodeRuleDetails: Rule -> Value
 encodeRuleDetails ruleDetails =

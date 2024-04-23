@@ -113,12 +113,12 @@ update msg model =
             in
             ( { model | ui = { ui | copyState = NoCopy } }, Cmd.none )
 
-        UpdateTableFilters tableFilters ->
+        UpdateFilters filters ->
             let
                 ui =
                     model.ui
             in
-            ( { model | ui = { ui | tableFilters = tableFilters } }, Cmd.none )
+            ( { model | ui = { ui | filters = filters } }, Cmd.none )
 
         GetAccountsResult res ->
             case res of

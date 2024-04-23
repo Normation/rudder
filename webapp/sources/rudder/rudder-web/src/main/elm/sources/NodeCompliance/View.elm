@@ -9,10 +9,10 @@ import Tuple3
 import Dict
 import List.Extra
 
-import NodeCompliance.ApiCalls exposing (..)
 import NodeCompliance.DataTypes exposing (..)
 import NodeCompliance.ViewUtils exposing (..)
 import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance)
+import Ui.Datatable exposing (filterSearch, SortOrder(..), generateLoadingTable)
 
 
 view : Model -> Html Msg
@@ -46,7 +46,7 @@ view model =
           Nothing -> (\_ _ -> EQ)
       in
         ( if mod.ui.loading then
-          generateLoadingTable
+          generateLoadingTable True 2
           else
           div[]
           [ div [class "table-header extra-filters"]

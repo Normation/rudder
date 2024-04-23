@@ -13,6 +13,8 @@ import Rules.ViewRulesTable exposing (buildRulesTable)
 import Rules.ViewTabContent exposing (buildListCategories)
 import Rules.ViewUtils exposing (btnSave, getListRules, rulesTableHeader)
 
+import Ui.Datatable exposing (getSubElems, getAllCats)
+
 
 --
 -- This file contains all methods to display the details of the selected category.

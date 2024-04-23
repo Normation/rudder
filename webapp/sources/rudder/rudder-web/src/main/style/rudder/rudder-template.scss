@@ -1193,6 +1193,7 @@ ul {
 .rudder-template .table-container.skeleton-loading th > span{
   width: 50%;
   height: 20px;
+  min-width: 25%;
 }
 .rudder-template ul.skeleton-loading > ul{
   padding: 0 0 0 50px;
@@ -1200,6 +1201,23 @@ ul {
 .rudder-template .template-main .main-table .table-container.skeleton-loading .dataTables_wrapper_top.table-filter{
   margin-top: 50px;
 }
+
+
+// Randomize width of loading table elements
+@function randomWidth($min, $max) {
+  $rand: random();
+  $randomW: $min + floor($rand * (($max - $min) + 1));
+  @return $randomW * 1%;
+}
+$nbRows: 20;
+@for $i from 1 through $nbRows {
+  .rudder-template .table-container.skeleton-loading tr {
+    &:nth-child(#{$i}) td:first-child > span{
+      width: randomWidth(25, 85);
+    }
+  }
+}
+
 /* === TOGGLE CHECKBOX ===*/
 .rudder-template .toggle-checkbox-container{
   width: 100%;

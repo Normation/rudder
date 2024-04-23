@@ -7,6 +7,7 @@ import Json.Decode as D exposing (..)
 import SingleDatePicker exposing (DatePicker, Settings, TimePickerVisibility(..), defaultSettings, defaultTimePickerSettings)
 import Time exposing (Posix, Zone)
 
+import Ui.Datatable exposing (TableFilters)
 
 
 --
@@ -31,30 +32,16 @@ type ConfirmModalType
     | Regenerate
 
 
-type SortOrder
-    = Asc
-    | Desc
-
-
 type SortBy
     = Name
     | Id
     | ExpDate
     | CreDate
 
-
 type TenantMode
     = AllAccess -- special "*" permission giving access to objects in any/no tenants
     | NoAccess -- special "-" permission giving access to no object, whatever the tenant or its absence
     | ByTenants --give access to object in any of the listed tenants
-
-
-type alias TableFilters =
-    { sortBy : SortBy
-    , sortOrder : SortOrder
-    , filter : String
-    , authType : String
-    }
 
 
 type alias DatePickerInfo =
@@ -64,9 +51,13 @@ type alias DatePickerInfo =
     , picker : DatePicker Msg
     }
 
+type alias Filters =
+    { tableFilters : TableFilters SortBy
+    , authType : String
+    }
 
 type alias UI =
-    { tableFilters : TableFilters
+    { filters : Filters
     , modalState : ModalState
     , copyState : CopyState
     , hasWriteRights : Bool
@@ -136,7 +127,7 @@ type Msg
     | CloseCopyPopup
     | GetAccountsResult (Result (Http.Detailed.Error String) ( Http.Metadata, ApiResult ))
     | Ignore
-    | UpdateTableFilters TableFilters
+    | UpdateFilters Filters
     | UpdateAccountForm Account
     | SaveAccount (Result (Http.Detailed.Error String) ( Http.Metadata, Account ))
     | ConfirmActionAccount ConfirmModalType (Result (Http.Detailed.Error String) ( Http.Metadata, Account ))

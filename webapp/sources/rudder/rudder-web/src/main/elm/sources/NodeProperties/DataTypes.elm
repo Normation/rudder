@@ -4,6 +4,9 @@ import List.Extra
 import Http exposing (Error)
 import Dict exposing (Dict)
 import Json.Encode exposing (Value)
+
+import Ui.Datatable exposing (TableFilters)
+
 --
 -- All our data types
 --
@@ -40,19 +43,10 @@ type alias ParentGroupProperty = { id : String, name : String, valueType : Strin
 type alias ParentNodeProperty = { id : String, name : String, valueType : String }
 type ParentProperty = ParentGlobal ParentGlobalProperty | ParentGroup ParentGroupProperty | ParentNode ParentNodeProperty
 
-
-type SortOrder = Asc | Desc
-
 type SortBy
   = Name
   | Format
   | Value
-
-type alias TableFilters =
-  { sortBy    : SortBy
-  , sortOrder : SortOrder
-  , filter    : String
-  }
 
 type alias UI =
   { hasNodeWrite     : Bool
@@ -61,7 +55,7 @@ type alias UI =
   , modalState       : ModalState
   , editedProperties : Dict String EditProperty
   , showMore         : List String
-  , filters          : TableFilters
+  , filters          : TableFilters SortBy
   }
 
 type alias Model =
@@ -86,7 +80,7 @@ type Msg
   | ToggleEditPopup ModalState
   | ClosePopup Msg
   | ToggleEditProperty String EditProperty Bool
-  | UpdateTableFilters TableFilters
+  | UpdateTableFilters (TableFilters SortBy)
   | ShowMore String
 
 valueTypeToValueFormat : String -> ValueFormat

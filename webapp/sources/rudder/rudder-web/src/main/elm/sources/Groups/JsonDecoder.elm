@@ -5,7 +5,9 @@ import Json.Decode.Pipeline exposing (..)
 
 import Groups.DataTypes exposing (..)
 import GroupCompliance.DataTypes exposing (GroupId)
+
 import Compliance.JsonDecoder exposing (decodeComplianceDetails)
+import Ui.Datatable exposing (Category, SubCategories(..))
 
 
 decodeGetGroupsCompliance : Decoder (List GroupComplianceSummary)

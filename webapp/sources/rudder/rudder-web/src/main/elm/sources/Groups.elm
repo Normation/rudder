@@ -5,14 +5,14 @@ import Dict
 import Dict.Extra
 import Http exposing (..)
 
-import GroupCompliance.ApiCalls exposing (..)
-import GroupCompliance.ViewUtils exposing (..)
 
 import Groups.ApiCalls exposing (..)
 import Groups.DataTypes exposing (..)
 import Groups.Init exposing (init)
 import Groups.View exposing (view)
 import Groups.ViewUtils exposing (..)
+
+import Ui.Datatable exposing (getAllCats)
 
 
 -- PORTS / SUBSCRIPTIONS

@@ -16,6 +16,8 @@ import NodeCompliance.DataTypes exposing (..)
 import Compliance.DataTypes exposing (..)
 import Compliance.Utils exposing (..)
 import Compliance.Html exposing (buildComplianceBar)
+import Ui.Datatable exposing (SortOrder(..))
+
 
 onCustomClick : msg -> Html.Attribute msg
 onCustomClick msg =
@@ -248,20 +250,6 @@ searchFieldNodeCompliance n =
   , n.name
   ]
 
-filterSearch : String -> List String -> Bool
-filterSearch filterString searchFields =
-  let
-    -- Join all the fields into one string to simplify the search
-    stringToCheck = searchFields
-      |> String.join "|"
-      |> String.toLower
-
-    searchString  = filterString
-      |> String.toLower
-      |> String.trim
-  in
-    String.contains searchString stringToCheck
-
 
 htmlEscape : String -> String
 htmlEscape s =
@@ -328,40 +316,3 @@ goToBtn link =
 goToIcon : Html Msg
 goToIcon =
   span [ class "btn-goto" ] [ i[class "fa fa-pen"][] ]
-
-generateLoadingTable : Html Msg
-generateLoadingTable =
-  div [class "table-container skeleton-loading", style "margin-top" "17px"]
-  [ div [class "dataTables_wrapper_top table-filter"]
-    [ div [class "form-group"]
-      [ span[][]
-      ]
-    ]
-  , table [class "dataTable"]
-    [ thead []
-      [ tr [class "head"]
-        [ th [][ span[][] ]
-        , th [][ span[][] ]
-        ]
-      ]
-    , tbody []
-      [ tr[] [ td[][span[style "width" "45%"][]], td[][span[][]]]
-      , tr[] [ td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "30%"][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "75%"][]], td[][span[][]] ]
-      , tr[] [ td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "45%"][]], td[][span[][]] ]
-      , tr[] [ td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "70%"][]], td[][span[][]] ]
-      , tr[] [ td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "80%"][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "30%"][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "75%"][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "45%"][]], td[][span[][]] ]
-      , tr[] [ td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "70%"][]], td[][span[][]] ]
-      , tr[] [ td[][span[][]], td[][span[][]] ]
-      ]
-    ]
-  ]

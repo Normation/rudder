@@ -8,6 +8,7 @@ import SingleDatePicker exposing (Settings, TimePickerVisibility(..))
 import Task
 import Time exposing (Month(..), Posix, Zone)
 
+import Ui.Datatable exposing (defaultTableFilters)
 
 
 -- PORTS / SUBSCRIPTIONS
@@ -71,8 +72,7 @@ init flags =
         initDatePicker =
             DatePickerInfo (Time.millisToPosix 0) Time.utc Nothing (SingleDatePicker.init UpdatePicker)
 
-        initFilters =
-            TableFilters Name Asc "" ""
+        initFilters = Filters (defaultTableFilters Name) ""
 
         initUi =
             UI initFilters NoModal NoCopy False True initDatePicker False False

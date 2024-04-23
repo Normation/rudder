@@ -15,6 +15,8 @@ import FileManager.Model exposing (..)
 import FileManager.Vec exposing (..)
 import FileManager.Util exposing (..)
 
+import Ui.Datatable exposing (SortOrder(..))
+
 handleEnvMsg : EnvMsg -> Model -> (Model, Cmd Msg)
 handleEnvMsg msg model = case msg of
   Open () -> ({ model | open = True, dir = ["/"] }, Cmd.none)
@@ -117,10 +119,11 @@ handleEnvMsg msg model = case msg of
             in
               Dict.insert folder (TreeItem folder parents childs) model.tree
 
-        filters = model.filters
-        newFilters = {filters | opened = folder :: filters.opened}
+        tableFilters = model.tableFilters
+        openedRows = Dict.insert folder (folder, Asc) tableFilters.openedRows
+        newFilters = {tableFilters | openedRows = openedRows}
       in
-        ({ model | files = files, selected = [], load = False, tree = newTree, filters = newFilters }, Cmd.none)
+        ({ model | files = files, selected = [], load = False, tree = newTree, tableFilters = newFilters }, Cmd.none)
     Err _ -> (model, Cmd.none)
 
   Refresh result -> case result of
