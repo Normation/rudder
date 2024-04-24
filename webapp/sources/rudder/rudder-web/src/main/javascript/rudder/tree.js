@@ -35,6 +35,28 @@
 *************************************************************************************
 */
 
+
+  var allEvents = [];
+
+  // Since #24062, we inlined on click events from our lift generated nodes,
+  // there nodes are transformed into a tree using jstree
+  // jstree does not keep the event that were bound to the previous nodes
+  // We need to reattach the events here
+  function attachInlinedEvents( id ) {
+    var child = $(id).find('[id^="lift-event-js-"]'); // all nested child elements with a 'lift-event-js-...' id
+    child.each(function () {
+      var nodeId = this.id;
+      var nodes = allEvents.find(function (x) { return x[0].id === nodeId });
+      if (nodes && nodes[1]) {
+        var event = nodes[1];
+        if (event) {
+          $(this).off("click");
+          $(this).on("click", event.handler);
+        }
+      }
+    });
+  }
+
 /*
  * Reference Technique library tree
  */
@@ -264,32 +286,7 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
   var allNodeEvents = allNodes.map(function () {
     return $._data(this, 'events')["click"]; // we need to intercept the click now, the object will change after the jstree init
   }).get().map(function (x, i) { return [allNodes[i], x] });  // cannot use a node object as key, so keep a [node, events] array
-
-  (function ($, undefined) {
-    "use strict";
-    $.jstree.defaults.keepevent = $.noop;
-    $.jstree.plugins.keepevent = function (options, parent) {
-      this.redraw_node = function (obj, deep, callback, force_draw) {
-        obj = parent.redraw_node.call(this, obj, deep, callback, force_draw);
-        if (obj) {
-          var child = $(obj).find('[id^="lift-event-js-"]'); // all nested child elements with a 'lift-event-js-...' id
-          child.each(function () {
-            var id = this.id;
-            var nodes = allNodeEvents.find(function (x) { return x[0].id === id });
-            if (nodes && nodes[1]) {
-              var event = nodes[1];
-              if (event) {
-                $(this).off("click.jstree");
-                $(this).on("click", event.handler);
-              }
-            }
-          });
-        }
-        return obj;
-      };
-    };
-  })(jQuery);
-
+  allEvents.push(allNodeEvents)
 
   $(id).bind("loaded.jstree", function (event, data) {
     data.instance.open_all();
@@ -309,7 +306,9 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
           node.setAttribute("href", contextPath + "/secure/nodeManager/groups#{\"target\":\"" + idGroupUser + "\"}");
         }
       }
-    });
+    })
+  }).on("after_open.jstree", function (event, data){
+      attachInlinedEvents(id)
   }).jstree({
     "core" : {
       "animation" : 150,
@@ -389,7 +388,7 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
   	  "theme" : "rudder",
   	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
     },
-    "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm", "search", "keepevent" ]
+    "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm", "search"]
     });
 }
 
@@ -453,39 +452,14 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
 
   // Save node event handlers, in order to customize node by reassigning the click event handler
   var allNodes = $('li.techniqueNode > a[id^="lift-event-js-"], li.techniqueNode > * > span[id^="lift-event-js-"], li.directiveNode > a[id^="lift-event-js-"], li.directiveNode > * > span[id^="lift-event-js-"]');
-  var allNodeEvents = allNodes.map(function () {
+  var events =  allNodes.map(function () {
     return $._data(this, 'events')["click"]; // we need to intercept the click now, the object will change after the jstree init
   }).get().map(function (x, i) { return [allNodes[i], x] });  // cannot use a node object as key, so keep a [node, events] array
+  allEvents.push(...events);
 
-  (function ($, undefined) {
-    "use strict";
-    $.jstree.defaults.keepevent = $.noop;
-    $.jstree.plugins.keepevent = function (options, parent) {
-      this.redraw_node = function (obj, deep, callback, force_draw) {
-        obj = parent.redraw_node.call(this, obj, deep, callback, force_draw);
-        if (obj) {
-          var child = $(obj).find('[id^="lift-event-js-"]'); // all nested child elements with a 'lift-event-js-...' id
-          child.each(function () {
-            var id = this.id;
-            var nodes = allNodeEvents.find(function (x) { return x[0].id === id });
-            if (nodes && nodes[1]) {
-              var event = nodes[1];
-              if (event) {
-                $(this).off("click.jstree");
-                $(this).on("click", event.handler);
-              }
-            }
-          });
-        }
-        return obj;
-      };
-    };
-  })(jQuery);
 
   var tree = $(id).on("loaded.jstree", function (event, data) {
-
     openTreeNodes(id, "directiveTreeSettings_nodesState", data);
-
     initBsTooltips();
     }).on("ready.jstree", function () {
       // make jstree node openable in a new tab
@@ -498,6 +472,8 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
            node.setAttribute("href", contextPath + "/secure/configurationManager/directiveManagement#{\"directiveId\":\"" + idDirective + "\"}");
          }
       });
+    }).on("after_open.jstree", function (event, data){
+      attachInlinedEvents(id)
     }).jstree({
       "core" : {
         "animation" : 150,
@@ -544,7 +520,7 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
     	  "theme" : "rudder",
     	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
       },
-      "plugins" : [ "themes", "html_data", "types", "search", "searchtag", "keepevent" ]
+      "plugins" : [ "themes", "html_data", "types", "search", "searchtag"]
     });
    if(tree.element){
      tree.element.jstree().select_node(initially_select)
