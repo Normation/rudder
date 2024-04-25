@@ -155,7 +155,7 @@ function homePage (
     gauge.set(0)
   } else {
 
-    $("#globalCompliance").append(buildComplianceBar(globalCompliance,8));
+    $("#globalCompliance").append(buildComplianceBar(globalCompliance));
     createTooltip();
 
     var allNodes = nodeCount.active;
