@@ -78,7 +78,13 @@ async fn serve(job_config: Arc<JobConfig>, mut rx: mpsc::Receiver<ReceivedFile>)
 
         // Check run info
         // FIXME make async
-        let info = RunInfo::try_from(file.as_ref()).map_err(|e| warn!("received: {}", e))?;
+        let info = match RunInfo::try_from(file.as_ref()) {
+            Ok(r) => r,
+            Err(e) => {
+                warn!("received: {:?}", e);
+                continue;
+            }
+        };
 
         let node_span = span!(
             Level::INFO,
