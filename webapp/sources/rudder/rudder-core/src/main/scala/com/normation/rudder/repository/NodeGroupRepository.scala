@@ -367,7 +367,7 @@ object RoNodeGroupRepository {
       targets:          Set[RuleTarget],
       arePolicyServers: MapView[NodeId, Boolean]
   ): Chunk[NodeId] = {
-    RuleTarget.getNodeIdsChunk(targets, arePolicyServers, allGroups, allNodesAreThere = false)
+    RuleTarget.getNodeIdsChunk(targets, arePolicyServers, allGroups)
   }
 }
 
