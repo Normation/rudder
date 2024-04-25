@@ -300,20 +300,23 @@ object RuleTarget extends Loggable {
    * allNodes pair is: (nodeid, isPolicyServer)
    */
   def getNodeIdsChunk(
-      targets:          Set[RuleTarget],
-      allNodes:         MapView[NodeId, Boolean /* isPolicyServer */ ],
-      groups:           Map[NodeGroupId, Chunk[NodeId]],
-      allNodesAreThere: Boolean = true // if we are working on a subset of node, set to false
+      targets:  Set[RuleTarget],
+      allNodes: MapView[NodeId, Boolean /* isPolicyServer */ ],
+      groups:   Map[NodeGroupId, Chunk[NodeId]]
   ): Chunk[NodeId] = {
-    val result = getNodeIdsChunkRec(Chunk.fromIterable(targets), allNodes, groups, allNodesAreThere)
-    result.distinct
+    val result = getNodeIdsChunkRec(Chunk.fromIterable(targets), allNodes.toMap, groups)
+
+    // we always must intersect with the keySet of nodes, because sometime node ids in groups is a super set
+    // of the given allNodes, for ex!
+    // - for static group where some of the nodes were deleted,
+    // - when we have tenants (Rudder 8.1+=
+    Chunk.fromIterable(result.toSet.intersect(allNodes.keySet))
   }
 
   def getNodeIdsChunkRec(
-      targets:          Chunk[RuleTarget],
-      allNodes:         MapView[NodeId, Boolean /* isPolicyServer */ ],
-      groups:           Map[NodeGroupId, Chunk[NodeId]],
-      allNodesAreThere: Boolean = true // if we are working on a subset of node, set to false
+      targets:  Chunk[RuleTarget],
+      allNodes: Map[NodeId, Boolean /* isPolicyServer */ ],
+      groups:   Map[NodeGroupId, Chunk[NodeId]]
   ): Chunk[NodeId] = {
 
     targets.foldLeft(Chunk[NodeId]()) {
@@ -323,32 +326,19 @@ object RuleTarget extends Loggable {
           case AllTargetExceptPolicyServers => nodes ++ allNodes.collect { case (k, isPolicyServer) if (!isPolicyServer) => k }
           case AllPolicyServers             => nodes ++ allNodes.collect { case (k, isPolicyServer) if (isPolicyServer) => k }
           case PolicyServerTarget(nodeId)   =>
-            if (allNodesAreThere) {
-              nodes :+ nodeId
-            } else {
-              // nodeId may not be in allNodes
-              // allNodes.keys.exists(x => x == nodeId)
-              Chunk.fromIterable(allNodes.keys).contains(nodeId) match {
-                case true => nodes :+ nodeId
-                case _    => nodes
-              }
-            }
+            nodes :+ nodeId
 
           // here, if we don't find the group, we consider it's an error in the
           // target recording, but don't fail, just log it.
           case GroupTarget(groupId)         =>
             val groupNodes = groups.getOrElse(groupId, Chunk.empty)
             val filtered   = {
-              if (allNodesAreThere) groupNodes
-              else {
-                val keys = Chunk.fromIterable(allNodes.keys)
-                groupNodes.filter(keys.contains(_))
-              }
+              groupNodes
             }
             nodes ++ filtered
 
           case TargetIntersection(targets) =>
-            val nodeSets     = targets.map(t => getNodeIdsChunkRec(Chunk(t), allNodes, groups, allNodesAreThere))
+            val nodeSets     = targets.map(t => getNodeIdsChunkRec(Chunk(t), allNodes, groups))
             // Compute the intersection of the sets of Nodes
             val intersection = nodeSets.foldLeft(Chunk.fromIterable(allNodes.keys)) {
               case (currentIntersection, nodes) => currentIntersection.intersect(nodes)
@@ -356,16 +346,16 @@ object RuleTarget extends Loggable {
             nodes ++ intersection
 
           case TargetUnion(targets) =>
-            val nodeSets = targets.map(t => getNodeIdsChunkRec(Chunk(t), allNodes, groups, allNodesAreThere))
+            val nodeSets = targets.map(t => getNodeIdsChunkRec(Chunk(t), allNodes, groups))
             // Compute the union of the sets of Nodes
             val union    = nodeSets.foldLeft(Chunk[NodeId]()) { case (currentUnion, nodes) => currentUnion.concat(nodes) }
             nodes ++ union
 
           case TargetExclusion(included, excluded) =>
             // Compute the included Nodes
-            val includedNodes = getNodeIdsChunkRec(Chunk(included), allNodes, groups, allNodesAreThere)
+            val includedNodes = getNodeIdsChunkRec(Chunk(included), allNodes, groups)
             // Compute the excluded Nodes
-            val excludedNodes = getNodeIdsChunkRec(Chunk(excluded), allNodes, groups, allNodesAreThere)
+            val excludedNodes = getNodeIdsChunkRec(Chunk(excluded), allNodes, groups)
             // Remove excluded nodes from included nodes
             val result        = includedNodes.filterNot(id => excludedNodes.contains(id))
             nodes ++ result
