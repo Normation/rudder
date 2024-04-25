@@ -87,6 +87,7 @@ pub enum Command {
         package: Vec<String>,
     },
     /// Uninstall plugins
+    #[command(visible_alias = "remove")]
     Uninstall {
         #[arg(help = "Plugin name(s)", required = true)]
         package: Vec<String>,
