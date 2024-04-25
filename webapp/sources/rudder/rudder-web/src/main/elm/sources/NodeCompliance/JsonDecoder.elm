@@ -44,7 +44,14 @@ decodeDirectiveCompliance elem decoder =
     |> required "compliance" float
     |> required "policyMode" string
     |> required "complianceDetails" decodeComplianceDetails
+    |> optional "skippedDetails" (maybe decodeSkippedDirectiveDetails) Nothing
     |> required "components" (list (decodeComponentCompliance elem decoder ))
+
+decodeSkippedDirectiveDetails : Decoder SkippedDetails
+decodeSkippedDirectiveDetails =
+  succeed SkippedDetails
+    |> required "overridingRuleId" string
+    |> required "overridingRuleName" string
 
 decodeComplianceDetails : Decoder ComplianceDetails
 decodeComplianceDetails =
