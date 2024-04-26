@@ -208,6 +208,52 @@ class RoLDAPNodeGroupRepository(
     }
   }
 
+  def getGroupsByCategoryByIds(ids: Seq[NodeGroupId], includeSystem: Boolean = false)(implicit
+      qc: QueryContext
+  ): IOResult[Map[NodeGroupCategory, Seq[NodeGroup]]] = {
+    groupLibMutex.readLock {
+      for {
+        con     <- ldap
+        entries <- if (ids.isEmpty) con.searchSub(rudderDit.GROUP.dn, IS(OC_RUDDER_NODE_GROUP))
+                   else con.searchSub(rudderDit.GROUP.dn, OR(ids.map(id => EQ(A_NODE_GROUP_UUID, id.serialize))*))
+        groups  <- ZIO.foreach(entries)(groupEntry => {
+                     for {
+                       g        <- mapper
+                                     .entry2NodeGroup(groupEntry)
+                                     .toIO
+                                     .chainError(s"Error when mapping server group entry into a Group instance. Entry: ${groupEntry}")
+                       allNodes <- nodeFactRepo.getAll()
+                       nodeIds   = g.serverList.intersect(allNodes.keySet.toSet)
+                       y         = g.copy(serverList = nodeIds)
+                     } yield (groupEntry, y)
+                   })
+        cats    <-
+          ZIO.foreach(groups) {
+            case (groupEntry, g) => {
+              for {
+                parentCategoryEntry <-
+                  con
+                    .get(groupEntry.dn.getParent)
+                    .notOptional(s"Parent category of entry with ID '${g.id.serialize}' was not found")
+                parentCategory      <-
+                  mapper
+                    .entry2NodeGroupCategory(parentCategoryEntry)
+                    .toIO
+                    .chainError(
+                      "Error when transforming LDAP entry %s into an active technique category".format(parentCategoryEntry)
+                    )
+              } yield {
+                parentCategory
+              }
+            }
+          }
+        result   = cats.zip(groups).groupBy(_._1).map { case (cat, pairs) => (cat, pairs.map(_._2._2)) }
+      } yield {
+        result
+      }
+    }
+  }
+
   def getNodeGroupOpt(id: NodeGroupId)(implicit qc: QueryContext): IOResult[Option[(NodeGroup, NodeGroupCategoryId)]] = {
     groupLibMutex.readLock(for {
       con     <- ldap
@@ -433,23 +479,6 @@ class RoLDAPNodeGroupRepository(
       con     <- ldap
       // for each directive entry, map it. if one fails, all fails
       entries <- groupLibMutex.readLock(con.searchSub(rudderDit.GROUP.dn, EQ(A_OC, OC_RUDDER_NODE_GROUP)))
-      groups  <- ZIO.foreach(entries)(groupEntry => {
-                   mapper
-                     .entry2NodeGroup(groupEntry)
-                     .toIO
-                     .chainError(s"Error when transforming LDAP entry into a Group instance. Entry: ${groupEntry}")
-                 })
-    } yield {
-      groups
-    }
-  }
-
-  def getAllByIds(ids: Seq[NodeGroupId]): IOResult[Seq[NodeGroup]] = {
-    for {
-      con     <- ldap
-      // for each directive entry, map it. if one fails, all fails
-      entries <-
-        groupLibMutex.readLock(con.searchSub(rudderDit.GROUP.dn, OR(ids.map(id => EQ(A_NODE_GROUP_UUID, id.serialize))*)))
       groups  <- ZIO.foreach(entries)(groupEntry => {
                    mapper
                      .entry2NodeGroup(groupEntry)

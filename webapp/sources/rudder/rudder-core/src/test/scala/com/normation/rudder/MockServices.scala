@@ -2381,8 +2381,17 @@ class MockNodeGroups(nodesRepo: MockNodes) {
       } yield cat
     }
     override def getAll():                              IOResult[Seq[NodeGroup]]    = categories.get.map(_.allGroups.values.map(_.nodeGroup).toSeq)
-    override def getAllByIds(ids: Seq[NodeGroupId]):    IOResult[Seq[NodeGroup]]    = {
-      categories.get.map(_.allGroups.values.map(_.nodeGroup).filter(g => ids.contains(g.id)).toSeq)
+    override def getGroupsByCategoryByIds(ids: Seq[NodeGroupId], includeSystem: Boolean = false)(implicit
+        qc: QueryContext
+    ): IOResult[Map[NodeGroupCategory, Seq[NodeGroup]]] = {
+      categories.get.map { root =>
+        val groups     = root.allGroups.values.map(_.nodeGroup).filter(g => ids.contains(g.id)).toSeq
+        val categories = groups.map(g => root.categoryByGroupId(g.id)).distinct
+        categories.map { c =>
+          val cat = root.allCategories(c).toNodeGroupCategory
+          (cat, groups.filter(g => root.categoryByGroupId(g.id) == c))
+        }.toMap
+      }
     }
 
     override def getAllNodeIds(): IOResult[Map[NodeGroupId, Set[NodeId]]] =
