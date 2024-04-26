@@ -129,6 +129,13 @@ final case class ByDirectiveByNodeRuleCompliance(
     components: Seq[ByRuleByNodeByDirectiveByComponentCompliance]
 )
 
+final case class ByNodeGroupFullCompliance(
+    id:       String,
+    name:     String,
+    category: String,
+    targeted: ByNodeGroupCompliance,
+    global:   ByNodeGroupCompliance
+)
 final case class ByNodeGroupCompliance(
     id:         String,
     name:       String,
