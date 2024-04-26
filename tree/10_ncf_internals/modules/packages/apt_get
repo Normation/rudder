@@ -212,7 +212,7 @@ def list_updates(online):
         #                repository(ies)      arch (might be optional)
         #                       |               |
         #                    /--+-\   /---------+---------\
-                         "(?:\s+\S+)*?(\s+\[(?P<arch>[^]\s]+)\])?\).*", line)
+                         r"(?:\s+\S+)*?(\s+\[(?P<arch>[^]\s]+)\])?\).*", line)
 
         if match is not None:
             sys.stdout.write("Name=" + match.group("name") + "\n")
