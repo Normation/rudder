@@ -88,6 +88,7 @@ fn it_reads_and_inserts_a_runlog() {
     let file_old = "target/tmp/reporting/incoming/2017-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log";
     let file_new = "target/tmp/reporting/incoming/2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log";
     let file_broken = "target/tmp/reporting/incoming/2018-02-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log";
+    let file_broken_name = "target/tmp/reporting/incoming/bob.log";
     let file_unknown = "target/tmp/reporting/incoming/2018-02-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906d.log";
     let file_broken_failed = "target/tmp/reporting/failed/2018-02-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log";
     let file_unknown_failed = "target/tmp/reporting/failed/2018-02-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906d.log";
@@ -113,6 +114,8 @@ fn it_reads_and_inserts_a_runlog() {
     assert!(start_number(&mut db, 1).is_ok());
 
     copy("tests/files/config/main.conf", file_broken).unwrap();
+    // Ensure it does not bother processing
+    copy("tests/files/config/main.conf", file_broken_name).unwrap();
     copy("tests/files/config/main.conf", file_unknown).unwrap();
 
     thread::sleep(time::Duration::from_millis(500));
