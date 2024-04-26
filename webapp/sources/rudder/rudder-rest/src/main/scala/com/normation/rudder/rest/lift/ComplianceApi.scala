@@ -86,6 +86,7 @@ import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.reports.ReportingServiceUtils
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.zio.currentTimeMillis
+import io.scalaland.chimney.syntax.*
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.PlainTextResponse
@@ -100,6 +101,7 @@ import zio.syntax.*
 
 class ComplianceApi(
     restExtractorService: RestExtractorService,
+    zioJsonExtractor:     ZioJsonExtractor,
     complianceService:    ComplianceAPIService,
     readDirective:        RoDirectiveRepository
 ) extends LiftApiModuleProvider[API] {
@@ -333,13 +335,17 @@ class ComplianceApi(
     ): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
 
-      (for {
-        precision <- restExtractor.extractCompliancePrecisionFromParams(req.params).toIO
-        filters    = QueryFilter(req)
-        group     <- complianceService.getNodeGroupComplianceSummary(filters, precision)
-      } yield {
-        group
-      }).chainError("Could not get compliance summary").toLiftResponseOne(params, schema, _ => None)
+      withEncodersCtx(
+        restExtractor.extractCompliancePrecisionFromParams(req.params).map(_.getOrElse(CompliancePrecision.Level2)),
+        params,
+        schema
+      ) { encoders =>
+        import encoders.*
+        complianceService
+          .getNodeGroupComplianceSummary(QueryFilter(req))
+          .chainError("Could not get compliance summary")
+          .toLiftResponseOne(params, schema, _ => None)
+      }
     }
   }
 
@@ -532,6 +538,20 @@ class ComplianceApi(
     }
   }
 
+  // TODO: when migrating to scala 3 with implicit context function it should be possible to write by parameterizing with [A: JsonEncoder]
+  private[this] def withEncodersCtx(
+      precisionResult: PureResult[CompliancePrecision],
+      params:          DefaultParams,
+      schema:          EndpointSchema
+  )(body: ComplianceEncoders => LiftResponse): LiftResponse = {
+    implicit val prettify = params.prettify
+    precisionResult match {
+      case Right(precision) =>
+        body(new ComplianceEncoders()(precision))
+      case Left(e)          =>
+        RudderJsonResponse.internalError(None, RudderJsonResponse.ResponseSchema.fromSchema(schema), e.fullMsg)
+    }
+  }
 }
 
 /**
@@ -1174,9 +1194,8 @@ class ComplianceAPIService(
    * Get global and targeted compliance at level 1 (without any details) with global compliance at left and targeted at right
    */
   def getNodeGroupComplianceSummary(
-      filter:    ComplianceAPIService.QueryFilter,
-      precision: Option[CompliancePrecision]
-  )(implicit qc: QueryContext): IOResult[List[ByNodeGroupFullCompliance]] = {
+      filter: ComplianceAPIService.QueryFilter
+  )(implicit precision: CompliancePrecision, qc: QueryContext): IOResult[List[ByNodeGroupFullCompliance]] = {
     for {
       t1          <- currentTimeMillis
       nodeFacts   <- nodeFactRepos.getAll()
@@ -1298,7 +1317,16 @@ class ComplianceAPIService(
               allRuleInfos,
               level,
               false
-            )).map { case (global, targeted) => ByNodeGroupFullCompliance.apply(id, name, cat.name, global, targeted) }
+            )).map {
+              case (global, targeted) =>
+                ByNodeGroupFullCompliance.apply(
+                  id,
+                  name,
+                  cat.name,
+                  global.transformInto[GenericCompliance],
+                  targeted.transformInto[GenericCompliance]
+                )
+            }
         }
     } yield {
       filter.apply(fullCompliance)
