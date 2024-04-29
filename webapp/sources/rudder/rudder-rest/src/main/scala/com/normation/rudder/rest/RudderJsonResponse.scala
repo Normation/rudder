@@ -43,7 +43,6 @@ import com.normation.rudder.rest.lift.LiftApiProcessingLogger
 import com.normation.zio.*
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
-import scala.annotation.nowarn
 import scala.collection.immutable
 import zio.json.*
 import zio.json.DeriveJsonEncoder
@@ -132,10 +131,9 @@ object RudderJsonResponse {
 
   // rudder response. The "A" parameter is the business object (or list of it) in the response.
   // Success
-  @nowarn("msg=parameter encoder .* is never used") // used by magnolia macro
   def successOne[A](schema: ResponseSchema, obj: A, id: Option[String])(implicit
       prettify: Boolean,
-      encoder: JsonEncoder[A]
+      encoder:  JsonEncoder[A]
   ): LiftJsonResponse[? <: JsonRudderApiResponse[?]] = {
     schema.dataContainer match {
       case Some(key) =>
@@ -146,10 +144,9 @@ object RudderJsonResponse {
         generic.success(JsonRudderApiResponse.success(schema, id, obj))
     }
   }
-  @nowarn("msg=parameter encoder .* is never used") // used by magnolia macro
   def successList[A](schema: ResponseSchema, objs: List[A])(implicit
       prettify: Boolean,
-      encoder: JsonEncoder[A]
+      encoder:  JsonEncoder[A]
   ): LiftJsonResponse[
     ? <: JsonRudderApiResponse[? <: immutable.Iterable[Any] with PartialFunction[Int with String, Any] with Equals]
   ] = {
