@@ -1410,7 +1410,7 @@ class NodeApiService(
       prettify: Boolean,
       qc:       QueryContext
   ): LiftResponse = {
-    implicit val action = s"list${state.name.capitalize}Nodes"
+    implicit val action: String = s"list${state.name.capitalize}Nodes"
     val predicate       = (n: NodeFact) => {
       (nodeFilter match {
         case Some(ids) => ids.contains(n.id)
@@ -1466,7 +1466,7 @@ class NodeApiService(
       prettify: Boolean,
       qc:       QueryContext
   ): LiftResponse = {
-    implicit val action = s"list${state.name.capitalize}Nodes"
+    implicit val action: String = s"list${state.name.capitalize}Nodes"
     (for {
       nodeIds <- state match {
                    case PendingInventory  => pendingNodeQueryProcessor.check(query, None).toBox
@@ -1526,8 +1526,8 @@ class NodeApiService(
         .setToIfDefined(newKeyStatus)
     }
 
-    implicit val qc    = cc.toQuery
-    implicit val attrs = SelectFacts.none
+    implicit val qc: QueryContext = cc.toQuery
+    implicit val attrs: SelectFacts = SelectFacts.none
 
     for {
       nodeFact      <- nodeFactRepository.get(nodeId).notOptional(s"node with id '${nodeId.value}' was not found")
