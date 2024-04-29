@@ -45,7 +45,7 @@ import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.*
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.ldap.core.InventoryDit
+import com.normation.inventory.ldap.core.{InventoryDit, UUID_ENTRY}
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.api.ApiVersion
@@ -895,7 +895,7 @@ class NodeApiService(
         .foldLeft(Seq((acceptedDit, AcceptedInventory), (pendingDit, PendingInventory)))(Option.empty[InventoryStatus]) {
           case (current, (dit, s)) =>
             current match {
-              case None    => con.exists(dit.NODES.NODE.dn(id)).map(exists => if (exists) Some(s) else None)
+              case None    => con.exists((dit.NODES.NODE : UUID_ENTRY[NodeId]).dn(id)).map(exists => if (exists) Some(s) else None)
               case Some(v) => Some(v).succeed
             }
         }

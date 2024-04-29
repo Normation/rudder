@@ -589,7 +589,7 @@ class NodeGroupForm(
 
           isDynamic = groupStatic.get match { case "dynamic" => true; case _ => false },
           query = query,
-          serverList = srvList.getOrElse(Set()).map(_.id).toSet
+          serverList = srvList.getOrElse(Set.empty[NodeInfo]).map(_.id).toSet
         )
 
         /*
