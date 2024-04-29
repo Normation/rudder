@@ -45,7 +45,6 @@ import doobie.Read
 import doobie.Write
 import doobie.implicits.*
 import doobie.implicits.javasql.*
-import doobie.implicits.toSqlInterpolator
 import org.joda.time.DateTime
 import zio.interop.catz.*
 

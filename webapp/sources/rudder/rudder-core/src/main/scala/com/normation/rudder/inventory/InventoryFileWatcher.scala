@@ -42,7 +42,6 @@ import com.normation.box.IOManaged
 import com.normation.errors.*
 import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.zio.*
-import com.normation.zio.ZioRuntime
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.nio.file

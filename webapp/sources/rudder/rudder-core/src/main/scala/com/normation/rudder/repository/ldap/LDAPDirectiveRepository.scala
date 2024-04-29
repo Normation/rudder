@@ -1375,7 +1375,7 @@ class WoLDAPDirectiveRepository(
                     deleted      <- con.delete(activeTechnique.dn, recurse = false)
                     diff          = DeleteTechniqueDiff(oldTechnique)
                     loggedAction <- actionLogger.saveDeleteTechnique(modId, principal = actor, deleteDiff = diff, reason = reason)
-                    autoArchive  <- ZIO
+                    _            <- ZIO
                                       .when(autoExportOnModify && deleted.size > 0 && !oldTechnique.policyTypes.isSystem) {
                                         for {
                                           ptName   <- activeTechnique(A_TECHNIQUE_UUID) match {

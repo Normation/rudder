@@ -75,15 +75,12 @@ import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.ModifyToGlobalParameterDiff
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.*
-import com.normation.rudder.domain.workflows.ChangeRequest
-import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.marshalling.MarshallingUtil.createTrimedElem
 import net.liftweb.common.*
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.format.ISODateTimeFormat
 import scala.xml.{Node as XNode, *}
-import scala.xml.NodeSeq
 import zio.json.*
 
 //serialize / deserialize tags

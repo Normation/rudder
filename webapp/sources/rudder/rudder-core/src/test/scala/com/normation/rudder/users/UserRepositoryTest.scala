@@ -664,7 +664,7 @@ trait UserRepositoryTest extends Specification with Loggable {
       // we only purge deleted users
       (repo.delete(List("bob"), None, Nil, Some(UserStatus.Disabled), traceBobOidc) *>
       repo.purge(List("bob"), None, Nil, traceBobOidc)).runNow
-      repo.getAll().runNow must beLike(_.map(_.id) must not(contain("bob")))
+      repo.getAll().runNow must beLike(_.map(_.id) must not(contain[String]("bob")))
 
       repo.setExistingUsers(AUTH_PLUGIN_NAME_REMOTE, List("bob"), traceBobPurged).runNow
       repo.getAll().runNow.toUTC must containTheSameElementsAs(userInfosBobPurged)

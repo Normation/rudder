@@ -44,8 +44,6 @@ import com.normation.GitVersion.Revision
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors.*
-import com.normation.errors.PureResult
-import com.normation.errors.Unexpected
 import com.normation.inventory.domain.CertifiedKey
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.NodeId

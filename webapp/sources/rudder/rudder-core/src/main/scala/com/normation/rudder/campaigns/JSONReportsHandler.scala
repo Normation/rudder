@@ -38,7 +38,6 @@
 package com.normation.rudder.campaigns
 
 import com.normation.errors.*
-import com.normation.errors.IOResult
 import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.RudderPropertiesRepository

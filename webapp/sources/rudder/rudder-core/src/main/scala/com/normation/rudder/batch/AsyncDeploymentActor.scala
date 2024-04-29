@@ -38,9 +38,6 @@
 package com.normation.rudder.batch
 
 import com.normation.errors.*
-import com.normation.errors.IOResult
-import com.normation.errors.PureResult
-import com.normation.errors.Unexpected
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogDetails

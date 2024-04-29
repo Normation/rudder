@@ -80,7 +80,6 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonAST.*
-import net.liftweb.json.JsonAST.JValue
 import org.joda.time.DateTime
 import zio.*
 import zio.json.*

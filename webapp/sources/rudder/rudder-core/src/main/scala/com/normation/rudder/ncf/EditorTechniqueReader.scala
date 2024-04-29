@@ -2,8 +2,6 @@ package com.normation.rudder.ncf
 
 import better.files.*
 import com.normation.errors.*
-import com.normation.errors.Inconsistency
-import com.normation.errors.IOResult
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.eventlog.RudderEventActor

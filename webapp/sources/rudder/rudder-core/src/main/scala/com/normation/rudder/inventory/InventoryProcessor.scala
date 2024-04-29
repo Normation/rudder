@@ -40,8 +40,6 @@ package com.normation.rudder.inventory
 import better.files.File
 import com.normation.box.IOManaged
 import com.normation.errors.*
-import com.normation.errors.Chained
-import com.normation.errors.IOResult
 import com.normation.inventory.domain.CertifiedKey
 import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.Inventory
@@ -62,7 +60,6 @@ import com.normation.rudder.hooks.PureHooksLogger
 import com.normation.rudder.hooks.RunHooks
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
-import com.normation.zio.ZioRuntime
 import java.io.InputStream
 import java.nio.file.NoSuchFileException
 import java.security.PublicKey as JavaSecPubKey

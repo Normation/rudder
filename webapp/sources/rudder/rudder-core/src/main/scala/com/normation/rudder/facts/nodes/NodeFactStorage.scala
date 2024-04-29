@@ -40,7 +40,6 @@ package com.normation.rudder.facts.nodes
 import NodeFactSerialisation.*
 import better.files.File
 import com.normation.errors.*
-import com.normation.errors.IOResult
 import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.FullInventoryRepositoryImpl
 import com.normation.inventory.ldap.core.InventoryDitService
