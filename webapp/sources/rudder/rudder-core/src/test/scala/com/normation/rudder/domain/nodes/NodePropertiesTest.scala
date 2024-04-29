@@ -150,7 +150,7 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
     }
 
     "fails for different, non default providers" in {
-      val input = List(
+      val input  = List(
         NodeProperty("p1", "xxx".toConfigValue, None, None),
         NodeProperty("p1", "xxx".toConfigValue, None, RudderP),
         NodeProperty("p1", "xxx".toConfigValue, None, P2),
@@ -163,7 +163,7 @@ class NodePropertiesTest extends Specification with Loggable with BoxSpecMatcher
     }
 
     "be ok with compatible one (default)" in {
-      val input = List(
+      val input  = List(
         NodeProperty("none", "xxx".toConfigValue, None, RudderP),
         NodeProperty("default", "xxx".toConfigValue, None, None)
       )

@@ -61,8 +61,8 @@ import org.joda.time.LocalDate
 import org.joda.time.LocalTime
 import org.joda.time.Period
 import org.joda.time.format.DateTimeFormatter
-
-import scala.reflect.{ClassTag, classTag}
+import scala.reflect.ClassTag
+import scala.reflect.classTag
 import scala.xml.*
 
 /**

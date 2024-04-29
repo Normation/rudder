@@ -1243,8 +1243,8 @@ class EventLogDetailsGenerator(
 
   }
 
-  private def ruleDetails(xml: NodeSeq, rule: Rule, groupLib: FullNodeGroupCategory, rootRuleCategory: RuleCategory)(
-      implicit qc: QueryContext
+  private def ruleDetails(xml: NodeSeq, rule: Rule, groupLib: FullNodeGroupCategory, rootRuleCategory: RuleCategory)(implicit
+      qc: QueryContext
   ) = {
     (
       "#ruleID" #> rule.id.serialize &

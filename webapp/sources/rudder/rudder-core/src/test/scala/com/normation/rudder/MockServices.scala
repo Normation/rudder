@@ -839,7 +839,10 @@ class MockDirectives(mockTechniques: MockTechniques) {
       })
     }
 
+    // scalafmt makes scalameta ScalametaParser to fail for now
+    // format: off
     override def getParentsForActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[List[ActiveTechniqueCategory]] = ???
+    // format: on
 
     override def getParentsForActiveTechnique(id: ActiveTechniqueId): IOResult[ActiveTechniqueCategory] = ???
 

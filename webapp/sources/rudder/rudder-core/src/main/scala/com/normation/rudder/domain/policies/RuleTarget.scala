@@ -324,10 +324,9 @@ object RuleTarget extends Loggable {
       case AllPolicyServers             => Right(allNodes.collect { case (k, isPolicyServer) if (isPolicyServer) => k })
       case PolicyServerTarget(nodeId)   => Right(Set(nodeId))
 
-
       // here, if we don't find the group, we consider it's an error in the
       // target recording, but don't fail, just log it.
-      case GroupTarget(groupId)         => Right(groups.getOrElse(groupId, Chunk.empty))
+      case GroupTarget(groupId) => Right(groups.getOrElse(groupId, Chunk.empty))
 
       case TargetIntersection(targets) =>
         val nodeSets     = targets.map(t => getNodeIdsChunkRec(Chunk(t), allNodes, groups))

@@ -177,12 +177,12 @@ import org.specs2.matcher.MatchResult
 import scala.collection.MapView
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
+import scala.reflect.ClassTag
+import scala.reflect.classTag
 import scala.xml.Elem
 import scala.xml.NodeSeq
 import zio.*
 import zio.syntax.*
-
-import scala.reflect.{ClassTag, classTag}
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.
@@ -665,8 +665,8 @@ class RestTestSetUp {
     override def default(withId: String): DirectiveField = new DirectiveField {
       self => type ValueType = String
       def manifest: ClassTag[String] = classTag[String]
-      lazy val id  = withId
-      def name     = id
+      lazy val id = withId
+      def name    = id
       override val uniqueFieldId: Box[String]                      = Full(id)
       protected var _x:           String                           = getDefaultValue
       def validate:               List[FieldError]                 = Nil

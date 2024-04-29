@@ -104,7 +104,7 @@ class RuleModificationValidationPopup(
   import RuleModificationValidationPopup.*
 
   private val userPropertyService = RudderConfig.userPropertyService
-  private[this] val uuidGen             = RudderConfig.stringUuidGenerator
+  private[this] val uuidGen       = RudderConfig.stringUuidGenerator
 
   val validationNeeded: Boolean = workflowService.needExternalValidation()
 

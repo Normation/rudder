@@ -80,7 +80,7 @@ class CreateOrUpdateGlobalParameterPopup(
 ) extends DispatchSnippet with Loggable {
 
   private val userPropertyService = RudderConfig.userPropertyService
-  private[this] val uuidGen             = RudderConfig.stringUuidGenerator
+  private[this] val uuidGen       = RudderConfig.stringUuidGenerator
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
     case "popupContent" => { _ => popupContent()(CurrentUser.queryContext) }

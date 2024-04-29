@@ -45,7 +45,8 @@ import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.*
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.ldap.core.{InventoryDit, UUID_ENTRY}
+import com.normation.inventory.ldap.core.InventoryDit
+import com.normation.inventory.ldap.core.UUID_ENTRY
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.api.ApiVersion
@@ -895,7 +896,7 @@ class NodeApiService(
         .foldLeft(Seq((acceptedDit, AcceptedInventory), (pendingDit, PendingInventory)))(Option.empty[InventoryStatus]) {
           case (current, (dit, s)) =>
             current match {
-              case None    => con.exists((dit.NODES.NODE : UUID_ENTRY[NodeId]).dn(id)).map(exists => if (exists) Some(s) else None)
+              case None    => con.exists((dit.NODES.NODE: UUID_ENTRY[NodeId]).dn(id)).map(exists => if (exists) Some(s) else None)
               case Some(v) => Some(v).succeed
             }
         }
@@ -1411,7 +1412,7 @@ class NodeApiService(
       qc:       QueryContext
   ): LiftResponse = {
     implicit val action: String = s"list${state.name.capitalize}Nodes"
-    val predicate       = (n: NodeFact) => {
+    val predicate = (n: NodeFact) => {
       (nodeFilter match {
         case Some(ids) => ids.contains(n.id)
         case None      => true
@@ -1526,8 +1527,8 @@ class NodeApiService(
         .setToIfDefined(newKeyStatus)
     }
 
-    implicit val qc: QueryContext = cc.toQuery
-    implicit val attrs: SelectFacts = SelectFacts.none
+    implicit val qc:    QueryContext = cc.toQuery
+    implicit val attrs: SelectFacts  = SelectFacts.none
 
     for {
       nodeFact      <- nodeFactRepository.get(nodeId).notOptional(s"node with id '${nodeId.value}' was not found")
