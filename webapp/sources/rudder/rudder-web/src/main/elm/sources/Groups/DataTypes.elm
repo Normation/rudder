@@ -130,7 +130,7 @@ type Msg
   | UpdateGroupFilters      Filters
 
 groupTableBatchSize : number
-groupTableBatchSize = 20
+groupTableBatchSize = 50
 
 -- Get all group ids in the tree, sorted the way they are top-down in the tree view : by name
 treeIds : Category Group -> List GroupId
