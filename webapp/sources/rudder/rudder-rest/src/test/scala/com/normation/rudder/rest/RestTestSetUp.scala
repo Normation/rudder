@@ -226,14 +226,15 @@ class RestTestSetUp {
 
   val mockGitRepo = new MockGitConfigRepo("")
   val mockTechniques: MockTechniques = MockTechniques(mockGitRepo)
-  val mockDirectives       = new MockDirectives(mockTechniques)
-  val mockRules            = new MockRules()
-  val mockNodes            = new MockNodes()
-  val mockParameters       = new MockGlobalParam()
-  val mockNodeGroups       = new MockNodeGroups(mockNodes)
-  val mockLdapQueryParsing = new MockLdapQueryParsing(mockGitRepo, mockNodeGroups)
-  val uuidGen              = new StringUuidGeneratorImpl()
-  val mockConfigRepo       = new MockConfigRepo(mockTechniques, mockDirectives, mockRules, mockNodeGroups, mockLdapQueryParsing)
+  val mockDirectives                                 = new MockDirectives(mockTechniques)
+  val mockRules                                      = new MockRules()
+  val mockNodes                                      = new MockNodes()
+  val mockParameters                                 = new MockGlobalParam()
+  val mockNodeGroups                                 = new MockNodeGroups(mockNodes)
+  val mockLdapQueryParsing                           = new MockLdapQueryParsing(mockGitRepo, mockNodeGroups)
+  val uuidGen                                        = new StringUuidGeneratorImpl()
+  val mockConfigRepo                                 = new MockConfigRepo(mockTechniques, mockDirectives, mockRules, mockNodeGroups, mockLdapQueryParsing)
+  val (mockUserManagementTmpDir, mockUserManagement) = MockUserManagement()
 
   val dynGroupUpdaterService =
     new DynGroupUpdaterServiceImpl(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, mockNodes.queryProcessor)
@@ -949,6 +950,14 @@ class RestTestSetUp {
       restExtractorService,
       complianceService.complianceAPIService,
       mockDirectives.directiveRepo
+    ),
+    new UserManagementApiImpl(
+      mockUserManagement.userRepo,
+      mockUserManagement.userService,
+      mockUserManagement.userManagementService,
+      new RoleApiMapping(new ExtensibleAuthorizationApiMapping(AuthorizationApiMapping.Core :: Nil)),
+      () => mockUserManagement.providerRoleExtension,
+      () => mockUserManagement.authBackendProviders
     )
   )
 
@@ -990,6 +999,7 @@ class RestTestSetUp {
   def cleanup(): Unit = {
 
     FileUtils.deleteDirectory(mockGitRepo.abstractRoot.toJava)
+    FileUtils.deleteDirectory(mockUserManagementTmpDir.toJava)
 
   }
 

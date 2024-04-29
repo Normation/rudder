@@ -1266,7 +1266,6 @@ object RudderConfig extends Loggable {
   val updateDynamicGroups:                 UpdateDynamicGroups                        = rci.updateDynamicGroups
   val updateDynamicGroupsService:          DynGroupUpdaterService                     = rci.updateDynamicGroupsService
   val updateTechniqueLibrary:              UpdateTechniqueLibrary                     = rci.updateTechniqueLibrary
-  val userAuthorisationLevel:              DefaultUserAuthorisationLevel              = rci.userAuthorisationLevel
   val userPropertyService:                 UserPropertyService                        = rci.userPropertyService
   val userRepository:                      UserRepository                             = rci.userRepository
   val userService:                         UserService                                = rci.userService
@@ -1415,7 +1414,6 @@ case class RudderServiceApi(
     apiDispatcher:                       RudderEndpointDispatcher,
     configurationRepository:             ConfigurationRepository,
     roParameterService:                  RoParameterService,
-    userAuthorisationLevel:              DefaultUserAuthorisationLevel,
     agentRegister:                       AgentRegister,
     asyncWorkflowInfo:                   AsyncWorkflowInfo,
     commitAndDeployChangeRequest:        CommitAndDeployChangeRequestService,
@@ -1516,9 +1514,6 @@ object RudderConfigInit {
     // Plugin input interface for alternative authentication providers
     lazy val authenticationProviders = new AuthBackendProvidersManager()
 
-    // Plugin input interface for user management plugin
-    lazy val userAuthorisationLevel = new DefaultUserAuthorisationLevel()
-
     // Plugin input interface for Authorization for API
     lazy val authorizationApiMapping = new ExtensibleAuthorizationApiMapping(AuthorizationApiMapping.Core :: Nil)
 
@@ -1530,7 +1525,7 @@ object RudderConfigInit {
     lazy val rudderUserListProvider: FileUserDetailListProvider = {
       UserFileProcessing.getUserResourceFile().either.runNow match {
         case Right(resource) =>
-          new FileUserDetailListProvider(roleApiMapping, userAuthorisationLevel, resource)
+          new FileUserDetailListProvider(roleApiMapping, resource)
         case Left(err)       =>
           ApplicationLogger.error(err.fullMsg)
           // make the application not available
@@ -2222,6 +2217,19 @@ object RudderConfigInit {
           rudderMajorVersion,
           rudderFullVersion,
           builtTimestamp
+        ),
+        new UserManagementApiImpl(
+          userRepository,
+          rudderUserListProvider,
+          new UserManagementService(
+            userRepository,
+            rudderUserListProvider,
+            new PasswordEncoderDispatcher(RUDDER_BCRYPT_COST),
+            UserFileProcessing.getUserResourceFile()
+          ),
+          roleApiMapping,
+          () => authenticationProviders.getProviderProperties().view.mapValues(_.providerRoleExtension).toMap,
+          () => authenticationProviders.getConfiguredProviders().map(_.name).toSet
         ),
         new InventoryApi(restExtractorService, inventoryWatcher, better.files.File(INVENTORY_DIR_INCOMING)),
         new PluginApi(restExtractorService, pluginSettingsService),
@@ -3716,7 +3724,6 @@ object RudderConfigInit {
       apiDispatcher,
       configurationRepository,
       roParameterService,
-      userAuthorisationLevel,
       agentRegister,
       asyncWorkflowInfo,
       commitAndDeployChangeRequest,

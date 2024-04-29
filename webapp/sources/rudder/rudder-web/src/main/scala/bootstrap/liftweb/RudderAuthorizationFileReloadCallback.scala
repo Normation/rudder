@@ -35,30 +35,26 @@
  *************************************************************************************
  */
 
-package com.normation.rudder.users
+package bootstrap.liftweb
 
-import com.normation.rudder.domain.logger.PluginLogger
+import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.users.*
+import org.joda.time.DateTime
 
-/**
- * This is the class that defines the user management level.
- * Without the plugin, by default only "admin" role is know.
- * A user with an unknown role has no rights.
+/*
+ * A callback that is in charge of updating the list of UserInfo managed by the file authenticator.
  */
-trait UserAuthorisationLevel {
-  def userAuthEnabled: Boolean
-  def name:            String
-}
-
-// and default implementation is: no
-class DefaultUserAuthorisationLevel() extends UserAuthorisationLevel {
-  // Alternative level provider
-  private var level: Option[UserAuthorisationLevel] = None
-
-  def overrideLevel(l: UserAuthorisationLevel): Unit = {
-    PluginLogger.info(s"Update User Authorisations level to '${l.name}'")
-    level = Some(l)
+object UserRepositoryUpdateOnFileReload {
+  def createCallback(userRepository: UserRepository): RudderAuthorizationFileReloadCallback = {
+    RudderAuthorizationFileReloadCallback(
+      "update-pg-users-on-xml-file-reload",
+      userList => {
+        userRepository.setExistingUsers(
+          DefaultAuthBackendProvider.FILE,
+          userList.users.keys.toList,
+          EventTrace(RudderEventActor, DateTime.now(), "Updating users because `rudder-users.xml` was reloaded")
+        )
+      }
+    )
   }
-
-  override def userAuthEnabled: Boolean = level.map(_.userAuthEnabled).getOrElse(false)
-  override def name:            String  = level.map(_.name).getOrElse("Default implementation (only 'admin' right)")
 }

@@ -35,7 +35,7 @@
  *************************************************************************************
  */
 
-package bootstrap.liftweb
+package com.normation.rudder.users
 
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
@@ -44,13 +44,13 @@ import com.normation.errors.SystemError
 import com.normation.errors.Unexpected
 import com.normation.rudder.*
 import com.normation.rudder.api.*
-import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.RoleApiMapping
 import com.normation.rudder.users.*
 import com.normation.zio.*
+import enumeratum.*
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
@@ -58,7 +58,7 @@ import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.security.SecureRandom
 import org.bouncycastle.util.encoders.Hex
-import org.joda.time.DateTime
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.xml.sax.SAXParseException
 import scala.collection.immutable.SortedMap
 import scala.xml.Elem
@@ -76,13 +76,51 @@ final case class UserFile(
     inputStream: () => InputStream
 )
 
-//Password encoder type definition. Done like that to avoid
-//a deprecation warning on `PasswordEncoder` thanks to @silent annotation
-object PasswordEncoder {
-  type Rudder = org.springframework.security.crypto.password.PasswordEncoder
+// Password encoder definition of parsing values
+sealed abstract class PasswordEncoderType(override val entryName: String) extends EnumEntry {
+  def name:        String = entryName
+  def displayName: String = name
+}
+
+object PasswordEncoderType extends Enum[PasswordEncoderType] {
+
+  final case object PlainText extends PasswordEncoderType("plain") {
+    override def displayName: String = "plain text"
+  }
+  final case object MD5       extends PasswordEncoderType("MD5")
+  final case object SHA1      extends PasswordEncoderType("SHA-1")
+  final case object SHA256    extends PasswordEncoderType("SHA-256")
+  final case object SHA512    extends PasswordEncoderType("SHA-512")
+  final case object BCRYPT    extends PasswordEncoderType("BCRYPT")
+
+  override def values: IndexedSeq[PasswordEncoderType] = findValues
+
+  override def extraNamesToValuesMap: Map[String, PasswordEncoderType] = Map(
+    "sha"    -> SHA1,
+    "sha1"   -> SHA1,
+    "sha256" -> SHA256,
+    "sha512" -> SHA512
+  )
+
+}
+
+class PasswordEncoderDispatcher(bcryptCost: Int) {
+  def dispatch(encoderType: PasswordEncoderType): PasswordEncoder = {
+    encoderType match {
+      case PasswordEncoderType.PlainText => RudderPasswordEncoder.PlainText
+      case PasswordEncoderType.MD5       => RudderPasswordEncoder.MD5
+      case PasswordEncoderType.SHA1      => RudderPasswordEncoder.SHA1
+      case PasswordEncoderType.SHA256    => RudderPasswordEncoder.SHA256
+      case PasswordEncoderType.SHA512    => RudderPasswordEncoder.SHA512
+      case PasswordEncoderType.BCRYPT    => RudderPasswordEncoder.BCRYPT(bcryptCost)
+    }
+  }
+
+}
+
+object RudderPasswordEncoder {
 
   import org.bouncycastle.crypto.generators.OpenBSDBCrypt
-  import org.springframework.security.crypto.password.PasswordEncoder
 
   val random = new SecureRandom()
 
@@ -116,25 +154,25 @@ object PasswordEncoder {
       }
     }
   }
-
-  val PlainText: PasswordEncoder = new PasswordEncoder() {
+  // One pass, non-salted hashes. Unsuitable for password storage.
+  val PlainText = new PasswordEncoder() {
     override def encode(rawPassword:  CharSequence): String = rawPassword.toString
     override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = rawPassword.toString == encodedPassword
   }
-  // Unsalted hash functions :
   val MD5 = new DigestEncoder("MD5")
-  val SHA1   = new DigestEncoder("SHA-1")
-  val SHA256 = new DigestEncoder("SHA-256")
-  val SHA512 = new DigestEncoder("SHA-512")
-  // Salted hash functions :
-  val BCRYPT: PasswordEncoder = new PasswordEncoder() {
+  val SHA1              = new DigestEncoder("SHA-1")
+  val SHA256            = new DigestEncoder("SHA-256")
+  val SHA512            = new DigestEncoder("SHA-512")
+  // Proper password hash functions
+  def BCRYPT(cost: Int) = new PasswordEncoder() {
+
     override def encode(rawPassword: CharSequence):                           String  = {
       val salt: Array[Byte] = new Array(16)
       random.nextBytes(salt)
 
       // The version of bcrypt used is "2b". See https://en.wikipedia.org/wiki/Bcrypt#Versioning_history
       // It prevents the length (unsigned char) of a long password to overflow and wrap at 256. (Cf https://marc.info/?l=openbsd-misc&m=139320023202696)
-      OpenBSDBCrypt.generate("2b", rawPassword.toString.toCharArray, salt, RudderConfig.RUDDER_BCRYPT_COST)
+      OpenBSDBCrypt.generate("2b", rawPassword.toString.toCharArray, salt, cost)
     }
     override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = {
       try {
@@ -146,32 +184,20 @@ object PasswordEncoder {
       }
     }
   }
-
-  def parse(name: String): Either[String, PasswordEncoder] = {
-    name.toLowerCase match {
-      case "sha" | "sha1"       => Right(SHA1)
-      case "sha256" | "sha-256" => Right(SHA256)
-      case "sha512" | "sha-512" => Right(SHA512)
-      case "md5"                => Right(MD5)
-      case "bcrypt"             => Right(BCRYPT)
-      case "plain"              => Right(PlainText)
-      case _                    => Left(s"Password encoder identifier '${name}' is unknown")
-    }
-  }
 }
 
 /**
  * An user list is a parsed list of users with their authorisations
  */
 final case class UserDetailFileConfiguration(
-    encoder:         PasswordEncoder.Rudder,
+    encoder:         PasswordEncoderType,
     isCaseSensitive: Boolean,
     customRoles:     List[Role],
     users:           Map[String, (RudderAccount.User, Seq[Role], NodeSecurityContext)]
 )
 
 final case class ValidatedUserList(
-    encoder:         PasswordEncoder.Rudder,
+    encoder:         PasswordEncoderType,
     isCaseSensitive: Boolean,
     customRoles:     List[Role],
     users:           Map[String, RudderUserDetail]
@@ -257,24 +283,6 @@ object ValidatedUserList {
  */
 final case class RudderAuthorizationFileReloadCallback(name: String, exec: ValidatedUserList => IOResult[Unit])
 
-/*
- * A callback that is in charge of updating the list of UserInfo managed by the file authenticator.
- */
-object UserRepositoryUpdateOnFileReload {
-  def createCallback(userRepository: UserRepository): RudderAuthorizationFileReloadCallback = {
-    RudderAuthorizationFileReloadCallback(
-      "update-pg-users-on-xml-file-reload",
-      userList => {
-        userRepository.setExistingUsers(
-          DefaultAuthBackendProvider.FILE,
-          userList.users.keys.toList,
-          EventTrace(RudderEventActor, DateTime.now(), "Updating users because `rudder-users.xml` was reloaded")
-        )
-      }
-    )
-  }
-}
-
 trait UserDetailListProvider {
   def authConfig: ValidatedUserList
 
@@ -296,16 +304,14 @@ trait UserDetailListProvider {
   }
 }
 
-final class FileUserDetailListProvider(roleApiMapping: RoleApiMapping, authorisationLevel: UserAuthorisationLevel, file: UserFile)
-    extends UserDetailListProvider {
+final class FileUserDetailListProvider(roleApiMapping: RoleApiMapping, file: UserFile) extends UserDetailListProvider {
 
   /**
    * Initialize user details list when class is instantiated with an empty list.
-   * You will have to "reload" after application full init (to allows plugin override);
    * We also set case sensitivity to false as a default (which will be updated with the actual data from the file on reload).
    */
   private val cache =
-    Ref.make(ValidatedUserList(PasswordEncoder.PlainText, isCaseSensitive = false, customRoles = Nil, users = Map())).runNow
+    Ref.make(ValidatedUserList(PasswordEncoderType.PlainText, isCaseSensitive = false, customRoles = Nil, users = Map())).runNow
 
   /**
    * Callbacks for who need to be informed of a successfully users list reload
@@ -317,7 +323,7 @@ final class FileUserDetailListProvider(roleApiMapping: RoleApiMapping, authorisa
    */
   def reloadPure(): IOResult[Unit] = {
     for {
-      config <- UserFileProcessing.parseUsers(roleApiMapping, file, authorisationLevel.userAuthEnabled, reload = true)
+      config <- UserFileProcessing.parseUsers(roleApiMapping, file, reload = true)
       _      <- cache.set(config)
       cbs    <- callbacks.get
       _      <- ZIO.foreach(cbs) { cb =>
@@ -354,7 +360,7 @@ object UserFileProcessing {
   final case class ParsedRole(name: String, permissions: List[String])
   final case class ParsedUser(name: String, password: String, permissions: List[String], tenants: Option[List[String]])
   final case class ParsedUserFile(
-      encoder:         PasswordEncoder.Rudder,
+      encoder:         PasswordEncoderType,
       isCaseSensitive: Boolean,
       customRoles:     List[UncheckedCustomRole],
       users:           List[ParsedUser]
@@ -388,7 +394,6 @@ object UserFileProcessing {
   def parseUsers(
       roleApiMapping: RoleApiMapping,
       resource:       UserFile,
-      extendedAuthz:  Boolean,
       reload:         Boolean
   ): IOResult[ValidatedUserList] = {
     val optXml = {
@@ -411,7 +416,7 @@ object UserFileProcessing {
 
     for {
       xml <- optXml
-      res <- parseXml(roleApiMapping, xml, resource.name, extendedAuthz, reload)
+      res <- parseXml(roleApiMapping, xml, resource.name, reload)
     } yield {
       res
     }
@@ -431,15 +436,14 @@ object UserFileProcessing {
       roleApiMapping: RoleApiMapping,
       xml:            Elem,
       debugFileName:  String,
-      extendedAuthz:  Boolean,
       reload:         Boolean
   ): IOResult[ValidatedUserList] = {
     for {
       parsed <- parseXmlNoResolve(xml, debugFileName)
       known  <- if (reload) RudderRoles.builtInRoles.get else RudderRoles.getAllRoles
-      roles  <- resolveRoles(known, parsed.customRoles, extendedAuthz)
+      roles  <- resolveRoles(known, parsed.customRoles)
       _      <- RudderRoles.register(roles, resetExisting = reload)
-      users  <- resolveUsers(parsed.users, extendedAuthz, debugFileName)
+      users  <- resolveUsers(parsed.users, debugFileName)
     } yield {
       val config = {
         UserDetailFileConfiguration(
@@ -464,7 +468,9 @@ object UserFileProcessing {
     if (root.size != 1) {
       Inconsistency("Authentication file is malformed, the root tag '<authentication>' was not found").fail
     } else {
-      val hash = PasswordEncoder.parse((root(0) \ "@hash").text).getOrElse(PasswordEncoder.BCRYPT)
+      val hash = PasswordEncoderType
+        .withNameInsensitiveOption((root(0) \ "@hash").text)
+        .getOrElse(PasswordEncoderType.BCRYPT)
 
       val isCaseSensitive: IOResult[Boolean] = (root(0) \ "@case-sensitivity").text.toLowerCase match {
         case "true"  => true.succeed
@@ -548,7 +554,7 @@ object UserFileProcessing {
                 // If the attribute is defined several times, use the first occurrence.
                 val p = pwd match {
                   case Some(p :: _) if (p.strip().size > 0) => p
-                  case _                                    => PasswordEncoder.randomHexa32
+                  case _                                    => RudderPasswordEncoder.randomHexa32
                 }
                 Some(ParsedUser(name, p, permissions, tenants)).succeed
 
@@ -575,45 +581,35 @@ object UserFileProcessing {
    * we want to update the set of OK roles just one time.
    */
   def resolveRoles(
-      knownRoles:    SortedMap[String, Role],
-      roles:         List[UncheckedCustomRole],
-      extendedAuthz: Boolean
+      knownRoles: SortedMap[String, Role],
+      roles:      List[UncheckedCustomRole]
   ): UIO[List[Role]] = {
-    if (!extendedAuthz && roles.nonEmpty) {
-      ApplicationLoggerPure.Authz.logEffect.warn(
-        s"Custom roles are defined which is not supported without the User management plugin. " +
-        s"These custom roles will be ignored: ${roles.map(_.name).mkString(", ")}"
-      )
-      Nil.succeed
-    } else {
-      for {
-        res <- RudderRoles.resolveCustomRoles(roles, knownRoles)
-        _   <- ZIO.foreach(res.invalid) {
-                 case (r, err) =>
-                   ApplicationLoggerPure.Authz.error(
-                     s"Error with custom role definition: custom role '${r.name}' is invalid and will be ignored: ${err}"
+    for {
+      res <- RudderRoles.resolveCustomRoles(roles, knownRoles)
+      _   <- ZIO.foreach(res.invalid) {
+               case (r, err) =>
+                 ApplicationLoggerPure.Authz.error(
+                   s"Error with custom role definition: custom role '${r.name}' is invalid and will be ignored: ${err}"
+                 )
+             }
+      _   <- ZIO.foreach(res.validRoles) { r =>
+               r match {
+                 case Role.NamedCustom(n, l) =>
+                   ApplicationLoggerPure.Authz.debug(
+                     s"Custom role '${n}' defined as the union of roles: [${l.map(_.debugString).mkString(", ")}]"
+                   )
+                 // Should not happen, since there should be only custom roles, but to prevent warning here ...
+                 case _                      =>
+                   ApplicationLoggerPure.Authz.debug(
+                     s"Found role ${r.name}, in custom role definition, ignore this message"
                    )
                }
-        _   <- ZIO.foreach(res.validRoles) { r =>
-                 r match {
-                   case Role.NamedCustom(n, l) =>
-                     ApplicationLoggerPure.Authz.debug(
-                       s"Custom role '${n}' defined as the union of roles: [${l.map(_.debugString).mkString(", ")}]"
-                     )
-                   // Should not happen, since there should be only custom roles, but to prevent warning here ...
-                   case _                      =>
-                     ApplicationLoggerPure.Authz.debug(
-                       s"Found role ${r.name}, in custom role definition, ignore this message"
-                     )
-                 }
-               }
-      } yield res.validRoles
-    }
+             }
+    } yield res.validRoles
   }
 
   def resolveUsers(
       users:         List[ParsedUser],
-      extendedAuthz: Boolean,
       debugFileName: String
   ): UIO[List[(RudderAccount.User, List[Role], NodeSecurityContext)]] = {
 
@@ -644,17 +640,9 @@ object UserFileProcessing {
                   List(Role.NoRights).succeed
 
                 case rs =>
-                  if (!extendedAuthz && rs.exists(_ != Role.Administrator)) {
-                    ApplicationLoggerPure.Authz.warn(
-                      s"User '${name}' defined with authorizations different from 'administrator', which is not supported without the User management plugin. " +
-                      s"To prevent problem, that user authorization is removed."
-                    ) *> List(Role.NoRights).succeed
-
-                  } else {
-                    ApplicationLoggerPure.Authz.debug(
-                      s"User '${name}' defined with authorizations: ${rs.map(_.debugString).mkString(", ")}"
-                    ) *> rs.succeed
-                  }
+                  ApplicationLoggerPure.Authz.debug(
+                    s"User '${name}' defined with authorizations: ${rs.map(_.debugString).mkString(", ")}"
+                  ) *> rs.succeed
               }
             })
       } yield {
@@ -662,5 +650,4 @@ object UserFileProcessing {
       }
     }
   }
-
 }

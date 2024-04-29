@@ -274,3 +274,22 @@ class RoleApiMapping(mapper: AuthorizationApiMapping) {
     mapper.mapAuthorization(authz)
   }
 }
+
+/**
+  * A role extension that can be used to define the priority of how roles should be composed from different role providers.
+  */
+sealed trait ProviderRoleExtension {
+  def name:     String
+  def priority: Int = this match {
+    case ProviderRoleExtension.None         => 0
+    case ProviderRoleExtension.NoOverride   => 1
+    case ProviderRoleExtension.WithOverride => 2
+  }
+}
+object ProviderRoleExtension       {
+  case object None         extends ProviderRoleExtension { override val name: String = "none"        }
+  case object NoOverride   extends ProviderRoleExtension { override val name: String = "no-override" }
+  case object WithOverride extends ProviderRoleExtension { override val name: String = "override"    }
+
+  implicit val ordering: Ordering[ProviderRoleExtension] = Ordering.by(_.priority)
+}

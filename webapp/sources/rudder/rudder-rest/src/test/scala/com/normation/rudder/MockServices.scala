@@ -37,6 +37,8 @@
 
 package com.normation.rudder
 
+import better.files.File
+import better.files.Resource
 import com.normation.appconfig.ConfigRepository
 import com.normation.appconfig.GenericConfigService
 import com.normation.appconfig.ModifyGlobalPropertyInfo
@@ -105,6 +107,9 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.WoRuleRepository
+import com.normation.rudder.rest.AuthorizationApiMapping
+import com.normation.rudder.rest.ProviderRoleExtension
+import com.normation.rudder.rest.RoleApiMapping
 import com.normation.rudder.rest.lift.ComplianceAPIService
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.policies.NodeConfigData
@@ -117,16 +122,31 @@ import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.PolicyServers
 import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import com.normation.rudder.services.workflows.WorkflowLevelService
+import com.normation.rudder.users.EventTrace
+import com.normation.rudder.users.FileUserDetailListProvider
+import com.normation.rudder.users.PasswordEncoderDispatcher
+import com.normation.rudder.users.SessionId
+import com.normation.rudder.users.UserFile
+import com.normation.rudder.users.UserInfo
+import com.normation.rudder.users.UserManagementService
+import com.normation.rudder.users.UserRepository
+import com.normation.rudder.users.UserSession
+import com.normation.rudder.users.UserStatus
 import com.normation.zio.UnsafeRun
 import com.typesafe.config.ConfigFactory
+import java.io.InputStream
+import java.nio.charset.StandardCharsets
 import net.liftweb.common.Box
 import net.liftweb.common.Full
+import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
 import scala.collection.MapView
 import scala.collection.immutable.SortedMap
 import zio.*
 import zio.System as _
 import zio.Tag as _
+import zio.ZIO
+import zio.json.ast.Json
 import zio.syntax.*
 
 /*
@@ -757,4 +777,171 @@ class MockCompliance(mockDirectives: MockDirectives) {
     )
   }
 
+}
+
+class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSession], usersFile: File) {
+
+  object userRepo extends UserRepository {
+
+    override def logStartSession(
+        userId:            String,
+        permissions:       List[String],
+        authz:             List[String],
+        tenants:           String,
+        sessionId:         SessionId,
+        authenticatorName: String,
+        date:              DateTime
+    ): IOResult[Unit] = ???
+
+    override def logCloseSession(userId: String, date: DateTime, cause: String): IOResult[Unit] = ???
+
+    override def closeAllOpenSession(endDate: DateTime, endCause: String): IOResult[Unit] = ???
+
+    override def getLastPreviousLogin(userId: String, closedSessionsOnly: Boolean): IOResult[Option[UserSession]] = {
+      userSessions.find(_.userId == userId).succeed
+    }
+
+    override def deleteOldSessions(olderThan: DateTime): IOResult[Unit] = ???
+
+    override def setExistingUsers(origin: String, users: List[String], trace: EventTrace): IOResult[Unit] = ???
+
+    override def disable(
+        userId:            List[String],
+        notLoggedSince:    Option[DateTime],
+        excludeFromOrigin: List[String],
+        trace:             EventTrace
+    ): IOResult[List[String]] = {
+      userId.succeed
+    }
+
+    override def delete(
+        userId:            List[String],
+        notLoggedSince:    Option[DateTime],
+        excludeFromOrigin: List[String],
+        trace:             EventTrace
+    ): IOResult[List[String]] = {
+      userId.succeed
+    }
+
+    override def purge(
+        userId:            List[String],
+        deletedSince:      Option[DateTime],
+        excludeFromOrigin: List[String],
+        trace:             EventTrace
+    ): IOResult[List[String]] = ???
+
+    override def setActive(userId: List[String], trace: EventTrace): IOResult[Unit] = {
+      ZIO.unit
+    }
+
+    override def updateInfo(
+        id:        String,
+        name:      Option[Option[String]],
+        email:     Option[Option[String]],
+        otherInfo: Option[Json.Obj]
+    ): IOResult[Unit] = {
+      ZIO.unit
+    }
+
+    override def getAll(): IOResult[List[UserInfo]] = userInfos.succeed
+
+    override def get(userId: String, isCaseSensitive: Boolean): IOResult[Option[UserInfo]] = {
+      userInfos.find(_.id == userId).succeed
+    }
+
+  }
+
+  val usersInputStream: () => InputStream = () => IOUtils.toInputStream(usersFile.contentAsString, StandardCharsets.UTF_8)
+
+  val passwordEncoderDispatcher = new PasswordEncoderDispatcher(0)
+
+  val userService: FileUserDetailListProvider = {
+    val usersFile = UserFile("test-users.xml", usersInputStream)
+
+    val roleApiMapping = new RoleApiMapping(AuthorizationApiMapping.Core)
+
+    val res = new FileUserDetailListProvider(roleApiMapping, usersFile)
+    res.reload()
+    res
+  }
+
+  val userManagementService: UserManagementService = {
+    new UserManagementService(
+      userRepo,
+      userService,
+      passwordEncoderDispatcher,
+      UserFile(usersFile.pathAsString, usersInputStream).succeed
+    )
+  }
+
+  val providerRoleExtension: Map[String, ProviderRoleExtension] = Map("file" -> ProviderRoleExtension.WithOverride)
+  val authBackendProviders:  Set[String]                        = Set("file")
+}
+
+object MockUserManagement {
+  // Default mock with fake values and returning the temporary directory for cleanup
+  def apply(): (File, MockUserManagement) = {
+    val tmpDir = File.newTemporaryDirectory("rudder-users")
+    (tmpDir, new MockUserManagement(fakeUsers, fakeUserSessions, fakeUserFile(tmpDir)))
+  }
+
+  val fakeUsers:        List[UserInfo]    = {
+    List(
+      UserInfo( // user3 not in the file will get empty permissions and authz
+        "user3",
+        DateTime.parse("2024-02-01T01:01:01Z"),
+        UserStatus.Disabled,
+        "manager",
+        Some("User 3"),
+        Some("user3@example.com"),
+        None,
+        List.empty,
+        Json.Obj("some" -> Json.Str("value"))
+      ),
+      UserInfo(
+        "user2",
+        DateTime.parse("2024-02-01T01:01:01Z"),
+        UserStatus.Active,
+        "file",
+        None,
+        None,
+        None,
+        List.empty,
+        Json.Obj()
+      ),
+      UserInfo(
+        "user1",
+        DateTime.parse("2024-02-01T01:01:01Z"),
+        UserStatus.Active,
+        "file",
+        None,
+        None,
+        None,
+        List.empty,
+        Json.Obj()
+      )
+    )
+  }
+  val fakeUserSessions: List[UserSession] = {
+    List(
+      UserSession(
+        "user2",
+        SessionId("s2"),
+        DateTime.parse("2024-02-29T00:00:00Z"),
+        "file",
+        List.empty,
+        List.empty,
+        None,
+        None,
+        None
+      )
+    )
+  }
+
+  // copy the resource file to a temporary directory
+  def fakeUserFile(tmpDir: File) = Resource
+    .asStream("test-users.xml")
+    .map(IOUtils.toString(_, StandardCharsets.UTF_8))
+    .map(File(tmpDir, "test-users.xml").writeText(_))
+    .getOrElse(throw new Exception("Cannot find test-users.xml in test resources"))
 }

@@ -43,6 +43,7 @@ import com.normation.rudder.api.*
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.facts.nodes.NodeSecurityContext
+import com.normation.rudder.rest.ProviderRoleExtension
 import com.normation.rudder.users.*
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.web.services.UserSessionLogEvent
@@ -242,15 +243,20 @@ class AppConfigAuth extends ApplicationContextAware {
     new RudderInMemoryUserDetailsService(RudderConfig.rudderUserListProvider, RudderConfig.userRepository)
   }
 
+  @Bean def passwordEncoderDispatcher: PasswordEncoderDispatcher = {
+    new PasswordEncoderDispatcher(RudderConfig.RUDDER_BCRYPT_COST)
+  }
+
   @Bean def fileAuthenticationProvider: AuthenticationProvider = {
     val provider = new DaoAuthenticationProvider()
+    val encoder  = passwordEncoderDispatcher.dispatch(rudderUserDetailsService.authConfigProvider.authConfig.encoder)
     provider.setUserDetailsService(rudderUserDetailsService)
-    provider.setPasswordEncoder(rudderUserDetailsService.authConfigProvider.authConfig.encoder)
+    provider.setPasswordEncoder(encoder)
 
     // we need to register a callback to update password encoder when needed
     val updatePasswordEncoder = RudderAuthorizationFileReloadCallback(
       "updatePasswordEncoder",
-      (c: ValidatedUserList) => effectUioUnit(provider.setPasswordEncoder(c.encoder))
+      (c: ValidatedUserList) => effectUioUnit(provider.setPasswordEncoder(passwordEncoderDispatcher.dispatch(c.encoder)))
     )
     RudderConfig.rudderUserListProvider.registerCallback(updatePasswordEncoder)
     provider
@@ -261,7 +267,7 @@ class AppConfigAuth extends ApplicationContextAware {
     // For that, we let the user either let undefined udder.auth.admin.login,
     // or let empty udder.auth.admin.login or rudder.auth.admin.password
 
-    val defaultEncoder    = PasswordEncoder.BCRYPT
+    val defaultEncoder    = PasswordEncoderType.BCRYPT
     val (encoder, admins) = if (config.hasPath("rudder.auth.admin.login") && config.hasPath("rudder.auth.admin.password")) {
       val login    = config.getString("rudder.auth.admin.login")
       val password = config.getString("rudder.auth.admin.password")
@@ -271,9 +277,9 @@ class AppConfigAuth extends ApplicationContextAware {
       } else {
         // check if the password is in plain text (for compatibility before #19308) or bcrypt-encoded
         val passwordEncoder = if (password.startsWith("$2y$")) {
-          PasswordEncoder.BCRYPT
+          defaultEncoder
         } else {
-          PasswordEncoder.PlainText
+          PasswordEncoderType.PlainText
         }
         (
           passwordEncoder,
@@ -314,7 +320,7 @@ class AppConfigAuth extends ApplicationContextAware {
     )
     val provider            = new DaoAuthenticationProvider()
     provider.setUserDetailsService(new RudderInMemoryUserDetailsService(authConfigProvider, rootAccountUserRepo))
-    provider.setPasswordEncoder(encoder) // force password encoder to the one we want
+    provider.setPasswordEncoder(passwordEncoderDispatcher.dispatch(encoder)) // force password encoder to the one we want
     provider
   }
 
@@ -464,20 +470,6 @@ class RudderXmlUserDetailsContextMapper(userDetailsService: UserDetailsService) 
   }
 }
 
-sealed trait ProviderRoleExtension {
-  def name:     String
-  def priority: Int = this match {
-    case ProviderRoleExtension.None         => 0
-    case ProviderRoleExtension.NoOverride   => 1
-    case ProviderRoleExtension.WithOverride => 2
-  }
-}
-object ProviderRoleExtension       {
-  case object None         extends ProviderRoleExtension { override val name: String = "none"        }
-  case object NoOverride   extends ProviderRoleExtension { override val name: String = "no-override" }
-  case object WithOverride extends ProviderRoleExtension { override val name: String = "override"    }
-}
-
 /**
   * A description of some properties of an authentication backend
   */
@@ -496,8 +488,6 @@ final case class AuthBackendProviderProperties(
 }
 
 object AuthBackendProviderProperties {
-  implicit val ordering: Ordering[AuthBackendProviderProperties] = Ordering.by(_.providerRoleExtension.priority)
-
   def fromConfig(
       name:               String,
       hasAdditionalRoles: Boolean,

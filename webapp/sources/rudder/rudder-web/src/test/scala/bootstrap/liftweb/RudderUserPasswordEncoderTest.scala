@@ -37,6 +37,8 @@
 
 package bootstrap.liftweb
 
+import com.normation.rudder.users.PasswordEncoderType
+import com.normation.rudder.users.RudderPasswordEncoder
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
@@ -50,6 +52,24 @@ class RudderUserPasswordEncoderTest extends Specification {
 
   // value from linux command lines: echo -n 'pass' | md5sum (or other hashes)
 
+  "decode special values" should {
+    "be ok for sha1" in {
+      PasswordEncoderType.withNameInsensitiveOption("sha") must beSome(beEqualTo(PasswordEncoderType.SHA1))
+      PasswordEncoderType.withNameInsensitiveOption("sha1") must beSome(beEqualTo(PasswordEncoderType.SHA1))
+      PasswordEncoderType.withNameInsensitiveOption("sha-1") must beSome(beEqualTo(PasswordEncoderType.SHA1))
+    }
+
+    "be ok for sha256" in {
+      PasswordEncoderType.withNameInsensitiveOption("sha256") must beSome(beEqualTo(PasswordEncoderType.SHA256))
+      PasswordEncoderType.withNameInsensitiveOption("sha-256") must beSome(beEqualTo(PasswordEncoderType.SHA256))
+    }
+
+    "be ok for sha512" in {
+      PasswordEncoderType.withNameInsensitiveOption("sha512") must beSome(beEqualTo(PasswordEncoderType.SHA512))
+      PasswordEncoderType.withNameInsensitiveOption("sha-512") must beSome(beEqualTo(PasswordEncoderType.SHA512))
+    }
+  }
+
   "hash algo for 'admin' password" should {
     val pass1        = "admin"
     val pass1_md5    = "21232f297a57a5a743894a0e4a801fc3"
@@ -59,16 +79,16 @@ class RudderUserPasswordEncoderTest extends Specification {
       "c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"
 
     "be ok for md5" in {
-      PasswordEncoder.MD5.matches(pass1, pass1_md5) must beTrue
+      RudderPasswordEncoder.MD5.matches(pass1, pass1_md5) must beTrue
     }
     "be ok for sha1" in {
-      PasswordEncoder.SHA1.matches(pass1, pass1_sha1) must beTrue
+      RudderPasswordEncoder.SHA1.matches(pass1, pass1_sha1) must beTrue
     }
     "be ok for sha256" in {
-      PasswordEncoder.SHA256.matches(pass1, pass1_sha256) must beTrue
+      RudderPasswordEncoder.SHA256.matches(pass1, pass1_sha256) must beTrue
     }
     "be ok for sha512" in {
-      PasswordEncoder.SHA512.matches(pass1, pass1_sha512) must beTrue
+      RudderPasswordEncoder.SHA512.matches(pass1, pass1_sha512) must beTrue
     }
 
   }
@@ -82,16 +102,16 @@ class RudderUserPasswordEncoderTest extends Specification {
       "ae5e7cdad947b6d2325d336868d86feb5abf3c66a111c124b0d66366db3db8a757b1d96f1c03c18cffd14fa3cf6a204701615c49b9f0961e13b363b46d88bdb2"
 
     "be ok for md5" in {
-      PasswordEncoder.MD5.matches(pass1, pass1_md5) must beTrue
+      RudderPasswordEncoder.MD5.matches(pass1, pass1_md5) must beTrue
     }
     "be ok for sha1" in {
-      PasswordEncoder.SHA1.matches(pass1, pass1_sha1) must beTrue
+      RudderPasswordEncoder.SHA1.matches(pass1, pass1_sha1) must beTrue
     }
     "be ok for sha256" in {
-      PasswordEncoder.SHA256.matches(pass1, pass1_sha256) must beTrue
+      RudderPasswordEncoder.SHA256.matches(pass1, pass1_sha256) must beTrue
     }
     "be ok for sha512" in {
-      PasswordEncoder.SHA512.matches(pass1, pass1_sha512) must beTrue
+      RudderPasswordEncoder.SHA512.matches(pass1, pass1_sha512) must beTrue
     }
 
   }

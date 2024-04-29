@@ -1,0 +1,4 @@
+<authentication hash="bcrypt" case-sensitivity="true">
+  <user name="user1" password="1234" permissions="user" />
+  <user name="user2" password="4321" permissions="read_only" />
+</authentication>

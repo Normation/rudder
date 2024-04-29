@@ -1,0 +1,652 @@
+description: Get information about registered users in Rudder
+method: GET
+url: /api/latest/usermanagement/users
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getUserInfo",
+      "result" : "success",
+      "data" : {
+        "digest" : "BCRYPT",
+        "roleListOverride" : "override",
+        "authenticationBackends" : [
+          "file"
+        ],
+        "providerProperties" : {
+          "file" : {
+            "roleListOverride" : "override"
+          }
+        },
+        "users" : [
+          {
+            "login" : "user1",
+            "otherInfo" : {},
+            "status" : "active",
+            "authz" : [
+              "configuration_edit",
+              "configuration_read",
+              "configuration_write",
+              "directive_edit",
+              "directive_read",
+              "directive_write",
+              "group_edit",
+              "group_read",
+              "group_write",
+              "node_edit",
+              "node_read",
+              "node_write",
+              "parameter_edit",
+              "parameter_read",
+              "parameter_write",
+              "rule_edit",
+              "rule_read",
+              "rule_write",
+              "technique_edit",
+              "technique_read",
+              "technique_write",
+              "userAccount_edit",
+              "userAccount_read",
+              "userAccount_write"
+            ],
+            "permissions" : [
+              "user"
+            ],
+            "rolesCoverage" : [
+              "inventory",
+              "configuration",
+              "rule_only",
+              "user"
+            ],
+            "customRights" : ["no_rights"],
+            "providers" : [
+              "file"
+            ],
+            "providersInfo" : {
+              "file" : {
+                "provider" : "file",
+                "authz" : [
+                  "configuration_edit",
+                  "configuration_read",
+                  "configuration_write",
+                  "directive_edit",
+                  "directive_read",
+                  "directive_write",
+                  "group_edit",
+                  "group_read",
+                  "group_write",
+                  "node_edit",
+                  "node_read",
+                  "node_write",
+                  "parameter_edit",
+                  "parameter_read",
+                  "parameter_write",
+                  "rule_edit",
+                  "rule_read",
+                  "rule_write",
+                  "technique_edit",
+                  "technique_read",
+                  "technique_write",
+                  "userAccount_edit",
+                  "userAccount_read",
+                  "userAccount_write"
+                ],
+                "roles" : [
+                  "user"
+                ],
+                "customRights" : ["no_rights"]
+              }
+            }
+          },
+          {
+            "login" : "user2",
+            "otherInfo" : {},
+            "status" : "active",
+            "authz" : [
+              "administration_read",
+              "compliance_read",
+              "configuration_read",
+              "deployer_read",
+              "deployment_read",
+              "directive_read",
+              "group_read",
+              "node_read",
+              "parameter_read",
+              "rule_read",
+              "technique_read",
+              "userAccount_edit",
+              "userAccount_read",
+              "userAccount_write",
+              "validator_read"
+            ],
+            "permissions" : [
+              "read_only"
+            ],
+            "rolesCoverage" : [
+              "inventory",
+              "read_only",
+              "rule_only"
+            ],
+            "customRights" : ["no_rights"],
+            "providers" : [
+              "file"
+            ],
+            "providersInfo" : {
+              "file" : {
+                "provider" : "file",
+                "authz" : [
+                  "administration_read",
+                  "compliance_read",
+                  "configuration_read",
+                  "deployer_read",
+                  "deployment_read",
+                  "directive_read",
+                  "group_read",
+                  "node_read",
+                  "parameter_read",
+                  "rule_read",
+                  "technique_read",
+                  "userAccount_edit",
+                  "userAccount_read",
+                  "userAccount_write",
+                  "validator_read"
+                ],
+                "roles" : [
+                  "read_only"
+                ],
+                "customRights" : ["no_rights"]
+              }
+            },
+            "lastLogin" : "2024-02-29T00:00:00Z"
+          },
+          {
+            "login" : "user3",
+            "name" : "User 3",
+            "email" : "user3@example.com",
+            "otherInfo" : {
+              "some" : "value"
+            },
+            "status" : "disabled",
+            "authz" : [],
+            "permissions" : [],
+            "rolesCoverage" : [],
+            "customRights" : [],
+            "providers" : [
+              "manager"
+            ],
+            "providersInfo" : {
+              "manager" : {
+                "provider" : "manager",
+                "authz" : ["no_rights"],
+                "roles" : [],
+                "customRights" : ["no_rights"]
+              }
+            }
+          }
+        ]
+      }
+    }
+---
+description: Get roles and their authorizations
+method: GET
+url: /api/latest/usermanagement/roles
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getRoles",
+      "result" : "success",
+      "data" : [
+        {
+          "id" : "administration_only",
+          "rights" : [
+            "administration_all",
+            "userAccount_all"
+          ]
+        },
+        {
+          "id" : "administrator",
+          "rights" : [
+            "any_rights"
+          ]
+        },
+        {
+          "id" : "compliance",
+          "rights" : [
+            "configuration_read",
+            "directive_read",
+            "group_read",
+            "node_read",
+            "parameter_read",
+            "rule_read",
+            "technique_read",
+            "compliance_all",
+            "userAccount_all"
+          ]
+        },
+        {
+          "id" : "configuration",
+          "rights" : [
+            "configuration_all",
+            "directive_all",
+            "parameter_all",
+            "rule_all",
+            "technique_all",
+            "userAccount_all"
+          ]
+        },
+        {
+          "id" : "deployer",
+          "rights" : [
+            "configuration_read",
+            "directive_read",
+            "group_read",
+            "node_read",
+            "parameter_read",
+            "rule_read",
+            "technique_read",
+            "compliance_all",
+            "deployer_all",
+            "userAccount_all"
+          ]
+        },
+        {
+          "id" : "inventory",
+          "rights" : [
+            "node_read",
+            "userAccount_all"
+          ]
+        },
+        {
+          "id" : "no_rights",
+          "rights" : [
+            "no_rights"
+          ]
+        },
+        {
+          "id" : "read_only",
+          "rights" : [
+            "administration_read",
+            "compliance_read",
+            "configuration_read",
+            "deployer_read",
+            "deployment_read",
+            "directive_read",
+            "group_read",
+            "node_read",
+            "parameter_read",
+            "rule_read",
+            "technique_read",
+            "validator_read",
+            "userAccount_all"
+          ]
+        },
+        {
+          "id" : "rule_only",
+          "rights" : [
+            "configuration_read",
+            "rule_read",
+            "userAccount_all"
+          ]
+        },
+        {
+          "id" : "user",
+          "rights" : [
+            "configuration_all",
+            "directive_all",
+            "group_all",
+            "node_all",
+            "parameter_all",
+            "rule_all",
+            "technique_all",
+            "userAccount_all"
+          ]
+        },
+        {
+          "id" : "validator",
+          "rights" : [
+            "configuration_read",
+            "directive_read",
+            "group_read",
+            "node_read",
+            "parameter_read",
+            "rule_read",
+            "technique_read",
+            "compliance_all",
+            "userAccount_all",
+            "validator_all"
+          ]
+        },
+        {
+          "id" : "workflow",
+          "rights" : [
+            "configuration_read",
+            "directive_read",
+            "group_read",
+            "node_read",
+            "parameter_read",
+            "rule_read",
+            "technique_read",
+            "compliance_all",
+            "deployer_all",
+            "userAccount_all",
+            "validator_all"
+          ]
+        }
+      ]
+    }
+---
+description: Reload (read again rudder-users.xml and process result) information about registered users in Rudder
+method: POST
+url: /api/latest/usermanagement/users/reload
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "reloadUsersConf",
+      "result" : "success",
+      "data" : {
+        "reload" : {
+          "status" : "Done"
+        }
+      }
+    }
+---
+description: Add a user with his information and privileges
+method: POST
+url: /api/latest/usermanagement
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "username" : "test_user",
+    "password" : "password",
+    "permissions" : ["any_rights"],
+    "isPreHashed" : true
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "addUser",
+      "result" : "success",
+      "data" : {
+        "addedUser" : {
+          "username" : "test_user",
+          "password" : "password",
+          "permissions" : ["any_rights"]
+        }
+      }
+    }
+---
+description: Add a user which already exists
+method: POST
+url: /api/latest/usermanagement
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "username" : "user1",
+    "password" : "password",
+    "permissions" : ["any_rights"],
+    "isPreHashed" : true
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "addUser",
+      "result" : "error",
+      "errorDetails" : "Could not add user; cause was: Inconsistency: User 'user1' already exists"
+    }
+---
+description: Delete a user from the system
+method: DELETE
+url: /api/latest/usermanagement/test_user
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "deleteUser",
+      "result" : "success",
+      "data" : {
+        "deletedUser" : {
+          "username" : "test_user"
+        }
+      }
+    }
+---
+description: Delete a user which does not exist
+method: DELETE
+url: /api/latest/usermanagement/hello%20world
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "deleteUser",
+      "result" : "success",
+      "data" : {
+        "deletedUser" : {
+          "username" : "hello+world"
+        }
+      }
+    }
+---
+description: Update user's admninistrative information
+method: POST
+url: /api/latest/usermanagement/update/user1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "username" : "user1",
+    "password" : "password1234",
+    "permissions" : ["any_rights"],
+    "isPreHashed" : true
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "updateUser",
+      "result" : "success",
+      "data" : {
+        "updatedUser" : {
+          "username" : "user1",
+          "password" : "password1234",
+          "permissions" : [
+            "any_rights"
+          ]
+        }
+      }
+    }
+---
+description: Update user's admninistrative information with non-existing username
+method: POST
+url: /api/latest/usermanagement/update/hello%20world
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "username" : "hello world",
+    "password" : "test",
+    "permissions" : [],
+    "isPreHashed" : true
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "updateUser",
+      "result" : "error",
+      "errorDetails" : "Could not update user 'hello+world'; cause was: Inconsistency: User 'hello+world' does not exist therefore cannot be updated"
+    }
+---
+description: Update an user's info
+method: POST
+url: /api/latest/usermanagement/update/info/user1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "name" : "User 1",
+    "email" : "newemail@example.com",
+    "otherInfo" : {
+      "some" : "value",
+      "another" : "value"
+    }
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "updateUserInfo",
+      "id" : "user1",
+      "result" : "success",
+      "data" : {
+        "updatedUser" : {
+          "name" : "User 1",
+          "email" : "newemail@example.com",
+          "otherInfo" : {
+            "some" : "value",
+            "another" : "value"
+          }
+        }
+      }
+    }
+---
+description: Update an user's info with non-existing username with idempotence
+method: POST
+url: /api/latest/usermanagement/update/info/hello%20world
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "name" : "Hello World"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "updateUserInfo",
+      "id" : "hello+world",
+      "result" : "success",
+      "data" : {
+        "updatedUser" : {
+          "name" : "Hello World"
+        }
+      }
+    }
+---
+description: Activate an already active user
+method: PUT
+url: /api/latest/usermanagement/status/activate/user1
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "activateUser",
+      "id" : "user1",
+      "result" : "success",
+      "data" : {
+        "status" : "active"
+      }
+    }
+---
+description: Activate a disabled user
+method: PUT
+url: /api/latest/usermanagement/status/activate/user3
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "activateUser",
+      "id" : "user3",
+      "result" : "success",
+      "data" : {
+        "status" : "active"
+      }
+    }
+---
+description: Activate a non-existing user
+method: PUT
+url: /api/latest/usermanagement/status/activate/unknownuser
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "activateUser",
+      "result" : "error",
+      "errorDetails" : "Could not activate user 'unknownuser'; cause was: Inconsistency: User 'unknownuser' does not exist therefore cannot be activated"
+    }
+---
+description: Disable an already disabled user
+method: PUT
+url: /api/latest/usermanagement/status/disable/user3
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "disableUser",
+      "id" : "user3",
+      "result" : "success",
+      "data" : {
+        "status" : "disabled"
+      }
+    }
+---
+description: Disable an active user
+method: PUT
+url: /api/latest/usermanagement/status/disable/user1
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "disableUser",
+      "id" : "user1",
+      "result" : "success",
+      "data" : {
+        "status" : "disabled"
+      }
+    }
+---
+description: Disable a non-existing user
+method: PUT
+url: /api/latest/usermanagement/status/disable/unknownuser
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "disableUser",
+      "result" : "error",
+      "errorDetails" : "Could not disable user 'unknownuser'; cause was: Inconsistency: User 'unknownuser' does not exist therefore cannot be disabled"
+    }
+---
+description: Get the coverage of roles over rights
+method: POST
+url: /api/latest/usermanagement/coverage/user1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "permissions" : ["administration_only"],
+    "authz" : ["administration"]
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "roleCoverage",
+      "result" : "success",
+      "data" : {
+        "coverage" : {
+          "permissions" : [],
+          "custom" : [
+            "userAccount_edit",
+            "userAccount_read",
+            "userAccount_write"
+          ]
+        }
+      }
+    }
+
