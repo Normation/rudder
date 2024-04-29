@@ -340,7 +340,6 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
     priority match {
       case LowDisplayPriority  => false
       case HighDisplayPriority => true
-      case _                   => true
     }
   }
 }
