@@ -37,7 +37,11 @@
 
 package com.normation.cfclerk.domain
 
+import com.normation.rudder.domain.policies.ActiveTechniqueCategory
+import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import scala.collection.SortedSet
+import scala.xml.Elem
+import zio.json.*
 
 /**
  * A policy category name.
@@ -46,6 +50,53 @@ import scala.collection.SortedSet
  * a given categories must have different names)
  */
 final case class TechniqueCategoryName(value: String) extends AnyVal
+
+/*
+ * Just the name / description of a technique category without all the
+ * parent / subcategories / techniques stuff.
+ */
+final case class TechniqueCategoryMetadata(name: String, description: String, isSystem: Boolean)
+
+object TechniqueCategoryMetadata {
+  implicit val codecTechniqueCategoryMetadata: JsonCodec[TechniqueCategoryMetadata] = DeriveJsonCodec.gen
+
+  implicit class ToActiveTechniqueCategory(metadata: TechniqueCategoryMetadata) {
+    def toActiveTechniqueCategory(id: ActiveTechniqueCategoryId): ActiveTechniqueCategory = ActiveTechniqueCategory(
+      id,
+      metadata.name,
+      metadata.description,
+      Nil,
+      Nil
+    )
+
+    def toXml: Elem = {
+      <xml>
+        <name>{metadata.name}</name>
+        <description>{metadata.description}</description>
+        {if (metadata.isSystem) <system>true</system> else xml.NodeSeq.Empty}
+      </xml>
+    }
+  }
+
+  def parseXML(xml: Elem, defaultName: String): TechniqueCategoryMetadata = {
+    def nonEmpty(s: String): Option[String] = {
+      s match {
+        case null | "" => None
+        case _         => Some(s)
+      }
+    }
+
+    val name        = nonEmpty((xml \\ "name").text).getOrElse(defaultName)
+    val description = nonEmpty((xml \\ "description").text).getOrElse("")
+    val isSystem    = (nonEmpty((xml \\ "system").text).getOrElse("false")).equalsIgnoreCase("true")
+
+    TechniqueCategoryMetadata(name, description, isSystem = isSystem)
+  }
+
+  // the default file name for category metadata.
+  val FILE_NAME_XML  = "category.xml"
+  val FILE_NAME_JSON = "category.json"
+}
 
 sealed abstract class TechniqueCategoryId(val name: TechniqueCategoryName) {
 

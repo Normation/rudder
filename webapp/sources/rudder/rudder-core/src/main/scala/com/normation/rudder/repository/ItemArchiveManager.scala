@@ -308,6 +308,8 @@ trait GitActiveTechniqueCategoryArchiver {
    * managed by git.
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
+   *
+   * Only the metadata part (id, description...) are save ; item and children are ignored.
    */
   def archiveActiveTechniqueCategory(
       uptc:       ActiveTechniqueCategory,
