@@ -5,20 +5,18 @@
 //!
 //! The style is heavily inspired from cargo/rustc.
 
-use anyhow::{bail, Context, Error};
+use anyhow::{bail, Context, Error, Result};
 use colored::Colorize;
 use std::{
     env,
     fmt::{Display, Formatter},
-    path::PathBuf,
+    io,
+    path::Path,
     str::FromStr,
 };
-use tracing::warn;
-use tracing_appender::{
-    non_blocking::{NonBlocking, WorkerGuard},
-    rolling::RollingFileAppender,
-};
-use tracing_subscriber::{filter::LevelFilter, fmt, layer::SubscriberExt, EnvFilter};
+use tracing_appender::rolling::RollingFileAppender;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::{filter::LevelFilter, fmt, EnvFilter, Layer};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum OutputFormat {
@@ -52,111 +50,86 @@ impl FromStr for OutputFormat {
     }
 }
 
+/// `file_log` is a `(log_dir, file_name)` tuple
 pub fn init(
     verbose: u8,
     quiet: bool,
     format: OutputFormat,
-    log_file: Option<&str>,
-) -> Option<tracing_appender::non_blocking::WorkerGuard> {
+    file_log: Option<(&Path, &str)>,
+) -> Result<()> {
     let level = match (verbose, quiet) {
         (0, true) => LevelFilter::WARN,
         (0, false) => LevelFilter::INFO,
         (1, _) => LevelFilter::DEBUG,
         (_, _) => LevelFilter::TRACE,
     };
-    let global_filter = EnvFilter::builder()
-        .from_env_lossy()
-        .add_directive(level.into());
-
     // Already handled by the colored crate by default for other output
     let no_color = env::var("NO_COLOR").is_ok();
-    let console_layer = if format == OutputFormat::Human {
-        let human_log = tracing_subscriber::fmt::layer()
-            .without_time()
-            .with_target(false)
-            .with_writer(std::io::stderr)
-            .event_format(fmt::format().compact().without_time().with_ansi(!no_color));
-        Some(human_log)
+
+    // Formatters
+    let stderr_fmt = fmt::format()
+        .compact()
+        .without_time()
+        .with_target(false)
+        .with_ansi(!no_color);
+    let logfile_fmt = fmt::format().compact().with_target(false).with_ansi(false);
+    let json_fmt = fmt::format().without_time().with_target(false).json();
+
+    // Layers
+    let human = tracing_subscriber::fmt::layer()
+        .event_format(stderr_fmt)
+        .with_writer(io::stderr)
+        .with_filter(
+            EnvFilter::builder()
+                .from_env_lossy()
+                .add_directive(level.into()),
+        );
+
+    let file = if let Some((log_dir, log_file_prefix)) = file_log {
+        let file_writer = RollingFileAppender::builder()
+            .filename_prefix(log_file_prefix)
+            // .log extension
+            .filename_suffix("log")
+            .build(log_dir)
+            .context(format!(
+                "Failed to initialize rolling log file in '{}'",
+                log_dir.display()
+            ))?;
+        Some(
+            tracing_subscriber::fmt::layer()
+                .event_format(logfile_fmt)
+                .with_writer(file_writer)
+                .with_filter(
+                    EnvFilter::builder()
+                        .from_env_lossy()
+                        .add_directive(level.into()),
+                ),
+        )
     } else {
         None
     };
 
-    let json_layer = if format == OutputFormat::Json {
-        let json_log = tracing_subscriber::fmt::layer()
-            .without_time()
-            .with_target(false)
-            .event_format(fmt::format().json());
-        Some(json_log)
+    let json = if format == OutputFormat::Json {
+        Some(
+            tracing_subscriber::fmt::layer()
+                .event_format(json_fmt)
+                .with_filter(
+                    EnvFilter::builder()
+                        .from_env_lossy()
+                        .add_directive(level.into()),
+                ),
+        )
     } else {
         None
     };
 
-    // Log to file if needed
-    let mut errors: Vec<String> = Vec::new();
-    let (file_layer, guard) = if let Some(x) = log_file {
-        match prepare_log_file(x) {
-            Err(e) => {
-                //e.chain().for_each(|z| errors.push(z.to_string()));
-                errors.push(format!("{:?}", e));
-                (None, None)
-            }
-            Ok((a, b)) => {
-                let f = tracing_subscriber::fmt::layer()
-                    .with_writer(a)
-                    .event_format(fmt::format().compact().with_ansi(!no_color));
-                (Some(f), Some(b))
-            }
-        }
-    } else {
-        (None, None)
-    };
-
-    let subscriber = tracing_subscriber::Registry::default().with(console_layer);
-    let subscriber = subscriber
-        .with(file_layer)
-        .with(json_layer)
-        .with(global_filter);
-    tracing::subscriber::set_global_default(subscriber).expect("Unable to set global subscriber");
-    if !errors.is_empty() {
-        errors.iter().for_each(|e| warn!(e))
-    };
-    guard
-}
-
-fn prepare_log_file(log_file: &str) -> anyhow::Result<(NonBlocking, WorkerGuard)> {
-    let pb = PathBuf::from(log_file);
-    let directory = pb
-        .parent()
-        .context(format!(
-            "Failed to identify the log file directory from '{}'",
-            log_file
-        ))?
-        .display()
-        .to_string();
-    let filename = pb
-        .file_name()
-        .context(format!(
-            "Failed to identify the log file name from '{}'",
-            log_file
-        ))?
-        .to_os_string()
-        .into_string();
-    let a = match filename {
-        Ok(x) => x,
-        Err(_) => bail!(format!(
-            "Failed to translate the filename to String in '{}'",
-            log_file
-        )),
-    };
-    let fa = RollingFileAppender::builder()
-        .filename_prefix(a)
-        .build(directory)
-        .context(format!(
-            "Failed to initialize rolling log file '{}'",
-            log_file
-        ))?;
-    let (file_writer, guard) = tracing_appender::non_blocking(fa);
-    Ok((file_writer, guard))
+    // Now build the registry
+    let logger = tracing_subscriber::registry()
+        .with(human)
+        .with(json)
+        .with(file);
+    tracing::subscriber::set_global_default(logger)?;
+    Ok(())
 }
 
 /// Output a successful step

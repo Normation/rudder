@@ -47,7 +47,7 @@ use crate::{
 };
 
 const PACKAGES_FOLDER: &str = "/var/rudder/packages";
-const DEFAULT_LOG_FILE: &str = "/var/log/rudder/rudder-pkg/rudder-pkg.log";
+const DEFAULT_LOG_FOLDER: &str = "/var/log/rudder/rudder-pkg/";
 const LICENSES_FOLDER: &str = "/opt/rudder/etc/plugins/licenses";
 const WEBAPP_XML_PATH: &str = "/opt/rudder/share/webapps/rudder.xml";
 const PACKAGES_DATABASE_PATH: &str = "/var/rudder/packages/index.json";
@@ -81,7 +81,7 @@ pub fn run() -> Result<()> {
         if args.debug { 1 } else { 0 },
         args.quiet,
         rudder_cli::logs::OutputFormat::Human,
-        Some(DEFAULT_LOG_FILE),
+        Some((Path::new(DEFAULT_LOG_FOLDER), "rudder-pkg")),
     );
 
     // Abort of not run as root
