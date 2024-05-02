@@ -41,6 +41,7 @@ import com.normation.box.*
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
@@ -61,6 +62,7 @@ import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.policies.SimpleTarget
 import com.normation.rudder.domain.reports.BlockStatusReport
 import com.normation.rudder.domain.reports.ComplianceLevel
+import com.normation.rudder.domain.reports.CompliancePercent
 import com.normation.rudder.domain.reports.CompliancePrecision
 import com.normation.rudder.domain.reports.ComponentStatusReport
 import com.normation.rudder.domain.reports.DirectiveStatusReport
@@ -79,10 +81,12 @@ import com.normation.rudder.rest.ComplianceApi as API
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.rest.data.*
+import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.reports.ReportingServiceUtils
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.zio.currentTimeMillis
+import io.scalaland.chimney.syntax.*
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.PlainTextResponse
@@ -97,10 +101,12 @@ import zio.syntax.*
 
 class ComplianceApi(
     restExtractorService: RestExtractorService,
+    zioJsonExtractor:     ZioJsonExtractor,
     complianceService:    ComplianceAPIService,
     readDirective:        RoDirectiveRepository
 ) extends LiftApiModuleProvider[API] {
 
+  import ComplianceAPIService.*
   import CsvCompliance.*
   import JsonCompliance.*
 
@@ -319,7 +325,7 @@ class ComplianceApi(
 
   object GetNodeGroupSummary extends LiftApiModule0 {
     val schema: API.GetNodeGroupComplianceSummary.type = API.GetNodeGroupComplianceSummary
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
     def process0(
         version:    ApiVersion,
         path:       ApiPath,
@@ -327,31 +333,18 @@ class ComplianceApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val action   = schema.name
-      implicit val prettify = params.prettify
       implicit val qc: QueryContext = authzToken.qc
 
-      (for {
-        precision <- restExtractor.extractPercentPrecision(req.params)
-        targets    = req.params.getOrElse("groups", List.empty).flatMap { nodeGroups =>
-                       nodeGroups.split(",").toList.flatMap(parseSimpleTargetOrNodeGroupId(_).toOption)
-                     }
-
-        group <- complianceService.getNodeGroupComplianceSummary(targets, precision)
-      } yield {
-        JArray(group.toList.map {
-          case (id, (global, targeted)) =>
-            (("id"      -> id) ~
-            ("targeted" -> targeted.toJson(1, precision.getOrElse(CompliancePrecision.Level2))) ~
-            ("global"   -> global.toJson(1, precision.getOrElse(CompliancePrecision.Level2))))
-        })
-      }) match {
-        case Full(groups) =>
-          toJsonResponse(None, ("nodeGroups" -> groups))
-
-        case eb: EmptyBox =>
-          val message = (eb ?~ (s"Could not get compliance summary")).messageChain
-          toJsonError(None, JString(message))
+      withEncodersCtx(
+        restExtractor.extractCompliancePrecisionFromParams(req.params).map(_.getOrElse(CompliancePrecision.Level2)),
+        params,
+        schema
+      ) { encoders =>
+        import encoders.*
+        complianceService
+          .getNodeGroupComplianceSummary(QueryFilter(req))
+          .chainError("Could not get compliance summary")
+          .toLiftResponseOne(params, schema, _ => None)
       }
     }
   }
@@ -545,11 +538,18 @@ class ComplianceApi(
     }
   }
 
-  private[this] def parseSimpleTargetOrNodeGroupId(str: String): PureResult[SimpleTarget] = {
-    // attempt to parse a "target" first because format is more specific
-    RuleTarget.unserOne(str) match {
-      case None        => NodeGroupId.parse(str).map(GroupTarget(_)).left.map(Inconsistency(_))
-      case Some(value) => Right(value)
+  // TODO: when migrating to scala 3 with implicit context function it should be possible to write by parameterizing with [A: JsonEncoder]
+  private[this] def withEncodersCtx(
+      precisionResult: PureResult[CompliancePrecision],
+      params:          DefaultParams,
+      schema:          EndpointSchema
+  )(body: ComplianceEncoders => LiftResponse): LiftResponse = {
+    implicit val prettify = params.prettify
+    precisionResult match {
+      case Right(precision) =>
+        body(new ComplianceEncoders()(precision))
+      case Left(e)          =>
+        RudderJsonResponse.internalError(None, RudderJsonResponse.ResponseSchema.fromSchema(schema), e.fullMsg)
     }
   }
 }
@@ -1194,9 +1194,8 @@ class ComplianceAPIService(
    * Get global and targeted compliance at level 1 (without any details) with global compliance at left and targeted at right
    */
   def getNodeGroupComplianceSummary(
-      targets:   Seq[SimpleTarget],
-      precision: Option[CompliancePrecision]
-  )(implicit qc: QueryContext): Box[Map[String, (ByNodeGroupCompliance, ByNodeGroupCompliance)]] = {
+      filter: ComplianceAPIService.QueryFilter
+  )(implicit precision: CompliancePrecision, qc: QueryContext): IOResult[List[ByNodeGroupFullCompliance]] = {
     for {
       t1          <- currentTimeMillis
       nodeFacts   <- nodeFactRepos.getAll()
@@ -1208,29 +1207,37 @@ class ComplianceAPIService(
       t3           <- currentTimeMillis
       _            <- TimingDebugLoggerPure.trace(s"getByNodeGroupCompliance - getFullDirectiveLibrary in ${t3 - t2} ms")
 
-      (nonGroupTargets, nodeGroupIds) = targets.partitionMap {
+      (nonGroupTargets, nodeGroupIds) = filter.groups.partitionMap {
                                           case GroupTarget(groupId) => Right(groupId)
                                           case t: NonGroupRuleTarget => Left(t)
                                         }
+      nodeGroupsByCat                <- nodeGroupRepo.getGroupsByCategoryByIds(nodeGroupIds, includeSystem = true)
+      nodeGroupsGroupInfos            = nodeGroupsByCat.toList.flatMap { case (cat, groups) => groups.map(cat -> _) }.map {
+                                          case (cat, g) => g.id.serialize -> (cat, g.name, g.serverList, GroupTarget(g.id))
+                                        }.toMap
+      // all group info including ones for non-group targets (within SystemGroups category)
       nodeGroupsInfo                 <- {
         for {
-          nodeGroups    <- nodeGroupRepo.getAllByIds(nodeGroupIds)
-          nodeGroupInfos = nodeGroups.map(g => g.id.serialize -> (g.name, g.serverList, GroupTarget(g.id))).toMap
-
-          systemCategory <- nodeGroupRepo.getGroupCategory(NodeGroupCategoryId("SystemGroups"))
+          systemCategory <-
+            ZIO
+              .fromOption(nodeGroupsByCat.keys.find(_.id == NodeGroupCategoryId("SystemGroups")))
+              // system groups could not be included in the groups of the filter
+              .catchAll(_ => nodeGroupRepo.getGroupCategory(NodeGroupCategoryId("SystemGroups")))
           targetsInfos    = {
             nonGroupTargets
               .flatMap(t => {
                 systemCategory.items
                   .find(_.target == t)
-                  .map(i => i.target.target -> (i.name, targetServerList(t)(nodeSettings), t))
+                  .map(i => i.target.target -> (systemCategory, i.name, targetServerList(t)(nodeSettings), t))
               })
               .toMap
           }
-        } yield nodeGroupInfos ++ targetsInfos
+        } yield nodeGroupsGroupInfos ++ targetsInfos
       }
       t4                             <- currentTimeMillis
-      _                              <- TimingDebugLoggerPure.trace(s"getByNodeGroupCompliance - nodeGroupRepo.getAllByIds in ${t4 - t3} ms")
+      _                              <- TimingDebugLoggerPure.trace(
+                                          s"getByNodeGroupCompliance - nodeGroupRepo.getGroupsByCategoryByIds and transformations in ${t4 - t3} ms"
+                                        )
 
       compliance <- getGlobalComplianceMode
       t5         <- currentTimeMillis
@@ -1268,7 +1275,7 @@ class ComplianceAPIService(
 
       // global compliance : filter our rules that are applicable to any node in this group
       globalRulesByGroup   = nodeGroupsInfo.map {
-                               case (g, (_, serverList, _)) =>
+                               case (g, (_, _, serverList, _)) =>
                                  (
                                    g,
                                    rules.filter(rule => {
@@ -1280,14 +1287,14 @@ class ComplianceAPIService(
       // targeted compliance : filter rules that only include this group in its targets
       targetedRulesByGroup = globalRulesByGroup.map {
                                case (g, rules) =>
-                                 (g, rules.filter(rule => RuleTarget.merge(rule.targets).includes(nodeGroupsInfo(g)._3)))
+                                 (g, rules.filter(rule => RuleTarget.merge(rule.targets).includes(nodeGroupsInfo(g)._4)))
                              }
 
       level = Some(1)
 
-      bothGlobalTargeted <-
+      fullCompliance <-
         ZIO.foreach(nodeGroupsInfo.toList) {
-          case (id, (name, serverList, _)) =>
+          case (id, (cat, name, serverList, _)) =>
             (getByNodeGroupCompliance(
               id,
               name,
@@ -1310,14 +1317,21 @@ class ComplianceAPIService(
               allRuleInfos,
               level,
               false
-            )).map(
-              (id, _)
-            )
+            )).map {
+              case (global, targeted) =>
+                ByNodeGroupFullCompliance.apply(
+                  id,
+                  name,
+                  cat.name,
+                  global.transformInto[GenericCompliance],
+                  targeted.transformInto[GenericCompliance]
+                )
+            }
         }
     } yield {
-      bothGlobalTargeted.toMap
+      filter.apply(fullCompliance)
     }
-  }.toBox
+  }
 
   def getDirectivesCompliance(level: Option[Int])(implicit qc: QueryContext): Box[Seq[ByDirectiveCompliance]] = {
     for {
@@ -1521,6 +1535,77 @@ class ComplianceAPIService(
       case AllTargetExceptPolicyServers =>
         nodeSettings.filter(!_._2.isPolicyServer).keySet
       case PolicyServerTarget(nodeId)   => Set(nodeId)
+    }
+  }
+}
+
+object ComplianceAPIService {
+
+  /**
+    * Query params supported by the compliance summary endpoint.
+    * Emptiness always means that there is no filter on the field
+    */
+  case class QueryFilter(
+      groups: List[SimpleTarget],
+      limit:  Option[Int],
+      offset: Option[Int],
+      order:  Option[Ordering[ByNodeGroupFullCompliance]]
+  ) {
+
+    def apply(compliances: List[ByNodeGroupFullCompliance]): List[ByNodeGroupFullCompliance] = {
+      val sorted  = order.map(compliances.sorted(_)).getOrElse(compliances)
+      val dropped = offset.map(sorted.drop).getOrElse(sorted)
+      limit.map(dropped.take).getOrElse(dropped)
+    }
+  }
+
+  object QueryFilter {
+
+    def apply(req: Req): QueryFilter = {
+      val groups = req.params.getOrElse("groups", List.empty).flatMap { nodeGroups =>
+        nodeGroups.split(",").toList.flatMap(parseSimpleTargetOrNodeGroupId(_).toOption)
+      }
+      val limit  = req.params.get("limit").flatMap(_.headOption).flatMap(_.toIntOption)
+      val offset = req.params.get("offset").flatMap(_.headOption).flatMap(_.toIntOption)
+      val sort   = req.params.get("sort").flatMap(_.headOption)
+      val order  = req.params
+        .get("order")
+        .flatMap(_.headOption)
+        .flatMap(v => {
+          if (v == "desc") {
+            Some(())
+          } else {
+            None
+          }
+        })
+      val ordering: Option[Ordering[ByNodeGroupFullCompliance]] = {
+        implicit val complianceOrdering: Ordering[ComplianceLevel]                   =
+          Ordering.by(CompliancePercent.fromLevels(_, ComplianceLevel.PERCENT_PRECISION).compliance)
+        val asc:                         Option[Ordering[ByNodeGroupFullCompliance]] = sort match {
+          case Some("id")       =>
+            Some(Ordering.by(_.id))
+          case Some("name")     =>
+            Some(Ordering.by(_.name))
+          case Some("category") =>
+            Some(Ordering.by(_.category))
+          case Some("targeted") =>
+            Some(Ordering.by(_.targeted.compliance))
+          case Some("global")   =>
+            Some(Ordering.by(_.global.compliance))
+          case _                =>
+            None
+        }
+        order.map(_ => asc.map(_.reverse)).getOrElse(asc)
+      }
+      QueryFilter(groups, limit, offset, ordering)
+    }
+  }
+
+  def parseSimpleTargetOrNodeGroupId(str: String): PureResult[SimpleTarget] = {
+    // attempt to parse a "target" first because format is more specific
+    RuleTarget.unserOne(str) match {
+      case None        => NodeGroupId.parse(str).map(GroupTarget(_)).left.map(Inconsistency(_))
+      case Some(value) => Right(value)
     }
   }
 }
