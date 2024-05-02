@@ -517,6 +517,11 @@ sealed trait PluginApi extends EndpointSchema with GeneralApi with SortIndex {
 }
 object PluginApi       extends ApiModuleProvider[PluginApi]                  {
 
+  final case object GetPluginsInfo        extends PluginApi with ZeroParam with StartsAtVersion14 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "List plugin information"
+    val (action, path) = GET / "plugins" / "info"
+  }
   final case object GetPluginsSettings    extends PluginApi with ZeroParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "List plugin system settings"

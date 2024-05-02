@@ -53,6 +53,8 @@ tags:
     description: Server configuration
   - name: System
     description: Internal components and administration
+  - name: Plugins
+    description: Information about installed plugins
   - name: "🧩 Change requests"
     description: >-
       **Requires that the `changes-validation` plugin is installed on the server.**
@@ -180,6 +182,10 @@ paths:
     $ref: paths/system/healthcheck.yml
   "/system/maintenance/purgeSoftware":
     $ref: paths/system/purge-software.yml
+  "/plugins/info":
+    $ref: paths/plugins/info.yml
+  "/plugins/settings":
+    $ref: paths/plugins/settings.yml
   "/settings":
     $ref: paths/settings/list.yml
   "/settings/{settingId}":
