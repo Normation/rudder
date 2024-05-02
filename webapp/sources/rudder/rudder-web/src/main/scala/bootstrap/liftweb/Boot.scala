@@ -44,8 +44,10 @@ import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.plugins.AlwaysEnabledPluginStatus
+import com.normation.plugins.PluginLicenseInfo
 import com.normation.plugins.PluginName
 import com.normation.plugins.PluginStatus
+import com.normation.plugins.PluginStatusInfo
 import com.normation.plugins.PluginVersion
 import com.normation.plugins.RudderPluginDef
 import com.normation.plugins.RudderPluginModule
@@ -63,6 +65,7 @@ import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.users.*
 import com.normation.rudder.web.snippet.WithCachedResource
+import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import java.net.URI
 import java.net.URLConnection
@@ -115,8 +118,33 @@ object PluginsInfo {
 
   private[this] var _plugins = Map[PluginName, RudderPluginDef]()
 
+  // display license info for webapp logs
+  private def logInfo(name: String, i: PluginLicenseInfo): String = {
+    val nb = i.maxNodes match {
+      case Some(i) if i > 0 => i.toString
+      case _                => "unlimited"
+    }
+
+    s"Plugin '${name}' enabled. Licensed to ${i.licensee} for Rudder [${i.minVersion},${i.maxVersion}] " +
+    s"until ${DateFormaterService.getDisplayDate(i.endDate)} and up to ${nb} nodes"
+  }
+
+  /*
+   * When we register a plugin, we also display current license-related information
+   * about it.
+   */
   def registerPlugin(plugin: RudderPluginDef): Unit = {
     _plugins = _plugins + (plugin.name -> plugin)
+
+    // log license info
+    plugin.status.current match {
+      case PluginStatusInfo.EnabledNoLicense      =>
+        ApplicationLoggerPure.Plugin.logEffect.info(s"Plugin '${plugin.name.value}' is enabled")
+      case PluginStatusInfo.EnabledWithLicense(i) =>
+        ApplicationLoggerPure.Plugin.logEffect.info(logInfo(plugin.name.value, i))
+      case PluginStatusInfo.Disabled(reason, _)   =>
+        ApplicationLoggerPure.Plugin.logEffect.warn(s"Plugin '${plugin.name.value}' is disabled: ${reason}")
+    }
   }
 
   def plugins = _plugins
