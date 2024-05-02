@@ -162,20 +162,18 @@ class FileHistoryLogRepository[ID: ClassTag, T](
     } yield DefaultHLog(id, version, data)
   }
 
-  def getAll(version: Option[DateTime]): IOResult[Seq[HLog]] = {
+  def getAll(): IOResult[Seq[HLog]] = {
     for {
       r   <- root
       ids <- getIds
       res <- ZIO
                .foreach(ids) { id =>
-                 // use parser to parse each file within idDir, if version is gte to the one given
                  for {
                    i  <- idDir(id)
                    vs <- ZIO
                            .attempt(
                              i.listFiles.toSeq
                                .flatMap(f => sToV(f.getName))
-                               .filter(v => version.forall(v.isAfter(_)))
                            )
                            .mapError(e => InventoryError.System(s"Error when listing file in '${i.getAbsolutePath}'"))
 

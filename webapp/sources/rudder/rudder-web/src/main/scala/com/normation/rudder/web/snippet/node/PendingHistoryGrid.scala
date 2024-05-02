@@ -79,7 +79,7 @@ object PendingHistoryGrid extends Loggable {
     val eventLogsResult = logService.getInventoryEventLogs()
 
     val eventLogs    = eventLogsResult.getOrElse(List.empty).map(Left(_))
-    val nodeFactLogs = history.getAll(None).map(_.map(Right(_))).catchAll(_ => List.empty.succeed).runNow
+    val nodeFactLogs = history.getAll().map(_.map(Right(_))).catchAll(_ => List.empty.succeed).runNow
 
     eventLogsResult match {
       case _: Failure => NodeSeq.Empty

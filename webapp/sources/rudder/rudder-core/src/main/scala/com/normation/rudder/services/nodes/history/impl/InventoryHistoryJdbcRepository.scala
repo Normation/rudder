@@ -36,7 +36,6 @@ import doobie.Read
 import doobie.Write
 import doobie.implicits.*
 import doobie.implicits.toSqlInterpolator
-import doobie.util.fragments
 import org.joda.time.DateTime
 import zio.interop.catz.*
 import zio.json.*
@@ -151,11 +150,8 @@ class InventoryHistoryJdbcRepository(
     transactIOResult(s"error when getting node '${id.value}' accept/refuse fact")(xa => q.query[FactLog].unique.transact(xa))
   }
 
-  override def getAll(version: Option[DateTime]): IOResult[Seq[FactLog]] = {
-    val q = {
-      sql"select nodeId, acceptRefuseEvent, acceptRefuseFact from nodefacts" ++
-      fragments.whereAndOpt(version.map(v => fr"where (acceptRefuseEvent->>'date')::TIMESTAMP >= ${v}"))
-    }
+  override def getAll(): IOResult[Seq[FactLog]] = {
+    val q = sql"select nodeId, acceptRefuseEvent, acceptRefuseFact from nodefacts"
 
     transactIOResult(s"error when getting all node accept/refuse facts")(xa => q.query[FactLog].to[Seq].transact(xa))
   }
