@@ -53,6 +53,11 @@ trait ReadOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID, V, T]] {
   def get(id: ID, version: V): IOResult[HLog]
 
   /**
+    * Get all records, and filter records since version if provided
+    */
+  def getAll(version: Option[V]): IOResult[Seq[HLog]]
+
+  /**
    * Return the list of version for ID.
    * @return
    *   Failure(message) if an error happened

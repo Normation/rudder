@@ -43,8 +43,10 @@ import com.normation.eventlog.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.eventlog.DeleteNodeEventLog
+import com.normation.rudder.services.nodes.history.impl.FactLog
 import com.normation.rudder.web.services.DisplayNode
 import com.normation.utils.DateFormaterService
+import com.normation.zio.UnsafeRun
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
@@ -55,6 +57,7 @@ import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import org.joda.time.format.*
 import scala.xml.*
+import zio.syntax.*
 
 object PendingHistoryGrid extends Loggable {
 
@@ -72,19 +75,29 @@ object PendingHistoryGrid extends Loggable {
   }
 
   def displayAndInit(): NodeSeq = {
-    logService.getInventoryEventLogs() match {
-      case Empty   => display(Seq[InventoryEventLog]()) ++ Script(initJs())
-      case Full(x) =>
-        val (deleted, entries) = x.partition((t: InventoryEventLog) => t.isInstanceOf[DeleteNodeEventLog])
+
+    val eventLogsResult = logService.getInventoryEventLogs()
+
+    val eventLogs    = eventLogsResult.getOrElse(List.empty).map(Left(_))
+    val nodeFactLogs = history.getAll(None).map(_.map(Right(_))).catchAll(_ => List.empty.succeed).runNow
+
+    eventLogsResult match {
+      case _: Failure => NodeSeq.Empty
+      case _ =>
+        val (deleted: Seq[DeleteNodeEventLog], entries: Seq[Either[InventoryEventLog, FactLog]]) = {
+          (eventLogs ++ nodeFactLogs).partitionMap {
+            case Left(e: DeleteNodeEventLog) => Left(e)
+            case x                           => Right(x)
+          }
+        }
         display(entries) ++ Script(initJs(deleted))
-      case _       => NodeSeq.Empty
     }
 
   }
 
   def jsVarNameForId() = "pendingNodeHistoryTable"
 
-  def initJs(entries: Seq[EventLog] = Seq()): JsCmd   = {
+  def initJs(entries: Seq[EventLog] = Seq()): JsCmd = {
     JsRaw("""
         var #table_var#;
         /* Formating function for row details */
@@ -119,7 +132,8 @@ object PendingHistoryGrid extends Loggable {
           """.replaceAll("#table_var#", jsVarNameForId())) & initJsCallBack(entries)
     )
   }
-  def display(entries: Seq[EventLog]):        NodeSeq = {
+
+  def display(entries: Seq[Either[InventoryEventLog, FactLog]]): NodeSeq = {
 
     val historyLine = {
       <tr class= "curspoint">
@@ -142,11 +156,23 @@ object PendingHistoryGrid extends Loggable {
       ".os *" #> details.fullOsName &
       ".state *" #> status.capitalize &
       ".performer *" #> event.principal.name)(historyLine)
+    }
 
+    def displayFactLogDetails(event: FactLog) = {
+      val jsuuid = Helpers.nextFuncName
+      ("tr [jsuuid]" #> jsuuid &
+      "tr [serveruuid]" #> event.id.value &
+      "tr [kind]" #> event.data.status.name.toLowerCase &
+      "tr [inventory]" #> DateFormaterService.serialize(event.datetime) &
+      ".date *" #> DateFormaterService.getDisplayDate(event.datetime) &
+      ".name *" #> event.data.fact.fqdn &
+      ".os *" #> event.data.fact.os.fullName &
+      ".state *" #> event.data.status.name.capitalize &
+      ".performer *" #> event.data.actor.name)(historyLine)
     }
 
     val lines: NodeSeq = entries.flatMap {
-      case ev: RefuseNodeEventLog =>
+      case Left(ev: RefuseNodeEventLog) =>
         logDetailsService.getRefuseNodeLogDetails(ev.details) match {
           case Full(details) => displayInventoryLogDetails(ev, details, "refused")
           case eb: EmptyBox =>
@@ -154,7 +180,7 @@ object PendingHistoryGrid extends Loggable {
             logger.debug(error.messageChain, eb)
             NodeSeq.Empty
         }
-      case ev: AcceptNodeEventLog =>
+      case Left(ev: AcceptNodeEventLog) =>
         logDetailsService.getAcceptNodeLogDetails(ev.details) match {
           case Full(details) => displayInventoryLogDetails(ev, details, "accepted")
           case eb: EmptyBox =>
@@ -162,7 +188,9 @@ object PendingHistoryGrid extends Loggable {
             logger.debug(error.messageChain, eb)
             NodeSeq.Empty
         }
-      case ev =>
+      case Right(f)                     =>
+        displayFactLogDetails(f)
+      case ev                           =>
         logger.error("I wanted a refuse node or accept node event, and got: " + ev)
         NodeSeq.Empty
     }

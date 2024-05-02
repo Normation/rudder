@@ -89,6 +89,7 @@ class TestFileHistoryLogRepository {
     // now we have exaclty one id1, with two revisions, and head is data1time2
     assertEquals(Right(List(id1)), repos.getIds.map(_.toList).runNow)
     assertEquals(Right(data1time2 :: data1time1 :: Nil), repos.versions(id1).map(_.toList).runNow)
+    assertEquals(Right(List(DefaultHLog(id1, data1time1, data1), DefaultHLog(id1, data1time2, data1))), repos.getAll(None).runNow)
 
   }
 }
