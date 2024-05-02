@@ -560,7 +560,6 @@ class EventLogDetailsServiceImpl(
       actorIp      <-
         (details \ "actorIp").headOption.map(_.text) ?~! ("Missing attribute 'actorIp' in entry type node : " + entry.toString())
     } yield {
-      println("OK: found inventory log details")
       InventoryLogDetails(
         nodeId = NodeId(nodeId),
         inventoryVersion = ISODateTimeFormat.dateTimeParser.parseDateTime(version),
