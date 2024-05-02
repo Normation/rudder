@@ -90,7 +90,11 @@ object PendingHistoryGrid extends Loggable {
             case x                           => Right(x)
           }
         }
-        display(entries) ++ Script(initJs(deleted))
+        val sortedEntries                                                                        = entries.sortBy {
+          case Left(e: InventoryEventLog) => e.creationDate
+          case Right(f)                   => f.datetime
+        }(Ordering[DateTime].reverse)
+        display(sortedEntries) ++ Script(initJs(deleted))
     }
 
   }

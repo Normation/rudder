@@ -192,6 +192,13 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
       } yield FactLog(id, version, FactLogData(fact, EventActor("rudder-migration"), AcceptedInventory))
     }
 
+    override def getAll(): IOResult[Seq[FactLog]] = {
+      for {
+        ids <- getIds
+        res <- ZIO.foreach(ids)(id => versions(id).flatMap(ZIO.foreach(_)(v => get(id, v))))
+      } yield res.flatten
+    }
+
     override def versions(id: NodeId): IOResult[Seq[DateTime]] = {
       for {
         files <- IOResult.attempt(nodeDir(id).list.toSeq)
