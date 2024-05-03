@@ -2055,17 +2055,10 @@ function reportsSum (complianceArray) {
  * (pending, success, repaired, error, noAnswer, notApplicable)
  *
  */
-function buildComplianceBar(compliance, minPxSize) {
-
-  var container = $('<div></div>');
-  var content;
-
-  if (Array.isArray(compliance) && compliance.length > 0) {
-    //Set the default minimal size and displayed value of compliance bars if not defined
-    if (minPxSize === undefined) minPxSize = 5;
-
-    content = $('<div class="progress"></div>');
-
+function buildComplianceBar(compliance) {
+  if (Array.isArray(compliance)) {
+    var container = $('<div></div>');
+    var content = $('<div class="progress progress-flex"></div>');
     // Correct compliance array, if sum is over 100, fix it y removing the excedent amount to the max value
     var sum = compliance.reduce(function(pv, cv) {return pv[1] + cv[1]; }, 0);
     if (sum > 100) {
@@ -2111,7 +2104,7 @@ function buildComplianceBar(compliance, minPxSize) {
       , /*4*/ pending
       , /*5*/ reportsDisabled
       , /*6*/ noreport
-    ] , minPxSize);
+    ]);
 
     var precision = 2;
     if(okStatus[0] != 0) {
@@ -2131,13 +2124,13 @@ function buildComplianceBar(compliance, minPxSize) {
       if (auditNotApplicable[0] != 0) {
         text.push("Not applicable (audit): "+auditNotApplicable[1].toFixed(precision)+"% ");
       }
-      content.append('<div class="progress-bar progress-bar-success" style="width:'+complianceBars[0].width+'" title="'+text.join("\n")+'">'+complianceBars[0].value+'</div>');
+      content.append('<div class="progress-bar progress-bar-success" style="flex:'+complianceBars[0].width+'" title="'+text.join("\n")+'">'+complianceBars[0].value+'</div>');
     }
 
     if(nonCompliant[0] != 0) {
       var text = []
       text.push("Non compliance: "+nonCompliant[1].toFixed(precision)+"%");
-      content.append('<div class="progress-bar progress-bar-audit-noncompliant" style="width:'+complianceBars[1].width+'" title="'+text.join("\n")+'">'+complianceBars[1].value+'</div>');
+      content.append('<div class="progress-bar progress-bar-audit-noncompliant" style="flex:'+complianceBars[1].width+'" title="'+text.join("\n")+'">'+complianceBars[1].value+'</div>');
     }
 
     if(error[0] != 0) {
@@ -2148,7 +2141,7 @@ function buildComplianceBar(compliance, minPxSize) {
       if (auditError[0] != 0) {
         text.push("Errors (audit): "+auditError[1].toFixed(precision)+"% ");
       }
-      content.append('<div class="progress-bar progress-bar-error" style="width:'+complianceBars[2].width+'" title="'+text.join("\n")+'">'+complianceBars[2].value+'</div>');
+      content.append('<div class="progress-bar progress-bar-error" style="flex:'+complianceBars[2].width+'" title="'+text.join("\n")+'">'+complianceBars[2].value+'</div>');
     }
 
     if(unexpected[0] != 0) {
@@ -2162,17 +2155,17 @@ function buildComplianceBar(compliance, minPxSize) {
       if (badPolicyMode[0] != 0) {
         text.push("Not supported mixed mode on directive from same Technique: "+badPolicyMode[1].toFixed(precision)+"% ");
       }
-      content.append('<div class="progress-bar progress-bar-unknown progress-bar-striped" style="width:'+complianceBars[3].width+'" title="'+text.join("\n")+'">'+complianceBars[3].value+'</div>');
+      content.append('<div class="progress-bar progress-bar-unknown progress-bar-striped" style="flex:'+complianceBars[3].width+'" title="'+text.join("\n")+'">'+complianceBars[3].value+'</div>');
     }
 
     if(pending[0] != 0) {
       var tooltip = pending[1].toFixed(precision);
-      content.append('<div class="progress-bar progress-bar-pending progress-bar-striped" style="width:'+complianceBars[4].width+'" title="Applying: '+tooltip+'%">'+complianceBars[4].value+'</div>');
+      content.append('<div class="progress-bar progress-bar-pending progress-bar-striped" style="flex:'+complianceBars[4].width+'" title="Applying: '+tooltip+'%">'+complianceBars[4].value+'</div>');
     }
 
     if(reportsDisabled[0] != 0) {
       var tooltip = reportsDisabled[1].toFixed(precision);
-      content.append('<div class="progress-bar progress-bar-reportsdisabled" style="width:'+complianceBars[5].width+'" title="Reports Disabled: '+tooltip+'%">'+complianceBars[5].value+'</div>')
+      content.append('<div class="progress-bar progress-bar-reportsdisabled" style="flex:'+complianceBars[5].width+'" title="Reports Disabled: '+tooltip+'%">'+complianceBars[5].value+'</div>')
     }
 
     if(noreport[0] != 0) {
@@ -2233,28 +2226,8 @@ function compliancePercentValue(compliances) {
   return decomposedValues;
 }
 
-function computeSmallBarsSizeAndPercent (compliances, minVal, minPxSize) {
-  res = {
-    percent   : 0
-  , pixelSize : 0
-  };
-  //We calculate the total percentage of the bars which are less than minSize%.
-  //Then we calculate the total size taken by them after have been resized.
-  $(compliances).each(function(index,compliance) {
-    // This is the integer part, that we will use to compute size of the bar
-    var compliancePercent = compliance.val;
-    // Full compliance value (integer and decimal) we need that to check that we do have a value, we only ignore 0
-    var realValue = compliancePercent+ compliance.dec;
-    if((compliancePercent < minVal) && (realValue > 0 || compliance[0] > 0)){
-      res[1] += compliancePercent;
-      res.pixelSize += minPxSize;
-    }
-  });
-  return res;
-}
-
-function getProgressBars(arr, minPxSize){
-  //Values less than 8 are hidden by default on small devices
+function getProgressBars(arr){
+  //Values less than 3 are hidden by default on small devices
   var minVal = 3;
   var bars = [];
   function displayValue(value){
@@ -2263,32 +2236,16 @@ function getProgressBars(arr, minPxSize){
     return "<span>"+percent+"</span>";
   }
   var compliances = compliancePercentValue(arr);
-
-  // Minimum given size (in px) of a bar
   var bar;
-  //We calculate the total percentage of the bars which are less than minSize%.
-  //Then we calculate the total size taken by them after have been resized.
-  var totalSmallBars = computeSmallBarsSizeAndPercent(compliances, minVal, minPxSize);
 
   //Here, we set the new width for each bar.
   $(compliances).each(function(index,compliance){
 
     var compliancePercent = compliance.val;
-    if(compliancePercent < minVal){
-      bar = {
-        width: minPxSize+"px"
-      , value: displayValue(compliancePercent)
-      };
-    }else{
-      //We calculate the remaining free space of the Compliance Bar
-      var baseSize = "(100% - " + totalSmallBars.pixelSize + "px)";
-      //Then we calculate the percentage of each bar with respect to this space.
-      var percentBar = compliancePercent / (100 - totalSmallBars.percent );
-      bar = {
-        width : "calc( "+baseSize+" * "+percentBar+")"
+    bar = {
+        width : compliancePercent.toString()
       , value: displayValue(compliancePercent)
       }
-    }
     bars.push(bar);
   });
   return bars;
