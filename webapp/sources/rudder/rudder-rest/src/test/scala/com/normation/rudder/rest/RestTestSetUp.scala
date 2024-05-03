@@ -920,6 +920,7 @@ class RestTestSetUp {
     new GroupsInternalApi(groupInternalApiService),
     new NodeApi(
       restExtractorService,
+      zioJsonExtractor,
       restDataSerializer,
       nodeApiService,
       null,
@@ -967,6 +968,8 @@ class RestTestSetUp {
     ApiVersion(16, deprecated = true) ::
     ApiVersion(17, deprecated = true) ::
     ApiVersion(18, deprecated = false) ::
+    ApiVersion(19, deprecated = false) ::
+    ApiVersion(20, deprecated = false) ::
     Nil
   }
   val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))

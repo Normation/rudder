@@ -43,6 +43,7 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors.PureResult
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.SecurityToken
+import com.normation.rudder.apidata.JsonQueryObjects.JQNodeStatusAction
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeState
@@ -64,6 +65,7 @@ import com.normation.rudder.domain.workflows.ChangeRequestInfo
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.*
 import com.typesafe.config.ConfigValue
+import io.scalaland.chimney.Transformer
 import net.liftweb.common.*
 
 final case class APIChangeRequestInfo(
@@ -244,6 +246,11 @@ sealed trait NodeStatusAction
 case object AcceptNode extends NodeStatusAction
 case object RefuseNode extends NodeStatusAction
 case object DeleteNode extends NodeStatusAction
+
+object NodeStatusAction {
+  implicit val transformer: Transformer[JQNodeStatusAction, NodeStatusAction] =
+    Transformer.derive[JQNodeStatusAction, NodeStatusAction]
+}
 
 final case class RestParameter(
     value:       Option[ConfigValue] = None,

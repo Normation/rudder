@@ -43,17 +43,33 @@ import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors.*
+import com.normation.inventory.domain
+import com.normation.inventory.domain.AgentType
+import com.normation.inventory.domain.AgentVersion
+import com.normation.inventory.domain.FullInventory
+import com.normation.inventory.domain.InventoryStatus
+import com.normation.inventory.domain.MemorySize
 import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.NodeInventory
+import com.normation.inventory.domain.SecurityToken
+import com.normation.inventory.domain.SoftwareUpdate
+import com.normation.inventory.domain.Version
+import com.normation.inventory.domain.VmType
 import com.normation.rudder.apidata.JsonResponseObjects.JRPropertyHierarchy.JRPropertyHierarchyHtml
 import com.normation.rudder.apidata.JsonResponseObjects.JRPropertyHierarchy.JRPropertyHierarchyJson
+import com.normation.rudder.domain.nodes
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.nodes.NodeKind
+import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.InheritMode
+import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.properties.ParentProperty
 import com.normation.rudder.domain.properties.PropertyProvider
@@ -61,10 +77,15 @@ import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
 import com.normation.rudder.domain.queries.ResultTransformation
+import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.facts.nodes.NodeFact
+import com.normation.rudder.facts.nodes.NodeFact.ToCompat
+import com.normation.rudder.facts.nodes.SecurityTag
 import com.normation.rudder.hooks.Hooks
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.TechniqueParameter
+import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
@@ -73,12 +94,16 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.StringCriterionLine
 import com.normation.rudder.services.queries.StringQuery
+import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
 import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.config.ConfigValue
+import enumeratum.Enum
+import enumeratum.EnumEntry
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.dsl.*
+import org.joda.time.DateTime
 import zio.*
 import zio.Tag as _
 import zio.json.*
@@ -103,6 +128,362 @@ object RenderInheritedProperties {
 
 // to avoid ambiguity with corresponding business objects, we use "JR" as a prfix
 object JsonResponseObjects {
+
+  sealed abstract class JRInventoryStatus(val name: String)
+  object JRInventoryStatus {
+    case object AcceptedInventory extends JRInventoryStatus("accepted")
+    case object PendingInventory  extends JRInventoryStatus("pending")
+    case object RemovedInventory  extends JRInventoryStatus("deleted")
+
+    implicit val transformer: Transformer[InventoryStatus, JRInventoryStatus] =
+      Transformer.derive[InventoryStatus, JRInventoryStatus]
+  }
+
+  final case class JRNodeInfo(
+      id:          NodeId,
+      status:      JRInventoryStatus,
+      hostname:    String,
+      osName:      String,
+      osVersion:   Version,
+      machineType: JRNodeDetailLevel.MachineType
+  )
+  object JRNodeInfo        {
+    implicit def transformer(implicit status: InventoryStatus): Transformer[NodeInfo, JRNodeInfo] = Transformer
+      .define[NodeInfo, JRNodeInfo]
+      .enableBeanGetters
+      .withFieldConst(_.status, status.transformInto[JRInventoryStatus])
+      .withFieldComputed(_.osName, _.osDetails.os.name)
+      .withFieldComputed(_.osVersion, _.osDetails.version)
+      .withFieldComputed(
+        _.machineType,
+        _.machine
+          .map(_.machineType)
+          .transformInto[JRNodeDetailLevel.MachineType]
+      )
+      .buildTransformer
+  }
+
+  // Same as JRNodeInfo but with optional os and machine details. Mapped from Srv, NodeInfo or FullInventory
+  final case class JRNodeChangeStatus(
+      id:          NodeId,
+      status:      JRInventoryStatus,
+      hostname:    String,
+      osName:      String,
+      osVersion:   Option[Version],
+      machineType: Option[JRNodeDetailLevel.MachineType]
+  )
+  object JRNodeChangeStatus {
+    implicit val srvTransformer: Transformer[Srv, JRNodeChangeStatus] =
+      Transformer.define[Srv, JRNodeChangeStatus].enableOptionDefaultsToNone.buildTransformer
+
+    implicit def nodeInfoTransformer(implicit status: InventoryStatus): Transformer[NodeInfo, JRNodeChangeStatus] = Transformer
+      .define[NodeInfo, JRNodeChangeStatus]
+      .enableBeanGetters
+      .withFieldConst(_.status, status.transformInto[JRInventoryStatus])
+      .withFieldComputed(_.osName, _.osDetails.os.name)
+      .withFieldComputed(_.osVersion, n => Some(n.osDetails.version))
+      .withFieldComputed(
+        _.machineType,
+        n => {
+          Some(
+            n.machine
+              .map(_.machineType)
+              .transformInto[JRNodeDetailLevel.MachineType]
+          )
+        }
+      )
+      .buildTransformer
+
+    implicit def fullInventoryTransformer(implicit status: InventoryStatus): Transformer[FullInventory, JRNodeChangeStatus] = {
+      Transformer
+        .define[FullInventory, JRNodeChangeStatus]
+        .enableBeanGetters
+        .withFieldConst(_.status, status.transformInto[JRInventoryStatus])
+        .withFieldComputed(_.id, _.node.main.id)
+        .withFieldComputed(_.hostname, _.node.main.hostname)
+        .withFieldComputed(_.osName, _.node.main.osDetails.os.name)
+        .withFieldComputed(_.osVersion, inv => Some(inv.node.main.osDetails.version))
+        .withFieldComputed(
+          _.machineType,
+          inv => {
+            Some(
+              inv.machine
+                .map(_.machineType)
+                .transformInto[JRNodeDetailLevel.MachineType]
+            )
+          }
+        )
+        .buildTransformer
+    }
+  }
+
+  // Node details json with all fields optional but minimal fields. Fields are in the same order as in the list of all fields.
+  final case class JRNodeDetailLevel(
+      // minimal
+      id:                          NodeId,
+      hostname:                    String,
+      status:                      JRInventoryStatus,
+      // default
+      state:                       Option[NodeState],
+      os:                          Option[domain.OsDetails],
+      architectureDescription:     Option[String],
+      ram:                         Option[MemorySize],
+      machine:                     Option[nodes.MachineInfo],
+      ipAddresses:                 Option[Chunk[String]],
+      description:                 Option[String],
+      lastInventoryDate:           Option[DateTime],
+      lastRunDate:                 Option[DateTime],
+      policyServerId:              Option[NodeId],
+      managementTechnology:        Option[Chunk[JRNodeDetailLevel.Management]],
+      properties:                  Option[Chunk[JRProperty]],
+      policyMode:                  Option[String],
+      timezone:                    Option[domain.NodeTimezone],
+      tenant:                      Option[TenantId],
+      // full
+      accounts:                    Option[Chunk[String]],
+      bios:                        Option[Chunk[domain.Bios]],
+      controllers:                 Option[Chunk[domain.Controller]],
+      environmentVariables:        Option[Map[String, String]],
+      fileSystems:                 Option[Chunk[domain.FileSystem]],
+      managementTechnologyDetails: Option[JRNodeDetailLevel.ManagementDetails],
+      memories:                    Option[Chunk[domain.MemorySlot]],
+      networkInterfaces:           Option[Chunk[domain.Network]],
+      processes:                   Option[Chunk[domain.Process]],
+      processors:                  Option[Chunk[domain.Processor]],
+      slots:                       Option[Chunk[domain.Slot]],
+      software:                    Option[Chunk[domain.Software]],
+      softwareUpdate:              Option[Chunk[SoftwareUpdate]],
+      sound:                       Option[Chunk[domain.Sound]],
+      storage:                     Option[Chunk[domain.Storage]],
+      ports:                       Option[Chunk[domain.Port]],
+      videos:                      Option[Chunk[domain.Video]],
+      virtualMachines:             Option[Chunk[domain.VirtualMachine]]
+  )
+
+  object JRNodeDetailLevel {
+    implicit def transformer(implicit
+        nodeFact: NodeFact,
+        status:   InventoryStatus,
+        agentRun: Option[AgentRunWithNodeConfig]
+    ): Transformer[NodeDetailLevel, JRNodeDetailLevel] = {
+      val nodeInfo:    NodeInfo               = nodeFact.toNodeInfo
+      val securityTag: Option[SecurityTag]    = nodeFact.rudderSettings.security
+      val software:    Chunk[domain.Software] = nodeFact.software.map(_.toSoftware)
+      // we could keep inventory as Option to make syntax easier to filter empty lists, or write Some(...).filter(_.nonEmpty) everywhere
+      val inventory:   Option[FullInventory]  = Some(nodeFact.toFullInventory)
+
+      Transformer
+        .define[NodeDetailLevel, JRNodeDetailLevel]
+        .withFieldConst(_.id, nodeInfo.id)
+        .withFieldConst(_.hostname, nodeInfo.hostname)
+        .withFieldConst(_.status, status.transformInto[JRInventoryStatus])
+        // default
+        .withFieldComputed(_.state, levelField("state")(nodeInfo.state))
+        .withFieldComputed(_.os, levelField("os")(nodeInfo.osDetails))
+        .withFieldComputed(_.architectureDescription, levelField(_)("architectureDescription")(nodeInfo.archDescription))
+        .withFieldComputed(_.ram, levelField(_)("ram")(nodeInfo.ram))
+        .withFieldComputed(_.machine, levelField(_)("machine")(nodeInfo.machine))
+        .withFieldComputed(_.ipAddresses, levelField("ipAddresses")(nodeInfo.ips.transformInto[Chunk[String]]))
+        .withFieldComputed(_.description, levelField("description")(nodeInfo.description))
+        .withFieldComputed(_.lastInventoryDate, levelField("lastInventoryDate")(nodeInfo.inventoryDate))
+        .withFieldComputed(
+          _.lastRunDate,
+          levelField(_)("lastRunDate")(agentRun.map(_.agentRunId.date))
+        )
+        .withFieldComputed(_.policyServerId, levelField("policyServerId")(nodeInfo.policyServerId))
+        .withFieldComputed(
+          _.managementTechnology,
+          levelField("managementTechnology")(nodeInfo.transformInto[Chunk[Management]])
+        )
+        .withFieldComputed(
+          _.properties,
+          levelField("properties")(Chunk.fromIterable(nodeInfo.properties.sortBy(_.name).map(JRProperty.fromNodeProp)))
+        )
+        .withFieldComputed(_.policyMode, levelField("policyMode")(nodeInfo.policyMode.map(_.name).getOrElse("default")))
+        .withFieldComputed(_.timezone, levelField(_)("timezone")(nodeInfo.timezone))
+        .withFieldComputed(_.tenant, levelField(_)("tenant")(securityTag.flatMap(_.tenants.headOption)))
+        // full
+        .withFieldComputed(
+          _.accounts,
+          levelField(_)("accounts")(inventory.map(_.node.accounts.transformInto[Chunk[String]]).filter(_.nonEmpty))
+        )
+        .withFieldComputed(
+          _.bios,
+          levelField(_)("bios")(
+            inventory.flatMap(_.machine.map(_.bios.transformInto[Chunk[domain.Bios]])).filter(_.nonEmpty)
+          )
+        )
+        .withFieldComputed(
+          _.controllers,
+          levelField(_)("controllers")(
+            inventory
+              .flatMap(_.machine.map(_.controllers.transformInto[Chunk[domain.Controller]]))
+              .filter(_.nonEmpty)
+          )
+        )
+        .withFieldComputed(
+          _.environmentVariables,
+          levelField(_)("environmentVariables")(
+            inventory.map(_.node.environmentVariables.groupMapReduce(_.name)(_.value.getOrElse("")) { case (first, _) => first })
+          )
+        )
+        .withFieldComputed(
+          _.fileSystems,
+          levelField(_)("fileSystems")(
+            inventory.map(i => {
+              Chunk(domain.FileSystem("none", Some("swap"), totalSpace = i.node.swap)) ++ i.node.fileSystems
+                .transformInto[Chunk[domain.FileSystem]]
+            })
+          )
+        )
+        .withFieldComputed(
+          _.managementTechnologyDetails,
+          levelField(_)("managementTechnologyDetails")(inventory.map(_.node.transformInto[ManagementDetails]))
+        )
+        .withFieldComputed(
+          _.memories,
+          levelField(_)("memories")(
+            inventory
+              .flatMap(_.machine.map(_.memories.transformInto[Chunk[domain.MemorySlot]]))
+              .filter(_.nonEmpty)
+          )
+        )
+        .withFieldComputed(
+          _.networkInterfaces,
+          levelField(_)("networkInterfaces")(
+            inventory.map(_.node.networks.transformInto[Chunk[domain.Network]])
+          )
+        )
+        .withFieldComputed(
+          _.processes,
+          levelField(_)("processes")(inventory.map(_.node.processes.transformInto[Chunk[domain.Process]]))
+        )
+        .withFieldComputed(
+          _.processors,
+          levelField(_)("processors")(
+            inventory.flatMap(_.machine.map(_.processors.transformInto[Chunk[domain.Processor]])).filter(_.nonEmpty)
+          )
+        )
+        .withFieldComputed(
+          _.slots,
+          levelField(_)("slots")(
+            inventory.flatMap(_.machine.map(_.slots.transformInto[Chunk[domain.Slot]])).filter(_.nonEmpty)
+          )
+        )
+        .withFieldComputed(_.software, levelField("software")(software.map(_.transformInto[domain.Software])))
+        .withFieldComputed(
+          _.softwareUpdate,
+          levelField(_)("software")(inventory.map(_.node.softwareUpdates.transformInto[Chunk[domain.SoftwareUpdate]]))
+        )
+        .withFieldComputed(
+          _.sound,
+          levelField(_)("sound")(
+            inventory.flatMap(_.machine.map(_.sounds.transformInto[Chunk[domain.Sound]])).filter(_.nonEmpty)
+          )
+        )
+        .withFieldComputed(
+          _.storage,
+          levelField(_)("storage")(
+            inventory.flatMap(_.machine.map(_.storages.transformInto[Chunk[domain.Storage]])).filter(_.nonEmpty)
+          )
+        )
+        .withFieldComputed(
+          _.ports,
+          levelField(_)("ports")(
+            inventory.flatMap(_.machine.map(_.ports.transformInto[Chunk[domain.Port]])).filter(_.nonEmpty)
+          )
+        )
+        .withFieldComputed(
+          _.videos,
+          levelField(_)("videos")(
+            inventory.flatMap(_.machine.map(_.videos.transformInto[Chunk[domain.Video]])).filter(_.nonEmpty)
+          )
+        )
+        .withFieldComputed(
+          _.virtualMachines,
+          levelField(_)("virtualMachines")(
+            inventory.map(_.node.vms.transformInto[Chunk[domain.VirtualMachine]]).filter(_.nonEmpty)
+          )
+        )
+        .buildTransformer
+    }
+
+    /**
+     * Needed to handle the serialization of the "type" of a machine even if it there is no machine.
+     */
+    sealed abstract class MachineType(override val entryName: String) extends EnumEntry {
+      def name: String = entryName
+    }
+
+    object MachineType extends Enum[MachineType] {
+      case object UnknownMachineType  extends MachineType("Unknown")
+      case object PhysicalMachineType extends MachineType("Physical")
+      case object VirtualMachineType  extends MachineType("Virtual")
+      case object NoMachine           extends MachineType("No machine Inventory")
+
+      def values: IndexedSeq[MachineType] = findValues
+
+      implicit val transformer: Transformer[Option[domain.MachineType], MachineType] = {
+        Transformer
+          .define[Option[domain.MachineType], MachineType]
+          .withCoproductInstance[None.type] { case None => NoMachine }
+          .withCoproductInstance[Some[domain.MachineType]] {
+            case Some(domain.UnknownMachineType)    => UnknownMachineType
+            case Some(domain.PhysicalMachineType)   => PhysicalMachineType
+            case Some(_: domain.VirtualMachineType) => VirtualMachineType
+          }
+          .buildTransformer
+      }
+    }
+
+    /**
+     * The structure does not directly match the domain object, nodeKind is a contextual value of the node added to each AgentInfo
+     */
+    final case class Management(
+        name:         AgentType,
+        version:      Option[AgentVersion],
+        capabilities: Chunk[String],
+        nodeKind:     NodeKind
+    )
+    object Management {
+      implicit val transformer: Transformer[NodeInfo, Chunk[Management]] = (info: NodeInfo) => {
+        val agents = info.agentsName.map { agent =>
+          val capabilities = agent.capabilities.map(_.value).toList.sorted
+          Management(
+            agent.agentType,
+            agent.version,
+            Chunk.fromIterable(capabilities),
+            info.nodeKind
+          )
+        }
+        Chunk.fromIterable(agents)
+      }
+    }
+
+    /**
+     * The structure does not directly match the domain object, it aggregates some fields
+     */
+    final case class ManagementDetails(
+        cfengineKeys: Chunk[SecurityToken],
+        cfengineUser: String
+    )
+    object ManagementDetails {
+      implicit val transformer: Transformer[NodeInventory, ManagementDetails] = Transformer
+        .define[NodeInventory, ManagementDetails]
+        .withFieldComputed(_.cfengineKeys, n => Chunk.fromIterable(n.agents.map(_.securityToken)))
+        .withFieldComputed(_.cfengineUser, _.main.rootUser)
+        .buildTransformer
+    }
+
+    // Helpers for more concise syntax of chimney accessor. Different signature are used to avoid abstract type collision
+    // levelField("field")(value) for not optional computed value
+    private def levelField[A](field: String)(a: => A)(level: NodeDetailLevel):         Option[A] =
+      Option.when(level.fields(field))(a)
+    // levelField(_)("field")(value) for optional computed value
+    private def levelField[A](level: NodeDetailLevel)(field: String)(a: => Option[A]): Option[A] =
+      if (level.fields(field)) a else None
+  }
+
   final case class JRActiveTechnique(
       name:     String,
       versions: List[String]
@@ -683,6 +1064,11 @@ object JsonResponseObjects {
       JRProperty(p.name, p.value, desc, p.inheritMode, p.provider, None, None, None)
     }
 
+    def fromNodeProp(p: NodeProperty): JRProperty = {
+      val desc = if (p.description.trim.isEmpty) None else Some(p.description)
+      JRProperty(p.name, p.value, desc, p.inheritMode, p.provider, None, None, None)
+    }
+
     def fromNodePropertyHierarchy(
         prop:                  NodePropertyHierarchy,
         hasChildTypeConflicts: Boolean,
@@ -994,12 +1380,21 @@ object JsonResponseObjects {
         .transform
     }
   }
+
+  implicit def seqToChunkTransformer[A, B](implicit transformer: Transformer[A, B]): Transformer[Seq[A], Chunk[B]] = {
+    (a: Seq[A]) => Chunk.fromIterable(a.map(transformer.transform))
+  }
 }
 //////////////////////////// zio-json encoders ////////////////////////////
 
 trait RudderJsonEncoders {
   import JsonResponseObjects.*
+  import JsonResponseObjects.JRNodeDetailLevel.*
   import JsonResponseObjects.JRRuleTarget.*
+  import com.normation.inventory.domain.JsonSerializers.implicits.*
+  import com.normation.rudder.facts.nodes.NodeFactSerialisation.*
+  import com.normation.rudder.facts.nodes.NodeFactSerialisation.SimpleCodec.*
+  import com.normation.utils.DateFormaterService.json.*
 
   implicit lazy val stringTargetEnc: JsonEncoder[JRRuleTargetString]          = JsonEncoder[String].contramap(_.r.target)
   implicit lazy val andTargetEnc:    JsonEncoder[JRRuleTargetComposition.or]  = JsonEncoder[List[JRRuleTarget]].contramap(_.list)
@@ -1101,6 +1496,33 @@ trait RudderJsonEncoders {
   implicit lazy val groupCategoryInfoEncoder: JsonEncoder[JRGroupCategoryInfo]             = DeriveJsonEncoder.gen[JRGroupCategoryInfo]
 
   implicit val revisionInfoEncoder: JsonEncoder[JRRevisionInfo] = DeriveJsonEncoder.gen
+
+  implicit val nodeIdEncoder: JsonEncoder[NodeId]            = JsonEncoder[String].contramap(_.value)
+  implicit val statusEncoder: JsonEncoder[JRInventoryStatus] = JsonEncoder[String].contramap(_.name)
+  implicit val stateEncoder:  JsonEncoder[NodeState]         = JsonEncoder[String].contramap(_.name)
+
+  implicit val machineTypeEncoder: JsonEncoder[MachineType] = JsonEncoder[String].contramap(_.name)
+
+  implicit val nodeInfoEncoder: JsonEncoder[JRNodeInfo] = DeriveJsonEncoder.gen[JRNodeInfo]
+
+  implicit val nodeChangeStatusEncoder: JsonEncoder[JRNodeChangeStatus] = DeriveJsonEncoder.gen[JRNodeChangeStatus]
+
+  // Node details
+
+  implicit val vmTypeEncoder: JsonEncoder[VmType] = JsonEncoder[String].contramap(_.name)
+
+  implicit val agentTypeEncoder:         JsonEncoder[AgentType]           = JsonEncoder[String].contramap(_.displayName)
+  implicit val agentVersionEncoder:      JsonEncoder[AgentVersion]        = JsonEncoder[String].contramap(_.value)
+  implicit val nodeKindEncoder:          JsonEncoder[NodeKind]            = JsonEncoder[String].contramap(_.name)
+  implicit val securityTokenEncoder:     JsonEncoder[SecurityToken]       = JsonEncoder[String].contramap(_.key)
+  implicit val managementEncoder:        JsonEncoder[Management]          = DeriveJsonEncoder.gen[Management]
+  implicit val managementDetailsEncoder: JsonEncoder[ManagementDetails]   = DeriveJsonEncoder.gen[ManagementDetails]
+  implicit val licenseEncoder:           JsonEncoder[domain.License]      = DeriveJsonEncoder.gen[domain.License]
+  implicit val softwareUuidEncoder:      JsonEncoder[domain.SoftwareUuid] = JsonEncoder[String].contramap(_.value)
+  implicit val softwareEncoder:          JsonEncoder[domain.Software]     = DeriveJsonEncoder.gen[domain.Software]
+
+  implicit val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = DeriveJsonEncoder.gen[JRNodeDetailLevel]
+
 }
 
 /*

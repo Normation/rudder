@@ -20,9 +20,11 @@ response:
       }
     }
 ---
-description: Get node (full)
+description: Get node (full) before v20
 method: GET
-url: /api/latest/nodes/node1?include=full
+url: /api/nodes/node1?include=full
+headers:
+  - "X-API-VERSION: 19"
 response:
   code: 200
   content: >-
@@ -70,33 +72,243 @@ response:
             "accounts":["root","httpd"],
             "environmentVariables":{"THE_VAR":"THE_VAR value!"},
             "fileSystems":[
-              {"name":"swap","totalSpace":0},
-              {"name":"ext4","freeSpace":11517,"totalSpace":52524,"mountPoint":"/"}
+              {"mountPoint":"none","name":"swap","totalSpace":0},
+              {"mountPoint":"/","name":"ext4","freeSpace":11517,"totalSpace":52524}
             ],
             "managementTechnologyDetails":{
               "cfengineKeys":[
-                "-----BEGINRSAPUBLICKEY-----\nMIIBCAKCAQEAlntroa72gD50MehPoyp6mRS5fzZpsZEHu42vq9KKxbqSsjfUmxnT\nRsi8CDvBt7DApIc7W1g0eJ6AsOfV7CEh3ooiyL/fC9SGATyDg5TjYPJZn3MPUktg\nYBzTd1MMyZL6zcLmIpQBH6XHkH7Do/RxFRtaSyicLxiO3H3wapH20TnkUvEpV5Qh\nzUkNM8vHZuu3m1FgLrK5NCN7BtoGWgeyVJvBMbWww5hS15IkCRuBkAOK/+h8xe2f\nhMQjrt9gW2qJpxZyFoPuMsWFIaX4wrN7Y8ZiN37U2q1G11tv2oQlJTQeiYaUnTX4\nz5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==\n-----ENDRSAPUBLICKEY-----"
+                "-----BEGIN RSA PUBLIC KEY-----\nMIIBCAKCAQEAlntroa72gD50MehPoyp6mRS5fzZpsZEHu42vq9KKxbqSsjfUmxnT\nRsi8CDvBt7DApIc7W1g0eJ6AsOfV7CEh3ooiyL/fC9SGATyDg5TjYPJZn3MPUktg\nYBzTd1MMyZL6zcLmIpQBH6XHkH7Do/RxFRtaSyicLxiO3H3wapH20TnkUvEpV5Qh\nzUkNM8vHZuu3m1FgLrK5NCN7BtoGWgeyVJvBMbWww5hS15IkCRuBkAOK/+h8xe2f\nhMQjrt9gW2qJpxZyFoPuMsWFIaX4wrN7Y8ZiN37U2q1G11tv2oQlJTQeiYaUnTX4\nz5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==\n-----END RSA PUBLIC KEY-----"
               ],
               "cfengineUser":"root"
             },
-            "networkInterfaces":[{"name":"enp0s3","mask":[],"speed":"1000","status":"Up","ipAddresses":["10.0.2.15"]}],
-            "processes":[{"pid":54432,"name":"/bin/true","memory":4235,"cpuUsage":34.5}],
+            "networkInterfaces":[{"name":"enp0s3","ipAddresses":["10.0.2.15"],"gateway":[],"mask":[],"subnet":[],"status":"Up","speed":"1000"}],
+            "processes":[{"pid":54432,"name":"/bin/true","cpuUsage":34.5,"memory":4235.0}],
             "software":[
-              {"name":"s05","version":"1.0"},
-              {"name":"s06","version":"1.0"},
-              {"name":"s07","version":"1.0"},
-              {"name":"s08","version":"1.0"},
-              {"name":"s09","version":"1.0"},
-              {"name":"s10","version":"1.0"},
-              {"name":"s11","version":"1.0"},
-              {"name":"s12","version":"1.0"},
-              {"name":"s13","version":"1.0"}
+              {"id":"","name":"s05","version":"1.0"},
+              {"id":"","name":"s06","version":"1.0"},
+              {"id":"","name":"s07","version":"1.0"},
+              {"id":"","name":"s08","version":"1.0"},
+              {"id":"","name":"s09","version":"1.0"},
+              {"id":"","name":"s10","version":"1.0"},
+              {"id":"","name":"s11","version":"1.0"},
+              {"id":"","name":"s12","version":"1.0"},
+              {"id":"","name":"s13","version":"1.0"}
               ],
             "softwareUpdate":[
               {"name":"s00","version":"2.15.6~RC1","arch":"x86_64","from":"yum","kind":"defect","description":"Some explanation","severity":"critical","ids":["RHSA-2020-4566","CVE-2021-4034"]},
               {"name":"s01","version":"1-23-RELEASE-1","arch":"x86_64","from":"apt","kind":"none","source":"default-repo"},
               {"name":"s01","version":"1-24-RELEASE-64","arch":"x86_64","from":"apt","kind":"security","source":"security-backports","severity":"backport","ids":["CVE-2021-4034"]}
             ]
+          }
+        ]
+      }
+    }
+---
+description: Get node (full)
+method: GET
+url: /api/latest/nodes/node1?include=full
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "nodeDetails",
+      "id" : "node1",
+      "result" : "success",
+      "data" : {
+        "nodes" : [
+          {
+            "id" : "node1",
+            "hostname" : "node1.localhost",
+            "status" : "accepted",
+            "state" : "enabled",
+            "os" : {
+              "type" : "Linux",
+              "name" : "Debian",
+              "version" : "10.6",
+              "fullName" : "Buster",
+              "kernelVersion" : "4.19"
+            },
+            "ram" : 1460132,
+            "machine" : {
+              "id" : "machine1",
+              "type" : "Virtual",
+              "provider" : "vbox"
+            },
+            "ipAddresses" : [
+              "192.168.0.10"
+            ],
+            "description" : "",
+            "lastInventoryDate" : "2021-01-30T01:20:00+01:00",
+            "policyServerId" : "root",
+            "managementTechnology" : [
+              {
+                "name" : "Rudder",
+                "version" : "7.0.0",
+                "capabilities" : [],
+                "nodeKind" : "node"
+              }
+            ],
+            "properties" : [],
+            "policyMode" : "enforce",
+            "timezone" : {
+              "name" : "UTC",
+              "offset" : "+00"
+            },
+            "accounts" : [
+              "root",
+              "httpd"
+            ],
+            "environmentVariables" : {
+              "THE_VAR" : "THE_VAR value!"
+            },
+            "fileSystems" : [
+              {
+                "mountPoint" : "none",
+                "name" : "swap",
+                "totalSpace" : 1000000
+              },
+              {
+                "mountPoint" : "/",
+                "name" : "ext4",
+                "freeSpace" : 12076449792,
+                "totalSpace" : 55076449792
+              }
+            ],
+            "managementTechnologyDetails" : {
+              "cfengineKeys" : [
+                "-----BEGIN RSA PUBLIC KEY-----\nMIIBCAKCAQEAlntroa72gD50MehPoyp6mRS5fzZpsZEHu42vq9KKxbqSsjfUmxnT\nRsi8CDvBt7DApIc7W1g0eJ6AsOfV7CEh3ooiyL/fC9SGATyDg5TjYPJZn3MPUktg\nYBzTd1MMyZL6zcLmIpQBH6XHkH7Do/RxFRtaSyicLxiO3H3wapH20TnkUvEpV5Qh\nzUkNM8vHZuu3m1FgLrK5NCN7BtoGWgeyVJvBMbWww5hS15IkCRuBkAOK/+h8xe2f\nhMQjrt9gW2qJpxZyFoPuMsWFIaX4wrN7Y8ZiN37U2q1G11tv2oQlJTQeiYaUnTX4\nz5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==\n-----END RSA PUBLIC KEY-----"
+              ],
+              "cfengineUser" : "root"
+            },
+            "networkInterfaces" : [
+              {
+                "name" : "enp0s3",
+                "ipAddresses" : [
+                  "10.0.2.15"
+                ],
+                "gateway" : [],
+                "mask" : [],
+                "subnet" : [],
+                "status" : "Up",
+                "speed" : "1000"
+              }
+            ],
+            "processes" : [
+              {
+                "pid" : 54432,
+                "name" : "/bin/true",
+                "cpuUsage" : 34.5,
+                "memory" : 4235.0
+              }
+            ],
+            "software" : [
+              {
+                "id" : "",
+                "name" : "s05",
+                "version" : "1.0"
+              },
+              {
+                "id" : "",
+                "name" : "s06",
+                "version" : "1.0"
+              },
+              {
+                "id" : "",
+                "name" : "s07",
+                "version" : "1.0"
+              },
+              {
+                "id" : "",
+                "name" : "s08",
+                "version" : "1.0"
+              },
+              {
+                "id" : "",
+                "name" : "s09",
+                "version" : "1.0"
+              },
+              {
+                "id" : "",
+                "name" : "s10",
+                "version" : "1.0"
+              },
+              {
+                "id" : "",
+                "name" : "s11",
+                "version" : "1.0"
+              },
+              {
+                "id" : "",
+                "name" : "s12",
+                "version" : "1.0"
+              },
+              {
+                "id" : "",
+                "name" : "s13",
+                "version" : "1.0"
+              }
+            ],
+            "softwareUpdate" : [
+              {
+                "name" : "s00",
+                "version" : "2.15.6~RC1",
+                "arch" : "x86_64",
+                "from" : "yum",
+                "kind" : "defect",
+                "description" : "Some explanation",
+                "severity" : "critical",
+                "ids" : [
+                  "RHSA-2020-4566",
+                  "CVE-2021-4034"
+                ]
+              },
+              {
+                "name" : "s01",
+                "version" : "1-23-RELEASE-1",
+                "arch" : "x86_64",
+                "from" : "apt",
+                "kind" : "none",
+                "source" : "default-repo"
+              },
+              {
+                "name" : "s01",
+                "version" : "1-24-RELEASE-64",
+                "arch" : "x86_64",
+                "from" : "apt",
+                "kind" : "security",
+                "source" : "security-backports",
+                "severity" : "backport",
+                "ids" : [
+                  "CVE-2021-4034"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: List node with select and include managementTechnology
+method: GET
+url: /api/latest/nodes?include=minimal,managementTechnologyDetails&select=nodeAndPolicyServer&where=[{"objectType":"node","attribute":"nodeHostname","comparator":"eq","value":"node1.localhost"}]
+response:
+  code: 200
+  content: >-
+    {
+      "action":"listAcceptedNodes",
+      "result":"success",
+      "data":{
+        "nodes":[
+          {
+            "id":"node1",
+            "hostname":"node1.localhost",
+            "status":"accepted",
+            "managementTechnologyDetails":{
+              "cfengineKeys":[
+                "-----BEGINRSAPUBLICKEY-----\nMIIBCAKCAQEAlntroa72gD50MehPoyp6mRS5fzZpsZEHu42vq9KKxbqSsjfUmxnT\nRsi8CDvBt7DApIc7W1g0eJ6AsOfV7CEh3ooiyL/fC9SGATyDg5TjYPJZn3MPUktg\nYBzTd1MMyZL6zcLmIpQBH6XHkH7Do/RxFRtaSyicLxiO3H3wapH20TnkUvEpV5Qh\nzUkNM8vHZuu3m1FgLrK5NCN7BtoGWgeyVJvBMbWww5hS15IkCRuBkAOK/+h8xe2f\nhMQjrt9gW2qJpxZyFoPuMsWFIaX4wrN7Y8ZiN37U2q1G11tv2oQlJTQeiYaUnTX4\nz5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==\n-----ENDRSAPUBLICKEY-----"
+              ],
+              "cfengineUser":"root"
+            }
           }
         ]
       }

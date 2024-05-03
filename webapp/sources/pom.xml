@@ -479,6 +479,7 @@ limitations under the License.
     <specs2-version>4.20.5</specs2-version>
     <junit-version>4.13.2</junit-version>
     <cats-version>2.10.0</cats-version>
+    <ip4s-version>3.4.0</ip4s-version>
     <doobie-version>1.0.0-RC5</doobie-version>
     <fs2-version>3.10.2</fs2-version>
     <shapeless-version>2.3.10</shapeless-version>
@@ -550,6 +551,11 @@ limitations under the License.
         <groupId>org.typelevel</groupId>
         <artifactId>cats-core_${scala-binary-version}</artifactId>
         <version>${cats-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.comcast</groupId>
+        <artifactId>ip4s-core_${scala-binary-version}</artifactId>
+        <version>${ip4s-version}</version>
       </dependency>
       <dependency>
         <groupId>org.tpolecat</groupId>

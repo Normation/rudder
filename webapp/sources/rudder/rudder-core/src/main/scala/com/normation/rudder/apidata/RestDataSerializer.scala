@@ -39,7 +39,6 @@ package com.normation.rudder.apidata
 
 import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.inventory.domain.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAccountKind.PublicApi as PublicApiAccount
@@ -54,9 +53,7 @@ import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.*
 import com.normation.rudder.domain.queries.Query
-import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.domain.workflows.*
-import com.normation.rudder.facts.nodes.SecurityTag
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategory
@@ -70,7 +67,6 @@ import com.normation.utils.DateFormaterService
 import net.liftweb.common.*
 import net.liftweb.json.*
 import net.liftweb.json.JsonDSL.*
-import org.joda.time.DateTime
 import zio.json.ast.Json
 import zio.json.ast.Json.Str
 
@@ -112,22 +108,7 @@ trait RestDataSerializer {
       detailLevel: DetailLevel
   ): JValue
 
-  def serializeServerInfo(srv: Srv, status: String): JValue
-
-  def serializeNodeInfo(nodeInfo: NodeInfo, status: String): JValue
-  def serializeNode(node:         Node): JValue
-
-  def serializeInventory(inventory: FullInventory, status: String): JValue
-
-  def serializeInventory(
-      nodeInfo:    NodeInfo,
-      status:      InventoryStatus,
-      optRunDate:  Option[DateTime],
-      inventory:   Option[FullInventory],
-      software:    Seq[Software],
-      optTenant:   Option[SecurityTag],
-      detailLevel: NodeDetailLevel
-  ): JValue
+  def serializeNode(node: Node): JValue
 
   def serializeTechnique(technique: FullActiveTechnique): JValue
 
@@ -142,61 +123,11 @@ final case class RestDataSerializerImpl(
     diffService:   DiffService
 ) extends RestDataSerializer with Loggable {
 
-  private def serializeMachineType(machine: Option[MachineType]): JValue = {
-    machine match {
-      case None                           => "No machine Inventory"
-      case Some(UnknownMachineType)       => "Unknown"
-      case Some(PhysicalMachineType)      => "Physical"
-      case Some(VirtualMachineType(kind)) => "Virtual"
-    }
-  }
-
-  def serializeNodeInfo(nodeInfo: NodeInfo, status: String): JValue = {
-    (("id"           -> nodeInfo.id.value)
-    ~ ("status"      -> status)
-    ~ ("hostname"    -> nodeInfo.hostname)
-    ~ ("osName"      -> nodeInfo.osDetails.os.name)
-    ~ ("osVersion"   -> nodeInfo.osDetails.version.value)
-    ~ ("machineType" -> serializeMachineType(nodeInfo.machine.map(_.machineType))))
-  }
-
   def serializeNode(node: Node): JValue = {
     (("id"          -> node.id.value)
     ~ ("properties" -> node.properties.sortBy(_.name).toApiJson)
     ~ ("policyMode" -> node.policyMode.map(_.name).getOrElse("default"))
     ~ ("state"      -> node.state.name))
-  }
-
-  def serializeInventory(
-      nodeInfo:    NodeInfo,
-      status:      InventoryStatus,
-      optRunDate:  Option[DateTime],
-      inventory:   Option[FullInventory],
-      software:    Seq[Software],
-      optTenant:   Option[SecurityTag],
-      detailLevel: NodeDetailLevel
-  ): JValue = {
-    detailLevel.toJson(nodeInfo, status, optRunDate, inventory, software, optTenant)
-  }
-
-  def serializeInventory(inventory: FullInventory, status: String): JValue = {
-
-    (("id"           -> inventory.node.main.id.value)
-    ~ ("status"      -> status)
-    ~ ("hostname"    -> inventory.node.main.hostname)
-    ~ ("osName"      -> inventory.node.main.osDetails.os.name)
-    ~ ("osVersion"   -> inventory.node.main.osDetails.version.toString)
-    ~ ("machineType" -> serializeMachineType(inventory.machine.map(_.machineType))))
-  }
-
-  // Not accepted node
-  def serializeServerInfo(srv: Srv, status: String): JValue = {
-
-    (("id"        -> srv.id.value)
-    ~ ("status"   -> status)
-    ~ ("hostname" -> srv.hostname)
-    ~ ("osName"   -> srv.osName))
-
   }
 
   def serializeTags(tags: Tags): JValue = {
