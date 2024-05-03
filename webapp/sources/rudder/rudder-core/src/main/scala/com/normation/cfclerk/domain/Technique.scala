@@ -149,19 +149,19 @@ object TechniqueGenerationMode extends Enum[TechniqueGenerationMode] {
    * but if the directive parameters are merged.
    * This is the historical way of working for Rudder techniques.
    */
-  final case object MergeDirectives extends TechniqueGenerationMode("merged")
+  case object MergeDirectives extends TechniqueGenerationMode("merged")
 
   /*
    * The technique supports several independant directives (and so,
    * several technique version or modes).
    */
-  final case object MultipleDirectives extends TechniqueGenerationMode("separated")
+  case object MultipleDirectives extends TechniqueGenerationMode("separated")
 
   /*
    * The technique supports several independant directives (and so,
    * several technique version or modes).
    */
-  final case object MultipleDirectivesWithParameters extends TechniqueGenerationMode("separated-with-parameters")
+  case object MultipleDirectivesWithParameters extends TechniqueGenerationMode("separated-with-parameters")
 
   def values: IndexedSeq[TechniqueGenerationMode] = findValues
 

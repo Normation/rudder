@@ -235,7 +235,7 @@ final class NodeGrid(
     "#header *+" #> headers &
     "#lines *" #> lines).apply(tableTemplate)
   }
-  private[this] val datatableXml = {
+  private val datatableXml = {
     <tr class="nodetr curspoint" jsuuid="id" nodeid="nodeid" nodestatus="status">
       <td class="curspoint"><span class="hostname listopen"></span></td>
       <td class="fullos curspoint"></td>

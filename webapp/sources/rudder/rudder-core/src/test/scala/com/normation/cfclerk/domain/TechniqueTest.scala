@@ -133,7 +133,7 @@ class TechniqueTest extends Specification {
     }
   }
 
-  private[this] def readFile(fileName: String): Elem = {
+  private def readFile(fileName: String): Elem = {
     val doc = {
       try {
         XML.load(ClassLoader.getSystemResourceAsStream(fileName))

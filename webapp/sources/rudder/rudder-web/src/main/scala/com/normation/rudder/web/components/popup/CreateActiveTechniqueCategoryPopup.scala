@@ -69,11 +69,11 @@ class CreateActiveTechniqueCategoryPopup(
     "technique-createcategorypopup"
   )
 
-  private[this] val activeTechniqueCategoryRepository   = RudderConfig.roDirectiveRepository
-  private[this] val rwActiveTechniqueCategoryRepository = RudderConfig.woDirectiveRepository
-  private[this] val uuidGen                             = RudderConfig.stringUuidGenerator
+  private val activeTechniqueCategoryRepository   = RudderConfig.roDirectiveRepository
+  private val rwActiveTechniqueCategoryRepository = RudderConfig.woDirectiveRepository
+  private val uuidGen                             = RudderConfig.stringUuidGenerator
 
-  private[this] val categories = activeTechniqueCategoryRepository.getAllActiveTechniqueCategories().toBox
+  private val categories = activeTechniqueCategoryRepository.getAllActiveTechniqueCategories().toBox
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => popupContent _ }
 
@@ -95,7 +95,7 @@ class CreateActiveTechniqueCategoryPopup(
   }
 
 ///////////// fields for category settings ///////////////////
-  private[this] val categoryName = new WBTextField("Name", "") {
+  private val categoryName = new WBTextField("Name", "") {
     override def setFilter      = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
@@ -104,7 +104,7 @@ class CreateActiveTechniqueCategoryPopup(
       valMinLen(1, "Name must not be empty") _ :: Nil
   }
 
-  private[this] val categoryDescription = new WBTextAreaField("Description", "") {
+  private val categoryDescription = new WBTextAreaField("Description", "") {
     override def setFilter      = notNull _ :: trim _ :: Nil
     override def inputField     = super.inputField % ("class" -> "form-control col-xl-12 col-md-12 col-sm-12") % ("tabindex" -> "2")
     override def errorClassName = "col-xl-12 errors-container"
@@ -112,7 +112,7 @@ class CreateActiveTechniqueCategoryPopup(
 
   }
 
-  private[this] val categoryContainer = {
+  private val categoryContainer = {
     new WBSelectField("Parent category: ", (categories.getOrElse(Seq()).map(x => (x.id.value -> x.name))), "") {
       override def className   = "form-select col-xl-12 col-md-12 col-sm-12"
       override def validations =
@@ -120,24 +120,24 @@ class CreateActiveTechniqueCategoryPopup(
     }
   }
 
-  private[this] val formTracker = new FormTracker(categoryName, categoryDescription, categoryContainer)
+  private val formTracker = new FormTracker(categoryName, categoryDescription, categoryContainer)
 
-  private[this] var notifications = List.empty[NodeSeq]
+  private var notifications = List.empty[NodeSeq]
 
-  private[this] def error(msg: String) = Text(msg)
+  private def error(msg: String) = Text(msg)
 
-  private[this] def closePopup(): JsCmd = {
+  private def closePopup(): JsCmd = {
     JsRaw("""hideBsModal('createActiveTechniqueCategoryPopup');""")
   }
 
   /**
    * Update the form when something happened
    */
-  private[this] def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide(): JsCmd = {
     SetHtml("createActiveTechniquesCategoryContainer", popupContent(NodeSeq.Empty))
   }
 
-  private[this] def onSubmit(): JsCmd = {
+  private def onSubmit(): JsCmd = {
     if (formTracker.hasErrors) {
       onFailure & onFailureCallback()
     } else {
@@ -171,12 +171,12 @@ class CreateActiveTechniqueCategoryPopup(
     }
   }
 
-  private[this] def onFailure: JsCmd = {
+  private def onFailure: JsCmd = {
     formTracker.addFormError(error("There was a problem with your request"))
     updateFormClientSide()
   }
 
-  private[this] def updateAndDisplayNotifications(): NodeSeq = {
+  private def updateAndDisplayNotifications(): NodeSeq = {
     notifications :::= formTracker.formErrors
     formTracker.cleanErrors
 

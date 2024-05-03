@@ -69,7 +69,7 @@ class RuleCategoryService {
 
   // transform a list of Rule categrory to a short fqdn for Rule category
   // short fqdn is the path list of all parents to the root category, minus the root category
-  private[this] def toShortFqdn(parents: List[RuleCategory]): String = {
+  private def toShortFqdn(parents: List[RuleCategory]): String = {
     parents.tail.map(_.name).mkString(" » ")
   }
 

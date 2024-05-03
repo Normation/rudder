@@ -167,7 +167,7 @@ class VersionTest extends Specification {
     }
   }
 
-  private[this] def equalVersions(version1: String, version2: String) = {
+  private def equalVersions(version1: String, version2: String) = {
     // the actual comparison test
     "be so that '%s' == '%s'".format(version1, version2) in {
       forceParse(version1) == forceParse(version2) must beTrue
@@ -181,7 +181,7 @@ class VersionTest extends Specification {
   }
 
   // test if version1 < version2
-  private[this] def increasingVersions(version1: String, version2: String) = {
+  private def increasingVersions(version1: String, version2: String) = {
     // the actual comparison test
     "be so that '%s' < '%s'".format(version1, version2) in {
       forceParse(version1) < forceParse(version2) must beTrue

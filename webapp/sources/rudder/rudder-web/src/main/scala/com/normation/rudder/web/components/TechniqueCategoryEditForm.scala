@@ -65,15 +65,15 @@ class TechniqueCategoryEditForm(
     onFailureCallback: () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
 
-  private[this] val htmlId_categoryDetailsForm = "categoryDetailsForm"
+  private val htmlId_categoryDetailsForm = "categoryDetailsForm"
 
-  private[this] val activeTechniqueCategoryRepository = RudderConfig.woDirectiveRepository
-  private[this] val uuidGen                           = RudderConfig.stringUuidGenerator
+  private val activeTechniqueCategoryRepository = RudderConfig.woDirectiveRepository
+  private val uuidGen                           = RudderConfig.stringUuidGenerator
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "showForm" => { _ => showForm() } }
 
-  private[this] var currentCategory = givenCategory
-  def getCategory                   = currentCategory
+  private var currentCategory = givenCategory
+  def getCategory             = currentCategory
 
   def showForm(): NodeSeq = {
     <div id={htmlId_form} class="object-details">
@@ -107,7 +107,7 @@ class TechniqueCategoryEditForm(
     </div>
   }
 
-  private[this] def deleteCategory(): JsCmd = {
+  private def deleteCategory(): JsCmd = {
     activeTechniqueCategoryRepository
       .deleteCategory(
         currentCategory.id,
@@ -134,7 +134,7 @@ class TechniqueCategoryEditForm(
     }
   }
 
-  private[this] def error(msg: String) = <span class="error">{msg}</span>
+  private def error(msg: String) = <span class="error">{msg}</span>
 
   /////////////////////  Category Details Form  /////////////////////
 
@@ -175,7 +175,7 @@ class TechniqueCategoryEditForm(
 
   var categoryNotifications: List[NodeSeq] = Nil
 
-  private[this] def categoryDetailsForm: NodeSeq = {
+  private def categoryDetailsForm: NodeSeq = {
     val html = SHtml.ajaxForm(<div id={htmlId_categoryDetailsForm}>
         <update-notifications></update-notifications>
         <update-name></update-name>
@@ -269,7 +269,7 @@ class TechniqueCategoryEditForm(
   }
 
   ///////////// success pop-up ///////////////
-  private[this] def successPopup: JsCmd = {
+  private def successPopup: JsCmd = {
     JsRaw("""createSuccessNotification()""")
   }
 }

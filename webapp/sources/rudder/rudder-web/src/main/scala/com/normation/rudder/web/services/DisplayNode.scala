@@ -94,11 +94,11 @@ import zio.syntax.*
  */
 object DisplayNode extends Loggable {
 
-  private[this] val nodeFactRepository   = RudderConfig.nodeFactRepository
-  private[this] val removeNodeService    = RudderConfig.removeNodeService
-  private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
-  private[this] val uuidGen              = RudderConfig.stringUuidGenerator
-  private[this] val linkUtil             = RudderConfig.linkUtil
+  private val nodeFactRepository   = RudderConfig.nodeFactRepository
+  private val removeNodeService    = RudderConfig.removeNodeService
+  private val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
+  private val uuidGen              = RudderConfig.stringUuidGenerator
+  private val linkUtil             = RudderConfig.linkUtil
 
   private def escapeJs(in:   String):         JsExp   = Str(escape(in))
   private def escapeHTML(in: String):         NodeSeq = Text(escape(in))
@@ -690,14 +690,14 @@ object DisplayNode extends Loggable {
     val nodeId      = nodeFact.id
     val publicKeyId = s"publicKey-${nodeId.value}"
     val cfKeyHash   = nodeFactRepository.get(nodeId).either.runNow match {
-      case Right(Some(nodeFact)) if (nodeFact.keyHashCfengine.nonEmpty) =>
-        <div><label>Key hash:</label> <samp>{nodeFact.keyHashCfengine}</samp></div>
-      case _                                                            => NodeSeq.Empty
+      case Right(Some(nodeFact_)) if (nodeFact_.keyHashCfengine.nonEmpty) =>
+        <div><label>Key hash:</label> <samp>{nodeFact_.keyHashCfengine}</samp></div>
+      case _                                                              => NodeSeq.Empty
     }
     val curlHash    = nodeFactRepository.get(nodeId).either.runNow match {
-      case Right(Some(nodeFact)) if (nodeFact.keyHashCfengine.nonEmpty) =>
-        <div><label>Key hash:</label> <samp>sha256//{nodeFact.keyHashBase64Sha256}</samp></div>
-      case _                                                            => NodeSeq.Empty
+      case Right(Some(nodeFact_)) if (nodeFact_.keyHashCfengine.nonEmpty) =>
+        <div><label>Key hash:</label> <samp>sha256//{nodeFact_.keyHashBase64Sha256}</samp></div>
+      case _                                                              => NodeSeq.Empty
     }
 
     val agent     = nodeFact.rudderAgent
@@ -1276,7 +1276,7 @@ object DisplayNode extends Loggable {
     )
   }
 
-  private[this] def removeNode(node: MinimalNodeFactInterface): JsCmd = {
+  private def removeNode(node: MinimalNodeFactInterface): JsCmd = {
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(uuidGen.newUuid),
       CurrentUser.actor,
@@ -1299,7 +1299,7 @@ object DisplayNode extends Loggable {
     }
   }
 
-  private[this] def onFailure(
+  private def onFailure(
       node:    MinimalNodeFactInterface,
       message: String
   ): JsCmd = {
@@ -1313,17 +1313,17 @@ object DisplayNode extends Loggable {
     RedirectTo("/secure/nodeManager/nodes")
   }
 
-  private[this] def onSuccess(node: MinimalNodeFactInterface): JsCmd = {
+  private def onSuccess(node: MinimalNodeFactInterface): JsCmd = {
     RegisterToasts.register(ToastNotification.Success(s"Node '${node.fqdn}' [${node.id.value}] was correctly deleted"))
     RedirectTo("/secure/nodeManager/nodes")
   }
 
-  private[this] def isRootNode(n: NodeId): Boolean = {
+  private def isRootNode(n: NodeId): Boolean = {
     n.value.equals("root");
   }
 
   import com.normation.rudder.domain.nodes.NodeState
-  private[this] def getNodeState(nodeState: NodeState): String = {
+  private def getNodeState(nodeState: NodeState): String = {
     S.?(s"node.states.${nodeState.name}")
   }
 }

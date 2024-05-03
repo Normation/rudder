@@ -127,7 +127,7 @@ class SectionSpecParser(variableParser: VariableSpecParser) extends Loggable {
   }
 
   // method that actually parse a <SECTIONS> or <SECTION> tag
-  private[this] def parseSection(root: Node, id: TechniqueId, policyName: String): Either[LoadTechniqueError, SectionSpec] = {
+  private def parseSection(root: Node, id: TechniqueId, policyName: String): Either[LoadTechniqueError, SectionSpec] = {
 
     val optName = {
       val n = Utils.getAttributeText(root, "name", "")
@@ -227,7 +227,7 @@ class SectionSpecParser(variableParser: VariableSpecParser) extends Loggable {
     }
   }
 
-  private[this] def parseChildren(
+  private def parseChildren(
       sectionName: String,
       node:        Node,
       id:          TechniqueId,

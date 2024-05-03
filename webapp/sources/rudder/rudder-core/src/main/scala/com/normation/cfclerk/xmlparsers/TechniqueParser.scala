@@ -109,7 +109,7 @@ class TechniqueParser(
                                   ).filter(a => !List(a.templates, a.files, a.bundlesequence, a.runHooks).forall(_.isEmpty))
             _                  <- { // all agent config types must be different
               val duplicated =
-                agentConfigs.map(_.agentType.id).groupBy(identity).collect { case (id, seq) if (seq.size > 1) => id }
+                agentConfigs.map(_.agentType.id).groupBy(identity).collect { case (id_, seq) if (seq.size > 1) => id_ }
               if (duplicated.nonEmpty) {
                 Left(
                   LoadTechniqueError.Parsing(
@@ -186,7 +186,7 @@ class TechniqueParser(
    *
    * id is for reporting
    */
-  private[this] def parseAgentConfig(id: TechniqueId, xml: Node): Either[LoadTechniqueError, List[AgentConfig]] = {
+  private def parseAgentConfig(id: TechniqueId, xml: Node): Either[LoadTechniqueError, List[AgentConfig]] = {
     // start to parse agent types for that config. It's a comma separated list
     import scala.language.postfixOps
 
@@ -233,7 +233,7 @@ class TechniqueParser(
     }
   }
 
-  private[this] def parseTrackerVariableSpec(xml: Node): Either[LoadTechniqueError, TrackerVariableSpec] = {
+  private def parseTrackerVariableSpec(xml: Node): Either[LoadTechniqueError, TrackerVariableSpec] = {
     val trackerVariableSpecs = (xml \ TRACKINGVAR)
     if (trackerVariableSpecs.isEmpty) { // default trackerVariable variable spec for that package
       Right(TrackerVariableSpec(id = None))
@@ -248,7 +248,7 @@ class TechniqueParser(
     }
   }
 
-  private[this] def parseDeprecrationInfo(xml: Node): Either[LoadTechniqueError, Option[TechniqueDeprecationInfo]] = {
+  private def parseDeprecrationInfo(xml: Node): Either[LoadTechniqueError, Option[TechniqueDeprecationInfo]] = {
     (xml \ TECHNIQUE_DEPRECATION_INFO).headOption match {
       case Some(deprecationInfo) if (deprecationInfo.text.isEmpty) =>
         Left(
@@ -265,7 +265,7 @@ class TechniqueParser(
    * and that the variable was not changed yet (either new rudder with old techniques or the
    * opposite).
    */
-  private[this] def parseSysvarSpecs(xml: Node, id: TechniqueId): Either[LoadTechniqueError, Set[SystemVariableSpec]] = {
+  private def parseSysvarSpecs(xml: Node, id: TechniqueId): Either[LoadTechniqueError, Set[SystemVariableSpec]] = {
     val res = (xml \ SYSTEMVARS_ROOT \ SYSTEMVAR_NAME).toList.map { x =>
       systemVariableSpecService.get(x.text) match {
         case Left(_) =>
@@ -309,7 +309,7 @@ class TechniqueParser(
    * to root of configuration repository in place of relative to the technique.
    * TODO: pass the AgentType here
    */
-  private[this] def parseResource(
+  private def parseResource(
       techniqueId: TechniqueId,
       xml:         Node,
       isTemplate:  Boolean,
@@ -377,7 +377,7 @@ class TechniqueParser(
       // Default value for FILE is false, so we should only check if the value is true and if it is empty it
       val included = (xml \ PROMISE_TEMPLATE_INCLUDED).text == "true"
       for {
-        parsed <- parseResource(techniqueId, xml, false, None)
+        parsed <- parseResource(techniqueId, xml, isTemplate = false, agentType = None)
       } yield {
         TechniqueFile(parsed._1, parsed._2, included)
       }
@@ -390,7 +390,7 @@ class TechniqueParser(
     } else {
       val included = !((xml \ PROMISE_TEMPLATE_INCLUDED).text == "false")
       for {
-        parsed <- parseResource(techniqueId, xml, true, Some(agentType))
+        parsed <- parseResource(techniqueId, xml, isTemplate = true, agentType = Some(agentType))
       } yield {
         TechniqueTemplate(parsed._1, parsed._2, included)
       }

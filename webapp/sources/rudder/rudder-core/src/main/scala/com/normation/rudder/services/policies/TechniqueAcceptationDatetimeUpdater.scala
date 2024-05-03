@@ -313,7 +313,13 @@ class TechniqueAcceptationUpdater(
                                      s"Technique '${name}' (${versions.map(_.debugString).mkString(",")})' is deleted " +
                                      s"but an active technique is still present in tree: disabling it."
                                    ) *>
-                                   rwActiveTechniqueRepo.changeStatus(activeTechnique.id, false, modId, actor, reason)
+                                   rwActiveTechniqueRepo.changeStatus(
+                                     activeTechnique.id,
+                                     status = false,
+                                     modId = modId,
+                                     actor = actor,
+                                     reason = reason
+                                   )
                                  }
 
                                case (TechniqueUpdated(name, mods), Some(activeTechnique)) =>

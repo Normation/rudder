@@ -311,6 +311,7 @@ class AcceptNode extends Loggable {
           (selectAll, { e => <input type="checkbox" name="serverids" value={e.id.value.toString}/> })
         ),
         """,{ "sWidth": "10%" },{ "sWidth": "11%", "bSortable":false },{ "sWidth": "2%", "bSortable":false }""",
+        searchable = true,
         paginate = true
       )
     }

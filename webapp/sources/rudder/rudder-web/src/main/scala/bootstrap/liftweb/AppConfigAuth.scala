@@ -302,7 +302,8 @@ class AppConfigAuth extends ApplicationContextAware {
 
     val authConfigProvider  = new UserDetailListProvider {
       // in the case of the root admin defined in config file, given is very specific use case, we enforce case sensitivity
-      override def authConfig: ValidatedUserList = ValidatedUserList(encoder, true, Nil, admins)
+      override def authConfig: ValidatedUserList =
+        ValidatedUserList(encoder, isCaseSensitive = true, customRoles = Nil, users = admins)
     }
     val rootAccountUserRepo = InMemoryUserRepository.make().runNow
     rootAccountUserRepo.setExistingUsers(
@@ -586,14 +587,14 @@ class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
   val defaultAuthBackendsProvider: AuthBackendsProvider = DefaultAuthBackendProvider
 
   // the list of AuthenticationMethods configured by the user
-  private[this] var authenticationMethods = Array[AuthenticationMethods]() // must be a var/array, because init by spring-side
+  private var authenticationMethods = Array[AuthenticationMethods]() // must be a var/array, because init by spring-side
 
-  private[this] var backends            = Seq[AuthBackendsProvider]()
+  private var backends            = Seq[AuthBackendsProvider]()
   // a map of status for each backend (status is dynamic)
-  private[this] var allowedToUseBackend = Map[String, () => Boolean]()
+  private var allowedToUseBackend = Map[String, () => Boolean]()
 
   // this is the map of configured spring bean "AuthenticationProvider"
-  private[this] var springProviders = Map[String, AuthenticationProvider]()
+  private var springProviders = Map[String, AuthenticationProvider]()
 
   // a map of properties registered for each backend
   private[this] var backendProperties = Map[String, AuthBackendProviderProperties]()
@@ -674,16 +675,16 @@ class RestAuthenticationFilter(
   def destroy(): Unit = {}
   def init(config: FilterConfig): Unit = {}
 
-  private[this] val not_authenticated_api = List(
+  private val not_authenticated_api = List(
     "/api/status"
   )
 
-  private[this] def isValidNonAuthApiV1(httpRequest: HttpServletRequest): Boolean = {
+  private def isValidNonAuthApiV1(httpRequest: HttpServletRequest): Boolean = {
     val requestPath = httpRequest.getRequestURI.substring(httpRequest.getContextPath.length)
     not_authenticated_api.exists(path => requestPath.startsWith(path))
   }
 
-  private[this] def failsAuthentication(
+  private def failsAuthentication(
       httpRequest:  HttpServletRequest,
       httpResponse: HttpServletResponse,
       error:        RudderError
@@ -693,7 +694,7 @@ class RestAuthenticationFilter(
     httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")
   }
 
-  private[this] def authenticate(userDetails: RudderUserDetail): Unit = {
+  private def authenticate(userDetails: RudderUserDetail): Unit = {
     val authenticationToken = new UsernamePasswordAuthenticationToken(
       userDetails,
       userDetails.getAuthorities,
@@ -727,10 +728,10 @@ class RestAuthenticationFilter(
                 ApiAccountName(name),
                 ApiToken(name),
                 "API Account for un-authenticated API",
-                true,
-                new DateTime(0),
-                DateTime.now(),
-                NodeSecurityContext.None
+                isEnabled = true,
+                creationDate = new DateTime(0),
+                tokenGenerationDate = DateTime.now(),
+                tenants = NodeSecurityContext.None
               )
 
               authenticate(

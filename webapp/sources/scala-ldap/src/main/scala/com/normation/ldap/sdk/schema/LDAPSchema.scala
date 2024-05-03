@@ -32,7 +32,7 @@ package com.normation.ldap.sdk.schema
 class LDAPSchema {
   type S = scala.collection.immutable.Set[LDAPObjectClass]
   import scala.collection.mutable.Map as MutMap
-  def S: Seq[LDAPObjectClass] => Set[LDAPObjectClass] = scala.collection.immutable.Set[LDAPObjectClass] _
+  def S: Seq[LDAPObjectClass] => Set[LDAPObjectClass] = scala.collection.immutable.Set[LDAPObjectClass]
 
   /**
    * map of class name (lower case) -> object class

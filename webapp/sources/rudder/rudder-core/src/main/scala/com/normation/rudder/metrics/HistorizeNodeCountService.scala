@@ -290,7 +290,7 @@ object CommitLogServiceImpl {
     for {
       _    <- IOResult.attempt(File(gitRoot).createDirectoryIfNotExists(createParents = true))
       // by default, commit by rudder system user with no signature
-      info <- Ref.make(CommitInformation(RudderEventActor.name, None, false))
+      info <- Ref.make(CommitInformation(RudderEventActor.name, None, sign = false))
       repo <- GitRepositoryProviderImpl.make(gitRoot)
     } yield {
       new CommitLogServiceImpl(repo, info)

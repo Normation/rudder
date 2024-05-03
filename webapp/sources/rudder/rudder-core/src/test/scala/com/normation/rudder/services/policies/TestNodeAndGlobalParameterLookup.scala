@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.policies
 
-import cats.implicits.*
 import com.normation.cfclerk.domain.InputVariable
 import com.normation.cfclerk.domain.InputVariableSpec
 import com.normation.cfclerk.domain.Variable

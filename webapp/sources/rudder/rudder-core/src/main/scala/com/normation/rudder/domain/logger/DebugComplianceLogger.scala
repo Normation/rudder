@@ -163,7 +163,7 @@ object ComplianceDebugLogger extends Logger {
 
   implicit class AgentRunConfigurationToLog(val info: (NodeId, ComplianceMode, ResolvedAgentRunInterval)) extends AnyVal {
 
-    private[this] def log(c: ComplianceMode, r: ResolvedAgentRunInterval): String = {
+    private def log(c: ComplianceMode, r: ResolvedAgentRunInterval): String = {
       val h = c.mode match {
         case ChangesOnly => s", hearbeat every ${r.heartbeatPeriod} run(s)"
         case _           => ""

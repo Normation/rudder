@@ -305,7 +305,8 @@ object JsonResponseObjects {
     }
   }
   object JRDirective          {
-    def empty(id: String): JRDirective = JRDirective(None, id, "", "", "", "", "", Map(), 5, false, false, "", List())
+    def empty(id: String): JRDirective =
+      JRDirective(None, id, "", "", "", "", "", Map(), 5, enabled = false, system = false, policyMode = "", tags = List())
 
     def fromDirective(technique: Technique, directive: Directive, crId: Option[ChangeRequestId]): JRDirective = {
       directive
@@ -408,7 +409,8 @@ object JsonResponseObjects {
 
   object JRRule {
     // create an empty json rule with just ID set
-    def empty(id: String): JRRule = JRRule(None, id, "", "", "", "", Nil, Nil, false, false, Nil, None, None)
+    def empty(id: String): JRRule =
+      JRRule(None, id, "", "", "", "", Nil, Nil, enabled = false, system = false, tags = Nil, policyMode = None, status = None)
 
     // create from a rudder business rule
     def fromRule(
@@ -867,7 +869,21 @@ object JsonResponseObjects {
   }
 
   object JRGroup {
-    def empty(id: String): JRGroup = JRGroup(None, id, "", "", "", None, Nil, false, false, Nil, Nil, "", false)
+    def empty(id: String): JRGroup = JRGroup(
+      None,
+      id,
+      "",
+      "",
+      "",
+      None,
+      Nil,
+      dynamic = false,
+      enabled = false,
+      groupClass = Nil,
+      properties = Nil,
+      target = "",
+      system = false
+    )
 
     def fromGroup(group: NodeGroup, catId: NodeGroupCategoryId, crId: Option[ChangeRequestId]): JRGroup = {
       group
@@ -1044,19 +1060,21 @@ trait RudderJsonEncoders {
     case Some(x)                                               => Some(x.value)
   }
   implicit val inheritModeEncoder:      JsonEncoder[InheritMode]              = JsonEncoder[String].contramap(_.value)
-  implicit val globalParameterEncoder:  JsonEncoder[JRGlobalParameter]        = DeriveJsonEncoder.gen.contramap(g => {
-    // when inheritMode or property provider are set to their default value, don't write them
-    g.modify(_.inheritMode)
-      .using {
-        case Some(InheritMode.Default) => None
-        case x                         => x
-      }
-      .modify(_.provider)
-      .using {
-        case Some(PropertyProvider.defaultPropertyProvider) => None
-        case x                                              => x
-      }
-  })
+  implicit val globalParameterEncoder:  JsonEncoder[JRGlobalParameter]        = DeriveJsonEncoder
+    .gen[JRGlobalParameter]
+    .contramap(g => {
+      // when inheritMode or property provider are set to their default value, don't write them
+      g.modify(_.inheritMode)
+        .using {
+          case Some(InheritMode.Default) => None
+          case x                         => x
+        }
+        .modify(_.provider)
+        .using {
+          case Some(PropertyProvider.defaultPropertyProvider) => None
+          case x                                              => x
+        }
+    })
 
   implicit val propertyJRParentProperty: JsonEncoder[JRParentProperty] = DeriveJsonEncoder.gen
 

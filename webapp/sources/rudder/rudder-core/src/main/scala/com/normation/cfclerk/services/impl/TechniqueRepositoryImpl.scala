@@ -60,8 +60,8 @@ class TechniqueRepositoryImpl(
   /**
    * Callback to call on technique lib update
    */
-  private[this] var callbacks = refLibCallbacks.sortBy(_.order)
-  val logger                  = TechniqueReaderLoggerPure.logEffect
+  private var callbacks = refLibCallbacks.sortBy(_.order)
+  val logger            = TechniqueReaderLoggerPure.logEffect
 
   /*
    * TechniquesInfo:
@@ -69,7 +69,7 @@ class TechniqueRepositoryImpl(
    * - techniques: Map[TechniqueName, SortedMap[TechniqueVersion, Technique]]
    * - categories: SortedMap[TechniqueCategoryId, TechniqueCategory]
    */
-  private[this] var techniqueInfosCache: TechniquesInfo = {
+  private var techniqueInfosCache: TechniquesInfo = {
     /*
      * readTechniques result is updated only on
      * techniqueReader.getModifiedTechniques,

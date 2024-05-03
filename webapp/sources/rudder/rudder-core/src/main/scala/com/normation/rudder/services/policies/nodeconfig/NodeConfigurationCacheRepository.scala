@@ -363,7 +363,7 @@ object NodeConfigurationHash {
    * Also, variable with no values are equivalent to no variable, so we
    * remove them.
    */
-  private[this] def variablesToHash(variables: Iterable[Variable]): Int = {
+  private def variablesToHash(variables: Iterable[Variable]): Int = {
     val z = variables.map(x => (x.spec.name, x.values)).filterNot(_._2.isEmpty).toSet
     z.hashCode
   }
@@ -408,7 +408,7 @@ trait NodeConfigurationHashRepository {
 
 class InMemoryNodeConfigurationHashRepository extends NodeConfigurationHashRepository {
 
-  private[this] val repository = scala.collection.mutable.Map[NodeId, NodeConfigurationHash]()
+  private val repository = scala.collection.mutable.Map[NodeId, NodeConfigurationHash]()
 
   /**
    * Delete a node by its id
@@ -601,7 +601,7 @@ class LdapNodeConfigurationHashRepository(
    * "best effort" way. Bad config are logged as error.
    * We fail if the entry is not of the expected type
    */
-  private[this] def fromLdap(entry: Option[LDAPEntry]): IOResult[Set[NodeConfigurationHash]] = {
+  private def fromLdap(entry: Option[LDAPEntry]): IOResult[Set[NodeConfigurationHash]] = {
     entry match {
       case None    => Set.empty[NodeConfigurationHash].succeed
       case Some(e) =>
@@ -625,7 +625,7 @@ class LdapNodeConfigurationHashRepository(
     }
   }
 
-  private[this] def toLdap(nodeConfigs: Set[NodeConfigurationHash]): LDAPEntry = {
+  private def toLdap(nodeConfigs: Set[NodeConfigurationHash]): LDAPEntry = {
     val caches = nodeConfigs.map(x => NodeConfigurationHash.toJson(x))
     val entry  = rudderDit.NODE_CONFIGS.model
     entry.resetValuesTo(A_NODE_CONFIG, caches.toSeq*)
@@ -636,7 +636,7 @@ class LdapNodeConfigurationHashRepository(
    * Delete node config matching predicate.
    * Return the list of remaining ids.
    */
-  private[this] def deleteCacheMatching(shouldDeleteConfig: NodeConfigurationHash => Boolean): IOResult[Set[NodeId]] = {
+  private def deleteCacheMatching(shouldDeleteConfig: NodeConfigurationHash => Boolean): IOResult[Set[NodeId]] = {
     for {
       ldap         <- ldapCon
       currentEntry <- ldap.get(rudderDit.NODE_CONFIGS.dn)

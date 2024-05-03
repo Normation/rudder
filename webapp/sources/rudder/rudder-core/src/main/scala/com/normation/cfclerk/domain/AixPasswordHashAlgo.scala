@@ -196,7 +196,7 @@ object AixPasswordHashAlgo extends Loggable {
   /////
 
   /// ssha1 revert to smd5 - but all post-java6 JVM should be ok
-  final private[this] lazy val ssha1impl = getSecretKeFactory(ShaSpec.SHA1) match {
+  final private lazy val ssha1impl = getSecretKeFactory(ShaSpec.SHA1) match {
     case Full(skf) => doSsha(ShaSpec.SHA1, skf) _
     case e: EmptyBox =>
       // this should not happen, because PBKDF2WithHmacSHA1 is
@@ -211,7 +211,7 @@ object AixPasswordHashAlgo extends Loggable {
   }
 
   /// ssha256 reverts to ssha1 - not so bad
-  final private[this] lazy val ssha256impl = getSecretKeFactory(ShaSpec.SHA256) match {
+  final private lazy val ssha256impl = getSecretKeFactory(ShaSpec.SHA256) match {
     case Full(skf) => doSsha(ShaSpec.SHA256, skf) _
     case e: EmptyBox =>
       // this may happen on Java 7 and older version, because PBKDF2WithHmacSHA256
@@ -226,7 +226,7 @@ object AixPasswordHashAlgo extends Loggable {
   }
 
   /// ssha512 reverts to ssha1 - no so bad
-  final private[this] lazy val ssha512impl = getSecretKeFactory(ShaSpec.SHA512) match {
+  final private lazy val ssha512impl = getSecretKeFactory(ShaSpec.SHA512) match {
     case Full(skf) => doSsha(ShaSpec.SHA512, skf) _
     case e: EmptyBox =>
       // this may happen on Java 7 and older version, because PBKDF2WithHmacSHA512
@@ -359,7 +359,7 @@ object AixPasswordHashAlgo extends Loggable {
    * as a parameter and chars taken from the Sha-Crypt
    * Base 64 table.
    */
-  private[this] def getRandomSalt(size: Int): String = {
+  private def getRandomSalt(size: Int): String = {
     val chars = for {
       i <- (0 until size).toArray
     } yield {

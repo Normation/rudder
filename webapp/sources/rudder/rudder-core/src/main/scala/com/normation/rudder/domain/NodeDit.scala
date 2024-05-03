@@ -51,7 +51,7 @@ class NodeDit(val BASE_DN: DN) extends AbstractDit {
   dit.register(NODES.model)
 
   object NODES extends OU("Nodes", BASE_DN) {
-    private[this] def nodes = this
+    private def nodes = this
 
     object NODE extends ENTRY1(A_NODE_UUID) {
 

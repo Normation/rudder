@@ -284,8 +284,8 @@ object RudderProperties {
               s"-> files for overriding configuration parameters are read from directory ${path} (that path can be overridden with JVM property -D${JVM_CONFIG_DIR_KEY})"
             )
             Some(path)
-          case x         =>
-            val d = better.files.File(x)
+          case path      =>
+            val d = better.files.File(path)
             if (d.exists) {
               if (d.isDirectory) {
                 Some(d.pathAsString)
@@ -312,10 +312,10 @@ object RudderProperties {
   // Sorting is done here for meaningful debug log, but we need to reverse it
   // because in typesafe Config, we have "withDefault" (ie the opposite of overrides)
   val overrideConfigs: List[FileSystemResource] = overrideDir match {
-    case None    => // no additional config to add
+    case None       => // no additional config to add
       Nil
-    case Some(x) =>
-      val d = better.files.File(x)
+    case Some(path) =>
+      val d = better.files.File(path)
       try {
         d.createDirectoryIfNotExists(true)
         d.setPermissions(Set(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE))
@@ -326,7 +326,8 @@ object RudderProperties {
           )
       }
       val overrides = d.children.collect {
-        case f if (configFileExtensions.contains(f.extension(false, false).getOrElse(""))) => FileSystemResource(f.toJava)
+        case f if (configFileExtensions.contains(f.extension(includeDot = false, includeAll = false).getOrElse(""))) =>
+          FileSystemResource(f.toJava)
       }.toList.sortBy(_.file.getPath)
       ApplicationLogger.debug(
         s"Overriding configuration files in '${d.pathAsString}': ${overrides.map(_.file.getName).mkString(", ")}"
@@ -486,8 +487,8 @@ object RudderParsedProperties {
   val RUDDER_DIR_BACKUP:                 Option[String] = {
     try {
       config.getString("rudder.dir.backup").trim match {
-        case "" => None
-        case x  => Some(x)
+        case ""    => None
+        case value => Some(value)
       }
     } catch {
       case ex: ConfigException => None
@@ -2128,12 +2129,12 @@ object RudderConfigInit {
      * - 5.2.5: 16
      */
     lazy val ApiVersions: List[ApiVersion] = {
-      ApiVersion(14, true) ::  // rudder 7.0
-      ApiVersion(15, true) ::  // rudder 7.1 - system update on node details
-      ApiVersion(16, true) ::  // rudder 7.2 - create node api, import/export archive, hooks & campaigns internal API
-      ApiVersion(17, true) ::  // rudder 7.3 - directive compliance, campaign API is public
-      ApiVersion(18, false) :: // rudder 8.0 - allowed network
-      ApiVersion(19, false) :: // rudder 8.1 - (score), tenants
+      ApiVersion(14, deprecated = true) ::  // rudder 7.0
+      ApiVersion(15, deprecated = true) ::  // rudder 7.1 - system update on node details
+      ApiVersion(16, deprecated = true) ::  // rudder 7.2 - create node api, import/export archive, hooks & campaigns internal API
+      ApiVersion(17, deprecated = true) ::  // rudder 7.3 - directive compliance, campaign API is public
+      ApiVersion(18, deprecated = false) :: // rudder 8.0 - allowed network
+      ApiVersion(19, deprecated = false) :: // rudder 8.1 - (score), tenants
       Nil
     }
 
@@ -2289,7 +2290,7 @@ object RudderConfigInit {
     )
 
     /////////////////////////////////////////////////////////////////////
-    //// everything was private[this]
+    //// everything was private
     ////////////////////////////////////////////////////////////////////
 
     lazy val roLDAPApiAccountRepository = new RoLDAPApiAccountRepository(
@@ -3376,11 +3377,11 @@ object RudderConfigInit {
                 )
               case SharedFileVType            => new FileField(id)
               case DestinationPathVType       => default(id)
-              case DateVType(r)               => new DateField(Translator.isoDateFormatter)(id)
-              case TimeVType(r)               => new TimeField(Translator.isoTimeFormatter)(id)
+              case DateVType(_)               => new DateField(Translator.isoDateFormatter)(id)
+              case TimeVType(_)               => new TimeField(Translator.isoTimeFormatter)(id)
               case PermVType                  => new FilePermsField(id)
               case BooleanVType               => new CheckboxField(id)
-              case TextareaVType(r)           =>
+              case TextareaVType(_)           =>
                 new TextareaField(id, () => configService.rudder_featureSwitch_directiveScriptEngine().toBox)
               // Same field type for password and MasterPassword, difference is that master will have slave/used derived passwords, and password will not have any slave/used field
               case PasswordVType(algos)       =>

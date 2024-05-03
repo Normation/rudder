@@ -401,8 +401,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
       None,
       "",
       5,
-      true,
-      true // short desc / policyMode / long desc / prio / enabled / system
+      _isEnabled = true,
+      isSystem = true // short desc / policyMode / long desc / prio / enabled / system
     )
 
     val archiveTechnique: Technique =
@@ -416,8 +416,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
       None,
       "",
       5,
-      true,
-      false
+      _isEnabled = true,
+      isSystem = false
     )
 
     // we have one rule with several system technique for root server config
@@ -433,8 +433,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
         None,
         "",
         5,
-        true,
-        true // short desc / policyMode / long desc / prio / enabled / system
+        _isEnabled = true,
+        isSystem = true // short desc / policyMode / long desc / prio / enabled / system
       )
       (technique, directive)
     }
@@ -456,8 +456,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
       None,
       "",
       5,
-      true,
-      true // short desc / policyMode / long desc / prio / enabled / system
+      _isEnabled = true,
+      isSystem = true // short desc / policyMode / long desc / prio / enabled / system
     )
 
     //
@@ -479,8 +479,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
       None,
       "",
       5,
-      true,
-      false // short desc / policyMode / long desc / prio / enabled / system
+      _isEnabled = true,
+      isSystem = false // short desc / policyMode / long desc / prio / enabled / system
     )
 
     /*
@@ -839,8 +839,10 @@ class MockDirectives(mockTechniques: MockTechniques) {
       })
     }
 
-    override def getParentsForActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[List[ActiveTechniqueCategory]] =
-      ???
+    // scalafmt makes scalameta ScalametaParser to fail for now
+    // format: off
+    override def getParentsForActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[List[ActiveTechniqueCategory]] = ???
+    // format: on
 
     override def getParentsForActiveTechnique(id: ActiveTechniqueId): IOResult[ActiveTechniqueCategory] = ???
 
@@ -1074,7 +1076,7 @@ class MockRules() {
     "Rules",
     "This is the main category of Rules",
     RuleCategory(RuleCategoryId("category1"), "Category 1", "description of category 1", Nil) :: Nil,
-    true
+    isSystem = true
   )
 
   object ruleCategoryRepo extends RoRuleCategoryRepository with WoRuleCategoryRepository {
@@ -1194,8 +1196,8 @@ class MockRules() {
       Set(DirectiveId(DirectiveUid("common-root"))),
       "common-root rule",
       "",
-      true,
-      true,
+      isEnabledStatus = true,
+      isSystem = true,
       NoTags() // long desc / enabled / system / tags
     )
 
@@ -1207,8 +1209,8 @@ class MockRules() {
       Set(DirectiveId(DirectiveUid("Server Roles"))),
       "Server Roles rule",
       "",
-      true,
-      true,
+      isEnabledStatus = true,
+      isSystem = true,
       NoTags() // long desc / enabled / system / tags
     )
 
@@ -1220,8 +1222,8 @@ class MockRules() {
       Set(DirectiveId(DirectiveUid("Distribute Policy"))),
       "Distribute Policy rule",
       "",
-      true,
-      true,
+      isEnabledStatus = true,
+      isSystem = true,
       NoTags() // long desc / enabled / system / tags
     )
 
@@ -1233,8 +1235,8 @@ class MockRules() {
       Set(DirectiveId(DirectiveUid("inventory-all"))),
       "Inventory all rule",
       "",
-      true,
-      true,
+      isEnabledStatus = true,
+      isSystem = true,
       NoTags() // long desc / enabled / system / tags
     )
 
@@ -1246,8 +1248,8 @@ class MockRules() {
       Set(DirectiveId(DirectiveUid("directive1"))),
       "global config for all nodes",
       "",
-      true,
-      false,
+      isEnabledStatus = true,
+      isSystem = false,
       NoTags() // long desc / enabled / system / tags
     )
 
@@ -1259,8 +1261,8 @@ class MockRules() {
       Set(DirectiveId(DirectiveUid("directive2"))),
       "global config for all nodes",
       "",
-      true,
-      false,
+      isEnabledStatus = true,
+      isSystem = false,
       NoTags() // long desc / enabled / system / tags
     )
 
@@ -1278,8 +1280,8 @@ class MockRules() {
       ),
       "default rule",
       "",
-      true,
-      false,
+      isEnabledStatus = true,
+      isSystem = false,
       NoTags() // long desc / enabled / system / tags
     )
 
@@ -1293,8 +1295,8 @@ class MockRules() {
       ),
       "updated copy of default rule",
       "",
-      true,
-      false,
+      isEnabledStatus = true,
+      isSystem = false,
       NoTags()                                                            // long desc / enabled / system / tags
     )
 
@@ -1306,8 +1308,8 @@ class MockRules() {
       Set(DirectiveId(DirectiveUid("16d86a56-93ef-49aa-86b7-0d10102e4ea9"))),
       "ncf technique rule",
       "",
-      true,
-      false, // long desc / enabled / system
+      isEnabledStatus = true,
+      isSystem = false, // long desc / enabled / system
 
       MkTags(("datacenter", "Paris"), ("serverType", "webserver"))
     )
@@ -1320,8 +1322,8 @@ class MockRules() {
       Set(DirectiveId(DirectiveUid("directive-copyGitFile"))),
       "ncf technique rule",
       "",
-      true,
-      false,
+      isEnabledStatus = true,
+      isSystem = false,
       NoTags()                                                                             // long desc / enabled / system / tags
     )
 
@@ -1333,8 +1335,8 @@ class MockRules() {
       Set(DirectiveId(DirectiveUid("gvd-directive1")), DirectiveId(DirectiveUid("gvd-directive2"))),
       "test gvd ordering rule",
       "",
-      true,
-      false,
+      isEnabledStatus = true,
+      isSystem = false,
       NoTags() // long desc / enabled / system / tags
     )
 
@@ -1740,15 +1742,15 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   val rootNode: Node     = Node(
     rootId,
     "root",
-    "",
-    NodeState.Enabled,
-    true,
-    true,
-    DateTime.parse("2021-01-30T01:20+01:00"),
-    emptyNodeReportingConfiguration,
-    Nil,
-    Some(PolicyMode.Enforce),
-    None
+    description = "",
+    state = NodeState.Enabled,
+    isSystem = true,
+    isPolicyServer = true,
+    creationDate = DateTime.parse("2021-01-30T01:20+01:00"),
+    nodeReportingConfiguration = emptyNodeReportingConfiguration,
+    properties = Nil,
+    policyMode = Some(PolicyMode.Enforce),
+    securityTag = None
   )
   val root:     NodeInfo = NodeInfo(
     rootNode,
@@ -1817,15 +1819,15 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   val node1Node: Node = Node(
     id1,
     "node1",
-    "",
-    NodeState.Enabled,
-    false,
-    false,
-    DateTime.parse("2021-01-30T01:20+01:00"),
-    emptyNodeReportingConfiguration,
-    Nil,
-    Some(PolicyMode.Enforce),
-    None
+    description = "",
+    state = NodeState.Enabled,
+    isSystem = false,
+    isPolicyServer = false,
+    creationDate = DateTime.parse("2021-01-30T01:20+01:00"),
+    nodeReportingConfiguration = emptyNodeReportingConfiguration,
+    properties = Nil,
+    policyMode = Some(PolicyMode.Enforce),
+    securityTag = None
   )
 
   val node1: NodeInfo = NodeInfo(
@@ -1918,16 +1920,15 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   val dscNode1Node: Node = Node(
     NodeId("node-dsc"),
     "node-dsc",
-    "",
-    NodeState.Enabled,
-    true,
-    true, // is relay server
-
-    DateTime.parse("2021-01-30T01:20+01:00"),
-    emptyNodeReportingConfiguration,
-    Nil,
-    None,
-    None
+    description = "",
+    state = NodeState.Enabled,
+    isSystem = true,
+    isPolicyServer = true, // is relay server
+    creationDate = DateTime.parse("2021-01-30T01:20+01:00"),
+    nodeReportingConfiguration = emptyNodeReportingConfiguration,
+    properties = Nil,
+    policyMode = None,
+    securityTag = None
   )
 
   val dscNode1: NodeInfo = NodeInfo(
@@ -2035,8 +2036,21 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     }
   ).toSet
 
-  def newNode(id: NodeId): Node =
-    Node(id, "", "", NodeState.Enabled, false, false, DateTime.now, ReportingConfiguration(None, None, None), Nil, None, None)
+  def newNode(id: NodeId): Node = {
+    Node(
+      id,
+      "",
+      description = "",
+      state = NodeState.Enabled,
+      isSystem = false,
+      isPolicyServer = false,
+      creationDate = DateTime.now,
+      nodeReportingConfiguration = ReportingConfiguration(None, None, None),
+      properties = Nil,
+      policyMode = None,
+      securityTag = None
+    )
+  }
 
   val nodes: Map[NodeId, NodeInfo] = (
     Set(root, node1, node2) ++ nodeIds.map { id =>
@@ -2329,7 +2343,16 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     implicit val ordering: NodeGroupCategoryOrdering.type = com.normation.rudder.repository.NodeGroupCategoryOrdering
 
     val categories: Ref.Synchronized[FullNodeGroupCategory] = Ref.Synchronized
-      .make(FullNodeGroupCategory(NodeGroupCategoryId("GroupRoot"), "GroupRoot", "root of group categories", Nil, Nil, true))
+      .make(
+        FullNodeGroupCategory(
+          NodeGroupCategoryId("GroupRoot"),
+          name = "GroupRoot",
+          description = "root of group categories",
+          subCategories = Nil,
+          targetInfos = Nil,
+          isSystem = true
+        )
+      )
       .runNow
 
     override def categoryExists(id: NodeGroupCategoryId): IOResult[Boolean] = {
@@ -2737,65 +2760,75 @@ class MockNodeGroups(nodesRepo: MockNodes) {
 
   val g0:     NodeGroup                     = NodeGroup(
     NodeGroupId(NodeGroupUid("0000f5d3-8c61-4d20-88a7-bb947705ba8a")),
-    "Real nodes",
-    "",
-    g0props,
-    None,
-    false,
-    Set(MockNodes.rootId, MockNodes.node1.id, MockNodes.node2.id),
-    true
+    name = "Real nodes",
+    description = "",
+    properties = g0props,
+    query = None,
+    isDynamic = false,
+    serverList = Set(MockNodes.rootId, MockNodes.node1.id, MockNodes.node2.id),
+    _isEnabled = true
   )
-  val g1:     NodeGroup                     =
-    NodeGroup(NodeGroupId(NodeGroupUid("1111f5d3-8c61-4d20-88a7-bb947705ba8a")), "Empty group", "", Nil, None, false, Set(), true)
+  val g1:     NodeGroup                     = {
+    NodeGroup(
+      NodeGroupId(NodeGroupUid("1111f5d3-8c61-4d20-88a7-bb947705ba8a")),
+      name = "Empty group",
+      description = "",
+      properties = Nil,
+      query = None,
+      isDynamic = false,
+      serverList = Set(),
+      _isEnabled = true
+    )
+  }
   val g2:     NodeGroup                     = NodeGroup(
     NodeGroupId(NodeGroupUid("2222f5d3-8c61-4d20-88a7-bb947705ba8a")),
-    "only root",
-    "",
-    Nil,
-    None,
-    false,
-    Set(NodeId("root")),
-    true
+    name = "only root",
+    description = "",
+    properties = Nil,
+    query = None,
+    isDynamic = false,
+    serverList = Set(NodeId("root")),
+    _isEnabled = true
   )
   val g3:     NodeGroup                     = NodeGroup(
     NodeGroupId(NodeGroupUid("3333f5d3-8c61-4d20-88a7-bb947705ba8a")),
-    "Even nodes",
-    "",
-    Nil,
-    None,
-    false,
-    MockNodes.nodeIds.filter(_.value.toInt % 2 == 0),
-    true
+    name = "Even nodes",
+    description = "",
+    properties = Nil,
+    query = None,
+    isDynamic = false,
+    serverList = MockNodes.nodeIds.filter(_.value.toInt % 2 == 0),
+    _isEnabled = true
   )
   val g4:     NodeGroup                     = NodeGroup(
     NodeGroupId(NodeGroupUid("4444f5d3-8c61-4d20-88a7-bb947705ba8a")),
-    "Odd nodes",
-    "",
-    Nil,
-    None,
-    false,
-    MockNodes.nodeIds.filter(_.value.toInt % 2 != 0),
-    true
+    name = "Odd nodes",
+    description = "",
+    properties = Nil,
+    query = None,
+    isDynamic = false,
+    serverList = MockNodes.nodeIds.filter(_.value.toInt % 2 != 0),
+    _isEnabled = true
   )
   val g5:     NodeGroup                     = NodeGroup(
     NodeGroupId(NodeGroupUid("5555f5d3-8c61-4d20-88a7-bb947705ba8a")),
-    "Nodes id divided by 3",
-    "",
-    Nil,
-    None,
-    false,
-    MockNodes.nodeIds.filter(_.value.toInt % 3 == 0),
-    true
+    name = "Nodes id divided by 3",
+    description = "",
+    properties = Nil,
+    query = None,
+    isDynamic = false,
+    serverList = MockNodes.nodeIds.filter(_.value.toInt % 3 == 0),
+    _isEnabled = true
   )
   val g6:     NodeGroup                     = NodeGroup(
     NodeGroupId(NodeGroupUid("6666f5d3-8c61-4d20-88a7-bb947705ba8a")),
-    "Nodes id divided by 5",
-    "",
-    Nil,
-    None,
-    false,
-    MockNodes.nodeIds.filter(_.value.toInt % 5 == 0),
-    true
+    name = "Nodes id divided by 5",
+    description = "",
+    properties = Nil,
+    query = None,
+    isDynamic = false,
+    serverList = MockNodes.nodeIds.filter(_.value.toInt % 5 == 0),
+    _isEnabled = true
   )
   val groups: Seq[(NodeGroupId, NodeGroup)] = List(g0, g1, g2, g3, g4, g5, g6).map(g => (g.id, g))
 
@@ -2804,10 +2837,10 @@ class MockNodeGroups(nodesRepo: MockNodes) {
   val groupsTargetInfos: Seq[FullRuleTargetInfo] = groupsTargets.map { gt =>
     FullRuleTargetInfo(
       FullGroupTarget(gt._1, gt._2),
-      "",
-      "",
-      true,
-      false
+      name = "",
+      description = "",
+      isEnabled = true,
+      isSystem = false
     )
   }
 
@@ -2818,11 +2851,11 @@ class MockNodeGroups(nodesRepo: MockNodes) {
     List(
       FullNodeGroupCategory(
         NodeGroupCategoryId("category1"),
-        "category 1",
-        "the first category",
-        Nil,
-        List(groupsTargetInfos.head), // that g0 id:0000f5d3-8c61-4d20-88a7-bb947705ba8
-        false
+        name = "category 1",
+        description = "the first category",
+        subCategories = Nil,
+        targetInfos = List(groupsTargetInfos.head), // that g0 id:0000f5d3-8c61-4d20-88a7-bb947705ba8
+        isSystem = false
       )
     ),
     List(
@@ -2831,44 +2864,44 @@ class MockNodeGroups(nodesRepo: MockNodes) {
           GroupTarget(NodeGroupId(NodeGroupUid("a-group-for-root-only"))),
           NodeGroup(
             NodeGroupId(NodeGroupUid("a-group-for-root-only")),
-            "Serveurs [€ðŋ] cassés",
-            "Liste de l'ensemble de serveurs cassés à réparer",
-            Nil,
-            None,
-            true,
-            Set(NodeId("root")),
-            true,
-            false
+            name = "Serveurs [€ðŋ] cassés",
+            description = "Liste de l'ensemble de serveurs cassés à réparer",
+            properties = Nil,
+            query = None,
+            isDynamic = true,
+            serverList = Set(NodeId("root")),
+            _isEnabled = true,
+            isSystem = false
           )
         ),
-        "Serveurs [€ðŋ] cassés",
-        "Liste de l'ensemble de serveurs cassés à réparer",
-        true,
-        false
+        name = "Serveurs [€ðŋ] cassés",
+        description = "Liste de l'ensemble de serveurs cassés à réparer",
+        isEnabled = true,
+        isSystem = false
       ),
       FullRuleTargetInfo(
         FullOtherTarget(PolicyServerTarget(NodeId("root"))),
-        "special:policyServer_root",
-        "The root policy server",
-        true,
-        true
+        name = "special:policyServer_root",
+        description = "The root policy server",
+        isEnabled = true,
+        isSystem = true
       ),
       FullRuleTargetInfo(
         FullOtherTarget(AllTargetExceptPolicyServers),
-        "special:all_exceptPolicyServers",
-        "All groups without policy servers",
-        true,
-        true
+        name = "special:all_exceptPolicyServers",
+        description = "All groups without policy servers",
+        isEnabled = true,
+        isSystem = true
       ),
       FullRuleTargetInfo(
         FullOtherTarget(AllTarget),
-        "special:all",
-        "All nodes",
-        true,
-        true
+        name = "special:all",
+        description = "All nodes",
+        isEnabled = true,
+        isSystem = true
       )
     ) ++ groupsTargetInfos.drop(1),
-    true
+    isSystem = true
   )
 
   // init with full lib
@@ -3122,13 +3155,13 @@ class MockCampaign() {
       }
 
       val campaignIdFiltered: CampaignEvent => Boolean = campaignId match {
-        case None     => eventIdFiltered
-        case Some(id) => ev => eventIdFiltered(ev) || ev.campaignId != id
+        case None      => eventIdFiltered
+        case Some(id_) => ev => eventIdFiltered(ev) || ev.campaignId != id_
       }
 
       val campaignTypeFiltered: CampaignEvent => Boolean = campaignType match {
-        case None     => campaignIdFiltered
-        case Some(id) => ev => campaignIdFiltered(ev) && ev.campaignType != id
+        case None      => campaignIdFiltered
+        case Some(id_) => ev => campaignIdFiltered(ev) && ev.campaignType != id_
       }
 
       val stateFiltered: CampaignEvent => Boolean = states match {
@@ -3137,12 +3170,12 @@ class MockCampaign() {
       }
 
       val afterDateFiltered:  CampaignEvent => Boolean = afterDate match {
-        case None     => stateFiltered
-        case Some(id) => ev => stateFiltered(ev) && ev.end.isAfter(id)
+        case None      => stateFiltered
+        case Some(id_) => ev => stateFiltered(ev) && ev.end.isAfter(id_)
       }
       val beforeDateFiltered: CampaignEvent => Boolean = beforeDate match {
-        case None     => afterDateFiltered
-        case Some(id) => ev => afterDateFiltered(ev) && ev.start.isBefore(id)
+        case None      => afterDateFiltered
+        case Some(id_) => ev => afterDateFiltered(ev) && ev.start.isBefore(id_)
       }
       for {
         i      <- items.get.map(_.values)

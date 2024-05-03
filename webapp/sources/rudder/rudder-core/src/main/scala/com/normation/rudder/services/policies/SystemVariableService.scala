@@ -673,7 +673,7 @@ class SystemVariableServiceImpl(
 
   // obtaining variable values from (failable) properties.
   // If property fails, variable will be empty.
-  private[this] def getProp[T](specName: String, getter: () => Box[T]): SystemVariable = {
+  private def getProp[T](specName: String, getter: () => Box[T]): SystemVariable = {
     // try to get the user configured value, else log an error and use the default value.
     val variable = systemVariableSpecService.get(specName).toVariable()
 

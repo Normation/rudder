@@ -108,7 +108,7 @@ class TechniqueTree(
     }
   }
 
-  private[this] def categoryNode(
+  private def categoryNode(
       category:        ActiveTechniqueCategory,
       subCat:          List[ActiveTechniqueCategory],
       dep:             TechniqueDependencies,
@@ -128,7 +128,7 @@ class TechniqueTree(
     }
   }
 
-  private[this] def techniqueNode(
+  private def techniqueNode(
       dep:             TechniqueDependencies,
       technique:       Technique,
       activeTechnique: ActiveTechnique
@@ -143,7 +143,7 @@ class TechniqueTree(
                                                                                       else Nil)
   }
 
-  private[this] def directiveNode(dep: TechniqueDependencies, id: DirectiveUid): JsTreeNode = {
+  private def directiveNode(dep: TechniqueDependencies, id: DirectiveUid): JsTreeNode = {
     val (directive, ruleIds) = dep.directives(id)
 
     new JsTreeNode {
@@ -158,7 +158,7 @@ class TechniqueTree(
     }
   }
 
-  private[this] def ruleNode(id: RuleId): JsTreeNode = {
+  private def ruleNode(id: RuleId): JsTreeNode = {
     ruleRepository.get(id).toBox match {
       case Full(rule) =>
         new JsTreeNode {

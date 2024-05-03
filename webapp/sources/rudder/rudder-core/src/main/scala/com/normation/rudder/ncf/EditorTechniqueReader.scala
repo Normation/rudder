@@ -100,7 +100,7 @@ class EditorTechniqueReaderImpl(
     }
   }
 
-  private[this] val methodsCache = Ref.Synchronized.make((Instant.EPOCH, Map[BundleName, GenericMethod]())).runNow
+  private val methodsCache = Ref.Synchronized.make((Instant.EPOCH, Map[BundleName, GenericMethod]())).runNow
 
   def getMethodsMetadata: IOResult[Map[BundleName, GenericMethod]] = {
     for {
@@ -110,7 +110,7 @@ class EditorTechniqueReaderImpl(
     }
   }
 
-  private[this] def readMethodsMetadataFile(
+  private def readMethodsMetadataFile(
       cache: (Instant, Map[BundleName, GenericMethod])
   ): IOResult[(Instant, Map[BundleName, GenericMethod])] = {
     if (methodsFile.exists()) {

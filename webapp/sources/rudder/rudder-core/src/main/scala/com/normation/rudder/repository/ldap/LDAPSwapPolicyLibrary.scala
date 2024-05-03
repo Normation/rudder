@@ -125,7 +125,7 @@ class ImportTechniqueLibraryImpl(
                                    pisSaved <- ZIO.foreach(directives) { directive =>
                                                  val piEntry = mapper.userDirective2Entry(directive, uptEntry.dn)
                                                  con
-                                                   .save(piEntry, true)
+                                                   .save(piEntry, removeMissingAttributes = true)
                                                    .chainError(
                                                      "Error when persisting directive entry with DN '%s' in LDAP".format(piEntry.dn)
                                                    )
@@ -134,7 +134,7 @@ class ImportTechniqueLibraryImpl(
                                    "OK"
                                  }
                              }
-            subCategories <- ZIO.foreach(content.categories)(cat => recSaveUserLib(categoryEntry.dn, cat, false))
+            subCategories <- ZIO.foreach(content.categories)(cat => recSaveUserLib(categoryEntry.dn, cat, isRoot = false))
           } yield {
             () // unit is expected
           }
@@ -279,7 +279,7 @@ class ImportTechniqueLibraryImpl(
               categoryIds += cat.id
               categoryNamesByParent += (cat.name -> (parent.id :: categoryNamesByParent.getOrElse(cat.name, Nil)))
 
-              val subCategories = content.categories.flatMap(c => recSanitizeCategory(c, cat, false))
+              val subCategories = content.categories.flatMap(c => recSanitizeCategory(c, cat, isRoot = false))
               val subUPTs       = content.templates.flatMap(sanitizeUPT(_))
 
               Some(
@@ -296,7 +296,7 @@ class ImportTechniqueLibraryImpl(
         }
       }
 
-      recSanitizeCategory(userLib, userLib.category, true).notOptional(
+      recSanitizeCategory(userLib, userLib.category, isRoot = true).notOptional(
         "Error when trying to sanitize serialised user library for consistency errors"
       )
     }

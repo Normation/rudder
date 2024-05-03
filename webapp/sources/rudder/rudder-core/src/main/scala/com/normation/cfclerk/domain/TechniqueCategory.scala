@@ -111,7 +111,7 @@ object TechniqueCategoryId {
     }
   }
 
-  private[this] val empty = """^[\s]*$""".r
+  private val empty = """^[\s]*$""".r
 
   /**
    * Build a category id from a path.

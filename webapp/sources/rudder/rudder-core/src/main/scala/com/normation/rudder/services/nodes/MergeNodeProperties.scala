@@ -185,13 +185,13 @@ object GroupProp {
         case FullOtherTarget(t)         => // target:all nodes, only root, only managed node, etc
           Right(
             GroupProp(
-              Nil,  // they don't have properties for now
+              Nil,                // they don't have properties for now
               NodeGroupId(NodeGroupUid(t.target)),
-              And,  // for simplification, since they don't have properties it doesn't matter
+              And,                // for simplification, since they don't have properties it doesn't matter
               ResultTransformation.Identity,
-              true, // these special targets behave as dynamic groups
-              Nil,  // terminal leaf
-              target.name
+              isDynamic = true,   // these special targets behave as dynamic groups
+              parentGroups = Nil, // terminal leaf
+              groupName = target.name
             )
           )
         case FullGroupTarget(t, g)      =>
@@ -255,7 +255,7 @@ object MergeNodeProperties {
                                    NodeGroupId
                                      .parse(parentId)
                                      .left
-                                     .map(Inconsistency)
+                                     .map(Inconsistency.apply)
                                      .flatMap(pId => {
                                        if (acc.isDefinedAt(pId)) Right(Nil)
                                        else {

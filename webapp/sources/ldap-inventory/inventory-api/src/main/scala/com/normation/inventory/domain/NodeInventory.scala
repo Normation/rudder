@@ -332,39 +332,39 @@ object ParseOSType {
     (osType.toLowerCase, osName.toLowerCase, fullName.toLowerCase) match {
       case ("mswin32", _, x) =>
         // in windows, relevant information are in the fullName string
-        if (x contains "xp") WindowsXP
-        else if (x contains "vista") WindowsVista
-        else if (x contains "seven") WindowsSeven
-        else if (x contains "10") Windows10
-        else if (x contains "2000") Windows2000
-        else if (x contains "2003") Windows2003
-        else if (x contains "2008 r2") Windows2008R2 // must be before 2008 for obvious reason
-        else if (x contains "2008") Windows2008
-        else if (x contains "2012 r2") Windows2012R2
-        else if (x contains "2012") Windows2012
-        else if (x contains "2016 r2") Windows2016R2
-        else if (x contains "2016") Windows2016
-        else if (x contains "2019") Windows2019
-        else if (x contains "2022") Windows2022
+        if (x.contains("xp")) WindowsXP
+        else if (x.contains("vista")) WindowsVista
+        else if (x.contains("seven")) WindowsSeven
+        else if (x.contains("10")) Windows10
+        else if (x.contains("2000")) Windows2000
+        else if (x.contains("2003")) Windows2003
+        else if (x.contains("2008 r2")) Windows2008R2 // must be before 2008 for obvious reason
+        else if (x.contains("2008")) Windows2008
+        else if (x.contains("2012 r2")) Windows2012R2
+        else if (x.contains("2012")) Windows2012
+        else if (x.contains("2016 r2")) Windows2016R2
+        else if (x.contains("2016")) Windows2016
+        else if (x.contains("2019")) Windows2019
+        else if (x.contains("2022")) Windows2022
         else UnknownWindowsType
 
       case ("linux", x, _) =>
-        if (x contains "debian") Debian
-        else if (x contains "ubuntu") Ubuntu
-        else if (x contains "kali") Kali
-        else if (x contains "redhat") Redhat
-        else if (x contains "centos") Centos
-        else if (x contains "fedora") Fedora
-        else if (x contains "suse") Suse
-        else if (x contains "android") Android
-        else if (x contains "oracle") Oracle
-        else if (x contains "scientific") Scientific
-        else if (x contains "slackware") Slackware
-        else if (x contains "mint") Mint
-        else if (x contains "amazon linux") AmazonLinux
-        else if (x contains "rocky") RockyLinux
-        else if (x contains "almalinux") AlmaLinux
-        else if (x contains "raspbian") Raspbian
+        if (x.contains("debian")) Debian
+        else if (x.contains("ubuntu")) Ubuntu
+        else if (x.contains("kali")) Kali
+        else if (x.contains("redhat")) Redhat
+        else if (x.contains("centos")) Centos
+        else if (x.contains("fedora")) Fedora
+        else if (x.contains("suse")) Suse
+        else if (x.contains("android")) Android
+        else if (x.contains("oracle")) Oracle
+        else if (x.contains("scientific")) Scientific
+        else if (x.contains("slackware")) Slackware
+        else if (x.contains("mint")) Mint
+        else if (x.contains("amazon linux")) AmazonLinux
+        else if (x.contains("rocky")) RockyLinux
+        else if (x.contains("almalinux")) AlmaLinux
+        else if (x.contains("raspbian")) Raspbian
         else UnknownLinuxType
 
       case ("solaris", _, _) => SolarisOS
@@ -474,10 +474,10 @@ sealed abstract class SoftwareUpdateKind(override val entryName: String) extends
 }
 
 object SoftwareUpdateKind                                                    extends Enum[SoftwareUpdateKind] {
-  final case object None                extends SoftwareUpdateKind("none")
-  final case object Defect              extends SoftwareUpdateKind("defect")
-  final case object Security            extends SoftwareUpdateKind("security")
-  final case object Enhancement         extends SoftwareUpdateKind("enhancement")
+  case object None                      extends SoftwareUpdateKind("none")
+  case object Defect                    extends SoftwareUpdateKind("defect")
+  case object Security                  extends SoftwareUpdateKind("security")
+  case object Enhancement               extends SoftwareUpdateKind("enhancement")
   final case class Other(value: String) extends SoftwareUpdateKind("other")
 
   def values: IndexedSeq[SoftwareUpdateKind] = findValues

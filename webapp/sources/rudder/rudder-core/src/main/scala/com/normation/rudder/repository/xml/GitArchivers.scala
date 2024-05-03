@@ -94,7 +94,7 @@ class GitRuleArchiverImpl(
   override val relativePath = ruleRootDir
   override val tagPrefix    = "archives/configurations-rules/"
 
-  private[this] def newCrFile(ruleId: RuleId) = new File(getItemDirectory, ruleId.serialize + ".xml")
+  private def newCrFile(ruleId: RuleId) = new File(getItemDirectory, ruleId.serialize + ".xml")
 
   def archiveRule(rule: Rule, doCommit: Option[(ModificationId, PersonIdent, Option[String])]): IOResult[GitPath] = {
     val crFile  = newCrFile(rule.id)
@@ -416,11 +416,11 @@ class GitActiveTechniqueCategoryArchiverImpl(
 
   override lazy val tagPrefix = "archives/directives/"
 
-  private[this] def newActiveTechniquecFile(uptcId: ActiveTechniqueCategoryId, parents: List[ActiveTechniqueCategoryId]) = {
+  private def newActiveTechniquecFile(uptcId: ActiveTechniqueCategoryId, parents: List[ActiveTechniqueCategoryId]) = {
     newCategoryDirectory(uptcId, parents).map(new File(_, serializedCategoryName))
   }
 
-  private[this] def archiveWithRename(
+  private def archiveWithRename(
       uptc:       ActiveTechniqueCategory,
       oldParents: Option[List[ActiveTechniqueCategoryId]],
       newParents: List[ActiveTechniqueCategoryId],
@@ -666,7 +666,7 @@ class GitActiveTechniqueArchiverImpl(
   override lazy val relativePath = techniqueLibraryRootDir
   override def getCategoryName(categoryId: ActiveTechniqueCategoryId) = categoryId.value
 
-  private[this] def newActiveTechniqueFile(ptName: TechniqueName, parents: List[ActiveTechniqueCategoryId]) = {
+  private def newActiveTechniqueFile(ptName: TechniqueName, parents: List[ActiveTechniqueCategoryId]) = {
     // parents can not be null: we must have at least the root category
     parents match {
       case Nil       =>
@@ -815,7 +815,7 @@ class GitDirectiveArchiverImpl(
   override lazy val relativePath = techniqueLibraryRootDir
   override def getCategoryName(categoryId: ActiveTechniqueCategoryId) = categoryId.value
 
-  private[this] def newPiFile(
+  private def newPiFile(
       directiveId: DirectiveUid,
       ptName:      TechniqueName,
       parents:     List[ActiveTechniqueCategoryId]
@@ -933,7 +933,7 @@ class GitNodeGroupArchiverImpl(
 
   override lazy val tagPrefix = "archives/groups/"
 
-  private[this] def newNgFile(ngcId: NodeGroupCategoryId, parents: List[NodeGroupCategoryId]) = {
+  private def newNgFile(ngcId: NodeGroupCategoryId, parents: List[NodeGroupCategoryId]) = {
     newCategoryDirectory(ngcId, parents).map(new File(_, serializedCategoryName))
   }
 
@@ -1071,7 +1071,7 @@ class GitNodeGroupArchiverImpl(
     )
   }
 
-  private[this] def newNgFile(ngId: NodeGroupId, parents: List[NodeGroupCategoryId]) = {
+  private def newNgFile(ngId: NodeGroupId, parents: List[NodeGroupCategoryId]) = {
     parents match {
       case h :: t => newCategoryDirectory(h, t).map(new File(_, ngId.withDefaultRev.serialize + ".xml"))
       case Nil    =>
@@ -1207,7 +1207,7 @@ class GitParameterArchiverImpl(
   override val relativePath = parameterRootDir
   override val tagPrefix    = "archives/parameters/"
 
-  private[this] def newParameterFile(parameterName: String) = new File(getItemDirectory, parameterName + ".xml")
+  private def newParameterFile(parameterName: String) = new File(getItemDirectory, parameterName + ".xml")
 
   def archiveParameter(
       parameter: GlobalParameter,

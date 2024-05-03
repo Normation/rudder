@@ -85,25 +85,25 @@ object HashAlgoConstraint extends Enum[HashAlgoConstraint] {
    * Simple standard hash: MD5, SHA-1,256,512
    */
   object MD5 extends HashAlgoConstraint("md5") {
-    private[this] val md = MessageDigest.getInstance("MD5")
+    private val md = MessageDigest.getInstance("MD5")
     override def hash(input: Array[Byte]): String = Hex.encodeHexString(md.digest(input))
 
   }
 
   object SHA1 extends HashAlgoConstraint("sha1") {
-    private[this] val md = MessageDigest.getInstance("SHA-1")
+    private val md = MessageDigest.getInstance("SHA-1")
     override def hash(input: Array[Byte]): String = Hex.encodeHexString(md.digest(input))
 
   }
 
   object SHA256 extends HashAlgoConstraint("sha256") {
-    private[this] val md = MessageDigest.getInstance("SHA-256")
+    private val md = MessageDigest.getInstance("SHA-256")
     override def hash(input: Array[Byte]): String = Hex.encodeHexString(md.digest(input))
 
   }
 
   object SHA512 extends HashAlgoConstraint("sha512") {
-    private[this] val md = MessageDigest.getInstance("SHA-512")
+    private val md = MessageDigest.getInstance("SHA-512")
     override def hash(input: Array[Byte]): String = Hex.encodeHexString(md.digest(input))
 
   }
@@ -256,7 +256,7 @@ object HashAlgoConstraint extends Enum[HashAlgoConstraint] {
    * So there is the regex to read them back.
    */
 
-  private[this] val format = """([\w-]+):(.*)""".r
+  private val format = """([\w-]+):(.*)""".r
 
   def unserialize(value: String): PureResult[(HashAlgoConstraint, String)] = {
     value match {

@@ -234,7 +234,7 @@ object SectionVal {
     </section>
   }
 
-  private[this] def innerSectionXML(section: SectionVal):                                      NodeSeq    = {
+  private def innerSectionXML(section: SectionVal):                                            NodeSeq    = {
     // variables
     section.variables.toSeq.sortBy(_._1).map {
       case (variable, value) =>

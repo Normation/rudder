@@ -52,7 +52,7 @@ trait UserAuthorisationLevel {
 // and default implementation is: no
 class DefaultUserAuthorisationLevel() extends UserAuthorisationLevel {
   // Alternative level provider
-  private[this] var level: Option[UserAuthorisationLevel] = None
+  private var level: Option[UserAuthorisationLevel] = None
 
   def overrideLevel(l: UserAuthorisationLevel): Unit = {
     PluginLogger.info(s"Update User Authorisations level to '${l.name}'")

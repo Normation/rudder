@@ -112,7 +112,7 @@ object DefaultTenantService {
   def make(tenantIds: IterableOnce[TenantId]): UIO[DefaultTenantService] = {
     for {
       ref <- Ref.make(Set.from(tenantIds))
-    } yield new DefaultTenantService(false, ref)
+    } yield new DefaultTenantService(_tenantsEnabled = false, tenantIds = ref)
   }
 }
 
@@ -168,7 +168,7 @@ class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: 
       ZStream
         .fromZIO(getTenants())
         .cross(s)
-        .collect { case (tenantIds, n) if (qc.nodePerms.canSee(n)(tenantIds)) => n }
+        .collect { case (_tenantIds, n) if (qc.nodePerms.canSee(n)(_tenantIds)) => n }
     }
   }
 

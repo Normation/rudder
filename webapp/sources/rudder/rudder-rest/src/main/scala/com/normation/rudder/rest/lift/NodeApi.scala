@@ -46,6 +46,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.*
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core.InventoryDit
+import com.normation.inventory.ldap.core.UUID_ENTRY
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.api.ApiVersion
@@ -895,7 +896,7 @@ class NodeApiService(
         .foldLeft(Seq((acceptedDit, AcceptedInventory), (pendingDit, PendingInventory)))(Option.empty[InventoryStatus]) {
           case (current, (dit, s)) =>
             current match {
-              case None    => con.exists(dit.NODES.NODE.dn(id)).map(exists => if (exists) Some(s) else None)
+              case None    => con.exists((dit.NODES.NODE: UUID_ENTRY[NodeId]).dn(id)).map(exists => if (exists) Some(s) else None)
               case Some(v) => Some(v).succeed
             }
         }
@@ -972,13 +973,13 @@ class NodeApiService(
         id.value,
         "",
         NodeState.Enabled,
-        false,
-        false,
-        DateTime.now,
-        ReportingConfiguration(None, None, None),
-        Nil,
-        None,
-        None
+        isSystem = false,
+        isPolicyServer = false,
+        creationDate = DateTime.now,
+        nodeReportingConfiguration = ReportingConfiguration(None, None, None),
+        properties = Nil,
+        policyMode = None,
+        securityTag = None
       )
     }
 
@@ -1410,8 +1411,8 @@ class NodeApiService(
       prettify: Boolean,
       qc:       QueryContext
   ): LiftResponse = {
-    implicit val action = s"list${state.name.capitalize}Nodes"
-    val predicate       = (n: NodeFact) => {
+    implicit val action: String = s"list${state.name.capitalize}Nodes"
+    val predicate = (n: NodeFact) => {
       (nodeFilter match {
         case Some(ids) => ids.contains(n.id)
         case None      => true
@@ -1466,7 +1467,7 @@ class NodeApiService(
       prettify: Boolean,
       qc:       QueryContext
   ): LiftResponse = {
-    implicit val action = s"list${state.name.capitalize}Nodes"
+    implicit val action: String = s"list${state.name.capitalize}Nodes"
     (for {
       nodeIds <- state match {
                    case PendingInventory  => pendingNodeQueryProcessor.check(query, None).toBox
@@ -1526,8 +1527,8 @@ class NodeApiService(
         .setToIfDefined(newKeyStatus)
     }
 
-    implicit val qc    = cc.toQuery
-    implicit val attrs = SelectFacts.none
+    implicit val qc:    QueryContext = cc.toQuery
+    implicit val attrs: SelectFacts  = SelectFacts.none
 
     for {
       nodeFact      <- nodeFactRepository.get(nodeId).notOptional(s"node with id '${nodeId.value}' was not found")
@@ -1599,8 +1600,10 @@ class NodeApiService(
 
     val readTimeout = 30.seconds
 
-    val request =
-      remoteRunRequest(nodeId, classes, true, false).timeout(connTimeoutMs = 1000, readTimeoutMs = readTimeout.toMillis.toInt)
+    val request = {
+      remoteRunRequest(nodeId, classes, keepOutput = true, asynchronous = false)
+        .timeout(connTimeoutMs = 1000, readTimeoutMs = readTimeout.toMillis.toInt)
+    }
 
     // copy will close `os`
     val copy = (os: OutputStream, timeout: Duration) => {
@@ -1673,7 +1676,7 @@ class NodeApiService(
           // remote run only works for CFEngine based agent
           val commandResult = {
             if (node.rudderAgent.agentType == AgentType.CfeEnterprise || node.rudderAgent.agentType == AgentType.CfeCommunity) {
-              val request = remoteRunRequest(node.id, classes, false, true)
+              val request = remoteRunRequest(node.id, classes, keepOutput = false, asynchronous = true)
               try {
                 val result = request.asString
                 if (result.isSuccess) {

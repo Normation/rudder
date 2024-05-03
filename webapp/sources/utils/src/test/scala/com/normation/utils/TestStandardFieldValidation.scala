@@ -30,7 +30,7 @@ class TestStandardFieldValidation extends Specification {
   "hostname, which are really FQDN in rudder" should {
     "be allowed to have . and _" in {
 
-      HostnameRegex.checkHostname("windows_24.host.domain") must beRight()
+      HostnameRegex.checkHostname("windows_24.host.domain") must beRight
 
     }
 

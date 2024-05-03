@@ -173,7 +173,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def getGlobalUserCompliance()(implicit qc: QueryContext): Box[Option[(ComplianceLevel, Long)]] = null
     def findUncomputedNodeStatusReports(): Box[Map[NodeId, NodeStatusReport]] = null
 
-    @nowarn()
+    @nowarn("msg=parameter.*is never used")
     def getUserNodeStatusReports()(implicit qc: QueryContext):                  Box[Map[NodeId, NodeStatusReport]] = Full(Map())
     def getSystemAndUserCompliance(
         optNodeIds: Option[Set[NodeId]]
@@ -196,8 +196,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
   lazy val agentRunService: agentRunService = new agentRunService
   class agentRunService extends AgentRunIntervalService() {
-    private[this] val interval = Duration.standardMinutes(5)
-    private[this] val nodes    = Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), ResolvedAgentRunInterval(interval, 1))).toMap
+    private val interval = Duration.standardMinutes(5)
+    private val nodes    = Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), ResolvedAgentRunInterval(interval, 1))).toMap
     def getGlobalAgentRun():                                  Box[AgentRunInterval]                      = Full(AgentRunInterval(None, interval.toStandardMinutes.getMinutes, 0, 0, 0))
     def getNodeReportingConfigurations(nodeIds: Set[NodeId]): Box[Map[NodeId, ResolvedAgentRunInterval]] = {
       Full(nodes.view.filterKeys(x => nodeIds.contains(x)).toMap)
@@ -950,9 +950,9 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 //  }
 
   implicit def toReport(t: (DateTime, String, String, String, String, String, String, DateTime, String, String)): Reports = {
-    implicit def toRuleId(s:      String) = RuleId(RuleUid(s))
-    implicit def toDirectiveId(s: String) = DirectiveId(DirectiveUid(s), GitVersion.DEFAULT_REV)
-    implicit def toNodeId(s:      String) = NodeId(s)
+    implicit def toRuleId(s:      String): RuleId      = RuleId(RuleUid(s))
+    implicit def toDirectiveId(s: String): DirectiveId = DirectiveId(DirectiveUid(s), GitVersion.DEFAULT_REV)
+    implicit def toNodeId(s:      String): NodeId      = NodeId(s)
 
     Reports(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10)
   }

@@ -111,17 +111,6 @@ class ComplianceJdbcRepository(
     "badpolicymode"
   )
 
-  implicit val ComplianceLevelRead:  Read[ComplianceLevel]  = {
-    Read[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].map(tuple =>
-      ComplianceLevel.apply _ tupled tuple
-    )
-  }
-  implicit val ComplianceLevelWrite: Write[ComplianceLevel] = {
-    Write[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].contramap(comp =>
-      ComplianceLevel.unapply(comp).get
-    )
-  }
-
   /*
    * Save a list of node compliance reports
    */

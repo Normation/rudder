@@ -142,7 +142,7 @@ final case class RestDataSerializerImpl(
     diffService:   DiffService
 ) extends RestDataSerializer with Loggable {
 
-  private[this] def serializeMachineType(machine: Option[MachineType]): JValue = {
+  private def serializeMachineType(machine: Option[MachineType]): JValue = {
     machine match {
       case None                           => "No machine Inventory"
       case Some(UnknownMachineType)       => "Unknown"
@@ -356,9 +356,9 @@ final case class RestDataSerializerImpl(
     (("from" -> convert(diff.oldValue))
     ~ ("to"  -> convert(diff.newValue)))
   }
-  private[this] val create = "create"
-  private[this] val delete = "delete"
-  private[this] val modify = "modify"
+  private val create = "create"
+  private val delete = "delete"
+  private val modify = "modify"
 
   def serializeRuleChange(change: RuleChange): Box[JValue] = {
 
@@ -579,14 +579,14 @@ final case class RestDataSerializerImpl(
           val technique = readTechnique.get(TechniqueId(techniqueName, directive.techniqueVersion))
 
           val result = change.initialState match {
-            case Some((techniqueName, initialState, initialRootSection)) =>
-              val diff = diffService.diffDirective(initialState, initialRootSection, directive, rootSection, techniqueName)
+            case Some((techniqueName_, initialState, initialRootSection)) =>
+              val diff = diffService.diffDirective(initialState, initialRootSection, directive, rootSection, techniqueName_)
               technique
                 .flatMap(t =>
                   initialRootSection.flatMap(rootSection => serializeDirectiveDiff(diff, initialState, t, rootSection))
                 )
                 .getOrElse(JString("Error while fetching technique"))
-            case None                                                    => JString(s"Error while fetching initial state of change request.")
+            case None                                                     => JString(s"Error while fetching initial state of change request.")
           }
           (("action" -> modify)
           ~ ("change" -> result))

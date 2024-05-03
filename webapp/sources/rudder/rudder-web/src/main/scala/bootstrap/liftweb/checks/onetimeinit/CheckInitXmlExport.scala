@@ -81,7 +81,7 @@ class CheckInitXmlExport(
                     ModificationId(uuidGen.newUuid),
                     RudderEventActor,
                     Some("Initialising configuration-repository sub-system"),
-                    false
+                    includeSystem = false
                   )(QueryContext.systemQC)
                 } else {
                   BootstrapLogger.trace("At least a full archive of configuration items done, no need for further initialisation") *>

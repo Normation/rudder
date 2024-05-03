@@ -109,10 +109,10 @@ class RestCompletion(
       fetchTags match {
         case eb: EmptyBox =>
           val e = eb ?~! s"Error when looking for object containing ${token}"
-          toJsonError(None, e.messageChain)("quicksearch", false)
+          toJsonError(None, e.messageChain)("quicksearch", prettify = false)
 
         case Full(results) =>
-          toJsonResponse(None, results.map(("value", _)))("completeTags", false)
+          toJsonResponse(None, results.map(("value", _)))("completeTags", prettify = false)
       }
 
     }

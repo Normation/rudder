@@ -42,7 +42,7 @@ import scala.xml.*
 object MarshallingUtil {
 
   def createElem(label: String, fileFormat: String)(children: NodeSeq): Elem = {
-    Elem(null, label, new UnprefixedAttribute("fileFormat", fileFormat, Null), TopScope, false, children*)
+    Elem(null, label, new UnprefixedAttribute("fileFormat", fileFormat, Null), TopScope, minimizeEmpty = false, child = children*)
   }
 
   def createTrimedElem(label: String, fileFormat: String)(children: NodeSeq): Elem = {

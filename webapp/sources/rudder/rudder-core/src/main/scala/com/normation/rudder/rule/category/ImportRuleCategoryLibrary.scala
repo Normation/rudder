@@ -37,7 +37,6 @@
 
 package com.normation.rudder.rule.category
 
-import cats.implicits.*
 import com.normation.errors.*
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
@@ -186,7 +185,7 @@ class ImportRuleCategoryLibraryImpl(
               val currentStatus = parentCategories.getOrElse(Nil)
               categoryNamesByParent += (cat.name -> (parent.id :: currentStatus))
 
-              val subCategories = cat.childs.flatMap(recSanitizeCategory(_, cat, false))
+              val subCategories = cat.childs.flatMap(recSanitizeCategory(_, cat, isRoot = false))
 
               Some(cat.copy(childs = subCategories))
           }
@@ -194,7 +193,7 @@ class ImportRuleCategoryLibraryImpl(
       }
 
       IOResult
-        .attempt(recSanitizeCategory(rootCategory, rootCategory, true))
+        .attempt(recSanitizeCategory(rootCategory, rootCategory, isRoot = true))
         .notOptional("Error when trying to sanitize serialised user library for consistency errors")
     }
 

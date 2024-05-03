@@ -177,6 +177,8 @@ import org.specs2.matcher.MatchResult
 import scala.collection.MapView
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
+import scala.reflect.ClassTag
+import scala.reflect.classTag
 import scala.xml.Elem
 import scala.xml.NodeSeq
 import zio.*
@@ -662,9 +664,9 @@ class RestTestSetUp {
     override def forType(fieldType: VariableSpec, id: String): DirectiveField = default(id)
     override def default(withId: String): DirectiveField = new DirectiveField {
       self => type ValueType = String
-      def manifest = manifestOf[String]
-      lazy val id  = withId
-      def name     = id
+      def manifest: ClassTag[String] = classTag[String]
+      lazy val id = withId
+      def name    = id
       override val uniqueFieldId: Box[String]                      = Full(id)
       protected var _x:           String                           = getDefaultValue
       def validate:               List[FieldError]                 = Nil
@@ -950,8 +952,14 @@ class RestTestSetUp {
     )
   )
 
-  val apiVersions: List[ApiVersion] =
-    ApiVersion(14, true) :: ApiVersion(15, true) :: ApiVersion(16, true) :: ApiVersion(17, true) :: ApiVersion(18, false) :: Nil
+  val apiVersions: List[ApiVersion] = {
+    ApiVersion(14, deprecated = true) ::
+    ApiVersion(15, deprecated = true) ::
+    ApiVersion(16, deprecated = true) ::
+    ApiVersion(17, deprecated = true) ::
+    ApiVersion(18, deprecated = false) ::
+    Nil
+  }
   val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))
 
   liftRules.statelessDispatch.append(RestStatus)
@@ -1032,7 +1040,7 @@ class RestTest(liftRules: LiftRules) {
     }
   }
 
-  private[this] def mockRequest(path: String, method: String) = {
+  private def mockRequest(path: String, method: String) = {
     val mockReq = new MockHttpServletRequest("http://localhost:8080")
 
     val (p, queryString) = {
@@ -1055,7 +1063,7 @@ class RestTest(liftRules: LiftRules) {
   def POST(path:   String): MockHttpServletRequest = mockRequest(path, "POST")
   def DELETE(path: String): MockHttpServletRequest = mockRequest(path, "DELETE")
 
-  private[this] def mockJsonRequest(path: String, method: String, data: JValue) = {
+  private def mockJsonRequest(path: String, method: String, data: JValue) = {
     val mockReq = mockRequest(path, method)
     mockReq.body = data
     mockReq

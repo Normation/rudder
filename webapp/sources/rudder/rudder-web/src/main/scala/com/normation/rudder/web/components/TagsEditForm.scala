@@ -33,14 +33,14 @@ class TagsEditForm(tags: Tags, objectId: String) extends Loggable {
       s"#${controllerId} *+" #> valueInput
     }
 
-    css(tagTemplate(controllerId, appId, true, isRule))
+    css(tagTemplate(controllerId, appId, isEditForm = true, isRule = isRule))
   }
 
   def viewTags(controllerId: String, appId: String, isRule: Boolean): NodeSeq = {
-    tagTemplate(controllerId, appId, false, isRule)
+    tagTemplate(controllerId, appId, isEditForm = false, isRule = isRule)
   }
 
-  private[this] def tagTemplate(controllerId: String, appId: String, isEditForm: Boolean, isRule: Boolean): NodeSeq = {
+  private def tagTemplate(controllerId: String, appId: String, isEditForm: Boolean, isRule: Boolean): NodeSeq = {
 
     val (filterId, objectType) = if (isRule) {
       ("showFiltersRules", "rule")

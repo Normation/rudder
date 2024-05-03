@@ -154,11 +154,11 @@ sealed trait ArchiveScope extends EnumEntry          { def value: String }
 object ArchiveScope       extends Enum[ArchiveScope] {
 
   // using nodep/alldep to avoid confusion with "none" in scala code
-  final case object AllDep     extends ArchiveScope { val value = "all"        }
-  final case object NoDep      extends ArchiveScope { val value = "none"       }
-  final case object Directives extends ArchiveScope { val value = "directives" }
-  final case object Techniques extends ArchiveScope { val value = "techniques" }
-  final case object Groups     extends ArchiveScope { val value = "groups"     }
+  case object AllDep     extends ArchiveScope { val value = "all"        }
+  case object NoDep      extends ArchiveScope { val value = "none"       }
+  case object Directives extends ArchiveScope { val value = "directives" }
+  case object Techniques extends ArchiveScope { val value = "techniques" }
+  case object Groups     extends ArchiveScope { val value = "groups"     }
 
   val values:           IndexedSeq[ArchiveScope]     = findValues
   def parse(s: String): Either[String, ArchiveScope] = {
@@ -175,9 +175,9 @@ object ArchiveScope       extends Enum[ArchiveScope] {
 sealed trait MergePolicy extends EnumEntry         { def value: String }
 object MergePolicy       extends Enum[MergePolicy] {
   // Default merge policy is "override everything", ie what is in the archive replace whatever exists in Rudder
-  final case object OverrideAll    extends MergePolicy { val value = "override-all"     }
+  case object OverrideAll    extends MergePolicy { val value = "override-all"     }
   // A merge policy that will keep current groups for rule with an ID common with one of the archive
-  final case object KeepRuleGroups extends MergePolicy { val value = "keep-rule-groups" }
+  case object KeepRuleGroups extends MergePolicy { val value = "keep-rule-groups" }
 
   val values: IndexedSeq[MergePolicy] = findValues
 
@@ -335,7 +335,7 @@ class ArchiveApi(
             _       <- checkArchiveService.check(archive)
             _       <- saveArchiveService.save(archive, merge)(authzToken.qc)
             _       <- ApplicationLoggerPure.Archive.info(s"Uploaded archive '${zip.fileName}' processed successfully")
-          } yield JRArchiveImported(true)
+          } yield JRArchiveImported(success = true)
       }).tapError(err => ApplicationLoggerPure.Archive.error(s"Error when processing uploaded archive: ${err.fullMsg}"))
 
       prog.toLiftResponseOne(params, schema, _ => None)

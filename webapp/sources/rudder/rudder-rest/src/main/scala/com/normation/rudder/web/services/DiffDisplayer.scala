@@ -96,8 +96,8 @@ final case class Modified[T](
     newValue: T
 ) extends DiffItem[T] {
 
-  private[this] val delete = Deleted(oldValue)
-  private[this] val add    = Added(oldValue)
+  private val delete = Deleted(oldValue)
+  private val add    = Added(oldValue)
 
   def display(implicit displayer: T => NodeSeq): NodeSeq =
     delete.display ++ add.display
@@ -105,7 +105,7 @@ final case class Modified[T](
 
 class DiffDisplayer(linkUtil: LinkUtil) extends Loggable {
 
-  implicit private[this] def displayDirective(directiveId: DirectiveId): Elem = {
+  implicit private def displayDirective(directiveId: DirectiveId): Elem = {
     <span> Directive {linkUtil.createDirectiveLink(directiveId.uid)}</span>
   }
   def displayDirectiveChangeList(
@@ -219,7 +219,7 @@ class DiffDisplayer(linkUtil: LinkUtil) extends Loggable {
   }
 
   //
-  private[this] val ruleCategoryService = new RuleCategoryService()
+  private val ruleCategoryService = new RuleCategoryService()
 
   def displayRuleCategory(
       rootCategory: RuleCategory,
@@ -227,7 +227,7 @@ class DiffDisplayer(linkUtil: LinkUtil) extends Loggable {
       newCategory:  Option[RuleCategoryId]
   ): Elem = {
 
-    def getCategoryFullName(category: RuleCategoryId)                = {
+    def getCategoryFullName(category: RuleCategoryId) = {
       ruleCategoryService.shortFqdn(rootCategory, category) match {
         case Full(fqdn) => fqdn
         case eb: EmptyBox =>
@@ -235,7 +235,7 @@ class DiffDisplayer(linkUtil: LinkUtil) extends Loggable {
           category.value
       }
     }
-    implicit def displayRuleCategory(ruleCategoryId: RuleCategoryId) = {
+    implicit def displayRuleCategory(ruleCategoryId: RuleCategoryId): Elem = {
       <span>{getCategoryFullName(ruleCategoryId)}</span>
     }
 

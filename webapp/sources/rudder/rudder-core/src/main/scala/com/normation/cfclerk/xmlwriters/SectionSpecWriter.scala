@@ -17,10 +17,10 @@ trait SectionSpecWriter {
 
 class SectionSpecWriterImpl extends SectionSpecWriter {
 
-  private[this] def createXmlTextNode(label: String, content: String): Elem =
+  private def createXmlTextNode(label: String, content: String): Elem =
     <tag>{Text(content)}</tag>.copy(label = label)
 
-  private[this] def createXmlNode(label: String, children: Seq[Node]): Elem =
+  private def createXmlNode(label: String, children: Seq[Node]): Elem =
     <tag>{children}</tag>.copy(label = label)
 
   def serialize(rootSection: Option[SectionSpec]): Box[NodeSeq] = {
@@ -38,14 +38,14 @@ class SectionSpecWriterImpl extends SectionSpecWriter {
 
   }
 
-  private[this] def serializeChild(section: SectionChildSpec): NodeSeq = {
+  private def serializeChild(section: SectionChildSpec): NodeSeq = {
     section match {
       case s: SectionSpec         => serializeSection(s)
       case v: SectionVariableSpec => serializeVariable(v)
     }
   }
 
-  private[this] def serializeSection(section: SectionSpec): NodeSeq = {
+  private def serializeSection(section: SectionSpec): NodeSeq = {
     val children = section.children.flatMap(serializeChild(_)).foldLeft(NodeSeq.Empty)((a, b) => a ++ b)
     val xml      = (createXmlNode(SECTION, children)
       % Attribute(SECTION_NAME, Text(section.name), Null)
@@ -56,7 +56,7 @@ class SectionSpecWriterImpl extends SectionSpecWriter {
     section.componentKey.map(key => xml % Attribute(SECTION_COMPONENT_KEY, Text(key), Null)).getOrElse(xml)
 
   }
-  private[this] def serializeVariable(variable: SectionVariableSpec): NodeSeq = {
+  private def serializeVariable(variable: SectionVariableSpec): NodeSeq = {
     // special case for derived password that are invisible
     variable.constraint.typeName match {
       case _: DerivedPasswordVType => NodeSeq.Empty
@@ -106,7 +106,7 @@ class SectionSpecWriterImpl extends SectionSpecWriter {
     }
   }
 
-  private[this] def serializeItem(item: ValueLabel): NodeSeq = {
+  private def serializeItem(item: ValueLabel): NodeSeq = {
     val value = createXmlTextNode(CONSTRAINT_ITEM_VALUE, item.value)
     val label = createXmlTextNode(CONSTRAINT_ITEM_LABEL, item.label)
     val child = Seq(value, label)
@@ -114,7 +114,7 @@ class SectionSpecWriterImpl extends SectionSpecWriter {
     createXmlNode(CONSTRAINT_ITEM, child)
   }
 
-  private[this] def serializeConstraint(constraint: Constraint): NodeSeq = {
+  private def serializeConstraint(constraint: Constraint): NodeSeq = {
     val constraintType = createXmlTextNode(CONSTRAINT_TYPE, constraint.typeName.name)
     val empty          = createXmlTextNode(CONSTRAINT_MAYBEEMPTY, constraint.mayBeEmpty.toString)
     val regexp         = constraint.typeName match {

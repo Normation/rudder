@@ -573,7 +573,7 @@ class RwLDAPConnection(
     }
   }
 
-  private[this] def logIgnoredException(dn: => String, action: String, e: Throwable): Unit = {
+  private def logIgnoredException(dn: => String, action: String, e: Throwable): Unit = {
     val diagnostic = e match {
       case ex: LDAPException => ex.getResultString
       case ex => ex.getMessage
@@ -591,7 +591,7 @@ class RwLDAPConnection(
     (req: DeleteRequest) => req.toLDIFChangeRecord,
     (req: DeleteRequest) => backed.delete(req),
     res => NO_SUCH_OBJECT == res || onlyReportOnDelete(res) // no such object only says it's already deleted
-  ) _
+  )
 
   /**
    * Specialized version of applyMods for AddRequest modification type
@@ -601,14 +601,14 @@ class RwLDAPConnection(
     (req: AddRequest) => req.toLDIFChangeRecord,
     (req: AddRequest) => backed.add(req),
     onlyReportOnAdd
-  ) _
+  )
 
   private val applyAdd = applyMod[AddRequest](
     "add",
     (req: AddRequest) => req.toLDIFChangeRecord,
     (req: AddRequest) => backed.add(req),
     onlyReportOnAdd
-  ) _
+  )
 
   /**
    * Specialized version of applyMods for ModifyRequest modification type
@@ -618,7 +618,7 @@ class RwLDAPConnection(
     (req: ModifyRequest) => req.toLDIFChangeRecord,
     (req: ModifyRequest) => backed.modify(req),
     onlyReportOnModify
-  ) _
+  )
 
   /**
    * Execute a plain modification.
@@ -666,7 +666,13 @@ class RwLDAPConnection(
         case None           =>
           applyAdd(new AddRequest(entry.backed))
         case Some(existing) =>
-          val mods = LDAPEntry.merge(existing, entry, false, removeMissingAttributes, forceKeepMissingAttributes)
+          val mods = LDAPEntry.merge(
+            existing,
+            entry,
+            ignoreRDN = false,
+            removeMissing = removeMissingAttributes,
+            forceKeepMissingAttributes = forceKeepMissingAttributes
+          )
           if (!mods.isEmpty) {
             applyModify(new ModifyRequest(entry.dn.toString, mods.asJava))
           } else LDIFNoopChangeRecord(entry.dn).succeed
@@ -721,7 +727,7 @@ class RwLDAPConnection(
             if (deleteRemoved) {
               delete(
                 tree.root,
-                true
+                recurse = true
               ) // TODO : do we want to actually only try to delete these entry and not cut the full subtree ? likely to be error prone
             } else Seq().succeed
           case Replace((dn, mods)) => ZIO.foreach(mods)(mod => modify(dn, mod))

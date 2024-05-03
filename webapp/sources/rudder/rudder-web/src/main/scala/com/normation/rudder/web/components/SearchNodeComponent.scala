@@ -97,24 +97,24 @@ class SearchNodeComponent(
   import SearchNodeComponent.*
 
   // our local copy of things we work on
-  private[this] var query   = _query.map(x => x.copy())
-  private[this] var srvList = _srvList.map(x => Seq() ++ x)
+  private var query   = _query.map(x => x.copy())
+  private var srvList = _srvList.map(x => Seq() ++ x)
 
-  private[this] val queryProcessor = RudderConfig.acceptedNodeQueryProcessor
+  private val queryProcessor = RudderConfig.acceptedNodeQueryProcessor
 
-  private[this] val nodeInfoService = RudderConfig.nodeInfoService
+  private val nodeInfoService = RudderConfig.nodeInfoService
 
   // The portlet for the server detail
-  private[this] def searchNodes: NodeSeq = ChooseTemplate(
+  private def searchNodes: NodeSeq = ChooseTemplate(
     List("templates-hidden", "server", "server_details"),
     "query-searchnodes"
   )
 
-  private[this] def nodesTable = ChooseTemplate(
+  private def nodesTable = ChooseTemplate(
     List("templates-hidden", "server", "server_details"),
     "nodes-table"
   )
-  private[this] def queryline: NodeSeq = {
+  private def queryline: NodeSeq = {
     <tr class="error"></tr>
   <tr class="query_line">
     <td class="first objectType"></td>
@@ -125,7 +125,7 @@ class SearchNodeComponent(
     <td class="last addLine"></td>
   </tr>
   }
-  private[this] def content = {
+  private def content = {
     val select = ("content-query ^*" #> "not relevant for ^* operator")
     select(searchNodes)
   }
@@ -346,7 +346,7 @@ class SearchNodeComponent(
      */
     def showQueryAndGridContent(): NodeSeq = {
       (
-        "content-query" #> { (x: NodeSeq) => displayQuery(x, false) }
+        "content-query" #> { (x: NodeSeq) => displayQuery(x, isGroupPage = false) }
         & "update-gridresult" #> srvGrid.displayAndInit(Some(Seq()), "serverGrid")
       )(searchNodes)
     }
@@ -390,11 +390,11 @@ class SearchNodeComponent(
         $$('#groupTabMenu').ready(function () {
           $$('#groupTabMenu [role="tab"]').on("show.bs.tab", function (e) {
             var isNextTabShowing = tabs.includes(e.target.getAttribute('aria-controls'));
-            var isPreviousTabShowing = 
+            var isPreviousTabShowing =
               !e.relatedTarget || tabs.includes(e.relatedTarget.getAttribute('aria-controls')); // initial tab shows nodes table
             if (!isPreviousTabShowing && isNextTabShowing) {
               handleNodesTableDisplayByGroupTab(true);
-            } 
+            }
             if (isPreviousTabShowing && !isNextTabShowing) {
               handleNodesTableDisplayByGroupTab(false);
             }
@@ -527,10 +527,10 @@ object SearchNodeComponent {
     val comparators  = optionComparatorsFor(ot, a)
     val compNames    = comparators.map(_._1)
     val selectedComp = compNames match {
-      case a :: _ =>
+      case b :: _ =>
         compNames.filter(_ == c_oldVal) match {
           case x :: _ => x
-          case Nil    => a
+          case Nil    => b
         }
       case Nil    => ""
     }

@@ -30,9 +30,9 @@ trait JsonSpecMatcher { self: MustMatchers with Specification =>
 
   def equalsJsonSemantic(res: String): Matcher[String] = {
     res.fromJson[Json] match {
-      case Right(json) =>
-        new JsonEqualityMatcher(json).toStringMatcher
-      case Left(_)     => (s: String) => ko(s"The provided json is not valid, cannot do semantic comparison of $s with $res")
+      case Right(json_) =>
+        new JsonEqualityMatcher(json_).toStringMatcher
+      case Left(_)      => (s: String) => ko(s"The provided json is not valid, cannot do semantic comparison of $s with $res")
     }
   }
 }
@@ -65,7 +65,7 @@ private object JsonSpecMatcher {
     // intercept the match (json against json) to display 'expected' and 'actual' with prettifed format
     private def jsonMatchResult(s: Expectable[String]): MatchResult[Any] = stringAsJson(s) match {
       case MatchFailure(ok, ko, expectable, trace, FailureDetails(actual, expected)) =>
-        MatchFailure(ok, ko, expectable, trace, FailureDetails(prettyPrint(actual), prettyPrint(expected)))
+        MatchFailure.create(ok(), ko(), expectable, trace, FailureDetails(prettyPrint(actual), prettyPrint(expected)))
       case other                                                                     => other
     }
   }

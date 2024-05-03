@@ -84,7 +84,7 @@ object ComputePolicyMode {
 
   // Here we are resolving conflict when we have an overridable global mode between mode of a Node, mode of a Directive and we are using global mode to use as default when both are not overriding
   // we do not pass a GlobalPolicyMode, but only the PolicyMode from it so we indicate that we don't want to treat overridabilty here
-  private[this] def matchMode(
+  private def matchMode(
       nodeMode:      Option[PolicyMode],
       directiveMode: Option[PolicyMode],
       globalMode:    PolicyMode
@@ -125,7 +125,7 @@ object ComputePolicyMode {
   // * A unique policy mode of one element of type A as base (generally a Directive or a Node)
   // * multiples Policy modes of a set elements of type B that we will look into it to understand what's going on
   // The other parameters (uniqueKind/multipleKind, mixedExplnation) are used to build explanation message
-  private[this] def genericComputeMode(
+  private def genericComputeMode(
       uniqueMode:       Option[PolicyMode],
       uniqueKind:       String,
       multipleModes:    Set[Option[PolicyMode]],

@@ -770,9 +770,9 @@ class CoreNodeFactRepository(
   override def updateInventory(inventory: FullInventory, software: Option[Iterable[Software]])(implicit
       cc: ChangeContext
   ): IOResult[NodeFactChangeEventCC] = {
-    val nodeId         = inventory.node.main.id
-    implicit val attrs = if (software.isEmpty) SelectFacts.noSoftware else SelectFacts.all
-    implicit val qc    = cc.toQuery
+    val nodeId = inventory.node.main.id
+    implicit val attrs: SelectFacts  = if (software.isEmpty) SelectFacts.noSoftware else SelectFacts.all
+    implicit val qc:    QueryContext = cc.toQuery
     ZIO.scoped(
       for {
         _          <- lock.withLock

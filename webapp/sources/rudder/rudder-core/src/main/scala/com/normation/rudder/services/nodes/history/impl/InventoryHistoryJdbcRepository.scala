@@ -26,6 +26,7 @@ import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
+import com.normation.rudder.db.Doobie.*
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.services.nodes.history.HistoryLog
 import com.normation.rudder.services.nodes.history.HistoryLogRepository

@@ -90,9 +90,9 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
     None,
     "",
     5,
-    true,
-    false,
-    Tags(Set())
+    _isEnabled = true,
+    isSystem = false,
+    tags = Tags(Set())
   )
 
   "when unserializing, we" should {
@@ -163,9 +163,9 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
         )
       ),
       Some(Query(NodeReturnType, And, Identity, List())),
-      true,
-      Set(),
-      true
+      isDynamic = true,
+      serverList = Set(),
+      _isEnabled = true
     )
 
     val xml    = nodeGroupSerialisation.serialise(group)

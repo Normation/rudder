@@ -41,7 +41,6 @@ import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core.LDAPConstants.*
-import com.normation.inventory.ldap.core.LDAPConstants.A_PROCESS
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_GROUP_UUID
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
 import com.normation.rudder.domain.RudderLDAPConstants.A_STATE
@@ -306,36 +305,36 @@ class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository) {
     ObjectCriterion(
       A_PROCESS,
       Chunk(
-        Criterion("pid", JsonFixedKeyComparator(A_PROCESS, "pid", false), UnsupportedByNodeMinimalApi),
+        Criterion("pid", JsonFixedKeyComparator(A_PROCESS, "pid", quoteValue = false), UnsupportedByNodeMinimalApi),
         Criterion(
           "commandName",
-          JsonFixedKeyComparator(A_PROCESS, "commandName", true),
+          JsonFixedKeyComparator(A_PROCESS, "commandName", quoteValue = true),
           UnsupportedByNodeMinimalApi
         ),
         Criterion(
           "cpuUsage",
-          JsonFixedKeyComparator(A_PROCESS, "cpuUsage", false),
+          JsonFixedKeyComparator(A_PROCESS, "cpuUsage", quoteValue = false),
           UnsupportedByNodeMinimalApi
         ),
         Criterion(
           "memory",
-          JsonFixedKeyComparator(A_PROCESS, "memory", false),
+          JsonFixedKeyComparator(A_PROCESS, "memory", quoteValue = false),
           UnsupportedByNodeMinimalApi
         ),
-        Criterion("tty", JsonFixedKeyComparator(A_PROCESS, "tty", true), UnsupportedByNodeMinimalApi),
+        Criterion("tty", JsonFixedKeyComparator(A_PROCESS, "tty", quoteValue = true), UnsupportedByNodeMinimalApi),
         Criterion(
           "virtualMemory",
-          JsonFixedKeyComparator(A_PROCESS, "virtualMemory", false),
+          JsonFixedKeyComparator(A_PROCESS, "virtualMemory", quoteValue = false),
           UnsupportedByNodeMinimalApi
         ),
         Criterion(
           "started",
-          JsonFixedKeyComparator(A_PROCESS, "started", true),
+          JsonFixedKeyComparator(A_PROCESS, "started", quoteValue = true),
           UnsupportedByNodeMinimalApi
         ),
         Criterion(
           "user",
-          JsonFixedKeyComparator(A_PROCESS, "user", true),
+          JsonFixedKeyComparator(A_PROCESS, "user", quoteValue = true),
           UnsupportedByNodeMinimalApi
         )
       )
@@ -711,7 +710,6 @@ trait NodeCriterionKeyValueMatcher[A] extends NodeCriterionMatcher {
           res    <- MatchHolderZio[A](DebugInfo(KVC.JsonSelect.id, Some(value)), extractor(n), matcher).matches
         } yield res
 
-      case c => MatchHolder[A](DebugInfo(s"unknown comparator: ${c}", Some(value)), Chunk(), _ => false).matches
     }
   }
 }

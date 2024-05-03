@@ -65,7 +65,7 @@ object Control {
       f(u) match {
         case e: EmptyBox =>
           val fail = e match {
-            case f: Failure => f
+            case failure: Failure => failure
             // these case should never happen, because Empty is verbotten, so took a
             // not to bad solution - u.toString can be very ugly, so limit size.
             case Empty => Failure(s"An error occured while processing: ${u.toString().take(20)}")
