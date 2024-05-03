@@ -77,11 +77,11 @@ class PluginApi(
       } yield {
         import net.liftweb.json.JsonDSL.*
         (("username"       -> conf.username)
-        ~ ("password"      -> conf.password)
+        ~ ("password"      -> "")
         ~ ("url"           -> conf.url)
         ~ ("proxyUrl"      -> conf.proxyUrl)
         ~ ("proxyUser"     -> conf.proxyUser)
-        ~ ("proxyPassword" -> conf.proxyPassword))
+        ~ ("proxyPassword" -> ""))
 
       }
       RestUtils.response(
@@ -114,11 +114,11 @@ class PluginApi(
         } yield {
           import net.liftweb.json.JsonDSL.*
           (("username"       -> conf.username)
-          ~ ("password"      -> conf.password)
+          ~ ("password"      -> "")
           ~ ("url"           -> conf.url)
           ~ ("proxyUrl"      -> conf.proxyUrl)
           ~ ("proxyUser"     -> conf.proxyUser)
-          ~ ("proxyPassword" -> conf.proxyPassword))
+          ~ ("proxyPassword" -> ""))
 
         }
       }
