@@ -703,6 +703,7 @@ class WebappTechniqueCompiler(
           <MULTIINSTANCE>true</MULTIINSTANCE>
         } else NodeSeq.Empty
       }<DESCRIPTION>{technique.description}</DESCRIPTION>
+       <LONGDESCRIPTION>{technique.documentation}</LONGDESCRIPTION>
        <USEMETHODREPORTING>true</USEMETHODREPORTING>{agentSpecificSection}<SECTIONS>
         {reportingSection}{
         if (technique.parameters.nonEmpty) {
