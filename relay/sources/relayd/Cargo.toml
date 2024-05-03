@@ -51,7 +51,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["e
 walkdir = "2"
 warp = { version = "0.3", default-features = false }
 # Use rust implementation
-zip = { version = "0.6", default-features = false, features = ["deflate"] }
+zip = { version = "1", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
 criterion = "0.5"

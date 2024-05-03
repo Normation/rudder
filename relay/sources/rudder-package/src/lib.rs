@@ -185,7 +185,7 @@ pub fn run_inner(args: Args) -> Result<()> {
                 } else {
                     let packages = long_names(package);
                     for p in &packages {
-                        if db.plugins.get(p).is_none() {
+                        if !db.plugins.contains_key(p) {
                             bail!(
                                 "Plugin {} is not installed, stopping upgrade",
                                 short_name(p)

@@ -172,7 +172,7 @@ impl NodesList {
     /// Nodes list file only contains sub-nodes, so we only have to check for
     /// node presence.
     pub fn is_subnode(&self, id: &NodeIdRef) -> bool {
-        self.list.data.get(id).is_some()
+        self.list.data.contains_key(id)
     }
 
     /// Get Info and fail if node is not there

@@ -137,7 +137,7 @@ fn methods_metadata(modules: &mut Vec<ItemKind>, info: &'static Methods) -> Resu
                         .ok_or_else(|| anyhow!("Unknown method '{}'", m.method))?,
                 );
                 if m.name.is_empty() {
-                    m.name = m.info.unwrap().name.clone();
+                    m.name.clone_from(&m.info.unwrap().name);
                 }
                 check_method(m)?;
             }

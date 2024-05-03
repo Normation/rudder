@@ -175,7 +175,7 @@ pub mod action {
     use anyhow::{bail, Context, Result};
     use rudder_commons::{logs::ok_output, Target, ALL_TARGETS};
     use walkdir::WalkDir;
-    use zip::write::ZipWriter;
+    use zip::write::{ExtendedFileOptions, FileOptions, ZipWriter};
 
     pub use crate::compiler::compile;
     use crate::{
@@ -494,13 +494,13 @@ pub mod action {
             "Creating export output file {}",
             &actual_output.display()
         ))?;
-        let options = zip::write::FileOptions::default();
+        let options: FileOptions<ExtendedFileOptions> = FileOptions::default();
         let mut zip = ZipWriter::new(file);
 
         let zip_dir = format!("archive/techniques/{category}/{id}/{version}");
 
         // Technique
-        zip.start_file(format!("{}/{}", zip_dir, TECHNIQUE_SRC), options)?;
+        zip.start_file(format!("{}/{}", zip_dir, TECHNIQUE_SRC), options.clone())?;
         let mut buffer = Vec::new();
         let mut f = File::open(&technique_src).context(format!(
             "Opening technique source {}",
@@ -525,7 +525,7 @@ pub mod action {
                         zip_dir,
                         p.strip_prefix(&resources_dir).unwrap().display()
                     ),
-                    options,
+                    options.clone(),
                 )?;
                 let mut buffer = Vec::new();
                 let mut f = File::open(p)?;

@@ -151,7 +151,7 @@ impl Database {
             dest.as_path().display().to_string()
         };
         let rpkg = Rpkg::from_path(&rpkg_path)?;
-        if self.plugins.get(&rpkg.metadata.name).is_some() {
+        if self.plugins.contains_key(&rpkg.metadata.name) {
             info!(
                 "Plugin {} already installed, upgrading",
                 rpkg.metadata.short_name()
