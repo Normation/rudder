@@ -50,7 +50,7 @@ class HashAlgoTest extends Specification {
    * the algo is not present. We must account of that to not have spurious
    * falling tests.
    */
-  private[this] def isAvailable(sha: ShaSpec) = {
+  private def isAvailable(sha: ShaSpec) = {
     AixPasswordHashAlgo.getSecretKeFactory(sha).isDefined
   }
 

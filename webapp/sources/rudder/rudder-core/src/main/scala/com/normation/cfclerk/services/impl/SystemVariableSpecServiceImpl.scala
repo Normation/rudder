@@ -49,7 +49,7 @@ import com.normation.rudder.reports.ComplianceModeName
 
 class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
 
-  private[this] val varSpecs: Seq[SystemVariableSpec] = Seq(
+  private val varSpecs: Seq[SystemVariableSpec] = Seq(
     SystemVariableSpec(
       "ALLOWCONNECT",
       "List of ip allowed to connect to the node (policyserver + children if any)",
@@ -409,7 +409,7 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
     )
   )
 
-  private[this] val varSpecsMap = varSpecs.map(x => (x.name -> x)).toMap
+  private val varSpecsMap = varSpecs.map(x => (x.name -> x)).toMap
 
   override def get(varName: String): Either[MissingSystemVariable, SystemVariableSpec] =
     varSpecsMap.get(varName).toRight(MissingSystemVariable(varName))

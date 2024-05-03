@@ -65,8 +65,8 @@ final case class RudderWebProperty(
 sealed trait FeatureSwitch extends EnumEntry           { def name: String }
 object FeatureSwitch       extends Enum[FeatureSwitch] {
 
-  final case object Enabled  extends FeatureSwitch { override val name = "enabled"  }
-  final case object Disabled extends FeatureSwitch { override val name = "disabled" }
+  case object Enabled  extends FeatureSwitch { override val name = "enabled"  }
+  case object Disabled extends FeatureSwitch { override val name = "disabled" }
 
   val values: IndexedSeq[FeatureSwitch] = findValues
 

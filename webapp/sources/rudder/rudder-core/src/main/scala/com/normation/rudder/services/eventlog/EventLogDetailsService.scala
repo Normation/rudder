@@ -204,7 +204,7 @@ class EventLogDetailsServiceImpl(
    * An utility method that is able the parse a <X<from>....</from><to>...</to></X>
    * attribute and extract it into a SimpleDiff class.
    */
-  private[this] def getFromTo[T](opt: Option[NodeSeq], f: NodeSeq => Box[T]): Box[Option[SimpleDiff[T]]] = {
+  private def getFromTo[T](opt: Option[NodeSeq], f: NodeSeq => Box[T]): Box[Option[SimpleDiff[T]]] = {
     opt match {
       case None    => Full(None)
       case Some(x) =>
@@ -222,7 +222,7 @@ class EventLogDetailsServiceImpl(
   /**
    * Special case of getFromTo for strings.
    */
-  private[this] def getFromToString(opt: Option[NodeSeq]) = getFromTo[String](opt, (s: NodeSeq) => Full(s.text))
+  private def getFromToString(opt: Option[NodeSeq]) = getFromTo[String](opt, (s: NodeSeq) => Full(s.text))
 
   def getEntryContent(xml: NodeSeq): Box[Elem] = {
     if (xml.size == 1) {
@@ -358,7 +358,7 @@ class EventLogDetailsServiceImpl(
   /**
    * Map XML into a rule
    */
-  private[this] def getRuleFromXML(xml: NodeSeq, changeType: String): Box[Rule] = {
+  private def getRuleFromXML(xml: NodeSeq, changeType: String): Box[Rule] = {
     for {
       entry           <- getEntryContent(xml)
       crXml           <- (entry \ "rule").headOption ?~! ("Entry type is not a rule: " + entry.toString())
@@ -377,7 +377,7 @@ class EventLogDetailsServiceImpl(
   /**
    * Map XML into a directive
    */
-  private[this] def getDirectiveFromXML(xml: NodeSeq, changeType: String): Box[(TechniqueName, Directive, SectionVal)] = {
+  private def getDirectiveFromXML(xml: NodeSeq, changeType: String): Box[(TechniqueName, Directive, SectionVal)] = {
     for {
       entry           <- getEntryContent(xml)
       directiveXml    <- (entry \ "directive").headOption ?~! ("Entry type is not a directive: " + entry.toString())
@@ -515,7 +515,7 @@ class EventLogDetailsServiceImpl(
   /**
    * Map XML into a node group
    */
-  private[this] def getNodeGroupFromXML(xml: NodeSeq, changeType: String): Box[NodeGroup] = {
+  private def getNodeGroupFromXML(xml: NodeSeq, changeType: String): Box[NodeGroup] = {
     for {
       entry           <- getEntryContent(xml)
       groupXml        <- (entry \ "nodeGroup").headOption ?~! ("Entry type is not a nodeGroup: " + entry.toString())
@@ -540,7 +540,7 @@ class EventLogDetailsServiceImpl(
   /**
    * Get inventory details
    */
-  private[this] def getInventoryLogDetails(xml: NodeSeq, action: String): Box[InventoryLogDetails] = {
+  private def getInventoryLogDetails(xml: NodeSeq, action: String): Box[InventoryLogDetails] = {
     for {
       entry        <- getEntryContent(xml)
       details      <- (entry \ "node").headOption ?~! ("Entry type is not a node: " + entry.toString())
@@ -679,7 +679,7 @@ class EventLogDetailsServiceImpl(
   /**
    * Map XML into a technique
    */
-  private[this] def getTechniqueFromXML(xml: NodeSeq, changeType: String): Box[ActiveTechnique] = {
+  private def getTechniqueFromXML(xml: NodeSeq, changeType: String): Box[ActiveTechnique] = {
     for {
       entry           <- getEntryContent(xml)
       techniqueXml    <- (entry \ "activeTechnique").headOption ?~! ("Entry type is not a technique: " + entry.toString())
@@ -959,7 +959,7 @@ class EventLogDetailsServiceImpl(
     }
   }
 
-  private[this] def extractAgentRun(xml: NodeSeq)(details: NodeSeq) = {
+  private def extractAgentRun(xml: NodeSeq)(details: NodeSeq) = {
     if ((details \ "_").isEmpty) { // no children
       Full(None)
     } else {
@@ -994,7 +994,7 @@ class EventLogDetailsServiceImpl(
     }
   }
 
-  private[this] def extractHeartbeatConfiguration(xml: NodeSeq)(details: NodeSeq) = {
+  private def extractHeartbeatConfiguration(xml: NodeSeq)(details: NodeSeq) = {
     if ((details \ "_").isEmpty) { // no children
       Full(None)
     } else {
@@ -1011,7 +1011,7 @@ class EventLogDetailsServiceImpl(
     }
   }
 
-  private[this] def extractNodeProperties(xml: NodeSeq)(details: NodeSeq): Box[Seq[NodeProperty]] = {
+  private def extractNodeProperties(xml: NodeSeq)(details: NodeSeq): Box[Seq[NodeProperty]] = {
     if (details.isEmpty) Full(Seq())
     else {
       for {
@@ -1036,7 +1036,7 @@ class EventLogDetailsServiceImpl(
   }
 
   // extract tags, with mention to the entryType when reporting errors
-  private[this] def extractTags(entryType: String)(details: NodeSeq): Box[Tags] = {
+  private def extractTags(entryType: String)(details: NodeSeq): Box[Tags] = {
     if (details.isEmpty) Full(Tags(Set()))
     else {
       val tags = traverse(details \\ "tag") { prop =>

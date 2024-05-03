@@ -210,7 +210,7 @@ final class Version(val value: String) extends AnyVal {
   override def toString(): String = "[%s]".format(value)
 }
 object Version {
-  implicit val ord: Ordering[Version] = _.value compareTo _.value
+  implicit val ord: Ordering[Version] = Ordering.by(_.value)
 }
 
 object InventoryProcessingLogger extends NamedZioLogger {

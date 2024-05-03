@@ -50,7 +50,7 @@ import util.Helpers.*
 
 class ClearCache extends DispatchSnippet with Loggable {
 
-  private[this] val clearCacheService = RudderConfig.clearCacheService
+  private val clearCacheService = RudderConfig.clearCacheService
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "render" => clearCache() }
 

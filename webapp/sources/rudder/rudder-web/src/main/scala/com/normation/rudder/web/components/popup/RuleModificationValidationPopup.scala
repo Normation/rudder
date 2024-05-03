@@ -103,8 +103,8 @@ class RuleModificationValidationPopup(
 
   import RuleModificationValidationPopup.*
 
-  private[this] val userPropertyService = RudderConfig.userPropertyService
-  private[this] val uuidGen             = RudderConfig.stringUuidGenerator
+  private val userPropertyService = RudderConfig.userPropertyService
+  private[this] val uuidGen       = RudderConfig.stringUuidGenerator
 
   val validationNeeded: Boolean = workflowService.needExternalValidation()
 
@@ -167,7 +167,7 @@ class RuleModificationValidationPopup(
 
   ///////////// fields for category settings ///////////////////
 
-  private[this] val crReasons = {
+  private val crReasons = {
     import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
@@ -193,9 +193,9 @@ class RuleModificationValidationPopup(
     }
   }
 
-  private[this] val defaultRequestName = s"${changeRequest.action.name.capitalize} Rule ${changeRequest.newRule.name}"
+  private val defaultRequestName = s"${changeRequest.action.name.capitalize} Rule ${changeRequest.newRule.name}"
 
-  private[this] val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
+  private val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
     override def setFilter      = notNull _ :: trim _ :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
@@ -205,7 +205,7 @@ class RuleModificationValidationPopup(
   }
 
   // The formtracker needs to check everything only if there is workflow
-  private[this] val formTracker = {
+  private val formTracker = {
     val fields = crReasons.toList ::: {
       if (validationNeeded) changeRequestName :: Nil
       else Nil
@@ -214,20 +214,20 @@ class RuleModificationValidationPopup(
     new FormTracker(fields)
   }
 
-  private[this] def error(msg: String) = <span>{msg}</span>
+  private def error(msg: String) = <span>{msg}</span>
 
-  private[this] def closePopup(): JsCmd = {
+  private def closePopup(): JsCmd = {
     JsRaw("""hideBsModal('confirmUpdateActionDialog');""")
   }
 
   /**
    * Update the form when something happened
    */
-  private[this] def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide(): JsCmd = {
     SetHtml(htmlId_popupContainer, popupContent())
   }
 
-  private[this] def ruleDiffFromAction(): Box[ChangeRequestRuleDiff] = {
+  private def ruleDiffFromAction(): Box[ChangeRequestRuleDiff] = {
     import RuleModAction.*
 
     changeRequest.previousRule match {
@@ -298,12 +298,12 @@ class RuleModificationValidationPopup(
     }
   }
 
-  private[this] def onFailure: JsCmd = {
+  private def onFailure: JsCmd = {
     formTracker.addFormError(error("There was a problem with your request"))
     updateFormClientSide()
   }
 
-  private[this] def updateAndDisplayNotifications(): NodeSeq = {
+  private def updateAndDisplayNotifications(): NodeSeq = {
     val notifications = formTracker.formErrors
     formTracker.cleanErrors
     if (notifications.isEmpty) NodeSeq.Empty

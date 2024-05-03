@@ -72,13 +72,13 @@ class MainCampaignService(
     endDelay:     Int
 ) {
 
-  private[this] var services:              List[CampaignHandler]       = Nil
+  private var services:                    List[CampaignHandler]       = Nil
   def registerService(s: CampaignHandler): ZIO[Any, RudderError, Unit] = {
     services = s :: services
     init()
   }
 
-  private[this] var inner: Option[CampaignScheduler] = None
+  private var inner: Option[CampaignScheduler] = None
 
   def deleteCampaign(c: CampaignId): ZIO[Any, RudderError, Unit] = {
 

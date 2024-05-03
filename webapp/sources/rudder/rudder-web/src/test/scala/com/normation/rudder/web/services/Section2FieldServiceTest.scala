@@ -156,7 +156,12 @@ class Section2FieldServiceTest extends Specification {
     def apply(): SectionField = {
 
       val rootSectSpec = createRootSectionSpec
-      ConfigSection2FieldService.section2FieldService.createSectionField(rootSectSpec, Map(), true, Map())
+      ConfigSection2FieldService.section2FieldService.createSectionField(
+        rootSectSpec,
+        Map(),
+        isNewPolicy = true,
+        usedFields = Map()
+      )
     }
 
     def createRootSectionSpec: SectionSpec = {

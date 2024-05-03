@@ -40,7 +40,7 @@ class ZioYamlTest extends Specification {
   implicit val codecParam:           JsonCodec[Param]     = DeriveJsonCodec.gen
   implicit val codecSimpleContainer: JsonCodec[Container] = DeriveJsonCodec.gen
 
-  val c: Container = Container("foo", 42, List(Param("p1", true)))
+  val c: Container = Container("foo", 42, List(Param("p1", mandatory = true)))
 
   "demonstrating correct encoding with our ZIO Yaml" >> {
 

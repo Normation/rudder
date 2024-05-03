@@ -113,8 +113,7 @@ object RunNuCommand {
    * command and signal the completion to the caller.
    * Exit code, stdout and stderr content are accumulated in CmdResult data structure.
    */
-  private[this] class CmdProcessHandler(promise: Promise[Nothing, CmdResult])
-      extends NuAbstractCharsetHandler(StandardCharsets.UTF_8) {
+  private class CmdProcessHandler(promise: Promise[Nothing, CmdResult]) extends NuAbstractCharsetHandler(StandardCharsets.UTF_8) {
     val stderr = new java.lang.StringBuilder()
     val stdout = new java.lang.StringBuilder()
 

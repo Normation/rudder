@@ -69,9 +69,9 @@ class ExpectedPolicyPopup(
 ) extends DispatchSnippet with Loggable {
   import ExpectedPolicyPopup.*
 
-  private[this] val ruleRepository  = RudderConfig.roRuleRepository
-  private[this] val dynGroupService = RudderConfig.dynGroupService
-  private[this] val checkDynGroup   = RudderConfig.pendingNodeCheckGroup
+  private val ruleRepository  = RudderConfig.roRuleRepository
+  private val dynGroupService = RudderConfig.dynGroupService
+  private val checkDynGroup   = RudderConfig.pendingNodeCheckGroup
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "display" => { _ => display } }
 
@@ -79,11 +79,18 @@ class ExpectedPolicyPopup(
     // find the list of dyn groups on which that server would be and from that, the Rules
     val rulesGrid: NodeSeq = getDependantRulesForNode match {
       case Full(seq) =>
-        val noDisplay = DisplayColumn.Force(false)
-        (new RuleGrid("dependentRulesGrid", None, false, None, noDisplay, noDisplay)).rulesGridWithUpdatedInfo(
+        val noDisplay = DisplayColumn.Force(display = false)
+        (new RuleGrid(
+          "dependentRulesGrid",
+          None,
+          showCheckboxColumn = false,
+          directiveApplication = None,
+          columnCompliance = noDisplay,
+          graphRecentChanges = noDisplay
+        )).rulesGridWithUpdatedInfo(
           Some(seq),
-          false,
-          true
+          showActionsColumn = false,
+          isPopup = true
         )
       case e: EmptyBox =>
         val msg = "Error when trying to find dependencies for that group"
@@ -99,7 +106,7 @@ class ExpectedPolicyPopup(
     )(expectedTechnique)
   }
 
-  private[this] val getDependantRulesForNode: Box[Seq[Rule]] = {
+  private val getDependantRulesForNode: Box[Seq[Rule]] = {
     for {
       allDynGroups <- dynGroupService.getAllDynGroups()
       dynGroups    <- checkDynGroup
@@ -111,14 +118,14 @@ class ExpectedPolicyPopup(
       val pendingNode = Map((nodeSrv.id, nodeSrv.isPolicyServer))
       val groups      = groupTargets.map(x => (x, Set(nodeSrv.id))).toMap
 
-      rules.filter(r => RuleTarget.getNodeIds(r.targets, pendingNode.view, groups, false).nonEmpty)
+      rules.filter(r => RuleTarget.getNodeIds(r.targets, pendingNode.view, groups, allNodesAreThere = false).nonEmpty)
     }
   }
 
-  private[this] def displayNode(srv: Srv):   NodeSeq = {
+  private def displayNode(srv: Srv):   NodeSeq = {
     Text(srv.hostname)
   }
-  private[this] def displayNodeOs(srv: Srv): NodeSeq = {
+  private def displayNodeOs(srv: Srv): NodeSeq = {
     Text(srv.osFullName)
   }
 }

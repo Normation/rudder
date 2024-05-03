@@ -99,7 +99,7 @@ object ChangeRequestService {
     changeRequest
   }
 
-  private[this] def rulechange(
+  private def rulechange(
       baseRule:  Rule,
       finalRule: Rule,
       actor:     EventActor,

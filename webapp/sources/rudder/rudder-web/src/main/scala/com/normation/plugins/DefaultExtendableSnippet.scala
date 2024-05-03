@@ -46,7 +46,7 @@ import com.normation.rudder.domain.logger.PluginLogger
 trait DefaultExtendableSnippet[T] extends ExtendableSnippet[T] {
   self: T =>
 
-  private[this] def extensionRegister = RudderConfig.snippetExtensionRegister
+  private def extensionRegister = RudderConfig.snippetExtensionRegister
 
   override def beforeSnippetExtensionSeq: Seq[SnippetExtensionPoint[T]] = {
     PluginLogger.trace(s"Looking for pre-extension for snippet '${extendsAt.value}'")

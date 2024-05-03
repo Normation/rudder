@@ -109,10 +109,10 @@ final class RoLDAPApiAccountRepository(
       ApiAccountName("Rudder system account"),
       ApiToken(ApiToken.generate_secret(tokenGen, "-system")),
       "For internal use",
-      true,
-      DateTime.now,
-      DateTime.now,
-      NodeSecurityContext.All
+      isEnabled = true,
+      creationDate = DateTime.now,
+      tokenGenerationDate = DateTime.now,
+      tenants = NodeSecurityContext.All
     )
   }
 

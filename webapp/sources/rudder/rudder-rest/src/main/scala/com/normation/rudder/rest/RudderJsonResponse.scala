@@ -165,7 +165,7 @@ object RudderJsonResponse {
   def successZero(schema: ResponseSchema, msg: String)(implicit
       prettify: Boolean
   ): LiftJsonResponse[JsonRudderApiResponse[String]] = {
-    implicit val enc = DeriveJsonEncoder.gen[JsonRudderApiResponse[String]]
+    implicit val enc: JsonEncoder[JsonRudderApiResponse[String]] = DeriveJsonEncoder.gen
     generic.success(JsonRudderApiResponse.success(schema, None, msg))
   }
   // errors

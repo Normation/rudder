@@ -73,9 +73,9 @@ trait SnippetExtensionRegister {
  */
 class SnippetExtensionRegisterImpl extends SnippetExtensionRegister {
 
-  private[this] val extendsBefore = scala.collection.mutable.Map.empty[SnippetExtensionKey, Seq[SnippetExtensionPoint[?]]]
+  private val extendsBefore = scala.collection.mutable.Map.empty[SnippetExtensionKey, Seq[SnippetExtensionPoint[?]]]
 
-  private[this] val extendsAfter = scala.collection.mutable.Map.empty[SnippetExtensionKey, Seq[SnippetExtensionPoint[?]]]
+  private val extendsAfter = scala.collection.mutable.Map.empty[SnippetExtensionKey, Seq[SnippetExtensionPoint[?]]]
 
   /**
    * register the given extension. The extension is added

@@ -206,13 +206,13 @@ object ExpectedReportsSerialisation {
    * This object will be used for the JSON serialisation
    * to / from database
    */
-  final case class JsonNodeExpectedReports protected (
+  final case class JsonNodeExpectedReports private[reports] (
       modes:               NodeModeConfig,
       ruleExpectedReports: List[RuleExpectedReports],
       overrides:           List[OverridenPolicy]
   )
 
-  val v0: TechniqueVersion = TechniqueVersion
+  val v00: TechniqueVersion = TechniqueVersion
     .parse("0.0")
     .getOrElse(throw new IllegalArgumentException(s"Initialisation error for default technique version in overrides"))
 
@@ -397,7 +397,7 @@ object ExpectedReportsSerialisation {
     }
 
     final case class JsonPolicy7_1(rid: RuleId, did: DirectiveId)  {
-      def transform: PolicyId = PolicyId(rid, did, v0)
+      def transform: PolicyId = PolicyId(rid, did, v00)
     }
     implicit class _JsonPolicy7_1(x: PolicyId)                     {
       def transform: JsonPolicy7_1 = JsonPolicy7_1(x.ruleId, x.directiveId)
@@ -597,8 +597,6 @@ object ExpectedReportsSerialisation {
         }
       case Right(v: Version7_1.JsonNodeExpectedReports7_1) =>
         Full(v.transform)
-      case Right(_)                                        =>
-        Failure(s"Error: found node expected report in an unsupported format, please force regenerate policies: '${s}'")
     }
   }
 
@@ -628,7 +626,7 @@ object NodeConfigIdSerializer {
   import org.joda.time.format.ISODateTimeFormat
 
   // date are ISO format
-  private[this] val isoDateTime = ISODateTimeFormat.dateTime
+  private val isoDateTime = ISODateTimeFormat.dateTime
 
   /*
    * In the database, we only keep creation time.

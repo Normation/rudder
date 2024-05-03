@@ -67,7 +67,7 @@ trait JSONTranslateCampaign {
 
 class CampaignSerializer {
 
-  private[this] var tranlaters: List[JSONTranslateCampaign] = Nil
+  private var tranlaters: List[JSONTranslateCampaign] = Nil
   import CampaignSerializer.*
 
   def getJson(campaign: Campaign): ZIO[Any, RudderError, Json] = {

@@ -141,13 +141,13 @@ class EventLogAPI(
         }
       }
 
-      implicit val prettify = restExtractor
+      implicit val prettify: Boolean = restExtractor
         .extractBoolean("prettify")(req)(identity)
         .getOrElse(Some(false))
         .getOrElse(
           false
         )
-      implicit val action: String = "eventFilterDetails"
+      implicit val action:   String  = "eventFilterDetails"
       OldInternalApiAuthz.withWriteAdmin((for {
         json   <- req.json
         draw   <- CompleteJson.extractJsonInt(json, "draw")
@@ -182,16 +182,16 @@ class EventLogAPI(
                  }
 
         dateCriteria = (optStartDate, optEndDate) match {
-                         case (None, None)                                    => None
-                         case (Some(start), None)                             => Some(fr" creationDate >= ${start.toSql}")
-                         case (None, Some(end))                               => Some(fr" creationDate <= ${end.toSql}")
-                         case (Some(start), Some(end)) if end.isBefore(start) =>
+                         case (None, None)                                        => None
+                         case (Some(start_), None)                                => Some(fr" creationDate >= ${start_.toSql}")
+                         case (None, Some(end_))                                  => Some(fr" creationDate <= ${end_.toSql}")
+                         case (Some(start_), Some(end_)) if end_.isBefore(start_) =>
                            Some(
-                             fr" creationDate >= ${end.toSql} and creationDate <= ${start.toSql}"
+                             fr" creationDate >= ${end_.toSql} and creationDate <= ${start_.toSql}"
                            )
-                         case (Some(start), Some(end))                        =>
+                         case (Some(start_), Some(end_))                          =>
                            Some(
-                             fr" creationDate >= ${start.toSql} and creationDate <= ${end.toSql}"
+                             fr" creationDate >= ${start_.toSql} and creationDate <= ${end_.toSql}"
                            )
                        }
 
@@ -228,8 +228,9 @@ class EventLogAPI(
       })
 
     case Get(id :: "details" :: Nil, req) =>
-      implicit val prettify = restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
-      implicit val action: String = "eventDetails"
+      implicit val prettify: Boolean =
+        restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
+      implicit val action:   String  = "eventDetails"
       OldInternalApiAuthz.withReadAdmin((for {
         realId     <- Box.tryo(id.toLong)
         event      <- repos.getEventLogById(realId).toBox
@@ -254,8 +255,9 @@ class EventLogAPI(
       })
 
     case Get(id :: "details" :: "rollback" :: Nil, req) =>
-      implicit val prettify = restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
-      implicit val action: String = "eventRollback"
+      implicit val prettify: Boolean =
+        restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
+      implicit val action:   String  = "eventRollback"
 
       OldInternalApiAuthz.withReadAdmin((for {
         reqParam     <- req.params.get("action") match {

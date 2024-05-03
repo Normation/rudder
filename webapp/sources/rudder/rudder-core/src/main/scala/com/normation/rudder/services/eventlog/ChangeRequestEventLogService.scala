@@ -112,7 +112,7 @@ class ChangeRequestEventLogServiceImpl(
     getFirstOrLastLog(id, "creationDate desc")
   }
 
-  private[this] def getFirstOrLastLog(id: ChangeRequestId, sortMethod: String): Box[Option[ChangeRequestEventLog]] = {
+  private def getFirstOrLastLog(id: ChangeRequestId, sortMethod: String): Box[Option[ChangeRequestEventLog]] = {
     eventLogRepository
       .getEventLogByChangeRequest(
         id,

@@ -63,7 +63,7 @@ class AsyncComplianceService(
 
   // Trait containing all functions to compute compliance asynchronously
   // Compliance a grouped  by a Type
-  private[this] trait ComplianceBy[Kind] {
+  private trait ComplianceBy[Kind] {
     // Rules and Nodes we are computing compliances on
     val nodeIds: Set[NodeId]
     val ruleIds: Set[RuleId]
@@ -120,7 +120,7 @@ class AsyncComplianceService(
     }
   }
 
-  private[this] class NodeSystemCompliance(
+  private class NodeSystemCompliance(
       val nodeIds: Set[NodeId],
       val ruleIds: Set[RuleId]
   ) extends ComplianceBy[NodeId] {
@@ -142,7 +142,7 @@ class AsyncComplianceService(
 
   }
 
-  private[this] class NodeCompliance(
+  private class NodeCompliance(
       val nodeIds: Set[NodeId],
       val ruleIds: Set[RuleId]
   ) extends ComplianceBy[NodeId] {
@@ -165,7 +165,7 @@ class AsyncComplianceService(
 
   }
 
-  private[this] class RuleCompliance(
+  private class RuleCompliance(
       val nodeIds: Set[NodeId],
       val ruleIds: Set[RuleId]
   ) extends ComplianceBy[RuleId] {
@@ -191,7 +191,7 @@ class AsyncComplianceService(
   }
 
   // Compute compliance from a defined kind
-  private[this] def compliance[Kind](kind: ComplianceBy[Kind], tableId: String): JsCmd = {
+  private def compliance[Kind](kind: ComplianceBy[Kind], tableId: String): JsCmd = {
     SHtml.ajaxInvoke(() => {
       // Is my future completed ?
       if (kind.futureCompliance.isCompleted) {

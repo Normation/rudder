@@ -48,8 +48,8 @@ import scala.xml.NodeSeq
 
 class DyngroupReloading extends DispatchSnippet with Loggable {
 
-  private[this] val updateDynamicGroups         = RudderConfig.updateDynamicGroups
-  private[this] val updateDynamicGroupsInterval = RudderConfig.RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL
+  private val updateDynamicGroups         = RudderConfig.updateDynamicGroups
+  private val updateDynamicGroupsInterval = RudderConfig.RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "render" => reload }
 

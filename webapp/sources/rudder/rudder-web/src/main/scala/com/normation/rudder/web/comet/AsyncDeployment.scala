@@ -56,13 +56,13 @@ import scala.xml.*
 
 class AsyncDeployment extends CometActor with CometListener with Loggable {
 
-  private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
+  private val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
 
   // current states of the deployment
-  private[this] var deploymentStatus = DeploymentStatus(NoStatus, IdleDeployer)
+  private var deploymentStatus = DeploymentStatus(NoStatus, IdleDeployer)
   // we need to get current user from SpringSecurity because it is not set in session anymore,
   // and comet doesn't know about requests
-  private[this] val currentUser:         Option[RudderUserDetail] = FindCurrentUser.get()
+  private val currentUser:               Option[RudderUserDetail] = FindCurrentUser.get()
   def havePerm(perm: AuthorizationType): Boolean                  = {
     currentUser match {
       case None    => false
@@ -76,17 +76,17 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   override def lowPriority: PartialFunction[Any, Unit] = { case d: DeploymentStatus => deploymentStatus = d; reRender() }
 
-  private[this] def displayTime(label: String, time: DateTime): NodeSeq = {
+  private def displayTime(label: String, time: DateTime): NodeSeq = {
     val t = time.toString("yyyy-MM-dd HH:mm:ssZ")
     val d = DateFormaterService.getFormatedPeriod(time, DateTime.now)
     // exceptionally not putting {} to remove the node
     <span>{label + t}</span><div class="help-block">{"↳ " + d} ago</div>
   }
-  private[this] def displayDate(label: String, time: DateTime): NodeSeq = {
+  private def displayDate(label: String, time: DateTime): NodeSeq = {
     val t = time.toString("yyyy-MM-dd HH:mm:ssZ")
     <span class="dropdown-header">{label + t}</span>
   }
-  private[this] def updateDuration = {
+  private def updateDuration = {
     val content = deploymentStatus.current match {
       case SuccessStatus(_, _, end, _) => displayTime("Ended at ", end)
       case ErrorStatus(_, _, end, _)   => displayTime("Ended at ", end)
@@ -102,7 +102,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   val deployementErrorMessage: Regex = """(.*)!errormessage!(.*)""".r
 
-  private[this] def statusBackground: String = {
+  private def statusBackground: String = {
     deploymentStatus.processing match {
       case IdleDeployer =>
         deploymentStatus.current match {
@@ -118,7 +118,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     }
   }
 
-  private[this] def lastStatus = {
+  private def lastStatus = {
     def commonStatement(
         start:        DateTime,
         end:          DateTime,
@@ -197,11 +197,11 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     }
   }
 
-  private[this] def closePopup(): JsCmd = {
+  private def closePopup(): JsCmd = {
     JsRaw("""hideBsModal('generatePoliciesDialog')""")
   }
 
-  private[this] def fullPolicyGeneration: NodeSeq = {
+  private def fullPolicyGeneration: NodeSeq = {
     if (havePerm(AuthorizationType.Deployment.Write)) {
       SHtml.ajaxButton(
         "Regenerate",
@@ -219,7 +219,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     } else NodeSeq.Empty
   }
 
-  private[this] def showGeneratePoliciesPopup: NodeSeq = {
+  private def showGeneratePoliciesPopup: NodeSeq = {
     val callback = JsRaw("initBsModal('generatePoliciesDialog')")
     if (havePerm(AuthorizationType.Deployer.Write)) {
       SHtml.a(
@@ -229,7 +229,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       )
     } else NodeSeq.Empty
   }
-  private[this] def layout = {
+  private def layout = {
     if (havePerm(AuthorizationType.Deployment.Read)) {
 
       <li class={"nav-item dropdown notifications-menu " ++ statusBackground}>
@@ -249,7 +249,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     } else NodeSeq.Empty
   }
 
-  private[this] def errorPopup = {
+  private def errorPopup = {
     <div class="modal fade" tabindex="-1" id="errorDetailsDialog" data-bs-backdrop="false">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -277,7 +277,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       </div>
   }
 
-  private[this] def generatePoliciesPopup = {
+  private def generatePoliciesPopup = {
     <div class="modal fade" tabindex="-1" id="generatePoliciesDialog" aria-hidden="true" data-bs-backdrop="false" data-bs-dismiss="modal">
       <div class="modal-dialog">
         <div class="modal-content">

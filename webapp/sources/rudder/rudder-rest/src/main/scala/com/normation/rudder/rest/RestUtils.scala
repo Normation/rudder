@@ -96,10 +96,10 @@ object RestUtils extends Loggable {
         case "latest" => Full(latest)
         case value    =>
           tryo(value.toInt) match {
-            case Full(version) =>
-              availableVersions.find(_.value == version) match {
+            case Full(version_) =>
+              availableVersions.find(_.value == version_) match {
                 case Some(apiVersion) => Full(apiVersion)
-                case None             => Failure(s" ${version} is not a valid api version")
+                case None             => Failure(s" ${version_} is not a valid api version")
               }
             // Never empty due to tryo
             case eb: EmptyBox => eb
@@ -202,18 +202,18 @@ object RestUtils extends Loggable {
     toJsonError(
       None,
       JString(s"Version used does not exist, please use one of the following: ${versions.mkString("[ ", ", ", " ]")} ")
-    )(action, false)
+    )(action, prettify = false)
   }
 
   def missingResponse(version: Int, action: String): LiftResponse = {
     toJsonError(None, JString(s"Version ${version} exists for this API function, but it's implementation is missing"))(
       action,
-      false
+      prettify = false
     )
   }
 
   def unauthorized: LiftResponse =
-    effectiveResponse(None, JString("You are not authorized to access that API"), ForbiddenError, "", false)
+    effectiveResponse(None, JString("You are not authorized to access that API"), ForbiddenError, "", prettify = false)
 
   def response(
       restExtractor: RestExtractorService,

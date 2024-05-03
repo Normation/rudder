@@ -191,31 +191,31 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
     "...and version 2.0" in techniques(1).version === TechniqueVersionHelper("2.0")
     "...with 3 templates" in {
       infos.techniques(techniques(0).name)(techniques(0).version).agentConfigs(0).templates.toSet === Set(
-        TechniqueTemplate(tmlId, s"p1_1/1.0/${tmlId.name}.cf", true),
-        TechniqueTemplate(templateId, s"bob.txt", false),
-        TechniqueTemplate(template2Id, s"p1_1/1.0/${template2Id.name}.cf", true)
+        TechniqueTemplate(tmlId, s"p1_1/1.0/${tmlId.name}.cf", included = true),
+        TechniqueTemplate(templateId, s"bob.txt", included = false),
+        TechniqueTemplate(template2Id, s"p1_1/1.0/${template2Id.name}.cf", included = true)
       )
     }
     "...with a template from which we can read 'The template content\\non two lines.'" in {
-      assertResourceContent(tmlId, true, "The template content\non two lines.")
+      assertResourceContent(tmlId, isTemplate = true, expectedContent = "The template content\non two lines.")
     }
     "...with an absolute template from which we can read " in {
-      assertResourceContent(templateId, true, templateContent)
+      assertResourceContent(templateId, isTemplate = true, expectedContent = templateContent)
     }
     "...with an absolute template2 from which we can read " in {
-      assertResourceContent(template2Id, true, template2Content)
+      assertResourceContent(template2Id, isTemplate = true, expectedContent = template2Content)
     }
     "...with 2 files" in {
       infos.techniques(techniques(0).name)(techniques(0).version).agentConfigs(0).files.toSet === Set(
-        TechniqueFile(file1, s"p1_1/1.0/${file1.name}", false),
-        TechniqueFile(file2, s"file2", false)
+        TechniqueFile(file1, s"p1_1/1.0/${file1.name}", included = false),
+        TechniqueFile(file2, s"file2", included = false)
       )
     }
     "...with a file1 from which we can read" in {
-      assertResourceContent(file1, false, f1Content)
+      assertResourceContent(file1, isTemplate = false, expectedContent = f1Content)
     }
     "...with a file2 from which we can read" in {
-      assertResourceContent(file2, false, "This is the content of file 2")
+      assertResourceContent(file2, isTemplate = false, expectedContent = "This is the content of file 2")
     }
   }
 

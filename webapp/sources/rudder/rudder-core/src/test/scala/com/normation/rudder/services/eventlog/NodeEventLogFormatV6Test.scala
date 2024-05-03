@@ -76,7 +76,7 @@ class NodeEventLogFormatV6Test extends Specification {
     modHeartbeat = Some(
       SimpleDiff(
         None,
-        Some(HeartbeatConfiguration(true, 20))
+        Some(HeartbeatConfiguration(overrides = true, heartbeatPeriod = 20))
       )
     ),
     modAgentRun = None,

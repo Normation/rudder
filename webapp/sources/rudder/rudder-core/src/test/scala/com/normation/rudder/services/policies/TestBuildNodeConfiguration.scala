@@ -101,55 +101,73 @@ class TestBuildNodeConfiguration extends Specification {
 
   val allNodes:     MapView[NodeId, CoreNodeFact] = ((1 to 1000).map(newNode) :+ factRoot).map(n => (n.id, n)).toMap.view
   // only one group with all nodes
-  val group:        NodeGroup                     =
-    NodeGroup(NodeGroupId(NodeGroupUid("allnodes")), "allnodes", "", Nil, None, false, allNodes.keySet.toSet, true)
+  val group:        NodeGroup                     = {
+    NodeGroup(
+      NodeGroupId(NodeGroupUid("allnodes")),
+      name = "allnodes",
+      description = "",
+      properties = Nil,
+      query = None,
+      isDynamic = false,
+      serverList = allNodes.keySet.toSet,
+      _isEnabled = true
+    )
+  }
   val groupLib:     FullNodeGroupCategory         = FullNodeGroupCategory(
     NodeGroupCategoryId("test_root"),
     "",
     "",
     Nil,
-    List(FullRuleTargetInfo(FullGroupTarget(GroupTarget(group.id), group), "", "", true, false))
+    List(
+      FullRuleTargetInfo(
+        FullGroupTarget(GroupTarget(group.id), group),
+        name = "",
+        description = "",
+        isEnabled = true,
+        isSystem = false
+      )
+    )
   )
   val directives:   Map[DirectiveId, Directive]   =
     (1 to 1000).map(i => data.rpmDirective("rpm" + i, "somepkg" + i)).map(d => (d.id, d)).toMap
   val directiveLib: FullActiveTechniqueCategory   = FullActiveTechniqueCategory(
     ActiveTechniqueCategoryId("root"),
-    "root",
-    "",
-    Nil,
-    List(
+    name = "root",
+    description = "",
+    subCategories = Nil,
+    activeTechniques = List(
       FullActiveTechnique(
         ActiveTechniqueId("common"),
-        data.commonTechnique.id.name,
-        SortedMap(data.commonTechnique.id.version -> DateTime.now),
-        SortedMap(data.commonTechnique.id.version -> data.commonTechnique),
-        List(data.commonDirective),
-        true,
-        true
+        techniqueName = data.commonTechnique.id.name,
+        acceptationDatetimes = SortedMap(data.commonTechnique.id.version -> DateTime.now),
+        techniques = SortedMap(data.commonTechnique.id.version -> data.commonTechnique),
+        directives = List(data.commonDirective),
+        isEnabled = true,
+        isSystem = true
       ),
       FullActiveTechnique(
         ActiveTechniqueId("rpmPackageInstallation"),
-        data.rpmTechnique.id.name,
-        SortedMap(data.rpmTechnique.id.version -> DateTime.now),
-        SortedMap(data.rpmTechnique.id.version -> data.rpmTechnique),
-        directives.values.toList,
-        true,
-        true
+        techniqueName = data.rpmTechnique.id.name,
+        acceptationDatetimes = SortedMap(data.rpmTechnique.id.version -> DateTime.now),
+        techniques = SortedMap(data.rpmTechnique.id.version -> data.rpmTechnique),
+        directives = directives.values.toList,
+        isEnabled = true,
+        isSystem = true
       )
     ),
-    true
+    isSystem = true
   )
 
   val rule: Rule = Rule(
     RuleId(RuleUid("rule")),
-    "rule",
-    RuleCategoryId("rootcat"),
-    Set(GroupTarget(group.id)),
-    directiveLib.allDirectives.keySet,
-    "",
-    "",
-    true,
-    true
+    name = "rule",
+    categoryId = RuleCategoryId("rootcat"),
+    targets = Set(GroupTarget(group.id)),
+    directiveIds = directiveLib.allDirectives.keySet,
+    shortDescription = "",
+    longDescription = "",
+    isEnabledStatus = true,
+    isSystem = true
   )
   val propertyEngineService = new PropertyEngineServiceImpl(List.empty)
   val valueCompiler         = new InterpolatedValueCompilerImpl(propertyEngineService)

@@ -77,7 +77,7 @@ class FusionInventoryParser(
 
   // extremely specialized convert used for optional field only, that
   // log the error in place of using a box
-  private[this] def convert[T](input: Option[String], tag: String, format: String, conv: String => T): Option[T] = {
+  private def convert[T](input: Option[String], tag: String, format: String, conv: String => T): Option[T] = {
     try {
       input.map(s => conv(s))
     } catch {
@@ -90,11 +90,11 @@ class FusionInventoryParser(
   }
 
   // same as above, but handle conversion to int
-  private[this] def optInt(n: NodeSeq, tag: String):    Option[Int]    =
+  private def optInt(n: NodeSeq, tag: String):    Option[Int]    =
     convert(optText(n \ tag), tag, "Int", java.lang.Integer.parseInt)
-  private[this] def optFloat(n: NodeSeq, tag: String):  Option[Float]  =
+  private def optFloat(n: NodeSeq, tag: String):  Option[Float]  =
     convert(optText(n \ tag), tag, "Float", java.lang.Float.parseFloat)
-  private[this] def optDouble(n: NodeSeq, tag: String): Option[Double] =
+  private def optDouble(n: NodeSeq, tag: String): Option[Double] =
     convert(optText(n \ tag), tag, "Double", java.lang.Double.parseDouble)
 
   private def optTextHead(n: NodeSeq): Option[String] = for {
@@ -517,7 +517,7 @@ class FusionInventoryParser(
    * it updates the slotNumber (two memories can not share the same slot), setting position
    * in the list as key. And yes, that may be unstable from one inventory to the next one.
    */
-  private[this] def demux(inventory: Inventory): Inventory = {
+  private def demux(inventory: Inventory): Inventory = {
     // how can that be better ?
     var r = inventory
     r = r
@@ -555,7 +555,7 @@ class FusionInventoryParser(
     r
   }
 
-  private[this] def demuxMemories(
+  private def demuxMemories(
       memories: Seq[com.normation.inventory.domain.MemorySlot]
   ): Seq[com.normation.inventory.domain.MemorySlot] = {
     val duplicatedSlotsAndMemory =
@@ -577,7 +577,7 @@ class FusionInventoryParser(
    * One interface can have several IP/mask/gateway/subnets. We have to
    * merge them when it's the case.
    */
-  private[this] def demuxSameInterfaceDifferentIp(inventory: Inventory): Inventory = {
+  private def demuxSameInterfaceDifferentIp(inventory: Inventory): Inventory = {
     val nets = inventory.node.networks
       .groupBy(_.name)
       .map {
@@ -613,7 +613,7 @@ class FusionInventoryParser(
    * - things with x86_64 / x86 / i*86 in their name => x86_64 / x86 / i*86
    * - IA-64, i[3-9]86, x86, x86_64, arm.*, other => identical [lower case]
    */
-  private[this] def normalizeArch(os: OsDetails)(s: String): String = {
+  private def normalizeArch(os: OsDetails)(s: String): String = {
     val ix86   = """.*(i[3-9]86).*""".r
     val x86    = """.*(x86|32-bit).*""".r
     val x86_64 = """.*(x86_64|amd64|64-bit).*""".r
@@ -1068,7 +1068,7 @@ class FusionInventoryParser(
     }
   }
 
-  private[this] val DUMMY_MEM_SLOT_NUMBER = "DUMMY"
+  private val DUMMY_MEM_SLOT_NUMBER = "DUMMY"
 
   /**
    * For memory, the numslot is used for key.

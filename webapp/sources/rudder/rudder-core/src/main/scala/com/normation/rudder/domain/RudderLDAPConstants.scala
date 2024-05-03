@@ -357,7 +357,7 @@ object RudderLDAPConstants extends Loggable {
       case (k, seq) =>
         seq.zipWithIndex.map {
           case (s, i) =>
-            policyVariableToString(k, i, s, true)
+            policyVariableToString(k, i, s, mayBeEmpty = true)
         }
     }.toSeq
   }
@@ -383,7 +383,7 @@ object RudderLDAPConstants extends Loggable {
    * the expected format for an LDAP attribute values
    */
   def parametersToSeq(targets: Seq[ParameterForConfiguration]): Seq[String] = {
-    targets.map(p => policyVariableToString(p.name, 0, p.value, true))
+    targets.map(p => policyVariableToString(p.name, 0, p.value, mayBeEmpty = true))
   }
 
 }

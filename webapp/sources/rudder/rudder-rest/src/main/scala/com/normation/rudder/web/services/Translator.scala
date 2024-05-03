@@ -44,6 +44,7 @@ import org.apache.commons.io.FilenameUtils
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
 import scala.collection.mutable.Map as MutMap
+import scala.reflect.ClassTag
 
 class Serializer[T](techniques: (String, T => String)*) {
   // all the known properties for that type
@@ -107,7 +108,7 @@ class Translator[T](val to: Serializer[T], val from: Unserializer[T])
 
 class Translators {
 
-  private val reg: MutMap[Manifest[?], Translator[?]] = MutMap()
+  private val reg: MutMap[ClassTag[?], Translator[?]] = MutMap()
 
   /**
    * Add a translator for the given type.
@@ -117,7 +118,7 @@ class Translators {
    * @param t
    * @param m
    */
-  def add[T](t: Translator[T])(implicit m: Manifest[T]): Unit = {
+  def add[T](t: Translator[T])(implicit m: ClassTag[T]): Unit = {
     get(m) match {
       case None           => reg += (m -> t)
       case Some(existing) => {
@@ -128,7 +129,7 @@ class Translators {
     }
   }
 
-  def get[T](implicit m: Manifest[T]): Option[Translator[T]] = {
+  def get[T](implicit m: ClassTag[T]): Option[Translator[T]] = {
     reg.get(m) match {
       case Some(t: Translator[T @unchecked]) => Some[Translator[T]](t)
       case _                                 => None

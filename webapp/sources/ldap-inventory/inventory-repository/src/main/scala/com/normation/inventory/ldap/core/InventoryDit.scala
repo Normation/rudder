@@ -80,7 +80,7 @@ abstract class ENTRY[T <: Product](val rdnAttribute: T, val rdnValue: T) {
  */
 trait AbstractDit {
   val BASE_DN: DN
-  private[this] val ditEntries = scala.collection.mutable.Buffer[LDAPEntry]()
+  private val ditEntries = scala.collection.mutable.Buffer[LDAPEntry]()
 
   /**
    * Register an entry to be available in the default DIT structure (what means that if
@@ -135,7 +135,7 @@ final case class InventoryDit(val BASE_DN: DN, val SOFTWARE_BASE_DN: DN, val nam
 
   object SOFTWARE extends OU("Software", SOFTWARE_BASE_DN) {
     // TODO: migration-scala3 - bug: https://github.com/lampepfl/dotty/issues/16437
-    private[this] def software: OU = this
+    private def software: OU = this
     object SOFT extends UUID_ENTRY[SoftwareUuid](OC_SOFTWARE, A_SOFTWARE_UUID, software.dn) {
 
       def idFromDN(dn: DN): Either[MalformedDN, SoftwareUuid] = {
@@ -152,7 +152,7 @@ final case class InventoryDit(val BASE_DN: DN, val SOFTWARE_BASE_DN: DN, val nam
   }
 
   object NODES extends OU("Nodes", BASE_DN) {
-    private[this] def servers: OU = this
+    private def servers: OU = this
 
     object NODE extends UUID_ENTRY[NodeId](OC_NODE, A_NODE_UUID, servers.dn) {
 
@@ -218,7 +218,7 @@ final case class InventoryDit(val BASE_DN: DN, val SOFTWARE_BASE_DN: DN, val nam
   }
 
   object MACHINES extends OU("Machines", BASE_DN) {
-    private[this] def machines: OU = this
+    private def machines: OU = this
     object MACHINE extends UUID_ENTRY[MachineUuid](OC_MACHINE, A_MACHINE_UUID, machines.dn) {
 
       def idFromDN(dn: DN): InventoryMappingPure[MachineUuid] = {

@@ -61,7 +61,7 @@ class DebugInfoServiceImpl extends DebugInfoService {
 
   val logger: NamedZioLogger = NamedZioLogger(this.getClass.getName)
 
-  private[this] def execScript(): IOResult[Promise[Nothing, CmdResult]] = {
+  private def execScript(): IOResult[Promise[Nothing, CmdResult]] = {
     val environment = java.lang.System.getenv.asScala.toMap
     val timeOut     = Duration(30, TimeUnit.SECONDS)
     val scriptPath  = "/opt/rudder/bin/rudder-debug-info"
@@ -75,7 +75,7 @@ class DebugInfoServiceImpl extends DebugInfoService {
   // We want to get its binary representation into an Array of byte
   // In order for the API to build an InMemoryResponse
 
-  private[this] def getScriptResult(): IOResult[DebugInfoScriptResult] = {
+  private def getScriptResult(): IOResult[DebugInfoScriptResult] = {
     IOResult.attempt(s"Could not get file debug info result file") {
       val resultPath = s"/var/rudder/debug/info/debug-info-latest.tar.gz"
       val result     = Paths.get(resultPath).toRealPath()

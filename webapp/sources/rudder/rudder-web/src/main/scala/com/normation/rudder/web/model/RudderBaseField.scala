@@ -53,13 +53,13 @@ import scala.xml.*
  * A simple class that allows to register error information
  * about a form and its fields
  */
-class FormTracker(private[this] var _fields: List[RudderBaseField] = Nil) extends FieldContainer {
+class FormTracker(private var _fields: List[RudderBaseField] = Nil) extends FieldContainer {
 
   def this(fields: RudderBaseField*) = this(fields.toList)
 
   type FormError = NodeSeq
 
-  private[this] var _formErrors = List.empty[FormError]
+  private var _formErrors = List.empty[FormError]
 
   override def allFields: List[RudderBaseField] = _fields.toList
 

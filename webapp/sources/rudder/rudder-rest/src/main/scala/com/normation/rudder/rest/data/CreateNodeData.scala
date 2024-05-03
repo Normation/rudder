@@ -279,7 +279,7 @@ object Validation {
 
           getMachine(id, tpe)
             .modify(_.manufacturer)
-            .setToIfDefined(nodeDetails.machine.map(_.manufacturer.map(Manufacturer)))
+            .setToIfDefined(nodeDetails.machine.map(_.manufacturer.map(Manufacturer.apply)))
             .modify(_.systemSerialNumber)
             .setToIfDefined(nodeDetails.machine.map(_.serialNumber))
         }

@@ -48,8 +48,8 @@ object PolicyMode extends Enum[PolicyMode] {
   // value which corresponds to a default policy mode, its value depending on context
   val defaultValue: String = "default"
 
-  final case object Audit   extends PolicyMode { val name = "audit"   }
-  final case object Enforce extends PolicyMode { val name = "enforce" }
+  case object Audit   extends PolicyMode { val name = "audit"   }
+  case object Enforce extends PolicyMode { val name = "enforce" }
 
   val values: IndexedSeq[PolicyMode] = findValues
 

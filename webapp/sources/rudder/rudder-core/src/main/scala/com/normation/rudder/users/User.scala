@@ -127,7 +127,7 @@ object UserSerialization {
     JsonEncoder.string.contramap(_.value),
     JsonDecoder.string.mapOrFail(s => UserStatus.parse(s))
   )
-  implicit val codecEventActor:    JsonCodec[EventActor]    = DeriveJsonCodec.gen
+  implicit val codecEventActor:    JsonCodec[EventActor]    = DeriveJsonCodec.gen[EventActor]
   implicit val codecDateTime:      JsonCodec[DateTime]      = new JsonCodec[DateTime](
     JsonEncoder.string.contramap(_.toString(DateFormaterService.rfcDateformatWithMillis)),
     JsonDecoder.string.mapOrFail { s =>

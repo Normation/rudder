@@ -96,7 +96,7 @@ class AutomaticReportLogger(
     /*
      * List of all reports kind processed by the logger
      */
-    private[this] val reportsKind = {
+    private val reportsKind = {
       List(
         Reports.LOG_REPAIRED,
         Reports.LOG_WARN,
@@ -107,7 +107,7 @@ class AutomaticReportLogger(
       )
     }
 
-    override protected def messageHandler: PartialFunction[StartAutomaticReporting.type, Unit] = {
+    override protected def messageHandler: PartialFunction[StartAutomaticReporting.type, Unit] = PartialFunction.fromFunction {
       case StartAutomaticReporting =>
         propertyRepository.getReportLoggerLastId match {
           // Report logger was not running before, try to log the last hundred reports and initialize lastId
@@ -159,8 +159,6 @@ class AutomaticReportLogger(
         LAPinger.schedule(this, StartAutomaticReporting, reportLogInterval * 1000L * 60)
         () // ok for the unit value discarded
 
-      case _ =>
-        logger.error("Wrong message received by non compliant reports logger, do nothing")
     }
 
     /*
@@ -173,7 +171,7 @@ class AutomaticReportLogger(
      * Both bounds are inclusive (so both fromId and maxId will be logged if
      * they are non-compliant reports).
      */
-    private[this] def logReportsBetween(lastProcessedId: Long, maxId: Long): Unit = {
+    private def logReportsBetween(lastProcessedId: Long, maxId: Long): Unit = {
 
       /*
        * Log all non-compliant reports between fromId and maxId (both inclusive), limited to batch size max.

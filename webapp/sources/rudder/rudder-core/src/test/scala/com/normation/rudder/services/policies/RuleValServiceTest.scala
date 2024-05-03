@@ -96,25 +96,26 @@ class RuleValServiceTest extends Specification {
   }
   def makeComponentSectionSpec(name: String):                                         SectionSpec                  = {
     SectionSpec(
-      name,
-      true,
-      true,
-      Some(reportKeysVariableName(name)),
-      HighDisplayPriority,
-      "",
-      Seq(makePredefinedSectionSpec(name, ("variable_" + name, Seq("variable_" + name + "one", "variable_" + name + "two"))))
+      name = name,
+      isMultivalued = true,
+      isComponent = true,
+      componentKey = Some(reportKeysVariableName(name)),
+      displayPriority = HighDisplayPriority,
+      description = "",
+      children =
+        Seq(makePredefinedSectionSpec(name, ("variable_" + name, Seq("variable_" + name + "one", "variable_" + name + "two"))))
     )
   }
 
   def makeRootSectionSpec(): SectionSpec = {
     SectionSpec(
-      "root section",
-      false,
-      false,
-      None,
-      HighDisplayPriority,
-      "",
-      Seq(
+      name = "root section",
+      isMultivalued = false,
+      isComponent = false,
+      componentKey = None,
+      displayPriority = HighDisplayPriority,
+      description = "",
+      children = Seq(
         makeComponentSectionSpec("component1"),
         makeComponentSectionSpec("component2")
       )
@@ -124,16 +125,16 @@ class RuleValServiceTest extends Specification {
   def makeMetaTechnique(id: TechniqueId): Technique = {
     Technique(
       id,
-      "meta" + id,
-      "",
-      AgentConfig(AgentType.CfeCommunity, Nil, Nil, Nil, Nil) :: Nil,
-      TrackerVariableSpec(None, None),
-      makeRootSectionSpec(),
-      None,
-      Set(),
-      false,
-      "",
-      false
+      name = "meta" + id,
+      description = "",
+      agentConfigs = AgentConfig(AgentType.CfeCommunity, Nil, Nil, Nil, Nil) :: Nil,
+      trackerVariableSpec = TrackerVariableSpec(None, None),
+      rootSection = makeRootSectionSpec(),
+      deprecrationInfo = None,
+      systemVariableSpecs = Set(),
+      isMultiInstance = false,
+      longDescription = "",
+      isSystem = false
     )
   }
 
@@ -142,37 +143,37 @@ class RuleValServiceTest extends Specification {
   val directive: Directive = Directive(
     DirectiveId(directiveId, GitVersion.DEFAULT_REV),
     techniqueId.version,
-    Map(),
-    "MyDirective",
-    "shortDescription",
-    None,
-    "longDescription",
-    5,
-    true,
-    false
+    parameters = Map(),
+    name = "MyDirective",
+    shortDescription = "shortDescription",
+    policyMode = None,
+    longDescription = "longDescription",
+    priority = 5,
+    _isEnabled = true,
+    isSystem = false
   )
 
   val rule: Rule = Rule(
     ruleId,
-    "Rule Name",
-    RuleCategoryId("cat1"),
-    Set(GroupTarget(NodeGroupId(NodeGroupUid("nodeGroupId")))),
-    Set(DirectiveId(directiveId)),
-    "",
-    "",
-    true,
-    false
+    name = "Rule Name",
+    categoryId = RuleCategoryId("cat1"),
+    targets = Set(GroupTarget(NodeGroupId(NodeGroupUid("nodeGroupId")))),
+    directiveIds = Set(DirectiveId(directiveId)),
+    shortDescription = "",
+    longDescription = "",
+    isEnabledStatus = true,
+    isSystem = false
   )
 
   val fullActiveTechnique: FullActiveTechnique = {
     FullActiveTechnique(
       ActiveTechniqueId("activeTechId"),
       techniqueId.name,
-      SortedMap((techniqueId.version, new DateTime())),
-      SortedMap((techniqueId.version, technique)),
-      List(directive),
-      true,
-      false
+      acceptationDatetimes = SortedMap((techniqueId.version, new DateTime())),
+      techniques = SortedMap((techniqueId.version, technique)),
+      directives = List(directive),
+      isEnabled = true,
+      isSystem = false
     )
   }
 
@@ -180,11 +181,11 @@ class RuleValServiceTest extends Specification {
   val fullActiveTechniqueCategory: FullActiveTechniqueCategory = {
     FullActiveTechniqueCategory(
       ActiveTechniqueCategoryId("id"),
-      "name",
-      "description",
-      Nil,
-      List(fullActiveTechnique),
-      false
+      name = "name",
+      description = "description",
+      subCategories = Nil,
+      activeTechniques = List(fullActiveTechnique),
+      isSystem = false
     )
   }
 

@@ -445,10 +445,10 @@ object CfengineBundleVariables {
 
     BundleSequenceVariables(
       formatBundleFileInputFiles(systemInputs.map(_.path)),
-      formatMethodsUsebundle(escape, systemBundles, Nil, false),
+      formatMethodsUsebundle(escape, systemBundles, Nil, cleanDryRunEnd = false),
       formatBundleFileInputFiles(userInputs.map(_.path)), // only user bundle may be set on PolicyMode = Verify
 
-      formatMethodsUsebundle(escape, userBundles, runHooks, true)
+      formatMethodsUsebundle(escape, userBundles, runHooks, cleanDryRunEnd = true)
     )
   }
 

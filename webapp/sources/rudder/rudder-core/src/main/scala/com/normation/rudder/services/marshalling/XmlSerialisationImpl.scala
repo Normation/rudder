@@ -330,7 +330,6 @@ class ChangeRequestChangesSerialisationImpl(
           case AddNodeGroupDiff(group)      => <diff action="add">{nodeGroupSerializer.serialise(group)}</diff>
           case DeleteNodeGroupDiff(group)   => <diff action="delete">{nodeGroupSerializer.serialise(group)}</diff>
           case ModifyToNodeGroupDiff(group) => <diff action="modifyTo">{nodeGroupSerializer.serialise(group)}</diff>
-          case _                            => "should not be here"
         }
       }
       </change>

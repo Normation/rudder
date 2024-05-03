@@ -83,7 +83,7 @@ sealed trait Variable {
 
   // the comments below contains implementations and should be reused in SelectVariable and SelectOne variable
 
-  private[this] def checkValueForVariable(seq: Seq[String]): Either[LoadTechniqueError, Seq[String]] = {
+  private def checkValueForVariable(seq: Seq[String]): Either[LoadTechniqueError, Seq[String]] = {
     (spec match {
       case vl: ValueLabelVariableSpec =>
         if ((null != vl.valueslabels) && (vl.valueslabels.size > 0)) {
@@ -402,7 +402,7 @@ object Variable {
 
   // define our own alternatives of matchCopy because we want v.values to be the default
   // values
-  def matchCopy(v: Variable): Variable = matchCopy(v, false)
+  def matchCopy(v: Variable): Variable = matchCopy(v, setMultivalued = false)
   def matchCopy(v: Variable, setMultivalued: Boolean): Variable = matchCopy(v, v.values, setMultivalued)
 
   def matchCopy(v: Variable, values: Seq[String], setMultivalued: Boolean = false): Variable = {

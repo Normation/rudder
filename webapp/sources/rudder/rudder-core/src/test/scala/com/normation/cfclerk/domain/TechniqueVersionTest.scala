@@ -51,22 +51,42 @@ class TechniqueVersionTest extends Specification {
   sequential
 
   "technique version are simple" should {
-    TechniqueVersion.parse("1.0-alpha5") must beLeft()
-    TechniqueVersion.parse("1.0-SNAPSHOT") must beLeft()
-    TechniqueVersion.parse("1.0-beta1") must beLeft()
-    TechniqueVersion.parse("1.0~anything") must beLeft()
-    TechniqueVersion.parse("1.0~1") must beLeft()
-    TechniqueVersion.parse("1.a") must beLeft()
-    TechniqueVersion.parse("1:a") must beLeft()
-    TechniqueVersion.parse("1.0") must beRight()
-    TechniqueVersion.parse("4.8.1.5") must beRight()
-    val v = TechniqueVersion(
-      Version(0, PartType.Numeric(1), VersionPart.After(Separator.Dot, PartType.Numeric(0)) :: Nil),
-      Revision("21dae29cc95a8b492325a0fb7625eac07fae3868")
-    )
-    TechniqueVersion.parse("1.0+21dae29cc95a8b492325a0fb7625eac07fae3868") must beRight(
-      v.getOrElse(throw new Exception("error in test init"))
-    )
+    "technique version parse for 1.0-alpha5" in {
+      TechniqueVersion.parse("1.0-alpha5") must beLeft
+    }
+    "technique version parse for 1.0-SNAPSHOT" in {
+      TechniqueVersion.parse("1.0-SNAPSHOT") must beLeft
+    }
+    "technique version parse for 1.0-beta1" in {
+      TechniqueVersion.parse("1.0-beta1") must beLeft
+    }
+    "technique version parse for 1.0~anything" in {
+      TechniqueVersion.parse("1.0~anything") must beLeft
+    }
+    "technique version parse for 1.0~1" in {
+      TechniqueVersion.parse("1.0~1") must beLeft
+    }
+    "technique version parse for 1.a" in {
+      TechniqueVersion.parse("1.a") must beLeft
+    }
+    "technique version parse for 1:a" in {
+      TechniqueVersion.parse("1:a") must beLeft
+    }
+    "technique version parse for 1.0" in {
+      TechniqueVersion.parse("1.0") must beRight
+    }
+    "technique version parse for 4.8.1.5" in {
+      TechniqueVersion.parse("4.8.1.5") must beRight
+    }
+    "technique version parse for 1.0+21dae29cc95a8b492325a0fb7625eac07fae3868" in {
+      val v = TechniqueVersion(
+        Version(0, PartType.Numeric(1), VersionPart.After(Separator.Dot, PartType.Numeric(0)) :: Nil),
+        Revision("21dae29cc95a8b492325a0fb7625eac07fae3868")
+      )
+      TechniqueVersion.parse("1.0+21dae29cc95a8b492325a0fb7625eac07fae3868") must beRight(
+        v.getOrElse(throw new Exception("error in test init"))
+      )
+    }
   }
 
 }

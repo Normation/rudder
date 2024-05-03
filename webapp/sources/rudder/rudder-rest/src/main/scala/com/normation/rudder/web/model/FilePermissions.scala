@@ -303,9 +303,9 @@ object FilePerms {
     if (isEmpty(perms)) None
     else {
       perms.toList match {
-        case Perm(x) :: Nil                       => Some(FilePerms(x))
-        case Perm(x) :: Perm(y) :: Nil            => Some(FilePerms(x, y))
-        case Perm(x) :: Perm(y) :: Perm(z) :: Nil => Some(FilePerms(x, y, z))
+        case Perm(u) :: Nil                       => Some(FilePerms(u))
+        case Perm(u) :: Perm(g) :: Nil            => Some(FilePerms(u, g))
+        case Perm(u) :: Perm(g) :: Perm(o) :: Nil => Some(FilePerms(u, g, o))
         case _                                    => None
       }
     }
@@ -320,7 +320,7 @@ object FilePerms {
   }
   def unapply(ugo: (String, String, String)): Option[(Perm, Perm, Perm)] = {
     ugo match {
-      case (Perm(x), Perm(y), Perm(z)) => Some((x, y, z))
+      case (Perm(u), Perm(g), Perm(o)) => Some((u, g, o))
       case _                           => None
     }
   }

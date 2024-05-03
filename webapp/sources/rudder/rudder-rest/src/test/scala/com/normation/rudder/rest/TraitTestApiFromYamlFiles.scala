@@ -207,7 +207,7 @@ trait TraitTestApiFromYamlFiles extends Specification with BoxSpecMatcher with J
 
     for {
       // base, directly from classpath
-      baseFiles <- listFilesUnder(baseDir, true).map(_.filter(only))
+      baseFiles <- listFilesUnder(baseDir, mandatory = true).map(_.filter(only))
       baseIs     = baseFiles.map { name =>
                      (
                        name,
@@ -217,7 +217,7 @@ trait TraitTestApiFromYamlFiles extends Specification with BoxSpecMatcher with J
                      )
                    }
       // templates: need copy to tmp file
-      templates <- listFilesUnder(templateDir, false).map(_.filter(only))
+      templates <- listFilesUnder(templateDir, mandatory = false).map(_.filter(only))
       copied    <- ZIO.foreach(templates)(t => copyTransform(Paths.get(templateDir, t), tmpDir))
       allYamls  <- ZIO.foreach(baseIs ++ copied) { case (name, input) => loadYamls(input).map(y => (name, y)) }
     } yield {

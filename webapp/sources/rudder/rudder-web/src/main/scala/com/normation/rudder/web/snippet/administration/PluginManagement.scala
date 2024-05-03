@@ -58,7 +58,7 @@ class PluginManagement extends DispatchSnippet with Loggable {
     ).apply(xml)
   }
 
-  private[this] def displayPlugin(p: RudderPluginDef)(xml: NodeSeq): NodeSeq = {
+  private def displayPlugin(p: RudderPluginDef)(xml: NodeSeq): NodeSeq = {
     val rudderPluginVersion = p.version.rudderAbi.toVersionStringNoEpoch
     // we compare on string, since we are just looking for an exact match.
     val versionWarning      = if (RudderConfig.rudderFullVersion != rudderPluginVersion) {

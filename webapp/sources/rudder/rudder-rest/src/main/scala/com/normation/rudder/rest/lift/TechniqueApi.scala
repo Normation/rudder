@@ -151,8 +151,9 @@ class TechniqueApi(
           case API.TechniqueRevisions        => TechniqueRevisions
           case API.UpdateTechnique           => UpdateTechnique
           case API.CreateTechnique           => CreateTechnique
-          case API.GetResources              => new GetResources[API.GetResources.type](false, API.GetResources)
-          case API.GetNewResources           => new GetResources[API.GetNewResources.type](true, API.GetNewResources)
+          case API.GetResources              => new GetResources[API.GetResources.type](newTechnique = false, schema = API.GetResources)
+          case API.GetNewResources           =>
+            new GetResources[API.GetNewResources.type](newTechnique = true, schema = API.GetNewResources)
           case API.DeleteTechnique           => DeleteTechnique
           case API.GetMethods                => GetMethods
           case API.UpdateMethods             => UpdateMethods

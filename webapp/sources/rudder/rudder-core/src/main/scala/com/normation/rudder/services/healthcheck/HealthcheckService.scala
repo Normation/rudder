@@ -59,7 +59,7 @@ class HealthcheckService(checks: List[Check]) {
     } yield res
   }
 
-  private[this] def logHealthcheck(name: CheckName, check: HealthcheckResult): zio.UIO[Unit] = {
+  private def logHealthcheck(name: CheckName, check: HealthcheckResult): zio.UIO[Unit] = {
     val msg = s"${name.value}: ${check.msg}"
     check match {
       case _: Critical => logger.error(msg)

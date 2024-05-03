@@ -74,11 +74,11 @@ import scala.xml.Text
  */
 class PropertiesManagement extends DispatchSnippet with Loggable {
 
-  private[this] val configService: ReadConfigService with UpdateConfigService = RudderConfig.configService
-  private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
-  private[this] val uuidGen              = RudderConfig.stringUuidGenerator
+  private val configService: ReadConfigService with UpdateConfigService = RudderConfig.configService
+  private val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
+  private val uuidGen              = RudderConfig.stringUuidGenerator
 
-  private[this] val genericReasonMessage = Some("Property modified from Rudder preference page")
+  private val genericReasonMessage = Some("Property modified from Rudder preference page")
 
   def startNewPolicyGeneration(): Unit = {
     val modId = ModificationId(uuidGen.newUuid)

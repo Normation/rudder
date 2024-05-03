@@ -172,7 +172,7 @@ class GitTechniqueReader(
    * As it is required that the git repository is in  a parent of the
    * technique library, it's just removing start of the string.
    */
-  private[this] def toTechniquePath(path: String): TechniquePath = {
+  private def toTechniquePath(path: String): TechniquePath = {
     canonizedRelativePath match {
       case Some(relative) if (path.startsWith(relative)) =>
         TechniquePath(path.substring(relative.size, path.size))
@@ -183,7 +183,7 @@ class GitTechniqueReader(
   // can not set private because of "outer ref cannot be checked" scalac bug
   private case class NoRootCategory(msg: String) extends Exception(msg)
 
-  private[this] val currentTechniquesInfoCache: Ref[TechniquesInfo] = semaphore
+  private val currentTechniquesInfoCache: Ref[TechniquesInfo] = semaphore
     .withPermit(
       for {
         currentRevTree <- revisionProvider.currentRevTreeId
@@ -220,7 +220,7 @@ class GitTechniqueReader(
     .flatMap(Ref.make(_))
     .runNow
 
-  private[this] val nextTechniquesInfoCache: Ref[(ObjectId, TechniquesInfo)] = {
+  private val nextTechniquesInfoCache: Ref[(ObjectId, TechniquesInfo)] = {
     (for {
       a <- revisionProvider.currentRevTreeId
       b <- currentTechniquesInfoCache.get
@@ -229,7 +229,7 @@ class GitTechniqueReader(
   }
 
   // a non empty list IS the indicator of differences between current and next
-  private[this] val modifiedTechniquesCache: Ref[Map[TechniqueName, TechniquesLibraryUpdateType]] =
+  private val modifiedTechniquesCache: Ref[Map[TechniqueName, TechniquesLibraryUpdateType]] =
     Ref.make(Map[TechniqueName, TechniquesLibraryUpdateType]()).runNow
 
   override def getModifiedTechniques: Map[TechniqueName, TechniquesLibraryUpdateType] = {
@@ -502,14 +502,14 @@ class GitTechniqueReader(
       .runNow
   }
 
-  private[this] def needReloadPure = for {
+  private def needReloadPure = for {
     nextId <- revisionProvider.currentRevTreeId
     cache  <- nextTechniquesInfoCache.get
   } yield nextId != cache._1
 
   override def needReload() = needReloadPure.runNow
 
-  private[this] def processRevTreeId(db: Repository, id: ObjectId, parseDescriptor: Boolean = true): IOResult[TechniquesInfo] = {
+  private def processRevTreeId(db: Repository, id: ObjectId, parseDescriptor: Boolean = true): IOResult[TechniquesInfo] = {
     /*
      * Global process : the logic is completely different
      * from a standard "directory then subdirectories" walk, because
@@ -561,7 +561,7 @@ class GitTechniqueReader(
     }
   }
 
-  private[this] def processDirectiveDefaultName(db: Repository, revTreeId: ObjectId): Map[String, String] = {
+  private def processDirectiveDefaultName(db: Repository, revTreeId: ObjectId): Map[String, String] = {
     // a first walk to find categories
     val tw = new TreeWalk(db)
     tw.setFilter(new ExactFileTreeFilter(canonizedRelativePath, directiveDefaultName))
@@ -600,7 +600,7 @@ class GitTechniqueReader(
 
   }
 
-  private[this] def processTechniques(
+  private def processTechniques(
       gitRepo:           Repository,
       revTreeId:         ObjectId,
       techniqueInfosRef: Ref[InternalTechniquesInfo],
@@ -637,7 +637,7 @@ class GitTechniqueReader(
     ZIO.scoped(managed.flatMap(tw => rec(tw)))
   }
 
-  private[this] def processCategories(
+  private def processCategories(
       db:              Repository,
       revTreeId:       ObjectId,
       infosRef:        Ref[InternalTechniquesInfo],
@@ -751,7 +751,7 @@ class GitTechniqueReader(
    * We remove each category for which parent category is not defined.
    */
   @scala.annotation.tailrec
-  private[this] def recToRemove(
+  private def recToRemove(
       catId:           SubTechniqueCategoryId,
       toRemove:        Set[SubTechniqueCategoryId],
       maybeCategories: Map[TechniqueCategoryId, TechniqueCategory]
@@ -769,7 +769,7 @@ class GitTechniqueReader(
     }
   }
 
-  private[this] val dummyTechnique = Technique(
+  private val dummyTechnique = Technique(
     TechniqueId(
       TechniqueName("dummy"),
       TechniqueVersion.parse("1.0").getOrElse(throw new RuntimeException("Version of dummy technique is not parsable"))
@@ -782,7 +782,7 @@ class GitTechniqueReader(
     None
   )
 
-  private[this] def processTechnique(
+  private def processTechnique(
       is:              ZIO[Any with Scope, RudderError, InputStream],
       filePath:        String,
       techniquesInfo:  Ref[InternalTechniquesInfo],
@@ -924,7 +924,7 @@ class GitTechniqueReader(
    * as a category, but the user did a mistake: signal it,
    * but DO use the folder as a category.
    */
-  private[this] def extractMaybeCategory(
+  private def extractMaybeCategory(
       descriptorObjectId: ObjectId,
       db:                 Repository,
       filePath:           String,
@@ -972,7 +972,7 @@ class GitTechniqueReader(
   /**
    * Load a descriptor document.
    */
-  private[this] def loadDescriptorFile(
+  private def loadDescriptorFile(
       managedStream: ZIO[Any with Scope, RudderError, InputStream],
       filePath:      String
   ): IOResult[Elem] = {
@@ -1011,7 +1011,7 @@ class GitTechniqueReader(
    * As we may have files&templates outside technique, we
    * need to keep track of there relative id
    */
-  private[this] def getTechniquePath(techniqueInfos: TechniquesInfo): Set[(TechniquePath, TechniqueId)] = {
+  private def getTechniquePath(techniqueInfos: TechniquesInfo): Set[(TechniquePath, TechniqueId)] = {
     val set        = scala.collection.mutable.Set[(TechniquePath, TechniqueId)]()
     techniqueInfos.rootCategory.techniqueIds.foreach(id => set += ((TechniquePath("/" + id.serialize), id)))
     techniqueInfos.subCategories.foreach {

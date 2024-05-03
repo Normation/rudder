@@ -55,13 +55,13 @@ import scala.xml.*
 
 class DatabaseManagement extends DispatchSnippet with Loggable {
 
-  private[this] val databaseManager = RudderConfig.databaseManager
-  private[this] val dbCleaner       = RudderConfig.automaticReportsCleaning
+  private val databaseManager = RudderConfig.databaseManager
+  private val dbCleaner       = RudderConfig.automaticReportsCleaning
 
-  private[this] var from:   String            = ""
-  val archiveAction:        ArchiveAction     = ArchiveAction(databaseManager, dbCleaner)
-  val deleteAction:         DeleteAction      = DeleteAction(databaseManager, dbCleaner)
-  private[this] var action: CleanReportAction = archiveAction
+  private var from:   String            = ""
+  val archiveAction:  ArchiveAction     = ArchiveAction(databaseManager, dbCleaner)
+  val deleteAction:   DeleteAction      = DeleteAction(databaseManager, dbCleaner)
+  private var action: CleanReportAction = archiveAction
 
   val DATETIME_FORMAT = "yyyy-MM-dd"
   val DATETIME_PARSER: DateTimeFormatter = DateTimeFormat.forPattern(DATETIME_FORMAT)
@@ -173,7 +173,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  private[this] def showConfirmationDialog(date: DateTime, action: CleanReportAction): JsCmd = {
+  private def showConfirmationDialog(date: DateTime, action: CleanReportAction): JsCmd = {
     val cancel: JsCmd = {
       SetHtml("confirm", NodeSeq.Empty) &
       JsRaw(""" $('#archiveReports').show();
@@ -221,7 +221,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     showDialog
   }
 
-  private[this] def displayDate(entry: Box[Option[DateTime]]): NodeSeq = {
+  private def displayDate(entry: Box[Option[DateTime]]): NodeSeq = {
     entry match {
       case Full(dateOption) =>
         dateOption match {

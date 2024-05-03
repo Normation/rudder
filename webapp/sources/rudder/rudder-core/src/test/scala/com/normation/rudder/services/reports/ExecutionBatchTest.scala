@@ -124,9 +124,9 @@ class ExecutionBatchTest extends Specification {
             case (directiveId, components) =>
               DirectiveExpectedReports(
                 directiveId,
-                None,
-                false,
-                components
+                policyMode = None,
+                isSystem = false,
+                components = components
                   .map(componentName =>
                     ValueExpectedReport(componentName, ExpectedValueMatch(componentName, componentName) :: Nil)
                   )
@@ -391,8 +391,8 @@ class ExecutionBatchTest extends Specification {
         DirectiveExpectedReports(
           "policy",
           None,
-          false,
-          List(
+          isSystem = false,
+          components = List(
             new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil)
           )
         )
@@ -1382,7 +1382,7 @@ class ExecutionBatchTest extends Specification {
       None
     )
     val directiveExpectedReports =
-      DirectiveExpectedReports(DirectiveId(DirectiveUid("policy")), None, false, expectedComponent :: Nil)
+      DirectiveExpectedReports(DirectiveId(DirectiveUid("policy")), None, isSystem = false, components = expectedComponent :: Nil)
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
     val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
 
@@ -1553,8 +1553,14 @@ class ExecutionBatchTest extends Specification {
       ) :: Nil,
       None
     )
-    val directiveExpectedReports =
-      DirectiveExpectedReports(DirectiveId(DirectiveUid("policy")), None, false, expectedComponent :: Nil)
+    val directiveExpectedReports = {
+      DirectiveExpectedReports(
+        DirectiveId(DirectiveUid("policy")),
+        policyMode = None,
+        isSystem = false,
+        components = expectedComponent :: Nil
+      )
+    }
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
     val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
 
@@ -1692,8 +1698,14 @@ class ExecutionBatchTest extends Specification {
       ) :: Nil,
       None
     )
-    val directiveExpectedReports =
-      DirectiveExpectedReports(DirectiveId(DirectiveUid("policy")), None, false, expectedComponent :: Nil)
+    val directiveExpectedReports = {
+      DirectiveExpectedReports(
+        DirectiveId(DirectiveUid("policy")),
+        policyMode = None,
+        isSystem = false,
+        components = expectedComponent :: Nil
+      )
+    }
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
     val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
 
@@ -1904,7 +1916,7 @@ class ExecutionBatchTest extends Specification {
       None
     )
     val directiveExpectedReports =
-      DirectiveExpectedReports(DirectiveId(DirectiveUid("policy")), None, false, expectedComponent :: Nil)
+      DirectiveExpectedReports(DirectiveId(DirectiveUid("policy")), None, isSystem = false, components = expectedComponent :: Nil)
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
     val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
 
@@ -2112,7 +2124,7 @@ class ExecutionBatchTest extends Specification {
       None
     )
     val directiveExpectedReports =
-      DirectiveExpectedReports(DirectiveId(DirectiveUid("policy")), None, false, expectedComponent :: Nil)
+      DirectiveExpectedReports(DirectiveId(DirectiveUid("policy")), None, isSystem = false, components = expectedComponent :: Nil)
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
     val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
 
@@ -2775,17 +2787,17 @@ class ExecutionBatchTest extends Specification {
     val d1 = DirectiveExpectedReports(
       "d1",
       None,
-      false,
-      List(
+      isSystem = false,
+      components = List(
         ValueExpectedReport("Package", List(ExpectedValueMatch("vim", "vim"))),
         ValueExpectedReport("Post-modification script", List(ExpectedValueMatch("vim", "vim")))
       )
     )
     val d2 = DirectiveExpectedReports(
-      "d2",
-      None,
-      false,
-      List(
+      directiveId = "d2",
+      policyMode = None,
+      isSystem = false,
+      components = List(
         BlockExpectedReport(
           "block1",
           ReportingLogic.WeightedReport,
@@ -3364,10 +3376,10 @@ class ExecutionBatchTest extends Specification {
         12,
         List(
           DirectiveExpectedReports(
-            "policy",
-            None,
-            false,
-            List(
+            directiveId = "policy",
+            policyMode = None,
+            isSystem = false,
+            components = List(
               new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil)
             ) // here, we automatically must have "value" infered as unexpanded var
           )
@@ -3415,10 +3427,10 @@ class ExecutionBatchTest extends Specification {
         12,
         List(
           DirectiveExpectedReports(
-            "policy",
-            None,
-            false,
-            List(new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil))
+            directiveId = "policy",
+            policyMode = None,
+            isSystem = false,
+            components = List(new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil))
           )
         )
       ),
@@ -3458,10 +3470,10 @@ class ExecutionBatchTest extends Specification {
         12,
         List(
           DirectiveExpectedReports(
-            "policy",
-            None,
-            false,
-            List(new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil))
+            directiveId = "policy",
+            policyMode = None,
+            isSystem = false,
+            components = List(new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil))
           )
         )
       ),
@@ -3511,10 +3523,10 @@ class ExecutionBatchTest extends Specification {
         12,
         List(
           DirectiveExpectedReports(
-            "policy",
-            None,
-            false,
-            List(new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil))
+            directiveId = "policy",
+            policyMode = None,
+            isSystem = false,
+            components = List(new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil))
           )
         )
       ),
@@ -3551,10 +3563,10 @@ class ExecutionBatchTest extends Specification {
         12,
         List(
           DirectiveExpectedReports(
-            "policy",
-            None,
-            false,
-            List(new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil))
+            directiveId = "policy",
+            policyMode = None,
+            isSystem = false,
+            components = List(new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil))
           )
         )
       ),
@@ -3601,19 +3613,19 @@ class ExecutionBatchTest extends Specification {
         12,
         List(
           DirectiveExpectedReports(
-            "policy",
-            None,
-            false,
-            List(
+            directiveId = "policy",
+            policyMode = None,
+            isSystem = false,
+            components = List(
               new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil),
               new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
             )
           ),
           DirectiveExpectedReports(
-            "policy2",
-            None,
-            false,
-            List(
+            directiveId = "policy2",
+            policyMode = None,
+            isSystem = false,
+            components = List(
               new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil),
               new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
             )
@@ -3722,19 +3734,19 @@ class ExecutionBatchTest extends Specification {
         12,
         List(
           DirectiveExpectedReports(
-            "policy",
-            None,
-            false,
-            List(
+            directiveId = "policy",
+            policyMode = None,
+            isSystem = false,
+            components = List(
               new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil),
               new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
             )
           ),
           DirectiveExpectedReports(
-            "policy2",
-            None,
-            false,
-            List(
+            directiveId = "policy2",
+            policyMode = None,
+            isSystem = false,
+            components = List(
               new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil),
               new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
             )
@@ -3875,10 +3887,10 @@ class ExecutionBatchTest extends Specification {
         12,
         List(
           DirectiveExpectedReports(
-            "policy",
-            None,
-            false,
-            List(
+            directiveId = "policy",
+            policyMode = None,
+            isSystem = false,
+            components = List(
               new ValueExpectedReport(
                 "component",
                 List(
@@ -4013,10 +4025,10 @@ class ExecutionBatchTest extends Specification {
         12,
         List(
           DirectiveExpectedReports(
-            "policy",
-            None,
-            false,
-            List(
+            directiveId = "policy",
+            policyMode = None,
+            isSystem = false,
+            components = List(
               ValueExpectedReport("component", ExpectedValueMatch(("""some\"text"""), ("""some\text""")) :: Nil)
             )
           )
@@ -4058,10 +4070,10 @@ class ExecutionBatchTest extends Specification {
         12,
         List(
           DirectiveExpectedReports(
-            "policy",
-            None,
-            false,
-            List(
+            directiveId = "policy",
+            policyMode = None,
+            isSystem = false,
+            components = List(
               ValueExpectedReport(
                 "component",
                 ExpectedValueMatch("""${sys.workdir}/inputs/\"test""", """${sys.workdir}/inputs/\"test""") :: Nil
@@ -4105,10 +4117,10 @@ class ExecutionBatchTest extends Specification {
         12,
         List(
           DirectiveExpectedReports(
-            "policy",
-            None,
-            false,
-            List(
+            directiveId = "policy",
+            policyMode = None,
+            isSystem = false,
+            components = List(
               ValueExpectedReport(
                 "component",
                 ExpectedValueMatch("""${sys.workdir}/inputs/"test""", """${sys.workdir}/inputs/"test""") :: Nil

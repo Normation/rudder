@@ -42,6 +42,7 @@ import net.liftweb.common.Empty
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
+import org.specs2.matcher.Expectable
 import org.specs2.matcher.Matcher
 import org.specs2.matcher.MatchResult
 import org.specs2.matcher.NoShouldExpectations
@@ -71,10 +72,10 @@ trait BoxSpecMatcher extends Specification with Loggable with NoShouldExpectatio
   }
 
   implicit class BoxMustEquals[T](t: Box[T]) {
-    private[this] def matchRes(f: T => MatchResult[Any]) = t match {
-      case f: Failure =>
-        val msg = s"I wasn't expecting the failure: ${f.messageChain}"
-        f.rootExceptionCause.foreach { ex =>
+    private def matchRes(f: T => MatchResult[Any]) = t match {
+      case failure: Failure =>
+        val msg = s"I wasn't expecting the failure: ${failure.messageChain}"
+        failure.rootExceptionCause.foreach { ex =>
           logger.error(msg)
           ex.printStackTrace()
         }
@@ -89,6 +90,24 @@ trait BoxSpecMatcher extends Specification with Loggable with NoShouldExpectatio
 
     def mustFull: MatchResult[Any] = matchRes((x: T) => ok(s"Got a ${x}"))
 
+  }
+
+}
+
+import org.specs2.matcher.describe.Diffable
+
+trait BoxMatchers {
+  def beFull[T: Diffable]: BoxMatcher[T] = BoxMatcher()
+}
+
+case class BoxMatcher[T]() extends Matcher[Box[T]] {
+  override def apply[S <: Box[T]](value: Expectable[S]): MatchResult[S] = {
+    result(
+      test = value.value.isInstanceOf[Full[T]],
+      okMessage = s"${value.description} is Full",
+      koMessage = s"${value.description} is not Full",
+      value = value
+    )
   }
 
 }

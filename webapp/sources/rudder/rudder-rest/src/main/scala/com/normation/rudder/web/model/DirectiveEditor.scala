@@ -50,13 +50,14 @@ import net.liftweb.util.BaseField
 import net.liftweb.util.Helpers
 import org.slf4j
 import org.slf4j.LoggerFactory
+import scala.reflect.ClassTag
 import scala.xml.*
 
 /**
  * A displayable field has 2 methods :
  * -> toHtmlNodeSeq and toFormNodeSeq : to display the form
  */
-trait DisplayableField extends {
+trait DisplayableField {
   def toHtmlNodeSeq: NodeSeq
 
   def toFormNodeSeq: NodeSeq
@@ -95,16 +96,10 @@ sealed trait SectionChildField extends DisplayableField with Loggable {
 trait DirectiveField extends BaseField with SectionChildField {
   val id: String
 
-  /**
-   * Get the manifest of the given type
-   * Use like: val manifest = manifest[MY_TYPE]
-   */
-  def manifestOf[T](implicit m: Manifest[T]): Manifest[T] = m
-
 //  This check is always going to fail: at this point id is always null
 //  require(!isEmpty(id), s"A field ID can not be null nor empty")
 
-  def manifest: Manifest[ValueType]
+  def manifest: ClassTag[ValueType]
   override def required_? = true
 
   // deprecated but has to be defined
@@ -527,7 +522,7 @@ final case class MultivaluedSectionField(
   /**
    * Command to correct display and behaviour after modifying sections
    */
-  private[this] def postModificationJS(): JsExp = {
+  private def postModificationJS(): JsExp = {
     JsRaw("""initBsTooltips(); """)
   }
 

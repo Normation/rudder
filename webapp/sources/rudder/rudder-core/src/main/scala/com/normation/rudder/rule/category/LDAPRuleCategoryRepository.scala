@@ -148,7 +148,7 @@ class RoLDAPRuleCategoryRepository(
    * Build the hierarchy defined by the list of categories, filling children.
    * The starting point is given by the root id.
    */
-  private[this] def buildHierarchy(rootDn: DN, categories: List[(DN, RuleCategory)]): IOResult[RuleCategory] = {
+  private def buildHierarchy(rootDn: DN, categories: List[(DN, RuleCategory)]): IOResult[RuleCategory] = {
     def getChildren(parentDn: DN): List[RuleCategory] = categories.collect {
       case (dn, r) if (dn.getParent == parentDn) =>
         val cc = getChildren(dn)
@@ -182,7 +182,7 @@ class WoLDAPRuleCategoryRepository(
   /**
    * Check if a category exist with the given name
    */
-  private[this] def categoryExists(
+  private def categoryExists(
       con:      RoLDAPConnection,
       name:     String,
       parentDn: DN
@@ -203,7 +203,7 @@ class WoLDAPRuleCategoryRepository(
   /**
    * Check if a category exist with the given name
    */
-  private[this] def categoryExists(
+  private def categoryExists(
       con:       RoLDAPConnection,
       name:      String,
       parentDn:  DN,
@@ -229,7 +229,7 @@ class WoLDAPRuleCategoryRepository(
   /**
    * Return the list of parents for that category, from the root category
    */
-  private[this] def getParents(id: RuleCategoryId): IOResult[List[RuleCategory]] = {
+  private def getParents(id: RuleCategoryId): IOResult[List[RuleCategory]] = {
     for {
       root    <- getRootCategory()
       parents <- root.findParents(id).leftMap(s => Inconsistency(s)).toIO

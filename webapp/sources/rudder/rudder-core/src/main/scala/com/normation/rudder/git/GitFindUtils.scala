@@ -254,18 +254,18 @@ class FileTreeFilter(rootDirectories: List[String], endPaths: List[String]) exte
 
   // paths must not end with "/"
 
-  private[this] val startRawPaths = rootDirectories.filter(_ != "").map { p =>
+  private val startRawPaths = rootDirectories.filter(_ != "").map { p =>
     val pp = p.reverse.dropWhile(_ == '/').reverse
     JConstants.encode(pp)
   }
 
-  private[this] val endRawPaths = endPaths.filter(_ != "").map(e => JConstants.encode(e))
+  private val endRawPaths = endPaths.filter(_ != "").map(e => JConstants.encode(e))
 
   /**
    * create the comparator that filter for given paths. An empty list is
    * an accept ALL filter (no filtering).
    */
-  private[this] def pathComparator(walker: TreeWalk, paths: List[Array[Byte]], test: Array[Byte] => Boolean) = {
+  private def pathComparator(walker: TreeWalk, paths: List[Array[Byte]], test: Array[Byte] => Boolean) = {
     paths.size == 0 || paths.exists(p => test(p))
   }
 
@@ -303,10 +303,10 @@ class FileTreeFilter(rootDirectories: List[String], endPaths: List[String]) exte
  * slash ("/").
  */
 class ExactFileTreeFilter(rootDirectory: Option[String], fileName: String) extends TreeFilter {
-  private[this] val fileRawPath     = JConstants.encode("/" + fileName)
-  private[this] val rootFileRawPath = JConstants.encode(fileName)
+  private val fileRawPath     = JConstants.encode("/" + fileName)
+  private val rootFileRawPath = JConstants.encode(fileName)
 
-  private[this] val rawRootPath = {
+  private val rawRootPath = {
     rootDirectory match {
       case None       => JConstants.encode("")
       case Some(path) => JConstants.encode(path)

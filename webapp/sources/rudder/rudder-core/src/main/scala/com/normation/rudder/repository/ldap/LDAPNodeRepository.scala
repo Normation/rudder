@@ -92,7 +92,9 @@ class WoLDAPNodeRepository(
         _             <- checkNodeModification(oldNode, node)
         // here goes the check that we are not updating policy server
         nodeEntry      = mapper.nodeToEntry(node)
-        result        <- con.save(nodeEntry, true, Seq()).chainError(s"Error when saving node entry in repository: ${nodeEntry}")
+        result        <- con
+                           .save(nodeEntry, removeMissingAttributes = true)
+                           .chainError(s"Error when saving node entry in repository: ${nodeEntry}")
         // only record an event log if there is an actual change
         _             <- result match {
                            case LDIFNoopChangeRecord(_) => ZIO.unit

@@ -130,19 +130,19 @@ class PolicyAgregationTest extends Specification {
     val v = InputVariable(InputVariableSpec("card", "description for " + varName, multivalued = true, id = None), values)
     BoundPolicyDraft(
       id,
-      "rule name",
-      "directive name",
+      ruleName = "rule name",
+      directiveName = "directive name",
       technique,
-      DateTime.now,
-      Map(ComponentId(v.spec.name, Nil, None) -> v),
-      Map(ComponentId(v.spec.name, Nil, None) -> v),
+      acceptationDate = DateTime.now,
+      expandedVars = Map(ComponentId(v.spec.name, Nil, None) -> v),
+      originalVars = Map(ComponentId(v.spec.name, Nil, None) -> v),
       trackerVariable,
-      5,
-      false,
-      None,
-      BundleOrder(id.ruleId.serialize),
-      BundleOrder(id.directiveId.serialize),
-      Set()
+      priority = 5,
+      isSystem = false,
+      policyMode = None,
+      ruleOrder = BundleOrder(id.ruleId.serialize),
+      directiveOrder = BundleOrder(id.directiveId.serialize),
+      overrides = Set()
     )
   }
 
