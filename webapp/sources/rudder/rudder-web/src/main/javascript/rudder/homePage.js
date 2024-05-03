@@ -155,7 +155,7 @@ function homePage (
     gauge.set(0)
   } else {
 
-    $("#globalCompliance").append(buildComplianceBar(globalCompliance,8));
+    $("#globalCompliance").append(buildComplianceBar(globalCompliance));
 
     var allNodes = nodeCount.active;
     var activeNodes ="<span class='highlight'>" + nodeCount.active + "</span> Nodes."
