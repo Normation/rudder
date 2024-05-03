@@ -64,6 +64,8 @@ import com.normation.rudder.web.snippet.ToastNotification
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
+import io.scalaland.chimney.Transformer
+import io.scalaland.chimney.syntax.*
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
@@ -72,12 +74,12 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JE.JsVar
 import net.liftweb.http.js.JE.Str
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json.JsonDSL.*
 import net.liftweb.util.*
 import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import scala.xml.*
 import scala.xml.Utility.escape
+import zio.json.*
 import zio.syntax.*
 
 /**
@@ -93,6 +95,7 @@ import zio.syntax.*
  *    to init javascript for it
  */
 object DisplayNode extends Loggable {
+  import DisplayNodeJson.*
 
   private val nodeFactRepository   = RudderConfig.nodeFactRepository
   private val removeNodeService    = RudderConfig.removeNodeService
@@ -829,7 +832,7 @@ object DisplayNode extends Loggable {
     }
   }
 
-  private def displayMachineType(opt: Option[MachineInventory]): NodeSeq = {
+  def displayMachineType(opt: Option[MachineInventory]): NodeSeq = {
     opt match {
       case None          => NodeSeq.Empty
       case Some(machine) => (
@@ -1080,27 +1083,18 @@ object DisplayNode extends Loggable {
      </tr>
     }
 
-    val os = (
-      ("fullName"          -> escape(sm.node.main.osDetails.fullName))
-        ~ ("name"          -> escape(S.?("os.name." + sm.node.main.osDetails.os.name)))
-        ~ ("version"       -> escape(sm.node.main.osDetails.version.value))
-        ~ ("servicePack"   -> escape(sm.node.main.osDetails.servicePack.getOrElse("None")))
-        ~ ("kernelVersion" -> escape(sm.node.main.osDetails.kernelVersion.value))
-    )
+    val os = sm.node.main.osDetails.transformInto[OsDetailsJson]
 
-    val machine = (
-      ("manufacturer"    -> escape(sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("")))
-        ~ ("machineType" -> displayMachineType(sm.machine).text.toString)
-    )
+    val machine = sm.machine.transformInto[MachineJson]
 
     val values = Seq[(String, String)](
       ("localAdministratorAccountName", escape(sm.node.main.rootUser)),
       ("hostname", escape(sm.node.main.hostname)),
       ("policyServerId", escape(sm.node.main.policyServerId.value)),
-      ("os", net.liftweb.json.prettyRender(os)),
+      ("os", os.toJsonEscaped),
       ("archDescription", escape(sm.node.archDescription.getOrElse("None"))),
       ("ram", escape(sm.node.ram.map(_.size.toString).getOrElse(""))),
-      ("machine", net.liftweb.json.prettyRender(machine)),
+      ("machine", machine.toJsonEscaped),
       (
         "timezone",
         escape(
@@ -1325,5 +1319,49 @@ object DisplayNode extends Loggable {
   import com.normation.rudder.domain.nodes.NodeState
   private def getNodeState(nodeState: NodeState): String = {
     S.?(s"node.states.${nodeState.name}")
+  }
+}
+
+object DisplayNodeJson {
+  final case class OsDetailsJson(
+      fullName:      String,
+      name:          String,
+      version:       String,
+      servicePack:   String,
+      kernelVersion: String
+  ) {
+    def toJsonEscaped: String = OsDetailsJson(
+      escape(fullName),
+      escape(S.?("os.name." + name)),
+      escape(version),
+      escape(servicePack),
+      escape(kernelVersion)
+    ).toJson
+  }
+
+  object OsDetailsJson {
+    implicit val transformer: Transformer[OsDetails, OsDetailsJson] = Transformer
+      .define[OsDetails, OsDetailsJson]
+      .withFieldComputed(_.name, _.os.name)
+      .withFieldComputed(_.servicePack, _.servicePack.getOrElse("None"))
+      .buildTransformer
+
+    implicit val encoder: JsonEncoder[OsDetailsJson] = DeriveJsonEncoder.gen[OsDetailsJson]
+  }
+
+  final case class MachineJson(
+      manufacturer: String,
+      machineType:  String
+  ) {
+    def toJsonEscaped: String = copy(manufacturer = escape(manufacturer)).toJson
+  }
+  object MachineJson   {
+    implicit val transformer: Transformer[Option[MachineInventory], MachineJson] = Transformer
+      .define[Option[MachineInventory], MachineJson]
+      .withFieldComputed(_.manufacturer, _.flatMap(_.manufacturer.map(_.name)).getOrElse(""))
+      .withFieldComputed(_.machineType, DisplayNode.displayMachineType(_).text.toString)
+      .buildTransformer
+
+    implicit val encoder: JsonEncoder[MachineJson] = DeriveJsonEncoder.gen[MachineJson]
   }
 }

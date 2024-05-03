@@ -56,10 +56,10 @@ import net.liftweb.http.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json.*
 import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import scala.xml.*
+import zio.json.*
 
 /**
  * Check for server in the pending repository and propose to
@@ -67,6 +67,7 @@ import scala.xml.*
  *
  */
 class AcceptNode extends Loggable {
+  import AcceptNodeJson.*
 
   val newNodeManager     = RudderConfig.newNodeManager
   val rudderDit          = RudderConfig.rudderDit
@@ -184,8 +185,7 @@ class AcceptNode extends Loggable {
    * popuId : the id of the popup
    */
   def details(jsonArrayOfIds: String, template: NodeSeq, popupId: String): JsCmd = {
-    implicit val formats = DefaultFormats
-    val serverList       = parse(jsonArrayOfIds).extract[List[String]].map(x => NodeId(x))
+    val serverList = jsonArrayOfIds.fromJson[List[NodeId]].getOrElse(List.empty)
 
     if (serverList.isEmpty) {
       Alert("You didn't select any nodes")
@@ -336,4 +336,8 @@ class AcceptNode extends Loggable {
    */
   val selectAll: Node =
     <input type="checkbox" id="selectAll" onclick="jqCheckAll('selectAll', 'serverids')"/>
+}
+
+object AcceptNodeJson {
+  implicit val decodeNodeId: JsonDecoder[NodeId] = JsonDecoder[String].map(NodeId.apply)
 }
