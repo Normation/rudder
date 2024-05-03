@@ -59,19 +59,22 @@
             </div>
             <div ng-non-bindable id="isDisabled">[Disabled Technique]</div>
             <div>
+              <h4>Description</h4>
+                <span ng-non-bindable id="techniqueDescription">[technique.description]</span>
+            </div>
+            <div>
               <h4 style="margin-top:0;">Technique ID</h4>
               <span ng-non-bindable id="techniqueID">[technique.techniqueName]</span>
             </div>
             <div>
-              <h4 class="toggle-doc" onclick="$(this).toggleClass('doc-hidden')">Description<i class="fa fa-chevron-down"></i></h4>
+              <h4 class="toggle-doc" onclick="$(this).toggleClass('doc-hidden')">Documentation<i class="fa fa-chevron-down"></i></h4>
               <div class="markdown">
-                <span ng-non-bindable id="techniqueDescription">[technique.description]</span>
+                <span ng-non-bindable id="techniqueLongDescription">[technique.documentation]</span>
               </div>
             </div>
             <div class="groupDiv">
               <h4>Characteristics</h4>
               <ul>
-                <li ng-non-bindable id="techniqueLongDescription">[technique.longDescription]</li>
                 <li ng-non-bindable id="isSingle">[Unique Technique]</li>
               </ul>
             </div>
