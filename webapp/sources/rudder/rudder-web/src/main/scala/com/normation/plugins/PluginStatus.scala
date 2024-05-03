@@ -37,6 +37,7 @@
 
 package com.normation.plugins
 
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import org.joda.time.DateTime
 
 /**
@@ -77,9 +78,17 @@ trait PluginStatus {
   /*
    * Is the plugin currently enabled (at the moment of the request) ?
    */
-  def isEnabled(): Boolean = current match {
-    case PluginStatusInfo.EnabledNoLicense | _: PluginStatusInfo.EnabledWithLicense => true
-    case _                                                                          => false
+  def isEnabled(): Boolean = {
+    current match {
+      case PluginStatusInfo.EnabledNoLicense | _: PluginStatusInfo.EnabledWithLicense => true
+      case PluginStatusInfo.Disabled(reason, optInfo)                                 =>
+        val name = optInfo match {
+          case Some(i) => s"'${i.softwareId}' "
+          case None    => ""
+        }
+        ApplicationLoggerPure.Plugin.logEffect.warn(s"Plugin ${name}is disabled: ${reason}")
+        false
+    }
   }
 }
 
