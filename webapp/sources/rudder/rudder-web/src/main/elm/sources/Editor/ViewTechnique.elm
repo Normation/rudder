@@ -158,10 +158,10 @@ showTechnique model technique origin ui editInfo =
     blocksOnError = checkBlocksOnError technique.elems
     areBlockOnError = Dict.isEmpty blocksOnError
     activeTabClass = (\tab -> if ui.tab == tab then " active" else "")
-    creation = case origin of
-                 Creation _ -> True
-                 Clone _ _ -> True
-                 Edit _ -> False
+    (creation, optDraftId) = case origin of
+                 Creation id -> (True, Just id )
+                 Clone _ _ id -> (True, Just id )
+                 Edit _ -> (False, Nothing)
     methodCallList = List.concatMap getAllCalls technique.elems
     statesByMethodIdParameter = listAllMethodWithErrorOnParameters methodCallList model.methods
     statesByMethodIdCondition = listAllMethodWithErrorOnCondition methodCallList model.methods
@@ -224,13 +224,13 @@ showTechnique model technique origin ui editInfo =
     isUnchanged = case origin of
                     Edit t -> t == technique
                     Creation _ -> False
-                    Clone t _ -> t == technique
+                    Clone t _ _ -> t == technique
     deleteAction = case origin of
                      Creation id -> DeleteTechnique (Ok (fakeMetadata, id))
-                     Clone _ id -> DeleteTechnique (Ok (fakeMetadata, id))
+                     Clone _ _ id -> DeleteTechnique (Ok (fakeMetadata, id))
                      Edit _ -> OpenDeletionPopup technique
     topButtons =  [ li [] [
-                      a [ class "dropdown-item", disabled creation , onClick (GenerateId (\s -> CloneTechnique technique (TechniqueId s))) ] [
+                      a [ class "dropdown-item", disabled creation , onClick (GenerateId (\s -> CloneTechnique technique optDraftId (TechniqueId s))) ] [
                         text "Clone "
                       , i [ class "fa fa-clone"] []
                       ]

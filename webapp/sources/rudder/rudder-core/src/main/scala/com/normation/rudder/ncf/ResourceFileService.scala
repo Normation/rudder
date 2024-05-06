@@ -48,14 +48,28 @@ import zio.ZIO
  * And implementation based on file system and git is provided here
  */
 
-trait ResourceFileService {
+object ResourceFileService {
+  object Paths {
+    val TECHNIQUEDIR = "techniques"
+    val RESOURCESDIR = "resources"
+    val WORKSPACEDIR = "workspace"
+  }
+}
+trait ResourceFileService  {
   def getResources(technique:            EditorTechnique): IOResult[List[ResourceFile]]
   def getResourcesFromDir(resourcesPath: String, techniqueName: String, techniqueVersion: String): IOResult[List[ResourceFile]]
+  def cloneResourcesFromTechnique(
+      draftId:          String,
+      techniqueId:      String,
+      techniqueVersion: String,
+      category:         String
+  ): IOResult[Unit]
 }
 class GitResourceFileService(gitReposProvider: GitRepositoryProvider) extends ResourceFileService {
+  import ResourceFileService.Paths.*
   def getResources(technique: EditorTechnique): ZIO[Any, errors.RudderError, List[ResourceFile]] = {
     getResourcesFromDir(
-      s"techniques/${technique.category}/${technique.id.value}/${technique.version.value}/resources",
+      s"${TECHNIQUEDIR}/${technique.category}/${technique.id.value}/${technique.version.value}/${RESOURCESDIR}",
       technique.id.value,
       technique.version.value
     )
@@ -120,5 +134,32 @@ class GitResourceFileService(gitReposProvider: GitRepositoryProvider) extends Re
       // Create a new list with all a
       filesNotCommitted ::: untouched
     }
+  }
+
+  override def cloneResourcesFromTechnique(
+      draftId:          String,
+      techniqueId:      String,
+      techniqueVersion: String,
+      category:         String
+  ): IOResult[Unit] = {
+
+    IOResult.attempt(
+      s"An error occurred while copying resources of technique ${techniqueId}/${techniqueVersion} to a new draft technique ${draftId}"
+    ) {
+      val resourceDir = gitReposProvider.rootDirectory / TECHNIQUEDIR / category / techniqueId / techniqueVersion / RESOURCESDIR
+      val workspace   = gitReposProvider.rootDirectory / WORKSPACEDIR / draftId / techniqueVersion
+      if (resourceDir.exists) {
+        workspace.createDirectoryIfNotExists(true)
+        resourceDir.copyToDirectory(workspace)
+      } else {
+        // Maybe we are cloning resources of a draft
+        val resourceDraftDir = gitReposProvider.rootDirectory / WORKSPACEDIR / techniqueId / techniqueVersion / RESOURCESDIR
+        if (resourceDraftDir.exists) {
+          workspace.createDirectoryIfNotExists(true)
+          resourceDraftDir.copyToDirectory(workspace)
+        }
+      }
+    }
+
   }
 }

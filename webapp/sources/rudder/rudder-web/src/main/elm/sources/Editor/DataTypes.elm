@@ -7,6 +7,7 @@ import Http exposing (Error)
 import Http.Detailed
 import Dom.DragDrop as DragDrop
 import Time exposing (Posix)
+import Bytes exposing (Bytes)
 
 import Editor.MethodConditions exposing (..)
 --
@@ -147,7 +148,7 @@ allCategorieswithoutRoot m =
   let subElems = case m.categories.subCategories of SubCategories l -> List.concatMap allCategories l
   in subElems
 
-type TechniqueState = Creation TechniqueId | Edit Technique | Clone Technique TechniqueId
+type TechniqueState = Creation TechniqueId | Edit Technique | Clone Technique (Maybe TechniqueId) TechniqueId
 
 type ModalState = DeletionValidation Technique
 
@@ -254,6 +255,7 @@ type Msg =
   | UpdateTechnique Technique
   | DeleteTechnique (Result (Http.Detailed.Error String) ( Http.Metadata, TechniqueId ))
   | GetTechniqueResources  (Result (Http.Detailed.Error String) ( Http.Metadata, List Resource ))
+  | CopyResources  (Result (Http.Detailed.Error Bytes) ())
   | GetCategories (Result (Http.Detailed.Error String)  ( Http.Metadata, TechniqueCategory ))
   | GetMethods   (Result (Http.Detailed.Error String) ( Http.Metadata, (Dict String Method) ))
   | CheckOutJson CheckMode (Result (Http.Detailed.Error String) ( Http.Metadata, Technique ))
@@ -285,7 +287,7 @@ type Msg =
   | StartSaving
   | Copy String
   | GetDrafts (Dict String Draft) (List String)
-  | CloneTechnique Technique TechniqueId
+  | CloneTechnique Technique (Maybe TechniqueId) TechniqueId
   | ResetTechnique
   | ResetMethodCall MethodElem
   | ToggleFilter
