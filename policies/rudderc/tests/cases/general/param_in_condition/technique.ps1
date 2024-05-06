@@ -16,17 +16,19 @@
     }
     BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
     $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
-    $localContext = New-Object -TypeName "Rudder.Context" -ArgumentList @($techniqueName)
-    $localContext.Merge($system_classes)
 
 
 
     $reportId=$reportIdBase + "9e763779-9f33-44bc-ad73-1c5d5732301c"
-    $componentKey = "/tmp/${file}"
+    $componentKey = @'
+/tmp/
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.param_in_condition.file
+'@ + '}}'))
     $reportParams = @{
         ClassPrefix = ([Rudder.Condition]::canonify(("file_check_exists_" + $componentKey)))
         ComponentKey = $componentKey
-        ComponentName = "Check if a file exists"
+        ComponentName = 'Check if a file exists'
         PolicyMode = $policyMode
         ReportId = $reportId
         DisableReporting = $false
@@ -35,26 +37,33 @@
     Rudder-Report-NA @reportParams
 
     $reportId=$reportIdBase + "e8362340-dc50-4231-9b7f-748b51e9fa07"
-    $componentKey = "echo `"May be executed or not`""
+    $componentKey = 'echo "May be executed or not"'
     $reportParams = @{
         ClassPrefix = ([Rudder.Condition]::canonify(("command_execution_" + $componentKey)))
         ComponentKey = $componentKey
-        ComponentName = "Execute only if..."
+        ComponentName = 'Execute only if...'
         PolicyMode = $policyMode
         ReportId = $reportId
         DisableReporting = $false
         TechniqueName = $techniqueName
     }
     
-    $class = "file_check_exists__tmp_" + ([Rudder.Condition]::canonify(${file})) + "_kept"
-    if ($localContext.Evaluate($class)) {
+    $class = ([Rudder.Condition]::canonify(@'
+file_check_exists__tmp_
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.param_in_condition.file
+'@ + '}}')) + @'
+_kept
+'@))
+    if ([Rudder.Datastate]::Evaluate($class)) {
         $methodParams = @{
-            Command = "echo `"May be executed or not`""
+            Command = @'
+echo "May be executed or not"
+'@
             
         }
         $call = Command-Execution @methodParams -PolicyMode $policyMode
-        $methodContext = Compute-Method-Call @reportParams -MethodCall $call
-        $localContext.merge($methodContext)
+        Compute-Method-Call @reportParams -MethodCall $call
     } else {
         Rudder-Report-NA @reportParams
     }

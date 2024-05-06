@@ -19,19 +19,17 @@ function {{ id|technique_name }} {
     }
     BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
     $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
-    $localContext = New-Object -TypeName "Rudder.Context" -ArgumentList @($techniqueName)
-    $localContext.Merge($system_classes)
 {% if has_resources %}
     $resources_dir = $PSScriptRoot + "\resources"
 {% endif %}
 
 {% for m in methods %}
     $reportId=$reportIdBase + "{{ m.id }}"
-    $componentKey = "{{ m.component_key|escape_double_quotes }}"
+    $componentKey = {{ m.component_key|value_fmt(id, parameters) }}
     $reportParams = @{
         ClassPrefix = ([Rudder.Condition]::canonify(("{{ m.class_prefix }}_" + $componentKey)))
         ComponentKey = $componentKey
-        ComponentName = "{{ m.component_name|escape_double_quotes }}"
+        ComponentName = {{ m.component_name|value_fmt(id, parameters) }}
         PolicyMode = {{ m.policy_mode_override|policy_mode_fmt }}
         ReportId = $reportId
         DisableReporting = ${{ m.disable_reporting }}
@@ -40,28 +38,26 @@ function {{ id|technique_name }} {
   {%- if m.is_supported %}
     {% match m.condition %}
     {%- when Some with (cond) %}
-    $class = {{ cond|canonify_condition }}
-    if ($localContext.Evaluate($class)) {
+    $class = {{ cond|canonify_condition_with_context(id, parameters) }}
+    if ([Rudder.Datastate]::Evaluate($class)) {
         $methodParams = @{
             {% for arg in m.args %}
-                {{- arg.0 }} = {{ arg|parameter_fmt }}
+                {{- arg.0 }} = {{ arg|parameter_fmt(id, parameters) }}
             {% endfor %}
         }
         $call = {{ m.name|dsc_case }} @methodParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }}
-        $methodContext = Compute-Method-Call @reportParams -MethodCall $call
-        $localContext.merge($methodContext)
+        Compute-Method-Call @reportParams -MethodCall $call
     } else {
         Rudder-Report-NA @reportParams
     }
     {%- when None %}
     $methodParams = @{
         {% for arg in m.args %}
-            {{- arg.0 }} = {{ arg|parameter_fmt }}
+            {{- arg.0 }} = {{ arg|parameter_fmt(id, parameters) }}
         {% endfor %}
     }
     $call = {{ m.name|dsc_case }} @methodParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }}
-    $methodContext = Compute-Method-Call @reportParams -MethodCall $call
-    $localContext.merge($methodContext)
+    Compute-Method-Call @reportParams -MethodCall $call
     {% endmatch %}
   {%- else %}
     Rudder-Report-NA @reportParams
