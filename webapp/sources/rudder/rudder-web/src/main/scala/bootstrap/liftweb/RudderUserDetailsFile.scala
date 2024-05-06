@@ -284,8 +284,15 @@ trait UserDetailListProvider {
    */
   def getUserByName(username: String): PureResult[RudderUserDetail] = {
     val conf = authConfig
-    val u    = if (conf.isCaseSensitive) username else username.toLowerCase()
-    conf.users.get(u).toRight(Unexpected(s"User with username '${username}' was not found"))
+    conf.users
+      .get(username)
+      .orElse(
+        conf.users.collectFirst {
+          case (u, userDetail) if !conf.isCaseSensitive && u.toLowerCase() == username.toLowerCase() => userDetail
+        }
+      )
+      .toRight(Unexpected(s"User with username '${username}' was not found"))
+
   }
 }
 
