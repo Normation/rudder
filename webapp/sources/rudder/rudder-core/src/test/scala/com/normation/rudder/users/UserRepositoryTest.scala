@@ -388,6 +388,27 @@ trait UserRepositoryTest extends Specification with Loggable {
       repo.getAll().runNow.toUTC must containTheSameElementsAs(userInfosInit)
     }
 
+    "Getting user should handle case sensitivity parameter" >> {
+      repo.get("alice").runNow must beSome
+      repo.get("Alice").runNow must beNone
+      repo.get("Alice", isCaseSensitive = false).runNow must beSome
+    }
+
+    "Getting user should raise an error for multiple found users" >> {
+      repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, users :+ "Alice", traceInit).runNow
+      repo.get("alice").runNow must beSome
+      repo.get("Alice").runNow must beSome
+      repo.get("alice", isCaseSensitive = false).either.runNow must beLeft(
+        errors.Inconsistency("Multiple users found for id 'alice'")
+      )
+      repo.get("Alice", isCaseSensitive = false).either.runNow must beLeft(
+        errors.Inconsistency("Multiple users found for id 'Alice'")
+      )
+      (repo.delete(List("Alice"), None, Nil, traceInit) *> repo.purge(List("Alice"), None, Nil, traceInit)).runNow must beEqualTo(
+        List("Alice")
+      )
+    }
+
     "If an user is removed from list, it is marked as 'deleted' (but node erased)" >> {
       repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, userFileBobRemoved, traceBobRemoved).runNow
       repo.getAll().runNow.toUTC must containTheSameElementsAs(userInfosBobRemoved)

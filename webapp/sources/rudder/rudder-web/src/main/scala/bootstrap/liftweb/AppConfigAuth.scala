@@ -41,6 +41,7 @@ import com.normation.errors.*
 import com.normation.rudder.Role
 import com.normation.rudder.api.*
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.users.*
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.web.services.UserSessionLogEvent
@@ -406,7 +407,15 @@ class RudderInMemoryUserDetailsService(val authConfigProvider: UserDetailListPro
   @throws(classOf[DisabledException])
   override def loadUserByUsername(username: String): RudderUserDetail = {
     userRepository
-      .get(username)
+      .get(username, isCaseSensitive = authConfigProvider.authConfig.isCaseSensitive)
+      .catchSome {
+        case err: Inconsistency =>
+          ApplicationLoggerPure
+            .warn(
+              s"User '${username}' was found in Rudder base, but with an error: ${err.fullMsg}. Please check/remove duplicate users, and consider reloading users."
+            )
+            .as(None)
+      }
       .flatMap {
         case Some(user) if (user.status != UserStatus.Deleted) =>
           authConfigProvider.getUserByName(username) match {

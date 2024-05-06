@@ -38,7 +38,9 @@ package com.normation.rudder.users
  */
 
 import cats.data.NonEmptyList
+import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
+import com.normation.errors.SystemError
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.utils.DateFormaterService
@@ -47,6 +49,7 @@ import doobie.*
 import doobie.free.connection.unit as connectionUnit
 import doobie.implicits.*
 import doobie.postgres.implicits.*
+import doobie.util.invariant.UnexpectedContinuation
 import org.joda.time.DateTime
 import zio.*
 import zio.interop.catz.*
@@ -195,7 +198,7 @@ trait UserRepository {
    */
   def getAll(): IOResult[List[UserInfo]]
 
-  def get(userId: String): IOResult[Option[UserInfo]]
+  def get(userId: String, isCaseSensitive: Boolean = true): IOResult[Option[UserInfo]]
 }
 
 object UserRepository {
@@ -487,8 +490,14 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
     }
   }
 
-  override def get(userId: String): IOResult[Option[UserInfo]] = {
-    userBase.get.map(_.get(userId))
+  override def get(userId: String, isCaseSensitive: Boolean): IOResult[Option[UserInfo]] = {
+    userBase.get.flatMap(_.collect {
+      case (k, v) if (if (isCaseSensitive) k == userId else k.equalsIgnoreCase(userId)) => v
+    } match {
+      case Nil      => ZIO.none
+      case u :: Nil => ZIO.some(u)
+      case _        => Left(Inconsistency(s"Multiple users found for id '${userId}'")).toIO
+    })
   }
 
   override def updateInfo(
@@ -858,10 +867,17 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
     transactIOResult(s"Error when retrieving user information")(xa => sql.query[UserInfo].to[List].transact(xa))
   }
 
-  override def get(userId: String): IOResult[Option[UserInfo]] = {
-    val sql = sql"""select * from users where id = ${userId}"""
+  override def get(userId: String, isCaseSensitive: Boolean): IOResult[Option[UserInfo]] = {
+    val filter = if (isCaseSensitive) fr"id = ${userId} " else fr"lower(id) = ${userId.toLowerCase()}"
+    val sql    = fr"""select * from users where""" ++ filter
 
-    transactIOResult(s"Error when retrieving user information for '${userId}'")(xa => sql.query[UserInfo].option.transact(xa))
+    // When resultset is exhausted, it means we have many conflicting users, we raise an Inconsistency error
+    transactIOResult(s"Error when retrieving user information for '${userId}'")(xa =>
+      sql.query[UserInfo].option.transact(xa)
+    ).mapError {
+      case SystemError(_, UnexpectedContinuation) => Inconsistency(s"Multiple users found for id '${userId}'")
+      case e                                      => e
+    }
   }
 
   override def updateInfo(
