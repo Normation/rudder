@@ -1,6 +1,5 @@
 module Accounts.DataTypes exposing (..)
 
-import Html exposing (Html)
 import Http exposing (Error)
 import Http.Detailed
 import Json.Decode as D exposing (..)
@@ -19,11 +18,7 @@ type ModalState
     | NewAccount
     | EditAccount Account
     | Confirm ConfirmModalType String Msg
-
-
-type CopyState
-    = NoCopy
-    | Token String
+    | CopyToken String
 
 
 type ConfirmModalType
@@ -68,22 +63,12 @@ type alias DatePickerInfo =
 type alias UI =
     { tableFilters : TableFilters
     , modalState : ModalState
-    , copyState : CopyState
     , hasWriteRights : Bool
     , loadingAccounts : Bool
     , datePickerInfo : DatePickerInfo
     , pluginAclInit : Bool
     , pluginTenantsInit : Bool
     }
-
-
-type alias ModalUI msg =
-    { displayAcl : Bool
-    , displayTenants : Bool
-    , saveAction : Msg
-    , body : Html msg
-    }
-
 
 type alias Account =
     { id : String
@@ -133,7 +118,6 @@ type Msg
     | GetCheckedAcl (Result D.Error (List AccessControl))
     | GetCheckedTenants (Result D.Error (List String))
     | ToggleEditPopup ModalState
-    | CloseCopyPopup
     | GetAccountsResult (Result (Http.Detailed.Error String) ( Http.Metadata, ApiResult ))
     | Ignore
     | UpdateTableFilters TableFilters

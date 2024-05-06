@@ -2,16 +2,14 @@ module Accounts.ViewUtils exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput, custom, onCheck)
+import Html.Events exposing (onClick, onCheck)
 import List
-import Json.Decode as Decode
 import NaturalOrdering as N exposing (compare)
 
 import Accounts.ApiCalls exposing (..)
 import Accounts.DataTypes exposing (..)
 import Accounts.DatePickerUtils exposing (posixToString, checkIfExpired)
-import Accounts.ViewModals exposing (accountsModalId)
-import String exposing (isEmpty, length, slice)
+import String exposing (isEmpty, slice)
 
 
 --
@@ -154,15 +152,11 @@ displayAccountsTable model =
             [ class "btn btn-default reload-token"
             , title ("Generated: " ++ (cleanDate a.tokenGenerationDate))
             , onClick (ToggleEditPopup (Confirm Regenerate a.name (CallApi (regenerateToken a))))
-            , attribute "data-bs-target" ("#" ++ accountsModalId)
-            , attribute "data-bs-toggle" "modal"
             ]
             [ span [class "fa fa-repeat"][] ]
           , button 
             [ class "btn btn-default"
             , onClick (ToggleEditPopup (EditAccount a))
-            , attribute "data-bs-target" ("#" ++ accountsModalId)
-            , attribute "data-bs-toggle" "modal"
             ]
             [ span [class "fa fa-pencil"] [] ]
           , label [for inputId, class "custom-toggle"]
@@ -175,9 +169,7 @@ displayAccountsTable model =
             ]
           , button 
             [ class "btn btn-danger delete-button"
-            , onClick (ToggleEditPopup (Confirm Delete a.name (CallApi (deleteAccount a)))) 
-            , attribute "data-bs-target" ("#" ++ accountsModalId)
-            , attribute "data-bs-toggle" "modal"
+            , onClick (ToggleEditPopup (Confirm Delete a.name (CallApi (deleteAccount a))))
             ]
             [ span [class "fa fa-times-circle"] [] ]
           ]

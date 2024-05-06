@@ -138,7 +138,7 @@ view model =
         else
           div [class "tags-container"]
           ( List.map (\t ->
-            div [class "btn-group btn-group-xs ng-scope"]
+            div [class "btn-group btn-group-xs"]
             [ button [class "btn btn-default tags-label", onClick (UpdateRuleFilters {treeFilters | newTag = {newTag | key = t.key, value = t.value}})]
               [ i [class "fa fa-tag"][]
               , span [class "tag-key"]

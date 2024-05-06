@@ -11,11 +11,68 @@ import Html.Events exposing (onCheck, onClick, onInput)
 import SingleDatePicker exposing (Settings, TimePickerVisibility(..))
 import Time.Extra as Time exposing (Interval(..), add)
 
-accountsModalId : String
-accountsModalId = "api-accounts-modal"
+buildModal : String -> Html Msg -> Html Msg -> Html Msg
+buildModal modalTitle modalBody modalBtn =
+    div [ class "modal modal-account fade show", style "display" "block" ]
+    [ div [class "modal-backdrop fade show", onClick (ToggleEditPopup NoModal)][]
+    , div [ class "modal-dialog modal-dialog-scrollable" ]
+        [ div [ class "modal-content" ]
+            [ div [ class "modal-header" ]
+                [ h5 [ class "modal-title" ] [ text modalTitle ]
+                , button [ type_ "button", class "btn-close", onClick (ToggleEditPopup NoModal) ] []
+                ]
+            , div [ class "modal-body" ]
+                [ modalBody
+                ]
+            , div [ class "modal-footer" ]
+                [ button [ type_ "button", class "btn btn-success", onClick (ToggleEditPopup NoModal) ] [ text "Close" ]
+                , modalBtn
+                ]
+            ]
+        ]
+    ]
+tenantsContainer : Bool -> Html Msg
+tenantsContainer displayTenants =
+    div
+    [ id "tenantapiaccounts-app"
+    , style "display"
+        (if displayTenants then
+            "block"
 
-displayModals : Model -> Html Msg
-displayModals model =
+         else
+            "none"
+        )
+    ]
+    [ if displayTenants then
+        h5 [] [ text "Select tenants for account:" ]
+
+      else
+        text ""
+    , div [ id "tenantapiaccounts-content" ] []
+    ]
+
+aclPluginContainer : Bool -> Html Msg
+aclPluginContainer displayAcl =
+    div
+    [ id "apiauthorization-app"
+    , style "display"
+        (if displayAcl then
+            "block"
+
+         else
+            "none"
+        )
+    ]
+    [ if displayAcl then
+        h5 [] [ text "Select ACL for account:" ]
+
+      else
+        text ""
+    , div [ id "apiauthorization-content" ] []
+    ]
+
+displayModal : Model -> Html Msg
+displayModal model =
     let
         ( checkEmptyBtn, checkEmptyWarning, checkAlreadyUsedName ) =
             case model.editAccount of
@@ -33,279 +90,200 @@ displayModals model =
                         _ ->
                             ( False, False, False )
 
-        modalClass =
-            if model.ui.modalState == NoModal then
-                ""
+        saveAction = case model.editAccount of
+            Nothing -> Ignore
+            Just ac -> (CallApi (saveAccount ac))
 
-            else
-                " show"
+        editForm = case model.editAccount of
+              Nothing ->
+                  text ""
 
-        ( modalTitle, btnTxt, btnClass ) =
-            case model.ui.modalState of
-                NoModal ->
-                    ( "", "Save", "default" )
+              Just account ->
+                  let
+                      displayAclPlugin = account.authorisationType == "acl" && model.aclPluginEnabled
+                      displayTenants   = account.tenantMode == ByTenants && model.tenantsPluginEnabled
 
-                NewAccount ->
-                    ( "Create a new API account", "Create", "success" )
+                      ( expirationDate, selectedDate ) =
+                          case account.expirationDate of
+                              Just d ->
+                                  ( if account.expirationDateDefined then
+                                      posixToString model.ui.datePickerInfo d
 
-                EditAccount a ->
-                    ( "Update account '" ++ a.name ++ "'", "Update", "success" )
+                                    else
+                                      "Never"
+                                  , d
+                                  )
 
-                Confirm Delete a call ->
-                    ( "Delete API account '" ++ a ++ "'", "Confirm", "danger" )
+                              Nothing ->
+                                  ( "Never", add Month 1 model.ui.datePickerInfo.zone model.ui.datePickerInfo.currentTime )
 
-                Confirm Regenerate a call ->
-                    ( "Regenerate token of API account '" ++ a ++ "'", "Confirm", "primary" )
+                      displayWarningName =
+                          if checkEmptyWarning then
+                              span [ class "warning-info" ] [ i [ class "fa fa-warning" ] [], text " This field is required" ]
 
-        modalUI =
-            case model.ui.modalState of
-                NoModal ->
-                    ModalUI False False Ignore (text "")
+                          else if checkAlreadyUsedName then
+                              span [ class "warning-info" ] [ i [ class "fa fa-warning" ] [], text " This name is already used" ]
 
-                Confirm modalType a call ->
-                    let
-                        subTitle =
-                            case modalType of
-                                Delete ->
-                                    "delete"
+                          else
+                              text ""
 
-                                Regenerate ->
-                                    "regenerate token of"
-                    in
-                    ModalUI False
-                        False
-                        call
-                        (div []
-                            [ h4 [ class "text-center" ] [ text ("You are about to " ++ subTitle ++ " an API account.") ]
-                            , div [ class "alert alert-warning" ]
-                                [ i [ class "fa fa-exclamation-triangle" ] []
-                                , text "If you continue, any scripts using this will no longer be able to connect to Rudder's API."
-                                ]
+                      -- if the plugin is disable, only show a read-only view of tenants. Else, it's an option among all, none, a list
+                      displayTenantAccess =
+                          if model.tenantsPluginEnabled then
+                              select [ id "newAccount-tenants", class "form-select", onInput (\s -> UpdateAccountForm { account | tenantMode = Tuple.first (parseTenants s) }) ]
+                                  [ option [ value "*", selected (account.tenantMode == AllAccess) ] [ text "Access to all tenants" ]
+                                  , option [ value "-", selected (account.tenantMode == NoAccess) ] [ text "Access to no tenant" ]
+                                  , option [ value "list", selected (account.tenantMode == ByTenants) ]
+                                      [ text
+                                          ("Access to restricted list of tenants: "
+                                              ++ (case account.selectedTenants of
+                                                      Just tenants ->
+                                                          String.join ", " tenants
+
+                                                      Nothing ->
+                                                          "-"
+                                                 )
+                                          )
+                                      ]
+                                  ]
+
+                          else
+                              span [] [ text (": " ++ encodeTenants account.tenantMode account.selectedTenants) ]
+                  in
+                      div[]
+                      [ form
+                          [ name "newAccount"
+                          , class
+                              ("newAccount"
+                                  ++ (if SingleDatePicker.isOpen model.ui.datePickerInfo.picker then
+                                          " datepicker-open"
+
+                                      else
+                                          ""
+                                     )
+                              )
+                          ]
+                          [ div
+                              [ class
+                                  ("form-group"
+                                      ++ (if checkEmptyWarning || checkAlreadyUsedName then
+                                              " has-warning"
+
+                                          else
+                                              ""
+                                         )
+                                  )
+                              ]
+                              [ label [ for "newAccount-name" ] [ text "Name", displayWarningName ]
+                              , input [ id "newAccount-name", type_ "text", class "form-control", value account.name, onInput (\s -> UpdateAccountForm { account | name = s }) ] []
+                              ]
+                          , div [ class "form-group" ]
+                              [ label [ for "newAccount-description" ] [ text "Description" ]
+                              , textarea [ id "newAccount-description", class "form-control vresize float-inherit", value account.description, onInput (\s -> UpdateAccountForm { account | description = s }) ] []
+                              ]
+                          , div [ class "form-group" ]
+                              [ label [ for "newAccount-expiration", class "mb-1" ]
+                                  [ text "Expiration date"
+                                  , label [ for "selectDate", class "custom-toggle toggle-secondary" ]
+                                      [ input [ type_ "checkbox", id "selectDate", checked account.expirationDateDefined, onCheck (\c -> UpdateAccountForm { account | expirationDateDefined = c }) ] []
+                                      , label [ for "selectDate", class "custom-toggle-group" ]
+                                          [ label [ for "selectDate", class "toggle-enabled" ] [ text "Defined" ]
+                                          , span [ class "cursor" ] []
+                                          , label [ for "selectDate", class "toggle-disabled" ] [ text "Undefined" ]
+                                          ]
+                                      ]
+                                  , if checkIfExpired model.ui.datePickerInfo account then
+                                      span [ class "warning-info" ] [ i [ class "fa fa-warning" ] [], text " Expiration date has passed" ]
+
+                                    else
+                                      text ""
+                                  ]
+                              , div [ class "elm-datepicker-container" ]
+                                  [ button [ type_ "button", class "form-control btn-datepicker", disabled (not account.expirationDateDefined), onClick (OpenPicker selectedDate), placeholder "Select an expiration date" ]
+                                      [ text expirationDate
+                                      ]
+                                  , SingleDatePicker.view (userDefinedDatePickerSettings model.ui.datePickerInfo.zone model.ui.datePickerInfo.currentTime selectedDate) model.ui.datePickerInfo.picker
+                                  ]
+                              ]
+                          , div [ class "form-group" ]
+                              [ label [ for "newAccount-tenants" ] [ text "Access to tenants" ]
+                              , displayTenantAccess
+                              ]
+                          , div [ class "form-group" ]
+                              [ label [ for "newAccount-access" ] [ text "Access level" ]
+                              , select [ id "newAccount-access", class "form-select", onInput (\s -> UpdateAccountForm { account | authorisationType = s }) ]
+                                  [ option [ value "ro", selected (account.authorisationType == "ro") ] [ text "Read only" ]
+                                  , option [ value "rw", selected (account.authorisationType == "rw") ] [ text "Full access" ]
+                                  , option [ value "acl", selected (account.authorisationType == "acl"), disabled (not model.aclPluginEnabled) ]
+                                      [ text
+                                          ("Custom ACL"
+                                              ++ (if model.aclPluginEnabled then
+                                                      ""
+
+                                                  else
+                                                      " (Plugin needed)"
+                                                 )
+                                          )
+                                      ]
+                                  ]
+                              ]
+                          ]
+                      , aclPluginContainer displayAclPlugin
+                      , tenantsContainer displayTenants
+                      ]
+        ( modalTitle, modalBody, modalBtn ) = case model.ui.modalState of
+            NewAccount ->
+                ( "Create a new API account"
+                , editForm
+                , button [ type_ "button", class "btn btn-success", onClick saveAction, disabled (checkEmptyBtn || checkAlreadyUsedName) ] [ text "Create" ]
+                )
+            EditAccount account ->
+                ( "Update account '" ++ account.name ++ "'"
+                , editForm
+                , button [ type_ "button", class "btn btn-success", onClick saveAction, disabled (checkEmptyBtn || checkAlreadyUsedName) ] [ text "Update" ]
+                )
+            Confirm modalType name action ->
+                let
+                    (title, subTitle, btnClass) = case modalType of
+                        Delete ->
+                            ( "Delete API account '" ++ name ++ "'"
+                            , "delete"
+                            , "danger"
+                            )
+                        Regenerate ->
+                            ( "Regenerate token of API account '" ++ name ++ "'"
+                            , "regenerate token of"
+                            , "primary"
+                            )
+                in
+                    ( title
+                    , div []
+                        [ h5 [ class "text-center" ] [ text ("You are about to " ++ subTitle ++ " an API account.") ]
+                        , div [ class "alert alert-warning" ]
+                            [ i [ class "fa fa-exclamation-triangle" ] []
+                            , text "If you continue, any scripts using this will no longer be able to connect to Rudder's API."
                             ]
-                        )
+                        ]
+                    , button [ type_ "button", class ("btn btn-" ++ btnClass), onClick action ] [ text "Confirm" ]
+                    )
+            CopyToken token ->
+                ( "Copy the token"
+                , div []
+                    [ div [ class "alert alert-info" ]
+                        [ i [ class "fa fa-exclamation-triangle" ] []
+                        , text "This is the only time the token value will be available."
+                        ]
+                    , div []
+                        [ span [ class "token-txt" ] [ text token ]
+                        , a [ class "btn-goto always clipboard", title "Copy to clipboard", onClick (Copy token) ] [ i [ class "ion ion-clipboard" ] [] ]
+                        ]
+                    ]
+                , text ""
+                )
+            NoModal ->
+                ("", text "", text "")
 
-                _ ->
-                    case model.editAccount of
-                        Nothing ->
-                            ModalUI False False Ignore (text "")
-
-                        Just account ->
-                            let
-                                ( expirationDate, selectedDate ) =
-                                    case account.expirationDate of
-                                        Just d ->
-                                            ( if account.expirationDateDefined then
-                                                posixToString model.ui.datePickerInfo d
-
-                                              else
-                                                "Never"
-                                            , d
-                                            )
-
-                                        Nothing ->
-                                            ( "Never", add Month 1 model.ui.datePickerInfo.zone model.ui.datePickerInfo.currentTime )
-
-                                displayWarningName =
-                                    if checkEmptyWarning then
-                                        span [ class "warning-info" ] [ i [ class "fa fa-warning" ] [], text " This field is required" ]
-
-                                    else if checkAlreadyUsedName then
-                                        span [ class "warning-info" ] [ i [ class "fa fa-warning" ] [], text " This name is already used" ]
-
-                                    else
-                                        text ""
-
-                                -- if the plugin is disable, only show a read-only view of tenants. Else, it's an option among all, none, a list
-                                displayTenantAccess =
-                                    if model.tenantsPluginEnabled then
-                                        select [ id "newAccount-tenants", class "form-select", onInput (\s -> UpdateAccountForm { account | tenantMode = Tuple.first (parseTenants s) }) ]
-                                            [ option [ value "*", selected (account.tenantMode == AllAccess) ] [ text "Access to all tenants" ]
-                                            , option [ value "-", selected (account.tenantMode == NoAccess) ] [ text "Access to no tenant" ]
-                                            , option [ value "list", selected (account.tenantMode == ByTenants) ]
-                                                [ text
-                                                    ("Access to restricted list of tenants: "
-                                                        ++ (case account.selectedTenants of
-                                                                Just tenants ->
-                                                                    String.join ", " tenants
-
-                                                                Nothing ->
-                                                                    "-"
-                                                           )
-                                                    )
-                                                ]
-                                            ]
-
-                                    else
-                                        span [] [ text (": " ++ encodeTenants account.tenantMode account.selectedTenants) ]
-                            in
-                            ModalUI (account.authorisationType == "acl" && model.aclPluginEnabled)
-                                (account.tenantMode == ByTenants && model.tenantsPluginEnabled)
-                                (CallApi (saveAccount account))
-                                (form
-                                    [ name "newAccount"
-                                    , class
-                                        ("newAccount"
-                                            ++ (if SingleDatePicker.isOpen model.ui.datePickerInfo.picker then
-                                                    " datepicker-open"
-
-                                                else
-                                                    ""
-                                               )
-                                        )
-                                    ]
-                                    [ div
-                                        [ class
-                                            ("form-group"
-                                                ++ (if checkEmptyWarning || checkAlreadyUsedName then
-                                                        " has-warning"
-
-                                                    else
-                                                        ""
-                                                   )
-                                            )
-                                        ]
-                                        [ label [ for "newAccount-name" ] [ text "Name", displayWarningName ]
-                                        , input [ id "newAccount-name", type_ "text", class "form-control", value account.name, onInput (\s -> UpdateAccountForm { account | name = s }) ] []
-                                        ]
-                                    , div [ class "form-group" ]
-                                        [ label [ for "newAccount-description" ] [ text "Description" ]
-                                        , textarea [ id "newAccount-description", class "form-control vresize float-inherit", value account.description, onInput (\s -> UpdateAccountForm { account | description = s }) ] []
-                                        ]
-                                    , div [ class "form-group" ]
-                                        [ label [ for "newAccount-expiration", class "mb-1" ]
-                                            [ text "Expiration date"
-                                            , label [ for "selectDate", class "custom-toggle toggle-secondary" ]
-                                                [ input [ type_ "checkbox", id "selectDate", checked account.expirationDateDefined, onCheck (\c -> UpdateAccountForm { account | expirationDateDefined = c }) ] []
-                                                , label [ for "selectDate", class "custom-toggle-group" ]
-                                                    [ label [ for "selectDate", class "toggle-enabled" ] [ text "Defined" ]
-                                                    , span [ class "cursor" ] []
-                                                    , label [ for "selectDate", class "toggle-disabled" ] [ text "Undefined" ]
-                                                    ]
-                                                ]
-                                            , if checkIfExpired model.ui.datePickerInfo account then
-                                                span [ class "warning-info" ] [ i [ class "fa fa-warning" ] [], text " Expiration date has passed" ]
-
-                                              else
-                                                text ""
-                                            ]
-                                        , div [ class "elm-datepicker-container" ]
-                                            [ button [ type_ "button", class "form-control btn-datepicker", disabled (not account.expirationDateDefined), onClick (OpenPicker selectedDate), placeholder "Select an expiration date" ]
-                                                [ text expirationDate
-                                                ]
-                                            , SingleDatePicker.view (userDefinedDatePickerSettings model.ui.datePickerInfo.zone model.ui.datePickerInfo.currentTime selectedDate) model.ui.datePickerInfo.picker
-                                            ]
-                                        ]
-                                    , div [ class "form-group" ]
-                                        [ label [ for "newAccount-tenants" ] [ text "Access to tenants" ]
-                                        , displayTenantAccess
-                                        ]
-                                    , div [ class "form-group" ]
-                                        [ label [ for "newAccount-access" ] [ text "Access level" ]
-                                        , select [ id "newAccount-access", class "form-select", onInput (\s -> UpdateAccountForm { account | authorisationType = s }) ]
-                                            [ option [ value "ro", selected (account.authorisationType == "ro") ] [ text "Read only" ]
-                                            , option [ value "rw", selected (account.authorisationType == "rw") ] [ text "Full access" ]
-                                            , option [ value "acl", selected (account.authorisationType == "acl"), disabled (not model.aclPluginEnabled) ]
-                                                [ text
-                                                    ("Custom ACL"
-                                                        ++ (if model.aclPluginEnabled then
-                                                                ""
-
-                                                            else
-                                                                " (Plugin needed)"
-                                                           )
-                                                    )
-                                                ]
-                                            ]
-                                        ]
-                                    ]
-                                )
     in
-    case model.ui.copyState of
-        NoCopy ->
-            div [ id accountsModalId, class ("modal modal-account fade " ++ modalClass), attribute "aria-modal" "true", attribute "role" "dialog" ]
-                [ div [ class "modal-backdrop fade show", onClick (ToggleEditPopup NoModal) ] []
-                , div [ class "modal-dialog" ]
-                    [ div [ class "modal-content" ]
-                        [ div [ class "modal-header" ]
-                            [ h5 [ class "modal-title" ] [ text modalTitle ]
-                            , button [ type_ "button", class "btn-close", attribute "data-bs-dismiss" "modal", attribute "aria-label" "Close" ] []
-                            ]
-                        , div [ class "modal-body" ]
-                            [ modalUI.body
-
-                            -- Tenants plugin container
-                            , div
-                                [ id "tenantapiaccounts-app"
-                                , style "display"
-                                    (if modalUI.displayTenants then
-                                        "block"
-
-                                     else
-                                        "none"
-                                    )
-                                ]
-                                [ if modalUI.displayTenants then
-                                    h4 [] [ text "Select tenants for account:" ]
-
-                                  else
-                                    text ""
-                                , div [ id "tenantapiaccounts-content" ] []
-                                ]
-
-                            -- ACL plugin container
-                            , div
-                                [ id "apiauthorization-app"
-                                , style "display"
-                                    (if modalUI.displayAcl then
-                                        "block"
-
-                                     else
-                                        "none"
-                                    )
-                                ]
-                                [ if modalUI.displayAcl then
-                                    h4 [] [ text "Select ACL for account:" ]
-
-                                  else
-                                    text ""
-                                , div [ id "apiauthorization-content" ] []
-                                ]
-                            ]
-                        , div [ class "modal-footer" ]
-                            [ button [ type_ "button", class "btn btn-default", onClick (ToggleEditPopup NoModal) ] [ text "Close" ]
-                            , button [ type_ "button", class ("btn btn-" ++ btnClass), onClick modalUI.saveAction, disabled (checkEmptyBtn || checkAlreadyUsedName) ] [ text btnTxt ]
-                            ]
-                        ]
-                    ]
-                ]
-
-        Token txt ->
-            -- Almost a modal as it is a notification that requires user interaction (copy)
-            div [ class "modal fade show", style "display" "block" ]
-                [ div [ class "modal-backdrop fade show", onClick CloseCopyPopup ] []
-                , div [ class "modal-dialog" ]
-                    [ div [ class "modal-content" ]
-                        [ div [ class "modal-header" ]
-                            [ h5 [ class "modal-title" ] [ text "Copy the token" ]
-                            , button [ type_ "button", class "btn-close", attribute "data-bs-dismiss" "modal", attribute "aria-label" "Close", onClick CloseCopyPopup ] []
-                            ]
-                        , div [ class "modal-body" ]
-                            [ div []
-                                [ div [ class "alert alert-info" ]
-                                    [ i [ class "fa fa-exclamation-triangle" ] []
-                                    , text "This is the only time the token value will be available."
-                                    ]
-                                , div []
-                                    [ span [ class "token-txt" ]
-                                        [ text txt ]
-                                    , a [ class "btn-goto always clipboard", title "Copy to clipboard", onClick (Copy txt) ]
-                                        [ i [ class "ion ion-clipboard" ] [] ]
-                                    ]
-                                ]
-                            ]
-                        , div [ class "modal-footer" ]
-                            [ button [ type_ "button", class "btn btn-success", onClick CloseCopyPopup ] [ text "Close" ]
-                            ]
-                        ]
-                    ]
-                ]
+        case model.ui.modalState of
+            NoModal -> text ""
+            _ -> buildModal modalTitle modalBody modalBtn

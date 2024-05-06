@@ -171,7 +171,7 @@ view model =
           [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
           , div [ class "modal-dialog" ] [
               div [ class "modal-content" ] [
-                div [ class "modal-header ng-scope" ] [
+                div [ class "modal-header" ] [
                   h5 [ class "modal-title" ] [ text "Delete Rule"]
                 , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
                 ]
@@ -208,7 +208,7 @@ view model =
           [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
           , div [ class "modal-dialog" ] [
               div [ class "modal-content" ]  [
-                div [ class "modal-header ng-scope" ] [
+                div [ class "modal-header" ] [
                   h5[ class "modal-title" ] [ text (txtDisable ++" Rule")]
                 , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
                 ]
@@ -233,7 +233,7 @@ view model =
          [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
          , div [ class "modal-dialog" ] [
              div [ class "modal-content" ] [
-               div [ class "modal-header ng-scope" ] [
+               div [ class "modal-header" ] [
                  h5 [ class "modal-title" ] [ text "Delete category"]
                , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
                ]
@@ -259,7 +259,7 @@ view model =
           [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
           , div [ class "modal-dialog" ]
             [ div [ class "modal-content" ]
-              [ div [ class "modal-header ng-scope" ]
+              [ div [ class "modal-header" ]
                 [ h5 [ class "modal-title" ] [ text (action ++" Rule")]
                 , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
                 ]
@@ -345,7 +345,7 @@ view model =
           else
             div [class "tags-container"]
             ( List.map (\t ->
-              div [class "btn-group btn-group-xs ng-scope"]
+              div [class "btn-group btn-group-xs"]
               [ button [class "btn btn-default tags-label", onClick (UpdateRuleFilters {ruleFilters | treeFilters = {treeFilters | newTag = {newTag | key = t.key, value = t.value}}})]
                 [ i [class "fa fa-tag"][]
                 , span [class "tag-key"]

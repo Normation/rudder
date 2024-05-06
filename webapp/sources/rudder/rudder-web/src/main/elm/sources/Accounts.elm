@@ -106,12 +106,6 @@ update msg model =
             in
             ( { model | ui = { ui | modalState = modalState }, editAccount = editAccount }, Cmd.batch [ shareAcl (encodeTokenAcl tokenId acl), focusAccountTenants (encodeAccountTenants tokenId tenants) ] )
 
-        CloseCopyPopup ->
-            let
-                ui =
-                    model.ui
-            in
-            ( { model | ui = { ui | copyState = NoCopy } }, Cmd.none )
 
         UpdateTableFilters tableFilters ->
             let
@@ -165,24 +159,20 @@ update msg model =
                 ui =
                     model.ui
 
-                copyState =
+                (modalState, action) =
                     case ui.modalState of
                         NewAccount ->
-                            Token account.token
+                            ( CopyToken account.token
+                            , "created"
+                            )
 
                         _ ->
-                            NoCopy
-
-                action =
-                    case ui.modalState of
-                        NewAccount ->
-                            "created"
-
-                        _ ->
-                            "updated"
+                            ( NoModal
+                            , "updated"
+                            )
 
                 newModel =
-                    { model | ui = { ui | modalState = NoModal, copyState = copyState }, editAccount = Nothing }
+                    { model | ui = { ui | modalState = modalState }, editAccount = Nothing }
             in
             ( newModel, Cmd.batch [ successNotification ("Account '" ++ account.name ++ "' successfully " ++ action), getAccounts newModel ] )
 
@@ -194,24 +184,21 @@ update msg model =
                 ui =
                     model.ui
 
-                copyState =
+                (modalState, message) =
                     case actionType of
                         Delete ->
-                            NoCopy
+                            ( NoModal
+                            , "deleted"
+                            )
 
                         Regenerate ->
-                            Token account.token
+                            ( CopyToken account.token
+                            , "regenerated token of"
+                            )
 
                 newModel =
-                    { model | ui = { ui | modalState = NoModal, copyState = copyState } }
+                    { model | ui = { ui | modalState = modalState } }
 
-                message =
-                    case actionType of
-                        Delete ->
-                            "deleted"
-
-                        Regenerate ->
-                            "regenerated token of"
             in
             ( newModel, Cmd.batch [ successNotification ("Successfully " ++ message ++ " API account '" ++ account.name ++ "'"), getAccounts model ] )
 

@@ -75,7 +75,7 @@ init flags =
             TableFilters Name Asc "" ""
 
         initUi =
-            UI initFilters NoModal NoCopy False True initDatePicker False False
+            UI initFilters NoModal False True initDatePicker False False
 
         initModel =
             Model flags.contextPath initUi [] False False Nothing
