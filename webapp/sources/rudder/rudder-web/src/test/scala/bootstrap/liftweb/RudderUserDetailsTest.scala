@@ -98,7 +98,7 @@ class RudderUserDetailsTest extends Specification {
     <user name="ADMIN" role="administrator" password="c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"/>
   </authentication>
 
-  val userXML_empty: Elem = <authentication>
+  val userXML_empty: Elem = <authentication case-sensitivity="false">
     <user name="admin" roles="administrator"/>
   </authentication>
 
@@ -114,6 +114,27 @@ class RudderUserDetailsTest extends Specification {
 
     (userDetailList.isCaseSensitive must beFalse) and
     (userDetailList.users.size must beEqualTo(0))
+  }
+
+  "retrieving user by name with case sensitivity" >> {
+    val userDetailListProvider = new UserDetailListProvider {
+      override def authConfig: ValidatedUserList = getUserDetailList(userXML_1, "userXML_1")
+
+    }
+
+    (userDetailListProvider.getUserByName("admin") must beRight) and (
+      userDetailListProvider.getUserByName("Admin") must beLeft
+    )
+  }
+
+  "retrieving user by name *without* case sensitivity" >> {
+    val userDetailListProvider = new UserDetailListProvider {
+      override def authConfig: ValidatedUserList = getUserDetailList(userXML_empty, "userXML_empty")
+    }
+
+    (userDetailListProvider.getUserByName("admin") must beRight) and (
+      userDetailListProvider.getUserByName("Admin") must beRight
+    )
   }
 
   "an account without password field get a random 32 chars pass" >> {
