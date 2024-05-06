@@ -601,80 +601,88 @@ object PluginApi       extends Enum[PluginApi] with ApiModuleProvider[PluginApi]
   def values = findValues
 }
 
-sealed trait TechniqueApi extends EnumEntry with EndpointSchema with GeneralApi with SortIndex {
+sealed trait TechniqueApi     extends EnumEntry with EndpointSchema with SortIndex {
   override def dataContainer: Some[String] = Some("techniques")
 }
-object TechniqueApi       extends Enum[TechniqueApi] with ApiModuleProvider[TechniqueApi]      {
+sealed trait TechniqueApiPub  extends TechniqueApi with GeneralApi
+sealed trait TechniqueApiPriv extends TechniqueApi with InternalApi
 
-  case object GetTechniques             extends TechniqueApi with ZeroParam with StartsAtVersion6 with SortIndex  {
+object TechniqueApi extends Enum[TechniqueApi] with ApiModuleProvider[TechniqueApi] {
+
+  case object GetTechniques             extends TechniqueApiPub with ZeroParam with StartsAtVersion6 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get all Techniques metadata"
     val (action, path) = GET / "techniques"
   }
-  case object UpdateTechniques          extends TechniqueApi with ZeroParam with StartsAtVersion14 with SortIndex {
+  case object UpdateTechniques          extends TechniqueApiPub with ZeroParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "reload techniques metadata from file system"
     val (action, path) = POST / "techniques" / "reload"
   }
-  case object GetAllTechniqueCategories extends TechniqueApi with ZeroParam with StartsAtVersion14 with SortIndex {
+  case object GetAllTechniqueCategories extends TechniqueApiPub with ZeroParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Get all technique categories"
     val (action, path) = GET / "techniques" / "categories"
   }
-  case object ListTechniques            extends TechniqueApi with ZeroParam with StartsAtVersion14 with SortIndex {
+  case object ListTechniques            extends TechniqueApiPub with ZeroParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "List all techniques version"
     val (action, path) = GET / "techniques" / "versions"
   }
-  case object ListTechniquesDirectives  extends TechniqueApi with OneParam with StartsAtVersion6 with SortIndex   {
+  case object ListTechniquesDirectives  extends TechniqueApiPub with OneParam with StartsAtVersion6 with SortIndex   {
     val z: Int = implicitly[Line].value
     val description    = "List directives derived from given technique"
     val (action, path) = GET / "techniques" / "{name}" / "directives"
     override def dataContainer: Some[String] = Some("directives")
   }
-  case object ListTechniqueDirectives   extends TechniqueApi with TwoParam with StartsAtVersion6 with SortIndex   {
+  case object ListTechniqueDirectives   extends TechniqueApiPub with TwoParam with StartsAtVersion6 with SortIndex   {
     val z: Int = implicitly[Line].value
     val description    = "List directives derived from given technique for given version"
     val (action, path) = GET / "techniques" / "{name}" / "{version}" / "directives"
     override def dataContainer: Some[String] = Some("directives")
   }
-  case object TechniqueRevisions        extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex  {
+  case object TechniqueRevisions        extends TechniqueApiPub with TwoParam with StartsAtVersion14 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get revisions for given technique"
     val (action, path) = GET / "techniques" / "{name}" / "{version}" / "revisions"
   }
 
-  case object UpdateTechnique        extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex  {
+  case object UpdateTechnique          extends TechniqueApiPub with TwoParam with StartsAtVersion14 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Update technique created with technique editor"
     val (action, path) = POST / "techniques" / "{techniqueId}" / "{version}"
   }
-  case object CreateTechnique        extends TechniqueApi with ZeroParam with StartsAtVersion14 with SortIndex {
+  case object CreateTechnique          extends TechniqueApiPub with ZeroParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Create a new technique in Rudder from a technique in the technique editor"
     val (action, path) = PUT / "techniques"
   }
-  case object DeleteTechnique        extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex  {
+  case object DeleteTechnique          extends TechniqueApiPub with TwoParam with StartsAtVersion14 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Delete a technique from technique editor"
     val (action, path) = DELETE / "techniques" / "{techniqueId}" / "{techniqueVersion}"
   }
-  case object GetResources           extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex  {
+  case object GetResources             extends TechniqueApiPub with TwoParam with StartsAtVersion14 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get currently deployed resources of a technique"
     val (action, path) = GET / "techniques" / "{techniqueId}" / "{techniqueVersion}" / "resources"
   }
-  case object GetNewResources        extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex  {
+  case object GetNewResources          extends TechniqueApiPub with TwoParam with StartsAtVersion14 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get resources of a technique draft"
     val (action, path) = GET / "drafts" / "{techniqueId}" / "{techniqueVersion}" / "resources"
   }
-  case object GetTechniqueAllVersion extends TechniqueApi with OneParam with StartsAtVersion14 with SortIndex  {
+  case object CopyResourcesWhenCloning extends TechniqueApiPriv with TwoParam with StartsAtVersion14 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Copy resources from a technique to a technique draft"
+    val (action, path) = POST / "drafts" / "{techniqueId}" / "{techniqueVersion}" / "resources" / "clone"
+  }
+  case object GetTechniqueAllVersion   extends TechniqueApiPub with OneParam with StartsAtVersion14 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get all Techniques metadata"
     val (action, path) = GET / "techniques" / "{techniqueId}"
   }
-  case object GetTechnique           extends TechniqueApi with TwoParam with StartsAtVersion14 with SortIndex  {
+  case object GetTechnique             extends TechniqueApiPub with TwoParam with StartsAtVersion14 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get all Techniques metadata"
     val (action, path) = GET / "techniques" / "{techniqueId}" / "{techniqueVersion}"
@@ -682,17 +690,17 @@ object TechniqueApi       extends Enum[TechniqueApi] with ApiModuleProvider[Tech
   /*
    * Method are returned sorted alpha-numericaly
    */
-  case object GetMethods             extends TechniqueApi with ZeroParam with StartsAtVersion14 with SortIndex {
+  case object GetMethods               extends TechniqueApiPub with ZeroParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Get all methods metadata"
     val (action, path) = GET / "methods"
   }
-  case object UpdateMethods          extends TechniqueApi with ZeroParam with StartsAtVersion14 with SortIndex {
+  case object UpdateMethods            extends TechniqueApiPub with ZeroParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "reload methods metadata from file system"
     val (action, path) = POST / "methods" / "reload"
   }
-  case object CheckTechnique         extends TechniqueApi with ZeroParam with StartsAtVersion16 with SortIndex {
+  case object CheckTechnique           extends TechniqueApiPub with ZeroParam with StartsAtVersion16 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Check if a techniques is valid yaml, with rudderc compilation, with various output (json ? yaml ?)"
     val (action, path) = POST / "techniques" / "check"

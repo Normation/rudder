@@ -150,7 +150,7 @@ draftsItem: Model -> Draft -> Html Msg
 draftsItem model draft =
   let
     activeClass = case model.mode of
-                    TechniqueDetails _ (Clone _ id) _ _ ->
+                    TechniqueDetails _ (Clone _ _ id) _ _ ->
                       if id.value == draft.id then
                          "jstree-clicked"
                       else

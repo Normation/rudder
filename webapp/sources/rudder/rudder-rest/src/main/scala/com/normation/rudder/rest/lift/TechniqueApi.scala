@@ -162,6 +162,7 @@ class TechniqueApi(
           case API.GetTechniqueAllVersion    => GetTechniqueDetailsAllVersion
           case API.GetTechnique              => GetTechnique
           case API.CheckTechnique            => CheckTechnique
+          case API.CopyResourcesWhenCloning  => CopyResourcesWhenCloning
         }
       })
       .toList
@@ -211,6 +212,29 @@ class TechniqueApi(
       }
 
       resp(resources.toBox, req, "Could not get resource state of technique")(action)
+    }
+  }
+
+  object CopyResourcesWhenCloning extends LiftApiModule {
+    val schema: TwoParam = API.CopyResourcesWhenCloning
+    val restExtractor = restExtractorService
+
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        draftInfo:  (String, String),
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      (for {
+        techniqueId <-
+          restExtractorService.extractString("techniqueId")(req)(Full(_)).toIO.notOptional("technique id parameter is missing")
+        category    <- restExtractorService.extractString("category")(req)(Full(_)).toIO.notOptional("category parameter is missing")
+        _           <- resourceFileService.cloneResourcesFromTechnique(draftInfo._1, techniqueId, draftInfo._2, category)
+      } yield {
+        "ok"
+      }).toLiftResponseOne(params, schema, _ => Some(draftInfo._1))
     }
   }
 
