@@ -221,6 +221,8 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
 
       override def cleanScore(name: String): IOResult[Unit] = ???
 
+      override def clean(): IOResult[Unit] = ???
+
       override def update(newScores: Map[NodeId, List[Score]]): IOResult[Unit] = ().succeed
 
       override def registerScore(newScoreId: String, name: String): IOResult[Unit] = ???

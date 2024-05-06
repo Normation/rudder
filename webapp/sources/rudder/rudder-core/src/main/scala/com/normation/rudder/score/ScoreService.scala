@@ -46,8 +46,9 @@ import zio.syntax.ToZio
 
 trait ScoreService {
   def getAll(): IOResult[Map[NodeId, GlobalScore]]
-  def getGlobalScore(nodeId:    NodeId): IOResult[GlobalScore]
-  def getScoreDetails(nodeId:   NodeId): IOResult[List[Score]]
+  def getGlobalScore(nodeId:  NodeId): IOResult[GlobalScore]
+  def getScoreDetails(nodeId: NodeId): IOResult[List[Score]]
+  def clean(): IOResult[Unit]
   def cleanScore(name:          String): IOResult[Unit]
   def update(newScores:         Map[NodeId, List[Score]]): IOResult[Unit]
   def registerScore(newScoreId: String, displayName: String): IOResult[Unit]
@@ -69,6 +70,16 @@ class ScoreServiceImpl(globalScoreRepository: GlobalScoreRepository, scoreReposi
       scores       <- scoreRepository.getAll()
       _            <- scoreCache.set(scores)
     } yield ()
+  }
+
+  def clean(): IOResult[Unit] = {
+    for {
+      available    <- availableScore.get.map(_.map(_._1))
+      globalScore  <- cache.get
+      existingScore = globalScore.values.toList.flatMap(_.details.map(_.scoreId)).distinct
+      idsToClean    = existingScore.diff(available)
+      _            <- ZIO.foreach(idsToClean)(cleanScore _)
+    } yield {}
   }
 
   def fillWithNoScore(globalScore: GlobalScore): IOResult[GlobalScore] = {
@@ -117,7 +128,9 @@ class ScoreServiceImpl(globalScoreRepository: GlobalScoreRepository, scoreReposi
 
   def cleanScore(name: String): IOResult[Unit] = {
     for {
-      _ <- cache.update(_.map { case (id, gscore) => (id, gscore.copy(details = gscore.details.filterNot(_.scoreId == name))) })
+      _         <- cache.update(_.map { case (id, gscore) => (id, gscore.copy(details = gscore.details.filterNot(_.scoreId == name))) })
+      newScores <- scoreCache.updateAndGet(_.map { case (id, scores) => (id, scores.filterNot(_.scoreId == name)) })
+      _         <- update(newScores)
     } yield {}
   }
 
