@@ -58,6 +58,7 @@ const RUDDER_VERSION_PATH: &str = "/opt/rudder/share/versions/rudder-server-vers
 const REPOSITORY_INDEX_PATH: &str = "/var/rudder/tmp/plugins/rpkg.index";
 const TMP_PLUGINS_FOLDER: &str = "/var/rudder/tmp/plugins";
 const PLUGIN_STATUS_BACKUP_PATH: &str = "/tmp/rudder-plugins-upgrade";
+const DONT_RESTART_ENV_VAR: &str = "RUDDER_PACKAGE_DONT_RESTART";
 
 fn am_i_root() -> Result<bool> {
     let out = process::Command::new("id").arg("--user").output()?;

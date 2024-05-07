@@ -3,7 +3,7 @@
 
 use std::{
     collections::HashSet,
-    fs,
+    env, fs,
     io::{Cursor, Write},
     path::PathBuf,
     process::Command,
@@ -18,7 +18,7 @@ use quick_xml::{
 use spinners::{Spinner, Spinners};
 use tracing::debug;
 
-use crate::{cmd::CmdOutput, versions::RudderVersion};
+use crate::{cmd::CmdOutput, versions::RudderVersion, DONT_RESTART_ENV_VAR};
 
 /// We want to write the file after each plugin to avoid half-installs
 pub struct Webapp {
@@ -186,6 +186,14 @@ impl Webapp {
     /// Synchronous restart of the web application
     pub fn apply_changes(&mut self) -> Result<()> {
         if self.pending_changes {
+            if env::var(DONT_RESTART_ENV_VAR).is_ok() {
+                debug!(
+                    "Skipping webapp restart as the {} environment variable is set",
+                    DONT_RESTART_ENV_VAR
+                );
+                return Ok(());
+            }
+
             let mut sp = Spinner::new(
                 Spinners::Dots,
                 "Restarting the Web application to apply changes".into(),
