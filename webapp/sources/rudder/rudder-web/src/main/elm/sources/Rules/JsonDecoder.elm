@@ -209,7 +209,7 @@ decodeDirectiveCompliance elem decoder =
 decodeSkippedDirectiveDetails : Decoder SkippedDetails
 decodeSkippedDirectiveDetails =
   succeed SkippedDetails
-    |> required "overridingRuleId" (map RuleId string)
+    |> required "overridingRuleId" string
     |> required "overridingRuleName" string
 
 decodeRuleChanges: Decoder (Dict String (List Changes))

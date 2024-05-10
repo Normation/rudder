@@ -57,3 +57,8 @@ type alias ComplianceFilters =
   , selectedStatus        : List String
   }
 
+type alias SkippedDetails =
+    { overridingRuleId   : String
+    , overridingRuleName : String
+    }
+
