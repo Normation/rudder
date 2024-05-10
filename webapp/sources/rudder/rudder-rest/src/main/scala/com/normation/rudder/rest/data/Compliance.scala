@@ -255,9 +255,21 @@ final case class DirectiveComplianceOverride(
       directiveName,
       ComplianceLevel(),
       Some(SkippedDetails(overridingRuleId, rules.get(overridingRuleId).map(_.name).getOrElse("unknown rule"))),
-      None, // should override have a policy mode ?
+      None,
       Seq.empty
     )
+  }
+
+  def toComplianceByNodeRule(rules: Map[RuleId, Rule]): ByNodeDirectiveCompliance = {
+    ByNodeDirectiveCompliance(
+      directiveId,
+      directiveName,
+      ComplianceLevel(),
+      None,
+      Some(SkippedDetails(overridingRuleId, rules.get(overridingRuleId).map(_.name).getOrElse("unknown rule"))),
+      List.empty
+    )
+
   }
 }
 
@@ -434,17 +446,18 @@ final case class ByNodeRuleCompliance(
 )
 
 final case class ByNodeDirectiveCompliance(
-    id:         DirectiveId,
-    name:       String,
-    compliance: ComplianceLevel,
-    policyMode: Option[PolicyMode],
-    components: List[ComponentStatusReport]
+    id:             DirectiveId,
+    name:           String,
+    compliance:     ComplianceLevel,
+    policyMode:     Option[PolicyMode],
+    skippedDetails: Option[SkippedDetails],
+    components:     List[ComponentStatusReport]
 )
 
 object ByNodeDirectiveCompliance {
 
   def apply(d: DirectiveStatusReport, policyMode: Option[PolicyMode], directiveName: String): ByNodeDirectiveCompliance = {
-    new ByNodeDirectiveCompliance(d.directiveId, directiveName, d.compliance, policyMode, d.components)
+    new ByNodeDirectiveCompliance(d.directiveId, directiveName, d.compliance, policyMode, None, d.components)
   }
 }
 
@@ -1137,6 +1150,9 @@ object JsonCompliance {
             ~ ("compliance"        -> directive.compliance.complianceWithoutPending(precision))
             ~ ("policyMode"        -> directive.policyMode.map(_.name).getOrElse("default"))
             ~ ("complianceDetails" -> percents(directive.compliance, precision))
+            ~ ("skippedDetails"    -> directive.skippedDetails.map(s =>
+              ("overridingRuleId" -> s.overridingRuleId.serialize) ~ ("overridingRuleName" -> s.overridingRuleName)
+            ))
             ~ ("components"        -> components(directive.components, level, precision))
           )
         })

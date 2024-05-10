@@ -39,6 +39,7 @@ type alias DirectiveCompliance value =
   , compliance        : Float
   , policyMode        : String
   , complianceDetails : ComplianceDetails
+  , skippedDetails    : Maybe SkippedDetails 
   , components        : List (ComponentCompliance value)
   }
 

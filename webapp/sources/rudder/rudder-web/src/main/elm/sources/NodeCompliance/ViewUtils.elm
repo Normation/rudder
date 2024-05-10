@@ -50,6 +50,15 @@ badgePolicyMode globalPolicyMode policyMode =
   in
     span [class ("treeGroupName tooltipable bs-tooltip rudder-label label-sm label-" ++ mode), attribute "data-toggle" "tooltip", attribute "data-placement" "bottom", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Policy mode" msg)][]
 
+badgeSkipped : SkippedDetails -> Html Msg
+badgeSkipped { overridingRuleId, overridingRuleName } =
+    let
+        msg =
+            "This directive is skipped because it is overridden by the rule <b>" ++ overridingRuleName ++ "</b> (with id " ++ overridingRuleId ++ ")."
+    in
+    span [ class "treeGroupName tooltipable bs-tooltip rudder-label label-sm label-overriden", attribute "data-toggle" "tooltip", attribute "data-placement" "bottom", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Skipped directive" msg) ] []
+
+
 subItemOrder : ItemFun item subItem data ->  Model -> String -> (item -> item -> Order)
 subItemOrder fun model id  =
   case List.Extra.find (Tuple3.first >> (==) id) fun.rows of
@@ -167,7 +176,7 @@ byDirectiveCompliance model subFun complianceFilters =
       |> List.sortWith sortFunction
     )
     (\m i ->  i )
-    [ ("Directive", \i  -> span [] [ (badgePolicyMode model.policyMode i.policyMode), text i.name, if (model.onlySystem) then text "" else goToBtn (getDirectiveLink contextPath i.directiveId) ],  (\d1 d2 -> N.compare d1.name d2.name ))
+    [ ("Directive", \i  -> span [] [ i.skippedDetails |> Maybe.map badgeSkipped |> Maybe.withDefault (badgePolicyMode model.policyMode i.policyMode), text i.name, if (model.onlySystem) then text "" else goToBtn (getDirectiveLink contextPath i.directiveId) ],  (\d1 d2 -> N.compare d1.name d2.name ))
     , ("Compliance", \i -> buildComplianceBar complianceFilters  i.complianceDetails,  (\(d1) (d2) -> Basics.compare d1.compliance d2.compliance ))
     ]
     (.directiveId >> .value)

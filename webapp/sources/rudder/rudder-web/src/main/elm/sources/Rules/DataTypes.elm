@@ -237,12 +237,6 @@ type alias ValueLine =
     }
 
 
-type alias SkippedDetails =
-    { overridingRuleId : RuleId
-    , overridingRuleName : String
-    }
-
-
 type alias Report =
     { status : String
     , message : Maybe String
