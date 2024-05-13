@@ -47,6 +47,18 @@
 # You can use [package_state_options](#_package_state_options) to pass options to the underlying package manager
 # (currently only with *apt* package manager).
 #
+# Note: On RPM-based systems, to get the precise version to use in the `version` parameter, you can use the following commands:
+#
+# ```
+# sudo rpm --qf "%|EPOCH?{%{epoch}:}:{}|%{version}-%{release}\n" -q PACKAGE_NAME
+#
+## Examples
+# sudo rpm --qf "%|EPOCH?{%{epoch}:}:{}|%{version}-%{release}\n" -q htop
+## also works with different versions expressions
+# sudo rpm --qf "%|EPOCH?{%{epoch}:}:{}|%{version}-%{release}\n" -q htop-3.3.0
+# sudo rpm --qf "%|EPOCH?{%{epoch}:}:{}|%{version}-%{release}\n" -q htop-3.3.0-1.fc39
+# ```
+#
 # #### Package providers
 # 
 # This method supports several package managers. You can specify the package manager
