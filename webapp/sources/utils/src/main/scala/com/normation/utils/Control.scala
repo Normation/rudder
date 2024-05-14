@@ -79,27 +79,4 @@ object Control {
     }
     errors.getOrElse(Full(buf.toSeq))
   }
-
-  /**
-   * A version of sequence that also provide the last output as input
-   * of the next processing (it's a foldleft)
-   *
-   * Exemple of use:
-   * init value : a report
-   * processors: a sequence of objects with an id, and a processReport method
-   *
-   * for {
-   *   processingOk <- pipeline(processors, initialReport) { case(processor, report) =>
-   *     processor(report) ?~! s"Error when processing report with processor '${processor.id}'"
-   *   }
-   * } yield { processingOk } //match on Failure / Full(report)
-   */
-  def pipeline[T, U](seq: Seq[T], init: U)(call: (T, U) => Box[U]): Box[U] = {
-    seq.foldLeft(Full(init): Box[U]) { (currentValue, nextProcessor) =>
-      currentValue match {
-        case x: EmptyBox => return x // interrupt pipeline early
-        case Full(value) => call(nextProcessor, value)
-      }
-    }
-  }
 }

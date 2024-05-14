@@ -36,7 +36,6 @@
  */
 package com.normation.rudder.web.services
 
-import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.EventLog
 import com.normation.inventory.domain.NodeId
@@ -68,6 +67,7 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.web.model.LinkUtil
 import com.normation.utils.DateFormaterService
+import com.normation.zio.UnsafeRun
 import net.liftweb.common.*
 import net.liftweb.http.S
 import net.liftweb.http.SHtml
@@ -253,876 +253,888 @@ class EventLogDetailsGenerator(
 
   def displayDetails(event: EventLog, changeRequestId: Option[ChangeRequestId])(implicit qc: QueryContext): NodeSeq = {
 
-    val groupLib         = nodeGroupRepository
-      .getFullGroupLibrary()
-      .toBox
-      .openOr(return <div class="error">System error when trying to get the group library</div>)
-    val rootRuleCategory = ruleCatRepository
-      .getRootCategory()
-      .toBox
-      .openOr(return <div class="error">System error when trying to get the rule categories</div>)
-
-    val generatedByChangeRequest            = {
-      changeRequestId match {
-        case None     => NodeSeq.Empty
-        case Some(id) =>
-          NodeSeq.Empty
-        //          <h4 style="padding:5px"> This change was introduced by change request {SHtml.a(() => S.redirectTo(linkUtil.changeRequestLink(id)),Text(s"#${id}"))}</h4>
+    (for {
+      groupLib         <- nodeGroupRepository
+                            .getFullGroupLibrary()
+                            .orElseFail(<div class="error">System error when trying to get the group library</div>)
+      rootRuleCategory <- ruleCatRepository
+                            .getRootCategory()
+                            .orElseFail(<div class="error">System error when trying to get the rule categories</div>)
+    } yield {
+      val generatedByChangeRequest = {
+        changeRequestId match {
+          case None     => NodeSeq.Empty
+          case Some(id) =>
+            NodeSeq.Empty
+          //          <h4 style="padding:5px"> This change was introduced by change request {SHtml.a(() => S.redirectTo(linkUtil.changeRequestLink(id)),Text(s"#${id}"))}</h4>
+        }
       }
-    }
-    def xmlParameters(eventId: Option[Int]) = {
-      eventId match {
-        case None     => NodeSeq.Empty
-        case Some(id) =>
-          <button id={"showParameters%s".format(id)} class="btn btn-default showParameters" onclick={
-            "showParameters(event, %s)".format(id)
-          }>
-            <b class="action">Show</b> raw technical details
-          </button>
-            <pre id={"showParametersInfo%s".format(id)} style="display:none;" class="technical-details">{
-            event.details.map(n => xmlPretty.format(n) + "\n")
-          }</pre>
+
+      def xmlParameters(eventId: Option[Int]) = {
+        eventId match {
+          case None     => NodeSeq.Empty
+          case Some(id) =>
+            <button id={"showParameters%s".format(id)} class="btn btn-default showParameters" onclick={
+              "showParameters(event, %s)".format(id)
+            }>
+              <b class="action">Show</b>
+              raw technical details
+            </button>
+              <pre id={"showParametersInfo%s".format(id)} style="display:none;" class="technical-details">
+                {
+              event.details.map(n => xmlPretty.format(n) + "\n")
+            }
+              </pre>
+        }
       }
-    }
 
-    val reasonHtml = {
-      val r = event.eventDetails.reason.getOrElse("")
-      if (r == "") NodeSeq.Empty
-      else <div style="margin-top:2px;"><b>Reason: </b>{r}</div>
-    }
-
-    def errorMessage(e: EmptyBox) = {
-      logger.debug(e ?~! "Error when parsing details.", e)
-      <xml:group>
-        <div class="evloglmargin">
-          <h4>Details for that node were not in a recognized format.
-            Raw data are displayed next:</h4>
-          {xmlParameters(event.id)}
+      val reasonHtml = {
+        val r = event.eventDetails.reason.getOrElse("")
+        if (r == "") NodeSeq.Empty
+        else <div style="margin-top:2px;">
+          <b>Reason:</b>{r}
         </div>
-      </xml:group>
-    }
-    <td colspan="5"> {
-      (event match {
-        /*
-         * bug in scalac : https://issues.scala-lang.org/browse/SI-6897
-         * A workaround is to type with a Nodeseq
-         */
-        case add: AddRule =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getRuleAddDetails(add.details) match {
-              case Full(addDiff)    =>
-                <div class="evloglmargin">
-                {generatedByChangeRequest}
+      }
 
-                {ruleDetails(crDetailsXML, addDiff.rule, groupLib, rootRuleCategory)}
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case Failure(m, _, _) =>
-                <p>{m}</p>
-              case e: EmptyBox => errorMessage(e)
-            }
-            xml
-          }
-
-        case del: DeleteRule =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getRuleDeleteDetails(del.details) match {
-              case Full(delDiff) =>
-                <div class="evloglmargin">
-
-                {generatedByChangeRequest}
-                {ruleDetails(crDetailsXML, delDiff.rule, groupLib, rootRuleCategory)}
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox => errorMessage(e)
-            }
-            xml
-          }
-
-        case mod: ModifyRule =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getRuleModifyDetails(mod.details) match {
-              case Full(modDiff) =>
-                <div class="evloglmargin">
-
-                {generatedByChangeRequest}
-                <h4>Rule overview:</h4>
-                <ul class="evlogviewpad">
-                  <li><b>Rule ID:</b> {modDiff.id.serialize}</li>
-                  <li><b>Name:</b> {
-                  modDiff.modName.map(diff => diff.newValue).getOrElse(modDiff.name)
-                }</li>
-                </ul>
-                {
-                  val modCategory = modDiff.modCategory.map {
-                    case SimpleDiff(oldOne, newOne) =>
-                      <li><b>Rule category changed: </b></li> ++
-                      diffDisplayer.displayRuleCategory(rootRuleCategory, oldOne, Some(newOne))
-                  }
-
-                  (
-                    "#name" #> mapSimpleDiff(modDiff.modName) &
-                    "#category" #> modCategory &
-                    "#isEnabled *" #> mapSimpleDiff(modDiff.modIsActivatedStatus) &
-                    "#isSystem *" #> mapSimpleDiff(modDiff.modIsSystem) &
-                    "#shortDescription *" #> mapSimpleDiff(modDiff.modShortDescription) &
-                    "#longDescription *" #> mapSimpleDiff(modDiff.modLongDescription) &
-                    "#target" #> (modDiff.modTarget.map {
-                      case SimpleDiff(oldOnes, newOnes) =>
-                        <li><b>Group Targets changed: </b></li> ++
-                        diffDisplayer.displayRuleTargets(oldOnes.toSeq, newOnes.toSeq, groupLib)
-                    }) &
-                    "#policies" #> (modDiff.modDirectiveIds.map {
-                      case SimpleDiff(oldOnes, newOnes) =>
-                        <li><b>Directives changed: </b></li> ++
-                        diffDisplayer.displayDirectiveChangeList(oldOnes.toSeq, newOnes.toSeq)
-                    })
-                  )(crModDetailsXML)
-                }
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox => errorMessage(e)
-            }
-            xml
-          }
-
-        ///////// Directive /////////
-
-        case x: ModifyDirective =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getDirectiveModifyDetails(x.details) match {
-              case Full(modDiff)    =>
-                <div class="evloglmargin">
-
-                {generatedByChangeRequest}
-                <h4>Directive overview:</h4>
-                <ul class="evlogviewpad">
-                  <li><b>Directive ID:</b> {modDiff.id.serialize}</li>
-                  <li><b>Name:</b> {
-                  modDiff.modName.map(diff => diff.newValue.toString).getOrElse(modDiff.name)
-                }</li>
-                </ul>
-                {
-                  (
-                    "#name" #> mapSimpleDiff(modDiff.modName, modDiff.id) &
-                    "#priority *" #> mapSimpleDiff(modDiff.modPriority) &
-                    "#isEnabled *" #> mapSimpleDiff(modDiff.modIsActivated) &
-                    "#isSystem *" #> mapSimpleDiff(modDiff.modIsSystem) &
-                    "#shortDescription *" #> mapSimpleDiff(modDiff.modShortDescription) &
-                    "#longDescription *" #> mapSimpleDiff(modDiff.modLongDescription) &
-                    "#ptVersion *" #> mapSimpleDiff(modDiff.modTechniqueVersion) &
-                    "#policyMode *" #> mapSimpleDiffT[Option[PolicyMode]](
-                      modDiff.modPolicyMode,
-                      _.fold(PolicyMode.defaultValue)(_.name)
-                    ) &
-                    "#tags" #> tagsDiff(modDiff.modTags) &
-                    "#parameters" #> (
-                      modDiff.modParameters.map(diff => "#diff" #> displaydirectiveInnerFormDiff(diff, event.id))
-                    )
-                  )(piModDirectiveDetailsXML)
-                }
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case Failure(m, _, _) =>
-                <p>{m}</p>
-              case e: EmptyBox => errorMessage(e)
-            }
-            xml
-          }
-
-        case x: AddDirective =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getDirectiveAddDetails(x.details) match {
-              case Full((diff, sectionVal)) =>
-                <div class="evloglmargin">
-
-                {generatedByChangeRequest}
-                {directiveDetails(piDetailsXML, diff.techniqueName, diff.directive, sectionVal)}
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox => errorMessage(e)
-            }
-            xml
-          }
-
-        case x: DeleteDirective =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getDirectiveDeleteDetails(x.details) match {
-              case Full((diff, sectionVal)) =>
-                <div class="evloglmargin">
-
-                {generatedByChangeRequest}
-                {directiveDetails(piDetailsXML, diff.techniqueName, diff.directive, sectionVal)}
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox => errorMessage(e)
-            }
-            xml
-          }
-
-        ///////// Node Group /////////
-
-        case x: ModifyNodeGroup =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getNodeGroupModifyDetails(x.details) match {
-              case Full(modDiff) =>
-                <div class="evloglmargin">
-
-                {generatedByChangeRequest}
-                <h4>Group overview:</h4>
-                <ul class="evlogviewpad">
-                  <li><b>Node Group ID:</b> {modDiff.id.withDefaultRev.serialize}</li>
-                  <li><b>Name:</b> {
-                  modDiff.modName.map(diff => diff.newValue.toString).getOrElse(modDiff.name)
-                }</li>
-                </ul>
-                {
-                  (
-                    "#name" #> mapSimpleDiff(modDiff.modName) &
-                    "#isEnabled *" #> mapSimpleDiff(modDiff.modIsActivated) &
-                    "#isSystem *" #> mapSimpleDiff(modDiff.modIsSystem) &
-                    "#isDynamic *" #> mapSimpleDiff(modDiff.modIsDynamic) &
-                    "#shortDescription *" #> mapSimpleDiff(modDiff.modDescription) &
-                    "#query" #> (
-                      modDiff.modQuery.map { diff =>
-                        val mapOptionQuery = (opt: Option[Query]) => {
-                          opt match {
-                            case None    => Text("None")
-                            case Some(q) => Text(q.toJSONString)
-                          }
-                        }
-
-                        ".diffOldValue *" #> mapOptionQuery(diff.oldValue) &
-                        ".diffNewValue *" #> mapOptionQuery(diff.newValue)
-                      }
-                    ) &
-                    "#nodes" #> (
-                      modDiff.modNodeList.map { diff =>
-                        ".diffOldValue *" #> nodeGroupDetails(diff.oldValue) &
-                        ".diffNewValue *" #> nodeGroupDetails(diff.newValue)
-                      }
-                    )
-                  )(groupModDetailsXML)
-                }
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox => errorMessage(e)
-            }
-            xml
-          }
-
-        case x: AddNodeGroup =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getNodeGroupAddDetails(x.details) match {
-              case Full(diff) =>
-                <div class="evloglmargin">
-
-                {generatedByChangeRequest}
-                {groupDetails(groupDetailsXML, diff.group)}
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox => errorMessage(e)
-            }
-            xml
-          }
-
-        case x: DeleteNodeGroup =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getNodeGroupDeleteDetails(x.details) match {
-              case Full(diff) =>
-                <div class="evloglmargin">
-
-                {generatedByChangeRequest}
-                {groupDetails(groupDetailsXML, diff.group)}
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox => errorMessage(e)
-            }
-            xml
-          }
-
-        ///////// Node Group /////////
-
-        case x: AcceptNodeEventLog =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getAcceptNodeLogDetails(x.details) match {
-              case Full(details) =>
-                <div class="evloglmargin">
-
-                <h4>Node accepted overview:</h4>
-                {nodeDetails(details)}
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox => errorMessage(e)
-            }
-            xml
-          }
-
-        case x: RefuseNodeEventLog =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getRefuseNodeLogDetails(x.details) match {
-              case Full(details) =>
-                <div class="evloglmargin">
-
-                <h4>Node refused overview:</h4>
-                {nodeDetails(details)}
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox => errorMessage(e)
-            }
-            xml
-          }
-
-        case x: DeleteNodeEventLog   =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getDeleteNodeLogDetails(x.details) match {
-              case Full(details) =>
-                <div class="evloglmargin">
-
-                <h4>Node deleted overview:</h4>
-                {nodeDetails(details)}
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox => errorMessage(e)
-            }
-            xml
-          }
-
-        ////////// deployment //////////
-        case x: SuccessfulDeployment =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getDeploymentStatusDetails(x.details) match {
-              case Full(SuccessStatus(id, started, ended, _)) =>
-                <div class="evloglmargin">
-
-                <h4>Successful policy update:</h4>
-                <ul class="evlogviewpad">
-                  <li><b>ID:</b>&nbsp;{id}</li>
-                  <li><b>Start time:</b>&nbsp;{DateFormaterService.getDisplayDate(started)}</li>
-                  <li><b>End Time:</b>&nbsp;{DateFormaterService.getDisplayDate(ended)}</li>
-                </ul>
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case Full(_)                                    => errorMessage(Failure("Unconsistant policy update status"))
-              case e: EmptyBox => errorMessage(e)
-            }
-            xml
-          }
-
-        case x: FailedDeployment =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getDeploymentStatusDetails(x.details) match {
-              case Full(ErrorStatus(id, started, ended, failure)) =>
-                <div class="evloglmargin">
-
-                <h4>Failed policy update:</h4>
-                <ul class="evlogviewpad">
-                  <li><b>ID:</b>&nbsp;{id}</li>
-                  <li><b>Start time:</b>&nbsp;{DateFormaterService.getDisplayDate(started)}</li>
-                  <li><b>End Time:</b>&nbsp;{DateFormaterService.getDisplayDate(ended)}</li>
-                  <li><b>Error stack trace:</b>&nbsp;{failure.messageChain}</li>
-                </ul>
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case Full(_)                                        => errorMessage(Failure("Unconsistant policy update status"))
-              case e: EmptyBox => errorMessage(e)
-            }
-            xml
-          }
-
-        case x: AutomaticStartDeployement =>
-          "*" #>
+      def errorMessage(e: EmptyBox) = {
+        logger.debug(e ?~! "Error when parsing details.", e)
+        <xml:group>
           <div class="evloglmargin">
+            <h4>Details for that node were not in a recognized format.
+              Raw data are displayed next:</h4>{xmlParameters(event.id)}
+          </div>
+        </xml:group>
+      }
 
-              {xmlParameters(event.id)}
-            </div>
-
-        ////////// change authorized networks //////////
-
-        case x: UpdatePolicyServer =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getUpdatePolicyServerDetails(x.details) match {
-              case Full(details) =>
-                def networksToXML(nets: Seq[String]) = {
-                  <ul>{
-                    nets.map(n => <li class="eventLogUpdatePolicy">{n}</li>)
-                  }</ul>
-                }
-
-                <div class="evloglmargin">
-                {
-                  (
-                    ".diffOldValue *" #> networksToXML(details.oldNetworks) &
-                    ".diffNewValue *" #> networksToXML(details.newNetworks)
-                  )(authorizedNetworksXML())
-                }
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox => errorMessage(e)
-            }
-            xml
-          }
-
-        // Technique library reloaded
-
-        case x: ReloadTechniqueLibrary =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getTechniqueLibraryReloadDetails(x.details) match {
-              case Full(details) =>
-                <div class="evloglmargin">
-
-                <b>The Technique library was reloaded and following Techniques were updated:</b>
-                <ul>{
-                  details.map { technique =>
-                    <li class="eventLogUpdatePolicy">{s"${technique.name.value} (version ${technique.version.debugString})"}</li>
+      <td colspan="5">
+        {
+        (event match {
+          /*
+           * bug in scalac : https://issues.scala-lang.org/browse/SI-6897
+           * A workaround is to type with a Nodeseq
+           */
+          case add: AddRule =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getRuleAddDetails(add.details) match {
+                case Full(addDiff)    =>
+                  <div class="evloglmargin">
+                    {generatedByChangeRequest}{ruleDetails(crDetailsXML, addDiff.rule, groupLib, rootRuleCategory)}{reasonHtml}{
+                    xmlParameters(event.id)
                   }
-                }</ul>
-                {reasonHtml}
+                  </div>
+                case Failure(m, _, _) =>
+                  <p>
+                    {m}
+                  </p>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          case del: DeleteRule =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getRuleDeleteDetails(del.details) match {
+                case Full(delDiff) =>
+                  <div class="evloglmargin">
+
+                    {generatedByChangeRequest}{ruleDetails(crDetailsXML, delDiff.rule, groupLib, rootRuleCategory)}{reasonHtml}{
+                    xmlParameters(event.id)
+                  }
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          case mod: ModifyRule =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getRuleModifyDetails(mod.details) match {
+                case Full(modDiff) =>
+                  <div class="evloglmargin">
+
+                    {generatedByChangeRequest}<h4>Rule overview:</h4>
+                    <ul class="evlogviewpad">
+                      <li>
+                        <b>Rule ID:</b>{modDiff.id.serialize}
+                      </li>
+                      <li>
+                        <b>Name:</b>{modDiff.modName.map(diff => diff.newValue).getOrElse(modDiff.name)}
+                      </li>
+                    </ul>{
+                    val modCategory = modDiff.modCategory.map {
+                      case SimpleDiff(oldOne, newOne) =>
+                        <li>
+                          <b>Rule category changed:</b>
+                        </li> ++
+                        diffDisplayer.displayRuleCategory(rootRuleCategory, oldOne, Some(newOne))
+                    }
+
+                    (
+                      "#name" #> mapSimpleDiff(modDiff.modName) &
+                      "#category" #> modCategory &
+                      "#isEnabled *" #> mapSimpleDiff(modDiff.modIsActivatedStatus) &
+                      "#isSystem *" #> mapSimpleDiff(modDiff.modIsSystem) &
+                      "#shortDescription *" #> mapSimpleDiff(modDiff.modShortDescription) &
+                      "#longDescription *" #> mapSimpleDiff(modDiff.modLongDescription) &
+                      "#target" #> (modDiff.modTarget.map {
+                        case SimpleDiff(oldOnes, newOnes) =>
+                          <li>
+                              <b>Group Targets changed:</b>
+                            </li> ++
+                          diffDisplayer.displayRuleTargets(oldOnes.toSeq, newOnes.toSeq, groupLib)
+                      }) &
+                      "#policies" #> (modDiff.modDirectiveIds.map {
+                        case SimpleDiff(oldOnes, newOnes) =>
+                          <li>
+                              <b>Directives changed:</b>
+                            </li> ++
+                          diffDisplayer.displayDirectiveChangeList(oldOnes.toSeq, newOnes.toSeq)
+                      })
+                    )(crModDetailsXML)
+                  }{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          ///////// Directive /////////
+
+          case x: ModifyDirective =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getDirectiveModifyDetails(x.details) match {
+                case Full(modDiff)    =>
+                  <div class="evloglmargin">
+
+                    {generatedByChangeRequest}<h4>Directive overview:</h4>
+                    <ul class="evlogviewpad">
+                      <li>
+                        <b>Directive ID:</b>{modDiff.id.serialize}
+                      </li>
+                      <li>
+                        <b>Name:</b>{modDiff.modName.map(diff => diff.newValue.toString).getOrElse(modDiff.name)}
+                      </li>
+                    </ul>{
+                    (
+                      "#name" #> mapSimpleDiff(modDiff.modName, modDiff.id) &
+                      "#priority *" #> mapSimpleDiff(modDiff.modPriority) &
+                      "#isEnabled *" #> mapSimpleDiff(modDiff.modIsActivated) &
+                      "#isSystem *" #> mapSimpleDiff(modDiff.modIsSystem) &
+                      "#shortDescription *" #> mapSimpleDiff(modDiff.modShortDescription) &
+                      "#longDescription *" #> mapSimpleDiff(modDiff.modLongDescription) &
+                      "#ptVersion *" #> mapSimpleDiff(modDiff.modTechniqueVersion) &
+                      "#policyMode *" #> mapSimpleDiffT[Option[PolicyMode]](
+                        modDiff.modPolicyMode,
+                        _.fold(PolicyMode.defaultValue)(_.name)
+                      ) &
+                      "#tags" #> tagsDiff(modDiff.modTags) &
+                      "#parameters" #> (
+                        modDiff.modParameters.map(diff => "#diff" #> displaydirectiveInnerFormDiff(diff, event.id))
+                      )
+                    )(piModDirectiveDetailsXML)
+                  }{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case Failure(m, _, _) =>
+                  <p>
+                    {m}
+                  </p>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          case x: AddDirective =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getDirectiveAddDetails(x.details) match {
+                case Full((diff, sectionVal)) =>
+                  <div class="evloglmargin">
+
+                    {generatedByChangeRequest}{directiveDetails(piDetailsXML, diff.techniqueName, diff.directive, sectionVal)}{
+                    reasonHtml
+                  }{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          case x: DeleteDirective =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getDirectiveDeleteDetails(x.details) match {
+                case Full((diff, sectionVal)) =>
+                  <div class="evloglmargin">
+
+                    {generatedByChangeRequest}{directiveDetails(piDetailsXML, diff.techniqueName, diff.directive, sectionVal)}{
+                    reasonHtml
+                  }{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          ///////// Node Group /////////
+
+          case x: ModifyNodeGroup =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getNodeGroupModifyDetails(x.details) match {
+                case Full(modDiff) =>
+                  <div class="evloglmargin">
+
+                    {generatedByChangeRequest}<h4>Group overview:</h4>
+                    <ul class="evlogviewpad">
+                      <li>
+                        <b>Node Group ID:</b>{modDiff.id.withDefaultRev.serialize}
+                      </li>
+                      <li>
+                        <b>Name:</b>{modDiff.modName.map(diff => diff.newValue.toString).getOrElse(modDiff.name)}
+                      </li>
+                    </ul>{
+                    (
+                      "#name" #> mapSimpleDiff(modDiff.modName) &
+                      "#isEnabled *" #> mapSimpleDiff(modDiff.modIsActivated) &
+                      "#isSystem *" #> mapSimpleDiff(modDiff.modIsSystem) &
+                      "#isDynamic *" #> mapSimpleDiff(modDiff.modIsDynamic) &
+                      "#shortDescription *" #> mapSimpleDiff(modDiff.modDescription) &
+                      "#query" #> (
+                        modDiff.modQuery.map { diff =>
+                          val mapOptionQuery = (opt: Option[Query]) => {
+                            opt match {
+                              case None    => Text("None")
+                              case Some(q) => Text(q.toJSONString)
+                            }
+                          }
+
+                          ".diffOldValue *" #> mapOptionQuery(diff.oldValue) &
+                          ".diffNewValue *" #> mapOptionQuery(diff.newValue)
+                        }
+                      ) &
+                      "#nodes" #> (
+                        modDiff.modNodeList.map { diff =>
+                          ".diffOldValue *" #> nodeGroupDetails(diff.oldValue) &
+                          ".diffNewValue *" #> nodeGroupDetails(diff.newValue)
+                        }
+                      )
+                    )(groupModDetailsXML)
+                  }{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          case x: AddNodeGroup =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getNodeGroupAddDetails(x.details) match {
+                case Full(diff) =>
+                  <div class="evloglmargin">
+
+                    {generatedByChangeRequest}{groupDetails(groupDetailsXML, diff.group)}{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          case x: DeleteNodeGroup =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getNodeGroupDeleteDetails(x.details) match {
+                case Full(diff) =>
+                  <div class="evloglmargin">
+
+                    {generatedByChangeRequest}{groupDetails(groupDetailsXML, diff.group)}{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          ///////// Node Group /////////
+
+          case x: AcceptNodeEventLog =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getAcceptNodeLogDetails(x.details) match {
+                case Full(details) =>
+                  <div class="evloglmargin">
+
+                    <h4>Node accepted overview:</h4>{nodeDetails(details)}{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          case x: RefuseNodeEventLog =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getRefuseNodeLogDetails(x.details) match {
+                case Full(details) =>
+                  <div class="evloglmargin">
+
+                    <h4>Node refused overview:</h4>{nodeDetails(details)}{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          case x: DeleteNodeEventLog   =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getDeleteNodeLogDetails(x.details) match {
+                case Full(details) =>
+                  <div class="evloglmargin">
+
+                    <h4>Node deleted overview:</h4>{nodeDetails(details)}{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          ////////// deployment //////////
+          case x: SuccessfulDeployment =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getDeploymentStatusDetails(x.details) match {
+                case Full(SuccessStatus(id, started, ended, _)) =>
+                  <div class="evloglmargin">
+
+                    <h4>Successful policy update:</h4>
+                    <ul class="evlogviewpad">
+                      <li>
+                        <b>ID:</b> &nbsp;{id}
+                      </li>
+                      <li>
+                        <b>Start time:</b> &nbsp;{DateFormaterService.getDisplayDate(started)}
+                      </li>
+                      <li>
+                        <b>End Time:</b> &nbsp;{DateFormaterService.getDisplayDate(ended)}
+                      </li>
+                    </ul>{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case Full(_)                                    => errorMessage(Failure("Unconsistant policy update status"))
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          case x: FailedDeployment =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getDeploymentStatusDetails(x.details) match {
+                case Full(ErrorStatus(id, started, ended, failure)) =>
+                  <div class="evloglmargin">
+
+                    <h4>Failed policy update:</h4>
+                    <ul class="evlogviewpad">
+                      <li>
+                        <b>ID:</b> &nbsp;{id}
+                      </li>
+                      <li>
+                        <b>Start time:</b> &nbsp;{DateFormaterService.getDisplayDate(started)}
+                      </li>
+                      <li>
+                        <b>End Time:</b> &nbsp;{DateFormaterService.getDisplayDate(ended)}
+                      </li>
+                      <li>
+                        <b>Error stack trace:</b> &nbsp;{failure.messageChain}
+                      </li>
+                    </ul>{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case Full(_)                                        => errorMessage(Failure("Unconsistant policy update status"))
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          case x: AutomaticStartDeployement =>
+            "*" #>
+            <div class="evloglmargin">
+
                 {xmlParameters(event.id)}
               </div>
 
-              case e: EmptyBox => errorMessage(e)
+          ////////// change authorized networks //////////
+
+          case x: UpdatePolicyServer =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getUpdatePolicyServerDetails(x.details) match {
+                case Full(details) =>
+                  def networksToXML(nets: Seq[String]) = {
+                    <ul>
+                      {
+                      nets.map(n => <li class="eventLogUpdatePolicy">
+                        {n}
+                      </li>)
+                    }
+                    </ul>
+                  }
+
+                  <div class="evloglmargin">
+                    {
+                    (
+                      ".diffOldValue *" #> networksToXML(details.oldNetworks) &
+                      ".diffNewValue *" #> networksToXML(details.newNetworks)
+                    )(authorizedNetworksXML())
+                  }{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
             }
-            xml
-          }
 
-        // Technique modified
-        case x: ModifyTechnique        =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getTechniqueModifyDetails(x.details) match {
-              case Full(modDiff) =>
-                <div class="evloglmargin">
+          // Technique library reloaded
 
-                <h4>Technique overview:</h4>
-                <ul class="evlogviewpad">
-                  <li><b>Technique ID:</b> {modDiff.id.value}</li>
-                  <li><b>Name:</b> {modDiff.name}</li>
-                </ul>
-                {
-                  (
-                    "#isEnabled *" #> mapSimpleDiff(modDiff.modIsEnabled)
-                  ).apply(liModDetailsXML("isEnabled", "Activation status"))
-                }
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox => errorMessage(e)
+          case x: ReloadTechniqueLibrary =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getTechniqueLibraryReloadDetails(x.details) match {
+                case Full(details) =>
+                  <div class="evloglmargin">
+
+                    <b>The Technique library was reloaded and following Techniques were updated:</b>
+                    <ul>
+                      {
+                    details.map { technique =>
+                      <li class="eventLogUpdatePolicy">
+                          {s"${technique.name.value} (version ${technique.version.debugString})"}
+                        </li>
+                    }
+                  }
+                    </ul>{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
             }
-            xml
-          }
 
-        // Technique modified
-        case x: DeleteTechnique        =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getTechniqueDeleteDetails(x.details) match {
-              case Full(techDiff) =>
-                <div class="evloglmargin">
+          // Technique modified
+          case x: ModifyTechnique        =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getTechniqueModifyDetails(x.details) match {
+                case Full(modDiff) =>
+                  <div class="evloglmargin">
 
-                {techniqueDetails(techniqueDetailsXML, techDiff.technique)}
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox => errorMessage(e)
+                    <h4>Technique overview:</h4>
+                    <ul class="evlogviewpad">
+                      <li>
+                        <b>Technique ID:</b>{modDiff.id.value}
+                      </li>
+                      <li>
+                        <b>Name:</b>{modDiff.name}
+                      </li>
+                    </ul>{
+                    (
+                      "#isEnabled *" #> mapSimpleDiff(modDiff.modIsEnabled)
+                    ).apply(liModDetailsXML("isEnabled", "Activation status"))
+                  }{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
             }
-            xml
-          }
 
-        // archiving & restoring
+          // Technique modified
+          case x: DeleteTechnique        =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getTechniqueDeleteDetails(x.details) match {
+                case Full(techDiff) =>
+                  <div class="evloglmargin">
 
-        case x: ExportEventLog =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getNewArchiveDetails(x.details, x) match {
-              case Full(gitArchiveId) =>
-                displayExportArchiveDetails(gitArchiveId, xmlParameters(event.id))
-              case e: EmptyBox => errorMessage(e)
+                    {techniqueDetails(techniqueDetailsXML, techDiff.technique)}{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
             }
-            xml
-          }
 
-        case x: Rollback =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getRollbackDetails(x.details) match {
-              case Full(eventLogs) =>
-                displayRollbackDetails(eventLogs, event.id.get)
-              case e: EmptyBox =>
-                logger.warn(e)
-                errorMessage(e)
+          // archiving & restoring
+
+          case x: ExportEventLog =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getNewArchiveDetails(x.details, x) match {
+                case Full(gitArchiveId) =>
+                  displayExportArchiveDetails(gitArchiveId, xmlParameters(event.id))
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
             }
-            xml
-          }
 
-        case x: ImportEventLog =>
-          "*" #> {
-            val xml: NodeSeq = logDetailsService.getRestoreArchiveDetails(x.details, x) match {
-              case Full(gitArchiveId) =>
-                displayImportArchiveDetails(gitArchiveId, xmlParameters(event.id))
-              case e: EmptyBox => errorMessage(e)
+          case x: Rollback =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getRollbackDetails(x.details) match {
+                case Full(eventLogs) =>
+                  displayRollbackDetails(eventLogs, event.id.get)
+                case e: EmptyBox =>
+                  logger.warn(e)
+                  errorMessage(e)
+              }
+              xml
             }
-            xml
-          }
 
-        case x: ChangeRequestEventLog =>
-          "*" #> {
-            logDetailsService.getChangeRequestDetails(x.details) match {
-              case Full(diff) =>
-                val (name, desc) = x.id match {
-                  case None     => (Text(diff.changeRequest.info.name), Text(diff.changeRequest.info.description))
-                  case Some(id) =>
-                    val modName = displaySimpleDiff(diff.diffName, s"name${id}", diff.changeRequest.info.name)
-                    val modDesc =
-                      displaySimpleDiff(diff.diffDescription, s"description${id}", diff.changeRequest.info.description)
-                    (modName, modDesc)
-                }
-                <div class="evloglmargin">
-                <h4>Change request details:</h4>
-                <ul class="evlogviewpad">
-                  <li><b>Id: </b>{diff.changeRequest.id}</li>
-                  <li><b>Name: </b>{name}</li>
-                  <li><b>Description: </b>{desc}</li>
-                </ul>
-              </div>
-              case e: EmptyBox =>
-                logger.warn(e)
-                errorMessage(e)
+          case x: ImportEventLog =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getRestoreArchiveDetails(x.details, x) match {
+                case Full(gitArchiveId) =>
+                  displayImportArchiveDetails(gitArchiveId, xmlParameters(event.id))
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
             }
-          }
 
-        case x: WorkflowStepChanged =>
-          "*" #> {
-            logDetailsService.getWorkflotStepChange(x.details) match {
-              case Full(step) =>
-                <div class="evloglmargin">
-                <h4>Change request status modified:</h4>
-                <ul class="evlogviewpad">
-                  <li><b>Id: </b>{step.id}</li>
-                  <li><b>From status: </b>{step.from}</li>
-                  <li><b>To status: </b>{step.to}</li>
-                  {reasonHtml}
-                </ul>
-              </div>
-              case e: EmptyBox =>
-                logger.warn(e)
-                errorMessage(e)
+          case x: ChangeRequestEventLog =>
+            "*" #> {
+              logDetailsService.getChangeRequestDetails(x.details) match {
+                case Full(diff) =>
+                  val (name, desc) = x.id match {
+                    case None     => (Text(diff.changeRequest.info.name), Text(diff.changeRequest.info.description))
+                    case Some(id) =>
+                      val modName = displaySimpleDiff(diff.diffName, s"name${id}", diff.changeRequest.info.name)
+                      val modDesc =
+                        displaySimpleDiff(diff.diffDescription, s"description${id}", diff.changeRequest.info.description)
+                      (modName, modDesc)
+                  }
+                  <div class="evloglmargin">
+                    <h4>Change request details:</h4>
+                    <ul class="evlogviewpad">
+                      <li>
+                        <b>Id:</b>{diff.changeRequest.id}
+                      </li>
+                      <li>
+                        <b>Name:</b>{name}
+                      </li>
+                      <li>
+                        <b>Description:</b>{desc}
+                      </li>
+                    </ul>
+                  </div>
+                case e: EmptyBox =>
+                  logger.warn(e)
+                  errorMessage(e)
+              }
             }
-          }
 
-        // Global parameters
-
-        case x: AddGlobalParameter =>
-          "*" #> {
-            logDetailsService.getGlobalParameterAddDetails(x.details) match {
-              case Full(globalParamDiff) =>
-                <div class="evloglmargin">
-
-                {generatedByChangeRequest}
-                {globalParameterDetails(globalParamDetailsXML, globalParamDiff.parameter)}
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox =>
-                logger.warn(e)
-                errorMessage(e)
+          case x: WorkflowStepChanged =>
+            "*" #> {
+              logDetailsService.getWorkflotStepChange(x.details) match {
+                case Full(step) =>
+                  <div class="evloglmargin">
+                    <h4>Change request status modified:</h4>
+                    <ul class="evlogviewpad">
+                      <li>
+                        <b>Id:</b>{step.id}
+                      </li>
+                      <li>
+                        <b>From status:</b>{step.from}
+                      </li>
+                      <li>
+                        <b>To status:</b>{step.to}
+                      </li>{reasonHtml}
+                    </ul>
+                  </div>
+                case e: EmptyBox =>
+                  logger.warn(e)
+                  errorMessage(e)
+              }
             }
-          }
 
-        case x: DeleteGlobalParameter =>
-          "*" #> {
-            logDetailsService.getGlobalParameterDeleteDetails(x.details) match {
-              case Full(globalParamDiff) =>
-                <div class="evloglmargin">
+          // Global parameters
 
-                {generatedByChangeRequest}
-                {globalParameterDetails(globalParamDetailsXML, globalParamDiff.parameter)}
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox =>
-                logger.warn(e)
-                errorMessage(e)
+          case x: AddGlobalParameter =>
+            "*" #> {
+              logDetailsService.getGlobalParameterAddDetails(x.details) match {
+                case Full(globalParamDiff) =>
+                  <div class="evloglmargin">
+
+                    {generatedByChangeRequest}{globalParameterDetails(globalParamDetailsXML, globalParamDiff.parameter)}{
+                    reasonHtml
+                  }{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox =>
+                  logger.warn(e)
+                  errorMessage(e)
+              }
             }
-          }
 
-        case mod: ModifyGlobalParameter =>
-          "*" #> {
-            logDetailsService.getGlobalParameterModifyDetails(mod.details) match {
-              case Full(modDiff) =>
-                <div class="evloglmargin">
+          case x: DeleteGlobalParameter =>
+            "*" #> {
+              logDetailsService.getGlobalParameterDeleteDetails(x.details) match {
+                case Full(globalParamDiff) =>
+                  <div class="evloglmargin">
 
-                {generatedByChangeRequest}
-                <h4>Global Parameter overview:</h4>
-                <ul class="evlogviewpad">
-                  <li><b>Global Parameter name:</b> {modDiff.name}</li>
-                </ul>
-                {
-                  (
-                    "#name" #> modDiff.name &
-                    "#value" #> mapSimpleDiff(modDiff.modValue) &
-                    "#description *" #> mapSimpleDiff(modDiff.modDescription)
-                  )(globalParamModDetailsXML)
-                }
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox =>
-                logger.warn(e)
-                errorMessage(e)
+                    {generatedByChangeRequest}{globalParameterDetails(globalParamDetailsXML, globalParamDiff.parameter)}{
+                    reasonHtml
+                  }{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox =>
+                  logger.warn(e)
+                  errorMessage(e)
+              }
             }
-          }
 
-        case x: CreateAPIAccountEventLog =>
-          "*" #> {
-            logDetailsService.getApiAccountAddDetails(x.details) match {
-              case Full(apiAccountDiff) =>
-                <div class="evloglmargin">
+          case mod: ModifyGlobalParameter =>
+            "*" #> {
+              logDetailsService.getGlobalParameterModifyDetails(mod.details) match {
+                case Full(modDiff) =>
+                  <div class="evloglmargin">
 
-                {generatedByChangeRequest}
-                {apiAccountDetails(apiAccountDetailsXML, apiAccountDiff.apiAccount)}
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox =>
-                logger.warn(e)
-                errorMessage(e)
+                    {generatedByChangeRequest}<h4>Global Parameter overview:</h4>
+                    <ul class="evlogviewpad">
+                      <li>
+                        <b>Global Parameter name:</b>{modDiff.name}
+                      </li>
+                    </ul>{
+                    (
+                      "#name" #> modDiff.name &
+                      "#value" #> mapSimpleDiff(modDiff.modValue) &
+                      "#description *" #> mapSimpleDiff(modDiff.modDescription)
+                    )(globalParamModDetailsXML)
+                  }{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox =>
+                  logger.warn(e)
+                  errorMessage(e)
+              }
             }
-          }
 
-        case x: DeleteAPIAccountEventLog =>
-          "*" #> {
-            logDetailsService.getApiAccountDeleteDetails(x.details) match {
-              case Full(apiAccountDiff) =>
-                <div class="evloglmargin">
+          case x: CreateAPIAccountEventLog =>
+            "*" #> {
+              logDetailsService.getApiAccountAddDetails(x.details) match {
+                case Full(apiAccountDiff) =>
+                  <div class="evloglmargin">
 
-                {generatedByChangeRequest}
-                {apiAccountDetails(apiAccountDetailsXML, apiAccountDiff.apiAccount)}
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox =>
-                logger.warn(e)
-                errorMessage(e)
+                    {generatedByChangeRequest}{apiAccountDetails(apiAccountDetailsXML, apiAccountDiff.apiAccount)}{reasonHtml}{
+                    xmlParameters(event.id)
+                  }
+                  </div>
+                case e: EmptyBox =>
+                  logger.warn(e)
+                  errorMessage(e)
+              }
             }
-          }
 
-        case mod: ModifyAPIAccountEventLog =>
-          "*" #> {
-            logDetailsService.getApiAccountModifyDetails(mod.details) match {
-              case Full(apiAccountDiff) =>
-                <div class="evloglmargin">
+          case x: DeleteAPIAccountEventLog =>
+            "*" #> {
+              logDetailsService.getApiAccountDeleteDetails(x.details) match {
+                case Full(apiAccountDiff) =>
+                  <div class="evloglmargin">
 
-                {generatedByChangeRequest}
-                <h4>API account overview:</h4>
-                <ul class="evlogviewpad">
-                  <li><b>Account ID:</b> {apiAccountDiff.id.value}</li>
-                </ul>
-                {
-                  (
-                    "#name" #> mapSimpleDiff(apiAccountDiff.modName) &
-                    "#token" #> mapSimpleDiff(apiAccountDiff.modToken) &
-                    "#description *" #> mapSimpleDiff(apiAccountDiff.modDescription) &
-                    "#isEnabled *" #> mapSimpleDiff(apiAccountDiff.modIsEnabled) &
-                    "#tokenGenerationDate *" #> mapSimpleDiff(apiAccountDiff.modTokenGenerationDate) &
-                    "#expirationDate *" #> mapSimpleDiffT[Option[DateTime]](
-                      apiAccountDiff.modExpirationDate,
-                      _.fold("")(_.toString(ISODateTimeFormat.dateTime()))
-                    ) &
-                    "#accountKind *" #> mapSimpleDiff(apiAccountDiff.modAccountKind) &
-                    // make list of ACL unsderstandable
-                    "#acls *" #> mapSimpleDiff(apiAccountDiff.modAccountAcl.map(o => {
-                      val f = (l: List[ApiAclElement]) => {
-                        l.sortBy(_.path.value)
-                          .map(x => s"[${x.actions.map(_.name.toUpperCase()).mkString(",")}] ${x.path.value}")
-                          .mkString(" | ")
+                    {generatedByChangeRequest}{apiAccountDetails(apiAccountDetailsXML, apiAccountDiff.apiAccount)}{reasonHtml}{
+                    xmlParameters(event.id)
+                  }
+                  </div>
+                case e: EmptyBox =>
+                  logger.warn(e)
+                  errorMessage(e)
+              }
+            }
+
+          case mod: ModifyAPIAccountEventLog =>
+            "*" #> {
+              logDetailsService.getApiAccountModifyDetails(mod.details) match {
+                case Full(apiAccountDiff) =>
+                  <div class="evloglmargin">
+
+                    {generatedByChangeRequest}<h4>API account overview:</h4>
+                    <ul class="evlogviewpad">
+                      <li>
+                        <b>Account ID:</b>{apiAccountDiff.id.value}
+                      </li>
+                    </ul>{
+                    (
+                      "#name" #> mapSimpleDiff(apiAccountDiff.modName) &
+                      "#token" #> mapSimpleDiff(apiAccountDiff.modToken) &
+                      "#description *" #> mapSimpleDiff(apiAccountDiff.modDescription) &
+                      "#isEnabled *" #> mapSimpleDiff(apiAccountDiff.modIsEnabled) &
+                      "#tokenGenerationDate *" #> mapSimpleDiff(apiAccountDiff.modTokenGenerationDate) &
+                      "#expirationDate *" #> mapSimpleDiffT[Option[DateTime]](
+                        apiAccountDiff.modExpirationDate,
+                        _.fold("")(_.toString(ISODateTimeFormat.dateTime()))
+                      ) &
+                      "#accountKind *" #> mapSimpleDiff(apiAccountDiff.modAccountKind) &
+                      // make list of ACL unsderstandable
+                      "#acls *" #> mapSimpleDiff(apiAccountDiff.modAccountAcl.map(o => {
+                        val f = (l: List[ApiAclElement]) => {
+                          l.sortBy(_.path.value)
+                            .map(x => s"[${x.actions.map(_.name.toUpperCase()).mkString(",")}] ${x.path.value}")
+                            .mkString(" | ")
+                        }
+                        SimpleDiff(f(o.oldValue), f(o.newValue))
+                      }))
+                    )(apiAccountModDetailsXML)
+                  }{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox =>
+                  logger.warn(e)
+                  errorMessage(e)
+              }
+            }
+
+          case mod: ModifyGlobalProperty =>
+            "*" #> {
+              logDetailsService.getModifyGlobalPropertyDetails(mod.details) match {
+                case Full((oldProp, newProp)) =>
+                  val diff = SimpleDiff(oldProp.value, newProp.value)
+                  <div class="evloglmargin">
+                    <h4>Global property overview:</h4>
+                    <ul class="evlogviewpad">
+                      <li>
+                        <b>Name:</b>{mod.propertyName}
+                      </li>
+                      <li>
+                        <b>Old Value:</b>
+                        <span class="diffOldValue">
+                          {diff.oldValue}
+                        </span>
+                      </li>
+                      <li>
+                        <b>New Value:</b>
+                        <span class="diffNewValue">
+                          {diff.newValue}
+                        </span>
+                      </li>
+                    </ul>{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox =>
+                  logger.warn(e)
+                  errorMessage(e)
+              }
+            }
+
+          // Node modifiction
+          case mod: ModifyNode           =>
+            "*" #> {
+              logDetailsService.getModifyNodeDetails(mod.details) match {
+                case Full(modDiff) =>
+                  logger.info(modDiff.modAgentRun)
+                  <div class="evloglmargin">
+
+                    {generatedByChangeRequest}<h4>Node '
+                    {modDiff.id.value}
+                    ' modified:</h4>
+                    <ul class="evlogviewpad">
+                      <li>
+                        <b>Node ID:</b>{modDiff.id.value}
+                      </li>
+                    </ul>{
+                    mapComplexDiff(modDiff.modAgentRun) { (optAr: Option[AgentRunInterval]) =>
+                      optAr match {
+                        case None     =>
+                          <span>No value</span>
+                        case Some(ar) => agentRunDetails(ar)
                       }
-                      SimpleDiff(f(o.oldValue), f(o.newValue))
-                    }))
-                  )(apiAccountModDetailsXML)
-                }
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox =>
-                logger.warn(e)
-                errorMessage(e)
+                    }
+                  }{
+                    mapComplexDiff(modDiff.modHeartbeat) { (optHb: Option[HeartbeatConfiguration]) =>
+                      optHb match {
+                        case None     =>
+                          <span>No value</span>
+                        case Some(hb) => heartbeatDetails(hb)
+                      }
+                    }
+                  }{nodePropertiesDiff(modDiff.modProperties)}{
+                    mapComplexDiff(modDiff.modPolicyMode) { (optMode: Option[PolicyMode]) =>
+                      optMode match {
+                        case None       =>
+                          <span>Use global policy mode</span>
+                        case Some(mode) =>
+                          <span>
+                            {mode.name}
+                          </span>
+                      }
+                    }
+                  }{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox =>
+                  logger.warn(e)
+                  errorMessage(e)
+              }
             }
-          }
+          case x:   PromoteNode          =>
+            "*" #> {
+              logDetailsService.getPromotedNodeToRelayDetails(x.details) match {
+                case Full(details) =>
+                  <div class="evloglmargin">
 
-        case mod: ModifyGlobalProperty =>
-          "*" #> {
-            logDetailsService.getModifyGlobalPropertyDetails(mod.details) match {
-              case Full((oldProp, newProp)) =>
-                val diff = SimpleDiff(oldProp.value, newProp.value)
-                <div class="evloglmargin">
-                <h4>Global property overview:</h4>
-                <ul class="evlogviewpad">
-                  <li><b>Name:</b> {mod.propertyName}</li>
-                  <li><b>Old Value:</b>
-                    <span class="diffOldValue">{diff.oldValue}</span>
-                  </li>
-                  <li><b>New Value:</b>
-                    <span class="diffNewValue">{diff.newValue}</span>
-                  </li>
-                </ul>
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox =>
-                logger.warn(e)
-                errorMessage(e)
+                    <h4>Node promoted to relay overview:</h4>{promotedNodeDetails(details._1, details._2)}{reasonHtml}{
+                    xmlParameters(event.id)
+                  }
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
             }
-          }
 
-        // Node modifiction
-        case mod: ModifyNode           =>
-          "*" #> {
-            logDetailsService.getModifyNodeDetails(mod.details) match {
-              case Full(modDiff) =>
-                logger.info(modDiff.modAgentRun)
-                <div class="evloglmargin">
+          // Secret
+          case x:   AddSecret            =>
+            "*" #> {
+              logDetailsService.getSecretAddDetails(x.details) match {
+                case Full(secretDiff) =>
+                  <div class="evloglmargin">
 
-                {generatedByChangeRequest}
-                <h4>Node '{modDiff.id.value}' modified:</h4>
-                <ul class="evlogviewpad">
-                  <li><b>Node ID:</b>{modDiff.id.value} </li>
-                </ul>
-                {
-                  mapComplexDiff(modDiff.modAgentRun) { (optAr: Option[AgentRunInterval]) =>
-                    optAr match {
-                      case None     =>
-                        <span>No value</span>
-                      case Some(ar) => agentRunDetails(ar)
+                    {secretDetails(secretXML, secretDiff.secret)}{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox =>
+                  logger.warn(e)
+                  errorMessage(e)
+              }
+            }
+
+          case x: DeleteSecret =>
+            "*" #> {
+              logDetailsService.getSecretDeleteDetails(x.details) match {
+                case Full(secretDiff) =>
+                  <div class="evloglmargin">
+
+                    {secretDetails(secretXML, secretDiff.secret)}{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox =>
+                  logger.warn(e)
+                  errorMessage(e)
+              }
+            }
+
+          case mod: ModifySecret =>
+            "*" #> {
+              logDetailsService.getSecretModifyDetails(mod.details) match {
+                case Full(modDiff) =>
+                  val hasChanged = {
+                    if (modDiff.modValue) {
+                      Some(<div id="value">
+                        <br/> <b>The value has been changed</b>
+                      </div> <br/>)
+                    } else {
+                      None
                     }
                   }
-                }
-                {
-                  mapComplexDiff(modDiff.modHeartbeat) { (optHb: Option[HeartbeatConfiguration]) =>
-                    optHb match {
-                      case None     =>
-                        <span>No value</span>
-                      case Some(hb) => heartbeatDetails(hb)
-                    }
-                  }
-                }
-                {
-                  nodePropertiesDiff(modDiff.modProperties)
-                }
-                {
-                  mapComplexDiff(modDiff.modPolicyMode) { (optMode: Option[PolicyMode]) =>
-                    optMode match {
-                      case None       =>
-                        <span>Use global policy mode</span>
-                      case Some(mode) =>
-                        <span>{mode.name}</span>
-                    }
-                  }
-                }
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox =>
-                logger.warn(e)
-                errorMessage(e)
+                  <div class="evloglmargin">
+
+                    <h4>Secret overview:</h4>
+                    <ul class="evlogviewpad">
+                      <li>
+                        <b>Secret name:</b>{modDiff.name}
+                      </li>
+                      <li>
+                        <b>Secret description:</b>{modDiff.description}
+                      </li>
+                    </ul>{
+                    (
+                      "#name" #> modDiff.name &
+                      "#value" #> hasChanged &
+                      "#description" #> mapSimpleDiff(modDiff.modDescription)
+                    )(secretModDetailsXML)
+                  }{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox =>
+                  logger.warn(e)
+                  errorMessage(e)
+              }
             }
-          }
-        case x:   PromoteNode          =>
-          "*" #> {
-            logDetailsService.getPromotedNodeToRelayDetails(x.details) match {
-              case Full(details) =>
-                <div class="evloglmargin">
+          // other case: do not display details at all
+          case _ => "*" #> ""
 
-                <h4>Node promoted to relay overview:</h4>
-                {promotedNodeDetails(details._1, details._2)}
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox => errorMessage(e)
-            }
-          }
+        })(event.details)
+      }
+      </td>
 
-        // Secret
-        case x:   AddSecret            =>
-          "*" #> {
-            logDetailsService.getSecretAddDetails(x.details) match {
-              case Full(secretDiff) =>
-                <div class="evloglmargin">
+    }).merge.runNow
 
-                {secretDetails(secretXML, secretDiff.secret)}
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox =>
-                logger.warn(e)
-                errorMessage(e)
-            }
-          }
-
-        case x: DeleteSecret =>
-          "*" #> {
-            logDetailsService.getSecretDeleteDetails(x.details) match {
-              case Full(secretDiff) =>
-                <div class="evloglmargin">
-
-                {secretDetails(secretXML, secretDiff.secret)}
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox =>
-                logger.warn(e)
-                errorMessage(e)
-            }
-          }
-
-        case mod: ModifySecret =>
-          "*" #> {
-            logDetailsService.getSecretModifyDetails(mod.details) match {
-              case Full(modDiff) =>
-                val hasChanged = {
-                  if (modDiff.modValue)
-                    Some(<div id="value"><br/><b>The value has been changed</b></div><br/>)
-                  else
-                    None
-                }
-                <div class="evloglmargin">
-
-                <h4>Secret overview:</h4>
-                <ul class="evlogviewpad">
-                  <li><b>Secret name:</b> {modDiff.name}</li>
-                  <li><b>Secret description:</b> {modDiff.description}</li>
-                </ul>
-                {
-                  (
-                    "#name" #> modDiff.name &
-                    "#value" #> hasChanged &
-                    "#description" #> mapSimpleDiff(modDiff.modDescription)
-                  )(secretModDetailsXML)
-                }
-                {reasonHtml}
-                {xmlParameters(event.id)}
-              </div>
-              case e: EmptyBox =>
-                logger.warn(e)
-                errorMessage(e)
-            }
-          }
-        // other case: do not display details at all
-        case _ => "*" #> ""
-
-      })(event.details)
-    } </td>
   }
 
   private def agentRunDetails(ar: AgentRunInterval): NodeSeq = {
