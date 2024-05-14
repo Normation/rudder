@@ -304,10 +304,13 @@ filterCompliance complianceDetails complianceFilters =
       , "applying" , "reportsDisabled" , "noReport"
       ]
 
-    statuses = if complianceFilters.showOnlyStatus then
-                 List.filter (\s -> not (List.member s complianceFilters.selectedStatus )) allStatuses
+    statuses = if List.isEmpty complianceFilters.selectedStatus then
+                 allStatuses
                else
-                 complianceFilters.selectedStatus
+                 if complianceFilters.showOnlyStatus then
+                   List.filter (\s -> not (List.member s complianceFilters.selectedStatus )) allStatuses
+                 else
+                   complianceFilters.selectedStatus
   in
     List.foldl fun complianceDetails statuses
 
@@ -333,15 +336,17 @@ checkFilterCompliance complianceDetails complianceFilters =
     filteredDict = dict
       |> Dict.filter (\k v -> isJust v)
   in
-    filteredDict
-    |> Dict.Extra.any (\k val ->
-      let
-        isSelected = List.member k complianceFilters.selectedStatus
-      in
-        if complianceFilters.showOnlyStatus then
+    List.isEmpty complianceFilters.selectedStatus ||
+    ( filteredDict
+      |> Dict.Extra.any (\k val ->
+        let
+          isSelected = List.member k complianceFilters.selectedStatus
+        in
+          if complianceFilters.showOnlyStatus then
           isSelected
         else
           not isSelected
+      )
     )
 
 
@@ -353,10 +358,10 @@ filterByCompliance filter i =
         Block b -> b.complianceDetails
         Value c -> c.complianceDetails
   in
-    (List.isEmpty filter.selectedStatus) || (checkFilterCompliance (compliance i) filter)
+    checkFilterCompliance (compliance i) filter
 
 filterDetailsByCompliance filter = \i ->
-  (List.isEmpty filter.selectedStatus) || (checkFilterCompliance (i.complianceDetails) filter)
+  checkFilterCompliance (i.complianceDetails) filter
 
 filterValueByCompliance filter = \i ->
   let
@@ -368,7 +373,7 @@ filterReports filter = \r ->
   let
     isSelected = List.member r.status filter.selectedStatus
   in
-    ( if filter.showOnlyStatus then isSelected else not isSelected )
+    ( List.isEmpty filter.selectedStatus ) || ( if filter.showOnlyStatus then isSelected else not isSelected )
 
 filterReportsByCompliance filter = \i ->
   ( List.isEmpty filter.selectedStatus ) || (
