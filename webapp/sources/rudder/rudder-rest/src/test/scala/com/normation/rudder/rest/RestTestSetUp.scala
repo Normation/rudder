@@ -95,7 +95,10 @@ import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
 import com.normation.rudder.hooks.HookEnvPairs
-import com.normation.rudder.ncf.{EditorTechniqueReader, ResourceFileService, TechniqueSerializer, TechniqueWriter}
+import com.normation.rudder.ncf.EditorTechniqueReader
+import com.normation.rudder.ncf.ResourceFileService
+import com.normation.rudder.ncf.TechniqueSerializer
+import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -155,7 +158,6 @@ import com.normation.rudder.web.services.Translator
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import doobie.*
-
 import java.nio.charset.StandardCharsets
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
@@ -180,7 +182,6 @@ import org.apache.commons.io.output.ByteArrayOutputStream
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.specs2.matcher.MatchResult
-
 import scala.collection.MapView
 import scala.collection.SortedMap
 import scala.concurrent.duration.Duration
