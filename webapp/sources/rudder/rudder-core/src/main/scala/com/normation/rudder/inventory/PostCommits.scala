@@ -144,7 +144,8 @@ class FactRepositoryPostCommit[A](
                        NodeFact.fromCompat(
                          nodeInfo.toNodeInfo,
                          Right(FullInventory(inventory.node, Some(inventory.machine))),
-                         inventory.applications
+                         inventory.applications,
+                         None
                        )
                      )
                  }

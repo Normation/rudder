@@ -136,7 +136,7 @@ class SystemUpdateScoreHandler(nodeFactRepository: NodeFactRepository) extends S
       .slowGetAll()(
         QueryContext.systemQC,
         SelectNodeStatus.Accepted,
-        SelectFacts.none.copy(softwareUpdate = SelectFacts.none.softwareUpdate.toRetrieve)
+        SelectFacts.none
       )
       .map(nf => SystemUpdateScoreEvent(nf.id, nf.softwareUpdate.toList))
       .runCollect
