@@ -88,8 +88,10 @@ class PropertyUsageServiceTest extends Specification with Loggable {
           ),
           "redhat",
           "Package install",
-          false
-        ) :: Nil
+          false,
+          None
+        ) :: Nil,
+        None
       ) :: Nil,
       "",
       "",
@@ -115,7 +117,8 @@ class PropertyUsageServiceTest extends Specification with Loggable {
         ),
         "redhat",
         "Command Execution",
-        false
+        false,
+        None
       ) :: Nil,
       "",
       "",

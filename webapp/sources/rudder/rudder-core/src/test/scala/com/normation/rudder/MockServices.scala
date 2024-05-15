@@ -296,8 +296,10 @@ class MockEditorTechniques() extends EditorTechniqueReader {
               Map((ParameterId("package_name"), s"$${node.properties[toto] | default = \"tutu\", opt1 = \"hello\"}")),
               "redhat",
               "Package install",
-              false
-            ) :: Nil
+              false,
+              None
+            ) :: Nil,
+            None
           ) :: Nil,
           "",
           "",
@@ -319,7 +321,8 @@ class MockEditorTechniques() extends EditorTechniqueReader {
             ),
             "redhat",
             "Package install",
-            false
+            false,
+            None
           ) :: Nil,
           "",
           "",
