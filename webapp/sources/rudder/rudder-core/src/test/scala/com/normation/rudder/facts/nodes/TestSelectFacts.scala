@@ -73,7 +73,7 @@ class TestSelectFacts extends Specification {
     List(Bios("bios"))
   )
 
-  val nodeFact1: NodeFact = NodeFact.fromCompat(node1, Right(FullInventory(nodeInventory1, Some(machine1))), softwares)
+  val nodeFact1: NodeFact = NodeFact.fromCompat(node1, Right(FullInventory(nodeInventory1, Some(machine1))), softwares, None)
 
   "masking 1" >> {
     (SelectFacts.mask(nodeFact1)(SelectFacts.all) === nodeFact1) and
@@ -124,9 +124,7 @@ class TestSelectFacts extends Specification {
       .modify(_.slots)
       .setTo(Chunk())
       .modify(_.software)
-      .setTo(Chunk())
-      .modify(_.softwareUpdate)
-      .setTo(Chunk())
+      .setTo(Chunk()) // softwareUpdate are part of core and always present
       .modify(_.sounds)
       .setTo(Chunk())
       .modify(_.storages)
@@ -137,14 +135,12 @@ class TestSelectFacts extends Specification {
       .setTo(Chunk())
   }
 
-  "masking 3" >> {
+  "masking 4" >> {
     SelectFacts.mask(nodeFact1)(
       SelectFacts.none
         .modify(_.bios.mode)
         .setTo(SelectMode.Retrieve)
         .modify(_.software.mode)
-        .setTo(SelectMode.Retrieve)
-        .modify(_.softwareUpdate.mode)
         .setTo(SelectMode.Retrieve)
         .modify(_.environmentVariables.mode)
         .setTo(SelectMode.Retrieve)

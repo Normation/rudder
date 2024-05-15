@@ -45,6 +45,7 @@ import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.FullInventoryRepositoryImpl
 import com.normation.inventory.ldap.core.InventoryDitService
 import com.normation.inventory.ldap.core.InventoryMapper
+import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.inventory.services.provisioning.SoftwareDNFinderAction
@@ -653,7 +654,6 @@ object LdapNodeFactStorage {
       s.processes,
       s.processors,
       s.slots,
-      s.softwareUpdate,
       s.sounds,
       s.storages,
       s.videos,
@@ -836,7 +836,7 @@ class LdapNodeFactStorage(
               inv.node.ram,
               inv.node.timezone
             )
-            NodeFact.fromCompat(info, Right(inv), softs)
+            NodeFact.fromCompat(info, Right(inv), softs, None)
         }
       }
     }
@@ -849,7 +849,8 @@ class LdapNodeFactStorage(
         needSoftware: Boolean
     ): IOResult[Option[NodeFact]] = {
       // mostly copied from com.normation.rudder.services.nodes.NodeInfoServiceCachedImpl # getBackendLdapNodeInfo
-      val ldapAttrs = (if (needSoftware) Seq(A_SOFTWARE_DN) else Seq()) ++ NodeInfoService.nodeInfoAttributes
+      val ldapAttrs =
+        (if (needSoftware) Seq(A_SOFTWARE_DN) else Seq()) ++ NodeInfoService.nodeInfoAttributes :+ LDAPConstants.A_SOFTWARE_UPDATE
 
       con.get(inventoryDitService.getDit(status).NODES.NODE.dn(nodeId.value), ldapAttrs*).flatMap {
         case None      => // end of game, no node here
@@ -861,8 +862,9 @@ class LdapNodeFactStorage(
                       case Some(m) => con.get(new DN(m), ldapAttrs*)
                     }
             info <- nodeMapper.convertEntriesToNodeInfos(nodeEntry, inv, optM)
+            up   <- InventoryMapper.getSoftwareUpdate(inv)
             soft <- getSoftware(con, fullInventoryRepository.getSoftwareUuids(inv), needSoftware)
-          } yield Some(NodeFact.fromCompat(info, Left(status), soft))
+          } yield Some(NodeFact.fromCompat(info, Left(status), soft, Some(up)))
       }
     }
 

@@ -132,6 +132,26 @@ class DateTimeSerializer extends Serializer[DateTime] {
     case date: DateTime => JObject(JField("datetime", JString(date.toString())) :: Nil)
   }
 }
+
+object InventoryMapper {
+  def getSoftwareUpdate(entry: LDAPEntry): IOResult[Chunk[SoftwareUpdate]] = {
+    ZIO
+      .foreach(entry.valuesForChunk(A_SOFTWARE_UPDATE)) { a =>
+        import JsonSerializers.implicits.*
+        import zio.json.*
+        a.fromJson[SoftwareUpdate] match {
+          case Left(err)    =>
+            InventoryProcessingLogger.warn(
+              s"Error when deserializing node software update (ignoring that update): ${err}"
+            ) *> None.succeed
+          case Right(value) =>
+            Some(value).succeed
+        }
+      }
+      .map(_.flatten)
+  }
+}
+
 class InventoryMapper(
     ditService:  InventoryDitService,
     pendingDit:  InventoryDit,
@@ -1109,18 +1129,7 @@ class InventoryMapper(
           )
         })
       }
-      softwareUpdates   <- ZIO.foreach(entry.valuesFor(A_SOFTWARE_UPDATE)) { a =>
-                             import JsonSerializers.implicits.*
-                             import zio.json.*
-                             a.fromJson[SoftwareUpdate] match {
-                               case Left(err)    =>
-                                 InventoryProcessingLogger.warn(
-                                   s"Error when deserializing node software update (ignoring that update): ${err}"
-                                 ) *> None.succeed
-                               case Right(value) =>
-                                 Some(value).succeed
-                             }
-                           }
+      softwareUpdates   <- InventoryMapper.getSoftwareUpdate(entry)
       main               = NodeSummary(
                              id,
                              inventoryStatus,
@@ -1151,7 +1160,7 @@ class InventoryMapper(
         process,
         timezone = timezone,
         customProperties = customProperties.toList.flatten,
-        softwareUpdates = softwareUpdates.toList.flatten
+        softwareUpdates = softwareUpdates.toList
       )
     }
   }

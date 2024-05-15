@@ -234,7 +234,8 @@ object MinimalNodeFactInterface {
     eq(_.rudderAgent) &&
     compare(_.properties)(_.name) &&
     compare(_.ipAddresses)(_.inet) &&
-    eq(_.timezone)
+    eq(_.timezone) &&
+    compare(_.softwareUpdate)(_.name)
   }
 
   def isSystem(node: MinimalNodeFactInterface): Boolean = {
@@ -358,7 +359,6 @@ object NodeFact {
     compare(_.processors)(_.name) &&
     compare(_.slots)(_.name) &&
     compare(_.software)(_.name) &&
-    compare(_.softwareUpdate)(_.name) &&
     compare(_.sounds)(_.name) &&
     compare(_.storages)(_.name) &&
     compare(_.videos)(_.name) &&
@@ -490,7 +490,6 @@ object NodeFact {
         .mask(attrs.processors)
         .mask(attrs.slots)
         .mask(attrs.software)
-        .mask(attrs.softwareUpdate)
         .mask(attrs.sounds)
         .mask(attrs.storages)
         .mask(attrs.videos)
@@ -559,9 +558,14 @@ object NodeFact {
   }
 
   /*
-   *
+   * The updates parameter is used only in the case where we don't have the full inventory.
    */
-  def fromCompat(nodeInfo: NodeInfo, inventory: Either[InventoryStatus, FullInventory], software: Seq[Software]): NodeFact = {
+  def fromCompat(
+      nodeInfo:  NodeInfo,
+      inventory: Either[InventoryStatus, FullInventory],
+      software:  Seq[Software],
+      updates:   Option[Chunk[SoftwareUpdate]]
+  ): NodeFact = {
     NodeFact(
       nodeInfo.id,
       nodeInfo.description.strip() match {
@@ -620,7 +624,10 @@ object NodeFact {
       inventory.toChunk.flatMap(_.machine.chunk(_.processors)),
       inventory.toChunk.flatMap(_.machine.chunk(_.slots)),
       software.flatMap(_.toFact).toChunk,
-      inventory.toChunk.flatMap(_.node.softwareUpdates.toChunk),
+      inventory match {
+        case Left(_)    => updates.getOrElse(Chunk())
+        case Right(inv) => inv.node.softwareUpdates.toChunk
+      },
       inventory.toChunk.flatMap(_.machine.chunk(_.sounds)),
       inventory.toChunk.flatMap(_.machine.chunk(_.storages)),
       inventory.toChunk.flatMap(_.machine.chunk(_.videos)),
@@ -697,7 +704,8 @@ object NodeFact {
           a.ipAddresses,
           a.timezone,
           a.archDescription,
-          a.ram
+          a.ram,
+          softwareUpdate = a.softwareUpdate
         )
     }
   }
@@ -883,7 +891,6 @@ object NodeFact {
     attrs.processors.logDiff(n1, n2, sb, pad, ignored, ",")
     attrs.slots.logDiff(n1, n2, sb, pad, ignored, ",")
     attrs.software.logDiff(n1, n2, sb, pad, ignored, ",")
-    attrs.softwareUpdate.logDiff(n1, n2, sb, pad, ignored, ",")
     attrs.sounds.logDiff(n1, n2, sb, pad, ignored, ",")
     attrs.storages.logDiff(n1, n2, sb, pad, ignored, ",")
     attrs.videos.logDiff(n1, n2, sb, pad, ignored, ",")
@@ -909,6 +916,7 @@ trait MinimalNodeFactInterface {
   def timezone:          Option[NodeTimezone]
   def archDescription:   Option[String]
   def ram:               Option[MemorySize]
+  def softwareUpdate:    Chunk[SoftwareUpdate]
 
   // this is copied from NodeInfo. Not sure if there is a better way for now.
   /**
@@ -1008,7 +1016,8 @@ final case class CoreNodeFact(
     ipAddresses:       Chunk[IpAddress] = Chunk.empty,
     timezone:          Option[NodeTimezone] = None,
     archDescription:   Option[String] = None,
-    ram:               Option[MemorySize] = None
+    ram:               Option[MemorySize] = None,
+    softwareUpdate:    Chunk[SoftwareUpdate] = Chunk.empty
 ) extends MinimalNodeFactInterface
 
 object CoreNodeFact {
@@ -1051,7 +1060,8 @@ object CoreNodeFact {
           a.ipAddresses,
           a.timezone,
           a.archDescription,
-          a.ram
+          a.ram,
+          a.softwareUpdate
         )
     }
   }
@@ -1162,7 +1172,6 @@ case class SelectFacts(
     processors:           SelectFactConfig[Chunk[Processor]],
     slots:                SelectFactConfig[Chunk[Slot]],
     software:             SelectFactConfig[Chunk[SoftwareFact]],
-    softwareUpdate:       SelectFactConfig[Chunk[SoftwareUpdate]],
     sounds:               SelectFactConfig[Chunk[Sound]],
     storages:             SelectFactConfig[Chunk[Storage]],
     videos:               SelectFactConfig[Chunk[Video]],
@@ -1191,7 +1200,6 @@ case class SelectFacts(
     processors.merge(other.processors, fix),
     slots.merge(other.slots, fix),
     software.merge(other.software, fix),
-    softwareUpdate.merge(other.softwareUpdate, fix),
     sounds.merge(other.sounds, fix),
     storages.merge(other.storages, fix),
     videos.merge(other.videos, fix),
@@ -1232,7 +1240,6 @@ object SelectFacts {
         c.processors.invertMode,
         c.slots.invertMode,
         c.software.invertMode,
-        c.softwareUpdate.invertMode,
         c.sounds.invertMode,
         c.storages.invertMode,
         c.videos.invertMode,
@@ -1262,7 +1269,6 @@ object SelectFacts {
     SelectFactConfig("processors", SelectMode.Ignore,_.processors, modifyLens[NodeFact](_.processors), Chunk.empty),
     SelectFactConfig("slots", SelectMode.Ignore,_.slots, modifyLens[NodeFact](_.slots), Chunk.empty),
     SelectFactConfig("software", SelectMode.Ignore,_.software, modifyLens[NodeFact](_.software), Chunk.empty),
-    SelectFactConfig("software", SelectMode.Ignore,_.softwareUpdate, modifyLens[NodeFact](_.softwareUpdate), Chunk.empty),
     SelectFactConfig("sounds", SelectMode.Ignore,_.sounds, modifyLens[NodeFact](_.sounds), Chunk.empty),
     SelectFactConfig("storages", SelectMode.Ignore,_.storages, modifyLens[NodeFact](_.storages), Chunk.empty),
     SelectFactConfig("videos", SelectMode.Ignore,_.videos, modifyLens[NodeFact](_.videos), Chunk.empty),
@@ -1288,7 +1294,6 @@ object SelectFacts {
     none.processors.toRetrieve,
     none.slots.toRetrieve,
     none.software.toRetrieve,
-    none.softwareUpdate.toRetrieve,
     none.sounds.toRetrieve,
     none.storages.toRetrieve,
     none.videos.toRetrieve,
@@ -1330,7 +1335,6 @@ object SelectFacts {
       toGet(none.processors, level.fields.contains("processors")),
       toGet(none.slots, level.fields.contains("slots")),
       toGet(none.software, level.fields.contains("software")),
-      toGet(none.softwareUpdate, level.fields.contains("softwareUpdate")),
       toGet(none.sounds, level.fields.contains("sound")),
       toGet(none.storages, level.fields.contains("storage")),
       toGet(none.videos, level.fields.contains("videos")),
@@ -1379,7 +1383,6 @@ object SelectFacts {
           .update(attrs.processors)
           .update(attrs.slots)
           .update(attrs.software)
-          .update(attrs.softwareUpdate)
           .update(attrs.sounds)
           .update(attrs.storages)
           .update(attrs.videos)
@@ -1478,7 +1481,8 @@ final case class NodeFact(
                                   | * ipAddresses:${this.ipAddresses}
                                   | * timezone:${this.timezone}
                                   | * archDescription:${this.archDescription}
-                                  | * ram:${this.ram}""".stripMargin)
+                                  | * ram:${this.ram}
+                                  | * softwareUpdates:${this.softwareUpdate}""".stripMargin)
 
     attrs.swap.log(this, sb, pad, ignored, "")
     attrs.accounts.log(this, sb, pad, ignored, ",")
@@ -1498,7 +1502,6 @@ final case class NodeFact(
     attrs.processors.log(this, sb, pad, ignored, ",")
     attrs.slots.log(this, sb, pad, ignored, ",")
     attrs.software.log(this, sb, pad, ignored, ",")
-    attrs.softwareUpdate.log(this, sb, pad, ignored, ",")
     attrs.sounds.log(this, sb, pad, ignored, ",")
     attrs.storages.log(this, sb, pad, ignored, ",")
     attrs.videos.log(this, sb, pad, ignored, ",")
