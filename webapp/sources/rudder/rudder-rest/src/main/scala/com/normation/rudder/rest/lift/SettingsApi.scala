@@ -113,6 +113,7 @@ class SettingsApi(
     RestChangeRequestEnabled ::
     RestChangeRequestSelfValidation ::
     RestChangeRequestSelfDeployment ::
+    RestChangeRequestValidateAll ::
     RestChangesGraphs ::
     RestJSEngine ::
     RestSendMetrics ::
@@ -529,6 +530,13 @@ class SettingsApi(
     def get: IOResult[Boolean]                                       = configService.rudder_workflow_self_validation()
     def set: (Boolean, EventActor, Option[String]) => IOResult[Unit] = (value: Boolean, _, _) =>
       configService.set_rudder_workflow_self_validation(value)
+  }
+  case object RestChangeRequestValidateAll    extends RestBooleanSetting                      {
+    val key                   = "enable_validate_all"
+    val startPolicyGeneration = true
+    def get: IOResult[Boolean]                                       = configService.rudder_workflow_validate_all()
+    def set: (Boolean, EventActor, Option[String]) => IOResult[Unit] = (value: Boolean, _, _) =>
+      configService.set_rudder_workflow_validate_all(value)
   }
   case object RestRequireTimeSynch            extends RestBooleanSetting                      {
     val key                   = "require_time_synchronization"
