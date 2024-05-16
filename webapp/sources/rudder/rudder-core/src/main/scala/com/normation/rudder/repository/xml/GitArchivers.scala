@@ -1237,11 +1237,7 @@ class GitParameterArchiverImpl(
   override val relativePath = parameterRootDir
   override val tagPrefix    = "archives/parameters/"
 
-  <<<<<<< HEAD
-  private def newParameterFile(parameterName: String) = new File(getItemDirectory, parameterName + ".xml")
-  =======
   override def getFileName(parameterName: String) = parameterName + ".xml"
-    >>>>>>> branches / rudder / 8.0
 
   def archiveParameter(
       parameter: GlobalParameter,
