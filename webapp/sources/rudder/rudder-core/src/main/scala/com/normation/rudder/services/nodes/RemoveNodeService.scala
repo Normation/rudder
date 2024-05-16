@@ -268,7 +268,7 @@ class RemoveNodeServiceImpl(
   // delete pending node is just refusing it
   def deletePendingNode(nodeId: NodeId, mode: DeleteMode, modId: ModificationId, actor: EventActor): IOResult[DeletionResult] = {
     NodeLoggerPure.Delete.debug(s"-> deleting node with ID '${nodeId.value}' from pending nodes (refuse)") *>
-    newNodeManager.refuse(nodeId, modId, actor).toIO.map(_ => DeletionResult.Success)
+    newNodeManager.refuse(nodeId, modId, actor, DateTime.now).toIO.map(_ => DeletionResult.Success)
   }
 
   // this is the core delete that is run on accepted node: pre hook, post hook, move to delete or erase

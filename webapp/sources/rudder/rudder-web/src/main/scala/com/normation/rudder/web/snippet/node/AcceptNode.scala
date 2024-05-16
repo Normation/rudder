@@ -142,7 +142,7 @@ class AcceptNode extends Loggable {
     S.clearCurrentNotices
     listNode.foreach { id =>
       val now    = System.currentTimeMillis
-      val accept = newNodeManager.accept(id, modId, CurrentUser.actor)
+      val accept = newNodeManager.accept(id, modId, CurrentUser.actor, DateTime.now)
       if (TimingDebugLogger.isDebugEnabled) {
         TimingDebugLogger.debug(s"Accepting node ${id.value}: ${System.currentTimeMillis - now}ms")
       }
@@ -168,7 +168,7 @@ class AcceptNode extends Loggable {
     S.clearCurrentNotices
     val modId = ModificationId(uuidGen.newUuid)
     listNode.foreach { id =>
-      newNodeManager.refuse(id, modId, CurrentUser.actor) match {
+      newNodeManager.refuse(id, modId, CurrentUser.actor, DateTime.now) match {
         case e: EmptyBox =>
           logger.error(s"Refuse node '${id.value}' lead to Failure.", e)
           S.error(<span class="error">Error while refusing node(s).</span>)

@@ -2290,7 +2290,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       } yield pending
     }.toBox
 
-    override def accept(id: NodeId, modId: ModificationId, actor: EventActor): Box[FullInventory] = {
+    override def accept(id: NodeId, modId: ModificationId, actor: EventActor, dateTime: DateTime): Box[FullInventory] = {
       (nodeInfoService.nodeBase.modifyZIO { nodes =>
         nodes.get(id) match {
           case None    => Inconsistency(s"node is missing").fail
@@ -2302,12 +2302,24 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       }).toBox
     }
 
-    override def refuse(id: NodeId, modId: ModificationId, actor: EventActor): Box[Srv] = ???
+    override def refuse(id: NodeId, modId: ModificationId, actor: EventActor, dateTime: DateTime): Box[Srv] = ???
 
-    override def accept(ids: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[FullInventory]] =
+    override def accept(
+        ids:      Seq[NodeId],
+        modId:    ModificationId,
+        actor:    EventActor,
+        actorIp:  String,
+        dateTime: DateTime
+    ): Box[Seq[FullInventory]] =
       ???
 
-    override def refuse(id: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[Srv]] = ???
+    override def refuse(
+        id:       Seq[NodeId],
+        modId:    ModificationId,
+        actor:    EventActor,
+        actorIp:  String,
+        dateTime: DateTime
+    ): Box[Seq[Srv]] = ???
 
   }
 }

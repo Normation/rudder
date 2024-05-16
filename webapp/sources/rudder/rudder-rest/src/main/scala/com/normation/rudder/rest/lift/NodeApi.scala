@@ -805,7 +805,7 @@ class NodeApiService15(
     template match {
       case AcceptedNodeTemplate(_, properties, policyMode, state) =>
         newNodeManager
-          .accept(id, ModificationId(uuidGen.newUuid), eventActor)
+          .accept(id, ModificationId(uuidGen.newUuid), eventActor, DateTime.now)
           .toIO
           .mapError(err => CreationError.OnAcceptation((s"Can not accept node '${id.value}': ${err.fullMsg}"))) *>
         NodeSetup(properties, policyMode, state).succeed
@@ -1218,10 +1218,10 @@ class NodeApiService2(
 
     (action match {
       case AcceptNode =>
-        newNodeManager.accept(ids, modId, actor, "").map(_.map(serializeInventory(_, "accepted")))
+        newNodeManager.accept(ids, modId, actor, "", DateTime.now).map(_.map(serializeInventory(_, "accepted")))
 
       case RefuseNode =>
-        newNodeManager.refuse(ids, modId, actor, "").map(_.map(serializeServerInfo(_, "refused")))
+        newNodeManager.refuse(ids, modId, actor, "", DateTime.now).map(_.map(serializeServerInfo(_, "refused")))
 
       case DeleteNode =>
         sequence(ids.map(actualNodeDeletion(_, modId, actor)))

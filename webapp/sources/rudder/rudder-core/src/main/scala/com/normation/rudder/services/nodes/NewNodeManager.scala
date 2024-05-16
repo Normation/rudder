@@ -142,26 +142,32 @@ trait NewNodeManager {
   /**
    * Accept a pending node in Rudder
    */
-  def accept(id: NodeId, modId: ModificationId, actor: EventActor): Box[FullInventory]
+  def accept(id: NodeId, modId: ModificationId, actor: EventActor, dateTime: DateTime): Box[FullInventory]
 
   /**
    * refuse node
    * @param ids : the node id
    * @return : the srv representations of the refused node
    */
-  def refuse(id: NodeId, modId: ModificationId, actor: EventActor): Box[Srv]
+  def refuse(id: NodeId, modId: ModificationId, actor: EventActor, dateTime: DateTime): Box[Srv]
 
   /**
    * Accept a list of pending nodes in Rudder
    */
-  def accept(ids: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[FullInventory]]
+  def accept(
+      ids:      Seq[NodeId],
+      modId:    ModificationId,
+      actor:    EventActor,
+      actorIp:  String,
+      dateTime: DateTime
+  ): Box[Seq[FullInventory]]
 
   /**
    * refuse a list of pending nodes
    * @param ids : node ids
    * @return : the srv representations of the refused nodes
    */
-  def refuse(id: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[Srv]]
+  def refuse(id: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String, dateTime: DateTime): Box[Seq[Srv]]
 
 }
 
@@ -248,20 +254,32 @@ class NewNodeManagerImpl[A](
     listNodes.listNewNodes
   }
 
-  override def accept(id: NodeId, modId: ModificationId, actor: EventActor): Box[FullInventory] = {
-    composedNewNodeManager.accept(id, modId, actor)
+  override def accept(id: NodeId, modId: ModificationId, actor: EventActor, dateTime: DateTime): Box[FullInventory] = {
+    composedNewNodeManager.accept(id, modId, actor, dateTime)
   }
 
-  override def refuse(id: NodeId, modId: ModificationId, actor: EventActor): Box[Srv] = {
-    composedNewNodeManager.refuse(id, modId, actor)
+  override def refuse(id: NodeId, modId: ModificationId, actor: EventActor, dateTime: DateTime): Box[Srv] = {
+    composedNewNodeManager.refuse(id, modId, actor, dateTime)
   }
 
-  override def accept(ids: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[FullInventory]] = {
-    composedNewNodeManager.accept(ids, modId, actor, actorIp)
+  override def accept(
+      ids:      Seq[NodeId],
+      modId:    ModificationId,
+      actor:    EventActor,
+      actorIp:  String,
+      dateTime: DateTime
+  ): Box[Seq[FullInventory]] = {
+    composedNewNodeManager.accept(ids, modId, actor, actorIp, dateTime)
   }
 
-  override def refuse(id: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[Srv]] = {
-    composedNewNodeManager.refuse(id, modId, actor, actorIp)
+  override def refuse(
+      id:       Seq[NodeId],
+      modId:    ModificationId,
+      actor:    EventActor,
+      actorIp:  String,
+      dateTime: DateTime
+  ): Box[Seq[Srv]] = {
+    composedNewNodeManager.refuse(id, modId, actor, actorIp, dateTime)
   }
 }
 
@@ -303,7 +321,7 @@ trait UnitRefuseInventory {
 
   def name: String
 
-  def refuseOne(srv: Srv, modId: ModificationId, actor: EventActor): Box[Srv]
+  def refuseOne(srv: Srv, modId: ModificationId, actor: EventActor, dateTime: DateTime): Box[Srv]
 }
 
 trait UnitAcceptInventory {
@@ -326,7 +344,7 @@ trait UnitAcceptInventory {
   /**
    * What to do ?
    */
-  def acceptOne(sm: FullInventory, modId: ModificationId, actor: EventActor): Box[FullInventory]
+  def acceptOne(sm: FullInventory, modId: ModificationId, actor: EventActor, dateTime: DateTime): Box[FullInventory]
 
   /**
    * An action to execute before the whole batch
@@ -372,20 +390,13 @@ class ComposedNewNodeManager[A](
   ////////////////////////////////////////////////////////////////////////////////////
 
   /**
-   * Retrieve the last inventory for the selected server
-   */
-  def retrieveLastVersions(nodeId: NodeId): Option[DateTime] = {
-    historyLogRepository.versions(nodeId).toBox.flatMap(_.headOption)
-  }
-
-  /**
    * Refuse one server
    */
-  private[this] def refuseOne(srv: Srv, modId: ModificationId, actor: EventActor): Box[Srv] = {
+  private[this] def refuseOne(srv: Srv, modId: ModificationId, actor: EventActor, dateTime: DateTime): Box[Srv] = {
     var errors = Option.empty[Failure]
     unitRefusors.foreach { refusor =>
       try {
-        refusor.refuseOne(srv, modId, actor) match {
+        refusor.refuseOne(srv, modId, actor, dateTime) match {
           case e: EmptyBox =>
             val msg = "Error refusing %s: step %s".format(srv.id, refusor.name)
             errors match {
@@ -410,18 +421,18 @@ class ComposedNewNodeManager[A](
     }
   }
 
-  def refuse(id: NodeId, modId: ModificationId, actor: EventActor): Box[Srv] = {
+  def refuse(id: NodeId, modId: ModificationId, actor: EventActor, datetime: DateTime): Box[Srv] = {
     for {
       srvs   <- serverSummaryService.find(PendingInventory, id)
       srv    <-
         if (srvs.size == 1) Full(srvs(0)) else Failure("Found several pending nodes matching id %s: %s".format(id.value, srvs))
-      refuse <- refuseOne(srv, modId, actor)
+      refuse <- refuseOne(srv, modId, actor, datetime)
     } yield {
       refuse
     }
   }
 
-  def refuse(ids: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[Srv]] = {
+  def refuse(ids: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String, datetime: DateTime): Box[Seq[Srv]] = {
 
     // Best effort it, starting with an empty result
     val start: Box[Seq[Srv]] = Full(Seq())
@@ -436,33 +447,30 @@ class ComposedNewNodeManager[A](
                     } else {
                       Failure(s"Found ${srvs.size} pending nodes matching id ${id.value}: ${srvs.mkString(", ")}")
                     }
-          refuse <- refuseOne(srv, modId, actor)
-        } yield {
+          refuse <- refuseOne(srv, modId, actor, datetime)
 
           // Make an event log of the refusale
-          retrieveLastVersions(srv.id) match {
-            case Some(x) =>
-              val inventoryDetails = InventoryLogDetails(
-                nodeId = srv.id,
-                inventoryVersion = x,
-                hostname = srv.hostname,
-                fullOsName = srv.osFullName,
-                actorIp = actorIp
-              )
-              val entry            = RefuseNodeEventLog.fromInventoryLogDetails(
-                principal = actor,
-                inventoryDetails = inventoryDetails
-              )
+          inventoryDetails = InventoryLogDetails(
+                               nodeId = srv.id,
+                               inventoryVersion = datetime,
+                               hostname = srv.hostname,
+                               fullOsName = srv.osFullName,
+                               actorIp = actorIp
+                             )
+          entry            = RefuseNodeEventLog.fromInventoryLogDetails(
+                               principal = actor,
+                               inventoryDetails = inventoryDetails
+                             )
 
-              eventLogRepository.saveEventLog(modId, entry).toBox match {
-                case Full(_) =>
-                  NodeLogger.PendingNode.debug(s"Successfully refused node '${id.value}'")
-                case _       =>
-                  NodeLogger.PendingNode.warn(s"Node '${id.value}' refused, but the action couldn't be logged")
-              }
-            case None    =>
-              NodeLogger.PendingNode.warn(s"Node '${id}' refused, but couldn't find it's inventory")
-          }
+          _ <- eventLogRepository.saveEventLog(modId, entry).toBox match {
+                 case Full(_) =>
+                   NodeLogger.PendingNode.debug(s"Successfully refused node '${id.value}'")
+                   Full(())
+                 case _       =>
+                   NodeLogger.PendingNode.warn(s"Node '${id.value}' refused, but the action couldn't be logged")
+                   Full(())
+               }
+        } yield {
           refuse
         }
 
@@ -514,8 +522,8 @@ class ComposedNewNodeManager[A](
     }
   }
 
-  def accept(id: NodeId, modId: ModificationId, actor: EventActor): Box[FullInventory] = {
-    accept(List(id), modId, actor, "rudder-ui").flatMap {
+  def accept(id: NodeId, modId: ModificationId, actor: EventActor, dateTime: DateTime): Box[FullInventory] = {
+    accept(List(id), modId, actor, "rudder-ui", dateTime).flatMap {
       case h +: _ => Full(h)
       case _      =>
         Failure(
@@ -525,7 +533,13 @@ class ComposedNewNodeManager[A](
     }
   }
 
-  def accept(ids: Seq[NodeId], modId: ModificationId, actor: EventActor, actorIp: String): Box[Seq[FullInventory]] = {
+  def accept(
+      ids:      Seq[NodeId],
+      modId:    ModificationId,
+      actor:    EventActor,
+      actorIp:  String,
+      dateTime: DateTime
+  ): Box[Seq[FullInventory]] = {
 
     // Get inventory from a nodeId
     def getInventory(nodeId: NodeId) = {
@@ -558,10 +572,10 @@ class ComposedNewNodeManager[A](
     }
 
     // accept one node
-    def acceptOne(sm: FullInventory, modId: ModificationId, actor: EventActor): Box[FullInventory] = {
+    def acceptOne(sm: FullInventory, modId: ModificationId, actor: EventActor, dateTime: DateTime): Box[FullInventory] = {
       (traverse(unitAcceptors) { unitAcceptor =>
         try {
-          unitAcceptor.acceptOne(sm, modId, actor) ?~! "Error when executing accept node process named %s".format(
+          unitAcceptor.acceptOne(sm, modId, actor, dateTime) ?~! "Error when executing accept node process named %s".format(
             unitAcceptor.name
           )
         } catch {
@@ -609,36 +623,30 @@ class ComposedNewNodeManager[A](
         // Pre accept it
         preAccept          <- passPreAccept(inventory)
         // Accept it
-        acceptationResults <- acceptOne(inventory, modId, actor) ?~! s"Error when trying to accept node ${id.value}"
+        acceptationResults <- acceptOne(inventory, modId, actor, dateTime) ?~! s"Error when trying to accept node ${id.value}"
         _                   = NodeLogger.PendingNode.debug(s"Unit acceptors ok for '${id.value}'")
         // Post accept it
         postAccept         <- passPostAccept(inventory)
       } yield {
 
         // Make an event log for acceptance
-        retrieveLastVersions(id) match {
-          case Some(x) =>
-            val inventoryDetails = InventoryLogDetails(
-              nodeId = id,
-              inventoryVersion = x,
-              hostname = inventory.node.main.hostname,
-              fullOsName = inventory.node.main.osDetails.fullName,
-              actorIp = actorIp
-            )
-            val entry            = AcceptNodeEventLog.fromInventoryLogDetails(
-              principal = actor,
-              inventoryDetails = inventoryDetails
-            )
+        val inventoryDetails = InventoryLogDetails(
+          nodeId = id,
+          inventoryVersion = dateTime,
+          hostname = inventory.node.main.hostname,
+          fullOsName = inventory.node.main.osDetails.fullName,
+          actorIp = actorIp
+        )
+        val entry            = AcceptNodeEventLog.fromInventoryLogDetails(
+          principal = actor,
+          inventoryDetails = inventoryDetails
+        )
 
-            eventLogRepository.saveEventLog(modId, entry).toBox match {
-              case Full(_) =>
-                NodeLogger.info(s"New node accepted and managed by Rudder: ${id.value}")
-              case _       =>
-                NodeLogger.PendingNode.warn(s"Node '${id.value}' accepted, but the action couldn't be logged")
-            }
-
-          case None =>
-            NodeLogger.PendingNode.warn(s"Node '${id.value}' accepted, but couldn't find it's inventory")
+        eventLogRepository.saveEventLog(modId, entry).toBox match {
+          case Full(_) =>
+            NodeLogger.info(s"New node accepted and managed by Rudder: ${id.value}")
+          case _       =>
+            NodeLogger.PendingNode.warn(s"Node '${id.value}' accepted, but the action couldn't be logged")
         }
 
         // Update hooks for the node
@@ -713,7 +721,7 @@ class AcceptInventory(
 
   override val toInventoryStatus: InventoryStatus = AcceptedInventory
 
-  def acceptOne(sm: FullInventory, modId: ModificationId, actor: EventActor): Box[FullInventory] = {
+  def acceptOne(sm: FullInventory, modId: ModificationId, actor: EventActor, dateTime: DateTime): Box[FullInventory] = {
 
     smRepo.move(sm.node.main.id, fromInventoryStatus, toInventoryStatus).toBox.map(_ => sm)
   }
@@ -734,7 +742,7 @@ class AcceptInventory(
   }
 
   //////////// refuse ////////////
-  override def refuseOne(srv: Srv, modId: ModificationId, actor: EventActor): Box[Srv] = {
+  override def refuseOne(srv: Srv, modId: ModificationId, actor: EventActor, datetime: DateTime): Box[Srv] = {
     // refuse an inventory: delete it
     smRepo.delete(srv.id, fromInventoryStatus).toBox.map(_ => srv)
   }
@@ -772,7 +780,7 @@ class AcceptFullInventoryInNodeOu(
   /**
    * Add a node entry in ou=Nodes
    */
-  def acceptOne(sm: FullInventory, modId: ModificationId, actor: EventActor): Box[FullInventory] = {
+  def acceptOne(sm: FullInventory, modId: ModificationId, actor: EventActor, dateTime: DateTime): Box[FullInventory] = {
     val name        = sm.node.name.getOrElse(sm.node.main.id.value)
     val description = sm.node.description.getOrElse("")
 
@@ -825,7 +833,7 @@ class AcceptFullInventoryInNodeOu(
   }
 
   //////////// refuse ////////////
-  override def refuseOne(srv: Srv, modId: ModificationId, actor: EventActor): Box[Srv] = {
+  override def refuseOne(srv: Srv, modId: ModificationId, actor: EventActor, datetime: DateTime): Box[Srv] = {
     // refuse ou=nodes: delete it
     for {
       con    <- ldap
@@ -845,7 +853,7 @@ class RefuseGroups(
 ) extends UnitRefuseInventory {
 
   //////////// refuse ////////////
-  override def refuseOne(srv: Srv, modId: ModificationId, actor: EventActor): Box[Srv] = {
+  override def refuseOne(srv: Srv, modId: ModificationId, actor: EventActor, dateTime: DateTime): Box[Srv] = {
     // remove server id in all groups
     for {
       groupIds       <- roGroupRepo.findGroupWithAnyMember(Seq(srv.id))
@@ -964,7 +972,7 @@ class AcceptHostnameAndIp(
   /**
    * Only add the server to the list of children of the policy server
    */
-  def acceptOne(sm: FullInventory, modId: ModificationId, actor: EventActor): Box[FullInventory] = Full(sm)
+  def acceptOne(sm: FullInventory, modId: ModificationId, actor: EventActor, date: DateTime): Box[FullInventory] = Full(sm)
 
   /**
    * An action to execute after the whole batch
@@ -1006,11 +1014,11 @@ class HistorizeNodeStateOnChoice(
   /**
    * Add a node entry in ou=Nodes
    */
-  def acceptOne(sm: FullInventory, modId: ModificationId, actor: EventActor): Box[FullInventory] = {
+  def acceptOne(sm: FullInventory, modId: ModificationId, actor: EventActor, dateTime: DateTime): Box[FullInventory] = {
     // set status to "acccepted" before historisation
     val postSM = sm.modify(_.node.main.status).setTo(AcceptedInventory)
     historyRepos
-      .save(postSM.node.main.id, FactLogData(NodeFact.newFromFullInventory(postSM, None), actor, AcceptedInventory))
+      .save(postSM.node.main.id, FactLogData(NodeFact.newFromFullInventory(postSM, None), actor, AcceptedInventory), dateTime)
       .toBox
       .map(_ => postSM)
   }
@@ -1022,7 +1030,7 @@ class HistorizeNodeStateOnChoice(
   def rollback(sms: Seq[FullInventory], modId: ModificationId, actor: EventActor): Unit = {}
 
   //////////// refuse ////////////
-  override def refuseOne(srv: Srv, modId: ModificationId, actor: EventActor): Box[Srv] = {
+  override def refuseOne(srv: Srv, modId: ModificationId, actor: EventActor, dateTime: DateTime): Box[Srv] = {
     // refuse ou=nodes: delete it
     for {
       full <- repos.get(srv.id, inventoryStatus)
@@ -1036,7 +1044,8 @@ class HistorizeNodeStateOnChoice(
                       NodeFact.newFromFullInventory(inv.modify(_.node.main.status).setTo(RemovedInventory), None),
                       actor,
                       RemovedInventory
-                    )
+                    ),
+                    dateTime
                   )
               }
     } yield srv
@@ -1067,7 +1076,7 @@ class UpdateFactRepoOnChoice(
   /**
    * Move node fact from fact-repo/pending to fact-repo/accepted
    */
-  def acceptOne(sm: FullInventory, modId: ModificationId, actor: EventActor): Box[FullInventory] = {
+  def acceptOne(sm: FullInventory, modId: ModificationId, actor: EventActor, dateTime: DateTime): Box[FullInventory] = {
     // in 7.0, we don't fail on historization problem, only log
     nodeFactStorage
       .changeStatus(sm.node.main.id, AcceptedInventory)
@@ -1087,7 +1096,7 @@ class UpdateFactRepoOnChoice(
   def rollback(sms: Seq[FullInventory], modId: ModificationId, actor: EventActor): Unit = {}
 
   //////////// refuse ////////////
-  override def refuseOne(srv: Srv, modId: ModificationId, actor: EventActor): Box[Srv] = {
+  override def refuseOne(srv: Srv, modId: ModificationId, actor: EventActor, dateTime: DateTime): Box[Srv] = {
     // in 7.0, we don't fail on historization problem, only log
     nodeFactStorage
       .changeStatus(srv.id, RemovedInventory)

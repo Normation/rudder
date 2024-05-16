@@ -412,12 +412,13 @@ class NodeInfoServiceCachedTest extends Specification {
 
       // *************** step1 ****************
       // cache does not know about node1 yet
-      acceptNodeAndMachineInNodeOu.acceptOne(nodeInv, modid, actor).forceGet
+      val date     = DateTime.now
+      acceptNodeAndMachineInNodeOu.acceptOne(nodeInv, modid, actor, date).forceGet
       val step1res = nodeInfoService.getNodeInfo(nodeId).forceGet
 
       // *************** step2 ****************
       // second new node step: cache converge
-      acceptInventory.acceptOne(nodeInv, modid, actor).forceGet
+      acceptInventory.acceptOne(nodeInv, modid, actor, date).forceGet
       val step2res = nodeInfoService.getNodeInfo(nodeId).forceGet
 
       (step1res === None) and
