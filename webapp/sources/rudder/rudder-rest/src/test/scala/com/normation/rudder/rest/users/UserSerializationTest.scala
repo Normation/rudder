@@ -6,7 +6,7 @@ import org.specs2.runner.JUnitRunner
 import zio.json.ast.Json
 
 @RunWith(classOf[JUnitRunner])
-class SerializationTest extends Specification {
+class UserSerializationTest extends Specification {
 
   "JsonUser" should {
     "use providers info" in {
@@ -37,10 +37,12 @@ class SerializationTest extends Specification {
         JsonRights(Set("custom_read")),
         List("provider1", "provider2"),
         providersInfo,
+        "",
+        None,
         None
       )
 
-      JsonUser("user", None, None, Json.Obj(), UserStatus.Active, providersInfo, None) must beEqualTo(expected)
+      JsonUser("user", None, None, Json.Obj(), UserStatus.Active, providersInfo, "", None, None) must beEqualTo(expected)
     }
   }
 }

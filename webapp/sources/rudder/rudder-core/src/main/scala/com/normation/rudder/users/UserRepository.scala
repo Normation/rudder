@@ -334,7 +334,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
 
   override def getLastPreviousLogin(userId: String, closedSessionsOnly: Boolean = true): IOResult[Option[UserSession]] = {
     // sessions are sorted oldest first, for find is ok
-    sessionBase.get.map(_.find(s => s.userId == userId && s.endDate.isDefined))
+    sessionBase.get.map(_.find(s => s.userId == userId && (!closedSessionsOnly || s.endDate.isDefined)))
   }
 
   override def deleteOldSessions(olderThan: DateTime): IOResult[Unit] = {

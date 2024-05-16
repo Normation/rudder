@@ -498,13 +498,13 @@ displayRightPanel model user =
                 [ h2 [ class "title-username" ] (text user.login :: List.map (\x -> span [ class "providers" ] [ text x ]) user.providers)
                 , button [ class "btn btn-sm btn-outline-secondary", onClick DeactivatePanel ] [ text "Close" ]
                 , div [ class "user-last-login" ]
-                    [ case user.lastLogin of
+                    (case user.previousLogin of
                         Nothing ->
-                            em [] [ text "Never logged in" ]
+                            [ em [] [ text "Never logged in" ] ]
 
                         Just l ->
-                            em [] [ text ("Last login: " ++ String.replace "T" " " l) ]
-                    ]
+                            [ em [] [ text ("Previous login: " ++ String.replace "T" " " l) ] ]
+                    )
                 ]
              , displayPasswordBlock model (Just user)
              ]
@@ -714,10 +714,17 @@ displayProviders user =
       ( user.providers
           |> List.map (\p -> span[class "badge"][text p])
       )
+    
+displayTenants : User -> Html Msg
+displayTenants user =
+    case user.tenants of
+        "all"  -> span [class "empty"][text "all"]
+        "none" -> span [class "empty"][text "none"]
+        o      -> text o
 
-displayUserLastLogin : User -> Html Msg
-displayUserLastLogin user =
-    case user.lastLogin of
+displayUserPreviousLogin : User -> Html Msg
+displayUserPreviousLogin user =
+    case user.previousLogin of
         Nothing ->
             span[class "empty"][text "Never logged in"]
 
@@ -758,13 +765,11 @@ displayUsersTable model =
             else
                 text ""
             )
-            {-- TENANTS
             , td []
-                [ text ""
+                [ displayTenants user
                 ]
-            --}
             , td []
-                [ displayUserLastLogin user
+                [ displayUserPreviousLogin user
                 ]
             , td []
               [ button
@@ -805,7 +810,7 @@ displayUsersTable model =
         else
             text ""
         )
-        -- , th [class (thClass model.ui.tableFilters Tenants        ), onClick (UpdateTableFilters (sortTable filters Tenants        ))] [ text "Tenants"        ]
+        , th [class (thClass model.ui.tableFilters Tenants        ), onClick (UpdateTableFilters (sortTable filters Tenants        ))] [ text "Tenants"        ]
         , th [class (thClass model.ui.tableFilters PreviousLogin  ), onClick (UpdateTableFilters (sortTable filters PreviousLogin  ))] [ text "Previous login" ]
         , th [style "width" "220px"][ text "Actions" ]
         ]
@@ -904,9 +909,9 @@ getSortFunction model u1 u2 =
                   checkOrder (N.compare name1 name2)
           Rights        -> compareStringList u1.roles u2.roles
           Providers     -> compareStringList u1.providers u2.providers
-          Tenants       -> checkOrder (N.compare u1.name u2.name) -- TODO : Compare tenants list when it will be here
+          Tenants       -> checkOrder (N.compare u1.name u2.name)
           PreviousLogin ->
-              case (u1.lastLogin, u2.lastLogin) of
+              case (u1.previousLogin, u2.previousLogin) of
                   (Just _, Nothing)  -> LT
                   (Nothing, Just _)  -> GT
                   (Nothing, Nothing) -> EQ

@@ -47,7 +47,9 @@ type alias User =
     , customRights : List String
     , providers : List String
     , providersInfo : ProvidersInfo
+    , tenants : String
     , lastLogin : Maybe String
+    , previousLogin : Maybe String
     }
 
 type UserStatus = 

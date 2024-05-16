@@ -798,7 +798,7 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
     override def closeAllOpenSession(endDate: DateTime, endCause: String): IOResult[Unit] = ???
 
     override def getLastPreviousLogin(userId: String, closedSessionsOnly: Boolean): IOResult[Option[UserSession]] = {
-      userSessions.find(_.userId == userId).succeed
+      userSessions.find(us => us.userId == userId && (!closedSessionsOnly || !us.isOpen)).succeed
     }
 
     override def deleteOldSessions(olderThan: DateTime): IOResult[Unit] = ???
@@ -926,13 +926,24 @@ object MockUserManagement {
     List(
       UserSession(
         "user2",
-        SessionId("s2"),
+        SessionId("s2-2"),
         DateTime.parse("2024-02-29T00:00:00Z"),
         "file",
         List.empty,
         List.empty,
         None,
         None,
+        None
+      ),
+      UserSession(
+        "user2",
+        SessionId("s2-1"),
+        DateTime.parse("2024-02-28T12:34:00Z"),
+        "file",
+        List.empty,
+        List.empty,
+        Some("a-previous-tenant-zone"),
+        Some(DateTime.parse("2024-02-28T12:34:00Z")),
         None
       )
     )

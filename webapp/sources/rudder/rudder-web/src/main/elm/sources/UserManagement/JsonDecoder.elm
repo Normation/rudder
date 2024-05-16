@@ -70,7 +70,9 @@ decodeUser =
         |> required "customRights" (D.list <| D.string)
         |> required "providers" (D.list <| D.string)
         |> required "providersInfo" decodeProvidersInfo
+        |> required "tenants" D.string
         |> optional "lastLogin" (D.maybe D.string) Nothing
+        |> optional "previousLogin" (D.maybe D.string) Nothing
 
 decodeUserStatus : Decoder UserStatus
 decodeUserStatus =

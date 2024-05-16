@@ -98,7 +98,8 @@
   margin-right: auto;
 }
 
-.role, .auth {
+.role,
+.auth {
   display: inline-block;
   font-size: 13px;
   border: none;
@@ -108,16 +109,21 @@
   margin: 0 5px;
   border-radius: 3px;
 }
+
 .role {
   background-color: #EFF4FF;
   color: #2557D6;
 }
+
 .auth {
   color: #738195;
   background-color: #E3E6ED;
 }
+
 .dataTable {
-  .role, .auth{
+
+  .role,
+  .auth {
     cursor: help;
   }
 }

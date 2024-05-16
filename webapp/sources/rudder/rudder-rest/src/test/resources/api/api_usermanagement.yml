@@ -96,7 +96,8 @@ response:
                 ],
                 "customRights" : ["no_rights"]
               }
-            }
+            },
+            "tenants" : "zoneA"
           },
           {
             "login" : "user2",
@@ -157,7 +158,9 @@ response:
                 "customRights" : ["no_rights"]
               }
             },
-            "lastLogin" : "2024-02-29T00:00:00Z"
+            "tenants" : "all",
+            "lastLogin" : "2024-02-29T00:00:00Z",
+            "previousLogin" : "2024-02-28T12:34:00Z"
           },
           {
             "login" : "user3",
@@ -181,7 +184,8 @@ response:
                 "roles" : [],
                 "customRights" : ["no_rights"]
               }
-            }
+            },
+            "tenants" : "none"
           }
         ]
       }

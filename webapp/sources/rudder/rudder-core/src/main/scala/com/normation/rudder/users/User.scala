@@ -120,7 +120,9 @@ case class UserSession(
     tenants:      Option[String],
     endDate:      Option[DateTime],
     endCause:     Option[String]
-)
+) {
+  def isOpen: Boolean = endDate.isEmpty
+}
 
 object UserSerialization {
   implicit val codecUserStatus:    JsonCodec[UserStatus]    = new JsonCodec[UserStatus](

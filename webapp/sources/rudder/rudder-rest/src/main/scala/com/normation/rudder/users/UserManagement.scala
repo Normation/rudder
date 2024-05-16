@@ -227,7 +227,9 @@ final case class JsonUser(
     customRights:                    JsonRights,
     providers:                       List[String],
     providersInfo:                   Map[String, JsonProviderInfo],
-    lastLogin:                       Option[DateTime]
+    tenants:                         String,
+    lastLogin:                       Option[DateTime],
+    previousLogin:                   Option[DateTime]
 ) {
   def merge(providerInfo: JsonProviderInfo): JsonUser = {
     JsonUser(
@@ -237,7 +239,9 @@ final case class JsonUser(
       otherInfo,
       status,
       providersInfo + (providerInfo.provider -> providerInfo),
-      lastLogin
+      tenants,
+      lastLogin,
+      previousLogin
     )
   }
 
@@ -245,7 +249,7 @@ final case class JsonUser(
     * Only add the provider info but do not take it into account in roles and rights
     */
   def addProviderInfo(providerInfo: JsonProviderInfo): JsonUser = {
-    // The list is not ordered so we can just append
+    // TODO: The list is not ordered so we can just append
     copy(providers = providers :+ providerInfo.provider, providersInfo = providersInfo + (providerInfo.provider -> providerInfo))
   }
 
@@ -281,7 +285,9 @@ object JsonUser {
       otherInfo:     Json.Obj,
       status:        UserStatus,
       providersInfo: Map[String, JsonProviderInfo],
-      lastLogin:     Option[DateTime]
+      tenants:       String,
+      lastLogin:     Option[DateTime],
+      previousLogin: Option[DateTime]
   ): JsonUser = {
     JsonUser(
       username,
@@ -295,7 +301,9 @@ object JsonUser {
       JsonRights.empty,
       providersInfo.keys.toList,
       providersInfo,
-      lastLogin
+      tenants,
+      lastLogin,
+      previousLogin
     )
   }
   def anyRights(
@@ -305,7 +313,9 @@ object JsonUser {
       otherInfo:     Json.Obj,
       status:        UserStatus,
       providersInfo: Map[String, JsonProviderInfo],
-      lastLogin:     Option[DateTime]
+      tenants:       String,
+      lastLogin:     Option[DateTime],
+      previousLogin: Option[DateTime]
   ): JsonUser = {
     JsonUser(
       username,
@@ -319,7 +329,9 @@ object JsonUser {
       JsonRights.empty,
       providersInfo.keys.toList,
       providersInfo,
-      lastLogin
+      tenants,
+      lastLogin,
+      previousLogin
     )
   }
 
@@ -331,7 +343,9 @@ object JsonUser {
       otherInfo:     Json.Obj,
       status:        UserStatus,
       providersInfo: Map[String, JsonProviderInfo],
-      lastLogin:     Option[DateTime]
+      tenants:       String,
+      lastLogin:     Option[DateTime],
+      previousLogin: Option[DateTime]
   ): JsonUser = {
     val authz        = providersInfo.values.map(_.authz).foldLeft(JsonRights.empty)(_ ++ _)
     val roles        = providersInfo.values.map(_.roles).foldLeft(JsonRoles.empty)(_ ++ _)
@@ -349,7 +363,9 @@ object JsonUser {
       customRights,
       providersInfo.keys.toList,
       providersInfo,
-      lastLogin
+      tenants,
+      lastLogin,
+      previousLogin
     )
   }
 }

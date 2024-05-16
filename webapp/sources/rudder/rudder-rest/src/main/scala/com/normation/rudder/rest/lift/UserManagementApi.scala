@@ -201,6 +201,7 @@ class UserManagementApiImpl(
     getAuthBackendsProviders:  () => Set[String]
 ) extends LiftApiModuleProvider[UserManagementApi] {
   api =>
+  import UserManagementApiImpl.*
 
   override def schemas: ApiModuleProvider[UserManagementApi] = UserManagementApi
 
@@ -238,66 +239,100 @@ class UserManagementApiImpl(
               implicit val currentRoles: Set[Role] = roles
               // we take last session to get last known roles and authz of the user
               // we need to merge at the level of JsonUser because last session roles are just String
-              userRepo.getLastPreviousLogin(u.id, false).map { lastSession =>
-                // depending on provider property configuration, we should merge or override roles
-                val mainProviderRoleExtension = getProviderRoleExtensions().get(u.managedBy)
 
-                val defaultUser            =
-                  RudderUserDetail(RudderAccount.User(u.id, ""), u.status, Set(), ApiAuthorization.None, NodeSecurityContext.None)
-                val userWithoutPermissions = transformUser(
-                  defaultUser,
-                  u,
-                  Map(u.managedBy -> JsonProviderInfo.fromUser(defaultUser, u.managedBy)),
-                  lastSession.map(_.creationDate)
-                )
-
-                file.users.get(u.id) match {
-                  case None    => {
-                    // we still need to consider one role extension case : if provider cannot define roles, user cannot have any role
-                    mainProviderRoleExtension match {
-                      case Some(ProviderRoleExtension.None) => userWithoutPermissions
-                      case _                                => transformProvidedUser(u, lastSession)
+              userRepo
+                .getLastPreviousLogin(u.id, closedSessionsOnly = false)
+                .flatMap { // Query may return both closed and opened sessions: get "lastClosedSession" when last session is still opened
+                  case last @ Some(lastSession) => {
+                    if (lastSession.isOpen) {
+                      userRepo
+                        .getLastPreviousLogin(u.id, closedSessionsOnly = true)
+                        .map((_, last))
+                    } else {
+                      (last, last).succeed
                     }
                   }
-                  case Some(x) => {
-                    // we need to update the status to the latest one from database
-                    val currentUserDetails = x.copy(status = u.status)
+                  case None                     =>
+                    (None, None).succeed
+                }
+                .map {
+                  case (lastClosedSession, lastSession) =>
+                    implicit val previousLogin: Option[DateTime] = lastClosedSession.map(_.creationDate)
 
-                    // since file definition does not depend on session use the file user as base for file-managed users
-                    val fileProviderInfo = JsonProviderInfo.fromUser(x, "file")
+                    // depending on provider property configuration, we should merge or override roles
+                    val mainProviderRoleExtension = getProviderRoleExtensions().get(u.managedBy)
 
-                    if (u.managedBy == "file") {
-                      transformUser(
-                        currentUserDetails,
-                        u,
-                        Map(fileProviderInfo.provider -> fileProviderInfo),
-                        lastSession.map(_.creationDate)
-                      ).withRoleCoverage(currentUserDetails)
-                    } else {
-                      // we need to merge the two users, the one from the file and the one from the session
-                      mainProviderRoleExtension match {
-                        case Some(ProviderRoleExtension.WithOverride) =>
-                          // Do not recompute roles nor roles coverage, because file roles are overridden by provider roles
-                          transformProvidedUser(u, lastSession).addProviderInfo(fileProviderInfo)
-                        case Some(ProviderRoleExtension.NoOverride)   =>
-                          // Merge the previous session roles with the file roles and recompute role coverage over the merge result
-                          transformProvidedUser(u, lastSession).merge(fileProviderInfo).withRoleCoverage(currentUserDetails)
-                        case Some(ProviderRoleExtension.None)         =>
-                          // Ignore the session roles which may have previously been saved with another role extension mode
-                          userWithoutPermissions.merge(fileProviderInfo).withRoleCoverage(currentUserDetails)
-                        case None                                     =>
-                          // Provider no longer known, fallback to file provider
+                    val defaultUser            = {
+                      RudderUserDetail(
+                        RudderAccount.User(u.id, ""),
+                        u.status,
+                        Set(),
+                        ApiAuthorization.None,
+                        NodeSecurityContext.None
+                      )
+                    }
+                    val userWithoutPermissions = transformUser(
+                      defaultUser,
+                      u,
+                      Map(u.managedBy -> JsonProviderInfo.fromUser(defaultUser, u.managedBy)),
+                      lastSession.map(_.creationDate)
+                    )
+
+                    file.users.get(u.id) match {
+                      case None    => {
+                        // we still need to consider one role extension case : if provider cannot define roles, user cannot have any role
+                        mainProviderRoleExtension match {
+                          case Some(ProviderRoleExtension.None) => userWithoutPermissions
+                          case _                                =>
+                            transformProvidedUser(
+                              u,
+                              NodeSecurityContext.All,
+                              lastSession
+                            ) // default value for tenants is "all" if not in file
+                        }
+                      }
+                      case Some(x) => {
+                        // we need to update the status to the latest one from database
+                        val currentUserDetails = x.copy(status = u.status)
+
+                        // since file definition does not depend on session use the file user as base for file-managed users
+                        val fileProviderInfo = JsonProviderInfo.fromUser(x, "file")
+
+                        if (u.managedBy == "file") {
                           transformUser(
                             currentUserDetails,
                             u,
                             Map(fileProviderInfo.provider -> fileProviderInfo),
                             lastSession.map(_.creationDate)
                           ).withRoleCoverage(currentUserDetails)
+                        } else {
+                          // we need to merge the two users, the one from the file and the one from the session
+                          mainProviderRoleExtension match {
+                            case Some(ProviderRoleExtension.WithOverride) =>
+                              // Do not recompute roles nor roles coverage, because file roles are overridden by provider roles
+                              transformProvidedUser(u, currentUserDetails.nodePerms, lastSession)
+                                .addProviderInfo(fileProviderInfo)
+                            case Some(ProviderRoleExtension.NoOverride)   =>
+                              // Merge the previous session roles with the file roles and recompute role coverage over the merge result
+                              transformProvidedUser(u, currentUserDetails.nodePerms, lastSession)
+                                .merge(fileProviderInfo)
+                                .withRoleCoverage(currentUserDetails)
+                            case Some(ProviderRoleExtension.None)         =>
+                              // Ignore the session roles which may have previously been saved with another role extension mode
+                              userWithoutPermissions.merge(fileProviderInfo).withRoleCoverage(currentUserDetails)
+                            case None                                     =>
+                              // Provider no longer known, fallback to file provider
+                              transformUser(
+                                currentUserDetails,
+                                u,
+                                Map(fileProviderInfo.provider -> fileProviderInfo),
+                                lastSession.map(_.creationDate)
+                              ).withRoleCoverage(currentUserDetails)
+                          }
+                        }
                       }
                     }
-                  }
                 }
-              }
             })
       } yield {
         serialize(jsonUsers.sortBy(_.id))(file.encoder)
@@ -543,26 +578,57 @@ class UserManagementApiImpl(
       info:          UserInfo,
       providersInfo: Map[String, JsonProviderInfo],
       lastLogin:     Option[DateTime]
-  ): JsonUser = {
+  )(implicit previousLogin: Option[DateTime]): JsonUser = {
     // NoRights and AnyRights directly map to known user permissions. AnyRights takes precedence over NoRights.
     if (u.authz.authorizationTypes.contains(AuthorizationType.AnyRights)) {
-      JsonUser.anyRights(u.getUsername, info.name, info.email, info.otherInfo, u.status, providersInfo, lastLogin)
+      JsonUser.anyRights(
+        u.getUsername,
+        info.name,
+        info.email,
+        info.otherInfo,
+        u.status,
+        providersInfo,
+        getDisplayTenants(u),
+        lastLogin = lastLogin,
+        previousLogin = previousLogin
+      )
     } else if (u.authz.authorizationTypes.isEmpty || u.authz.authorizationTypes.contains(AuthorizationType.NoRights)) {
-      JsonUser.noRights(u.getUsername, info.name, info.email, info.otherInfo, u.status, providersInfo, lastLogin)
+      JsonUser.noRights(
+        u.getUsername,
+        info.name,
+        info.email,
+        info.otherInfo,
+        u.status,
+        providersInfo,
+        getDisplayTenants(u),
+        lastLogin = lastLogin,
+        previousLogin = previousLogin
+      )
     } else {
-      JsonUser(u.getUsername, info.name, info.email, info.otherInfo, u.status, providersInfo, lastLogin)
+      JsonUser(
+        u.getUsername,
+        info.name,
+        info.email,
+        info.otherInfo,
+        u.status,
+        providersInfo,
+        getDisplayTenants(u),
+        lastLogin = lastLogin,
+        previousLogin = previousLogin
+      )
     }
   }
 
-  implicit def transformDbUserToJsonUser(implicit userInfo: UserInfo): Transformer[UserSession, JsonUser] = {
-    // Filter out custom permissions of form "anon[..]" and take the aliased roles of form "alias(role)" (see toDisplayNames)
+  implicit def transformDbUserToJsonUser(implicit
+      userInfo:      UserInfo,
+      nodePerms:     NodeSecurityContext,
+      previousLogin: Option[DateTime]
+  ): Transformer[UserSession, JsonUser] = {
     def getDisplayPermissions(userSession: UserSession): JsonRoles = {
-      val customRegex  = """^anon\[(.*)\]$""".r
-      val aliasedRegex = """^.*\((.*)\)$""".r
       JsonRoles(userSession.permissions.flatMap {
-        case customRegex(perm) => None
-        case aliasedRegex(r)   => Some(r)
-        case perm              => Some(perm)
+        case customPermissionRegex(perm) => None
+        case aliasedPermissionRegex(r)   => Some(r)
+        case perm                        => Some(perm)
       }.toSet)
     }
     Transformer
@@ -579,6 +645,7 @@ class UserManagementApiImpl(
       .withFieldComputed(
         _.providersInfo,
         s => {
+          // we don't store "permissions given by provider" in sessions, so we assume that all permissions are given by the provider the user is managed by
           Map(
             userInfo.managedBy -> JsonProviderInfo(
               userInfo.managedBy,
@@ -590,6 +657,8 @@ class UserManagementApiImpl(
         }
       )
       .withFieldComputed(_.lastLogin, s => Some(s.creationDate))
+      .withFieldConst(_.tenants, getDisplayTenants(nodePerms))
+      .withFieldConst(_.previousLogin, previousLogin)
       .withFieldConst(_.customRights, JsonRights.empty)
       .buildTransformer
   }
@@ -601,8 +670,9 @@ class UserManagementApiImpl(
    * Current user permissions may be different if they have changed since we saved the user info, roles may also no longer exist,
    * so we do not attempt to parse as roles, but we still need to transform roles that are aliases or that are unnamed.
    */
-  private def transformProvidedUser(userInfo: UserInfo, lastSession: Option[UserSession])(implicit
-      allRoles: Set[Role]
+  private def transformProvidedUser(userInfo: UserInfo, nodePerms: NodeSecurityContext, lastSession: Option[UserSession])(implicit
+      allRoles:      Set[Role],
+      previousLogin: Option[DateTime]
   ): JsonUser = {
     lastSession match {
       case None              => {
@@ -623,9 +693,27 @@ class UserManagementApiImpl(
         )
       }
       case Some(userSession) => {
-        implicit val user: UserInfo = userInfo
+        implicit val user:    UserInfo            = userInfo
+        implicit val tenants: NodeSecurityContext = nodePerms
         userSession.transformInto[JsonUser]
       }
     }
   }
+
+  private def getDisplayTenants(user: RudderUserDetail):         String = {
+    getDisplayTenants(user.nodePerms)
+  }
+  private def getDisplayTenants(nodePerms: NodeSecurityContext): String = {
+    nodePerms match {
+      case NodeSecurityContext.All                => "all"
+      case NodeSecurityContext.None               => "none"
+      case NodeSecurityContext.ByTenants(tenants) => tenants.map(_.value).mkString(",")
+    }
+  }
+}
+
+object UserManagementApiImpl {
+  // To filter out custom permissions of form "anon[..]" and take the aliased roles of form "alias(role)" (see toDisplayNames)
+  private val customPermissionRegex  = """^anon\[(.*)\]$""".r
+  private val aliasedPermissionRegex = """^.*\((.*)\)$""".r
 }
