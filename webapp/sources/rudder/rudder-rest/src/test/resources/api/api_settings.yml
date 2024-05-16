@@ -29,6 +29,7 @@ response:
           "enable_javascript_directives":"enabled",
           "enable_self_deployment":true,
           "enable_self_validation":false,
+          "enable_validate_all":false,
           "first_run_hour":0,
           "first_run_minute":0,
           "global_policy_mode":"enforce",
