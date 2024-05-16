@@ -88,19 +88,20 @@ class GitRuleArchiverImpl(
     override val gitModificationRepository: GitModificationRepository,
     override val encoding:                  String,
     override val groupOwner:                String
-) extends GitRuleArchiver with XmlArchiverUtils with NamedZioLogger with GitConfigItemRepository with GitArchiverFullCommitUtils {
+) extends GitRuleArchiver with XmlArchiverUtils with NamedZioLogger with GitConfigItemRepository with GitArchiverFullCommitUtils
+    with BuildFilePaths[RuleId] {
 
   override def loggerName: String = this.getClass.getName
   override val relativePath = ruleRootDir
   override val tagPrefix    = "archives/configurations-rules/"
 
-  private def newCrFile(ruleId: RuleId) = new File(getItemDirectory, ruleId.serialize + ".xml")
+  override def getFileName(ruleId: RuleId): String = ruleId.serialize + ".xml"
 
   def archiveRule(rule: Rule, doCommit: Option[(ModificationId, PersonIdent, Option[String])]): IOResult[GitPath] = {
-    val crFile  = newCrFile(rule.id)
-    val gitPath = toGitPath(crFile)
-
     for {
+      crFile <- newFile(rule.id).toIO
+      gitPath = toGitPath(crFile)
+
       archive <- writeXml(
                    crFile,
                    ruleSerialisation.serialise(rule),
@@ -127,27 +128,27 @@ class GitRuleArchiverImpl(
   }
 
   def deleteRule(ruleId: RuleId, doCommit: Option[(ModificationId, PersonIdent, Option[String])]): IOResult[GitPath] = {
-    val crFile  = newCrFile(ruleId)
-    val gitPath = toGitPath(crFile)
-    if (crFile.exists) {
-      for {
-        deleted  <- IOResult.attempt(FileUtils.forceDelete(crFile))
-        _        <- logPure.debug("Deleted archive of rule: " + crFile.getPath)
-        commited <- doCommit match {
-                      case Some((modId, commiter, reason)) =>
-                        commitRmFileWithModId(
-                          modId,
-                          commiter,
-                          gitPath,
-                          s"Delete archive of rule with ID '${ruleId.serialize}'${GET(reason)}"
-                        )
-                      case None                            => ZIO.unit
-                    }
-      } yield {
-        GitPath(gitPath)
-      }
-    } else {
-      GitPath(gitPath).succeed
+    for {
+      crFile <- newFile(ruleId).toIO
+      gitPath = toGitPath(crFile)
+      _      <- ZIO.whenZIO(IOResult.attempt(crFile.exists)) {
+                  for {
+                    deleted <- IOResult.attempt(FileUtils.forceDelete(crFile))
+                    _       <- logPure.debug("Deleted archive of rule: " + crFile.getPath)
+                    _       <- doCommit match {
+                                 case Some((modId, commiter, reason)) =>
+                                   commitRmFileWithModId(
+                                     modId,
+                                     commiter,
+                                     gitPath,
+                                     s"Delete archive of rule with ID '${ruleId.serialize}'${GET(reason)}"
+                                   )
+                                 case None                            => ZIO.unit
+                               }
+                  } yield ()
+                }
+    } yield {
+      GitPath(gitPath)
     }
   }
 
@@ -188,6 +189,35 @@ trait BuildCategoryPathName[T] {
       ).fail
     }
   }
+}
+
+/**
+ * An utility trait that enforces file system access to local items in git repository.
+ * It should be the prefered way to build paths within a local item repository (e.g. rules), otherwise there would be security concerns.
+ */
+trait BuildFilePaths[T] {
+
+  def getItemDirectory: File
+
+  def getFileName(itemId: T): String
+
+  /**
+   * Returns the file path in the git repository for the item.
+   */
+  def newFile(itemId: T): PureResult[File] = {
+    val target = new File(getItemDirectory, getFileName(itemId))
+    if (target.getCanonicalPath().startsWith(getItemDirectory.getCanonicalPath())) {
+      Right(target)
+    } else {
+      Left(
+        Inconsistency(
+          s"Error when checking required directories '${target.getPath}' to archive in gitRepo.git: relative path must not allow access to parent directories, " +
+          s"only to directories under directory ${getItemDirectory}"
+        )
+      )
+    }
+  }
+
 }
 
 ///////////////////////////////////////////////////////////////
@@ -1201,32 +1231,36 @@ class GitParameterArchiverImpl(
     override val encoding:                  String,
     override val groupOwner:                String
 ) extends GitParameterArchiver with NamedZioLogger with GitConfigItemRepository with XmlArchiverUtils
-    with GitArchiverFullCommitUtils {
+    with GitArchiverFullCommitUtils with BuildFilePaths[String] {
 
   override def loggerName: String = this.getClass.getName
   override val relativePath = parameterRootDir
   override val tagPrefix    = "archives/parameters/"
 
+  <<<<<<< HEAD
   private def newParameterFile(parameterName: String) = new File(getItemDirectory, parameterName + ".xml")
+  =======
+  override def getFileName(parameterName: String) = parameterName + ".xml"
+    >>>>>>> branches / rudder / 8.0
 
   def archiveParameter(
       parameter: GlobalParameter,
       doCommit:  Option[(ModificationId, PersonIdent, Option[String])]
   ): IOResult[GitPath] = {
-    val paramFile = newParameterFile(parameter.name)
-    val gitPath   = toGitPath(paramFile)
     for {
-      archive <- writeXml(
-                   paramFile,
-                   parameterSerialisation.serialise(parameter),
-                   "Archived parameter: " + paramFile.getPath
-                 )
-      commit  <- doCommit match {
-                   case Some((modId, commiter, reason)) =>
-                     val msg = "Archive parameter with name '%s'%s".format(parameter.name, GET(reason))
-                     commitAddFileWithModId(modId, commiter, gitPath, msg)
-                   case None                            => ZIO.unit
-                 }
+      paramFile <- newFile(parameter.name).toIO
+      gitPath    = toGitPath(paramFile)
+      archive   <- writeXml(
+                     paramFile,
+                     parameterSerialisation.serialise(parameter),
+                     "Archived parameter: " + paramFile.getPath
+                   )
+      commit    <- doCommit match {
+                     case Some((modId, commiter, reason)) =>
+                       val msg = "Archive parameter with name '%s'%s".format(parameter.name, GET(reason))
+                       commitAddFileWithModId(modId, commiter, gitPath, msg)
+                     case None                            => ZIO.unit
+                   }
     } yield {
       GitPath(gitPath)
     }
@@ -1246,27 +1280,27 @@ class GitParameterArchiverImpl(
       parameterName: String,
       doCommit:      Option[(ModificationId, PersonIdent, Option[String])]
   ): IOResult[GitPath] = {
-    val paramFile = newParameterFile(parameterName)
-    val gitPath   = toGitPath(paramFile)
-    if (paramFile.exists) {
-      for {
-        deleted  <- IOResult.attempt(FileUtils.forceDelete(paramFile))
-        _        <- logPure.debug(s"Deleted archive of parameter: ${paramFile.getPath}")
-        commited <- doCommit match {
-                      case Some((modId, commiter, reason)) =>
-                        commitRmFileWithModId(
-                          modId,
-                          commiter,
-                          gitPath,
-                          s"Delete archive of parameter with name '${parameterName}'${GET(reason)}"
-                        )
-                      case None                            => ZIO.unit
-                    }
-      } yield {
-        GitPath(gitPath)
-      }
-    } else {
-      GitPath(gitPath).succeed
+    for {
+      paramFile <- newFile(parameterName).toIO
+      gitPath    = toGitPath(paramFile)
+      _         <- ZIO.whenZIO(IOResult.attempt(paramFile.exists)) {
+                     for {
+                       deleted <- IOResult.attempt(FileUtils.forceDelete(paramFile))
+                       _       <- logPure.debug(s"Deleted archive of parameter: ${paramFile.getPath}")
+                       _       <- doCommit match {
+                                    case Some((modId, commiter, reason)) =>
+                                      commitRmFileWithModId(
+                                        modId,
+                                        commiter,
+                                        gitPath,
+                                        s"Delete archive of parameter with name '${parameterName}'${GET(reason)}"
+                                      )
+                                    case None                            => ZIO.unit
+                                  }
+                     } yield ()
+                   }
+    } yield {
+      GitPath(gitPath)
     }
   }
 
