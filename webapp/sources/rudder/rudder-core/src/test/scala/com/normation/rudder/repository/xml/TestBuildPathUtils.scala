@@ -41,8 +41,11 @@ import com.normation.errors.Inconsistency
 import com.normation.zio.UnsafeRun
 import java.io.File
 import java.nio.file.Files
+import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
+import org.specs2.runner.JUnitRunner
 
+@RunWith(classOf[JUnitRunner])
 class TestCategoryPathUtils extends Specification with BuildCategoryPathName[String] {
 
   override val getItemDirectory: File = Files.createTempDirectory("rudder-test-").toFile()
@@ -78,5 +81,31 @@ class TestCategoryPathUtils extends Specification with BuildCategoryPathName[Str
         )
       )
     }
+  }
+}
+
+@RunWith(classOf[JUnitRunner])
+class TestBuildFilePathsUtils extends Specification with BuildFilePaths[String] {
+
+  val tmpDir = Files.createTempDirectory("rudder-test-").toFile()
+
+  override val getItemDirectory: File = tmpDir
+
+  override def getFileName(name: String): String = name + ".txt"
+
+  "BuildPath" should {
+    "build a path with a name" in {
+      newFile("foo") must beRight(new File(getItemDirectory, "foo.txt"))
+    }
+
+    "build a path with an illegal path outside of the root directory" in {
+      newFile("../foo") must beLeft(
+        Inconsistency(
+          s"Error when checking required directories '${getItemDirectory}/../foo.txt' to archive in gitRepo.git: relative path must not allow access to parent directories, " +
+          s"only to directories under directory ${getItemDirectory}"
+        )
+      )
+    }
+
   }
 }
