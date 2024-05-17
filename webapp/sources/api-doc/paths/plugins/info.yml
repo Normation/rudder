@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+get:
+  summary: Information about installed plugins
+  description: Get the list of plugin details and their licenses information
+  operationId: getPluginsInfo
+  responses:
+    "200":
+      description: Settings
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getPluginsInfo
+              data:
+                type: object
+                description: Plugins info
+                required:
+                  - plugins
+                properties:
+                  parameters:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/plugins-info.yml
+  tags:
+    - Plugins
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/plugins/info.sh

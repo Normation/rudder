@@ -44,6 +44,7 @@ import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.plugins.AlwaysEnabledPluginStatus
+import com.normation.plugins.JsonPluginsDetails
 import com.normation.plugins.PluginLicenseInfo
 import com.normation.plugins.PluginName
 import com.normation.plugins.PluginStatus
@@ -255,6 +256,10 @@ object PluginsInfo {
   }
 
   def plugins = _plugins
+
+  def pluginInfos: JsonPluginsDetails = {
+    JsonPluginsDetails.buildDetails(_plugins.values.toList.sortBy(_.name.value).map(_.toJsonPluginDetails))
+  }
 
   def pluginApisDef: List[EndpointSchema] = {
 
