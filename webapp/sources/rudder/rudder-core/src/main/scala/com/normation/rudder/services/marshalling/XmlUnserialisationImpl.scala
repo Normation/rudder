@@ -96,6 +96,7 @@ import scala.util.Try
 import scala.xml.Node as XNode
 import scala.xml.NodeSeq
 import scala.xml.Text
+import zio.json.*
 
 final case class XmlUnserializerImpl(
     rule:        RuleUnserialisation,
@@ -438,8 +439,8 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
       ptName           <- (activeTechnique \ "techniqueName").headOption.map(
                             _.text
                           ) ?~! ("Missing attribute 'displayName' in entry type policyLibraryTemplate : " + entry)
-      isSystem         <- (activeTechnique \ "isSystem").headOption.flatMap(s =>
-                            tryo(s.text.toBoolean)
+      policyTypes      <- (activeTechnique \ "policyTypes").headOption.flatMap(s =>
+                            s.text.fromJson[PolicyTypes].toBox
                           ) ?~! ("Missing attribute 'isSystem' in entry type policyLibraryTemplate : " + entry)
       isEnabled        <- (activeTechnique \ "isEnabled").headOption.flatMap(s =>
                             tryo(s.text.toBoolean)
@@ -477,7 +478,7 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
         acceptationDatetimes = acceptationMap,
         directives = Nil,
         _isEnabled = isEnabled,
-        isSystem = isSystem
+        policyTypes = policyTypes
       )
     }
   }

@@ -216,7 +216,7 @@ class ItemArchiveManagerImpl(
                        // always include root category, even if it's a system one
                        case (categories, CategoryWithActiveTechniques(cat, upts))
                            if (cat.isSystem == false || categories.size <= 1) =>
-                         (categories, CategoryWithActiveTechniques(cat, upts.filter(_.isSystem == false)))
+                         (categories, CategoryWithActiveTechniques(cat, upts.filter(_.policyTypes.isSystem == false)))
                      }
       cleanedRoot <- IOResult.attempt(FileUtils.cleanDirectory(gitActiveTechniqueCategoryArchiver.getItemDirectory))
 
@@ -251,7 +251,7 @@ class ItemArchiveManagerImpl(
 
         // now, we try to save the active techniques - we only
         val activeTechniquesInErrorIO: UIO[Set[(Seq[ActiveTechniqueNotArchived], Seq[DirectiveNotArchived])]] = {
-          ZIO.foreach(activeTechniques.filterNot(_.isSystem)) { activeTechnique =>
+          ZIO.foreach(activeTechniques.filterNot(_.policyTypes.isSystem)) { activeTechnique =>
             gitActiveTechniqueArchiver
               .archiveActiveTechnique(activeTechnique, categories.reverse, gitCommit = None)
               .foldZIO(

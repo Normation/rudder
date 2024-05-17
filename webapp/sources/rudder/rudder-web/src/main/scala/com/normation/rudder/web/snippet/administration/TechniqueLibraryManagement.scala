@@ -516,7 +516,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                             ActiveTechniqueCategoryId(destCatId),
                             ptName,
                             techniqueRepository.getTechniqueVersions(ptName).toSeq,
-                            isSystem = false,
+                            policyTypes = PolicyTypes.rudderBase,
                             modId = ModificationId(uuidGen.newUuid),
                             actor = CurrentUser.actor,
                             reason = Some("Active technique added by user from UI")

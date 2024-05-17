@@ -68,11 +68,9 @@ trait AgentSpecificStringEscape {
 trait AgentFormatBundleVariables {
   import BuildBundleSequence.*
   def getBundleVariables(
-      systemInputs: List[InputFile],
-      sytemBundles: List[TechniqueBundles],
-      userInputs:   List[InputFile],
-      userBundles:  List[TechniqueBundles],
-      runHooks:     List[NodeRunHook]
+      inputs:   List[InputFile],
+      bundles:  List[TechniqueBundles],
+      runHooks: List[NodeRunHook]
   ): BundleSequenceVariables
 }
 
@@ -186,16 +184,12 @@ class WriteAllAgentSpecificFiles(agentRegister: AgentRegister) extends WriteAgen
   import BuildBundleSequence.TechniqueBundles
   def getBundleVariables(
       agentNodeProps: AgentNodeProperties,
-      systemInputs:   List[InputFile],
-      sytemBundles:   List[TechniqueBundles],
-      userInputs:     List[InputFile],
-      userBundles:    List[TechniqueBundles],
+      inputs:         List[InputFile],
+      bundles:        List[TechniqueBundles],
       runHooks:       List[NodeRunHook]
   ): Box[BundleSequenceVariables] = {
     // we only choose the first matching agent for that
-    agentRegister.findMap(agentNodeProps)(a =>
-      Full(a.getBundleVariables(systemInputs, sytemBundles, userInputs, userBundles, runHooks))
-    )
+    agentRegister.findMap(agentNodeProps)(a => Full(a.getBundleVariables(inputs, bundles, runHooks)))
   }
 }
 
@@ -234,12 +228,10 @@ object CFEngineAgentSpecificGeneration extends AgentSpecificGeneration {
   import BuildBundleSequence.InputFile
   import BuildBundleSequence.TechniqueBundles
   override def getBundleVariables(
-      systemInputs: List[InputFile],
-      sytemBundles: List[TechniqueBundles],
-      userInputs:   List[InputFile],
-      userBundles:  List[TechniqueBundles],
-      runHooks:     List[NodeRunHook]
+      inputs:   List[InputFile],
+      bundles:  List[TechniqueBundles],
+      runHooks: List[NodeRunHook]
   ): BundleSequenceVariables =
-    CfengineBundleVariables.getBundleVariables(escape, systemInputs, sytemBundles, userInputs, userBundles, runHooks)
+    CfengineBundleVariables.getBundleVariables(escape, inputs, bundles, runHooks)
 
 }

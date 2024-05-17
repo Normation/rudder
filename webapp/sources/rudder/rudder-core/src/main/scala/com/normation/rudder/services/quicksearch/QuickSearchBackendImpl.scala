@@ -212,7 +212,7 @@ object QSDirectiveBackend extends Loggable {
       } yield {
         (for {
           (at, dir) <- directiveLib.allDirectives.values
-          if (!at.isSystem && !dir.isSystem)
+          if (at.policyTypes.isBase && !dir.isSystem)
           attribute <- attributes
         } yield {
           attribute.find(at, dir, query.userToken)

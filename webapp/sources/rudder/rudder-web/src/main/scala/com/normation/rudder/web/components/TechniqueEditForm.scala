@@ -468,7 +468,7 @@ class TechniqueEditForm(
                   category.id,
                   technique.id.name,
                   techniqueRepository.getTechniqueVersions(technique.id.name).toSeq,
-                  technique.isSystem,
+                  technique.policyTypes,
                   ModificationId(uuidGen.newUuid),
                   CurrentUser.actor,
                   Some("User added a technique from UI")

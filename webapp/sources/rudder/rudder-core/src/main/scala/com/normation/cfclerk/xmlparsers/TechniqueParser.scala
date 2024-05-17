@@ -44,6 +44,7 @@ import com.normation.cfclerk.domain.implicits.*
 import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.*
 import com.normation.inventory.domain.AgentType
+import com.normation.rudder.domain.policies.PolicyTypes
 import scala.util.matching.Regex
 import scala.xml.*
 
@@ -80,7 +81,15 @@ class TechniqueParser(
 
             longDescription = nonEmpty((xml \ TECHNIQUE_LONG_DESCRIPTION).text).getOrElse("")
 
-            isSystem = ((xml \ TECHNIQUE_IS_SYSTEM).text.equalsIgnoreCase("true"))
+            isSystem           = ((xml \ TECHNIQUE_IS_SYSTEM).text.equalsIgnoreCase("true"))
+            policyTypes        = ((xml \ TECHNIQUE_POLICY_TYPES)) match {
+                                   case n if (n.isEmpty) => PolicyTypes.compat(isSystem)
+                                   case n                =>
+                                     n.text.split(",").toList match {
+                                       case Nil    => PolicyTypes.rudderBase
+                                       case h :: t => PolicyTypes.fromStrings(h, t*)
+                                     }
+                                 }
 
             // This parameter defines if the technique reporting is made by generic methods called by the technique
             // or if the technique should compute the reporting by itself
@@ -91,7 +100,7 @@ class TechniqueParser(
 
             deprecationInfo <- parseDeprecrationInfo(xml)
 
-            // for compability reason, we cheat and make the template/file/bundlesequence under root
+            // for compatibility reason, we cheat and make the template/file/bundlesequence under root
             // and not in an <AGENT> sub-element be considered as being in <AGENT type="cfengine-community,cfengine-enterprise">
             compatibilityAgent <- {
               val forCompatibilityAgent = <AGENT type={s"${AgentType.CfeCommunity.toString},${AgentType.CfeEnterprise.toString}"}>
@@ -124,7 +133,7 @@ class TechniqueParser(
             }
 
             // System technique should not have run hooks, this is not supported:
-            _                   = if (isSystem && agentConfigs.exists(a => a.runHooks.nonEmpty)) {
+            _                   = if (policyTypes.isSystem && agentConfigs.exists(a => a.runHooks.nonEmpty)) {
                                     logEffect.warn(
                                       s"System Technique with ID '${id.debugString}' has agent run hooks defined. This is not supported on system technique."
                                     )
@@ -146,7 +155,7 @@ class TechniqueParser(
                           systemVariableSpecs,
                           isMultiInstance,
                           longDescription,
-                          isSystem,
+                          policyTypes,
                           generationMode,
                           useMethodReporting
                         )

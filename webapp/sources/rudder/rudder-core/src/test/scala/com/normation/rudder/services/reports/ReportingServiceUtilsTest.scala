@@ -41,6 +41,8 @@ import com.normation.cfclerk.domain.TechniqueVersionHelper
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
+import com.normation.rudder.domain.policies.PolicyTypeName
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.AggregatedStatusReport
@@ -76,9 +78,10 @@ class ReportingServiceUtilsTest extends Specification {
   val expiration = new DateTime(0) // not used
 
   val noOverrides = Nil
-  def dirReport(id: DirectiveId): (DirectiveId, DirectiveStatusReport) = (id, DirectiveStatusReport(id, Nil))
-  def rnReport(nodeId: NodeId, ruleId: RuleId, directives: DirectiveId*): RuleNodeStatusReport = {
-    RuleNodeStatusReport(nodeId, ruleId, None, None, directives.map(dirReport _).toMap, expiration)
+  def dirReport(id: DirectiveId):                                         (DirectiveId, DirectiveStatusReport) =
+    (id, DirectiveStatusReport(id, PolicyTypes.rudderBase, Nil))
+  def rnReport(nodeId: NodeId, ruleId: RuleId, directives: DirectiveId*): RuleNodeStatusReport                 = {
+    RuleNodeStatusReport(nodeId, ruleId, PolicyTypeName.rudderBase, None, None, directives.map(dirReport _).toMap, expiration)
   }
 
   // a case where the same directive is on two rules

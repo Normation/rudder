@@ -83,6 +83,7 @@ object RudderLDAPConstants extends Loggable {
   val A_IS_DYNAMIC         = "isDynamic"
   /* is it a system object ? boolean */
   val A_IS_SYSTEM          = "isSystem"
+  val A_POLICY_TYPES       = "policyTypes"
   val A_STATE              = "state"
   val A_IS_POLICY_SERVER   = "isPolicyServer"
 

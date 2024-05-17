@@ -750,7 +750,7 @@ class DirectiveApiService14(
       cat.copy(
         subCategories = cat.subCategories.filter(c => includeSystem || !c.isSystem).map(filterSystem).sortBy(_.name),
         activeTechniques = cat.activeTechniques
-          .filter(c => includeSystem || !c.isSystem)
+          .filter(c => includeSystem || c.policyTypes.isBase)
           .map(t => t.copy(directives = t.directives.filterNot(_.isSystem).sortBy(_.name)))
           .sortBy(_.techniqueName.value)
       )

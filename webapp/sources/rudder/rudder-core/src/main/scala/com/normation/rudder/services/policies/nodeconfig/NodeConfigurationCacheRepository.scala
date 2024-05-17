@@ -287,13 +287,11 @@ object NodeConfigurationHash {
     val nodeInfoHashValue = {
       val i = nodeConfig.nodeInfo
       List[Int](
-        i.name.hashCode,
-        i.hostname.hashCode,
-        i.localAdministratorAccountName.hashCode,
-        i.policyServerId.hashCode,
+        i.fqdn.hashCode,
+        i.rudderAgent.hashCode,
+        i.rudderSettings.policyServerId.hashCode,
         i.properties.hashCode,
-        i.isPolicyServer.hashCode,
-        i.agentsName.hashCode,
+        i.rudderSettings.isPolicyServer.hashCode,
         nodeConfig.modesConfig.hashCode
       ).hashCode
     }

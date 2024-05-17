@@ -41,7 +41,6 @@ import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
@@ -97,7 +96,7 @@ object ChangeLine {
       changes:      Map[Interval, Seq[ResultReports]],
       ruleName:     Option[String] = None,
       directiveLib: FullActiveTechniqueCategory,
-      allNodeInfos: Map[NodeId, NodeInfo]
+      allNodeInfos: Map[NodeId, CoreNodeFact]
   ): JsArray = {
 
     val jsonChanges = {
@@ -110,7 +109,7 @@ object ChangeLine {
       } yield {
         val lines = for {
           change       <- changesOnInterval
-          nodeName      = allNodeInfos.get(change.nodeId).map(_.hostname)
+          nodeName      = allNodeInfos.get(change.nodeId).map(_.fqdn)
           directiveName = directiveLib.allDirectives.get(change.directiveId).map(_._2.name)
         } yield {
           ChangeLine(change, nodeName, ruleName, directiveName)
@@ -219,7 +218,7 @@ final case class DirectiveComplianceLine(
  *   }
  */
 final case class NodeComplianceLine(
-    nodeInfo:        NodeInfo,
+    nodeInfo:        CoreNodeFact,
     compliance:      ComplianceLevel,
     details:         JsTableData[DirectiveComplianceLine],
     policyMode:      String,
@@ -227,7 +226,7 @@ final case class NodeComplianceLine(
 ) extends JsTableLine {
   val json: js.JsObj = {
     JsObj(
-      ("node"              -> escapeHTML(nodeInfo.hostname)),
+      ("node"              -> escapeHTML(nodeInfo.fqdn)),
       ("compliance"        -> jsCompliance(compliance)),
       ("compliancePercent" -> compliance.computePercent().compliance),
       ("id"                -> escapeHTML(nodeInfo.id.value)),
@@ -346,7 +345,7 @@ object ComplianceData extends Loggable {
       directiveLib: FullActiveTechniqueCategory,
       ruleId:       RuleId,
       nodeReports:  Map[NodeId, NodeStatusReport],
-      allNodeInfos: Map[NodeId, NodeInfo],
+      allNodeInfos: Map[NodeId, CoreNodeFact],
       globalMode:   GlobalPolicyMode,
       allRules:     Seq[Rule]
   ): JsTableData[NodeComplianceLine] = {
@@ -354,20 +353,22 @@ object ComplianceData extends Loggable {
     // Compute node compliance detail
     val nodeComplianceLines = nodeReports.flatMap {
       case (nodeId, reports) =>
+        val aggregate =
+          reports.reports.getOrElse(PolicyTypeName.rudderBase, AggregatedStatusReport(Nil)).filterByRules(Set(ruleId))
         for {
-          aggregate <- reports.byRules.get(ruleId)
-          nodeInfo  <- allNodeInfos.get(nodeId)
+          nodeInfo <- allNodeInfos.get(nodeId)
         } yield {
 
           val overrides                 = getOverridenDirectiveDetails(reports.overrides, directiveLib, allRules, None)
           val directivesMode            = aggregate.directives.keys.map(x => directiveLib.allDirectives.get(x).flatMap(_._2.policyMode))
-          val (policyMode, explanation) = ComputePolicyMode.nodeModeOnRule(nodeInfo.policyMode, globalMode)(directivesMode.toSet)
+          val (policyMode, explanation) =
+            ComputePolicyMode.nodeModeOnRule(nodeInfo.rudderSettings.policyMode, globalMode)(directivesMode.toSet)
 
           val details = getDirectivesComplianceDetails(
             aggregate.directives.values.toList,
             directiveLib,
             globalMode,
-            ComputePolicyMode.directiveModeOnNode(nodeInfo.policyMode, globalMode)
+            ComputePolicyMode.directiveModeOnNode(nodeInfo.rudderSettings.policyMode, globalMode)
           )
           NodeComplianceLine(
             nodeInfo,
@@ -386,34 +387,39 @@ object ComplianceData extends Loggable {
    * For a given unique node, create the "by rule"
    * tree structure of compliance elements.
    * (rule -> directives -> components -> value with messages and status)
-   * addOverriden decides if we add overriden policies in the result (policy tab) or not (policy tab)
+   * addOverridden decides if we add overridden policies in the result (policy tab) or not (policy tab)
    */
   def getNodeByRuleComplianceDetails(
       nodeId:       NodeId,
       report:       NodeStatusReport,
-      allNodeInfos: Map[NodeId, NodeInfo],
+      tag:          PolicyTypeName,
+      allNodeInfos: Map[NodeId, CoreNodeFact],
       directiveLib: FullActiveTechniqueCategory,
       rules:        Seq[Rule],
       globalMode:   GlobalPolicyMode,
       addOverriden: Boolean
   ): JsTableData[RuleComplianceLine] = {
 
-    // add overriden directive in the list under there rule
+    // add overridden directive in the list under there rule
     val overridesByRules = if (addOverriden) {
       report.overrides.groupBy(_.policy.ruleId)
     } else {
       Map[RuleId, List[OverridenPolicy]]()
     }
 
-    // we can have rules with only overriden reports, so we just prepend them. When
+    // we can have rules with only overridden reports, so we just prepend them. When
     // a rule is defined for that id, it will override that default.
     val overridesRules = overridesByRules.view.mapValues(_ => AggregatedStatusReport(Nil)).toMap
 
     val ruleComplianceLine = for {
-      (ruleId, aggregate) <- (overridesRules ++ report.byRules)
+      (ruleId, aggregate) <- (overridesRules ++ report.reports
+                               .getOrElse(tag, AggregatedStatusReport(Nil))
+                               .reports
+                               .groupBy(_.ruleId)
+                               .map { case (id, rules) => (id, AggregatedStatusReport(rules)) })
       rule                <- rules.find(_.id == ruleId)
     } yield {
-      val nodeMode = allNodeInfos.get(nodeId).flatMap(_.policyMode)
+      val nodeMode = allNodeInfos.get(nodeId).flatMap(_.rudderSettings.policyMode)
       val details  = getOverridenDirectiveDetails(overridesByRules.getOrElse(ruleId, Nil), directiveLib, rules, None) ++
         getDirectivesComplianceDetails(
           aggregate.directives.values.toList,
@@ -434,7 +440,7 @@ object ComplianceData extends Loggable {
         JsonTagSerialisation.serializeTags(rule.tags)
       )
     }
-    JsTableData(ruleComplianceLine.toList)
+    JsTableData(ruleComplianceLine.toList.sortBy(_.id.serialize))
   }
 
   def getOverridenDirectiveDetails(

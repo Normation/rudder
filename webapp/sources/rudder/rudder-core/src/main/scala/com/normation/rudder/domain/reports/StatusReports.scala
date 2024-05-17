@@ -42,8 +42,11 @@ import com.normation.cfclerk.domain.ReportingLogic.*
 import com.normation.cfclerk.domain.WorstReportReportingLogic
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.PolicyTypeName
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.services.reports.*
+import com.softwaremill.quicklens.*
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
 
@@ -88,7 +91,7 @@ object RuleStatusReport {
 
 /*
  * meta information about a run compliance analysis -
- * in particular abour policy mode errors (agent aborted,
+ * in particular about policy mode errors (agent aborted,
  * mixed mode in directives from the same techniques, etc)
  */
 sealed trait RunComplianceInfo
@@ -108,12 +111,21 @@ final class NodeStatusReport private (
     val runInfo:    RunAndConfigInfo,
     val statusInfo: RunComplianceInfo,
     val overrides:  List[OverridenPolicy],
-    val reports:    Set[RuleNodeStatusReport]
+    val reports:    Map[PolicyTypeName, AggregatedStatusReport]
 ) extends StatusReport {
-  // here, reports is a set. Be careful to not loose compliance with map (b/c scala make a set of the result)
-  lazy val compliance: ComplianceLevel                     = ComplianceLevel.sum(reports.iterator.map(_.compliance).iterator.to(Iterable))
-  lazy val byRules:    Map[RuleId, AggregatedStatusReport] =
-    reports.groupBy(_.ruleId).view.mapValues(AggregatedStatusReport(_)).toMap
+  // for compat reason, node compliance is the sum of all aspects
+  lazy val compliance: ComplianceLevel = ComplianceLevel.sum(reports.values.map(_.compliance))
+
+  // get the compliance level for a given type, or compliance 0 is that type is missing
+  def getCompliance(t: PolicyTypeName): ComplianceLevel = {
+    reports.get(t) match {
+      case Some(x) => x.compliance
+      case None    => ComplianceLevel()
+    }
+  }
+
+  def systemCompliance: ComplianceLevel = getCompliance(PolicyTypeName.rudderSystem)
+  def baseCompliance:   ComplianceLevel = getCompliance(PolicyTypeName.rudderBase)
 }
 
 object NodeStatusReport {
@@ -133,7 +145,9 @@ object NodeStatusReport {
           .map(r => s"${r.nodeId.value}:${r.ruleId.serialize}")
           .mkString("|")}"
     )
-    new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, reports)
+    // group map and aggregate
+    val aggregates = reports.groupBy(_.complianceTag).map { case (tag, reports) => (tag, AggregatedStatusReport(reports)) }
+    new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, aggregates)
   }
 
   /*
@@ -150,7 +164,7 @@ object NodeStatusReport {
       nodeStatusReport.runInfo,
       nodeStatusReport.statusInfo,
       nodeStatusReport.overrides,
-      nodeStatusReport.reports.filter(r => ruleIds.contains(r.ruleId))
+      nodeStatusReport.reports.map { case (tag, r) => (tag, r.filterByRules(ruleIds)) }
     )
   }
 
@@ -161,10 +175,7 @@ object NodeStatusReport {
       nodeStatusReport.runInfo,
       nodeStatusReport.statusInfo,
       nodeStatusReport.overrides,
-      nodeStatusReport.reports.flatMap { r =>
-        val filterRule = r.copy(directives = r.directives.filter(d => directiveIds.contains(d._1)))
-        if (filterRule.directives.isEmpty) None else Some(filterRule)
-      }
+      nodeStatusReport.reports.map { case (tag, r) => (tag, r.filterByDirectives(directiveIds)) }
     )
   }
 }
@@ -186,7 +197,29 @@ final class AggregatedStatusReport private (
     // by rule or node and we don't want to loose the weight
     DirectiveStatusReport.merge(reports.toList.flatMap(_.directives.values))
   }
-  lazy val compliance: ComplianceLevel                         = ComplianceLevel.sum(directives.map(_._2.compliance))
+
+  lazy val compliance: ComplianceLevel = ComplianceLevel.sum(directives.map(_._2.compliance))
+
+  /*
+   * This method filters an AggregatedStatusReport by Rules.
+   * The goal is to have cheaper way to truncate data from NodeStatusReport that rebuilding it all from top-down
+   * With this approach, we don't need to to the RuleNodeStatusReport merge, and performance are about 20 times better than
+   * recreating and computing all data
+   */
+  def filterByRules(ruleIds: Set[RuleId]): AggregatedStatusReport = {
+    new AggregatedStatusReport(reports.filter(r => ruleIds.contains(r.ruleId)))
+  }
+
+  def filterByDirectives(directiveIds: Set[DirectiveId]): AggregatedStatusReport = {
+    new AggregatedStatusReport(
+      reports.map(r => {
+        r.modify(_.directives)
+          .setTo(
+            r.directives.flatMap { case (id, d) => if (directiveIds.contains(id)) Some((id, d)) else None }
+          )
+      })
+    )
+  }
 }
 
 object AggregatedStatusReport {
@@ -195,29 +228,17 @@ object AggregatedStatusReport {
     val merged = RuleNodeStatusReport.merge(reports)
     new AggregatedStatusReport(merged.values.toSet)
   }
-
-  def applyFromUniqueNode(reports: Set[RuleNodeStatusReport]): AggregatedStatusReport = {
-    new AggregatedStatusReport(reports)
-  }
-
-  /*
-   * This method filters an AggragatedStatusReport by Rules.
-   * The goal is to have cheaper way to truncate data from NodeStatusReport that rebuilding it all from top-down
-   * With this approach, we don't need to to the RuleNodeStatusReport merge, and performance are about 20 times better than
-   * recreating and computing all data
-   */
-  def applyFromAggregatedStatusReport(statusReport: AggregatedStatusReport, ruleIds: Set[RuleId]): AggregatedStatusReport = {
-    new AggregatedStatusReport(statusReport.reports.filter(r => ruleIds.contains(r.ruleId)))
-  }
-
 }
 
+/*
+ * For a given node, a rule status report gives the rule compliance for JUST ONE compliance tag.
+ */
 final case class RuleNodeStatusReport(
-    nodeId:       NodeId,
-    ruleId:       RuleId,
-    agentRunTime: Option[DateTime],
-    configId:     Option[NodeConfigId], // only one DirectiveStatusReport by directiveId
-
+    nodeId:         NodeId,
+    ruleId:         RuleId,
+    complianceTag:  PolicyTypeName,
+    agentRunTime:   Option[DateTime],
+    configId:       Option[NodeConfigId], // only one DirectiveStatusReport by directiveId
     directives:     Map[DirectiveId, DirectiveStatusReport],
     expirationDate: DateTime
 ) extends StatusReport {
@@ -235,43 +256,31 @@ final case class RuleNodeStatusReport(
   def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(DirectiveId, String, ComponentValueStatusReport)] = {
     directives.values.flatMap(_.getValues(predicate)).toSeq
   }
-
-  def withFilteredElements(
-      directive: DirectiveStatusReport => Boolean,
-      component: ComponentStatusReport => Boolean,
-      values:    ComponentValueStatusReport => Boolean
-  ): Option[RuleNodeStatusReport] = {
-    val dirs = (
-      directives.values
-        .filter(directive(_))
-        .flatMap(_.withFilteredElements(component, values))
-        .map(x => (x.directiveId, x))
-        .toMap
-    )
-    if (dirs.isEmpty) None
-    else Some(this.copy(directives = dirs))
-  }
 }
 
 object RuleNodeStatusReport {
   def merge(
       reports: Iterable[RuleNodeStatusReport]
-  ): Map[(NodeId, RuleId, Option[DateTime], Option[NodeConfigId]), RuleNodeStatusReport] = {
-    reports.groupBy(r => (r.nodeId, r.ruleId, r.agentRunTime, r.configId)).map {
+  ): Map[(NodeId, RuleId, PolicyTypeName, Option[DateTime], Option[NodeConfigId]), RuleNodeStatusReport] = {
+    reports.groupBy(r => (r.nodeId, r.ruleId, r.complianceTag, r.agentRunTime, r.configId)).map {
       case (id, reports) =>
         val newDirectives = DirectiveStatusReport.merge(reports.toList.flatMap(_.directives.values))
 
         // the merge of two reports expire when the first one expire
         val expire = new DateTime(reports.map(_.expirationDate.getMillis).min)
-        (id, RuleNodeStatusReport(id._1, id._2, id._3, id._4, newDirectives, expire))
+        (id, RuleNodeStatusReport(id._1, id._2, id._3, id._4, id._5, newDirectives, expire))
     }
   }
 }
 
+/*
+ * A directive status report is directly linked to a technique.
+ * It is colored with the same PolicyTypes than its technique
+ */
 final case class DirectiveStatusReport(
     directiveId: DirectiveId, // only one component status report by component name
-
-    components: List[ComponentStatusReport]
+    policyTypes: PolicyTypes,
+    components:  List[ComponentStatusReport]
 ) extends StatusReport {
   override lazy val compliance:                                    ComplianceLevel                                        = ComplianceLevel.sum(components.map(_.compliance))
   def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(DirectiveId, String, ComponentValueStatusReport)] = {
@@ -285,20 +294,6 @@ final case class DirectiveStatusReport(
   def getByReportId(reportId: String): List[ComponentValueStatusReport] = {
     components.collect { case c => c.componentValues.collect { case cv if (cv.reportId == reportId) => cv } }.flatten
   }
-
-  def withFilteredElements(
-      component: ComponentStatusReport => Boolean,
-      values:    ComponentValueStatusReport => Boolean
-  ): Option[DirectiveStatusReport] = {
-    val cpts = (
-      components
-        .filter(component(_))
-        .flatMap(_.withFilteredElement(values))
-    )
-
-    if (cpts.isEmpty) None
-    else Some(this.copy(components = cpts))
-  }
 }
 
 object DirectiveStatusReport {
@@ -306,8 +301,14 @@ object DirectiveStatusReport {
   def merge(directives: List[DirectiveStatusReport]): Map[DirectiveId, DirectiveStatusReport] = {
     directives.groupBy(_.directiveId).map {
       case (directiveId, reports) =>
+        val tags          = {
+          reports.flatMap(_.policyTypes.types) match {
+            case Nil          => PolicyTypes.rudderBase
+            case c @ ::(_, _) => PolicyTypes.fromCons(c)
+          }
+        }
         val newComponents = ComponentStatusReport.merge(reports.flatMap(_.components))
-        (directiveId, DirectiveStatusReport(directiveId, newComponents))
+        (directiveId, DirectiveStatusReport(directiveId, tags, newComponents))
     }
   }
 }
@@ -376,7 +377,7 @@ final case class BlockStatusReport(
 }
 final case class ValueStatusReport(
     componentName:         String,
-    expectedComponentName: String, // only one ComponentValueStatusReport by valuex.
+    expectedComponentName: String, // only one ComponentValueStatusReport by values.
 
     componentValues: List[ComponentValueStatusReport]
 ) extends ComponentStatusReport {
@@ -406,7 +407,7 @@ final case class ValueStatusReport(
  * Merge component status reports.
  * We assign a arbitrary preponderance order for reporting logic mode:
  * WorstReportWeightedOne > WorstReportWeightedSum > WeightedReport > FocusReport
- * In the case of two focus, the focust for first component is kept.
+ * In the case of two focus, the focus for first component is kept.
  */
 object ComponentStatusReport extends Loggable {
 

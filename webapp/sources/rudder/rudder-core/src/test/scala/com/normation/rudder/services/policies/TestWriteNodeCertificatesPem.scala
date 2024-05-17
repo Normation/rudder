@@ -44,7 +44,7 @@ import ch.qos.logback.core.OutputStreamAppender
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PublicKey
-import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.zio.ZioRuntime
 import com.softwaremill.quicklens.*
 import java.io.ByteArrayOutputStream
@@ -124,11 +124,11 @@ class TestWriteNodeCertificatesPem extends Specification {
                         |TZEW7+Ri43DsMyRwYiCafuVThL+J
                         |-----END CERTIFICATE-----""".stripMargin
 
-  val root:  NodeInfo = NodeConfigData.root.modify(_.agentsName.each.securityToken).setTo(PublicKey(NodeConfigData.PUBKEY))
-  val node1: NodeInfo = NodeConfigData.node1.modify(_.agentsName.each.securityToken).setTo(Certificate(cert1))
-  val node2: NodeInfo = NodeConfigData.node2.modify(_.agentsName.each.securityToken).setTo(Certificate(cert2))
+  val root:  CoreNodeFact = NodeConfigData.factRoot.modify(_.rudderAgent.securityToken).setTo(PublicKey(NodeConfigData.PUBKEY))
+  val node1: CoreNodeFact = NodeConfigData.fact1.modify(_.rudderAgent.securityToken).setTo(Certificate(cert1))
+  val node2: CoreNodeFact = NodeConfigData.fact2.modify(_.rudderAgent.securityToken).setTo(Certificate(cert2))
 
-  val nodes: Map[NodeId, NodeInfo] = (root :: node1 :: node2 :: Nil).map(x => (x.id, x)).toMap
+  val nodes: Map[NodeId, CoreNodeFact] = (root :: node1 :: node2 :: Nil).map(x => (x.id, x)).toMap
 
   val dest: File = File("/tmp/rudder-test-allnodescerts.pem")
 

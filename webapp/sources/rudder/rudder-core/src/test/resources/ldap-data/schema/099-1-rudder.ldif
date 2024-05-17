@@ -200,6 +200,13 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.231
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch )
+### Policy types, used to replace and extends isSystem for technique
+attributetype ( RudderAttributes:232
+  NAME 'policyTypes'
+  DESC 'What kind of compliance that policy checks'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch )
 ### Tags key=value, stored in JSON
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.235
   NAME 'serializedTags'
@@ -386,7 +393,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.22
   SUP top
   STRUCTURAL
   MUST ( activeTechniqueId $ techniqueId $ acceptationTimestamp)
-  MAY ( isEnabled $ isSystem ) )
+  MAY ( isEnabled $ isSystem $ policyTypes ) )
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.23
   NAME 'directive'
   DESC 'Rudder Directive (real)'

@@ -205,7 +205,7 @@ class HomePage extends StatefulSnippet {
 
       // TODO : we could first compute per nodes, and then compute the globalCompliance by excluding the pending nodes
       compliancePerNodes =
-        reports.map { case (nodeId, status) => (nodeId, ComplianceLevel.sum(status.reports.map(_.compliance))) }
+        reports.map { case (nodeId, status) => (nodeId, ComplianceLevel.sum(status.reports.map(_._2.compliance))) }
       global             = if (reports.isEmpty) {
                              None
                            } else {

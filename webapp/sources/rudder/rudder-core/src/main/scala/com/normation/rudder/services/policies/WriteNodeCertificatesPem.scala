@@ -42,7 +42,7 @@ import com.normation.NamedZioLogger
 import com.normation.errors.*
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.RunNuCommand
 import com.normation.zio.ZioRuntime
@@ -61,12 +61,12 @@ trait WriteNodeCertificatesPem {
    * Write certificates for nodes in a given, implementation dependant, location.
    * File should not be overwritten until the replacement is ready.
    */
-  def writeCertificates(file: File, allNodeInfos: Map[NodeId, NodeInfo]): IOResult[Unit]
+  def writeCertificates(file: File, allNodeInfos: Map[NodeId, CoreNodeFact]): IOResult[Unit]
 
   /*
    * Same but async.
    */
-  def writeCerticatesAsync(file: File, allNodeInfos: Map[NodeId, NodeInfo]): Unit
+  def writeCerticatesAsync(file: File, allNodeInfos: Map[NodeId, CoreNodeFact]): Unit
 }
 
 /*
@@ -77,21 +77,21 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
 
   val logger: NamedZioLogger = NamedZioLogger(this.getClass.getName)
 
-  override def writeCerticatesAsync(file: File, allNodeInfos: Map[NodeId, NodeInfo]): Unit = {
+  override def writeCerticatesAsync(file: File, allNodeInfos: Map[NodeId, CoreNodeFact]): Unit = {
     ZioRuntime.runNow(writeCertificates(file, allNodeInfos).catchAll(e => logger.error(e.fullMsg)).forkDaemon)
   }
 
-  override def writeCertificates(file: File, allNodeInfos: Map[NodeId, NodeInfo]): IOResult[Unit] = {
+  override def writeCertificates(file: File, allNodeInfos: Map[NodeId, CoreNodeFact]): IOResult[Unit] = {
     val allCertsNew = File(file.pathAsString + ".new")
 
     for {
       _      <- checkParentDirOK(file)
       certs   = allNodeInfos.flatMap {
                   case (id, node) =>
-                    node.agentsName.flatMap(_.securityToken match {
+                    node.rudderAgent.securityToken match {
                       case x: Certificate => Some(x.key)
                       case _ => None
-                    })
+                    }
                 }
       writen <- writeCertificatesToNew(allCertsNew, certs)
       moved  <- IOResult.attempt(allCertsNew.moveTo(file)(File.CopyOptions(overwrite = true)))

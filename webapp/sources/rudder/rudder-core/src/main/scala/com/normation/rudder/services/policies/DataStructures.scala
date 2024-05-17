@@ -54,14 +54,16 @@ import com.normation.cfclerk.domain.VariableSpec
 import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.reports.NodeModeConfig
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.typesafe.config.ConfigValue
 import org.joda.time.DateTime
 import scala.collection.immutable.TreeMap
@@ -73,10 +75,10 @@ import scala.collection.immutable.TreeMap
  *
  * - InterpolationContext is the set of node properties used to bound (== expand) directive
  *   variables like ${node.properties[foo]}. When we parse a directive parameter, we get a
- *   fonction (InterpolationContext => expandedValue)
+ *   function (InterpolationContext => expandedValue)
  *
  * - then, there is NodeConfiguration, which is the list of ordered Policies for that node.
- *   A Policy is a Technique+(Optionnaly merged) Directives, with variables expanded for
+ *   A Policy is a Technique+(Optionally merged) Directives, with variables expanded for
  *   the node.
  *   Policies have some intermediary representation with UnboundPolicyDraft & BoundPolicyDraft
  *   for different step in the process.
@@ -88,7 +90,7 @@ object BundleOrder {
   val default: BundleOrder = BundleOrder("")
 
   /**
-   * Comparison logic for bundle: successlly alpha-numeric.
+   * Comparison logic for bundle: successfully alpha-numeric.
    * The empty string come first.
    * The comparison is stable, meaning that a sorted list
    * with equals values stay in the same order after a sort.
@@ -123,8 +125,8 @@ object BundleOrder {
 }
 
 sealed trait GenericInterpolationContext[PARAM] {
-  def nodeInfo:         NodeInfo
-  def policyServerInfo: NodeInfo
+  def nodeInfo:         CoreNodeFact
+  def policyServerInfo: CoreNodeFact
   def globalPolicyMode: GlobalPolicyMode
   // parameters for this node
   // must be a case SENSITIVE Map !!!!
@@ -142,8 +144,8 @@ sealed trait GenericInterpolationContext[PARAM] {
  * It is by nature node dependent.
  */
 final case class ParamInterpolationContext(
-    nodeInfo:         NodeInfo,
-    policyServerInfo: NodeInfo,
+    nodeInfo:         CoreNodeFact,
+    policyServerInfo: CoreNodeFact,
     globalPolicyMode: GlobalPolicyMode,                                           // parameters for this node
     // must be a case SENSITIVE Map !!!!
 
@@ -156,8 +158,8 @@ final case class ParamInterpolationContext(
 ) extends GenericInterpolationContext[ParamInterpolationContext => IOResult[String]]
 
 final case class InterpolationContext(
-    nodeInfo:         NodeInfo,
-    policyServerInfo: NodeInfo,
+    nodeInfo:         CoreNodeFact,
+    policyServerInfo: CoreNodeFact,
     globalPolicyMode: GlobalPolicyMode,
     // environment variable for that server
     // must be a case insensitive Map !!!!
@@ -177,8 +179,8 @@ object InterpolationContext {
   }
 
   def apply(
-      nodeInfo:         NodeInfo,
-      policyServerInfo: NodeInfo,
+      nodeInfo:         CoreNodeFact,
+      policyServerInfo: CoreNodeFact,
       globalPolicyMode: GlobalPolicyMode,         // environment variable for that server
       // must be a case insensitive Map !!!!
 
@@ -251,17 +253,17 @@ final case class NodeRunHook(
 )
 
 final case class NodeConfiguration(
-    nodeInfo:     NodeInfo,
-    modesConfig:  NodeModeConfig,
+    nodeInfo:    CoreNodeFact,
+    modesConfig: NodeModeConfig,
     // sorted list of policies for the node.
-    policies:     List[Policy],
+    policies:    List[Policy],
     // the merged pre-/post-run hooks
-    runHooks:     List[NodeRunHook],
+    runHooks:    List[NodeRunHook],
     // environment variable for that server
-    nodeContext:  Map[String, Variable],
-    parameters:   Set[ParameterForConfiguration],
-    isRootServer: Boolean = false
+    nodeContext: Map[String, Variable],
+    parameters:  Set[ParameterForConfiguration]
 ) {
+  def isRootServer: Boolean = nodeInfo.id == Constants.ROOT_POLICY_SERVER_ID
 
   def getTechniqueIds(): Set[TechniqueId] = {
     policies.map(_.technique.id).toSet
@@ -327,11 +329,11 @@ final case class PolicyTechnique(
     systemVariableSpecs: Set[SystemVariableSpec],
     isMultiInstance:     Boolean = false, // true if we can have several instance of this policy
 
-    isSystem:           Boolean = false,
+    // for compat reason, we replace isSystem (default false) with base feature tag
+    policyTypes:        PolicyTypes = PolicyTypes.rudderBase,
     generationMode:     TechniqueGenerationMode = TechniqueGenerationMode.MergeDirectives,
     useMethodReporting: Boolean = false
 ) {
-
   val templatesIds: Set[TechniqueResourceId] = agentConfig.templates.map(_.id).toSet
 
   val getAllVariableSpecs: Seq[VariableSpec] =
@@ -354,7 +356,7 @@ object PolicyTechnique {
             rootSection = technique.rootSection,
             systemVariableSpecs = technique.systemVariableSpecs,
             isMultiInstance = technique.isMultiInstance,
-            isSystem = technique.isSystem,
+            policyTypes = technique.policyTypes,
             generationMode = technique.generationMode,
             useMethodReporting = technique.useMethodReporting
           )

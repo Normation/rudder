@@ -158,7 +158,8 @@ class PolicyAgregationTest extends Specification {
         newPolicy(technique2_1, "id3", "card", "value3" :: Nil)
       )
 
-      val policies = MergePolicyService.buildPolicy(NodeConfigData.root, policyMode, drafts).openOrThrowException("Failing test")
+      val policies =
+        MergePolicyService.buildPolicy(NodeConfigData.factRoot, policyMode, drafts).openOrThrowException("Failing test")
 
       policies.map(p =>
         (p.technique.id, p.expandedVars.toList.map { case (n, v) => (n, v.values) }, p.trackerVariable.values)
@@ -176,7 +177,8 @@ class PolicyAgregationTest extends Specification {
         newPolicy(technique1_1, "id2", "card", "value2" :: "value3" :: Nil)
       )
 
-      val policies = MergePolicyService.buildPolicy(NodeConfigData.root, policyMode, drafts).openOrThrowException("Failing test")
+      val policies =
+        MergePolicyService.buildPolicy(NodeConfigData.factRoot, policyMode, drafts).openOrThrowException("Failing test")
 
       policies.map(p =>
         (p.technique.id, p.expandedVars.toList.map { case (n, v) => (n, v.values) }, p.trackerVariable.values)
@@ -197,7 +199,8 @@ class PolicyAgregationTest extends Specification {
         newPolicy(technique1_1, "id2", "card", null :: "value2" :: Nil)
       )
 
-      val policies = MergePolicyService.buildPolicy(NodeConfigData.root, policyMode, drafts).openOrThrowException("Failing test")
+      val policies =
+        MergePolicyService.buildPolicy(NodeConfigData.factRoot, policyMode, drafts).openOrThrowException("Failing test")
       policies.map(p =>
         (p.technique.id, p.expandedVars.toList.map { case (n, v) => (n, v.values) }, p.trackerVariable.values)
       ) must containTheSameElementsAs(
@@ -217,7 +220,8 @@ class PolicyAgregationTest extends Specification {
         newPolicy(technique3_1, "id2", "card", "value2" :: Nil).copy(priority = 0) // higher priority
       )
 
-      val policies = MergePolicyService.buildPolicy(NodeConfigData.root, policyMode, drafts).openOrThrowException("Failing test")
+      val policies =
+        MergePolicyService.buildPolicy(NodeConfigData.factRoot, policyMode, drafts).openOrThrowException("Failing test")
       policies.map(p =>
         (p.technique.id, p.expandedVars.toList.map { case (n, v) => (n, v.values) }, p.trackerVariable.values)
       ) must containTheSameElementsAs(
@@ -231,7 +235,8 @@ class PolicyAgregationTest extends Specification {
         newPolicy(technique3_2, "aa", "card", "value2" :: Nil) // first one
       )
 
-      val policies = MergePolicyService.buildPolicy(NodeConfigData.root, policyMode, drafts).openOrThrowException("Failing test")
+      val policies =
+        MergePolicyService.buildPolicy(NodeConfigData.factRoot, policyMode, drafts).openOrThrowException("Failing test")
       policies.map(p =>
         (p.technique.id, p.expandedVars.toList.map { case (n, v) => (n, v.values) }, p.trackerVariable.values)
       ) must containTheSameElementsAs(
@@ -248,7 +253,8 @@ class PolicyAgregationTest extends Specification {
         newPolicy(technique2_3, "11", "card", "value5" :: Nil)
       )
 
-      val policies = MergePolicyService.buildPolicy(NodeConfigData.root, policyMode, drafts).openOrThrowException("Failing test")
+      val policies =
+        MergePolicyService.buildPolicy(NodeConfigData.factRoot, policyMode, drafts).openOrThrowException("Failing test")
       policies.map(p =>
         (p.technique.id, p.expandedVars.toList.map { case (n, v) => (n, v.values) }, p.trackerVariable.values)
       ) must containTheSameElementsAs(

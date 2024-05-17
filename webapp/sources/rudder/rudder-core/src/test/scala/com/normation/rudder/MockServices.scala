@@ -948,7 +948,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
         categoryId:    ActiveTechniqueCategoryId,
         techniqueName: TechniqueName,
         versions:      Seq[TechniqueVersion],
-        isSystem:      Boolean,
+        policyTypes:   PolicyTypes,
         modId:         ModificationId,
         actor:         EventActor,
         reason:        Option[String]
@@ -1818,6 +1818,8 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     )
   )
 
+  val rootNodeFact = NodeFact.fromCompat(root, Right(FullInventory(rootInventory, None)), softwares.take(7), None)
+
   val node1Node: Node = Node(
     id1,
     "node1",
@@ -1896,6 +1898,8 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     )
   )
 
+  val node1NodeFact = NodeFact.fromCompat(node1, Right(FullInventory(nodeInventory1, None)), softwares.drop(5).take(10), None)
+
   // node1 us a relay
   val node2Node:      Node          = node1Node.copy(id = id2, name = id2.value)
   val node2:          NodeInfo      = node1.copy(node = node2Node, hostname = hostname2, policyServerId = root.id)
@@ -1918,6 +1922,8 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
       .modify(_.softwareUpdates)
       .setTo(Nil)
   }
+
+  val node2NodeFact = NodeFact.fromCompat(node2, Right(FullInventory(nodeInventory2, None)), softwares.drop(5).take(10), None)
 
   val dscNode1Node: Node = Node(
     NodeId("node-dsc"),
@@ -1981,12 +1987,14 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     fileSystems = Seq()
   )
 
+  val dscNodeFact = NodeFact.fromCompat(dscNode1, Right(FullInventory(dscInventory1, None)), softwares.drop(5).take(7), None)
+
   val allNodesInfo:       Map[NodeId, NodeInfo] = Map(rootId -> root, node1.id -> node1, node2.id -> node2)
   val allNodeFacts:       Map[NodeId, NodeFact] = Map(
-    rootId      -> NodeFact.fromCompat(root, Right(FullInventory(rootInventory, None)), softwares.take(7), None),
-    node1.id    -> NodeFact.fromCompat(node1, Right(FullInventory(nodeInventory1, None)), softwares.drop(5).take(10), None),
-    node2.id    -> NodeFact.fromCompat(node2, Right(FullInventory(nodeInventory2, None)), softwares.drop(5).take(10), None),
-    dscNode1.id -> NodeFact.fromCompat(dscNode1, Right(FullInventory(dscInventory1, None)), softwares.drop(5).take(7), None)
+    rootId      -> rootNodeFact,
+    node1.id    -> node1NodeFact,
+    node2.id    -> node2NodeFact,
+    dscNode1.id -> dscNodeFact
   )
   val defaultModesConfig: NodeModeConfig        = NodeModeConfig(
     globalComplianceMode = GlobalComplianceMode(FullCompliance, 30),
@@ -1998,33 +2006,30 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   )
 
   val rootNodeConfig: NodeConfiguration = NodeConfiguration(
-    nodeInfo = root,
+    nodeInfo = rootNodeFact.toCore,
     modesConfig = defaultModesConfig,
     runHooks = List(),
     policies = List[Policy](),
     nodeContext = Map[String, Variable](),
-    parameters = Set[ParameterForConfiguration](),
-    isRootServer = true
+    parameters = Set[ParameterForConfiguration]()
   )
 
   val node1NodeConfig: NodeConfiguration = NodeConfiguration(
-    nodeInfo = node1,
+    nodeInfo = node1NodeFact.toCore,
     modesConfig = defaultModesConfig,
     runHooks = List(),
     policies = List[Policy](),
     nodeContext = Map[String, Variable](),
-    parameters = Set[ParameterForConfiguration](),
-    isRootServer = false
+    parameters = Set[ParameterForConfiguration]()
   )
 
   val node2NodeConfig: NodeConfiguration = NodeConfiguration(
-    nodeInfo = node2,
+    nodeInfo = node2NodeFact.toCore,
     modesConfig = defaultModesConfig,
     runHooks = List(),
     policies = List[Policy](),
     nodeContext = Map[String, Variable](),
-    parameters = Set[ParameterForConfiguration](),
-    isRootServer = false
+    parameters = Set[ParameterForConfiguration]()
   )
 
   /**

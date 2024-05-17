@@ -1313,7 +1313,7 @@ class EventLogDetailsGenerator(
     "#techniqueID" #> technique.id.value &
       "#techniqueName" #> technique.techniqueName.value &
       "#isEnabled" #> technique.isEnabled &
-      "#isSystem" #> technique.isSystem
+      "#isSystem" #> technique.policyTypes.types.toList.map(_.value).sorted.mkString(",")
   )(xml)
 
   private def globalParameterDetails(xml: NodeSeq, globalParameter: GlobalParameter) = (

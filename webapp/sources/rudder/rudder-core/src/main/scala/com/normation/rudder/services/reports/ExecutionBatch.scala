@@ -43,6 +43,8 @@ import com.normation.rudder.domain.logger.ComplianceDebugLogger.*
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.PolicyTypeName
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.ReportType.BadPolicyMode
@@ -761,7 +763,7 @@ object ExecutionBatch extends Loggable {
         MergeInfo(nodeId, Some(runTime), Some(expectedConfig.nodeConfigId), expectedExpiration),
         expectedConfig,
         ReportType.Missing
-      ) ++
+      ).toSet ++
       buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), runVersion.map(_.configId), runExpiration), nodeStatusReports)
 
     }
@@ -961,7 +963,7 @@ object ExecutionBatch extends Loggable {
       case _ => Nil
     }
 
-    NodeStatusReport.apply(nodeId, runInfo, status, overrides, ruleNodeStatusReports)
+    NodeStatusReport.apply(nodeId, runInfo, status, overrides, ruleNodeStatusReports.toSet)
   }
 
   // utility method to find how missing report should be reported given the compliance
@@ -989,7 +991,7 @@ object ExecutionBatch extends Loggable {
       ruleExpectedReports:      RuleExpectedReports,
       unexpectedInterpretation: UnexpectedReportInterpretation,
       timer:                    ComputeComplianceTimer
-  ): RuleNodeStatusReport = {
+  ): List[RuleNodeStatusReport] = {
 
     // An effective expected component contains only the component path from the root component to a unique Value
     // Component is the root component and only contains subElemens that leads to the value
@@ -1017,25 +1019,27 @@ object ExecutionBatch extends Loggable {
 
     val reports = reportsForThatNodeRule.groupBy(x => x.directiveId)
 
-    val expectedComponents: Map[(DirectiveId, List[EffectiveExpectedComponent]), (PolicyMode, ReportType)] = (for {
-      directive          <- directives
-      policyMode          = PolicyMode.directivePolicyMode(
-                              modes.globalPolicyMode,
-                              modes.nodePolicyMode,
-                              directive.policyMode,
-                              directive.isSystem
-                            )
-      // the status to use for ACTUALLY missing reports, i.e for reports for which
-      // we have a run but are not here. Basically, it's "missing" when on
-      // full compliance and "success" when on changes only - but that success
-      // depends upon the policy mode
-      missingReportStatus = missingReportType(modes.globalComplianceMode, policyMode)
-      component          <- directive.components
+    val expectedComponents: Map[(DirectiveId, PolicyTypes, List[EffectiveExpectedComponent]), (PolicyMode, ReportType)] = {
+      (for {
+        directive          <- directives
+        policyMode          = PolicyMode.directivePolicyMode(
+                                modes.globalPolicyMode,
+                                modes.nodePolicyMode,
+                                directive.policyMode,
+                                directive.policyTypes
+                              )
+        // the status to use for ACTUALLY missing reports, i.e for reports for which
+        // we have a run but are not here. Basically, it's "missing" when on
+        // full compliance and "success" when on changes only - but that success
+        // depends upon the policy mode
+        missingReportStatus = missingReportType(modes.globalComplianceMode, policyMode)
+        component          <- directive.components
 
-    } yield {
+      } yield {
 
-      ((directive.directiveId, getExpectedComponents(component)), (policyMode, missingReportStatus))
-    }).toMap
+        ((directive.directiveId, directive.policyTypes, getExpectedComponents(component)), (policyMode, missingReportStatus))
+      }).toMap
+    }
     val t2 = System.nanoTime
     timer.u1 += t2 - t1
 
@@ -1066,12 +1070,13 @@ object ExecutionBatch extends Loggable {
 
     // okKeys is DirectiveId, ComponentName
     val expected: Iterable[DirectiveStatusReport] = {
-      expectedComponents.groupBy(_._1._1).map {
-        case (directiveId, expectedComponentsForDirective) =>
+      expectedComponents.groupBy(e => (e._1._1, e._1._2)).map {
+        case ((directiveId, tags), expectedComponentsForDirective) =>
           DirectiveStatusReport(
             directiveId,
+            tags,
             expectedComponentsForDirective.flatMap {
-              case ((directiveId, components), (policyMode, missingReportStatus)) =>
+              case ((directiveId, tags, components), (policyMode, missingReportStatus)) =>
                 val filteredReports = reports.get(directiveId).getOrElse(Seq())
                 // We iterate on each effective component (not a component but a component that only contains a unique path to a unique value
                 val r               = components.map { c =>
@@ -1105,15 +1110,33 @@ object ExecutionBatch extends Loggable {
       }
     }
 
-    RuleNodeStatusReport(
-      mergeInfo.nodeId,
-      ruleId,
-      mergeInfo.run,
-      mergeInfo.configId,
-      directiveStatusReports,
-      mergeInfo.expirationTime
-    )
+    buildRuleNodeStatusReportFromDirective(mergeInfo, ruleId, directiveStatusReports.values)
+  }
 
+  /*
+   * from MergeInfo, ruleId and directive reports, build a Map[ComplianceTag, RuleNodeStatusReport]
+   */
+  private[reports] def buildRuleNodeStatusReportFromDirective(
+      mergeInfo: MergeInfo,
+      ruleId:    RuleId,
+      reports:   Iterable[DirectiveStatusReport]
+  ): List[RuleNodeStatusReport] = {
+    // now, we want to build an aggregate for each ComplianceTagName.
+    // First, find names
+    val tags = reports.flatMap(_.policyTypes.types).toList.distinctBy(_.value)
+
+    // now for each, create the correct rulenodestatus report
+    tags.map { t =>
+      RuleNodeStatusReport(
+        mergeInfo.nodeId,
+        ruleId,
+        t,
+        mergeInfo.run,
+        mergeInfo.configId,
+        reports.collect { case r if r.policyTypes.types.contains(t) => (r.directiveId, r) }.toMap,
+        mergeInfo.expirationTime
+      )
+    }
   }
 
   /**
@@ -1127,13 +1150,13 @@ object ExecutionBatch extends Loggable {
       executionReports:         Seq[ResultReports],
       lastRunNodeConfig:        NodeExpectedReports,
       unexpectedInterpretation: UnexpectedReportInterpretation
-  ): Map[RuleId, RuleNodeStatusReport] = {
+  ): Map[(RuleId, PolicyTypeName), RuleNodeStatusReport] = {
 
     val timer = new ComputeComplianceTimer()
     val t0    = System.currentTimeMillis
 
     val reportsPerRule = executionReports.groupBy(_.ruleId)
-    val complianceForRun: Map[RuleId, RuleNodeStatusReport] = (for {
+    val complianceForRun: Map[(RuleId, PolicyTypeName), RuleNodeStatusReport] = (for {
       ruleExpectedReport <- lastRunNodeConfig.ruleExpectedReports
     } yield {
 
@@ -1146,22 +1169,27 @@ object ExecutionBatch extends Loggable {
         unexpectedInterpretation,
         timer
       )
-      ComplianceDebugLogger
-        .node(ruleCompliance.nodeId)
-        .trace(
-          s"Expected reports for rule '${ruleCompliance.ruleId.serialize}': ${ruleExpectedReport.directives.map(_.toString).mkString("\n [expected] ", "\n [expected] ", "\n")}"
-        )
-      ComplianceDebugLogger
-        .node(ruleCompliance.nodeId)
-        .trace(
-          s"Reports for rule '${ruleCompliance.ruleId.serialize}': ${reportsForThatNodeRule.map(_.toString).mkString("\n [report] ", "\n [report] ", "\n")}"
-        )
-      ComplianceDebugLogger
-        .node(ruleCompliance.nodeId)
-        .trace(s"Compliance for rule '${ruleCompliance.ruleId.serialize}': ${ruleCompliance}")
 
-      (ruleExpectedReport.ruleId, ruleCompliance)
-    }).toMap
+      ruleCompliance.map { c =>
+        ComplianceDebugLogger
+          .node(c.nodeId)
+          .trace(
+            s"Expected reports for rule '${c.ruleId.serialize}' on compliance tag '${c.complianceTag.value}': ${ruleExpectedReport.directives
+                .map(_.toString)
+                .mkString("\n [expected] ", "\n [expected] ", "\n")}"
+          )
+        ComplianceDebugLogger
+          .node(c.nodeId)
+          .trace(
+            s"Reports for rule '${c.ruleId.serialize}' on compliance tag '${c.complianceTag.value}': ${reportsForThatNodeRule.map(_.toString).mkString("\n [report] ", "\n [report] ", "\n")}"
+          )
+        ComplianceDebugLogger
+          .node(c.nodeId)
+          .trace(s"Compliance for rule '${c.ruleId.serialize}' on compliance tag '${c.complianceTag.value}': ${c}")
+
+        ((ruleExpectedReport.ruleId, c.complianceTag), c)
+      }
+    }).flatten.toMap
 
     val t1 = System.currentTimeMillis
 
@@ -1227,8 +1255,8 @@ object ExecutionBatch extends Loggable {
 
     val (computed, newStatus) = currentRunReports.foldLeft((List[RuleNodeStatusReport](), List[RuleNodeStatusReport]())) {
       case ((c, n), currentStatusReports) =>
-        complianceForRun.get(currentStatusReports.ruleId) match {
-          case None => // the whole rule is new!
+        complianceForRun.get((currentStatusReports.ruleId, currentStatusReports.complianceTag)) match {
+          case None => // the rule is new for that compliance tag
             // here, the reports are ACTUALLY pending, not missing.
             (c, currentStatusReports :: n)
 
@@ -1274,6 +1302,9 @@ object ExecutionBatch extends Loggable {
           RuleNodeStatusReport(
             mergeInfo.nodeId,
             ruleId,
+            // we don't know what kind of report are unexpected, since they are, and compliance tag is a pure
+            // compliance side thing.
+            PolicyTypeName.rudderBase,
             mergeInfo.run,
             mergeInfo.configId,
             seq.groupBy(_.directiveId).map {
@@ -1282,6 +1313,7 @@ object ExecutionBatch extends Loggable {
                   directiveId,
                   DirectiveStatusReport(
                     directiveId,
+                    PolicyTypes.rudderBase,
                     reportsByDirectives.groupBy(_.component).toList.map {
                       case (component, reportsByComponents) =>
                         ValueStatusReport(
@@ -1317,6 +1349,7 @@ object ExecutionBatch extends Loggable {
     reports.map { r =>
       DirectiveStatusReport(
         r.directiveId,
+        PolicyTypes.rudderBase,
         ValueStatusReport(
           r.component,
           r.component,
@@ -1365,24 +1398,19 @@ object ExecutionBatch extends Loggable {
       expectedReports: NodeExpectedReports,
       status:          ReportType,
       message:         String = ""
-  ): Set[RuleNodeStatusReport] = {
-    expectedReports.ruleExpectedReports.map {
+  ): List[RuleNodeStatusReport] = {
+    expectedReports.ruleExpectedReports.flatMap {
       case RuleExpectedReports(ruleId, directives) =>
-        val d = directives.map { d =>
-          (
+        val reports = directives.map { d =>
+          DirectiveStatusReport(
             d.directiveId,
-            DirectiveStatusReport(d.directiveId, d.components.map(c => componentExpectedReportToStatusReport(status, c)))
+            d.policyTypes,
+            d.components.map(c => componentExpectedReportToStatusReport(status, c))
           )
-        }.toMap
-        RuleNodeStatusReport(
-          mergeInfo.nodeId,
-          ruleId,
-          mergeInfo.run,
-          mergeInfo.configId,
-          d,
-          mergeInfo.expirationTime
-        )
-    }.toSet
+        }
+
+        buildRuleNodeStatusReportFromDirective(mergeInfo, ruleId, reports)
+    }
   }
 
   /**

@@ -42,7 +42,7 @@ import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.inventory.domain.AgentType.CfeEnterprise
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FilenameUtils
 
@@ -56,7 +56,7 @@ trait PathComputer {
   def computeBaseNodePath(
       searchedNodeId: NodeId,
       rootNodeId:     NodeId,
-      allNodeConfigs: Map[NodeId, NodeInfo]
+      allNodeConfigs: Map[NodeId, CoreNodeFact]
   ): PureResult[NodePoliciesPaths]
 
   def getRootPath(agentType: AgentType): String
@@ -98,7 +98,7 @@ class PathComputerImpl(
   def computeBaseNodePath(
       searchedNodeId: NodeId,
       rootNodeId:     NodeId,
-      allNodeConfigs: Map[NodeId, NodeInfo]
+      allNodeConfigs: Map[NodeId, CoreNodeFact]
   ): PureResult[NodePoliciesPaths] = {
     if (searchedNodeId == rootNodeId) {
       Left(Inconsistency("ComputeBaseNodePath can not be used to get the (special) root paths"))
@@ -147,7 +147,7 @@ class PathComputerImpl(
       fromNodeId:    NodeId,
       toNodeId:      NodeId,
       path:          String,
-      allNodeConfig: Map[NodeId, NodeInfo],
+      allNodeConfig: Map[NodeId, CoreNodeFact],
       chain:         List[NodeId]
   ): PureResult[String] = {
     if (fromNodeId == toNodeId) {
@@ -168,12 +168,12 @@ class PathComputerImpl(
               .notOptionalPure(
                 s"Missing node with id ${toNodeId.value} when trying to build the policies files path for node ${fromNodeId.value}"
               )
-          pid     = toNode.policyServerId
+          pid     = toNode.rudderSettings.policyServerId
           parent <-
             allNodeConfig
               .get(pid)
               .notOptionalPure(
-                s"Can not find the parent node with id '${pid.value}' of node '${toNode.hostname}' (${toNodeId.value}) when trying to build the policies files for node ${fromNodeId.value}"
+                s"Can not find the parent node with id '${pid.value}' of node '${toNode.fqdn}' (${toNodeId.value}) when trying to build the policies files for node ${fromNodeId.value}"
               )
           result <- parent match {
                       case root if root.id == NodeId("root") =>

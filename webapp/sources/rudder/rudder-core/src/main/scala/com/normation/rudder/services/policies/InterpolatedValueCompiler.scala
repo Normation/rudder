@@ -289,22 +289,22 @@ trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
       case access :: tail =>
         access.toLowerCase :: tail match {
           case "id" :: Nil             => Right(context.nodeInfo.id.value)
-          case "hostname" :: Nil       => Right(context.nodeInfo.hostname)
-          case "admin" :: Nil          => Right(context.nodeInfo.localAdministratorAccountName)
-          case "state" :: Nil          => Right(context.nodeInfo.state.name)
+          case "hostname" :: Nil       => Right(context.nodeInfo.fqdn)
+          case "admin" :: Nil          => Right(context.nodeInfo.rudderAgent.user)
+          case "state" :: Nil          => Right(context.nodeInfo.rudderSettings.state.name)
           case "policymode" :: Nil     =>
             val effectivePolicyMode = context.globalPolicyMode.overridable match {
               case PolicyModeOverrides.Unoverridable =>
                 context.globalPolicyMode.mode.name
               case PolicyModeOverrides.Always        =>
-                context.nodeInfo.policyMode.getOrElse(context.globalPolicyMode.mode).name
+                context.nodeInfo.rudderSettings.policyMode.getOrElse(context.globalPolicyMode.mode).name
             }
             Right(effectivePolicyMode)
           case "policyserver" :: tail2 =>
             tail2 match {
               case "id" :: Nil       => Right(context.policyServerInfo.id.value)
-              case "hostname" :: Nil => Right(context.policyServerInfo.hostname)
-              case "admin" :: Nil    => Right(context.policyServerInfo.localAdministratorAccountName)
+              case "hostname" :: Nil => Right(context.policyServerInfo.fqdn)
+              case "admin" :: Nil    => Right(context.policyServerInfo.rudderAgent.user)
               case _                 => error
             }
           case seq                     => error
@@ -321,7 +321,7 @@ trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
    */
   def getNodeProperty(context: I, path: List[String]): PureResult[String] = {
     val errmsg =
-      s"Missing property '$${node.properties[${path.mkString("][")}]}' on node '${context.nodeInfo.hostname}' [${context.nodeInfo.id.value}]"
+      s"Missing property '$${node.properties[${path.mkString("][")}]}' on node '${context.nodeInfo.fqdn}' [${context.nodeInfo.id.value}]"
     path match {
       // we should not reach that case since we enforce at leat one match of [...] in the parser
       case Nil       =>

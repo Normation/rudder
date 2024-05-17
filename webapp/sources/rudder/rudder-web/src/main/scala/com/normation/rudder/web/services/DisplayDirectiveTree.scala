@@ -181,12 +181,12 @@ object DisplayDirectiveTree extends Loggable {
           }
           ++
           category.activeTechniques
-            // We only want to keep technique that satifies keepTechnque, that are not systems
+            // We only want to keep technique that satisfies keepTechnique, that are not systems
             // and that have at least one version not deprecated (deprecationInfo empty)
             .filter(at => {
-              keepTechnique(at) && !at.isSystem && (at.directives.length > 0 || at.techniques.values.exists {
+              keepTechnique(at) && at.policyTypes.isBase && (at.directives.length > 0 || at.techniques.values.exists {
                 _.deprecrationInfo.isEmpty
-              }) && !at.techniques.forall(_._2.isSystem)
+              }) && at.techniques.exists(_._2.policyTypes.isBase)
             })
             // We want our technique sorty by human name, default to bundle name in case we don't have any version but that should not happen
             .sortBy(at => at.newestAvailableTechnique.map(_.name).getOrElse(at.techniqueName.value))
@@ -286,9 +286,9 @@ object DisplayDirectiveTree extends Loggable {
         }
 
         onClickTechnique match {
-          case None                            => <a style="cursor:default">{xml}</a>
-          case _ if (activeTechnique.isSystem) => <a style="cursor:default">{xml}</a>
-          case Some(f)                         => SHtml.a(() => f(activeTechnique), xml)
+          case None                                       => <a style="cursor:default">{xml}</a>
+          case _ if (!activeTechnique.policyTypes.isBase) => <a style="cursor:default">{xml}</a>
+          case Some(f)                                    => SHtml.a(() => f(activeTechnique), xml)
         }
       }
     }

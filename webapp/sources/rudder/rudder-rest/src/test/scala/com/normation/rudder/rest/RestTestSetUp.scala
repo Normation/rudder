@@ -62,7 +62,6 @@ import com.normation.rudder.campaigns.CampaignSerializer
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -376,7 +375,7 @@ class RestTestSetUp {
         rootNodeId:       NodeId,
         updated:          Map[NodeId, NodeConfigId],
         allNodeConfig:    Map[NodeId, NodeConfiguration],
-        allNodeInfos:     Map[NodeId, NodeInfo],
+        allNodeInfos:     Map[NodeId, CoreNodeFact],
         globalPolicyMode: GlobalPolicyMode,
         generationTime:   DateTime,
         maxParallelism:   Int
@@ -392,7 +391,7 @@ class RestTestSetUp {
     override def runPostHooks(
         generationTime:    DateTime,
         endTime:           DateTime,
-        idToConfiguration: Map[NodeId, NodeInfo],
+        idToConfiguration: Map[NodeId, CoreNodeFact],
         systemEnv:         HookEnvPairs,
         nodeIdsPath:       String
     ): Box[Unit] = ???

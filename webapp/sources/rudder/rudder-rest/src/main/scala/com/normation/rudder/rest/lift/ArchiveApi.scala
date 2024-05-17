@@ -753,7 +753,7 @@ class ZipArchiveBuilderService(
       techniquesDirZip = Zippable(techniquesDir, None)
       depTechniques   <- if (includeDepTechniques) techniques.get.map(_.keys) else Nil.succeed
       allTech         <- ZIO.foreach(techniqueIds ++ depTechniques)(techniqueId => getTechnique(techniqueId, techniques))
-      techniquesZip   <- ZIO.foreach(allTech.filter(_._2.isSystem == false)) {
+      techniquesZip   <- ZIO.foreach(allTech.filter(_._2.policyTypes.isBase)) {
                            case (cats, technique) =>
                              for {
                                techZips <- getTechniqueZippable(rootDirName, techniquesDir, cats, technique.id)

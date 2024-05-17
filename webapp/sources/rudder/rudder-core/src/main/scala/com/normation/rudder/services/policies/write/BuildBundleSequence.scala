@@ -52,6 +52,7 @@ import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.services.policies.NodeRunHook
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.PolicyId
@@ -76,10 +77,10 @@ object BuildBundleSequence {
    * Each value is just a correctly formatted string, which means for the template
    * will never get the actual list of elements. This is a conscious decision that allows:
    * - a simple type (String), available in any templating engine
-   * - the work is all done here, else most likelly for each evolution, it will have to
+   * - the work is all done here, else most likely for each evolution, it will have to
    *   be done here and in the template. As for now, system technique are separated
-   *   from Rudder code repository, this is extremlly inifficient.
-   * - a consistant formatting (vertical align is impossible with string template)
+   *   from Rudder code repository, this is extremlly inefficient.
+   * - a consistent formatting (vertical align is impossible with string template)
    *
    * We are returning List for more flexibility, knowing that:
    * - in StringTemplate, Nil and List("") are not the same thing
@@ -106,14 +107,14 @@ object BuildBundleSequence {
    * An input file to include as a dependency
    * (at least in cfengine)
    */
-  final case class InputFile(path: String, isSystem: Boolean)
+  final case class InputFile(path: String, policyTypes: PolicyTypes)
 
   // ad-hoc data structure to denote a directive name
   // (actually, the directive applied in to rule),
   // or in CFEngine name a "promiser"
   final case class Promiser(value: String) extends AnyVal
 
-  // A bundle paramer is just a String, but it can be quoted with simple or double quote
+  // A bundle parameter is just a String, but it can be quoted with simple or double quote
   // (double quote is the default, and simple quote are used mostly for JSON)
   sealed trait BundleParam {
     def quote(agentEscape: String => String): String
@@ -180,7 +181,7 @@ object BuildBundleSequence {
       // pack here.
 
       post:                  List[Bundle],
-      isSystem:              Boolean,
+      policyTypes:           PolicyTypes,
       policyMode:            PolicyMode,
       enableMethodReporting: Boolean
   ) {
@@ -214,7 +215,8 @@ object BuildBundleSequence {
       Bundle(None, BundleName(s"run_${directiveId.serialize.replaceAll("[-+]", "_")}"), Nil)
     }
 
-    def runBundles:     List[Bundle] = Bundle.modeBundle(policyMode, isSystem) :: runBundle :: Nil
+    // here, since we use "policyTypes.isSystem", it means that system update, hardening pack, etc will respect policy mode
+    def runBundles:     List[Bundle] = Bundle.modeBundle(policyMode, policyTypes.isSystem) :: runBundle :: Nil
     def bundleSequence: List[Bundle] =
       contextBundle ::: pre ::: methodReportingState ::: main ::: post ::: (cleanReportingBundle :: Nil)
   }
@@ -241,7 +243,7 @@ class BuildBundleSequence(
    * The main entry point of the object: for each variable related to
    * bundle sequence, compute the corresponding values.
    *
-   * This may fail if the policy modes are not consistant for directives
+   * This may fail if the policy modes are not consistent for directives
    * declined from the same (multi-instance) technique.
    */
   def prepareBundleVars(
@@ -262,9 +264,11 @@ class BuildBundleSequence(
 
     val inputs: List[InputFile] = sortedPolicies.flatMap { p =>
       val inputs = p.technique.agentConfig.templates.collect {
-        case template if (template.included) => InputFile(template.outPath, p.technique.isSystem)
+        case template if (template.included) => InputFile(template.outPath, p.technique.policyTypes)
       } ++
-        p.technique.agentConfig.files.collect { case file if (file.included) => InputFile(file.outPath, p.technique.isSystem) }
+        p.technique.agentConfig.files.collect {
+          case file if (file.included) => InputFile(file.outPath, p.technique.policyTypes)
+        }
       // must create unique path, or replace RudderUniqueID in the paths
       p.technique.generationMode match {
         case TechniqueGenerationMode.MultipleDirectives =>
@@ -275,61 +279,58 @@ class BuildBundleSequence(
       }
     }.toList
 
-    // split (system | user) inputs
-    val (systemInputFiles, userInputFiles) = inputs.partition(_.isSystem)
-
     // get the output string for each bundle variables, agent dependant
     for {
-      _                         <- PolicyGenerationLoggerPure.trace(s"Preparing bundle list and input list for node : ${agentNodeProps.nodeId.value}")
+      _                 <- PolicyGenerationLoggerPure.trace(s"Preparing bundle list and input list for node : ${agentNodeProps.nodeId.value}")
       // - build techniques bundles from the sorted list of techniques
-      techniquesBundles         <-
+      techniquesBundles <-
         ZIO.foreach(sortedPolicies)(
           buildTechniqueBundles(agentNodeProps.nodeId, agentNodeProps.agentType, globalPolicyMode, nodePolicyMode)(_).toIO
         )
       // split system and user directive (technique)
-      (systemBundle, userBundle) = techniquesBundles.toList.removeEmptyBundle.partition(_.isSystem)
-      bundleVars                <- writeAllAgentSpecificFiles
-                                     .getBundleVariables(agentNodeProps, systemInputFiles, systemBundle, userInputFiles, userBundle, runHooks)
-                                     .toIO
-                                     .chainError(
-                                       s"Error for node '${agentNodeProps.nodeId.value}' bundle creation"
-                                     )
+      bundles            = techniquesBundles.toList.removeEmptyBundle
+      bundleVars        <- writeAllAgentSpecificFiles
+                             .getBundleVariables(agentNodeProps, inputs, bundles, runHooks)
+                             .toIO
+                             .chainError(
+                               s"Error for node '${agentNodeProps.nodeId.value}' bundle creation"
+                             )
       // map to correct variables
-      vars                      <- ZIO.collectAll(
-                                     List(
-                                       // this one is CFengine specific and kept for historical reason
-                                       systemVariableSpecService
-                                         .get("INPUTLIST")
-                                         .map(v => (v.name, SystemVariable(v, CfengineBundleVariables.formatBundleFileInputFiles(inputs.map(_.path)))))
-                                         .toIO, // this one is CFengine specific and kept for historical reason
+      vars              <- ZIO.collectAll(
+                             List(
+                               // this one is CFengine specific and kept for historical reason
+                               systemVariableSpecService
+                                 .get("INPUTLIST")
+                                 .map(v => (v.name, SystemVariable(v, CfengineBundleVariables.formatBundleFileInputFiles(inputs.map(_.path)))))
+                                 .toIO, // this one is CFengine specific and kept for historical reason
 
-                                       systemVariableSpecService
-                                         .get("BUNDLELIST")
-                                         .map(v => {
-                                           (
-                                             v.name,
-                                             SystemVariable(v, techniquesBundles.flatMap(_.bundleSequence.map(_.name)).mkString(", ", ", ", "") :: Nil)
-                                           )
-                                         })
-                                         .toIO,
-                                       systemVariableSpecService
-                                         .get("RUDDER_SYSTEM_DIRECTIVES_INPUTS")
-                                         .map(v => (v.name, SystemVariable(v, bundleVars.systemDirectivesInputFiles)))
-                                         .toIO,
-                                       systemVariableSpecService
-                                         .get("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE")
-                                         .map(v => (v.name, SystemVariable(v, bundleVars.systemDirectivesUsebundle)))
-                                         .toIO,
-                                       systemVariableSpecService
-                                         .get("RUDDER_DIRECTIVES_INPUTS")
-                                         .map(v => (v.name, SystemVariable(v, bundleVars.directivesInputFiles)))
-                                         .toIO,
-                                       systemVariableSpecService
-                                         .get("RUDDER_DIRECTIVES_SEQUENCE")
-                                         .map(v => (v.name, SystemVariable(v, bundleVars.directivesUsebundle)))
-                                         .toIO
-                                     )
+                               systemVariableSpecService
+                                 .get("BUNDLELIST")
+                                 .map(v => {
+                                   (
+                                     v.name,
+                                     SystemVariable(v, techniquesBundles.flatMap(_.bundleSequence.map(_.name)).mkString(", ", ", ", "") :: Nil)
                                    )
+                                 })
+                                 .toIO,
+                               systemVariableSpecService
+                                 .get("RUDDER_SYSTEM_DIRECTIVES_INPUTS")
+                                 .map(v => (v.name, SystemVariable(v, bundleVars.systemDirectivesInputFiles)))
+                                 .toIO,
+                               systemVariableSpecService
+                                 .get("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE")
+                                 .map(v => (v.name, SystemVariable(v, bundleVars.systemDirectivesUsebundle)))
+                                 .toIO,
+                               systemVariableSpecService
+                                 .get("RUDDER_DIRECTIVES_INPUTS")
+                                 .map(v => (v.name, SystemVariable(v, bundleVars.directivesInputFiles)))
+                                 .toIO,
+                               systemVariableSpecService
+                                 .get("RUDDER_DIRECTIVES_SEQUENCE")
+                                 .map(v => (v.name, SystemVariable(v, bundleVars.directivesUsebundle)))
+                                 .toIO
+                             )
+                           )
     } yield {
       vars.toMap
     }
@@ -419,7 +420,7 @@ class BuildBundleSequence(
         Nil,
         bundles,
         Nil,
-        policy.technique.isSystem,
+        policy.technique.policyTypes,
         policyMode,
         policy.technique.useMethodReporting
       )
@@ -435,27 +436,27 @@ object CfengineBundleVariables {
   import BuildBundleSequence.*
 
   def getBundleVariables(
-      escape:        String => String,
-      systemInputs:  List[InputFile],
-      systemBundles: List[TechniqueBundles],
-      userInputs:    List[InputFile],
-      userBundles:   List[TechniqueBundles],
-      runHooks:      List[NodeRunHook]
+      escape:   String => String,
+      inputs:   List[InputFile],
+      bundles:  List[TechniqueBundles],
+      runHooks: List[NodeRunHook]
   ): BundleSequenceVariables = {
 
     BundleSequenceVariables(
-      formatBundleFileInputFiles(systemInputs.map(_.path)),
-      formatMethodsUsebundle(escape, systemBundles, Nil, cleanDryRunEnd = false),
-      formatBundleFileInputFiles(userInputs.map(_.path)), // only user bundle may be set on PolicyMode = Verify
+      // we need system techniques first, and they can't be dry run.
+      formatBundleFileInputFiles(inputs.collect { case x if (x.policyTypes.isSystem) => x.path }),
+      formatMethodsUsebundle(escape, bundles.filter(_.policyTypes.isSystem), Nil, cleanDryRunEnd = false),
 
-      formatMethodsUsebundle(escape, userBundles, runHooks, cleanDryRunEnd = true)
+      // then other, just filter out system techniques. These ones can be set on PolicyMode = Verify
+      formatBundleFileInputFiles(inputs.collect { case x if (!x.policyTypes.isSystem) => x.path }),
+      formatMethodsUsebundle(escape, bundles.filterNot(_.policyTypes.isSystem), runHooks, cleanDryRunEnd = true)
     )
   }
 
   /*
    * Each bundle must be preceded by the correct "set_dry_mode" mode,
    * and we always end with a "set_dry_mode("false")".
-   * Also, promiser must be differents for all items so that cfengine
+   * Also, promiser must be different for all items so that cfengine
    * doesn't try to avoid to do the set, so we are using the technique
    * promiser.
    * We need to finish by a remove dry run, as hooks expect to be in enforce mode

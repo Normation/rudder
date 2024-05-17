@@ -67,7 +67,7 @@ import scala.io.Source
 
 /**
  * A date/time parser that understands the PostgreSQL date format (printed as after a select...),
- * with optionnal millisec and lenient on timezone format (because for some reason, depending of some
+ * with optional millisecond and lenient on timezone format (because for some reason, depending of some
  * print configuration, they are not always displayed the same way)
  *
  * So you can parse both:
@@ -247,7 +247,7 @@ class ComplianceTest extends Specification {
 
       val runTime = reports.head.executionTimestamp
       // here, we assume "compute compliance", i.e we are only testing the compliance engine, not
-      // the meta-analysis on run consistancy (correct run, at the correct time, etc)
+      // the meta-analysis on run consistency (correct run, at the correct time, etc)
       val runinfo = ComputeCompliance(runTime, config, runTime)
       val status  = ExecutionBatch.getNodeStatusReports(config.nodeId, runinfo, reports, UnexpectedReportInterpretation(Set()))
 
@@ -256,7 +256,7 @@ class ComplianceTest extends Specification {
     }
   }
 
-  "A directive with two identical component, but one parametered" should {
+  "A directive with two identical component, but one parameterized" should {
     val path = "test-compliance/test-same-component/"
 
     "lead to correct reporting (only success" in {

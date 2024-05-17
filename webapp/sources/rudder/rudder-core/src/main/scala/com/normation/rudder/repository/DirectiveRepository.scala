@@ -89,7 +89,7 @@ final case class FullActiveTechnique(
     techniques:           SortedMap[TechniqueVersion, Technique],
     directives:           List[Directive],
     isEnabled:            Boolean = true,
-    isSystem:             Boolean = false
+    policyTypes:          PolicyTypes = PolicyTypes.rudderBase
 ) {
   def toActiveTechnique(): ActiveTechnique = ActiveTechnique(
     id = id,
@@ -97,7 +97,7 @@ final case class FullActiveTechnique(
     acceptationDatetimes = acceptationDatetimes.toMap,
     directives = directives.map(_.id.uid),
     _isEnabled = isEnabled,
-    isSystem = isSystem
+    policyTypes = policyTypes
   )
 
   val newestAvailableTechnique: Option[Technique] = techniques.toSeq.sortBy(_._1).reverse.map(_._2).headOption
@@ -290,7 +290,7 @@ final case class FullActiveTechniqueCategory(
             SortedMap[TechniqueVersion, Technique]() ++ newTechs,
             Nil,
             isEnabled = true,
-            isSystem = false
+            policyTypes = PolicyTypes.rudderBase
           )
         case Some(fat) =>
           fat.modify(_.acceptationDatetimes).using(_ ++ newTimes).modify(_.techniques).using(_ ++ newTechs)
@@ -527,7 +527,7 @@ trait WoDirectiveRepository {
       categoryId:    ActiveTechniqueCategoryId,
       techniqueName: TechniqueName,
       versions:      Seq[TechniqueVersion],
-      isSystem:      Boolean,
+      policyTypes:   PolicyTypes,
       modId:         ModificationId,
       actor:         EventActor,
       reason:        Option[String]
@@ -709,7 +709,8 @@ class InitDirectivesTree(
                                                                               newUserPTCat.id,
                                                                               name,
                                                                               ids.map(_.version).toSeq,
-                                                                              newUserPTCat.isSystem,
+                                                                              if (newUserPTCat.isSystem) PolicyTypes.rudderSystem
+                                                                              else PolicyTypes.rudderBase,
                                                                               ModificationId(uuidGen.newUuid),
                                                                               RudderEventActor,
                                                                               reason = Some("Initialize active templates library")

@@ -55,6 +55,7 @@ import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyServerTarget
+import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
@@ -652,7 +653,7 @@ class ComplianceAPIService(
 
       globalPolicyMode <- getGlobalPolicyMode
 
-      reportsByRule = reportsByNode.flatMap { case (_, status) => status.reports }.groupBy(_.ruleId)
+      reportsByRule = reportsByNode.flatMap { case (_, status) => status.reports.flatMap(_._2.reports).toSeq }.groupBy(_.ruleId)
       t7           <- currentTimeMillis
       _            <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - group reports by rules in ${t7 - t6} ms")
 
@@ -764,7 +765,7 @@ class ComplianceAPIService(
       t6            <- currentTimeMillis
       _             <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - findRuleNodeStatusReports in ${t6 - t5} ms")
 
-      reportsByRule = reportsByNode.flatMap { case (_, status) => status.reports }.groupBy(_.ruleId)
+      reportsByRule = reportsByNode.flatMap { case (_, status) => status.reports.flatMap(_._2.reports) }.groupBy(_.ruleId)
       t7            = System.currentTimeMillis()
       _            <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - group reports by rules in ${t7 - t6} ms")
 
@@ -916,9 +917,11 @@ class ComplianceAPIService(
       reportsByRule = reportsByNode.flatMap {
                         case (_, status) =>
                           // TODO: separate reports that have 'overridden policies' here (skipped)
-                          status.reports.filter(r =>
-                            (isGlobalCompliance || rules.keySet.contains(r.ruleId)) && currentGroupNodeIds.contains(r.nodeId)
-                          )
+                          status.reports
+                            .flatMap(_._2.reports)
+                            .filter(r =>
+                              (isGlobalCompliance || rules.keySet.contains(r.ruleId)) && currentGroupNodeIds.contains(r.nodeId)
+                            )
                       }.groupBy(_.ruleId)
       //
       t3           <- currentTimeMillis
@@ -1011,7 +1014,11 @@ class ComplianceAPIService(
       val byNodeCompliance = reportsByNode.toList.collect {
         case (nodeId, status) if currentGroupNodeIds.contains(nodeId) =>
           // For non global compliance, we only want the compliance for the rules in the group
-          val reports  = status.reports.filter(r => isGlobalCompliance || rules.keySet.contains(r.ruleId)).toSeq
+          val reports  = status.reports
+            .flatMap(_._2.reports)
+            .filter(r => isGlobalCompliance || rules.keySet.contains(r.ruleId))
+            .toSeq
+            .sortBy(_.ruleId.serialize)
           val nodeMode = nodeFacts.get(nodeId).flatMap(_.rudderSettings.policyMode)
           ByNodeGroupNodeCompliance(
             nodeId,
@@ -1051,8 +1058,8 @@ class ComplianceAPIService(
         nodeGroupName,
         ComplianceLevel.sum(byNodeCompliance.map(_.compliance)),
         compliance.mode,
-        byRuleCompliance,
-        byNodeCompliance
+        byRuleCompliance.sortBy(_.id.serialize),
+        byNodeCompliance.sortBy(_.id.value)
       )
     }
   }
@@ -1462,25 +1469,29 @@ class ComplianceAPIService(
             ByNodeNodeCompliance(
               nodeId,
               nodeInfos.get(nodeId).map(_._1).getOrElse("Unknown node"),
-              ComplianceLevel.sum(status.reports.map(_.compliance)),
+              ComplianceLevel.sum(status.reports.map(_._2.compliance)),
               compliance.mode, // Add this line to include no
               nodeInfos.get(nodeId).flatMap(_._2.policyMode),
-              status.reports.toSeq.map(r => {
-                ByNodeRuleCompliance(
-                  r.ruleId,
-                  ruleMap.get(r.ruleId).map(_.name).getOrElse("Unknown rule"),
-                  r.compliance,
-                  ruleMap.get(r.ruleId).flatMap(nodeAndPolicyModeByRules.get(_)).flatMap(_._2),
-                  r.directives.toSeq.map {
-                    case (_, directiveReport) =>
-                      ByNodeDirectiveCompliance(
-                        directiveReport,
-                        directiveLib.get(directiveReport.directiveId).flatMap(_._2.policyMode),
-                        directiveLib.get(directiveReport.directiveId).map(_._2.name).getOrElse("Unknown Directive")
-                      )
-                  } ++ directiveOverrides.getOrElse(r.ruleId, Nil)
-                )
-              })
+              status.reports
+                .get(PolicyTypeName.rudderBase)
+                .toSeq
+                .flatMap(_.reports)
+                .map(r => {
+                  ByNodeRuleCompliance(
+                    r.ruleId,
+                    ruleMap.get(r.ruleId).map(_.name).getOrElse("Unknown rule"),
+                    r.compliance,
+                    ruleMap.get(r.ruleId).flatMap(nodeAndPolicyModeByRules.get(_)).flatMap(_._2),
+                    r.directives.toSeq.map {
+                      case (_, directiveReport) =>
+                        ByNodeDirectiveCompliance(
+                          directiveReport,
+                          directiveLib.get(directiveReport.directiveId).flatMap(_._2.policyMode),
+                          directiveLib.get(directiveReport.directiveId).map(_._2.name).getOrElse("Unknown Directive")
+                        )
+                    } ++ directiveOverrides.getOrElse(r.ruleId, Nil)
+                  )
+                })
             )
           )
       }
