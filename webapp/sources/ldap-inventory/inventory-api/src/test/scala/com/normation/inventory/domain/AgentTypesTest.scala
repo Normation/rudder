@@ -73,19 +73,6 @@ class AgentTypesTest extends Specification {
   val key =
     "-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEAtDTtbfw2ic1pcUludrs1I+HGGdRL0r5dKjMzLhUGahCrVaH7H3ND\n/py+XPZKY/Iolttgf1RriQAazEVbFEWXozistMTXtWJu/5IxV47QNqbS82KrhQNp\ns4abfqraGOlYbYS5BXCaHYrKI2VzvAwwvCsE7vmhnO1Br4AueagrFU+itjr/0gMd\nu58xYDiAADXqGDzES75NIxCZelv5vefMfpEMlBmztKmgY+iT+Q8lhf42WUsZ9OBl\nRDRfQ9VCW+8336C1JEpcHAcSElF4mn4D0GN7RvxNOSGpuLjxAvp5qFVbp4Xtd+4q\n8DaGe+w8MplwMVCFTyEMS3E1pS4DdctdLwIDAQAB\n-----END RSA PUBLIC KEY-----"
 
-  val json43: String = s"""
-    {
-       "agentType":"cfengine-community"
-      ,"version"  :"4.3.2"
-      ,"securityToken": { "value":"$key","type":"publicKey"}
-    }"""
-
-  val json41: String = s"""
-    {
-       "agentType":"Community"
-      ,"version"  :"4.1.13"
-    }"""
-
   val json61: String = s"""
     {
        "agentType":"cfengine-community"
@@ -95,20 +82,6 @@ class AgentTypesTest extends Specification {
     }"""
 
   "Parsing agent type" should {
-
-    "works for 4_3 format" in {
-      val res = ZioRuntime.runNow(AgentInfoSerialisation.parseJson(json43, None))
-      res must beEqualTo(
-        AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.3.2")), PublicKey(key), Set())
-      )
-    }
-
-    "be able to read 4_1 serialized info" in {
-      val res = ZioRuntime.runNow(AgentInfoSerialisation.parseJson(json41, Some(key)))
-      res must beEqualTo(
-        AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.1.13")), PublicKey(key), Set())
-      )
-    }
 
     "works for 6_1 format" in {
       val res = ZioRuntime.runNow(AgentInfoSerialisation.parseJson(json61, None))

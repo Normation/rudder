@@ -109,11 +109,23 @@ class TestFullInventoryRepoProxy extends Specification {
   }
 
   val factRepo = {
+    // we avoid save pre-checks here because it's too clumsy to have correct inventories
+    val testSavePrechecks = Chunk.empty[NodeFact => IOResult[Unit]]
+
     for {
       callbacks <- Ref.make(Chunk.empty[NodeFactChangeEventCallback])
       lock      <- ReentrantLock.make()
       tenants   <- DefaultTenantService.make(Nil)
-      r          = new CoreNodeFactRepository(NoopFactStorage, noopNodeBySoftwareName, tenants, pendingRef, acceptedRef, callbacks, lock)
+      r          = new CoreNodeFactRepository(
+                     NoopFactStorage,
+                     noopNodeBySoftwareName,
+                     tenants,
+                     pendingRef,
+                     acceptedRef,
+                     callbacks,
+                     testSavePrechecks,
+                     lock
+                   )
       _         <- r.registerChangeCallbackAction(CoreNodeFactChangeEventCallback("trail", e => callbackLog.update(_.appended(e.event))))
       //      _         <- r.registerChangeCallbackAction(new NodeFactChangeEventCallback("log", e => effectUioUnit(println(s"**** ${e.name}"))))
     } yield {
@@ -124,6 +136,43 @@ class TestFullInventoryRepoProxy extends Specification {
   sequential
 
   val allStatus = Seq(RemovedInventory, PendingInventory, AcceptedInventory)
+
+  val testAgent = NodeFact
+    .defaultRudderAgent("administrator")
+    .modify(_.securityToken)
+    .setTo(Certificate("""-----BEGIN CERTIFICATE-----
+                         |MIIFqDCCA5CgAwIBAgIUIb+ayWHZfmGiz8uiCqVsfjhYWgQwDQYJKoZIhvcNAQEL
+                         |BQAwNjE0MDIGCgmSJomT8ixkAQEMJDJiYjRlMDFiLWJlN2UtNGM5ZS05YzMwLTE3
+                         |N2FhZGE0NDg2OTAeFw0yMDAyMjUxNDI3MzRaFw0zMDAyMjIxNDI3MzRaMDYxNDAy
+                         |BgoJkiaJk/IsZAEBDCQyYmI0ZTAxYi1iZTdlLTRjOWUtOWMzMC0xNzdhYWRhNDQ4
+                         |NjkwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQColq7aeax/Dm+EjSGT
+                         |Lc7zzqQQocQbSVj7qzGo1htNyjjmroiTHuC+TwOGlWqGkDICa9bbDhq6XaGU+QSq
+                         |CcT62Q6Mtu/JUfmh+G1pRxHIGLJ7y3piOAHU3fV8oyMuAg/pmnn1P9nduT1odUWN
+                         |Kz0AOgAwOkXfY+jppbc8Ob45oEbdM4PGlrf3+NB2mRFh+VqwY2bMepb5Qym0BgYB
+                         |stwrrTgzOYeMkg6W5EJTxKtyvnslbaQkY0T6Dpm3PqkGCX0kNdd1Fs+Yb++o3uld
+                         |jCsGleO9ri+lyG0BCRyJ9X7wHZGqzyqmkPMJRav2S3maOOF5bcg9ljShvMRlCFLF
+                         |dHJ+Mk6DkVZO0eSx4FtAHkBkMg2KSYiLKg/90cLfPLGYpHyrL2XQFwdwOxzAteQ7
+                         |c98+szrTX/5jSIeeUrTOwQAu4enixi7OqMqxnJJyzK83TXFukCiuF+HOkmx87tim
+                         |zxce9HtafU65OLA+mSZ9xCUMPYFXoIpHNlvbe0vRomr71ktIX1YoK+5mI59IRulr
+                         |rtAKhZQRLpO4Tvzzev/Yuxf0C4lVTiszA6LleOlbYRUd/OWB0BKouFJA6a+3uJbo
+                         |DYDNQWaFYtBjntmob8Ygf6bO8wI5avn+9G3l9EL0+Zu7l780c1nvuH7TRm8ghiQJ
+                         |W8q94uJegU4rrT4YMf+++vHHfQIDAQABo4GtMIGqMAkGA1UdEwQCMAAwHQYDVR0O
+                         |BBYEFGy6++zu6pnflFHT9vKkc0lOtWacMHEGA1UdIwRqMGiAFGy6++zu6pnflFHT
+                         |9vKkc0lOtWacoTqkODA2MTQwMgYKCZImiZPyLGQBAQwkMmJiNGUwMWItYmU3ZS00
+                         |YzllLTljMzAtMTc3YWFkYTQ0ODY5ghQhv5rJYdl+YaLPy6IKpWx+OFhaBDALBgNV
+                         |HQ8EBAMCA7gwDQYJKoZIhvcNAQELBQADggIBAGkSqpSlpxpIHAimFSA5A4CS0wSg
+                         |0KLiaMP17w83XKH88JZ9Dsp+hYu2xMH/Ewx/XdrcKJ2m0NQDNj3DCagvQGTNqvQq
+                         |RSNaXRI3L2GOt6w84dURE6vjX3wlq2IaKTRuq6+fEd61zJYq2vw8o/CqiOLoHVm6
+                         |2iitLBq+hiutnNKcAOqlqdN5eZdfiNu7irlqK70W9YNSXXcogwLCNZ4PVd/knZmj
+                         |VvgI2CHyjkfaaUYGC2KP9hzBkvWxlcoV16AOIICIjDPO/s+ykdhLGqm4FQdlOyZa
+                         |Do8lRMGe8SctvIvtLCUs3BC6S1B4AUJXT82uR7ay6RDU7chf/n1Bqb5ZGbQeGWFA
+                         |YMXcEHGTLzIb96bz8DvOArROTsZFgXT6gn/3u038VRBOnN8RS9Z8op0wwlJSKRDD
+                         |chjuXxDlh9CrwFYiVc1BYPNwNsEFxbPaL3hDRc+c9o2RPXqEY/Cde3d1ni8anduD
+                         |f6lyjhZNMqJiwh5Y6jlV5YHgW4U0SxNQnHtJ8oMrz/TmIB/8P6aQTCgx4v5grax+
+                         |TpQF7heIRmdhRXU4LZjtfWD8UOdOm5Bn7gDXBUFYzBCbIpUIOriqeC7lgZY17Zz6
+                         |8kNWDWHgMP3cZt8MTSEJtk6RqWQM3VTH69zugCTrDRoFwpTZqx7h5gOaCRHyRtfi
+                         |sXWKTgIrV31P4GyU
+                         |-----END CERTIFICATE-----""".stripMargin))
 
   // shortcut to create a machine with the name has ID in the given status
   def machine(name: String, status: InventoryStatus)                                         = MachineInventory(
@@ -166,7 +215,7 @@ class TestFullInventoryRepoProxy extends Specification {
     ),
     inventoryDate = Some(DateTime.parse("2023-01-11T10:20:30.000Z")),
     receiveDate = Some(DateTime.parse("2023-02-22T15:25:35.000Z")),
-    agents = Seq(NodeFact.defaultRudderAgent("root").toAgentInfo), // always present now
+    agents = Seq(testAgent.toAgentInfo), // always present now
     machineId = Some(container)
   )
 
@@ -315,7 +364,7 @@ class TestFullInventoryRepoProxy extends Specification {
         ),
         inventoryDate = Some(DateTime.parse("2023-01-11T10:20:30.000Z")),
         receiveDate = Some(DateTime.parse("2023-02-22T15:25:35.000Z")),
-        agents = Seq(NodeFact.defaultRudderAgent("administrator").toAgentInfo), // always present now
+        agents = Seq(testAgent.toAgentInfo), // always present now
         machineId = None
       )
 

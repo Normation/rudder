@@ -2203,8 +2203,9 @@ class MockNodes() {
 
   val tenantService = DefaultTenantService.make(Nil).runNow
 
-  val nodeFactRepo: CoreNodeFactRepository =
-    CoreNodeFactRepository.make(nodeFactStorage, getNodesbySofwareName, tenantService, Chunk()).runNow
+  val nodeFactRepo: CoreNodeFactRepository = {
+    CoreNodeFactRepository.make(nodeFactStorage, getNodesbySofwareName, tenantService, Chunk(), Chunk()).runNow
+  }
 
   object queryProcessor extends QueryProcessor {
 

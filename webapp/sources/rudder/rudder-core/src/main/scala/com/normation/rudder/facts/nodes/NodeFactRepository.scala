@@ -274,36 +274,93 @@ trait NodeFactRepository {
  *
  */
 object CoreNodeFactRepository {
+  val defaultSavePreChecks = {
+    def checkRootProperties(node: NodeFact): IOResult[Unit] = {
+      // use cats validation
+      import cats.data.*
+      import cats.implicits.*
+
+      type ValidationResult = ValidatedNel[String, Unit]
+      val ok = ().validNel
+
+      def validateRoot(node: NodeFact): IOResult[Unit] = {
+        // transform a validation result to a Full | Failure
+        implicit class toIOResult(validation: ValidatedNel[String, List[Unit]]) {
+          def toZIO: IOResult[Unit] = {
+            validation.fold(
+              nel => Inconsistency(nel.toList.mkString("; ")).fail,
+              _ => ZIO.unit
+            )
+          }
+        }
+
+        val checks: List[NodeFact => ValidationResult] = List(
+          (node: NodeFact) => { // root is enabled
+            if (node.rudderSettings.state == NodeState.Enabled) ok
+            else s"Root node must always be in '${NodeState.Enabled.name}' lifecycle state.".invalidNel
+          },
+          (node: NodeFact) => { // root is PolicyServer
+            if (node.isPolicyServer) ok
+            else "You can't change the 'policy server' nature of Root policy server".invalidNel
+          },
+          (node: NodeFact) => { // rootIsSystem
+            if (node.isSystem) ok
+            else "You can't change the 'system' nature of Root policy server".invalidNel
+          },
+          (node: NodeFact) => { // rootIsAccepted
+            if (node.rudderSettings.status == AcceptedInventory) ok
+            else "You can't change the 'status' of Root policy server, it must be accepted".invalidNel
+          }
+        )
+
+        checks.traverse(_(node)).toZIO
+      }
+
+      ZIO.when(node.id == Constants.ROOT_POLICY_SERVER_ID)(validateRoot(node)).unit
+    }
+
+    def checkAgentKey(node: NodeFact): IOResult[Unit] = {
+      node.rudderAgent.securityToken match {
+        case Certificate(value) => SecurityToken.checkCertificateForNode(node.id, Certificate(value))
+        case _                  => Unexpected(s"only certificate are supported for agent security token since Rudder 7.0").fail
+      }
+    }
+
+    Chunk(checkRootProperties(_), checkAgentKey(_))
+  }
+
   def make(
-      storage:    NodeFactStorage,
-      softByName: GetNodesbySofwareName,
-      tenants:    TenantService,
-      callbacks:  Chunk[NodeFactChangeEventCallback]
+      storage:       NodeFactStorage,
+      softByName:    GetNodesbySofwareName,
+      tenants:       TenantService,
+      callbacks:     Chunk[NodeFactChangeEventCallback],
+      savePreChecks: Chunk[NodeFact => IOResult[Unit]] = defaultSavePreChecks // that should really be used apart in some tests
   ): IOResult[CoreNodeFactRepository] = for {
     _        <- InventoryDataLogger.debug("Getting pending node info for node fact repos")
     pending  <- storage.getAllPending()(SelectFacts.none).map(f => (f.id, f.toCore)).runCollect.map(_.toMap)
     _        <- InventoryDataLogger.debug("Getting accepted node info for node fact repos")
     accepted <- storage.getAllAccepted()(SelectFacts.none).map(f => (f.id, f.toCore)).runCollect.map(_.toMap)
     _        <- InventoryDataLogger.debug("Creating node fact repos")
-    repo     <- make(storage, softByName, tenants, pending, accepted, callbacks)
+    repo     <- make(storage, softByName, tenants, pending, accepted, callbacks, savePreChecks)
   } yield {
     repo
   }
 
   def make(
-      storage:    NodeFactStorage,
-      softByName: GetNodesbySofwareName,
-      tenants:    TenantService,
-      pending:    Map[NodeId, CoreNodeFact],
-      accepted:   Map[NodeId, CoreNodeFact],
-      callbacks:  Chunk[NodeFactChangeEventCallback]
+      storage:       NodeFactStorage,
+      softByName:    GetNodesbySofwareName,
+      tenants:       TenantService,
+      pending:       Map[NodeId, CoreNodeFact],
+      accepted:      Map[NodeId, CoreNodeFact],
+      callbacks:     Chunk[NodeFactChangeEventCallback],
+      savePreChecks: Chunk[NodeFact => IOResult[Unit]]
   ): UIO[CoreNodeFactRepository] = for {
     p    <- Ref.make(pending)
     a    <- Ref.make(accepted)
     lock <- ReentrantLock.make()
     cbs  <- Ref.make(callbacks)
   } yield {
-    new CoreNodeFactRepository(storage, softByName, tenants, p, a, cbs, lock)
+    new CoreNodeFactRepository(storage, softByName, tenants, p, a, cbs, savePreChecks, lock)
   }
 
 }
@@ -343,6 +400,7 @@ class CoreNodeFactRepository(
     pendingNodes:   Ref[Map[NodeId, CoreNodeFact]],
     acceptedNodes:  Ref[Map[NodeId, CoreNodeFact]],
     callbacks:      Ref[Chunk[NodeFactChangeEventCallback]],
+    savePreChecks:  Chunk[NodeFact => IOResult[Unit]],
     lock:           ReentrantLock,
     cbTimeout:      zio.Duration = 5.seconds
 ) extends NodeFactRepository {
@@ -552,57 +610,6 @@ class CoreNodeFactRepository(
       })
   }
 
-  private[nodes] def checkRootProperties(node: NodeFact): IOResult[Unit] = {
-    // use cats validation
-    import cats.data.*
-    import cats.implicits.*
-
-    type ValidationResult = ValidatedNel[String, Unit]
-    val ok = ().validNel
-
-    def validateRoot(node: NodeFact): IOResult[Unit] = {
-      // transform a validation result to a Full | Failure
-      implicit class toIOResult(validation: ValidatedNel[String, List[Unit]]) {
-        def toZIO: IOResult[Unit] = {
-          validation.fold(
-            nel => Inconsistency(nel.toList.mkString("; ")).fail,
-            _ => ZIO.unit
-          )
-        }
-      }
-
-      val checks: List[NodeFact => ValidationResult] = List(
-        (node: NodeFact) => { // root is enabled
-          if (node.rudderSettings.state == NodeState.Enabled) ok
-          else s"Root node must always be in '${NodeState.Enabled.name}' lifecycle state.".invalidNel
-        },
-        (node: NodeFact) => { // root is PolicyServer
-          if (node.isPolicyServer) ok
-          else "You can't change the 'policy server' nature of Root policy server".invalidNel
-        },
-        (node: NodeFact) => { // rootIsSystem
-          if (node.isSystem) ok
-          else "You can't change the 'system' nature of Root policy server".invalidNel
-        },
-        (node: NodeFact) => { // rootIsAccepted
-          if (node.rudderSettings.status == AcceptedInventory) ok
-          else "You can't change the 'status' of Root policy server, it must be accepted".invalidNel
-        }
-      )
-
-      checks.traverse(_(node)).toZIO
-    }
-
-    ZIO.when(node.id == Constants.ROOT_POLICY_SERVER_ID)(validateRoot(node)).unit
-  }
-
-  private[nodes] def checkAgentKey(node: NodeFact): IOResult[Unit] = {
-    node.rudderAgent.securityToken match {
-      case Certificate(value) => SecurityToken.checkCertificateForNode(node.id, Certificate(value))
-      case _                  => NodeLoggerPure.Security.warn(s"only certificate are supported for agent security token since Rudder 7.0")
-    }
-  }
-
   /*
    * Save can be used in two fashion: either for setting tenants
    * or for save. In the second case, we must ensure tenants don't change.
@@ -674,8 +681,7 @@ class CoreNodeFactRepository(
   override def save(
       nodeFact: NodeFact
   )(implicit cc: ChangeContext, attrs: SelectFacts = SelectFacts.all): IOResult[NodeFactChangeEventCC] = {
-    checkRootProperties(nodeFact) *>
-    checkAgentKey(nodeFact) *>
+    ZIO.foreachDiscard(savePreChecks)(_(nodeFact)) *>
     internalSave(Left(nodeFact))
   }
 

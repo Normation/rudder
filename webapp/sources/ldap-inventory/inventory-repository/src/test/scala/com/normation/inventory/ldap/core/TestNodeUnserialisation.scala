@@ -249,24 +249,6 @@ class TestNodeUnserialisation extends Specification {
   }
 
   "Agent type " should {
-    "correctly unserialize Linux node from 4_1" in {
-      node(linux41Ldif).agents(0) must beEqualTo(
-        AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.1.14")), PublicKey("publickey"), Set())
-      )
-    }
-
-    "correctly unserialize Linux node from 4_2" in {
-      node(linux42Ldif).agents(0) must beEqualTo(
-        AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.2.8")), PublicKey("publickey"), Set())
-      )
-    }
-
-    "correctly unserialize Linux node from 4_3" in {
-      node(linux43Ldif).agents(0) must beEqualTo(
-        AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("4.3.2")), PublicKey("publickey"), Set())
-      )
-    }
-
     "correctly unserialize Linux node from 4_3" in {
       node(linux61Ldif).agents(0) must beEqualTo(
         AgentInfo(AgentType.CfeCommunity, Some(AgentVersion("6.1.0")), Certificate("certificate"), Set(AgentCapability("https")))

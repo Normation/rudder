@@ -201,7 +201,15 @@ class TestInventory extends Specification {
       NodeId("root"),
       CertifiedKey
     ),
-    machineId = Some(container)
+    machineId = Some(container),
+    agents = Seq(
+      AgentInfo(
+        AgentType.CfeCommunity,
+        None,
+        Certificate("""-----BEGIN CERTIFICATE-----\ndummy-certificate-value\n-----END CERTIFICATE-----)"""),
+        Set()
+      )
+    )
   )
 
   def full(n: NodeInventory, m: MachineInventory): FullInventory = FullInventory(n, Some(m))
