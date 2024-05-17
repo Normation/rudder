@@ -1471,6 +1471,7 @@ object RudderConfigInit {
     lazy val pluginSettingsService = new FilePluginSettingsService(
       root / "opt" / "rudder" / "etc" / "rudder-pkg" / "rudder-pkg.conf"
     )
+
     /////////////////////////////////////////////////
     ////////// pluggable service providers //////////
     /////////////////////////////////////////////////
@@ -2252,7 +2253,7 @@ object RudderConfigInit {
           builtTimestamp
         ),
         new InventoryApi(restExtractorService, inventoryWatcher, better.files.File(INVENTORY_DIR_INCOMING)),
-        new PluginApi(restExtractorService, pluginSettingsService),
+        new PluginApi(restExtractorService, pluginSettingsService, PluginsInfo.pluginInfos.succeed),
         new RecentChangesAPI(recentChangesService, restExtractorService),
         new RulesInternalApi(restExtractorService, ruleInternalApiService),
         campaignApi,

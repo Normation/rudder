@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+required:
+  - username
+  - password
+properties:
+  # FIXME: required on not depends on where it's used
+  username:
+    type: string
+    description: username to use for Rudder account
+    example: Customer Inc
+  password:
+    type:
+    description: password to access Rudder account
+    example: some password
+  url:
+    type: string
+    description: URL for getting plugins
+    example: https://download.rudder.io/plugins
+  proxyUser:
+    type: string
+    description: if an authenticated proxy is necessary, username of proxy
+    example: proxy_user
+  proxyPassword:
+    type: string
+    description: if an authenticated proxy is necessary, password of the proxy
+    example: some password
+  proxyUrl:
+    type: string
+    description: proxy URL to use
+    example: https://proxy.url

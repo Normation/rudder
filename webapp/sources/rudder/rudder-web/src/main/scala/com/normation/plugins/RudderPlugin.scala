@@ -128,6 +128,30 @@ final case class PluginName(value: String) {
   }
 }
 
+object RudderPluginDef {
+
+  implicit class ToJsonPluginDetails(plugin: RudderPluginDef) {
+    def toJsonPluginDetails: JsonPluginDetails = {
+      val (status, licence, msg) = plugin.status.current match {
+        case PluginStatusInfo.EnabledNoLicense       => (JsonPluginStatus.Enabled, None, None)
+        case PluginStatusInfo.EnabledWithLicense(i)  => (JsonPluginStatus.Enabled, Some(i), None)
+        case PluginStatusInfo.Disabled(msg, None)    => (JsonPluginStatus.Disabled, None, Some(msg))
+        case PluginStatusInfo.Disabled(msg, Some(i)) => (JsonPluginStatus.Disabled, Some(i), Some(msg))
+      }
+      JsonPluginDetails(
+        plugin.id,
+        plugin.name.value,
+        plugin.shortName,
+        plugin.description.toString(),
+        plugin.version.pluginVersion.toVersionStringNoEpoch,
+        status,
+        msg,
+        licence
+      )
+    }
+  }
+}
+
 /**
  * Definition of a rudder plugins
  */
