@@ -39,6 +39,8 @@ package com.normation.utils
 
 import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
+import java.time.ZonedDateTime
+import java.time.ZoneId
 import org.joda.time.DateTime
 import org.joda.time.DateTimeFieldType
 import org.joda.time.Duration
@@ -52,6 +54,18 @@ import scala.util.control.NonFatal
 import zio.json.*
 
 object DateFormaterService {
+
+  implicit class JodaTimeToJava(d: DateTime) {
+    def toJava: ZonedDateTime = ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(d.getMillis), ZoneId.of(d.getZone.getID))
+  }
+
+  object json {
+    implicit val encoderDateTime:      JsonEncoder[DateTime]      = JsonEncoder[String].contramap(serialize)
+    implicit val decoderDateTime:      JsonDecoder[DateTime]      = JsonDecoder[String].mapOrFail(parseDate(_).left.map(_.fullMsg))
+    implicit val encoderZonedDateTime: JsonEncoder[ZonedDateTime] = JsonEncoder[String].contramap(serializeZDT)
+    implicit val decoderZonedDateTime: JsonDecoder[ZonedDateTime] =
+      JsonDecoder[String].mapOrFail(parseDateZDT(_).left.map(_.fullMsg))
+  }
 
   val displayDateFormat: DateTimeFormatter = new DateTimeFormatterBuilder()
     .append(DateTimeFormat.forPattern("YYYY-MM-dd"))
@@ -76,9 +90,19 @@ object DateFormaterService {
    */
   def serialize(datetime: DateTime): String = datetime.toString(ISODateTimeFormat.dateTimeNoMillis)
 
+  def serializeZDT(datetime: ZonedDateTime): String = datetime.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+
   def parseDate(date: String): PureResult[DateTime] = {
     try {
       Right(ISODateTimeFormat.dateTimeNoMillis().parseDateTime(date))
+    } catch {
+      case NonFatal(ex) => Left(Inconsistency(s"String '${date}' can't be parsed as an ISO date/time: ${ex.getMessage}"))
+    }
+  }
+
+  def parseDateZDT(date: String): PureResult[ZonedDateTime] = {
+    try {
+      Right(ZonedDateTime.parse(date, java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME))
     } catch {
       case NonFatal(ex) => Left(Inconsistency(s"String '${date}' can't be parsed as an ISO date/time: ${ex.getMessage}"))
     }

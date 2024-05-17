@@ -38,7 +38,6 @@
 package com.normation.plugins
 
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
-import org.joda.time.DateTime
 
 /**
  * This file defined an entry point for license information and other
@@ -51,22 +50,6 @@ object PluginStatusInfo {
   final case class EnabledWithLicense(i: PluginLicenseInfo)                     extends PluginStatusInfo
   final case class Disabled(reason: String, details: Option[PluginLicenseInfo]) extends PluginStatusInfo
 }
-
-/*
- * This object gives main information about license information.
- * It is destinated to be read to the user. No string information
- * should be used for comparison.
- */
-final case class PluginLicenseInfo(
-    licensee:   String,
-    softwareId: String,
-    minVersion: String,
-    maxVersion: String,
-    startDate:  DateTime,
-    endDate:    DateTime,
-    maxNodes:   Option[Int],
-    others:     Map[String, String]
-)
 
 trait PluginStatus {
 

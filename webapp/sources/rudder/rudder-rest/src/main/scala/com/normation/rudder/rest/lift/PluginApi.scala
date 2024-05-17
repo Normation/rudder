@@ -37,6 +37,9 @@
 
 package com.normation.rudder.rest.lift
 
+import com.normation.errors.IOResult
+import com.normation.plugins.JsonPluginsDetails
+import com.normation.plugins.JsonPluginsDetails.encoderJsonPluginsDetails
 import com.normation.plugins.PluginSettings
 import com.normation.plugins.PluginSettingsService
 import com.normation.rudder.api.ApiVersion
@@ -46,6 +49,7 @@ import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.PluginApi as API
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
+import com.normation.rudder.rest.implicits.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.DefaultFormats
@@ -53,18 +57,27 @@ import net.liftweb.json.Serialization
 
 class PluginApi(
     restExtractorService:  RestExtractorService,
-    pluginSettingsService: PluginSettingsService
+    pluginSettingsService: PluginSettingsService,
+    getPluginDetails:      IOResult[JsonPluginsDetails]
 ) extends LiftApiModuleProvider[API] {
 
   def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
-    API.endpoints.map(e => {
+    API.endpoints.map { e =>
       e match {
+        case API.GetPluginsInfo        => GetPluginInfo
         case API.GetPluginsSettings    => GetPluginSettings
         case API.UpdatePluginsSettings => UpdatePluginSettings
       }
-    })
+    }
+  }
+
+  object GetPluginInfo extends LiftApiModule0 {
+    val schema:                                                                                                API.GetPluginsInfo.type = API.GetPluginsInfo
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse            = {
+      getPluginDetails.toLiftResponseOne(params, schema, _ => None)
+    }
   }
 
   object GetPluginSettings extends LiftApiModule0 {
