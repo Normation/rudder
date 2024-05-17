@@ -1066,9 +1066,9 @@ class InventoryMapper(
               ((opt, key) match {
                 case (Some(agent), key) =>
                   AgentInfoSerialisation
-                    .parseCompatNonJson(agent, key)
+                    .parseJson(agent, key)
                     .chainError(s"Error when parsing agent security token '${agent}'")
-                case (None, key)        =>
+                case (None, _)          =>
                   InventoryMappingRudderError.MissingMandatory("Error when parsing agent security token: agent is undefined").fail
               }).foldZIO(
                 err =>

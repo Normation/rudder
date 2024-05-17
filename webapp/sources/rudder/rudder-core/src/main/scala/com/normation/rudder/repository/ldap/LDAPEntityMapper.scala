@@ -311,8 +311,8 @@ class LDAPEntityMapper(
       agentsName <- {
         val agents = inventoryEntry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_)).toList
         ZIO.foreach(agents.zipAll(keys, None, None)) {
-          case (Some(agent), key) => AgentInfoSerialisation.parseCompatNonJson(agent, key)
-          case (None, key)        =>
+          case (Some(agent), key) => AgentInfoSerialisation.parseJson(agent, key)
+          case (None, _)          =>
             (Err
               .MissingMandatory(
                 s"There was a public key defined for Node ${nodeId.value}," +

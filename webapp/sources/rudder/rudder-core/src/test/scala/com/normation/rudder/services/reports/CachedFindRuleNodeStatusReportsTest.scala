@@ -49,6 +49,7 @@ import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
+import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.NoopFactStorage
 import com.normation.rudder.facts.nodes.NoopGetNodesbySofwareName
@@ -146,9 +147,13 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
 
   val accepted:     Map[NodeId, CoreNodeFact] = nodes.map { case (n, _, _) => n }.toMap
   val nodeFactRepo: CoreNodeFactRepository    = {
+    val testSavePrechecks = Chunk.empty[NodeFact => IOResult[Unit]]
+
     (for {
       t <- DefaultTenantService.make(Nil)
-      r <- CoreNodeFactRepository.make(NoopFactStorage, NoopGetNodesbySofwareName, t, Map(), accepted, Chunk.empty)
+      r <-
+        CoreNodeFactRepository
+          .make(NoopFactStorage, NoopGetNodesbySofwareName, t, Map(), accepted, Chunk.empty, testSavePrechecks)
     } yield r).runNow
   }
 

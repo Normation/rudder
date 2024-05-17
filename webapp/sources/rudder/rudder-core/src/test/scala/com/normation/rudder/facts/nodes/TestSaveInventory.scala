@@ -60,6 +60,7 @@ import com.normation.rudder.inventory.InventoryPair
 import com.normation.rudder.inventory.InventoryProcessor
 import com.normation.rudder.inventory.InventoryProcessStatus
 import com.normation.rudder.inventory.InventoryProcessStatus.Saved
+import com.normation.rudder.inventory.InventoryProcessStatus.SaveError
 import com.normation.rudder.inventory.SaveInventoryInfo
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.utils.DateFormaterService
@@ -162,6 +163,30 @@ class TestSaveInventoryLdap extends TestSaveInventory {
   def asManagedStream(name: String): IOManaged[InputStream] = IOManaged.make(Resource.getAsStream(name))(_.close())
 
   // LINUX
+  "inventory with public key are refused" in {
+    val (res, inv) = (
+      for {
+        res <- inventoryProcessorInternal
+                 .saveInventoryInternal(
+                   SaveInventoryInfo(
+                     "linux-cfe-sign-key",
+                     asManagedStream("certificates/linux-cfe-sign-key.ocs"),
+                     asManagedStream("certificates/linux-cfe-sign-key.ocs.sign"),
+                     exist
+                   )
+                 )
+        inv <- factRepo.get(linuxCert)(QueryContext.testQC)
+      } yield (res, inv)
+    ).runNow
+
+    (res must beLike {
+      case SaveError(_, _, err) =>
+        err.fullMsg must beMatching(""".*Missing security token attribute \(RUDDER/AGENT/AGENT_CERT\) in inventory.*""")
+      case x                    =>
+        ko(s"I was expecting SaveError with a message about missing AGENT_CERT and got: ${x}")
+    }) and
+    (inv must beNone)
+  }
 
   "when a linux node is not in repository, it is ok to have a signature with certificate" in {
     val (res, inv) = (
@@ -454,7 +479,16 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
       callbacks <- Ref.make(Chunk.empty[NodeFactChangeEventCallback])
       tenants   <- DefaultTenantService.make(Nil)
       lock      <- ReentrantLock.make()
-      r          = new CoreNodeFactRepository(factStorage, noopNodeBySoftwareName, tenants, pending, accepted, callbacks, lock)
+      r          = new CoreNodeFactRepository(
+                     factStorage,
+                     noopNodeBySoftwareName,
+                     tenants,
+                     pending,
+                     accepted,
+                     callbacks,
+                     CoreNodeFactRepository.defaultSavePreChecks,
+                     lock
+                   )
       _         <- r.registerChangeCallbackAction(CoreNodeFactChangeEventCallback("trail", e => callbackLog.update(_.appended(e.event))))
 //      _         <- r.registerChangeCallbackAction(new NodeFactChangeEventCallback("log", e => effectUioUnit(println(s"**** ${e.name}"))))
     } yield {
