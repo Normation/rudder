@@ -60,11 +60,16 @@ object DateFormaterService {
   }
 
   object json {
-    implicit val encoderDateTime:      JsonEncoder[DateTime]      = JsonEncoder[String].contramap(serialize)
-    implicit val decoderDateTime:      JsonDecoder[DateTime]      = JsonDecoder[String].mapOrFail(parseDate(_).left.map(_.fullMsg))
+    implicit val encoderDateTime: JsonEncoder[DateTime] = JsonEncoder[String].contramap(serialize)
+    implicit val decoderDateTime: JsonDecoder[DateTime] = JsonDecoder[String].mapOrFail(parseDate(_).left.map(_.fullMsg))
+    implicit val codecDateTime:   JsonCodec[DateTime]   = new JsonCodec[DateTime](encoderDateTime, decoderDateTime)
+
     implicit val encoderZonedDateTime: JsonEncoder[ZonedDateTime] = JsonEncoder[String].contramap(serializeZDT)
     implicit val decoderZonedDateTime: JsonDecoder[ZonedDateTime] =
       JsonDecoder[String].mapOrFail(parseDateZDT(_).left.map(_.fullMsg))
+
+    implicit val codecZonedDateTime: JsonCodec[ZonedDateTime] =
+      new JsonCodec[ZonedDateTime](encoderZonedDateTime, decoderZonedDateTime)
   }
 
   val displayDateFormat: DateTimeFormatter = new DateTimeFormatterBuilder()
@@ -165,11 +170,4 @@ object DateFormaterService {
     .appendFractionOfSecond(3, 9)
     .toFormatter()
 
-  object json {
-    implicit val encoderDateTime: JsonEncoder[DateTime] = JsonEncoder.string.contramap(DateFormaterService.serialize)
-    implicit val decoderDateTime: JsonDecoder[DateTime] =
-      JsonDecoder.string.mapOrFail(d => DateFormaterService.parseDate(d).left.map(_.fullMsg))
-
-    implicit val codecDateTime: JsonCodec[DateTime] = new JsonCodec[DateTime](encoderDateTime, decoderDateTime)
-  }
 }
