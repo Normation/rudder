@@ -11,7 +11,7 @@ properties:
     description: username to use for Rudder account
     example: Customer Inc
   password:
-    type:
+    type: string
     description: password to access Rudder account
     example: some password
   url:
