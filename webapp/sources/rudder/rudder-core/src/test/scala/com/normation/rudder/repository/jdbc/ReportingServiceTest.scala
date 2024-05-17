@@ -52,6 +52,7 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
+import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.NoopFactStorage
 import com.normation.rudder.facts.nodes.NoopGetNodesbySofwareName
@@ -121,9 +122,13 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       build("n4", Some(PolicyMode.Audit))
     ).toMap
 
+    val testSavePrechecks = Chunk.empty[NodeFact => IOResult[Unit]]
+
     (for {
       t <- DefaultTenantService.make(Nil)
-      r <- CoreNodeFactRepository.make(NoopFactStorage, NoopGetNodesbySofwareName, t, Map(), accepted, Chunk.empty)
+      r <-
+        CoreNodeFactRepository
+          .make(NoopFactStorage, NoopGetNodesbySofwareName, t, Map(), accepted, Chunk.empty, testSavePrechecks)
     } yield r).runNow
   }
 

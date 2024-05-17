@@ -153,17 +153,16 @@ object AgentType extends Enum[AgentType] {
 final case class AgentVersion(value: String) extends AnyVal
 
 final case class AgentInfo(
-    agentType:     AgentType,     // for now, the version must be an option, because we don't add it in the inventory
+    agentType:     AgentType,
+    // for now, the version must be an option, because we don't add it in the inventory
     // and must try to find it from packages
-
     version:       Option[AgentVersion],
-    securityToken: SecurityToken, // agent capabilties are lower case string used as tags giving information about what agent can do
-
-    capabilities: Set[AgentCapability]
+    securityToken: SecurityToken,
+    // agent capabilities are lower case string used as tags giving information about what agent can do
+    capabilities:  Set[AgentCapability]
 )
 
 object AgentInfoSerialisation {
-  import com.normation.inventory.domain.AgentType.*
   import net.liftweb.json.*
   import net.liftweb.json.JsonDSL.*
 
@@ -197,42 +196,27 @@ object AgentInfoSerialisation {
     def error(kind: String) =
       s"""Bad value defined for security token. Expected format is: "securityToken: {"type":"${kind}","value":"...."} """
 
-    agentType match {
-      case Dsc =>
-        tokenJson \ "type" match {
-          case JString(Certificate.kind) =>
-            extractValue(tokenJson) match {
-              case Some(token) => Right(Certificate(token))
-              case None        => Left(InventoryError.SecurityToken(error(Certificate.kind)))
-            }
-          case JString(PublicKey.kind)   =>
-            Left(InventoryError.SecurityToken("Cannot have a public Key for dsc agent, only a certificate is valid"))
-          case JNothing                  => Left(InventoryError.SecurityToken(error(Certificate.kind)))
-          case invalidJson               =>
-            Left(InventoryError.SecurityToken(s"Invalid value for security token, ${compactRender(invalidJson)}"))
+    tokenJson \ "type" match {
+      case JString(Certificate.kind) =>
+        extractValue(tokenJson) match {
+          case Some(token) => Right(Certificate(token))
+          case None        => Left(InventoryError.SecurityToken(error(Certificate.kind)))
         }
-      case _   =>
-        tokenJson \ "type" match {
-          case JString(Certificate.kind) =>
-            extractValue(tokenJson) match {
-              case Some(token) => Right(Certificate(token))
-              case None        => Left(InventoryError.SecurityToken(error(Certificate.kind)))
+      case JString(PublicKey.kind)   =>
+        Left(
+          InventoryError.SecurityToken(
+            "since Rudder 7.0, public key are not supported anymore for agent authentication: please use a certificate"
+          )
+        )
+      case invalidJson               =>
+        tokenDefault match {
+          case Some(default) => Right(PublicKey(default))
+          case None          =>
+            val error = invalidJson match {
+              case JNothing => "no value define for security token"
+              case x        => compactRender(invalidJson)
             }
-          case JString(PublicKey.kind)   =>
-            extractValue(tokenJson) match {
-              case Some(token) => Right(PublicKey(token))
-              case None        => Left(InventoryError.SecurityToken(error(PublicKey.kind)))
-            }
-          case invalidJson               =>
-            tokenDefault match {
-              case Some(default) => Right(PublicKey(default))
-              case None          =>
-                val error = invalidJson match {
-                  case JNothing => "no value define for security token"
-                  case x        => compactRender(invalidJson)
-                }
-                Left(InventoryError.SecurityToken(s"Invalid value for security token: ${error}, and no public key were stored"))
-            }
+            Left(InventoryError.SecurityToken(s"Invalid value for security token: ${error}, and no public key were stored"))
         }
     }
   }
@@ -277,31 +261,6 @@ object AgentInfoSerialisation {
                       })
     } yield {
       AgentInfo(agentType, agentVersion, token, capabilities.toSet)
-    }
-  }
-
-  /*
-   * Parsing agent must be done in two steps for compat with old versions:
-   * - try to parse in json: if ok, we have the new version
-   * - else, try to parse in old format, put None to version and empty capabilities
-   */
-  def parseCompatNonJson(s: String, optToken: Option[String]): IOResult[AgentInfo] = {
-    parseJson(s, optToken).catchAll { eb =>
-      val jsonError = "Error when parsing JSON information about the agent type: " + eb.msg
-      for {
-        agentType <- AgentType
-                       .fromValue(s)
-                       .toIO
-                       .chainError(
-                         s"Error when mapping '${s}' to an agent info. We are expecting either " +
-                         s"an agentType with allowed values in ${AgentType.values.mkString(", ")}" +
-                         s" or " +
-                         s"a json like {'agentType': type, 'version': opt_version, 'securityToken': ...} but we get: ${jsonError}"
-                       )
-        token     <- ZIO.fromEither(parseSecurityToken(agentType, JNothing, optToken))
-      } yield {
-        AgentInfo(agentType, None, token, Set())
-      }
     }
   }
 }

@@ -914,7 +914,15 @@ class LdapNodeFactStorage(
       .fromZIO(getNodeIds(baseDN))
       .tap(ids => NodeLoggerPure.Metrics.debug(s"Getting ${ids.size} nodes}"))
       .flatMap(ids => ZStream.fromIterable(ids))
-      .mapZIO(getOne)
+      // here, we don't want that failing to get one node lead to the failure of the whole getAll. The semantic is
+      // "continue, but loudly tells ops that something is wrong"
+      .mapZIO(id => {
+        getOne(id).catchAll { err =>
+          NodeLoggerPure.error(
+            s"Unable to retrieve node with id '${id.value}' from LDAP storage. It will be ignored. Reason: ${err.fullMsg}"
+          ) *> None.succeed
+        }
+      })
       .flatMap(ZStream.fromIterable(_))
   }
 
