@@ -474,6 +474,8 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
       });
     }).on("after_open.jstree", function (event, data){
       attachInlinedEvents(id)
+    }).on("redraw.jstree", function (event, data){
+      attachInlinedEvents(id)
     }).jstree({
       "core" : {
         "animation" : 150,
