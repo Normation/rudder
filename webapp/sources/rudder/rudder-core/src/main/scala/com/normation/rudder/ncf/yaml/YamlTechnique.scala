@@ -48,6 +48,7 @@ import com.normation.errors.PureResult
 import com.normation.inventory.domain.Version
 import com.normation.rudder.ncf.*
 import zio.json.*
+import zio.json.ast.Json
 import zio.json.yaml.*
 
 /*
@@ -62,7 +63,7 @@ case class Technique(
     version:       Version,
     description:   Option[String],
     documentation: Option[String],
-    tags:          Option[Map[String, String]],
+    tags:          Option[Map[String, Json]],
     category:      Option[String],
     params:        Option[List[TechniqueParameter]],
     items:         List[MethodItem]
@@ -74,7 +75,7 @@ case class MethodItem(
     name:      String,
     reporting: Option[Reporting],
     condition: Option[String],
-    tags:      Option[Map[String, String]],
+    tags:      Option[Map[String, Json]],
     // Call specific fields
     method:    Option[String],
     params:    Option[Map[ParameterId, String]],
