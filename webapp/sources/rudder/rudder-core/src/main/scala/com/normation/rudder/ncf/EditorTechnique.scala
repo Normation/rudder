@@ -52,6 +52,7 @@ import com.normation.rudder.ncf.Constraint.Constraint
 import java.util.regex.Pattern
 import zio.ZIO
 import zio.json.SnakeCase
+import zio.json.ast.Json
 import zio.json.jsonDiscriminator
 import zio.json.jsonHint
 import zio.json.jsonMemberNames
@@ -105,7 +106,7 @@ final case class EditorTechnique(
     documentation: String,
     parameters:    Seq[TechniqueParameter],
     resources:     Seq[ResourceFile],
-    tags:          Map[String, String],
+    tags:          Map[String, Json],
     internalId:    Option[String]
 ) {
   val path: String = s"techniques/${category}/${id.value}/${version.value}"
