@@ -12,7 +12,8 @@ import UserManagement.Init exposing (init, subscriptions)
 import UserManagement.View exposing (view)
 
 port successNotification : String -> Cmd msg
-port errorNotification :   String -> Cmd msg
+port errorNotification   : String -> Cmd msg
+port initTooltips        : String -> Cmd msg
 
 main =
     Browser.element
@@ -64,7 +65,7 @@ update msg model =
                         newModel =
                             { model | rolesConf = roles , roles = fromList recordRole}
                     in
-                    ( newModel, Cmd.none )
+                    ( newModel, initTooltips "" )
 
                 Err err ->
                     processApiError err model
@@ -310,6 +311,12 @@ update msg model =
             in
                 ({model | ui = newUI, userForm = newUserForm}, Cmd.none)
 
+        UpdateTableFilters tableFilters ->
+            let
+                ui = model.ui
+            in
+                ({model | ui = {ui | tableFilters = tableFilters}}, Cmd.none)
+
 processApiError : Error -> Model -> ( Model, Cmd Msg )
 processApiError _ model =
     let
@@ -334,7 +341,7 @@ resetFormPanel model panelMode =
                     else
                         { name = user.name, email = user.email, otherInfo = user.otherInfo }
                 _ -> { name = "", email = "", otherInfo = Dict.empty }
-        newUI = { panelMode = panelMode, openDeleteModal = False }
+        newUI = { panelMode = panelMode, openDeleteModal = False, tableFilters = model.ui.tableFilters}
         newUserInfoForm = 
             { name = newFields.name
             , email = newFields.email

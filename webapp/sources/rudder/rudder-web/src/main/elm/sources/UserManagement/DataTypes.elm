@@ -188,9 +188,31 @@ type alias Model =
     , providersProperties: Dict String ProviderProperties
     }
 
+type SortOrder
+    = Asc
+    | Desc
+
+
+type SortBy
+    = UserLogin
+    | Name
+    | Rights
+    | Providers
+    | Tenants
+    | PreviousLogin
+
+
+type alias TableFilters =
+    { sortBy : SortBy
+    , sortOrder : SortOrder
+    , filter : String
+    }
+
+
 type alias UI = 
     { panelMode : PanelMode
     , openDeleteModal : Bool
+    , tableFilters : TableFilters
     }
 
 
@@ -230,6 +252,7 @@ type Msg
     | AddPasswdAnyway
     | OpenDeleteModal String
     | CloseDeleteModal
+    | UpdateTableFilters TableFilters
 
 
 mergeUserNewInfo : UserForm -> UserInfoForm
