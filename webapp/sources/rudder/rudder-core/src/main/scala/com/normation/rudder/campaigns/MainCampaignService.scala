@@ -421,7 +421,7 @@ object MainCampaignScheduler {
 
   def nextCampaignDate(schedule: CampaignSchedule, date: DateTime): IOResult[Option[(DateTime, DateTime)]] = {
     schedule match {
-      case OneShot(start, end)        =>
+      case OneShot(start, end) =>
         if (start.isBefore(end)) {
           if (end.isAfter(date)) {
             Some((start, end)).succeed
@@ -433,6 +433,31 @@ object MainCampaignScheduler {
           Inconsistency(s"Cannot schedule a one shot event if end (${DateFormaterService
               .getDisplayDate(end)}) date is before start date (${DateFormaterService.getDisplayDate(start)})").fail
         }
+
+      case Daily(start, end) =>
+        val startDate = (if (
+                           date.getHourOfDay() > start.realHour || (date.getHourOfDay() == start.realHour && date
+                             .getMinuteOfHour() > start.realMinute)
+                         ) {
+                           date.plusDays(1)
+                         } else {
+                           date
+                         })
+          .withHourOfDay(start.realHour)
+          .withMinuteOfHour(start.realMinute)
+          .withSecondOfMinute(0)
+          .withMillisOfSecond(0)
+
+        val endDate = {
+          (if (end.realHour < start.realHour || (end.realHour == start.realHour && end.realMinute < start.realMinute)) {
+             startDate.plusDays(1)
+           } else {
+             startDate
+           }).withHourOfDay(end.realHour).withMinuteOfHour(end.realMinute).withSecondOfMinute(0).withMillisOfSecond(0)
+        }
+
+        Some((startDate, endDate)).succeed
+
       case WeeklySchedule(start, end) =>
         val startDate = nextDateFromDayTime(date, start)
         val endDate   = nextDateFromDayTime(startDate, end)

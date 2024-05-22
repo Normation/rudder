@@ -27,6 +27,7 @@ properties:
           - $ref: './campaign-status-archived.yml'
       schedule:
         oneOf:
+          - $ref: './campaign-schedule-daily.yml'
           - $ref: './campaign-schedule-weekly.yml'
           - $ref: './campaign-schedule-oneshot.yml'
           - $ref: './campaign-schedule-monthly.yml'
