@@ -1,7 +1,7 @@
 module Groups.ApiCalls exposing (..)
 
 import Url.Builder exposing (string, QueryParameter)
-import Http exposing (emptyBody, expectJson, request)
+import Http exposing (emptyBody, expectJson, request, header)
 
 import Groups.DataTypes exposing (..)
 import Groups.JsonDecoder exposing (..)
@@ -20,9 +20,8 @@ getGroupsCompliance keepGroups groupIds model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "compliance", "summary", "groups"] [string "groups" (String.join "," (List.map (.value) groupIds))]
-
         , body    = emptyBody
         , expect  = expectJson (GetGroupsComplianceResult keepGroups) decodeGetGroupsCompliance
         , timeout = Nothing
@@ -37,10 +36,10 @@ getGroupsTree model chainInitTable =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model ["groupsinternal", "categorytree"] []
         , body    = emptyBody
-        , expect  = expectJson (\r -> GetGroupsTreeResult r chainInitTable) decodeGetGroupsTree 
+        , expect  = expectJson (\r -> GetGroupsTreeResult r chainInitTable) decodeGetGroupsTree
         , timeout = Nothing
         , tracker = Nothing
         }

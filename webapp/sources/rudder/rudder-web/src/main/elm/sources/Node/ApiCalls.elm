@@ -22,7 +22,7 @@ getScoreDetails model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model ["nodes" , model.nodeId.value, "score" , "details"] []
         , body    = emptyBody
         , expect  = expectJson GetScoreDetails decodeGetDetails
@@ -39,7 +39,7 @@ getScoreInfo model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model url []
         , body    = emptyBody
         , expect  = expectJson GetScoreInfo decodeGetInfo

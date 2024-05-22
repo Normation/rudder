@@ -21,7 +21,7 @@ getPolicyMode model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "settings", "global_policy_mode" ] []
         , body    = emptyBody
         , expect  = expectJson GetPolicyModeResult decodeGetPolicyMode
@@ -37,7 +37,7 @@ getGlobalGroupCompliance model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "compliance", "groups", model.groupId.value ] []
         , body    = emptyBody
         , expect  = expectJson GetGroupComplianceResult decodeGetGroupCompliance
@@ -53,7 +53,7 @@ getTargetedGroupCompliance model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "compliance", "groups", model.groupId.value, "target" ] []
         , body    = emptyBody
         , expect  = expectJson GetGroupComplianceResult decodeGetGroupCompliance

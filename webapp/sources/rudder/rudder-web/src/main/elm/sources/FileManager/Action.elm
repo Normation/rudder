@@ -19,7 +19,7 @@ get :  String -> Decoder a -> (Result Http.Error a -> msg) -> Cmd msg
 get url decoder handler =
   request
     { method = "GET"
-    , headers = []
+    , headers = [header "X-Requested-With" "XMLHttpRequest"]
     , url = url
     , body = emptyBody
     , expect = expectJson handler decoder
@@ -31,7 +31,7 @@ post :  String -> Body -> Decoder a -> (Result Http.Error a -> msg) -> Cmd msg
 post  url body decoder handler =
   request
     { method = "POST"
-    , headers = []
+    , headers = [header "X-Requested-With" "XMLHttpRequest"]
     , url = url
     , body = body
     , expect = expectJson handler decoder
@@ -43,7 +43,7 @@ upload : String -> String -> File -> Cmd Msg
 upload api dir file =
   request
     { method = "POST"
-    , headers = []
+    , headers = [header "X-Requested-With" "XMLHttpRequest"]
     , url = api
     , body = Http.multipartBody [ Http.stringPart "destination" dir, Http.filePart "file" file ]
     , expect = Http.expectWhatever Uploaded

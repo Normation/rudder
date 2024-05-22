@@ -25,7 +25,7 @@ getCompletionTags model completion =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model param []
         , body    = emptyBody
         , expect  = expectJson (GetCompletionTags completion) decodeCompletionTags

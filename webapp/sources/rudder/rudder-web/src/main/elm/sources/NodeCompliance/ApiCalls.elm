@@ -21,7 +21,7 @@ getPolicyMode model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "settings", "global_policy_mode" ] []
         , body    = emptyBody
         , expect  = expectJson GetPolicyModeResult decodeGetPolicyMode
@@ -38,7 +38,7 @@ getNodeCompliance model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model url []
         , body    = emptyBody
         , expect  = expectJson GetNodeComplianceResult decodeGetNodeCompliance

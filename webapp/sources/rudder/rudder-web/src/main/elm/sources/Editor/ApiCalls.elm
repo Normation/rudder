@@ -41,7 +41,7 @@ getTechniques  model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model "techniques"
         , body    = emptyBody
         , expect  = Detailed.expectJson GetTechniques ( Json.Decode.at ["data", "techniques" ] (Json.Decode.map (List.filterMap identity) (Json.Decode.list (decodeTechniqueMaybe))))
@@ -58,7 +58,7 @@ getTechniqueYaml  model technique =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model "techniques/"++technique.id.value++"/"++technique.version++"?format=yaml"
         , body    = emptyBody
         , expect  = Detailed.expectJson GetYaml ( Json.Decode.at ["data", "techniques" ] (headList  (Json.Decode.list (Json.Decode.at ["content"] Json.Decode.string))))
@@ -81,7 +81,7 @@ checkTechnique mode model =
     req =
       request
         { method  = "POST"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model "techniques/check?input="++input++"&output="++output
         , body    =  body
         , expect  = expect
@@ -96,7 +96,7 @@ getTechniquesCategories model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model "techniques/categories"
         , body    = emptyBody
         , expect  = Detailed.expectJson GetCategories ( Json.Decode.at ["data", "techniqueCategories" ] ( decodeCategory))
@@ -112,7 +112,7 @@ getMethods  model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model "methods"
         , body    = emptyBody
         , expect  = Detailed.expectJson GetMethods ( Json.Decode.at ["data", "methods" ] ( Json.Decode.map (Dict.fromList) (Json.Decode.keyValuePairs decodeMethod) ))
@@ -132,7 +132,7 @@ saveTechnique  technique creation internalId model  =
     req =
       request
         { method  = if creation then "PUT" else "POST"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model "techniques" ++ (if creation then "" else "/"++technique.id.value++"/"++technique.version)
         , body    = encoder |> jsonBody
         , expect  = Detailed.expectJson SaveTechnique ( Json.Decode.at ["data", "techniques" ] ( list decodeTechnique ) |> headList)
@@ -149,7 +149,7 @@ deleteTechnique  technique model =
     req =
       request
         { method  = "DELETE"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model "techniques/" ++ technique.id.value ++ "/" ++ technique.version
         , body    = emptyBody
         , expect  = Detailed.expectJson DeleteTechnique ( Json.Decode.at ["data", "techniques" ] ( decodeDeleteTechniqueResponse ))
@@ -169,7 +169,7 @@ getRessources state model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model url
         , body    = emptyBody
         , expect  = Detailed.expectJson GetTechniqueResources ( Json.Decode.at ["data", "resources" ] ( Json.Decode.list decodeResource ))
@@ -188,7 +188,7 @@ copyResourcesToDraft draftId technique optId model =
     req =
       request
         { method  = "POST"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = url
         , body    = emptyBody
         , expect  = Detailed.expectWhatever CopyResources

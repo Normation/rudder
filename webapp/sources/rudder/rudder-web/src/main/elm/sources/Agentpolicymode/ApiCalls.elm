@@ -22,7 +22,7 @@ getGlobalPolicyMode model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "settings", "global_policy_mode" ] []
         , body    = emptyBody
         , expect  = expectJson GetGlobalPolicyModeResult decodeGetPolicyMode
@@ -38,7 +38,7 @@ getPolicyModeOverridable model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "settings", "global_policy_mode_overridable" ] []
         , body    = emptyBody
         , expect  = expectJson GetPolicyModeOverridableResult decodeGetPolicyModeOverridable
@@ -54,7 +54,7 @@ getNodePolicyMode model nodeId =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "nodes", nodeId ] []
         , body    = emptyBody
         , expect  = expectJson GetNodePolicyModeResult decodeGetNodeDetails
@@ -73,7 +73,7 @@ saveChanges model =
     req =
       request
         { method  = "POST"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model url []
         , body    = encodeSettings model.selectedSettings |> jsonBody
         , expect  = expectJson SaveChanges decoder

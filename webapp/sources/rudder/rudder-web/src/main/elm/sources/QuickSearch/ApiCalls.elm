@@ -1,7 +1,7 @@
 module QuickSearch.ApiCalls exposing (..)
 
 
-import Http exposing (get)
+import Http exposing (request, header, emptyBody)
 import Http.Detailed as Detailed
 import Json.Decode exposing (at, list)
 import QuickSearch.Datatypes exposing (..)
@@ -23,9 +23,14 @@ getSearchResult : Model -> String -> Cmd Msg
 getSearchResult model search =
   let
     req =
-      get
-        { url     = getUrl model search
+      request
+        { method  = "GET"
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
+        , url     = getUrl model search
+        , body    = emptyBody
         , expect  = Detailed.expectJson GetResults (at ["data"] (list decoderResult))
+        , timeout = Nothing
+        , tracker = Nothing
         }
   in
     req
