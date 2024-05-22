@@ -11,12 +11,11 @@ allow = [
     "GPL-3.0",
     "Unicode-DFS-2016",
     "BSD-3-Clause",
+    "BSL-1.0",
 ]
 
 [advisories]
 ignore = [
-    # A DoS in h2
-    "RUSTSEC-2024-0332",
 ]
 
 [bans]
