@@ -313,7 +313,7 @@ modalDelete model =
       [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
       , div [ class "modal-dialog" ]
         [ div [ class "modal-content" ]
-          [ div [ class "modal-header ng-scope" ]
+          [ div [ class "modal-header" ]
             [ h5 [ class "modal-title" ] [ text "Delete property"]
             , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
             ]

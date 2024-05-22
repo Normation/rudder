@@ -48,7 +48,7 @@ view model =
 
                                   else
                                     text ""
-                                , button [ class "btn btn-success new-icon", onClick (ToggleEditPopup NewAccount), attribute "data-bs-target" ("#" ++ accountsModalId), attribute "data-bs-toggle" "modal" ] [ text "Create an account" ]
+                                , button [ class "btn btn-success new-icon", onClick (ToggleEditPopup NewAccount) ] [ text "Create an account" ]
                                 , div [ class "main-table" ]
                                     [ div [ class "table-container" ]
                                         [ div [ class "dataTables_wrapper_top table-filter" ]
@@ -102,5 +102,5 @@ view model =
                     ]
                 ]
             ]
-        , displayModals model
+        , displayModal model
         ]
