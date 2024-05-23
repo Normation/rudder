@@ -720,7 +720,14 @@ class Boot extends Loggable {
       ) /
       "secure" / "utilities" / "index"
       >> LocGroup("utilitiesGroup")
-      >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Administration.Read, AuthorizationType.Deployer.Read, AuthorizationType.Validator.Read))).submenus(
+      >> TestAccess(() => {
+        userIsAllowed(
+          "/secure/index",
+          AuthorizationType.Administration.Read,
+          AuthorizationType.Deployer.Read,
+          AuthorizationType.Validator.Read
+        )
+      })).submenus(
         Menu("610-archives", <span>Archives</span>) /
         "secure" / "utilities" / "archiveManagement"
         >> LocGroup("utilitiesGroup")
