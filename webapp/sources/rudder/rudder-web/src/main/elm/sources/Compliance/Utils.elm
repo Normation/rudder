@@ -305,7 +305,7 @@ filterCompliance complianceDetails complianceFilters =
       ]
 
     statuses = if List.isEmpty complianceFilters.selectedStatus then
-                 allStatuses
+                 []
                else
                  if complianceFilters.showOnlyStatus then
                    List.filter (\s -> not (List.member s complianceFilters.selectedStatus )) allStatuses
