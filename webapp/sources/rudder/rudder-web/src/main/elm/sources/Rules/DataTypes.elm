@@ -320,6 +320,7 @@ type alias UI =
     , complianceFilters : ComplianceFilters
     , modal : ModalState
     , hasWriteRights : Bool
+    , canReadChanqeRequest : Bool
     , loadingRules : Bool
     , isAllCatFold : Bool
     , saving : Bool
