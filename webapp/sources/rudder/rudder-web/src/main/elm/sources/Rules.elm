@@ -9,6 +9,7 @@ import Result
 import List.Extra
 import Maybe.Extra exposing (isNothing)
 import Random
+import Rules.ChangeRequest exposing (initCrSettings)
 import UUID
 import Json.Encode exposing (..)
 
@@ -94,29 +95,83 @@ update msg model =
         Err err ->
           processApiError "Getting Policy Mode" err model
 
-    GetChangeRequestSettings res ->
+    GetEnableChangeMsg res ->
       case res of
-        Ok settings ->
+        Ok setting ->
           let
             ui = model.ui
-            getPendingCR = case (model.mode, settings.enableChangeRequest) of
+            initCr = initCrSettings
+            settings = case model.ui.crSettings of
+              Just s -> Just {s | enableChangeMessage = setting}
+              Nothing -> Just {initCr | enableChangeMessage = setting}
+          in
+            ( { model | ui = { ui | crSettings = settings } }
+              , Cmd.none
+            )
+        Err err ->
+          processApiError "Getting change request settings `enable_change_message`" err model
+
+    GetMandatoryMsg res ->
+      case res of
+        Ok setting ->
+          let
+            ui = model.ui
+            initCr = initCrSettings
+            settings = case model.ui.crSettings of
+              Just s -> Just {s | mandatoryChangeMessage = setting}
+              Nothing -> Just {initCr | mandatoryChangeMessage = setting}
+          in
+            ( { model | ui = { ui | crSettings = settings } }
+              , Cmd.none
+            )
+        Err err ->
+          processApiError "Getting change request settings `mandatory_change_message`" err model
+
+    GetMsgPrompt res ->
+      case res of
+        Ok setting ->
+          let
+            ui = model.ui
+            crSettings = ui.crSettings
+            initCr = initCrSettings
+            settings = case model.ui.crSettings of
+              Just s -> Just {s | changeMessagePrompt = setting}
+              Nothing -> Just {initCr | changeMessagePrompt = setting}
+          in
+            ( { model | ui = { ui | crSettings = settings } }
+              , Cmd.none
+            )
+        Err err ->
+          processApiError "Getting change request settings `change_message_prompt`" err model
+
+    GetEnableCr res ->
+      case res of
+        Ok settingEnabledCR ->
+          let
+            ui = model.ui
+            getPendingCR = case (model.mode, settingEnabledCR) of
               (RuleForm details, True) -> getPendingChangeRequests model details.rule.id
               _ -> Cmd.none
+            initCr = initCrSettings
+            settings = case model.ui.crSettings of
+              Just s -> Just {s | enableChangeRequest = settingEnabledCR}
+              Nothing -> Just {initCr | enableChangeRequest = settingEnabledCR}
           in
-            ( { model | ui = { ui | crSettings = Just settings } }
+            ( { model | ui = { ui | crSettings = settings } }
               , getPendingCR
             )
         Err err ->
-          processApiError "Getting change request settings" err model
+          processApiError "Getting change request settings `enable_change_request`" err model
 
     GetPendingChangeRequests res ->
       case res of
         Ok cr ->
           let
             ui = model.ui
+            initCr = initCrSettings
             newUi = case ui.crSettings of
               Just settings -> { ui | crSettings = Just { settings | pendingChangeRequests = cr } }
-              Nothing -> ui
+              Nothing -> { ui | crSettings = Just { initCr | pendingChangeRequests = cr } }
           in
             ( { model | ui = newUi } , Cmd.none )
         Err err ->

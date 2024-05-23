@@ -200,8 +200,11 @@ object AuthorizationApiMapping {
         case Rule.Read  =>
           RuleApi.ListRules.x :: RuleApi.RuleDetails.x :: RuleApi.GetRuleTree.x ::
           RuleApi.GetRuleCategoryDetails.x :: RuleInternalApi.GetRuleNodesAndDirectives.x ::
-          RuleInternalApi.GetGroupRelatedRules.x ::
-          Nil
+          AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("enable_change_message") :: Nil) ::
+          AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("enable_change_request") :: Nil) ::
+          AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("enable_self_deployment") :: Nil) ::
+          AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("enable_self_validation") :: Nil) ::
+          AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("enable_validate_all") :: Nil) :: Nil
         case Rule.Write =>
           RuleApi.CreateRule.x :: RuleApi.DeleteRule.x :: RuleApi.CreateRuleCategory.x ::
           RuleApi.DeleteRuleCategory.x :: RuleApi.LoadRuleRevisionForGeneration.x :: RuleApi.UnloadRuleRevisionForGeneration.x ::
@@ -225,7 +228,15 @@ object AuthorizationApiMapping {
         case UserAccount.Write => UserApi.CreateApiToken.x :: UserApi.DeleteApiToken.x :: Nil
         case UserAccount.Edit  => UserApi.UpdateApiToken.x :: Nil
 
-        case Validator.Read  => Nil // ChangeRequestApi.ListChangeRequests.x :: ChangeRequestApi.ChangeRequestsDetails.x :: Nil
+        case Validator.Read =>
+          AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("enable_change_message") :: Nil) ::
+          AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("mandatory_change_message") :: Nil) ::
+          AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("change_message_prompt") :: Nil) ::
+          AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("enable_change_request") :: Nil) ::
+          AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("enable_self_deployment") :: Nil) ::
+          AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("enable_self_validation") :: Nil) ::
+          AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("enable_validate_all") :: Nil) :: Nil
+
         case Validator.Write =>
           Nil // ChangeRequestApi.DeclineRequestsDetails.x :: ChangeRequestApi.AcceptRequestsDetails.x :: Nil
         case Validator.Edit  => Nil // ChangeRequestApi.UpdateRequestsDetails.x :: Nil
