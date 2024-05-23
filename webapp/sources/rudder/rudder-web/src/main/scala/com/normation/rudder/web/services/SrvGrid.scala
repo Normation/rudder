@@ -127,9 +127,10 @@ class SrvGrid(
       additionalJs: Option[JsCmd]
   ): JsCmd = {
 
-    val nodeIds = nodes.map(nodes => JsArray(nodes.map(n => Str(n.id.value)).toList).toJsCmd).getOrElse("undefined")
+    val scoreNames = JsArray(scoreService.getAvailableScore().map(_.map(s => JsObj(("id", s._1), ("name", s._2)))).runNow)
+    val nodeIds    = nodes.map(nodes => JsArray(nodes.map(n => Str(n.id.value)).toList).toJsCmd).getOrElse("undefined")
     JsRaw(s"""nodeIds = ${nodeIds};
-             | createNodeTable("${tableId}",function() {reloadTable("${tableId}")} );
+             | createNodeTable("${tableId}",function() {reloadTable("${tableId}")}, ${scoreNames.toJsCmd});
                    """.stripMargin) & (additionalJs.getOrElse(Noop))
   }
 
