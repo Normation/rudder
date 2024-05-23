@@ -28,6 +28,27 @@ type alias ChangeRequestSettings =
   , collapsePending        : Bool
   }
 
+initCrSettings : ChangeRequestSettings
+initCrSettings =
+  ChangeRequestSettings False False "" False "" "" False [] False
+
+
+decodeGetEnableChangeMsg : Decoder Bool
+decodeGetEnableChangeMsg =
+  at ["data", "settings", "enable_change_message" ] bool
+
+decodeGetMandatoryMsg : Decoder Bool
+decodeGetMandatoryMsg =
+  at ["data", "settings", "mandatory_change_message" ] bool
+
+decodeGetMsgPrompt : Decoder String
+decodeGetMsgPrompt =
+  at ["data", "settings", "change_message_prompt" ] string
+
+decodeGetEnableCr : Decoder Bool
+decodeGetEnableCr =
+  at ["data", "settings", "enable_change_request" ] bool
+
 decodeGetChangeRequestSettings : Decoder ChangeRequestSettings
 decodeGetChangeRequestSettings =
   at ["data", "settings" ] decodeChangeRequestSettings
