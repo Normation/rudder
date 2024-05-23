@@ -714,20 +714,13 @@ class Boot extends Loggable {
     def utilitiesMenu = {
       // if we can't get the workflow property, default to false
       // (don't give rights if you don't know)
-      def workflowEnabled = RudderConfig.configService.rudder_workflow_enabled().either.runNow.getOrElse(false)
-      (Menu(MenuUtils.utilitiesMenu, <i class="fa fa-wrench"></i> ++ <span>Utilities</span>: NodeSeq) /
-      "secure" / "utilities" / "index" >>
-      TestAccess(() => {
-        if (
-          (workflowEnabled && (CurrentUser.checkRights(AuthorizationType.Validator.Read) || CurrentUser
-            .checkRights(AuthorizationType.Deployer.Read))) || CurrentUser
-            .checkRights(AuthorizationType.Administration.Read) || CurrentUser.checkRights(AuthorizationType.Technique.Read)
-        ) {
-          Empty
-        } else {
-          Full(RedirectWithState("/secure/index", redirection))
-        }
-      })).submenus(
+      (Menu(
+        MenuUtils.utilitiesMenu,
+        <i class="fa fa-wrench"></i> ++ <span>Utilities</span>: NodeSeq
+      ) /
+      "secure" / "utilities" / "index"
+      >> LocGroup("utilitiesGroup")
+      >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Administration.Read, AuthorizationType.Deployer.Read, AuthorizationType.Validator.Read))).submenus(
         Menu("610-archives", <span>Archives</span>) /
         "secure" / "utilities" / "archiveManagement"
         >> LocGroup("utilitiesGroup")
