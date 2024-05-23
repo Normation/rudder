@@ -42,7 +42,8 @@ var recentChangesCount = {};
 var inventories = {};
 var recentGraphs = {};
 var nodeIds = undefined;
-var scoreList = [];
+
+
 /* Create an array with the values of all the checkboxes in a column */
 $.fn.dataTable.ext.order['dom-checkbox'] = function  ( settings, col )
 {
@@ -50,6 +51,11 @@ $.fn.dataTable.ext.order['dom-checkbox'] = function  ( settings, col )
         return $('input', td).prop('checked') ? '0' : '1';
     } );
 }
+
+// This function allows to compare sorted arrays, which javascript cannot do naturally ...
+const equalsCheck = (a, b) =>
+    a.length === b.length &&
+    a.every((v, i) => v === b[i]);
 
 /*
  * This function is used to resort a table after its sorting data were changed ( like sorting function below)
@@ -629,7 +635,7 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
  * (for example when we get reports for the wrong configuration id).
  *
  * The parameters are the same than for the above "createRuleComplianceTable"
- * method, and more preciselly, the whole implementation is a simplified
+ * method, and more precisely, the whole implementation is a simplified
  * version of that method, where only the first(s) column are kept.
  *
  */
@@ -1183,12 +1189,9 @@ var allColumns = {
                  , "createdCell" :
                    function (nTd, sData, oData, iRow, iCol) {
                      $(nTd).empty();
-
                      var score = oData.score.score;
-
                      var content = $("<span class=\"badge-compliance-score "+score+" xs sm\"></span>");
                      $(nTd).prepend( content )
-
                    }
                  }
   , "Score details" :
@@ -1357,7 +1360,8 @@ function reloadTable(gridId) {
   createNodeTable(gridId, function(){reloadTable(gridId)})
 }
 
-function createNodeTable(gridId, refresh) {
+function createNodeTable(gridId, refresh, scores) {
+  scoreList = scores
   var isResizing = false,
     hasHandle = $('#drag').length > 0,
     offsetBottom = 250;
@@ -1475,13 +1479,6 @@ function createNodeTable(gridId, refresh) {
     , "dom": ' <"dataTables_wrapper_top newFilter "<"#first_line_header" f <"dataTables_refresh"> <"#edit-columns">> <"#select-columns"> >rt<"dataTables_wrapper_bottom"lip>'
   };
 
-  $.ajax({
-    type: 'GET',
-    url: "/rudder/secure/api/scores/list",
-    success: function (data) {
-      scoreList = data.data
-    },
-  });
 
   createTable(gridId, [] , columns, params, contextPath, refresh, "nodes");
   $("#first_line_header input").addClass("form-control")
@@ -1562,9 +1559,12 @@ function createNodeTable(gridId, refresh) {
 
     table.destroy();
     $('#'+gridId).empty();
-    if (! (columns[columnIndex].title.startsWith("Software") || columns[columnIndex].title.startsWith("Property"))) {
-      dynColumns.push(columns[columnIndex].title)
-    }
+    var currentColumn = columns[columnIndex]
+    // We handle property and score first, then software, We don't want to add them to the list of columns because they are special columns
+    if (! (currentColumn.title.startsWith("Property") || currentColumn.title.endsWith(" Score") )) {
+      if (! currentColumn.data.startsWith("software")) {
+      dynColumns.push(currentColumn.title)
+    } }
     columns.splice(columnIndex, 1)
     localStorage.setItem(cacheId, JSON.stringify(columns))
     delete params["ajax"];
@@ -1575,6 +1575,10 @@ function createNodeTable(gridId, refresh) {
 
   function columnSelect(editOpen) {
     dynColumns.sort()
+    // Scores details display in table
+    var addedScore = columns.filter((c) => c.title.endsWith(" Score")).map((c) => c.value).sort()
+    // All ids of all available scores
+    var scoreListId = scoreList.map((c) => c.id).sort()
     var table = $('#'+gridId).DataTable();
     var editTxt    = "<span>Edit columns </span><i class=\"fa fa-pencil\"></i>"
     var confirmTxt = "<span>Confirm</span><i class=\"fa fa-check\"></i>"
@@ -1588,7 +1592,12 @@ function createNodeTable(gridId, refresh) {
     var select = "<div class='form-inline-flex'> <div> <select id='column-select' placeholder='Select column to add' class='form-select'>"
     for (var key in dynColumns) {
       value = dynColumns[key]
-      select += "<option value='"+value+"'>"+value+"</option>"
+      // Don't add Score details entry if there is no available score anymore
+      if (value === "Score details" && equalsCheck(addedScore,scoreListId)) {
+        // Do nothing
+      } else {
+        select += "<option value='"+value+"'>"+value+"</option>"
+      }
     }
     select += "</select></div><div><select id='selectScoreDetails' class='form-select'></select></div><div><input class='form-control' id='colValue' type='text'></div><label for='colCheckbox' class='input-group'><span class='input-group-text'><input id='colCheckbox' type='checkbox'></span><div class='form-control'>Show inherited properties</div></label><button id='add-column' class='btn btn-default btn-icon'>Add column <i class='fa fa-plus-circle'></i></button><button id='reset-columns' class='btn btn-default btn-icon'>Reset columns <i class='fa fa-rotate-left'></i></button></div>"
     editOpen ? $("#select-columns").show() : $("#select-columns").hide()
@@ -1620,7 +1629,8 @@ function createNodeTable(gridId, refresh) {
         }
       } else if ( this.value =="Score details"){
           $("#select-columns input").parent().hide()
-          var options = scoreList.map((elem) => "<option value='"+elem.id+"'>"+elem.name+"</option>")
+          // Only add score that are not in table yet (first filter)
+          var options = scoreList.filter((elem) => ! addedScore.includes(elem.id) ).map((elem) => "<option value='"+elem.id+"'>"+elem.name+"</option>")
           $("#select-columns select#selectScoreDetails").html(options.join(''))
           $("#select-columns select#selectScoreDetails").show()
           $("#colCheckbox").parent().parent().hide()
