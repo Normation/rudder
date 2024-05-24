@@ -1,7 +1,7 @@
 module UserManagement.Init exposing (..)
 
 import UserManagement.ApiCalls exposing (getUsersConf)
-import UserManagement.DataTypes exposing (Model, Msg(..), PanelMode(..), RoleListOverride(..), StateInput(..), UserForm, UI, UserInfoForm)
+import UserManagement.DataTypes exposing (..)
 import Dict exposing (fromList)
 import Html.Attributes exposing (style)
 import Http
@@ -13,7 +13,7 @@ subscriptions model =
 init : { contextPath : String } -> ( Model, Cmd Msg )
 init flags =
     let
-        initUi = UI Closed False
+        initUi = UI Closed False (TableFilters UserLogin Asc "")
         initUserInfoForm = UserInfoForm "" "" Dict.empty
         initUserForm = UserForm "" "" True False [] initUserInfoForm [] ValidInputs 
         initModel = Model flags.contextPath "" (fromList []) (fromList []) [] None initUserForm initUi [] Dict.empty

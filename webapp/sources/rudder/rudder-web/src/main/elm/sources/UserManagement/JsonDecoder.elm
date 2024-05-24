@@ -128,6 +128,7 @@ decodeApiStatusResult =
 decodeStatus : Decoder String
 decodeStatus =
     D.at [ "status" ] D.string
+
 decodeRole : Decoder Role
 decodeRole =
     D.succeed Role
@@ -137,5 +138,3 @@ decodeRole =
 decodeGetRoleApiResult : Decoder RoleConf
 decodeGetRoleApiResult =
     D.at [ "data" ] (D.list <| decodeRole)
-
-

@@ -32,6 +32,11 @@
             app.ports.errorNotification.subscribe(function(str) {
               createErrorNotification(str)
             });
+            app.ports.initTooltips.subscribe(function (msg) {
+              setTimeout(function () {
+                initBsTooltips();
+              }, 600);
+            });
           </script>
         </div>
       </div>

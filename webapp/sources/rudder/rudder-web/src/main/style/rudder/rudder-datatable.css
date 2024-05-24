@@ -404,7 +404,8 @@ td.listclose:after {
 
 /* </WRAPPER BOTTOM> */
 
-.dataTable > tbody > tr > td.dataTables_empty{
+.dataTable > tbody > tr > td.dataTables_empty,
+.dataTable > tbody > tr > td .empty{
   color: #738195;
   font-style: italic;
   padding: 10px 6px;

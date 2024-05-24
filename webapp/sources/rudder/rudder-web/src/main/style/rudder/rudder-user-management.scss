@@ -35,13 +35,8 @@
 *************************************************************************************
 */
 
-/* add you plugin css in that file */
-
-#plugin-main .inner-portlet {
-  padding: 0 15px;
-  font-family: var(--font-sans);
-  font-weight: 400;
-  font-size: 14px;
+.rudder-template .template-main {
+  flex: auto !important;
 }
 
 .user-list {
@@ -88,10 +83,6 @@
   column-gap: 0.8em;
 }
 
-h3 {
-  margin-top: 0;
-  margin-bottom: 15px;
-}
 
 #name {
   border: 0;
@@ -107,32 +98,31 @@ h3 {
   margin-right: auto;
 }
 
-.list-auths {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  row-gap: 5px;
-}
-
-.list-auths-empty {
-  color: grey;
-  opacity: 0.3;
-}
-
-.auth {
+.role, .auth {
   display: inline-block;
   font-size: 13px;
-  background-color: #EFF4FF;
   border: none;
-  color: #2557D6;
   padding: 5px;
   text-align: center;
   text-decoration: none;
   margin: 0 5px;
   border-radius: 3px;
 }
+.role {
+  background-color: #EFF4FF;
+  color: #2557D6;
+}
+.auth {
+  color: #738195;
+  background-color: #E3E6ED;
+}
+.dataTable {
+  .role, .auth{
+    cursor: help;
+  }
+}
 
-.auth-added {
+.role-added {
   display: inline-block;
   font-size: 13px;
   background-color: #ddedb7;
@@ -145,7 +135,7 @@ h3 {
   border-radius: 3px;
 }
 
-.auth-removed {
+.role-removed {
   display: inline-block;
   font-size: 13px;
   background-color: #d9534f;
@@ -188,8 +178,7 @@ h3 {
   top: 50px;
   bottom: 0;
   right: 0;
-  z-index: 20;
-  color: black;
+  z-index: 1000;
   width: 30em;
   animation: 0.3s ease-out 0s 1 slideInFromRight;
 }
@@ -213,7 +202,6 @@ h3 {
 }
 
 .panel {
-  color: black;
   margin-bottom: 0;
   border-radius: 0;
   position: absolute;
@@ -225,10 +213,6 @@ h3 {
   padding: 1em;
   background: white;
   box-shadow: 8px 0px 10px 10px #00000050;
-}
-
-.panel h4 {
-  color: black;
 }
 
 .btn-outline-secondary {
@@ -266,7 +250,6 @@ h3 {
   content: ' ';
   height: 21px;
   width: 2px;
-  background-color: #333;
 }
 
 .add-user {
@@ -345,50 +328,6 @@ h3 {
   }
 }
 
-.rudder_col {
-  padding: 0;
-  border: none;
-  box-shadow: none;
-}
-
-.description-plugin {
-  opacity: 0.5;
-  margin-bottom: 20px;
-}
-
-.btn-reload {
-  width: 77px;
-  margin-left: 5px;
-}
-
-.btn-add {
-  width: 77px;
-  margin-left: 5px;
-  margin-right: 5px;
-}
-
-.header-plugin {
-  padding: 10px;
-  margin-bottom: 15px;
-  border-bottom: 2px solid #e4e4e4;
-}
-
-.btn-container {
-  display: flex;
-  flex-direction: row;
-  justify-content: end;
-  margin-top: 60px;
-}
-
-.btn-container .btn-save .fa {
-  margin-left: 6px;
-}
-
-.btn-container .btn-delete {
-  min-width: 86px;
-  margin-right: 8px;
-}
-
 .btn-container .btn-status-toggle {
   min-width: 86px;
   margin-right: 15px;
@@ -396,7 +335,6 @@ h3 {
 
 .title-username {
   width: 80%;
-  color: #333333;
   margin-top: -5px;
   word-wrap: break-word;
   font-size: 35px;
@@ -422,18 +360,6 @@ h3 {
   display: flex;
   align-items: baseline;
   column-gap: 0.5em;
-}
-
-.btn-group {
-  margin: 15px 0 15px 0;
-}
-
-.inner-portlet {
-  height: calc(100vh - 50px);
-}
-
-#headerBar~.content-wrapper .inner-portlet {
-  height: calc(100vh - 80px);
 }
 
 .username-card {
@@ -469,10 +395,6 @@ h3 {
 
 .card-header {
   padding: 5px;
-}
-
-#reloadBtn {
-  margin-left: 7px;
 }
 
 #addBtn-disabled {
@@ -513,7 +435,6 @@ h3 {
 }
 
 .dropdown-content a {
-  color: black;
   padding: 12px 16px;
   text-decoration: none;
   display: block;
@@ -540,7 +461,6 @@ h3 {
   font-size: 12px;
   background-color: #f6f4f3;
   border: none;
-  color: black;
   padding: 5px 12px;
   text-align: center;
   text-decoration: none;
