@@ -2135,6 +2135,7 @@ object RudderConfigInit {
       ApiVersion(17, deprecated = true) ::  // rudder 7.3 - directive compliance, campaign API is public
       ApiVersion(18, deprecated = false) :: // rudder 8.0 - allowed network
       ApiVersion(19, deprecated = false) :: // rudder 8.1 - (score), tenants
+      ApiVersion(20, deprecated = false) :: // rudder 8.2 - zio-json
       Nil
     }
 
@@ -2179,6 +2180,7 @@ object RudderConfigInit {
         ),
         new NodeApi(
           restExtractorService,
+          zioJsonExtractor,
           restDataSerializer,
           nodeApiService,
           nodeInheritedProperties,

@@ -1,0 +1,6590 @@
+{
+  "id": "930dccb0-5b06-4385-ab7a-80a7e56eb969",
+  "os": {
+    "name": "Centos",
+    "type": "Linux",
+    "version": "8",
+    "fullName": "CentOS Stream release 8",
+    "kernelVersion": "4.18.0-365.el8.x86_64"
+  },
+  "ram": 482344960,
+  "vms": [
+    {
+      "vmtype": "VirtualMachine",
+      "subsystem": "hypervisor",
+      "owner": "JohnDoe",
+      "name": "MyVM",
+      "status": "running",
+      "vcpu": 2,
+      "memory": "4096MB",
+      "uuid": "123e4567-e89b-12d3-a456-426655440000",
+      "description": "My virtual machine"
+    }
+  ],
+  "bios": [
+    {
+      "name": "VirtualBox",
+      "editor": "innotek GmbH",
+      "version": "VirtualBox",
+      "quantity": 1,
+      "releaseDate": "2006-12-01T00:00:00+01:00"
+    }
+  ],
+  "swap": 1718616064,
+  "ports": [
+    {
+      "name": "Port 1",
+      "description": "Ethernet port 1",
+      "pType": "Ethernet",
+      "quantity": 1
+    }
+  ],
+  "slots": [
+    {
+      "name": "DIMM 0",
+      "description": "slot 1",
+      "status": "empty",
+      "quantity": 1
+    }
+  ],
+  "inputs": [
+    {
+      "caption": "mouse",
+      "description": "Mouse",
+      "type": "mouse"
+    }
+  ],
+  "sounds": [
+    {
+      "name": "Multimedia audio controller - Intel Corporation 82801AA AC'97 Audio Controller",
+      "description": "rev 01",
+      "quantity": 1
+    }
+  ],
+  "videos": [
+    {
+      "name": "Monitor HDMI 1",
+      "description": "HDMI port 1",
+      "chipset": "VirtualBox Graphics Adapter",
+      "memory": 8196,
+      "resolution": "1920x1200@60Hz",
+      "quantity": 1
+    }
+  ],
+  "machine": {
+    "id": "machine-930dccb0-5b06-4385-ab7a-80a7e56eb969",
+    "machineType": "vbox",
+    "manufacturer": "innotek GmbH",
+    "systemSerial": "52a3ca70-dc56-2c49-9cff-0da96664e3ca"
+  },
+  "accounts": [
+    "vboxadd",
+    "sssd",
+    "daemon",
+    "adm",
+    "apache",
+    "unbound",
+    "sync",
+    "tcpdump",
+    "games",
+    "vagrant",
+    "cockpit-wsinstance",
+    "setroubleshoot",
+    "ftp",
+    "tss",
+    "lp",
+    "dbus",
+    "halt",
+    "systemd-resolve",
+    "polkitd",
+    "libstoragemgmt",
+    "nobody",
+    "pesign",
+    "root",
+    "sshd",
+    "shutdown",
+    "mail",
+    "operator",
+    "cockpit-ws",
+    "bin",
+    "systemd-coredump",
+    "chrony"
+  ],
+  "hostname": "relay.rudder.local",
+  "memories": [],
+  "networks": [
+    {
+      "name": "enp0s8",
+      "speed": "1000",
+      "ifMask": [
+        "ffff:ffff:ffff:ffff::",
+        "255.255.255.0"
+      ],
+      "ifType": "ethernet",
+      "status": "Up",
+      "ifSubnet": [
+        "fe80::",
+        "192.168.8.0"
+      ],
+      "ifGateway": [],
+      "macAddress": "08:00:27:a4:fb:4f",
+      "ifAddresses": [
+        "fe80::a00:27ff:fea4:fb4f",
+        "192.168.8.3"
+      ]
+    },
+    {
+      "name": "enp0s3",
+      "speed": "1000",
+      "ifMask": [
+        "ffff:ffff:ffff:ffff::",
+        "255.255.255.0"
+      ],
+      "ifType": "ethernet",
+      "status": "Up",
+      "ifSubnet": [
+        "fe80::",
+        "10.0.2.0"
+      ],
+      "ifGateway": [
+        "10.0.2.2"
+      ],
+      "macAddress": "08:00:27:12:5d:b1",
+      "ifAddresses": [
+        "fe80::a00:27ff:fe12:5db1",
+        "10.0.2.15"
+      ]
+    },
+    {
+      "name": "lo",
+      "ifMask": [
+        "fff0::",
+        "255.0.0.0"
+      ],
+      "ifType": "loopback",
+      "status": "Up",
+      "ifSubnet": [
+        "::",
+        "127.0.0.0"
+      ],
+      "ifGateway": [],
+      "macAddress": "00:00:00:00:00:00",
+      "ifAddresses": [
+        "::1",
+        "127.0.0.1"
+      ]
+    }
+  ],
+  "software": [
+    {
+      "name": "libopeniscsiusr",
+      "version": "2.1.5-1ubuntu1",
+      "publisher": "Ubuntu",
+      "sourceName": "open-iscsi",
+      "sourceVersion": "2.1.5-1ubuntu1"
+    },
+    {
+      "name": "adduser",
+      "version": "3.118ubuntu5",
+      "publisher": "Ubuntu",
+      "sourceVersion": "3.118ubuntu5"
+    }
+  ],
+  "storages": [
+    {
+      "name": "sda",
+      "size": 18013487104,
+      "model": "VBOX HARDDISK",
+      "sType": "disk",
+      "firmware": "1.0",
+      "quantity": 1,
+      "description": "SCSI",
+      "manufacturer": "VBOX HARDDISK",
+      "serialNumber": "VB8880fde4-3eb04856"
+    }
+  ],
+  "processes": [
+    {
+      "pid": 463,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[scsi_tmf_1]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 855,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.10000000149011612,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/sbin/sshd -D -oCiphers=aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr,aes256-cbc,aes128-gcm@openssh.com,aes128-ctr,aes128-cbc -oMACs=hmac-sha2-256-etm@openssh.com,hmac-sha1-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512-etm@openssh.com,hmac-sha2-256,hmac-sha1,umac-128@openssh.com,hmac-sha2-512 -oGSSAPIKexAlgorithms=gss-curve25519-sha256-,gss-nistp256-sha256-,gss-group14-sha256-,gss-group16-sha512-,gss-gex-sha1-,gss-group14-sha1- -oKexAlgorithms=curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256,diffie-hellman-group14-sha256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 -oHostKeyAlgorithms=ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521,ecdsa-sha2-nistp521-cert-v01@openssh.com,ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,rsa-sha2-256,rsa-sha2-256-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-512-cert-v01@openssh.com,ssh-rsa,ssh-rsa-cert-v01@openssh.com -oPubkeyAcceptedKeyTypes=ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521,ecdsa-sha2-nistp521-cert-v01@openssh.com,ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,rsa-sha2-256,rsa-sha2-256-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-512-cert-v01@openssh.com,ssh-rsa,ssh-rsa-cert-v01@openssh.com -oCASignatureAlgorithms=ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,ssh-ed25519,rsa-sha2-256,rsa-sha2-512,ssh-rsa",
+      "virtualMemory": 94528.0
+    },
+    {
+      "pid": 33,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[watchdogd]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 2,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[kthreadd]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 1171,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/sbin/atd -f",
+      "virtualMemory": 44036.0
+    },
+    {
+      "pid": 28,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[kblockd]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 17134,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 17:04",
+      "cpuUsage": 0.0,
+      "commandName": "[kworker/0:2-events]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 173,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[kaluad]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 27620,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.10000000149011612,
+      "started": "2024-05-16 17:16",
+      "cpuUsage": 0.0,
+      "commandName": "tee /var/rudder/tmp/reports//2024-05-16T15:16:55+00:00@930dccb0-5b06-4385-ab7a-80a7e56eb969.log",
+      "virtualMemory": 7316.0
+    },
+    {
+      "pid": 795,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/sbin/sedispatch",
+      "virtualMemory": 48636.0
+    },
+    {
+      "pid": 29,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[blkcg_punt_bio]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 21588,
+      "tty": "pts/0",
+      "user": "root",
+      "memory": 0.10000000149011612,
+      "started": "2024-05-16 17:13",
+      "cpuUsage": 0.0,
+      "commandName": "su",
+      "virtualMemory": 127276.0
+    },
+    {
+      "pid": 27338,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.6000000238418579,
+      "started": "2024-05-16 17:16",
+      "cpuUsage": 0.0,
+      "commandName": "/bin/sh /opt/rudder/share/commands/agent-run -l -N -D force_inventory -b doInventory",
+      "virtualMemory": 12992.0
+    },
+    {
+      "pid": 579,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[xfs-conv/dm-0]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 16,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[cpuhp/0]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 552,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[kdmflush/253:1]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 841,
+      "tty": "?",
+      "user": "chrony",
+      "memory": 0.20000000298023224,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/sbin/chronyd",
+      "virtualMemory": 151164.0
+    },
+    {
+      "pid": 171,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[acpi_thermal_pm]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 6,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[kworker/0:0H-events_highpri]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 823,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.10000000149011612,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/sbin/smartd -n -q never",
+      "virtualMemory": 50684.0
+    },
+    {
+      "pid": 19,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[netns]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 821,
+      "tty": "?",
+      "user": "polkitd",
+      "memory": 0.10000000149011612,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/lib/polkit-1/polkitd --no-debug",
+      "virtualMemory": 1630252.0
+    },
+    {
+      "pid": 849,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.6000000238418579,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/libexec/sssd/sssd_be --domain implicit_files --uid 0 --gid 0 --logger=files",
+      "virtualMemory": 201404.0
+    },
+    {
+      "pid": 581,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[xfs-reclaim/dm-]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 11,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[rcu_tasks_trace]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 25,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[ksmd]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 720,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[xfs-eofblocks/s]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 12,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[ksoftirqd/0]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 24,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[kcompactd0]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 445,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[iprt-VBoxWQueue]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 36,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[kworker/u2:1-writeback]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 3,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[rcu_gp]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 583,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[xfs-log/dm-0]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 713,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.20000000298023224,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/lib/systemd/systemd-udevd",
+      "virtualMemory": 116572.0
+    },
+    {
+      "pid": 580,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[xfs-cil/dm-0]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 9,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[mm_percpu_wq]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 4,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[rcu_par_gp]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 719,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[xfs-reclaim/sda]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 27919,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.5,
+      "started": "2024-05-16 17:16",
+      "cpuUsage": 0.0,
+      "commandName": "/bin/sh /opt/rudder/bin/run-inventory --local=/var/rudder/tmp/inventory/930dccb0-5b06-4385-ab7a-80a7e56eb969_2024-05-16T15:16:56+00:00.ocs --debug --debug",
+      "virtualMemory": 9800.0
+    },
+    {
+      "pid": 543,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[kdmflush/253:0]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 718,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[xfs-cil/sda1]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 32,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[edac-poller]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 30,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[tpm_dev_wq]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 15,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[watchdog/0]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 793,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.20000000298023224,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/sbin/auditd",
+      "virtualMemory": 164912.0
+    },
+    {
+      "pid": 1,
+      "tty": "?",
+      "user": "root",
+      "memory": 2.200000047683716,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/lib/systemd/systemd --switched-root --system --deserialize 17",
+      "virtualMemory": 243436.0
+    },
+    {
+      "pid": 27249,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.6000000238418579,
+      "started": "2024-05-16 17:16",
+      "cpuUsage": 0.0,
+      "commandName": "/bin/sh /opt/rudder/share/commands/agent-inventory",
+      "virtualMemory": 12860.0
+    },
+    {
+      "pid": 27205,
+      "tty": "?",
+      "user": "root",
+      "memory": 3.200000047683716,
+      "started": "2024-05-16 17:16",
+      "cpuUsage": 6.0,
+      "commandName": "/opt/rudder/bin/cf-serverd --graceful-detach=600 --no-fork --inform",
+      "virtualMemory": 130704.0
+    },
+    {
+      "pid": 582,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[xfs-eofblocks/d]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 819,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.10000000149011612,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/sbin/mcelog --ignorenodev --daemon --foreground",
+      "virtualMemory": 18304.0
+    },
+    {
+      "pid": 27924,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.20000000298023224,
+      "started": "2024-05-16 17:16",
+      "cpuUsage": 0.0,
+      "commandName": "/bin/sh /opt/rudder/bin/rudder-perl -I /opt/rudder/lib/perl5 /opt/rudder/bin/fusioninventory-agent --config=none --no-task=Deploy --local=/var/rudder/tmp/inventory/930dccb0-5b06-4385-ab7a-80a7e56eb969_2024-05-16T15:16:56+00:00.ocs --debug --debug",
+      "virtualMemory": 9800.0
+    },
+    {
+      "pid": 27624,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.800000011920929,
+      "started": "2024-05-16 17:16",
+      "cpuUsage": 0.0,
+      "commandName": "awk -v info=0 -v full_strings=0 -v summary_only=0 -v quiet=0 -v multihost=0 -v green= -v darkgreen= -v red= -v yellow= -v magenta= -v normal= -v white= -v cyan= -v dblue= -v dgreen= -v timing=0 -v has_fflush=OK -v full_compliance=1 -v partial_run=1 -v error_fail=0 -v noncompliant_fail=0 -f /opt/rudder/share/commands/../lib/reports.awk",
+      "virtualMemory": 25768.0
+    },
+    {
+      "pid": 26546,
+      "tty": "pts/0",
+      "user": "root",
+      "memory": 0.6000000238418579,
+      "started": "2024-05-16 17:16",
+      "cpuUsage": 0.0,
+      "commandName": "/bin/sh /var/tmp/rpm-tmp.SCslfP 1",
+      "virtualMemory": 12728.0
+    },
+    {
+      "pid": 10,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[rcu_tasks_rude_]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 21,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[khungtaskd]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 21942,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 17:13",
+      "cpuUsage": 0.0,
+      "commandName": "[kworker/0:1-xfs-conv/dm-0]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 941,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.4000000059604645,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/lib/systemd/systemd-logind",
+      "virtualMemory": 92212.0
+    },
+    {
+      "pid": 11356,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.20000000298023224,
+      "started": "2024-05-16 16:55",
+      "cpuUsage": 0.0,
+      "commandName": "sshd: vagrant [priv]",
+      "virtualMemory": 153504.0
+    },
+    {
+      "pid": 721,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[xfs-log/sda1]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 34,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[kworker/0:1H-kblockd]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 19123,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 17:09",
+      "cpuUsage": 0.0,
+      "commandName": "[kworker/u2:3-flush-253:0]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 577,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[xfs_mru_cache]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 15947,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.10000000149011612,
+      "started": "2024-05-16 17:01",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/sbin/anacron -s",
+      "virtualMemory": 22796.0
+    },
+    {
+      "pid": 1179,
+      "tty": "tty1",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/sbin/agetty -o -p -- \\\\u --noclear tty1 linux",
+      "virtualMemory": 13660.0
+    },
+    {
+      "pid": 24025,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 17:15",
+      "cpuUsage": 0.0,
+      "commandName": "[kworker/u2:2-events_unbound]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 854,
+      "tty": "?",
+      "user": "root",
+      "memory": 1.2000000476837158,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.10000000149011612,
+      "commandName": "/usr/libexec/platform-python -Es /usr/sbin/tuned -l -P",
+      "virtualMemory": 495696.0
+    },
+    {
+      "pid": 26,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[crypto]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 68,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[kswapd0]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 170,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[kthrotld]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 27618,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.10000000149011612,
+      "started": "2024-05-16 17:16",
+      "cpuUsage": 0.0,
+      "commandName": "cat",
+      "virtualMemory": 7452.0
+    },
+    {
+      "pid": 722,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[xfsaild/sda1]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 458,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[scsi_eh_0]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 26601,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.699999988079071,
+      "started": "2024-05-16 17:16",
+      "cpuUsage": 0.0,
+      "commandName": "/bin/sh /opt/rudder/share/commands/agent-check -f",
+      "virtualMemory": 13124.0
+    },
+    {
+      "pid": 467,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[scsi_tmf_2]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 27,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[kintegrityd]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 1589,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.10000000149011612,
+      "started": "2024-05-16 16:05",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/sbin/VBoxService --pidfile /var/run/vboxadd-service.sh",
+      "virtualMemory": 326952.0
+    },
+    {
+      "pid": 832,
+      "tty": "?",
+      "user": "libstor+",
+      "memory": 0.10000000149011612,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/bin/lsmd -d",
+      "virtualMemory": 19744.0
+    },
+    {
+      "pid": 31,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[md]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 26547,
+      "tty": "pts/0",
+      "user": "root",
+      "memory": 0.6000000238418579,
+      "started": "2024-05-16 17:16",
+      "cpuUsage": 0.0,
+      "commandName": "/bin/sh /opt/rudder/share/package-scripts/rudder-agent-postinst true rpm true",
+      "virtualMemory": 12728.0
+    },
+    {
+      "pid": 21586,
+      "tty": "pts/0",
+      "user": "root",
+      "memory": 0.20000000298023224,
+      "started": "2024-05-16 17:13",
+      "cpuUsage": 0.0,
+      "commandName": "sudo su",
+      "virtualMemory": 133032.0
+    },
+    {
+      "pid": 677,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.800000011920929,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/lib/systemd/systemd-journald",
+      "virtualMemory": 95544.0
+    },
+    {
+      "pid": 174,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[ipv6_addrconf]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 11365,
+      "tty": "?",
+      "user": "vagrant",
+      "memory": 0.0,
+      "started": "2024-05-16 16:55",
+      "cpuUsage": 0.0,
+      "commandName": "(sd-pam)",
+      "virtualMemory": 310140.0
+    },
+    {
+      "pid": 27617,
+      "tty": "?",
+      "user": "root",
+      "memory": 4.800000190734863,
+      "started": "2024-05-16 17:16",
+      "cpuUsage": 32.0,
+      "commandName": "/opt/rudder/bin/cf-agent -I -D info -Cnever -K -b doInventory -D force_inventory",
+      "virtualMemory": 146332.0
+    },
+    {
+      "pid": 11361,
+      "tty": "?",
+      "user": "vagrant",
+      "memory": 0.20000000298023224,
+      "started": "2024-05-16 16:55",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/lib/systemd/systemd --user",
+      "virtualMemory": 89516.0
+    },
+    {
+      "pid": 27619,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.6000000238418579,
+      "started": "2024-05-16 17:16",
+      "cpuUsage": 1.0,
+      "commandName": "/bin/sh /opt/rudder/share/commands/../lib/timestamp",
+      "virtualMemory": 12728.0
+    },
+    {
+      "pid": 26498,
+      "tty": "pts/0",
+      "user": "root",
+      "memory": 25.799999237060547,
+      "started": "2024-05-16 17:16",
+      "cpuUsage": 10.0,
+      "commandName": "/usr/libexec/platform-python /bin/dnf install -y rudder-relay",
+      "virtualMemory": 683072.0
+    },
+    {
+      "pid": 22,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[oom_reaper]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 20,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[kauditd]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 1174,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.10000000149011612,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/sbin/crond -n",
+      "virtualMemory": 37016.0
+    },
+    {
+      "pid": 14,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[migration/0]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 11807,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:55",
+      "cpuUsage": 0.0,
+      "commandName": "[kworker/0:3-xfs-sync/sda1]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 576,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[xfsalloc]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 175,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[kstrp]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 578,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[xfs-buf/dm-0]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 3163,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.4000000059604645,
+      "started": "2024-05-16 16:05",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/sbin/NetworkManager --no-daemon",
+      "virtualMemory": 465900.0
+    },
+    {
+      "pid": 716,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[xfs-buf/sda1]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 886,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.800000011920929,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/libexec/sssd/sssd_nss --uid 0 --gid 0 --logger=files",
+      "virtualMemory": 202620.0
+    },
+    {
+      "pid": 27207,
+      "tty": "?",
+      "user": "root",
+      "memory": 2.9000000953674316,
+      "started": "2024-05-16 17:16",
+      "cpuUsage": 4.5,
+      "commandName": "/opt/rudder/bin/cf-execd --no-fork",
+      "virtualMemory": 128064.0
+    },
+    {
+      "pid": 23,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[writeback]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 461,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[scsi_tmf_0]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 822,
+      "tty": "?",
+      "user": "dbus",
+      "memory": 0.4000000059604645,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/bin/dbus-daemon --system --address=systemd: --nofork --nopidfile --systemd-activation --syslog-only",
+      "virtualMemory": 85328.0
+    },
+    {
+      "pid": 21589,
+      "tty": "pts/0",
+      "user": "root",
+      "memory": 0.4000000059604645,
+      "started": "2024-05-16 17:13",
+      "cpuUsage": 0.0,
+      "commandName": "bash",
+      "virtualMemory": 27608.0
+    },
+    {
+      "pid": 28000,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.699999988079071,
+      "started": "2024-05-16 17:16",
+      "cpuUsage": 0.0,
+      "commandName": "ps -A -o user,pid,pcpu,pmem,vsz,tty,etime,command",
+      "virtualMemory": 55824.0
+    },
+    {
+      "pid": 13,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[rcu_sched]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 27621,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.4000000059604645,
+      "started": "2024-05-16 17:16",
+      "cpuUsage": 0.0,
+      "commandName": "/bin/sh /opt/rudder/share/commands/agent-run -l -N -D force_inventory -b doInventory",
+      "virtualMemory": 12992.0
+    },
+    {
+      "pid": 22037,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 17:14",
+      "cpuUsage": 0.0,
+      "commandName": "[kworker/u2:0-events_unbound]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 18,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[kdevtmpfs]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 11371,
+      "tty": "?",
+      "user": "vagrant",
+      "memory": 0.30000001192092896,
+      "started": "2024-05-16 16:55",
+      "cpuUsage": 0.0,
+      "commandName": "sshd: vagrant@pts/0",
+      "virtualMemory": 153848.0
+    },
+    {
+      "pid": 466,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[scsi_eh_2]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 27925,
+      "tty": "?",
+      "user": "root",
+      "memory": 10.800000190734863,
+      "started": "2024-05-16 17:16",
+      "cpuUsage": 0.0,
+      "commandName": "fusioninventory-agent: running task Inventory",
+      "virtualMemory": 130804.0
+    },
+    {
+      "pid": 9034,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:38",
+      "cpuUsage": 0.0,
+      "commandName": "[kworker/0:0-cgroup_pidlist_destroy]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 817,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.30000001192092896,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/sbin/sssd -i --logger=files",
+      "virtualMemory": 192452.0
+    },
+    {
+      "pid": 454,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[ata_sff]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 21552,
+      "tty": "pts/0",
+      "user": "vagrant",
+      "memory": 0.20000000298023224,
+      "started": "2024-05-16 17:12",
+      "cpuUsage": 0.0,
+      "commandName": "-bash",
+      "virtualMemory": 25556.0
+    },
+    {
+      "pid": 172,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[kmpath_rdacd]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 717,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[xfs-conv/sda1]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 462,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[scsi_eh_1]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 584,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.0,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "[xfsaild/dm-0]",
+      "virtualMemory": 0.0
+    },
+    {
+      "pid": 1141,
+      "tty": "?",
+      "user": "root",
+      "memory": 0.5,
+      "started": "2024-05-16 16:04",
+      "cpuUsage": 0.0,
+      "commandName": "/usr/sbin/rsyslogd -n",
+      "virtualMemory": 209344.0
+    }
+  ],
+  "localUsers": [],
+  "processors": [
+    {
+      "arch": "i386",
+      "core": 1,
+      "name": "13th Gen Intel(R) Core(TM) i7-13700H",
+      "model": 186,
+      "family": 6,
+      "thread": 1,
+      "quantity": 1,
+      "stepping": 2,
+      "manufacturer": "Intel"
+    }
+  ],
+  "properties": [],
+  "controllers": [
+    {
+      "name": "82371AB/EB/MB PIIX4 ACPI",
+      "cType": "Bridge",
+      "quantity": 1,
+      "manufacturer": "Intel Corporation"
+    },
+    {
+      "name": "VirtualBox Guest Service",
+      "cType": "System peripheral",
+      "quantity": 1,
+      "manufacturer": "InnoTek Systemberatung GmbH"
+    },
+    {
+      "name": "82371SB PIIX3 ISA [Natoma/Triton II]",
+      "cType": "ISA bridge",
+      "quantity": 1,
+      "manufacturer": "Intel Corporation"
+    },
+    {
+      "name": "VirtualBox Graphics Adapter",
+      "cType": "VGA compatible controller",
+      "quantity": 1,
+      "manufacturer": "InnoTek Systemberatung GmbH"
+    },
+    {
+      "name": "PRO/1000 MT Desktop Adapter",
+      "cType": "Ethernet controller",
+      "quantity": 2,
+      "manufacturer": "Intel Corporation"
+    },
+    {
+      "name": "440FX - 82441FX PMC [Natoma]",
+      "cType": "Host bridge",
+      "quantity": 1,
+      "manufacturer": "Intel Corporation"
+    },
+    {
+      "name": "82801HM/HEM (ICH8M/ICH8M-E) SATA Controller [AHCI mode]",
+      "cType": "SATA controller",
+      "quantity": 1,
+      "manufacturer": "Intel Corporation"
+    },
+    {
+      "name": "82371AB/EB/MB PIIX4 IDE",
+      "cType": "IDE interface",
+      "quantity": 1,
+      "manufacturer": "Intel Corporation"
+    }
+  ],
+  "fileSystems": [
+    {
+      "name": "vboxsf",
+      "freeSpace": 694968909824,
+      "mountPoint": "/vagrant",
+      "totalSpace": 1022731747328
+    },
+    {
+      "name": "xfs",
+      "freeSpace": 844103680,
+      "mountPoint": "/boot",
+      "totalSpace": 1063256064
+    },
+    {
+      "name": "xfs",
+      "freeSpace": 11305746432,
+      "mountPoint": "/",
+      "totalSpace": 14371782656
+    },
+    {
+      "name": "vboxsf",
+      "freeSpace": 694968909824,
+      "mountPoint": "/tmp/vagrant-cache",
+      "totalSpace": 1022731747328
+    }
+  ],
+  "ipAddresses": [
+    "0:0:0:0:0:0:0:1",
+    "fe80:0:0:0:a00:27ff:fe12:5db1",
+    "fe80:0:0:0:a00:27ff:fea4:fb4f",
+    "192.168.8.3",
+    "10.0.2.15",
+    "127.0.0.1"
+  ],
+  "localGroups": [],
+  "rudderAgent": {
+    "type": "cfengine-community",
+    "user": "root",
+    "version": "1398866025:8.0.8-1.EL.8",
+    "capabilities": [
+      "jq",
+      "yaml",
+      "cfengine",
+      "curl",
+      "acl",
+      "xml",
+      "http_reporting"
+    ],
+    "securityToken": {
+      "kind": "certificate",
+      "token": "-----BEGIN CERTIFICATE-----\\nMIIFqzCCA5OgAwIBAgIUJO5/m8PZResSZZjA8L9zSRvkaXkwDQYJKoZIhvcNAQEL\\nBQAwNjE0MDIGCgmSJomT8ixkAQEMJDkzMGRjY2IwLTViMDYtNDM4NS1hYjdhLTgw\\nYTdlNTZlYjk2OTAeFw0yNDA1MDIxMzQ2NTRaFw0zNDA0MzAxMzQ2NTRaMDYxNDAy\\nBgoJkiaJk/IsZAEBDCQ5MzBkY2NiMC01YjA2LTQzODUtYWI3YS04MGE3ZTU2ZWI5\\nNjkwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQC6vbgDy39n/TGO0B/4\\n+Q+cd0c2IrIsfVYqyOnDn52sf4zGfSBfcmEtdvJSIb9Qp2ATGtKUh162/SOHOj5R\\nzqKW5tE4Danj8dxs2V0AUl5/rvlvl4RqN22gyQZirJ7Z5WtAPCAKmH5oiG/Igblr\\n26X2FmiPeei08caZNh48OykAa50sNdsFE2VkZr0mI/hltXxgjEKxPiQBvm0gTvQY\\nug/qgfxXwqQzgIHCmryB4IPIMSY/8LDNnY5BVk8vFlW44M7+m/U3ALPlYk+6kax0\\ngay9hNuMQlEPj+22OjMetBt7tPQd/VhZTL9RNLj736qLuCy8wV+60O4QrWXnkgK0\\nVS9IOgU+MP6mqT5Xrx18QCr0yTRgfaGXQz8XcAC/3fbdPMc4zhQwsR+2gHm8XjXi\\n0iXkYDK/TgkjvkTAePdZbQrjADnTZF/eQaxt7r9V1TEFJAvMsHorMUgurXW9JO96\\nXX+hT6Qp7BKFepOX/fCkped1HV1SUod7N0L/xkD5oZVhz4a1Z5ImEdRMRVgtm2+I\\nw5ng1mujcaa/2iHEmenjK6mLcOh+IXrTEXRoV5JBGmTxEYvdKn9Lvv0LJUwc3WFs\\nBR6/AHBAhvd0U2IHMuxki3AaTM+A6atKUo4Hk2MC967Ecz3Tg06YIoZxJPqo2Qij\\n3ib2izzRFuzuVuECO9DNI51OewIDAQABo4GwMIGtMAwGA1UdEwQFMAMBAf8wHQYD\\nVR0OBBYEFIjIpuhURlIay8ffm0w4enOJvoeHMHEGA1UdIwRqMGiAFIjIpuhURlIa\\ny8ffm0w4enOJvoeHoTqkODA2MTQwMgYKCZImiZPyLGQBAQwkOTMwZGNjYjAtNWIw\\nNi00Mzg1LWFiN2EtODBhN2U1NmViOTY5ghQk7n+bw9lF6xJlmMDwv3NJG+RpeTAL\\nBgNVHQ8EBAMCArwwDQYJKoZIhvcNAQELBQADggIBAJRQHHK9RD6ByGOFJ+8w3yH0\\n8QJ78uZe3K+N2dWwbLo6XSV9nvtkfyuUxsaBTTgXSmvkSlGNrCFnWW5vaea/R1Rq\\nw4zGlyS4UzBD31rc2kKl5/yIljYiufYsbMmYqh8Sy/U75msp4inRzVlyxX1FtkgW\\nDYr8nrcHbD94xuT7HTFX8HFAUOsGhEGDYXGvY94iJ4Jx7p5bWiVDbIME7Bf72+Ql\\ncWUapVCXVbuqWW6qw048EGcwjmMXJXNJgBth39yX2cEWklkSENuYwSLAloetUmYY\\nuSl6Y20pTKjSdUTBGIu0uN+0740LuiMlQ1nbdrBBasgLxH/1TfAp927zuQCPKANA\\n1O7OuhrF3gwLOVDjkycAhQb9nynZgpexmFkOMklXVYNWKp6s88thB3gTRCT01GFx\\ntY5WzobFShmv6AEmUWYutFG5k7fwNKGI6VEUVoQlNiHeDW4VV4AFrfK+/vNnJepf\\nqbSyRhS8QBgqt4KbwMdarVEZTvVrc6JhfnTSzXig6dO8bVA1EVLp0xyCd5eoplEV\\nHzhAz2MOrfOUmBjo2HcHA4tpcuE+ImNWuQiDfTdjqkZWRO5pBwbvnVLOGCqtaH1C\\nsGM8wv+QA1Y2NhgzADIb6u4PjXcBy6hqyAFKtvJ2J1pBL1Vtu4rTf9zhZ62HSqBd\\nRlYSlie1YMo1Yy2jzZhP\\n-----END CERTIFICATE-----"
+    }
+  },
+  "creationDate": "2024-05-16T17:20:12+02:00",
+  "logicalVolumes": [],
+  "rudderSettings": {
+    "kind": "node",
+    "state": "enabled",
+    "status": "accepted",
+    "keyStatus": "certified",
+    "policyMode": "default",
+    "policyServerId": "root",
+    "reportingConfiguration": {}
+  },
+  "softwareUpdate": [
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "PackageKit-glib",
+      "source": "appstream",
+      "version": "1.1.12-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libtiff",
+      "source": "appstream",
+      "version": "4.0.9-31.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "c-ares",
+      "source": "baseos",
+      "version": "1.13.0-11.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "kernel-headers",
+      "source": "baseos",
+      "version": "4.18.0-546.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "rpm-sign",
+      "source": "baseos",
+      "version": "4.14.3-31.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libX11",
+      "source": "appstream",
+      "version": "1.6.8-8.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "pciutils-libs",
+      "source": "baseos",
+      "version": "3.7.0-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "vim-filesystem",
+      "source": "appstream",
+      "version": "2:8.0.1763-19.el8.4"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "NetworkManager",
+      "source": "baseos",
+      "version": "1:1.40.16-15.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "harfbuzz",
+      "source": "appstream",
+      "version": "1.7.5-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "iptables-ebtables",
+      "source": "baseos",
+      "version": "1.8.5-11.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "chrony",
+      "source": "baseos",
+      "version": "4.5-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "sssd-nfs-idmap",
+      "source": "baseos",
+      "version": "2.9.4-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "zlib-devel",
+      "source": "baseos",
+      "version": "1.2.11-25.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "grub2-tools-extra",
+      "source": "baseos",
+      "version": "1:2.02-123.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "logrotate",
+      "source": "baseos",
+      "version": "3.14.0-6.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "grubby",
+      "source": "baseos",
+      "version": "8.40-48.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "kernel-tools",
+      "source": "baseos",
+      "version": "4.18.0-552.1.1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-firewall",
+      "source": "baseos",
+      "version": "0.9.11-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "cockpit",
+      "source": "baseos",
+      "version": "310.4-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "elfutils-default-yama-scope",
+      "source": "baseos",
+      "version": "0.190-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "boost-filesystem",
+      "source": "appstream",
+      "version": "1.66.0-13.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libibverbs",
+      "source": "baseos",
+      "version": "48.0-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "cronie-anacron",
+      "source": "baseos",
+      "version": "1.5.2-10.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "lvm2-libs",
+      "source": "baseos",
+      "version": "8:2.03.14-14.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "xz-libs",
+      "source": "baseos",
+      "version": "5.2.4-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "xfsdump",
+      "source": "baseos",
+      "version": "3.1.8-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "nmap-ncat",
+      "source": "appstream",
+      "version": "2:7.92-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "selinux-policy-targeted",
+      "source": "baseos",
+      "version": "3.14.3-139.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "gmp",
+      "source": "baseos",
+      "version": "1:6.1.2-12.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "rsyslog-gssapi",
+      "source": "appstream",
+      "version": "8.2102.0-15.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "xfsprogs",
+      "source": "baseos",
+      "version": "5.0.0-12.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "systemd-libs",
+      "source": "baseos",
+      "version": "239-82.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "sssd-krb5",
+      "source": "baseos",
+      "version": "2.9.4-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "samba-common",
+      "source": "baseos",
+      "version": "4.19.4-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "iwl105-firmware",
+      "source": "baseos",
+      "version": "18.168.6.1-121.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libtirpc",
+      "source": "baseos",
+      "version": "1.1.4-12.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "vim-enhanced",
+      "source": "appstream",
+      "version": "2:8.0.1763-19.el8.4"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "kmod",
+      "source": "baseos",
+      "version": "25-20.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "bind-license",
+      "source": "appstream",
+      "version": "32:9.11.36-13.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "binutils",
+      "source": "baseos",
+      "version": "2.30-123.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "iptables-libs",
+      "source": "baseos",
+      "version": "1.8.5-11.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libdnf",
+      "source": "baseos",
+      "version": "0.63.0-19.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "crypto-policies-scripts",
+      "source": "baseos",
+      "version": "20230731-1.git3177e06.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-syspurpose",
+      "source": "baseos",
+      "version": "1.28.42-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "rsyslog-gnutls",
+      "source": "appstream",
+      "version": "8.2102.0-15.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "dbus-common",
+      "source": "baseos",
+      "version": "1:1.12.8-26.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "ncurses-base",
+      "source": "baseos",
+      "version": "6.1-10.20180224.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "sssd-ipa",
+      "source": "baseos",
+      "version": "2.9.4-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "sssd-kcm",
+      "source": "baseos",
+      "version": "2.9.4-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libkadm5",
+      "source": "baseos",
+      "version": "1.18.2-27.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "microcode_ctl",
+      "source": "baseos",
+      "version": "4:20230808-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "systemtap-client",
+      "source": "appstream",
+      "version": "4.9-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "smartmontools",
+      "source": "baseos",
+      "version": "1:7.1-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libssh",
+      "source": "baseos",
+      "version": "0.9.6-14.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "initscripts",
+      "source": "baseos",
+      "version": "10.00.18-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-idna",
+      "source": "baseos",
+      "version": "2.5-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "pcre2-utf32",
+      "source": "baseos",
+      "version": "10.32-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "memstrack",
+      "source": "baseos",
+      "version": "0.2.5-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libarchive",
+      "source": "baseos",
+      "version": "3.3.3-5.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "gnupg2",
+      "source": "baseos",
+      "version": "2.2.20-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "git-core",
+      "source": "appstream",
+      "version": "2.43.0-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "man-pages-overrides",
+      "source": "appstream",
+      "version": "8.9.0.0-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "iwl6000g2a-firmware",
+      "source": "baseos",
+      "version": "18.168.6.1-121.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libsss_sudo",
+      "source": "baseos",
+      "version": "2.9.4-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "bind-libs",
+      "source": "appstream",
+      "version": "32:9.11.36-13.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "device-mapper-persistent-data",
+      "source": "baseos",
+      "version": "0.9.0-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "gdb-headless",
+      "source": "appstream",
+      "version": "8.2-20.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libfastjson",
+      "source": "appstream",
+      "version": "0.99.9-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "rpm-build",
+      "source": "appstream",
+      "version": "4.14.3-31.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "fstrm",
+      "source": "appstream",
+      "version": "0.6.1-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "authselect-compat",
+      "source": "appstream",
+      "version": "1.2.6-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "iwl5150-firmware",
+      "source": "baseos",
+      "version": "8.24.2.2-121.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "git-core-doc",
+      "source": "appstream",
+      "version": "2.43.0-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "rpm-plugin-systemd-inhibit",
+      "source": "baseos",
+      "version": "4.14.3-31.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "dbus-libs",
+      "source": "baseos",
+      "version": "1:1.12.8-26.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "avahi-libs",
+      "source": "baseos",
+      "version": "0.7-27.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "graphviz",
+      "source": "appstream",
+      "version": "2.40.1-45.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "iwl6000-firmware",
+      "source": "baseos",
+      "version": "9.221.4.1-121.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libselinux",
+      "source": "baseos",
+      "version": "2.9-8.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "squashfs-tools",
+      "source": "baseos",
+      "version": "4.3-21.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "systemd-udev",
+      "source": "baseos",
+      "version": "239-82.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "sssd-common",
+      "source": "baseos",
+      "version": "2.9.4-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "fribidi",
+      "source": "appstream",
+      "version": "1.0.4-9.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "openssl",
+      "source": "baseos",
+      "version": "1:1.1.1k-12.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-setools",
+      "source": "baseos",
+      "version": "4.3.0-5.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "expat",
+      "source": "baseos",
+      "version": "2.2.5-13.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libmount",
+      "source": "baseos",
+      "version": "2.32.1-46.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "trousers-lib",
+      "source": "baseos",
+      "version": "0.3.15-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "httpd-tools",
+      "source": "appstream",
+      "version": "2.4.37-64.module_el8+965+1ad5c49d"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "grub2-tools",
+      "source": "baseos",
+      "version": "1:2.02-123.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "krb5-libs",
+      "source": "baseos",
+      "version": "1.18.2-27.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "glibc",
+      "source": "baseos",
+      "version": "2.28-251.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-libsemanage",
+      "source": "baseos",
+      "version": "2.9-9.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-slip",
+      "source": "baseos",
+      "version": "0.6.4-13.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "nspr",
+      "source": "appstream",
+      "version": "4.35.0-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libstoragemgmt",
+      "source": "baseos",
+      "version": "1.9.1-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "irqbalance",
+      "source": "baseos",
+      "version": "2:1.9.2-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libteam",
+      "source": "baseos",
+      "version": "1.31-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "grub2-tools-extra",
+      "source": "baseos",
+      "version": "1:2.02-129.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libldb",
+      "source": "baseos",
+      "version": "2.8.0-0.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "fuse-libs",
+      "source": "baseos",
+      "version": "2.9.7-19.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "authselect",
+      "source": "baseos",
+      "version": "1.2.6-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "iptables",
+      "source": "baseos",
+      "version": "1.8.5-11.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-rpm-macros",
+      "source": "baseos",
+      "version": "3-45.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "NetworkManager-team",
+      "source": "baseos",
+      "version": "1:1.40.16-15.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "yum",
+      "source": "baseos",
+      "version": "4.7.0-20.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "sudo",
+      "source": "baseos",
+      "version": "1.9.5p2-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "platform-python",
+      "source": "baseos",
+      "version": "3.6.8-62.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "iwl100-firmware",
+      "source": "baseos",
+      "version": "39.31.5.1-121.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libkcapi",
+      "source": "baseos",
+      "version": "1.4.0-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "glibc-devel",
+      "source": "baseos",
+      "version": "2.28-251.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "boost-timer",
+      "source": "appstream",
+      "version": "1.66.0-13.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libwebp",
+      "source": "appstream",
+      "version": "1.0.0-9.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "policycoreutils",
+      "source": "baseos",
+      "version": "2.9-26.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-sssdconfig",
+      "source": "baseos",
+      "version": "2.9.4-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "perl-Errno",
+      "source": "baseos",
+      "version": "1.28-422.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "glibc-langpack-en",
+      "source": "baseos",
+      "version": "2.28-251.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "gpgme",
+      "source": "baseos",
+      "version": "1.13.1-12.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libsolv",
+      "source": "baseos",
+      "version": "0.7.20-6.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libnghttp2",
+      "source": "baseos",
+      "version": "1.33.0-6.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "which",
+      "source": "baseos",
+      "version": "2.21-20.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-audit",
+      "source": "baseos",
+      "version": "3.1.2-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "cockpit-system",
+      "source": "baseos",
+      "version": "310.4-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "glib2",
+      "source": "baseos",
+      "version": "2.56.4-163.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "gcc-gdb-plugin",
+      "source": "appstream",
+      "version": "8.5.0-22.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "rpm-plugin-selinux",
+      "source": "baseos",
+      "version": "4.14.3-31.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libgcrypt",
+      "source": "baseos",
+      "version": "1.8.5-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "kpartx",
+      "source": "baseos",
+      "version": "0.8.4-41.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libfdisk",
+      "source": "baseos",
+      "version": "2.32.1-46.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "zlib",
+      "source": "baseos",
+      "version": "1.2.11-25.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "sssd-common-pac",
+      "source": "baseos",
+      "version": "2.9.4-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "nss-softokn-freebl",
+      "source": "appstream",
+      "version": "3.90.0-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-gpg",
+      "source": "baseos",
+      "version": "1.13.1-12.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "elfutils-devel",
+      "source": "baseos",
+      "version": "0.190-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libffi",
+      "source": "baseos",
+      "version": "3.1-24.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "qt5-srpm-macros",
+      "source": "baseos",
+      "version": "5.15.3-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "rpm-build-libs",
+      "source": "baseos",
+      "version": "4.14.3-31.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "protobuf-c",
+      "source": "appstream",
+      "version": "1.3.0-8.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "dyninst",
+      "source": "appstream",
+      "version": "12.1.0-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libmaxminddb",
+      "source": "appstream",
+      "version": "1.2.0-10.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python-srpm-macros",
+      "source": "baseos",
+      "version": "3-45.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "perl-IO",
+      "source": "baseos",
+      "version": "1.38-422.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "coreutils",
+      "source": "baseos",
+      "version": "8.30-15.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "p11-kit-trust",
+      "source": "baseos",
+      "version": "0.23.22-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libverto",
+      "source": "baseos",
+      "version": "0.3.2-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "sqlite",
+      "source": "baseos",
+      "version": "3.26.0-19.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "procps-ng",
+      "source": "baseos",
+      "version": "3.3.15-14.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "tuned",
+      "source": "baseos",
+      "version": "2.22.1-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "tzdata",
+      "source": "baseos",
+      "version": "2024a-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "openssh",
+      "source": "baseos",
+      "version": "8.0p1-24.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libselinux-utils",
+      "source": "baseos",
+      "version": "2.9-8.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libblkid",
+      "source": "baseos",
+      "version": "2.32.1-46.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "perl-Git",
+      "source": "appstream",
+      "version": "2.43.0-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libksba",
+      "source": "baseos",
+      "version": "1.3.5-9.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libtasn1",
+      "source": "baseos",
+      "version": "4.13-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "kmod-libs",
+      "source": "baseos",
+      "version": "25-20.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "kernel-headers",
+      "source": "baseos",
+      "version": "4.18.0-552.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libcap",
+      "source": "baseos",
+      "version": "2.48-5.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "redhat-rpm-config",
+      "source": "baseos",
+      "version": "131-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "rsync",
+      "source": "baseos",
+      "version": "3.1.3-19.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "nss-softokn",
+      "source": "appstream",
+      "version": "3.90.0-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libini_config",
+      "source": "baseos",
+      "version": "1.3.1-40.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "trousers",
+      "source": "baseos",
+      "version": "0.3.15-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "systemd-pam",
+      "source": "baseos",
+      "version": "239-82.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "iwl3160-firmware",
+      "source": "baseos",
+      "version": "1:25.30.13.0-121.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-libselinux",
+      "source": "baseos",
+      "version": "2.9-8.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "e2fsprogs",
+      "source": "baseos",
+      "version": "1.45.6-5.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "realmd",
+      "source": "baseos",
+      "version": "0.17.1-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libipa_hbac",
+      "source": "baseos",
+      "version": "2.9.4-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "libX11-common",
+      "source": "appstream",
+      "version": "1.6.8-8.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "polkit-libs",
+      "source": "baseos",
+      "version": "0.115-15.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libnl3",
+      "source": "baseos",
+      "version": "3.7.0-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libss",
+      "source": "baseos",
+      "version": "1.45.6-5.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "nss-tools",
+      "source": "appstream",
+      "version": "3.90.0-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "lmdb-libs",
+      "source": "baseos",
+      "version": "0.9.24-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "boost-chrono",
+      "source": "appstream",
+      "version": "1.66.0-13.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "tcpdump",
+      "source": "appstream",
+      "version": "14:4.9.3-5.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "gtk-update-icon-cache",
+      "source": "appstream",
+      "version": "3.22.30-11.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libstdc++",
+      "source": "baseos",
+      "version": "8.5.0-22.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "grub2-pc",
+      "source": "baseos",
+      "version": "1:2.02-129.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-libdnf",
+      "source": "baseos",
+      "version": "0.63.0-19.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "gnutls",
+      "source": "baseos",
+      "version": "3.6.16-8.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libpath_utils",
+      "source": "baseos",
+      "version": "0.2.1-40.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "nss-util",
+      "source": "appstream",
+      "version": "3.90.0-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "file-libs",
+      "source": "baseos",
+      "version": "5.33-26.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "iwl2030-firmware",
+      "source": "baseos",
+      "version": "18.168.6.1-121.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "nss",
+      "source": "appstream",
+      "version": "3.90.0-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "gcc",
+      "source": "baseos",
+      "version": "8.5.0-22.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "openssh-clients",
+      "source": "baseos",
+      "version": "8.0p1-24.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libbabeltrace",
+      "source": "baseos",
+      "version": "1.5.4-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "util-linux-user",
+      "source": "baseos",
+      "version": "2.32.1-46.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "boost-regex",
+      "source": "appstream",
+      "version": "1.66.0-13.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "rsyslog-relp",
+      "source": "appstream",
+      "version": "8.2102.0-15.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "kpatch-dnf",
+      "source": "baseos",
+      "version": "0.9.7_0.4-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "gcc-c++",
+      "source": "appstream",
+      "version": "8.5.0-22.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "gdbm",
+      "source": "baseos",
+      "version": "1:1.18-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "grub2-tools-minimal",
+      "source": "baseos",
+      "version": "1:2.02-129.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "tar",
+      "source": "baseos",
+      "version": "2:1.30-9.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libtalloc",
+      "source": "baseos",
+      "version": "2.4.1-0.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "sg3_utils",
+      "source": "baseos",
+      "version": "1.44-6.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-libs",
+      "source": "baseos",
+      "version": "3.6.8-62.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "glibc-gconv-extra",
+      "source": "baseos",
+      "version": "2.28-251.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "device-mapper-event-libs",
+      "source": "baseos",
+      "version": "8:1.02.181-14.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "elfutils-libs",
+      "source": "baseos",
+      "version": "0.190-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "chkconfig",
+      "source": "baseos",
+      "version": "1.19.2-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "bind-libs-lite",
+      "source": "appstream",
+      "version": "32:9.11.36-13.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "kernel-modules",
+      "source": "baseos",
+      "version": "4.18.0-552.1.1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "elfutils-libelf",
+      "source": "baseos",
+      "version": "0.190-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "dbus-tools",
+      "source": "baseos",
+      "version": "1:1.12.8-26.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "sg3_utils-libs",
+      "source": "baseos",
+      "version": "1.44-6.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-nftables",
+      "source": "baseos",
+      "version": "1:1.0.4-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "sssd-krb5-common",
+      "source": "baseos",
+      "version": "2.9.4-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "NetworkManager-libnm",
+      "source": "baseos",
+      "version": "1:1.40.16-15.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "oddjob",
+      "source": "appstream",
+      "version": "0.34.7-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "ncurses-devel",
+      "source": "baseos",
+      "version": "6.1-10.20180224.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "cockpit-ws",
+      "source": "baseos",
+      "version": "310.4-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "shadow-utils",
+      "source": "baseos",
+      "version": "2:4.6-22.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "boost-system",
+      "source": "appstream",
+      "version": "1.66.0-13.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "cpp",
+      "source": "baseos",
+      "version": "8.5.0-22.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "iwl135-firmware",
+      "source": "baseos",
+      "version": "18.168.6.1-121.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "device-mapper-event",
+      "source": "baseos",
+      "version": "8:1.02.181-14.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "grub2-common",
+      "source": "baseos",
+      "version": "1:2.02-129.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "dracut-network",
+      "source": "baseos",
+      "version": "049-233.git20240115.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "iwl2000-firmware",
+      "source": "baseos",
+      "version": "18.168.6.1-121.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "httpd-filesystem",
+      "source": "appstream",
+      "version": "2.4.37-64.module_el8+965+1ad5c49d"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "annobin",
+      "source": "baseos",
+      "version": "11.13-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "systemtap-devel",
+      "source": "appstream",
+      "version": "4.9-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "centos-gpg-keys",
+      "source": "baseos",
+      "version": "1:8-6.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "tpm2-tss",
+      "source": "baseos",
+      "version": "2.3.2-6.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "adcli",
+      "source": "baseos",
+      "version": "0.9.2-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "dnf-data",
+      "source": "baseos",
+      "version": "4.7.0-20.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "p11-kit",
+      "source": "baseos",
+      "version": "0.23.22-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "pciutils",
+      "source": "baseos",
+      "version": "3.7.0-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "automake",
+      "source": "appstream",
+      "version": "1.16.1-8.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "mdadm",
+      "source": "baseos",
+      "version": "4.2-14.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "dnf",
+      "source": "baseos",
+      "version": "4.7.0-20.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "sos",
+      "source": "baseos",
+      "version": "4.7.0-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "gdb-headless",
+      "source": "appstream",
+      "version": "8.2-19.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "vdo",
+      "source": "baseos",
+      "version": "6.2.9.7-14.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-linux-procfs",
+      "source": "baseos",
+      "version": "0.7.3-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "valgrind-devel",
+      "source": "appstream",
+      "version": "1:3.22.0-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "ncurses-libs",
+      "source": "baseos",
+      "version": "6.1-10.20180224.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "platform-python-pip",
+      "source": "baseos",
+      "version": "9.0.3-24.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libsss_idmap",
+      "source": "baseos",
+      "version": "2.9.4-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python-rpm-macros",
+      "source": "baseos",
+      "version": "3-45.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libtevent",
+      "source": "baseos",
+      "version": "0.16.0-0.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "elfutils",
+      "source": "baseos",
+      "version": "0.190-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "firewalld-filesystem",
+      "source": "baseos",
+      "version": "0.9.11-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libsmbclient",
+      "source": "baseos",
+      "version": "4.19.4-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "xz",
+      "source": "baseos",
+      "version": "5.2.4-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "boost-date-time",
+      "source": "appstream",
+      "version": "1.66.0-13.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "virt-what",
+      "source": "baseos",
+      "version": "1.25-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "policycoreutils-python-utils",
+      "source": "baseos",
+      "version": "2.9-26.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "ca-certificates",
+      "source": "baseos",
+      "version": "2023.2.60_v7.0.306-80.0.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "perl-macros",
+      "source": "baseos",
+      "version": "4:5.26.3-422.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libgomp",
+      "source": "baseos",
+      "version": "8.5.0-22.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "dracut",
+      "source": "baseos",
+      "version": "049-233.git20240115.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "unbound-libs",
+      "source": "appstream",
+      "version": "1.16.2-5.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "kbd-legacy",
+      "source": "baseos",
+      "version": "2.0.4-11.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-setuptools-wheel",
+      "source": "baseos",
+      "version": "39.2.0-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "kernel-headers",
+      "source": "baseos",
+      "version": "4.18.0-547.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libcollection",
+      "source": "baseos",
+      "version": "0.7.0-40.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "cockpit-packagekit",
+      "source": "appstream",
+      "version": "310.3-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "ledmon",
+      "source": "baseos",
+      "version": "0.97-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-pip",
+      "source": "appstream",
+      "version": "9.0.3-24.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "cryptsetup-libs",
+      "source": "baseos",
+      "version": "2.3.7-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "elfutils-debuginfod-client-devel",
+      "source": "baseos",
+      "version": "0.190-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-rpm",
+      "source": "baseos",
+      "version": "4.14.3-31.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "kernel-core",
+      "source": "baseos",
+      "version": "4.18.0-552.1.1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-unbound",
+      "source": "appstream",
+      "version": "1.16.2-5.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "util-linux",
+      "source": "baseos",
+      "version": "2.32.1-46.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libdhash",
+      "source": "baseos",
+      "version": "0.5.0-40.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "perl-IO-Socket-SSL",
+      "source": "appstream",
+      "version": "2.066-4.module_el8+339+1ec643e0"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "systemtap-runtime",
+      "source": "appstream",
+      "version": "4.9-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "git",
+      "source": "appstream",
+      "version": "2.43.0-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "gdb",
+      "source": "appstream",
+      "version": "8.2-20.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "cryptsetup",
+      "source": "baseos",
+      "version": "2.3.7-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libnl3-cli",
+      "source": "baseos",
+      "version": "3.7.0-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "ethtool",
+      "source": "baseos",
+      "version": "2:5.13-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "vim-common",
+      "source": "appstream",
+      "version": "2:8.0.1763-19.el8.4"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-urllib3",
+      "source": "baseos",
+      "version": "1.24.2-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "java-1.8.0-openjdk-headless",
+      "source": "appstream",
+      "version": "1:1.8.0.362.b08-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "iwl1000-firmware",
+      "source": "baseos",
+      "version": "1:39.31.5.1-121.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "kernel-headers",
+      "source": "baseos",
+      "version": "4.18.0-552.1.1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libuser",
+      "source": "baseos",
+      "version": "0.62-25.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "dmidecode",
+      "source": "baseos",
+      "version": "1:3.3-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "kexec-tools",
+      "source": "baseos",
+      "version": "2.0.26-14.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "ncurses-c++-libs",
+      "source": "baseos",
+      "version": "6.1-10.20180224.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "kbd",
+      "source": "baseos",
+      "version": "2.0.4-11.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libnfsidmap",
+      "source": "baseos",
+      "version": "1:2.3.3-59.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-libxml2",
+      "source": "baseos",
+      "version": "2.9.7-18.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "emacs-filesystem",
+      "source": "baseos",
+      "version": "1:26.1-11.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libkcapi-hmaccalc",
+      "source": "baseos",
+      "version": "1.4.0-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "boost-atomic",
+      "source": "appstream",
+      "version": "1.66.0-13.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-libstoragemgmt",
+      "source": "baseos",
+      "version": "1.9.1-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "elfutils-libelf-devel",
+      "source": "baseos",
+      "version": "0.190-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "gdb",
+      "source": "appstream",
+      "version": "8.2-19.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "systemtap",
+      "source": "appstream",
+      "version": "4.9-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "openssl-devel",
+      "source": "baseos",
+      "version": "1:1.1.1k-12.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "grub2-tools-minimal",
+      "source": "baseos",
+      "version": "1:2.02-123.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "device-mapper-libs",
+      "source": "baseos",
+      "version": "8:1.02.181-14.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "kbd-misc",
+      "source": "baseos",
+      "version": "2.0.4-11.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "centos-stream-repos",
+      "source": "baseos",
+      "version": "8-6.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "glibc-headers",
+      "source": "baseos",
+      "version": "2.28-251.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "hwdata",
+      "source": "baseos",
+      "version": "0.314-8.22.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "tzdata-java",
+      "source": "appstream",
+      "version": "2024a-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "openssl-pkcs11",
+      "source": "baseos",
+      "version": "0.4.10-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "coreutils-common",
+      "source": "baseos",
+      "version": "8.30-15.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "kernel-headers",
+      "source": "baseos",
+      "version": "4.18.0-548.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "sssd-client",
+      "source": "baseos",
+      "version": "2.9.4-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "dracut-config-rescue",
+      "source": "baseos",
+      "version": "049-233.git20240115.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libbasicobjects",
+      "source": "baseos",
+      "version": "0.1.1-40.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-perf",
+      "source": "baseos",
+      "version": "4.18.0-552.1.1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "kpatch",
+      "source": "baseos",
+      "version": "0.9.7-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-policycoreutils",
+      "source": "baseos",
+      "version": "2.9-26.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "sscg",
+      "source": "appstream",
+      "version": "3.0.0-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "samba-client-libs",
+      "source": "baseos",
+      "version": "4.19.4-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "pam",
+      "source": "baseos",
+      "version": "1.3.1-33.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "at",
+      "source": "baseos",
+      "version": "3.1.20-12.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-slip-dbus",
+      "source": "baseos",
+      "version": "0.6.4-13.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "iproute",
+      "source": "baseos",
+      "version": "6.2.0-5.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libsss_nss_idmap",
+      "source": "baseos",
+      "version": "2.9.4-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "rsyslog",
+      "source": "appstream",
+      "version": "8.2102.0-15.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "perl-Mozilla-CA",
+      "source": "appstream",
+      "version": "20160104-7.module_el8+645+9d809f8c"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "pixman",
+      "source": "appstream",
+      "version": "0.38.4-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "iwl7260-firmware",
+      "source": "baseos",
+      "version": "1:25.30.13.0-121.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "ncurses",
+      "source": "baseos",
+      "version": "6.1-10.20180224.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "glibc-common",
+      "source": "baseos",
+      "version": "2.28-251.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libsss_autofs",
+      "source": "baseos",
+      "version": "2.9.4-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "curl",
+      "source": "baseos",
+      "version": "7.61.1-34.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "NetworkManager-tui",
+      "source": "baseos",
+      "version": "1:1.40.16-15.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "strace",
+      "source": "baseos",
+      "version": "5.18-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "gzip",
+      "source": "baseos",
+      "version": "1.9-13.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "rpm-libs",
+      "source": "baseos",
+      "version": "4.14.3-31.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "tracer-common",
+      "source": "appstream",
+      "version": "1.1-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libcom_err",
+      "source": "baseos",
+      "version": "1.45.6-5.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "desktop-file-utils",
+      "source": "appstream",
+      "version": "0.26-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "gnupg2-smime",
+      "source": "baseos",
+      "version": "2.2.20-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "grub2-tools-efi",
+      "source": "baseos",
+      "version": "1:2.02-129.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libcurl",
+      "source": "baseos",
+      "version": "7.61.1-34.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "freetype",
+      "source": "baseos",
+      "version": "2.9.1-9.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "xz-devel",
+      "source": "baseos",
+      "version": "5.2.4-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-setuptools",
+      "source": "baseos",
+      "version": "39.2.0-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "pcre2-devel",
+      "source": "baseos",
+      "version": "10.32-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "crypto-policies",
+      "source": "baseos",
+      "version": "20230731-1.git3177e06.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libtdb",
+      "source": "baseos",
+      "version": "1.4.9-0.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libpwquality",
+      "source": "baseos",
+      "version": "1.4.4-6.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "dbus-daemon",
+      "source": "baseos",
+      "version": "1:1.12.8-26.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "krb5-devel",
+      "source": "baseos",
+      "version": "1.18.2-27.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libstdc++-devel",
+      "source": "appstream",
+      "version": "8.5.0-22.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "grub2-tools-efi",
+      "source": "baseos",
+      "version": "1:2.02-123.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "bind-utils",
+      "source": "appstream",
+      "version": "32:9.11.36-13.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "librsvg2",
+      "source": "appstream",
+      "version": "2.42.7-5.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "rpm",
+      "source": "baseos",
+      "version": "4.14.3-31.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-bind",
+      "source": "appstream",
+      "version": "32:9.11.36-13.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "kmod-kvdo",
+      "source": "baseos",
+      "version": "6.2.8.7-94.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "e2fsprogs-libs",
+      "source": "baseos",
+      "version": "1.45.6-5.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "librepo",
+      "source": "baseos",
+      "version": "1.14.2-5.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libref_array",
+      "source": "baseos",
+      "version": "0.1.5-40.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "platform-python-setuptools",
+      "source": "baseos",
+      "version": "39.2.0-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "qt5-srpm-macros",
+      "source": "appstream",
+      "version": "5.15.3-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "mokutil",
+      "source": "baseos",
+      "version": "1:0.3.0-12.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "valgrind",
+      "source": "appstream",
+      "version": "1:3.22.0-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "perl-libs",
+      "source": "baseos",
+      "version": "4:5.26.3-422.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "authselect-libs",
+      "source": "baseos",
+      "version": "1.2.6-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "kernel-tools-libs",
+      "source": "baseos",
+      "version": "4.18.0-552.1.1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "openssl-libs",
+      "source": "baseos",
+      "version": "1:1.1.1k-12.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "iwl5000-firmware",
+      "source": "baseos",
+      "version": "8.83.5.1_1-121.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libgcc",
+      "source": "baseos",
+      "version": "8.5.0-22.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libsss_certmap",
+      "source": "baseos",
+      "version": "2.9.4-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-dnf",
+      "source": "baseos",
+      "version": "4.7.0-20.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "bpftool",
+      "source": "baseos",
+      "version": "4.18.0-552.1.1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "less",
+      "source": "baseos",
+      "version": "530-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libgs",
+      "source": "appstream",
+      "version": "9.27-12.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libsoup",
+      "source": "baseos",
+      "version": "2.62.3-5.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libsemanage",
+      "source": "baseos",
+      "version": "2.9-9.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "setroubleshoot-server",
+      "source": "appstream",
+      "version": "3.3.26-6.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libwbclient",
+      "source": "baseos",
+      "version": "4.19.4-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "nvme-cli",
+      "source": "baseos",
+      "version": "1.16-9.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "selinux-policy",
+      "source": "baseos",
+      "version": "3.14.3-139.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-requests",
+      "source": "baseos",
+      "version": "2.20.0-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-pip-wheel",
+      "source": "baseos",
+      "version": "9.0.3-24.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "boost-regex",
+      "source": "baseos",
+      "version": "1.66.0-13.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "wget",
+      "source": "appstream",
+      "version": "1.19.5-11.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libverto-devel",
+      "source": "baseos",
+      "version": "0.3.2-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "openjpeg2",
+      "source": "appstream",
+      "version": "2.4.0-5.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "sssd-ldap",
+      "source": "baseos",
+      "version": "2.9.4-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "cups-libs",
+      "source": "baseos",
+      "version": "1:2.2.6-57.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "linux-firmware",
+      "source": "baseos",
+      "version": "20240111-121.gitb3132c18.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "sssd-ad",
+      "source": "baseos",
+      "version": "2.9.4-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "nftables",
+      "source": "baseos",
+      "version": "1:1.0.4-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "perl-HTTP-Tiny",
+      "source": "baseos",
+      "version": "0.074-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "sssd",
+      "source": "baseos",
+      "version": "2.9.4-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libxml2",
+      "source": "baseos",
+      "version": "2.9.7-18.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "iwl6050-firmware",
+      "source": "baseos",
+      "version": "41.28.5.1-121.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "numactl-libs",
+      "source": "baseos",
+      "version": "2.0.16-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "pcre2-utf16",
+      "source": "baseos",
+      "version": "10.32-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "device-mapper",
+      "source": "baseos",
+      "version": "8:1.02.181-14.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libXpm",
+      "source": "appstream",
+      "version": "3.5.12-11.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "kernel-devel",
+      "source": "baseos",
+      "version": "4.18.0-552.1.1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "setup",
+      "source": "baseos",
+      "version": "2.12.2-11.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "perl-interpreter",
+      "source": "baseos",
+      "version": "4:5.26.3-422.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "samba-common-libs",
+      "source": "baseos",
+      "version": "4.19.4-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "cronie",
+      "source": "baseos",
+      "version": "1.5.2-10.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "firewalld",
+      "source": "baseos",
+      "version": "0.9.11-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-hawkey",
+      "source": "baseos",
+      "version": "0.63.0-19.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "mcelog",
+      "source": "baseos",
+      "version": "3:195-0.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "pcre2",
+      "source": "baseos",
+      "version": "10.32-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "sqlite-libs",
+      "source": "baseos",
+      "version": "3.26.0-19.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "audit-libs",
+      "source": "baseos",
+      "version": "3.1.2-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "grub2-tools",
+      "source": "baseos",
+      "version": "1:2.02-129.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "ctags",
+      "source": "baseos",
+      "version": "5.8-23.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "findutils",
+      "source": "baseos",
+      "version": "1:4.6.0-22.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "shared-mime-info",
+      "source": "baseos",
+      "version": "1.9-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "perl-Net-SSLeay",
+      "source": "appstream",
+      "version": "1.88-2.module_el8+339+1ec643e0"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libbpf",
+      "source": "baseos",
+      "version": "0.5.0-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "dracut-squash",
+      "source": "baseos",
+      "version": "049-233.git20240115.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "teamd",
+      "source": "baseos",
+      "version": "1.31-4.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "PackageKit",
+      "source": "appstream",
+      "version": "1.1.12-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "bash",
+      "source": "baseos",
+      "version": "4.4.20-5.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "openssh-server",
+      "source": "baseos",
+      "version": "8.0p1-24.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libestr",
+      "source": "appstream",
+      "version": "0.1.10-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "sssd-proxy",
+      "source": "baseos",
+      "version": "2.9.4-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libacl",
+      "source": "baseos",
+      "version": "2.2.53-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "dnf-plugins-core",
+      "source": "baseos",
+      "version": "4.0.21-25.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "systemd",
+      "source": "baseos",
+      "version": "239-82.el8.1"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libuuid",
+      "source": "baseos",
+      "version": "2.32.1-46.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "polkit",
+      "source": "baseos",
+      "version": "0.115-15.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "boost-thread",
+      "source": "appstream",
+      "version": "1.66.0-13.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "file",
+      "source": "baseos",
+      "version": "5.33-26.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-dnf-plugins-core",
+      "source": "baseos",
+      "version": "4.0.21-25.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libnftnl",
+      "source": "baseos",
+      "version": "1.2.2-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "vim-minimal",
+      "source": "baseos",
+      "version": "2:8.0.1763-19.el8.4"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "libssh-config",
+      "source": "baseos",
+      "version": "0.9.6-14.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "oddjob-mkhomedir",
+      "source": "appstream",
+      "version": "0.34.7-3.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "kernel",
+      "source": "baseos",
+      "version": "4.18.0-552.1.1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "lvm2",
+      "source": "baseos",
+      "version": "8:2.03.14-14.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "python3-tracer",
+      "source": "appstream",
+      "version": "1.1-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "iputils",
+      "source": "baseos",
+      "version": "20180629-11.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libselinux-devel",
+      "source": "baseos",
+      "version": "2.9-8.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "audit",
+      "source": "baseos",
+      "version": "3.1.2-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libsmartcols",
+      "source": "baseos",
+      "version": "2.32.1-46.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "libcom_err-devel",
+      "source": "baseos",
+      "version": "1.45.6-5.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "elfutils-debuginfod-client",
+      "source": "baseos",
+      "version": "0.190-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "gdbm-libs",
+      "source": "baseos",
+      "version": "1:1.18-2.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "dbus",
+      "source": "baseos",
+      "version": "1:1.12.8-26.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "noarch",
+      "from": "yum",
+      "kind": "none",
+      "name": "grub2-pc-modules",
+      "source": "baseos",
+      "version": "1:2.02-129.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "nss-sysinit",
+      "source": "appstream",
+      "version": "3.90.0-7.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "cockpit-bridge",
+      "source": "baseos",
+      "version": "310.4-1.el8"
+    },
+    {
+      "ids": [
+        ""
+      ],
+      "arch": "x86_64",
+      "from": "yum",
+      "kind": "none",
+      "name": "acl",
+      "source": "baseos",
+      "version": "2.2.53-3.el8"
+    }
+  ],
+  "archDescription": "x86_64",
+  "physicalVolumes": [],
+  "factProcessedDate": "2024-05-16T17:17:02+02:00",
+  "lastInventoryDate": "2024-05-16T17:16:56+02:00",
+  "environmentVariables": [
+    [
+      "SHELL",
+      "/bin/bash"
+    ],
+    [
+      "DEBIAN_FRONTEND",
+      "noninteractive"
+    ],
+    [
+      "HOME",
+      "/root"
+    ],
+    [
+      "MAIL",
+      "/var/spool/mail/vagrant"
+    ],
+    [
+      "SUDO_UID",
+      "1000"
+    ],
+    [
+      "LOGNAME",
+      "root"
+    ],
+    [
+      "INFOMGR_BYPASS_NONSA",
+      "1"
+    ],
+    [
+      "_",
+      "/bin/perl"
+    ],
+    [
+      "RUDDER_BIN",
+      "/opt/rudder/bin/rudder"
+    ],
+    [
+      "PWD",
+      "/var/rudder"
+    ],
+    [
+      "USER",
+      "root"
+    ],
+    [
+      "SHLVL",
+      "8"
+    ],
+    [
+      "TERM",
+      "xterm-256color"
+    ],
+    [
+      "SUDO_COMMAND",
+      "/bin/su"
+    ],
+    [
+      "HISTSIZE",
+      "100000"
+    ],
+    [
+      "SUDO_USER",
+      "vagrant"
+    ],
+    [
+      "SUDO_GID",
+      "1000"
+    ],
+    [
+      "PATH",
+      "/opt/rudder/bin:/usr/gnu/bin:/opt/rudder/bin:/usr/gnu/bin:/opt/rudder/bin:/usr/gnu/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/X11R6/bin:/sbin:/usr/sbin:/sbin:/usr/sbin:/sbin:/usr/sbin"
+    ],
+    [
+      "LS_COLORS",
+      "rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:"
+    ],
+    [
+      "BASEDIR",
+      "/opt/rudder/share/commands"
+    ],
+    [
+      "HOSTNAME",
+      "relay"
+    ]
+  ]
+}

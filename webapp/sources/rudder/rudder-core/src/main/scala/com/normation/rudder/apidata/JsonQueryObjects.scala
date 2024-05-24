@@ -37,6 +37,7 @@
 
 package com.normation.rudder.apidata
 
+import cats.syntax.traverse.*
 import com.normation.GitVersion
 import com.normation.GitVersion.ParseRev
 import com.normation.GitVersion.Revision
@@ -45,6 +46,7 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors.*
 import com.normation.errors.PureResult
 import com.normation.errors.Unexpected
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -65,10 +67,15 @@ import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.services.queries.StringCriterionLine
 import com.normation.rudder.services.queries.StringQuery
+import com.normation.rudder.services.servers.DeleteMode
 import com.typesafe.config.ConfigValue
+import enumeratum.Enum
+import enumeratum.EnumEntry
+import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.dsl.*
 import net.liftweb.common.*
 import net.liftweb.http.Req
+import zio.NonEmptyChunk
 import zio.json.*
 
 /*
@@ -93,6 +100,36 @@ import zio.json.*
  */
 object JsonQueryObjects {
   import JsonResponseObjects.JRRuleTarget
+
+  // Node
+  final case class JQDeleteMode(
+      mode: Option[DeleteMode]
+  )
+  final case class JQNodeIdStatus(
+      nodeId: List[NodeId],
+      status: JQNodeStatusAction
+  )
+  final case class JQNodeStatus(
+      status: JQNodeStatusAction
+  )
+  sealed trait JQNodeStatusAction extends EnumEntry
+  object JQNodeStatusAction       extends Enum[JQNodeStatusAction] {
+    case object AcceptNode extends JQNodeStatusAction
+    case object RefuseNode extends JQNodeStatusAction
+    case object DeleteNode extends JQNodeStatusAction
+
+    def values: IndexedSeq[JQNodeStatusAction] = findValues
+
+    override def extraNamesToValuesMap: Map[String, JQNodeStatusAction] = Map(
+      "accept"   -> AcceptNode,
+      "accepted" -> AcceptNode,
+      "refuse"   -> RefuseNode,
+      "refused"  -> RefuseNode,
+      "delete"   -> DeleteNode,
+      "deleted"  -> DeleteNode,
+      "removed"  -> DeleteNode
+    )
+  }
 
   final case class JQRuleCategory(
       name:        Option[String] = None,
@@ -271,10 +308,10 @@ object JsonQueryObjects {
   }
 
   final case class JQStringQuery(
-      returnType:  Option[QueryReturnType],
-      composition: Option[String],
-      transform:   Option[String],
-      where:       Option[List[StringCriterionLine]]
+      @jsonAliases("select") returnType: Option[QueryReturnType],
+      composition:                       Option[String],
+      transform:                         Option[String],
+      where:                             Option[List[StringCriterionLine]]
   ) {
     def toQueryString: StringQuery =
       StringQuery(returnType.getOrElse(NodeReturnType), composition, transform, where.getOrElse(Nil))
@@ -334,13 +371,38 @@ object JsonQueryObjects {
     }
   }
 
-  // policy servers are serialized in their output format
+  final case class JQNodeDetailLevel(
+      fields: Set[String]
+  ) extends AnyVal
+
+  object JQNodeDetailLevel {
+    implicit val transformer: Transformer[JQNodeDetailLevel, NodeDetailLevel] = (jq: JQNodeDetailLevel) =>
+      CustomDetailLevel(jq.fields)
+  }
 }
 
 trait RudderJsonDecoders {
   import JsonQueryObjects.*
   import JsonResponseObjects.*
   import JsonResponseObjects.JRRuleTarget.*
+
+  implicit val deleteModeDecoder:   JsonDecoder[DeleteMode]   =
+    JsonDecoder[String].mapOrFail(DeleteMode.withNameInsensitiveEither(_).left.map(_.getMessage()))
+  implicit val jqDeleteModeDecoder: JsonDecoder[JQDeleteMode] = DeriveJsonDecoder.gen[JQDeleteMode]
+
+  implicit val nodeIdDecoder:           JsonDecoder[NodeId]             = JsonDecoder[String].map(NodeId.apply)
+  implicit val nodeStatusActionDecoder: JsonDecoder[JQNodeStatusAction] =
+    JsonDecoder[String].mapOrFail(JQNodeStatusAction.withNameInsensitiveEither(_).left.map(_.getMessage()))
+  implicit val nodeIdStatusDecoder:     JsonDecoder[JQNodeIdStatus]     = DeriveJsonDecoder
+    .gen[JQNodeIdStatus]
+    .mapOrFail(x => {
+      if (x.nodeId.isEmpty) {
+        Left("You must add a node id as target")
+      } else {
+        Right(x)
+      }
+    })
+  implicit val nodestatusDecoder:       JsonDecoder[JQNodeStatus]       = DeriveJsonDecoder.gen[JQNodeStatus]
 
   // JRRuleTarget
   object JRRuleTargetDecoder {
@@ -415,15 +477,18 @@ trait RudderJsonDecoders {
   implicit val configValueDecoder:     JsonDecoder[ConfigValue]       = JsonDecoder[ast.Json].map(GenericProperty.fromZioJson(_))
   implicit val globalParameterDecoder: JsonDecoder[JQGlobalParameter] = DeriveJsonDecoder.gen
 
-  // Rest group
-  implicit val nodeGroupCategoryIdDecoder:      JsonDecoder[NodeGroupCategoryId] = JsonDecoder[String].map(NodeGroupCategoryId.apply)
+  // Query
   implicit val queryStringCriterionLineDecoder: JsonDecoder[StringCriterionLine] = DeriveJsonDecoder.gen
-  implicit val queryReturnTypeDecoder:          JsonDecoder[QueryReturnType]     = DeriveJsonDecoder.gen
+  implicit val queryReturnTypeDecoder:          JsonDecoder[QueryReturnType]     =
+    JsonDecoder[String].mapOrFail(QueryReturnType.apply(_).left.map(_.fullMsg))
   implicit val queryDecoder:                    JsonDecoder[StringQuery]         = DeriveJsonDecoder.gen[JQStringQuery].map(_.toQueryString)
-  implicit val groupPropertyDecoder:            JsonDecoder[JQGroupProperty]     = DeriveJsonDecoder.gen
-  implicit val groupPropertyDecoder2:           JsonDecoder[GroupProperty]       = JsonDecoder[JQGroupProperty].map(_.toGroupProperty)
-  implicit val nodeGroupIdDecoder:              JsonDecoder[NodeGroupId]         = JsonDecoder[String].mapOrFail(x => NodeGroupId.parse(x))
-  implicit val groupDecoder:                    JsonDecoder[JQGroup]             = DeriveJsonDecoder.gen
+
+  // Rest group
+  implicit val nodeGroupCategoryIdDecoder: JsonDecoder[NodeGroupCategoryId] = JsonDecoder[String].map(NodeGroupCategoryId.apply)
+  implicit val groupPropertyDecoder:       JsonDecoder[JQGroupProperty]     = DeriveJsonDecoder.gen
+  implicit val groupPropertyDecoder2:      JsonDecoder[GroupProperty]       = JsonDecoder[JQGroupProperty].map(_.toGroupProperty)
+  implicit val nodeGroupIdDecoder:         JsonDecoder[NodeGroupId]         = JsonDecoder[String].mapOrFail(x => NodeGroupId.parse(x))
+  implicit val groupDecoder:               JsonDecoder[JQGroup]             = DeriveJsonDecoder.gen
 
 }
 
@@ -466,6 +531,12 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
    */
   implicit class Extract(params: Map[String, List[String]]) {
     def optGet(key: String): Option[String] = params.get(key).flatMap(_.headOption)
+    def parseOne[A](key: String, decoder: String => A):                    PureResult[Option[A]] = {
+      optGet(key) match {
+        case None    => Right(None)
+        case Some(x) => Right(Some(decoder(x)))
+      }
+    }
     def parse[A](key: String, decoder: JsonDecoder[A]):                    PureResult[Option[A]] = {
       optGet(key) match {
         case None    => Right(None)
@@ -523,6 +594,30 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
       parseJson[JQGroup](req)
     } else {
       extractGroupFromParams(req.params)
+    }
+  }
+
+  def extractDeleteMode(req: Req): PureResult[Option[DeleteMode]] = {
+    if (req.json_?) {
+      parseJson[JQDeleteMode](req).map(_.mode)
+    } else {
+      extractDeleteModeFromParams(req.params)
+    }
+  }
+
+  def extractNodeIdStatus(req: Req): PureResult[JQNodeIdStatus] = {
+    if (req.json_?) {
+      parseJson[JQNodeIdStatus](req)
+    } else {
+      extractNodeIdStatusFromParams(req.params)
+    }
+  }
+
+  def extractNodeStatus(req: Req): PureResult[JQNodeStatus] = {
+    if (req.json_?) {
+      parseJson[JQNodeStatus](req)
+    } else {
+      extractNodeStatusFromParams(req.params)
     }
   }
 
@@ -619,6 +714,63 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
         params.optGet("category").map(NodeGroupCategoryId.apply),
         source
       )
+    }
+  }
+
+  def extractNodeDetailLevelFromParams(params: Map[String, List[String]]): PureResult[Option[JQNodeDetailLevel]] = {
+    params.parseOne("include", _.split(",").toSet.transformInto[JQNodeDetailLevel])
+  }
+
+  def extractQueryFromParams(
+      params: Map[String, List[String]]
+  ): PureResult[Option[Query]] = {
+    for {
+      queryParam  <- params.parse("query", JsonDecoder[StringQuery])
+      splitParams <- (for {
+                       select      <- params.parseString("select", QueryReturnType.apply(_).left.map(_.fullMsg))
+                       composition <- params.parseOne("composition", identity)
+                       transform   <- params.parseOne("transform", identity)
+                       // in RestExtractorService, we validate that this is not empty
+                       where       <- params
+                                        .parse("where", JsonDecoder[NonEmptyChunk[StringCriterionLine]])
+                                        .chainError("Query should at least contain one criteria")
+                     } yield {
+                       // "where" param presence determines if there is a query
+                       where.map(criteria => JQStringQuery(select, composition, transform, Some(criteria.toList)).toQueryString)
+                     })
+      stringQuery  = queryParam.orElse(splitParams)
+      query       <- stringQuery.traverse(queryParser.parse(_).toPureResult)
+    } yield {
+      query
+    }
+  }
+
+  def extractDeleteModeFromParams(
+      params: Map[String, List[String]]
+  ): PureResult[Option[DeleteMode]] = {
+    params.parseString("mode", DeleteMode.withNameInsensitiveEither(_).left.map(_.getMessage()))
+  }
+
+  def extractNodeIdStatusFromParams(
+      params: Map[String, List[String]]
+  ): PureResult[JQNodeIdStatus] = {
+    for {
+      optNodeIds <- Right(params.get("nodeId").map(_.map(NodeId.apply)))
+      nodeIds    <- optNodeIds.toRight(Inconsistency("You must add a node id as target"))
+      status     <- extractNodeStatusFromParams(params)
+    } yield {
+      JQNodeIdStatus(nodeIds, status.status)
+    }
+  }
+
+  def extractNodeStatusFromParams(
+      params: Map[String, List[String]]
+  ): PureResult[JQNodeStatus] = {
+    for {
+      optStatus <- params.parseString("status", JQNodeStatusAction.withNameInsensitiveEither(_).left.map(_.getMessage()))
+      status    <- optStatus.toRight(Inconsistency("node status should not be empty"))
+    } yield {
+      JQNodeStatus(status)
     }
   }
 

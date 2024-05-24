@@ -37,6 +37,7 @@
 
 package com.normation.rudder.facts.nodes
 
+import cats.syntax.traverse.*
 import com.normation.box.*
 import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
@@ -68,7 +69,12 @@ import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.config.ConfigValue
-import java.net.InetAddress
+import enumeratum.Enum
+import enumeratum.EnumEntry
+import io.scalaland.chimney.PartialTransformer
+import io.scalaland.chimney.Transformer
+import io.scalaland.chimney.partial.Result
+import io.scalaland.chimney.syntax.*
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -1537,6 +1543,64 @@ final case class JSecurityToken(kind: String, token: String)
 
 final case class JNodeProperty(name: String, value: ConfigValue, mode: Option[String], provider: Option[String])
 
+/**
+ * ADT that allows encoding "Physical/Virtual/Unknown" machine type in a single json field
+ * , instead of encoding specific provider of virtual machines.
+ */
+sealed abstract class JMachineType(override val entryName: String) extends EnumEntry {
+  def name: String = entryName
+}
+
+object JMachineType extends Enum[JMachineType] {
+  case object UnknownMachineType  extends JMachineType("Unknown")
+  case object PhysicalMachineType extends JMachineType("Physical")
+  case object VirtualMachineType  extends JMachineType("Virtual")
+
+  def values: IndexedSeq[JMachineType] = findValues
+
+  implicit val transformer: Transformer[MachineType, JMachineType] = Transformer.derive[MachineType, JMachineType]
+}
+
+/**
+ * New serialization format for MachineInfo, which splits the provider of virtual machine if the machine type is Virtual
+ * There are also renames from the old version which needs to be supported for backward compatibility.
+ */
+final case class JMachineInfo(
+    id:                                                                   MachineUuid,
+    @jsonField("type") @jsonAliases("machineType") machineType:           JMachineType,
+    provider:                                                             Option[String],
+    manufacturer:                                                         Option[Manufacturer],
+    @jsonField("serialNumber") @jsonAliases("systemSerial") systemSerial: Option[String]
+)
+object JMachineInfo {
+  implicit val transformer:     Transformer[MachineInfo, JMachineInfo]        = Transformer
+    .define[MachineInfo, JMachineInfo]
+    .withFieldComputed(
+      _.provider,
+      _.machineType match {
+        case VirtualMachineType(provider) => Some(provider.name)
+        case _                            => None
+      }
+    )
+    .buildTransformer
+  implicit val backTransformer: PartialTransformer[JMachineInfo, MachineInfo] = PartialTransformer
+    .define[JMachineInfo, MachineInfo]
+    .withFieldComputedPartial(
+      _.machineType,
+      jm => {
+        jm.machineType match {
+          case JMachineType.UnknownMachineType  => Result.Value(UnknownMachineType)
+          case JMachineType.PhysicalMachineType => Result.Value(PhysicalMachineType)
+          case JMachineType.VirtualMachineType  =>
+            Result.fromEitherString(
+              jm.provider.traverse(VmType.parse).map(_.getOrElse(VmType.UnknownVmType)).map(VirtualMachineType)
+            )
+        }
+      }
+    )
+    .buildTransformer
+}
+
 sealed trait NodeFactChangeEvent {
   def name:        String
   def debugString: String
@@ -1758,14 +1822,13 @@ object NodeFactSerialisation {
   // scalac: Error while emitting com/normation/rudder/facts/nodes/NodeFactSerialisation$
   // Method too large: com/normation/rudder/facts/nodes/NodeFactSerialisation$.<clinit> ()V
 
-  import com.normation.inventory.domain.JsonSerializers.implicits.{decoderDateTime as _, encoderDateTime as _, *}
+  import com.normation.inventory.domain.JsonSerializers.implicits.*
   import com.normation.utils.DateFormaterService.json.*
 
   object SimpleCodec {
 
-    implicit val codecOptionDateTime: JsonCodec[Option[DateTime]] = DeriveJsonCodec.gen
-    implicit val codecNodeId:         JsonCodec[NodeId]           = JsonCodec.string.transform[NodeId](NodeId(_), _.value)
-    implicit val codecJsonOsDetails:  JsonCodec[JsonOsDetails]    = DeriveJsonCodec.gen
+    implicit val codecNodeId:        JsonCodec[NodeId]        = JsonCodec.string.transform[NodeId](NodeId(_), _.value)
+    implicit val codecJsonOsDetails: JsonCodec[JsonOsDetails] = DeriveJsonCodec.gen
 
     implicit val decoderOsDetails: JsonDecoder[OsDetails] = JsonDecoder[JsonOsDetails].map { jod =>
       val tpe     = ParseOSType.getType(jod.osType, jod.name, jod.fullName)
@@ -1923,7 +1986,6 @@ object NodeFactSerialisation {
     implicit val codecRudderAgent:    JsonCodec[RudderAgent]    = DeriveJsonCodec.gen
     implicit val codecIpAddress:      JsonCodec[IpAddress]      = JsonCodec.string.transform(IpAddress(_), _.inet)
     implicit val codecNodeTimezone:   JsonCodec[NodeTimezone]   = DeriveJsonCodec.gen
-    implicit val codecMachineUuid:    JsonCodec[MachineUuid]    = JsonCodec.string.transform[MachineUuid](MachineUuid(_), _.value)
     implicit val codecMachineType:    JsonCodec[MachineType]    = JsonCodec.string.transform[MachineType](
       _ match {
         case UnknownMachineType.kind  => UnknownMachineType
@@ -1932,19 +1994,23 @@ object NodeFactSerialisation {
       },
       _.kind
     )
-    implicit val codecManufacturer:   JsonCodec[Manufacturer]   = JsonCodec.string.transform[Manufacturer](Manufacturer(_), _.name)
-    implicit val codecMachine:        JsonCodec[MachineInfo]    = DeriveJsonCodec.gen
-    implicit val codecMemorySize:     JsonCodec[MemorySize]     = JsonCodec.long.transform[MemorySize](MemorySize(_), _.size)
-    implicit val codecSVersion:       JsonCodec[SVersion]       = JsonCodec.string.transform[SVersion](new SVersion(_), _.value)
-    implicit val codecSoftwareEditor: JsonCodec[SoftwareEditor] =
-      JsonCodec.string.transform[SoftwareEditor](SoftwareEditor(_), _.name)
+    implicit val encoderJMachineType: JsonEncoder[JMachineType] = JsonEncoder[String].contramap(_.name)
+    implicit val decoderJMachineType: JsonDecoder[JMachineType] =
+      JsonDecoder[String].mapOrFail(JMachineType.withNameEither(_).left.map(_.getMessage))
+    implicit val encoderJMachineInfo: JsonEncoder[JMachineInfo] = DeriveJsonEncoder.gen
+    implicit val decoderJMachineInfo: JsonDecoder[JMachineInfo] = DeriveJsonDecoder.gen
+    implicit val codecMachineInfo:    JsonCodec[MachineInfo]    = {
+      val decoder: JsonDecoder[MachineInfo] = DeriveJsonDecoder.gen
+      JsonCodec(
+        JsonEncoder[JMachineInfo].contramap(_.transformInto[JMachineInfo]),
+        JsonDecoder[JMachineInfo]
+          .mapOrFail(_.transformIntoPartial[MachineInfo].asEither.left.map(_.errors.toString))
+          .orElse(decoder)
+      )
+    }
   }
 
   import SimpleCodec.*
-
-  implicit val codecBios: JsonCodec[Bios] = DeriveJsonCodec.gen
-
-  implicit val codecController: JsonCodec[Controller] = DeriveJsonCodec.gen
 
   def recJsonToJValue(json: Json):     JValue       = {
     json match {
@@ -1976,31 +2042,13 @@ object NodeFactSerialisation {
   implicit val encoderJValue:       JsonEncoder[JValue]       = JsonEncoder[Option[Json]].contramap(recJValueToJson(_))
   implicit val codecCustomProperty: JsonCodec[CustomProperty] = DeriveJsonCodec.gen
 
-  implicit val codecFileSystem:     JsonCodec[FileSystem]     = DeriveJsonCodec.gen
   implicit val codecInputDevice:    JsonCodec[InputDevice]    = DeriveJsonCodec.gen
   implicit val codecLocalGroup:     JsonCodec[LocalGroup]     = DeriveJsonCodec.gen
   implicit val codecLocalUser:      JsonCodec[LocalUser]      = DeriveJsonCodec.gen
   implicit val codecLogicalVolume:  JsonCodec[LogicalVolume]  = DeriveJsonCodec.gen
-  implicit val codecMemorySlot:     JsonCodec[MemorySlot]     = DeriveJsonCodec.gen
-  implicit val codecInetAddress:    JsonCodec[InetAddress]    = JsonCodec.string.transformOrFail(
-    ip =>
-      com.comcast.ip4s.IpAddress.fromString(ip) match {
-        case None    => Left(s"Value '${ip}' can not be parsed as an IP address")
-        case Some(x) => Right(x.toInetAddress)
-      },
-    com.comcast.ip4s.IpAddress.fromInetAddress(_).toString
-  )
-  implicit val codecNetwork:        JsonCodec[Network]        = DeriveJsonCodec.gen
   implicit val codecPhysicalVolume: JsonCodec[PhysicalVolume] = DeriveJsonCodec.gen
-  implicit val codecPort:           JsonCodec[Port]           = DeriveJsonCodec.gen
-  implicit val codecProcess:        JsonCodec[Process]        = DeriveJsonCodec.gen
-  implicit val codecProcessor:      JsonCodec[Processor]      = DeriveJsonCodec.gen
-  implicit val codecSlot:           JsonCodec[Slot]           = DeriveJsonCodec.gen
-  implicit val codecSoftwareFact:   JsonCodec[SoftwareFact]   = DeriveJsonCodec.gen
-  implicit val codecSound:          JsonCodec[Sound]          = DeriveJsonCodec.gen
-  implicit val codecStorage:        JsonCodec[Storage]        = DeriveJsonCodec.gen
-  implicit val codecVideo:          JsonCodec[Video]          = DeriveJsonCodec.gen
-  implicit val codecVirtualMachine: JsonCodec[VirtualMachine] = DeriveJsonCodec.gen
+
+  implicit val codecSoftwareFact: JsonCodec[SoftwareFact] = DeriveJsonCodec.gen
 
   implicit val codecNodeFact: JsonCodec[NodeFact] = DeriveJsonCodec.gen
 

@@ -41,6 +41,7 @@ import enumeratum.*
 import java.net.InetAddress
 import net.liftweb.json.JsonAST.JValue
 import org.joda.time.DateTime
+import zio.json.*
 
 sealed trait NodeElement {
   def description: Option[String]
@@ -68,46 +69,46 @@ final case class FileSystem(
  * even if they are a little mixed-up.
  */
 final case class Network(
-    name:        String,
-    description: Option[String] = None,
-    ifAddresses: Seq[InetAddress] = Seq(),
-    ifDhcp:      Option[InetAddress] = None,
-    ifGateway:   Seq[InetAddress] = Seq(),
-    ifMask:      Seq[InetAddress] = Seq(),
-    ifSubnet:    Seq[InetAddress] = Seq(),
-    macAddress:  Option[String] = None,
-    status:      Option[String] = None,
-    ifType:      Option[String] = None,
-    speed:       Option[String] = None,
-    typeMib:     Option[String] = None
+    name:                                                              String,
+    description:                                                       Option[String] = None,
+    @jsonField("ipAddresses") @jsonAliases("ifAddresses") ifAddresses: Seq[InetAddress] = Seq(),
+    @jsonField("dhcpServer") @jsonAliases("ifDhcp") ifDhcp:            Option[InetAddress] = None,
+    @jsonField("gateway") @jsonAliases("ifGateway") ifGateway:         Seq[InetAddress] = Seq(),
+    @jsonField("mask") @jsonAliases("ifMask") ifMask:                  Seq[InetAddress] = Seq(),
+    @jsonField("subnet") @jsonAliases("ifSubnet") ifSubnet:            Seq[InetAddress] = Seq(),
+    macAddress:                                                        Option[String] = None,
+    status:                                                            Option[String] = None,
+    ifType:                                                            Option[String] = None,
+    speed:                                                             Option[String] = None,
+    typeMib:                                                           Option[String] = None
 ) extends NodeElement {
   def ifAddress: Option[InetAddress] = ifAddresses.headOption
 }
 
 final case class Process(
-    pid:           Int,
-    commandName:   Option[String],
-    cpuUsage:      Option[Float] = None,
-    memory:        Option[Float] = None, // we use a string for the date, as it's more
-    // important to have something to show to the user than to
+    pid:                                                        Int,
+    @jsonField("name") @jsonAliases("commandName") commandName: Option[String],
+    cpuUsage:                                                   Option[Float] = None,
+    memory:                                                     Option[Float] = None,
+    // we use a string for the date, as it's more
+    // important to have something to show to the user than
     // to be normalized for that field.
-
-    started:       Option[String] = None,
-    tty:           Option[String] = None,
-    user:          Option[String] = None,
-    virtualMemory: Option[Double] = None,
-    description:   Option[String] = None
+    started:                                                    Option[String] = None,
+    tty:                                                        Option[String] = None,
+    user:                                                       Option[String] = None,
+    virtualMemory:                                              Option[Double] = None,
+    description:                                                Option[String] = None
 ) extends NodeElement
 
 final case class VirtualMachine(
-    vmtype:    Option[String] = None,
-    subsystem: Option[String] = None,
-    owner:     Option[String] = None,
-    name:      Option[String] = None,
-    status:    Option[String] = None,
-    vcpu:      Option[Int] = None,
-    memory:    Option[String] = None,
-    uuid:      MachineUuid, // TODO : Maybe add an inventoryStatus field
+    @jsonField("type") @jsonAliases("vmtype") vmtype: Option[String] = None,
+    subsystem:                                        Option[String] = None,
+    owner:                                            Option[String] = None,
+    name:                                             Option[String] = None,
+    status:                                           Option[String] = None,
+    vcpu:                                             Option[Int] = None,
+    memory:                                           Option[String] = None,
+    uuid:                                             MachineUuid, // TODO : Maybe add an inventoryStatus field
 
     description: Option[String] = None
 ) extends NodeElement

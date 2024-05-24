@@ -39,6 +39,7 @@ package com.normation.inventory.domain
 
 import enumeratum.*
 import org.joda.time.DateTime
+import zio.json.*
 
 sealed trait PhysicalElement {
   def description: Option[String]
@@ -55,31 +56,31 @@ final case class Bios(
 ) extends PhysicalElement
 
 final case class Controller(
-    name:         String,
-    description:  Option[String] = None,
-    manufacturer: Option[Manufacturer] = None,
-    cType:        Option[String] = None,
-    quantity:     Int = 1
+    name:                                           String,
+    description:                                    Option[String] = None,
+    manufacturer:                                   Option[Manufacturer] = None,
+    @jsonField("type") @jsonAliases("cType") cType: Option[String] = None,
+    quantity:                                       Int = 1
 ) extends PhysicalElement
 
 final case class MemorySlot(
     slotNumber: String, // string, because sometime it looks like: RAM slot #0
 
-    name:         Option[String] = None,
-    description:  Option[String] = None,
-    capacity:     Option[MemorySize] = None,
-    caption:      Option[String] = None,
-    speed:        Option[String] = None,
-    memType:      Option[String] = None,
-    serialNumber: Option[String] = None,
-    quantity:     Int = 1
+    name:                                               Option[String] = None,
+    description:                                        Option[String] = None,
+    capacity:                                           Option[MemorySize] = None,
+    caption:                                            Option[String] = None,
+    speed:                                              Option[String] = None,
+    @jsonField("type") @jsonAliases("memType") memType: Option[String] = None,
+    serialNumber:                                       Option[String] = None,
+    quantity:                                           Int = 1
 ) extends PhysicalElement
 
 final case class Port(
-    name:        String,
-    description: Option[String] = None,
-    pType:       Option[String] = None,
-    quantity:    Int = 1
+    name:                                           String,
+    description:                                    Option[String] = None,
+    @jsonField("type") @jsonAliases("pType") pType: Option[String] = None,
+    quantity:                                       Int = 1
 ) extends PhysicalElement
 
 final case class Processor(
@@ -113,15 +114,15 @@ final case class Sound(
 ) extends PhysicalElement
 
 final case class Storage(
-    name:         String,
-    description:  Option[String] = None,
-    size:         Option[MemorySize] = None,
-    firmware:     Option[String] = None,
-    manufacturer: Option[Manufacturer] = None,
-    model:        Option[String] = None,
-    serialNumber: Option[String] = None,
-    sType:        Option[String] = None,
-    quantity:     Int = 1
+    name:                                           String,
+    description:                                    Option[String] = None,
+    size:                                           Option[MemorySize] = None,
+    firmware:                                       Option[String] = None,
+    manufacturer:                                   Option[Manufacturer] = None,
+    model:                                          Option[String] = None,
+    serialNumber:                                   Option[String] = None,
+    @jsonField("type") @jsonAliases("sType") sType: Option[String] = None,
+    quantity:                                       Int = 1
 ) extends PhysicalElement
 
 final case class Video(

@@ -58,11 +58,6 @@ import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.api.ApiAuthorization as ApiAuthz
 import com.normation.rudder.api.ApiAuthorizationKind
 import com.normation.rudder.api.HttpAction
-import com.normation.rudder.apidata.CustomDetailLevel
-import com.normation.rudder.apidata.DefaultDetailLevel
-import com.normation.rudder.apidata.FullDetailLevel
-import com.normation.rudder.apidata.MinimalDetailLevel
-import com.normation.rudder.apidata.NodeDetailLevel
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.policies.PolicyMode
@@ -156,15 +151,7 @@ final case class RestExtractorService(
     }
   }
 
-  private def toNodeStatusAction(value: String): Box[NodeStatusAction] = {
-    value.toLowerCase match {
-      case "accept" | "accepted"            => Full(AcceptNode)
-      case "refuse" | "refused"             => Full(RefuseNode)
-      case "delete" | "deleted" | "removed" => Full(DeleteNode)
-      case _                                => Failure(s"value for nodestatus action should be accept, refuse, delete")
-    }
-  }
-  private def toInt(value: String):              Box[Int]              = {
+  private[this] def toInt(value: String): Box[Int] = {
     try {
       Full(value.toInt)
     } catch {
@@ -270,32 +257,6 @@ final case class RestExtractorService(
         Failure(
           s"'${value}' is not a possible state for change requests, availabled values are: ${possiblestates.mkString("[ ", ", ", " ]")}"
         )
-    }
-  }
-
-  private def toNodeDetailLevel(value: String): Box[NodeDetailLevel] = {
-    val fields = value.split(",")
-    if (fields.contains("full")) {
-      Full(FullDetailLevel)
-    } else {
-      val base         = {
-        if (fields.contains("minimal")) {
-          MinimalDetailLevel
-        } else {
-          DefaultDetailLevel
-        }
-      }
-      val customFields = fields.filter { field =>
-        field != "minimal" &&
-        field != "default" &&
-        NodeDetailLevel.allFields.contains(field)
-      }
-      if (customFields.isEmpty) {
-        Full(base)
-      } else {
-        val customLevel = CustomDetailLevel(base, customFields.toSet)
-        Full(customLevel)
-      }
     }
   }
 
@@ -481,14 +442,6 @@ final case class RestExtractorService(
     extractString("changeRequestDescription")(req)(Full(_)).getOrElse(None).getOrElse("")
   }
 
-  def extractNodeStatus(params: Map[String, List[String]]): Box[NodeStatusAction] = {
-    extractOneValue(params, "status")(toNodeStatusAction) match {
-      case Full(Some(status)) => Full(status)
-      case Full(None)         => Failure("node status should not be empty")
-      case eb: EmptyBox => eb ?~ "error with node status"
-    }
-  }
-
   def extractParameterName(params: Map[String, List[String]]): Box[String] = {
     extractOneValue(params, "id")(toParameterName) match {
       case Full(None)        => Failure("Parameter id should not be empty")
@@ -521,10 +474,6 @@ final case class RestExtractorService(
     } yield {
       APIChangeRequestInfo(name, description)
     }
-  }
-
-  def extractNodeIds(params: Map[String, List[String]]): Box[Option[List[NodeId]]] = {
-    extractList(params, "nodeId")(convertListToNodeId)
   }
 
   def extractTechnique(optTechniqueName: Option[TechniqueName], opTechniqueVersion: Option[TechniqueVersion]): Box[Technique] = {
@@ -1090,22 +1039,6 @@ final case class RestExtractorService(
 
   def extractNodeIdsFromJson(json: JValue): Box[Option[List[NodeId]]] = {
     extractJsonListString(json, "nodeId", convertListToNodeId)
-  }
-
-  def extractNodeStatusFromJson(json: JValue): Box[NodeStatusAction] = {
-    extractJsonString(json, "status", toNodeStatusAction) match {
-      case Full(Some(status)) => Full(status)
-      case Full(None)         => Failure("node status should not be empty")
-      case eb: EmptyBox => eb ?~ "error with node status"
-    }
-  }
-
-  def extractNodeDetailLevel(params: Map[String, List[String]]): Box[NodeDetailLevel] = {
-    extractOneValue(params, "include")(toNodeDetailLevel) match {
-      case Full(Some(level)) => Full(level)
-      case Full(None)        => Full(DefaultDetailLevel)
-      case eb: EmptyBox => eb ?~ "error with node level detail"
-    }
   }
 
   def extractQuery(params: Map[String, List[String]]): Box[Option[Query]] = {

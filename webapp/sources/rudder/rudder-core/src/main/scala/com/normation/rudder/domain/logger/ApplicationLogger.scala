@@ -130,6 +130,10 @@ object NodeLogger extends Logger {
       override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("nodes.pending.policies")
     }
   }
+
+  object PendingNodePure extends NamedZioLogger {
+    override def loggerName: String = "nodes.pending"
+  }
 }
 
 /*

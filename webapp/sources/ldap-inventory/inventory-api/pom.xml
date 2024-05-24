@@ -55,5 +55,9 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-${bouncycastle-compat}</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.comcast</groupId>
+      <artifactId>ip4s-core_${scala-binary-version}</artifactId>
+    </dependency>
   </dependencies>
 </project>

@@ -36,7 +36,6 @@
  */
 package com.normation.rudder.services.servers
 
-import com.normation.box.*
 import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AcceptedInventory
@@ -83,7 +82,6 @@ import java.nio.file.Paths
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.function.BiPredicate
 import java.util.function.Consumer
-import net.liftweb.common.Box
 import zio.{System as _, *}
 import zio.stream.*
 import zio.syntax.*
@@ -160,8 +158,8 @@ trait RemoveNodeService {
    * Return NodeInfo of the cleaned node if any was found, and None if nothing relevant was found for that node.
    */
 
-  def removeNode(nodeId: NodeId)(implicit cc: ChangeContext): Box[DeletionResult] = {
-    removeNodePure(nodeId, DeleteMode.MoveToRemoved).map(_ => Success).toBox
+  def removeNode(nodeId: NodeId)(implicit cc: ChangeContext): IOResult[DeletionResult] = {
+    removeNodePure(nodeId, DeleteMode.MoveToRemoved).map(_ => Success)
   }
 
   def removeNodePure(nodeId: NodeId, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[Option[CoreNodeFact]]

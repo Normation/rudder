@@ -50,9 +50,13 @@ import com.normation.inventory.ldap.core.UUID_ENTRY
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.apidata.DefaultDetailLevel
+import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.NodeDetailLevel
 import com.normation.rudder.apidata.RenderInheritedProperties
 import com.normation.rudder.apidata.RestDataSerializer
+import com.normation.rudder.apidata.ZioJsonExtractor
+import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
@@ -89,11 +93,9 @@ import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.NodeApi as API
-import com.normation.rudder.rest.NotFoundError
 import com.normation.rudder.rest.OneParam
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
-import com.normation.rudder.rest.RestUtils.effectiveResponse
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.data.*
@@ -106,6 +108,7 @@ import com.normation.rudder.rest.data.Rest
 import com.normation.rudder.rest.data.Rest.NodeDetails
 import com.normation.rudder.rest.data.Validation
 import com.normation.rudder.rest.data.Validation.NodeValidationError
+import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.score.GlobalScore
 import com.normation.rudder.score.NoDetailsScore
 import com.normation.rudder.score.Score
@@ -123,6 +126,7 @@ import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import com.typesafe.config.ConfigValue
+import io.scalaland.chimney.syntax.*
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.io.IOException
@@ -157,6 +161,8 @@ import scalaj.http.Http
 import scalaj.http.HttpOptions
 import scalaj.http.HttpRequest
 import zio.{System as _, *}
+import zio.json.DeriveJsonEncoder
+import zio.json.JsonEncoder
 import zio.stream.ZSink
 import zio.syntax.*
 
@@ -168,6 +174,7 @@ import zio.syntax.*
  */
 class NodeApi(
     restExtractorService: RestExtractorService,
+    zioJsonExtractor:     ZioJsonExtractor,
     serializer:           RestDataSerializer,
     nodeApiService:       NodeApiService,
     inheritedProperties:  NodeApiInheritedProperties,
@@ -258,7 +265,7 @@ class NodeApi(
 
   object NodeDetails extends LiftApiModule {
     val schema: OneParam = API.NodeDetails
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -267,13 +274,26 @@ class NodeApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      restExtractor.extractNodeDetailLevel(req.params) match {
-        case Full(level) =>
-          nodeApiService.nodeDetailsGeneric(NodeId(id), level)(params.prettify, authzToken.qc)
-        case eb: EmptyBox =>
-          val failMsg = eb ?~ "node detail level not correctly sent"
-          toJsonError(None, failMsg.msg)("nodeDetail", params.prettify)
+      implicit val qc: QueryContext = authzToken.qc
+
+      implicit val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = {
+        if (version.value < 20) {
+          JRNodeDetailsLevelV19Encoders.finalEncoder
+        } else {
+          com.normation.rudder.apidata.implicits.nodeDetailLevelEncoder
+        }
       }
+
+      (for {
+        level <- restExtractor.extractNodeDetailLevelFromParams(req.params).chainError("error with node level detail").toIO
+        res   <-
+          nodeApiService.nodeDetailsGeneric(
+            NodeId(id),
+            level.map(_.transformInto[NodeDetailLevel]).getOrElse(DefaultDetailLevel)
+          )
+      } yield {
+        res
+      }).toLiftResponseOne(params, schema, _ => Some(id))
     }
   }
 
@@ -333,7 +353,7 @@ class NodeApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
-      nodeApiService.pendingNodeDetails(NodeId(id), params.prettify)
+      nodeApiService.pendingNodeDetails(NodeId(id)).toLiftResponseOne(params, schema, _ => Some(id))
     }
   }
 
@@ -344,7 +364,7 @@ class NodeApi(
   object DeleteNode extends LiftApiModule {
 
     val schema: OneParam = API.DeleteNode
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -353,18 +373,15 @@ class NodeApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      val pretiffy      = restExtractor.extractPrettify(req.params)
-      val deleteModeKey = "mode"
+      implicit val qc: QueryContext = authzToken.qc
 
-      val mode = restExtractor
-        .extractString(deleteModeKey)(req) { m =>
-          val found = DeleteMode.values.find(_.name == m)
-          Full(found.getOrElse(deleteDefaultMode))
-        }
-        .map(_.getOrElse(deleteDefaultMode))
-        .getOrElse(deleteDefaultMode)
-
-      nodeApiService.deleteNode(NodeId(id), authzToken.qc, req.remoteAddr, pretiffy, mode)
+      (for {
+        optDeleteMode <- restExtractor.extractDeleteMode(req).toIO
+        deleteMode     = optDeleteMode.getOrElse(deleteDefaultMode)
+        deleted       <- nodeApiService.deleteNode(NodeId(id), deleteMode, Some(req.remoteAddr))
+      } yield {
+        deleted
+      }).chainError("Error when deleting Nodes").toLiftResponseOne(params, schema, _ => Some(id))
     }
   }
 
@@ -412,25 +429,25 @@ class NodeApi(
 
   object ChangePendingNodeStatus extends LiftApiModule0 {
     val schema: API.ChangePendingNodeStatus.type = API.ChangePendingNodeStatus
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val prettify     = params.prettify
-      val (nodeIds, nodeStatus) = if (req.json_?) {
-        req.json match {
-          case Full(json) =>
-            (restExtractor.extractNodeIdsFromJson(json), restExtractor.extractNodeStatusFromJson(json))
-          case eb: EmptyBox => (eb, eb)
-        }
-      } else {
-        (restExtractor.extractNodeIds(req.params), restExtractor.extractNodeStatus(req.params))
-      }
-      nodeApiService.changeNodeStatus(nodeIds, nodeStatus, authzToken.qc, req.remoteAddr, prettify)
+      implicit val qc: QueryContext = authzToken.qc
+      (for {
+        nodeIdStatus <- restExtractor.extractNodeIdStatus(req).toIO.chainError("Node status not correctly sent")
+        res          <- nodeApiService.changeNodeStatus(
+                          nodeIdStatus.nodeId,
+                          nodeIdStatus.status.transformInto[NodeStatusAction],
+                          Some(req.remoteAddr)
+                        )
+      } yield {
+        res
+      }).chainError("Error when changing Node status").toLiftResponseOne(params, schema, _ => None)
     }
   }
 
   object ChangePendingNodeStatus2 extends LiftApiModule {
     val schema: OneParam = API.ChangePendingNodeStatus2
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -439,67 +456,73 @@ class NodeApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val prettify = params.prettify
-      val nodeStatus        = if (req.json_?) {
-        req.json match {
-          case Full(json) =>
-            restExtractor.extractNodeStatusFromJson(json)
-          case eb: EmptyBox => eb
-        }
-      } else {
-        restExtractor.extractNodeStatus(req.params)
-      }
-      nodeApiService.changeNodeStatus(Full(Some(List(NodeId(id)))), nodeStatus, authzToken.qc, req.remoteAddr, prettify)
+      implicit val qc: QueryContext = authzToken.qc
+      (for {
+        status <- restExtractor.extractNodeStatus(req).toIO.chainError("Node status not correctly sent")
+        res    <-
+          nodeApiService.changeNodeStatus(List(NodeId(id)), status.status.transformInto[NodeStatusAction], Some(req.remoteAddr))
+      } yield {
+        res
+      }).chainError("Error when changing Node status").toLiftResponseOne(params, schema, _ => Some(id))
     }
   }
 
   object ListAcceptedNodes extends LiftApiModule0 {
     val schema: API.ListAcceptedNodes.type = API.ListAcceptedNodes
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val prettify = params.prettify
-      implicit val qc       = authzToken.qc
-      restExtractor.extractNodeDetailLevel(req.params) match {
-        case Full(level) =>
-          restExtractor.extractQuery(req.params) match {
-            case Full(None)        =>
-              nodeApiService.listNodes(AcceptedInventory, level, None, version)
-            case Full(Some(query)) =>
-              nodeApiService.queryNodes(query, AcceptedInventory, level, version)
-            case eb: EmptyBox =>
-              val failMsg = eb ?~ "Node query not correctly sent"
-              toJsonError(None, failMsg.msg)("listAcceptedNodes", prettify)
-
-          }
-        case eb: EmptyBox =>
-          val failMsg = eb ?~ "Node detail level not correctly sent"
-          toJsonError(None, failMsg.msg)("listAcceptedNodes", prettify)
+      implicit val qc:                     QueryContext                   = authzToken.qc
+      implicit val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = {
+        if (version.value < 20) {
+          JRNodeDetailsLevelV19Encoders.finalEncoder
+        } else {
+          com.normation.rudder.apidata.implicits.nodeDetailLevelEncoder
+        }
       }
+      val state = AcceptedInventory
+      (for {
+        optLevel <-
+          restExtractor.extractNodeDetailLevelFromParams(req.params).toIO.chainError("Node detail level not correctly sent")
+        level     = optLevel.map(_.transformInto[NodeDetailLevel]).getOrElse(DefaultDetailLevel)
+        query    <- restExtractor.extractQueryFromParams(req.params).toIO.chainError("Node query not correctly sent")
+        res      <- (query match {
+                      case None        => nodeApiService.listNodes(state, level, None)
+                      case Some(query) => nodeApiService.queryNodes(query, state, level)
+
+                    }).chainError(s"Could not fetch ${state.name} Nodes")
+      } yield {
+        res
+      }).toLiftResponseList(params, schema)
     }
   }
 
   object ListPendingNodes extends LiftApiModule0 {
     val schema: API.ListPendingNodes.type = API.ListPendingNodes
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val prettify = params.prettify
-      implicit val qc       = authzToken.qc
-      restExtractor.extractNodeDetailLevel(req.params) match {
-        case Full(level) =>
-          restExtractor.extractQuery(req.params) match {
-            case Full(None)        =>
-              nodeApiService.listNodes(PendingInventory, level, None, version)
-            case Full(Some(query)) =>
-              nodeApiService.queryNodes(query, PendingInventory, level, version)
-            case eb: EmptyBox =>
-              val failMsg = eb ?~ "Query for pending nodes not correctly sent"
-              toJsonError(None, failMsg.msg)("listPendingNodes", prettify)
-          }
-        case eb: EmptyBox =>
-          val failMsg = eb ?~ "node detail level not correctly sent"
-          toJsonError(None, failMsg.msg)(schema.name, prettify)
+      implicit val qc:                     QueryContext                   = authzToken.qc
+      implicit val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = {
+        if (version.value < 20) {
+          JRNodeDetailsLevelV19Encoders.finalEncoder
+        } else {
+          com.normation.rudder.apidata.implicits.nodeDetailLevelEncoder
+        }
       }
+      val state = PendingInventory
+      (for {
+        optLevel <-
+          restExtractor.extractNodeDetailLevelFromParams(req.params).toIO.chainError("Node detail level not correctly sent")
+        level     = optLevel.map(_.transformInto[NodeDetailLevel]).getOrElse(DefaultDetailLevel)
+        query    <- restExtractor.extractQueryFromParams(req.params).toIO.chainError("Query for pending nodes not correctly sent")
+        res      <- (query match {
+                      case None        => nodeApiService.listNodes(state, level, None)
+                      case Some(query) => nodeApiService.queryNodes(query, state, level)
+
+                    }).chainError(s"Could not fetch ${state.name} Nodes")
+      } yield {
+        res
+      }).toLiftResponseList(params, schema)
     }
   }
 
@@ -611,7 +634,6 @@ class NodeApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       import ScoreSerializer.*
-      import com.normation.rudder.rest.implicits.*
       (for {
         score <- nodeApiService.getNodeGlobalScore(NodeId(id))
       } yield {
@@ -633,7 +655,6 @@ class NodeApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       import ScoreSerializer.*
-      import com.normation.rudder.rest.implicits.*
       nodeApiService.getNodeDetailsScore(NodeId(id)).toLiftResponseOne(params, schema, _ => Some(id))
     }
   }
@@ -653,7 +674,6 @@ class NodeApi(
       // implicit val action = "getNodeGlobalScore"
       // implicit val prettify = params.prettify
       import ScoreSerializer.*
-      import com.normation.rudder.rest.implicits.*
       val (nodeId, scoreId) = id
       (for {
         allDetails <- nodeApiService.getNodeDetailsScore(NodeId(nodeId))
@@ -744,6 +764,17 @@ class NodeApi(
       }
     }
   }
+
+  // We need to derive the whole tree of datastructures again when using the older version of inventory JSON tree
+  object JRNodeDetailsLevelV19Encoders {
+    import com.normation.inventory.domain.JsonSerializers.older_implicits.*
+    import com.normation.rudder.facts.nodes.NodeFactSerialisation.SimpleCodec.*
+    import com.normation.utils.DateFormaterService.json.*
+
+    implicit val finalEncoder: JsonEncoder[JRNodeDetailLevel] =
+      DeriveJsonEncoder.gen[JRNodeDetailLevel]
+  }
+
 }
 
 class NodeApiInheritedProperties(
@@ -1252,94 +1283,63 @@ class NodeApiService(
     }
   }
 
-  def pendingNodeDetails(nodeId: NodeId, prettifyStatus: Boolean)(implicit qc: QueryContext): LiftResponse = {
-    implicit val prettify = prettifyStatus
-    implicit val action   = "pendingNodeDetails"
-    newNodeManager.listNewNodes().toBox match {
-      case Full(pendingNodes) =>
-        pendingNodes.filter(_.id == nodeId) match {
-          case Seq()        =>
-            val message = s"Could not find pending Node ${nodeId.value}"
-            toJsonError(None, message)
-          case Seq(info)    =>
-            val node = restSerializer.serializeNodeInfo(info.toNodeInfo, "pending")
-            toJsonResponse(None, ("nodes" -> JArray(List(node))))
-          case tooManyNodes =>
-            val message = s"Too many pending Nodes with same id ${nodeId.value} : ${tooManyNodes.size} "
-            toJsonError(None, message)
-        }
-      case eb: EmptyBox =>
-        val message = (eb ?~ s"Could not find pending Node ${nodeId.value}").msg
-        toJsonError(None, message)
+  def pendingNodeDetails(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Chunk[JRNodeInfo]] = {
+    implicit val status: InventoryStatus = PendingInventory
+    for {
+      pendingNodes <- nodeFactRepository.getAll()(qc, SelectNodeStatus.Pending)
+      nodeFact     <- pendingNodes.get(nodeId).notOptional(s"Could not find pending Node ${nodeId.value}")
+    } yield {
+      Chunk(nodeFact.toNodeInfo.transformInto[JRNodeInfo])
     }
   }
 
   def modifyStatusFromAction(
-      ids:    Seq[NodeId],
+      ids:    List[NodeId],
       action: NodeStatusAction
-  )(implicit cc: ChangeContext): Box[List[JValue]] = {
+  )(implicit cc: ChangeContext): IOResult[Chunk[JRNodeChangeStatus]] = {
     def actualNodeDeletion(id: NodeId)(implicit cc: ChangeContext) = {
+      implicit val status: InventoryStatus = RemovedInventory
       for {
-        optInfo <- nodeFactRepository.get(id)(cc.toQuery).toBox
-        info    <- optInfo match {
-                     case None    => Failure(s"Can not removed the node with id '${id.value}' because it was not found")
-                     case Some(x) => Full(x)
-                   }
-        remove  <- removeNodeService.removeNode(info.id)
-      } yield { restSerializer.serializeNodeInfo(info.toNodeInfo, "deleted") }
+        nodeFact <- nodeFactRepository
+                      .get(id)(cc.toQuery)
+                      .notOptional(s"Can not removed the node with id '${id.value}' because it was not found")
+        _        <- removeNodeService.removeNode(nodeFact.id)
+      } yield {
+        nodeFact.toNodeInfo.transformInto[JRNodeChangeStatus]
+      }
     }
 
     (action match {
       case AcceptNode =>
+        implicit val status: InventoryStatus = AcceptedInventory
         newNodeManager
           .acceptAll(ids)
-          .map(_.map(cnf => restSerializer.serializeInventory(NodeFact.fromMinimal(cnf).toFullInventory, "accepted")))
+          .map(l => Chunk.fromIterable(l.map(cnf => NodeFact.fromMinimal(cnf).toFullInventory.transformInto[JRNodeChangeStatus])))
 
       case RefuseNode =>
         newNodeManager
           .refuseAll(ids)
-          .map(_.map(cnf => restSerializer.serializeServerInfo(cnf.toSrv, "refused")))
+          .map(l => Chunk.fromIterable(l.map(cnf => cnf.toSrv.transformInto[JRNodeChangeStatus])))
 
       case DeleteNode =>
-        ZIO.foreach(ids)(actualNodeDeletion(_).toIO)
-    }).toBox.map(_.toList)
+        ZIO.foreach(Chunk.fromIterable(ids))(actualNodeDeletion(_))
+    })
   }
 
   def changeNodeStatus(
-      nodeIds:          Box[Option[List[NodeId]]],
-      nodeStatusAction: Box[NodeStatusAction],
-      qc:               QueryContext,
-      actorIp:          String,
-      prettifyStatus:   Boolean
-  ): LiftResponse = {
-    implicit val prettify = prettifyStatus
-    implicit val action   = "changePendingNodeStatus"
-    val modId             = ModificationId(uuidGen.newUuid)
-    nodeIds match {
-      case Full(Some(ids)) =>
-        NodeLogger.PendingNode.debug(s" Nodes to change Status : ${ids.mkString("[ ", ", ", " ]")}")
-        nodeStatusAction match {
-          case Full(nodeStatusAction) =>
-            modifyStatusFromAction(ids, nodeStatusAction)(
-              ChangeContext(modId, qc.actor, DateTime.now(), None, Some(actorIp), qc.nodePerms)
-            ) match {
-              case Full(result) =>
-                toJsonResponse(None, ("nodes" -> JArray(result)))
-              case eb: EmptyBox =>
-                val message = (eb ?~ ("Error when changing Nodes status")).msg
-                toJsonError(None, message)
-            }
+      nodeIds:          List[NodeId],
+      nodeStatusAction: NodeStatusAction,
+      actorIp:          Option[String]
+  )(implicit qc: QueryContext): IOResult[Chunk[JRNodeChangeStatus]] = {
+    val modId = ModificationId(uuidGen.newUuid)
+    for {
+      _ <- NodeLogger.PendingNodePure.debug(s" Nodes to change Status : ${nodeIds.mkString("[ ", ", ", " ]")}")
 
-          case eb: EmptyBox =>
-            val fail = eb ?~ "node status needs to be specified"
-            toJsonError(None, fail.msg)
-        }
-      case Full(None)      =>
-        val message = "You must add a node id as target"
-        toJsonError(None, message)
-      case eb: EmptyBox =>
-        val message = (eb ?~ ("Error when extracting Nodes' id")).msg
-        toJsonError(None, message)
+      res <- modifyStatusFromAction(nodeIds, nodeStatusAction)(
+               ChangeContext(modId, qc.actor, DateTime.now(), None, actorIp, qc.nodePerms)
+             )
+    } yield {
+      res
     }
   }
 
@@ -1347,34 +1347,23 @@ class NodeApiService(
       nodeId:      NodeId,
       detailLevel: NodeDetailLevel,
       state:       InventoryStatus
-  )(implicit qc: QueryContext): IOResult[Option[JValue]] = {
+  )(implicit qc: QueryContext): IOResult[Option[JRNodeDetailLevel]] = {
     for {
-      optNodeInfo <- nodeFactRepository.slowGetCompat(nodeId, state, SelectFacts.fromNodeDetailLevel(detailLevel))
-      nodeInfo    <- optNodeInfo match {
-                       case None    => None.succeed
-                       case Some(x) =>
-                         for {
-                           runs     <- reportsExecutionRepository.getNodesLastRun(Set(nodeId))
-                           inventory = x.toFullInventory
-                           software  = x.software.toList.map(_.toSoftware)
-                         } yield {
-                           Some((x.toNodeInfo, runs, inventory, software, x.rudderSettings.security))
-                         }
-                     }
+      optNodeFact <- nodeFactRepository.slowGetCompat(nodeId, state, SelectFacts.fromNodeDetailLevel(detailLevel))
+      runs        <- ZIO.foreach(optNodeFact)(_ => reportsExecutionRepository.getNodesLastRun(Set(nodeId))).map(_.getOrElse(Map.empty))
     } yield {
-      nodeInfo.map {
-        case (node, runs, inventory, software, optTenant) =>
-          val runDate = runs.get(nodeId).flatMap(_.map(_.agentRunId.date))
-          restSerializer.serializeInventory(node, state, runDate, Some(inventory), software, optTenant, detailLevel)
+      optNodeFact.map { fact =>
+        implicit val nodeFact:        NodeFact                       = fact
+        implicit val agentRun:        Option[AgentRunWithNodeConfig] = runs.get(nodeId).flatten
+        implicit val inventoryStatus: InventoryStatus                = state
+        detailLevel.transformInto[JRNodeDetailLevel]
       }
     }
   }
 
   def nodeDetailsGeneric(nodeId: NodeId, detailLevel: NodeDetailLevel)(implicit
-      prettify: Boolean,
-      qc:       QueryContext
-  ): LiftResponse = {
-    implicit val action = "nodeDetails"
+      qc: QueryContext
+  ): IOResult[JRNodeDetailLevel] = {
     (for {
       accepted  <- getNodeDetails(nodeId, detailLevel, AcceptedInventory)
       orPending <- accepted match {
@@ -1386,72 +1375,33 @@ class NodeApiService(
                      case None    => getNodeDetails(nodeId, detailLevel, RemovedInventory)
                    }
     } yield {
-      orDeleted match {
-        case Some(inventory) =>
-          toJsonResponse(Some(nodeId.value), ("nodes" -> JArray(List(inventory))))
-        case None            =>
-          effectiveResponse(
-            Some(nodeId.value),
-            s"Node with ID '${nodeId.value}' was not found in Rudder",
-            NotFoundError,
-            action,
-            prettify
-          )
-      }
-    }).either.runNow match {
-      case Right(res) => res
-      case Left(err)  =>
-        val msg = s"An error was encountered when looking for node with ID '${nodeId.value}': ${err.fullMsg}"
-        toJsonError(Some(nodeId.value), msg)
-    }
+      orDeleted
+    }).notOptional(s"Node with ID '${nodeId.value}' was not found in Rudder")
+      .chainError(s"An error was encountered when looking for node with ID '${nodeId.value}'")
   }
 
-  def listNodes(state: InventoryStatus, detailLevel: NodeDetailLevel, nodeFilter: Option[Seq[NodeId]], version: ApiVersion)(
-      implicit
-      prettify: Boolean,
-      qc:       QueryContext
-  ): LiftResponse = {
-    implicit val action: String = s"list${state.name.capitalize}Nodes"
-    val predicate = (n: NodeFact) => {
-      (nodeFilter match {
-        case Some(ids) => ids.contains(n.id)
-        case None      => true
-      })
+  def listNodes(state: InventoryStatus, detailLevel: NodeDetailLevel, nodeFilter: Option[Seq[NodeId]])(implicit
+      qc: QueryContext
+  ): IOResult[Chunk[JRNodeDetailLevel]] = {
+    val predicate = nodeFilter match {
+      case Some(ids) => (n: NodeFact) => ids.contains(n.id)
+      case None      => (_: NodeFact) => true
     }
 
-    (for {
-      nodeFacts  <-
+    for {
+      nodeFacts <-
         nodeFactRepository
           .slowGetAllCompat(state, SelectFacts.fromNodeDetailLevel(detailLevel))
           .filter(predicate)
           .run(ZSink.collectAllToMap[NodeFact, NodeId](_.id)((a, b) => a))
-      nodeIds     = nodeFacts.keySet
-      runs       <- reportsExecutionRepository.getNodesLastRun(nodeIds)
-      inventories = nodeFacts.map { case (k, v) => (k, v.toFullInventory) }
-      software    = nodeFacts.map { case (k, v) => (k, v.software.map(_.toSoftware)) }
+      runs      <- reportsExecutionRepository.getNodesLastRun(nodeFacts.keySet)
     } yield {
-      for {
-        nodeId   <- nodeIds
-        nodeFact <- nodeFacts.get(nodeId)
-      } yield {
-        val runDate = runs.get(nodeId).flatMap(_.map(_.agentRunId.date))
-        restSerializer.serializeInventory(
-          nodeFact.toNodeInfo,
-          state,
-          runDate,
-          inventories.get(nodeId),
-          software.getOrElse(nodeId, Seq()),
-          nodeFact.rudderSettings.security,
-          detailLevel
-        )
-      }
-    }).either.runNow match {
-      case Right(nodes) => {
-        toJsonResponse(None, ("nodes" -> JArray(nodes.toList)))
-      }
-      case Left(err)    => {
-        val message = s"Could not fetch ${state.name} Nodes: ${err.fullMsg}"
-        toJsonError(None, message)
+      nodeFacts.toChunk.map {
+        case (nodeId, nodeFact) =>
+          implicit val agentRun:       Option[AgentRunWithNodeConfig] = runs.get(nodeId).flatten
+          implicit val nodeFactValue:  NodeFact                       = nodeFact
+          implicit val inventoryState: InventoryStatus                = state
+          detailLevel.transformInto[JRNodeDetailLevel]
       }
     }
   }
@@ -1463,30 +1413,21 @@ class NodeApiService(
   def getNodeDetailsScore(nodeId: NodeId): IOResult[List[Score]] = {
     scoreService.getScoreDetails(nodeId)
   }
-  def queryNodes(query: Query, state: InventoryStatus, detailLevel: NodeDetailLevel, version: ApiVersion)(implicit
-      prettify: Boolean,
-      qc:       QueryContext
-  ): LiftResponse = {
-    implicit val action: String = s"list${state.name.capitalize}Nodes"
-    (for {
+  def queryNodes(query: Query, state: InventoryStatus, detailLevel: NodeDetailLevel)(implicit
+      qc: QueryContext
+  ): IOResult[Chunk[JRNodeDetailLevel]] = {
+    for {
       nodeIds <- state match {
-                   case PendingInventory  => pendingNodeQueryProcessor.check(query, None).toBox
-                   case AcceptedInventory => acceptedNodeQueryProcessor.processOnlyId(query)
+                   case PendingInventory  => pendingNodeQueryProcessor.check(query, None)
+                   case AcceptedInventory => acceptedNodeQueryProcessor.processOnlyId(query).toIO
                    case _                 =>
-                     Failure(
+                     Inconsistency(
                        s"Invalid branch used for nodes query, expected either AcceptedInventory or PendingInventory, got ${state}"
-                     )
+                     ).fail
                  }
+      res     <- listNodes(state, detailLevel, Some(nodeIds.toSeq))
     } yield {
-      listNodes(state, detailLevel, Some(nodeIds.toSeq), version)
-    }) match {
-      case Full(resp) => {
-        resp
-      }
-      case eb: EmptyBox => {
-        val message = (eb ?~ (s"Could not find ${state.name} Nodes")).msg
-        toJsonError(None, message)
-      }
+      res
     }
   }
 
@@ -1701,24 +1642,17 @@ class NodeApiService(
     }
   }
 
-  def deleteNode(id: NodeId, qc: QueryContext, actorIp: String, prettify: Boolean, mode: DeleteMode): LiftResponse = {
-    implicit val p      = prettify
-    implicit val action = "deleteNode"
-    val modId           = ModificationId(uuidGen.newUuid)
+  def deleteNode(id: NodeId, mode: DeleteMode, actorIp: Option[String])(implicit
+      qc: QueryContext
+  ): IOResult[Chunk[JRNodeInfo]] = {
+    implicit val status: InventoryStatus = RemovedInventory
+    val modId = ModificationId(uuidGen.newUuid)
 
-    removeNodeService
-      .removeNodePure(id, mode)(ChangeContext(modId, qc.actor, DateTime.now(), None, Some(actorIp), qc.nodePerms))
-      .toBox match {
-      case Full(info) =>
-        val l = info match {
-          case Some(x) => restSerializer.serializeNodeInfo(x.toNodeInfo, "deleted") :: Nil
-          case None    => Nil
-        }
-        toJsonResponse(None, ("nodes" -> JArray(l)))
-
-      case eb: EmptyBox =>
-        val message = (eb ?~ ("Error when deleting Nodes")).msg
-        toJsonError(None, message)
+    for {
+      info <- removeNodeService
+                .removeNodePure(id, mode)(ChangeContext(modId, qc.actor, DateTime.now(), None, actorIp, qc.nodePerms))
+    } yield {
+      Chunk.fromIterable(info.map(_.toNodeInfo.transformInto[JRNodeInfo]))
     }
   }
 
