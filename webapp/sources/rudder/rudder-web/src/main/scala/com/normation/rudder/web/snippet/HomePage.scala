@@ -59,6 +59,7 @@ import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.score.ScoreValue
 import com.normation.rudder.users.CurrentUser
 import com.normation.zio.*
 import net.liftweb.common.*
@@ -69,10 +70,21 @@ import net.liftweb.http.js.JsCmds.*
 import scala.collection.MapView
 import scala.xml.*
 
-sealed trait ComplianceLevelPieChart {
-  def color: String
-  def label: String
-  def value: Int
+case class ScoreChart(scoreValue: ScoreValue, value: Int) {
+  def color: String = {
+
+    import com.normation.rudder.score.ScoreValue.*
+    scoreValue match {
+      case A       => "#13beb7"
+      case B       => "#68c96a"
+      case C       => "#b3d337"
+      case D       => "#fedc04"
+      case E       => "#f0940e"
+      case F       => "#da291c"
+      case NoScore => ""
+    }
+  }
+  def label: String = scoreValue.value
 
   def jsValue: JsArray = {
     JsArray(label, value)
@@ -81,36 +93,6 @@ sealed trait ComplianceLevelPieChart {
   def jsColor: (String, Str) = {
     (label -> Str(color))
   }
-}
-
-final case class DisabledChart(value: Int) extends ComplianceLevelPieChart {
-  val label = "Reports Disabled"
-  val color = "#B1BBCB"
-}
-
-final case class GreenChart(value: Int) extends ComplianceLevelPieChart {
-  val label = "Perfect (100%)"
-  val color = "#13BEB7"
-}
-
-final case class BlueChart(value: Int) extends ComplianceLevelPieChart {
-  val label = "Good (> 75%)"
-  val color = "#B1EDA4"
-}
-
-final case class OrangeChart(value: Int) extends ComplianceLevelPieChart {
-  val label = "Average (> 50%)"
-  val color = "#EF9600"
-}
-
-final case class RedChart(value: Int) extends ComplianceLevelPieChart {
-  val label = "Poor (< 50%)"
-  val color = "#DA291C"
-}
-
-final case class PendingChart(value: Int) extends ComplianceLevelPieChart {
-  val label = "Applying"
-  val color = "#5bc0de"
 }
 
 object HomePageUtils {
@@ -161,6 +143,7 @@ class HomePage extends StatefulSnippet {
   private val rudderDit        = RudderConfig.rudderDit
   private val reportingService = RudderConfig.reportingService
   private val roRuleRepo       = RudderConfig.roRuleRepository
+  private val scoreService     = RudderConfig.rci.scoreService
 
   override val dispatch: DispatchIt = {
     case "pendingNodes"       => pendingNodes
@@ -200,11 +183,6 @@ class HomePage extends StatefulSnippet {
 
   def getAllCompliance(): NodeSeq = {
 
-    sealed trait ChartType
-    case object PendingChartType                     extends ChartType
-    case object DisabledChartType                    extends ChartType
-    final case class ColoredChartType(value: Double) extends ChartType
-
     (for {
       n2                <- currentTimeMillis
       userRules         <- roRuleRepo.getIds()
@@ -235,6 +213,8 @@ class HomePage extends StatefulSnippet {
       n5                <- currentTimeMillis
       _                 <- TimingDebugLoggerPure.trace(s"Compute global compliance in: ${n5 - n4}ms")
       _                 <- TimingDebugLoggerPure.debug(s"Compute compliance: ${n5 - n2}ms")
+      scores            <- scoreService.getAll()
+      existingScore     <- scoreService.getAvailableScore()
     } yield {
 
       // log global compliance info (useful for metrics on number of components and log data analysis)
@@ -252,52 +232,25 @@ class HomePage extends StatefulSnippet {
        * Note: node without reports are also put in "pending".
        */
 
-      val complianceByNode: List[ChartType] = compliancePerNodes.values.map { r =>
-        if (r.pending == r.total) { PendingChartType }
-        else if (r.reportsDisabled == r.total) { DisabledChartType }
-        else { ColoredChartType(r.withoutPending.computePercent().compliance) }
-      }.toList
+      val numberOfPendingNodes = compliancePerNodes.values.filter(r => r.pending == r.total).size
 
-      val complianceDiagram: List[ComplianceLevelPieChart] = (complianceByNode.groupBy { compliance =>
-        compliance match {
-          case PendingChartType               => PendingChart
-          case DisabledChartType              => DisabledChart
-          case ColoredChartType(100)          => GreenChart
-          case ColoredChartType(x) if x >= 75 => BlueChart
-          case ColoredChartType(x) if x >= 50 => OrangeChart
-          case ColoredChartType(_)            => RedChart
-        }
-      }.map {
-        case (PendingChart, compliance)  => PendingChart(compliance.size)
-        case (DisabledChart, compliance) => DisabledChart(compliance.size)
-        case (GreenChart, compliance)    => GreenChart(compliance.size)
-        case (BlueChart, compliance)     => BlueChart(compliance.size)
-        case (OrangeChart, compliance)   => OrangeChart(compliance.size)
-        case (RedChart, compliance)      => RedChart(compliance.size)
-        case (_, compliance)             => RedChart(compliance.size)
-      }).toList
+      val complianceDiagram: List[ScoreChart] =
+        scores.values.groupBy(_.value).map(v => ScoreChart(v._1, v._2.size)).toList.sortBy(_.scoreValue.value).reverse
 
-      val sorted = complianceDiagram.sortWith {
-        case (_: PendingChart, _)                             => false
-        case (_: DisabledChart, _)                            => false
-        case (_: GreenChart, _)                               => false
-        case (_: BlueChart, _: GreenChart)                    => true
-        case (_: BlueChart, _)                                => false
-        case (_: OrangeChart, (_: GreenChart | _: BlueChart)) => true
-        case (_: OrangeChart, _)                              => false
-        case (_: RedChart, _)                                 => true
+      val detailsScore = scores.values.flatMap(_.details).toList.groupBy(_.scoreId).map { c =>
+        (c._1, c._2.groupBy(_.value).map(v => ScoreChart(v._1, v._2.size)).toList.sortBy(_.scoreValue.value).reverse)
       }
 
-      val numberOfNodes = complianceByNode.size
-      val pendingNodes  = complianceDiagram.collectFirst { case p: PendingChart => p.value } match {
+      val numberOfNodes = compliancePerNodes.values.size
+      val pendingNodes  = numberOfPendingNodes match {
 
-        case None =>
+        case 0 =>
           JsObj(
             "pending" -> JsNull,
             "active"  -> numberOfNodes
           )
 
-        case Some(pending) =>
+        case pending =>
           JsObj(
             "pending" ->
             JsObj(
@@ -308,14 +261,38 @@ class HomePage extends StatefulSnippet {
           )
       }
 
-      val diagramData = sorted.foldLeft((Nil: List[JsExp], Nil: List[JsExp], Nil: List[JsExp])) {
+      val diagramData = complianceDiagram.foldLeft((Nil: List[JsExp], Nil: List[JsExp], Nil: List[JsExp])) {
         case ((labels, values, colors), diag) => (diag.label :: labels, diag.value :: values, diag.color :: colors)
       }
 
       val data =
         JsObj("labels" -> JsArray(diagramData._1), "values" -> JsArray(diagramData._2), "colors" -> JsArray(diagramData._3))
 
-      val diagramColor = JsObj(sorted.map(_.jsColor)*)
+      val scoreDetailsData = JsArray(for {
+        (scoreId, detailChart) <- detailsScore.toList.sortBy(_._1)
+      } yield {
+
+        val diagramDetailData = detailChart.foldLeft((Nil: List[JsExp], Nil: List[JsExp], Nil: List[JsExp])) {
+          case ((labels, values, colors), diag) => (diag.label :: labels, diag.value :: values, diag.color :: colors)
+        }
+        val detailData        = {
+          JsObj(
+            "labels" -> JsArray(diagramDetailData._1),
+            "values" -> JsArray(diagramDetailData._2),
+            "colors" -> JsArray(diagramDetailData._3)
+          )
+        }
+
+        val detailDiagramColor = JsObj(complianceDiagram.map(_.jsColor)*)
+        val name: String = existingScore.find(_._1 == scoreId).map(_._2).getOrElse(scoreId)
+        JsObj(
+          "scoreId" -> scoreId,
+          "data"    -> detailData,
+          "colors"  -> detailDiagramColor,
+          "count"   -> detailChart.map(_.value).sum,
+          "name"    -> name
+        )
+      })
 
       // Data used for compliance bar, compliance without pending
       val (complianceBar, globalCompliance) = global match {
@@ -334,8 +311,8 @@ class HomePage extends StatefulSnippet {
             ${complianceBar.toJsCmd}
           , ${globalCompliance}
           , ${data.toJsCmd}
-          , ${diagramColor.toJsCmd}
           , ${pendingNodes.toJsCmd}
+          , ${scoreDetailsData.toJsCmd}
         )""")))
     }).either.runNow match {
       case Right(homePageCompliance) => homePageCompliance
@@ -381,7 +358,6 @@ class HomePage extends StatefulSnippet {
       homePageInventory(
           ${machinesArray.toJsCmd}
         , ${osArray.toJsCmd}
-        , ${HomePage.nodeFacts.get.size}
         , ${osNames.toJsCmd}
       )""")))
   }
@@ -400,7 +376,6 @@ class HomePage extends StatefulSnippet {
     Script(OnLoad(JsRaw(s"""
         homePageSoftware(
             ${agentsData.toJsCmd}
-          , ${agents.map(_._2).sum}
      )""")))
   }
 

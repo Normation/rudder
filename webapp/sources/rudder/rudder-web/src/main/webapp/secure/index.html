@@ -80,7 +80,7 @@
     <div class="row">
       <div class="col-xl-4 col-lg-4">
         <div id="nodeOverview" class="card">
-          <h5 class="card-title py-2 px-3 mb-0">Nodes by overall compliance</h5>
+          <h5 class="card-title py-2 px-3 mb-0">Global score breakdown</h5>
           <div class="card-body text-center">
             <div class="node-compliance-chart">
               <canvas id="nodeCompliance"></canvas>
@@ -91,7 +91,17 @@
         </div>
       </div>
 
-      <div class="col-xl-8 col-lg-8" id="nodeBreakdown">
+      <div class="col-xl-8 col-lg-8" id="scoreBreakdown">
+        <div class="card">
+          <h5 class="card-title py-2 px-3 mb-0">Score breakdown</h5>
+          <div class="card-body text-center">
+            <div class="node-charts">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-12 col-lg-12" id="nodeBreakdown">
         <div class="card">
           <h5 class="card-title py-2 px-3 mb-0">Node breakdown</h5>
           <div class="card-body text-center">
@@ -117,6 +127,7 @@
           </div>
         </div>
       </div>
+
     </div>
   </div>
 </div>
