@@ -114,8 +114,8 @@ function homePage (
     globalCompliance
   , globalGauge
   , nodeCompliance
-  , nodeComplianceColors
   , nodeCount
+  , scoreDetails
 ) {
   var opts = {
     lines: 12, // The number of lines to draw
@@ -173,6 +173,7 @@ function homePage (
       }
       stats += "<br>There "+ verb +" also " + pendingNodes + " for which we are still waiting for data (" + nodeCount.pending.percent + "%)."
     }
+
     $("#globalComplianceStats").html(stats);
 
     gauge.set(function() {
@@ -183,8 +184,21 @@ function homePage (
     $("#gauge-value").text(globalGauge+"%");
 
     var complianceHColors = nodeCompliance.colors.map(x => complianceHoverColors[x]);
-    doughnutChart('nodeCompliance', nodeCompliance, allNodes, nodeCompliance.colors, complianceHColors);
+    doughnutChart('nodeCompliance', nodeCompliance, nodeCompliance.colors, complianceHColors);
   }
+
+
+  scoreDetails.forEach(function(score) {
+    $("#scoreBreakdown .node-charts").append(
+              `<div class="node-chart">
+                <h4 class="text-center">${score.name}</h4>
+                <canvas id="score-${score.scoreId}" > </canvas>
+                <div  id="score-${score.scoreId}-legend"></div>
+              </div>`)
+    var complianceHColors = score.data.colors.map(x => complianceHoverColors[x]);
+    doughnutChart('score-'+ score.scoreId, score.data, score.data.colors, complianceHColors);
+  })
+
   initBsTooltips();
 }
 
@@ -229,9 +243,10 @@ var complianceHoverColors =
   , "#DA291C" : "#ed1809ff"
   }
 
-function doughnutChart (id,data,count,colors,hoverColors) {
+function doughnutChart (id,data,colors,hoverColors) {
 
   var context = $("#"+id)
+  var count = data.values.length < 1 ? 0 : data.values.reduce((a, b) => a + b, 0);
 
   var borderW = data.values.length > 1 ? 3 : 0;
   var chartData = {
@@ -311,20 +326,18 @@ function doughnutChart (id,data,count,colors,hoverColors) {
                        }];
                       break;
                   case 'nodeCompliance':
-                     var compliance = {
-                        "Poor"   : {min: 0,   max: 50}
-                       ,"Average": {min: 50,  max: 75}
-                       ,"Good"   : {min: 75,  max: 100}
-                       ,"Perfect": {min: 100}
-                       ,"Applying": {applying: true}
-                       };
-                     var interval = compliance[data.split(' ')[0]];
-                     var complianceFilter = {complianceFilter:interval};
-                     window.location = contextPath + "/secure/nodeManager/nodes#" + JSON.stringify(complianceFilter);
+                     var filter = {score:data};
+                     window.location = contextPath + "/secure/nodeManager/nodes#" + JSON.stringify(filter);
                      return;
 
                    default:
-                     return;
+                     if (id.startsWith("score-")) {
+                       var scoreId = id.substring(6)
+                       var filter = {scoreDetails:{[scoreId]:data}};
+                       window.location = contextPath + "/secure/nodeManager/nodes#" + JSON.stringify(filter);
+                       return;
+                     } else
+                       return;
               }
                var url = contextPath + "/secure/nodeManager/searchNodes#" +  JSON.stringify(query);
                window.location = url;
@@ -415,17 +428,16 @@ function closeTooltip(e ,index, name){
 function homePageInventory (
     nodeMachines
   , nodeOses
-  , count
   , osNames
 ) {
   g_osNames = osNames
-  doughnutChart('nodeMachine',nodeMachines, count, inventoryColors, hoverColors);
-  doughnutChart('nodeOs', nodeOses, count, inventoryColors, hoverColors);
+  doughnutChart('nodeMachine',nodeMachines, inventoryColors, hoverColors);
+  doughnutChart('nodeOs', nodeOses, inventoryColors, hoverColors);
 }
 
 function homePageSoftware (
     nodeAgents
   , count
 ) {
-  doughnutChart('nodeAgents', nodeAgents, count, inventoryColors, hoverColors);
+  doughnutChart('nodeAgents', nodeAgents, inventoryColors, hoverColors);
 }

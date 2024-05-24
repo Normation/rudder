@@ -78,35 +78,40 @@ $.fn.dataTable.ext.search.push(
         var param = decodeURIComponent(window.location.hash.substring(1));
         if (param !== "" && window.location.pathname === contextPath + "/secure/nodeManager/nodes") {
             var obj = JSON.parse(param);
-            var min = obj.complianceFilter.min;
-            var max = obj.complianceFilter.max;
-            var applying = obj.complianceFilter.applying;
+            var score = obj.score
 
-            if (min === undefined && !applying)
-                return true;
-            // look for the compliance column
-            var complianceCol = settings.aoColumns.find(a => a.data == "compliance");
-
-            if (complianceCol !== undefined) {
+            var result = true
+            if (score !== undefined) {
+                var complianceCol = settings.aoColumns.find(a => a.data == "score.score");
                 // here, we get the id of the row element by looking deep inside settings...
                 // maybe there exists something cleaner.
                 // we get a string, rather than an array
-
-
-                var complianceString = data[complianceCol.idx];
-                if (complianceString !== undefined) {
-                  if (applying) {
-                    return isApplyingFromComplianceString(complianceString);
-                  } else {
-                    var compliance = computeCompliancePercentFromString(complianceString);
-
-                    if (max === undefined)
-                      return compliance >= min;
-                    else
-                      return compliance >= min && compliance < max;
+                if ( complianceCol !== undefined) {
+                  var complianceString = data[complianceCol.idx];
+                  if (complianceString !== undefined) {
+                    result = score === complianceString
                   }
                 }
             }
+
+
+            var scoreDetails = obj.scoreDetails
+            if (scoreDetails !== undefined) {
+            for (const [scoreId, value] of Object.entries(scoreDetails)) {
+
+                var complianceCol = settings.aoColumns.find(a => a.value == scoreId);
+                // here, we get the id of the row element by looking deep inside settings...
+                // maybe there exists something cleaner.
+                // we get a string, rather than an array
+                if ( complianceCol !== undefined) {
+                  var complianceString = data[complianceCol.idx];
+                  if (complianceString !== undefined) {
+                    result = result && value === complianceString
+                  }
+                }
+            }
+            }
+            return result
         }
       return true;
     });
@@ -1435,6 +1440,32 @@ function createNodeTable(gridId, refresh, scores) {
   var colTitle = columns.map(function(c) { return c.title})
   dynColumns = allColumnsKeys.filter(function(c) { return !(colTitle.includes(c))})
 
+  var param = decodeURIComponent(window.location.hash.substring(1));
+  if (param !== "") {
+    try {
+      var obj = JSON.parse(param);
+      var score = obj.score
+      if (score !== undefined) {
+            var scoreColumn = columns.find(a => a.data == "score.score");
+            if (scoreColumn === undefined) {
+              columns.push(allColumns["Score"])
+            }
+      }
+
+
+      var scoreDetails = obj.scoreDetails
+      if (scoreDetails !== undefined) {
+        for (const [scoreId, value] of Object.entries(scoreDetails)) {
+            var scoreColumn = columns.find(a => a.value == scoreId);
+            if (scoreColumn === undefined) {
+              columns.push(allColumns["Score details"](scoreId))
+            }
+        }
+      }
+    } catch(e) {
+
+    }
+  }
   var params = {
       "filter" : true
     , "paging" : true
