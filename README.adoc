@@ -140,3 +140,4 @@ its http://www.gnu.org/licenses/gpl-3.0.txt[source]).
 We added an extension to the main GPLv3 license to allows to build and use plugins
 on top of Rudder with any license, open source or closed/proprietary, see the https://github.com/Normation/rudder/blob/master/LICENSE_EXCEPTION[LICENSE_EXCEPTION].
 hello
+hello
