@@ -569,7 +569,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   }
 
   private def refreshActiveTreeLibrary(): JsCmd = {
-    Replace(htmlId_activeTechniquesTree, userLibrary())
+    Replace(htmlId_activeTechniquesTree, userLibrary()) &
+    OnLoad(After(TimeSpan(100), JsRaw("""initBsTooltips();""")))
   }
 
   private def refreshBottomPanel(id: ActiveTechniqueId): JsCmd = {
@@ -653,6 +654,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       override val attrs = {
         ("data-jstree"       -> """{ "type" : "template" }""") ::
         ("id"                -> ("ref-technique-" + technique.id.name.value)) ::
+        ("class"             -> "techniqueNode") ::
         ("activeTechniqueId" -> technique.id.name.value) ::
         Nil
       }
@@ -743,8 +745,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             override val attrs = {
               ("data-jstree"       -> """{ "type" : "template" }""") ::
               ("activeTechniqueId" -> technique.id.name.value) ::
-              Nil :::
-              (if (!activeTechnique.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil)
+              ("class"             -> ("techniqueNode" + (if (!activeTechnique.isEnabled) " disableTreeNode" else ""))) :: Nil
             }
           }
         case None            =>
@@ -783,8 +784,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             override val attrs = {
               ("data-jstree"       -> """{ "type" : "template" }""") ::
               ("activeTechniqueId" -> activeTechnique.techniqueName.value) ::
-              Nil :::
-              (if (!activeTechnique.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil)
+              ("class"             -> ("techniqueNode" + (if (!activeTechnique.isEnabled) " disableTreeNode" else ""))) :: Nil
             }
           }
       }
