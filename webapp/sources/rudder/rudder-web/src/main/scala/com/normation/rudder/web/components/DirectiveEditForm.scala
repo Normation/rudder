@@ -345,7 +345,7 @@ class DirectiveEditForm(
         JsRaw(s"""
                  |activateButtonOnFormChange("${htmlId_policyConf}", "${htmlId_save}");
                  |setupMarkdown(${Str(directive.longDescription).toJsCmd}, "longDescriptionField")
-                 |generateMarkdown(${Str(technique.description).toJsCmd}, "#techniqueDescription")
+                 |generateMarkdown(${Str(technique.longDescription).toJsCmd}, "#techniqueDescription")
                  |$$('#technicalDetails').hide();
                  |$$("input").not("#treeSearch").keydown( function(event) {
                  |  processKey(event , '${htmlId_save}');
