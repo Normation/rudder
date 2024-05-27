@@ -61,6 +61,9 @@
  * Reference Technique library tree
  */
 var buildReferenceTechniqueTree = function(id,  initially_select, appContext) {
+
+  allEventsRegisterTree();
+
   $(id).bind("loaded.jstree", function (event, data) {
     data.instance.open_all();
   }).jstree({
@@ -105,7 +108,13 @@ var buildReferenceTechniqueTree = function(id,  initially_select, appContext) {
         }
         },
       "plugins" : [ "types", "dnd", "search" ]
-    })
+  }).on("ready.jstree", function () {
+    attachInlinedEvents(id)
+  }).on("after_open.jstree", function (event, data) {
+    attachInlinedEvents(id)
+  }).on("redraw.jstree", function (event, data) {
+    attachInlinedEvents(id)
+  });
 }
 
 /*
@@ -171,7 +180,13 @@ var buildActiveTechniqueTree = function(id, foreignTreeId, authorized, appContex
         "show_only_matches": true
       },
     "plugins" : [ "types", "dnd", "search" ]
-  })
+  }).on("ready.jstree", function () {
+    attachInlinedEvents(id)
+  }).on("after_open.jstree", function (event, data) {
+    attachInlinedEvents(id)
+  }).on("redraw.jstree", function (event, data) {
+    attachInlinedEvents(id)
+  });
 }
 
 /*
@@ -281,12 +296,7 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
    */
   var select_system_node_allowed = false;
 
-  // Save node event handlers, in order to customize node by reassigning the click event handler
-  var allNodes = $('li.groupTreeNode > a[id^="lift-event-js-"], li.groupTreeNode > * > span[id^="lift-event-js-"]');
-  var allNodeEvents = allNodes.map(function () {
-    return $._data(this, 'events')["click"]; // we need to intercept the click now, the object will change after the jstree init
-  }).get().map(function (x, i) { return [allNodes[i], x] });  // cannot use a node object as key, so keep a [node, events] array
-  allEvents.push(allNodeEvents)
+  allEventsRegisterTree();
 
   $(id).bind("loaded.jstree", function (event, data) {
     data.instance.open_all();
@@ -450,13 +460,7 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
     select_multiple_modifier = "ctrl"
   }
 
-  // Save node event handlers, in order to customize node by reassigning the click event handler
-  var allNodes = $('li.techniqueNode > a[id^="lift-event-js-"], li.techniqueNode > * > span[id^="lift-event-js-"], li.directiveNode > a[id^="lift-event-js-"], li.directiveNode > * > span[id^="lift-event-js-"]');
-  var events =  allNodes.map(function () {
-    return $._data(this, 'events')["click"]; // we need to intercept the click now, the object will change after the jstree init
-  }).get().map(function (x, i) { return [allNodes[i], x] });  // cannot use a node object as key, so keep a [node, events] array
-  allEvents.push(...events);
-
+  allEventsRegisterTree();
 
   var tree = $(id).on("loaded.jstree", function (event, data) {
     openTreeNodes(id, "directiveTreeSettings_nodesState", data);
@@ -628,4 +632,16 @@ function openTreeNodes(treeId, settingsStorageId, data){
   }else{
     data.instance.open_all();
   }
+}
+
+/**
+ * Function that fills the `allEvent` global variable with js-tree event handlers. By default, techniqueNode and directiveNode selectors are used as tree nodes.
+ */
+function allEventsRegisterTree() {
+  // Save node event handlers, in order to customize node by reassigning the click event handler
+  var allNodes = $('li.techniqueNode > a[id^="lift-event-js-"], li.techniqueNode > * > span[id^="lift-event-js-"], li.directiveNode > a[id^="lift-event-js-"], li.directiveNode > * > span[id^="lift-event-js-"]');
+  var events =  allNodes.map(function () {
+    return $._data(this, 'events')["click"]; // we need to intercept the click now, the object will change after the jstree init
+  }).get().map(function (x, i) { return [allNodes[i], x] });  // cannot use a node object as key, so keep a [node, events] array
+  allEvents.push(...events);
 }
