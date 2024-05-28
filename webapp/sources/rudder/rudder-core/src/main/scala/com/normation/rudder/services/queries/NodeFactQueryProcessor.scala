@@ -153,7 +153,13 @@ class NodeFactQueryProcessor(
         s"Checking a query with 0 criterium will always lead to 0 nodes: ${query}"
       ) *> Set.empty[NodeId].succeed
     } else {
-      processPure(query).map(nodeFacts => nodeIds.map(_.toSet).getOrElse(Set.empty).intersect(nodeFacts.map(_.id).toSet))
+      nodeIds match {
+        case None      =>
+          processPure(query).map(nodeFacts => nodeFacts.map(_.id).toSet)
+        case Some(ids) =>
+          processPure(query).map(nodeFacts => ids.toSet.intersect(nodeFacts.map(_.id).toSet))
+      }
+
     }
   }
 
