@@ -47,6 +47,7 @@ target/man/rudder-relayd.1.gz:
 	gzip -f target/man/rudder-relayd.1
 
 CACHE=cache() { [ -x ../../../../../build-caching ] && ../../../../../build-caching "$$@"; [ -x ../../../../../../build-caching ] && ../../../../../../build-caching "$$@" ; } ; cache
+AUTOCOMPLETE=$(shell if grep VERSION_ID="7" /etc/os-release; then install -m644 -D /dev/null autocomplete/rudder-pkg.sh ; else echo autocomplete/rudder-pkg.sh; fi)
 build: man rudder-pkg/rudder_plugins_key.pub autocomplete/rudder-pkg.sh
 	# Build relayd
 	mkdir -p ../../../../../.cargo/ relayd/target/
