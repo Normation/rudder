@@ -70,10 +70,10 @@ import net.liftweb.http.js.JsCmds.*
 import scala.collection.MapView
 import scala.xml.*
 
-case class ScoreChart(scoreValue: ScoreValue, value: Int) {
-  def color: String = {
+case class ScoreChart(scoreValue: ScoreValue, value: Int, noScoreLegend: Option[String]) {
+  import com.normation.rudder.score.ScoreValue.*
 
-    import com.normation.rudder.score.ScoreValue.*
+  def color: String = {
     scoreValue match {
       case A       => "#13beb7"
       case B       => "#68c96a"
@@ -81,14 +81,21 @@ case class ScoreChart(scoreValue: ScoreValue, value: Int) {
       case D       => "#fedc04"
       case E       => "#f0940e"
       case F       => "#da291c"
-      case NoScore => ""
+      case NoScore => "#d8dde5"
     }
   }
-  def label: String = scoreValue.value
-
-  def jsValue: JsArray = {
-    JsArray(label, value)
+  def label: String = {
+    // We don't want "X" as legend label
+    (scoreValue, noScoreLegend) match {
+      case (NoScore, Some(l)) => l
+      case (score, _)         => score.value
+    }
   }
+
+  /**
+    * The value used to map the label to the query filter for the score value (e.g. node table uses "X" for NoScore)
+    */
+  def labelQueryFilter: String = scoreValue.value
 
   def jsColor: (String, Str) = {
     (label -> Str(color))
@@ -235,10 +242,24 @@ class HomePage extends StatefulSnippet {
       val numberOfPendingNodes = compliancePerNodes.values.filter(r => r.pending == r.total).size
 
       val complianceDiagram: List[ScoreChart] =
-        scores.values.groupBy(_.value).map(v => ScoreChart(v._1, v._2.size)).toList.sortBy(_.scoreValue.value).reverse
+        scores.values.groupBy(_.value).map(v => ScoreChart(v._1, v._2.size, None)).toList.sortBy(_.scoreValue.value).reverse
 
       val detailsScore = scores.values.flatMap(_.details).toList.groupBy(_.scoreId).map { c =>
-        (c._1, c._2.groupBy(_.value).map(v => ScoreChart(v._1, v._2.size)).toList.sortBy(_.scoreValue.value).reverse)
+        (
+          c._1,
+          c._2
+            .groupBy(_.value)
+            .map(v => {
+              ScoreChart(
+                v._1,
+                v._2.size,
+                existingScore.find(_._1 == c._1).map { case (_, scoreName) => s"No ${scoreName} score found" }
+              )
+            })
+            .toList
+            .sortBy(_.scoreValue.value)
+            .reverse
+        )
       }
 
       val numberOfNodes = compliancePerNodes.values.size
@@ -272,14 +293,16 @@ class HomePage extends StatefulSnippet {
         (scoreId, detailChart) <- detailsScore.toList.sortBy(_._1)
       } yield {
 
-        val diagramDetailData = detailChart.foldLeft((Nil: List[JsExp], Nil: List[JsExp], Nil: List[JsExp])) {
-          case ((labels, values, colors), diag) => (diag.label :: labels, diag.value :: values, diag.color :: colors)
+        val diagramDetailData = detailChart.foldLeft((Nil: List[JsExp], Nil: List[JsExp], Nil: List[JsExp], Nil: List[JsExp])) {
+          case ((labels, labelQueryFilters, values, colors), diag) =>
+            (diag.label :: labels, diag.labelQueryFilter :: labelQueryFilters, diag.value :: values, diag.color :: colors)
         }
         val detailData        = {
           JsObj(
-            "labels" -> JsArray(diagramDetailData._1),
-            "values" -> JsArray(diagramDetailData._2),
-            "colors" -> JsArray(diagramDetailData._3)
+            "labels"            -> JsArray(diagramDetailData._1),
+            "labelQueryFilters" -> JsArray(diagramDetailData._2),
+            "values"            -> JsArray(diagramDetailData._3),
+            "colors"            -> JsArray(diagramDetailData._4)
           )
         }
 
