@@ -175,6 +175,7 @@ update msg model =
       case res of
         Ok found ->
           let
+            ---------------- BEGINNING FAKE DATA LOGIC
             techs =
               List.range 0 231
                 |> List.map (\x -> UsageInfo "id" ((String.fromInt x) ++ " - technique "))
@@ -182,14 +183,19 @@ update msg model =
               List.range 0 482
                 |> List.map (\x -> UsageInfo "id" ((String.fromInt x) ++ " - directive"))
             fakeData =
-              PropertyUsage dirs techs
+              PropertyUsage (dirs ++ found.directives) (techs ++ found.techniques)
             maxNbRow = List.length fakeData.directives
             pagi = TablePagination 1 1 10 maxNbRow
+            ------------------ END FAKE DATA LOGIC
+            --maxNbRow = List.length found.directives
+            --pagi = TablePagination 1 1 10 maxNbRow
             ui = model.ui
             filtersModel = model.ui.filtersOnUsage
-            newModel = { model | ui = {ui | modalState = Usage pName fakeData, filtersOnUsage = {filtersModel | findUsageIn = Directives, pagination = pagi}} }
+            fakeNewModel = { model | ui = {ui | modalState = Usage pName fakeData, filtersOnUsage = {filtersModel | findUsageIn = Directives, pagination = pagi}} }
+            --newModel = { model | ui = {ui | modalState = Usage pName found, filtersOnUsage = {filtersModel | findUsageIn = Directives, pagination = pagi}} }
           in
-            (newModel, Cmd.batch [ initInputs "", initTooltips ""])
+            --(newModel, Cmd.batch [ initInputs "", initTooltips ""])
+            (fakeNewModel, Cmd.batch [ initInputs "", initTooltips ""])
         Err err ->
           processApiError "Find node property usage" err model
     ChangeViewUsage ->
