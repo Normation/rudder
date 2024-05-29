@@ -388,6 +388,7 @@ class RestTestSetUp {
     ): List[NodeExpectedReports] = ???
     override def saveExpectedReports(expectedReports: List[NodeExpectedReports]): Box[Seq[NodeExpectedReports]] = ???
     override def runPreHooks(generationTime:        DateTime, systemEnv: HookEnvPairs): Box[Unit] = ???
+    override def runStartedHooks(generationTime:    DateTime, systemEnv: HookEnvPairs): Box[Unit] = ???
     override def runPostHooks(
         generationTime:    DateTime,
         endTime:           DateTime,

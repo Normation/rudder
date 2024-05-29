@@ -1,0 +1,16 @@
+= policy-generation-pre-start
+
+== When/What ?
+
+This directory contains hooks executed before policy generation.
+
+Typically, these hooks are used to check the integrity of techniques.
+
+An error during the execution in one of them will stop policy generation, preventing deployment of new policies until the hook succeeds.
+
+== Parameters
+
+Hooks parameters are passed by environment variable:
+
+- RUDDER_GENERATION_DATETIME: generation datetime: ISO-8601
+YYYY-MM-ddTHH:mm:ss.sssZ date/time that identify that policy generation.

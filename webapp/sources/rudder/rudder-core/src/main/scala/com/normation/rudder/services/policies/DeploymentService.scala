@@ -75,6 +75,7 @@ import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.hooks.Hooks
 import com.normation.rudder.hooks.HooksLogger
 import com.normation.rudder.hooks.RunHooks
@@ -108,7 +109,6 @@ import org.joda.time.Period
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.format.PeriodFormatterBuilder
 import scala.collection.MapView
-import scala.collection.immutable.Map
 import scala.concurrent.duration.FiniteDuration
 import zio.{System as _, *}
 import zio.syntax.*
@@ -211,21 +211,28 @@ trait PromiseGenerationService {
     )
 
     val result = for {
-      // trigger a dynamic group update
-      _                 <- if (computeDynGroupsEnabled) {
-                             triggerNodeGroupUpdate()
-                           } else {
-                             PolicyGenerationLogger.warn(
-                               s"Computing dynamic groups disable by REST API settings 'rudder_generation_compute_dyngroups'"
-                             )
-                             Full(())
-                           }
-      timeComputeGroups  = (System.currentTimeMillis - initialTime)
-      _                  = PolicyGenerationLogger.timing.debug(s"Computing dynamic groups finished in ${timeComputeGroups} ms")
-      preGenHooksTime    = System.currentTimeMillis
+
       _                 <- runPreHooks(generationTime, systemEnv)
-      timeRunPreGenHooks = (System.currentTimeMillis - preGenHooksTime)
+      timeRunPreGenHooks = (System.currentTimeMillis - initialTime)
       _                  = PolicyGenerationLogger.timing.debug(s"Pre-policy-generation scripts hooks ran in ${timeRunPreGenHooks} ms")
+
+      // trigger a dynamic group update
+      dynamicGroupUpdateTime = System.currentTimeMillis
+      _                     <- if (computeDynGroupsEnabled) {
+                                 triggerNodeGroupUpdate()
+                               } else {
+                                 PolicyGenerationLogger.warn(
+                                   s"Computing dynamic groups disable by REST API settings 'rudder_generation_compute_dyngroups'"
+                                 )
+                                 Full(())
+                               }
+      timeComputeGroups      = (System.currentTimeMillis - dynamicGroupUpdateTime)
+      _                      = PolicyGenerationLogger.timing.debug(s"Computing dynamic groups finished in ${timeComputeGroups} ms")
+
+      startedGenHooksTime    = System.currentTimeMillis
+      _                     <- runStartedHooks(generationTime, systemEnv)
+      timeRunStartedGenHooks = (System.currentTimeMillis - startedGenHooksTime)
+      _                      = PolicyGenerationLogger.timing.debug(s"Pre-policy-generation scripts hooks ran in ${timeRunStartedGenHooks} ms")
 
       codePreGenHooksTime = System.currentTimeMillis
       _                  <- beforeDeploymentSync(generationTime)
@@ -772,6 +779,9 @@ trait PromiseGenerationService {
   /**
    * Run pre generation hooks
    */
+
+  def runStartedHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit]
+
   def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit]
 
   /**
@@ -1922,7 +1932,25 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
   /*
    * Pre generation hooks
    */
-  override def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit] = {
+  override def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs):     Box[Unit] = {
+    (for {
+      preHooks <- RunHooks.getHooksPure(HOOKS_D + "/policy-generation-pre-start", HOOKS_IGNORE_SUFFIXES)
+      res      <-
+        RunHooks.syncRun(preHooks, HookEnvPairs.build(("RUDDER_GENERATION_DATETIME", generationTime.toString)), systemEnv) match {
+          case _: HookReturnCode.Success => ().succeed
+          case x: HookReturnCode.Error   =>
+            Inconsistency(
+              s"Policy generation pre hook failed, Interrupting policy generation now.\nError is: ${x.msg}\n stdout: ${x.stdout}\n stderr: '${x.stderr}'"
+            ).fail
+        }
+    } yield {
+      res
+    }).toBox
+  }
+  /*
+   * Pre generation hooks
+   */
+  override def runStartedHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit] = {
     (for {
       // fetch all
       preHooks <- RunHooks.getHooksPure(HOOKS_D + "/policy-generation-started", HOOKS_IGNORE_SUFFIXES)
