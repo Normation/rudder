@@ -130,7 +130,7 @@ class SrvGrid(
     val scoreNames = JsArray(scoreService.getAvailableScore().map(_.map(s => JsObj(("id", s._1), ("name", s._2)))).runNow)
     val nodeIds    = nodes.map(nodes => JsArray(nodes.map(n => Str(n.id.value)).toList).toJsCmd).getOrElse("undefined")
     JsRaw(s"""nodeIds = ${nodeIds};
-             | createNodeTable("${tableId}",function() {reloadTable("${tableId}")}, ${scoreNames.toJsCmd});
+             | createNodeTable("${tableId}",function() {reloadTable("${tableId}", ${scoreNames.toJsCmd})}, ${scoreNames.toJsCmd});
                    """.stripMargin) & (additionalJs.getOrElse(Noop))
   }
 
@@ -166,7 +166,8 @@ class SrvGrid(
       tableId:      String
   ): AnonFunc = {
 
-    val ajaxCall = SHtml.ajaxCall(
+    val scoreNames = JsArray(scoreService.getAvailableScore().map(_.map(s => JsObj(("id", s._1), ("name", s._2)))).runNow)
+    val ajaxCall   = SHtml.ajaxCall(
       JsNull,
       (s) => {
         val nodeIds: String = refreshNodes() match {
@@ -176,7 +177,7 @@ class SrvGrid(
 
         JsRaw(s"""
           nodeIds = ${nodeIds}
-          reloadTable("${tableId}");
+          reloadTable("${tableId}", ${scoreNames.toJsCmd});
       """)
       }
     )
