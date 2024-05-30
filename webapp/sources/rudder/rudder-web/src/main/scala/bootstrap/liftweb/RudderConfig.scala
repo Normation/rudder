@@ -3259,6 +3259,7 @@ object RudderConfigInit {
         :: new ResetKeyStatus(rwLdap, removedNodesDitImpl)
         :: new CleanUpCFKeys()
         :: new CleanUpNodePolicyFiles("/var/rudder/share")
+        :: new CleanUpNodeScore(scoreService)
         :: Nil
       )
       .runNow

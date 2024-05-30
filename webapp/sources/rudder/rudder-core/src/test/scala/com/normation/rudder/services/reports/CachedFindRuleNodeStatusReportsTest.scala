@@ -235,6 +235,8 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
       override def getAvailableScore(): IOResult[List[(String, String)]] = ???
 
       override def init(): IOResult[Unit] = ???
+
+      override def deleteNodeScore(nodeId: NodeId): IOResult[Unit] = ???
     })
 
     override def rulesRepo: RoRuleRepository = new RoRuleRepository {

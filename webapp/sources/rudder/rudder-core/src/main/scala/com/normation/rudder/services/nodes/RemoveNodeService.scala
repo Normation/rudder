@@ -67,6 +67,7 @@ import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.repository.ldap.ScalaReadWriteLock
+import com.normation.rudder.score.ScoreService
 import com.normation.rudder.services.policies.write.NodePoliciesPaths
 import com.normation.rudder.services.policies.write.PathComputer
 import com.normation.rudder.services.servers.DeletionResult.*
@@ -629,6 +630,24 @@ class CleanUpCFKeys extends PostNodeDeleteAction {
             )
           })
     }
+  }
+}
+
+class CleanUpNodeScore(scoreService: ScoreService) extends PostNodeDeleteAction {
+  override def run(
+      nodeId: NodeId,
+      mode:   DeleteMode,
+      info:   Option[CoreNodeFact],
+      status: Set[InventoryStatus]
+  )(implicit cc: ChangeContext): UIO[Unit] = {
+    NodeLoggerPure.Delete.debug(s"  - clean-up node '${nodeId.value}' score") *>
+    scoreService
+      .deleteNodeScore(nodeId)
+      .catchAll(err => {
+        NodeLoggerPure.Delete.info(
+          s"Error when cleaning-up scores for node ${(nodeId, info).name}: ${err.fullMsg}"
+        )
+      })
   }
 }
 
