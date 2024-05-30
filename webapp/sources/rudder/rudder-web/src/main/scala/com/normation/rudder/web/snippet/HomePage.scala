@@ -253,7 +253,7 @@ class HomePage extends StatefulSnippet {
               ScoreChart(
                 v._1,
                 v._2.size,
-                existingScore.find(_._1 == c._1).map { case (_, scoreName) => s"No ${scoreName} score found" }
+                existingScore.find(_._1 == c._1).map { case (_, scoreName) => s"No score" }
               )
             })
             .toList
