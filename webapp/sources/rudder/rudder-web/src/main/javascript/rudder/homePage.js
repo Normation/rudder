@@ -289,7 +289,8 @@ function doughnutChart (id,data,colors,hoverColors) {
       , events: ['click', 'mousemove']
       , onClick: (e, active, currentChart) => {
              if (active[0] !== undefined){
-              data = currentChart.data.labels[active[0].index]
+              // we have specific mapping of query filters for scores
+              data = (data.labelQueryFilters ?? currentChart.data.labels)[active[0].index]
               var query = {query:{select:"nodeAndPolicyServer",composition:"And"}};
               switch (id) {
                 case 'nodeOs':
