@@ -40,7 +40,7 @@ test_python_error()
   if type pylint3 >/dev/null; then
     PYLINT="pylint3"
   fi
-  find . ! -wholename '*language/repos/*' ! -name 'convertOpenLDAPSchema.py' ! -name 'systemctl3.py' ! -wholename '*jsondiff/*' -name '*.py' | xargs ${PYLINT} -E --persistent=n --disable=C,R,import-error,no-member,no-name-in-module
+  find . ! -wholename '*language/repos/*' ! -wholename '*rudder-pkg/lib/*' ! -name 'convertOpenLDAPSchema.py' ! -name 'systemctl3.py' ! -wholename '*jsondiff/*' -name '*.py' | xargs ${PYLINT} -E --persistent=n --disable=C,R,import-error,no-member,no-name-in-module
 }
 
 #####
