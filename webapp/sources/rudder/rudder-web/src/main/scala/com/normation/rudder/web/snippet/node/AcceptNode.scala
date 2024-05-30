@@ -304,7 +304,7 @@ class AcceptNode extends Loggable {
               SHtml.ajaxButton(
                 <span><i class="fa fa-search"></i></span>,
                 () => showExpectedPolicyPopup(e),
-                ("class", "smallButton")
+                ("class", "btn btn-default btn-sm")
               )
             }
           ),
