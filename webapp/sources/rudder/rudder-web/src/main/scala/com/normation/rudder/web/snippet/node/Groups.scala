@@ -316,12 +316,15 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
             redirect match {
               case Left((newGroup, newParentId)) =>
                 refreshGroupLib()
-                val newPanel = GroupForm(newGroup, newParentId)
                 refreshTree(htmlTreeNodeId(newGroup.fold(_.target, _.id.serialize))) &
-                refreshRightPanel(newPanel)
+                showGroupSection(newGroup, newParentId)
               case Right(crId)                   =>
                 linkUtil.redirectToChangeRequestLink(crId)
             }
+          },
+          () => {
+            // On failure, the NodeGroupForm replaces the DOM, and we need to still be initialize the group properties Elm app
+            showGroupProperties(group, parentCatId)
           }
         )
 
@@ -595,12 +598,16 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
   private def showGroupSection(g: Either[NonGroupRuleTarget, NodeGroup], parentCategoryId: NodeGroupCategoryId)(implicit
       qc: QueryContext
   ) = {
+    refreshRightPanel(GroupForm(g, parentCategoryId)) &
+    showGroupProperties(g, parentCategoryId)
+  }
+
+  private[this] def showGroupProperties(g: Either[NonGroupRuleTarget, NodeGroup], parentCategoryId: NodeGroupCategoryId) = {
     val value = g.fold(_.target, _.id.serialize)
     val js    = g match {
       case Left(_)  => s"'target':'${value}'"
       case Right(_) => s"'groupId':'${value}'"
     }
-    refreshRightPanel(GroupForm(g, parentCategoryId)) &
     JsRaw(s"""
              |jQuery('#ajaxItemContainer').show();
              |var groupId = JSON.stringify({${js}});
