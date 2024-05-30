@@ -709,29 +709,8 @@ table .innerDetails li{
 color: #FF0000 !important;
 }
 
-.smallButton {
-  width: 40px !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-  padding-top: 2px !important;
-  padding-bottom: 2px !important;
-  font-size : 11px !important;
-  font-weight:100 !important;
-}
-
-.smallButton span {
-  padding-top: 0px !important;
-  padding-bottom: 2px !important;
-  padding-left: 0px !important;
-  padding-right: 0px !important;
-}
-
 td.complianceTd, td.parametersTd {
   text-align: center !important;
-}
-
-.smallButton img {
-  height: 15px;
 }
 
 /* others */
