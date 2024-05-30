@@ -1157,189 +1157,6 @@ function propertyFunction(value, inherited) { return function (nTd, sData, oData
   }
 } }
 
-var allColumns = {
-    "Node ID" :
-    { "data": "id"
-    , "title": "Node ID"
-             , "defaultContent" : "<span class='text-muted'>N/A</span>"
-    }
-  , "Policy server" :
-    { "data": "policyServerId"
-    , "title": "Policy server"
-             , "defaultContent" : "<span class='text-muted'>N/A</span>"
-    }
-  , "RAM" :
-    { "data": "ram"
-    , "title": "RAM"
-             , "defaultContent" : "<span class='text-muted'>N/A</span>"
-    }
-  , "Agent version" :
-    { "data": "agentVersion"
-    , "title": "Agent version"
-             , "defaultContent" : "<span class='text-muted'>N/A</span>"
-
-    }
-  , "Software" :
-    function(value) {
-      return { "data": "software."+value
-             , "title": value + " version"
-             , "defaultContent" : "<span class='text-muted'>N/A</span>"
-             , "value" : value
-             }
-    }
-  , "Score" :
-                 { "data": "score.score"
-                 , "title": "Score"
-                          , "defaultContent" : "<span class='text-muted'>N/A</span>"
-                 , "createdCell" :
-                   function (nTd, sData, oData, iRow, iCol) {
-                     $(nTd).empty();
-                     var score = oData.score.score;
-                     var content = $("<span class=\"badge-compliance-score "+score+" xs sm\"></span>");
-                     $(nTd).prepend( content )
-                   }
-                 }
-  , "Score details" :
-    function(scoreId) {
-      var score = scoreList.find((element) => element.id === scoreId);
-      var scoreName = score !== undefined ? score.name : scoreId;
-      var title = scoreName + " Score";
-      return { "data": function ( row, type, val, meta ) {
-                             if (type === 'set') {
-                               return;
-                             }
-                             else if (type === 'sort') {
-                               return row.score.details[scoreId];
-                             }
-                             // 'sort', 'type' and undefined all just use the integer
-                             return row.score.details[scoreId]
-                           }
-
-             , "title": title
-             , "defaultContent" : "<span class='text-muted'>N/A</span>"
-             , "createdCell" : scoreFunction(scoreId)
-             , "value" : scoreId
-             }
-    }
-  , "Property" :
-    function(value, inherited) {
-      var title = "Property '"+value+"'"
-      if (inherited) title= title +" <i title='Values may be inherited from group/global properties' class='fa fa-question-circle'></i>"
-      return { "data": function ( row, type, val, meta ) {
-                             if (type === 'set') {
-                               return;
-                             }
-                             else if (type === 'sort') {
-                               return JSON.stringify(row.properties[value]);
-                             }
-                             // 'sort', 'type' and undefined all just use the integer
-                             return JSON.stringify(row.properties[value]);
-                           }
-
-             , "title": title
-             , "defaultContent" : "<span class='text-muted'>N/A</span>"
-             , "createdCell" : propertyFunction(value,inherited)
-             , "inherited" : inherited
-             , "value" : value
-             }
-    }
-  , "Policy mode" :
-    { "data": "policyMode"
-    , "title": "Policy mode"
-             , "defaultContent" : "<span class='text-muted'>N/A</span>"
-    , "createdCell" :
-      function (nTd, sData, oData, iRow, iCol) {
-        $(nTd).empty();
-
-        var explanation = "<p>This mode is an override applied to this node. You can change it in the <i><b>node's settings</b></i>.</p>"
-        if (oData.globalModeOverride === "default") {
-          explanation = "<p>This mode is the globally defined default. You can change it in <i><b>settings</b></i>.</p><p>You can also override it on this node in the <i><b>node's settings</b></i>.</p>"
-        } else if (oData.globalModeOverride === "none") {
-          explanation = "<p>This mode is the globally defined default. You can change it in <i><b>settings</b></i>.</p>"
-        }
-        $(nTd).prepend(createBadgeAgentPolicyMode('node',oData.policyMode,explanation));
-      }
-    }
-  , "IP addresses" :
-    { "data": "ipAddresses"
-    , "title": "IP addresses"
-             , "defaultContent" : "<span class='text-muted'>N/A</span>"
-    , "createdCell" :
-      function (nTd, sData, oData, iRow, iCol) {
-        $(nTd).empty();
-        $(nTd).prepend("<ul><li>"+oData.ipAddresses.sort().join("</li><li>") + "</li></ul>");
-      }
-    }
-  , "Machine type" :
-    { "data": "machineType"
-             , "defaultContent" : "<span class='text-muted'>N/A</span>"
-    , "title": "Machine type"
-    }
-  , "Kernel" :
-    { "data": "kernel"
-             , "defaultContent" : "<span class='text-muted'>N/A</span>"
-    , "title": "Kernel"
-    }
-  , "Hostname" :
-    { "data": "name"
-             , "defaultContent" : "<span class='text-muted'>N/A</span>"
-    , "title": "Hostname"
-
-    , "createdCell" : function (nTd, sData, oData, iRow, iCol) {
-        var link = callbackElement(oData, false)
-        var state = "";
-        if(oData.state != "enabled") {
-          state = '<span class="rudder-label label-state label-sm" style="margin-left: 5px;">'+oData.state+'</span>'
-        }
-        var el = '<span>'+sData+state+'</span>';
-        var nodeLink = $(el);
-        link.append(nodeLink);
-        var systemCompliance = "";
-        if (oData.systemError) {
-            systemCompliance = $('<span id="system-compliance-bar-'+oData.id+'"></span>').html('  <a href="'+contextPath+'/secure/nodeManager/node/'+oData.id+'?systemStatus=true"  title="Some system policies could not be applied on this node" class="text-danger fa fa-exclamation-triangle"> </a>');
-        }
-
-        link.append(systemCompliance)
-        $(nTd).empty();
-        $(nTd).append(link);
-      }
-    }
-  , "OS" :
-    { "data": "os"
-             , "defaultContent" : "<span class='text-muted'>N/A</span>"
-    , "title": "OS"
-    }
-  , "Compliance" :
-    { "data": "compliance"
-    , "defaultContent" : "<span class='text-muted'>N/A</span>"
-    , "title": "Compliance"
-    , "sSortDataType": "node-compliance"
-    , "type" : "numeric"
-    , "class" : "tw-bs"
-    , "createdCell" : function (nTd, sData, oData, iRow, iCol) {
-        var link = callbackElement(oData, true)
-        var complianceBar = "<span class='text-muted'>N/A</span>"
-        if (oData.compliance !== undefined) {
-          complianceBar = $('<div id="compliance-bar-'+oData.id+'"></div>').append(buildComplianceBar(oData.compliance))
-        }
-        link.append(complianceBar)
-        $(nTd).empty();
-        $(nTd).prepend(link);
-      }
-    }
-  , "Last run" :
-    { "data": "lastRun"
-    , "defaultContent" : "<span class='text-muted'>N/A</span>"
-    , "title": "Last run"
-    }
-  , "Inventory date" :
-    { "data": "lastInventory"
-    , "defaultContent" : "<span class='text-muted'>N/A</span>"
-    , "title": "Inventory date"
-    }
-}
-
-
 function callbackElement(oData, displayCompliance) {
   var elem = $("<a></a>");
   if("callback" in oData) {
@@ -1354,19 +1171,199 @@ function callbackElement(oData, displayCompliance) {
   return elem;
 }
 
-
-var dynColumns = []
-var columns = []// allColumns["Hostname"],  allColumns["OS"],  allColumns["Compliance"],  allColumns["Last run"]];
-var defaultColumns = [ allColumns["Score"], allColumns["Hostname"],  allColumns["OS"],  allColumns["Policy mode"],  allColumns["Compliance"]];
-var allColumnsKeys =  Object.keys(allColumns)
-function reloadTable(gridId) {
+function reloadTable(gridId, scores) {
   var table = $('#'+gridId).DataTable();
   table.destroy();
-  createNodeTable(gridId, function(){reloadTable(gridId)})
+  createNodeTable(gridId, function(){reloadTable(gridId, scores)}, scores)
 }
 
 function createNodeTable(gridId, refresh, scores) {
-  scoreList = scores
+  var allColumns = {
+      "Node ID" :
+      { "data": "id"
+      , "title": "Node ID"
+               , "defaultContent" : "<span class='text-muted'>N/A</span>"
+      }
+    , "Policy server" :
+      { "data": "policyServerId"
+      , "title": "Policy server"
+               , "defaultContent" : "<span class='text-muted'>N/A</span>"
+      }
+    , "RAM" :
+      { "data": "ram"
+      , "title": "RAM"
+               , "defaultContent" : "<span class='text-muted'>N/A</span>"
+      }
+    , "Agent version" :
+      { "data": "agentVersion"
+      , "title": "Agent version"
+               , "defaultContent" : "<span class='text-muted'>N/A</span>"
+
+      }
+    , "Software" :
+      function(value) {
+        return { "data": "software."+value
+               , "title": value + " version"
+               , "defaultContent" : "<span class='text-muted'>N/A</span>"
+               , "value" : value
+               }
+      }
+    , "Score" :
+                   { "data": "score.score"
+                   , "title": "Score"
+                            , "defaultContent" : "<span class='text-muted'>N/A</span>"
+                   , "createdCell" :
+                     function (nTd, sData, oData, iRow, iCol) {
+                       $(nTd).empty();
+                       var score = oData.score.score;
+                       var content = $("<span class=\"badge-compliance-score "+score+" xs sm\"></span>");
+                       $(nTd).prepend( content )
+                     }
+                   }
+    , "Score details" :
+      function(scoreId) {
+        var score = scores.find((element) => element.id === scoreId);
+        var scoreName = score !== undefined ? score.name : scoreId;
+        var title = scoreName + " Score";
+        return { "data": function ( row, type, val, meta ) {
+                               if (type === 'set') {
+                                 return;
+                               }
+                               else if (type === 'sort') {
+                                 return row.score.details[scoreId];
+                               }
+                               // 'sort', 'type' and undefined all just use the integer
+                               return row.score.details[scoreId]
+                             }
+
+               , "title": title
+               , "defaultContent" : "<span class='text-muted'>N/A</span>"
+               , "createdCell" : scoreFunction(scoreId)
+               , "value" : scoreId
+               }
+      }
+    , "Property" :
+      function(value, inherited) {
+        var title = "Property '"+value+"'"
+        if (inherited) title= title +" <i title='Values may be inherited from group/global properties' class='fa fa-question-circle'></i>"
+        return { "data": function ( row, type, val, meta ) {
+                               if (type === 'set') {
+                                 return;
+                               }
+                               else if (type === 'sort') {
+                                 return JSON.stringify(row.properties[value]);
+                               }
+                               // 'sort', 'type' and undefined all just use the integer
+                               return JSON.stringify(row.properties[value]);
+                             }
+
+               , "title": title
+               , "defaultContent" : "<span class='text-muted'>N/A</span>"
+               , "createdCell" : propertyFunction(value,inherited)
+               , "inherited" : inherited
+               , "value" : value
+               }
+      }
+    , "Policy mode" :
+      { "data": "policyMode"
+      , "title": "Policy mode"
+               , "defaultContent" : "<span class='text-muted'>N/A</span>"
+      , "createdCell" :
+        function (nTd, sData, oData, iRow, iCol) {
+          $(nTd).empty();
+
+          var explanation = "<p>This mode is an override applied to this node. You can change it in the <i><b>node's settings</b></i>.</p>"
+          if (oData.globalModeOverride === "default") {
+            explanation = "<p>This mode is the globally defined default. You can change it in <i><b>settings</b></i>.</p><p>You can also override it on this node in the <i><b>node's settings</b></i>.</p>"
+          } else if (oData.globalModeOverride === "none") {
+            explanation = "<p>This mode is the globally defined default. You can change it in <i><b>settings</b></i>.</p>"
+          }
+          $(nTd).prepend(createBadgeAgentPolicyMode('node',oData.policyMode,explanation));
+        }
+      }
+    , "IP addresses" :
+      { "data": "ipAddresses"
+      , "title": "IP addresses"
+               , "defaultContent" : "<span class='text-muted'>N/A</span>"
+      , "createdCell" :
+        function (nTd, sData, oData, iRow, iCol) {
+          $(nTd).empty();
+          $(nTd).prepend("<ul><li>"+oData.ipAddresses.sort().join("</li><li>") + "</li></ul>");
+        }
+      }
+    , "Machine type" :
+      { "data": "machineType"
+               , "defaultContent" : "<span class='text-muted'>N/A</span>"
+      , "title": "Machine type"
+      }
+    , "Kernel" :
+      { "data": "kernel"
+               , "defaultContent" : "<span class='text-muted'>N/A</span>"
+      , "title": "Kernel"
+      }
+    , "Hostname" :
+      { "data": "name"
+               , "defaultContent" : "<span class='text-muted'>N/A</span>"
+      , "title": "Hostname"
+
+      , "createdCell" : function (nTd, sData, oData, iRow, iCol) {
+          var link = callbackElement(oData, false)
+          var state = "";
+          if(oData.state != "enabled") {
+            state = '<span class="rudder-label label-state label-sm" style="margin-left: 5px;">'+oData.state+'</span>'
+          }
+          var el = '<span>'+sData+state+'</span>';
+          var nodeLink = $(el);
+          link.append(nodeLink);
+          var systemCompliance = "";
+          if (oData.systemError) {
+              systemCompliance = $('<span id="system-compliance-bar-'+oData.id+'"></span>').html('  <a href="'+contextPath+'/secure/nodeManager/node/'+oData.id+'?systemStatus=true"  title="Some system policies could not be applied on this node" class="text-danger fa fa-exclamation-triangle"> </a>');
+          }
+
+          link.append(systemCompliance)
+          $(nTd).empty();
+          $(nTd).append(link);
+        }
+      }
+    , "OS" :
+      { "data": "os"
+               , "defaultContent" : "<span class='text-muted'>N/A</span>"
+      , "title": "OS"
+      }
+    , "Compliance" :
+      { "data": "compliance"
+      , "defaultContent" : "<span class='text-muted'>N/A</span>"
+      , "title": "Compliance"
+      , "sSortDataType": "node-compliance"
+      , "type" : "numeric"
+      , "class" : "tw-bs"
+      , "createdCell" : function (nTd, sData, oData, iRow, iCol) {
+          var link = callbackElement(oData, true)
+          var complianceBar = "<span class='text-muted'>N/A</span>"
+          if (oData.compliance !== undefined) {
+            complianceBar = $('<div id="compliance-bar-'+oData.id+'"></div>').append(buildComplianceBar(oData.compliance))
+          }
+          link.append(complianceBar)
+          $(nTd).empty();
+          $(nTd).prepend(link);
+        }
+      }
+    , "Last run" :
+      { "data": "lastRun"
+      , "defaultContent" : "<span class='text-muted'>N/A</span>"
+      , "title": "Last run"
+      }
+    , "Inventory date" :
+      { "data": "lastInventory"
+      , "defaultContent" : "<span class='text-muted'>N/A</span>"
+      , "title": "Inventory date"
+      }
+  }
+  var dynColumns = []
+  var columns = []// allColumns["Hostname"],  allColumns["OS"],  allColumns["Compliance"],  allColumns["Last run"]];
+  var defaultColumns = [ allColumns["Score"], allColumns["Hostname"],  allColumns["OS"],  allColumns["Policy mode"],  allColumns["Compliance"]];
+  var allColumnsKeys =  Object.keys(allColumns)
+
   var isResizing = false,
     hasHandle = $('#drag').length > 0,
     offsetBottom = 250;
@@ -1609,7 +1606,7 @@ function createNodeTable(gridId, refresh, scores) {
     // Scores details display in table
     var addedScore = columns.filter((c) => c.title.endsWith(" Score")).map((c) => c.value).sort()
     // All ids of all available scores
-    var scoreListId = scoreList.map((c) => c.id).sort()
+    var scoreListId = scores.map((c) => c.id).sort()
     var table = $('#'+gridId).DataTable();
     var editTxt    = "<span>Edit columns </span><i class=\"fa fa-pencil\"></i>"
     var confirmTxt = "<span>Confirm</span><i class=\"fa fa-check\"></i>"
@@ -1661,7 +1658,7 @@ function createNodeTable(gridId, refresh, scores) {
       } else if ( this.value =="Score details"){
           $("#select-columns input").parent().hide()
           // Only add score that are not in table yet (first filter)
-          var options = scoreList.filter((elem) => ! addedScore.includes(elem.id) ).map((elem) => "<option value='"+elem.id+"'>"+elem.name+"</option>")
+          var options = scores.filter((elem) => ! addedScore.includes(elem.id) ).map((elem) => "<option value='"+elem.id+"'>"+elem.name+"</option>")
           $("#select-columns select#selectScoreDetails").html(options.join(''))
           $("#select-columns select#selectScoreDetails").show()
           $("#colCheckbox").parent().parent().hide()
