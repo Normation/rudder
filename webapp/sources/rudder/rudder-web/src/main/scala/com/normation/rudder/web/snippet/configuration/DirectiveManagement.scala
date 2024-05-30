@@ -319,10 +319,10 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
               else <span class="badge-disabled"></span>
             }</span> &
             "#techniqueID *" #> technique.id.name.value &
-            "#techniqueDescription *" #> Script(
-              JsRaw(s"""generateMarkdown(${Str(technique.description).toJsCmd}, "#techniqueDescription");""")
+            "#techniqueLongDescription *" #> Script(
+              JsRaw(s"""generateMarkdown(${Str(technique.longDescription).toJsCmd}, "#techniqueLongDescription");""")
             ) &
-            "#techniqueLongDescription" #> technique.longDescription &
+            "#techniqueDescription" #> technique.description &
             "#isSingle *" #> showIsSingle(technique) &
             "#isDisabled" #> {
               if (!fullActiveTechnique.isEnabled) {
