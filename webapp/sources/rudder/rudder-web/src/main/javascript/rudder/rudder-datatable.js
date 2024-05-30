@@ -2042,7 +2042,7 @@ function buildComplianceBar(compliance) {
 
     if(noreport[0] != 0) {
       var tooltip = noreport[1].toFixed(precision);
-      content.append('<div class="progress-bar progress-bar-no-report" style=" width:'+complianceBars[6].width+'" title="No report: '+tooltip+'%">'+complianceBars[6].value+'</div>');
+      content.append('<div class="progress-bar progress-bar-no-report" style="flex:'+complianceBars[6].width+'" title="No report: '+tooltip+'%">'+complianceBars[6].value+'</div>');
     }
 
     var container = $('<div></div>');
