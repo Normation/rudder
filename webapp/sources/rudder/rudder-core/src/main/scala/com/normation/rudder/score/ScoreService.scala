@@ -54,6 +54,7 @@ trait ScoreService {
   def registerScore(newScoreId: String, displayName: String): IOResult[Unit]
   def getAvailableScore(): IOResult[List[(String, String)]]
   def init():              IOResult[Unit]
+  def deleteNodeScore(nodeId: NodeId): IOResult[Unit]
 }
 
 class ScoreServiceImpl(globalScoreRepository: GlobalScoreRepository, scoreRepository: ScoreRepository) extends ScoreService {
@@ -126,6 +127,15 @@ class ScoreServiceImpl(globalScoreRepository: GlobalScoreRepository, scoreReposi
     }
   }
 
+  def deleteNodeScore(nodeId: NodeId): IOResult[Unit] = {
+    for {
+      _         <- cache.update(_.removed(nodeId))
+      newScores <- scoreCache.updateAndGet(_.removed(nodeId))
+      _         <- scoreRepository.deleteScore(nodeId, None)
+      _         <- globalScoreRepository.delete(nodeId)
+    } yield {}
+
+  }
   def cleanScore(name: String): IOResult[Unit] = {
     for {
       _         <- cache.update(_.map { case (id, gscore) => (id, gscore.copy(details = gscore.details.filterNot(_.scoreId == name))) })

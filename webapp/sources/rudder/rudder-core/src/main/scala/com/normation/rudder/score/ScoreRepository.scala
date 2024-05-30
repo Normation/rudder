@@ -134,6 +134,6 @@ class ScoreRepositoryImpl(doobie: Doobie) extends ScoreRepository {
     val whereName = scoreId.map(n => fr"scoreId = ${n}")
     val where     = Fragments.whereAndOpt(whereNode, whereName)
     val q         = sql"delete from scoreDetails " ++ where
-    transactIOResult(s"error when getting global score for node ${nodeId.value}")(xa => q.update.run.transact(xa).unit)
+    transactIOResult(s"error when deleting score for node ${nodeId.value}")(xa => q.update.run.transact(xa).unit)
   }
 }
