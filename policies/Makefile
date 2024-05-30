@@ -35,7 +35,7 @@ libs:
 	cd target/repos/dsc && git checkout master && git pull origin master || true
 
 agent-windows: libs
-	curl -sS --output target/rudder-agent.msi https://publisher.normation.com/misc/windows/8.0.3/rudder-agent-8.0.3.2000000000.msi
+	curl -sS --output target/rudder-agent.msi https://publisher.normation.com/misc/windows/8.0/latest
 	msiextract target/rudder-agent.msi -C target/agent-windows/
 	# Sadly, we need to add .cf files to the agent to have everything in one place for now
 	mkdir -p target/agent-windows/Rudder/share/initial-policy/ncf/cf/
