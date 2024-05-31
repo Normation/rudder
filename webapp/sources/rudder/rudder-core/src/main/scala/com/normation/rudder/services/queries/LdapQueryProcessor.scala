@@ -51,9 +51,6 @@ import com.normation.rudder.domain.*
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.zio.currentTimeMillis
 import com.unboundid.ldap.sdk.{LDAPConnection as _, SearchScope as _, *}
@@ -207,50 +204,6 @@ object PostFilterNodeFromInfoService {
         }
     }
 
-  }
-}
-
-/**
- * Processor that translates Queries into LDAP search operations
- * for pending nodes
- */
-class PendingNodesLDAPQueryChecker(
-    val checker:        InternalLDAPQueryProcessor,
-    nodeFactRepository: NodeFactRepository
-) extends QueryChecker {
-
-  override def check(query: Query, limitToNodeIds: Option[Seq[NodeId]])(implicit qc: QueryContext): IOResult[Set[NodeId]] = {
-    if (query.criteria.isEmpty) {
-      InternalLDAPQueryProcessorLoggerPure.debug(
-        s"Checking a query with 0 criterium will always lead to 0 nodes: ${query}"
-      ) *> Set.empty[NodeId].succeed
-    } else {
-      for {
-        timePreCompute      <- currentTimeMillis
-        // get the pending node infos we are considering
-        allPendingNodeInfos <- nodeFactRepository.getAll()(qc, SelectNodeStatus.Pending)
-        pendingNodeInfos     = limitToNodeIds match {
-                                 case None      => allPendingNodeInfos.values.toSeq
-                                 case Some(ids) =>
-                                   allPendingNodeInfos.collect { case (nodeId, nodeInfo) if ids.contains(nodeId) => nodeInfo }.toSeq
-                               }
-        foundNodes          <- checker.internalQueryProcessor(query, Seq("1.1"), limitToNodeIds, 0, () => pendingNodeInfos.succeed)
-        timePostComp        <- currentTimeMillis
-        timeres              = timePostComp - timePreCompute
-        _                   <- InternalLDAPQueryProcessorLoggerPure.debug(
-                                 s"LDAP result: ${foundNodes.size} entries in pending nodes obtained in ${timeres}ms for query ${query.toString}"
-                               )
-      } yield {
-        // filter out Rudder server component if necessary
-        (query.returnType match {
-          case NodeReturnType              =>
-            // we have a special case for the root node that always never to that group, even if some weird
-            // scenario lead to the removal (or non addition) of them
-            foundNodes.filterNot(_.value == "root")
-          case NodeAndRootServerReturnType => foundNodes
-        }).toSet
-      }
-    }
   }
 }
 
