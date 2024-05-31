@@ -131,7 +131,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <!-- Doing HTTP requests for remote run -->
     <dependency>
       <groupId>org.scalaj</groupId>
-      <artifactId>scalaj-http_${scala-binary-version}</artifactId>
+      <artifactId>scalaj-http_2.13</artifactId>
       <version>${scalaj-version}</version>
     </dependency>
 
@@ -144,7 +144,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <!-- Testing Liftweb -->
     <dependency>
       <groupId>net.liftweb</groupId>
-      <artifactId>lift-testkit_${scala-binary-version}</artifactId>
+      <artifactId>lift-testkit_2.13</artifactId>
       <version>${lift-version}</version>
       <scope>test</scope>
     </dependency>

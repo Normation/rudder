@@ -329,17 +329,6 @@ object GenerateCompliance {
   // in that case, our data are just expansion of RuleCompliance
   type DATA = (String, DateTime, String, String, ComplianceLevel)
 
-  implicit val ComplianceRead:  Read[ComplianceLevel]  = {
-    Read[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].map(tuple =>
-      ComplianceLevel.apply _ tupled tuple
-    )
-  }
-  implicit val ComplianceWrite: Write[ComplianceLevel] = {
-    Write[(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int)].contramap(comp =>
-      ComplianceLevel.unapply(comp).get
-    )
-  }
-
   def saveComplianceLevel(runs: Seq[RunCompliance]): Int = {
 
     val expanded = (for {

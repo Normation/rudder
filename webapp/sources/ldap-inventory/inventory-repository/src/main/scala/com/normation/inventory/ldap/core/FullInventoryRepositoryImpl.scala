@@ -327,7 +327,7 @@ class FullInventoryRepositoryImpl(
                      .getTreeFilter(
                        dit.NODES.dn,
                        // scala 3.3.3 resolve U as String in NODE unless we tell it it's NodeId
-                       buildSubTreeFilter[NodeId](dit.NODES.dn, nodeIds.toList, id => dit.NODES.NODE.dn(id).toString)
+                       buildSubTreeFilter[NodeId](dit.NODES.dn, nodeIds.toList, id => (dit.NODES.NODE : UUID_ENTRY[NodeId]).dn(id).toString)
                      )
                      .notOptional(s"Missing node root tree")
 
