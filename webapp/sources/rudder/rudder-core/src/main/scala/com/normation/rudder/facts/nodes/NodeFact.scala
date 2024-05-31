@@ -1942,9 +1942,9 @@ object NodeFactSerialisation {
 
   import SimpleCodec.*
 
-  implicit val codecBios: JsonCodec[Bios] = DeriveJsonCodec.gen
+  implicit lazy val codecBios: JsonCodec[Bios] = DeriveJsonCodec.gen
 
-  implicit val codecController: JsonCodec[Controller] = DeriveJsonCodec.gen
+  implicit lazy val codecController: JsonCodec[Controller] = DeriveJsonCodec.gen
 
   def recJsonToJValue(json: Json):     JValue       = {
     json match {
@@ -1969,20 +1969,20 @@ object NodeFactSerialisation {
     }
   }
 
-  implicit val decoderJValue:       JsonDecoder[JValue]       = JsonDecoder[Option[Json]].map {
+  implicit lazy val decoderJValue:       JsonDecoder[JValue]       = JsonDecoder[Option[Json]].map {
     case None    => JNothing
     case Some(v) => recJsonToJValue(v)
   }
-  implicit val encoderJValue:       JsonEncoder[JValue]       = JsonEncoder[Option[Json]].contramap(recJValueToJson(_))
-  implicit val codecCustomProperty: JsonCodec[CustomProperty] = DeriveJsonCodec.gen
+  implicit lazy val encoderJValue:       JsonEncoder[JValue]       = JsonEncoder[Option[Json]].contramap(recJValueToJson(_))
+  implicit lazy val codecCustomProperty: JsonCodec[CustomProperty] = DeriveJsonCodec.gen
 
-  implicit val codecFileSystem:     JsonCodec[FileSystem]     = DeriveJsonCodec.gen
-  implicit val codecInputDevice:    JsonCodec[InputDevice]    = DeriveJsonCodec.gen
-  implicit val codecLocalGroup:     JsonCodec[LocalGroup]     = DeriveJsonCodec.gen
-  implicit val codecLocalUser:      JsonCodec[LocalUser]      = DeriveJsonCodec.gen
-  implicit val codecLogicalVolume:  JsonCodec[LogicalVolume]  = DeriveJsonCodec.gen
-  implicit val codecMemorySlot:     JsonCodec[MemorySlot]     = DeriveJsonCodec.gen
-  implicit val codecInetAddress:    JsonCodec[InetAddress]    = JsonCodec.string.transformOrFail(
+  implicit lazy val codecFileSystem:     JsonCodec[FileSystem]     = DeriveJsonCodec.gen
+  implicit lazy val codecInputDevice:    JsonCodec[InputDevice]    = DeriveJsonCodec.gen
+  implicit lazy val codecLocalGroup:     JsonCodec[LocalGroup]     = DeriveJsonCodec.gen
+  implicit lazy val codecLocalUser:      JsonCodec[LocalUser]      = DeriveJsonCodec.gen
+  implicit lazy val codecLogicalVolume:  JsonCodec[LogicalVolume]  = DeriveJsonCodec.gen
+  implicit lazy val codecMemorySlot:     JsonCodec[MemorySlot]     = DeriveJsonCodec.gen
+  implicit lazy val codecInetAddress:    JsonCodec[InetAddress]    = JsonCodec.string.transformOrFail(
     ip =>
       com.comcast.ip4s.IpAddress.fromString(ip) match {
         case None    => Left(s"Value '${ip}' can not be parsed as an IP address")
@@ -1990,18 +1990,18 @@ object NodeFactSerialisation {
       },
     com.comcast.ip4s.IpAddress.fromInetAddress(_).toString
   )
-  implicit val codecNetwork:        JsonCodec[Network]        = DeriveJsonCodec.gen
-  implicit val codecPhysicalVolume: JsonCodec[PhysicalVolume] = DeriveJsonCodec.gen
-  implicit val codecPort:           JsonCodec[Port]           = DeriveJsonCodec.gen
-  implicit val codecProcess:        JsonCodec[Process]        = DeriveJsonCodec.gen
-  implicit val codecProcessor:      JsonCodec[Processor]      = DeriveJsonCodec.gen
-  implicit val codecSlot:           JsonCodec[Slot]           = DeriveJsonCodec.gen
-  implicit val codecSoftwareFact:   JsonCodec[SoftwareFact]   = DeriveJsonCodec.gen
-  implicit val codecSound:          JsonCodec[Sound]          = DeriveJsonCodec.gen
-  implicit val codecStorage:        JsonCodec[Storage]        = DeriveJsonCodec.gen
-  implicit val codecVideo:          JsonCodec[Video]          = DeriveJsonCodec.gen
-  implicit val codecVirtualMachine: JsonCodec[VirtualMachine] = DeriveJsonCodec.gen
+  implicit lazy val codecNetwork:        JsonCodec[Network]        = DeriveJsonCodec.gen
+  implicit lazy val codecPhysicalVolume: JsonCodec[PhysicalVolume] = DeriveJsonCodec.gen
+  implicit lazy val codecPort:           JsonCodec[Port]           = DeriveJsonCodec.gen
+  implicit lazy val codecProcess:        JsonCodec[Process]        = DeriveJsonCodec.gen
+  implicit lazy val codecProcessor:      JsonCodec[Processor]      = DeriveJsonCodec.gen
+  implicit lazy val codecSlot:           JsonCodec[Slot]           = DeriveJsonCodec.gen
+  implicit lazy val codecSoftwareFact:   JsonCodec[SoftwareFact]   = DeriveJsonCodec.gen
+  implicit lazy val codecSound:          JsonCodec[Sound]          = DeriveJsonCodec.gen
+  implicit lazy val codecStorage:        JsonCodec[Storage]        = DeriveJsonCodec.gen
+  implicit lazy val codecVideo:          JsonCodec[Video]          = DeriveJsonCodec.gen
+  implicit lazy val codecVirtualMachine: JsonCodec[VirtualMachine] = DeriveJsonCodec.gen
 
-  implicit val codecNodeFact: JsonCodec[NodeFact] = DeriveJsonCodec.gen
+  implicit lazy val codecNodeFact: JsonCodec[NodeFact] = DeriveJsonCodec.gen
 
 }
