@@ -753,7 +753,7 @@ class RestTestSetUp {
     override def default(withId: String): DirectiveField = new DirectiveField {
       self => type ValueType = String
       def manifest: ClassTag[String] = classTag[String]
-      lazy val id = withId
+      val id = withId
       def name    = id
       override val uniqueFieldId: Box[String]                      = Full(id)
       protected var _x:           String                           = getDefaultValue
