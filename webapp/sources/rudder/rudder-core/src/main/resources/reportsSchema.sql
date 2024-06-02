@@ -113,28 +113,6 @@ CREATE INDEX endRun_control_idx ON RudderSysEvents (id) WHERE eventType = 'contr
 CREATE INDEX changes_executionTimeStamp_idx ON RudderSysEvents (executionTimeStamp) WHERE eventType = 'result_repaired';
 
 /*
- * The table used to store archived agent execution reports.
- */
-CREATE TABLE ArchivedRudderSysEvents (
-  id                 bigint PRIMARY KEY
-, executionDate      timestamp with time zone NOT NULL
-, nodeId             text NOT NULL CHECK (nodeId <> '')
-, directiveId        text NOT NULL CHECK (directiveId <> '')
-, ruleId             text NOT NULL CHECK (ruleId <> '')
-, reportId           text NOT NULL CHECK (reportId <> '')
-, component          text NOT NULL CHECK (component <> '')
-, keyValue           text
-, executionTimeStamp timestamp with time zone NOT NULL
-, eventType          text
-, policy             text
-, msg                text
-);
-
-CREATE INDEX executionTimeStamp_archived_idx ON ArchivedRudderSysEvents (executionTimeStamp);
-
-ALTER TABLE archivedruddersysevents set (autovacuum_vacuum_scale_factor = 0.005);
-
-/*
  * That table store the agent execution times for each nodes.
  * We keep the starting time of the given run and the fact
  * that the run completed (we got an "execution END" report)
@@ -207,17 +185,6 @@ CREATE INDEX nodeConfigurations_nodeConfigId ON nodeConfigurations (nodeConfigId
 
 ALTER TABLE nodeconfigurations set (autovacuum_vacuum_threshold = 0);
 
--- Create the table for the archived node configurations
-CREATE TABLE archivedNodeConfigurations (
-  nodeId            text NOT NULL CHECK (nodeId <> '')
-, nodeConfigId      text NOT NULL CHECK (nodeConfigId <> '')
-, beginDate         timestamp with time zone NOT NULL
-, endDate           timestamp with time zone
-, configuration     text NOT NULL CHECK (configuration <> '' )
-, PRIMARY KEY (nodeId, nodeConfigId, beginDate)
-);
-
-ALTER TABLE archivednodeconfigurations set (autovacuum_vacuum_threshold = 0);
 
 /*
  *************************************************************************************
@@ -270,20 +237,6 @@ CREATE INDEX nodeCompliance_endOfLife ON nodeCompliance (endOfLife);
 
 ALTER TABLE nodecompliance set (autovacuum_vacuum_threshold = 0);
 ALTER TABLE nodecompliance set (autovacuum_vacuum_scale_factor = 0.1);
-
--- Create the table for the archived node compliance
-CREATE TABLE archivedNodeCompliance (
-  nodeId            text NOT NULL CHECK (nodeId <> '')
-, runTimestamp      timestamp with time zone NOT NULL
-, endOfLife         timestamp with time zone
-, runAnalysis       text NOT NULL CHECK (runAnalysis <> '' )
-, summary           text NOT NULL CHECK (summary <> '' )
-, details  text NOT NULL CHECK (details <> '' )
-, PRIMARY KEY (nodeId, runTimestamp)
-);
-
-ALTER TABLE archivednodecompliance set (autovacuum_vacuum_threshold = 0);
-ALTER TABLE archivednodecompliance set (autovacuum_vacuum_scale_factor = 0.1);
 
 -- Create a table of only (nodeid, ruleid, directiveid) -> complianceLevel
 -- for all runs. That table is amendable to postgresql-side processing,

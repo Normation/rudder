@@ -116,7 +116,6 @@ import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.git.SimpleGitRevisionProvider
-import com.normation.rudder.migration.XmlEntityMigration
 import com.normation.rudder.reports.*
 import com.normation.rudder.repository.*
 import com.normation.rudder.repository.RoRuleRepository
@@ -159,7 +158,6 @@ import org.joda.time.format.ISODateTimeFormat
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap as ISortedMap
 import scala.util.control.NonFatal
-import scala.xml.Elem
 import zio.{System as _, Tag as _, *}
 import zio.json.jsonDiscriminator
 import zio.json.jsonHint
@@ -288,11 +286,8 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
 
   val techniqueRevisionRepo: TechniqueRevisionRepository =
     new GitParseTechniqueLibrary(techniqueParser, mockGit.gitRepo, mockGit.revisionProvider, "techniques", "metadata.xml")
-  val xmlEntityMigration:    XmlEntityMigration          = new XmlEntityMigration {
-    override def getUpToDateXml(entity: Elem): Box[Elem] = Full(entity)
-  }
   val ruleRevisionRepo:      RuleRevisionRepository      =
-    new GitParseRules(new RuleUnserialisationImpl(), mockGit.gitRepo, xmlEntityMigration, "rules")
+    new GitParseRules(new RuleUnserialisationImpl(), mockGit.gitRepo, "rules")
 
   ///////////////////////////  policyServer and systemVariables  ///////////////////////////
 
@@ -2944,17 +2939,13 @@ class MockLdapQueryParsing(mockGit: MockGitConfigRepo, mockNodeGroups: MockNodeG
     override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryDataImpl.criteriaMap
   }
 
-  val xmlEntityMigration: XmlEntityMigration      = new XmlEntityMigration {
-    override def getUpToDateXml(entity: Elem): Box[Elem] = Full(entity)
-  }
-  val groupRevisionRepo:  GroupRevisionRepository = new GitParseGroupLibrary(
+  val groupRevisionRepo: GroupRevisionRepository = new GitParseGroupLibrary(
     new NodeGroupCategoryUnserialisationImpl(),
     new NodeGroupUnserialisationImpl(new CmdbQueryParser {
       override def parse(query: StringQuery): Box[Query]       = ???
       override def lex(query:   String):      Box[StringQuery] = ???
     }),
     mockGit.gitRepo,
-    xmlEntityMigration,
     "groups"
   )
 

@@ -60,8 +60,7 @@ import zio.interop.catz.*
 class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Loggable {
   import doobie.*
 
-  val reports      = "ruddersysevents"
-  val archiveTable = "archivedruddersysevents"
+  val reports = "ruddersysevents"
 
   private val reportsExecutionTable = "reportsexecution"
   private val common_reports_column =
@@ -180,140 +179,31 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     }) ?~! "Could not fetch the reports interval from the database."
   }
 
-  override def getArchivedReportsInterval(): Box[(Option[DateTime], Option[DateTime])] = {
-    transactRunBox(xa => {
-      (for {
-        oldest <- query[DateTime]("""select executiontimestamp from archivedruddersysevents
-                                   order by executiontimestamp asc limit 1""").option
-        newest <- query[DateTime]("""select executiontimestamp from archivedruddersysevents
-                                   order by executionTimeStamp desc limit 1""").option
-      } yield {
-        (oldest, newest)
-      }).transact(xa)
-    }) ?~! "Could not fetch the reports interval from the database."
-  }
-
   override def getDatabaseSize(databaseName: String): Box[Long] = {
     val q = query[Long](s"""select pg_total_relation_size('${databaseName}') as "size" """).unique
     transactRunBox(xa => q.transact(xa)) ?~! "Could not compute the size of the database"
-  }
-
-  override def archiveEntries(date: DateTime): Box[Int] = {
-    val dateAt_0000 = date.toString("yyyy-MM-dd")
-
-    // First, get the bounds for archiving reports
-    (for {
-      highestArchivedReport <- getHighestArchivedReports()
-      lowestReport          <- getLowestReports()
-      highestIdBeforeDate   <- getHighestIdBeforeDate(date)
-    } yield {
-      // compute the lower id to archive
-      val lowestToArchive = highestArchivedReport.map { highest =>
-        lowestReport match {
-          case Some(value) =>
-            Math.max(highest + 1, value) // highest +1, so that we don't take the one existing in archived reports
-          case _           => highest + 1
-        }
-      }
-
-      val lowerBound = lowestToArchive.map(x => s" and id >= ${x} ").getOrElse("")
-
-      // If highestIdBeforeDate is None, then it means we don't have to archive anything, we can skip all this part
-      highestIdBeforeDate match {
-        case None     =>
-          logger.debug(s"No reports to archive before ${dateAt_0000}; skipping")
-          Full(0)
-        case Some(id) =>
-          val higherBound = s" and id <= ${id} "
-
-          val archiveQuery = s"""
-              insert into ${archiveTable}
-                    (id, ${common_reports_column})
-              (select id, ${common_reports_column} from ${reports}
-                      where 1=1 ${lowerBound} ${higherBound}
-              )
-              """
-
-          val deleteQuery = s"""delete from ${reports} where 1=1 ${higherBound}"""
-
-          val vacuum = s"vacuum ${reports}"
-
-          logger.debug(s"""Archiving and deleting reports with SQL query: [[
-                          | ${archiveQuery}
-                          | ${deleteQuery}
-                          |]]""".stripMargin)
-
-          (for {
-            i <- transactRunEither(xa => (archiveQuery :: deleteQuery :: Nil).traverse(q => Update0(q, None).run).transact(xa))
-            _  = logger.debug("Archiving and deleting done, starting to vacuum reports table")
-            // Vacuum cannot be run in a transaction block, it has to be in an autoCommit block
-            _ <- transactRunEither(xa =>
-                   (FC.setAutoCommit(true) *> Update0(vacuum, None).run <* FC.setAutoCommit(false)).transact(xa)
-                 )
-            _  = logger.debug(s"Successfully vacuumed table ${reports}")
-          } yield {
-            i
-          }) match {
-            case Left(ex) =>
-              val msg = "Could not archive entries in the database, cause is " + ex.getMessage()
-              logger.error(msg)
-              Failure(msg, Full(ex), Empty)
-            case Right(i) =>
-              Full(i.sum)
-          }
-      }
-    }) match {
-      case Full(f)              => f
-      case f @ Failure(_, _, _) => f
-      case Empty                => Empty
-    }
-  }
-
-  // Utilitary methods for reliable archiving of reports
-  private def getHighestArchivedReports(): Box[Option[Long]] = {
-    transactRunBox(xa =>
-      query[Long]("select id from archivedruddersysevents order by id desc limit 1").option.transact(xa)
-    ) ?~! "Could not fetch the highest archived report in the database"
-  }
-
-  private def getLowestReports(): Box[Option[Long]] = {
-    transactRunBox(xa =>
-      query[Long]("select id from ruddersysevents order by id asc limit 1").option.transact(xa)
-    ) ?~! "Could not fetch the lowest report in the database"
-  }
-
-  private def getHighestIdBeforeDate(date: DateTime): Box[Option[Long]] = {
-    transactRunBox(xa => {
-      query[Long](
-        s"select id from ruddersysevents where executionTimeStamp < '${date.toString("yyyy-MM-dd")}' order by id desc limit 1"
-      ).option.transact(xa)
-    }) ?~! s"Could not fetch the highest id before date ${date.toString("yyyy-MM-dd")} in the database"
   }
 
   override def deleteEntries(date: DateTime): Box[Int] = {
 
     val dateAt_0000 = date.toString("yyyy-MM-dd")
     val d1          = s"delete from ${reports} where executionTimeStamp < '${dateAt_0000}'"
-    val d2          = s"delete from ${archiveTable} where executionTimeStamp < '${dateAt_0000}'"
     val d3          = s"delete from ${reportsExecutionTable} where date < '${dateAt_0000}'"
 
     val v1 = s"vacuum ${reports}"
-    val v2 = s"vacuum full ${archiveTable}"
     val v3 = s"vacuum ${reportsExecutionTable}"
 
     logger.debug(s"""Deleting report with SQL query: [[
                     | ${d1}
                     |]] and: [[
-                    | ${d2}
-                    |]] and: [[
                     | ${d3}
                     |]]""".stripMargin)
 
     (for {
-      i <- transactRunEither(xa => (d1 :: d2 :: d3 :: Nil).traverse(q => Update0(q, None).run).transact(xa))
+      i <- transactRunEither(xa => (d1 :: d3 :: Nil).traverse(q => Update0(q, None).run).transact(xa))
       // Vacuum cannot be run in a transaction block, it has to be in an autoCommit block
       _ <- {
-        (v1 :: v2 :: v3 :: Nil).map { vacuum =>
+        (v1 :: v3 :: Nil).map { vacuum =>
           transactRunEither(xa => (FC.setAutoCommit(true) *> Update0(vacuum, None).run <* FC.setAutoCommit(false)).transact(xa))
         }.sequence
       }

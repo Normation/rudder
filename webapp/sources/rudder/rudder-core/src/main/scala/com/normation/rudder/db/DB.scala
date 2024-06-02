@@ -69,16 +69,6 @@ object DB {
 
   //////////
 
-  final case class MigrationEventLog[T](
-      id:                  T,
-      detectionTime:       DateTime,
-      detectedFileFormat:  Long,
-      migrationStartTime:  Option[DateTime],
-      migrationEndTime:    Option[DateTime],
-      migrationFileFormat: Option[Long],
-      description:         Option[String]
-  )
-
   final case class Reports[T](
       id:                 T,
       executionDate:      DateTime,

@@ -62,25 +62,9 @@ trait DatabaseManager {
   def getReportsInterval(): Box[(Option[DateTime], Option[DateTime])]
 
   /**
-   * Get the older entry in the archived report database, and the newest
-   */
-  def getArchivedReportsInterval(): Box[(Option[DateTime], Option[DateTime])]
-
-  /**
    * Return the reports database size
    */
   def getDatabaseSize(): Box[Long]
-
-  /**
-   * Return the archive reports database size
-   */
-  def getArchiveSize(): Box[Long]
-
-  /**
-   * Archive reports older than target date in archived reports database
-   * and delete them from reports database
-   */
-  def archiveEntries(date: DateTime): Box[Int]
 
   /**
    * Delete reports older than target date both in archived reports and reports database
@@ -99,40 +83,21 @@ class DatabaseManagerImpl(
     reportsRepository.getReportsInterval()
   }
 
-  def getArchivedReportsInterval(): Box[(Option[DateTime], Option[DateTime])] = {
-    reportsRepository.getArchivedReportsInterval()
-  }
-
   def getDatabaseSize(): Box[Long] = {
     reportsRepository.getDatabaseSize(reportsRepository.reports)
   }
 
-  def getArchiveSize(): Box[Long] = {
-    reportsRepository.getDatabaseSize(reportsRepository.archiveTable)
-  }
-
-  def archiveEntries(date: DateTime): Box[Int] = {
-    val archiveReports         = reportsRepository.archiveEntries(date) ?~! "An error occured while archiving reports"
-    val archiveNodeConfigs     =
-      expectedReportsRepo.archiveNodeConfigurations(date) ?~! "An error occured while archiving Node Configurations"
-    val archiveNodeCompliances =
-      expectedReportsRepo.archiveNodeCompliances(date) ?~! "An error occured while archiving Node Compliances"
-
-    // Accumulate errors, them sum values
-    (Control.bestEffort(Seq(archiveReports, archiveNodeConfigs, archiveNodeCompliances))(identity)).map(_.sum)
-  }
-
   def deleteEntries(reports: DeleteCommand.Reports, complianceLevels: Option[DeleteCommand.ComplianceLevel]): Box[Int] = {
-    val nodeReports                = reportsRepository.deleteEntries(reports.date) ?~! "An error occured while deleting reports"
+    val nodeReports                = reportsRepository.deleteEntries(reports.date) ?~! "An error occurred while deleting reports"
     val nodeConfigs                =
-      expectedReportsRepo.deleteNodeConfigIdInfo(reports.date) ?~! "An error occured while deleting old node configuration IDs"
+      expectedReportsRepo.deleteNodeConfigIdInfo(reports.date) ?~! "An error occurred while deleting old node configuration IDs"
     val deleteNodeConfigs          =
-      expectedReportsRepo.deleteNodeConfigurations(reports.date) ?~! "An error occured while deleting Node Configurations"
+      expectedReportsRepo.deleteNodeConfigurations(reports.date) ?~! "An error occurred while deleting Node Configurations"
     val deleteNodeCompliances      =
-      expectedReportsRepo.deleteNodeCompliances(reports.date) ?~! "An error occured while deleting Node Compliances"
+      expectedReportsRepo.deleteNodeCompliances(reports.date) ?~! "An error occurred while deleting Node Compliances"
     val deleteNodeComplianceLevels = complianceLevels match {
       case Some(c) =>
-        expectedReportsRepo.deleteNodeComplianceLevels(c.date) ?~! "An error occured while deleting Node Compliances"
+        expectedReportsRepo.deleteNodeComplianceLevels(c.date) ?~! "An error occurred while deleting Node Compliances"
       case None    => Full(0) // we don't want to delete ComplianceLevel, it should not fail
     }
     // Accumulate errors, them sum values
@@ -143,6 +108,6 @@ class DatabaseManagerImpl(
 
   override def deleteLogReports(since: Duration): Box[Int] = {
     val date = DateTime.now().minus(since.toMillis)
-    reportsRepository.deleteLogReports(date) ?~! "An error occured while deleting log reports"
+    reportsRepository.deleteLogReports(date) ?~! "An error occurred while deleting log reports"
   }
 }

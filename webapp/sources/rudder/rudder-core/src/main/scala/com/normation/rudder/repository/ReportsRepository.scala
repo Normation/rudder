@@ -100,14 +100,11 @@ trait ReportsRepository {
   ): Seq[Reports]
 
   // databaseManager only
-  def getReportsInterval():         Box[(Option[DateTime], Option[DateTime])]
-  def getArchivedReportsInterval(): Box[(Option[DateTime], Option[DateTime])]
+  def getReportsInterval(): Box[(Option[DateTime], Option[DateTime])]
 
   def getDatabaseSize(databaseName: String): Box[Long]
-  def reports:      String
-  def archiveTable: String
-  def archiveEntries(date: DateTime): Box[Int]
-  def deleteEntries(date:  DateTime): Box[Int]
+  def reports: String
+  def deleteEntries(date: DateTime): Box[Int]
 
   def deleteLogReports(date: DateTime): Box[Int]
 

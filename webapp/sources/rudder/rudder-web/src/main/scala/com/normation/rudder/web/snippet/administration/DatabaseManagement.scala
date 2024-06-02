@@ -59,9 +59,8 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
   private val dbCleaner       = RudderConfig.automaticReportsCleaning
 
   private var from:   String            = ""
-  val archiveAction:  ArchiveAction     = ArchiveAction(databaseManager, dbCleaner)
   val deleteAction:   DeleteAction      = DeleteAction(databaseManager, dbCleaner)
-  private var action: CleanReportAction = archiveAction
+  private var action: CleanReportAction = deleteAction
 
   val DATETIME_FORMAT = "yyyy-MM-dd"
   val DATETIME_PARSER: DateTimeFormatter = DateTimeFormat.forPattern(DATETIME_FORMAT)
@@ -77,8 +76,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
           Full("Archive"),
           { (value: String) =>
             action = value match {
-              case "Archive" => archiveAction
-              case "Delete"  => deleteAction
+              case "Delete" => deleteAction
             }
           },
           ("class", "radio")
@@ -88,7 +86,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
             </li>)
     }
         </ul> &
-    "#archiveReports" #> SHtml.ajaxSubmit("Clean reports", process _, ("class", "btn btn-default")) &
+    "#deleteReports" #> SHtml.ajaxSubmit("Clean reports", process _, ("class", "btn btn-default")) &
     "#reportFromDate" #> SHtml.text(from, x => from = x))(xml) ++ Script(
       OnLoad(JsRaw("""initReportDatepickler("#reportFromDate");""") & updateValue)
     )
@@ -114,10 +112,9 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
   }
 
   def updateValue: JsCmd = {
-    val reportsInterval         = databaseManager.getReportsInterval()
-    val archivedReportsInterval = databaseManager.getArchivedReportsInterval()
+    val reportsInterval = databaseManager.getReportsInterval()
 
-    val inProgress = !(archiveAction.actorIsIdle && deleteAction.actorIsIdle)
+    val inProgress = !deleteAction.actorIsIdle
 
     def displayInProgress(lastValue: Box[Option[DateTime]]): NodeSeq = {
       val date = displayDate(lastValue)
@@ -137,16 +134,6 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
         .map(x => Text(MemorySize(x).toStringMo))
         .openOr(Text("Could not compute the size of the database"))
     ) &
-    SetHtml("oldestArchivedEntry", displayInProgress(archivedReportsInterval.map(_._1))) &
-    SetHtml("newestArchivedEntry", displayInProgress(archivedReportsInterval.map(_._2))) &
-    SetHtml(
-      "archiveSize",
-      databaseManager
-        .getArchiveSize()
-        .map(x => Text(MemorySize(x).toStringMo))
-        .openOr(Text("Could not compute the size of the database"))
-    ) &
-    SetHtml("archiveProgress", Text(archiveAction.progress)) &
     SetHtml("deleteProgress", Text(deleteAction.progress)) &
     updateAutomaticCleaner
   }
@@ -176,7 +163,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
   private def showConfirmationDialog(date: DateTime, action: CleanReportAction): JsCmd = {
     val cancel: JsCmd = {
       SetHtml("confirm", NodeSeq.Empty) &
-      JsRaw(""" $('#archiveReports').show();
+      JsRaw(""" $('#deleteReports').show();
                 $('#cleanParam').show(); """)
     }
     val btnClass = if (action.name == "archive") { "btn-primary" }
@@ -212,7 +199,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
 
     def showDialog: JsCmd = {
       SetHtml("confirm", dialog) &
-      JsRaw(""" $('#archiveReports').hide();
+      JsRaw(""" $('#deleteReports').hide();
                 $('#cleanParam').hide();
                 $('#cleanResult').hide();
                 $('#confirm').stop(true, true).slideDown(1000); """)

@@ -937,7 +937,7 @@ ins {
 }
 
 /* REPORTS DATABASE */
-#reportFromDate, #archiveReports {
+#reportFromDate, #deleteReports {
   margin-left: 7px;
   padding: 6px 12px;
   border: 1px solid #dcdcdc;
@@ -1241,7 +1241,7 @@ button.buttonMargin {
 }
 .jstree.content-wrapper {
 	font-size : 12px;
-} 
+}
 
 .text-warning-rudder {
     color : #EF9600
