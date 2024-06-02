@@ -204,45 +204,6 @@ pipeline {
                         }
                     }
                 }
-                stage('rudder-pkg') {
-                    agent {
-                        dockerfile {
-                            filename 'relay/sources/rudder-pkg/Dockerfile'
-                            args '-v /etc/passwd:/etc/passwd:ro'
-                        }
-                    }
-                    steps {
-                        script {
-                            running.add("Tests - rudder-pkg")
-                        }
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            dir ('relay/sources') {
-                                sh script: 'make check', label: 'rudder-pkg tests'
-                            }
-                        }
-                    }
-                    post {
-                        //always {
-                            // linters results
-                            //recordIssues enabledForFailure: true, id: 'rudder-pkg', failOnError: true, sourceCodeEncoding: 'UTF-8',
-                            //             tool: pyLint(pattern: 'relay/sources/rudder-pkg/pylint.log', reportEncoding: 'UTF-8')
-                        //}
-                        failure {
-                            script {
-                                failedBuild = true
-                                errors.add("Tests - rudder-pkg")
-                                slackResponse = updateSlack(errors, running, slackResponse, version, changeUrl)
-                                slackSend(channel: slackResponse.threadId, message: "Error during rudder-pkg tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
-                            }
-                        }
-                        cleanup {
-                            script {
-                                running.remove("Tests - rudder-pkg")
-                                cleanWs(deleteDirs: true, notFailBuild: true)
-                            }
-                        }
-                    }
-                }
                 stage('webapp') {
                     agent {
                         dockerfile {

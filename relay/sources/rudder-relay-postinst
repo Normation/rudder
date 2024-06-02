@@ -107,6 +107,14 @@ sed -i '/^WSGI/d' /etc/${APACHE_VHOSTDIR}/rudder.conf
 # Remove old cron job
 rm -f /etc/cron.d/rudder-relay
 
+# Remove old rudder-pkg files
+rm -f /opt/rudder/etc/rudder-pkg/rudder_plugins_key.pub
+rm -f /opt/rudder/etc/rudder-pkg/pubring.kbx
+rm -f /opt/rudder/etc/rudder-pkg/pubring.kbx~
+rm -f /opt/rudder/etc/rudder-pkg/trustdb.gpg
+rm -rf /opt/rudder/etc/rudder-pkg/private-keys-v1.d
+chmod -x /opt/rudder/etc/rudder-pkg/rudder-pkg.conf
+
 # Apply SELinux config before starting the services
 if [ "${SELINUX}" = "true" ]; then
   # Check "sestatus" presence, if not there there is not SELinux

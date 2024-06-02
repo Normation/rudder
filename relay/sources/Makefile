@@ -18,26 +18,11 @@ GET=get() { $(PROXY_ENV) curl -s -L -o "$$1.part" "$$2" && { openssl dgst -sha25
 DESTDIR = $(CURDIR)/target
 APACHE_VHOSTDIR = apache2/sites-available
 
-PYLINT=$(shell if type pylint3 >/dev/null 2>/dev/null; then echo pylint3; else echo pylint; fi)
-
-PY_SOURCES=rudder-pkg/rudder-pkg rudder-pkg/lib/rudder-pkg
-
-rudder-pkg/rudder_plugins_key.pub:
-	$(GET) rudder-pkg/rudder_plugins_key.pub https://repository.rudder.io/apt/rudder_apt_key.pub $(RUDDER_PLUGINS_KEY_SHA256)
-
 man-source: target/man-source/rudder-relayd.1;
 
 target/man-source/%: man/%.adoc
 	mkdir -p target/man-source
 	asciidoctor -D target/man-source -b manpage $<
-
-autocomplete/rudder-pkg.sh:
-	# docopt-completion needs python3
-	PIP_BREAK_SYSTEM_PACKAGES=1 pip3 install infi.docopt-completion
-	# rudder-pkg may use dodopt python2
-	if head -n1 $(CURDIR)/rudder-pkg/rudder-pkg | grep python2 >/dev/null 2>&1; then pip install docopt; fi
-	mkdir -p autocomplete
-	export PATH=$$PATH:/usr/local/bin; export PYTHONPATH=$(CURDIR)/rudder-pkg/lib/rudder-pkg:$$PYTHONPATH; cd autocomplete && docopt-completion $(CURDIR)/rudder-pkg/rudder-pkg --manual-bash && cd -
 
 man: target/man/rudder-relayd.1.gz;
 
@@ -113,19 +98,13 @@ install: build
 	# Install man pages
 	install -m 644 target/man/rudder-relayd.1.gz $(DESTDIR)/opt/rudder/share/man/man1/
 
-	# rudder-package new implementation
+	# Install rudder-package
 	install -m 755 ../../target/release/rudder-package $(DESTDIR)/opt/rudder/bin/rudder-package
 	install -m 644 rudder-package/tools/rudder_plugins_key.gpg $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.gpg
 	install -m 755 rudder-package/tools/rudder-package.sh $(DESTDIR)/opt/rudder/share/commands/package
-	install -m 644 rudder-pkg/rudder-pkg.conf $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder-pkg.conf
+	install -m 644 rudder-package/tools/rudder-pkg.conf $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder-pkg.conf
 	install -m 644 systemd/rudder-package.timer $(DESTDIR)/usr/lib/systemd/system/rudder-package.timer
 	install -m 644 systemd/rudder-package.service $(DESTDIR)/usr/lib/systemd/system/rudder-package.service
-	# rudder-pkg kept as backup for now
-	install -m 755 rudder-pkg/rudder-pkg $(DESTDIR)/opt/rudder/share/python/rudder-pkg/rudder-pkg
-	ln -ns ../share/commands/package $(DESTDIR)/opt/rudder/bin/rudder-pkg
-	install -m 644 rudder-pkg/rudder_plugins_key.pub $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.pub
-	install -m 644 autocomplete/rudder-pkg.sh $(DESTDIR)/etc/bash_completion.d/
-	cp -r rudder-pkg/lib/* $(DESTDIR)/opt/rudder/share/python/
 
 	# Apache
 	install -m 644 apache/rudder-vhost.conf $(DESTDIR)/etc/$(APACHE_VHOSTDIR)/rudder.conf
@@ -151,37 +130,11 @@ ifeq ($(SELINUX),true)
 endif
 	touch $@
 
-# Quality
-
-fmt:
-	blue ${PY_SOURCES}
-
-lint:
-	# Collect all warnings
-	cd rudder-pkg && ${PYLINT} --disable=import-error,no-member --rcfile=.pylintrc-ci rudder-pkg lib/rudder-pkg/*.py > pylint.log || true
-	# Fail on errors
-	cd rudder-pkg && ${PYLINT} --errors-only --disable=import-error,no-member rudder-pkg lib/rudder-pkg/*.py
-
-	# check format
-	blue --check ${PY_SOURCES}
-
-	# check for common vulnerabilities
-	# -ll => only fail for >= medium level, skip low
-	bandit -ll -r ${PY_SOURCES}
-
-check: lint
-	cd rudder-pkg/lib/rudder-pkg/tests && ./testall
-
 # Clean
 
 clean:
 	rm -rf target relayd/target build install
 	rm -rf selinux/rudder-relay.pp
-	rm -rf rudder-pkg/lib/rudder-pkg/__pycache__/
-	rm -rf rudder-pkg/lib/rudder-pkg/*.pyc
-	rm -rf rudder-pkg/lib/rudder-pkg/tests/.hypothesis/
-	rm -rf rudder-pkg/rudder_plugins_key.pub
-	rm -rf autocomplete
 	cd relayd && cargo clean
 
 veryclean: clean
