@@ -2182,10 +2182,10 @@ object RudderConfigInit {
           directiveApiService14
         ),
         new NodeApi(
-          restExtractorService,
           zioJsonExtractor,
           restDataSerializer,
           nodeApiService,
+          userPropertyService,
           nodeInheritedProperties,
           uuidGen,
           DeleteMode.Erase // only supported mode for Rudder 8.0

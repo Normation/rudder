@@ -41,12 +41,9 @@ import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors.PureResult
-import com.normation.inventory.domain.KeyStatus
-import com.normation.inventory.domain.SecurityToken
 import com.normation.rudder.apidata.JsonQueryObjects.JQNodeStatusAction
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
@@ -232,14 +229,6 @@ final case class RestGroup(
 
 final case class RestNodeProperties(
     properties: Option[Seq[NodeProperty]]
-)
-
-final case class RestNode(
-    properties:     Option[List[NodeProperty]],
-    policyMode:     Option[Option[PolicyMode]],
-    state:          Option[NodeState],
-    agentKey:       Option[SecurityToken],
-    agentKeyStatus: Option[KeyStatus]
 )
 
 sealed trait NodeStatusAction

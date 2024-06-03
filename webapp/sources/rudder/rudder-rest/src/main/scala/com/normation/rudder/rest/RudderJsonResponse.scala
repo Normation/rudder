@@ -79,6 +79,14 @@ object RudderJsonResponse {
     def error(id: Option[String], schema: ResponseSchema, message: String): JsonRudderApiResponse[Unit] =
       JsonRudderApiResponse(schema.action, id, "error", None, Some(message))
 
+    def genericError[A](
+        id:           Option[String],
+        schema:       ResponseSchema,
+        data:         A,
+        errorDetails: Option[String]
+    ): JsonRudderApiResponse[A] =
+      JsonRudderApiResponse(schema.action, id, "error", Some(data), errorDetails)
+
     def success[A](schema: ResponseSchema, id: Option[String], data: A): JsonRudderApiResponse[A] =
       JsonRudderApiResponse(schema.action, id, "success", Some(data), None)
   }
@@ -179,6 +187,21 @@ object RudderJsonResponse {
       prettify: Boolean
   ): LiftJsonResponse[JsonRudderApiResponse[Unit]] = {
     generic.internalError(JsonRudderApiResponse.error(id, schema, errorMsg))
+  }
+  // Internal error with a specific schema
+  @nowarn("msg=parameter encoder .* is never used") // used by magnolia macro
+  def internalError[A](id: Option[String], schema: ResponseSchema, obj: A, errorMsg: Option[String])(implicit
+      prettify: Boolean,
+      encoder: JsonEncoder[A]
+  ): LiftJsonResponse[? <: JsonRudderApiResponse[?]] = {
+    schema.dataContainer match {
+      case Some(key) =>
+        implicit val enc: JsonEncoder[JsonRudderApiResponse[Map[String, List[A]]]] = DeriveJsonEncoder.gen
+        generic.internalError(JsonRudderApiResponse.genericError(id, schema, Map((key, List(obj))), errorMsg))
+      case None      => // in that case, the object is not even in a list
+        implicit val enc: JsonEncoder[JsonRudderApiResponse[A]] = DeriveJsonEncoder.gen
+        generic.internalError(JsonRudderApiResponse.genericError(id, schema, obj, errorMsg))
+    }
   }
   def notFoundError(id: Option[String], schema: ResponseSchema, errorMsg: String)(implicit
       prettify: Boolean

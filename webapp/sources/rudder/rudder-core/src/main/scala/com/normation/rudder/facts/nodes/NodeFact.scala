@@ -95,7 +95,9 @@ import zio.json.internal.Write
  * - no compliance scoring
  * - no resolved properties (for ex inherited ones)
  */
-final case class IpAddress(inet: String)
+final case class IpAddress(inet: String) {
+  def isLocalhostIPv4IPv6: Boolean = inet == "127.0.0.1" || inet == "0:0:0:0:0:0:0:1"
+}
 final case class ManagementTechnology(
     name:         String,
     version:      Version,
@@ -1541,7 +1543,12 @@ final case class JsonAgentRunInterval(
 
 final case class JSecurityToken(kind: String, token: String)
 
-final case class JNodeProperty(name: String, value: ConfigValue, mode: Option[String], provider: Option[String])
+final case class JNodeProperty(
+    name:                             String,
+    value:                            ConfigValue,
+    @jsonAliases("inheritMode") mode: Option[String],
+    provider:                         Option[String]
+)
 
 /**
  * ADT that allows encoding "Physical/Virtual/Unknown" machine type in a single json field

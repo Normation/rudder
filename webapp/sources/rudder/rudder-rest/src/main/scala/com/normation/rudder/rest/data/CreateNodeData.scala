@@ -55,11 +55,9 @@ import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigValue
 import enumeratum.*
 import java.util.regex.Pattern
-import net.liftweb.json.JArray
-import net.liftweb.json.JField
-import net.liftweb.json.JObject
-import net.liftweb.json.JString
-import net.liftweb.json.JValue
+import zio.Chunk
+import zio.json.*
+import zio.json.internal.Write
 
 /**
  * Applicative log of interest for Rudder ops.
@@ -191,30 +189,12 @@ final case class ResultHolder(
 )
 
 object ResultHolder {
+  import com.normation.rudder.apidata.implicits.*
 
-  implicit class ResultHolderToJson(res: ResultHolder) {
+  implicit val failureEncoder: JsonEncoder[(String, CreationError)] =
+    JsonEncoder[Map[String, CreationError]].contramap(Map(_))
 
-    def toJson(): JValue = {
-      import net.liftweb.json.JsonDSL.*
-      (
-        ("created"  -> JArray(res.created.map(id => JString(id.value))))
-        ~ ("failed" ->
-        JArray(res.failed.map {
-          case (id, error) =>
-            JObject(JField(id, errorToJson(error)))
-        }))
-      )
-    }
-
-    def errorToJson(error: CreationError): JValue = {
-      error match {
-        case x: CreationError.OnAcceptation   => JString(x.errorMsg)
-        case x: CreationError.OnSaveInventory => JString(x.errorMsg)
-        case x: CreationError.OnSaveNode      => JString(x.errorMsg)
-        case CreationError.OnValidation(nel) => JArray(nel.map(e => JString(s"[validation] ${e.msg}")).toList)
-      }
-    }
-  }
+  implicit val encoder: JsonEncoder[ResultHolder] = DeriveJsonEncoder.gen[ResultHolder]
 }
 
 object Creation {
@@ -236,6 +216,26 @@ object Creation {
     }
     final case class OnAcceptation(message: String)                                          extends CreationError {
       override def errorMsg: String = s"[accept] ${message}"
+    }
+
+    implicit val nodeValidationErrorEncoder: JsonEncoder[Validation.NodeValidationError] =
+      JsonEncoder[String].contramap(e => s"[validation] ${e.msg}")
+    // Encodes an array
+    implicit val onValidationEncoder:        JsonEncoder[OnValidation]                   =
+      JsonEncoder[Chunk[Validation.NodeValidationError]].contramap(v => Chunk.fromIterable(v.validations.toIterable))
+    // Encode strings
+    implicit val onSaveInventoryEncoder:     JsonEncoder[OnSaveInventory]                = JsonEncoder[String].contramap(_.errorMsg)
+    implicit val onSaveNodeEncoder:          JsonEncoder[OnSaveNode]                     = JsonEncoder[String].contramap(_.errorMsg)
+    implicit val onAcceptationEncoder:       JsonEncoder[OnAcceptation]                  = JsonEncoder[String].contramap(_.errorMsg)
+
+    // we need to redefine this because we don't want a discriminator, and also the JSON subtype are not the same
+    implicit val encoder: JsonEncoder[CreationError] = new JsonEncoder[CreationError] {
+      override def unsafeEncode(a: CreationError, indent: Option[Int], out: Write): Unit = a match {
+        case v: OnValidation    => JsonEncoder[OnValidation].unsafeEncode(v, indent, out)
+        case v: OnSaveInventory => JsonEncoder[OnSaveInventory].unsafeEncode(v, indent, out)
+        case v: OnSaveNode      => JsonEncoder[OnSaveNode].unsafeEncode(v, indent, out)
+        case v: OnAcceptation   => JsonEncoder[OnAcceptation].unsafeEncode(v, indent, out)
+      }
     }
   }
 

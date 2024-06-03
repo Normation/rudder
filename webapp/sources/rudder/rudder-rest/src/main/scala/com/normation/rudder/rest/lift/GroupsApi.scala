@@ -54,7 +54,6 @@ import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
-import com.normation.rudder.domain.properties.ParentProperty
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
@@ -1385,25 +1384,10 @@ class GroupApiService14(
     } yield {
       JRGroupInheritedProperties.fromGroup(
         groupId,
-        properties.flatten
-          // merge node properties by property : the hierarchy adds up and conflict is combined with boolean OR
-          .groupMapReduce(_._1.prop.name) {
-            case (p, childProps, hasConflicts) =>
-              (p, childProps, hasConflicts)
-          } {
-            case ((p, a1, b1), (_, a2, b2)) => // property is the same under the same name
-              (p, mergeHierarchies(a1, a2), b1 || b2)
-          }
-          .values
-          .toList,
+        properties.flatten,
         renderInHtml
       )
     }
   }
 
-  // Ideally, this should be a set : some nodes may inherit the same hierarchy so we wan to avoid duplicates
-  // Also, we want to sort them by hierarchy
-  private[this] def mergeHierarchies(left: List[ParentProperty], right: List[ParentProperty]): List[ParentProperty] = {
-    (left ++ right).distinct.sorted
-  }
 }

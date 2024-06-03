@@ -130,6 +130,30 @@ object SecurityToken {
       _      <- checkCertificateSubject(nodeId, parsed._2)
     } yield ()
   }
+
+  // Use bouncy castle to parse the key and check if it's a public key or a certificate
+  def parseValidate(key: String): Either[InventoryError, SecurityToken] = {
+    PureResult
+      .attempt(
+        new PEMParser(new StringReader(key))
+          .readObject()
+      )
+      .left
+      .map(ex => InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a public key", ex.cause): InventoryError)
+      .flatMap { obj =>
+        obj match {
+          case _: SubjectPublicKeyInfo  => Right(PublicKey(key))
+          case _: X509CertificateHolder => Right(Certificate(key))
+          case _ =>
+            Left(
+              InventoryError
+                .Crypto(
+                  s"Provided agent key is in an unknown format. Please use a certificate or public key in PEM format"
+                )
+            )
+        }
+      }
+  }
 }
 
 object PublicKey   {

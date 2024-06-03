@@ -116,6 +116,7 @@ import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.git.SimpleGitRevisionProvider
+import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.migration.XmlEntityMigration
 import com.normation.rudder.reports.*
 import com.normation.rudder.repository.*
@@ -126,6 +127,9 @@ import com.normation.rudder.repository.xml.GitParseRules
 import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rule.category.*
+import com.normation.rudder.score.GlobalScore
+import com.normation.rudder.score.Score
+import com.normation.rudder.score.ScoreService
 import com.normation.rudder.services.marshalling.NodeGroupCategoryUnserialisationImpl
 import com.normation.rudder.services.marshalling.NodeGroupUnserialisationImpl
 import com.normation.rudder.services.marshalling.RuleUnserialisationImpl
@@ -137,11 +141,14 @@ import com.normation.rudder.services.policies.SystemVariableServiceImpl
 import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.FactListNewNodes
+import com.normation.rudder.services.servers.FactRemoveNodeBackend
 import com.normation.rudder.services.servers.NewNodeManager
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.PolicyServers
 import com.normation.rudder.services.servers.PolicyServersUpdateCommand
+import com.normation.rudder.services.servers.PostNodeDeleteAction
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
+import com.normation.rudder.services.servers.RemoveNodeServiceImpl
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGeneratorImpl
@@ -2185,15 +2192,11 @@ class MockNodes() {
       for {
         facts <- nodeFactRepo.slowGetAllCompat(AcceptedInventory, SelectFacts.softwareOnly).runCollect
       } yield {
-        facts.collect {
-          case f if (f.software.map(_.name).contains(f.id)) =>
-            (
-              f.id,
-              f.software
-                .find(_.name == softName)
-                .getOrElse(throw new IllegalArgumentException("for test - we just check it's here"))
-                .toSoftware
-            )
+        facts.flatMap { f =>
+          val software = f.software
+            .find(_.name == softName)
+            .map(_.toSoftware)
+          software.map(f.id -> _)
         }.toList
       }
     }
@@ -2333,6 +2336,20 @@ class MockNodes() {
 
     override def refuseAll(ids: Seq[NodeId])(implicit cc: ChangeContext): IOResult[Seq[CoreNodeFact]] = {
       ZIO.foreach(ids)(refuse)
+    }
+  }
+
+  val removeNodeService = new RemoveNodeServiceImpl(
+    new FactRemoveNodeBackend(nodeFactRepo),
+    nodeFactRepo,
+    null,
+    newNodeManager,
+    Ref.make(List.empty[PostNodeDeleteAction]).runNow,
+    "",
+    List.empty
+  ) {
+    override def buildHooksEnv(nodeInfo: CoreNodeFact): IOResult[(HookEnvPairs, HookEnvPairs)] = {
+      (HookEnvPairs(List.empty), HookEnvPairs(List.empty)).succeed
     }
   }
 }
@@ -3190,4 +3207,19 @@ class MockCampaign() {
 
   val mainCampaignService = new MainCampaignService(dumbCampaignEventRepository, repo, new StringUuidGeneratorImpl(), 0, 0)
 
+}
+
+class MockScores() {
+  object emptyScoreService extends ScoreService {
+    override def getAll(): IOResult[Map[NodeId, GlobalScore]] = Map.empty.succeed
+    override def getGlobalScore(nodeId:  NodeId): IOResult[GlobalScore] = ???
+    override def getScoreDetails(nodeId: NodeId): IOResult[List[Score]] = ???
+    override def clean(): IOResult[Unit] = ???
+    override def cleanScore(name:          String): IOResult[Unit] = ???
+    override def update(newScores:         Map[NodeId, List[Score]]): IOResult[Unit] = ???
+    override def registerScore(newScoreId: String, displayName: String): IOResult[Unit] = ???
+    override def getAvailableScore(): IOResult[List[(String, String)]] = List.empty.succeed
+    override def init():              IOResult[Unit]                   = ???
+    override def deleteNodeScore(nodeId: NodeId): IOResult[Unit] = ???
+  }
 }

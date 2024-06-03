@@ -52,6 +52,7 @@ import com.normation.rudder.rest.lift.LiftApiProcessingLogger
 import com.normation.rudder.rest.lift.LiftHandler
 import com.normation.rudder.users.*
 import com.normation.zio.*
+import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
@@ -63,6 +64,8 @@ import net.liftweb.common.Full
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.LiftRules
+import net.liftweb.http.OutputStreamResponse
+import net.liftweb.http.StreamingResponse
 import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.util.Helpers.tryo
 import org.yaml.snakeyaml.Yaml
@@ -277,9 +280,44 @@ object TraitTestApiFromYamlFiles {
   }
 
   def cleanResponse(r: LiftResponse): (Int, String) = {
-    val response = r.toResponse.asInstanceOf[InMemoryResponse]
-    val resp     = new String(response.data, "UTF-8")
-    (response.code, resp)
+    val (responseCode, responseContent) = r.toResponse match {
+
+      case inMemory: InMemoryResponse => (inMemory.code, new String(inMemory.data, "UTF-8"))
+
+      // copied from liftweb source code (sendResponse)
+      case StreamingResponse(stream, endFunc, _, _, _, code) =>
+        import scala.language.reflectiveCalls
+
+        val os = new ByteArrayOutputStream()
+        try {
+          var len = 0
+          val ba  = new Array[Byte](8192)
+          stream match {
+            case jio: java.io.InputStream => len = jio.read(ba)
+            case stream => len = stream.read(ba)
+          }
+          while (len >= 0) {
+            if (len > 0) os.write(ba, 0, len)
+            stream match {
+              case jio: java.io.InputStream => len = jio.read(ba)
+              case stream => len = stream.read(ba)
+            }
+          }
+          os.flush()
+        } finally {
+          endFunc()
+        }
+        (code, os.toString(StandardCharsets.UTF_8))
+
+      case OutputStreamResponse(out, _, _, _, code) =>
+        val os = new ByteArrayOutputStream()
+        out(os)
+        os.flush()
+        (code, os.toString(StandardCharsets.UTF_8))
+      case _                                        => (500, "Unknown response in test framework")
+    }
+
+    (responseCode, responseContent)
   }
 // a way to only test some files in do test. Let it empty to ex on all.
   def doTest[E, I](

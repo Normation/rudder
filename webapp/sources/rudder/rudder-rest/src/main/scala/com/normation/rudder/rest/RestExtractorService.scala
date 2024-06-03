@@ -47,7 +47,6 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.*
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.InventoryError
-import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.SecurityToken
@@ -75,7 +74,6 @@ import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.repository.*
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
-import com.normation.rudder.repository.ldap.NodeStateEncoder
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.policies.PropertyParser
@@ -649,18 +647,6 @@ final case class RestExtractorService(
       .toBox
   }
 
-  def extractNode(params: Map[String, List[String]]): Box[RestNode] = {
-    for {
-      properties <- extractNodeProperties(params)
-      mode       <- extractOneValue(params, "policyMode")(PolicyMode.parseDefault(_).toBox)
-      state      <- extractOneValue(params, "state")(x => NodeStateEncoder.dec(x).toOption)
-      keyValue   <- extractOneValue(params, "agentKey.value")(x => parseAgentKey(x))
-      keyStatus  <- extractOneValue(params, "agentKey.status")(x => KeyStatus(x).toBox)
-    } yield {
-      RestNode(properties, mode, state, keyValue, keyStatus)
-    }
-  }
-
   /*
    * expecting json:
    * { "properties": [
@@ -715,19 +701,6 @@ final case class RestExtractorService(
       case JArray(props) => traverse(props)(extractNodeProperty).map(x => Some(x.toList))
       case JNothing      => Full(None)
       case x             => Failure(s"""Error: the given parameter is not a JSON object with a 'properties' key""")
-    }
-  }
-
-  def extractNodeFromJSON(json: JValue): Box[RestNode] = {
-    for {
-      properties <- extractNodePropertiesFromJSON(json)
-      mode       <- extractJsonString(json, "policyMode", PolicyMode.parseDefault(_).toBox)
-      state      <- extractJsonString(json, "state", x => NodeStateEncoder.dec(x).toOption)
-      agentKey    = json \ "agentKey"
-      keyValue   <- extractJsonString(agentKey, "value", x => parseAgentKey(x))
-      keyStatus  <- extractJsonString(agentKey, "status", x => KeyStatus(x).toBox)
-    } yield {
-      RestNode(properties, mode, state, keyValue, keyStatus)
     }
   }
 

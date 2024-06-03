@@ -235,6 +235,8 @@ class RestTestSetUp {
   val mockLdapQueryParsing                           = new MockLdapQueryParsing(mockGitRepo, mockNodeGroups)
   val uuidGen                                        = new StringUuidGeneratorImpl()
   val mockConfigRepo                                 = new MockConfigRepo(mockTechniques, mockDirectives, mockRules, mockNodeGroups, mockLdapQueryParsing)
+  val mockScores                                     = new MockScores()
+  val mockCompliance                                 = new MockCompliance(mockDirectives)
   val (mockUserManagementTmpDir, mockUserManagement) = MockUserManagement()
 
   val dynGroupUpdaterService =
@@ -457,15 +459,15 @@ class RestTestSetUp {
       commitAndDeployChangeRequest
     )
   )
-  val restExtractorService:         RestExtractorService                = RestExtractorService(
+  val userPropertyService = new StatelessUserPropertyService(() => false.succeed, () => false.succeed, () => "".succeed)
+  val restExtractorService: RestExtractorService = RestExtractorService(
     mockRules.ruleRepo,
     mockDirectives.directiveRepo,
     null, // roNodeGroupRepository
 
     mockTechniques.techniqueRepo,
     mockLdapQueryParsing.queryParser, // queryParser
-
-    new StatelessUserPropertyService(() => false.succeed, () => false.succeed, () => "".succeed),
+    userPropertyService,
     workflowLevelService,
     uuidGen,
     null
@@ -747,8 +749,8 @@ class RestTestSetUp {
   class nodeApiService extends NodeApiService(
         null,
         mockNodes.nodeFactRepo,
-        null,
-        null,
+        mockNodeGroups.groupsRepo,
+        mockParameters.paramsRepo,
         roReportsExecutionRepository,
         null,
         uuidGen,
@@ -756,15 +758,15 @@ class RestTestSetUp {
         null,
         null,
         mockNodes.newNodeManager,
-        null,
+        mockNodes.removeNodeService,
         restExtractorService,
         restDataSerializer,
-        null,
+        mockCompliance.reportingService(Map.empty),
         mockNodes.queryProcessor,
         null,
         () => Full(GlobalPolicyMode(Audit, PolicyModeOverrides.Always)),
         "relay",
-        null
+        mockScores.emptyScoreService
       ) {
     implicit val testCC: ChangeContext = {
       ChangeContext(
@@ -851,8 +853,7 @@ class RestTestSetUp {
   val techniqueRepository: TechniqueRepository   = null
   val techniqueSerializer: TechniqueSerializer   = null
   val resourceFileService: ResourceFileService   = null
-  val settingsService   = new MockSettings(workflowLevelService, new AsyncWorkflowInfo())
-  val complianceService = new MockCompliance(mockDirectives)
+  val settingsService = new MockSettings(workflowLevelService, new AsyncWorkflowInfo())
 
   object archiveAPIModule {
     val archiveBuilderService = new ZipArchiveBuilderService(
@@ -920,11 +921,15 @@ class RestTestSetUp {
     new RulesInternalApi(ruleInternalApiService, ruleApiService14),
     new GroupsInternalApi(groupInternalApiService),
     new NodeApi(
-      restExtractorService,
       zioJsonExtractor,
       restDataSerializer,
       nodeApiService,
-      null,
+      userPropertyService,
+      new NodeApiInheritedProperties(
+        mockNodes.nodeFactRepo,
+        mockNodeGroups.groupsRepo,
+        mockParameters.paramsRepo
+      ),
       uuidGen,
       DeleteMode.Erase
     ),
@@ -950,7 +955,7 @@ class RestTestSetUp {
     campaignApiModule.api,
     new ComplianceApi(
       restExtractorService,
-      complianceService.complianceAPIService,
+      mockCompliance.complianceAPIService,
       mockDirectives.directiveRepo
     ),
     new UserManagementApiImpl(

@@ -77,8 +77,11 @@ import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
 import com.normation.rudder.domain.queries.ResultTransformation
+import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.facts.nodes.IpAddress
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.NodeFact.ToCompat
 import com.normation.rudder.facts.nodes.SecurityTag
@@ -91,6 +94,8 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.score.GlobalScore
+import com.normation.rudder.score.ScoreValue
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.StringCriterionLine
 import com.normation.rudder.services.queries.StringQuery
@@ -212,6 +217,43 @@ object JsonResponseObjects {
                 .transformInto[JRNodeDetailLevel.MachineType]
             )
           }
+        )
+        .buildTransformer
+    }
+  }
+
+  final case class JRNodeIdStatus(
+      id:     NodeId,
+      status: JRInventoryStatus
+  )
+
+  final case class JRNodeIdHostnameResult(
+      id:       NodeId,
+      hostname: String,
+      result:   String
+  )
+
+  final case class JRUpdateNode(
+      id:         NodeId,
+      properties: Chunk[JRProperty], // sorted by name
+      policyMode: Option[PolicyMode],
+      state:      NodeState
+  )
+  object JRUpdateNode       {
+    implicit val transformer: Transformer[CoreNodeFact, JRUpdateNode] = {
+      Transformer
+        .define[CoreNodeFact, JRUpdateNode]
+        .withFieldComputed(
+          _.state,
+          _.rudderSettings.state
+        )
+        .withFieldComputed(
+          _.policyMode,
+          _.rudderSettings.policyMode
+        )
+        .withFieldComputed(
+          _.properties,
+          _.properties.sortBy(_.name).map(JRProperty.fromNodeProp).transformInto[Chunk[JRProperty]]
         )
         .buildTransformer
     }
@@ -483,6 +525,117 @@ object JsonResponseObjects {
     private def levelField[A](level: NodeDetailLevel)(field: String)(a: => Option[A]): Option[A] =
       if (level.fields(field)) a else None
   }
+
+  // pretty format for score with details in a map of key-value by score id
+  final case class JRGlobalScore(
+      score:   ScoreValue,
+      details: Map[String, ScoreValue]
+  )
+  object JRGlobalScore {
+    implicit val transformer: Transformer[GlobalScore, JRGlobalScore] = {
+      Transformer
+        .define[GlobalScore, JRGlobalScore]
+        .withFieldRenamed(_.value, _.score)
+        .withFieldComputed(_.details, _.details.map(d => (d.scoreId, d.value)).toMap)
+        .buildTransformer
+    }
+  }
+
+  final case class JRNodeCompliance(compliance: ComplianceLevel)       extends AnyVal
+  final case class JRNodeSystemCompliance(compliance: ComplianceLevel) extends AnyVal
+  final case class JRNodeDetailTable(
+      id:                      NodeId,
+      @jsonField("name") fqdn: String,
+      ram:                     Option[String], // toStringMo applied on MemorySize
+      policyServerId:          NodeId,
+      policyMode:              PolicyMode,
+      globalModeOverride:      String,
+      kernel:                  Version,
+      agentVersion:            AgentVersion,
+      machineType:             String,         // old version of machine type serialization
+      os:                      String,
+      state:                   NodeState,
+      compliance:              Option[JRNodeCompliance],
+      systemError:             Boolean,
+      ipAddresses:             Chunk[IpAddress],
+      lastRun:                 String,         // display date
+      lastInventory:           String,         // display date
+      software:                Map[String, String],
+      properties:              Map[String, JRProperty],
+      inheritedProperties:     Map[String, JRProperty],
+      score:                   JRGlobalScore
+  )
+  object JRNodeDetailTable {
+    implicit def transformer(implicit
+        globalPolicyMode:       GlobalPolicyMode,
+        agentRunWithNodeConfig: Option[AgentRunWithNodeConfig],
+        properties:             Chunk[NodeProperty],
+        inheritedProperties:    Chunk[NodePropertyHierarchy],
+        softs:                  Chunk[domain.Software],
+        compliance:             Option[JRNodeCompliance],
+        systemCompliance:       Option[JRNodeSystemCompliance],
+        score:                  GlobalScore
+    ): Transformer[CoreNodeFact, JRNodeDetailTable] = {
+      def getPolicyModeAndGlobalModeOverride(nodeFact: CoreNodeFact): (PolicyMode, String) = {
+        (globalPolicyMode.overridable, nodeFact.rudderSettings.policyMode) match {
+          case (PolicyModeOverrides.Always, Some(mode)) =>
+            (mode, "override")
+          case (PolicyModeOverrides.Always, None)       =>
+            (globalPolicyMode.mode, "default")
+          case (PolicyModeOverrides.Unoverridable, _)   =>
+            (globalPolicyMode.mode, "none")
+        }
+      }
+      Transformer
+        .define[CoreNodeFact, JRNodeDetailTable]
+        .withFieldComputed(_.policyServerId, _.rudderSettings.policyServerId)
+        .withFieldComputed(_.policyMode, getPolicyModeAndGlobalModeOverride(_)._1)
+        .withFieldComputed(_.globalModeOverride, getPolicyModeAndGlobalModeOverride(_)._2)
+        .withFieldComputed(_.kernel, _.os.kernelVersion)
+        .withFieldComputed(_.agentVersion, _.rudderAgent.version)
+        .withFieldComputed(_.ram, _.ram.map(_.toStringMo))
+        .withFieldComputed(_.machineType, _.machine.machineType.kind)
+        .withFieldComputed(_.os, _.os.fullName)
+        .withFieldComputed(_.state, _.rudderSettings.state)
+        .withFieldComputed(_.ipAddresses, _.ipAddresses.filterNot(_.isLocalhostIPv4IPv6))
+        .withFieldConst(
+          _.lastRun,
+          agentRunWithNodeConfig.map(d => DateFormaterService.getDisplayDate(d.agentRunId.date)).getOrElse("Never")
+        )
+        .withFieldComputed(
+          _.lastInventory,
+          nf => DateFormaterService.getDisplayDate(nf.lastInventoryDate.getOrElse(nf.factProcessedDate))
+        )
+        .withFieldConst(_.compliance, compliance)
+        .withFieldConst(
+          _.systemError,
+          systemCompliance
+            .map(_.compliance.computePercent().compliance < 100)
+            .getOrElse(false)
+        ) // do not display error if no sys compliance
+        .withFieldConst(
+          _.software,
+          softs.map(s => (s.name.getOrElse(""), s.version.map(_.value).getOrElse("N/A"))).toMap
+        )
+        .withFieldConst(
+          _.properties,
+          properties.map(s => (s.name, JRProperty.fromNodeProp(s))).toMap
+        )
+        .withFieldConst(
+          _.inheritedProperties,
+          inheritedProperties
+            .map(s => (s.prop.name, JRProperty.fromNodePropertyHierarchy(s, RenderInheritedProperties.HTML, escapeHtml = true)))
+            .toMap
+        )
+        .withFieldConst(
+          _.score,
+          score.transformInto[JRGlobalScore]
+        )
+        .buildTransformer
+    }
+  }
+
+  final case class JRComplianceLevelArray(compliance: ComplianceLevel) extends AnyVal
 
   final case class JRActiveTechnique(
       name:     String,
@@ -999,7 +1152,7 @@ object JsonResponseObjects {
       provider:        Option[PropertyProvider]
   )
 
-  object JRGlobalParameter {
+  object JRGlobalParameter         {
     import GenericProperty.*
     def empty(name: String): JRGlobalParameter = JRGlobalParameter(None, name, "".toConfigValue, "", None, None)
     def fromGlobalParameter(p: GlobalParameter, crId: Option[ChangeRequestId]): JRGlobalParameter = {
@@ -1011,6 +1164,22 @@ object JsonResponseObjects {
       hasChildTypeConflicts: Boolean,
       fullHierarchy:         List[JRParentPropertyDetails]
   )
+  object JRPropertyHierarchyStatus {
+    def fromParentProperties(
+        hasChildTypeConflicts: Boolean,
+        parentProperties:      List[ParentProperty]
+    ): Option[JRPropertyHierarchyStatus] = {
+      if (parentProperties.isEmpty) None
+      else {
+        Some(
+          JRPropertyHierarchyStatus(
+            hasChildTypeConflicts,
+            parentProperties.sorted.map(JRParentPropertyDetails.fromParentProperty) // sort to keep hierarchical order
+          )
+        )
+      }
+    }
+  }
 
   @jsonDiscriminator("kind") sealed trait JRParentPropertyDetails {
     def valueType: String
@@ -1068,12 +1237,26 @@ object JsonResponseObjects {
       val desc = if (p.description.trim.isEmpty) None else Some(p.description)
       JRProperty(p.name, p.value, desc, p.inheritMode, p.provider, None, None, None)
     }
+    def fromNodePropertyHierarchy(
+        prop:         NodePropertyHierarchy,
+        renderInHtml: RenderInheritedProperties,
+        escapeHtml:   Boolean
+    ): JRProperty = {
+      fromNodePropertyHierarchy(
+        prop,
+        false,
+        List.empty,
+        renderInHtml,
+        escapeHtml
+      )
+    }
 
     def fromNodePropertyHierarchy(
         prop:                  NodePropertyHierarchy,
         hasChildTypeConflicts: Boolean,
         fullHierarchy:         List[ParentProperty],
-        renderInHtml:          RenderInheritedProperties
+        renderInHtml:          RenderInheritedProperties,
+        escapeHtml:            Boolean = false
     ): JRProperty = {
       val (parents, origval) = prop.hierarchy.reverse match {
         case Nil  => (None, None)
@@ -1082,9 +1265,11 @@ object JsonResponseObjects {
             case RenderInheritedProperties.HTML =>
               JRPropertyHierarchyHtml(
                 list
-                  .map(p =>
-                    s"<p>from <b>${p.displayName}</b>:<pre>${p.value.render(ConfigRenderOptions.defaults().setOriginComments(false))}</pre></p>"
-                  )
+                  .map(p => {
+                    s"<p>from <b>${p.displayName}</b>:<pre>${(if (escapeHtml) xml.Utility.escape(_: String) else identity[String])
+                        .apply(p.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>"
+
+                  })
                   .mkString("")
               )
             case RenderInheritedProperties.JSON =>
@@ -1092,12 +1277,7 @@ object JsonResponseObjects {
           }
           (Some(parents), prop.hierarchy.headOption.map(_.value))
       }
-      val hierarchyStatus    = Some(
-        JRPropertyHierarchyStatus(
-          hasChildTypeConflicts,
-          fullHierarchy.map(JRParentPropertyDetails.fromParentProperty(_))
-        )
-      )
+      val hierarchyStatus    = JRPropertyHierarchyStatus.fromParentProperties(hasChildTypeConflicts, fullHierarchy)
       val desc               = if (prop.prop.description.trim.isEmpty) None else Some(prop.prop.description)
       JRProperty(
         prop.prop.name,
@@ -1157,12 +1337,26 @@ object JsonResponseObjects {
     ): JRGroupInheritedProperties = {
       JRGroupInheritedProperties(
         groupId.serialize,
-        properties
-          .sortBy(_._1.prop.name)
-          .map {
-            case (parentProperties, childProperties, hasConflicts) =>
-              JRProperty.fromNodePropertyHierarchy(parentProperties, hasConflicts, childProperties, renderInHtml)
-          }
+        mergeProperties(properties, renderInHtml)
+      )
+    }
+  }
+
+  final case class JRNodeInheritedProperties(
+      nodeId:     NodeId,
+      properties: List[JRProperty]
+  )
+  object JRNodeInheritedProperties  {
+    def fromNode(
+        nodeId:     NodeId,
+        properties: List[
+          (NodePropertyHierarchy, List[ParentProperty], Boolean)
+        ], // parent properties, child properties, has conflicts
+        renderInHtml: RenderInheritedProperties
+    ): JRNodeInheritedProperties = {
+      JRNodeInheritedProperties(
+        nodeId,
+        mergeProperties(properties, renderInHtml)
       )
     }
   }
@@ -1384,6 +1578,37 @@ object JsonResponseObjects {
   implicit def seqToChunkTransformer[A, B](implicit transformer: Transformer[A, B]): Transformer[Seq[A], Chunk[B]] = {
     (a: Seq[A]) => Chunk.fromIterable(a.map(transformer.transform))
   }
+
+  /**
+    * Merge node properties by property : the hierarchy adds up and conflict is combined with boolean OR
+    * @param properties list of node properties with the parent node property, child, and conflict status
+    */
+  private def mergeProperties(
+      properties:   List[(NodePropertyHierarchy, List[ParentProperty], Boolean)],
+      renderInHtml: RenderInheritedProperties
+  ): List[JRProperty] = {
+    // Ideally, this should be a set : some nodes may inherit the same hierarchy so we wan to avoid duplicates
+    // Also, we will want to sort the whole hierarchy in the end
+    def mergeHierarchies(left: List[ParentProperty], right: List[ParentProperty]): List[ParentProperty] = {
+      (left ++ right).distinct
+    }
+
+    properties
+      .groupMapReduce(_._1.prop.name) {
+        case (p, childProps, hasConflicts) =>
+          (p, childProps, hasConflicts)
+      } {
+        case ((p, a1, b1), (_, a2, b2)) => // property is the same under the same name
+          (p, mergeHierarchies(a1, a2), b1 || b2)
+      }
+      .values
+      .toList
+      .sortBy(_._1.prop.name)
+      .map {
+        case (parentProperties, childProperties, hasConflicts) =>
+          JRProperty.fromNodePropertyHierarchy(parentProperties, hasConflicts, childProperties, renderInHtml)
+      }
+  }
 }
 //////////////////////////// zio-json encoders ////////////////////////////
 
@@ -1392,8 +1617,10 @@ trait RudderJsonEncoders {
   import JsonResponseObjects.JRNodeDetailLevel.*
   import JsonResponseObjects.JRRuleTarget.*
   import com.normation.inventory.domain.JsonSerializers.implicits.*
+  import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.array.*
   import com.normation.rudder.facts.nodes.NodeFactSerialisation.*
   import com.normation.rudder.facts.nodes.NodeFactSerialisation.SimpleCodec.*
+  import com.normation.rudder.score.ScoreSerializer.*
   import com.normation.utils.DateFormaterService.json.*
 
   implicit lazy val stringTargetEnc: JsonEncoder[JRRuleTargetString]          = JsonEncoder[String].contramap(_.r.target)
@@ -1495,9 +1722,11 @@ trait RudderJsonEncoders {
     DeriveJsonEncoder.gen[JRGroupCategoryInfo.JRGroupInfo]
   implicit lazy val groupCategoryInfoEncoder: JsonEncoder[JRGroupCategoryInfo]             = DeriveJsonEncoder.gen[JRGroupCategoryInfo]
 
+  implicit val nodeIdEncoder:                  JsonEncoder[NodeId]                    = JsonEncoder[String].contramap(_.value)
+  implicit val nodeInheritedPropertiesEncdoer: JsonEncoder[JRNodeInheritedProperties] = DeriveJsonEncoder.gen
+
   implicit val revisionInfoEncoder: JsonEncoder[JRRevisionInfo] = DeriveJsonEncoder.gen
 
-  implicit val nodeIdEncoder: JsonEncoder[NodeId]            = JsonEncoder[String].contramap(_.value)
   implicit val statusEncoder: JsonEncoder[JRInventoryStatus] = JsonEncoder[String].contramap(_.name)
   implicit val stateEncoder:  JsonEncoder[NodeState]         = JsonEncoder[String].contramap(_.name)
 
@@ -1506,6 +1735,11 @@ trait RudderJsonEncoders {
   implicit val nodeInfoEncoder: JsonEncoder[JRNodeInfo] = DeriveJsonEncoder.gen[JRNodeInfo]
 
   implicit val nodeChangeStatusEncoder: JsonEncoder[JRNodeChangeStatus] = DeriveJsonEncoder.gen[JRNodeChangeStatus]
+
+  implicit val nodeIdStatusEncoder:         JsonEncoder[JRNodeIdStatus]         = DeriveJsonEncoder.gen[JRNodeIdStatus]
+  implicit val nodeIdHostnameResultEncoder: JsonEncoder[JRNodeIdHostnameResult] = DeriveJsonEncoder.gen[JRNodeIdHostnameResult]
+
+  implicit val updateNodeEncoder: JsonEncoder[JRUpdateNode] = DeriveJsonEncoder.gen[JRUpdateNode]
 
   // Node details
 
@@ -1523,6 +1757,10 @@ trait RudderJsonEncoders {
 
   implicit val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = DeriveJsonEncoder.gen[JRNodeDetailLevel]
 
+  implicit val jrNodeComplianceEncoder: JsonEncoder[JRNodeCompliance]  = JsonEncoder[ComplianceLevel].contramap(_.compliance)
+  implicit val policyModeSerializer:    JsonEncoder[PolicyMode]        = JsonEncoder[String].contramap(_.name)
+  implicit val jrGlobalScoreEncoder:    JsonEncoder[JRGlobalScore]     = DeriveJsonEncoder.gen[JRGlobalScore]
+  implicit val nodeDetailTableEncoder:  JsonEncoder[JRNodeDetailTable] = DeriveJsonEncoder.gen[JRNodeDetailTable]
 }
 
 /*

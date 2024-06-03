@@ -46,16 +46,21 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors.*
 import com.normation.errors.PureResult
 import com.normation.errors.Unexpected
+import com.normation.inventory.domain.CertifiedKey
+import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.SecurityToken
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.CompareProperties
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.InheritMode
+import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PatchProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.NodeReturnType
@@ -63,6 +68,7 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.services.policies.PropertyParser
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.services.queries.StringCriterionLine
@@ -105,6 +111,9 @@ object JsonQueryObjects {
   final case class JQDeleteMode(
       mode: Option[DeleteMode]
   )
+  final case class JQClasses(
+      classes: Option[List[String]]
+  )
   final case class JQNodeIdStatus(
       nodeId: List[NodeId],
       status: JQNodeStatusAction
@@ -130,6 +139,16 @@ object JsonQueryObjects {
       "removed"  -> DeleteNode
     )
   }
+
+  final case class JQNodePropertyInfo(
+      inherited: Boolean,
+      value:     String
+  )
+  final case class JQNodeIdsSoftwareProperties(
+      nodeIds:    Option[List[NodeId]],
+      software:   Option[List[String]],
+      properties: Option[List[JQNodePropertyInfo]]
+  )
 
   final case class JQRuleCategory(
       name:        Option[String] = None,
@@ -371,6 +390,30 @@ object JsonQueryObjects {
     }
   }
 
+  final case class JQAgentKey(
+      value:  Option[SecurityToken],
+      status: Option[KeyStatus]
+  ) {
+    // if agentKeyValue is present, we set both it and key status.
+    // if only agentKey status is present, don't change value.
+    val toKeyInfo: (Option[SecurityToken], Option[KeyStatus]) = {
+      (value, status) match {
+        case (None, None)       => (None, None)
+        case (Some(k), None)    => (Some(k), Some(CertifiedKey))
+        case (None, Some(s))    => (None, Some(s))
+        case (Some(k), Some(s)) => (Some(k), Some(s))
+      }
+    }
+  }
+  final case class JQUpdateNode(
+      properties: Option[List[NodeProperty]],
+      policyMode: Option[Option[PolicyMode]],
+      state:      Option[NodeState],
+      agentKey:   Option[JQAgentKey]
+  ) {
+    val keyInfo: (Option[SecurityToken], Option[KeyStatus]) = agentKey.map(_.toKeyInfo).getOrElse((None, None))
+  }
+
   final case class JQNodeDetailLevel(
       fields: Set[String]
   ) extends AnyVal
@@ -385,15 +428,17 @@ trait RudderJsonDecoders {
   import JsonQueryObjects.*
   import JsonResponseObjects.*
   import JsonResponseObjects.JRRuleTarget.*
+  import com.normation.rudder.facts.nodes.NodeFactSerialisation.SimpleCodec.*
 
   implicit val deleteModeDecoder:   JsonDecoder[DeleteMode]   =
     JsonDecoder[String].mapOrFail(DeleteMode.withNameInsensitiveEither(_).left.map(_.getMessage()))
   implicit val jqDeleteModeDecoder: JsonDecoder[JQDeleteMode] = DeriveJsonDecoder.gen[JQDeleteMode]
+  implicit val classesDecoder:      JsonDecoder[JQClasses]    = DeriveJsonDecoder.gen[JQClasses]
 
-  implicit val nodeIdDecoder:           JsonDecoder[NodeId]             = JsonDecoder[String].map(NodeId.apply)
-  implicit val nodeStatusActionDecoder: JsonDecoder[JQNodeStatusAction] =
+  implicit val nodeIdDecoder:             JsonDecoder[NodeId]                      = JsonDecoder[String].map(NodeId.apply)
+  implicit val nodeStatusActionDecoder:   JsonDecoder[JQNodeStatusAction]          =
     JsonDecoder[String].mapOrFail(JQNodeStatusAction.withNameInsensitiveEither(_).left.map(_.getMessage()))
-  implicit val nodeIdStatusDecoder:     JsonDecoder[JQNodeIdStatus]     = DeriveJsonDecoder
+  implicit val nodeIdStatusDecoder:       JsonDecoder[JQNodeIdStatus]              = DeriveJsonDecoder
     .gen[JQNodeIdStatus]
     .mapOrFail(x => {
       if (x.nodeId.isEmpty) {
@@ -402,7 +447,17 @@ trait RudderJsonDecoders {
         Right(x)
       }
     })
-  implicit val nodestatusDecoder:       JsonDecoder[JQNodeStatus]       = DeriveJsonDecoder.gen[JQNodeStatus]
+  implicit val nodestatusDecoder:         JsonDecoder[JQNodeStatus]                = DeriveJsonDecoder.gen[JQNodeStatus]
+  implicit val nodePropertyInfoDecoder:   JsonDecoder[JQNodePropertyInfo]          = DeriveJsonDecoder.gen[JQNodePropertyInfo]
+  implicit val nodeIdsSoftwareProperties: JsonDecoder[JQNodeIdsSoftwareProperties] =
+    DeriveJsonDecoder.gen[JQNodeIdsSoftwareProperties]
+
+  implicit val securityTokenDecoder: JsonDecoder[SecurityToken] =
+    JsonDecoder[String].mapOrFail(SecurityToken.parseValidate(_).left.map(_.fullMsg))
+  implicit val keyStatusDecoder:     JsonDecoder[KeyStatus]     =
+    JsonDecoder[String].mapOrFail(KeyStatus.apply(_).left.map(_.fullMsg))
+  implicit val agentKeyDecoder:      JsonDecoder[JQAgentKey]    = DeriveJsonDecoder.gen[JQAgentKey]
+  implicit val updateNodeDecoder:    JsonDecoder[JQUpdateNode]  = DeriveJsonDecoder.gen[JQUpdateNode]
 
   // JRRuleTarget
   object JRRuleTargetDecoder {
@@ -437,16 +492,7 @@ trait RudderJsonDecoders {
   }
 
   // tags
-  implicit val tagsDecoder:       JsonDecoder[Tags]               = JsonDecoder[List[Map[String, String]]].map(list => Tags.fromMaps(list))
-  // PolicyMode
-  implicit val policyModeDecoder: JsonDecoder[Option[PolicyMode]] = JsonDecoder[Option[String]].mapOrFail(opt => {
-    opt match {
-      case None            => Right(None)
-      // we need to be able to set "default", for example to reset in clone
-      case Some("default") => Right(None)
-      case Some(s)         => PolicyMode.parse(s).left.map(_.fullMsg).map(Some(_))
-    }
-  })
+  implicit val tagsDecoder: JsonDecoder[Tags] = JsonDecoder[List[Map[String, String]]].map(list => Tags.fromMaps(list))
 
   implicit val revisionDecoder: JsonDecoder[Revision] = JsonDecoder[String].map(ParseRev(_))
 
@@ -605,6 +651,14 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
     }
   }
 
+  def extractClasses(req: Req): PureResult[List[String]] = {
+    if (req.json_?) {
+      parseJson[JQClasses](req).map(_.classes.getOrElse(List.empty))
+    } else {
+      Right(extractClassesFromParams(req.params))
+    }
+  }
+
   def extractNodeIdStatus(req: Req): PureResult[JQNodeIdStatus] = {
     if (req.json_?) {
       parseJson[JQNodeIdStatus](req)
@@ -619,6 +673,26 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
     } else {
       extractNodeStatusFromParams(req.params)
     }
+  }
+
+  def extractNodeIdsSoftwareProperties(req: Req): PureResult[JQNodeIdsSoftwareProperties] = {
+    if (req.json_?) {
+      parseJson[JQNodeIdsSoftwareProperties](req)
+    } else {
+      extractNodeIdsSoftwarePropertiesFromParams(req.params)
+    }
+  }
+
+  def extractUpdateNode(req: Req): PureResult[JQUpdateNode] = {
+    if (req.json_?) {
+      parseJson[JQUpdateNode](req)
+    } else {
+      extractUpdateNodeFromParams(req.params)
+    }
+  }
+
+  def extractIdsFromParams(params: Map[String, List[String]]): PureResult[Option[List[String]]] = {
+    params.parseString("ids", s => Right(s.split(",").map(_.trim).toList))
   }
 
   def extractRuleFromParams(params: Map[String, List[String]]): PureResult[JQRule] = {
@@ -751,6 +825,12 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
     params.parseString("mode", DeleteMode.withNameInsensitiveEither(_).left.map(_.getMessage()))
   }
 
+  def extractClassesFromParams(
+      params: Map[String, List[String]]
+  ): List[String] = {
+    params.get("classes").getOrElse(List.empty)
+  }
+
   def extractNodeIdStatusFromParams(
       params: Map[String, List[String]]
   ): PureResult[JQNodeIdStatus] = {
@@ -771,6 +851,47 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
       status    <- optStatus.toRight(Inconsistency("node status should not be empty"))
     } yield {
       JQNodeStatus(status)
+    }
+  }
+
+  def extractNodeIdsSoftwarePropertiesFromParams(
+      params: Map[String, List[String]]
+  ): PureResult[JQNodeIdsSoftwareProperties] = {
+    for {
+      nodeIds    <- params.parse("nodeId", JsonDecoder[List[NodeId]])
+      software   <- params.parse("software", JsonDecoder[List[String]])
+      properties <- params.parse("properties", JsonDecoder[List[JQNodePropertyInfo]])
+    } yield {
+      JQNodeIdsSoftwareProperties(nodeIds, software, properties)
+    }
+  }
+
+  def extractUpdateNodeFromParams(
+      params: Map[String, List[String]]
+  ): PureResult[JQUpdateNode] = {
+    for {
+      // parse `key=value` from the list of string
+      properties <-
+        params
+          .get("properties")
+          .traverse { props =>
+            (props.traverse { prop =>
+              val parts = prop.split('=')
+
+              for {
+                name <- PropertyParser.validPropertyName(parts(0))
+                prop <- if (parts.size == 1) NodeProperty.parse(name, "", None, None)
+                        else NodeProperty.parse(name, parts(1), None, None)
+              } yield {
+                prop
+              }
+            })
+          }
+      policyMode <- params.parse2("policyMode", PolicyMode.parseDefault(_))
+      state      <- params.parseString("state", NodeState.parse(_))
+      agentKey   <- params.parse("agentKey", JsonDecoder[JQAgentKey])
+    } yield {
+      JQUpdateNode(properties, policyMode, state, agentKey)
     }
   }
 

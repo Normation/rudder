@@ -46,6 +46,8 @@ import net.liftweb.http.js.JE.JsArray
 import net.liftweb.json.JsonAST.JInt
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JValue
+import zio.Chunk
+import zio.json.*
 
 /**
  * That file define a "compliance level" object, which store all the kind of reports we can get and
@@ -631,6 +633,44 @@ object ComplianceLevelSerialisation {
   // transform the compliance percent to a list with a given order:
   // pc_reportDisabled, pc_notapplicable, pc_success, pc_repaired,
   // pc_error, pc_pending, pc_noAnswer, pc_missing, pc_unknown
+  object array {
+    implicit val complianceLevelArrayEncoder: JsonEncoder[ComplianceLevel] = {
+      JsonEncoder[Chunk[(Int, Double)]].contramap(compliance => {
+        val pc = compliance.computePercent()
+        Chunk(
+          (compliance.reportsDisabled, pc.reportsDisabled), //  0
+
+          (compliance.notApplicable, pc.notApplicable), //  1
+
+          (compliance.success, pc.success), //  2
+
+          (compliance.repaired, pc.repaired), //  3
+
+          (compliance.error, pc.error), //  4
+
+          (compliance.pending, pc.pending), //  5
+
+          (compliance.noAnswer, pc.noAnswer), //  6
+
+          (compliance.missing, pc.missing), //  7
+
+          (compliance.unexpected, pc.unexpected), //  8
+
+          (compliance.auditNotApplicable, pc.auditNotApplicable), //  9
+
+          (compliance.compliant, pc.compliant), // 10
+
+          (compliance.nonCompliant, pc.nonCompliant), // 11
+
+          (compliance.auditError, pc.auditError), // 12
+
+          (compliance.badPolicyMode, pc.badPolicyMode) // 13
+        )
+      })
+    }
+  }
+
+  // same as in "array" but in old lift-json AST, should be removed soon
   implicit class ComplianceLevelToJs(val compliance: ComplianceLevel) extends AnyVal {
 
     def toJsArray: JsArray = {

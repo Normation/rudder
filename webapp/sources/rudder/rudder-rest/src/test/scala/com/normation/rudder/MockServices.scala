@@ -338,7 +338,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
     override def deleteSavedRuleArchiveId(saveId: RuleArchiveId): IOResult[Unit] = ???
   }
 
-  private def reportingService(statusReports: Map[NodeId, NodeStatusReport]): ReportingService = new ReportingService {
+  def reportingService(statusReports: Map[NodeId, NodeStatusReport]): ReportingService = new ReportingService {
     def findRuleNodeStatusReports(nodeIds: Set[NodeId], filterByRules: Set[RuleId])(implicit
         qc: QueryContext
     ): Box[Map[NodeId, NodeStatusReport]] = {
@@ -346,6 +346,12 @@ class MockCompliance(mockDirectives: MockDirectives) {
       Full(
         filterReportsByRules(filteredNodeReports, filterByRules)
       )
+    }
+    // used in node details API
+    def getSystemAndUserCompliance(
+        optNodeIds: Option[Set[NodeId]]
+    )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = {
+      ZIO.succeed((Map.empty, Map.empty))
     }
 
     def findDirectiveNodeStatusReports(
@@ -370,9 +376,6 @@ class MockCompliance(mockDirectives: MockDirectives) {
     def findStatusReportsForDirective(directiveId: DirectiveId)(implicit
         qc: QueryContext
     ): IOResult[Map[NodeId, NodeStatusReport]] = ???
-    def getSystemAndUserCompliance(
-        optNodeIds: Option[Set[NodeId]]
-    )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
     def computeComplianceFromReports(reports:   Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = ???
     def getGlobalUserCompliance()(implicit qc:  QueryContext): Box[Option[(ComplianceLevel, Long)]] = ???
   }

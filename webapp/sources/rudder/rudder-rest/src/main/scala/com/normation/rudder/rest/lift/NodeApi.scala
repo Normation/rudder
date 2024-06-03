@@ -40,7 +40,6 @@ package com.normation.rudder.rest.lift
 import cats.data.Validated.Invalid
 import cats.data.Validated.Valid
 import cats.data.ValidatedNel
-import com.normation.box.*
 import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.*
@@ -51,6 +50,7 @@ import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.DefaultDetailLevel
+import com.normation.rudder.apidata.JsonQueryObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.NodeDetailLevel
 import com.normation.rudder.apidata.RenderInheritedProperties
@@ -62,18 +62,12 @@ import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.nodes.Node
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
-import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
 import com.normation.rudder.domain.properties.CompareProperties
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
-import com.normation.rudder.domain.properties.ParentProperty
-import com.normation.rudder.domain.properties.ParentProperty.Global
 import com.normation.rudder.domain.queries.Query
-import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFact
@@ -86,7 +80,6 @@ import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
-import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.rest.ApiModuleProvider
@@ -95,9 +88,7 @@ import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.NodeApi as API
 import com.normation.rudder.rest.OneParam
 import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils
-import com.normation.rudder.rest.RestUtils.toJsonError
-import com.normation.rudder.rest.RestUtils.toJsonResponse
+import com.normation.rudder.rest.RudderJsonResponse
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.data.Creation.CreationError
 import com.normation.rudder.rest.data.NodeSetup
@@ -122,10 +113,10 @@ import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.servers.NewNodeManager
 import com.normation.rudder.services.servers.RemoveNodeService
-import com.normation.utils.DateFormaterService
+import com.normation.rudder.web.services.ReasonBehavior
+import com.normation.rudder.web.services.UserPropertyService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
-import com.typesafe.config.ConfigValue
 import io.scalaland.chimney.syntax.*
 import java.io.ByteArrayInputStream
 import java.io.InputStream
@@ -137,24 +128,10 @@ import java.net.ConnectException
 import java.nio.charset.StandardCharsets
 import java.util.Arrays
 import net.liftweb.common.Box
-import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
-import net.liftweb.common.Full
-import net.liftweb.http.JsonResponse
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.OutputStreamResponse
 import net.liftweb.http.Req
-import net.liftweb.http.js.JsExp
-import net.liftweb.json.JArray
-import net.liftweb.json.JsonAST.JDouble
-import net.liftweb.json.JsonAST.JField
-import net.liftweb.json.JsonAST.JInt
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonDSL.*
-import net.liftweb.json.JsonDSL.pair2jvalue
-import net.liftweb.json.JsonDSL.string2jvalue
-import net.liftweb.json.JValue
 import org.joda.time.DateTime
 import scala.collection.MapView
 import scalaj.http.Http
@@ -173,13 +150,13 @@ import zio.syntax.*
  * but make the implementation directly here.
  */
 class NodeApi(
-    restExtractorService: RestExtractorService,
-    zioJsonExtractor:     ZioJsonExtractor,
-    serializer:           RestDataSerializer,
-    nodeApiService:       NodeApiService,
-    inheritedProperties:  NodeApiInheritedProperties,
-    uuidGen:              StringUuidGenerator,
-    deleteDefaultMode:    DeleteMode
+    zioJsonExtractor:    ZioJsonExtractor,
+    serializer:          RestDataSerializer,
+    nodeApiService:      NodeApiService,
+    userPropertyService: UserPropertyService,
+    inheritedProperties: NodeApiInheritedProperties,
+    uuidGen:             StringUuidGenerator,
+    deleteDefaultMode:   DeleteMode
 ) extends LiftApiModuleProvider[API] {
 
   def schemas: ApiModuleProvider[API] = API
@@ -219,15 +196,15 @@ class NodeApi(
    */
   object CreateNodes extends LiftApiModule0 { //
     val schema: API.CreateNodes.type = API.CreateNodes
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
 
-    import ResultHolder.*
     import com.normation.rudder.rest.data.Rest.JsonCodecNodeDetails.*
     import zio.json.*
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       import com.softwaremill.quicklens.*
-      (for {
+      implicit val prettify: Boolean = params.prettify
+      val result = (for {
         json  <- (if (req.json_?) req.body else Failure("This API only Accept JSON request")).toIO
         nodes <- new String(json, StandardCharsets.UTF_8).fromJson[List[NodeDetails]].toIO
         _     <- NodeLoggerPure.info(s"API request for creating nodes: [${nodes.map(n => s"${n.id} (${n.status})").mkString("; ")}]")
@@ -246,20 +223,24 @@ class NodeApi(
                      s"Error when creating nodes by API: ${res.failed.map(e => s"${e._1}: ${e._2.errorMsg}").mkString(" ; ")}"
                    )
                  }
-      } yield res).toBox match {
-        case Full(resultHolder) =>
-          // if all success, return success.
-          // Or if at least one is not failed, return success ?
-          val json = resultHolder.toJson()
-          if (resultHolder.failed.isEmpty) {
-            RestUtils.toJsonResponse(None, json)(schema.name, params.prettify)
-          } else {
-            RestUtils.toJsonError(None, json)(schema.name, params.prettify)
+      } yield res).chainError("Error when trying to parse node creation request")
+
+      // the result schema depends on result of the operation
+      result
+        .fold(
+          err => {
+            LiftApiProcessingLogger.error(err.fullMsg)
+            RudderJsonResponse.internalError(None, RudderJsonResponse.ResponseSchema.fromSchema(schema), err.fullMsg)
+          },
+          one => {
+            if (one.failed.nonEmpty) {
+              RudderJsonResponse.internalError(None, RudderJsonResponse.ResponseSchema.fromSchema(schema), one, None)
+            } else {
+              RudderJsonResponse.successOne(RudderJsonResponse.ResponseSchema.fromSchema(schema), one, None)
+            }
           }
-        case eb: EmptyBox =>
-          val err = eb ?~! "Error when trying to parse node creation request"
-          RestUtils.toJsonError(None, JString(err.messageChain))(schema.name, params.prettify)
-      }
+        )
+        .runNow
     }
   }
 
@@ -299,7 +280,7 @@ class NodeApi(
 
   object NodeInheritedProperties extends LiftApiModule {
     val schema: OneParam = API.NodeInheritedProperties
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -310,18 +291,16 @@ class NodeApi(
     ): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
 
-      inheritedProperties.getNodePropertiesTree(NodeId(id), RenderInheritedProperties.JSON).either.runNow match {
-        case Right(properties) =>
-          toJsonResponse(None, properties)("nodeInheritedProperties", params.prettify)
-        case Left(err)         =>
-          toJsonError(None, err.fullMsg)("nodeInheritedProperties", params.prettify)
-      }
+      inheritedProperties
+        .getNodePropertiesTree(NodeId(id), RenderInheritedProperties.JSON)
+        .map(Chunk(_))
+        .toLiftResponseOne(params, schema, _ => None)
     }
   }
 
   object NodeDisplayInheritedProperties extends LiftApiModule {
     val schema: OneParam = API.NodeDisplayInheritedProperties
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -332,18 +311,16 @@ class NodeApi(
     ): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
 
-      inheritedProperties.getNodePropertiesTree(NodeId(id), RenderInheritedProperties.HTML).either.runNow match {
-        case Right(properties) =>
-          toJsonResponse(None, properties)("nodeDisplayInheritedProperties", params.prettify)
-        case Left(err)         =>
-          toJsonError(None, err.fullMsg)("nodeDisplayInheritedProperties", params.prettify)
-      }
+      inheritedProperties
+        .getNodePropertiesTree(NodeId(id), RenderInheritedProperties.HTML)
+        .map(Chunk(_))
+        .toLiftResponseOne(params, schema, _ => None)
     }
   }
 
   object PendingNodeDetails extends LiftApiModule {
     val schema: OneParam = API.PendingNodeDetails
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -381,13 +358,13 @@ class NodeApi(
         deleted       <- nodeApiService.deleteNode(NodeId(id), deleteMode, Some(req.remoteAddr))
       } yield {
         deleted
-      }).chainError("Error when deleting Nodes").toLiftResponseOne(params, schema, _ => Some(id))
+      }).chainError("Error when deleting Nodes").toLiftResponseList(params, schema)
     }
   }
 
   object UpdateNode extends LiftApiModule {
     val schema: OneParam = API.UpdateNode
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -396,9 +373,7 @@ class NodeApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val prettify = params.prettify
-      implicit val action   = "updateNode"
-      implicit val cc       = ChangeContext(
+      implicit val cc = ChangeContext(
         ModificationId(uuidGen.newUuid),
         authzToken.qc.actor,
         new DateTime(),
@@ -408,22 +383,13 @@ class NodeApi(
       )
 
       (for {
-        restNode <- if (req.json_?) {
-                      req.json.flatMap(body => restExtractor.extractNodeFromJSON(body))
-                    } else {
-                      restExtractor.extractNode(req.params)
-                    }
-        reason   <- restExtractor.extractReason(req)
-        result   <- nodeApiService.updateRestNode(NodeId(id), restNode).toBox
+        restNode <- restExtractor.extractUpdateNode(req).toIO
+        reason   <- extractReason(req)
+        result   <- nodeApiService.updateRestNode(NodeId(id), restNode)
       } yield {
-        toJsonResponse(Some(id), serializer.serializeNode(result.toNode))
-      }) match {
-        case Full(response) =>
-          response
-        case eb: EmptyBox =>
-          val fail = eb ?~! s"An error occurred while updating Node '${id}'"
-          toJsonError(Some(id), fail.messageChain)
-      }
+        result.transformInto[JRUpdateNode]
+      }).chainError(s"An error occurred while updating Node '${id}'")
+        .toLiftResponseOne(params, schema, _ => Some(id))
     }
   }
 
@@ -528,30 +494,22 @@ class NodeApi(
 
   object ApplyPolicyAllNodes extends LiftApiModule0 {
     val schema: API.ApplyPolicyAllNodes.type = API.ApplyPolicyAllNodes
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val prettify = params.prettify
-      implicit val action   = "applyPolicyAllNodes"
-      implicit val qc       = authzToken.qc
+      implicit val qc = authzToken.qc
 
       (for {
-        classes  <- restExtractorService.extractList("classes")(req)(json => Full(json))
+        classes  <- restExtractor.extractClasses(req).toIO
         response <- nodeApiService.runAllNodes(classes)
       } yield {
-        toJsonResponse(None, response)
-      }) match {
-        case Full(response) => response
-        case eb: EmptyBox => {
-          val fail = eb ?~! s"An error occurred when applying policy on all Nodes"
-          toJsonError(None, fail.messageChain)
-        }
-      }
+        response
+      }).chainError("An error occurred when applying policy on all Nodes").toLiftResponseOne(params, schema, _ => None)
     }
   }
 
   object ApplyPolicy extends LiftApiModule {
     val schema: OneParam = API.ApplyPolicy
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -564,66 +522,63 @@ class NodeApi(
       implicit val qc       = authzToken.qc
 
       (for {
-        classes <- restExtractorService.extractList("classes")(req)(json => Full(json))
-        optNode <- nodeApiService.nodeFactRepository.get(NodeId(id)).toBox
+        classes <- restExtractor.extractClasses(req).toIO
+        optNode <- nodeApiService.nodeFactRepository.get(NodeId(id))
       } yield {
         optNode match {
           case Some(node)
               if (node.rudderAgent.agentType == AgentType.CfeCommunity || node.rudderAgent.agentType == AgentType.CfeEnterprise) =>
             OutputStreamResponse(nodeApiService.runNode(node.id, classes))
           case Some(node) =>
-            toJsonError(
-              None,
-              s"Node with id '${id}' has an agent type (${node.rudderAgent.agentType.displayName}) which doesn't support remote run"
-            )("applyPolicy", prettify)
+            RudderJsonResponse
+              .internalError(
+                None,
+                RudderJsonResponse.ResponseSchema.fromSchema(schema),
+                s"Node with id '${id}' has an agent type (${node.rudderAgent.agentType.displayName}) which doesn't support remote run"
+              )
           case None       =>
-            toJsonError(None, s"Node with id '${id}' was not found")("applyPolicy", prettify)
+            RudderJsonResponse
+              .internalError(
+                None,
+                RudderJsonResponse.ResponseSchema.fromSchema(schema),
+                s"Node with id '${id}' was not found"
+              )
         }
-      }) match {
-        case Full(response) => response
-        case eb: EmptyBox => {
-          implicit val prettify = params.prettify
-          implicit val action   = "applyPolicy"
-          val fail              = eb ?~! s"An error occurred when applying policy on Node '${id}'"
-          toJsonError(Some(id), fail.messageChain)
-
-        }
-      }
+      }).chainError(s"An error occurred when applying policy on Node '${id}'").runNow
     }
   }
 
   object GetNodesStatus extends LiftApiModule0 {
     val schema: API.GetNodesStatus.type = API.GetNodesStatus
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val action   = "getNodeStatus"
-      implicit val prettify = params.prettify
-      def errorMsg(ids: List[String]) = s"Error when trying to get status for nodes with IDs '${ids.mkString(",")}''"
+      def errorMsg(ids: List[NodeId]) = s"Error when trying to get status for nodes with IDs '${ids.map(_.value).mkString(",")}''"
       (for {
-        ids   <- (restExtractorService
-                   .extractString("ids")(req)(ids => Full(ids.split(",").map(_.trim))))
-                   .map(_.map(_.toList).getOrElse(Nil)) ?~! "Error: 'ids' parameter not found"
-        nodes <- nodeApiService.nodeFactRepository.getAll()(authzToken.qc, SelectNodeStatus.Any).toBox ?~! errorMsg(ids)
+        ids       <- restExtractor
+                       .extractIdsFromParams(req.params)
+                       .map(_.getOrElse(Nil).map(NodeId(_)))
+                       .toIO
+        nodes     <- nodeApiService.nodeFactRepository.getAll()(authzToken.qc, SelectNodeStatus.Any).chainError(errorMsg(ids))
+        nodeStatus = {
+          Chunk
+            .fromIterable(ids)
+            .map(id => {
+              JRNodeIdStatus(
+                id,
+                nodes.get(id).map(_.rudderSettings.status).getOrElse(RemovedInventory).transformInto[JRInventoryStatus]
+              )
+            })
+        }
       } yield {
-        val array = ids.map { id =>
-          val status = nodes.get(NodeId(id)).map(_.rudderSettings.status.name).getOrElse("deleted")
-          JObject(JField("id", id) :: JField("status", status) :: Nil)
-        }
-        JObject(JField("nodes", JArray(array)) :: Nil)
-      }) match {
-        case Full(jarray) =>
-          toJsonResponse(None, jarray)
-        case eb: EmptyBox => {
-          val fail = eb ?~! s"An error occurred when trying to get nodes status"
-          toJsonError(None, fail.messageChain)
-        }
-      }
+        nodeStatus
+      }).chainError(s"An error occurred when trying to get nodes status")
+        .toLiftResponseList(params, schema)
     }
   }
 
   object GetNodeGlobalScore extends LiftApiModule {
     val schema: API.NodeGlobalScore.type = API.NodeGlobalScore
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
 
     def process(
         version:    ApiVersion,
@@ -644,7 +599,7 @@ class NodeApi(
 
   object GetNodeScoreDetails extends LiftApiModule {
     val schema: API.NodeScoreDetails.type = API.NodeScoreDetails
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
 
     def process(
         version:    ApiVersion,
@@ -661,7 +616,7 @@ class NodeApi(
 
   object GetNodeScoreDetail extends LiftApiModuleString2 {
     val schema: API.NodeScoreDetail.type = API.NodeScoreDetail
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
 
     def process(
         version:    ApiVersion,
@@ -688,25 +643,28 @@ class NodeApi(
   //   read_only user can access this endpoint
   object NodeDetailsTable extends LiftApiModule0 {
     val schema: API.NodeDetailsTable.type = API.NodeDetailsTable
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val qc: QueryContext = authzToken.qc
+      implicit val prettify: Boolean      = params.prettify
+      implicit val qc:       QueryContext = authzToken.qc
 
-      (for {
-        nodes <- nodeApiService.listNodes(req).toBox
+      val result = (for {
+        query <- restExtractor.extractNodeIdsSoftwareProperties(req).toIO
+        nodes <- nodeApiService.listNodes(query)
       } yield {
-        JsonResponse(nodes)
-      }) match {
-        case Full(res) => res
-        case eb: EmptyBox =>
-          JsonResponse(JObject(JField("error", (eb ?~! "An error occurred while getting node details").messageChain)))
-      }
+        nodes
+      }).chainError("An error occurred while getting node details")
+
+      result.either.runNow.fold(
+        err => RudderJsonResponse.internalError(None, RudderJsonResponse.ResponseSchema.fromSchema(schema), err.fullMsg),
+        RudderJsonResponse.LiftJsonResponse(_, params.prettify, 200)
+      )
     }
   }
 
   object NodeDetailsSoftware extends LiftApiModule {
     val schema: OneParam = API.NodeDetailsSoftware
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -715,29 +673,25 @@ class NodeApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val qc = authzToken.qc
+      import com.normation.inventory.domain.JsonSerializers.implicits.encoderVersion
+      implicit val prettify = params.prettify
+      implicit val qc       = authzToken.qc
 
-      (for {
+      val result = (for {
         response <- nodeApiService.software(req, software)
       } yield {
         response
-      }).toBox match {
-        case Full(res) => res
-        case eb: EmptyBox =>
-          JsonResponse(
-            JObject(
-              JField(
-                "error",
-                (eb ?~! s"An error occurred while fetching versions of '${software}' software for nodes").messageChain
-              )
-            )
-          )
-      }
+      }).chainError(s"An error occurred while fetching versions of '${software}' software for nodes")
+
+      result.either.runNow.fold(
+        err => RudderJsonResponse.internalError(None, RudderJsonResponse.ResponseSchema.fromSchema(schema), err.fullMsg),
+        RudderJsonResponse.LiftJsonResponse(_, params.prettify, 200)
+      )
     }
   }
   object NodeDetailsProperty extends LiftApiModule {
     val schema: OneParam = API.NodeDetailsProperty
-    val restExtractor = restExtractorService
+    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -746,22 +700,20 @@ class NodeApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val qc = authzToken.qc
+      implicit val prettify = params.prettify
+      implicit val qc       = authzToken.qc
 
-      (for {
-        inheritedProperty <- req.json.flatMap(j => OptionnalJson.extractJsonBoolean(j, "inherited"))
-        response          <- nodeApiService.property(req, property, inheritedProperty.getOrElse(false)).toBox
+      val result = (for {
+        inheritedProperty <- req.json.flatMap(j => OptionnalJson.extractJsonBoolean(j, "inherited")).toIO
+        response          <- nodeApiService.property(req, property, inheritedProperty.getOrElse(false))
       } yield {
         response
-      }) match {
-        case Full(res) => res
-        case eb: EmptyBox =>
-          JsonResponse(
-            JObject(
-              JField("error", (eb ?~! s"An error occurred while getting value of property '${property}' for nodes").messageChain)
-            )
-          )
-      }
+      }).chainError(s"An error occurred while getting value of property '${property}' for nodes")
+
+      result.either.runNow.fold(
+        err => RudderJsonResponse.internalError(None, RudderJsonResponse.ResponseSchema.fromSchema(schema), err.fullMsg),
+        RudderJsonResponse.LiftJsonResponse(_, params.prettify, 200)
+      )
     }
   }
 
@@ -775,6 +727,25 @@ class NodeApi(
       DeriveJsonEncoder.gen[JRNodeDetailLevel]
   }
 
+  // TODO: known to be duplicated in change-validation. Some day we will need to factor this out in zio (moving prop service to rudder-core)
+  private def extractReason(req: Req): IOResult[Option[String]] = {
+    import ReasonBehavior.*
+    (userPropertyService.reasonsFieldBehavior match {
+      case Disabled => ZIO.none
+      case mode     =>
+        val reason = req.params.get("reason").flatMap(_.headOption)
+        (mode: @unchecked) match {
+          case Mandatory =>
+            reason
+              .notOptional("Reason field is mandatory and should be at least 5 characters long")
+              .reject {
+                case s if s.lengthIs < 5 => Inconsistency("Reason field should be at least 5 characters long")
+              }
+              .map(Some(_))
+          case Optionnal => reason.succeed
+        }
+    }).chainError("There was an error while extracting reason message")
+  }
 }
 
 class NodeApiInheritedProperties(
@@ -788,13 +759,13 @@ class NodeApiInheritedProperties(
    */
   def getNodePropertiesTree(nodeId: NodeId, renderInHtml: RenderInheritedProperties)(implicit
       qc: QueryContext
-  ): IOResult[JValue] = {
+  ): IOResult[JRNodeInheritedProperties] = {
     for {
-      nodeInfo         <- infoService.get(nodeId).notOptional(s"Node with ID '${nodeId.value}' was not found.'")
+      nodeFact         <- infoService.get(nodeId).notOptional(s"Node with ID '${nodeId.value}' was not found.'")
       groups           <- groupRepo.getFullGroupLibrary()
-      nodeTargets       = groups.getTarget(nodeInfo).map(_._2).toList
+      nodeTargets       = groups.getTarget(nodeFact).map(_._2).toList
       params           <- paramRepo.getAllGlobalParameters()
-      properties       <- MergeNodeProperties.forNode(nodeInfo.toNodeInfo, nodeTargets, params.map(p => (p.name, p)).toMap).toIO
+      properties       <- MergeNodeProperties.forNode(nodeFact.toNodeInfo, nodeTargets, params.map(p => (p.name, p)).toMap).toIO
       propertiesDetails = properties
                             .groupBy(_.prop.name)
                             .map(props => {
@@ -807,50 +778,16 @@ class NodeApiInheritedProperties(
                               )
                             })
     } yield {
-      import com.normation.rudder.domain.properties.JsonPropertySerialisation.*
-      def hierarchyStatus(propName: String) = propertiesDetails.get(propName).map {
-        case (hierarchy, hasConflicts) =>
-          ("hierarchyStatus"        ->
-          (("hasChildTypeConflicts" -> hasConflicts)
-          ~ ("fullHierarchy"        -> hierarchy
-            .flatMap(p => p.hierarchy.sorted.map(serializeParentPropertyDetail))))) ~ JObject()
-      }
-
-      val rendered = (renderInHtml match {
-        case RenderInheritedProperties.HTML => properties.toApiJsonRenderParents
-        case RenderInheritedProperties.JSON => properties.toApiJson
-      }).map(p => {
-        val status = hierarchyStatus((p \ "name") match {
-          case JString(s) => s
-          case _          => ""
-        })
-        status match {
-          case Some(s) => p.merge(s)
-          case None    => p
-        }
-      })
-      JArray(
-        (
-          ("nodeId" -> nodeId.value)
-          ~ ("properties" -> rendered)
-        ) :: Nil
+      JRNodeInheritedProperties.fromNode(
+        nodeId,
+        propertiesDetails.values.toList.flatMap {
+          case (parent, hasConflicts) => parent.map(p => (p, p.hierarchy, hasConflicts))
+        },
+        renderInHtml
       )
     }
   }
 
-  private[this] def serializeParentPropertyDetail(prop: ParentProperty) = {
-    def serializeValueType(value: ConfigValue) = {
-      value.valueType().name().toLowerCase().capitalize
-    }
-    prop match {
-      case Global(value)                         =>
-        (("kind" -> "global") ~ ("valueType" -> serializeValueType(value)))
-      case ParentProperty.Group(name, id, value) =>
-        (("kind" -> "group") ~ ("valueType" -> serializeValueType(value)) ~ ("name" -> name) ~ ("id" -> id.serialize))
-      case ParentProperty.Node(name, id, value)  =>
-        (("kind" -> "node") ~ ("valueType" -> serializeValueType(value)) ~ ("name" -> name) ~ ("id" -> id.value))
-    }
-  }
 }
 
 class NodeApiService(
@@ -1066,170 +1003,79 @@ class NodeApiService(
     }
   }
 
-  def serialize(
-      agentRunWithNodeConfig: Option[AgentRunWithNodeConfig],
-      globalPolicyMode:       GlobalPolicyMode,
-      nodeInfo:               NodeInfo,
-      properties:             List[NodeProperty],
-      inheritedProperties:    List[NodePropertyHierarchy],
-      softs:                  List[Software],
-      compliance:             Option[ComplianceLevel],
-      sysCompliance:          Option[ComplianceLevel],
-      score:                  GlobalScore
-  ): JObject = {
-
-    def escapeHTML(s: String): String = JsExp.strToJsExp(xml.Utility.escape(s)).str
-
-    import net.liftweb.json.JsonDSL.*
-    def toComplianceArray(comp: ComplianceLevel): JArray = {
-      val pc = comp.computePercent()
-      JArray(
-        JArray(JInt(comp.reportsDisabled) :: JDouble(pc.reportsDisabled) :: Nil) ::       // 0
-        JArray(JInt(comp.notApplicable) :: JDouble(pc.notApplicable) :: Nil) ::           //  1
-        JArray(JInt(comp.success) :: JDouble(pc.success) :: Nil) ::                       //  2
-        JArray(JInt(comp.repaired) :: JDouble(pc.repaired) :: Nil) ::                     //  3
-        JArray(JInt(comp.error) :: JDouble(pc.error) :: Nil) ::                           //  4
-        JArray(JInt(comp.pending) :: JDouble(pc.pending) :: Nil) ::                       //  5
-        JArray(JInt(comp.noAnswer) :: JDouble(pc.noAnswer) :: Nil) ::                     //  6
-        JArray(JInt(comp.missing) :: JDouble(pc.missing) :: Nil) ::                       //  7
-        JArray(JInt(comp.unexpected) :: JDouble(pc.unexpected) :: Nil) ::                 //  8
-        JArray(JInt(comp.auditNotApplicable) :: JDouble(pc.auditNotApplicable) :: Nil) :: //  9
-        JArray(JInt(comp.compliant) :: JDouble(pc.compliant) :: Nil) ::                   // 10
-        JArray(JInt(comp.nonCompliant) :: JDouble(pc.nonCompliant) :: Nil) ::             // 11
-        JArray(JInt(comp.auditError) :: JDouble(pc.auditError) :: Nil) ::                 // 12
-        JArray(JInt(comp.badPolicyMode) :: JDouble(pc.badPolicyMode) :: Nil) :: Nil       // 13
-      )
-    }
-
-    val userCompliance            = compliance.map(c => toComplianceArray(c))
-    val (policyMode, explanation) = {
-      (globalPolicyMode.overridable, nodeInfo.policyMode) match {
-        case (Always, Some(mode)) =>
-          (mode, "override")
-        case (Always, None)       =>
-          (globalPolicyMode.mode, "default")
-        case (Unoverridable, _)   =>
-          (globalPolicyMode.mode, "none")
-      }
-    }
-    import com.normation.rudder.domain.properties.JsonPropertySerialisation.*
-    val jsonScore                 =
-      ("score" -> score.value.value) ~ ("details" -> JObject(score.details.map(s => JField(s.scoreId, s.value.value))))
-
-    (("name"                -> escapeHTML(nodeInfo.hostname))
-    ~ ("policyServerId"     -> escapeHTML(nodeInfo.policyServerId.value))
-    ~ ("policyMode"         -> escapeHTML(policyMode.name))
-    ~ ("globalModeOverride" -> explanation)
-    ~ ("kernel"             -> escapeHTML(nodeInfo.osDetails.kernelVersion.value))
-    ~ ("agentVersion"       -> nodeInfo.agentsName.headOption.flatMap(_.version.map(_.value)))
-    ~ ("id"                 -> escapeHTML(nodeInfo.id.value))
-    ~ ("ram"                -> nodeInfo.ram.map(_.toStringMo))
-    ~ ("machineType"        -> nodeInfo.machine.map(_.machineType.toString))
-    ~ ("os"                 -> nodeInfo.osDetails.fullName)
-    ~ ("state"              -> nodeInfo.state.name)
-    ~ ("compliance"         -> userCompliance)
-    ~ ("systemError"        -> sysCompliance
-      .map(_.computePercent().compliance < 100)
-      .getOrElse(false)) // do not display error if no sys compliance
-    ~ ("ipAddresses"         -> nodeInfo.ips.filter(ip => ip != "127.0.0.1" && ip != "0:0:0:0:0:0:0:1").map(escapeHTML(_)))
-    ~ ("lastRun"             -> agentRunWithNodeConfig.map(d => DateFormaterService.getDisplayDate(d.agentRunId.date)).getOrElse("Never"))
-    ~ ("lastInventory"       -> DateFormaterService.getDisplayDate(nodeInfo.inventoryDate))
-    ~ ("software"            -> JObject(
-      softs
-        .map(s => JField(escapeHTML(s.name.getOrElse("")), JString(escapeHTML(s.version.map(_.value).getOrElse("N/A")))))
-        .toList
-    ))
-    ~ ("properties"          -> JObject(properties.map(s => JField(s.name, s.toJson))))
-    ~ ("inheritedProperties" -> JObject(inheritedProperties.map(s => JField(s.prop.name, s.toApiJsonRenderParents))))
-    ~ ("score"               -> jsonScore))
-  }
-
-  def listNodes(req: Req)(implicit qc: QueryContext): ZIO[Any, RudderError, JArray] = {
-    case class PropertyInfo(value: String, inherited: Boolean)
-
-    def extractNodePropertyInfo(json: JValue) = {
-      for {
-        value     <- CompleteJson.extractJsonString(json, "value")
-        inherited <- CompleteJson.extractJsonBoolean(json, "inherited")
-      } yield {
-        PropertyInfo(value, inherited)
-      }
-    }
+  def listNodes(query: JQNodeIdsSoftwareProperties)(implicit qc: QueryContext): IOResult[Chunk[JRNodeDetailTable]] = {
 
     for {
-      n1              <- currentTimeMillis
-      optNodeIds      <- req.json.flatMap { j =>
-                           OptionnalJson.extractJsonListString(j, "nodeIds", (values => Full(values.map(NodeId(_)))))
-                         }.toIO
-      nodes           <- optNodeIds match {
-                           case None          =>
-                             nodeFactRepository.getAll()
-                           case Some(nodeIds) =>
-                             nodeFactRepository.getAll().map(_.filterKeys(id => nodeIds.contains(id)))
-                         }
-      scores          <- scoreService.getAll()
-      allScoreId      <- scoreService.getAvailableScore().map(_.map(_._1))
-      n2              <- currentTimeMillis
-      _               <- TimingDebugLoggerPure.trace(s"Getting node infos: ${n2 - n1}ms")
-      runs            <- reportsExecutionRepository.getNodesLastRun(nodes.keySet.toSet)
-      n3              <- currentTimeMillis
-      _               <- TimingDebugLoggerPure.trace(s"Getting run infos: ${n3 - n2}ms")
-      compliance      <- reportingService.getSystemAndUserCompliance(Some(nodes.keySet.toSet))
-      n4              <- currentTimeMillis
-      _               <- TimingDebugLoggerPure.trace(s"Getting compliance infos: ${n4 - n3}ms")
-      globalMode      <- getGlobalMode().toIO
-      n5              <- currentTimeMillis
-      _               <- TimingDebugLoggerPure.trace(s"Getting global mode: ${n5 - n4}ms")
-      softToLookAfter <- req.json.flatMap(j => OptionnalJson.extractJsonListString(j, "software").map(_.getOrElse(Nil))).toIO
-      softs           <- ZIO
-                           .foreach(softToLookAfter)(soft => nodeFactRepository.getNodesbySofwareName(soft))
-                           .map(_.flatten.groupMap(_._1)(_._2))
-      n6              <- currentTimeMillis
-      _               <- TimingDebugLoggerPure.trace(s"all data fetched for response: ${n6 - n5}ms")
-      properties      <- req.json
-                           .flatMap(j => OptionnalJson.extractJsonArray(j, "properties")(json => extractNodePropertyInfo(json)))
-                           .map(_.getOrElse(Nil))
-                           .toIO
-      props           <- properties.partition(_.inherited) match {
-                           case (inheritedProp, nonInheritedProp) =>
-                             val propMap = nodes.values.groupMapReduce(_.id)(n => {
-                               n.properties.filter(p => {
-                                 nonInheritedProp.exists(
-                                   _.value == p.name
-                                 )
-                               })
-                             })(_ ++ _)
+      n1             <- currentTimeMillis
+      nodes          <- query.nodeIds match {
+                          case None          =>
+                            nodeFactRepository.getAll()
+                          case Some(nodeIds) =>
+                            nodeFactRepository.getAll().map(_.filterKeys(id => nodeIds.contains(id)))
+                        }
+      scores         <- scoreService.getAll()
+      allScoreId     <- scoreService.getAvailableScore().map(_.map(_._1))
+      n2             <- currentTimeMillis
+      _              <- TimingDebugLoggerPure.trace(s"Getting node infos: ${n2 - n1}ms")
+      runs           <- reportsExecutionRepository.getNodesLastRun(nodes.keySet.toSet)
+      n3             <- currentTimeMillis
+      _              <- TimingDebugLoggerPure.trace(s"Getting run infos: ${n3 - n2}ms")
+      compliance     <- reportingService.getSystemAndUserCompliance(Some(nodes.keySet.toSet))
+      n4             <- currentTimeMillis
+      _              <- TimingDebugLoggerPure.trace(s"Getting compliance infos: ${n4 - n3}ms")
+      globalMode     <- getGlobalMode().toIO
+      n5             <- currentTimeMillis
+      _              <- TimingDebugLoggerPure.trace(s"Getting global mode: ${n5 - n4}ms")
+      softToLookAfter = query.software.getOrElse(List.empty)
+      softs          <- ZIO
+                          .foreach(softToLookAfter)(soft => nodeFactRepository.getNodesbySofwareName(soft))
+                          .map(_.flatten.groupMap(_._1)(_._2))
+      n6             <- currentTimeMillis
+      _              <- TimingDebugLoggerPure.trace(s"all data fetched for response: ${n6 - n5}ms")
+      properties      = query.properties.getOrElse(List.empty)
+      props          <- properties.partition(_.inherited) match {
+                          case (inheritedProp, nonInheritedProp) =>
+                            val propMap = nodes.values.groupMapReduce(_.id)(n => {
+                              n.properties.filter(p => {
+                                nonInheritedProp.exists(
+                                  _.value == p.name
+                                )
+                              })
+                            })(_ ++ _)
 
-                             if (inheritedProp.isEmpty) {
-                               (Map.empty[NodeId, List[NodePropertyHierarchy]], propMap).succeed
-                             } else {
-                               for {
-                                 inheritedProp <- getNodesPropertiesTree(nodes, inheritedProp.map(_.value))
-                               } yield {
-                                 (inheritedProp, propMap)
-                               }
-                             }
-                         }
+                            if (inheritedProp.isEmpty) {
+                              (Map.empty[NodeId, List[NodePropertyHierarchy]], propMap).succeed
+                            } else {
+                              for {
+                                inheritedProp <- getNodesPropertiesTree(nodes, inheritedProp.map(_.value))
+                              } yield {
+                                (inheritedProp, propMap)
+                              }
+                            }
+                        }
     } yield {
-      val (systemCompliances, userCompliances) = compliance
-      val (inheritedProp, nonInheritedProp)    = props
-      val res                                  = JArray(
-        nodes.values.toList.map(n => {
-          serialize(
-            runs.get(n.id).flatten,
-            globalMode,
-            n.toNodeInfo,
-            nonInheritedProp.get(n.id).getOrElse(Nil).toList,
-            inheritedProp.get(n.id).getOrElse(Nil).toList,
-            softs.get(n.id).getOrElse(Nil).toList,
-            userCompliances.get(n.id),
-            systemCompliances.get(n.id),
-            scores
-              .get(n.id)
-              .getOrElse(GlobalScore(ScoreValue.NoScore, "", allScoreId.map(s => NoDetailsScore(s, ScoreValue.NoScore, ""))))
-          )
-        })
-      )
+      val (inheritedProp, nonInheritedProp) = props
+      val res                               = {
+        Chunk
+          .fromIterable(nodes.values)
+          .map(n => {
+            implicit val globalPolicyMode:       GlobalPolicyMode               = globalMode
+            implicit val agentRunWithNodeConfig: Option[AgentRunWithNodeConfig] = runs.get(n.id).flatten
+            implicit val properties:             Chunk[NodeProperty]            = Chunk.fromIterable(nonInheritedProp.get(n.id).getOrElse(Nil))
+            implicit val inheritedProperties:    Chunk[NodePropertyHierarchy]   =
+              Chunk.fromIterable(inheritedProp.get(n.id).getOrElse(Nil))
+            implicit val softwares:              Chunk[Software]                = Chunk.fromIterable(softs.get(n.id).getOrElse(Nil))
+            implicit val nodeCompliance:         Option[JRNodeCompliance]       = compliance._2.get(n.id).map(JRNodeCompliance(_))
+            implicit val systemCompliance:       Option[JRNodeSystemCompliance] = compliance._1.get(n.id).map(JRNodeSystemCompliance(_))
+            implicit val score:                  GlobalScore                    = {
+              scores
+                .get(n.id)
+                .getOrElse(GlobalScore(ScoreValue.NoScore, "", allScoreId.map(s => NoDetailsScore(s, ScoreValue.NoScore, ""))))
+            }
+
+            n.transformInto[JRNodeDetailTable]
+          })
+      }
 
       val n7 = System.currentTimeMillis
       TimingDebugLoggerPure.logEffect.trace(s"serialized to json: ${n7 - n6}ms")
@@ -1237,8 +1083,7 @@ class NodeApiService(
     }
   }
 
-  def software(req: Req, software: String)(implicit qc: QueryContext): ZIO[Any, RudderError, LiftResponse] = {
-    import com.normation.box.*
+  def software(req: Req, software: String)(implicit qc: QueryContext): IOResult[Map[String, Version]] = {
 
     for {
       optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson).toIO
@@ -1246,19 +1091,15 @@ class NodeApiService(
                       case None          => nodeFactRepository.getAll()
                       case Some(nodeIds) => nodeFactRepository.getAll().map(_.filterKeys(id => nodeIds.contains(id.value)))
                     }
-      softs      <- nodeFactRepository.getNodesbySofwareName(software).toBox.map(_.toMap).toIO
+      softs      <- nodeFactRepository.getNodesbySofwareName(software).map(_.toMap)
     } yield {
-      JsonResponse(
-        JObject(nodes.keySet.toList.flatMap(id => softs.get(id).flatMap(_.version.map(v => JField(id.value, JString(v.value))))))
-      )
-
+      nodes.keySet.toList.flatMap(id => softs.get(id).flatMap(_.version.map(v => (id.value, v)))).toMap
     }
   }
 
   def property(req: Req, property: String, inheritedValue: Boolean)(implicit
       qc: QueryContext
-  ): ZIO[Any, RudderError, LiftResponse] = {
-    // import com.normation.rudder.facts.nodes.NodeFactSerialisation.SimpleCodec.codecNodeProperty
+  ): IOResult[Map[String, JRProperty]] = {
 
     for {
       optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson).toIO
@@ -1268,18 +1109,27 @@ class NodeApiService(
                     }
 
       mapProps <- (if (inheritedValue) {
-                     for {
-                       inheritedProp <- getNodesPropertiesTree(nodes, List(property))
-                     } yield {
-                       import com.normation.rudder.domain.properties.JsonPropertySerialisation.*
-                       inheritedProp.map { case (k, v) => (k, v.map(_.toApiJsonRenderParents)) }
-                     }
+                     getNodesPropertiesTree(nodes, List(property))
+                       .map(
+                         _.view.mapValues(
+                           Chunk
+                             .fromIterable(_)
+                             // HTML was always being escaped in this node API
+                             .map(JRProperty.fromNodePropertyHierarchy(_, RenderInheritedProperties.HTML, escapeHtml = true))
+                         )
+                       )
                    } else {
-                     val propMap = nodes.values.groupMapReduce(_.id)(n => n.properties.filter(_.name == property))(_ ++ _)
-                     propMap.map { case (k, v) => (k, v.toList.map(_.toJson)) }.succeed
-                   }): IOResult[Map[NodeId, List[JValue]]]
+                     nodes.values
+                       .groupMapReduce(_.id)(n => n.properties.filter(_.name == property))(_ ++ _)
+                       .view
+                       .mapValues(
+                         Chunk.fromIterable(_).map(JRProperty.fromNodeProp(_))
+                       )
+                       .succeed
+                   }): IOResult[MapView[NodeId, Chunk[JRProperty]]]
     } yield {
-      JsonResponse(JObject(nodes.keySet.toList.flatMap(id => mapProps.get(id).toList.flatMap(_.map(p => JField(id.value, p))))))
+      // this is unclear why the final map is kept as Chunk above. Combining flatMap here leads to a single JRProperty per node anyway...
+      nodes.keySet.toList.flatMap(id => mapProps.get(id).toList.flatMap(_.map(p => (id.value, p)))).sortBy(_._1).toMap
     }
   }
 
@@ -1431,24 +1281,11 @@ class NodeApiService(
     }
   }
 
-  def updateRestNode(nodeId: NodeId, restNode: RestNode)(implicit cc: ChangeContext): IOResult[CoreNodeFact] = {
-
-    def getKeyInfo(restNode: RestNode): (Option[SecurityToken], Option[KeyStatus]) = {
-
-      // if agentKeyValue is present, we set both it and key status.
-      // if only agentKey status is present, don't change value.
-
-      (restNode.agentKey, restNode.agentKeyStatus) match {
-        case (None, None)       => (None, None)
-        case (Some(k), None)    => (Some(k), Some(CertifiedKey))
-        case (None, Some(s))    => (None, Some(s))
-        case (Some(k), Some(s)) => (Some(k), Some(s))
-      }
-    }
+  def updateRestNode(nodeId: NodeId, update: JQUpdateNode)(implicit cc: ChangeContext): IOResult[CoreNodeFact] = {
 
     def updateNode(
         node:          CoreNodeFact,
-        restNode:      RestNode,
+        update:        JQUpdateNode,
         newProperties: List[NodeProperty],
         newKey:        Option[SecurityToken],
         newKeyStatus:  Option[KeyStatus]
@@ -1459,9 +1296,9 @@ class NodeApiService(
         .modify(_.properties)
         .setTo(Chunk.fromIterable(newProperties))
         .modify(_.rudderSettings.policyMode)
-        .using(current => restNode.policyMode.getOrElse(current))
+        .using(current => update.policyMode.getOrElse(current))
         .modify(_.rudderSettings.state)
-        .using(current => restNode.state.getOrElse(current))
+        .using(current => update.state.getOrElse(current))
         .modify(_.rudderAgent.securityToken)
         .setToIfDefined(newKey)
         .modify(_.rudderSettings.keyStatus)
@@ -1473,9 +1310,8 @@ class NodeApiService(
 
     for {
       nodeFact      <- nodeFactRepository.get(nodeId).notOptional(s"node with id '${nodeId.value}' was not found")
-      newProperties <- CompareProperties.updateProperties(nodeFact.properties.toList, restNode.properties).toIO
-      keyInfo        = getKeyInfo(restNode)
-      updated        = updateNode(nodeFact, restNode, newProperties, keyInfo._1, keyInfo._2)
+      newProperties <- CompareProperties.updateProperties(nodeFact.properties.toList, update.properties).toIO
+      updated        = updateNode(nodeFact, update, newProperties, update.keyInfo._1, update.keyInfo._2)
       _             <- if (CoreNodeFact.same(updated, nodeFact)) ZIO.unit
                        else nodeFactRepository.save(NodeFact.fromMinimal(updated)).unit
     } yield {
@@ -1605,14 +1441,14 @@ class NodeApiService(
     }.runNow
   }
 
-  def runAllNodes(classes: List[String])(implicit qc: QueryContext): Box[JValue] = {
+  def runAllNodes(classes: List[String])(implicit qc: QueryContext): IOResult[Chunk[JRNodeIdHostnameResult]] = {
 
     for {
-      nodes <- nodeFactRepository.getAll().toBox ?~! s"Could not find nodes informations"
+      nodes <- nodeFactRepository.getAll().chainError("Could not find nodes informations")
     } yield {
       val res = {
         for {
-          node <- nodes.values.toList
+          node <- Chunk.fromIterable(nodes.values)
         } yield {
           // remote run only works for CFEngine based agent
           val commandResult = {
@@ -1633,12 +1469,10 @@ class NodeApiService(
               s"Node with id '${node.id.value}' has an agent type (${node.rudderAgent.agentType.displayName}) which doesn't support remote run"
             }
           }
-          (("id" -> node.id.value)
-          ~ ("hostname" -> node.fqdn)
-          ~ ("result"   -> commandResult))
+          JRNodeIdHostnameResult(node.id, node.fqdn, commandResult)
         }
       }
-      JArray(res)
+      res
     }
   }
 

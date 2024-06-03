@@ -383,6 +383,7 @@ object NodeApi       extends Enum[NodeApi] with ApiModuleProvider[NodeApi] {
     val z: Int = implicitly[Line].value
     val description    = "Get all properties for that node, included inherited ones"
     val (action, path) = GET / "nodes" / "{id}" / "inheritedProperties"
+    override def dataContainer: Option[String] = None
   }
 
   case object NodeGlobalScore extends NodeApi with InternalApi with OneParam with StartsAtVersion19 with SortIndex {
@@ -410,6 +411,7 @@ object NodeApi       extends Enum[NodeApi] with ApiModuleProvider[NodeApi] {
     val z: Int = implicitly[Line].value
     val description    = "Ask all nodes to start a run with the given policy"
     val (action, path) = POST / "nodes" / "applyPolicy"
+    override def dataContainer: Option[String] = None
   }
   case object ChangePendingNodeStatus extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion2 with SortIndex {
     val z: Int = implicitly[Line].value
@@ -425,6 +427,7 @@ object NodeApi       extends Enum[NodeApi] with ApiModuleProvider[NodeApi] {
     val z: Int = implicitly[Line].value
     val description    = "Get all properties for that node, included inherited ones, for displaying in node property tab (internal)"
     val (action, path) = GET / "nodes" / "{id}" / "displayInheritedProperties"
+    override def dataContainer: Option[String] = None
   }
   case object NodeDetailsTable extends NodeApi with InternalApi with ZeroParam with StartsAtVersion13 with SortIndex {
     val z: Int = implicitly[Line].value
@@ -445,6 +448,7 @@ object NodeApi       extends Enum[NodeApi] with ApiModuleProvider[NodeApi] {
     val z: Int = implicitly[Line].value
     val description    = "Update given node information (node properties, policy mode...)"
     val (action, path) = POST / "nodes" / "{id}"
+    override def dataContainer: Option[String] = None
   }
   case object DeleteNode extends NodeApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex {
     val z: Int = implicitly[Line].value
@@ -466,6 +470,8 @@ object NodeApi       extends Enum[NodeApi] with ApiModuleProvider[NodeApi] {
     val z: Int = implicitly[Line].value
     val description    = "Create one of more new nodes"
     val (action, path) = PUT / "nodes"
+
+    override def dataContainer: Option[String] = None
   }
   def endpoints: List[NodeApi] = values.toList.sortBy(_.z)
 

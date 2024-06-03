@@ -370,6 +370,19 @@ body: >-
         {
           "name": "datacenter",
           "value": "AMS2"
+        },
+        {
+          "name": "some-json-property",
+          "value": {
+            "key": "value"
+          }
+        },
+        {
+          "name": "another-property",
+          "value": [
+            "arrvalue1",
+            "arrvalue2"
+          ]
         }
       ],
       "ipAddresses": [
@@ -430,6 +443,19 @@ body: >-
         {
           "name": "datacenter",
           "value": "AMS2"
+        },
+        {
+          "name": "some-json-property",
+          "value": {
+            "key": "value"
+          }
+        },
+        {
+          "name": "another-property",
+          "value": [
+            "arrvalue1",
+            "arrvalue2"
+          ]
         }
       ],
       "ipAddresses": [
@@ -452,6 +478,180 @@ response:
           "378740d3-c4a9-4474-8485-478e7e52db53"
         ],
         "failed":[]
+      }
+    }
+---
+description: Create node with some validation errors
+method: PUT
+url: /api/latest/nodes
+headers:
+  - "Content-Type: application/json"
+body: >-
+  [
+    {
+      "id": "an-invalid-uuid-hihihi",
+      "hostname": "node3.hostname.local",
+      "status": "removed",
+      "os": {
+        "type": "linux",
+        "name": "debian",
+        "version": "9.5",
+        "fullName": "Debian GNU/Linux 9 (stretch)",
+        "servicePack": "string"
+      },
+      "properties": [],
+      "ipAddresses": []
+    },
+    {
+      "id": "378740d3-c4a9-4474-8485-478e7e52db54",
+      "hostname": "node4.hostname.local",
+      "status": "accepted",
+      "os": {
+        "type": "linux",
+        "name": "debian",
+        "version": "9.5",
+        "fullName": "Debian GNU/Linux 9 (stretch)",
+        "servicePack": "string"
+      },
+      "properties": [],
+      "ipAddresses": []
+    }
+  ]
+response:
+  code: 500
+  content: >-
+    {
+      "action": "createNodes",
+      "result": "error",
+      "data": {
+        "created": [
+          "378740d3-c4a9-4474-8485-478e7e52db54"
+        ],
+        "failed": [
+          {
+            "an-invalid-uuid-hihihi": [
+              "[validation] Only ID matching the shape of an UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) are authorized but 'an-invalid-uuid-hihihi' provided",
+              "[validation] Node 'status' must be one of 'accepted, pending' but 'removed' provided"
+            ]
+          }
+        ]
+      }
+    }
+---
+description: Update given node information (node properties, policy mode...)
+method: POST
+url: /api/latest/nodes/378740d3-c4a9-4474-8485-478e7e52db54
+body: >-
+  {
+    "properties": [
+      {
+        "name": "datacenter",
+        "value": "AMS2"
+      },
+      {
+        "name": "some-json-property",
+        "value": {
+          "key": "value"
+        }
+      }
+    ],
+    "policyMode": "audit",
+    "state": "preparing-eol"
+  }
+headers:
+  - "Content-Type: application/json"
+response:
+  code: 200
+  content: >-
+    {
+      "action":"updateNode",
+      "id":"378740d3-c4a9-4474-8485-478e7e52db54",
+      "result":"success",
+      "data":{
+            "id":"378740d3-c4a9-4474-8485-478e7e52db54",
+            "properties": [
+              {
+                "name": "datacenter",
+                "value": "AMS2"
+              },
+              {
+                "name": "some-json-property",
+                "value": {
+                  "key": "value"
+                }
+              }
+            ],
+            "policyMode": "audit",
+            "state": "preparing-eol"
+      }
+    }
+---
+description: Update given node information (node properties, policy mode...) with query parameters
+method: POST
+url: /api/latest/nodes/378740d3-c4a9-4474-8485-478e7e52db54
+headers:
+  - "Content-Type: application/x-www-form-urlencoded"
+body:
+params:
+  properties:
+    - datacenter=AMS4
+    - some-json-property={"key":"another-value"}
+    - another-property=["arrvalue1", "arrvalue2"]
+  policyMode: audit
+  state: ignored
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "updateNode",
+      "id" : "378740d3-c4a9-4474-8485-478e7e52db54",
+      "result" : "success",
+      "data" : {
+        "id" : "378740d3-c4a9-4474-8485-478e7e52db54",
+        "properties" : [
+          {
+            "name" : "another-property",
+            "value" : [
+              "arrvalue1",
+              "arrvalue2"
+            ]
+          },
+          {
+            "name" : "datacenter",
+            "value" : "AMS4"
+          },
+          {
+            "name" : "some-json-property",
+            "value" : {
+              "key" : "another-value"
+            }
+          }
+        ],
+        "policyMode" : "audit",
+        "state" : "ignored"
+      }
+    }
+---
+description: Delete given node
+method: DELETE
+url: /api/latest/nodes/378740d3-c4a9-4474-8485-478e7e52db54
+response:
+  code: 200
+  content: >-
+    {
+      "action":"deleteNode",
+      "result":"success",
+      "data":{
+        "nodes": [
+          {
+            "id":"378740d3-c4a9-4474-8485-478e7e52db54",
+            "status":"deleted",
+            "hostname":"node4.hostname.local",
+            "osName":"Debian",
+            "osVersion":"9.5",
+            "machineType":"Physical"
+          }
+        ]
       }
     }
 ---
@@ -480,5 +680,508 @@ response:
             }
           }
         ]
+      }
+    }
+---
+description: Get the status (pending, accepted, unknown) of the comma separated list of nodes given by `ids` parameter
+method: GET
+url: /api/latest/nodes/status?ids=node1,378740d3-c4a9-4474-8485-478e7e52db53
+response:
+  code: 200
+  content: >-
+    {
+      "action":"getNodesStatus",
+      "result":"success",
+      "data":{
+        "nodes":[
+          {
+            "id":"node1",
+            "status":"accepted"
+          },
+          {
+            "id":"378740d3-c4a9-4474-8485-478e7e52db53",
+            "status":"accepted"
+          }
+        ]
+      }
+    }
+---
+description: Get the status (pending, accepted, unknown) of the comma separated list of nodes given by empty `ids` parameter
+method: GET
+url: /api/latest/nodes/status
+response:
+  code: 200
+  content: >-
+    {
+      "action":"getNodesStatus",
+      "result":"success",
+      "data":{
+        "nodes":[]
+      }
+    }
+---
+description: Ask given node to start a run with the given policy for Dsc agent
+method: POST
+url: /api/latest/nodes/node-dsc/applyPolicy
+response:
+  code: 500
+  content: >-
+    {
+      "action":"applyPolicy",
+      "result":"error",
+      "errorDetails":"Node with id 'node-dsc' has an agent type (Rudder Windows) which doesn't support remote run"
+    }
+---
+description: Ask given node to start a run with the given policy for unknown node
+method: POST
+url: /api/latest/nodes/unknown-node/applyPolicy
+response:
+  code: 500
+  content: >-
+    {
+      "action":"applyPolicy",
+      "result":"error",
+      "errorDetails":"Node with id 'unknown-node' was not found"
+    }
+---
+description: Getting a software version for a set of Nodes
+url: /secure/api/nodes/details/software/s05
+method: POST
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "software": ["s05"]
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "node-dsc" : "1.0",
+      "node2" : "1.0",
+      "node1" : "1.0",
+      "root" : "1.0"
+    }
+---
+description: Getting data to build a Node table
+url: /secure/api/nodes/details
+method: POST
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "nodeIds" : ["node-dsc", "node2", "node1", "root"]
+  }
+response:
+  code: 200
+  content: >-
+    [
+      {
+        "id" : "node-dsc",
+        "name" : "node-dsc.localhost",
+        "ram" : "1.39 MB",
+        "policyServerId" : "root",
+        "policyMode" : "audit",
+        "globalModeOverride" : "default",
+        "kernel" : "win-kernel-2012",
+        "agentVersion" : "7.0.0",
+        "machineType" : "vbox",
+        "os" : "Windows 2012 youpla boom",
+        "state" : "enabled",
+        "systemError" : false,
+        "ipAddresses" : [
+          "192.168.0.5"
+        ],
+        "lastRun" : "Never",
+        "lastInventory" : "2021-01-30 01:20:00+0100",
+        "software" : {},
+        "properties" : {},
+        "inheritedProperties" : {},
+        "score" : {
+          "score" : "X",
+          "details" : {}
+        }
+      },
+      {
+        "id" : "node2",
+        "name" : "node2.localhost",
+        "ram" : "1.39 MB",
+        "policyServerId" : "root",
+        "policyMode" : "enforce",
+        "globalModeOverride" : "override",
+        "kernel" : "4.19",
+        "agentVersion" : "7.0.0",
+        "machineType" : "vbox",
+        "os" : "Buster",
+        "state" : "enabled",
+        "systemError" : false,
+        "ipAddresses" : [
+          "192.168.0.10"
+        ],
+        "lastRun" : "Never",
+        "lastInventory" : "2021-01-30 01:20:00+0100",
+        "software" : {},
+        "properties" : {},
+        "inheritedProperties" : {},
+        "score" : {
+          "score" : "X",
+          "details" : {}
+        }
+      },
+      {
+        "id" : "node1",
+        "name" : "node1.localhost",
+        "ram" : "1.39 MB",
+        "policyServerId" : "root",
+        "policyMode" : "enforce",
+        "globalModeOverride" : "override",
+        "kernel" : "4.19",
+        "agentVersion" : "7.0.0",
+        "machineType" : "vbox",
+        "os" : "Buster",
+        "state" : "enabled",
+        "systemError" : false,
+        "ipAddresses" : [
+          "192.168.0.10"
+        ],
+        "lastRun" : "Never",
+        "lastInventory" : "2021-01-30 01:20:00+0100",
+        "software" : {},
+        "properties" : {},
+        "inheritedProperties" : {},
+        "score" : {
+          "score" : "X",
+          "details" : {}
+        }
+      },
+      {
+        "id" : "root",
+        "name" : "server.rudder.local",
+        "policyServerId" : "root",
+        "policyMode" : "enforce",
+        "globalModeOverride" : "override",
+        "kernel" : "4.5",
+        "agentVersion" : "7.0.0",
+        "machineType" : "vbox",
+        "os" : "Stretch",
+        "state" : "enabled",
+        "systemError" : false,
+        "ipAddresses" : [
+          "192.168.0.100"
+        ],
+        "lastRun" : "Never",
+        "lastInventory" : "2021-01-30 01:20:00+0100",
+        "software" : {},
+        "properties" : {},
+        "inheritedProperties" : {},
+        "score" : {
+          "score" : "X",
+          "details" : {}
+        }
+      }
+    ]
+---
+description: Getting data to build a Node table with software and properties
+url: /secure/api/nodes/details
+method: POST
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "nodeIds" : [ "node1" ],
+    "software" : [ "s05" ],
+    "properties" : [ {"inherited":true,"value":"stringParam"} ]
+  }
+response:
+  code: 200
+  content: >-
+    [
+      {
+        "id" : "node1",
+        "name" : "node1.localhost",
+        "ram" : "1.39 MB",
+        "policyServerId" : "root",
+        "policyMode" : "enforce",
+        "globalModeOverride" : "override",
+        "kernel" : "4.19",
+        "agentVersion" : "7.0.0",
+        "machineType" : "vbox",
+        "os" : "Buster",
+        "state" : "enabled",
+        "systemError" : false,
+        "ipAddresses" : [
+          "192.168.0.10"
+        ],
+        "lastRun" : "Never",
+        "lastInventory" : "2021-01-30 01:20:00+0100",
+        "software" : {
+          "s05" : "1.0"
+        },
+        "properties" : {},
+        "inheritedProperties" : {
+          "stringParam" : {
+            "name" : "stringParam",
+            "value" : "stringsome string",
+            "inheritMode" : "map",
+            "provider" : "inherited",
+            "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>&quot;some string&quot;</pre></p><p>from <b>Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
+            "origval" : "string"
+          }
+        },
+        "score" : {
+          "score" : "X",
+          "details" : {}
+        }
+      }
+    ]
+---
+description: Get all properties for that node, included inherited ones
+method: GET
+url: /api/latest/nodes/node1/inheritedProperties
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "nodeInheritedProperties",
+      "result" : "success",
+      "data" : [
+        {
+          "nodeId" : "node1",
+          "properties" : [
+            {
+              "name" : "jsonParam",
+              "value" : {
+                "array" : [
+                  5,
+                  6
+                ],
+                "group" : "string",
+                "json" : {
+                  "g1" : "g1",
+                  "var1" : "val1",
+                  "var2" : "val2"
+                },
+                "string" : "a string"
+              },
+              "provider" : "inherited",
+              "hierarchy" : [
+                {
+                  "kind" : "global",
+                  "value" : {
+                    "array" : [
+                      1,
+                      3,
+                      2
+                    ],
+                    "json" : {
+                      "var1" : "val1",
+                      "var2" : "val2"
+                    },
+                    "string" : "a string"
+                  }
+                },
+                {
+                  "kind" : "group",
+                  "name" : "Real nodes",
+                  "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                  "value" : {
+                    "array" : [
+                      5,
+                      6
+                    ],
+                    "group" : "string",
+                    "json" : {
+                      "g1" : "g1"
+                    }
+                  }
+                }
+              ],
+              "hierarchyStatus" : {
+                "hasChildTypeConflicts" : false,
+                "fullHierarchy" : [
+                  {
+                    "kind" : "global",
+                    "valueType" : "Object"
+                  },
+                  {
+                    "kind" : "group",
+                    "name" : "Real nodes",
+                    "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                    "valueType" : "Object"
+                  }
+                ]
+              },
+              "origval" : {
+                "array" : [
+                  5,
+                  6
+                ],
+                "group" : "string",
+                "json" : {
+                  "g1" : "g1"
+                }
+              }
+            },
+            {
+              "name" : "modeParam",
+              "value" : "some string",
+              "inheritMode" : "opa",
+              "provider" : "inherited",
+              "hierarchy" : [
+                {
+                  "kind" : "global",
+                  "value" : "some string"
+                }
+              ],
+              "hierarchyStatus" : {
+                "hasChildTypeConflicts" : false,
+                "fullHierarchy" : [
+                  {
+                    "kind" : "global",
+                    "valueType" : "String"
+                  }
+                ]
+              },
+              "origval" : "some string"
+            },
+            {
+              "name" : "someJson2",
+              "value" : "string",
+              "inheritMode" : "opa",
+              "provider" : "inherited",
+              "hierarchy" : [
+                {
+                  "kind" : "global",
+                  "value" : "string"
+                }
+              ],
+              "hierarchyStatus" : {
+                "hasChildTypeConflicts" : false,
+                "fullHierarchy" : [
+                  {
+                    "kind" : "global",
+                    "valueType" : "String"
+                  }
+                ]
+              },
+              "origval" : "string"
+            },
+            {
+              "name" : "stringParam",
+              "value" : "stringsome string",
+              "inheritMode" : "map",
+              "provider" : "inherited",
+              "hierarchy" : [
+                {
+                  "kind" : "global",
+                  "value" : "some string"
+                },
+                {
+                  "kind" : "group",
+                  "name" : "Real nodes",
+                  "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                  "value" : "string"
+                }
+              ],
+              "hierarchyStatus" : {
+                "hasChildTypeConflicts" : false,
+                "fullHierarchy" : [
+                  {
+                    "kind" : "global",
+                    "valueType" : "String"
+                  },
+                  {
+                    "kind" : "group",
+                    "name" : "Real nodes",
+                    "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                    "valueType" : "String"
+                  }
+                ]
+              },
+              "origval" : "string"
+            },
+            {
+              "name" : "systemParam",
+              "value" : "some string",
+              "provider" : "inherited",
+              "hierarchy" : [
+                {
+                  "kind" : "global",
+                  "value" : "some string"
+                }
+              ],
+              "hierarchyStatus" : {
+                "hasChildTypeConflicts" : false,
+                "fullHierarchy" : [
+                  {
+                    "kind" : "global",
+                    "valueType" : "String"
+                  }
+                ]
+              },
+              "origval" : "some string"
+            }
+          ]
+        }
+      ]
+    }
+---
+description: Getting a property value for a set of Nodes (all nodes)
+method: POST
+url: /secure/api/nodes/details/property/stringParam
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "inherited": true
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "node-dsc" : {
+        "name" : "stringParam",
+        "value" : "some string",
+        "provider" : "inherited",
+        "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>&quot;some string&quot;</pre></p>",
+        "origval" : "some string"
+      },
+      "node2" : {
+        "name" : "stringParam",
+        "value" : "stringsome string",
+        "inheritMode" : "map",
+        "provider" : "inherited",
+        "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>&quot;some string&quot;</pre></p><p>from <b>Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
+        "origval" : "string"
+      },
+      "node1" : {
+        "name" : "stringParam",
+        "value" : "stringsome string",
+        "inheritMode" : "map",
+        "provider" : "inherited",
+        "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>&quot;some string&quot;</pre></p><p>from <b>Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
+        "origval" : "string"
+      },
+      "root" : {
+        "name" : "stringParam",
+        "value" : "stringsome string",
+        "inheritMode" : "map",
+        "provider" : "inherited",
+        "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>&quot;some string&quot;</pre></p><p>from <b>Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
+        "origval" : "string"
+      },
+      "378740d3-c4a9-4474-8485-478e7e52db53" : {
+        "name" : "stringParam",
+        "value" : "some string",
+        "provider" : "inherited",
+        "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>&quot;some string&quot;</pre></p>",
+        "origval" : "some string"
+      },
+      "378740d3-c4a9-4474-8485-478e7e52db52" : {
+        "name" : "stringParam",
+        "value" : "some string",
+        "provider" : "inherited",
+        "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>&quot;some string&quot;</pre></p>",
+        "origval" : "some string"
       }
     }
