@@ -397,7 +397,7 @@ showModal model =
       , div [ class "modal-dialog modal-lg" ]
         [ div [ class "modal-content modal-find-prop" ]
           [ div [ class "modal-header ng-scope" ]
-            [ h5 [ class "modal-title" ] [text ("Find usage of property '" ++ (Debug.log "name" pName) ++ "'")]
+            [ h5 [ class "modal-title" ] [text ("Find usage of property '" ++ pName ++ "'")]
             , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
             ]
           , div [ class "modal-body" ]
