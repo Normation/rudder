@@ -31,8 +31,9 @@ fn main() {
         Ok(_) => (),
         Err(e) => {
             // Display errors with logger
-            // Use `Debug` to display anyhow error chain
-            error!("{:?}", e);
+            // USe `{:#}` formatter to get the error chain
+            error!("{:#}", e);
+
             if is_exit_on_user_error() {
                 exit(2);
             } else {
