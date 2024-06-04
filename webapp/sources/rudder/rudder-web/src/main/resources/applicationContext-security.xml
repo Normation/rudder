@@ -33,6 +33,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
 
+
 <beans:beans xmlns="http://www.springframework.org/schema/security"
   xmlns:beans="http://www.springframework.org/schema/beans"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -40,6 +41,8 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 		http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
 		http://www.springframework.org/schema/security
 		http://www.springframework.org/schema/security/spring-security.xsd">
+
+  <beans:bean id="restSecureAuthenticationFilter" class="bootstrap.liftweb.RestSecureAuthenticationFilter" />
 
 <!--    <global-method-security pre-post-annotations="enabled">-->
 <!--         AspectJ pointcut expression that locates our "post" method and applies security that way-->
@@ -56,6 +59,19 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <intercept-url pattern='/**' access="hasRole('ROLE_REMOTE')" />
       <custom-filter position="BASIC_AUTH_FILTER" ref="restAuthenticationFilter" />
       <csrf disabled="true"/>
+    </http>
+
+    <!-- same config as mainHttpSecurityFilters but applies to authenticated API calls (/secure/api/): they need a custom filter for CSRF mitigation -->
+    <http pattern="/secure/api/**" disable-url-rewriting="true"  entry-point-ref="restAuthenticationEntryPoint">
+        <intercept-url pattern="/**" access="isAuthenticated()" />
+        <custom-filter after="LAST" ref="restSecureAuthenticationFilter" />
+        <headers>
+            <xss-protection disabled="true"/>
+            <frame-options disabled="true"/>
+        </headers>
+
+        <csrf disabled="true"/>
+        <session-management session-fixation-protection="migrateSession" />
     </http>
 
     <http use-expressions="true" disable-url-rewriting="true" name="mainHttpSecurityFilters">
