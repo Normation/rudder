@@ -39,37 +39,20 @@ package com.normation.rudder.rest
 
 import better.files.*
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.errors.*
 import com.normation.utils.ParseVersion
 import com.normation.zio.*
-import net.liftweb.http.LiftRules
 import org.junit.runner.RunWith
-import org.specs2.runner.JUnitRunner
-import org.specs2.specification.AfterAll
+import zio.*
+import zio.test.*
+import zio.test.junit.ZTestJUnitRunner
 
-@RunWith(classOf[JUnitRunner])
-class TestRestFromFileDef extends TraitTestApiFromYamlFiles with AfterAll {
-
-  val restTestSetUp = RestTestSetUp.newEnv
-  // update package management revision with new commits
-  restTestSetUp.updatePackageManagementRevision()
-
-  // let's say that's /var/rudder/share
-  val tmpApiTemplate: File = restTestSetUp.baseTempDirectory / "apiTemplates"
-  tmpApiTemplate.createDirectories()
+@RunWith(classOf[ZTestJUnitRunner])
+class TestRestFromFileDef extends ZIOSpecDefault {
 
   // nodeXX appears at several places
 
-  override def yamlSourceDirectory:  String    = "api"
-  override def yamlDestTmpDirectory: File      = tmpApiTemplate
-  override def liftRules:            LiftRules = restTestSetUp.liftRules
-
-  override def afterAll(): Unit = {
-    if (System.getProperty("tests.clean.tmp") != "false") {
-      restTestSetUp.cleanup()
-    }
-  }
-
-  def copyTransformApiRevision(orig: String): String = {
+  def copyTransformApiRevision(restTestSetUp: RestTestSetUp)(orig: String): String = {
     // find interesting revision for technique
     val name     = TechniqueName("packageManagement")
     val version  = ParseVersion.parse("1.0").getOrElse(throw new Exception("bad version in test"))
@@ -78,18 +61,47 @@ class TestRestFromFileDef extends TraitTestApiFromYamlFiles with AfterAll {
     orig.replaceAll("VALID-REV", revision.rev.value)
   }
 
-  val transformations: Map[String, String => String] = Map(
-    ("api_revisions.yml" -> copyTransformApiRevision _)
-  )
-
+  // you can pass a list of file to test exclusively if you don't want to test all .yml
+  // files in src/test/resource/${yamlSourceDirectory}
   // we are testing error cases, so we don't want to output error log for them
   org.slf4j.LoggerFactory
     .getLogger("com.normation.rudder.rest.RestUtils")
     .asInstanceOf[ch.qos.logback.classic.Logger]
     .setLevel(ch.qos.logback.classic.Level.OFF)
 
-  // you can pass a list of file to test exclusively if you don't want to test all .yml
-  // files in src/test/resource/${yamlSourceDirectory}
-  doTest(Nil)
+  val restTestSetUp = RestTestSetUp.newEnv
+  // update package management revision with new commits
+
+  // let's say that's /var/rudder/share
+  val tmpApiTemplate: File = restTestSetUp.baseTempDirectory / "apiTemplates"
+
+  val yamlSourceDirectory:  String = "api"
+  val yamlDestTmpDirectory: File   = tmpApiTemplate
+
+  val transformations: Map[String, String => String] = Map(
+    ("api_revisions.yml" -> copyTransformApiRevision(restTestSetUp) _)
+  )
+
+  tmpApiTemplate.createDirectories()
+
+  override def spec: Spec[TestEnvironment with Scope, Any] = {
+    (suite("All REST tests defined in files") {
+
+      for {
+        s <- TraitTestApiFromYamlFiles.doTest(
+               yamlSourceDirectory,
+               yamlDestTmpDirectory,
+               restTestSetUp,
+               Nil,
+               transformations
+             )
+        _ <- effectUioUnit(
+               if (java.lang.System.getProperty("tests.clean.tmp") != "false") IOResult.attempt(restTestSetUp.cleanup())
+               else ZIO.unit
+             )
+      } yield s
+    })
+
+  }
 
 }

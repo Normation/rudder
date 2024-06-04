@@ -5,4 +5,4 @@ url: /api/status
 response:
   type: text #optionnal, by default json
   code: 200 #optionnal
-  content: 'OK'
+  content: "OK\n"

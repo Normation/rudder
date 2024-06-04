@@ -214,7 +214,7 @@ response:
     {
       "action":"directiveDetails",
       "result":"error",
-      "errorDetails":"Inconsistency:Directive with id 'xxxxxxxx-2675-43b9-ab57-bfbab84346aa' was not found"
+      "errorDetails":"Inconsistency: Directive with id 'xxxxxxxx-2675-43b9-ab57-bfbab84346aa' was not found"
     }
 ---
 description: List directives
@@ -294,7 +294,7 @@ response:
           },
           {
             "id":"directive1",
-            "displayName":"10.Clock Configuration",
+            "displayName":"10. Clock Configuration",
             "shortDescription":"",
             "longDescription":"",
             "techniqueName":"clockConfiguration",
@@ -340,7 +340,7 @@ response:
           },
           {
             "id":"gvd-directive1",
-            "displayName":"99.Generic Variable Def #1",
+            "displayName":"99. Generic Variable Def #1",
             "shortDescription":"",
             "longDescription":"",
             "techniqueName":"genericVariableDefinition",
@@ -356,7 +356,7 @@ response:
           },
           {
             "id":"gvd-directive2",
-            "displayName":"00.Generic Variable Def #2",
+            "displayName":"00. Generic Variable Def #2",
             "shortDescription":"",
             "longDescription":"",
             "techniqueName":"genericVariableDefinition",
@@ -1204,7 +1204,7 @@ response:
     {
       "action":"directiveDetails",
       "result":"error",
-      "errorDetails":"Inconsistency:Directive with id '1bc636c0-61b0-410c-0000-66bcfc95804d'was not found"
+      "errorDetails":"Inconsistency: Directive with id '1bc636c0-61b0-410c-0000-66bcfc95804d' was not found"
     }
 ---
 description: Get Directive tree
@@ -1220,11 +1220,11 @@ response:
         "directives": [
           {
             "name": "Active Techniques",
-            "description": "This is the root category for active techniques.It contains subcategories,actives techniques and directives",
+            "description": "This is the root category for active techniques. It contains subcategories, actives techniques and directives",
             "subCategories": [
               {
                 "name": "Application management",
-                "description": "This category contains Techniques designed to install,configure and manage applications",
+                "description": "This category contains Techniques designed to install, configure and manage applications",
                 "subCategories": [],
                 "techniques": [
                   {
@@ -1536,12 +1536,12 @@ response:
               },
               {
                 "name": "Distributing files",
-                "description": "\n Manage node files.\n ",
+                "description": "\n        Manage node files.\n    ",
                 "subCategories": [],
                 "techniques": [
                   {
                     "id": "copyGitFile",
-                    "name": "File download (Rudderserver)",
+                    "name": "File download (Rudder server)",
                     "directives": [
                       {
                         "id": "directive-copyGitFile",
@@ -1962,7 +1962,7 @@ response:
               },
               {
                 "name": "Meta Techniques",
-                "description": "\n Meta Techniques created using the ncf framework.\n ",
+                "description": "\n    Meta Techniques created using the ncf framework.\n  ",
                 "subCategories": [],
                 "techniques": [
                   {
@@ -2037,12 +2037,12 @@ response:
                   },
                   {
                     "id": "technique_any",
-                    "name": "TestTechnique created through Rudder API",
+                    "name": "Test Technique created through Rudder API",
                     "directives": []
                   },
                   {
                     "id": "technique_by_Rudder",
-                    "name": "TestTechnique created through Rudder API",
+                    "name": "Test Technique created through Rudder API",
                     "directives": []
                   },
                   {
@@ -2079,7 +2079,7 @@ response:
               },
               {
                 "name": "System settings",
-                "description": "This category contains Techniques to configure the basic components of a system:name resolution,time synchronization,remote access,networking...",
+                "description": "This category contains Techniques to configure the basic components of a system: name resolution, time synchronization, remote access, networking...",
                 "subCategories": [
                   {
                     "name": "Miscellaneous",
@@ -2092,7 +2092,7 @@ response:
                         "directives": [
                           {
                             "id": "directive1",
-                            "displayName": "10.Clock Configuration",
+                            "displayName": "10. Clock Configuration",
                             "shortDescription": "",
                             "longDescription": "",
                             "techniqueName": "clockConfiguration",
@@ -2178,7 +2178,7 @@ response:
                         "directives": [
                           {
                             "id": "gvd-directive2",
-                            "displayName": "00.Generic Variable Def #2",
+                            "displayName": "00. Generic Variable Def #2",
                             "shortDescription": "",
                             "longDescription": "",
                             "techniqueName": "genericVariableDefinition",
@@ -2217,7 +2217,7 @@ response:
                           },
                           {
                             "id": "gvd-directive1",
-                            "displayName": "99.Generic Variable Def #1",
+                            "displayName": "99. Generic Variable Def #1",
                             "shortDescription": "",
                             "longDescription": "",
                             "techniqueName": "genericVariableDefinition",

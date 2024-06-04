@@ -183,6 +183,7 @@ import scala.xml.Elem
 import scala.xml.NodeSeq
 import zio.*
 import zio.syntax.*
+import zio.test.*
 
 /*
  * This file provides all the necessary plumbing to allow test REST API.
@@ -978,26 +979,6 @@ class RestTestSetUp {
 
   val baseTempDirectory = mockGitRepo.abstractRoot
 
-  /*
-   * We will commit some revisions for packageManagement technique:
-   * - init commit: what is on repos
-   * - commit 1: change metadata section (impact on directive details, but not on variables)
-   * - commit 2: revert to initial state
-   */
-  def updatePackageManagementRevision(): Unit = {
-    val metadata = mockGitRepo.configurationRepositoryRoot / "techniques/applications/packageManagement/1.0/metadata.xml"
-
-    val orig = metadata.contentAsString(StandardCharsets.UTF_8)
-    val mod  = orig.replaceAll("""name="Package version" """, """name="AN OTHER REVISION OF TECHNIQUE PACKAGE MANAGEMENT" """)
-
-    metadata.write(mod)
-    mockGitRepo.gitRepo.git.add().setUpdate(true).addFilepattern(".").call()
-    mockGitRepo.gitRepo.git.commit().setMessage("new revision of packageManagement/1.0 technique").call()
-    metadata.write(orig)
-    mockGitRepo.gitRepo.git.add().setUpdate(true).addFilepattern(".").call()
-    mockGitRepo.gitRepo.git.commit().setMessage("revert to original content for packageManagement/1.0 technique").call()
-  }
-
   // a cleanup method that delete all test files
   def cleanup(): Unit = {
 
@@ -1038,6 +1019,40 @@ class RestTest(liftRules: LiftRules) {
    */
   def execRequestResponse[T](mockReq: MockHttpServletRequest)(tests: Box[LiftResponse] => MatchResult[T]): MatchResult[T] = {
     doReq(mockReq) { req =>
+      // the test logic is taken from LiftServlet#doServices.
+      // perhaps we should call directly that methods, but it need
+      // much more set-up, and I don't know for sure *how* to set-up things.
+      NamedPF
+        .applyBox(req, LiftRules.statelessDispatch.toList)
+        .map(_.apply() match {
+          case Full(a) => Full(LiftRules.convertResponse((a, Nil, S.responseCookies, req)))
+          case r       => r
+        }) match {
+        case Full(x) => tests(x)
+        case eb: EmptyBox => tests(eb)
+      }
+    }
+  }
+
+  /*
+   * Correctly build and scope mutable things to use the request in a safe
+   * way in the context of LiftRules.
+   */
+  def doReqZioTest[T](mockReq: MockHttpServletRequest)(tests: Req => TestResult): TestResult = {
+    LiftRulesMocker.devTestLiftRulesInstance.doWith(liftRules) {
+      MockWeb.useLiftRules.doWith(true) {
+        MockWeb.testReq(mockReq)(tests)
+      }
+    }
+  }
+
+  /**
+   * Execute the request and get the response.
+   * The request must be a stateless one, else a failure
+   * will follow.
+   */
+  def execRequestResponseZioTest[T](mockReq: MockHttpServletRequest)(tests: Box[LiftResponse] => TestResult): TestResult = {
+    doReqZioTest(mockReq) { req =>
       // the test logic is taken from LiftServlet#doServices.
       // perhaps we should call directly that methods, but it need
       // much more set-up, and I don't know for sure *how* to set-up things.

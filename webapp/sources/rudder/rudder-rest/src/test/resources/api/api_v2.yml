@@ -5,7 +5,7 @@ url: /api/status
 response:
   type: text #optionnal, by default json
   code: 200
-  content: 'OK'
+  content: "OK\n"
 # example of a bad spec, because type "plop" is not known
 # ---
 # method: GET

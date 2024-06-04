@@ -38,8 +38,6 @@
 package com.normation.rudder.rest
 
 import better.files.*
-import com.normation.BoxSpecMatcher
-import com.normation.JsonSpecMatcher
 import com.normation.box.IOManaged
 import com.normation.errors.*
 import com.normation.errors.IOResult
@@ -67,18 +65,15 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.LiftRules
 import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.util.Helpers.tryo
-import org.specs2.matcher.Matcher
-import org.specs2.mutable.*
-import org.specs2.specification.core.Fragment
-import org.specs2.specification.core.Fragments
 import org.yaml.snakeyaml.Yaml
 import scala.jdk.CollectionConverters.*
 import scala.util.control.NonFatal
 import zio.*
 import zio.syntax.*
+import zio.test.*
 
 /*
- * Utily data structures
+ * Utility data structures
  */
 sealed trait ResponseType
 object ResponseType {
@@ -137,35 +132,22 @@ object TraitTestApiFromYamlFiles {
     (rudderApi, liftRules)
   }
 
-}
-
-trait TraitTestApiFromYamlFiles extends Specification with BoxSpecMatcher with JsonSpecMatcher {
-
-  // source directory for yaml file, must be in the test class path (accessed as a resource).
-  // For example, if yaml test files are under src/test/resources/api, then just use "api" here
-  def yamlSourceDirectory:  String
-  // the base temp directory where are stored yaml test files
-  // It can have a `templates` subdirectory where templates for transformation are store
-  // If you have template, that directory needs to be writable to allows to copy processed template there.
-  // You need to take care of the cleanup by yourself.
-  def yamlDestTmpDirectory: File
-  // transformation are pre-processing of template before running the test, typically to set api version, random things, etc
-  def transformations:      Map[String, String => String]
-
-  // the liftRules to use for API
-  def liftRules: LiftRules
-
-  // we have two kinds of files:
-  // - yml files directly under /api are considered "use as it" (no post processing)
-  // - yml files under /api/templates are considered to need a post processing step.
-
   // directly dir
-  def readYamlFiles(baseDir: String, tmpDir: File, only: String => Boolean): IOResult[List[(String, List[AnyRef])]] = {
+  def readYamlFiles(
+      baseDir:         String,
+      tmpDir:          File,
+      only:            String => Boolean,
+      transformations: Map[String, String => String]
+  ): IOResult[List[(String, List[AnyRef])]] = {
 
     val templateDir = baseDir + "/templates"
 
     // we accept that the resources is not there
-    def listFilesUnder(dir: String, mandatory: Boolean): IOResult[List[String]] = {
+    // transformation are pre-processing of template before running the test, typically to set api version, random things, etc
+    def listFilesUnder(
+        dir:       String,
+        mandatory: Boolean
+    ): IOResult[List[String]] = {
       IOResult.attemptZIO(Resource.url(dir) match {
         case None if (mandatory) => Unexpected(s"Missing required classpath resources: ${dir}").fail
         case None                => Nil.succeed
@@ -174,19 +156,23 @@ trait TraitTestApiFromYamlFiles extends Specification with BoxSpecMatcher with J
     }
 
     // transform templates based on the map of transformation, or ident if not registered
-    def transform(name: String, s: String): String = {
+    def transform(transformations: Map[String, String => String], name: String, s: String): String = {
       transformations.getOrElse(name, identity[String] _)(s)
     }
 
     // file are copier directly into destDir
-    def copyTransform(orig: Path, destDir: File): IOResult[(String, IOManaged[InputStream])] = {
+    def copyTransform(
+        transformations: Map[String, String => String],
+        orig:            Path,
+        destDir:         File
+    ): IOResult[(String, IOManaged[InputStream])] = {
       // for now, nothing more
       val name         = orig.getFileName.toString
       val dest         = destDir / name
       val emptyManaged = IOManaged.make("".inputStream)(is => effectUioUnit(is.close()))
 
       IOResult
-        .attempt(Resource.asString(orig.toString).map(s => dest.write(transform(name, s))))
+        .attempt(Resource.asString(orig.toString).map(s => dest.write(transform(transformations, name, s))))
         .option
         .flatMap {
           case Some(Some(f)) =>
@@ -218,7 +204,7 @@ trait TraitTestApiFromYamlFiles extends Specification with BoxSpecMatcher with J
                    }
       // templates: need copy to tmp file
       templates <- listFilesUnder(templateDir, mandatory = false).map(_.filter(only))
-      copied    <- ZIO.foreach(templates)(t => copyTransform(Paths.get(templateDir, t), tmpDir))
+      copied    <- ZIO.foreach(templates)(t => copyTransform(transformations, Paths.get(templateDir, t), tmpDir))
       allYamls  <- ZIO.foreach(baseIs ++ copied) { case (name, input) => loadYamls(input).map(y => (name, y)) }
     } yield {
       allYamls
@@ -290,72 +276,117 @@ trait TraitTestApiFromYamlFiles extends Specification with BoxSpecMatcher with J
     }
   }
 
-  def cleanResponse(r: LiftResponse):                                          (Int, String) = {
+  def cleanResponse(r: LiftResponse): (Int, String) = {
     val response = r.toResponse.asInstanceOf[InMemoryResponse]
     val resp     = new String(response.data, "UTF-8")
     (response.code, resp)
   }
 // a way to only test some files in do test. Let it empty to ex on all.
-  def doTest(limitToFiles: List[String] = Nil, semanticJson: Boolean = false): Fragments     = {
+  def doTest[E, I](
+      // source directory for yaml file, must be in the test class path (accessed as a resource).
+      // For example, if yaml test files are under src/test/resources/api, then just use "api" here
+      yamlSourceDirectory:  String,
+      // the base temp directory where are stored yaml test files
+      // It can have a `templates` subdirectory where templates for transformation are store
+      // If you have template, that directory needs to be writable to allows to copy processed template there.
+      // You need to take care of the cleanup by yourself.
+      yamlDestTmpDirectory: File,
+      // the liftRules to use for API
+      restTestSetUp:        RestTestSetUp,
+
+      // we have two kinds of files:
+      // - yml files directly under /api are considered "use as it" (no post processing)
+      // - yml files under /api/templates are considered to need a post processing step.
+
+      limitToFiles:    List[String] = Nil,
+      transformations: Map[String, String => String]
+  ) = {
+
     ///// tests ////
-    val restTest = new RestTest(liftRules)
+    val restTest = new RestTest(restTestSetUp.liftRules)
 
-    sequential
+    val files = (if (limitToFiles.isEmpty) {
+                   readYamlFiles(yamlSourceDirectory, yamlDestTmpDirectory, _.endsWith(".yml"), transformations).runNow
+                 } else {
+                   readYamlFiles(
+                     yamlSourceDirectory,
+                     yamlDestTmpDirectory,
+                     f => limitToFiles.exists(n => f.endsWith(n)),
+                     transformations
+                   ).runNow
+                 }).sortBy(_._1)
 
-    val files = if (limitToFiles.isEmpty) {
-      readYamlFiles(yamlSourceDirectory, yamlDestTmpDirectory, _.endsWith(".yml")).runNow
-    } else {
-      readYamlFiles(yamlSourceDirectory, yamlDestTmpDirectory, f => limitToFiles.exists(n => f.endsWith(n))).runNow
-    }
-
-    def equalsBox[A](m:       Matcher[A])(name: String): Matcher[Box[A]] = (_: Box[A]).mustMatch(m, name)
-    // Full(1) must equalsBoxStrict(1)
-    def equalsBoxStrict[A](a: A)(name:          String): Matcher[Box[A]] = equalsBox[A](be_==(a))(name)
-    // Full("[3,4]") must equalsBoxJson("[3, 4]")
-    def compareJson(s: String): Matcher[String] =
-      if (semanticJson) equalsJsonSemantic(s) else equalsJson(s)
-    def equalsBoxJson(s: String)(name: String): Matcher[Box[String]] = equalsBox(compareJson(s))(name)
-
-    Fragments.foreach(files) {
+    ZIO.foreach(files) {
       case (name, yamls) =>
-        // "." are breaking description, we need to remove it from file name
-        s"For each test defined in '${name.split("\\.").head}'" should {
-          Fragment.foreach(yamls.map(readSpecification).zipWithIndex.toSeq) { x =>
-            x match {
-              case (eb: EmptyBox, i) =>
-                val f = eb ?~! s"I wasn't able to run the ${i}th tests in file ${name}"
-                ApplicationLogger.error(f.messageChain)
+        // we can't have "." in test description, it breaks junit test runner in intellij
+        (suite(s"Tests defined in '${name.split("\\.").head}' yaml") {
 
-                s"[${i}] failing test ${i}: can not read description" in {
-                  ko(s"The yaml description ${i} in ${name} cannot be read: ${f.messageChain}")
-                }
+          val tests: ZIO[Any, Throwable, List[Spec[Any, Nothing]]] = {
+            (ZIO.foreach(yamls.map(readSpecification).zipWithIndex) { x =>
+              (x match {
+                case (eb: EmptyBox, i) =>
+                  val f = eb ?~! s"I wasn't able to run the ${i}th tests in file ${name}"
+                  ApplicationLogger.error(f.messageChain)
 
-              case (Full(test), i) =>
-                s"[${i}] ${test.description}" in {
-                  val mockReq = new MockHttpServletRequest("http://localhost:8080")
-                  mockReq.method = test.method
-                  val p       = test.url.split('?')
-                  mockReq.path = p.head // exists, split always returns at least one element
-                  mockReq.queryString = if (p.size > 1) p(1) else ""
-                  mockReq.body = test.queryBody.getBytes(StandardCharsets.UTF_8)
-                  mockReq.headers = test.headers.map { h =>
-                    val parts = h.split(":")
-                    (parts(0), List(parts.tail.mkString(":").trim))
-                  }.toMap
-                  // query string may have already set some params
-                  mockReq.parameters = mockReq.parameters ++ test.params
-                  mockReq.contentType = mockReq.headers.get("Content-Type").flatMap(_.headOption).getOrElse("text/plain")
+                  // erg. There must be a better way
+                  zio.test.test(
+                    s"[${i}] failing test ${i}: can not read description. The yaml description ${i} in ${name} cannot be read: ${f.messageChain}"
+                  )(
+                    assert(true)(Assertion.isFalse)
+                  )
 
-                  restTest.execRequestResponse(mockReq)(response => {
-                    val responseBox = response.map(cleanResponse(_))
-                    responseBox.map(_._1) must equalsBoxStrict(test.responseCode)("response code") and (
-                      responseBox.map(_._2) must equalsBoxJson(test.responseContent)("response content")
-                    )
-                  })
-                }
-            }
+                case (Full(test), i) =>
+                  zio.test.test(s"[${i}] ${test.description}") {
+                    val mockReq = new MockHttpServletRequest("http://localhost:8080")
+                    mockReq.method = test.method
+                    val p       = test.url.split('?')
+                    mockReq.path = p.head // exists, split always returns at least one element
+                    mockReq.queryString = if (p.size > 1) p(1) else ""
+                    mockReq.body = test.queryBody.getBytes(StandardCharsets.UTF_8)
+                    mockReq.headers = test.headers.map { h =>
+                      val parts = h.split(":")
+                      (parts(0), List(parts.tail.mkString(":").trim))
+                    }.toMap
+                    // query string may have already set some params
+                    mockReq.parameters = mockReq.parameters ++ test.params
+                    mockReq.contentType = mockReq.headers.get("Content-Type").flatMap(_.headOption).getOrElse("text/plain")
+
+                    restTest.execRequestResponseZioTest(mockReq) { response =>
+                      (for {
+                        clean        <- response.map(cleanResponse).toPureResult.left.map(_.fullMsg)
+                        expectedJson <- cleanJson(test.responseContent)
+                        responseJson <- cleanJson(clean._2)
+                      } yield (clean._1, expectedJson, responseJson)) match {
+                        case Left(s)                         =>
+                          assert(s)(Assertion(TestArrow.make[String, Boolean](s => TestTrace.fail(s))))
+                        case Right((code, expJson, resJons)) =>
+                          assertTrue(
+                            code == test.responseCode,
+                            resJons == expJson
+                          )
+                      }
+                    }
+                  }
+
+              }).succeed
+            })
           }
+          tests
+        } @@ TestAspect.sequential).succeed
+    }
+  }
+
+  def cleanJson(json: String): Either[String, String] = {
+    import zio.json.*
+    import zio.json.ast.*
+    json.fromJson[Json].map(_.toJsonPretty) match {
+      case Left(err)   =>
+        // here, we need to take care of the case of a pure string. Rule of thumb: if the first char is not json-ok, fallback
+        err match {
+          case "(unexpected 'O')" => Right(json)
+          case x                  => Left(x)
         }
+      case Right(json) => Right(json)
     }
   }
 }

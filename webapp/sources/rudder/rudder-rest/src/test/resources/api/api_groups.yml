@@ -230,8 +230,8 @@ response:
                   "string":"a string"
                 },
                 "provider":"overridden",
-                "hierarchy":"<p>from <b>Global Parameter</b>:<pre>{\n \"array\":[\n 1,\n 3,\n 2\n ],\n \"json\":{\n \"var1\":\"val1\",\n \"var2\":\"val2\"\n },\n \"string\":\"a string\"\n}\n</pre></p><p>from <b>this group (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>{\n \"array\":[\n 5,\n 6\n ],\n \"group\":\"string\",\n \"json\":{\n \"g1\":\"g1\"\n }\n}\n</pre></p>",
-                "hierarchyStatus":{
+                "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>{\n    \"array\" : [\n        1,\n        3,\n        2\n    ],\n    \"json\" : {\n        \"var1\" : \"val1\",\n        \"var2\" : \"val2\"\n    },\n    \"string\" : \"a string\"\n}\n</pre></p><p>from <b>this group (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>{\n    \"array\" : [\n        5,\n        6\n    ],\n    \"group\" : \"string\",\n    \"json\" : {\n        \"g1\" : \"g1\"\n    }\n}\n</pre></p>",
+                  "hierarchyStatus":{
                   "hasChildTypeConflicts":false,
                   "fullHierarchy":[
                     {
@@ -323,7 +323,7 @@ response:
     {
       "action":"groupDetails",
       "result":"error",
-      "errorDetails":"Inconsistency:Group with id 'xxxxxxxx-2675-43b9-ab57-bfbab84346aa'was not found'"
+      "errorDetails":"Inconsistency: Group with id 'xxxxxxxx-2675-43b9-ab57-bfbab84346aa' was not found'"
     }
 ---
 description: List groups
@@ -478,8 +478,8 @@ response:
           },
           {
             "id":"a-group-for-root-only",
-            "displayName":"Serveurs [€ðŋ]cassés",
-            "description":"Liste de l'ensemble de serveurs cassés àréparer",
+            "displayName":"Serveurs [€ðŋ] cassés",
+            "description":"Liste de l'ensemble de serveurs cassés à réparer",
             "category":"GroupRoot",
             "nodeIds":["root"],
             "dynamic":true,
@@ -1043,8 +1043,8 @@ response:
         "groups":[
           {
             "id":"3fa29229-1a4b-4fd6-9edd-af114289fc9a",
-            "displayName":"Debian 10 nodes,updated",
-            "description":"description,updated",
+            "displayName":"Debian 10 nodes, updated",
+            "description":"description, updated",
             "category":"category1",
             "query":{
               "select":"node",
@@ -1109,8 +1109,8 @@ response:
         "groups":[
           {
             "id":"3fa29229-1a4b-4fd6-0001-af114289fc9a",
-            "displayName":"Debian 10 nodes,updated",
-            "description":"description,updated",
+            "displayName":"Debian 10 nodes, updated",
+            "description":"description, updated",
             "category":"category1",
             "query":{
               "select":"node",
@@ -1170,8 +1170,8 @@ response:
         "groups":[
           {
             "id":"3fa29229-1a4b-4fd6-9edd-af114289fc9a",
-            "displayName":"Debian 10 nodes,updated",
-            "description":"description,updated",
+            "displayName":"Debian 10 nodes, updated",
+            "description":"description, updated",
             "category":"GroupRoot",
             "query":{
               "select":"node",
@@ -1231,8 +1231,8 @@ response:
         "groups":[
           {
             "id":"3fa29229-1a4b-4fd6-0001-af114289fc9a",
-            "displayName":"Debian 10 nodes,updated",
-            "description":"description,updated",
+            "displayName":"Debian 10 nodes, updated",
+            "description":"description, updated",
             "category":"GroupRoot",
             "query":{
               "select":"node",
@@ -1432,3 +1432,182 @@ response:
       }
     }
 
+#
+# API GROUPSINTERNAL
+# Testing here because it uses changes from group test
+#
+---
+description: Get the tree of groups with bare minimum group information
+method: GET
+url: /secure/api/groupsinternal/categorytree
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getGroupCategoryTree",
+      "result" : "success",
+      "data" : {
+        "id" : "GroupRoot",
+        "name" : "GroupRoot",
+        "description" : "root of group categories",
+        "categories" : [
+          {
+            "id" : "219b9c98-3d1e-44c9-0001-95b4fc7c4ada",
+            "name" : "category 2",
+            "description" : "",
+            "categories" : [],
+            "groups" : [],
+            "targets" : []
+          },
+          {
+            "id" : "219b9c98-3d1e-44c9-aff5-95b4fc7c4ada",
+            "name" : "category 2",
+            "description" : "",
+            "categories" : [],
+            "groups" : [],
+            "targets" : []
+          },
+          {
+            "id" : "category1",
+            "name" : "category 1",
+            "description" : "the first category",
+            "categories" : [
+              {
+                "id" : "219b9c98-3d1e-44c9-0001-95b4fc7c4ada",
+                "name" : "category 2 update",
+                "description" : "category 2",
+                "categories" : [],
+                "groups" : [],
+                "targets" : []
+              },
+              {
+                "id" : "219b9c98-3d1e-44c9-aff5-95b4fc7c4ada",
+                "name" : "category 2 update",
+                "description" : "category 2",
+                "categories" : [],
+                "groups" : [],
+                "targets" : []
+              }
+            ],
+            "groups" : [
+              {
+                "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                "displayName" : "Real nodes",
+                "description" : "",
+                "category" : "category1",
+                "dynamic" : false,
+                "enabled" : true,
+                "target" : "group:0000f5d3-8c61-4d20-88a7-bb947705ba8a"
+              }
+            ],
+            "targets" : []
+          }
+        ],
+        "groups" : [
+          {
+            "id" : "00000000-cb9d-4f7b-abda-ca38c5d643ea",
+            "displayName" : "clone from api of debian group",
+            "description" : "Some long description",
+            "category" : "GroupRoot",
+            "dynamic" : true,
+            "enabled" : true,
+            "target" : "group:00000000-cb9d-4f7b-abda-ca38c5d643ea"
+          },
+          {
+            "id" : "6666f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName" : "Nodes id divided by 5",
+            "description" : "",
+            "category" : "GroupRoot",
+            "dynamic" : false,
+            "enabled" : true,
+            "target" : "group:6666f5d3-8c61-4d20-88a7-bb947705ba8a"
+          },
+          {
+            "id" : "4444f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName" : "Odd nodes",
+            "description" : "",
+            "category" : "GroupRoot",
+            "dynamic" : false,
+            "enabled" : true,
+            "target" : "group:4444f5d3-8c61-4d20-88a7-bb947705ba8a"
+          },
+          {
+            "id" : "3333f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName" : "Even nodes",
+            "description" : "",
+            "category" : "GroupRoot",
+            "dynamic" : false,
+            "enabled" : true,
+            "target" : "group:3333f5d3-8c61-4d20-88a7-bb947705ba8a"
+          },
+          {
+            "id" : "00000000-cb9d-4f7b-0001-ca38c5d643ea",
+            "displayName" : "clone from api of debian group",
+            "description" : "Some long description",
+            "category" : "GroupRoot",
+            "dynamic" : true,
+            "enabled" : true,
+            "target" : "group:00000000-cb9d-4f7b-0001-ca38c5d643ea"
+          },
+          {
+            "id" : "5555f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName" : "Nodes id divided by 3",
+            "description" : "",
+            "category" : "GroupRoot",
+            "dynamic" : false,
+            "enabled" : true,
+            "target" : "group:5555f5d3-8c61-4d20-88a7-bb947705ba8a"
+          },
+          {
+            "id" : "a-group-for-root-only",
+            "displayName" : "Serveurs [€ðŋ] cassés",
+            "description" : "Liste de l'ensemble de serveurs cassés à réparer",
+            "category" : "GroupRoot",
+            "dynamic" : true,
+            "enabled" : true,
+            "target" : "group:a-group-for-root-only"
+          },
+          {
+            "id" : "2222f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName" : "only root",
+            "description" : "",
+            "category" : "GroupRoot",
+            "dynamic" : false,
+            "enabled" : true,
+            "target" : "group:2222f5d3-8c61-4d20-88a7-bb947705ba8a"
+          },
+          {
+            "id" : "1111f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName" : "Empty group",
+            "description" : "",
+            "category" : "GroupRoot",
+            "dynamic" : false,
+            "enabled" : true,
+            "target" : "group:1111f5d3-8c61-4d20-88a7-bb947705ba8a"
+          }
+        ],
+        "targets" : [
+          {
+            "id" : "policyServer:root",
+            "displayName" : "special:policyServer_root",
+            "description" : "The root policy server",
+            "enabled" : true,
+            "target" : "policyServer:root"
+          },
+          {
+            "id" : "special:all_exceptPolicyServers",
+            "displayName" : "special:all_exceptPolicyServers",
+            "description" : "All groups without policy servers",
+            "enabled" : true,
+            "target" : "special:all_exceptPolicyServers"
+          },
+          {
+            "id" : "special:all",
+            "displayName" : "special:all",
+            "description" : "All nodes",
+            "enabled" : true,
+            "target" : "special:all"
+          }
+        ]
+      }
+    }

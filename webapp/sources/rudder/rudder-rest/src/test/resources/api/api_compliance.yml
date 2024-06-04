@@ -31,7 +31,7 @@ response:
                 "directives" : [
                   {
                     "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                    "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                     "compliance" : 100.0,
                     "policyMode" : "default",
                     "complianceDetails" : {
@@ -187,7 +187,7 @@ response:
                 "directives" : [
                   {
                     "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
-                    "name" : "directive99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                     "compliance" : 100.0,
                     "policyMode" : "default",
                     "complianceDetails" : {
@@ -250,7 +250,7 @@ response:
                     "directives" : [
                       {
                         "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "compliance" : 100.0,
                         "policyMode" : "default",
                         "complianceDetails" : {
@@ -342,7 +342,7 @@ response:
                     "directives" : [
                       {
                         "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "compliance" : 100.0,
                         "policyMode" : "default",
                         "complianceDetails" : {
@@ -381,7 +381,7 @@ response:
                     "directives" : [
                       {
                         "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
-                        "name" : "directive99f4ef91-537b-4e03-97bc-e65b447514cc",
+                        "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                         "compliance" : 100.0,
                         "policyMode" : "default",
                         "complianceDetails" : {
@@ -488,7 +488,7 @@ response:
                 "directives" : [
                   {
                     "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                    "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                     "compliance" : 100.0,
                     "policyMode" : "default",
                     "complianceDetails" : {
@@ -566,7 +566,7 @@ response:
                 "directives" : [
                   {
                     "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
-                    "name" : "directive99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                     "compliance" : 100.0,
                     "policyMode" : "default",
                     "complianceDetails" : {
@@ -628,7 +628,7 @@ response:
                     "directives" : [
                       {
                         "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "compliance" : 100.0,
                         "policyMode" : "default",
                         "complianceDetails" : {
@@ -680,7 +680,7 @@ response:
                     "directives" : [
                       {
                         "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "compliance" : 100.0,
                         "policyMode" : "default",
                         "complianceDetails" : {
@@ -719,7 +719,7 @@ response:
                     "directives" : [
                       {
                         "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
-                        "name" : "directive99f4ef91-537b-4e03-97bc-e65b447514cc",
+                        "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                         "compliance" : 100.0,
                         "policyMode" : "default",
                         "complianceDetails" : {
@@ -788,7 +788,7 @@ response:
                 "directives" : [
                   {
                     "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                    "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                     "compliance" : 100.0,
                     "policyMode" : "default",
                     "complianceDetails" : {
@@ -888,7 +888,7 @@ response:
                 "directives" : [
                   {
                     "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
-                    "name" : "directive99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                     "compliance" : 100.0,
                     "policyMode" : "default",
                     "complianceDetails" : {
@@ -952,7 +952,7 @@ response:
                     "directives" : [
                       {
                         "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "compliance" : 100.0,
                         "policyMode" : "default",
                         "complianceDetails" : {
@@ -991,7 +991,7 @@ response:
                     "directives" : [
                       {
                         "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
-                        "name" : "directive99f4ef91-537b-4e03-97bc-e65b447514cc",
+                        "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                         "compliance" : 100.0,
                         "policyMode" : "default",
                         "complianceDetails" : {
@@ -1228,7 +1228,7 @@ response:
                 "directives" : [
                   {
                     "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                    "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                     "compliance" : 100.0,
                     "policyMode" : "default",
                     "complianceDetails" : {
@@ -1384,7 +1384,7 @@ response:
                 "directives" : [
                   {
                     "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                    "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                     "compliance" : 100.0,
                     "policyMode" : "default",
                     "complianceDetails" : {
@@ -1434,7 +1434,7 @@ response:
                 "directives" : [
                   {
                     "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
-                    "name" : "directive99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                     "compliance" : 100.0,
                     "policyMode" : "default",
                     "complianceDetails" : {
@@ -1497,7 +1497,7 @@ response:
                     "directives" : [
                       {
                         "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "compliance" : 100.0,
                         "policyMode" : "default",
                         "complianceDetails" : {
@@ -1575,7 +1575,7 @@ response:
                     "directives" : [
                       {
                         "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "compliance" : 100.0,
                         "policyMode" : "default",
                         "complianceDetails" : {
@@ -1628,7 +1628,7 @@ response:
                     "directives" : [
                       {
                         "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "compliance" : 100.0,
                         "policyMode" : "default",
                         "complianceDetails" : {
@@ -1667,7 +1667,7 @@ response:
                     "directives" : [
                       {
                         "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
-                        "name" : "directive99f4ef91-537b-4e03-97bc-e65b447514cc",
+                        "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                         "compliance" : 100.0,
                         "policyMode" : "default",
                         "complianceDetails" : {
@@ -1774,7 +1774,7 @@ response:
                 "directives" : [
                   {
                     "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
-                    "name" : "directive99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                     "compliance" : 100.0,
                     "policyMode" : "default",
                     "complianceDetails" : {
@@ -1824,7 +1824,7 @@ response:
                 "directives" : [
                   {
                     "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                    "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                     "compliance" : 100.0,
                     "policyMode" : "default",
                     "complianceDetails" : {
@@ -1914,7 +1914,7 @@ response:
                     "directives" : [
                       {
                         "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "compliance" : 100.0,
                         "policyMode" : "default",
                         "complianceDetails" : {
@@ -1966,7 +1966,7 @@ response:
                     "directives" : [
                       {
                         "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "compliance" : 100.0,
                         "policyMode" : "default",
                         "complianceDetails" : {
@@ -2005,7 +2005,7 @@ response:
                     "directives" : [
                       {
                         "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
-                        "name" : "directive99f4ef91-537b-4e03-97bc-e65b447514cc",
+                        "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                         "compliance" : 100.0,
                         "policyMode" : "default",
                         "complianceDetails" : {
@@ -2072,7 +2072,7 @@ response:
                 "directives" : [
                   {
                     "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                    "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                     "compliance" : 100.0,
                     "policyMode" : "default",
                     "complianceDetails" : {
@@ -2172,7 +2172,7 @@ response:
                     "directives" : [
                       {
                         "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "compliance" : 100.0,
                         "policyMode" : "default",
                         "complianceDetails" : {
@@ -2223,7 +2223,7 @@ response:
                     "directives" : [
                       {
                         "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "compliance" : 100.0,
                         "policyMode" : "default",
                         "complianceDetails" : {

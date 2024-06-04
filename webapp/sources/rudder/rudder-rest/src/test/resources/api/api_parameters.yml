@@ -30,7 +30,7 @@ response:
     {
       "action":"parameterDetails",
       "result":"error",
-      "errorDetails":"Inconsistency:Could not find Parameter xxxxxxxx"
+      "errorDetails":"Inconsistency: Could not find Parameter xxxxxxxx"
     }
 ---
 description: List parameters
