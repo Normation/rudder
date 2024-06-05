@@ -486,7 +486,7 @@ limitations under the License.
     <fs2-version>3.10.2</fs2-version>
     <shapeless-version>2.3.12</shapeless-version>
     <cats-effect-version>3.5.4</cats-effect-version>
-    <dev-zio-version>2.0.22</dev-zio-version>
+    <dev-zio-version>2.1.12</dev-zio-version>
     <zio-cats-version>23.1.0.2</zio-cats-version> <!-- gives fs2 3.10.2, but doobie 1.0.0-RC5 is in 3.9.3 -->
     <zio-json-version>0.7.1</zio-json-version>
     <enumeratum-version>1.7.4</enumeratum-version>

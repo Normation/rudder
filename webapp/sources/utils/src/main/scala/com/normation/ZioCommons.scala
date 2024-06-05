@@ -90,10 +90,13 @@ object errors {
    * use `IOResult.succeed`).
    */
   object IOResult {
-    def attempt[A](error: String)(effect: => A):                IO[SystemError, A] = {
+    // attempt is blocking
+    def attempt[A](error: String)(effect: => A): IO[SystemError, A] = {
       // In ZIO 2 blocking is automagically managed - https://github.com/zio/zio/issues/1275
-      ZIO.attempt(effect).mapError(ex => SystemError(error, ex))
+      // in 2.1.0, they remove the auto-blocking. Our code is not ready for that, so we need to set it back.
+      ZIO.attemptBlocking(effect).mapError(ex => SystemError(error, ex))
     }
+
     def attempt[A](effect: => A):                               IO[SystemError, A] = {
       this.attempt("An error occurred")(effect)
     }
@@ -108,6 +111,29 @@ object errors {
     def attemptZIO[A](ioeffect: => IOResult[A]):                IOResult[A]        = {
       attemptZIO("An error occurred")(ioeffect)
     }
+
+    // for non-blocking case
+    def nonBlocking[A](error: String)(effect: => A): IO[SystemError, A] = {
+      // in ZIO 2.1, attempt is for non blocking, CPU bound effects
+      ZIO.attempt(effect).mapError(ex => SystemError(error, ex))
+    }
+
+    def nonBlocking[A](effect: => A): IO[SystemError, A] = {
+      this.nonBlocking("An error occurred")(effect)
+    }
+
+    def nonBlockingZIO[A](error: String)(ioeffect: => IOResult[A]): IOResult[A] = {
+      ZIO
+        .attempt(ioeffect)
+        .foldZIO(
+          ex => SystemError(error, ex).fail,
+          res => res
+        )
+    }
+    def nonBlockingZIO[A](ioeffect: => IOResult[A]):                IOResult[A] = {
+      nonBlockingZIO("An error occurred")(ioeffect)
+    }
+
   }
 
   object PureResult {
