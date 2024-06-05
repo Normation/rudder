@@ -1,0 +1,25 @@
+{
+  "id":"test_find_property_usage_in_technique",
+  "version":"1.0",
+  "category":"ncf_techniques",
+  "description":"",
+  "name":"Test find property usage in Technique",
+  "calls":[
+    {
+      "method":"command_execution",
+      "condition":"",
+      "disableReporting":false,
+      "component":"Command execution",
+      "parameters":[
+        {
+          "name":"command",
+          "value":"touch /tmp/${node.properties[hello_world][subval1][subval2]}"
+        }
+      ],
+      "id":"063b4b65-h940-6a65-204a-4d8ddd085c34"
+    }
+  ],
+  "parameter":[],
+  "resources":[],
+  "source":"editor"
+}

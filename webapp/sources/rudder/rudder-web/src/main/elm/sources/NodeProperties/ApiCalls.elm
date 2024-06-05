@@ -2,7 +2,6 @@ module NodeProperties.ApiCalls exposing (..)
 
 import Http exposing (..)
 import Url.Builder exposing (QueryParameter)
-import Json.Encode exposing (Value)
 
 import NodeProperties.DataTypes exposing (..)
 import NodeProperties.JsonDecoder exposing (..)
@@ -59,6 +58,24 @@ deleteProperty property model =
         , url     = getUrl model [] []
         , body    = encodeProperty model [property] "Delete" |> jsonBody
         , expect  = expectJson (SaveProperty successMsg) decoder
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+  in
+    req
+
+findPropertyUsage : String -> Model -> Cmd Msg
+findPropertyUsage propertyName model =
+  let
+    -- TODO: change when the URL path is defined
+    urlTest = Url.Builder.relative (model.contextPath :: "secure" :: "api"  :: "nodes" :: "details" :: "property" :: "usage" :: propertyName :: []) []
+    req =
+      request
+        { method  = "GET"
+        , headers = []
+        , url     = urlTest
+        , body    = emptyBody
+        , expect  = expectJson (FindPropertyUsage propertyName) decodeFindPropertyUsage
         , timeout = Nothing
         , tracker = Nothing
         }

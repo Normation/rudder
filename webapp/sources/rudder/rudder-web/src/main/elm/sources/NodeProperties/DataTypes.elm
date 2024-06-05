@@ -8,7 +8,18 @@ import Json.Encode exposing (Value)
 -- All our data types
 --
 
-type ModalState = NoModal | Deletion String
+type ModalState = NoModal | Deletion String | Usage String PropertyUsage
+
+type alias UsageInfo =
+  { id : String
+  , name : String
+  }
+type alias PropertyUsage =
+  { directives : List UsageInfo
+  , techniques : List UsageInfo
+  }
+
+type FindUsageIn = Techniques | Directives
 
 type alias EditProperty =
   { name      : String
@@ -48,20 +59,35 @@ type SortBy
   | Format
   | Value
 
-type alias TableFilters =
+type alias TableFiltersOnProperty =
   { sortBy    : SortBy
   , sortOrder : SortOrder
   , filter    : String
   }
 
+type alias TableFiltersOnUsage =
+  { sortBy      : SortBy
+  , sortOrder   : SortOrder
+  , filter      : String
+  , findUsageIn : FindUsageIn
+  , pagination  : TablePagination
+  }
+
+type alias TablePagination =
+  { pageDirective : Int
+  , pageTechnique : Int
+  , tableSize: Int
+  , totalRow: Int
+  }
 type alias UI =
-  { hasNodeWrite     : Bool
-  , hasNodeRead      : Bool
-  , loading          : Bool
-  , modalState       : ModalState
-  , editedProperties : Dict String EditProperty
-  , showMore         : List String
-  , filters          : TableFilters
+  { hasNodeWrite      : Bool
+  , hasNodeRead       : Bool
+  , loading           : Bool
+  , modalState        : ModalState
+  , editedProperties  : Dict String EditProperty
+  , showMore          : List String
+  , filtersOnProperty : TableFiltersOnProperty
+  , filtersOnUsage    : TableFiltersOnUsage
   }
 
 type alias Model =
@@ -73,12 +99,20 @@ type alias Model =
   , ui               : UI
   }
 
+getPageMax : TablePagination -> Int
+getPageMax pagination =
+  if(pagination.tableSize /= 0 && pagination.tableSize /= pagination.totalRow) then
+    (pagination.totalRow // pagination.tableSize) + 1
+  else
+    1
+
 type Msg
   = Ignore
   | Copy String
   | CallApi (Model -> Cmd Msg)
   | SaveProperty String (Result Error (List Property))
   | GetNodeProperties (Result Error (List Property))
+  | FindPropertyUsage String (Result Error PropertyUsage)
   | UpdateNewProperty EditProperty
   | UpdateProperty String EditProperty
   | AddProperty
@@ -86,8 +120,16 @@ type Msg
   | ToggleEditPopup ModalState
   | ClosePopup Msg
   | ToggleEditProperty String EditProperty Bool
-  | UpdateTableFilters TableFilters
+  | UpdateTableFiltersProperty TableFiltersOnProperty
+  | UpdateTableFiltersUsage TableFiltersOnUsage
+  | ChangeViewUsage
   | ShowMore String
+  | UpdateTableSize Int
+  | NexPage
+  | PreviousPage
+  | LastPage
+  | FirstPage
+  | GoToPage Int
 
 valueTypeToValueFormat : String -> ValueFormat
 valueTypeToValueFormat valueType =
