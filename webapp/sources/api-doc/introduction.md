@@ -166,6 +166,14 @@ period of time to allow migration from previous versions.
         <li>Improve the structure of `/settings/allowed_networks` output</li>
       </ul></td>
     </tr>
+    <tr>
+      <td class="code">19</td>
+      <td class="code">8.1</td>
+      <td><ul>
+        <li>Multi-tenants</li>
+        <li>Scores list</li>
+      </ul></td>
+    </tr>
   </tbody>
 </table>
 
