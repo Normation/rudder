@@ -52,6 +52,7 @@ import bootstrap.liftweb.checks.migration.CheckAddSpecialNodeGroupsDescription
 import bootstrap.liftweb.checks.migration.CheckRemoveRuddercSetting
 import bootstrap.liftweb.checks.migration.CheckTableScore
 import bootstrap.liftweb.checks.migration.CheckTableUsers
+import bootstrap.liftweb.checks.migration.CheckUsersFile
 import bootstrap.liftweb.checks.migration.MigrateChangeValidationEnforceSchema
 import bootstrap.liftweb.checks.migration.MigrateEventLogEnforceSchema
 import bootstrap.liftweb.checks.migration.MigrateJsonTechniquesToYaml
@@ -3325,6 +3326,7 @@ object RudderConfigInit {
       new CheckAddSpecialNodeGroupsDescription(rwLdap),
       new CheckRemoveRuddercSetting(rwLdap),
       new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap),
+      new CheckUsersFile(rudderUserListProvider),
       new CheckInitUserTemplateLibrary(
         rudderDitImpl,
         rwLdap,

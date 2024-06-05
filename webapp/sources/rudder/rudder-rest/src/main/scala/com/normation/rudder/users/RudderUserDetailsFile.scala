@@ -37,6 +37,7 @@
 
 package com.normation.rudder.users
 
+import better.files.File
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.PureResult
@@ -51,8 +52,6 @@ import com.normation.rudder.rest.RoleApiMapping
 import com.normation.rudder.users.*
 import com.normation.zio.*
 import enumeratum.*
-import java.io.File
-import java.io.FileInputStream
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
@@ -62,6 +61,7 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.xml.sax.SAXParseException
 import scala.collection.immutable.SortedMap
 import scala.xml.Elem
+import scala.xml.parsing.ConstructingParser
 import zio.*
 import zio.syntax.*
 
@@ -151,6 +151,14 @@ object RudderPasswordEncoder {
     case object Legacy extends SecurityLevel
     // Only allow dedicated password hashes
     case object Modern extends SecurityLevel
+
+    def fromPasswordEncoderType(encoderType: PasswordEncoderType): SecurityLevel = {
+      encoderType match {
+        case PasswordEncoderType.BCRYPT                                                                                   => Modern
+        case PasswordEncoderType.MD5 | PasswordEncoderType.SHA1 | PasswordEncoderType.SHA256 | PasswordEncoderType.SHA512 =>
+          Legacy
+      }
+    }
   }
 
   class DigestEncoder(digestName: String) extends PasswordEncoder {
@@ -227,19 +235,17 @@ case class RudderPasswordEncoder(
 ) extends PasswordEncoder {
 
   override def encode(rawPassword: CharSequence):                           String  = {
-    // The current user management plugin directly calls the encoder based on the
-    // selected hash in the xml file, and it is the only place where we dynamically create passwords.
-    // We could (and likely should) use RudderPasswordProvider for encoding but we need it to store the algorithm to use
-    // (as DelegatingPasswordEncoder does) based on the user configuration.
-    //
-    // This is hence NEVER called in Rudder.
-    throw new Exception("RudderPasswordEncoder cannot be used for encoding passwords")
+    subPasswordEncoder(rawPassword).encode(rawPassword)
   }
   override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = {
+    subPasswordEncoder(rawPassword).matches(rawPassword, encodedPassword)
+  }
+
+  private def subPasswordEncoder(rawPassword: CharSequence): PasswordEncoder = {
     RudderPasswordEncoder
-      .getFromEncoded(encodedPassword, securityLevel)
-      .map(encoderType => passwordEncoderDispatcher.dispatch(encoderType).matches(rawPassword, encodedPassword))
-      .getOrElse(false)
+      .getFromEncoded(rawPassword.toString, securityLevel)
+      .map(encoderType => passwordEncoderDispatcher.dispatch(encoderType))
+      .getOrElse(passwordEncoderDispatcher.dispatch(PasswordEncoderType.DEFAULT))
   }
 }
 
@@ -361,11 +367,16 @@ trait UserDetailListProvider {
   }
 }
 
+trait UserFileSecurityLevelMigration {
+  def file: UserFile
+  def migrateToModern(file: File): IOResult[Unit]
+}
+
 final class FileUserDetailListProvider(
     roleApiMapping:            RoleApiMapping,
-    file:                      UserFile,
+    override val file:         UserFile,
     passwordEncoderDispatcher: PasswordEncoderDispatcher
-) extends UserDetailListProvider {
+) extends UserDetailListProvider with UserFileSecurityLevelMigration {
 
   import RudderPasswordEncoder.SecurityLevel.*
 
@@ -423,6 +434,36 @@ final class FileUserDetailListProvider(
 
   override def authConfig: ValidatedUserList = cache.get.runNow
 
+  // directly changes the file content !!
+  override def migrateToModern(sourceTargetFile: File): IOResult[Unit] = {
+    // replace "hash" value by "bcrypt", mark unsafe_hashes=true
+    for {
+      parsedFile <- IOResult.attempt(ConstructingParser.fromFile(sourceTargetFile.toJava, preserveWS = true))
+      userXML    <- IOResult.attempt(parsedFile.document().children)
+
+      toUpdate <- IOResult.attempt((userXML \\ "authentication").head)
+
+      _ <- toUpdate match {
+             case e: Elem =>
+               val newXml = {
+                 e.copy(attributes = {
+                   e.attributes
+                     .append(
+                       new scala.xml.UnprefixedAttribute("hash", "bcrypt", scala.xml.Null)
+                     ) // will override existing hash attribute
+                     .append(
+                       new scala.xml.UnprefixedAttribute("unsafe-hashes", "true", scala.xml.Null)
+                     ) // default to true because the legacy hashes are kept in the file
+                 })
+               }
+
+               UserManagementIO.replaceXml(userXML, newXml, sourceTargetFile)
+             case _ =>
+               Unexpected(s"Wrong formatting : ${sourceTargetFile.path}").fail
+           }
+    } yield {}
+  }
+
 }
 
 object UserFileProcessing {
@@ -436,6 +477,7 @@ object UserFileProcessing {
   final case class ParsedUserFile(
       encoder:         PasswordEncoderType,
       isCaseSensitive: Boolean,
+      unsafeHashes:    Boolean,
       customRoles:     List[UncheckedCustomRole],
       users:           List[ParsedUser]
   )
@@ -451,17 +493,36 @@ object UserFileProcessing {
           () => this.getClass().getClassLoader.getResourceAsStream(DEFAULT_AUTH_FILE_NAME)
         ).succeed
       case x         => // so, it should be a full path, check it
-        val config = new File(x)
-        if (config.exists && config.canRead) {
-          ApplicationLoggerPure.Authz.info(
-            s"Using configuration file defined by JVM property -D${JVM_AUTH_FILE_KEY} : ${config.getPath}"
-          ) *>
-          UserFile(config.getAbsolutePath, () => new FileInputStream(config)).succeed
+        val config = File(x)
+        if (config.exists && config.isReadable) {
+          ApplicationLoggerPure.Authz
+            .info(
+              s"Using configuration file defined by JVM property -D${JVM_AUTH_FILE_KEY} : ${config.path}"
+            ) *>
+          UserFile(config.canonicalPath, () => config.newInputStream).succeed
         } else {
           ApplicationLoggerPure.Authz.error(
-            s"Can not find configuration file specified by JVM property ${JVM_AUTH_FILE_KEY}: ${config.getPath}; aborting"
-          ) *> Unexpected(s"rudder-users configuration file not found at path: '${config.getPath}'").fail
+            s"Can not find configuration file specified by JVM property ${JVM_AUTH_FILE_KEY}: ${config.path}; aborting"
+          ) *> Unexpected(s"rudder-users configuration file not found at path: '${config.path}'").fail
         }
+    }
+  }
+
+  def readUserFile(resource: UserFile): IOResult[Elem] = {
+    IOResult.attempt {
+      scala.xml.XML.load(resource.inputStream())
+    }.mapError {
+      // map a SAXParseException to a technical butmore user-friendly but error message
+      case s @ SystemError(_, e: SAXParseException) =>
+        s.copy(
+          msg = s"User definitions: XML in file /opt/rudder/etc/rudder-users.xml is incorrect, error message is: ${e
+              .getMessage()} (line ${e.getLineNumber()}, column ${e.getColumnNumber()})"
+        )
+      case s                                        =>
+        s.copy(
+          msg =
+            "User definitions: An error occurred while parsing /opt/rudder/etc/rudder-users.xml. Logging in to the Rudder web interface will not be possible until this is fixed and the application restarted."
+        )
     }
   }
 
@@ -471,26 +532,9 @@ object UserFileProcessing {
       resource:                  UserFile,
       reload:                    Boolean
   ): IOResult[ValidatedUserList] = {
-    val optXml = {
-      try {
-        scala.xml.XML.load(resource.inputStream()).succeed
-      } catch {
-        case e: SAXParseException =>
-          SystemError(
-            s"User definitions: XML in file /opt/rudder/etc/rudder-users.xml is incorrect, error message is: ${e
-                .getMessage()} (line ${e.getLineNumber()}, column ${e.getColumnNumber()})",
-            e
-          ).fail
-        case e: Exception         =>
-          SystemError(
-            "User definitions: An error occurred while parsing /opt/rudder/etc/rudder-users.xml. Logging in to the Rudder web interface will not be possible until this is fixed and the application restarted.",
-            e
-          ).fail
-      }
-    }
 
     for {
-      xml <- optXml
+      xml <- readUserFile(resource)
       res <- parseXml(roleApiMapping, passwordEncoderDispatcher, xml, resource.name, reload)
     } yield {
       res
@@ -525,9 +569,10 @@ object UserFileProcessing {
 
       // The rationale here is that if configured hash is bcrypt, it means before 8.2 non-bcrypt hash did not work
       // so no need for legacy support.
-      // FIXME: prevents using bcrypt for new users is still having legacy hashes
-      val encoder = if (parsed.encoder == PasswordEncoderType.BCRYPT) { RudderPasswordEncoder(Modern, passwordEncoderDispatcher) }
-      else { RudderPasswordEncoder(Legacy, passwordEncoderDispatcher) }
+      // When unsafe-hashes is enabled we will still be using legacy, but RudderPasswordEncoder should still support modern.
+      val encoder = if (parsed.encoder == PasswordEncoderType.BCRYPT && !parsed.unsafeHashes) {
+        RudderPasswordEncoder(Modern, passwordEncoderDispatcher)
+      } else { RudderPasswordEncoder(Legacy, passwordEncoderDispatcher) }
 
       val config = {
         UserDetailFileConfiguration(
@@ -541,123 +586,161 @@ object UserFileProcessing {
     }
   }
 
+  /**
+    * Attempt to read the root hash="..." attribute as a known password encoder type. Return an unknown value as a left
+    */
+  def parseXmlHash(xml: Elem): IOResult[Either[String, PasswordEncoderType]] = {
+    for {
+      root <- validateAuthenticationTag(xml)
+      hash  = (root(0) \ "@hash").text
+    } yield {
+      PasswordEncoderType.withNameInsensitiveEither(hash).left.map(_.notFoundName)
+    }
+  }
+
   /*
    * This method just parse XML file & validate its general structure, but it does not resolve roles
    * or rights.
    * This is done in a second pass.
    */
   def parseXmlNoResolve(xml: Elem, debugFileName: String): IOResult[ParsedUserFile] = {
-    // what password hashing algo to use ?
-    val root = (xml \\ "authentication")
-    if (root.size != 1) {
-      Inconsistency("Authentication file is malformed, the root tag '<authentication>' was not found").fail
-    } else {
-      val hash = PasswordEncoderType
-        .withNameInsensitiveOption((root(0) \ "@hash").text)
-        .getOrElse(PasswordEncoderType.BCRYPT)
-
-      val isCaseSensitive: IOResult[Boolean] = (root(0) \ "@case-sensitivity").text.toLowerCase match {
-        case "true"  => true.succeed
-        case "false" => false.succeed
-        case str     =>
-          (if (str.isEmpty) {
-             ApplicationLoggerPure.Authz.info(
-               s"Case sensitivity: in file '${debugFileName}' parameter `case-sensitivity` is not set, set by default on `true`"
-             )
-           } else {
-             ApplicationLoggerPure.Authz.warn(
-               s"Case sensitivity: unknown case-sensitivity parameter `$str` in file '${debugFileName}', set by default on `true`"
-             )
-           }) *> true.succeed
+    // one unique name attribute, text content non empty
+    def getRoleName(node: scala.xml.Node): PureResult[String] = {
+      node.attribute("name").map(_.map(_.text.strip())) match {
+        case None | Some(Nil)                    => Left(Inconsistency(s"Role can't have an empty `name` attribute: ${node}"))
+        case Some(name :: Nil) if (name.isEmpty) =>
+          Left(Inconsistency(s"Role can't have an empty `name` attribute: ${node}"))
+        case Some(name :: Nil)                   => Right(name)
+        case x                                   => Left(Inconsistency(s"Role must have an unique, non-empty `name` attribute: ${x}"))
       }
-
-      // one unique name attribute, text content non empty
-      def getRoleName(node: scala.xml.Node): PureResult[String] = {
-        node.attribute("name").map(_.map(_.text.strip())) match {
-          case None | Some(Nil)                    => Left(Inconsistency(s"Role can't have an empty `name` attribute: ${node}"))
-          case Some(name :: Nil) if (name.isEmpty) =>
-            Left(Inconsistency(s"Role can't have an empty `name` attribute: ${node}"))
-          case Some(name :: Nil)                   => Right(name)
-          case x                                   => Left(Inconsistency(s"Role must have an unique, non-empty `name` attribute: ${x}"))
-        }
-      }
-
-      // roles are comma-separated list of non-empty string. Several `roles` attribute should be avoid, but are ok and are merged.
-      // List is gotten as is (no dedup, no sanity check, no sorting, no "roleToRight", etc)
-      def getCommaSeparatedList(attrName: String, node: scala.xml.Node): Option[List[String]] = {
-        node
-          .attribute(attrName)
-          .map(
-            _.toList
-              .flatMap(permlist => permlist.text.split(",").map(_.strip()).collect { case r if (r.nonEmpty) => r }.toList)
-          )
-      }
-
-      val customRoles: UIO[List[UncheckedCustomRole]] = (ZIO
-        .foreach((xml \ "custom-roles" \ "role").toList) { node =>
-          // for each node, check attribute `name` (mandatory) and `roles` (optional), even if the only interest of an empty
-          // roles attribute is for aliasing "NoRight" policy.
-
-          (for {
-            n <- getRoleName(node)
-            r  = getCommaSeparatedList("permissions", node).getOrElse(Nil)
-          } yield {
-            UncheckedCustomRole(n, r)
-          }) match {
-            case Left(err)   =>
-              ApplicationLoggerPure.Authz
-                .error(s"Role incorrectly defined in '${debugFileName}': ${err.fullMsg})") *> None.succeed
-            case Right(role) =>
-              Some(role).succeed
-          }
-        })
-        .map(_.flatten)
-
-      // now, get users
-      def getUsers() = {
-        def userRoles(node: Option[scala.collection.Seq[scala.xml.Node]]): List[String] = {
-          node.map(_.toList.flatMap(role => role.text.split(",").toList.map(_.strip))).getOrElse(Nil)
-        }
-        ZIO
-          .foreach((xml \ "user").toList) { node =>
-            // for each node, check attribute name (mandatory), password  (mandatory) and role (optional)
-            (
-              node
-                .attribute("name")
-                .map(_.toList.map(_.text)),
-              node.attribute("password").map(_.toList.map(_.text)),
-              // accept both "role" and "roles"
-              userRoles(node.attribute("role")) ++ userRoles(node.attribute("permissions")),
-              getCommaSeparatedList("tenants", node)
-            ) match {
-              case (Some(name :: Nil), pwd, permissions, tenants) if (name.size > 0) =>
-                // password can be optional when an other authentication backend is used.
-                // When the tag is omitted, we generate a 32 bytes random value in place of the pass internally
-                // to avoid any cases where the empty string will be used if all other backend are in failure.
-                // Also forbid empty or all blank passwords.
-                // If the attribute is defined several times, use the first occurrence.
-                val p = pwd match {
-                  case Some(p :: _) if (p.strip().size > 0) => p
-                  case _                                    => RudderPasswordEncoder.randomHexa32
-                }
-                Some(ParsedUser(name, p, permissions, tenants)).succeed
-
-              case _ =>
-                ApplicationLoggerPure.Authz.error(
-                  s"Ignore user line in authentication file '${debugFileName}', some required attribute is missing: ${node.toString}"
-                ) *> None.succeed
-            }
-          }
-          .map(_.flatten)
-      }
-
-      // weave the whole program together
-      for {
-        isCS  <- isCaseSensitive
-        roles <- customRoles
-        users <- getUsers()
-      } yield ParsedUserFile(hash, isCS, roles, users)
     }
+
+    // roles are comma-separated list of non-empty string. Several `roles` attribute should be avoid, but are ok and are merged.
+    // List is gotten as is (no dedup, no sanity check, no sorting, no "roleToRight", etc)
+    def getCommaSeparatedList(attrName: String, node: scala.xml.Node): Option[List[String]] = {
+      node
+        .attribute(attrName)
+        .map(
+          _.toList
+            .flatMap(permlist => permlist.text.split(",").map(_.strip()).collect { case r if (r.nonEmpty) => r }.toList)
+        )
+    }
+
+    val customRoles: UIO[List[UncheckedCustomRole]] = (ZIO
+      .foreach((xml \ "custom-roles" \ "role").toList) { node =>
+        // for each node, check attribute `name` (mandatory) and `roles` (optional), even if the only interest of an empty
+        // roles attribute is for aliasing "NoRight" policy.
+
+        (for {
+          n <- getRoleName(node)
+          r  = getCommaSeparatedList("permissions", node).getOrElse(Nil)
+        } yield {
+          UncheckedCustomRole(n, r)
+        }) match {
+          case Left(err)   =>
+            ApplicationLoggerPure.Authz
+              .error(s"Role incorrectly defined in '${debugFileName}': ${err.fullMsg})") *> None.succeed
+          case Right(role) =>
+            Some(role).succeed
+        }
+      })
+      .map(_.flatten)
+
+    // now, get users
+    def getUsers() = {
+      def userRoles(node: Option[scala.collection.Seq[scala.xml.Node]]): List[String] = {
+        node.map(_.toList.flatMap(role => role.text.split(",").toList.map(_.strip))).getOrElse(Nil)
+      }
+      ZIO
+        .foreach((xml \ "user").toList) { node =>
+          // for each node, check attribute name (mandatory), password  (mandatory) and role (optional)
+          (
+            node
+              .attribute("name")
+              .map(_.toList.map(_.text)),
+            node.attribute("password").map(_.toList.map(_.text)),
+            // accept both "role" and "roles"
+            userRoles(node.attribute("role")) ++ userRoles(node.attribute("permissions")),
+            getCommaSeparatedList("tenants", node)
+          ) match {
+            case (Some(name :: Nil), pwd, permissions, tenants) if (name.size > 0) =>
+              // password can be optional when an other authentication backend is used.
+              // When the tag is omitted, we generate a 32 bytes random value in place of the pass internally
+              // to avoid any cases where the empty string will be used if all other backend are in failure.
+              // Also forbid empty or all blank passwords.
+              // If the attribute is defined several times, use the first occurrence.
+              val p = pwd match {
+                case Some(p :: _) if (p.strip().size > 0) => p
+                case _                                    => RudderPasswordEncoder.randomHexa32
+              }
+              Some(ParsedUser(name, p, permissions, tenants)).succeed
+
+            case _ =>
+              ApplicationLoggerPure.Authz.error(
+                s"Ignore user line in authentication file '${debugFileName}', some required attribute is missing: ${node.toString}"
+              ) *> None.succeed
+          }
+        }
+        .map(_.flatten)
+    }
+
+    for {
+      parsedHash <- parseXmlHash(xml)
+      defaultHash = PasswordEncoderType.DEFAULT
+      // FIXME: maybe here we want to keep the fact that it's an invalid hash value
+      // , and defer the logic of writing unsafe-hashes=true to when check/migration of file occurs.
+      // For now, we log every time we have an unknown value, and use the default modern hash algorithm.
+      hash       <- parsedHash match {
+                      case Left(unknownValue) =>
+                        ApplicationLoggerPure.Authz
+                          .warn(
+                            s"Attribute hash has an unknown value `${unknownValue}` in file '${debugFileName}', set by default on `${defaultHash.name}`"
+                          )
+                          .as(defaultHash)
+
+                      case Right(value) =>
+                        value.succeed
+                    }
+
+      isCaseSensitive <- (xml(0) \ "@case-sensitivity").text.toLowerCase match {
+                           case "true"  => true.succeed
+                           case "false" => false.succeed
+                           case str     =>
+                             (if (str.isEmpty) {
+                                ApplicationLoggerPure.Authz.info(
+                                  s"Case sensitivity: in file '${debugFileName}' parameter `case-sensitivity` is not set, set by default on `true`"
+                                )
+                              } else {
+                                ApplicationLoggerPure.Authz.warn(
+                                  s"Case sensitivity: unknown case-sensitivity parameter `$str` in file '${debugFileName}', set by default on `true`"
+                                )
+                              }) *> true.succeed
+                         }
+
+      unsafeHashes <- (xml(0) \ "@unsafe-hashes").text.toLowerCase match {
+                        case "true"  => true.succeed
+                        case "false" => false.succeed
+                        case str     =>
+                          // we need a warning when value is unknown :
+                          // - unless we are already using legacy
+                          // - unless the value is empty and we are already using modern
+                          // In all cases, fallback value is false : we want user to specify explicitly when some hashes are unsafe
+                          val legacy = RudderPasswordEncoder.SecurityLevel.fromPasswordEncoderType(
+                            hash
+                          ) == RudderPasswordEncoder.SecurityLevel.Legacy
+                          ZIO
+                            .unless(legacy || str.isEmpty) {
+                              ApplicationLoggerPure.Authz.warn(
+                                s"Unsafe hashes: in file '${debugFileName}' parameter `unsafe-hashes` is not a boolean, set by default on `false`. If you still use non-bcrypt hash, you can set this parameter to `true`"
+                              )
+                            }
+                            .as(false)
+                      }
+
+      roles <- customRoles
+      users <- getUsers()
+
+    } yield ParsedUserFile(hash, isCaseSensitive, unsafeHashes, roles, users)
   }
 
   /*
@@ -733,5 +816,12 @@ object UserFileProcessing {
         (RudderAccount.User(name, pwd), rs, nsc)
       }
     }
+  }
+
+  def validateAuthenticationTag(xml: Elem): IOResult[Elem] = {
+    val root = (xml \\ "authentication")
+    if (root.size != 1) {
+      Inconsistency("Authentication file is malformed, the root tag '<authentication>' was not found").fail
+    } else xml.succeed
   }
 }

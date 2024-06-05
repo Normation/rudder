@@ -37,6 +37,7 @@
 
 package bootstrap.liftweb
 
+import bootstrap.liftweb.checks.migration.CheckUsersFile
 import com.normation.errors.*
 import com.normation.rudder.Role
 import com.normation.rudder.api.*
@@ -247,17 +248,25 @@ class AppConfigAuth extends ApplicationContextAware {
     new PasswordEncoderDispatcher(RudderConfig.RUDDER_BCRYPT_COST)
   }
 
+  @Bean def checkUsersFile: CheckUsersFile = new CheckUsersFile(RudderConfig.rudderUserListProvider)
+
   @Bean def fileAuthenticationProvider: AuthenticationProvider = {
     val provider = new DaoAuthenticationProvider()
     provider.setUserDetailsService(rudderUserDetailsService)
     provider.setPasswordEncoder(rudderUserDetailsService.authConfigProvider.authConfig.encoder)
 
-    // we need to register a callback to update password encoder when needed
-    val updatePasswordEncoder = RudderAuthorizationFileReloadCallback(
+    // we need to register a callback to check and update users file and a callback to update password encoder when needed
+    val checkUsersFileCallback = RudderAuthorizationFileReloadCallback(
+      "checkUsersFileCallback",
+      (c: ValidatedUserList) => checkUsersFile.allChecks(c.encoder.securityLevel)
+    )
+    RudderConfig.rudderUserListProvider.registerCallback(checkUsersFileCallback)
+    val updatePasswordEncoder  = RudderAuthorizationFileReloadCallback(
       "updatePasswordEncoder",
       (c: ValidatedUserList) => effectUioUnit(provider.setPasswordEncoder(c.encoder))
     )
     RudderConfig.rudderUserListProvider.registerCallback(updatePasswordEncoder)
+
     provider
   }
 

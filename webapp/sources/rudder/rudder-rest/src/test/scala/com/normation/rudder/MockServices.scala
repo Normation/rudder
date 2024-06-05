@@ -779,7 +779,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
 
 }
 
-class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSession], usersFile: File) {
+class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSession], usersConfigFile: File) {
 
   object userRepo extends UserRepository {
 
@@ -851,7 +851,7 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
 
   }
 
-  val usersInputStream: () => InputStream = () => IOUtils.toInputStream(usersFile.contentAsString, StandardCharsets.UTF_8)
+  val usersInputStream: () => InputStream = () => IOUtils.toInputStream(usersConfigFile.contentAsString, StandardCharsets.UTF_8)
 
   val passwordEncoderDispatcher = new PasswordEncoderDispatcher(0)
 
@@ -870,7 +870,7 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
       userRepo,
       userService,
       passwordEncoderDispatcher,
-      UserFile(usersFile.pathAsString, usersInputStream).succeed
+      UserFile(usersConfigFile.pathAsString, usersInputStream).succeed
     )
   }
 
