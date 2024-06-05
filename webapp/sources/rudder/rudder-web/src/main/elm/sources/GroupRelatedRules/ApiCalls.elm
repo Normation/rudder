@@ -16,7 +16,7 @@ getRulesTree model relatedRules =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "rulesinternal", "relatedtree" ] [string "rules" (String.join "," (List.map (.value) relatedRules.value))]
         , body    = emptyBody
         , expect  = expectJson (GetRulesResult relatedRules) decodeGetRulesTree

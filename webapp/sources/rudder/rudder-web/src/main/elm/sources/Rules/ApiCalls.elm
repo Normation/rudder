@@ -3,7 +3,6 @@ module Rules.ApiCalls exposing (..)
 import Http exposing (..)
 import Time.Iso8601
 import Time.ZonedDateTime exposing (ZonedDateTime)
-import Url
 import Url.Builder exposing (QueryParameter, int, string)
 import Maybe.Extra exposing (isJust)
 import List.Extra exposing (find)
@@ -36,7 +35,7 @@ getRulesTree model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "rules" ,"tree" ] []
         , body    = emptyBody
         , expect  = expectJson GetRulesResult decodeGetRulesTree
@@ -52,7 +51,7 @@ getRuleChanges model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "changes" ] []
         , body    = emptyBody
         , expect  = expectJson GetRuleChanges decodeRuleChanges
@@ -69,7 +68,7 @@ getRepairedReports model ruleId start end =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "changes", ruleId.value ] [string "start" (Time.Iso8601.fromZonedDateTime start), string "end" (Time.Iso8601.fromZonedDateTime end) ]
         , body    = emptyBody
         , expect  = expectJson (GetRepairedReportsResult ruleId start end) decodeRepairedReports
@@ -87,7 +86,7 @@ getPolicyMode model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "settings", "global_policy_mode" ] []
         , body    = emptyBody
         , expect  = expectJson GetPolicyModeResult decodeGetPolicyMode
@@ -103,7 +102,7 @@ getCrSettings model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "settings" ] []
         , body    = emptyBody
         , expect  = expectJson GetChangeRequestSettings decodeGetChangeRequestSettings
@@ -119,7 +118,7 @@ getPendingChangeRequests model ruleId =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "changeRequests" ] [string "status" "open", string "ruleId" ruleId.value]
         , body    = emptyBody
         , expect  = expectJson GetPendingChangeRequests decodePendingChangeRequests
@@ -135,7 +134,7 @@ getGroupsTree model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model ["groups", "tree"] []
         , body    = emptyBody
         , expect  = expectJson GetGroupsTreeResult decodeGetGroupsTree
@@ -151,7 +150,7 @@ getTechniquesTree model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "directives", "tree" ] []
         , body    = emptyBody
         , expect  = expectJson GetTechniquesTreeResult decodeGetTechniquesTree
@@ -167,7 +166,7 @@ getRuleDetails model ruleId =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "rules" , ruleId.value ] []
         , body    = emptyBody
         , expect  = expectJson GetRuleDetailsResult decodeGetRuleDetails
@@ -184,7 +183,7 @@ getRulesCategoryDetails model catId =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model ["rules" , "categories", catId] []
         , body    = emptyBody
         , expect  = expectJson GetCategoryDetailsResult decodeGetCategoryDetails
@@ -200,7 +199,7 @@ getRuleNodesDirectives ruleId model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "rulesinternal", "nodesanddirectives", ruleId.value ] []
         , body    = emptyBody
         , expect  = expectJson ( GetRuleNodesDirectivesResult ruleId ) decodeRuleNodesDirective
@@ -216,7 +215,7 @@ getRulesCompliance model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "compliance", "rules"] [ int "level" 1 ]
         , body    = emptyBody
         , expect  = expectJson GetRulesComplianceResult decodeGetRulesCompliance
@@ -232,7 +231,7 @@ getRulesComplianceDetails ruleId model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "compliance", "rules", ruleId.value ] [ int "level" 10 ]
         , body    = emptyBody
         , expect  = expectJson (GetRuleComplianceResult ruleId) decodeGetRulesComplianceDetails
@@ -249,7 +248,7 @@ getNodesList model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model ["nodes"] []
         , body    = emptyBody
         , expect  = expectJson GetNodesList decodeGetNodesList
@@ -292,7 +291,7 @@ saveRuleDetails ruleDetails creation model =
     req =
       request
         { method  = method
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model url (changeRequestParameters model.ui.crSettings)
         , body    = encodeRuleDetails newRuleDetails |> jsonBody
         , expect  = expectJson (SaveRuleDetails unknwonTargetsMsg) decodeGetRuleDetails
@@ -309,7 +308,7 @@ saveDisableAction ruleDetails model =
     req =
       request
         { method  = "POST"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model ["rules", ruleDetails.id.value ] (changeRequestParameters model.ui.crSettings)
         , body    = encodeRuleDetails ruleDetails |> jsonBody
         , expect  = expectJson SaveDisableAction decodeGetRuleDetails
@@ -326,7 +325,7 @@ saveCategoryDetails category parentId creation model =
     req =
       request
         { method  = method
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model url []
         , body    = encodeCategoryDetails parentId category |> jsonBody
         , expect  = expectJson SaveCategoryResult decodeGetCategoryDetails
@@ -342,7 +341,7 @@ deleteRule rule model =
     req =
       request
         { method  = "DELETE"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model ["rules", rule.id.value ] []
         , body    = emptyBody
         , expect  = expectJson DeleteRule decodeDeleteRuleResponse
@@ -358,7 +357,7 @@ deleteCategory category model =
     req =
       request
         { method  = "DELETE"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model ["rules","categories", category.id] []
         , body    = emptyBody
         , expect  = expectJson DeleteCategory decodeDeleteCategoryResponse

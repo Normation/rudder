@@ -21,7 +21,7 @@ getPolicyMode model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "settings", "global_policy_mode" ] []
         , body    = emptyBody
         , expect  = expectJson GetPolicyModeResult decodeGetPolicyMode
@@ -37,7 +37,7 @@ getDirectiveCompliance model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "compliance", "directives", model.directiveId.value ] []
         , body    = emptyBody
         , expect  = expectJson GetDirectiveComplianceResult decodeGetDirectiveCompliance
@@ -53,7 +53,7 @@ getCSVExport model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "compliance", "directives", model.directiveId.value ] [ Url.Builder.string "format" "csv"]
         , body    = emptyBody
         , expect  = expectString Export

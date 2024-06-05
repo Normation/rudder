@@ -23,7 +23,7 @@ getHooks model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [] []
         , body    = emptyBody
         , expect  = Detailed.expectJson GetHooksResult decodeGetHooks

@@ -329,6 +329,9 @@ class AppConfigAuth extends ApplicationContextAware {
   @Bean def restAuthenticationFilter =
     new RestAuthenticationFilter(RudderConfig.roApiAccountRepository, rudderUserDetailsService, SYSTEM_API_ACL)
 
+  @Bean def restSecureAuthenticationFilter =
+    new RestSecureAuthenticationFilter()
+
   @Bean def restAuthenticationEntryPoint: AuthenticationEntryPoint = new AuthenticationEntryPoint() {
     override def commence(request: HttpServletRequest, response: HttpServletResponse, ex: AuthenticationException): Unit = {
       response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")

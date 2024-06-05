@@ -23,7 +23,7 @@ getAccounts model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "apiaccounts" ] []
         , body    = emptyBody
         , expect  = Detailed.expectJson GetAccountsResult (decodeGetAccounts model.ui.datePickerInfo)
@@ -42,7 +42,7 @@ saveAccount account model =
     req =
       request
         { method  = method
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model url []
         , body    = encodeAccount model.ui.datePickerInfo account |> jsonBody
         , expect  = Detailed.expectJson SaveAccount (decodePostAccount model.ui.datePickerInfo)
@@ -58,7 +58,7 @@ deleteAccount account model =
     req =
       request
         { method  = "DELETE"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model ["apiaccounts", account.id] []
         , body    = emptyBody
         , expect  = Detailed.expectJson (ConfirmActionAccount Delete) (decodePostAccount model.ui.datePickerInfo)
@@ -74,7 +74,7 @@ regenerateToken account model =
     req =
       request
         { method  = "POST"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model ["apiaccounts", account.id, "regenerate"] []
         , body    = emptyBody
         , expect  = Detailed.expectJson (ConfirmActionAccount Regenerate) (decodePostAccount model.ui.datePickerInfo)

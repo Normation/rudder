@@ -20,7 +20,7 @@ getNodeProperties model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "displayInheritedProperties" ] []
         , body    = emptyBody
         , expect  = expectJson GetNodeProperties decoder
@@ -37,7 +37,7 @@ saveProperty properties model successMsg =
     req =
       request
         { method  = "POST"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [] []
         , body    = encodeProperty model properties "Add" |> jsonBody
         , expect  = expectJson (SaveProperty successMsg) decoder
@@ -55,7 +55,7 @@ deleteProperty property model =
     req =
       request
         { method  = "POST"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [] []
         , body    = encodeProperty model [property] "Delete" |> jsonBody
         , expect  = expectJson (SaveProperty successMsg) decoder
