@@ -1924,14 +1924,21 @@ object NodeFactSerialisation {
     implicit val codecIpAddress:      JsonCodec[IpAddress]      = JsonCodec.string.transform(IpAddress(_), _.inet)
     implicit val codecNodeTimezone:   JsonCodec[NodeTimezone]   = DeriveJsonCodec.gen
     implicit val codecMachineUuid:    JsonCodec[MachineUuid]    = JsonCodec.string.transform[MachineUuid](MachineUuid(_), _.value)
-    implicit val codecMachineType:    JsonCodec[MachineType]    = JsonCodec.string.transform[MachineType](
-      _ match {
-        case UnknownMachineType.kind  => UnknownMachineType
-        case PhysicalMachineType.kind => PhysicalMachineType
-        case x                        => VirtualMachineType(VmType.parse(x).getOrElse(VmType.UnknownVmType))
-      },
-      _.kind
-    )
+    implicit val codecMachineType:    JsonCodec[MachineType]    = {
+      val encoder: JsonEncoder[MachineType] = JsonEncoder.string.contramap(_.kind)
+      // for compat before correction of https://issues.rudder.io/issues/24971, we need to keep
+      // "physicalMachine". "virtualMachine" wasn't directly used
+      val decoder: JsonDecoder[MachineType] = JsonDecoder.string.map {
+        case s =>
+          s.toLowerCase match {
+            case UnknownMachineType.kind                      => UnknownMachineType
+            case PhysicalMachineType.kind | "physicalMachine" => PhysicalMachineType
+            case x                                            => VirtualMachineType(VmType.parse(x).getOrElse(VmType.UnknownVmType))
+          }
+      }
+
+      JsonCodec(encoder, decoder)
+    }
     implicit val codecManufacturer:   JsonCodec[Manufacturer]   = JsonCodec.string.transform[Manufacturer](Manufacturer(_), _.name)
     implicit val codecMachine:        JsonCodec[MachineInfo]    = DeriveJsonCodec.gen
     implicit val codecMemorySize:     JsonCodec[MemorySize]     = JsonCodec.long.transform[MemorySize](MemorySize(_), _.size)

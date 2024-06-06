@@ -147,10 +147,10 @@ class TestNodeFactQueryProcessor {
   case class TestQuery(name: String, query: Query, awaited: Seq[NodeId])
 
   // when one need to debug search, you can just uncomment that to set log-level to trace
-//  org.slf4j.LoggerFactory
-//    .getLogger("query.node-fact")
-//    .asInstanceOf[ch.qos.logback.classic.Logger]
-//    .setLevel(ch.qos.logback.classic.Level.TRACE)
+  org.slf4j.LoggerFactory
+    .getLogger("query.node-fact")
+    .asInstanceOf[ch.qos.logback.classic.Logger]
+    .setLevel(ch.qos.logback.classic.Level.TRACE)
 
   val s: Seq[NodeId] = Seq(
     new NodeId("node0"),
@@ -258,6 +258,65 @@ class TestNodeFactQueryProcessor {
     )
 
     testQueries(q2_0 :: q2_0_ :: q2_1 :: q2_1_ :: q2_2 :: q2_2_ :: Nil, doInternalQueryTest = true)
+  }
+
+  @Test def testMachineType(): Unit = {
+
+    val q0 = TestQuery(
+      "q0",
+      parser("""
+      {  "select":"node", "where":[
+        { "objectType":"machine", "attribute":"machineType", "comparator":"eq", "value":"Physical" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(5) :: Nil
+    )
+
+    // also works with lower case
+    val q0_0 = TestQuery(
+      "q0_0",
+      parser("""
+      {  "select":"node", "where":[
+        { "objectType":"machine", "attribute":"machineType", "comparator":"eq", "value":"physical" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(5) :: Nil
+    )
+
+    // any vm
+    val q1 = TestQuery(
+      "q1",
+      parser("""
+      {  "select":"node", "where":[
+        { "objectType":"machine", "attribute":"machineType", "comparator":"eq", "value":"Virtual" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(6) :: s(7) :: Nil
+    )
+
+    // only vmware
+    val q2 = TestQuery(
+      "q2",
+      parser("""
+      {  "select":"node", "where":[
+        { "objectType":"machine", "attribute":"vmType", "comparator":"eq", "value":"vmware" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(7) :: Nil
+    )
+
+    val q3 = TestQuery(
+      "q3",
+      parser("""
+      {  "select":"node", "where":[
+        { "objectType":"machine", "attribute":"machineType", "comparator":"notEq", "value":"virtual" },
+        { "objectType":"machine", "attribute":"machineType", "comparator":"notEq", "value":"physical" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(0) :: s(1) :: s(2) :: s(3) :: s(4) :: Nil
+    )
+
+    testQueries(q0 :: q0_0 :: q1 :: q2 :: q3 :: Nil, doInternalQueryTest = true)
   }
 
   // group of group, with or/and composition
@@ -587,7 +646,7 @@ class TestNodeFactQueryProcessor {
       {  "select":"nodeAndPolicyServer", "where":[
           { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"[nN]ode[017]" }
         , { "objectType":"software", "attribute":"cn", "comparator":"regex"   , "value":"Software [0-9]" }
-        , { "objectType":"machine", "attribute":"machineId", "comparator":"regex" , "value":"machine[0-2]"  }
+        , { "objectType":"machine", "attribute":"machineId", "comparator":"regex" , "value":"machine[0-3]"  }
         , { "objectType":"fileSystemLogicalElement", "attribute":"fileSystemFreeSpace", "comparator":"regex", "value":"[01]{2}" }
         , { "objectType":"biosPhysicalElement", "attribute":"softwareVersion", "comparator":"regex", "value":"[6.0]+" }
       ] }
@@ -754,7 +813,7 @@ class TestNodeFactQueryProcessor {
       parser("""
       {  "select":"nodeAndPolicyServer", "where":[
           { "objectType":"software", "attribute":"cn", "comparator":"regex"   , "value":"Software [0-9]" }
-        , { "objectType":"machine", "attribute":"machineId", "comparator":"regex" , "value":"machine[0-2]"  }
+        , { "objectType":"machine", "attribute":"machineId", "comparator":"regex" , "value":"machine[0-3]"  }
         , { "objectType":"fileSystemLogicalElement", "attribute":"fileSystemFreeSpace", "comparator":"regex", "value":"[01]{2}" }
         , { "objectType":"biosPhysicalElement", "attribute":"softwareVersion", "comparator":"regex", "value":"[6.0]+" }
       ] }

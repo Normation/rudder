@@ -139,22 +139,24 @@ final case class Video(
  * (de)serialization to string, of as a key
  * for the VM type. They should be lower case only.
  */
-sealed abstract class VmType(override val entryName: String) extends EnumEntry    {
-  def name: String = entryName
+sealed abstract class VmType(override val entryName: String) extends EnumEntry {
+  def name:        String = entryName // for compat
+  def displayName: String
 }
-object VmType                                                extends Enum[VmType] {
-  case object UnknownVmType extends VmType("unknown")
-  case object SolarisZone   extends VmType("solariszone")
-  case object VirtualBox    extends VmType("vbox")
-  case object VMWare        extends VmType("vmware")
-  case object QEmu          extends VmType("qemu")
-  case object Xen           extends VmType("xen")
-  case object AixLPAR       extends VmType("aixlpar")
-  case object HyperV        extends VmType("hyperv")
-  case object BSDJail       extends VmType("bsdjail")
-  case object Virtuozzo     extends VmType("virtuozzo")
-  case object OpenVZ        extends VmType("openvz")
-  case object LXC           extends VmType("lxc")
+
+object VmType extends Enum[VmType] {
+  case object AixLPAR       extends VmType("aixlpar")     { override def displayName: String = "AIX LPAR"        }
+  case object BSDJail       extends VmType("bsdjail")     { override def displayName: String = "BSD Jail"        }
+  case object HyperV        extends VmType("hyperv")      { override def displayName: String = "Hyper-V"         }
+  case object LXC           extends VmType("lxc")         { override def displayName: String = "LXC"             }
+  case object OpenVZ        extends VmType("openvz")      { override def displayName: String = "OpenVz"          }
+  case object QEmu          extends VmType("qemu")        { override def displayName: String = "QEMU"            }
+  case object SolarisZone   extends VmType("solariszone") { override def displayName: String = "Solaris Zone"    }
+  case object VirtualBox    extends VmType("vbox")        { override def displayName: String = "VirtualBox"      }
+  case object Virtuozzo     extends VmType("virtuozzo")   { override def displayName: String = "Virtuozzo"       }
+  case object VMWare        extends VmType("vmware")      { override def displayName: String = "VMware"          }
+  case object Xen           extends VmType("xen")         { override def displayName: String = "Xen"             }
+  case object UnknownVmType extends VmType("unknownvm")   { override def displayName: String = "Unknown VM Type" }
 
   def values:           IndexedSeq[VmType]     = findValues
   def parse(s: String): Either[String, VmType] = {
@@ -174,16 +176,16 @@ object VmType                                                extends Enum[VmType
 sealed trait MachineType { def kind: String }
 
 final case class VirtualMachineType(vm: VmType) extends MachineType {
-  override val kind       = vm.name
-  override def toString() = kind
+  override val kind       = vm.entryName
+  override def toString() = vm.name
 }
 case object PhysicalMachineType                 extends MachineType {
-  override val kind       = "physicalMachine"
-  override def toString() = kind
+  override val kind       = "physical" // need to be
+  override def toString() = kind.capitalize
 }
 case object UnknownMachineType                  extends MachineType {
   override val kind       = "unknownMachineType"
-  override def toString() = kind
+  override def toString() = "Unknown machine type"
 }
 
 final case class MachineInventory(

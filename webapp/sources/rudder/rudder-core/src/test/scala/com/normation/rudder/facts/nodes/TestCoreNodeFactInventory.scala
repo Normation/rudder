@@ -228,7 +228,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
   // - machine2 (physical)
   // - a bios
   val node7id:   NodeId      = NodeId("node7")
-  val machineId: MachineUuid = MachineUuid("machine2")
+  val machineId: MachineUuid = MachineUuid("machine3")
 
   implicit val cc: ChangeContext = ChangeContext.newForRudder()
 
@@ -279,7 +279,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
           Some(SoftwareEditor("Phoenix Technologies LTD"))
         )
       ) and
-      (node.machine === MachineInfo(machineId, PhysicalMachineType, None, None)) and
+      (node.machine === MachineInfo(machineId, VirtualMachineType(VmType.VMWare), None, None)) and
       (node.fileSystems.size === 1) and
       (
         node.fileSystems.head === FileSystem(
@@ -315,7 +315,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
       (factStorage.callStack.get.runNow.size === 1) and
       (node.bios.size === 0) and
-      (node.machine === MachineInfo(machineId, PhysicalMachineType, None, None)) and // we always get that
+      (node.machine === MachineInfo(machineId, VirtualMachineType(VmType.VMWare), None, None)) and // we always get that
       (node.fileSystems.size === 0) and
       (node.software.size === 1) and
       (node.software.head === SoftwareFact("Software 0", new Version("1.0.0"))) and
@@ -525,7 +525,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
         "networkInterface=eth0,nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration"
       ) must beTrue) and
       (mockLdapFactStorage.testServer.entryExists(
-        "portName=slot0,machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration"
+        "portName=slot0,machineId=machine3,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration"
       ) must beTrue) and
       (
         mockLdapFactStorage.testServer
