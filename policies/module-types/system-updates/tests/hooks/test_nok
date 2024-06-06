@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo "failure"
+exit 1
