@@ -11,7 +11,7 @@ license.workspace = true
 [dependencies]
 anyhow = "1"
 askama = "0.12"
-boon = "0.5.0"
+boon = "0.6.0"
 clap = { version = "4", features = ["derive"] }
 quick-xml = { version = "0.31.0", features = ["serialize"] }
 regex = "1"
@@ -31,14 +31,14 @@ walkdir = "2"
 tempfile = "3"
 rudder_commons = { path = "../rudder-commons" }
 rudder_cli = { path = "../rudder-cli" }
-zip = { version = "1", default-features = false, features = ["deflate", "time"] }
+zip = { version = "2.1.3", default-features = false, features = ["deflate", "time"] }
 
 [features]
 "embedded-lib" = []
 
 [dev-dependencies]
 pretty_assertions = "1"
-# Fix for workspace not merged yet
+# Fix for workspace isn't merged yet
 test-generator = { git = "https://github.com/JamesGuthrie/test-generator", rev = "82e7999" }
 
 [build-dependencies]
