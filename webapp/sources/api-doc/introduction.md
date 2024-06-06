@@ -174,6 +174,13 @@ period of time to allow migration from previous versions.
         <li>Scores list</li>
       </ul></td>
     </tr>
+    <tr>
+      <td class="code">20</td>
+      <td class="code">8.2</td>
+      <td><ul>
+        <li>More standard format for node details fields</li>
+      </ul></td>
+    </tr>
   </tbody>
 </table>
 

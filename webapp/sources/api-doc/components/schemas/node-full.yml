@@ -195,7 +195,8 @@ properties:
     description: Rudder policy mode for the node (`default` follows the global configuration)
   ram:
     type: integer
-    description: Size of RAM in MB
+    description: Size of RAM in bytes
+    example: 8589934592
   timezone:
     type: object
     required:
@@ -246,8 +247,9 @@ properties:
         example: 1
       releaseDate:
         type: string
-        description: Release date of the BIOS
-        example: 2006-12-01 00:00:00+0000
+        description: Release date of the BIOS (with format `yyyy-MM-dd'T'HH:mm:ssZZ`)
+        format: date-time
+        example: 2006-12-01T00:00:00Z
       description:
         type: string
         description: System provided description of the BIOS (long name)
@@ -311,12 +313,12 @@ properties:
           example: 1456
         freeSpace:
           type: integer
-          description: Free space remaining
-          example: 3487
+          description: Free space remaining in bytes
+          example: 1048576
         totalSpace:
           type: integer
-          description: Total space
-          example: 208869
+          description: Total space in bytes
+          example: 2097152
   managementTechnologyDetails:
     type: object
     description: Additional information about management technology
@@ -359,8 +361,8 @@ properties:
           description: Number of modules in that slot
         capacity:
           type: integer
-          example: 2
-          description: Size of modules
+          example: 1073741824
+          description: Size of modules in bytes
         slotNumber:
           type: integer
           example: 3
@@ -679,8 +681,8 @@ properties:
           example: disk
         size:
           type: integer
-          description: Storage size in MB
-          example: 85899
+          description: Storage size in bytes
+          example: 10737418240
         model:
           type: string
           description: Storage model
@@ -714,7 +716,7 @@ properties:
           description: Video card name
         memory:
           type: string
-          description: Quantity of memory for that video card
+          description: Quantity of memory for that video card in bytes
         chipset:
           type: string
           description: information about video card chipset
