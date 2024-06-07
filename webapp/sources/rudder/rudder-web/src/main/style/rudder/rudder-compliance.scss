@@ -339,7 +339,8 @@ $small-prefix : "sm-";
   &.security{
     background-color: #DA291C !important;
   }
-  &.bugfix{
+  &.bugfix,
+  &.defect{
     background-color: #EF9600 !important;
   }
   &.enhancement{
