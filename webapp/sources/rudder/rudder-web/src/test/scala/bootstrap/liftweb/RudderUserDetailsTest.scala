@@ -53,6 +53,7 @@ import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.AuthorizationApiMapping
 import com.normation.rudder.rest.RoleApiMapping
 import com.normation.rudder.tenants.TenantId
+import com.normation.rudder.users.PasswordEncoderDispatcher
 import com.normation.rudder.users.UserDetailListProvider
 import com.normation.rudder.users.UserFileProcessing
 import com.normation.rudder.users.ValidatedUserList
@@ -87,8 +88,10 @@ class RudderUserDetailsTest extends Specification {
 
   // org.slf4j.LoggerFactory.getLogger("application.authorization").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
 
+  val passwordEncoderDispatcher = new PasswordEncoderDispatcher(0)
+
   def getUserDetailList(xml: Elem, debugName: String): ValidatedUserList =
-    UserFileProcessing.parseXml(roleApiMapping, xml, debugName, reload = false).force
+    UserFileProcessing.parseXml(roleApiMapping, passwordEncoderDispatcher, xml, debugName, reload = false).force
 
   // also check that we accept both `role` and `roles` tags
   val userXML_1: Elem = <authentication hash="sha512" case-sensitivity="true">

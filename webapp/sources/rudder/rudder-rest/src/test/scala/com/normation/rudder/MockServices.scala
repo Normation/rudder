@@ -779,7 +779,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
 
 }
 
-class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSession], usersFile: File) {
+class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSession], usersConfigFile: File) {
 
   object userRepo extends UserRepository {
 
@@ -851,16 +851,16 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
 
   }
 
-  val usersInputStream: () => InputStream = () => IOUtils.toInputStream(usersFile.contentAsString, StandardCharsets.UTF_8)
+  val usersInputStream: () => InputStream = () => IOUtils.toInputStream(usersConfigFile.contentAsString, StandardCharsets.UTF_8)
 
   val passwordEncoderDispatcher = new PasswordEncoderDispatcher(0)
 
   val userService: FileUserDetailListProvider = {
-    val usersFile = UserFile("test-users.xml", usersInputStream)
+    val usersFile = UserFile(usersConfigFile.pathAsString, usersInputStream)
 
     val roleApiMapping = new RoleApiMapping(AuthorizationApiMapping.Core)
 
-    val res = new FileUserDetailListProvider(roleApiMapping, usersFile)
+    val res = new FileUserDetailListProvider(roleApiMapping, usersFile, passwordEncoderDispatcher)
     res.reload()
     res
   }
@@ -870,7 +870,7 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
       userRepo,
       userService,
       passwordEncoderDispatcher,
-      UserFile(usersFile.pathAsString, usersInputStream).succeed
+      UserFile(usersConfigFile.pathAsString, usersInputStream).succeed
     )
   }
 

@@ -52,6 +52,7 @@ import bootstrap.liftweb.checks.migration.CheckAddSpecialNodeGroupsDescription
 import bootstrap.liftweb.checks.migration.CheckRemoveRuddercSetting
 import bootstrap.liftweb.checks.migration.CheckTableScore
 import bootstrap.liftweb.checks.migration.CheckTableUsers
+import bootstrap.liftweb.checks.migration.CheckUsersFile
 import bootstrap.liftweb.checks.migration.MigrateChangeValidationEnforceSchema
 import bootstrap.liftweb.checks.migration.MigrateEventLogEnforceSchema
 import bootstrap.liftweb.checks.migration.MigrateJsonTechniquesToYaml
@@ -1523,11 +1524,13 @@ object RudderConfigInit {
 
     lazy val roleApiMapping = new RoleApiMapping(authorizationApiMapping)
 
+    lazy val passwordEncoderDispatcher = new PasswordEncoderDispatcher(RUDDER_BCRYPT_COST)
+
     // rudder user list
     lazy val rudderUserListProvider: FileUserDetailListProvider = {
       UserFileProcessing.getUserResourceFile().either.runNow match {
         case Right(resource) =>
-          new FileUserDetailListProvider(roleApiMapping, resource)
+          new FileUserDetailListProvider(roleApiMapping, resource, passwordEncoderDispatcher)
         case Left(err)       =>
           ApplicationLogger.error(err.fullMsg)
           // make the application not available
@@ -2230,7 +2233,7 @@ object RudderConfigInit {
           new UserManagementService(
             userRepository,
             rudderUserListProvider,
-            new PasswordEncoderDispatcher(RUDDER_BCRYPT_COST),
+            passwordEncoderDispatcher,
             UserFileProcessing.getUserResourceFile()
           ),
           roleApiMapping,
@@ -3323,6 +3326,7 @@ object RudderConfigInit {
       new CheckAddSpecialNodeGroupsDescription(rwLdap),
       new CheckRemoveRuddercSetting(rwLdap),
       new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap),
+      new CheckUsersFile(rudderUserListProvider),
       new CheckInitUserTemplateLibrary(
         rudderDitImpl,
         rwLdap,

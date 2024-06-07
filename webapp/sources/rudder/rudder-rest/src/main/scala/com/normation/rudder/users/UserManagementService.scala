@@ -244,7 +244,7 @@ class UserManagementService(
                             e.copy(child = {
                               e.child ++ newUser
                                 .copy(password = {
-                                  getHashEncoderOrPlain((userXML \\ "authentication" \ "@hash").text).encode(newUser.password)
+                                  getHashEncoderOrDefault((userXML \\ "authentication" \ "@hash").text).encode(newUser.password)
                                 })
                                 .toNode
                             })
@@ -339,7 +339,7 @@ class UserManagementService(
                        (user \ "@password").text
                      } else {
                        if (isPreHashed) fileUser.password
-                       else getHashEncoderOrPlain((userXML \\ "authentication" \ "@hash").text).encode(fileUser.password)
+                       else getHashEncoderOrDefault((userXML \\ "authentication" \ "@hash").text).encode(fileUser.password)
                      }
                      val tenants     = (user \ "@tenants").text
                      User.make(newUsername, newPassword, newRoles, tenants).toNode
@@ -392,7 +392,7 @@ class UserManagementService(
     } yield res
   }
 
-  private def getHashEncoderOrPlain(hash: String): PasswordEncoder = {
-    encoderDispatcher.dispatch(PasswordEncoderType.withNameInsensitiveOption(hash).getOrElse(PasswordEncoderType.PlainText))
+  private def getHashEncoderOrDefault(hash: String): PasswordEncoder = {
+    encoderDispatcher.dispatch(PasswordEncoderType.withNameInsensitiveOption(hash).getOrElse(PasswordEncoderType.DEFAULT))
   }
 }

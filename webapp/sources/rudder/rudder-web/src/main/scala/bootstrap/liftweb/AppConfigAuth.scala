@@ -37,6 +37,7 @@
 
 package bootstrap.liftweb
 
+import bootstrap.liftweb.checks.migration.CheckUsersFile
 import com.normation.errors.*
 import com.normation.rudder.Role
 import com.normation.rudder.api.*
@@ -247,58 +248,59 @@ class AppConfigAuth extends ApplicationContextAware {
     new PasswordEncoderDispatcher(RudderConfig.RUDDER_BCRYPT_COST)
   }
 
+  @Bean def checkUsersFile: CheckUsersFile = new CheckUsersFile(RudderConfig.rudderUserListProvider)
+
   @Bean def fileAuthenticationProvider: AuthenticationProvider = {
     val provider = new DaoAuthenticationProvider()
-    val encoder  = passwordEncoderDispatcher.dispatch(rudderUserDetailsService.authConfigProvider.authConfig.encoder)
     provider.setUserDetailsService(rudderUserDetailsService)
-    provider.setPasswordEncoder(encoder)
+    provider.setPasswordEncoder(rudderUserDetailsService.authConfigProvider.authConfig.encoder)
 
-    // we need to register a callback to update password encoder when needed
-    val updatePasswordEncoder = RudderAuthorizationFileReloadCallback(
+    // we need to register a callback to check and update users file and a callback to update password encoder when needed
+    val checkUsersFileCallback = RudderAuthorizationFileReloadCallback(
+      "checkUsersFileCallback",
+      (c: ValidatedUserList) => checkUsersFile.allChecks(c.encoder.securityLevel)
+    )
+    RudderConfig.rudderUserListProvider.registerCallback(checkUsersFileCallback)
+    val updatePasswordEncoder  = RudderAuthorizationFileReloadCallback(
       "updatePasswordEncoder",
-      (c: ValidatedUserList) => effectUioUnit(provider.setPasswordEncoder(passwordEncoderDispatcher.dispatch(c.encoder)))
+      (c: ValidatedUserList) => effectUioUnit(provider.setPasswordEncoder(c.encoder))
     )
     RudderConfig.rudderUserListProvider.registerCallback(updatePasswordEncoder)
+
     provider
   }
 
   @Bean def rootAdminAuthenticationProvider: AuthenticationProvider = {
     // We want to be able to disable that account.
-    // For that, we let the user either let undefined udder.auth.admin.login,
+    // For that, we let the user either let undefined rudder.auth.admin.login,
     // or let empty udder.auth.admin.login or rudder.auth.admin.password
 
-    val defaultEncoder    = PasswordEncoderType.BCRYPT
-    val (encoder, admins) = if (config.hasPath("rudder.auth.admin.login") && config.hasPath("rudder.auth.admin.password")) {
+    import RudderPasswordEncoder.SecurityLevel.Modern
+
+    // Only support modern algorithms for root admin account
+    val encoder = RudderPasswordEncoder(Modern, passwordEncoderDispatcher)
+    val admins  = if (config.hasPath("rudder.auth.admin.login") && config.hasPath("rudder.auth.admin.password")) {
       val login    = config.getString("rudder.auth.admin.login")
       val password = config.getString("rudder.auth.admin.password")
 
       if (login.isEmpty || password.isEmpty) {
-        (defaultEncoder, Map.empty[String, RudderUserDetail])
+        Map.empty[String, RudderUserDetail]
       } else {
-        // check if the password is in plain text (for compatibility before #19308) or bcrypt-encoded
-        val passwordEncoder = if (password.startsWith("$2y$")) {
-          defaultEncoder
-        } else {
-          PasswordEncoderType.PlainText
-        }
-        (
-          passwordEncoder,
-          Map(
-            login -> RudderUserDetail(
-              RudderAccount.User(
-                login,
-                password
-              ),
-              UserStatus.Active,
-              Set(Role.Administrator),
-              SYSTEM_API_ACL,
-              NodeSecurityContext.All
-            )
+        Map(
+          login -> RudderUserDetail(
+            RudderAccount.User(
+              login,
+              password
+            ),
+            UserStatus.Active,
+            Set(Role.Administrator),
+            SYSTEM_API_ACL,
+            NodeSecurityContext.All
           )
         )
       }
     } else {
-      (defaultEncoder, Map.empty[String, RudderUserDetail])
+      Map.empty[String, RudderUserDetail]
     }
 
     if (admins.isEmpty) {
@@ -320,7 +322,7 @@ class AppConfigAuth extends ApplicationContextAware {
     )
     val provider            = new DaoAuthenticationProvider()
     provider.setUserDetailsService(new RudderInMemoryUserDetailsService(authConfigProvider, rootAccountUserRepo))
-    provider.setPasswordEncoder(passwordEncoderDispatcher.dispatch(encoder)) // force password encoder to the one we want
+    provider.setPasswordEncoder(encoder) // force password encoder to the one we want
     provider
   }
 

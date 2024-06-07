@@ -71,12 +71,14 @@ class RudderUserPasswordEncoderTest extends Specification {
   }
 
   "hash algo for 'admin' password" should {
-    val pass1        = "admin"
-    val pass1_md5    = "21232f297a57a5a743894a0e4a801fc3"
-    val pass1_sha1   = "d033e22ae348aeb5660fc2140aec35850c4da997"
-    val pass1_sha256 = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"
-    val pass1_sha512 =
+    val pass1          = "admin"
+    val pass1_md5      = "21232f297a57a5a743894a0e4a801fc3"
+    val pass1_sha1     = "d033e22ae348aeb5660fc2140aec35850c4da997"
+    val pass1_sha256   = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"
+    val pass1_sha512   =
       "c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"
+    val pass1_bcrypt_a = "$2a$12$mgAVHJ2/312Q.hdWT0EzjOZHrGicXV/2K.1CLsnM3gOYqi5twcwtW"
+    val pass1_bcrypt_y = "$2y$10$QA4RucUAlhOofuPMAnonk.Mvnq4GPSHaq757Hwj7C/pLb9cmZBHdW"
 
     "be ok for md5" in {
       RudderPasswordEncoder.MD5.matches(pass1, pass1_md5) must beTrue
@@ -89,6 +91,13 @@ class RudderUserPasswordEncoderTest extends Specification {
     }
     "be ok for sha512" in {
       RudderPasswordEncoder.SHA512.matches(pass1, pass1_sha512) must beTrue
+    }
+    // Use same default BCRYPT cost as in RudderConfig
+    "be ok for bcrypt a" in {
+      RudderPasswordEncoder.BCRYPT(12).matches(pass1, pass1_bcrypt_a) must beTrue
+    }
+    "be ok for bcrypt y" in {
+      RudderPasswordEncoder.BCRYPT(12).matches(pass1, pass1_bcrypt_y) must beTrue
     }
 
   }
@@ -114,6 +123,58 @@ class RudderUserPasswordEncoderTest extends Specification {
       RudderPasswordEncoder.SHA512.matches(pass1, pass1_sha512) must beTrue
     }
 
+  }
+
+  "hash algo recognition" should {
+    val legacy = RudderPasswordEncoder.SecurityLevel.Legacy
+    val modern = RudderPasswordEncoder.SecurityLevel.Modern
+
+    val pass1_md5         = "21232f297a57a5a743894a0e4a801fc3"
+    val pass1_sha1        = "d033e22ae348aeb5660fc2140aec35850c4da997"
+    val pass1_sha256      = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"
+    val pass1_sha512      =
+      "c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"
+    val pass1_bcrypt_a    = "$2a$12$mgAVHJ2/312Q.hdWT0EzjOZHrGicXV/2K.1CLsnM3gOYqi5twcwtW"
+    val pass1_bcrypt_y    = "$2y$10$QA4RucUAlhOofuPMAnonk.Mvnq4GPSHaq757Hwj7C/pLb9cmZBHdW"
+    val pass1_invalid_hex = "87d033e22ae348aeb5660fc2140aec35850c4da997"
+    val pass1_invalid_z   = "z033e22ae348aeb5660fc2140aec35850c4da997"
+
+    "be ok for md5" in {
+      RudderPasswordEncoder.getFromEncoded(pass1_md5, legacy) must beRight(beEqualTo(PasswordEncoderType.MD5))
+    }
+    "be ok for sha1" in {
+      RudderPasswordEncoder.getFromEncoded(pass1_sha1, legacy) must beRight(beEqualTo(PasswordEncoderType.SHA1))
+    }
+    "be ok for sha256" in {
+      RudderPasswordEncoder.getFromEncoded(pass1_sha256, legacy) must beRight(beEqualTo(PasswordEncoderType.SHA256))
+    }
+    "be ok for sha512" in {
+      RudderPasswordEncoder.getFromEncoded(pass1_sha512, legacy) must beRight(beEqualTo(PasswordEncoderType.SHA512))
+    }
+    "be ok for bcrypt a" in {
+      RudderPasswordEncoder.getFromEncoded(pass1_bcrypt_a, legacy) must beRight(beEqualTo(PasswordEncoderType.BCRYPT))
+    }
+    "be ok for bcrypt y" in {
+      RudderPasswordEncoder.getFromEncoded(pass1_bcrypt_y, legacy) must beRight(beEqualTo(PasswordEncoderType.BCRYPT))
+    }
+    "reject invalid hex hash" in {
+      RudderPasswordEncoder.getFromEncoded(pass1_invalid_hex, legacy) must beLeft(
+        "Could not recognize a known hash format from hexadecimal encoded string of length 42"
+      )
+    }
+    "reject invalid char in hash" in {
+      RudderPasswordEncoder.getFromEncoded(pass1_invalid_z, legacy) must beLeft(
+        "Could not recognize a known hash format from encoded password"
+      )
+    }
+    "reject unsafe md5 hash in modern mode" in {
+      RudderPasswordEncoder.getFromEncoded(pass1_md5, modern) must beLeft(
+        "Could not recognize a known hash format from encoded password"
+      )
+    }
+    "allow safe bcrypt hash in modern mode" in {
+      RudderPasswordEncoder.getFromEncoded(pass1_bcrypt_y, modern) must beRight(beEqualTo(PasswordEncoderType.BCRYPT))
+    }
   }
 
 }

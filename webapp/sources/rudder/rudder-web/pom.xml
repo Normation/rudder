@@ -308,5 +308,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.normation.rudder</groupId>
+      <artifactId>rudder-rest</artifactId>
+      <version>${rudder-version}</version>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>

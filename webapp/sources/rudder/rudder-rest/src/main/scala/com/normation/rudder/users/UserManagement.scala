@@ -111,6 +111,7 @@ object Serialisation {
   implicit val userStatusEncoder:            JsonEncoder[UserStatus]            = JsonEncoder[String].contramap(_.value)
   implicit val providerRoleExtensionEncoder: JsonEncoder[ProviderRoleExtension] =
     JsonEncoder[String].contramap(_.name)
+  implicit val passwordEncoderTypeEncoder:   JsonEncoder[PasswordEncoderType]   = JsonEncoder[String].contramap(_.name)
 
   implicit val updateUserInfoDecoder: JsonDecoder[UpdateUserInfo] = DeriveJsonDecoder.gen[UpdateUserInfo]
   implicit val updateUserInfoEncoder: JsonEncoder[UpdateUserInfo] = DeriveJsonEncoder.gen[UpdateUserInfo]
@@ -141,11 +142,11 @@ object Serialisation {
 }
 
 final case class JsonAuthConfig(
-    digest:                 String,
     roleListOverride:       ProviderRoleExtension,
     authenticationBackends: Set[String],
     providerProperties:     Map[String, JsonProviderProperty],
-    users:                  List[JsonUser]
+    users:                  List[JsonUser],
+    digest:                 PasswordEncoderType = PasswordEncoderType.DEFAULT // default value
 )
 
 final case class JsonProviderProperty(
