@@ -55,7 +55,7 @@ class CheckUsersFile(migration: UserFileSecurityLevelMigration) extends Bootstra
     for {
       _ <- currentSecurityLevel match {
              case SecurityLevel.Modern => ZIO.unit
-             case SecurityLevel.Legacy => migration.migrateToModern(UserManagementIO.getUserFilePath(migration.file))
+             case SecurityLevel.Legacy => migration.allowLegacy(UserManagementIO.getUserFilePath(migration.file))
            }
     } yield {}
   }
@@ -74,7 +74,7 @@ class CheckUsersFile(migration: UserFileSecurityLevelMigration) extends Bootstra
                         )
       _            <- allChecks(securityLevel)
     } yield {})
-      .catchAll(err => BootstrapLogger.error("Error when trying to check users file"))
+      .catchAll(err => BootstrapLogger.error(s"Error when trying to check users file: ${err.fullMsg}"))
       .forkDaemon
       .runNow
   }

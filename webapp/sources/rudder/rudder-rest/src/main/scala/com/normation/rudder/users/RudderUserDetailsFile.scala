@@ -369,7 +369,11 @@ trait UserDetailListProvider {
 
 trait UserFileSecurityLevelMigration {
   def file: UserFile
-  def migrateToModern(file: File): IOResult[Unit]
+
+  /**
+    * Migrates the provided file to the modern security level, but allow legacy hashes to subsist
+    */
+  def allowLegacy(file: File): IOResult[Unit]
 }
 
 final class FileUserDetailListProvider(
@@ -435,7 +439,7 @@ final class FileUserDetailListProvider(
   override def authConfig: ValidatedUserList = cache.get.runNow
 
   // directly changes the file content !!
-  override def migrateToModern(sourceTargetFile: File): IOResult[Unit] = {
+  override def allowLegacy(sourceTargetFile: File): IOResult[Unit] = {
     // replace "hash" value by "bcrypt", mark unsafe_hashes=true
     for {
       parsedFile <- IOResult.attempt(ConstructingParser.fromFile(sourceTargetFile.toJava, preserveWS = true))

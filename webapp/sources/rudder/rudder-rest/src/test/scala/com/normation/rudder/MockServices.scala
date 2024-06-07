@@ -856,7 +856,7 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
   val passwordEncoderDispatcher = new PasswordEncoderDispatcher(0)
 
   val userService: FileUserDetailListProvider = {
-    val usersFile = UserFile("test-users.xml", usersInputStream)
+    val usersFile = UserFile(usersConfigFile.pathAsString, usersInputStream)
 
     val roleApiMapping = new RoleApiMapping(AuthorizationApiMapping.Core)
 
