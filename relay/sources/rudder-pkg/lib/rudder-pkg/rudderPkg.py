@@ -95,6 +95,7 @@ def package_list_installed():
             return
         text = open(utils.PLUGINS_CONTEXT_XML).read()
         match = re.search(r'<Set name="extraClasspath">(.*?)</Set>', text)
+        enabled = False
         if match:
             enabled = match.group(1).split(',')
         metadata = utils.DB['plugins'][p]
