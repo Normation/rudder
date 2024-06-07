@@ -32,7 +32,7 @@ target/man/rudder-relayd.1.gz:
 	gzip -f target/man/rudder-relayd.1
 
 CACHE=cache() { [ -x ../../../../../build-caching ] && ../../../../../build-caching "$$@"; [ -x ../../../../../../build-caching ] && ../../../../../../build-caching "$$@" ; } ; cache
-build: man rudder-pkg/rudder_plugins_key.pub autocomplete/rudder-pkg.sh
+build: man
 	# Build rust binaries
 	mkdir -p ../../../../../.cargo/ relayd/target/ rudder-package/target/
 	$(CACHE) get ../../../../../.cargo/ name=cargo major=$(RUDDER_MAJOR_VERSION) || true
