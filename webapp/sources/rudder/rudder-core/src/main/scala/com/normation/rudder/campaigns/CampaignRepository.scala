@@ -57,7 +57,7 @@ object CampaignRepositoryImpl {
       path:                    File,
       campaignEventRepository: CampaignEventRepository
   ): IOResult[CampaignRepositoryImpl] = {
-    IOResult.attempt {
+    IOResult.attemptZIO {
       if (path.exists) {
         if (!path.isDirectory || !path.isWritable) {
           Unexpected(s"Campaign configuration repository is not a writable directory: " + path.pathAsString).fail
