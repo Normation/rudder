@@ -108,6 +108,7 @@ def run(
 
 def terminal_size():
     try:
+        h, w = 25, 80
         if sys.stdout.isatty():
             h, w, hp, wp = struct.unpack(
                 'HHHH', fcntl.ioctl(0, termios.TIOCGWINSZ, struct.pack('HHHH', 0, 0, 0, 0))
@@ -718,6 +719,8 @@ GPG_RUDDER_KEY_FINGERPRINT = '7C16 9817 7904 212D D58C  B4D1 9322 C330 474A 19E8
 try:
     with open(VERSIONS_PATH) as version_file:
         step = ''
+        RUDDER_MINOR = ''
+        rudder_version = ''
         for line in version_file:
             m = re.match(r'release_step *= *([a-z]+)(\d*)$', line)
             if m:
