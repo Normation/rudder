@@ -1993,16 +1993,16 @@ object NodeFactSerialisation {
     implicit val codecRudderAgent:    JsonCodec[RudderAgent]    = DeriveJsonCodec.gen
     implicit val codecIpAddress:      JsonCodec[IpAddress]      = JsonCodec.string.transform(IpAddress(_), _.inet)
     implicit val codecNodeTimezone:   JsonCodec[NodeTimezone]   = DeriveJsonCodec.gen
-    implicit val codecMachineType: JsonCodec[MachineType] = {
+    implicit val codecMachineType:    JsonCodec[MachineType]    = {
       val encoder: JsonEncoder[MachineType] = JsonEncoder.string.contramap(_.kind)
       // for compat before correction of https://issues.rudder.io/issues/24971, we need to keep
       // "physicalMachine". "virtualMachine" wasn't directly used
       val decoder: JsonDecoder[MachineType] = JsonDecoder.string.map {
         case s =>
           s.toLowerCase match {
-            case UnknownMachineType.kind => UnknownMachineType
+            case UnknownMachineType.kind                      => UnknownMachineType
             case PhysicalMachineType.kind | "physicalMachine" => PhysicalMachineType
-            case x => VirtualMachineType(VmType.parse(x).getOrElse(VmType.UnknownVmType))
+            case x                                            => VirtualMachineType(VmType.parse(x).getOrElse(VmType.UnknownVmType))
           }
       }
 
