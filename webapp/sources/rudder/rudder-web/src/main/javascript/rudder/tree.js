@@ -296,8 +296,6 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
    */
   var select_system_node_allowed = false;
 
-  allEventsRegisterTree();
-
   $(id).bind("loaded.jstree", function (event, data) {
     data.instance.open_all();
     initBsTooltips();
@@ -317,8 +315,9 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
         }
       }
     })
+    allEventsRegisterTree();
   }).on("after_open.jstree", function (event, data){
-      attachInlinedEvents(id)
+    attachInlinedEvents(id)
   }).jstree({
     "core" : {
       "animation" : 150,
