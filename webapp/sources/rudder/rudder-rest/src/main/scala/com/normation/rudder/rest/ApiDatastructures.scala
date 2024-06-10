@@ -226,8 +226,8 @@ trait EndpointSchema {
   // data container name: the expected object key in answer
   def dataContainer: Option[String]
 
-  // any authorization that allows to access that API - by default, admin.write
-  def authz: List[AuthorizationType] = List(AuthorizationType.Administration.Write)
+  // any authorization that allows to access that API
+  def authz: List[AuthorizationType]
 }
 
 trait EndpointSchema0 extends EndpointSchema {
