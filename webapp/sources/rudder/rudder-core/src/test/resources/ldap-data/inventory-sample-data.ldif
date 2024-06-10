@@ -421,7 +421,7 @@ osVersion: nothing
 osName: Ubuntu
 osKernelVersion: nothing
 nodeId: node7
-container: machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+container: machineId=machine3,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 cn: has everything
 software: softwareId=soft0,ou=Software,ou=Inventories,cn=rudder-configuration
 localAdministratorAccountName: root
@@ -526,17 +526,29 @@ objectClass: device
 objectClass: machine
 objectClass: physicalMachine
 machineId: has mb - no phys elt
-cn: has motherbord - no physical elements
+cn: has motherboard - no physical elements
 motherBoardUuid: f47ac10b-58cc-4372-a567-0e02b2c3d479
 
-# Example of a physical machine
+# Example of a virtual machine, virtualBox
 dn: machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 objectClass: top
 objectClass: device
 objectClass: machine
-objectClass: physicalMachine
+objectClass: virtualMachine
+objectClass: virtualBox
 machineId: machine2
 cn: has physicalElements
+
+
+# Example of a virtual machine, VMware
+dn: machineId=machine3,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: device
+objectClass: machine
+objectClass: virtualMachine
+objectClass: vmWare
+machineId: machine2
+cn: vmWare
 
 ###################################################################################################
 # Physical elements #
@@ -550,3 +562,10 @@ objectClass: top
 editor: Phoenix Technologies LTD
 softwareVersion: 6.00
 
+dn: biosName=bios1,machineId=machine3,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+biosName: bios1
+objectClass: biosPhysicalElement
+objectClass: physicalElement
+objectClass: top
+editor: Phoenix Technologies LTD
+softwareVersion: 6.00

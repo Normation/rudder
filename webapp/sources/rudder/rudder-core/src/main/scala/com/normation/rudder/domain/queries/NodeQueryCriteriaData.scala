@@ -39,7 +39,10 @@ package com.normation.rudder.domain.queries
 
 import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
+import com.normation.inventory.domain.MachineType
 import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.PhysicalMachineType
+import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_GROUP_UUID
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
@@ -101,7 +104,8 @@ class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository) {
     ObjectCriterion(
       OC_MACHINE,
       Chunk(
-        Criterion("machineType", MachineComparator, NodeCriterionMatcherString(_.machine.machineType.kind.wrap)),
+        Criterion("machineType", MachineComparator, MatchineTypeCriterionMatcherCaseIgnoreString),
+        Criterion("vmType", VmTypeComparator, VmTypeCriterionMatcherCaseIgnoreString),
         Criterion(A_MACHINE_UUID, StringComparator, NodeCriterionMatcherString(_.machine.id.value.wrap)),
         Criterion(A_NAME, StringComparator, AlwaysFalse("machine does not have a 'name' attribute in fusion")),
         Criterion(A_DESCRIPTION, StringComparator, AlwaysFalse("machine does not have a 'description' attribute in fusion")),
@@ -517,6 +521,49 @@ final case class NodeCriterionMatcherString(extractor: CoreNodeFact => Chunk[Str
   override def parseNum(value: String): Option[String] = Some(value)
   override def serialise(a:    String): String         = a
   val order: Ordering[String] = Ordering.String
+}
+
+/*
+ * A special matcher for Machine Type
+ */
+case object MatchineTypeCriterionMatcherCaseIgnoreString extends NodeCriterionMatcher {
+  def eqMatcher(n: CoreNodeFact, value: String): MatchHolderZio[MachineType] = {
+    MatchHolder[MachineType](
+      DebugInfo(Equals.id, Some(value)),
+      Chunk(n.machine.machineType),
+      _.exists(t => {
+        value.toLowerCase match {
+          case "physical" => t.isInstanceOf[PhysicalMachineType.type]
+          case "virtual"  => t.isInstanceOf[VirtualMachineType]
+          case _          => false
+        }
+      })
+    )(_.kind)
+  }
+
+  override def matches(n: CoreNodeFact, comparator: CriterionComparator, value: String): IOResult[Boolean] = {
+    comparator match {
+      case Equals => eqMatcher(n, value).matches
+      case _      => eqMatcher(n, value).matches.map(!_) // inverting is OK here vs exists/forall because only one machine
+    }
+  }
+}
+
+case object VmTypeCriterionMatcherCaseIgnoreString extends NodeCriterionMatcher {
+  def eqMatcher(n: CoreNodeFact, value: String): MatchHolderZio[MachineType] = {
+    MatchHolder[MachineType](
+      DebugInfo(Equals.id, Some(value)),
+      Chunk(n.machine.machineType),
+      _.exists(t => t.kind.equalsIgnoreCase(value))
+    )(_.kind)
+  }
+
+  override def matches(n: CoreNodeFact, comparator: CriterionComparator, value: String): IOResult[Boolean] = {
+    comparator match {
+      case Equals => eqMatcher(n, value).matches
+      case _      => eqMatcher(n, value).matches.map(!_) // inverting is OK here vs exists/forall because only one machine
+    }
+  }
 }
 
 final case class NodeCriterionMatcherInt(extractor: CoreNodeFact => Chunk[Int]) extends NodeCriterionOrderedValueMatcher[Int] {

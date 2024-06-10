@@ -635,21 +635,22 @@ case object MachineComparator extends LDAPCriterionType {
 case object VmTypeComparator extends LDAPCriterionType {
   final case class vm(obj: VmType, ldapClass: String, displayName: String)
   val vmTypes: List[(String, String)] = List(
-    (OC_VM, "Any"), // we don't have a type for "unknown", only "it's a "    (LPAR, OC_VM_AIX_LPAR, "AIX LPAR"),
-    (OC_VM_BSDJAIL, "BSD Jail"),
-    (OC_VM_HYPERV, "HyperV"),
-    (OC_VM_LXC, "LXC"),
-    (OC_VM_OPENVZ, "OpenVZ"),
-    (OC_VM_QEMU, "QEmu"),
-    (OC_VM_SOLARIS_ZONE, "Solaris Zone"),
-    (OC_VM_VIRTUALBOX, "Virtual Box"),
-    (OC_VM_VIRTUOZZO, "Virtuozzo"),
-    (OC_VM_VMWARE, "VMWare"),
-    (OC_VM_XEN, "XEN")
+    (OC_VM_AIX_LPAR, VmType.AixLPAR.name),
+    (OC_VM_BSDJAIL, VmType.BSDJail.name),
+    (OC_VM_HYPERV, VmType.HyperV.name),
+    (OC_VM_LXC, VmType.LXC.name),
+    (OC_VM_OPENVZ, VmType.OpenVZ.name),
+    (OC_VM_QEMU, VmType.QEmu.name),
+    (OC_VM_SOLARIS_ZONE, VmType.SolarisZone.name),
+    (OC_VM_VIRTUALBOX, VmType.VirtualBox.name),
+    (OC_VM_VIRTUOZZO, VmType.Virtuozzo.name),
+    (OC_VM_VMWARE, VmType.VMWare.name),
+    (OC_VM_XEN, VmType.Xen.name)
   )
 
-  override def comparators:                                                           Seq[BaseComparator] = Seq(Equals, NotEquals)
-  override protected def validateSubCase(v: String, comparator: CriterionComparator): PureResult[String]  = {
+  override def comparators: Seq[BaseComparator] = Seq(Equals, NotEquals)
+
+  override protected def validateSubCase(v: String, comparator: CriterionComparator): PureResult[String] = {
     if (null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
   }
 

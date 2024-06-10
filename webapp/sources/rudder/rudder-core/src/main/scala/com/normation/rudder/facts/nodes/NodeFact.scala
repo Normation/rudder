@@ -1993,14 +1993,21 @@ object NodeFactSerialisation {
     implicit val codecRudderAgent:    JsonCodec[RudderAgent]    = DeriveJsonCodec.gen
     implicit val codecIpAddress:      JsonCodec[IpAddress]      = JsonCodec.string.transform(IpAddress(_), _.inet)
     implicit val codecNodeTimezone:   JsonCodec[NodeTimezone]   = DeriveJsonCodec.gen
-    implicit val codecMachineType:    JsonCodec[MachineType]    = JsonCodec.string.transform[MachineType](
-      _ match {
-        case UnknownMachineType.kind  => UnknownMachineType
-        case PhysicalMachineType.kind => PhysicalMachineType
-        case x                        => VirtualMachineType(VmType.parse(x).getOrElse(VmType.UnknownVmType))
-      },
-      _.kind
-    )
+    implicit val codecMachineType: JsonCodec[MachineType] = {
+      val encoder: JsonEncoder[MachineType] = JsonEncoder.string.contramap(_.kind)
+      // for compat before correction of https://issues.rudder.io/issues/24971, we need to keep
+      // "physicalMachine". "virtualMachine" wasn't directly used
+      val decoder: JsonDecoder[MachineType] = JsonDecoder.string.map {
+        case s =>
+          s.toLowerCase match {
+            case UnknownMachineType.kind => UnknownMachineType
+            case PhysicalMachineType.kind | "physicalMachine" => PhysicalMachineType
+            case x => VirtualMachineType(VmType.parse(x).getOrElse(VmType.UnknownVmType))
+          }
+      }
+
+      JsonCodec(encoder, decoder)
+    }
     implicit val encoderJMachineType: JsonEncoder[JMachineType] = JsonEncoder[String].contramap(_.name)
     implicit val decoderJMachineType: JsonDecoder[JMachineType] =
       JsonDecoder[String].mapOrFail(JMachineType.withNameEither(_).left.map(_.getMessage))
@@ -2015,6 +2022,16 @@ object NodeFactSerialisation {
           .orElse(decoder)
       )
     }
+//=======
+//    implicit val codecMachineUuid:    JsonCodec[MachineUuid]    = JsonCodec.string.transform[MachineUuid](MachineUuid(_), _.value)
+
+//    implicit val codecManufacturer:   JsonCodec[Manufacturer]   = JsonCodec.string.transform[Manufacturer](Manufacturer(_), _.name)
+//    implicit val codecMachine:        JsonCodec[MachineInfo]    = DeriveJsonCodec.gen
+//    implicit val codecMemorySize:     JsonCodec[MemorySize]     = JsonCodec.long.transform[MemorySize](MemorySize(_), _.size)
+//    implicit val codecSVersion:       JsonCodec[SVersion]       = JsonCodec.string.transform[SVersion](new SVersion(_), _.value)
+//    implicit val codecSoftwareEditor: JsonCodec[SoftwareEditor] =
+//      JsonCodec.string.transform[SoftwareEditor](SoftwareEditor(_), _.name)
+//>>>>>>> branches/rudder/8.1
   }
 
   import SimpleCodec.*
