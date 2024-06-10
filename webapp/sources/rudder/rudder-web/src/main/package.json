@@ -21,17 +21,17 @@
   },
   "devDependencies": {
     "better-npm-audit": "^3.7.3",
-    "del": "^6.1.1",
+    "del": "^7.1.0",
     "elm": "^0.19.1-5",
     "elm-test": "^0.19.1-revision12",
-    "gulp": "^4.0.2",
+    "gulp": "^5.0.0",
     "gulp-elm": "^0.8.2",
     "gulp-mode": "^1.1.0",
     "gulp-rename": "^2.0.0",
     "gulp-sass": "^5.1.0",
-    "gulp-sourcemaps": "^3.0.0",
+    "gulp-sourcemaps": "^2.6.5",
     "gulp-terser": "^2.1.0",
-    "merge-stream": "^2.0.0",
+    "merge2": "^1.4.1",
     "sass": "^1.69.1"
   }
 }
