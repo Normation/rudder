@@ -9,8 +9,7 @@ import GroupCompliance.ApiCalls exposing (..)
 import GroupCompliance.DataTypes exposing (..)
 import GroupCompliance.Init exposing (init)
 import GroupCompliance.View exposing (view)
-import Editor exposing (clearTooltips)
-
+import Ui.Datatable exposing (TableFilters, SortOrder(..))
 
 -- PORTS / SUBSCRIPTIONS
 port errorNotification   : String -> Cmd msg

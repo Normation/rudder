@@ -7,7 +7,7 @@ import List
 import List.Extra
 import Maybe.Extra exposing (isNothing)
 import String
-import NaturalOrdering as N exposing (compare)
+import NaturalOrdering as N
 
 import Rules.ApiCalls exposing (..)
 import Rules.DataTypes exposing (..)
@@ -16,6 +16,9 @@ import Rules.ViewRulesTable exposing (..)
 import Rules.ViewRuleDetails exposing (..)
 import Rules.ViewUtils exposing (..)
 import Rules.ChangeRequest exposing (ChangeRequestSettings)
+
+import Ui.Datatable exposing (filterSearch, Category, getSubElems, generateLoadingTable)
+
 
 view : Model -> Html Msg
 view model =
@@ -110,7 +113,7 @@ view model =
     newTag      = ruleFilters.treeFilters.newTag
 
     templateMain = case model.mode of
-      Loading -> generateLoadingTable
+      Loading -> generateLoadingTable False 5
       RuleTable   ->
         div [class "main-table"]
         [ div [class "table-container"]

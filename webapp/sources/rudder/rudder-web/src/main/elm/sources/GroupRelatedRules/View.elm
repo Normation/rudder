@@ -2,16 +2,17 @@ module GroupRelatedRules.View exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (checked, class, disabled, for, href, id, placeholder, type_, value)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onInput)
 import List.Extra
 import NaturalOrdering as N
-import Html.Events exposing (onInput)
+import Maybe.Extra
 
 import GroupRelatedRules.DataTypes exposing (..)
 import GroupRelatedRules.ViewUtils exposing (..)
+
 import Rules.DataTypes exposing (missingCategoryId)
-import Maybe.Extra
-import Html.Attributes exposing (style)
+import Ui.Datatable exposing (filterSearch, emptyCategory, Category, getSubElems)
+
 
 view : Model -> Html Msg
 view model =

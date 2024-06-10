@@ -6,6 +6,7 @@ import Http exposing (Error)
 import Rules.ChangeRequest exposing (ChangeRequest, ChangeRequestSettings)
 import Time.ZonedDateTime exposing (ZonedDateTime)
 
+import Ui.Datatable exposing (TableFilters, SortOrder, Category, getAllElems, getAllCats, getSubElems)
 
 
 --
@@ -101,19 +102,6 @@ type alias NodeInfo =
     }
 
 
-type alias Category a =
-    { id : String
-    , name : String
-    , description : String
-    , subElems : SubCategories a
-    , elems : List a
-    }
-
-
-type SubCategories a
-    = SubCategories (List (Category a))
-
-
 type alias Group =
     { id : String
     , name : String
@@ -123,36 +111,6 @@ type alias Group =
     , enabled : Bool
     , target : String
     }
-
-
-getAllElems : Category a -> List a
-getAllElems category =
-    let
-        subElems =
-            case category.subElems of
-                SubCategories l ->
-                    l
-    in
-    List.append category.elems (List.concatMap getAllElems subElems)
-
-
-getSubElems : Category a -> List (Category a)
-getSubElems cat =
-    case cat.subElems of
-        SubCategories subs ->
-            subs
-
-
-getAllCats : Category a -> List (Category a)
-getAllCats category =
-    let
-        subElems =
-            case category.subElems of
-                SubCategories l ->
-                    l
-    in
-    category :: List.concatMap getAllCats subElems
-
 
 
 -- get all missing categories
@@ -214,11 +172,6 @@ type alias DirectiveCompliance value =
     , skippedDetails : Maybe SkippedDetails
     , components : List (ComponentCompliance value)
     }
-
-
-type SortOrder
-    = Asc
-    | Desc
 
 
 type alias NodeValueCompliance =
@@ -283,22 +236,6 @@ type Mode
     | CategoryForm CategoryDetails
 
 
-type SortBy
-    = Name
-    | Parent
-    | Status
-    | Compliance
-    | RuleChanges
-
-
-type alias TableFilters =
-    { sortBy : SortBy
-    , sortOrder : SortOrder
-    , filter : String
-    , unfolded : List String
-    }
-
-
 type alias TreeFilters =
     { filter : String
     , folded : List String
@@ -306,9 +243,15 @@ type alias TreeFilters =
     , tags : List Tag
     }
 
+type SortBy
+    = Name
+    | Parent
+    | Status
+    | Compliance
+    | RuleChanges
 
 type alias Filters =
-    { tableFilters : TableFilters
+    { tableFilters : TableFilters SortBy
     , treeFilters : TreeFilters
     }
 

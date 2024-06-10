@@ -6,6 +6,8 @@ import Http exposing (Error)
 import FileManager.Vec exposing (..)
 import Dict exposing (Dict)
 
+import Ui.Datatable exposing (TableFilters)
+
 type alias Flags =
   { api: String
   , thumbnailsUrl: String
@@ -18,15 +20,6 @@ type alias Flags =
 type ViewMode = ListView | GridView
 
 type SortBy = FileName | FileSize | FileDate | FileRights
-
-type SortOrder = Asc | Desc
-
-type alias Filters =
-  { filter : String
-  , sortBy : SortBy
-  , sortOrder : SortOrder
-  , opened : List String
-  }
 
 type alias Model =
   { api: String
@@ -56,9 +49,9 @@ type alias Model =
   , clipboardFiles: List FileMeta
   , uploadQueue: List File
   , hasWriteRights: Bool
-  , viewMode : ViewMode
-  , filters  : Filters
-  , tree     : Dict String TreeItem
+  , viewMode: ViewMode
+  , tableFilters: TableFilters SortBy
+  , tree: Dict String TreeItem
   }
 
 type alias TreeItem =
@@ -96,7 +89,7 @@ type Msg
   | UpdateApiPath String
   | None
   | ChangeViewMode ViewMode
-  | UpdateFilters Filters
+  | UpdateTableFilters (TableFilters SortBy)
 
 type EnvMsg
   = Open ()

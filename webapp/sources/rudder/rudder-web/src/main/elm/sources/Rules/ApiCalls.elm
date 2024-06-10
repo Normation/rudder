@@ -12,6 +12,8 @@ import Rules.JsonDecoder exposing (..)
 import Rules.JsonEncoder exposing (..)
 import Rules.ChangeRequest exposing (changeRequestParameters, decodeGetChangeRequestSettings, decodePendingChangeRequests)
 
+import Ui.Datatable exposing (getAllElems, Category)
+
 --
 -- This files contains all API calls for the Rules UI
 -- Summary:

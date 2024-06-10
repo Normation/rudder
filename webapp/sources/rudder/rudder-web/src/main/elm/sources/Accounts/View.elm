@@ -56,15 +56,17 @@ view model =
                                                 [ input
                                                     [ class "form-control"
                                                     , type_ "text"
-                                                    , value model.ui.tableFilters.filter
+                                                    , value model.ui.filters.tableFilters.filter
                                                     , placeholder "Filter..."
                                                     , onInput
                                                         (\s ->
                                                             let
+                                                                filters =
+                                                                    model.ui.filters
                                                                 tableFilters =
-                                                                    model.ui.tableFilters
+                                                                    filters.tableFilters
                                                             in
-                                                            UpdateTableFilters { tableFilters | filter = s }
+                                                            UpdateFilters { filters | tableFilters = { tableFilters | filter = s }}
                                                         )
                                                     ]
                                                     []
@@ -75,13 +77,13 @@ view model =
                                                     , onInput
                                                         (\authType ->
                                                             let
-                                                                tableFilters =
-                                                                    model.ui.tableFilters
+                                                                filters =
+                                                                    model.ui.filters
                                                             in
-                                                            UpdateTableFilters { tableFilters | authType = authType }
+                                                            UpdateFilters { filters | authType = authType }
                                                         )
                                                     ]
-                                                    [ option [ selected True, value model.ui.tableFilters.authType, disabled True ] [ text "Filter on access level" ]
+                                                    [ option [ selected True, value model.ui.filters.authType, disabled True ] [ text "Filter on access level" ]
                                                     , option [ value "" ] [ text "All accounts" ]
                                                     , option [ value "none" ] [ text "No access" ]
                                                     , option [ value "ro" ] [ text "Read only" ]

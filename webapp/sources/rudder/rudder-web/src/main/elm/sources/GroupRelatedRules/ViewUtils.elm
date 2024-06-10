@@ -6,23 +6,8 @@ import Html.Attributes exposing (..)
 
 import GroupRelatedRules.DataTypes exposing (..)
 import Rules.DataTypes exposing (missingCategoryId)
+import Ui.Datatable exposing (Category, SubCategories(..), getSubElems, getAllCats)
 
-emptyCategory : Category a
-emptyCategory =
-  Category "" "" "" (SubCategories []) []
-
-getSubElems: Category a -> List (Category a)
-getSubElems cat =
-  case cat.subElems of
-    SubCategories subs -> subs
-
-
-getAllCats: Category a -> List (Category a)
-getAllCats category =
-  let
-    subElems = case category.subElems of SubCategories l -> l
-  in
-    category :: (List.concatMap getAllCats subElems)
 
 -- get all missing categories
 getAllMissingCats: Category a -> List (Category a)
@@ -39,7 +24,7 @@ filterRuleElemsByIds ids category =
     filteredElems = (copyCat category).elems
   in
     case category.subElems of
-      SubCategories subCats ->
+      Ui.Datatable.SubCategories subCats ->
         let
           newSubCats = List.map (filterRuleElemsByIds ids) subCats
         in
@@ -122,20 +107,6 @@ htmlEscape s =
     |> String.replace "\"" "&quot;"
     |> String.replace "'" "&#x27;"
     |> String.replace "\\" "&#x2F;"
-
-filterSearch : String -> List String -> Bool
-filterSearch filterString searchFields =
-  let
-    -- Join all the fields into one string to simplify the search
-    stringToCheck = searchFields
-      |> String.join "|"
-      |> String.toLower
-
-    searchString  = filterString
-      |> String.toLower
-      |> String.trim
-  in
-    String.contains searchString stringToCheck
 
 filterTags : List Tag -> List Tag -> Bool
 filterTags ruleTags tags =

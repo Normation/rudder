@@ -5,14 +5,13 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import List
 import List.Extra
-import String
 import Tuple3
 import Dict
 
-import GroupCompliance.ApiCalls exposing (..)
 import GroupCompliance.DataTypes exposing (..)
 import GroupCompliance.ViewUtils exposing (..)
-import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance)
+import Compliance.Utils exposing (filterDetailsByCompliance)
+import Ui.Datatable exposing (filterSearch, SortOrder(..), generateLoadingTable)
 
 
 displayNodesComplianceTable : Model -> Html Msg
@@ -42,7 +41,7 @@ displayNodesComplianceTable model =
       Nothing -> (\_ _ -> EQ)
   in
     ( if model.ui.loading then
-      generateLoadingTable
+      generateLoadingTable True 2
       else
       div[]
       [ filtersView model

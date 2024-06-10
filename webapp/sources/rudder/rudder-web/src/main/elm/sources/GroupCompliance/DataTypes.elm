@@ -1,10 +1,12 @@
 module GroupCompliance.DataTypes exposing (..)
 
-import Dict exposing (Dict)
 import Http exposing (Error)
 
 import Compliance.DataTypes exposing (..)
 import Rules.DataTypes exposing (RuleCompliance)
+import Ui.Datatable exposing (TableFilters, SortOrder)
+
+
 --
 -- All our data types
 --
@@ -57,18 +59,11 @@ type alias NodeCompliance =
   , rules             : List (RuleCompliance ValueCompliance)
   }
 
-
-type alias TableFilters =
-  { sortOrder  : SortOrder
-  , filter     : String
-  , openedRows : Dict String (String, SortOrder)
-  }
-
-type SortOrder = Asc | Desc
+type SortBy = Name
 
 type alias UI =
-  { ruleFilters       : TableFilters
-  , nodeFilters       : TableFilters
+  { ruleFilters       : TableFilters SortBy
+  , nodeFilters       : TableFilters SortBy
   , complianceFilters : ComplianceFilters
   , viewMode          : ViewMode
   , loading           : Bool
@@ -90,7 +85,7 @@ type ComplianceScope = GlobalCompliance | TargetedCompliance
 
 type Msg
   = Ignore
-  | UpdateFilters       TableFilters
+  | UpdateFilters       (TableFilters SortBy)
   | UpdateComplianceFilters ComplianceFilters
   | GoTo                String
   | ChangeViewMode      ViewMode

@@ -1,23 +1,24 @@
 module Rules.ViewUtils exposing (..)
 
-import Compliance.DataTypes exposing (..)
-import Compliance.Html exposing (buildComplianceBar)
-import Compliance.Utils exposing (..)
 import Dict exposing (Dict)
-import Dict.Extra
+
 import Either exposing (Either(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (custom, onClick, onInput)
+import Html.Events exposing (custom, onClick)
 import Json.Decode as Decode
 import List
 import List.Extra
 import Maybe.Extra
-import NaturalOrdering as N exposing (compare)
-import Rules.ChangeRequest exposing (ChangeRequestSettings)
-import Rules.DataTypes exposing (..)
-import String exposing (fromFloat)
+import NaturalOrdering as N
 import Tuple3
+
+import Rules.DataTypes exposing (..)
+
+import Compliance.DataTypes exposing (..)
+import Compliance.Html exposing (buildComplianceBar)
+import Compliance.Utils exposing (..)
+import Ui.Datatable exposing (SortOrder(..), sortTable, thClass, Category, getAllCats, getAllElems, getSubElems)
 
 
 onCustomClick : msg -> Html.Attribute msg
@@ -99,41 +100,6 @@ getParentCategoryId categories categoryId =
 --
 -- DATATABLES & TREES
 --
-
-
-thClass : TableFilters -> SortBy -> String
-thClass tableFilters sortBy =
-    if sortBy == tableFilters.sortBy then
-        case tableFilters.sortOrder of
-            Asc ->
-                "sorting_asc"
-
-            Desc ->
-                "sorting_desc"
-
-    else
-        "sorting"
-
-
-sortTable : Filters -> SortBy -> Filters
-sortTable filters sortBy =
-    let
-        tableFilters =
-            filters.tableFilters
-
-        order =
-            case tableFilters.sortOrder of
-                Asc ->
-                    Desc
-
-                Desc ->
-                    Asc
-    in
-    if sortBy == tableFilters.sortBy then
-        { filters | tableFilters = { tableFilters | sortOrder = order } }
-
-    else
-        { filters | tableFilters = { tableFilters | sortBy = sortBy, sortOrder = Asc } }
 
 
 foldedClass : TreeFilters -> String -> String
@@ -509,34 +475,13 @@ searchFieldNodes n nodes =
             ""
     ]
 
-
 searchFieldGroups g =
     [ g.id
     , g.name
     ]
 
 
-filterSearch : String -> List String -> Bool
-filterSearch filterString searchFields =
-    let
-        -- Join all the fields into one string to simplify the search
-        stringToCheck =
-            searchFields
-                |> String.join "|"
-                |> String.toLower
-
-        searchString =
-            filterString
-                |> String.toLower
-                |> String.trim
-    in
-    String.contains searchString stringToCheck
-
-
-
 -- TAGS DISPLAY
-
-
 filterTags : List Tag -> List Tag -> Bool
 filterTags ruleTags tags =
     if List.isEmpty tags then
@@ -970,42 +915,6 @@ generateLoadingList =
         ]
 
 
-generateLoadingTable : Html Msg
-generateLoadingTable =
-    div [ class "table-container skeleton-loading" ]
-        [ table [ class "dataTable" ]
-            [ thead []
-                [ tr [ class "head" ]
-                    [ th [] [ span [] [] ]
-                    , th [] [ span [] [] ]
-                    , th [] [ span [] [] ]
-                    , th [] [ span [] [] ]
-                    , th [] [ span [] [] ]
-                    ]
-                ]
-            , tbody []
-                [ tr [] [ td [] [ span [ style "width" "45%" ] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ] ]
-                , tr [] [ td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ] ]
-                , tr [] [ td [] [ span [ style "width" "30%" ] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ] ]
-                , tr [] [ td [] [ span [ style "width" "75%" ] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ] ]
-                , tr [] [ td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ] ]
-                , tr [] [ td [] [ span [ style "width" "45%" ] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ] ]
-                , tr [] [ td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ] ]
-                , tr [] [ td [] [ span [ style "width" "70%" ] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ] ]
-                , tr [] [ td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ] ]
-                , tr [] [ td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ] ]
-                , tr [] [ td [] [ span [ style "width" "80%" ] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ] ]
-                , tr [] [ td [] [ span [ style "width" "30%" ] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ] ]
-                , tr [] [ td [] [ span [ style "width" "75%" ] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ] ]
-                , tr [] [ td [] [ span [ style "width" "45%" ] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ] ]
-                , tr [] [ td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ] ]
-                , tr [] [ td [] [ span [ style "width" "70%" ] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ] ]
-                , tr [] [ td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ], td [] [ span [] [] ] ]
-                ]
-            ]
-        ]
-
-
 countRecentChanges : RuleId -> Dict String (List Changes) -> Float
 countRecentChanges rId changes =
     case Dict.get rId.value changes of
@@ -1155,40 +1064,43 @@ btnSave saving disable action crEnabled =
 
 rulesTableHeader : Filters -> Html Msg
 rulesTableHeader ruleFilters =
+  let
+    tableFilters = ruleFilters.tableFilters
+  in
     tr [ class "head" ]
         [ th
-            [ class (thClass ruleFilters.tableFilters Name)
+            [ class (thClass tableFilters Name)
             , rowspan 1
             , colspan 1
-            , onClick (UpdateRuleFilters (sortTable ruleFilters Name))
+            , onClick (UpdateRuleFilters { ruleFilters | tableFilters = (sortTable tableFilters Name) })
             ]
             [ text "Name" ]
         , th
-            [ class (thClass ruleFilters.tableFilters Parent)
+            [ class (thClass tableFilters Parent)
             , rowspan 1
             , colspan 1
-            , onClick (UpdateRuleFilters (sortTable ruleFilters Parent))
+            , onClick (UpdateRuleFilters { ruleFilters | tableFilters = (sortTable tableFilters Parent) })
             ]
             [ text "Category" ]
         , th
-            [ class (thClass ruleFilters.tableFilters Status)
+            [ class (thClass tableFilters Status)
             , rowspan 1
             , colspan 1
-            , onClick (UpdateRuleFilters (sortTable ruleFilters Status))
+            , onClick (UpdateRuleFilters { ruleFilters | tableFilters = (sortTable tableFilters Status) })
             ]
             [ text "Status" ]
         , th
-            [ class (thClass ruleFilters.tableFilters Compliance)
+            [ class (thClass tableFilters Compliance)
             , rowspan 1
             , colspan 1
-            , onClick (UpdateRuleFilters (sortTable ruleFilters Compliance))
+            , onClick (UpdateRuleFilters { ruleFilters | tableFilters = (sortTable tableFilters Compliance) })
             ]
             [ text "Compliance" ]
         , th
-            [ class (thClass ruleFilters.tableFilters RuleChanges)
+            [ class (thClass tableFilters RuleChanges)
             , rowspan 1
             , colspan 1
-            , onClick (UpdateRuleFilters (sortTable ruleFilters RuleChanges))
+            , onClick (UpdateRuleFilters { ruleFilters | tableFilters = (sortTable tableFilters RuleChanges) })
             ]
             [ text "Changes" ]
         ]

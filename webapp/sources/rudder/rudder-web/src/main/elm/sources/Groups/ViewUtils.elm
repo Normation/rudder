@@ -6,21 +6,16 @@ import Maybe.Extra
 import NaturalOrdering
 import List.Extra
 
-import Groups.DataTypes exposing (..)
-import Compliance.Utils exposing (getAllComplianceValues)
-import GroupCompliance.DataTypes exposing (GroupId)
 import Html exposing (Html, div, span, table, tbody, td, th, thead, tr)
 import Html.Attributes exposing (class, style)
-import Html exposing (ul)
-import Html exposing (li)
-import Html exposing (i)
+import Html exposing (ul, li, i)
 
-getAllCats: Category a -> List (Category a)
-getAllCats category =
-  let
-    subElems = case category.subElems of SubCategories l -> l
-  in
-    category :: (List.concatMap getAllCats subElems)
+import Groups.DataTypes exposing (..)
+
+import Compliance.Utils exposing (getAllComplianceValues)
+import GroupCompliance.DataTypes exposing (GroupId)
+import Ui.Datatable exposing (SortOrder(..), getAllCats, Category, SubCategories(..))
+
 
 getCategoryName : Model -> String -> String
 getCategoryName model id =
@@ -34,20 +29,6 @@ getCategoryName model id =
 getGroupCompliance : Model -> GroupId -> Maybe GroupComplianceSummary
 getGroupCompliance model rId =
   Dict.get rId.value model.groupsCompliance
-
-filterSearch : String -> List String -> Bool
-filterSearch filterString searchFields =
-  let
-    -- Join all the fields into one string to simplify the search
-    stringToCheck = searchFields
-      |> String.join "|"
-      |> String.toLower
-
-    searchString  = filterString
-      |> String.toLower
-      |> String.trim
-  in
-    String.contains searchString stringToCheck
 
 searchFieldGroups : Group -> Model -> List String
 searchFieldGroups g model =
@@ -81,7 +62,6 @@ getSortFunction model g1 g2 =
     groupGlobalCompliance g = getCompliance <| Maybe.map (.global) (getGroupCompliance model g.id)
     groupTargetedCompliance g = getCompliance <| Maybe.map (.targeted) (getGroupCompliance model g.id)
     order = case model.ui.groupFilters.tableFilters.sortBy of
-      Name       -> NaturalOrdering.compare g1.name g2.name
       Parent     ->
         let
           categoryOrEmpty g = Maybe.withDefault "" (Maybe.map (getCategoryName model) g.category)
@@ -95,6 +75,7 @@ getSortFunction model g1 g2 =
         compare (groupGlobalCompliance g1) (groupGlobalCompliance g2)
       TargetedCompliance ->
         compare (groupTargetedCompliance g1) (groupTargetedCompliance g2)
+      _ -> NaturalOrdering.compare g1.name g2.name
   in
     if model.ui.groupFilters.tableFilters.sortOrder == Asc then
       order
@@ -103,42 +84,6 @@ getSortFunction model g1 g2 =
         LT -> GT
         EQ -> EQ
         GT -> LT
-
-
-generateLoadingTable : Html Msg
-generateLoadingTable =
-  div [class "table-container skeleton-loading"]
-  [ table [class "dataTable"]
-    [ thead []
-      [ tr [class "head"]
-        [ th [][ span[][] ]
-        , th [][ span[][] ]
-        , th [][ span[][] ]
-        , th [][ span[][] ]
-        , th [][ span[][] ]
-        ]
-      ]
-    , tbody []
-      [ tr[] [ td[][span[style "width" "45%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "30%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "75%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "45%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "70%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "80%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "30%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "75%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "45%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "70%"][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]], td[][span[][]] ]
-      ]
-    ]
-  ]
 
 generateLoadingList : Html Msg
 generateLoadingList =
@@ -153,29 +98,6 @@ generateLoadingList =
     ]
   , li[][i[][], span[][]]
   ]
-
-thClass : TableFilters -> SortBy -> String
-thClass tableFilters sortBy =
-  if sortBy == tableFilters.sortBy then
-    case  tableFilters.sortOrder of
-      Asc  -> "sorting_asc"
-      Desc -> "sorting_desc"
-  else
-    "sorting"
-
-sortTable : Filters -> SortBy -> Filters
-sortTable filters sortBy =
-  let
-    tableFilters = filters.tableFilters
-    order =
-      case tableFilters.sortOrder of
-        Asc -> Desc
-        Desc -> Asc
-  in
-    if sortBy == tableFilters.sortBy then
-      {filters | tableFilters = {tableFilters | sortOrder = order}}
-    else
-      {filters | tableFilters = {tableFilters | sortBy = sortBy, sortOrder = Asc}}
 
 buildTooltipContent : String -> String -> String
 buildTooltipContent title content =

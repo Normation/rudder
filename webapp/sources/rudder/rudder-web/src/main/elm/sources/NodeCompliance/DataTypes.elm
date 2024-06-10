@@ -1,10 +1,10 @@
 module NodeCompliance.DataTypes exposing (..)
 
-import Dict exposing (Dict)
 import Http exposing (Error)
 
 import Compliance.DataTypes exposing (..)
-import Rules.DataTypes exposing (Rule, Directive)
+import Ui.Datatable exposing (TableFilters, SortOrder)
+
 
 --
 -- All our data types
@@ -14,6 +14,7 @@ type alias RuleId      = { value : String }
 type alias DirectiveId = { value : String }
 type alias NodeId      = { value : String }
 
+type SortBy = Name
 
 type alias NodeCompliance =
   { nodeId            : NodeId
@@ -43,16 +44,9 @@ type alias DirectiveCompliance value =
   , components        : List (ComponentCompliance value)
   }
 
-type alias TableFilters =
-  { sortOrder  : SortOrder
-  , filter     : String
-  , openedRows : Dict String (String, SortOrder)
-  }
-
-type SortOrder = Asc | Desc
 
 type alias UI =
-  { tableFilters      : TableFilters
+  { tableFilters      : (TableFilters SortBy)
   , complianceFilters : ComplianceFilters
   , loading           : Bool
   }
@@ -68,7 +62,7 @@ type alias Model =
 
 type Msg
   = Ignore
-  | UpdateFilters       TableFilters
+  | UpdateFilters       (TableFilters SortBy)
   | UpdateComplianceFilters ComplianceFilters
   | GoTo                String
   | ToggleRow           String String

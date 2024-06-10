@@ -8,6 +8,9 @@ import Compliance.DataTypes exposing (ComplianceDetails)
 import GroupRelatedRules.DataTypes exposing (GroupId)
 import Set
 
+import Ui.Datatable exposing (TableFilters, Category, SubCategories(..), getAllElems)
+
+
 type alias Model =
   { contextPath : String
   , mode        : Mode
@@ -33,16 +36,6 @@ type alias ComplianceSummaryValue =
   , complianceDetails : ComplianceDetails
   }
 
-type alias Category a =
-  { id          : String
-  , name        : String
-  , description : String
-  , subElems    : SubCategories a
-  , elems       : List a
-  }
-
-type SubCategories a = SubCategories (List (Category a))
-
 type alias Group =
   { id          : GroupId
   , name        : String
@@ -53,12 +46,6 @@ type alias Group =
   , target      : String
   }
 
-getAllElems: Category a -> List a
-getAllElems category =
-  let
-    subElems = case category.subElems of SubCategories l -> l
-  in
-    List.append category.elems (List.concatMap getAllElems subElems)
 
 -- Get all groups for which the compliance summary is defined
 getElemsWithCompliance: Model -> List Group
@@ -90,7 +77,7 @@ type alias UI =
 type ModalState = NoModal | ExternalModal
 
 type alias Filters =
-  { tableFilters : TableFilters
+  { tableFilters : TableFilters SortBy
   , treeFilters  : TreeFilters
   }
 
@@ -100,18 +87,11 @@ type SortBy
   | GlobalCompliance
   | TargetedCompliance
 
-type alias TableFilters =
-  { sortBy     : SortBy
-  , sortOrder  : SortOrder
-  , filter     : String
-  }
-
 type alias TreeFilters =
   { filter : String
   , folded : List String
   }
 
-type SortOrder = Asc | Desc
 
 -- The fixed group category ID for the root group category
 rootGroupCategoryId : String

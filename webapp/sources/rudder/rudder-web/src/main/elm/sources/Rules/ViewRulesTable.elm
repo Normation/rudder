@@ -12,6 +12,8 @@ import Rules.ViewUtils exposing (..)
 
 import Compliance.Utils exposing (getAllComplianceValues, defaultComplianceFilter)
 import Compliance.Html exposing (buildComplianceBar)
+import Ui.Datatable exposing (SortOrder(..), filterSearch)
+
 
 --
 -- This file contains all methods to display the Rules table
@@ -21,7 +23,6 @@ getSortFunction : Model -> Rule -> Rule -> Order
 getSortFunction model r1 r2 =
   let
     order = case model.ui.ruleFilters.tableFilters.sortBy of
-      Name       -> NaturalOrdering.compare r1.name r2.name
       RuleChanges->
         let
           getChanges = \r -> countRecentChanges r.id model.changes
@@ -56,6 +57,7 @@ getSortFunction model r1 r2 =
           r2Compliance = getCompliance (getRuleCompliance model r2.id)
         in
           compare r1Compliance r2Compliance
+      _ -> NaturalOrdering.compare r1.name r2.name
   in
     if model.ui.ruleFilters.tableFilters.sortOrder == Asc then
       order

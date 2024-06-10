@@ -3,17 +3,20 @@ module FileManager.Update exposing (..)
 import Browser.Navigation exposing (reload)
 import File.Download
 import File.Select
-import FileManager.Port exposing (errorNotification)
 import List exposing (map, filter)
 import Http
 import Maybe
 import Dict exposing (Dict)
 
+import FileManager.Port exposing (errorNotification)
 import FileManager.Model exposing (..)
 import FileManager.Vec exposing (..)
 import FileManager.Action exposing (..)
 import FileManager.Env exposing (handleEnvMsg)
 import FileManager.Util exposing (getDirPath, processApiError)
+
+import Ui.Datatable exposing (defaultTableFilters)
+
 
 init : Flags -> (Model, Cmd Msg)
 init flags = (initModel flags, let { api, dir, initRun } = flags in if initRun then listDirectory api [dir] else Cmd.none )
@@ -48,7 +51,7 @@ initModel { api, thumbnailsUrl, downloadsUrl, dir, hasWriteRights } =
   , uploadQueue = []
   , hasWriteRights = hasWriteRights
   , viewMode = GridView
-  , filters = Filters "" FileName Asc []
+  , tableFilters = defaultTableFilters FileName
   , tree = Dict.empty
   }
 
@@ -98,7 +101,7 @@ update msg model = case msg of
     )
   CloseNameDialog ->
       ({ model | dialogState = Closed }, Cmd.none)
-  Name name ->
+  FileManager.Model.Name name ->
    let
      dialogState = case model.dialogState of
                      Closed -> Closed
@@ -156,6 +159,6 @@ update msg model = case msg of
 
   ChangeViewMode viewMode -> ({model | viewMode = viewMode}, Cmd.none)
 
-  UpdateFilters filters -> ({model | filters = filters}, Cmd.none)
+  UpdateTableFilters tableFilters -> ({model | tableFilters = tableFilters}, Cmd.none)
 
   None -> (model, Cmd.none)

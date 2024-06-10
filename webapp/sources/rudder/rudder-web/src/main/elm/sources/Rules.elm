@@ -12,12 +12,14 @@ import Random
 import UUID
 import Json.Encode exposing (..)
 
-
 import Rules.ApiCalls exposing (..)
 import Rules.DataTypes exposing (..)
 import Rules.Init exposing (init)
 import Rules.View exposing (view)
 import Rules.ViewUtils exposing (..)
+
+import Ui.Datatable exposing (SortOrder(..), Category, SubCategories(..))
+
 
 -- PORTS / SUBSCRIPTIONS
 port linkSuccessNotification : Value -> Cmd msg

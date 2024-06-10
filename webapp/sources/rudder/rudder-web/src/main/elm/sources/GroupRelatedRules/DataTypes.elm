@@ -1,7 +1,9 @@
 module GroupRelatedRules.DataTypes exposing (..)
 
 import Http exposing (Error)
-import Rules.DataTypes exposing (Msg(..))
+
+import Ui.Datatable exposing (Category)
+
 
 -- All our data types
 --
@@ -10,18 +12,6 @@ type alias GroupId      = { value : String }
 type alias RuleId       = { value : String }
 type alias DirectiveId  = { value : String }
 type alias RelatedRules = { value : List RuleId }
-
-type alias Category a =
-  { id          : String
-  , name        : String
-  , description : String
-  , subElems    : SubCategories a
-  , elems       : List a
-  }
-
-
-
-type SubCategories a = SubCategories (List (Category a))
 
 type alias Rule =
   { id               : RuleId

@@ -18,6 +18,8 @@ import FileManager.Util exposing (button, isJust, getDirPath)
 import FileManager.Vec exposing (..)
 import FileManager.Events exposing (..)
 
+import Ui.Datatable exposing (filterSearch, sortTable, thClass, SortOrder(..))
+
 
 view : Model -> Html Msg
 view model = if model.open
@@ -56,7 +58,7 @@ bar model =
   let
     dir  = model.dir
     load = model.load
-    filters = model.filters
+    tableFilters = model.tableFilters
   in
   div [ class "fm-bar" ]
   [ arrowIcon dir <| EnvMsg <| GetLs (back dir)
@@ -75,7 +77,7 @@ bar model =
         ]
       , ul [class "dropdown-menu search-dropdown pull-right"]
         [ li[]
-          [ input [class "form-control", type_ "text", placeholder "Search...", onInput (\s -> UpdateFilters {filters | filter = s}), value filters.filter][]]
+          [ input [class "form-control", type_ "text", placeholder "Search...", onInput (\s -> UpdateTableFilters {tableFilters | filter = s}), value tableFilters.filter][]]
         ]
       ]
     , ( if model.viewMode == GridView then
@@ -102,7 +104,7 @@ bar model =
 filesTree : Model -> Html Msg
 filesTree model =
   let
-    openedDir = model.filters.opened
+    openedDir = model.tableFilters.openedRows
 
     listFolders : String -> Html Msg
     listFolders name =
@@ -120,7 +122,7 @@ filesTree model =
                   [ folderIcon 20
                   , text f
                   ]
-                , if List.member path openedDir then listFolders path else text ""
+                , if Dict.member path openedDir then listFolders path else text ""
                 ]
             )
           )
@@ -138,7 +140,7 @@ filesGrid model =
   let
     currentFiles =
       model.files
-      |> List.filter (\f -> (filterSearch model.filters.filter (searchField f)))
+      |> List.filter (\f -> (filterSearch model.tableFilters.filter (searchField f)))
       |> List.sortBy .name
       |> List.sortBy .type_
       |> indexedMap (renderFile model)
@@ -174,15 +176,15 @@ filesList model =
   [ table [ class "dataTable" ]
     [ thead[]
       [ tr[class "head"]
-        [ th[class (thClass model.filters FileName   ), onClick (UpdateFilters (sortTable model.filters FileName   ))] [ text "Name" ]
-        , th[class (thClass model.filters FileSize   ), onClick (UpdateFilters (sortTable model.filters FileSize   ))] [ text "Size" ]
-        , th[class (thClass model.filters FileDate   ), onClick (UpdateFilters (sortTable model.filters FileDate   ))] [ text "Date" ]
-        , th[class (thClass model.filters FileRights ), onClick (UpdateFilters (sortTable model.filters FileRights ))] [ text "Permissions" ]
+        [ th[class (thClass model.tableFilters FileName   ), onClick (UpdateTableFilters (sortTable model.tableFilters FileName   ))] [ text "Name" ]
+        , th[class (thClass model.tableFilters FileSize   ), onClick (UpdateTableFilters (sortTable model.tableFilters FileSize   ))] [ text "Size" ]
+        , th[class (thClass model.tableFilters FileDate   ), onClick (UpdateTableFilters (sortTable model.tableFilters FileDate   ))] [ text "Date" ]
+        , th[class (thClass model.tableFilters FileRights ), onClick (UpdateTableFilters (sortTable model.tableFilters FileRights ))] [ text "Permissions" ]
         ]
       ]
     , tbody []
       <| ( model.files
-        |> List.filter (\f -> (filterSearch model.filters.filter (searchField f)))
+        |> List.filter (\f -> (filterSearch model.tableFilters.filter (searchField f)))
         |> List.sortWith (getSortFunction model)
         |> indexedMap (renderFileList model)
         )
@@ -376,7 +378,7 @@ nameDialog dialogState =
       [ label []
           [ strong [] [ text "Content" ]
           , br [] []
-          , textarea [ value content, onInput Name ] []
+          , textarea [ value content, onInput FileManager.Model.Name ] []
           ]
       , div []
           [ button [ class "fm-button", onClick CloseNameDialog ] [ text "Cancel" ]
@@ -391,7 +393,7 @@ nameDialog dialogState =
       [ label []
           [ strong [] [ text "Name" ]
           , br [] []
-          , input [ type_ "text", class "form-control", value n, onInput Name ] []
+          , input [ type_ "text", class "form-control", value n, onInput FileManager.Model.Name ] []
           ]
       , div []
           [ button [ class "fm-button btn btn-default" , onClick CloseNameDialog   ] [ text "Cancel"  ]
@@ -400,53 +402,17 @@ nameDialog dialogState =
         ]
       ]
 
-searchString : String -> String
-searchString str = str
-  |> String.toLower
-  |> String.trim
-
-filterSearch : String -> List String -> Bool
-filterSearch filterString searchFields =
-  let
-    -- Join all the fields into one string to simplify the search
-    stringToCheck = searchFields
-      |> String.join "|"
-      |> String.toLower
-  in
-    String.contains (searchString filterString) stringToCheck
-
-thClass : Filters -> SortBy -> String
-thClass filters sortBy =
-  if sortBy == filters.sortBy then
-    case  filters.sortOrder of
-      Asc  -> "sorting_asc"
-      Desc -> "sorting_desc"
-  else
-    "sorting"
-
-sortTable : Filters -> SortBy -> Filters
-sortTable filters sortBy =
-  let
-    order =
-      case filters.sortOrder of
-        Asc -> Desc
-        Desc -> Asc
-  in
-    if sortBy == filters.sortBy then
-      { filters | sortOrder = order}
-    else
-      { filters | sortBy = sortBy, sortOrder = Asc}
 
 getSortFunction : Model -> FileMeta -> FileMeta -> Order
 getSortFunction model f1 f2 =
   let
-    order = case model.filters.sortBy of
+    order = case model.tableFilters.sortBy of
       FileName   -> N.compare f1.name f2.name
       FileSize   -> Basics.compare f1.size f2.size
       FileDate   -> N.compare f1.date f2.date
       FileRights -> N.compare f1.rights f2.rights
   in
-    if model.filters.sortOrder == Asc then
+    if model.tableFilters.sortOrder == Asc then
       order
     else
       case order of

@@ -17,6 +17,8 @@ import NaturalOrdering as N
 import GroupCompliance.DataTypes exposing (..)
 import Compliance.DataTypes exposing (..)
 import Compliance.Utils exposing (..)
+import Ui.Datatable exposing (SortOrder(..))
+
 
 isGlobalCompliance : Model -> Bool
 isGlobalCompliance model =
@@ -71,17 +73,17 @@ byComponentCompliance subFun complianceFilters =
   let
     name = \item ->
       case item of
-        Block b -> b.component
-        Value c -> c.component
+        Compliance.DataTypes.Block b -> b.component
+        Compliance.DataTypes.Value c -> c.component
     compliance = \item ->
       case item of
-        Block b -> b.complianceDetails
-        Value c -> c.complianceDetails
+        Compliance.DataTypes.Block b -> b.complianceDetails
+        Compliance.DataTypes.Value c -> c.complianceDetails
   in
     ItemFun
     ( \item model sortId ->
       case item of
-        Block b ->
+        Compliance.DataTypes.Block b ->
           let
             sortFunction =  subItemOrder (byComponentCompliance subFun complianceFilters) model sortId
           in
@@ -89,7 +91,7 @@ byComponentCompliance subFun complianceFilters =
             |> List.filter (filterByCompliance complianceFilters)
             |> List.sortWith sortFunction
             |> List.map Left
-        Value c ->
+        Compliance.DataTypes.Value c ->
           let
             sortFunction =  subItemOrder subFun model sortId
           in
@@ -110,8 +112,8 @@ byComponentCompliance subFun complianceFilters =
     ))
     ( \x ->
       case x of
-        Block _ -> (List.map Tuple3.first (byComponentCompliance subFun complianceFilters).rows)
-        Value _ ->  (List.map Tuple3.first subFun.rows)
+        Compliance.DataTypes.Block _ -> (List.map Tuple3.first (byComponentCompliance subFun complianceFilters).rows)
+        Compliance.DataTypes.Value _ ->  (List.map Tuple3.first subFun.rows)
     )
     (always True)
 
@@ -268,20 +270,6 @@ searchFieldNodeCompliance n =
   , n.name
   ]
 
-filterSearch : String -> List String -> Bool
-filterSearch filterString searchFields =
-  let
-    -- Join all the fields into one string to simplify the search
-    stringToCheck = searchFields
-      |> String.join "|"
-      |> String.toLower
-
-    searchString  = filterString
-      |> String.toLower
-      |> String.trim
-  in
-    String.contains searchString stringToCheck
-
 -- WARNING:
 --
 -- Here the content is an HTML so it need to be already escaped.
@@ -363,43 +351,6 @@ goToBtn link =
 goToIcon : Html Msg
 goToIcon =
   span [ class "btn-goto" ] [ i[class "fa fa-pen"][] ]
-
-generateLoadingTable : Html Msg
-generateLoadingTable =
-  div [class "table-container skeleton-loading", style "margin-top" "17px"]
-  [ div [class "dataTables_wrapper_top table-filter"]
-    [ div [class "form-group"]
-      [ span[][]
-      ]
-    ]
-  , table [class "dataTable"]
-    [ thead []
-      [ tr [class "head"]
-        [ th [][ span[][] ]
-        , th [][ span[][] ]
-        ]
-      ]
-    , tbody []
-      [ tr[] [ td[][span[style "width" "45%"][]], td[][span[][]]]
-      , tr[] [ td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "30%"][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "75%"][]], td[][span[][]] ]
-      , tr[] [ td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "45%"][]], td[][span[][]] ]
-      , tr[] [ td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "70%"][]], td[][span[][]] ]
-      , tr[] [ td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "80%"][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "30%"][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "75%"][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "45%"][]], td[][span[][]] ]
-      , tr[] [ td[][span[][]], td[][span[][]] ]
-      , tr[] [ td[][span[style "width" "70%"][]], td[][span[][]] ]
-      , tr[] [ td[][span[][]], td[][span[][]] ]
-      ]
-    ]
-  ]
 
 filtersView : Model -> Html Msg
 filtersView model = 

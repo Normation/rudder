@@ -10,6 +10,8 @@ import GroupRelatedRules.Init exposing (init)
 import GroupRelatedRules.View exposing (view)
 import GroupRelatedRules.ViewUtils exposing (..)
 
+import Ui.Datatable exposing (Category, emptyCategory, getAllCats)
+
 
 -- PORTS / SUBSCRIPTIONS
 port errorNotification    : String -> Cmd msg

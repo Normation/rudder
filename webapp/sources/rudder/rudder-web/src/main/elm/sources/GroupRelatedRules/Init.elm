@@ -1,8 +1,8 @@
 module GroupRelatedRules.Init exposing (..)
 
-import GroupRelatedRules.ApiCalls exposing (..)
 import GroupRelatedRules.DataTypes exposing (..)
-import GroupRelatedRules.ViewUtils exposing (emptyCategory)
+
+import Ui.Datatable exposing (emptyCategory)
 
 
 init : { contextPath : String, includedRules : List String, excludedRules : List String} -> ( Model, Cmd Msg )

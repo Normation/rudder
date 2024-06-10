@@ -11,40 +11,18 @@ import Accounts.DataTypes exposing (..)
 import Accounts.DatePickerUtils exposing (posixToString, checkIfExpired)
 import String exposing (isEmpty, slice)
 
+import Ui.Datatable exposing (thClass, sortTable, SortOrder(..), filterSearch)
+
 
 --
 -- DATATABLE
 --
 
-thClass : TableFilters -> SortBy -> String
-thClass tableFilters sortBy =
-  if sortBy == tableFilters.sortBy then
-    case  tableFilters.sortOrder of
-      Asc  -> "sorting_asc"
-      Desc -> "sorting_desc"
-  else
-    "sorting"
-
-sortTable : TableFilters -> SortBy -> TableFilters
-sortTable tableFilters sortBy =
-  let
-    order =
-      case tableFilters.sortOrder of
-        Asc -> Desc
-        Desc -> Asc
-  in
-    if sortBy == tableFilters.sortBy then
-      { tableFilters | sortOrder = order}
-    else
-      { tableFilters | sortBy = sortBy, sortOrder = Asc}
-
-
 getSortFunction : Model -> Account -> Account -> Order
 getSortFunction model a1 a2 =
   let
     datePickerInfo = model.ui.datePickerInfo
-    order = case model.ui.tableFilters.sortBy of
-      Name    -> N.compare a1.name a2.name
+    order = case model.ui.filters.tableFilters.sortBy of
       Id      -> N.compare a1.id a2.id
       ExpDate ->
         let
@@ -57,8 +35,9 @@ getSortFunction model a1 a2 =
         in
           N.compare expDate1 expDate2
       CreDate -> N.compare a1.creationDate a2.creationDate
+      _       -> N.compare a1.name a2.name
   in
-    if model.ui.tableFilters.sortOrder == Asc then
+    if model.ui.filters.tableFilters.sortOrder == Asc then
       order
     else
       case order of
@@ -77,20 +56,6 @@ searchField datePickerInfo a =
 
 cleanDate: String -> String
 cleanDate date = slice 0 16 (String.replace "T" " " date)
-
-filterSearch : String -> List String -> Bool
-filterSearch filterString searchFields =
-  let
-    -- Join all the fields into one string to simplify the search
-    stringToCheck = searchFields
-      |> String.join "|"
-      |> String.toLower
-
-    searchString  = filterString
-      |> String.toLower
-      |> String.trim
-  in
-    String.contains searchString stringToCheck
 
 filterByAuthType : String -> String -> Bool
 filterByAuthType filterAuthType authType=
@@ -174,22 +139,23 @@ displayAccountsTable model =
             [ span [class "fa fa-times-circle"] [] ]
           ]
         ]
-    filters = model.ui.tableFilters
+    filters = model.ui.filters
+    tableFilters = filters.tableFilters
     filteredAccounts = model.accounts
-      |> List.filter (\a -> filterSearch model.ui.tableFilters.filter (searchField model.ui.datePickerInfo a))
-      |> List.filter (\a -> filterByAuthType model.ui.tableFilters.authType a.authorisationType)
+      |> List.filter (\a -> filterSearch tableFilters.filter (searchField model.ui.datePickerInfo a))
+      |> List.filter (\a -> filterByAuthType filters.authType a.authorisationType)
       |> List.sortWith (getSortFunction model)
   in
     table [class "dataTable"]
     [ thead []
       [ tr [class "head"]
-        [ th [class (thClass model.ui.tableFilters Name    ), onClick (UpdateTableFilters (sortTable filters Name    ))][ text "Account name"    ]
-        , th [class (thClass model.ui.tableFilters Id      ), onClick (UpdateTableFilters (sortTable filters Id      ))][ text "Account id"           ]
+        [ th [class (thClass tableFilters Name    ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters Name    )})][ text "Account name"    ]
+        , th [class (thClass tableFilters Id      ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters Id      )})][ text "Account id"           ]
         , if hasClearTextTokens then
             th [][ text "Token" ]
           else
-            th [class (thClass model.ui.tableFilters CreDate ), onClick (UpdateTableFilters (sortTable filters CreDate ))][ text "Creation date" ]
-        , th [class (thClass model.ui.tableFilters ExpDate ), onClick (UpdateTableFilters (sortTable filters ExpDate ))][ text "Expiration date" ]
+            th [class (thClass tableFilters CreDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters CreDate )})][ text "Creation date" ]
+        , th [class (thClass tableFilters ExpDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters ExpDate )})][ text "Expiration date" ]
         , th [][ text "Actions" ]
         ]
       ]

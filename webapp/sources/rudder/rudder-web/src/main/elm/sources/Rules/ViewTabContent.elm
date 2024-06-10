@@ -17,9 +17,11 @@ import Rules.DataTypes exposing (..)
 import Rules.ViewRepairedReports
 import Rules.ViewUtils exposing (..)
 import Rules.ChangeRequest exposing (toLabel)
+
 import Compliance.DataTypes exposing (..)
 import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance, defaultComplianceFilter)
 import Compliance.Html exposing (buildComplianceBar)
+import Ui.Datatable exposing (SortOrder(..), filterSearch, Category, getSubElems, getAllElems)
 
 
 --

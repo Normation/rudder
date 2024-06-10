@@ -107,12 +107,12 @@ update msg model =
             ( { model | ui = { ui | modalState = modalState }, editAccount = editAccount }, Cmd.batch [ shareAcl (encodeTokenAcl tokenId acl), focusAccountTenants (encodeAccountTenants tokenId tenants) ] )
 
 
-        UpdateTableFilters tableFilters ->
+        UpdateFilters filters ->
             let
                 ui =
                     model.ui
             in
-            ( { model | ui = { ui | tableFilters = tableFilters } }, Cmd.none )
+            ( { model | ui = { ui | filters = filters } }, Cmd.none )
 
         GetAccountsResult res ->
             case res of

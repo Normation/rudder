@@ -13,7 +13,7 @@ import Tuple
 import Rules.DataTypes exposing (..)
 import Compliance.DataTypes exposing (..)
 import Compliance.JsonDecoder exposing (decodeComplianceDetails)
-
+import Ui.Datatable exposing (Category, SubCategories(..))
 
 -- GENERAL
 decodeGetPolicyMode : Decoder String
