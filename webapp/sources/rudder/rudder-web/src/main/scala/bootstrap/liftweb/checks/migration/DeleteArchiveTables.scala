@@ -1,6 +1,8 @@
+package bootstrap.liftweb.checks.migration
+
 /*
  *************************************************************************************
- * Copyright 2011 Normation SAS
+ * Copyright 2024 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -35,59 +37,50 @@
  *************************************************************************************
  */
 
-package bootstrap.liftweb.checks.migration
+import bootstrap.liftweb.*
+import com.normation.rudder.db.Doobie
+import com.normation.zio.*
+import doobie.implicits.*
+import zio.*
+import zio.interop.catz.*
 
-import bootstrap.liftweb.BootstrapChecks
-import com.normation.rudder.domain.logger.MigrationLogger
-import com.normation.rudder.migration.*
-import net.liftweb.common.*
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scala.util.Success
+/*
+ * In 8.2, we are removing a lot of old, unused tables, see: https://issues.rudder.io/issues/24964
+ */
+class DeleteArchiveTables(
+    doobie: Doobie
+) extends BootstrapChecks {
 
-trait CheckMigrationXmlFileFormat extends BootstrapChecks {
+  import doobie.*
 
-  def controler: ControlXmlFileFormatMigration
+  val tables: List[String] = List(
+    "archivednodecompliance",
+    "archivednodeconfigurations",
+    "archivedruddersysevents",
+    "nodecompliance",
+    "migrationeventlog",
+    "migrationeventlogid"
+  )
+
+  override def description: String =
+    s"Delete unused PostgreSQL table: ${tables.mkString(", ")}"
+
+  def drop(table: String) = {
+    val sql = sql"""DROP TABLE IF EXISTS ${table}"""
+
+    transactIOResult(s"Error when deleting table '${table}'")(xa => sql.update.run.transact(xa)).unit.catchAll(err =>
+      BootstrapLogger.error(err.fullMsg)
+    )
+  }
 
   override def checks(): Unit = {
-
-    val async = Future {
-      controler.migrate
+    val prog = {
+      ZIO.foreachParDiscard(tables)(drop)
     }
 
-    async.onComplete(res => {
-      res match {
-        case Success(x)             =>
-          x match {
-            case Full(_) => // ok, and logging should already be done
-            case eb: EmptyBox =>
-              handleFailure(Left(eb))
-          }
-        case scala.util.Failure(ex) =>
-          handleFailure(Right(ex))
-      }
-    })
+    // Actually run the migration async to avoid blocking for that.
+    // There is no need to have it sync.
+    prog.forkDaemon.runNow
   }
 
-  private def handleFailure(error: Either[EmptyBox, Throwable]): Unit = {
-    val msg =
-      s"Error when migrating XML FileFormat' datas from format ${controler.fromVersion} to ${controler.toVersion} in database"
-    val e   = error match {
-      case Left(eb)  => eb ?~! msg
-      case Right(ex) => Failure(msg, Full(ex), Empty)
-    }
-    MigrationLogger(controler.toVersion).error(e)
-    e.rootExceptionCause.foreach(ex => MigrationLogger(controler.toVersion).error("Exception was:", ex))
-  }
-}
-
-/**
- * That class add all the available reference template in
- * the default user library
- * if it wasn't already initialized.
- */
-class CheckMigrationXmlFileFormat5_6(
-    override val controler: ControlXmlFileFormatMigration_5_6
-) extends CheckMigrationXmlFileFormat {
-  override val description = "Check event log migration format 5 -> 6"
 }

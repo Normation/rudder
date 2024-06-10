@@ -72,19 +72,9 @@ trait UpdateExpectedReportsRepository {
   def deleteNodeInfos(nodeId: NodeId): IOResult[Unit]
 
   /**
-   * Archive all NodeConfigurations closed before a date
-   */
-  def archiveNodeConfigurations(date: DateTime): Box[Int]
-
-  /**
    * Delete all NodeNonfigurations closed before a date
    */
   def deleteNodeConfigurations(date: DateTime): Box[Int]
-
-  /**
-   * Archive all NodeCoompliance for runs older than date
-   */
-  def archiveNodeCompliances(date: DateTime): Box[Int]
 
   /**
    * Delete all NodeCompliance for runs older than date

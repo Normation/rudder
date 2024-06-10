@@ -52,7 +52,7 @@ import zio.*
 /**
  *
  * When the application is first initialized, we want to set the
- * content of configuration-repository file to a consistant state,
+ * content of configuration-repository file to a consistent state,
  * especially for directives/rules/groups, where we want to have
  * all system categories and entities saved (else, we are going
  * to have some surprise on the first import).

@@ -39,7 +39,6 @@ package com.normation.rudder.domain.logger
 
 import com.normation.NamedZioLogger
 import com.normation.rudder.domain.Constants.XML_CURRENT_FILE_FORMAT
-import com.normation.rudder.migration.MigrableEntity
 import net.liftweb.common.Failure
 import net.liftweb.common.Logger
 import org.slf4j
@@ -50,15 +49,9 @@ final case class MigrationLogger(
 ) extends Logger {
   override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("migration")
 
-  val defaultErrorLogger:   Failure => Unit             = { f =>
+  val defaultErrorLogger: Failure => Unit = { f =>
     _logger.error(f.messageChain)
     f.rootExceptionCause.foreach(ex => _logger.error("Root exception was:", ex))
-  }
-  val defaultSuccessLogger: Seq[MigrableEntity] => Unit = { seq =>
-    if (_logger.isTraceEnabled) {
-      seq.foreach(log => _logger.trace(s"Migrating eventlog to format ${goal}, id: ${log.id}"))
-    }
-    _logger.debug(s"Successfully migrated ${seq.size} eventlogs to format ${goal}")
   }
 }
 

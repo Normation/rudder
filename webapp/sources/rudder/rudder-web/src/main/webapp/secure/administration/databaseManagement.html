@@ -60,7 +60,7 @@
                       to calculate current compliance, and are available for problem
                       analysis in the "Technical logs" tab of a node's details.
                       <br/> <span style="text-decoration:underline">Note:</span>
-                      When reports are archived or deleted, they are removed from
+                      When reports are deleted, they are removed from
                       the active reports table. However, this will <b>not</b>
                       immediately free up disk space (but new active reports will
                       not use any extra space). See the Rudder User Documentation
@@ -88,44 +88,6 @@
                 </div>
 
                 <div class="inner-portlet">
-                  <h3 class="page-title">Archived reports</h3>
-                  <div class="callout-fade callout-info">
-                    <div class="marker">
-                      <span class="fa fa-info-circle"></span>
-                    </div>
-                    <div>
-                      Archived reports are stored in an SQL table without any indexes,
-                      thus providing a substantial saving on disk space required to
-                      store them compared to the current reports above. Archived
-                      reports will not be available in the "Technical logs" tab of
-                      a node's details. However, they remain available for future
-                      analysis by a plugin or an expert user.
-                      <br/>  <span style="text-decoration:underline">Note:</span> When
-                      archived reports are deleted, disk space is freed immediately.
-                    </div>
-                  </div>
-                  <div class="inner-portlet-content">
-                    <table class="database-info-table">
-                      <tr>
-                        <td>Newest archived report:</td>
-                        <td><b><span id="newestArchivedEntry">[Here
-                      comes the newest archived entry]</span></b></td>
-                      </tr>
-                      <tr>
-                        <td>Oldest archived report:</td>
-                        <td><b><span id="oldestArchivedEntry">[Here
-                      comes the oldest archived entry]</span></b></td>
-                      </tr>
-                      <tr>
-                        <td>Total disk space used by archived reports:</td>
-                        <td><b><span id="archiveSize">[here
-                      comes the archive size]</span></b></td>
-                      </tr>
-                    </table>
-                  </div>
-                </div>
-
-                <div class="inner-portlet">
                   <h3 class="page-title">Automatic report cleaning</h3>
                   <div class="inner-portlet-content">
                     <div class="callout-fade callout-info">
@@ -133,19 +95,11 @@
                         <span class="fa fa-info-circle"></span>
                       </div>
                       <div>
-                        Regular archiving and deleting of reports can be set in the
+                        Regular deleting of reports can be set in the
                         Rudder configuration file (/opt/rudder/etc/rudder-web.properties).
-                        <br/> Enabling regular archiving and deleting of old reports is
+                        <br/> Enabling regular deleting of old reports is
                         highly recommended, to avoid Rudder's disk usage growing forever.
                       </div>
-                    </div>
-                    <div class="automaticCleanDetail">
-                      Automatic report archiving is <b><span id="autoArchiveStatus">
-              [Here comes the report archiving status]</span></b>.
-                      <span id="autoArchiveDetails"> All reports older than
-              <b><span id="autoArchiveDays">[Here comes the automatic report
-              archive age parameter]</span> days</b> will be archived regularly.
-              </span>
                     </div>
                     <div class="automaticCleanDetail">
                       Automatic report deleting is <b><span id="autoDeleteStatus">[Here
@@ -159,11 +113,11 @@
                       <tr>
                         <td>Frequency:</td>
                         <td><b><span id="cleanFrequency">[Here
-                      comes the archive cleaning job frequency]</span></b></td>
+                      comes the cleaning job frequency]</span></b></td>
                       </tr>
                       <tr>
                         <td>Next run:</td>
-                        <td><b><span id="nextRun">[Here comes the next run time for the archive cleaning job]</span></b></td>
+                        <td><b><span id="nextRun">[Here comes the next run time for the cleaning job]</span></b></td>
                       </tr>
                     </table>
                   </div>
@@ -178,13 +132,9 @@
                       </div>
                       <div>
                         You can trigger a reports database cleaning in this section. If a
-                        archive or delete process is already in progress, you will have to wait
+                        delete process is already in progress, you will have to wait
                         until the cleaning process is idle.
                       </div>
-                    </div>
-                    <div class="automaticCleanDetail">
-                      The archive process is <b id="archiveProgress">
-                      [Here comes the report archiving progress]</b>.
                     </div>
                     <div class="automaticCleanDetail">
                       The delete process is <b id="deleteProgress">
@@ -198,7 +148,7 @@
                       <span id="cleanParam">
                         <span id="modeSelector"></span> all reports older than: <input id="reportFromDate" value="" />
                         <lift:authz role="administration_write">
-                          <button id="archiveReports">Start cleaning reports</button>
+                          <button id="deleteReports">Start cleaning reports</button>
                         </lift:authz>
                       </span>
                               <span id="confirm"></span>

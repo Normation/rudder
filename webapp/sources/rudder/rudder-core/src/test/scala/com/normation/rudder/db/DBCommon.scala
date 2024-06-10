@@ -37,14 +37,9 @@
 
 package com.normation.rudder.db
 
-import com.normation.rudder.db.Doobie.*
-import com.normation.rudder.migration.MigrableEntity
-import com.normation.rudder.migration.MigrationEventLogRepository
-import com.normation.rudder.migration.MigrationTestLog
 import com.normation.rudder.repository.jdbc.RudderDatasourceProvider
 import doobie.*
 import doobie.implicits.*
-import doobie.implicits.javasql.*
 import java.io.Closeable
 import java.util.Properties
 import javax.sql.DataSource
@@ -160,27 +155,9 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     config.datasource
   }
 
-  lazy val successLogger: Seq[MigrableEntity] => Unit = { seq =>
-    logger.debug("Log correctly migrated (id,type): " + (seq.map {
-      case l =>
-        "(%s, %s)".format(l.id, l.data)
-    }).mkString(", "))
-  }
-
   lazy val doobie = new DoobieIO(dataSource)
   def transacRun[T](query: Transactor[Task] => Task[T]): T = {
     doobie.transactRunEither(xa => query(xa)) match {
-      case Right(x) => x
-      case Left(ex) => throw ex
-    }
-  }
-  lazy val migrationEventLogRepository = new MigrationEventLogRepository(doobie)
-
-  def insertLog(log: MigrationTestLog): Int = {
-    doobie.transactRunEither(xa => sql"""
-      insert into EventLog (creationDate, principal, eventType, severity, data, causeid)
-      values (${log.timestamp}, ${log.principal}, ${log.eventType}, ${log.severity}, ${log.data}, ${log.cause})
-    """.update.withUniqueGeneratedKeys[Int]("id").transact(xa)) match {
       case Right(x) => x
       case Left(ex) => throw ex
     }

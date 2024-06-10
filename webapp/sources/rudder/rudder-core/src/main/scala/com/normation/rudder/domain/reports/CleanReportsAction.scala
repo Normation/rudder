@@ -33,15 +33,6 @@ sealed trait CleanReportAction {
   val logger = ReportLogger
 }
 
-final case class ArchiveAction(dbManager: DatabaseManager, dbCleaner: AutomaticReportsCleaning) extends CleanReportAction {
-  val name     = "archive"
-  val past     = "archived"
-  val continue = "archiving"
-  def act(reports: DeleteCommand.Reports, complianceLevel: Option[DeleteCommand.ComplianceLevel]): Box[Int] =
-    dbManager.archiveEntries(reports.date)
-  lazy val actor = dbCleaner.archiver
-}
-
 final case class DeleteAction(dbManager: DatabaseManager, dbCleaner: AutomaticReportsCleaning) extends CleanReportAction {
   val name     = "delete"
   val past     = "deleted"

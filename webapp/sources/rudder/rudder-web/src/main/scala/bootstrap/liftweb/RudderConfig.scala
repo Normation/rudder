@@ -53,6 +53,7 @@ import bootstrap.liftweb.checks.migration.CheckRemoveRuddercSetting
 import bootstrap.liftweb.checks.migration.CheckTableScore
 import bootstrap.liftweb.checks.migration.CheckTableUsers
 import bootstrap.liftweb.checks.migration.CheckUsersFile
+import bootstrap.liftweb.checks.migration.DeleteArchiveTables
 import bootstrap.liftweb.checks.migration.MigrateChangeValidationEnforceSchema
 import bootstrap.liftweb.checks.migration.MigrateEventLogEnforceSchema
 import bootstrap.liftweb.checks.migration.MigrateJsonTechniquesToYaml
@@ -136,7 +137,6 @@ import com.normation.rudder.inventory.PostCommitInventoryHooks
 import com.normation.rudder.inventory.ProcessFile
 import com.normation.rudder.inventory.TriggerInventoryScorePostCommit
 import com.normation.rudder.metrics.*
-import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.ncf
 import com.normation.rudder.ncf.DeleteEditorTechniqueImpl
 import com.normation.rudder.ncf.EditorTechniqueReader
@@ -2455,7 +2455,6 @@ object RudderConfigInit {
       techniqueRepository,
       sectionSpecParser
     )
-    lazy val entityMigration                        = DefaultXmlEventLogMigration
 
     lazy val eventLogDetailsServiceImpl = new EventLogDetailsServiceImpl(
       queryParser,
@@ -3131,7 +3130,6 @@ object RudderConfigInit {
     lazy val parseRules:                  ParseRules with RuleRevisionRepository         = new GitParseRules(
       ruleUnserialisation,
       gitConfigRepo,
-      entityMigration,
       rulesDirectoryName
     )
     lazy val parseActiveTechniqueLibrary: GitParseActiveTechniqueLibrary                 = new GitParseActiveTechniqueLibrary(
@@ -3140,7 +3138,6 @@ object RudderConfigInit {
       directiveUnserialisation,
       gitConfigRepo,
       gitRevisionProvider,
-      entityMigration,
       userLibraryDirectoryName
     )
     lazy val importTechniqueLibrary:      ImportTechniqueLibrary                         = new ImportTechniqueLibraryImpl(
@@ -3153,19 +3150,16 @@ object RudderConfigInit {
       nodeGroupCategoryUnserialisation,
       nodeGroupUnserialisation,
       gitConfigRepo,
-      entityMigration,
       groupLibraryDirectoryName
     )
     lazy val parseGlobalParameter:        ParseGlobalParameters                          = new GitParseGlobalParameters(
       globalParameterUnserialisation,
       gitConfigRepo,
-      entityMigration,
       parametersDirectoryName
     )
     lazy val parseRuleCategories:         ParseRuleCategories                            = new GitParseRuleCategories(
       ruleCategoryUnserialisation,
       gitConfigRepo,
-      entityMigration,
       ruleCategoriesDirectoryName
     )
     lazy val importGroupLibrary:          ImportGroupLibrary                             = new ImportGroupLibraryImpl(
@@ -3312,6 +3306,7 @@ object RudderConfigInit {
       new CheckTableUsers(doobie),
       new MigrateEventLogEnforceSchema(doobie),
       new MigrateChangeValidationEnforceSchema(doobie),
+      new DeleteArchiveTables(doobie),
       new MigrateNodeAcceptationInventories(
         nodeFactInfoService,
         doobie,

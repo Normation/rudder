@@ -69,7 +69,6 @@ import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRevisionProvider
-import com.normation.rudder.migration.XmlEntityMigration
 import com.normation.rudder.repository.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.marshalling.ActiveTechniqueCategoryUnserialisation
@@ -134,7 +133,6 @@ trait GitParseCommon[T] {
 class GitParseRules(
     ruleUnserialisation: RuleUnserialisation,
     val repo:            GitRepositoryProvider,
-    xmlMigration:        XmlEntityMigration,
     rulesRootDirectory:  String // relative name to git root file
 ) extends ParseRules with GitParseCommon[List[Rule]] with RuleRevisionRepository {
 
@@ -155,8 +153,7 @@ class GitParseRules(
                }
       rules <- ZIO.foreach(xmls) { xml =>
                  for {
-                   ruleXml <- xmlMigration.getUpToDateXml(xml).toIO
-                   rule    <- ruleUnserialisation.unserialise(ruleXml).toIO
+                   rule <- ruleUnserialisation.unserialise(xml).toIO
                  } yield {
                    rule
                  }
@@ -175,9 +172,8 @@ class GitParseRules(
                   case Nil      => None.succeed
                   case h :: Nil =>
                     for {
-                      xml     <- GitFindUtils.getFileContent(repo.db, treeId, h)(is => ParseXml(is, Some(h)))
-                      ruleXml <- xmlMigration.getUpToDateXml(xml).toIO
-                      rule    <- ruleUnserialisation.unserialise(ruleXml).toIO
+                      xml  <- GitFindUtils.getFileContent(repo.db, treeId, h)(is => ParseXml(is, Some(h)))
+                      rule <- ruleUnserialisation.unserialise(xml).toIO
                       // we need to correct techniqueId revision to the one we just looked-up.
                       // (it's normal to not have it serialized, since it's given by git, it's not intrinsic)
                     } yield Some(rule.modify(_.id.rev).setTo(rev))
@@ -195,7 +191,6 @@ class GitParseRules(
 class GitParseGlobalParameters(
     paramUnserialisation:    GlobalParameterUnserialisation,
     val repo:                GitRepositoryProvider,
-    xmlMigration:            XmlEntityMigration,
     parametersRootDirectory: String // relative name to git root file
 ) extends ParseGlobalParameters with GitParseCommon[List[GlobalParameter]] {
 
@@ -218,8 +213,7 @@ class GitParseGlobalParameters(
                 }
       params <- ZIO.foreach(xmls) { xml =>
                   for {
-                    paramXml <- xmlMigration.getUpToDateXml(xml).toIO
-                    param    <- paramUnserialisation.unserialise(paramXml).toIO
+                    param <- paramUnserialisation.unserialise(xml).toIO
                   } yield {
                     param
                   }
@@ -233,7 +227,6 @@ class GitParseGlobalParameters(
 class GitParseRuleCategories(
     unserialiser:       RuleCategoryUnserialisation,
     val repo:           GitRepositoryProvider,
-    xmlMigration:       XmlEntityMigration,
     rulesRootDirectory: String, // relative name to git root file
 
     categoryFileName: String = "category.xml"
@@ -248,13 +241,12 @@ class GitParseRuleCategories(
       // that's the directory of a RuleCategory.
       // don't forget to recurse sub-categories
       for {
-        xml         <- GitFindUtils.getFileContent(repo.db, revTreeId, categoryPath) { inputStream =>
-                         ParseXml(inputStream, Some(categoryPath)).chainError(s"Error when parsing file '${categoryPath}' as a category")
-                       }
-        categoryXml <- xmlMigration.getUpToDateXml(xml).toIO
-        category    <-
-          unserialiser.unserialise(categoryXml).toIO.chainError(s"Error when unserializing category for file '${categoryPath}'")
-        subDirs      = {
+        xml      <- GitFindUtils.getFileContent(repo.db, revTreeId, categoryPath) { inputStream =>
+                      ParseXml(inputStream, Some(categoryPath)).chainError(s"Error when parsing file '${categoryPath}' as a category")
+                    }
+        category <-
+          unserialiser.unserialise(xml).toIO.chainError(s"Error when unserializing category for file '${categoryPath}'")
+        subDirs   = {
           // we only wants to keep paths that are non-empty directories with a rulecategory filename (category.xml)
           paths.flatMap { p =>
             if (p.length > directoryPath.length && p.startsWith(directoryPath)) {
@@ -265,7 +257,7 @@ class GitParseRuleCategories(
             } else None
           }
         }
-        subCats     <- ZIO.foreach(subDirs.toSeq)(dir => recParseDirectory(paths, dir))
+        subCats  <- ZIO.foreach(subDirs.toSeq)(dir => recParseDirectory(paths, dir))
       } yield {
         category.copy(childs = subCats.toList)
       }
@@ -287,7 +279,6 @@ class GitParseGroupLibrary(
     categoryUnserialiser: NodeGroupCategoryUnserialisation,
     groupUnserialiser:    NodeGroupUnserialisation,
     val repo:             GitRepositoryProvider,
-    xmlMigration:         XmlEntityMigration,
     libRootDirectory:     String, // relative name to git root file
 
     categoryFileName: String = "category.xml"
@@ -306,15 +297,14 @@ class GitParseGroupLibrary(
       // ignore files other than NodeGroup (UUID.xml) and directories
       // don't forget to recurse sub-categories
       for {
-        xml         <- GitFindUtils.getFileContent(repo.db, revTreeId, categoryPath) { inputStream =>
-                         ParseXml(inputStream, Some(categoryPath)).chainError(s"Error when parsing file '${categoryPath}' as a category")
-                       }
-        categoryXml <- xmlMigration.getUpToDateXml(xml).toIO
-        category    <- categoryUnserialiser
-                         .unserialise(categoryXml)
-                         .toIO
-                         .chainError(s"Error when unserializing category for file '${categoryPath}'")
-        groupFiles   = {
+        xml       <- GitFindUtils.getFileContent(repo.db, revTreeId, categoryPath) { inputStream =>
+                       ParseXml(inputStream, Some(categoryPath)).chainError(s"Error when parsing file '${categoryPath}' as a category")
+                     }
+        category  <- categoryUnserialiser
+                       .unserialise(xml)
+                       .toIO
+                       .chainError(s"Error when unserializing category for file '${categoryPath}'")
+        groupFiles = {
           paths.filter { p =>
             p.length > directoryPath.length &&
             p.startsWith(directoryPath) &&
@@ -322,23 +312,22 @@ class GitParseGroupLibrary(
             UuidRegex.isValid(p.substring(directoryPath.length, p.length - 4))
           }
         }
-        groups      <- ZIO.foreach(groupFiles.toSeq) { groupPath =>
-                         for {
-                           xml2     <- GitFindUtils.getFileContent(repo.db, revTreeId, groupPath) { inputStream =>
-                                         ParseXml(inputStream, Some(groupPath)).chainError(
-                                           s"Error when parsing file '${groupPath}' as a directive"
-                                         )
-                                       }
-                           groupXml <- xmlMigration.getUpToDateXml(xml2).toIO
-                           group    <- groupUnserialiser
-                                         .unserialise(groupXml)
-                                         .toIO
-                                         .chainError(s"Error when unserializing group for file '${groupPath}'")
-                         } yield {
-                           group
-                         }
+        groups    <- ZIO.foreach(groupFiles.toSeq) { groupPath =>
+                       for {
+                         xml2  <- GitFindUtils.getFileContent(repo.db, revTreeId, groupPath) { inputStream =>
+                                    ParseXml(inputStream, Some(groupPath)).chainError(
+                                      s"Error when parsing file '${groupPath}' as a directive"
+                                    )
+                                  }
+                         group <- groupUnserialiser
+                                    .unserialise(xml2)
+                                    .toIO
+                                    .chainError(s"Error when unserializing group for file '${groupPath}'")
+                       } yield {
+                         group
                        }
-        subDirs      = {
+                     }
+        subDirs    = {
           // we only wants to keep paths that are non-empty directories with a uptcFileName/uptFileName in them
           paths.flatMap { p =>
             if (p.length > directoryPath.length && p.startsWith(directoryPath)) {
@@ -349,7 +338,7 @@ class GitParseGroupLibrary(
             } else None
           }
         }
-        subCats     <- ZIO.foreach(subDirs.toSeq)(dir => recParseDirectory(paths, dir))
+        subCats   <- ZIO.foreach(subDirs.toSeq)(dir => recParseDirectory(paths, dir))
       } yield {
         val s = subCats.toSet
         val g = groups.toSet
@@ -393,16 +382,15 @@ class GitParseGroupLibrary(
                   case Nil      => None.succeed
                   case h :: Nil =>
                     for {
-                      xml      <- GitFindUtils.getFileContent(repo.db, treeId, h)(is => ParseXml(is, Some(h)))
-                      groupXml <- xmlMigration.getUpToDateXml(xml).toIO
-                      group    <- groupUnserialiser.unserialise(groupXml).toIO
+                      xml   <- GitFindUtils.getFileContent(repo.db, treeId, h)(is => ParseXml(is, Some(h)))
+                      group <- groupUnserialiser.unserialise(xml).toIO
                       // h is path relative to config-repo, so may contains only one "/" (rules/ruleId.xml)
-                      catId     = h.split('/').toList.reverse match {
-                                    case Nil | _ :: Nil       => // assume root category even if Nil
-                                      NodeGroupCategoryId("GroupRoot")
-                                    case group_ :: catId :: _ =>
-                                      NodeGroupCategoryId(catId)
-                                  }
+                      catId  = h.split('/').toList.reverse match {
+                                 case Nil | _ :: Nil       => // assume root category even if Nil
+                                   NodeGroupCategoryId("GroupRoot")
+                                 case group_ :: catId :: _ =>
+                                   NodeGroupCategoryId(catId)
+                               }
                       // we need to correct ID revision to the one we just looked-up.
                       // (it's normal to not have it serialized, since it's given by git, it's not intrinsic)
                     } yield Some(GroupAndCat(group.modify(_.id.rev).setTo(rev), catId))
@@ -620,7 +608,6 @@ class GitParseActiveTechniqueLibrary(
     piUnserialiser:       DirectiveUnserialisation,
     val repo:             GitRepositoryProvider,
     revisionProvider:     GitRevisionProvider,
-    xmlMigration:         XmlEntityMigration,
     libRootDirectory:     String, // relative name to git root file
 
     uptcFileName: String = "category.xml",
@@ -699,13 +686,12 @@ class GitParseActiveTechniqueLibrary(
 
   def loadDirective(db: Repository, revTreeId: ObjectId, directiveGitPath: String): IOResult[Directive] = {
     for {
-      oldXml <- GitFindUtils.getFileContent(db, revTreeId, directiveGitPath) { inputStream =>
-                  ParseXml(inputStream, Some(directiveGitPath)).chainError(
-                    s"Error when parsing file '${directiveGitPath}' as a directive"
-                  )
-                }
-      xml    <- xmlMigration.getUpToDateXml(oldXml).toIO
-      res    <-
+      xml <- GitFindUtils.getFileContent(db, revTreeId, directiveGitPath) { inputStream =>
+               ParseXml(inputStream, Some(directiveGitPath)).chainError(
+                 s"Error when parsing file '${directiveGitPath}' as a directive"
+               )
+             }
+      res <-
         piUnserialiser.unserialise(xml).toIO.chainError(s"Error when unserializing directive from file '${directiveGitPath}'")
     } yield {
       res._2
@@ -714,16 +700,15 @@ class GitParseActiveTechniqueLibrary(
 
   def loadActiveTechnique(db: Repository, revTreeId: ObjectId, activeTechniqueGitPath: String): IOResult[ActiveTechnique] = {
     for {
-      oldXml <- GitFindUtils.getFileContent(db, revTreeId, activeTechniqueGitPath) { inputStream =>
-                  ParseXml(inputStream, Some(activeTechniqueGitPath)).chainError(
-                    s"Error when parsing file '${activeTechniqueGitPath}' as an active technique"
-                  )
-                }
-      xml    <- xmlMigration.getUpToDateXml(oldXml).toIO
-      at     <- uptUnserialiser
-                  .unserialise(xml)
-                  .toIO
-                  .chainError(s"Error when unserializing active technique for file '${activeTechniqueGitPath}'")
+      xml <- GitFindUtils.getFileContent(db, revTreeId, activeTechniqueGitPath) { inputStream =>
+               ParseXml(inputStream, Some(activeTechniqueGitPath)).chainError(
+                 s"Error when parsing file '${activeTechniqueGitPath}' as an active technique"
+               )
+             }
+      at  <- uptUnserialiser
+               .unserialise(xml)
+               .toIO
+               .chainError(s"Error when unserializing active technique for file '${activeTechniqueGitPath}'")
     } yield {
       at
     }
@@ -759,9 +744,8 @@ class GitParseActiveTechniqueLibrary(
                           ParseXml(inputStream, Some(category)).chainError(s"Error when parsing file '${category}' as a category")
                         }
             // here, we have to migrate XML fileformat, if not up to date
-            uptcXml  <- xmlMigration.getUpToDateXml(xml).toIO
             uptc     <- categoryUnserialiser
-                          .unserialise(uptcXml)
+                          .unserialise(xml)
                           .toIO
                           .chainError(s"Error when unserializing category for file '${category}'")
             subDirs   = {
@@ -796,9 +780,8 @@ class GitParseActiveTechniqueLibrary(
             xml             <- GitFindUtils.getFileContent(repo.db, revTreeId, template) { inputStream =>
                                  ParseXml(inputStream, Some(template)).chainError(s"Error when parsing file '${template}' as a category")
                                }
-            uptXml          <- xmlMigration.getUpToDateXml(xml).toIO
             activeTechnique <-
-              uptUnserialiser.unserialise(uptXml).toIO.chainError(s"Error when unserializing template for file '${template}'")
+              uptUnserialiser.unserialise(xml).toIO.chainError(s"Error when unserializing template for file '${template}'")
             piFiles          = {
               paths.filter { p =>
                 p.length > directoryPath.length &&

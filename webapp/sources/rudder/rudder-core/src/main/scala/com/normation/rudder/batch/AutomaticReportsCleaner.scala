@@ -321,23 +321,6 @@ class AutomaticReportsCleaning(
   val reportLogger = ReportLogger
   val logger       = ScheduledJobLogger
 
-  // Check if automatic reports archiving has to be started
-  val archiver: DatabaseCleanerActor = if (archivettl < 1) {
-    val propertyName = "rudder.batch.reportsCleaner.archive.TTL"
-    reportLogger.info("Disable automatic database archive sinces property %s is 0 or negative".format(propertyName))
-    new LADatabaseCleaner(ArchiveAction(dbManager, this), -1, complianceLevelttl)
-  } else {
-    // Don't launch automatic report archiving if reports would have already been deleted by automatic reports deleting
-    if ((archivettl < deletettl) && (deletettl > 0)) {
-      logger.trace("***** starting Automatic Archive Reports batch *****")
-      new LADatabaseCleaner(ArchiveAction(dbManager, this), archivettl, complianceLevelttl)
-    } else {
-      reportLogger.info("Disable automatic archive since archive maximum age is older than delete maximum age")
-      new LADatabaseCleaner(ArchiveAction(dbManager, this), -1, complianceLevelttl)
-    }
-  }
-  archiver ! CheckLaunch
-
   val deleter: DatabaseCleanerActor = if (deletettl < 1) {
     val propertyName = "rudder.batch.reportsCleaner.delete.TTL"
     reportLogger.info("Disable automatic database deletion sinces property %s is 0 or negative".format(propertyName))

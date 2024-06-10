@@ -436,58 +436,20 @@ class UpdateExpectedReportsJdbcRepository(
     })
   }
 
-  override def archiveNodeConfigurations(date: DateTime): Box[Int] = {
-    val dateAt_0000 = date.toString("yyyy-MM-dd")
-    val copy        = s"""
-      insert into archivednodeconfigurations
-        (nodeid, nodeconfigid, begindate, enddate, configuration)
-        (select nodeid, nodeconfigid, begindate, enddate, configuration
-           from nodeconfigurations
-           where coalesce(endDate, '${dateAt_0000}') < '${dateAt_0000}'
-        )
-        """
-    val delete      = s"""
-      delete from nodeconfigurations where coalesce(endDate, '${dateAt_0000}') < '${dateAt_0000}'
-    """
-
-    logger.debug(s"""Archiving NodeConfigurations with SQL query: [[
-                    | ${copy}
-                    |]] and: [[
-                    | ${delete}
-                    |]]""".stripMargin)
-
-    (for {
-      i <- transactRunEither(xa => (copy :: delete :: Nil).traverse(q => Update0(q, None).run).transact(xa))
-    } yield {
-      i
-    }) match {
-      case Left(ex) =>
-        val msg = "Could not archive NodeConfigurations in the database, cause is " + ex.getMessage()
-        logger.error(msg)
-        Failure(msg, Full(ex), Empty)
-      case Right(i) =>
-        logger.debug(s"Successfully archived ${i.sum} nodeconfigurations before ${dateAt_0000}")
-        Full(i.sum)
-    }
-  }
-
   /**
    * Delete all NodeConfigurations closed before a date
    */
   override def deleteNodeConfigurations(date: DateTime): Box[Int] = {
 
     val dateAt_0000 = date.toString("yyyy-MM-dd")
-    val d1          = s"delete from archivednodeconfigurations where coalesce(endDate, '${dateAt_0000}') < '${dateAt_0000}'"
     val d2          = s"delete from nodeconfigurations where coalesce(endDate, '${dateAt_0000}') < '${dateAt_0000}'"
 
     logger.debug(s"""Deleting NodeConfigurations with SQL query: [[
-                    | ${d1}
-                    |]] and: [[
                     | ${d2}
                     |]]""".stripMargin)
 
     (for {
-      i <- transactRunEither(xa => (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).transact(xa))
+      i <- transactRunEither(xa => (d2 :: Nil).traverse(q => Update0(q, None).run).transact(xa))
     } yield {
       i
     }) match {
@@ -497,44 +459,6 @@ class UpdateExpectedReportsJdbcRepository(
         Failure(msg, Full(ex), Empty)
       case Right(i) =>
         logger.debug(s"Successfully deleted ${i.sum} nodeconfigurations before ${dateAt_0000}")
-        Full(i.sum)
-    }
-  }
-
-  /*
-   * Archive nodecompliance whose run timestamp are before the given date
-   */
-  override def archiveNodeCompliances(date: DateTime): Box[Int] = {
-    val dateAt_0000 = date.toString("yyyy-MM-dd")
-    val copy        = s"""
-      insert into archivednodecompliance
-        (nodeid, runtimestamp, endoflife, runanalysis, summary, details)
-        (select nodeid, runtimestamp, endoflife, runanalysis, summary, details
-           from nodecompliance
-           where coalesce(runtimestamp, '${dateAt_0000}') < '${dateAt_0000}'
-        )
-        """
-    val delete      = s"""
-      delete from nodecompliance where coalesce(runtimestamp, '${dateAt_0000}') < '${dateAt_0000}'
-    """
-
-    logger.debug(s"""Archiving NodeCompliance with SQL query: [[
-                    | ${copy}
-                    |]] and: [[
-                    | ${delete}
-                    |]]""".stripMargin)
-
-    (for {
-      i <- transactRunEither(xa => (copy :: delete :: Nil).traverse(q => Update0(q, None).run).transact(xa))
-    } yield {
-      i
-    }) match {
-      case Left(ex) =>
-        val msg = "Could not archive NodeCompliance in the database, cause is " + ex.getMessage()
-        logger.error(msg)
-        Failure(msg, Full(ex), Empty)
-      case Right(i) =>
-        logger.debug(s"Successfully archived ${i.sum} Node Compliances before ${dateAt_0000}")
         Full(i.sum)
     }
   }
