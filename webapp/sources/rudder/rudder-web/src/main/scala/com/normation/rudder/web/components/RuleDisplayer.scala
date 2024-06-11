@@ -233,13 +233,14 @@ class RuleDisplayer(
                 <div class="box-body">
                   <div class="row">
                     <div class="col-xs-12">
-                      <div id="showFiltersRules" ng-controller="filterTagCtrl" ng-init="initRule()" class="filters" ng-cloak="">
+                      <div id="showFiltersRules" class="filters">
                         <div>
                           <div class="filterTag">
                             <div class="input-group search-addon">
                               <label for="searchStr" class="input-group-addon search-addon"><span class="ion ion-search"></span></label>
-                              <input type="text" id="searchStr" class="input-sm form-control" placeholder="Filter" ng-model="strSearch" ng-keyup="filterGlobal(strSearch)"/>
+                              <input type="text" id="searchStr" class="input-sm form-control" placeholder="Filter" onkeyup="searchTargetRules(this)"/>
                             </div>
+                            <!--
                             <div class="form-group">
                               <label>Tags</label>
                               <div class="input-group">
@@ -286,6 +287,7 @@ class RuleDisplayer(
                                 </button>
                               </div>
                             </div>
+                            -->
                           </div>
                         </div>
                       </div>
