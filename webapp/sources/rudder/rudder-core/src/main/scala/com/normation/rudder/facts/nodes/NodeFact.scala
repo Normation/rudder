@@ -1998,12 +1998,9 @@ object NodeFactSerialisation {
       // for compat before correction of https://issues.rudder.io/issues/24971, we need to keep
       // "physicalMachine". "virtualMachine" wasn't directly used
       val decoder: JsonDecoder[MachineType] = JsonDecoder.string.map {
-        case s =>
-          s.toLowerCase match {
-            case UnknownMachineType.kind                      => UnknownMachineType
-            case PhysicalMachineType.kind | "physicalMachine" => PhysicalMachineType
-            case x                                            => VirtualMachineType(VmType.parse(x).getOrElse(VmType.UnknownVmType))
-          }
+        case UnknownMachineType.kind                      => UnknownMachineType
+        case PhysicalMachineType.kind | "physicalMachine" => PhysicalMachineType
+        case x                                            => VirtualMachineType(VmType.parse(x).getOrElse(VmType.UnknownVmType))
       }
 
       JsonCodec(encoder, decoder)
