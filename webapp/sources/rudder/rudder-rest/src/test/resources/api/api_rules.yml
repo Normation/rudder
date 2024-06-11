@@ -153,6 +153,7 @@ body: >-
     "targets": [{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
     "enabled": true,
     "system": false,
+    "policyMode": "enforce",
     "tags": [{"customer": "MyCompany"}]}
   }
 response:

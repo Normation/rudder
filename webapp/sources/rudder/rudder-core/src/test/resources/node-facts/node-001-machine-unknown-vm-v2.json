@@ -11,7 +11,7 @@
   "machine": {
     "id": "22222222-2222-2222-2222-222222222222",
     "type": "Virtual",
-    "provider": "unknown"
+    "provider": "unknownvm"
   },
   "rudderSettings": {
     "keyStatus": "certified",
