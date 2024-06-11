@@ -2488,3 +2488,7 @@ function displayTags(element, tagsArray){
   $(element).append(tagsLabel);
 }
 
+function searchTargetRules(input) {
+    let table = new DataTable('#grid_rules_grid_zone');
+    table.search(input.value, false, true).draw();
+}

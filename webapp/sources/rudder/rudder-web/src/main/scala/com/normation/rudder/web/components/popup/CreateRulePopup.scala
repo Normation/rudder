@@ -238,9 +238,6 @@ class CreateOrCloneRulePopup(
       }
       createRule & JsRaw(s"""
         localStorage.setItem('Active_Rule_Tab', 1);
-        scope.$$apply(function(){
-          scope.filterGlobal(scope.searchStr);
-        });
       """.stripMargin)
     }
   }
