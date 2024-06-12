@@ -3097,6 +3097,7 @@ dependencies = [
  "reqwest 0.11.27",
  "secrecy",
  "serde",
+ "serde-inline-default",
  "serde_json",
  "sha2",
  "tempfile",
@@ -3409,6 +3410,17 @@ dependencies = [
  "chrono",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "serde-inline-default"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3acbd21cb24261fc36f595b38d3b34d0ff4e31a6b42edd6a43387d27c5787c8"
+dependencies = [
+ "proc-macro2 1.0.89",
+ "quote 1.0.37",
+ "syn 2.0.87",
 ]
 
 [[package]]

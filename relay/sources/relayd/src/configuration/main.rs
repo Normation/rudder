@@ -11,12 +11,13 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{anyhow, Context, Error};
+use anyhow::{anyhow, bail, Context, Error};
 use secrecy::SecretString;
 use serde::{
     de::{Deserializer, Error as SerdeError, Unexpected, Visitor},
     Deserialize,
 };
+use serde_inline_default::serde_inline_default;
 use tracing::{debug, warn};
 
 use crate::data::node::NodeId;
@@ -75,6 +76,8 @@ pub struct Configuration {
     pub shared_files: SharedFiles,
     #[serde(default)]
     pub shared_folder: SharedFolder,
+    #[serde(default)]
+    pub rsync: RsyncConfig,
 }
 
 impl Configuration {
@@ -113,7 +116,28 @@ impl Configuration {
                 .map(|u| u.is_empty())
                 .unwrap_or(true))
         {
-            return Err(anyhow!("missing upstream server configuration"));
+            bail!("missing upstream server configuration");
+        }
+
+        // When upstream is selected, it must have a password
+        if (matches!(
+            self.processing.reporting.output,
+            ReportingOutputSelect::Upstream
+        ) || matches!(
+            self.processing.inventory.output,
+            InventoryOutputSelect::Upstream
+        )) && self.output.upstream.password.is_none()
+        {
+            bail!("missing upstream password configuration");
+        }
+
+        // When database is selected, it must have a password
+        if matches!(
+            self.processing.reporting.output,
+            ReportingOutputSelect::Database
+        ) && self.output.database.password.is_none()
+        {
+            bail!("missing database password configuration");
         }
 
         Ok(self)
@@ -183,88 +207,52 @@ impl FromStr for Configuration {
     }
 }
 
+impl Default for Configuration {
+    fn default() -> Self {
+        toml::from_str::<Self>("").unwrap()
+    }
+}
+
 /// Strategy for default values:
 ///
 /// * `#[serde(default)]` when section is not there
 /// * `#[serde(default)]` or `#[serde(default = ...)]` when a value is missing in a section
 
+#[serde_inline_default]
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct GeneralConfig {
-    #[serde(default = "GeneralConfig::default_nodes_list_file")]
+    #[serde_inline_default(PathBuf::from("/var/rudder/lib/relay/nodeslist.json"))]
     pub nodes_list_file: NodesListFile,
-    #[serde(default = "GeneralConfig::default_nodes_certs_file")]
+    #[serde_inline_default(PathBuf::from("/var/rudder/lib/ssl/allnodescerts.pem"))]
     // needs to be /var/rudder/lib/ssl/nodescerts.pem on simple relays
     pub nodes_certs_file: NodesCertsFile,
     /// Has priority over node_id_file, use the
     /// `Configuration::node_id()` method to get correct value
     node_id: Option<NodeId>,
     /// File containing the node id
-    #[serde(default = "GeneralConfig::default_node_id_file")]
+    #[serde_inline_default(PathBuf::from("/opt/rudder/etc/uuid.hive"))]
     node_id_file: PathBuf,
-    #[serde(default = "GeneralConfig::default_listen")]
+    #[serde_inline_default("127.0.0.1:3030".to_string())]
     pub listen: String,
     /// None means using the number of available CPUs
     pub core_threads: Option<usize>,
     /// Max number of threads for the blocking operations
     pub blocking_threads: Option<usize>,
     /// Port to use for communication
-    #[serde(default = "GeneralConfig::default_https_port")]
+    #[serde_inline_default(443)]
     pub https_port: u16,
     /// Timeout for idle connections being kept-alive
     #[serde(deserialize_with = "compat_humantime")]
-    #[serde(default = "GeneralConfig::default_https_idle_timeout")]
+    #[serde_inline_default(Duration::from_secs(2))]
     pub https_idle_timeout: Duration,
     /// Which certificate validation model to use
-    #[serde(default = "GeneralConfig::default_peer_authentication")]
+    #[serde_inline_default(PeerAuthentication::SystemRootCerts)]
     peer_authentication: PeerAuthentication,
-}
-
-impl GeneralConfig {
-    fn default_nodes_list_file() -> PathBuf {
-        PathBuf::from("/var/rudder/lib/relay/nodeslist.json")
-    }
-
-    fn default_nodes_certs_file() -> PathBuf {
-        // config for root servers
-        PathBuf::from("/var/rudder/lib/ssl/allnodescerts.pem")
-    }
-
-    fn default_node_id_file() -> PathBuf {
-        PathBuf::from("/opt/rudder/etc/uuid.hive")
-    }
-
-    fn default_listen() -> String {
-        "127.0.0.1:3030".to_string()
-    }
-
-    fn default_https_port() -> u16 {
-        443
-    }
-
-    fn default_https_idle_timeout() -> Duration {
-        Duration::from_secs(2)
-    }
-
-    fn default_peer_authentication() -> PeerAuthentication {
-        // For compatibility
-        PeerAuthentication::SystemRootCerts
-    }
 }
 
 impl Default for GeneralConfig {
     fn default() -> Self {
-        Self {
-            nodes_list_file: Self::default_nodes_list_file(),
-            nodes_certs_file: Self::default_nodes_certs_file(),
-            node_id_file: Self::default_node_id_file(),
-            node_id: None,
-            listen: Self::default_listen(),
-            core_threads: None,
-            blocking_threads: None,
-            https_port: Self::default_https_port(),
-            https_idle_timeout: Self::default_https_idle_timeout(),
-            peer_authentication: Self::default_peer_authentication(),
-        }
+        toml::from_str::<Self>("").unwrap()
     }
 }
 
@@ -276,62 +264,36 @@ pub enum PeerAuthentication {
     DangerousNone,
 }
 
+#[serde_inline_default]
 #[derive(Deserialize, Debug, PartialEq, Eq, Copy, Clone)]
 pub struct CatchupConfig {
     #[serde(deserialize_with = "compat_humantime")]
-    #[serde(default = "CatchupConfig::default_catchup_frequency")]
+    #[serde_inline_default(Duration::from_secs(10))]
     pub frequency: Duration,
-    #[serde(default = "CatchupConfig::default_catchup_limit")]
+    #[serde_inline_default(50)]
     pub limit: u64,
-}
-
-impl CatchupConfig {
-    fn default_catchup_frequency() -> Duration {
-        Duration::from_secs(10)
-    }
-
-    fn default_catchup_limit() -> u64 {
-        50
-    }
 }
 
 impl Default for CatchupConfig {
     fn default() -> Self {
-        Self {
-            frequency: Self::default_catchup_frequency(),
-            limit: Self::default_catchup_limit(),
-        }
+        toml::from_str::<Self>("").unwrap()
     }
 }
 
+#[serde_inline_default]
 #[derive(Deserialize, Debug, PartialEq, Eq, Copy, Clone)]
 pub struct CleanupConfig {
     #[serde(deserialize_with = "compat_humantime")]
-    #[serde(default = "CleanupConfig::default_cleanup_frequency")]
+    #[serde_inline_default(Duration::from_secs(3600))]
     pub frequency: Duration,
     #[serde(deserialize_with = "compat_humantime")]
-    #[serde(default = "CleanupConfig::default_cleanup_retention")]
+    #[serde_inline_default(Duration::from_secs(3600 * 24 * 7))]
     pub retention: Duration,
-}
-
-impl CleanupConfig {
-    /// 1 hour
-    fn default_cleanup_frequency() -> Duration {
-        Duration::from_secs(3600)
-    }
-
-    /// 1 week
-    fn default_cleanup_retention() -> Duration {
-        Duration::from_secs(3600 * 24 * 7)
-    }
 }
 
 impl Default for CleanupConfig {
     fn default() -> Self {
-        Self {
-            frequency: Self::default_cleanup_frequency(),
-            retention: Self::default_cleanup_retention(),
-        }
+        toml::from_str::<Self>("").unwrap()
     }
 }
 
@@ -343,9 +305,10 @@ pub struct ProcessingConfig {
     pub reporting: ReportingConfig,
 }
 
+#[serde_inline_default]
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct InventoryConfig {
-    #[serde(default = "InventoryConfig::default_directory")]
+    #[serde_inline_default(PathBuf::from("/var/rudder/inventories/"))]
     pub directory: BaseDirectory,
     #[serde(default)]
     pub output: InventoryOutputSelect,
@@ -355,20 +318,9 @@ pub struct InventoryConfig {
     pub cleanup: CleanupConfig,
 }
 
-impl InventoryConfig {
-    fn default_directory() -> PathBuf {
-        PathBuf::from("/var/rudder/inventories/")
-    }
-}
-
 impl Default for InventoryConfig {
     fn default() -> Self {
-        Self {
-            directory: Self::default_directory(),
-            output: InventoryOutputSelect::default(),
-            catchup: Default::default(),
-            cleanup: Default::default(),
-        }
+        toml::from_str::<Self>("").unwrap()
     }
 }
 
@@ -385,9 +337,10 @@ impl Default for InventoryOutputSelect {
     }
 }
 
+#[serde_inline_default]
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct ReportingConfig {
-    #[serde(default = "ReportingConfig::default_directory")]
+    #[serde_inline_default(PathBuf::from("/var/rudder/reports/"))]
     pub directory: BaseDirectory,
     #[serde(default)]
     pub output: ReportingOutputSelect,
@@ -399,21 +352,9 @@ pub struct ReportingConfig {
     pub skip_event_types: HashSet<String>,
 }
 
-impl ReportingConfig {
-    fn default_directory() -> PathBuf {
-        PathBuf::from("/var/rudder/reports/")
-    }
-}
-
 impl Default for ReportingConfig {
     fn default() -> Self {
-        Self {
-            directory: Self::default_directory(),
-            output: ReportingOutputSelect::default(),
-            catchup: Default::default(),
-            cleanup: Default::default(),
-            skip_event_types: Default::default(),
-        }
+        toml::from_str::<Self>("").unwrap()
     }
 }
 
@@ -447,103 +388,63 @@ impl OutputSelect for InventoryOutputSelect {
     }
 }
 
+#[serde_inline_default]
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct RemoteRun {
     /// Enable remote-run feature
-    #[serde(default = "RemoteRun::default_enabled")]
+    #[serde_inline_default(true)]
     pub enabled: bool,
-    #[serde(default = "RemoteRun::default_command")]
+    #[serde_inline_default(PathBuf::from("/opt/rudder/bin/rudder"))]
     pub command: PathBuf,
-    #[serde(default = "RemoteRun::default_use_sudo")]
+    #[serde_inline_default(true)]
     pub use_sudo: bool,
-}
-
-impl RemoteRun {
-    fn default_command() -> PathBuf {
-        PathBuf::from("/opt/rudder/bin/rudder")
-    }
-
-    fn default_use_sudo() -> bool {
-        true
-    }
-
-    fn default_enabled() -> bool {
-        true
-    }
 }
 
 impl Default for RemoteRun {
     fn default() -> Self {
-        Self {
-            enabled: Self::default_enabled(),
-            command: Self::default_command(),
-            use_sudo: Self::default_use_sudo(),
-        }
+        toml::from_str::<Self>("").unwrap()
     }
 }
 
+#[serde_inline_default]
 #[derive(Deserialize, Debug, PartialEq, Eq, Copy, Clone)]
 pub struct SharedFilesCleanupConfig {
     #[serde(deserialize_with = "compat_humantime")]
-    #[serde(default = "CleanupConfig::default_cleanup_frequency")]
+    #[serde_inline_default(Duration::from_secs(600))]
     pub frequency: Duration,
-}
-
-impl SharedFilesCleanupConfig {
-    /// 10 minutes
-    fn default_cleanup_frequency() -> Duration {
-        Duration::from_secs(600)
-    }
 }
 
 impl Default for SharedFilesCleanupConfig {
     fn default() -> Self {
-        Self {
-            frequency: Self::default_cleanup_frequency(),
-        }
+        toml::from_str::<Self>("").unwrap()
     }
 }
 
+#[serde_inline_default]
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct SharedFiles {
-    #[serde(default = "SharedFiles::default_path")]
+    #[serde_inline_default(PathBuf::from("/var/rudder/shared-files/"))]
     pub path: PathBuf,
     #[serde(default)]
     pub cleanup: SharedFilesCleanupConfig,
 }
 
-impl SharedFiles {
-    fn default_path() -> PathBuf {
-        PathBuf::from("/var/rudder/shared-files/")
-    }
-}
-
 impl Default for SharedFiles {
     fn default() -> Self {
-        Self {
-            path: Self::default_path(),
-            cleanup: SharedFilesCleanupConfig::default(),
-        }
+        toml::from_str::<Self>("").unwrap()
     }
 }
 
+#[serde_inline_default]
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct SharedFolder {
-    #[serde(default = "SharedFolder::default_path")]
+    #[serde_inline_default(PathBuf::from("/var/rudder/configuration-repository/shared-files/"))]
     pub path: PathBuf,
-}
-
-impl SharedFolder {
-    fn default_path() -> PathBuf {
-        PathBuf::from("/var/rudder/configuration-repository/shared-files/")
-    }
 }
 
 impl Default for SharedFolder {
     fn default() -> Self {
-        Self {
-            path: Self::default_path(),
-        }
+        toml::from_str::<Self>("").unwrap()
     }
 }
 
@@ -555,14 +456,15 @@ pub struct OutputConfig {
     pub upstream: UpstreamConfig,
 }
 
+#[serde_inline_default]
 #[derive(Deserialize, Debug, Clone)]
 pub struct DatabaseConfig {
     /// URL without the password
-    #[serde(default = "DatabaseConfig::default_url")]
+    #[serde_inline_default("postgres://rudder@127.0.0.1/rudder".to_string())]
     pub url: String,
-    /// When the section is there, password is mandatory
-    pub password: SecretString,
-    #[serde(default = "DatabaseConfig::default_max_pool_size")]
+    #[serde(default)]
+    pub password: Option<SecretString>,
+    #[serde_inline_default(10)]
     pub max_pool_size: u32,
 }
 
@@ -574,26 +476,13 @@ impl PartialEq for DatabaseConfig {
 
 impl Eq for DatabaseConfig {}
 
-impl DatabaseConfig {
-    fn default_url() -> String {
-        "postgres://rudder@127.0.0.1/rudder".to_string()
-    }
-
-    fn default_max_pool_size() -> u32 {
-        10
-    }
-}
-
 impl Default for DatabaseConfig {
     fn default() -> Self {
-        Self {
-            url: Self::default_url(),
-            password: "".into(),
-            max_pool_size: Self::default_max_pool_size(),
-        }
+        toml::from_str::<Self>("").unwrap()
     }
 }
 
+#[serde_inline_default]
 #[derive(Deserialize, Debug, Clone)]
 pub struct UpstreamConfig {
     /// DEPRECATED: use host and global.https_port
@@ -602,25 +491,25 @@ pub struct UpstreamConfig {
     /// When the section is there, host is mandatory
     #[serde(default)]
     host: String,
-    #[serde(default = "UpstreamConfig::default_user")]
+    #[serde_inline_default("rudder".to_string())]
     pub user: String,
-    /// When the section is there, password is mandatory
-    pub password: SecretString,
+    #[serde(default)]
+    pub password: Option<SecretString>,
     /// Default password, to be used for new inventories
-    #[serde(default = "UpstreamConfig::default_default_password")]
+    #[serde_inline_default(SecretString::new("rudder".into()))]
     pub default_password: SecretString,
-    #[serde(default = "UpstreamConfig::default_verify_certificates")]
     /// Allows to completely disable certificate validation.
     ///
     /// If true, https is required for all connections
     ///
     /// This preserves compatibility with 6.X configs
     /// DEPRECATED: replaced by certificate_verification_mode = DangerousNone
+    #[serde_inline_default(true)]
     pub verify_certificates: bool,
     /// Allows specifying the root certificate path
     /// Used for our Rudder PKI
     /// Not used if the verification model is not `Rudder`.
-    #[serde(default = "UpstreamConfig::default_server_certificate_file")]
+    #[serde_inline_default(PathBuf::from("/var/rudder/lib/ssl/policy_server.pem"))]
     pub server_certificate_file: PathBuf,
     // TODO timeout?
 }
@@ -637,35 +526,27 @@ impl PartialEq for UpstreamConfig {
 
 impl Eq for UpstreamConfig {}
 
-impl UpstreamConfig {
-    fn default_user() -> String {
-        "rudder".to_string()
-    }
-
-    fn default_verify_certificates() -> bool {
-        true
-    }
-
-    fn default_default_password() -> SecretString {
-        "rudder".into()
-    }
-
-    fn default_server_certificate_file() -> PathBuf {
-        PathBuf::from("/var/rudder/lib/ssl/policy_server.pem")
+impl Default for UpstreamConfig {
+    fn default() -> Self {
+        toml::from_str::<Self>("").unwrap()
     }
 }
 
-impl Default for UpstreamConfig {
+#[serde_inline_default]
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+pub struct RsyncConfig {
+    // where to listen on
+    #[serde_inline_default("localhost:5310".into())]
+    listen: String,
+
+    // False to allow non authenticated clients
+    #[serde_inline_default(true)]
+    authentication: bool,
+}
+
+impl Default for RsyncConfig {
     fn default() -> Self {
-        Self {
-            url: Default::default(),
-            host: Default::default(),
-            user: Self::default_user(),
-            password: "".into(),
-            default_password: "".into(),
-            verify_certificates: Self::default_verify_certificates(),
-            server_certificate_file: Self::default_server_certificate_file(),
-        }
+        toml::from_str::<Self>("").unwrap()
     }
 }
 
@@ -753,14 +634,14 @@ mod tests {
                     url: None,
                     host: "".to_string(),
                     user: "rudder".to_string(),
-                    password: "".into(),
+                    password: None,
                     default_password: "".into(),
                     verify_certificates: true,
                     server_certificate_file: PathBuf::from("/var/rudder/lib/ssl/policy_server.pem"),
                 },
                 database: DatabaseConfig {
                     url: "postgres://rudder@127.0.0.1/rudder".to_string(),
-                    password: "".into(),
+                    password: None,
                     max_pool_size: 10,
                 },
             },
@@ -778,6 +659,10 @@ mod tests {
             shared_folder: SharedFolder {
                 path: PathBuf::from("/var/rudder/configuration-repository/shared-files/"),
             },
+            rsync: RsyncConfig {
+                listen: "localhost:5310".to_string(),
+                authentication: true,
+            },
         };
 
         assert_eq!(config, reference);
@@ -787,12 +672,15 @@ mod tests {
 
     #[test]
     fn it_fails_when_password_is_missing() {
-        let default = "[general]\n\
+        let missing_password = "[general]\n\
                        node_id = \"root\"\n\
+                       [processing.reporting]\n\
+                       directory = \"target/tmp/reporting/\"\n\
+                       output = \"database\"\n\
                        [output.database]\n";
-        let with_password = format!("{}\npassword = \"test\"", default);
-        assert!(default.parse::<Configuration>().is_err());
-        assert!(with_password.parse::<Configuration>().is_ok());
+        let conf = missing_password.parse::<Configuration>();
+        assert!(conf.is_ok());
+        assert!(conf.unwrap().validate().is_err());
     }
 
     #[test]
@@ -852,7 +740,7 @@ mod tests {
                     url: None,
                     host: "rudder.example.com".to_string(),
                     user: "rudder".to_string(),
-                    password: "password".into(),
+                    password: Some("password".into()),
                     default_password: "rudder".into(),
                     verify_certificates: true,
                     server_certificate_file: PathBuf::from(
@@ -861,7 +749,7 @@ mod tests {
                 },
                 database: DatabaseConfig {
                     url: "postgres://rudderreports@postgres/rudder".to_string(),
-                    password: "PASSWORD".into(),
+                    password: Some("PASSWORD".into()),
                     max_pool_size: 5,
                 },
             },
@@ -878,6 +766,10 @@ mod tests {
             },
             shared_folder: SharedFolder {
                 path: PathBuf::from("tests/api_shared_folder"),
+            },
+            rsync: RsyncConfig {
+                listen: "localhost:1234".to_string(),
+                authentication: false,
             },
         };
         assert_eq!(config, reference);
