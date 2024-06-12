@@ -48,7 +48,6 @@ import com.normation.cfclerk.domain.Variable
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
@@ -181,7 +180,7 @@ class TestSystemData {
       .openOrThrowException("I should get system variable in tests")
   }
 
-  def policies(nodeInfo: NodeInfo, drafts: List[BoundPolicyDraft]): List[Policy] = {
+  def policies(nodeInfo: CoreNodeFact, drafts: List[BoundPolicyDraft]): List[Policy] = {
     MergePolicyService
       .buildPolicy(nodeInfo, globalPolicyMode, drafts) match {
       case Full(l) => l
@@ -202,7 +201,7 @@ class TestSystemData {
   )
 
   val cfeNodeConfig: NodeConfiguration = NodeConfigData.node1NodeConfig.copy(
-    nodeInfo = cfeNode,
+    nodeInfo = factCfe,
     parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
   )
 
@@ -485,10 +484,10 @@ class WriteSystemTechniquesTest extends TechniquesTest {
 
     val p     = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, pkg, ncf1))
     val cfeNC = cfeNodeConfig.copy(
-      nodeInfo = cfeNode,
+      nodeInfo = factCfe,
       policies = p,
       nodeContext = getSystemVars(factCfe, allNodeFacts_cfeNode, groupLib),
-      runHooks = MergePolicyService.mergeRunHooks(p.filter(!_.technique.isSystem), None, globalPolicyMode)
+      runHooks = MergePolicyService.mergeRunHooks(p.filter(!_.technique.policyTypes.isSystem), None, globalPolicyMode)
     )
 
     "correctly get the expected policy files" in {
@@ -525,7 +524,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
     )
 
     val cfeNC = cfeNodeConfig.copy(
-      nodeInfo = cfeNode,
+      nodeInfo = factCfe,
       policies = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, gvd1, gvd2)),
       nodeContext = getSystemVars(factCfe, allNodeFacts_cfeNode, groupLib)
     )
@@ -618,10 +617,10 @@ class WriteSystemTechniques500Test extends TechniquesTest {
 
     val p     = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll) ++ techniqueList)
     val cfeNC = cfeNodeConfig.copy(
-      nodeInfo = cfeNode,
+      nodeInfo = factCfe,
       policies = p,
       nodeContext = getSystemVars(factCfe, allNodeFacts_cfeNode, groupLib),
-      runHooks = MergePolicyService.mergeRunHooks(p.filter(!_.technique.isSystem), None, globalPolicyMode)
+      runHooks = MergePolicyService.mergeRunHooks(p.filter(!_.technique.policyTypes.isSystem), None, globalPolicyMode)
     )
 
     "correctly get the expected policy files" in {
@@ -658,7 +657,7 @@ class WriteSystemTechniqueWithRevisionTest extends TechniquesTest {
   )
 
   val cfeNC: NodeConfiguration = cfeNodeConfig.copy(
-    nodeInfo = cfeNode,
+    nodeInfo = factCfe,
     policies = policies(cfeNodeConfig.nodeInfo, List(common(cfeNode.id, allNodesInfo_cfeNode), inventoryAll, gvd1, gvd2)),
     nodeContext = getSystemVars(factCfe, allNodeFacts_cfeNode, groupLib)
   )

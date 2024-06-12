@@ -62,6 +62,10 @@ class TechniqueTest extends Specification {
     .parseXml(readFile("testTechnique.xml"), id)
     .getOrElse(throw new IllegalArgumentException("Technique XML must be valid for test"))
 
+  val technique2: Technique = techniqueParser
+    .parseXml(readFile("testTechnique.xml"), id)
+    .getOrElse(throw new IllegalArgumentException("Technique XML must be valid for test"))
+
   "The technique described" should {
 
     "have name 'Test technique'" in {
@@ -73,7 +77,11 @@ class TechniqueTest extends Specification {
     }
 
     "be a system technique" in {
-      technique.isSystem === true
+      technique.policyTypes.isSystem === true
+    }
+
+    "be a system technique with the new compliance tag" in {
+      technique2.policyTypes.isSystem === true
     }
 
     "not be multiinstance" in {

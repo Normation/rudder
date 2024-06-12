@@ -99,6 +99,56 @@ response:
                 ]
               },
               {
+                "id" : "r2",
+                "name" : "R2",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successRepaired" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "name" : "directive99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "compliance" : 100.0,
+                    "policyMode" : "default",
+                    "complianceDetails" : {
+                      "successRepaired" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-r2-n1",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successRepaired" : 100.0
+                        },
+                        "nodes" : [
+                          {
+                            "id" : "n1",
+                            "name" : "node1.localhost",
+                            "compliance" : 100.0,
+                            "policyMode" : "enforce",
+                            "complianceDetails" : {
+                              "successRepaired" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-r2-n1",
+                                "reports" : [
+                                  {
+                                    "status" : "successRepaired"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
                 "id" : "r3",
                 "name" : "R3",
                 "compliance" : 0.0,
@@ -175,37 +225,81 @@ response:
                     ]
                   }
                 ]
-              },
+              }
+            ],
+            "nodes" : [
               {
-                "id" : "r2",
-                "name" : "R2",
-                "compliance" : 100.0,
+                "id" : "n1",
+                "name" : "node1.localhost",
+                "mode" : "full-compliance",
+                "compliance" : 66.66,
                 "policyMode" : "enforce",
                 "complianceDetails" : {
-                  "successRepaired" : 100.0
+                  "successAlreadyOK" : 33.33,
+                  "error" : 33.34,
+                  "successRepaired" : 33.33
                 },
-                "directives" : [
+                "rules" : [
                   {
-                    "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
-                    "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "id" : "r1",
+                    "name" : "R1",
                     "compliance" : 100.0,
-                    "policyMode" : "default",
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "compliance" : 100.0,
+                        "policyMode" : "default",
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n1",
+                            "compliance" : 100.0,
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n1",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id" : "r2",
+                    "name" : "R2",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
                     "complianceDetails" : {
                       "successRepaired" : 100.0
                     },
-                    "components" : [
+                    "directives" : [
                       {
-                        "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-r2-n1",
+                        "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+                        "name" : "directive99f4ef91-537b-4e03-97bc-e65b447514cc",
                         "compliance" : 100.0,
+                        "policyMode" : "default",
                         "complianceDetails" : {
                           "successRepaired" : 100.0
                         },
-                        "nodes" : [
+                        "components" : [
                           {
-                            "id" : "n1",
-                            "name" : "node1.localhost",
+                            "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-r2-n1",
                             "compliance" : 100.0,
-                            "policyMode" : "enforce",
                             "complianceDetails" : {
                               "successRepaired" : 100.0
                             },
@@ -223,11 +317,48 @@ response:
                         ]
                       }
                     ]
+                  },
+                  {
+                    "id" : "r3",
+                    "name" : "R3",
+                    "compliance" : 0.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "directive2",
+                        "name" : "directive2",
+                        "compliance" : 0.0,
+                        "policyMode" : "default",
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "directive2-component-r3-n1",
+                            "compliance" : 0.0,
+                            "complianceDetails" : {
+                              "error" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive2-component-value-r3-n1",
+                                "reports" : [
+                                  {
+                                    "status" : "error"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
                   }
                 ]
-              }
-            ],
-            "nodes" : [
+              },
               {
                 "id" : "n2",
                 "name" : "node1.localhost",
@@ -305,137 +436,6 @@ response:
                             "values" : [
                               {
                                 "value" : "directive2-component-value-r3-n2",
-                                "reports" : [
-                                  {
-                                    "status" : "error"
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "id" : "n1",
-                "name" : "node1.localhost",
-                "mode" : "full-compliance",
-                "compliance" : 66.66,
-                "policyMode" : "enforce",
-                "complianceDetails" : {
-                  "successAlreadyOK" : 33.33,
-                  "error" : 33.34,
-                  "successRepaired" : 33.33
-                },
-                "rules" : [
-                  {
-                    "id" : "r1",
-                    "name" : "R1",
-                    "compliance" : 100.0,
-                    "policyMode" : "enforce",
-                    "complianceDetails" : {
-                      "successAlreadyOK" : 100.0
-                    },
-                    "directives" : [
-                      {
-                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "compliance" : 100.0,
-                        "policyMode" : "default",
-                        "complianceDetails" : {
-                          "successAlreadyOK" : 100.0
-                        },
-                        "components" : [
-                          {
-                            "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n1",
-                            "compliance" : 100.0,
-                            "complianceDetails" : {
-                              "successAlreadyOK" : 100.0
-                            },
-                            "values" : [
-                              {
-                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n1",
-                                "reports" : [
-                                  {
-                                    "status" : "successAlreadyOK"
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "id" : "r2",
-                    "name" : "R2",
-                    "compliance" : 100.0,
-                    "policyMode" : "enforce",
-                    "complianceDetails" : {
-                      "successRepaired" : 100.0
-                    },
-                    "directives" : [
-                      {
-                        "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
-                        "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
-                        "compliance" : 100.0,
-                        "policyMode" : "default",
-                        "complianceDetails" : {
-                          "successRepaired" : 100.0
-                        },
-                        "components" : [
-                          {
-                            "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-r2-n1",
-                            "compliance" : 100.0,
-                            "complianceDetails" : {
-                              "successRepaired" : 100.0
-                            },
-                            "values" : [
-                              {
-                                "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-r2-n1",
-                                "reports" : [
-                                  {
-                                    "status" : "successRepaired"
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "id" : "r3",
-                    "name" : "R3",
-                    "compliance" : 0.0,
-                    "policyMode" : "enforce",
-                    "complianceDetails" : {
-                      "error" : 100.0
-                    },
-                    "directives" : [
-                      {
-                        "id" : "directive2",
-                        "name" : "directive2",
-                        "compliance" : 0.0,
-                        "policyMode" : "default",
-                        "complianceDetails" : {
-                          "error" : 100.0
-                        },
-                        "components" : [
-                          {
-                            "name" : "directive2-component-r3-n1",
-                            "compliance" : 0.0,
-                            "complianceDetails" : {
-                              "error" : 100.0
-                            },
-                            "values" : [
-                              {
-                                "value" : "directive2-component-value-r3-n1",
                                 "reports" : [
                                   {
                                     "status" : "error"
@@ -608,57 +608,6 @@ response:
             ],
             "nodes" : [
               {
-                "id" : "n2",
-                "name" : "node1.localhost",
-                "mode" : "full-compliance",
-                "compliance" : 100.0,
-                "policyMode" : "enforce",
-                "complianceDetails" : {
-                  "successAlreadyOK" : 100.0
-                },
-                "rules" : [
-                  {
-                    "id" : "r1",
-                    "name" : "R1",
-                    "compliance" : 100.0,
-                    "policyMode" : "enforce",
-                    "complianceDetails" : {
-                      "successAlreadyOK" : 100.0
-                    },
-                    "directives" : [
-                      {
-                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "compliance" : 100.0,
-                        "policyMode" : "default",
-                        "complianceDetails" : {
-                          "successAlreadyOK" : 100.0
-                        },
-                        "components" : [
-                          {
-                            "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n2",
-                            "compliance" : 100.0,
-                            "complianceDetails" : {
-                              "successAlreadyOK" : 100.0
-                            },
-                            "values" : [
-                              {
-                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n2",
-                                "reports" : [
-                                  {
-                                    "status" : "successAlreadyOK"
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
                 "id" : "n1",
                 "name" : "node1.localhost",
                 "mode" : "full-compliance",
@@ -748,7 +697,58 @@ response:
                     ]
                   }
                 ]
-              }
+              },
+              {
+                "id" : "n2",
+                "name" : "node1.localhost",
+                "mode" : "full-compliance",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "r1",
+                    "name" : "R1",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "compliance" : 100.0,
+                        "policyMode" : "default",
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n2",
+                            "compliance" : 100.0,
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n2",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }    
             ]
           }
         ]
@@ -828,6 +828,56 @@ response:
                 ]
               },
               {
+                "id" : "r2",
+                "name" : "R2",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successRepaired" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "name" : "directive99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "compliance" : 100.0,
+                    "policyMode" : "default",
+                    "complianceDetails" : {
+                      "successRepaired" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-r2-n1",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successRepaired" : 100.0
+                        },
+                        "nodes" : [
+                          {
+                            "id" : "n1",
+                            "name" : "node1.localhost",
+                            "compliance" : 100.0,
+                            "policyMode" : "enforce",
+                            "complianceDetails" : {
+                              "successRepaired" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-r2-n1",
+                                "reports" : [
+                                  {
+                                    "status" : "successRepaired"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
                 "id" : "r3",
                 "name" : "R3",
                 "compliance" : 0.0,
@@ -876,57 +926,7 @@ response:
                     ]
                   }
                 ]
-              },
-              {
-                "id" : "r2",
-                "name" : "R2",
-                "compliance" : 100.0,
-                "policyMode" : "enforce",
-                "complianceDetails" : {
-                  "successRepaired" : 100.0
-                },
-                "directives" : [
-                  {
-                    "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
-                    "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
-                    "compliance" : 100.0,
-                    "policyMode" : "default",
-                    "complianceDetails" : {
-                      "successRepaired" : 100.0
-                    },
-                    "components" : [
-                      {
-                        "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-r2-n1",
-                        "compliance" : 100.0,
-                        "complianceDetails" : {
-                          "successRepaired" : 100.0
-                        },
-                        "nodes" : [
-                          {
-                            "id" : "n1",
-                            "name" : "node1.localhost",
-                            "compliance" : 100.0,
-                            "policyMode" : "enforce",
-                            "complianceDetails" : {
-                              "successRepaired" : 100.0
-                            },
-                            "values" : [
-                              {
-                                "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-r2-n1",
-                                "reports" : [
-                                  {
-                                    "status" : "successRepaired"
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
+              }    
             ],
             "nodes" : [
               {
@@ -1296,6 +1296,56 @@ response:
                 ]
               },
               {
+                "id" : "br2",
+                "name" : "R2",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successRepaired" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "name" : "directive99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "compliance" : 100.0,
+                    "policyMode" : "default",
+                    "complianceDetails" : {
+                      "successRepaired" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-br2-bn1",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successRepaired" : 100.0
+                        },
+                        "nodes" : [
+                          {
+                            "id" : "bn1",
+                            "name" : "node1.localhost",
+                            "compliance" : 100.0,
+                            "policyMode" : "enforce",
+                            "complianceDetails" : {
+                              "successRepaired" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-br2-bn1",
+                                "reports" : [
+                                  {
+                                    "status" : "successRepaired"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
                 "id" : "br3",
                 "name" : "R3",
                 "compliance" : 0.0,
@@ -1422,37 +1472,81 @@ response:
                     ]
                   }
                 ]
-              },
+              }
+            ],
+            "nodes" : [
               {
-                "id" : "br2",
-                "name" : "R2",
-                "compliance" : 100.0,
+                "id" : "bn1",
+                "name" : "node1.localhost",
+                "mode" : "full-compliance",
+                "compliance" : 66.66,
                 "policyMode" : "enforce",
                 "complianceDetails" : {
-                  "successRepaired" : 100.0
+                  "successAlreadyOK" : 33.33,
+                  "error" : 33.34,
+                  "successRepaired" : 33.33
                 },
-                "directives" : [
+                "rules" : [
                   {
-                    "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
-                    "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "id" : "br1",
+                    "name" : "R1",
                     "compliance" : 100.0,
-                    "policyMode" : "default",
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "compliance" : 100.0,
+                        "policyMode" : "default",
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br1-bn1",
+                            "compliance" : 100.0,
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br1-bn1",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id" : "br2",
+                    "name" : "R2",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
                     "complianceDetails" : {
                       "successRepaired" : 100.0
                     },
-                    "components" : [
+                    "directives" : [
                       {
-                        "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-br2-bn1",
+                        "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+                        "name" : "directive99f4ef91-537b-4e03-97bc-e65b447514cc",
                         "compliance" : 100.0,
+                        "policyMode" : "default",
                         "complianceDetails" : {
                           "successRepaired" : 100.0
                         },
-                        "nodes" : [
+                        "components" : [
                           {
-                            "id" : "bn1",
-                            "name" : "node1.localhost",
+                            "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-br2-bn1",
                             "compliance" : 100.0,
-                            "policyMode" : "enforce",
                             "complianceDetails" : {
                               "successRepaired" : 100.0
                             },
@@ -1470,11 +1564,48 @@ response:
                         ]
                       }
                     ]
+                  },
+                  {
+                    "id" : "br3",
+                    "name" : "R3",
+                    "compliance" : 0.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "directive2",
+                        "name" : "directive2",
+                        "compliance" : 0.0,
+                        "policyMode" : "default",
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "directive2-component-br3-bn1",
+                            "compliance" : 0.0,
+                            "complianceDetails" : {
+                              "error" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive2-component-value-br3-bn1",
+                                "reports" : [
+                                  {
+                                    "status" : "error"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
                   }
                 ]
-              }
-            ],
-            "nodes" : [
+              },
               {
                 "id" : "bn2",
                 "name" : "node1.localhost",
@@ -1604,137 +1735,6 @@ response:
                     ]
                   }
                 ]
-              },
-              {
-                "id" : "bn1",
-                "name" : "node1.localhost",
-                "mode" : "full-compliance",
-                "compliance" : 66.66,
-                "policyMode" : "enforce",
-                "complianceDetails" : {
-                  "successAlreadyOK" : 33.33,
-                  "error" : 33.34,
-                  "successRepaired" : 33.33
-                },
-                "rules" : [
-                  {
-                    "id" : "br1",
-                    "name" : "R1",
-                    "compliance" : 100.0,
-                    "policyMode" : "enforce",
-                    "complianceDetails" : {
-                      "successAlreadyOK" : 100.0
-                    },
-                    "directives" : [
-                      {
-                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "compliance" : 100.0,
-                        "policyMode" : "default",
-                        "complianceDetails" : {
-                          "successAlreadyOK" : 100.0
-                        },
-                        "components" : [
-                          {
-                            "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br1-bn1",
-                            "compliance" : 100.0,
-                            "complianceDetails" : {
-                              "successAlreadyOK" : 100.0
-                            },
-                            "values" : [
-                              {
-                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br1-bn1",
-                                "reports" : [
-                                  {
-                                    "status" : "successAlreadyOK"
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "id" : "br2",
-                    "name" : "R2",
-                    "compliance" : 100.0,
-                    "policyMode" : "enforce",
-                    "complianceDetails" : {
-                      "successRepaired" : 100.0
-                    },
-                    "directives" : [
-                      {
-                        "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
-                        "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
-                        "compliance" : 100.0,
-                        "policyMode" : "default",
-                        "complianceDetails" : {
-                          "successRepaired" : 100.0
-                        },
-                        "components" : [
-                          {
-                            "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-br2-bn1",
-                            "compliance" : 100.0,
-                            "complianceDetails" : {
-                              "successRepaired" : 100.0
-                            },
-                            "values" : [
-                              {
-                                "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-br2-bn1",
-                                "reports" : [
-                                  {
-                                    "status" : "successRepaired"
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "id" : "br3",
-                    "name" : "R3",
-                    "compliance" : 0.0,
-                    "policyMode" : "enforce",
-                    "complianceDetails" : {
-                      "error" : 100.0
-                    },
-                    "directives" : [
-                      {
-                        "id" : "directive2",
-                        "name" : "directive2",
-                        "compliance" : 0.0,
-                        "policyMode" : "default",
-                        "complianceDetails" : {
-                          "error" : 100.0
-                        },
-                        "components" : [
-                          {
-                            "name" : "directive2-component-br3-bn1",
-                            "compliance" : 0.0,
-                            "complianceDetails" : {
-                              "error" : 100.0
-                            },
-                            "values" : [
-                              {
-                                "value" : "directive2-component-value-br3-bn1",
-                                "reports" : [
-                                  {
-                                    "status" : "error"
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
               }
             ]
           }
@@ -1763,56 +1763,6 @@ response:
               "successRepaired" : 33.33
             },
             "rules" : [
-              {
-                "id" : "br2",
-                "name" : "R2",
-                "compliance" : 100.0,
-                "policyMode" : "enforce",
-                "complianceDetails" : {
-                  "successRepaired" : 100.0
-                },
-                "directives" : [
-                  {
-                    "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
-                    "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
-                    "compliance" : 100.0,
-                    "policyMode" : "default",
-                    "complianceDetails" : {
-                      "successRepaired" : 100.0
-                    },
-                    "components" : [
-                      {
-                        "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-br2-bn1",
-                        "compliance" : 100.0,
-                        "complianceDetails" : {
-                          "successRepaired" : 100.0
-                        },
-                        "nodes" : [
-                          {
-                            "id" : "bn1",
-                            "name" : "node1.localhost",
-                            "compliance" : 100.0,
-                            "policyMode" : "enforce",
-                            "complianceDetails" : {
-                              "successRepaired" : 100.0
-                            },
-                            "values" : [
-                              {
-                                "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-br2-bn1",
-                                "reports" : [
-                                  {
-                                    "status" : "successRepaired"
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
               {
                 "id" : "br1",
                 "name" : "R1",
@@ -1890,49 +1840,46 @@ response:
                     ]
                   }
                 ]
-              }
-            ],
-            "nodes" : [
+              },
               {
-                "id" : "bn2",
-                "name" : "node1.localhost",
-                "mode" : "full-compliance",
+                "id" : "br2",
+                "name" : "R2",
                 "compliance" : 100.0,
                 "policyMode" : "enforce",
                 "complianceDetails" : {
-                  "successAlreadyOK" : 100.0
+                  "successRepaired" : 100.0
                 },
-                "rules" : [
+                "directives" : [
                   {
-                    "id" : "br1",
-                    "name" : "R1",
+                    "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "name" : "directive99f4ef91-537b-4e03-97bc-e65b447514cc",
                     "compliance" : 100.0,
-                    "policyMode" : "enforce",
+                    "policyMode" : "default",
                     "complianceDetails" : {
-                      "successAlreadyOK" : 100.0
+                      "successRepaired" : 100.0
                     },
-                    "directives" : [
+                    "components" : [
                       {
-                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-br2-bn1",
                         "compliance" : 100.0,
-                        "policyMode" : "default",
                         "complianceDetails" : {
-                          "successAlreadyOK" : 100.0
+                          "successRepaired" : 100.0
                         },
-                        "components" : [
+                        "nodes" : [
                           {
-                            "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br1-bn2",
+                            "id" : "bn1",
+                            "name" : "node1.localhost",
                             "compliance" : 100.0,
+                            "policyMode" : "enforce",
                             "complianceDetails" : {
-                              "successAlreadyOK" : 100.0
+                              "successRepaired" : 100.0
                             },
                             "values" : [
                               {
-                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br1-bn2",
+                                "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-br2-bn1",
                                 "reports" : [
                                   {
-                                    "status" : "successAlreadyOK"
+                                    "status" : "successRepaired"
                                   }
                                 ]
                               }
@@ -1943,7 +1890,9 @@ response:
                     ]
                   }
                 ]
-              },
+              }
+            ],
+            "nodes" : [
               {
                 "id" : "bn1",
                 "name" : "node1.localhost",
@@ -2024,6 +1973,57 @@ response:
                                 "reports" : [
                                   {
                                     "status" : "successRepaired"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "bn2",
+                "name" : "node1.localhost",
+                "mode" : "full-compliance",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "br1",
+                    "name" : "R1",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directivee9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "compliance" : 100.0,
+                        "policyMode" : "default",
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br1-bn2",
+                            "compliance" : 100.0,
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br1-bn2",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
                                   }
                                 ]
                               }
@@ -2152,57 +2152,6 @@ response:
             ],
             "nodes" : [
               {
-                "id" : "bn5",
-                "name" : "node1.localhost",
-                "mode" : "full-compliance",
-                "compliance" : 100.0,
-                "policyMode" : "enforce",
-                "complianceDetails" : {
-                  "successAlreadyOK" : 100.0
-                },
-                "rules" : [
-                  {
-                    "id" : "br4",
-                    "name" : "R4",
-                    "compliance" : 100.0,
-                    "policyMode" : "enforce",
-                    "complianceDetails" : {
-                      "successAlreadyOK" : 100.0
-                    },
-                    "directives" : [
-                      {
-                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "compliance" : 100.0,
-                        "policyMode" : "default",
-                        "complianceDetails" : {
-                          "successAlreadyOK" : 100.0
-                        },
-                        "components" : [
-                          {
-                            "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn5",
-                            "compliance" : 100.0,
-                            "complianceDetails" : {
-                              "successAlreadyOK" : 100.0
-                            },
-                            "values" : [
-                              {
-                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn5",
-                                "reports" : [
-                                  {
-                                    "status" : "successAlreadyOK"
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
                 "id" : "bn4",
                 "name" : "node1.localhost",
                 "mode" : "full-compliance",
@@ -2239,6 +2188,57 @@ response:
                             "values" : [
                               {
                                 "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn4",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "bn5",
+                "name" : "node1.localhost",
+                "mode" : "full-compliance",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "br4",
+                    "name" : "R4",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "compliance" : 100.0,
+                        "policyMode" : "default",
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn5",
+                            "compliance" : 100.0,
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn5",
                                 "reports" : [
                                   {
                                     "status" : "successAlreadyOK"
@@ -2289,6 +2289,24 @@ response:
               }
             ],
             "nodes" : [
+              {
+                "id" : "bn4",
+                "name" : "node1.localhost",
+                "mode" : "full-compliance",
+                "compliance" : 0.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {},
+                "rules" : []
+              },
+              {
+                "id" : "bn5",
+                "name" : "node1.localhost",
+                "mode" : "full-compliance",
+                "compliance" : 0.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {},
+                "rules" : []
+              }        
             ]
           }
         ]

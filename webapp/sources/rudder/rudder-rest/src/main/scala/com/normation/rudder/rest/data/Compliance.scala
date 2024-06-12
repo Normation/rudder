@@ -461,6 +461,9 @@ object ByNodeDirectiveCompliance {
   }
 }
 
+/*
+ * These objects are only used to export compliance in CSV format, for example in directive screen.
+ */
 object CsvCompliance {
 
   // use "," , quote everything with ", line separator is \n

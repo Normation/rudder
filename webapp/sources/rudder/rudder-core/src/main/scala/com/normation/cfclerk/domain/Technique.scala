@@ -38,6 +38,7 @@
 package com.normation.cfclerk.domain
 
 import com.normation.inventory.domain.AgentType
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.utils.Utils.*
 import enumeratum.*
 
@@ -199,7 +200,7 @@ final case class Technique(
     isMultiInstance:     Boolean = false, // true if we can have several instance of this policy
 
     longDescription:    String = "",
-    isSystem:           Boolean = false,
+    policyTypes:        PolicyTypes = PolicyTypes.rudderBase,
     generationMode:     TechniqueGenerationMode = TechniqueGenerationMode.MergeDirectives,
     useMethodReporting: Boolean = false
 ) {

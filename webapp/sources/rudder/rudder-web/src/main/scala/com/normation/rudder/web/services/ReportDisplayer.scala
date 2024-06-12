@@ -44,6 +44,7 @@ import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
@@ -393,7 +394,7 @@ class ReportDisplayer(
 
                       /*
                        * Start a remote run for that node and display results.
-                       * Remoterun are only supported on cfengine agent, so disable access to button for
+                       * Remote runs are only supported on cfengine agent, so disable access to button for
                        * other kind of agent (windows in particular).
                        */
                       def triggerAgent(node: CoreNodeFact): NodeSeq = if (tableId == "reportsGrid") {
@@ -549,6 +550,7 @@ class ReportDisplayer(
   }
 
   // this method cannot return an IOResult, as it uses S.
+  // Only check for base compliance.
   private def getComplianceData(
       nodeId:       NodeId,
       reportStatus: NodeStatusReport,
@@ -563,7 +565,8 @@ class ReportDisplayer(
       ComplianceData.getNodeByRuleComplianceDetails(
         nodeId,
         reportStatus,
-        allNodeInfos.mapValues(_.toNodeInfo).toMap,
+        PolicyTypeName.rudderBase,
+        allNodeInfos.toMap,
         directiveLib,
         rules,
         globalMode,
@@ -688,7 +691,8 @@ class ReportDisplayer(
      * we could add more information at each level (directive name? rule name?)
      */
     for {
-      (_, directive) <- DirectiveStatusReport.merge(nodeStatusReports.reports.toList.flatMap(_.directives.values))
+      (_, directive) <-
+        DirectiveStatusReport.merge(nodeStatusReports.reports.toList.flatMap(_._2.reports.toList.flatMap(_.directives.values)))
       value          <- directive.getValues(v => v.status == status)
     } yield {
       val (techName, techVersion) = directiveLib.allDirectives

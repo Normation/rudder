@@ -50,6 +50,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
@@ -295,7 +296,7 @@ class TechniqueAcceptationUpdater(
                                  // In the case of a system one, something is very broken. Don't disable it, as
                                  // It is likely to worsen things, but log an error.
                                  // Avoid writting the log for 'server-roles' and 'distributePolicy' - they are removed in 7.0 and up
-                                 if (activeTechnique.isSystem) {
+                                 if (activeTechnique.policyTypes.isSystem) {
                                    val removedIn7_0 = List("server-roles", "distributePolicy")
                                    if (removedIn7_0.contains(name)) {
                                      ApplicationLoggerPure.info(
@@ -361,7 +362,11 @@ class TechniqueAcceptationUpdater(
                                          // if the technique is system, we must be careful: the category is not "system" like in fs
                                          // but "Rudder Internal"
 
-                                         val isSystem  = t.exists(_._2.isSystem == true) // isSystem should be consistant, but still
+                                         val isSystem =
+                                           t.exists(_._2.policyTypes.isSystem == true) // isSystem should be consistent, but still
+                                         val policyTypes =
+                                           t.get(version).map(_.policyTypes).getOrElse(PolicyTypes.compat(isSystem))
+
                                          val parentCat = if (isSystem && mod == VersionAdded) {
                                            (ActiveTechniqueCategoryId("Rudder Internal"), "Active techniques used by Rudder")
                                          } else {
@@ -384,7 +389,7 @@ class TechniqueAcceptationUpdater(
                                              parentCat._1,
                                              name,
                                              mods.keys.toSeq,
-                                             isSystem,
+                                             policyTypes,
                                              modId,
                                              actor,
                                              reason

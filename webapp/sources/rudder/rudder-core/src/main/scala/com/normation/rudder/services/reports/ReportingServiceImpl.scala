@@ -47,6 +47,7 @@ import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.NodeStatusReport
@@ -82,7 +83,7 @@ object ReportingServiceUtils {
    * Build rule status reports from node reports, deciding which directives should be "skipped"
    */
   def buildRuleStatusReport(ruleId: RuleId, nodeReports: Map[NodeId, NodeStatusReport]): RuleStatusReport = {
-    val toKeep     = nodeReports.values.flatMap(_.reports).filter(_.ruleId == ruleId).toList
+    val toKeep     = nodeReports.values.flatMap(_.reports.flatMap(_._2.reports)).filter(_.ruleId == ruleId).toList
     // we don't keep overrides for a directive which is already in "toKeep" or that don't target that rule
     val toKeepDir  = toKeep.map(_.directives.keySet).toSet.flatten
     val overrides  = nodeReports.values
@@ -308,9 +309,9 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
     if (reports.isEmpty) {
       None
     } else { // aggregate values
-      val complianceLevel = ComplianceLevel.sum(reports.flatMap(_._2.reports.toSeq.map(_.compliance)))
+      val complianceLevel = ComplianceLevel.sum(reports.flatMap(_._2.reports.map(_._2.compliance)))
       val n2              = System.currentTimeMillis
-      TimingDebugLogger.trace(s"Agregating compliance level for  global user compliance in: ${n2 - n1}ms")
+      TimingDebugLogger.trace(s"Aggregating compliance level for  global user compliance in: ${n2 - n1}ms")
 
       Some(
         (
@@ -502,9 +503,11 @@ trait CachedFindRuleNodeStatusReports
     // display compliance value and expiration date.
     c.map {
       case (nodeId, status) =>
-        val reportsString = status.reports
-          .map(r => s"${r.ruleId.serialize}[exp:${r.expirationDate}]${r.compliance.toString}")
-          .mkString("\n  ", "\n  ", "")
+        val reportsString = status.reports.flatMap {
+          case (tag, aggregate) =>
+            aggregate.reports
+              .map(r => s"${r.ruleId.serialize}:${tag.value}[exp:${r.expirationDate}]${r.compliance.toString}")
+        }.mkString("\n  ", "\n  ", "")
 
         s"node: ${nodeId.value}${status.runInfo.toLog}${reportsString}"
     }.mkString("\n", "\n", "")
@@ -679,6 +682,7 @@ trait CachedFindRuleNodeStatusReports
    */
   override def findRuleNodeCompliance(
       nodeIds:       Set[NodeId],
+      tag:           PolicyTypeName,
       filterByRules: Set[RuleId]
   )(implicit qc: QueryContext): IOResult[Map[NodeId, ComplianceLevel]] = {
     for {
@@ -688,7 +692,7 @@ trait CachedFindRuleNodeStatusReports
       _         <- ReportLoggerPure.Cache.debug(s"Get node compliance from cache in: ${n2 - n1}ms")
       compliance = reports.map {
                      case (nodeId, nodeStatusReport) =>
-                       (nodeId, complianceByRules(nodeStatusReport, filterByRules))
+                       (nodeId, complianceByRules(nodeStatusReport, tag, filterByRules))
                    }
       n3        <- currentTimeMillis
       _         <- ReportLoggerPure.Cache.debug(s"Compute compliance on rules for ${nodeIds.size} node from cache in: ${n3 - n2}ms")
@@ -710,11 +714,11 @@ trait CachedFindRuleNodeStatusReports
       _               <- ReportLoggerPure.Cache.debug(s"Get node compliance from cache in: ${n2 - n1}ms")
       userCompliance   = reports.map {
                            case (nodeId, nodeStatusReport: NodeStatusReport) =>
-                             (nodeId, complianceByRules(nodeStatusReport, filterByUserRules))
+                             (nodeId, complianceByRules(nodeStatusReport, PolicyTypeName.rudderBase, filterByUserRules))
                          }
       systemCompliance = reports.map {
                            case (nodeId, nodeStatusReport: NodeStatusReport) =>
-                             (nodeId, complianceByRules(nodeStatusReport, filterBySystemRules))
+                             (nodeId, complianceByRules(nodeStatusReport, PolicyTypeName.rudderSystem, filterBySystemRules))
                          }
       n3              <- currentTimeMillis
       _               <- ReportLoggerPure.Cache.debug(s"Compute compliance on rules for ${nodeIds.size} node from cache in: ${n3 - n2}ms")
@@ -858,6 +862,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
 
   override def findRuleNodeCompliance(
       nodeIds:       Set[NodeId],
+      tag:           PolicyTypeName, // TODO ???
       filterByRules: Set[RuleId]
   )(implicit qc: QueryContext): IOResult[Map[NodeId, ComplianceLevel]] = {
     for {

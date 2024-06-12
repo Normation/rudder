@@ -40,6 +40,7 @@ import com.normation.errors.Inconsistency
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.services.policies.NodeConfiguration
+import com.softwaremill.quicklens.*
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -92,8 +93,8 @@ class PathComputerTest extends Specification {
 
   "When there is a loop in the policy server parent chain, the algo" should {
     "raise an error" in {
-      val badNode1  = node1NodeConfig.copy(nodeInfo = node1NodeConfig.nodeInfo.copy(policyServerId = node2.id))
-      val badNode2  = node2NodeConfig.copy(nodeInfo = node2NodeConfig.nodeInfo.copy(policyServerId = node1.id))
+      val badNode1  = node1NodeConfig.modify(_.nodeInfo.rudderSettings.policyServerId).setTo(node2.id)
+      val badNode2  = node2NodeConfig.modify(_.nodeInfo.rudderSettings.policyServerId).setTo(node1.id)
       val badConfig = allNodeConfig + (node1.id -> badNode1) + (node2.id -> badNode2)
       pathComputer.computeBaseNodePath(node1.id, root.id, badConfig.view.mapValues(_.nodeInfo).toMap) must beAnInstanceOf[
         Left[Inconsistency, ?]

@@ -211,7 +211,7 @@ class NodeExpectedReportTest extends Specification {
     ncfTechniqueWithBlocks.rootSection,
     ncfTechniqueWithBlocks.systemVariableSpecs,
     ncfTechniqueWithBlocks.isMultiInstance,
-    ncfTechniqueWithBlocks.isSystem,
+    ncfTechniqueWithBlocks.policyTypes,
     ncfTechniqueWithBlocks.generationMode,
     ncfTechniqueWithBlocks.useMethodReporting
   )

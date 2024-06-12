@@ -48,6 +48,7 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ComplianceMode
@@ -127,7 +128,7 @@ final case class RuleExpectedReports(
 final case class DirectiveExpectedReports(
     directiveId: DirectiveId,
     policyMode:  Option[PolicyMode],
-    isSystem:    Boolean,
+    policyTypes: PolicyTypes,
     components:  List[ComponentExpectedReport]
 )
 
@@ -282,7 +283,7 @@ object ExpectedReportsSerialisation {
      *    "gar": {                   // global agent run (interval)
      *      "i": 15,                 // interval
      *      "sm": 0,                 // start minute
-     *      "sh": 0,                 // strart hour
+     *      "sh": 0,                 // start hour
      *      "st": 4                  // splay time
      *    },
      *    "nar": {                   // node agent run (interval)
@@ -419,10 +420,10 @@ object ExpectedReportsSerialisation {
       def transform: JsonExpectedValueId7_1 = JsonExpectedValueId7_1(x.id, x.value)
     }
 
-    sealed trait JsonComponentExpectedReport7_1                                  {
+    sealed trait JsonComponentExpectedReport7_1                                {
       def transform: ComponentExpectedReport
     }
-    implicit class _JsonComponentExpectedReport7_1(x: ComponentExpectedReport)   {
+    implicit class _JsonComponentExpectedReport7_1(x: ComponentExpectedReport) {
       def transform: JsonComponentExpectedReport7_1 = x match {
         case a: ValueExpectedReport => a.transform
         case a: BlockExpectedReport => a.transform
@@ -442,7 +443,7 @@ object ExpectedReportsSerialisation {
         }
       )
     }
-    implicit class _JsonValueExpectedReport7_1(x: ValueExpectedReport)           {
+    implicit class _JsonValueExpectedReport7_1(x: ValueExpectedReport)         {
       def transform: JsonValueExpectedReport7_1 = JsonValueExpectedReport7_1(
         x.componentName,
         x.componentsValues.map {
@@ -465,26 +466,52 @@ object ExpectedReportsSerialisation {
     ) extends JsonComponentExpectedReport7_1 {
       def transform: BlockExpectedReport = BlockExpectedReport(bid, rl, scs.map(_.transform), id)
     }
-    implicit class _JsonBlockExpectedReport7_1(x: BlockExpectedReport)           {
+    implicit class _JsonBlockExpectedReport7_1(x: BlockExpectedReport)         {
       def transform: JsonBlockExpectedReport7_1 =
         JsonBlockExpectedReport7_1(x.componentName, x.reportingLogic, x.subComponents.map(_.transform), x.id)
     }
 
-    final case class JsonDirectiveExpectedReports7_1(
+    /*
+     * In 8.2 we changed the s: Option[Boolean] for isSystem to t: Option[ComplianceTag]
+     * We sill want to be able to decode json with s, but never write it. This is done by
+     * being sure that when we go from DirectiveExpectedReports to JsonDirectiveExpectedReports8_2,
+     * we always let the s value to None.
+     * The chosen strategy means that when there is neither s nor t present in json (ie the common
+     * case of base policies), we always need to test both. The overhead seems negligible compared
+     * to burden of having two decoders + orElse
+     */
+    final case class JsonDirectiveExpectedReports8_2(
         did: DirectiveId,
         pm:  Option[PolicyMode],
+        // the old tag for "isSystem", that we can encounter when reading old json. Never write it.
+        // If both it and t is present, t wins
         s:   Option[Boolean],
+        t:   Option[PolicyTypes],
         cs:  List[JsonComponentExpectedReport7_1]
     ) {
-      def transform: DirectiveExpectedReports = DirectiveExpectedReports(did, pm, s.getOrElse(false), cs.map(_.transform))
+      def transform: DirectiveExpectedReports = {
+        val ct = {
+          t match {
+            case Some(value) => value
+            case None        =>
+              s match {
+                case Some(true) => PolicyTypes.rudderSystem
+                case _          => PolicyTypes.rudderBase
+              }
+          }
+        }
+        DirectiveExpectedReports(did, pm, ct, cs.map(_.transform))
+      }
     }
-    implicit class _JsonDirectiveExpectedReports7_1(x: DirectiveExpectedReports) {
-      def transform: JsonDirectiveExpectedReports7_1 = {
-        val s = if (x.isSystem) Some(true) else None
-        JsonDirectiveExpectedReports7_1(
+    implicit class _JsonDirectiveExpectedReports8_2(x: DirectiveExpectedReports) {
+      def transform: JsonDirectiveExpectedReports8_2 = {
+        // optimisation: if policyTypes is exactly base, we skip it
+        val t = if (x.policyTypes == PolicyTypes.rudderBase) None else Some(x.policyTypes)
+        JsonDirectiveExpectedReports8_2(
           x.directiveId,
           x.policyMode,
-          s,
+          None,
+          t,
           x.components.map(_.transform)
         )
       }
@@ -492,7 +519,7 @@ object ExpectedReportsSerialisation {
 
     final case class JsonRuleExpectedReports7_1(
         rid: RuleId,
-        ds:  List[JsonDirectiveExpectedReports7_1]
+        ds:  List[JsonDirectiveExpectedReports8_2]
     ) {
       def transform: RuleExpectedReports = RuleExpectedReports(rid, ds.map(_.transform))
     }
@@ -569,8 +596,8 @@ object ExpectedReportsSerialisation {
         }
       }
     }
-    implicit lazy val decodeJsonDirectiveExpectedReports7_1: JsonDecoder[JsonDirectiveExpectedReports7_1] = DeriveJsonDecoder.gen
-    implicit lazy val encodeJsonDirectiveExpectedReports7_1: JsonEncoder[JsonDirectiveExpectedReports7_1] = DeriveJsonEncoder.gen
+    implicit lazy val decodeJsonDirectiveExpectedReports8_2: JsonDecoder[JsonDirectiveExpectedReports8_2] = DeriveJsonDecoder.gen
+    implicit lazy val encodeJsonDirectiveExpectedReports8_2: JsonEncoder[JsonDirectiveExpectedReports8_2] = DeriveJsonEncoder.gen
     implicit lazy val decodeJsonRuleExpectedReports7_1:      JsonDecoder[JsonRuleExpectedReports7_1]      = DeriveJsonDecoder.gen
     implicit lazy val encodeJsonRuleExpectedReports7_1:      JsonEncoder[JsonRuleExpectedReports7_1]      = DeriveJsonEncoder.gen
     implicit lazy val decodeJsonNodeExpectedReports7_1:      JsonDecoder[JsonNodeExpectedReports7_1]      = DeriveJsonDecoder.gen

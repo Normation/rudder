@@ -455,33 +455,30 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
   )
 
   val rootNodeConfig: NodeConfiguration = NodeConfiguration(
-    nodeInfo = root,
+    nodeInfo = factRoot,
     modesConfig = defaultModesConfig,
     runHooks = List(),
     policies = List[Policy](),
     nodeContext = Map[String, Variable](),
-    parameters = Set[ParameterForConfiguration](),
-    isRootServer = true
+    parameters = Set[ParameterForConfiguration]()
   )
 
   val node1NodeConfig: NodeConfiguration = NodeConfiguration(
-    nodeInfo = node1,
+    nodeInfo = fact1,
     modesConfig = defaultModesConfig,
     runHooks = List(),
     policies = List[Policy](),
     nodeContext = Map[String, Variable](),
-    parameters = Set[ParameterForConfiguration](),
-    isRootServer = false
+    parameters = Set[ParameterForConfiguration]()
   )
 
   val node2NodeConfig: NodeConfiguration = NodeConfiguration(
-    nodeInfo = node2,
+    nodeInfo = fact2,
     modesConfig = defaultModesConfig,
     runHooks = List(),
     policies = List[Policy](),
     nodeContext = Map[String, Variable](),
-    parameters = Set[ParameterForConfiguration](),
-    isRootServer = false
+    parameters = Set[ParameterForConfiguration]()
   )
 
   /**

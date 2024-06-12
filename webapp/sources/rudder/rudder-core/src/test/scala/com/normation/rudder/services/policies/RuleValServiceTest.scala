@@ -47,6 +47,7 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GroupTarget
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
@@ -134,7 +135,7 @@ class RuleValServiceTest extends Specification {
       systemVariableSpecs = Set(),
       isMultiInstance = false,
       longDescription = "",
-      isSystem = false
+      PolicyTypes.rudderBase
     )
   }
 
@@ -173,7 +174,7 @@ class RuleValServiceTest extends Specification {
       techniques = SortedMap((techniqueId.version, technique)),
       directives = List(directive),
       isEnabled = true,
-      isSystem = false
+      policyTypes = PolicyTypes.rudderBase
     )
   }
 

@@ -53,10 +53,11 @@ import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.NodeConfigurationLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.reports.NodeConfigId
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.hooks.RunHooks
@@ -103,7 +104,7 @@ trait PolicyWriterService {
       rootNodeId:       NodeId,
       nodesToWrite:     Set[NodeId],
       allNodeConfigs:   Map[NodeId, NodeConfiguration],
-      allNodeInfos:     Map[NodeId, NodeInfo],
+      allNodeInfos:     Map[NodeId, CoreNodeFact],
       versions:         Map[NodeId, NodeConfigId],
       globalPolicyMode: GlobalPolicyMode,
       generationTime:   DateTime,
@@ -173,18 +174,32 @@ object PolicyOrdering {
    *
    * CAREFUL: this method only take care of sorting based on "BundleOrder", other sorting (like
    * "system must go first") are not taken into account here !
+   *
+   * We also keep compliance tag together, ordered alpha-num,
    */
   def sort(
       policies: Seq[Policy]
   ): Seq[Policy] = {
+    // get system tag if present, else the first alpha-num
+    def getTagOrder(p: Policy): BundleOrder = {
+      if (p.technique.policyTypes.isSystem) {
+        BundleOrder(PolicyTypeName.rudderSystem.value)
+      } else {
+        BundleOrder(
+          p.technique.policyTypes.types.toList.map(_.value).sorted.headOption.getOrElse(PolicyTypeName.rudderBase.value)
+        )
+      }
+    }
+
     def compareBundleOrder(a: Policy, b: Policy): Boolean = {
       // We use rule name, then directive name. For same rule name and directive name, we
       // differentiate on technique id, then on directive id (to keep diff minimal)
       BundleOrder.compareList(
-        List(a.ruleOrder, a.directiveOrder, BundleOrder(a.id.getRudderUniqueId)),
-        List(b.ruleOrder, b.directiveOrder, BundleOrder(b.id.getRudderUniqueId))
+        List(getTagOrder(a), a.ruleOrder, a.directiveOrder, BundleOrder(a.id.getRudderUniqueId)),
+        List(getTagOrder(b), b.ruleOrder, b.directiveOrder, BundleOrder(b.id.getRudderUniqueId))
       ) <= 0
     }
+
     val sorted = policies.sortWith(compareBundleOrder)
 
     // some debug info to understand what order was used for each node:
@@ -407,7 +422,7 @@ class PolicyWriterServiceImpl(
       rootNodeId:       NodeId,
       nodesToWrite:     Set[NodeId],
       allNodeConfigs:   Map[NodeId, NodeConfiguration],
-      allNodeInfos:     Map[NodeId, NodeInfo],
+      allNodeInfos:     Map[NodeId, CoreNodeFact],
       versions:         Map[NodeId, NodeConfigId],
       globalPolicyMode: GlobalPolicyMode,
       generationTime:   DateTime,
@@ -429,7 +444,7 @@ class PolicyWriterServiceImpl(
       rootNodeId:       NodeId,
       nodesToWrite:     Set[NodeId],
       allNodeConfigs:   Map[NodeId, NodeConfiguration],
-      allNodeInfos:     Map[NodeId, NodeInfo],
+      allNodeInfos:     Map[NodeId, CoreNodeFact],
       versions:         Map[NodeId, NodeConfigId],
       globalPolicyMode: GlobalPolicyMode,
       generationTime:   DateTime,
@@ -533,7 +548,7 @@ class PolicyWriterServiceImpl(
                                                                                                     prepareTimer
                                                                                                   )
                                                                                                   .chainError(
-                                                                                                    s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})"
+                                                                                                    s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.fqdn}' (${agentNodeConfig.config.nodeInfo.id.value})"
                                                                                                   )
                                                                                             }
                                                                    preparedTemplatesTime <- currentTimeMillis
@@ -594,7 +609,7 @@ class PolicyWriterServiceImpl(
       propertiesWritten    <- parallelSequence(configAndPaths) {
                                 case agentNodeConfig =>
                                   writeNodePropertiesFile(agentNodeConfig).chainError(
-                                    s"An error occurred while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
+                                    s"An error occurred while writing property file for Node ${agentNodeConfig.config.nodeInfo.fqdn} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                                   )
                               }
 
@@ -604,7 +619,7 @@ class PolicyWriterServiceImpl(
       parametersWritten <- parallelSequence(configAndPaths) {
                              case agentNodeConfig =>
                                writeRudderParameterFile(agentNodeConfig).chainError(
-                                 s"An error occurred while writing parameter file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
+                                 s"An error occurred while writing parameter file for Node ${agentNodeConfig.config.nodeInfo.fqdn} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                                )
                            }
 
@@ -617,9 +632,9 @@ class PolicyWriterServiceImpl(
 
       nodePreMvHooks <- RunHooks.getHooksPure(HOOKS_D + "/policy-generation-node-ready", HOOKS_IGNORE_SUFFIXES)
       preMvHooks     <- parallelSequenceNodeHook(configAndPaths) { agentNodeConfig =>
-                          val nodeId       = agentNodeConfig.config.nodeInfo.node.id.value
-                          val hostname     = agentNodeConfig.config.nodeInfo.hostname
-                          val policyServer = agentNodeConfig.config.nodeInfo.policyServerId.value
+                          val nodeId       = agentNodeConfig.config.nodeInfo.id.value
+                          val hostname     = agentNodeConfig.config.nodeInfo.fqdn
+                          val policyServer = agentNodeConfig.config.nodeInfo.rudderSettings.policyServerId.value
                           for {
                             timeHooks0 <- currentTimeMillis
                             res        <- RunHooks.asyncRun(
@@ -661,9 +676,9 @@ class PolicyWriterServiceImpl(
 
       nodePostMvHooks  <- RunHooks.getHooksPure(HOOKS_D + "/policy-generation-node-finished", HOOKS_IGNORE_SUFFIXES)
       postMvHooks      <- parallelSequenceNodeHook(configAndPaths) { agentNodeConfig =>
-                            val nodeId       = agentNodeConfig.config.nodeInfo.node.id.value
-                            val hostname     = agentNodeConfig.config.nodeInfo.hostname
-                            val policyServer = agentNodeConfig.config.nodeInfo.policyServerId.value
+                            val nodeId       = agentNodeConfig.config.nodeInfo.id.value
+                            val hostname     = agentNodeConfig.config.nodeInfo.fqdn
+                            val policyServer = agentNodeConfig.config.nodeInfo.rudderSettings.policyServerId.value
                             for {
                               timeHooks0 <- currentTimeMillis
                               res        <- RunHooks.asyncRun(
@@ -876,19 +891,12 @@ class PolicyWriterServiceImpl(
   private def calculatePathsForNodeConfigurations(
       configs:             Seq[NodeConfiguration],
       rootNodeConfigId:    NodeId,
-      allNodeInfos:        Map[NodeId, NodeInfo],
+      allNodeInfos:        Map[NodeId, CoreNodeFact],
       newsFileExtension:   String,
       backupFileExtension: String
   ): IOResult[Seq[AgentNodeConfiguration]] = {
 
-    val agentConfig = configs.flatMap { config =>
-      if (config.nodeInfo.agentsName.size == 0) {
-        PolicyGenerationLogger.info(
-          s"Node '${config.nodeInfo.hostname}' (${config.nodeInfo.id.value}) has no agent type configured and so no policies will be generated"
-        )
-      }
-      config.nodeInfo.agentsName.map(agentType => (agentType, config))
-    }
+    val agentConfig = configs.map(config => (config.nodeInfo.rudderAgent, config))
 
     ZIO.foreach(agentConfig) {
       case (agentInfo, config) =>
@@ -1019,7 +1027,7 @@ class PolicyWriterServiceImpl(
       policy.technique.agentConfig.runHooks.nonEmpty.toString ::
       policy.technique.id.name.value ::
       policy.technique.id.version.serialize ::
-      policy.technique.isSystem.toString ::
+      policy.technique.policyTypes.isSystem.toString ::
       policy.directiveOrder.value ::
       Nil).mkString("\"", "\",\"", "\"")
 

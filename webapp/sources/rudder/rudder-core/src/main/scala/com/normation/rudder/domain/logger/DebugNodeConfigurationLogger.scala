@@ -99,7 +99,7 @@ class NodeConfigurationLoggerImpl(
       for {
         logTime <- writeIn(new File(path, "lastWritenTime"))(printWriter => Full(printWriter.write(DateTime.now.toString())))
         configs <- (traverse(nodeConfiguration) { config =>
-                     val logFile = new File(path, config.nodeInfo.hostname + "_" + config.nodeInfo.id.value)
+                     val logFile = new File(path, config.nodeInfo.fqdn + "_" + config.nodeInfo.id.value)
 
                      writeIn(logFile) { printWriter =>
                        val logText = writePretty(config)

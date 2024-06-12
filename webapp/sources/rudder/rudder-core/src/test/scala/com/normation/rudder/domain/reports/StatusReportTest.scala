@@ -41,6 +41,8 @@ import com.normation.GitVersion
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
+import com.normation.rudder.domain.policies.PolicyTypeName
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.ReportType.*
@@ -244,9 +246,18 @@ class StatusReportTest extends Specification {
     }
 
     "Correctly compute the by rule compliance" in {
-      report.byRules(RuleId(RuleUid("r1"))).compliance === ComplianceLevel(pending = 2) and
-      report.byRules(RuleId(RuleUid("r2"))).compliance === ComplianceLevel(success = 1) and
-      report.byRules(RuleId(RuleUid("r3"))).compliance === ComplianceLevel(error = 1)
+      report
+        .reports(PolicyTypeName.rudderBase)
+        .filterByRules(Set(RuleId(RuleUid("r1"))))
+        .compliance === ComplianceLevel(pending = 2) and
+      report
+        .reports(PolicyTypeName.rudderBase)
+        .filterByRules(Set(RuleId(RuleUid("r2"))))
+        .compliance === ComplianceLevel(success = 1) and
+      report
+        .reports(PolicyTypeName.rudderBase)
+        .filterByRules(Set(RuleId(RuleUid("r3"))))
+        .compliance === ComplianceLevel(error = 1)
     }
 
   }
@@ -355,12 +366,14 @@ class StatusReportTest extends Specification {
                 RuleNodeStatusReport(
                   n,
                   r,
+                  PolicyTypeName.rudderBase,
                   None,
                   None,
                   Map(
                     DirectiveId(DirectiveUid(d)) ->
                     DirectiveStatusReport(
                       d,
+                      PolicyTypes.rudderBase,
                       List(
                         ValueStatusReport(
                           c,

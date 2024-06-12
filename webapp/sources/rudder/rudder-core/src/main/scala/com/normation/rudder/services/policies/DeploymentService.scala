@@ -56,7 +56,6 @@ import com.normation.rudder.domain.logger.ComplianceDebugLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLogger
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.*
@@ -740,7 +739,7 @@ trait PromiseGenerationService {
       rootNodeId:       NodeId,
       updated:          Map[NodeId, NodeConfigId],
       allNodeConfig:    Map[NodeId, NodeConfiguration],
-      nodeInfo:         Map[NodeId, NodeInfo],
+      nodeInfo:         Map[NodeId, CoreNodeFact],
       globalPolicyMode: GlobalPolicyMode,
       generationTime:   DateTime,
       maxParallelism:   Int
@@ -781,7 +780,7 @@ trait PromiseGenerationService {
   def runPostHooks(
       generationTime:    DateTime,
       endTime:           DateTime,
-      idToConfiguration: Map[NodeId, NodeInfo],
+      idToConfiguration: Map[NodeId, CoreNodeFact],
       systemEnv:         HookEnvPairs,
       nodeIdsPath:       String
   ): Box[Unit]
@@ -1019,8 +1018,8 @@ trait PromiseGeneration_BuildNodeContext {
                 nodeFacts.get(info.rudderSettings.policyServerId)
               ) ?~! s"Policy server '${info.rudderSettings.policyServerId.value}' of Node '${nodeId.value}' was not found"
             context            = ParamInterpolationContext(
-                                   info.toNodeInfo,
-                                   policyServer.toNodeInfo,
+                                   info,
+                                   policyServer,
                                    globalPolicyMode,
                                    parameters.map { case (p, i) => (p.name, i) }
                                  )
@@ -1050,8 +1049,8 @@ trait PromiseGeneration_BuildNodeContext {
                                  )
             // Not sure if I should InterpolationContext or create a "EngineInterpolationContext
             contextEngine      = InterpolationContext(
-                                   info.toNodeInfo,
-                                   policyServer.toNodeInfo,
+                                   info,
+                                   policyServer,
                                    globalPolicyMode,
                                    nodeContextBefore,
                                    nodeParam.map { case (k, g) => (k, g.value) }.toMap
@@ -1090,8 +1089,8 @@ trait PromiseGeneration_BuildNodeContext {
             (
               nodeId,
               InterpolationContext(
-                withDefautls.toNodeInfo,
-                policyServer.toNodeInfo,
+                withDefautls,
+                policyServer,
                 globalPolicyMode,
                 nodeContext,
                 nodeParam.map { case (k, g) => (k, g.value) }.toMap
@@ -1318,9 +1317,9 @@ object BuildNodeConfiguration extends Loggable {
                               parsedDrafts.filterNot(d => toRemove.contains(d.technique.id.name))
                             }
                             // if a node is in state "emtpy policies", we only keep system policies + log
-                            filteredDrafts = if (context.nodeInfo.state == NodeState.EmptyPolicies) {
+                            filteredDrafts = if (context.nodeInfo.rudderSettings.state == NodeState.EmptyPolicies) {
                                                PolicyGenerationLogger.info(
-                                                 s"Node '${context.nodeInfo.hostname}' (${context.nodeInfo.id.value}) is in '${context.nodeInfo.state.name}' state, keeping only system policies for it"
+                                                 s"Node '${context.nodeInfo.fqdn}' (${context.nodeInfo.id.value}) is in '${context.nodeInfo.rudderSettings.state.name}' state, keeping only system policies for it"
                                                )
                                                filtered.flatMap(d => {
                                                  if (d.isSystem) {
@@ -1355,7 +1354,7 @@ object BuildNodeConfiguration extends Loggable {
                                                           expandedVars      <- expandedVariables.accumulate {
                                                                                  case (k, v) =>
                                                                                    // js lib is specific to the node os, bind here to not leak eval between vars
-                                                                                   val jsLib = context.nodeInfo.osDetails.os match {
+                                                                                   val jsLib = context.nodeInfo.os.os match {
                                                                                      case AixOS => JsRudderLibBinding.Aix
                                                                                      case _     => JsRudderLibBinding.Crypt
                                                                                    }
@@ -1392,7 +1391,8 @@ object BuildNodeConfiguration extends Loggable {
                               modesConfig = nodeModes, // system technique should not have hooks, and at least it is not supported.
 
                               runHooks = MergePolicyService.mergeRunHooks(
-                                policies.filter(!_.technique.isSystem),
+                                // used to be !isSystem
+                                policies.filter(_.technique.policyTypes.isBase),
                                 nodeModes.nodePolicyMode,
                                 nodeModes.globalPolicyMode
                               ),
@@ -1400,12 +1400,11 @@ object BuildNodeConfiguration extends Loggable {
                               nodeContext = context.nodeContext,
                               parameters = context.parameters.map {
                                 case (k, v) => ParameterForConfiguration(k, GenericProperty.serializeToHocon(v))
-                              }.toSet,
-                              isRootServer = context.nodeInfo.id == context.policyServerInfo.id
+                              }.toSet
                             )
                             nodeConfig
                           }).chainError(
-                            s"Error with parameters expansion for node '${context.nodeInfo.hostname}' (${context.nodeInfo.id.value})"
+                            s"Error with parameters expansion for node '${context.nodeInfo.fqdn}' (${context.nodeInfo.id.value})"
                           ).either
                       }
                       .withParallelism(maxParallelism)
@@ -1448,10 +1447,10 @@ object BuildNodeConfiguration extends Loggable {
   def recFailNodes(failed: Set[NodeId], maybeSuccess: List[NodeConfiguration], failures: Set[String]): NodeConfigurations = {
     // filter all nodes whose parent is in failed
     val newFailed = maybeSuccess.collect {
-      case cfg if (failed.contains(cfg.nodeInfo.policyServerId)) =>
+      case cfg if (failed.contains(cfg.nodeInfo.rudderSettings.policyServerId)) =>
         (
           cfg.nodeInfo.id,
-          s"Can not configure '${cfg.nodeInfo.policyServerId.value}' children node because '${cfg.nodeInfo.policyServerId.value}' is a policy server whose configuration is in error"
+          s"Can not configure '${cfg.nodeInfo.rudderSettings.policyServerId.value}' children node because '${cfg.nodeInfo.rudderSettings.policyServerId.value}' is a policy server whose configuration is in error"
         )
     }.toMap
 
@@ -1596,7 +1595,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
       rootNodeId:       NodeId,
       updated:          Map[NodeId, NodeConfigId],
       allNodeConfigs:   Map[NodeId, NodeConfiguration],
-      nodeInfos:        Map[NodeId, NodeInfo],
+      nodeInfos:        Map[NodeId, CoreNodeFact],
       globalPolicyMode: GlobalPolicyMode,
       generationTime:   DateTime,
       maxParallelism:   Int
@@ -1717,7 +1716,7 @@ object RuleExpectedReportBuilder extends Loggable {
             DirectiveExpectedReports(
               pvar.policyId.directiveId,
               pvar.policyMode,
-              policy.technique.isSystem,
+              policy.technique.policyTypes,
               componentsFromVariables(policy.technique, policy.id.directiveId, pvar)
             )
           }
@@ -2002,12 +2001,12 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
     }
   }
 
-  def getSortedNodeIds(updatedNodeConfigsInfo: Map[NodeId, NodeInfo]): SortedNodeIds = {
+  def getSortedNodeIds(updatedNodeConfigsInfo: Map[NodeId, CoreNodeFact]): SortedNodeIds = {
     val (policyServers, simpleNodes) = {
-      val (a, b) = updatedNodeConfigsInfo.values.toSeq.partition(_.isPolicyServer)
+      val (a, b) = updatedNodeConfigsInfo.values.toSeq.partition(_.rudderSettings.isPolicyServer)
       (
         // policy servers are sorted by their proximity with root, root first
-        a.sortBy(x => NodePriority(x.id, x.isPolicyServer, x.policyServerId))
+        a.sortBy(x => NodePriority(x.id, x.rudderSettings.isPolicyServer, x.rudderSettings.policyServerId))
           .map(_.id.value), // simple nodes are sorted alpha-num
 
         b.map(_.id.value).sorted
@@ -2064,7 +2063,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
   override def runPostHooks(
       generationTime:   DateTime,
       endTime:          DateTime,
-      updatedNodeInfos: Map[NodeId, NodeInfo],
+      updatedNodeInfos: Map[NodeId, CoreNodeFact],
       systemEnv:        HookEnvPairs,
       nodeIdsPath:      String
   ): Box[Unit] = {
@@ -2077,7 +2076,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
                            case (k, v) =>
                              (
                                k,
-                               NodePriority(v.id, v.isPolicyServer, v.policyServerId)
+                               NodePriority(v.id, v.rudderSettings.isPolicyServer, v.rudderSettings.policyServerId)
                              )
                          }.sortBy(_._2).map(_._1)
       defaultEnvParams = (("RUDDER_GENERATION_DATETIME", generationTime.toString())
@@ -2170,6 +2169,6 @@ trait PromiseGeneration_NodeCertificates extends PromiseGenerationService {
   def writeNodeCertificatesPem:   WriteNodeCertificatesPem
 
   override def writeCertificatesPem(nodeFacts: MapView[NodeId, CoreNodeFact]): Unit = {
-    writeNodeCertificatesPem.writeCerticatesAsync(allNodeCertificatesPemFile, nodeFacts.mapValues(_.toNodeInfo).toMap)
+    writeNodeCertificatesPem.writeCerticatesAsync(allNodeCertificatesPemFile, nodeFacts.toMap)
   }
 }

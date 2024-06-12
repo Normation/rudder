@@ -345,7 +345,7 @@ class RemoveNodeServiceImpl(
         nodeInfos <- recGetParent(node)
         paths     <-
           pathComputer
-            .computeBaseNodePath(node.id, Constants.ROOT_POLICY_SERVER_ID, nodeInfos.map { case (id, n) => (id, n.toNodeInfo) })
+            .computeBaseNodePath(node.id, Constants.ROOT_POLICY_SERVER_ID, nodeInfos.map { case (id, n) => (id, n) })
             .toIO
       } yield {
         paths

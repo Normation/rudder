@@ -602,7 +602,12 @@ class LDAPEntityMapper(
         id                   <- e.required(A_ACTIVE_TECHNIQUE_UUID)
         refTechniqueUuid     <- e.required(A_TECHNIQUE_UUID).map(x => TechniqueName(x))
         isEnabled             = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
-        isSystem              = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
+        policyTypes           = e(A_POLICY_TYPES) match {
+                                  case Some(json) => json.fromJson[PolicyTypes].getOrElse(PolicyTypes.rudderBase)
+                                  case None       =>
+                                    if (e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)) PolicyTypes.rudderSystem
+                                    else PolicyTypes.rudderBase
+                                }
         acceptationDatetimes <- e(A_ACCEPTATION_DATETIME) match {
                                   case Some(v) =>
                                     unserializeAcceptations(v).leftMap(e =>
@@ -611,7 +616,7 @@ class LDAPEntityMapper(
                                   case None    => Right(Map.empty[TechniqueVersion, DateTime])
                                 }
       } yield {
-        ActiveTechnique(ActiveTechniqueId(id), refTechniqueUuid, acceptationDatetimes, Nil, isEnabled, isSystem)
+        ActiveTechnique(ActiveTechniqueId(id), refTechniqueUuid, acceptationDatetimes, Nil, isEnabled, policyTypes)
       }
     } else {
       Left(
@@ -629,7 +634,7 @@ class LDAPEntityMapper(
       activeTechnique.techniqueName,
       serializeAcceptations(activeTechnique.acceptationDatetimes),
       activeTechnique.isEnabled,
-      activeTechnique.isSystem
+      activeTechnique.policyTypes
     )
     entry
   }

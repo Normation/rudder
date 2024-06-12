@@ -45,6 +45,8 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
+import com.normation.rudder.domain.policies.PolicyTypeName
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.*
@@ -125,7 +127,7 @@ class ExecutionBatchTest extends Specification {
               DirectiveExpectedReports(
                 directiveId,
                 policyMode = None,
-                isSystem = false,
+                PolicyTypes.rudderBase,
                 components = components
                   .map(componentName =>
                     ValueExpectedReport(componentName, ExpectedValueMatch(componentName, componentName) :: Nil)
@@ -391,7 +393,7 @@ class ExecutionBatchTest extends Specification {
         DirectiveExpectedReports(
           "policy",
           None,
-          isSystem = false,
+          PolicyTypes.rudderBase,
           components = List(
             new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil)
           )
@@ -1381,8 +1383,14 @@ class ExecutionBatchTest extends Specification {
       ) :: Nil,
       None
     )
-    val directiveExpectedReports =
-      DirectiveExpectedReports(DirectiveId(DirectiveUid("policy")), None, isSystem = false, components = expectedComponent :: Nil)
+    val directiveExpectedReports = {
+      DirectiveExpectedReports(
+        DirectiveId(DirectiveUid("policy")),
+        None,
+        PolicyTypes.rudderBase,
+        components = expectedComponent :: Nil
+      )
+    }
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
     val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
 
@@ -1395,7 +1403,7 @@ class ExecutionBatchTest extends Specification {
         strictUnexpectedInterpretation,
         new ComputeComplianceTimer()
       )
-      .directives("policy")
+      .collect { case r => r.directives("policy") }
     val withBad  = ExecutionBatch
       .getComplianceForRule(
         mergeInfo,
@@ -1405,23 +1413,24 @@ class ExecutionBatchTest extends Specification {
         strictUnexpectedInterpretation,
         new ComputeComplianceTimer()
       )
-      .directives("policy")
+      .collect { case r => r.directives("policy") }
 
     "return a success block " in {
-      withGood.compliance === ComplianceLevel(success = 1, repaired = 3)
+      (withGood.size === 1) and
+      (withGood.head.compliance === ComplianceLevel(success = 1, repaired = 3))
     }
     "return one root component with 4 key values " in {
-      withGood.components.filter(_.componentName == "blockRoot").head.componentValues.size === 4
+      withGood.head.components.filter(_.componentName == "blockRoot").head.componentValues.size === 4
     }
     "return 3 component with the key values b1c1,b1c2,b2c2 which is repaired " in {
-      val block1 = withGood.components
+      val block1 = withGood.head.components
         .filter(_.componentName == "blockRoot")
         .head
         .asInstanceOf[BlockStatusReport]
         .subComponents
         .find(_.componentName == "block1")
         .get
-      val block2 = withGood.components
+      val block2 = withGood.head.components
         .filter(_.componentName == "blockRoot")
         .head
         .asInstanceOf[BlockStatusReport]
@@ -1437,7 +1446,7 @@ class ExecutionBatchTest extends Specification {
       (block2.componentValues("b2c2").head.messages.head.reportType === EnforceRepaired)
     }
     "return a component with the key values b2c1 which is a success " in {
-      val block2 = withGood.components
+      val block2 = withGood.head.components
         .filter(_.componentName == "blockRoot")
         .head
         .asInstanceOf[BlockStatusReport]
@@ -1449,7 +1458,8 @@ class ExecutionBatchTest extends Specification {
     }
 
     "only one reports in plus, mark the whole key unexpected" in {
-      withBad.compliance === ComplianceLevel(success = 1, unexpected = 2, repaired = 2)
+      (withBad.size === 1) and
+      (withBad.head.compliance === ComplianceLevel(success = 1, unexpected = 2, repaired = 2))
     }
 
   }
@@ -1557,7 +1567,7 @@ class ExecutionBatchTest extends Specification {
       DirectiveExpectedReports(
         DirectiveId(DirectiveUid("policy")),
         policyMode = None,
-        isSystem = false,
+        PolicyTypes.rudderBase,
         components = expectedComponent :: Nil
       )
     }
@@ -1573,16 +1583,17 @@ class ExecutionBatchTest extends Specification {
         UnexpectedReportInterpretation(Set(UnboundVarValues)),
         new ComputeComplianceTimer()
       )
-      .directives("policy")
+      .collect { case r => r.directives("policy") }
 
     "return one too many repaired because it is match two time " in {
-      withLoop.compliance === ComplianceLevel(success = 4, repaired = 3)
+      (withLoop.size === 1) and
+      (withLoop.head.compliance === ComplianceLevel(success = 4, repaired = 3))
     }
     "return one root component with 4 key values " in {
-      withLoop.components.filter(_.componentName == "blockRoot").head.componentValues.size === 4
+      withLoop.head.components.filter(_.componentName == "blockRoot").head.componentValues.size === 4
     }
     "return 1 loop component with the key values loopX which is success, and one too many time because we don't count correctly" in {
-      val block2 = withLoop.components
+      val block2 = withLoop.head.components
         .filter(_.componentName == "blockRoot")
         .head
         .asInstanceOf[BlockStatusReport]
@@ -1702,7 +1713,7 @@ class ExecutionBatchTest extends Specification {
       DirectiveExpectedReports(
         DirectiveId(DirectiveUid("policy")),
         policyMode = None,
-        isSystem = false,
+        PolicyTypes.rudderBase,
         components = expectedComponent :: Nil
       )
     }
@@ -1718,16 +1729,17 @@ class ExecutionBatchTest extends Specification {
         UnexpectedReportInterpretation(Set(UnboundVarValues)),
         new ComputeComplianceTimer()
       )
-      .directives("policy")
+      .collect { case r => r.directives("policy") }
 
     "return the correct number of repaired" in {
-      withLoop.compliance === ComplianceLevel(success = 3, repaired = 3)
+      (withLoop.size === 1) and
+      (withLoop.head.compliance === ComplianceLevel(success = 3, repaired = 3))
     }
 
     "correctly split apart component with same name & diff reportId, and merge other case of same component name" in {
       // note that in 7.X branches, we don't use reportId yet - see https://issues.rudder.io/issues/23084
 
-      val root = withLoop.components
+      val root = withLoop.head.components
         .filter(_.componentName == "blockRoot")
         .head
         .asInstanceOf[BlockStatusReport]
@@ -1773,7 +1785,7 @@ class ExecutionBatchTest extends Specification {
     }
 
     "correctly find the status for a given multi-reports component" in {
-      val s = withLoop.getByReportId("report_id_b2c1").filter(_.componentValue == "keyvalue").map(_.status)
+      val s = withLoop.head.getByReportId("report_id_b2c1").filter(_.componentValue == "keyvalue").map(_.status)
 
       (s.size === 1) and
       (s.head === EnforceRepaired)
@@ -1915,8 +1927,14 @@ class ExecutionBatchTest extends Specification {
       ) :: Nil,
       None
     )
-    val directiveExpectedReports =
-      DirectiveExpectedReports(DirectiveId(DirectiveUid("policy")), None, isSystem = false, components = expectedComponent :: Nil)
+    val directiveExpectedReports = {
+      DirectiveExpectedReports(
+        DirectiveId(DirectiveUid("policy")),
+        None,
+        PolicyTypes.rudderBase,
+        components = expectedComponent :: Nil
+      )
+    }
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
     val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
 
@@ -1929,8 +1947,9 @@ class ExecutionBatchTest extends Specification {
         strictUnexpectedInterpretation,
         new ComputeComplianceTimer()
       )
-      .directives("policy")
-    val withBad  = ExecutionBatch
+      .collect { case r => r.directives("policy") }
+
+    val withBad = ExecutionBatch
       .getComplianceForRule(
         mergeInfo,
         badReports,
@@ -1939,23 +1958,24 @@ class ExecutionBatchTest extends Specification {
         strictUnexpectedInterpretation,
         new ComputeComplianceTimer()
       )
-      .directives("policy")
+      .collect { case r => r.directives("policy") }
 
     "return a success block " in {
-      withGood.compliance === ComplianceLevel(success = 1)
+      (withGood.size === 1) and
+      (withGood.head.compliance === ComplianceLevel(success = 1))
     }
     "return one root component with 4 key values " in {
-      withGood.components.filter(_.componentName == "blockRoot").head.componentValues.size === 4
+      withGood.head.components.filter(_.componentName == "blockRoot").head.componentValues.size === 4
     }
     "return 3 component with the key values b1c1,b1c2,b2c2 which is repaired " in {
-      val block1 = withGood.components
+      val block1 = withGood.head.components
         .filter(_.componentName == "blockRoot")
         .head
         .asInstanceOf[BlockStatusReport]
         .subComponents
         .find(_.componentName == "block1")
         .get
-      val block2 = withGood.components
+      val block2 = withGood.head.components
         .filter(_.componentName == "blockRoot")
         .head
         .asInstanceOf[BlockStatusReport]
@@ -1971,7 +1991,7 @@ class ExecutionBatchTest extends Specification {
       (block2.componentValues("b2c2").head.messages.head.reportType === EnforceRepaired)
     }
     "return a component with the key values b2c1 which is a success " in {
-      val block2 = withGood.components
+      val block2 = withGood.head.components
         .filter(_.componentName == "blockRoot")
         .head
         .asInstanceOf[BlockStatusReport]
@@ -1983,7 +2003,8 @@ class ExecutionBatchTest extends Specification {
     }
 
     "Ignore the unexpected reports from components that are not within the focus" in {
-      withBad.compliance === ComplianceLevel(success = 1)
+      (withBad.size === 1) and
+      (withBad.head.compliance === ComplianceLevel(success = 1))
     }
 
   }
@@ -2123,8 +2144,14 @@ class ExecutionBatchTest extends Specification {
       ) :: Nil,
       None
     )
-    val directiveExpectedReports =
-      DirectiveExpectedReports(DirectiveId(DirectiveUid("policy")), None, isSystem = false, components = expectedComponent :: Nil)
+    val directiveExpectedReports = {
+      DirectiveExpectedReports(
+        DirectiveId(DirectiveUid("policy")),
+        None,
+        PolicyTypes.rudderBase,
+        components = expectedComponent :: Nil
+      )
+    }
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
     val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
 
@@ -2137,8 +2164,9 @@ class ExecutionBatchTest extends Specification {
         strictUnexpectedInterpretation,
         new ComputeComplianceTimer()
       )
-      .directives("policy")
-    val withBad  = ExecutionBatch
+      .collect { case r => r.directives("policy") }
+
+    val withBad = ExecutionBatch
       .getComplianceForRule(
         mergeInfo,
         badReports,
@@ -2147,23 +2175,24 @@ class ExecutionBatchTest extends Specification {
         strictUnexpectedInterpretation,
         new ComputeComplianceTimer()
       )
-      .directives("policy")
+      .collect { case r => r.directives("policy") }
 
     "return a repaired block " in {
-      withGood.compliance === ComplianceLevel(repaired = 4)
+      (withGood.size === 1) and
+      (withGood.head.compliance === ComplianceLevel(repaired = 4))
     }
     "return one root component with 4 key values " in {
-      withGood.components.filter(_.componentName == "blockRoot").head.componentValues.size === 4
+      withGood.head.components.filter(_.componentName == "blockRoot").head.componentValues.size === 4
     }
     "return 3 component with the key values b1c1,b1c2,b2c2 which is repaired " in {
-      val block1 = withGood.components
+      val block1 = withGood.head.components
         .filter(_.componentName == "blockRoot")
         .head
         .asInstanceOf[BlockStatusReport]
         .subComponents
         .find(_.componentName == "block1")
         .get
-      val block2 = withGood.components
+      val block2 = withGood.head.components
         .filter(_.componentName == "blockRoot")
         .head
         .asInstanceOf[BlockStatusReport]
@@ -2179,7 +2208,7 @@ class ExecutionBatchTest extends Specification {
       (block2.componentValues("b2c2").head.messages.head.reportType === EnforceRepaired)
     }
     "return a component with the key values b2c1 which is a success " in {
-      val block2 = withGood.components
+      val block2 = withGood.head.components
         .filter(_.componentName == "blockRoot")
         .head
         .asInstanceOf[BlockStatusReport]
@@ -2191,7 +2220,8 @@ class ExecutionBatchTest extends Specification {
     }
 
     "Return an unexpected Block" in {
-      withBad.compliance === ComplianceLevel(unexpected = 5)
+      (withBad.size === 1) and
+      (withBad.head.compliance === ComplianceLevel(unexpected = 5))
     }
 
   }
@@ -2787,7 +2817,7 @@ class ExecutionBatchTest extends Specification {
     val d1 = DirectiveExpectedReports(
       "d1",
       None,
-      isSystem = false,
+      PolicyTypes.rudderBase,
       components = List(
         ValueExpectedReport("Package", List(ExpectedValueMatch("vim", "vim"))),
         ValueExpectedReport("Post-modification script", List(ExpectedValueMatch("vim", "vim")))
@@ -2796,7 +2826,7 @@ class ExecutionBatchTest extends Specification {
     val d2 = DirectiveExpectedReports(
       directiveId = "d2",
       policyMode = None,
-      isSystem = false,
+      PolicyTypes.rudderBase,
       components = List(
         BlockExpectedReport(
           "block1",
@@ -2824,7 +2854,8 @@ class ExecutionBatchTest extends Specification {
       new ComputeComplianceTimer()
     )
 
-    result.compliance === ComplianceLevel(success = 2, repaired = 1, notApplicable = 1, missing = 2)
+    (result.size === 1) and
+    (result.head.compliance === ComplianceLevel(success = 2, repaired = 1, notApplicable = 1, missing = 2))
 
   }
 
@@ -3378,7 +3409,7 @@ class ExecutionBatchTest extends Specification {
           DirectiveExpectedReports(
             directiveId = "policy",
             policyMode = None,
-            isSystem = false,
+            PolicyTypes.rudderBase,
             components = List(
               new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil)
             ) // here, we automatically must have "value" infered as unexpanded var
@@ -3411,11 +3442,12 @@ class ExecutionBatchTest extends Specification {
     }
 
     "have one detailed rule success directive when we create it with one success report" in {
-      nodeStatus(one).reports.head.directives.head._1.serialize === "policy"
+      (nodeStatus(one).reports.size === 1) and
+      (nodeStatus(one).reports.head._2.directives.head._1.serialize === "policy")
     }
 
     "have no detailed rule non-success directive when we create it with one success report" in {
-      AggregatedStatusReport(nodeStatus(one).reports).compliance === ComplianceLevel(success = 1)
+      nodeStatus(one).reports.head._2.compliance === ComplianceLevel(success = 1)
     }
   }
 
@@ -3429,7 +3461,7 @@ class ExecutionBatchTest extends Specification {
           DirectiveExpectedReports(
             directiveId = "policy",
             policyMode = None,
-            isSystem = false,
+            PolicyTypes.rudderBase,
             components = List(new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil))
           )
         )
@@ -3457,7 +3489,9 @@ class ExecutionBatchTest extends Specification {
 
     "have a pending node when we create it with one wrong success report right now" in {
       (nodeStatus.keySet.head === one) and
-      AggregatedStatusReport(nodeStatus.values.flatMap(_.reports).toSet).compliance === ComplianceLevel(missing = 1)
+      AggregatedStatusReport(nodeStatus.values.flatMap(_.reports.values.flatMap(_.reports)).toSet).compliance === ComplianceLevel(
+        missing = 1
+      )
     }
   }
 
@@ -3472,7 +3506,7 @@ class ExecutionBatchTest extends Specification {
           DirectiveExpectedReports(
             directiveId = "policy",
             policyMode = None,
-            isSystem = false,
+            PolicyTypes.rudderBase,
             components = List(new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil))
           )
         )
@@ -3510,7 +3544,9 @@ class ExecutionBatchTest extends Specification {
 
     "have one unexpected node when we create it with one success report" in {
       nodeStatus.head._1 === one and
-      AggregatedStatusReport(nodeStatus.values.flatMap(_.reports).toSet).compliance === ComplianceLevel(unexpected = 2)
+      AggregatedStatusReport(nodeStatus.values.flatMap(_.reports.values.flatMap(_.reports)).toSet).compliance === ComplianceLevel(
+        unexpected = 2
+      )
     }
   }
 
@@ -3525,7 +3561,7 @@ class ExecutionBatchTest extends Specification {
           DirectiveExpectedReports(
             directiveId = "policy",
             policyMode = None,
-            isSystem = false,
+            PolicyTypes.rudderBase,
             components = List(new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil))
           )
         )
@@ -3551,7 +3587,10 @@ class ExecutionBatchTest extends Specification {
     }
 
     "have one success, and one pending node, in the component detail of the rule" in {
-      AggregatedStatusReport(nodeStatus.values.flatMap(_.reports).toSet).compliance === ComplianceLevel(success = 1, missing = 1)
+      AggregatedStatusReport(nodeStatus.values.flatMap(_.reports.values.flatMap(_.reports)).toSet).compliance === ComplianceLevel(
+        success = 1,
+        missing = 1
+      )
     }
   }
 
@@ -3565,7 +3604,7 @@ class ExecutionBatchTest extends Specification {
           DirectiveExpectedReports(
             directiveId = "policy",
             policyMode = None,
-            isSystem = false,
+            PolicyTypes.rudderBase,
             components = List(new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil))
           )
         )
@@ -3601,7 +3640,10 @@ class ExecutionBatchTest extends Specification {
       nodeStatus.size === 3
     }
     "have one detailed rule report with a 67% compliance" in {
-      AggregatedStatusReport(nodeStatus.values.flatMap(_.reports).toSet).compliance === ComplianceLevel(success = 2, missing = 1)
+      AggregatedStatusReport(nodeStatus.values.flatMap(_.reports.values.flatMap(_.reports)).toSet).compliance === ComplianceLevel(
+        success = 2,
+        missing = 1
+      )
     }
   }
 
@@ -3615,7 +3657,7 @@ class ExecutionBatchTest extends Specification {
           DirectiveExpectedReports(
             directiveId = "policy",
             policyMode = None,
-            isSystem = false,
+            PolicyTypes.rudderBase,
             components = List(
               new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil),
               new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
@@ -3624,7 +3666,7 @@ class ExecutionBatchTest extends Specification {
           DirectiveExpectedReports(
             directiveId = "policy2",
             policyMode = None,
-            isSystem = false,
+            PolicyTypes.rudderBase,
             components = List(
               new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil),
               new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
@@ -3713,7 +3755,7 @@ class ExecutionBatchTest extends Specification {
       )
     )
     val nodeStatus = getNodeStatusByRule(param)
-    val aggregated = AggregatedStatusReport(nodeStatus.values.flatMap(_.reports).toSet)
+    val aggregated = AggregatedStatusReport(nodeStatus.values.flatMap(_.reports.values.flatMap(_.reports)).toSet)
 
     "have two detailed node rule report" in {
       nodeStatus.size === 3
@@ -3736,7 +3778,7 @@ class ExecutionBatchTest extends Specification {
           DirectiveExpectedReports(
             directiveId = "policy",
             policyMode = None,
-            isSystem = false,
+            PolicyTypes.rudderBase,
             components = List(
               new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil),
               new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
@@ -3745,7 +3787,7 @@ class ExecutionBatchTest extends Specification {
           DirectiveExpectedReports(
             directiveId = "policy2",
             policyMode = None,
-            isSystem = false,
+            PolicyTypes.rudderBase,
             components = List(
               new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil),
               new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
@@ -3845,7 +3887,7 @@ class ExecutionBatchTest extends Specification {
       )
     )
     val nodeStatus = getNodeStatusByRule(param)
-    val aggregated = AggregatedStatusReport(nodeStatus.values.flatMap(_.reports).toSet)
+    val aggregated = AggregatedStatusReport(nodeStatus.values.flatMap(_.reports.values.flatMap(_.reports)).toSet)
 
     "have 3 detailed node rule report" in {
       nodeStatus.size === 3
@@ -3889,7 +3931,7 @@ class ExecutionBatchTest extends Specification {
           DirectiveExpectedReports(
             directiveId = "policy",
             policyMode = None,
-            isSystem = false,
+            PolicyTypes.rudderBase,
             components = List(
               new ValueExpectedReport(
                 "component",
@@ -3973,7 +4015,7 @@ class ExecutionBatchTest extends Specification {
       )
     )
     val nodeStatus = getNodeStatusByRule(param)
-    val aggregated = AggregatedStatusReport(nodeStatus.values.flatMap(_.reports).toSet)
+    val aggregated = AggregatedStatusReport(nodeStatus.values.flatMap(_.reports.values.flatMap(_.reports)).toSet)
 
     "have 3 detailed node rule report" in {
       nodeStatus.size === 3
@@ -4027,7 +4069,7 @@ class ExecutionBatchTest extends Specification {
           DirectiveExpectedReports(
             directiveId = "policy",
             policyMode = None,
-            isSystem = false,
+            PolicyTypes.rudderBase,
             components = List(
               ValueExpectedReport("component", ExpectedValueMatch(("""some\"text"""), ("""some\text""")) :: Nil)
             )
@@ -4056,7 +4098,7 @@ class ExecutionBatchTest extends Specification {
 
     "have one detailed success node when we create it with one success report" in {
       nodeStatus.keySet.head === one and
-      nodeStatus.head._2.reports.head.compliance.computePercent().success === 100
+      nodeStatus.head._2.reports.head._2.compliance.computePercent().success === 100
     }
 
   }
@@ -4072,7 +4114,7 @@ class ExecutionBatchTest extends Specification {
           DirectiveExpectedReports(
             directiveId = "policy",
             policyMode = None,
-            isSystem = false,
+            PolicyTypes.rudderBase,
             components = List(
               ValueExpectedReport(
                 "component",
@@ -4105,7 +4147,7 @@ class ExecutionBatchTest extends Specification {
 
     "have one detailed success node when we create it with one success report" in {
       nodeStatus.keySet.head === NodeId("nodeId") and
-      nodeStatus.head._2.reports.head.compliance.computePercent().success === 100
+      nodeStatus.head._2.reports.head._2.compliance.computePercent().success === 100
     }
   }
 
@@ -4119,7 +4161,7 @@ class ExecutionBatchTest extends Specification {
           DirectiveExpectedReports(
             directiveId = "policy",
             policyMode = None,
-            isSystem = false,
+            PolicyTypes.rudderBase,
             components = List(
               ValueExpectedReport(
                 "component",
@@ -4151,7 +4193,7 @@ class ExecutionBatchTest extends Specification {
 
     "have one detailed success node when we create it with one success report" in {
       nodeStatus.keySet.head === NodeId("nodeId") and
-      nodeStatus.head._2.reports.head.compliance.computePercent().success === 100
+      nodeStatus.head._2.reports.head._2.compliance.computePercent().success === 100
     }
   }
 
@@ -4243,4 +4285,103 @@ class ExecutionBatchTest extends Specification {
       (t1 - t0) must be lessThan (50000) // On my Dell XPS15, this test runs in 7500-8500 ms
     }
   }
+
+  "We can split directive by policy type" should {
+    val tag1  = PolicyTypeName("tag1")
+    val tag2  = PolicyTypeName("tag2")
+    val param = (
+      buildExpected(
+        List("one"),
+        "rule",
+        12,
+        List(
+          DirectiveExpectedReports(
+            directiveId = "policy1",
+            policyMode = None,
+            PolicyTypes.fromTypes(tag1),
+            components = List(
+              new ValueExpectedReport("component1", ExpectedValueMatch("value", "value") :: Nil),
+              new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
+            )
+          ),
+          DirectiveExpectedReports(
+            directiveId = "policy2",
+            policyMode = None,
+            PolicyTypes.fromTypes(tag1, tag2),
+            components = List(
+              new ValueExpectedReport("component1", ExpectedValueMatch("value", "value") :: Nil),
+              new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
+            )
+          )
+        )
+      ),
+      Seq[Reports](
+        new ResultErrorReport(
+          DateTime.now(),
+          "rule",
+          "policy1",
+          "one",
+          "report_id12",
+          "component1",
+          "value",
+          DateTime.now(),
+          "message"
+        ),
+        new ResultSuccessReport(
+          DateTime.now(),
+          "rule",
+          "policy1",
+          "one",
+          "report_id12",
+          "component2",
+          "value",
+          DateTime.now(),
+          "message"
+        ),
+        new ResultSuccessReport(
+          DateTime.now(),
+          "rule",
+          "policy2",
+          "one",
+          "report_id12",
+          "component1",
+          "value",
+          DateTime.now(),
+          "message"
+        ),
+        new ResultSuccessReport(
+          DateTime.now(),
+          "rule",
+          "policy2",
+          "one",
+          "report_id12",
+          "component2",
+          "value",
+          DateTime.now(),
+          "message"
+        )
+      )
+    )
+
+    // we have only 1 node ("one")
+    val nodeStatus = getNodeStatusByRule(param).head._2
+
+    "There two policy type in the report" in {
+      nodeStatus.reports.size === 2
+    }
+    "have detailed rule report for policy1 of 50% and 100% for policy2 on tag1" in {
+      nodeStatus.reports(tag1).directives("policy1").compliance === ComplianceLevel(success = 1, error = 1) and
+      nodeStatus.reports(tag1).directives("policy2").compliance === ComplianceLevel(success = 2)
+    }
+    "have detailed rule report for policy1 of 100% for policy2 on tag2 and policy is not on that tag" in {
+      nodeStatus.reports(tag2).directives.get("policy1") must beEmpty and
+      nodeStatus.reports(tag2).directives("policy2").compliance === ComplianceLevel(success = 2)
+    }
+
+    "have compliance of 75% for tag1 and 100% for tag2" in {
+      nodeStatus.reports(tag1).compliance === ComplianceLevel(success = 3, error = 1) and
+      nodeStatus.reports(tag2).compliance === ComplianceLevel(success = 2)
+    }
+  }
+
 }

@@ -41,6 +41,7 @@ import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.NodeStatusReport
@@ -74,7 +75,7 @@ trait ReportingService {
    * Optionally restrict the set to some rules if filterByRules is non empty (else,
    * find node status reports for all rules)
    */
-  def findRuleNodeCompliance(nodeIds: Set[NodeId], filterByRules: Set[RuleId])(implicit
+  def findRuleNodeCompliance(nodeIds: Set[NodeId], tag: PolicyTypeName, filterByRules: Set[RuleId])(implicit
       qc: QueryContext
   ): IOResult[Map[NodeId, ComplianceLevel]]
 
@@ -177,7 +178,7 @@ trait ReportingService {
       }.toMap
   }
 
-  def complianceByRules(report: NodeStatusReport, ruleIds: Set[RuleId]): ComplianceLevel = {
+  def complianceByRules(report: NodeStatusReport, tag: PolicyTypeName, ruleIds: Set[RuleId]): ComplianceLevel = {
     if (ruleIds.isEmpty) {
       report.compliance
     } else {
@@ -185,26 +186,8 @@ trait ReportingService {
       // BE CAREFUL: reports is a SET - and it's likely that
       // some compliance will be equals. So change to seq.
       ComplianceLevel.sum(report.reports.toSeq.collect {
-        case report_ if (ruleIds.contains(report_.ruleId)) =>
-          report_.compliance
-      })
-    }
-  }
-
-  def complianceByRulesByDirectives(
-      report:       NodeStatusReport,
-      ruleIds:      Set[RuleId],
-      directiveIds: Set[DirectiveId]
-  ): ComplianceLevel = {
-    if (ruleIds.isEmpty) {
-      report.compliance
-    } else {
-      // compute compliance only for the selected rules
-      // BE CAREFUL: reports is a SET - and it's likely that
-      // some compliance will be equals. So change to seq.
-      ComplianceLevel.sum(report.reports.toSeq.collect {
-        case report_ if (ruleIds.contains(report_.ruleId)) =>
-          report_.compliance
+        case (t, r) if (t == tag) =>
+          r.filterByRules(ruleIds).compliance
       })
     }
   }

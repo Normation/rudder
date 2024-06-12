@@ -209,7 +209,7 @@ class ImportTechniqueLibraryImpl(
 
       def sanitizeUPT(uptContent: ActiveTechniqueContent): Option[ActiveTechniqueContent] = {
         val activeTechnique = uptContent.activeTechnique
-        if (activeTechnique.isSystem && includeSystem == false) None
+        if (activeTechnique.policyTypes.isSystem && includeSystem == false) None
         else if (uactiveTechniqueIds.contains(activeTechnique.id)) {
           logEffect.error("Ignoring Active Technique because is ID was already processed: " + activeTechnique)
           None

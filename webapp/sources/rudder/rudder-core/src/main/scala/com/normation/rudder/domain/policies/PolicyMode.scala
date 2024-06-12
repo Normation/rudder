@@ -125,9 +125,10 @@ object PolicyMode extends Enum[PolicyMode] {
       globalValue:   GlobalPolicyMode,
       nodeMode:      Option[PolicyMode],
       directiveMode: Option[PolicyMode],
-      isSystem:      Boolean
+      policyTypes:   PolicyTypes
   ): PolicyMode = {
-    if (isSystem) Enforce
+    // used to be isSystem. Now, we could be more specific. Here, it means "only system does not respect policy mode"
+    if (policyTypes.isSystem) Enforce
     else {
       globalValue.overridable match {
         case PolicyModeOverrides.Always =>

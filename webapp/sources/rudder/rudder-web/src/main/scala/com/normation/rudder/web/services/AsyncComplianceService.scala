@@ -40,6 +40,7 @@ package com.normation.rudder.web.services
 import com.normation.box.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.*
@@ -131,7 +132,7 @@ class AsyncComplianceService(
     // Compute compliance
     def computeCompliance()(implicit qc: QueryContext): Box[Map[NodeId, Option[ComplianceLevel]]] = {
       for {
-        compliance <- reportingService.findRuleNodeCompliance(nodeIds, ruleIds).toBox
+        compliance <- reportingService.findRuleNodeCompliance(nodeIds, PolicyTypeName.rudderSystem, ruleIds).toBox
       } yield {
         val found      = compliance.map { case (id, comp) => (id, toComplianceWithMissing(comp)) }
         // add missing elements with "None" compliance, see #7281, #8030, #8141, #11842
@@ -153,7 +154,7 @@ class AsyncComplianceService(
     // Compute compliance
     def computeCompliance()(implicit qc: QueryContext): Box[Map[NodeId, Option[ComplianceLevel]]] = {
       for {
-        compliance <- reportingService.findRuleNodeCompliance(nodeIds, ruleIds).toBox
+        compliance <- reportingService.findRuleNodeCompliance(nodeIds, PolicyTypeName.rudderBase, ruleIds).toBox
       } yield {
         val found = compliance.map { case (id, comp) => (id, toComplianceWithMissing(comp)) }
 
@@ -179,7 +180,7 @@ class AsyncComplianceService(
         reports <- reportingService.findRuleNodeStatusReports(nodeIds, ruleIds)
       } yield {
         // flatMap on a Set is OK, since reports are different for different nodeIds
-        val found      = reports.flatMap(_._2.reports).groupBy(_.ruleId).map {
+        val found      = reports.flatMap(_._2.reports).map(_._2.reports).flatten.groupBy(_.ruleId).map {
           case (ruleId, reports) =>
             toCompliance(ruleId, reports)
         }

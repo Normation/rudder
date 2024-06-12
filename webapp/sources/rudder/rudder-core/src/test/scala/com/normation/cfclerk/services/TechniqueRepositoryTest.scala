@@ -51,6 +51,7 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveSaveDiff
 import com.normation.rudder.domain.policies.DirectiveUid
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -151,7 +152,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
         categoryId:    ActiveTechniqueCategoryId,
         techniqueName: TechniqueName,
         versions:      Seq[TechniqueVersion],
-        isSystem:      Boolean,
+        policyTypes:   PolicyTypes,
         modId:         ModificationId,
         actor:         EventActor,
         reason:        Option[String]

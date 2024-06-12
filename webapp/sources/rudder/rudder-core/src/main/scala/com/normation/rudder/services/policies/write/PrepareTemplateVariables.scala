@@ -129,12 +129,14 @@ class PrepareTemplateVariablesImpl(
     val nodeId = agentNodeConfig.config.nodeInfo.id
 
     // Computing policy mode of the node
-    val agentPolicyMode = PolicyMode.computeMode(globalPolicyMode, agentNodeConfig.config.nodeInfo.policyMode, Seq()) match {
-      case Left(r)      =>
-        PolicyGenerationLoggerPure.error(
-          s"Failed to compute policy mode for node ${agentNodeConfig.config.nodeInfo.node.id.value}, cause is ${r} - defaulting to enforce"
-        ); Enforce
-      case Right(value) => value
+    val agentPolicyMode = {
+      PolicyMode.computeMode(globalPolicyMode, agentNodeConfig.config.nodeInfo.rudderSettings.policyMode, Seq()) match {
+        case Left(r)      =>
+          PolicyGenerationLoggerPure.error(
+            s"Failed to compute policy mode for node ${agentNodeConfig.config.nodeInfo.id.value}, cause is ${r} - defaulting to enforce"
+          ); Enforce
+        case Right(value) => value
+      }
     }
 
     val systemVariables = agentNodeConfig.config.nodeContext ++ List(
@@ -154,8 +156,8 @@ class PrepareTemplateVariablesImpl(
     val agentNodeProps = AgentNodeProperties(
       nodeId,
       agentNodeConfig.agentType,
-      agentNodeConfig.config.nodeInfo.osDetails,
-      agentNodeConfig.config.nodeInfo.isPolicyServer
+      agentNodeConfig.config.nodeInfo.os,
+      agentNodeConfig.config.nodeInfo.rudderSettings.isPolicyServer
     )
 
     /*
@@ -173,21 +175,21 @@ class PrepareTemplateVariablesImpl(
               )
             })
           case Some(n) =>
-            n.nodeInfo.agentsName.headOption.map(_.securityToken) match {
-              case Some(cert: Certificate) =>
+            n.nodeInfo.rudderAgent.securityToken match {
+              case cert: Certificate =>
                 cert.key.succeed
-              case _                       =>
-                "".succeed.tap(_ => {
+              case _ =>
+                "".succeed.tap { _ =>
                   PolicyGenerationLoggerPure.error(
                     s"Policy server '${nodeId.value}' does not have a stored certificate: can not use it in policy generation"
                   )
-                })
+                }
             }
         }
       }
 
       val root         = getCertificate(Constants.ROOT_POLICY_SERVER_ID)
-      val policyServer = agentNodeConfig.config.nodeInfo.policyServerId match {
+      val policyServer = agentNodeConfig.config.nodeInfo.rudderSettings.policyServerId match {
         case Constants.ROOT_POLICY_SERVER_ID => None
         case id                              => Some(getCertificate(id))
       }
@@ -199,7 +201,7 @@ class PrepareTemplateVariablesImpl(
                                       t0           <- currentTimeMillis
                                       bundleVars   <- buildBundleSequence.prepareBundleVars(
                                                         agentNodeProps,
-                                                        agentNodeConfig.config.nodeInfo.policyMode,
+                                                        agentNodeConfig.config.nodeInfo.rudderSettings.policyMode,
                                                         globalPolicyMode,
                                                         agentNodeConfig.config.policies,
                                                         agentNodeConfig.config.runHooks

@@ -43,6 +43,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.FormTracker
@@ -157,7 +158,7 @@ class GiveReasonPopup(
                         ActiveTechniqueCategoryId(destCatId.value),
                         ptName,
                         techniqueRepository.getTechniqueVersions(ptName).toSeq,
-                        isSystem = false,
+                        policyTypes = PolicyTypes.rudderBase,
                         modId = ModificationId(uuidGen.newUuid),
                         actor = CurrentUser.actor,
                         reason = crReasons.map(_.get)

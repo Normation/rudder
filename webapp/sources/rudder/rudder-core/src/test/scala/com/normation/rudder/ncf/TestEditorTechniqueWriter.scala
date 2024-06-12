@@ -69,6 +69,7 @@ import com.normation.rudder.domain.policies.DirectiveSaveDiff
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.PolicyMode.Audit
 import com.normation.rudder.domain.policies.PolicyMode.Enforce
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.hooks.CmdResult
@@ -211,7 +212,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         categoryId:    ActiveTechniqueCategoryId,
         techniqueName: TechniqueName,
         versions:      Seq[TechniqueVersion],
-        isSystem:      Boolean,
+        policyTypes:   PolicyTypes,
         modId:         ModificationId,
         actor:         EventActor,
         reason:        Option[String]

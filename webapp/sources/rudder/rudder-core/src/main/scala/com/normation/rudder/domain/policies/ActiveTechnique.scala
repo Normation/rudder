@@ -62,10 +62,10 @@ final case class ActiveTechnique(
     techniqueName:        TechniqueName,
     acceptationDatetimes: Map[TechniqueVersion, DateTime], // TODO: remove directives ids, they DON'T have to be here.
 
-    directives: List[DirectiveUid] = Nil,
-    _isEnabled: Boolean = true,
-    isSystem:   Boolean = false
+    directives:  List[DirectiveUid] = Nil,
+    _isEnabled:  Boolean = true,
+    policyTypes: PolicyTypes = PolicyTypes.rudderBase
 ) {
   // system object must ALWAYS be ENABLED.
-  def isEnabled: Boolean = _isEnabled || isSystem
+  def isEnabled: Boolean = _isEnabled || policyTypes.isSystem
 }

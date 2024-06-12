@@ -44,6 +44,7 @@ import com.normation.cfclerk.domain.TechniqueVersionHelper
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.services.policies.NodeRunHook
@@ -94,7 +95,7 @@ class PrepareTemplateVariableTest extends Specification {
         pre = Nil,
         main = y :: Nil,
         post = Nil,
-        isSystem = false,
+        PolicyTypes.rudderBase,
         policyMode = PolicyMode.Enforce,
         enableMethodReporting = false
       )

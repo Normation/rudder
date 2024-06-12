@@ -47,6 +47,7 @@ import com.normation.rudder.services.nodes.EngineOption
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
 import com.normation.rudder.services.nodes.RudderPropertyEngine
 import com.normation.zio.*
+import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigValue
 import net.liftweb.common.Box
 import net.liftweb.common.Empty
@@ -125,8 +126,8 @@ class TestNodeAndGlobalParameterLookup extends Specification {
   val context: ParamInterpolationContext = ParamInterpolationContext(
     parameters = Map(),
     globalPolicyMode = defaultModesConfig.globalPolicyMode,
-    nodeInfo = node1,
-    policyServerInfo = root
+    nodeInfo = fact1,
+    policyServerInfo = factRoot
   )
 
   def toNodeContext(c: ParamInterpolationContext, params: Map[String, ConfigValue]): InterpolationContext = InterpolationContext(
@@ -760,11 +761,11 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       // map of server.param -> AST
       val accessors = List(
         comp("id", context.nodeInfo.id.value),
-        comp("hostname", context.nodeInfo.hostname),
-        comp("admin", context.nodeInfo.localAdministratorAccountName),
+        comp("hostname", context.nodeInfo.fqdn),
+        comp("admin", context.nodeInfo.rudderAgent.user),
         comp("policyserver.id", context.policyServerInfo.id.value),
-        comp("policyserver.hostname", context.policyServerInfo.hostname),
-        comp("policyserver.admin", context.policyServerInfo.localAdministratorAccountName)
+        comp("policyserver.hostname", context.policyServerInfo.fqdn),
+        comp("policyserver.admin", context.policyServerInfo.rudderAgent.user)
       )
 
       accessors must contain((x: (String, ParamInterpolationContext => IOResult[String], String)) => {
@@ -1149,17 +1150,19 @@ class TestNodeAndGlobalParameterLookup extends Specification {
     }
 
     "match when node properties are on multiline" in {
-      val v    = GenericProperty
+      val v = GenericProperty
         .parseValue("""{"Europe": "Paris"}""")
         .fold(
           err => throw new IllegalArgumentException("Error in test: " + err.fullMsg),
           identity
         )
-      val node = context.nodeInfo.node.copy(properties = List(NodeProperty("datacenter", v, None, None)))
-      val c    = context.copy(nodeInfo = context.nodeInfo.copy(node = node))
-      lookup(Seq(multilineNodePropVariable), c.copy(parameters = p(fooParam)))(values =>
-        values must containTheSameElementsAs(Seq(Seq("=\r= \nParis =\n=")))
-      )
+      val c = context
+        .modify(_.nodeInfo.properties)
+        .setTo(Chunk(NodeProperty("datacenter", v, None, None)))
+        .modify(_.parameters)
+        .setTo(p(fooParam))
+
+      lookup(Seq(multilineNodePropVariable), c)(values => values must containTheSameElementsAs(Seq(Seq("=\r= \nParis =\n="))))
     }
 
     "fails when the curly brace after ${rudder. is not closed" in {
@@ -1217,8 +1220,8 @@ class TestNodeAndGlobalParameterLookup extends Specification {
   "Node properties in directives" should {
 
     def compare(param: String, props: List[(String, String)]) = {
-      val i    = compileAndGet(param)
-      val p    = props.map {
+      val i = compileAndGet(param)
+      val p = props.map {
         case (k, value) =>
           val v = GenericProperty
             .parseValue(value)
@@ -1228,8 +1231,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
             )
           NodeProperty(k, v, None, None)
       }
-      val node = context.nodeInfo.node.copy(properties = p)
-      val c    = context.copy(nodeInfo = context.nodeInfo.copy(node = node))
+      val c = context.modify(_.nodeInfo.properties).setTo(Chunk.fromIterable(p))
 
       i(c).either.runNow
     }
@@ -1347,10 +1349,8 @@ class TestNodeAndGlobalParameterLookup extends Specification {
         )
 
       def compare(s1: String, s2: String) = {
-        val i     = compileAndGet(s"$${node.properties[${s1}]}")
-        val props = List(NodeProperty(s2, value, None, None))
-        val node  = context.nodeInfo.node.copy(properties = props)
-        val c     = context.copy(nodeInfo = context.nodeInfo.copy(node = node))
+        val i = compileAndGet(s"$${node.properties[${s1}]}")
+        val c = context.modify(_.nodeInfo.properties).setTo(Chunk(NodeProperty(s2, value, None, None)))
 
         i(c).either.runNow
       }

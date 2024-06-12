@@ -54,6 +54,7 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
@@ -143,7 +144,7 @@ class TestBuildNodeConfiguration extends Specification {
         techniques = SortedMap(data.commonTechnique.id.version -> data.commonTechnique),
         directives = List(data.commonDirective),
         isEnabled = true,
-        isSystem = true
+        policyTypes = PolicyTypes.rudderSystem
       ),
       FullActiveTechnique(
         ActiveTechniqueId("rpmPackageInstallation"),
@@ -152,7 +153,7 @@ class TestBuildNodeConfiguration extends Specification {
         techniques = SortedMap(data.rpmTechnique.id.version -> data.rpmTechnique),
         directives = directives.values.toList,
         isEnabled = true,
-        isSystem = true
+        policyTypes = PolicyTypes.rudderSystem
       )
     ),
     isSystem = true

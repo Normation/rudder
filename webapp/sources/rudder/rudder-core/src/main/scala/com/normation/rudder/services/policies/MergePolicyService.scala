@@ -44,9 +44,9 @@ import com.normation.cfclerk.domain.TechniqueGenerationMode
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.utils.Control.traverse
 import net.liftweb.common.*
 
@@ -109,14 +109,18 @@ object MergePolicyService {
    *
    * NodeInfo is only used for reporting, that method should be contextualized in an other fashion to avoid that.
    */
-  def buildPolicy(nodeInfo: NodeInfo, mode: GlobalPolicyMode, boundedPolicyDrafts: Seq[BoundPolicyDraft]): Box[List[Policy]] = {
+  def buildPolicy(
+      nodeInfo:            CoreNodeFact,
+      mode:                GlobalPolicyMode,
+      boundedPolicyDrafts: Seq[BoundPolicyDraft]
+  ): Box[List[Policy]] = {
 
     // now manage merge of mutli-instance mono-policy techniques
     // each merge can fails because of a consistency error, so we are grouping merge and checks
     // for a technique in a failable function.
     // must give at least one element in parameter
     def merge(
-        nodeInfo:         NodeInfo,
+        nodeInfo:         CoreNodeFact,
         agentType:        AgentType,
         globalPolicyMode: GlobalPolicyMode,
         drafts:           List[BoundPolicyDraft]
@@ -138,7 +142,7 @@ object MergePolicyService {
                                    case list        =>
                                      Failure(
                                        s"Policy Generation is trying to merge several directives from different techniques for " +
-                                       s"node ${nodeInfo.hostname} '${nodeInfo.id.value}'. This i likely a bug, please report it. " +
+                                       s"node ${nodeInfo.fqdn} '${nodeInfo.id.value}'. This i likely a bug, please report it. " +
                                        s"Techniques: ${drafts.map(_.technique.id.debugString).mkString(", ")}"
                                      )
                                  }
@@ -148,7 +152,7 @@ object MergePolicyService {
                                  } else {
                                    Failure(
                                      s"Policy Generation is trying to merge several directives with some being systems and other not for " +
-                                     s"node ${nodeInfo.hostname} '${nodeInfo.id.value}'. This is likely a bug, please report it. " +
+                                     s"node ${nodeInfo.fqdn} '${nodeInfo.id.value}'. This is likely a bug, please report it. " +
                                      s"Techniques: ${drafts.map(_.technique.id.debugString).mkString(", ")}" // not sure if we want techniques or directives or rules here.
                                    )
                                  }
@@ -157,7 +161,7 @@ object MergePolicyService {
                                    case v :: Nil => Full(v)
                                    case list     =>
                                      Failure(
-                                       s"Node ${nodeInfo.hostname} '${nodeInfo.id.value}' get directives from different versions of technique '${sameTechniqueName.value}', but " +
+                                       s"Node ${nodeInfo.fqdn} '${nodeInfo.id.value}' get directives from different versions of technique '${sameTechniqueName.value}', but " +
                                        s"that technique does not support multi-policy generation. Problematic rules/directives: " +
                                        drafts.map(d => d.id.ruleId.serialize + " / " + d.id.directiveId.serialize).mkString(" ; ")
                                      )
@@ -176,9 +180,9 @@ object MergePolicyService {
                                    case mode :: Nil => Full(mode) // either None or Some(mode), that's ok
                                    case modes       =>
                                      PolicyMode
-                                       .computeMode(globalPolicyMode, nodeInfo.node.policyMode, modes)
+                                       .computeMode(globalPolicyMode, nodeInfo.rudderSettings.policyMode, modes)
                                        .map(Some(_))
-                                       .toBox ?~! (s"Node ${nodeInfo.hostname} " +
+                                       .toBox ?~! (s"Node ${nodeInfo.fqdn} " +
                                      s"'${nodeInfo.id.value}' get directives with incompatible different policy mode but technique " +
                                      s"'${sameTechniqueName}/${sameVersion}' does not support multi-policy generation. Problematic rules/directives: " +
                                      drafts.map(d => d.id.ruleId.serialize + " / " + d.id.directiveId.serialize).mkString(" ; "))
@@ -310,9 +314,9 @@ object MergePolicyService {
         }
     }
 
-    def setOverrides(main: BoundPolicyDraft, overridens: Iterable[BoundPolicyDraft]): BoundPolicyDraft = {
+    def setOverrides(main: BoundPolicyDraft, overriddens: Iterable[BoundPolicyDraft]): BoundPolicyDraft = {
       // store overrides
-      val o = overridens.map(x => PolicyId(x.id.ruleId, x.id.directiveId, x.technique.id.version)).toSet
+      val o = overriddens.map(x => PolicyId(x.id.ruleId, x.id.directiveId, x.technique.id.version)).toSet
       main.copy(overrides = o)
     }
 
@@ -344,7 +348,7 @@ object MergePolicyService {
         val differentDirectives = samePriority.groupBy(_.id.directiveId)
         if (differentDirectives.size > 1) {
           PolicyGenerationLogger.warn(
-            s"Unicity check: NON STABLE POLICY ON NODE '${nodeInfo.hostname}' for mono-instance (unique) technique " +
+            s"Unicity check: NON STABLE POLICY ON NODE '${nodeInfo.fqdn}' for mono-instance (unique) technique " +
             s"'${keep.technique.id.debugString}'. Several directives with same priority '${keep.priority}' are applied. " +
             s"Keeping (ruleId@@directiveId) '${keep.id.ruleId.serialize}@@${keep.id.directiveId.debugString}' (order: ${keep.ruleOrder.value}/" +
             s"${keep.directiveName}, discarding: ${samePriority.tail
@@ -387,20 +391,17 @@ object MergePolicyService {
 
     // now proceed the policies that need to be merged
     for {
-      agent  <- Box(
-                  nodeInfo.agentsName.headOption
-                ) ?~! s"No agent defined for Node ${nodeInfo.hostname}, (id ${nodeInfo.id.value}), at least one should be defined"
       merged <- {
         val drafts = groupedDrafts.toMerge.toSeq
         traverse(drafts) {
           case (name, seq) =>
-            merge(nodeInfo, agent.agentType, mode, seq.toList)
+            merge(nodeInfo, nodeInfo.rudderAgent.agentType, mode, seq.toList)
         }
       }
       // now change remaining BoundPolicyDraft to Policy, managing tracking variable values
       others <- {
         import cats.implicits.*
-        (keptUniqueDraft ++ deduplicatedMultiDirective).toList.traverse(_.toPolicy(agent.agentType))
+        (keptUniqueDraft ++ deduplicatedMultiDirective).toList.traverse(_.toPolicy(nodeInfo.rudderAgent.agentType))
       }
     } yield {
 
@@ -480,7 +481,7 @@ object MergePolicyService {
     } yield {
       BoundHook(
         v.policyId,
-        PolicyMode.directivePolicyMode(globalPolicyMode, nodePolicyMode, v.policyMode, p.technique.isSystem),
+        PolicyMode.directivePolicyMode(globalPolicyMode, nodePolicyMode, v.policyMode, p.technique.policyTypes),
         p.technique.id.name.value,
         h
       )

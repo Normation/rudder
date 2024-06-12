@@ -139,7 +139,7 @@ object DirectiveId {
 
 final case class Directive(
     // As of 7.0, an identifier is a couple of (object uuid, revision id).
-    // see rationnal in comment above
+    // see rational in comment above
 
     id:               DirectiveId,
     /**

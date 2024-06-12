@@ -71,6 +71,8 @@ import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.ModifyRuleDiff
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
+import com.normation.rudder.domain.policies.PolicyTypeName
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
@@ -359,7 +361,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
         filterByDirectives: Set[DirectiveId]
     )(implicit qc: QueryContext): Box[Map[NodeId, NodeStatusReport]] = ???
     def findUncomputedNodeStatusReports():                                               Box[Map[NodeId, NodeStatusReport]]      = ???
-    def findRuleNodeCompliance(nodeIds: Set[NodeId], filterByRules: Set[RuleId])(implicit
+    def findRuleNodeCompliance(nodeIds: Set[NodeId], tag: PolicyTypeName, filterByRules: Set[RuleId])(implicit
         qc: QueryContext
     ): IOResult[Map[NodeId, ComplianceLevel]] = ???
     def findSystemAndUserRuleCompliances(
@@ -722,11 +724,13 @@ class MockCompliance(mockDirectives: MockDirectives) {
     RuleNodeStatusReport(
       nodeId,
       ruleId,
+      PolicyTypeName.rudderBase,
       None,
       None,
       Map(
         directiveId -> DirectiveStatusReport(
           directiveId,
+          PolicyTypes.rudderBase,
           List(
             ValueStatusReport(
               s"${directiveId.serialize}-component-${ruleId.serialize}-${nodeId.value}",

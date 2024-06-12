@@ -76,7 +76,7 @@ object RunCompliance {
       endOfLife,
       (report.runInfo, report.statusInfo),
       report.compliance.computePercent(),
-      report.reports
+      report.reports.flatMap(_._2.reports).toSet
     )
   }
 }

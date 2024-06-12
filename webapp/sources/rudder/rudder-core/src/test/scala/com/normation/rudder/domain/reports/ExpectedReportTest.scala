@@ -45,6 +45,7 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.ExpectedReportsSerialisation.*
@@ -118,7 +119,7 @@ class ExpectedReportTest extends Specification {
               DirectiveExpectedReports(
                 "common-hasPolicyServer-root",
                 None,
-                isSystem = true,
+                PolicyTypes.rudderSystem,
                 components = List(
                   ValueExpectedReport(
                     "Update",
@@ -166,7 +167,7 @@ class ExpectedReportTest extends Specification {
               DirectiveExpectedReports(
                 "dc0eaf47-356a-4a44-877d-e3873f75385b",
                 None,
-                isSystem = false,
+                PolicyTypes.rudderBase,
                 components = List(
                   ValueExpectedReport(
                     "Package",
@@ -185,7 +186,7 @@ class ExpectedReportTest extends Specification {
               DirectiveExpectedReports(
                 "cbc2377f-ce6d-47fe-902b-8d92a484b184",
                 None,
-                isSystem = false,
+                PolicyTypes.rudderBase,
                 components = List(
                   BlockExpectedReport(
                     "my main component",
@@ -216,7 +217,7 @@ class ExpectedReportTest extends Specification {
               DirectiveExpectedReports(
                 "rudder-service-apache-root",
                 None,
-                isSystem = true,
+                PolicyTypes.rudderSystem,
                 components = List(
                   ValueExpectedReport(
                     "Apache service",
@@ -254,7 +255,7 @@ class ExpectedReportTest extends Specification {
               DirectiveExpectedReports(
                 "inventory-all",
                 None,
-                isSystem = true,
+                PolicyTypes.rudderSystem,
                 components = List(
                   ValueExpectedReport(
                     "Inventory",

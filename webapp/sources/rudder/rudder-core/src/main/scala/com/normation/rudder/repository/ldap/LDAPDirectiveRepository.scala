@@ -575,7 +575,7 @@ class RoLDAPDirectiveRepository(
         acceptationDatetimes = SortedMap(at.acceptationDatetimes.toSeq*),
         directives = maps.directivesByActiveTechnique.getOrElse(at.id, Nil),
         isEnabled = at.isEnabled,
-        isSystem = at.isSystem
+        policyTypes = at.policyTypes
       )
     }
 
@@ -1164,7 +1164,7 @@ class WoLDAPDirectiveRepository(
       categoryId:    ActiveTechniqueCategoryId,
       techniqueName: TechniqueName,
       versions:      Seq[TechniqueVersion],
-      isSystem:      Boolean,
+      policyTypes:   PolicyTypes,
       modId:         ModificationId,
       actor:         EventActor,
       reason:        Option[String]
@@ -1185,7 +1185,7 @@ class WoLDAPDirectiveRepository(
                              ActiveTechniqueId(techniqueName.value),
                              techniqueName,
                              versions.map(x => x -> DateTime.now()).toMap,
-                             isSystem = isSystem
+                             policyTypes = policyTypes
                            )
       uptEntry           = mapper.activeTechnique2Entry(newActiveTechnique, categoryEntry.dn)
       result            <- con.save(uptEntry, removeMissingAttributes = true)
@@ -1237,22 +1237,25 @@ class WoLDAPDirectiveRepository(
                                 .chainError(s"Error when moving technique '${uactiveTechniqueId.value}' to category ${newCategoryId.value}")
       movedActiveTechnique <-
         getActiveTechniqueByActiveTechnique(uactiveTechniqueId).notOptional(s"The technique was not found in new category")
-      autoArchive          <- ZIO
-                                .when(autoExportOnModify && !moved.isInstanceOf[LDIFNoopChangeRecord] && !movedActiveTechnique.isSystem) {
-                                  for {
-                                    parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
-                                    commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                    moved    <- gitATArchiver.moveActiveTechnique(
-                                                  movedActiveTechnique,
-                                                  oldParents.map(_.id),
-                                                  parents.map(_.id),
-                                                  Some((modId, commiter, reason))
-                                                )
-                                  } yield {
-                                    moved
-                                  }
-                                }
-                                .chainError("Error when trying to archive automatically the technique move")
+      autoArchive          <-
+        ZIO
+          .when(
+            autoExportOnModify && !moved.isInstanceOf[LDIFNoopChangeRecord] && !movedActiveTechnique.policyTypes.isSystem
+          ) {
+            for {
+              parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
+              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+              moved    <- gitATArchiver.moveActiveTechnique(
+                            movedActiveTechnique,
+                            oldParents.map(_.id),
+                            parents.map(_.id),
+                            Some((modId, commiter, reason))
+                          )
+            } yield {
+              moved
+            }
+          }
+          .chainError("Error when trying to archive automatically the technique move")
     } yield {
       uactiveTechniqueId
     })
@@ -1291,17 +1294,18 @@ class WoLDAPDirectiveRepository(
       newactiveTechnique <- getActiveTechniqueByActiveTechnique(uactiveTechniqueId).notOptional(
                               s"Technique with id '${uactiveTechniqueId.value}' can't be find back after status change"
                             )
-      autoArchive        <- ZIO.when(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord] && !newactiveTechnique.isSystem) {
-                              for {
-                                parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
-                                commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                archive  <- gitATArchiver.archiveActiveTechnique(
-                                              newactiveTechnique,
-                                              parents.map(_.id),
-                                              Some((modId, commiter, reason))
-                                            )
-                              } yield archive
-                            }
+      autoArchive        <-
+        ZIO.when(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord] && !newactiveTechnique.policyTypes.isSystem) {
+          for {
+            parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
+            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+            archive  <- gitATArchiver.archiveActiveTechnique(
+                          newactiveTechnique,
+                          parents.map(_.id),
+                          Some((modId, commiter, reason))
+                        )
+          } yield archive
+        }
     } yield {
       uactiveTechniqueId
     })
@@ -1329,17 +1333,18 @@ class WoLDAPDirectiveRepository(
         getActiveTechniqueByActiveTechnique(uactiveTechniqueId).notOptional(
           s"Active technique with id '${uactiveTechniqueId.value}' was not found after acceptation datetime update"
         )
-      autoArchive        <- ZIO.when(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord] && !newActiveTechnique.isSystem) {
-                              for {
-                                parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
-                                commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                archive  <- gitATArchiver.archiveActiveTechnique(
-                                              newActiveTechnique,
-                                              parents.map(_.id),
-                                              Some((modId, commiter, reason))
-                                            )
-                              } yield archive
-                            }
+      autoArchive        <-
+        ZIO.when(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord] && !newActiveTechnique.policyTypes.isSystem) {
+          for {
+            parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
+            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+            archive  <- gitATArchiver.archiveActiveTechnique(
+                          newActiveTechnique,
+                          parents.map(_.id),
+                          Some((modId, commiter, reason))
+                        )
+          } yield archive
+        }
     } yield {
       uactiveTechniqueId
     })
@@ -1370,7 +1375,7 @@ class WoLDAPDirectiveRepository(
                     diff          = DeleteTechniqueDiff(oldTechnique)
                     loggedAction <- actionLogger.saveDeleteTechnique(modId, principal = actor, deleteDiff = diff, reason = reason)
                     autoArchive  <- ZIO
-                                      .when(autoExportOnModify && deleted.size > 0 && !oldTechnique.isSystem) {
+                                      .when(autoExportOnModify && deleted.size > 0 && !oldTechnique.policyTypes.isSystem) {
                                         for {
                                           ptName   <- activeTechnique(A_TECHNIQUE_UUID) match {
                                                         case None    => Inconsistency("Missing required reference technique name").fail

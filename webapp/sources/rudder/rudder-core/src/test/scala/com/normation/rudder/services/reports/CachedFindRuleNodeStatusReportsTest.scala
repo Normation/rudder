@@ -93,7 +93,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   def run(id: String, info: RunAndConfigInfo): NodeStatusReport =
     NodeStatusReport(NodeId(id), info, RunComplianceInfo.OK, Nil, Set())
 
-  // a list of node, on node by type of reports, in a triplet:
+  // a list of node, one node by type of reports, in a triplet:
   // (node, expired report, still ok report)
   def expected(id: String): NodeExpectedReports = NodeExpectedReports(NodeId(id), NodeConfigId(id), null, null, null, Nil, Nil)
 
@@ -255,7 +255,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
 
       /**
        * Return all rules ids.
-       * Optionnaly include system rules
+       * Optionally include system rules
        */
       override def getIds(includeSytem: Boolean): IOResult[Set[RuleId]] = Set[RuleId]().succeed
     }

@@ -83,6 +83,7 @@ import net.liftweb.common.*
 import org.joda.time.format.ISODateTimeFormat
 import scala.xml.{Node as XNode, *}
 import scala.xml.NodeSeq
+import zio.json.*
 
 //serialize / deserialize tags
 object TagsXml {
@@ -183,7 +184,7 @@ class ActiveTechniqueSerialisationImpl(xmlVersion: String) extends ActiveTechniq
       <id>{activeTechnique.id.value}</id>
         <techniqueName>{activeTechnique.techniqueName.value}</techniqueName>
         <isEnabled>{activeTechnique.isEnabled}</isEnabled>
-        <isSystem>{activeTechnique.isSystem}</isSystem>
+        <policyTypes>{activeTechnique.policyTypes.toJson}</policyTypes>
         <versions>{
         activeTechnique.acceptationDatetimes.map {
           case (version, date) =>
