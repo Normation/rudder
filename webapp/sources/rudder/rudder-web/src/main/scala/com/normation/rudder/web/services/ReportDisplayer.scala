@@ -43,6 +43,7 @@ import com.normation.box.*
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
@@ -51,6 +52,7 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.services.reports.*
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.JsNodeId
 import net.liftweb.common.*
@@ -509,25 +511,34 @@ class ReportDisplayer(
       withCompliance: Boolean,
       onlySystem:     Boolean
   ): NodeSeq = {
-    <div id="nodecompliance-app"></div> ++
-    Script(JsRaw(s"""
-                    |var main = document.getElementById("nodecompliance-app")
-                    |var initValues = {
-                    |  nodeId : "${node.id.value}",
-                    |  contextPath : contextPath,
-                    |  onlySystem: ${onlySystem}
-                    |};
-                    |var app = Elm.Nodecompliance.init({node: main, flags: initValues});
-                    |app.ports.errorNotification.subscribe(function(str) {
-                    |  createErrorNotification(str)
-                    |});
-                    |// Initialize tooltips
-                    |app.ports.initTooltips.subscribe(function(msg) {
-                    |  setTimeout(function(){
-                    |    $$('.bs-tooltip').bsTooltip();
-                    |  }, 800);
-                    |});
-                    |""".stripMargin))
+    // system compliance is not compliance, it's about how rudder works for that node, so linked to node perm
+    if (onlySystem || CurrentUser.checkRights(AuthorizationType.Compliance.Read)) {
+      <div id="nodecompliance-app"></div> ++
+      Script(JsRaw(s"""
+                      |var main = document.getElementById("nodecompliance-app")
+                      |var initValues = {
+                      |  nodeId : "${node.id.value}",
+                      |  contextPath : contextPath,
+                      |  onlySystem: ${onlySystem}
+                      |};
+                      |var app = Elm.Nodecompliance.init({node: main, flags: initValues});
+                      |app.ports.errorNotification.subscribe(function(str) {
+                      |  createErrorNotification(str)
+                      |});
+                      |// Initialize tooltips
+                      |app.ports.initTooltips.subscribe(function(msg) {
+                      |  setTimeout(function(){
+                      |    $$('.bs-tooltip').bsTooltip();
+                      |  }, 800);
+                      |});
+                      |""".stripMargin))
+    } else {
+      <div class="alert alert-warning">
+        <p></p>
+        <p>You don't have enough rights to see compliance details.</p>
+        <p></p>
+      </div>
+    }
   }
 
   // this method cannot return an IOResult, as it uses S.

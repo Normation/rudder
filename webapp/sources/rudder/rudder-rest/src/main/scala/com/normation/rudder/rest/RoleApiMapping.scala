@@ -178,6 +178,8 @@ object AuthorizationApiMapping {
           NodeApi.NodeInheritedProperties.x :: NodeApi.NodeDisplayInheritedProperties.x :: NodeApi.NodeDetailsTable.x ::
           NodeApi.PendingNodeDetails.x :: NodeApi.NodeDetailsSoftware.x :: NodeApi.NodeDetailsProperty.x ::
           NodeApi.GetNodesStatus.x :: InventoryApi.QueueInformation.x ::
+          // this compliance is more about how rudder works on that node, it's not really "compliance"
+          ComplianceApi.GetNodeSystemCompliance.x ::
           // node read also allows to read some settings
           AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode") :: Nil) ::
           AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("global_policy_mode_overridable") :: Nil) ::
