@@ -388,11 +388,11 @@ object GenericProperty {
    * Merge two properties. newProp values will win.
    * You should have check before that "name" and "provider" are OK.
    */
-  def mergeConfig(oldProp: Config, newProp: Config): Config = {
-    val mode           = (GenericProperty.getMode(oldProp), GenericProperty.getMode(newProp)) match {
+  def mergeConfig(oldProp: Config, newProp: Config)(implicit defaultInheritMode: Option[InheritMode]): Config = {
+    val mode           = ((GenericProperty.getMode(oldProp), GenericProperty.getMode(newProp)) match {
       case (mode, None) => mode
       case (_, mode)    => mode
-    }
+    }).orElse(defaultInheritMode)
     val otherThanValue = newProp
       .withValue(VALUE, ConfigValueFactory.fromAnyRef(""))
       .withFallback(oldProp.withValue(VALUE, ConfigValueFactory.fromAnyRef("")))
