@@ -13,7 +13,7 @@
 // TODO: add warnings when using instance-specific values (node properties, etc.)
 // TODO: specific parser for condition expressions
 
-use std::{cmp::Ordering, str::FromStr, sync::OnceLock};
+use std::{cmp::Ordering, fmt::Debug, str::FromStr, sync::OnceLock};
 
 use anyhow::{bail, Error, Result};
 use nom::{
@@ -27,7 +27,9 @@ use nom::{
 };
 use rudder_commons::Target;
 use serde_yaml::Value;
-use tracing::warn;
+use tracing::{debug, warn};
+
+use super::technique;
 
 // from clap https://github.com/clap-rs/clap/blob/1f71fd9e992c2d39a187c6bd1f015bdfe77dbadf/clap_builder/src/parser/features/suggestions.rs#L11
 // under MIT/Apache 2.0 licenses.
@@ -60,6 +62,10 @@ pub fn known_vars() -> &'static serde_yaml::Value {
         let str = include_str!("../../libs/vars.yml");
         serde_yaml::from_str(str).unwrap()
     })
+}
+
+fn nustache_render(s: &str) -> String {
+    format!("[Rudder.Datastate]::Render('{{{{' + {} + '}}}}')", s)
 }
 
 /// Rudder variable expression.
@@ -100,13 +106,121 @@ impl FromStr for Expression {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match complete_expression(s).finish() {
-            Ok((_, e)) => Ok(e),
+            Ok((_, e)) => {
+                debug!("Expression identified from '{}' ----> {:?}", s, e);
+                Ok(e)
+            }
             Err(e) => bail!("Invalid expression '{}' with {:?}", s, e),
         }
     }
 }
 
 impl Expression {
+    pub fn force_long_name_for_technique_params(
+        self,
+        target: Target,
+        t_id: &str,
+        parameter_calls_shortcut: Vec<technique::Parameter>,
+    ) -> Result<Self> {
+        match self.clone() {
+            Expression::Empty => Ok(self),
+            Expression::Scalar(_) => Ok(self),
+            Expression::Const(e) => Ok(Expression::Const(Box::new(
+                e.force_long_name_for_technique_params(target, t_id, parameter_calls_shortcut)?,
+            ))),
+            Expression::GlobalParameter(e) => Ok(Expression::GlobalParameter(Box::new(
+                e.force_long_name_for_technique_params(target, t_id, parameter_calls_shortcut)?,
+            ))),
+            Expression::NcfConst(e) => Ok(Expression::NcfConst(Box::new(
+                e.force_long_name_for_technique_params(target, t_id, parameter_calls_shortcut)?,
+            ))),
+            Expression::Sys(v) => Ok(Expression::Sys(
+                v.iter()
+                    .map(|e| {
+                        e.clone().force_long_name_for_technique_params(
+                            target,
+                            t_id,
+                            parameter_calls_shortcut.clone(),
+                        )
+                    })
+                    .collect::<Result<Vec<Expression>>>()?,
+            )),
+            Expression::NodeInventory(v) => Ok(Expression::NodeInventory(
+                v.iter()
+                    .map(|e| {
+                        e.clone().force_long_name_for_technique_params(
+                            target,
+                            t_id,
+                            parameter_calls_shortcut.clone(),
+                        )
+                    })
+                    .collect::<Result<Vec<Expression>>>()?,
+            )),
+            Expression::NodeProperty(v) => Ok(Expression::NodeProperty(
+                v.iter()
+                    .map(|e| {
+                        e.clone().force_long_name_for_technique_params(
+                            target,
+                            t_id,
+                            parameter_calls_shortcut.clone(),
+                        )
+                    })
+                    .collect::<Result<Vec<Expression>>>()?,
+            )),
+            Expression::Sequence(v) => Ok(Expression::Sequence(
+                v.iter()
+                    .map(|e| {
+                        e.clone().force_long_name_for_technique_params(
+                            target,
+                            t_id,
+                            parameter_calls_shortcut.clone(),
+                        )
+                    })
+                    .collect::<Result<Vec<Expression>>>()?,
+            )),
+            Expression::GenericVar(v) => {
+                if v.len() != 1 {
+                    Ok(Expression::GenericVar(
+                        v.iter()
+                            .map(|e| {
+                                e.clone().force_long_name_for_technique_params(
+                                    target,
+                                    t_id,
+                                    parameter_calls_shortcut.clone(),
+                                )
+                            })
+                            .collect::<Result<Vec<Expression>>>()?,
+                    ))
+                } else {
+                    // If the generic var is made of one unique scalar, it is most likely a parameter call using the short name
+                    match v[0].clone() {
+                        Expression::Scalar(_) => {
+                            if parameter_calls_shortcut
+                                .iter()
+                                .any(|s| s.name == v[0].fmt(target))
+                            {
+                                Ok(Expression::GenericVar(vec![
+                                    Expression::Scalar(t_id.to_string()),
+                                    v[0].clone(),
+                                ]))
+                            } else {
+                                v[0].clone().force_long_name_for_technique_params(
+                                    target,
+                                    t_id,
+                                    parameter_calls_shortcut,
+                                )
+                            }
+                        }
+                        _ => v[0].clone().force_long_name_for_technique_params(
+                            target,
+                            t_id,
+                            parameter_calls_shortcut,
+                        ),
+                    }
+                }
+            }
+        }
+    }
     /// Look for errors in the expression
     //
     // A lot of unwrapping as we rely on the structure of the `vars.yml` static document
@@ -261,69 +375,109 @@ impl Expression {
 
     pub fn fmt(&self, target: Target) -> String {
         match self {
-            Self::Sequence(s) => s
-                .iter()
-                .map(|i| i.fmt(target))
-                .collect::<Vec<String>>()
-                .join(""),
-            Self::GenericVar(e) => {
-                if e.len() == 1 {
-                    format!("${{{}}}", e[0].fmt(target))
-                } else {
-                    let keys = e
-                        .iter()
-                        .skip(1)
-                        .map(|i| i.fmt(target))
-                        .collect::<Vec<String>>()
-                        .join("][");
-                    match target {
-                        Target::Unix => format!("${{{}[{}]}}", e[0].fmt(target), keys),
-                        Target::Windows => format!("$(${}[{}])", e[0].fmt(target), keys),
+            Self::Sequence(s) => match target {
+                Target::Unix => s
+                    .iter()
+                    .map(|i| i.fmt(target))
+                    .collect::<Vec<String>>()
+                    .join(""),
+                Target::Windows => s
+                    .iter()
+                    .map(|i| match i {
+                        Expression::Scalar(_) => format!("@'\n{}\n'@", i.fmt(target)),
+                        _ => format!("({})", i.fmt(target)),
+                    })
+                    .collect::<Vec<String>>()
+                    .join(" + "),
+            },
+            Self::GenericVar(e) => match target {
+                Target::Unix => {
+                    if e.len() == 1 {
+                        format!("${{{}}}", e[0].fmt(target))
+                    } else {
+                        let keys = e
+                            .iter()
+                            .skip(1)
+                            .map(|i| i.fmt(target))
+                            .collect::<Vec<String>>()
+                            .join("][");
+                        format!("${{{}[{}]}}", e[0].fmt(target), keys)
                     }
                 }
-            }
+                Target::Windows => {
+                    let mut x = "@'\nvars.".to_string();
+                    for (index, element) in e.iter().enumerate() {
+                        match element {
+                            Expression::Scalar(_) => {
+                                x.push_str(&element.fmt(target));
+                                if index == e.len() - 1 {
+                                    x.push_str("\n'@")
+                                } else {
+                                    x.push('.')
+                                }
+                            }
+                            _ => {
+                                x.push_str(&format!("\n'@ + {}", element.fmt(target)));
+                                if index != e.len() - 1 {
+                                    x.push_str(" + @'\n.")
+                                }
+                            }
+                        };
+                    }
+                    nustache_render(&x)
+                }
+            },
             Self::Scalar(s) => s.to_string(),
             Self::NodeProperty(e) => {
-                let keys = e
-                    .iter()
-                    .map(|i| i.fmt(target))
-                    .collect::<Vec<String>>()
-                    .join("][");
-                match target {
-                    Target::Unix => format!("${{node.properties[{}]}}", keys),
-                    Target::Windows => format!("$($node.properties[{}])", keys),
-                }
+                let mut x = e.clone();
+                x.insert(0, Expression::Scalar("node.properties".to_string()));
+                Expression::GenericVar(x.to_vec()).fmt(target)
             }
             Self::NodeInventory(e) => {
-                let keys = e
-                    .iter()
-                    .map(|i| i.fmt(target))
-                    .collect::<Vec<String>>()
-                    .join("][");
-                match target {
-                    Target::Unix => format!("${{node.inventory[{}]}}", keys),
-                    Target::Windows => format!("$($node.inventory[{}])", keys),
-                }
+                let mut x = e.clone();
+                x.insert(0, Expression::Scalar("node.inventory".to_string()));
+                Expression::GenericVar(x.to_vec()).fmt(target)
             }
-            Self::GlobalParameter(p) => format!("${{rudder.parameters[{}]}}", p.fmt(target)),
-            Self::Sys(e) => {
-                if e.len() == 1 {
-                    format!("${{sys.{}}}", e[0].fmt(target))
-                } else {
-                    let keys = e
-                        .iter()
-                        .skip(1)
-                        .map(|i| i.fmt(target))
-                        .collect::<Vec<String>>()
-                        .join("][");
-                    match target {
-                        Target::Unix => format!("${{sys.{}[{}]}}", e[0].fmt(target), keys),
-                        Target::Windows => format!("$($sys.{}[{}])", e[0].fmt(target), keys),
+            Self::GlobalParameter(p) => {
+                let a = *p.to_owned();
+                let key = a.fmt(target);
+                match target {
+                    Target::Unix => format!("${{rudder.parameters[{}]}}", key),
+                    Target::Windows => {
+                        nustache_render(&format!("{{{{rudder.parameters.{}}}}}", key))
                     }
                 }
             }
-            Self::Const(e) => format!("${{const.{}}}", e.fmt(target)),
-            Self::NcfConst(e) => format!("${{ncf_const.{}}}", e.fmt(target)),
+            Self::Sys(e) => match target {
+                Target::Unix => {
+                    if e.len() == 1 {
+                        format!("${{sys.{}}}", e[0].fmt(target))
+                    } else {
+                        let keys = e
+                            .iter()
+                            .skip(1)
+                            .map(|i| i.fmt(target))
+                            .collect::<Vec<String>>()
+                            .join("][");
+                        format!("${{sys.{}[{}]}}", e[0].fmt(target), keys)
+                    }
+                }
+                Target::Windows => {
+                    let mut x = e.clone();
+                    x.insert(0, Expression::Scalar("sys".to_string()));
+                    Expression::GenericVar(x.to_vec()).fmt(target)
+                }
+            },
+            Self::Const(e) => {
+                let a = *e.to_owned();
+                let key = a.fmt(target);
+                format!("${{const.{}}}", key)
+            }
+            Self::NcfConst(e) => {
+                let a = *e.to_owned();
+                let key = a.fmt(target);
+                format!("${{ncf_const.{}}}", key)
+            }
             Self::Empty => "".to_string(),
         }
     }
@@ -624,6 +778,113 @@ mod tests {
 
     #[test]
     fn it_formats_expressions() {
+        let a: Expression = Expression::Sequence(vec![
+            Expression::Scalar("/bin/true \"# ".to_string()),
+            Expression::NodeInventory(vec![
+                Expression::Scalar("os".to_string()),
+                Expression::Scalar("fullName".to_string()),
+            ]),
+            Expression::Scalar("\"".to_string()),
+        ]);
+        assert_eq!(
+            a.fmt(Target::Unix),
+            "/bin/true \"# ${node.inventory[os][fullName]}\""
+        );
+        assert_eq!(
+            a.fmt(Target::Windows),
+            r###"@'
+/bin/true "# 
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.node.inventory.os.fullName
+'@ + '}}')) + @'
+"
+'@"###
+        );
+
+        let b: Expression = Expression::NodeProperty(vec![
+            Expression::Scalar("a".to_string()),
+            Expression::Scalar("b".to_string()),
+        ]);
+        assert_eq!(b.fmt(Target::Unix), "${node.properties[a][b]}");
+        assert_eq!(
+            b.fmt(Target::Windows),
+            r#"[Rudder.Datastate]::Render('{{' + @'
+vars.node.properties.a.b
+'@ + '}}')"#
+        );
+
+        let c: Expression = Expression::Sys(vec![Expression::Scalar("host".to_string())]);
+        assert_eq!(c.fmt(Target::Unix), "${sys.host}");
+        assert_eq!(
+            c.fmt(Target::Windows),
+            r#"[Rudder.Datastate]::Render('{{' + @'
+vars.sys.host
+'@ + '}}')"#
+        );
+
+        let cc: Expression = Expression::Sequence(vec![Expression::Scalar("host".to_string())]);
+        assert_eq!(cc.fmt(Target::Unix), "host");
+        assert_eq!(
+            cc.fmt(Target::Windows),
+            r#"@'
+host
+'@"#
+        );
+
+        let d = Expression::NodeProperty(vec![Expression::Sequence(vec![
+            Expression::Scalar("inner".to_string()),
+            Expression::Sys(vec![Expression::Scalar("host".to_string())]),
+        ])]);
+        assert_eq!(d.fmt(Target::Unix), "${node.properties[inner${sys.host}]}");
+        assert_eq!(
+            d.fmt(Target::Windows),
+            r#"[Rudder.Datastate]::Render('{{' + @'
+vars.node.properties.
+'@ + @'
+inner
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.sys.host
+'@ + '}}')) + '}}')"#
+        );
+
+        let dd = Expression::NodeProperty(vec![Expression::Sequence(vec![
+            Expression::Scalar("inner".to_string()),
+            Expression::Sys(vec![Expression::Sequence(vec![Expression::Scalar(
+                "host".to_string(),
+            )])]),
+        ])]);
+        assert_eq!(
+            dd.fmt(Target::Windows),
+            r#"[Rudder.Datastate]::Render('{{' + @'
+vars.node.properties.
+'@ + @'
+inner
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.sys.
+'@ + @'
+host
+'@ + '}}')) + '}}')"#
+        );
+        assert_eq!(dd.fmt(Target::Unix), "${node.properties[inner${sys.host}]}");
+
+        let ee = Expression::NodeProperty(vec![
+            Expression::Sequence(vec![Expression::Scalar("interfaces".to_string())]),
+            Expression::Sequence(vec![Expression::Scalar("eth0".to_string())]),
+        ]);
+        assert_eq!(ee.fmt(Target::Unix), "${node.properties[interfaces][eth0]}");
+        assert_eq!(
+            ee.fmt(Target::Windows),
+            r#"[Rudder.Datastate]::Render('{{' + @'
+vars.node.properties.
+'@ + @'
+interfaces
+'@ + @'
+.
+'@ + @'
+eth0
+'@ + '}}')"#
+        );
+
         let e = Expression::NodeProperty(vec![
             Expression::Sequence(vec![Expression::NodeProperty(vec![Expression::Sequence(
                 vec![
@@ -640,25 +901,63 @@ mod tests {
             Expression::Sequence(vec![Expression::Scalar("tutu".to_string())]),
         ]);
         assert_eq!(
+            e.fmt(Target::Windows),
+            r#"[Rudder.Datastate]::Render('{{' + @'
+vars.node.properties.
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.node.properties.
+'@ + @'
+inner
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.sys.
+'@ + @'
+host
+'@ + '}}')) + ([Rudder.Datastate]::Render('{{' + @'
+vars.sys.
+'@ + @'
+interfaces
+'@ + @'
+.
+'@ + @'
+eth0
+'@ + '}}')) + '}}')) + @'
+.
+'@ + @'
+tutu
+'@ + '}}')"#
+        );
+        assert_eq!(
             e.fmt(Target::Unix),
             "${node.properties[${node.properties[inner${sys.host}${sys.interfaces[eth0]}]}][tutu]}"
                 .to_string()
-        );
-        assert_eq!(
-            e.fmt(Target::Windows),
-            "$($node.properties[$($node.properties[inner${sys.host}$($sys.interfaces[eth0])])][tutu])".to_string()
         );
         let e = Expression::Sequence(vec![Expression::Sys(vec![Expression::Sequence(vec![
             Expression::GenericVar(vec![Expression::Sequence(vec![Expression::Scalar(
                 "host".to_string(),
             )])]),
         ])])]);
-        assert_eq!(e.fmt(Target::Windows), "${sys.${host}}".to_string());
+        assert_eq!(
+            e.fmt(Target::Windows),
+            r#"([Rudder.Datastate]::Render('{{' + @'
+vars.sys.
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.
+'@ + @'
+host
+'@ + '}}')) + '}}'))"#
+                .to_string()
+        );
         let e = Expression::GenericVar(vec![
             Expression::Scalar("bundle.plouf".to_string()),
             Expression::Scalar("key".to_string()),
         ]);
-        assert_eq!(e.fmt(Target::Windows), "$($bundle.plouf[key])".to_string());
+        assert_eq!(
+            e.fmt(Target::Windows),
+            r#"[Rudder.Datastate]::Render('{{' + @'
+vars.bundle.plouf.key
+'@ + '}}')"#
+                .to_string()
+        );
         assert_eq!(e.fmt(Target::Unix), "${bundle.plouf[key]}".to_string());
     }
 
