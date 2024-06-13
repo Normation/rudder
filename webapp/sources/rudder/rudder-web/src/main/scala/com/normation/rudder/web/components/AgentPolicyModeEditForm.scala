@@ -1,6 +1,8 @@
 package com.normation.rudder.web.components
 
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.AuthorizationType
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
@@ -34,7 +36,7 @@ class AgentPolicyModeEditForm extends DispatchSnippet with Loggable {
          |var main = document.getElementById("agentpolicymode-app")
          |var initValues = {
          |    contextPath    : contextPath
-         |  , hasWriteRights : hasWriteRights
+         |  , hasWriteRights : ${CurrentUser.checkRights(AuthorizationType.Node.Write)}
          |  , nodeId         : "${jsid}"
          |};
          |
