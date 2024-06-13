@@ -110,11 +110,7 @@ class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository) {
         Criterion(A_NAME, StringComparator, AlwaysFalse("machine does not have a 'name' attribute in fusion")),
         Criterion(A_DESCRIPTION, StringComparator, AlwaysFalse("machine does not have a 'description' attribute in fusion")),
         Criterion(A_MB_UUID, StringComparator, AlwaysFalse("machine does not have a 'mother board uuid' attribute in fusion")),
-        Criterion(
-          A_MANUFACTURER,
-          StringComparator,
-          AlwaysFalse("machine does not have a 'mother board uuid' attribute in fusion")
-        ),
+        Criterion(A_MANUFACTURER, StringComparator, NodeCriterionMatcherString(_.machine.manufacturer.map(_.name).toChunk)),
         Criterion(A_SERIAL_NUMBER, StringComparator, NodeCriterionMatcherString(_.machine.systemSerial.toChunk))
       )
     ),
