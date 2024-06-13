@@ -530,6 +530,7 @@ cn: has motherboard - no physical elements
 motherBoardUuid: f47ac10b-58cc-4372-a567-0e02b2c3d479
 
 # Example of a virtual machine, virtualBox
+# Manufacturer is copied from [SM]MANUFACTURER and should match bios editor
 dn: machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 objectClass: top
 objectClass: device
@@ -538,6 +539,7 @@ objectClass: virtualMachine
 objectClass: virtualBox
 machineId: machine2
 cn: has physicalElements
+manufacturer: Phoenix Technologies LTD
 
 
 # Example of a virtual machine, VMware

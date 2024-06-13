@@ -497,6 +497,19 @@ class TestNodeFactQueryProcessor {
   }
 
   @Test def machineComponentQueries(): Unit = {
+
+    // manufacturer is copied from SMANUFACTURER or MMANUFACTURER and used by some user to find vm type.
+    // It should match bios "editor" when defined
+    val q1 = TestQuery(
+      "q1",
+      parser("""
+      { "select":"node", "where":[
+      { "objectType":"machine", "attribute":"manufacturer", "comparator":"eq", "value":"Phoenix Technologies LTD" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(6) :: Nil
+    )
+
     val q3 = TestQuery(
       "q3",
       parser("""
@@ -507,7 +520,7 @@ class TestNodeFactQueryProcessor {
       s(6) :: s(7) :: Nil
     )
 
-    testQueries(q3 :: Nil, doInternalQueryTest = true)
+    testQueries(q1 :: q3 :: Nil, doInternalQueryTest = true)
   }
 
   @Test def softwareQueries(): Unit = {
