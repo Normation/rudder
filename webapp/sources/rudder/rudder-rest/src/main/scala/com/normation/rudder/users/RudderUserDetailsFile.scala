@@ -234,16 +234,22 @@ case class RudderPasswordEncoder(
     passwordEncoderDispatcher: PasswordEncoderDispatcher
 ) extends PasswordEncoder {
 
-  override def encode(rawPassword: CharSequence):                           String  = {
-    subPasswordEncoder(rawPassword).encode(rawPassword)
-  }
-  override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = {
-    subPasswordEncoder(rawPassword).matches(rawPassword, encodedPassword)
+  override def encode(rawPassword: CharSequence): String = {
+    // This method should be unused during the login process, but spring security check throws an error when we throw an exception here.
+    // And it is weird because sometimes we obtain `userNotFoundPassword` as rawPassword.
+
+    // We could (and likely should) use RudderPasswordProvider for encoding but we need to store the algorithm to use
+    // (as DelegatingPasswordEncoder does) based on the user configuration.
+    subPasswordEncoder(rawPassword.toString).encode(rawPassword)
   }
 
-  private def subPasswordEncoder(rawPassword: CharSequence): PasswordEncoder = {
+  override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = {
+    subPasswordEncoder(encodedPassword).matches(rawPassword, encodedPassword)
+  }
+
+  private def subPasswordEncoder(encodedPassword: String): PasswordEncoder = {
     RudderPasswordEncoder
-      .getFromEncoded(rawPassword.toString, securityLevel)
+      .getFromEncoded(encodedPassword, securityLevel)
       .map(encoderType => passwordEncoderDispatcher.dispatch(encoderType))
       .getOrElse(passwordEncoderDispatcher.dispatch(PasswordEncoderType.DEFAULT))
   }
