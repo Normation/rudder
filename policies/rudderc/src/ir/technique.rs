@@ -367,6 +367,10 @@ pub struct DeserItem {
     pub condition: Condition,
     #[serde(default)]
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub documentation: Option<String>,
     pub tags: Option<Value>,
     #[serde(default)]
     pub items: Vec<DeserItem>,
@@ -435,6 +439,8 @@ impl DeserItem {
         ) {
             (true, false, false, true) => Ok(ItemKind::Method(Method {
                 name: self.name.clone(),
+                description: self.description.clone(),
+                documentation: self.documentation.clone(),
                 tags: self.tags,
                 condition: self.condition,
                 params: self.params,
@@ -452,6 +458,8 @@ impl DeserItem {
             }
             (false, true, false, true) => Ok(ItemKind::Module(Module {
                 name: self.name.clone(),
+                description: self.description.clone(),
+                documentation: self.documentation.clone(),
                 tags: self.tags,
                 condition: self.condition,
                 params: self.params,
@@ -472,6 +480,8 @@ impl DeserItem {
                 } else {
                     self.name
                 },
+                description: self.description.clone(),
+                documentation: self.documentation.clone(),
                 tags: self.tags,
                 condition: self.condition,
                 id: self.id,
@@ -520,6 +530,10 @@ pub struct Block {
     pub condition: Condition,
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub documentation: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Value>,
     pub items: Vec<ItemKind>,
     #[serde(default)]
@@ -535,6 +549,10 @@ pub struct Block {
 pub struct Module {
     #[serde(default)]
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub documentation: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Value>,
     #[serde(default)]
@@ -555,6 +573,10 @@ pub struct Module {
 pub struct Method {
     #[serde(default)]
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub documentation: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Value>,
     #[serde(default)]

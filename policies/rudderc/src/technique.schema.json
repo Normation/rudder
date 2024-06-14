@@ -24,7 +24,9 @@
           }
         }
       ],
-      "required": ["name"],
+      "required": [
+        "name"
+      ],
       "additionalProperties": false,
       "properties": {
         "id": {
@@ -42,8 +44,8 @@
         "documentation": {
           "title": "technique parameter documentation",
           "type": "string",
-          "description": "Technique parameter documentation, nor in Markdown format",
-          "markdownDescription": "```Optional```\n\nTechnique parameter documentation, not in markdown format"
+          "description": "Technique parameter documentation, not in Markdown format",
+          "markdownDescription": "```Optional```\n\nTechnique parameter documentation, not in Markdown format"
         },
         "name": {
           "title": "technique parameter name",
@@ -132,7 +134,9 @@
             "regex": {
               "type": "object",
               "title": "technique parameter regex constraint",
-              "required": ["value"],
+              "required": [
+                "value"
+              ],
               "properties": {
                 "value": {
                   "type": "string",
@@ -150,7 +154,9 @@
               "title": "technique parameter select constraint",
               "items": {
                 "type": "object",
-                "required": ["value"],
+                "required": [
+                  "value"
+                ],
                 "properties": {
                   "name": {
                     "type": "string"
@@ -170,14 +176,21 @@
     },
     "policyMode": {
       "type": "string",
-      "enum": ["audit", "enforce", "none"]
+      "enum": [
+        "audit",
+        "enforce",
+        "none"
+      ]
     },
     "methodReportingMode": {
       "type": "object",
       "title": "method reporting mode",
       "properties": {
         "mode": {
-          "enum": ["disabled", "enabled"]
+          "enum": [
+            "disabled",
+            "enabled"
+          ]
         }
       }
     },
@@ -206,7 +219,9 @@
               ]
             }
           },
-          "required": ["mode"],
+          "required": [
+            "mode"
+          ],
           "additionalProperties": false
         },
         {
@@ -219,7 +234,10 @@
               "const": "focus"
             }
           },
-          "required": ["mode", "id"],
+          "required": [
+            "mode",
+            "id"
+          ],
           "additionalProperties": false
         }
       ]
@@ -247,6 +265,19 @@
         "name": {
           "title": "method call name",
           "type": "string"
+        },
+        "description": {
+          "title": "description",
+          "description": "Single line description of what the method does",
+          "markdownDescription": "```Optional```\n\nSingle line description of what the method does",
+          "type": "string"
+        },
+        "documentation": {
+          "type": "string",
+          "title": "documentation",
+          "description": "Method documentation in Markdown format",
+          "markdownDescription": "```Optional```\n\nMethod documentation in Markdown format",
+          "format": "markdown"
         },
         "method": {
           "title": "name of the method to call",
@@ -281,13 +312,19 @@
               "type": "boolean"
             }
           ],
-          "examples": ["debian|rhel", "SuSE.!sles_10"]
+          "examples": [
+            "debian|rhel",
+            "SuSE.!sles_10"
+          ]
         },
         "reporting": {
           "$ref": "#/$defs/methodReportingMode"
         }
       },
-      "required": ["method", "params"]
+      "required": [
+        "method",
+        "params"
+      ]
     },
     "blockCall": {
       "type": "object",
@@ -317,7 +354,22 @@
           "title": "name",
           "description": "Block call name",
           "type": "string",
-          "examples": ["My block title"]
+          "examples": [
+            "My block title"
+          ]
+        },
+        "description": {
+          "title": "description",
+          "description": "Single line description of what the block does",
+          "markdownDescription": "```Optional```\n\nSingle line description of what the block does",
+          "type": "string"
+        },
+        "documentation": {
+          "type": "string",
+          "title": "documentation",
+          "description": "Block documentation in Markdown format",
+          "markdownDescription": "```Optional```\n\nBlock documentation in Markdown format",
+          "format": "markdown"
         },
         "id": {
           "$ref": "#/$defs/uuid",
@@ -341,13 +393,18 @@
               "type": "boolean"
             }
           ],
-          "examples": ["debian|rhel", "SuSE.!sles_10"]
+          "examples": [
+            "debian|rhel",
+            "SuSE.!sles_10"
+          ]
         },
         "reporting": {
           "$ref": "#/$defs/blockReportingMode"
         }
       },
-      "required": ["items"]
+      "required": [
+        "items"
+      ]
     },
     "item": {
       "type": "object",
@@ -365,7 +422,12 @@
   "title": "Rudder Technique",
   "description": "A Rudder technique",
   "type": "object",
-  "required": ["id", "name", "version", "items"],
+  "required": [
+    "id",
+    "name",
+    "version",
+    "items"
+  ],
   "additionalProperties": false,
   "properties": {
     "format": {
@@ -379,7 +441,9 @@
       "markdownDescription": "```Mandatory```\n\nTechnique id, must respect the ```^[a-zA-Z0-9_]+$``` pattern.\n\nUsed implicitly in technique parameters and resource folder variable definitions:\n\n* ```${<technique_id>.<parameter_name>}```\n* ```${<technique_id>.resources_dir}```",
       "pattern": "^[a-zA-Z0-9_]+$",
       "default": "my_technique",
-      "examples": ["my_new_technique"]
+      "examples": [
+        "my_new_technique"
+      ]
     },
     "name": {
       "title": "name",
@@ -387,12 +451,14 @@
       "markdownDescription": "```Mandatory```\n\nHuman readable technique name",
       "type": "string",
       "default": "My new technique",
-      "examples": ["My new technique"]
+      "examples": [
+        "My new technique"
+      ]
     },
     "description": {
       "title": "description",
       "description": "Single line description of what the technique does",
-      "markdownDescription": "```Optional```\n\nHuman readable technique name",
+      "markdownDescription": "```Optional```\n\nSingle line description of what the technique does",
       "type": "string"
     },
     "documentation": {
@@ -440,7 +506,9 @@
       "markdownDescription": "```Mandatory```\n\nTechnique version in the 'X.Y' format",
       "pattern": "^[0-9]+\\.[0-9]+$",
       "default": "1.0",
-      "examples": ["1.0"]
+      "examples": [
+        "1.0"
+      ]
     },
     "items": {
       "type": "array",

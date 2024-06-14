@@ -21,12 +21,14 @@ items:
       version: "2.3.4"
   - name: "my block"
     id: b9e259a1-51c5-40b3-98ef-0eeaf52dca98
+    description: "The detailed info about the block"
     condition: linux
     reporting:
       mode: worst-case-weighted-one
     items:
       - name: "NTP service"
         id: cf06e919-02b7-41a7-a03f-4239592f3c12
+        documentation: 'My _method_ **documentation** in Markdown'
         condition: fedora
         method: package_install
         params:
