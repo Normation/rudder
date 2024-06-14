@@ -52,6 +52,7 @@ import com.normation.rudder.domain.properties.JsonPropertySerialisation.*
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.properties.ParentProperty
+import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.queries.ResultTransformation.*
 import com.normation.rudder.services.policies.NodeConfigData
@@ -348,6 +349,95 @@ class TestMergeGroupProperties extends Specification {
     val merged   = MergeNodeProperties.checkPropertyMerge(List(parent1, p2, child).map(_.toTarget), Map("foo" -> g.toGP("foo")))
     val expected = List(child, parent1).toH3("foo", g) :: Nil
     merged must beRight(expected)
+  }
+
+  "global parameter are inherited and inherit mode is used at any level of merge" >> {
+    val globalProperty           = """["glob"]""".toConfigValue
+    val parent1Properties        = List(GroupProperty.parse("foo", GitVersion.DEFAULT_REV, """["p1"]""", None, None).forceGet)
+    val parent2Properties        = List(GroupProperty.parse("foo", GitVersion.DEFAULT_REV, """["p2"]""", None, None).forceGet)
+    // child property to check that it still gets merged with all parent ones
+    val childOfParent2Properties = List(GroupProperty.parse("foo", GitVersion.DEFAULT_REV, """["node"]""", None, None).forceGet)
+
+    val p1         = parent1.modify(_.properties).setTo(parent1Properties)
+    val p2Query    = query.modify(_.criteria).setTo(parent1.toCriterion :: Nil)
+    val p2         = parent2.modify(_.query).setTo(Some(p2Query)).modify(_.properties).setTo(parent2Properties)
+    val childQuery = query.modify(_.criteria).setTo(parent2.toCriterion :: Nil)
+    val c          = child
+      .modify(_.query)
+      .setTo(Some(childQuery)) // parent 2 wins
+      .modify(_.properties)
+      .setTo(childOfParent2Properties)
+
+    val maaInheritMode = Some(InheritMode.parseString("maa").forceGet)
+    val mpaInheritMode = Some(InheritMode.parseString("mpa").forceGet)
+
+    // global property is not yet supposed to be merged now, but added in mergeDefault instead. However it is added to hierarchy if it exists
+    def beMerged(configValue: ConfigValue, mode: Option[InheritMode], globalProperty: Option[ConfigValue]) = {
+      (haveLength[List[NodePropertyHierarchy]](1)) and
+      (beEqualTo(
+        GenericProperty.toConfig("foo", GitVersion.DEFAULT_REV, configValue, mode, Some(PropertyProvider("inherited")), None)
+      ) ^^ { (l: List[NodePropertyHierarchy]) => l.head.prop.config }) and
+      (beEqualTo(globalProperty match {
+        case Some(prop) => List(c, p2, p1).toH3("foo", prop).hierarchy
+        case None       => List(c, p2, p1).toH1("foo").hierarchy
+      }) ^^ { (l: List[NodePropertyHierarchy]) => l.head.hierarchy })
+    }
+
+    "global append mode" in {
+      val merged = MergeNodeProperties.checkPropertyMerge(
+        List(p1.toTarget, p2.toTarget, c.toTarget),
+        Map(
+          "foo" -> GlobalParameter(
+            "foo",
+            GitVersion.DEFAULT_REV,
+            globalProperty,
+            maaInheritMode,
+            "",
+            None
+          )
+        )
+      )
+
+      (merged must beRight(
+        beMerged(
+          ConfigValueFactory.fromIterable(java.util.Arrays.asList("p1", "p2", "node")),
+          maaInheritMode,
+          Some(globalProperty)
+        )
+      ))
+    }
+    "global prepend mode" in {
+      val merged = MergeNodeProperties.checkPropertyMerge(
+        List(p1.toTarget, p2.toTarget, c.toTarget),
+        Map(
+          "foo" -> GlobalParameter(
+            "foo",
+            GitVersion.DEFAULT_REV,
+            globalProperty,
+            mpaInheritMode,
+            "",
+            None
+          )
+        )
+      )
+      (merged must beRight(
+        beMerged(
+          ConfigValueFactory.fromIterable(java.util.Arrays.asList("node", "p2", "p1")),
+          mpaInheritMode,
+          Some(globalProperty)
+        )
+      ))
+    }
+
+    "none global mode with default 'override' mode" in {
+      val merged = MergeNodeProperties.checkPropertyMerge(
+        List(p1.toTarget, p2.toTarget, c.toTarget),
+        Map.empty
+      )
+      (merged must beRight(
+        beMerged(ConfigValueFactory.fromIterable(java.util.Arrays.asList("node")), None, None)
+      ))
+    }
   }
 
   "when overriding json we" should {
