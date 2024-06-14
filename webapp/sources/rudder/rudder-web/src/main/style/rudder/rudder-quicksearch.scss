@@ -57,7 +57,7 @@
   }
 }
 
-#headerBar ~ #background-fade-quicksearch{
+#headerBar ~ .wrapper #background-fade-quicksearch{
   height:calc(100vh - 80px);
   top:80px;
 }
@@ -232,7 +232,7 @@
   padding-top:0;
   max-width: calc(100% - 285px);
 }
-#headerBar ~ .dropdown-menu.dropdown-search{
+#headerBar ~ .wrapper .dropdown-menu.dropdown-search{
   top: 80px;
 }
 
