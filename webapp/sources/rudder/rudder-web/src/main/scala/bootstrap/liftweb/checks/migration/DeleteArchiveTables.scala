@@ -41,6 +41,7 @@ import bootstrap.liftweb.*
 import com.normation.rudder.db.Doobie
 import com.normation.zio.*
 import doobie.implicits.*
+import doobie.util.fragment.Fragment
 import zio.*
 import zio.interop.catz.*
 
@@ -58,24 +59,35 @@ class DeleteArchiveTables(
     "archivednodeconfigurations",
     "archivedruddersysevents",
     "nodecompliance",
-    "migrationeventlog",
+    "migrationeventlog"
+  )
+
+  val sequences: List[String] = List(
     "migrationeventlogid"
   )
 
   override def description: String =
     s"Delete unused PostgreSQL table: ${tables.mkString(", ")}"
 
-  def drop(table: String) = {
-    val sql = sql"""DROP TABLE IF EXISTS ${table}"""
+  def dropTable(table: String) = {
+    val sql = sql"""DROP TABLE IF EXISTS """ ++ Fragment.const0(table)
 
     transactIOResult(s"Error when deleting table '${table}'")(xa => sql.update.run.transact(xa)).unit.catchAll(err =>
       BootstrapLogger.error(err.fullMsg)
     )
   }
 
+  def dropSequence(sequence: String) = {
+    val sql = sql"""DROP SEQUENCE IF EXISTS """ ++ Fragment.const0(sequence)
+
+    transactIOResult(s"Error when deleting table '${sequence}'")(xa => sql.update.run.transact(xa)).unit.catchAll(err =>
+      BootstrapLogger.error(err.fullMsg)
+    )
+  }
+
   override def checks(): Unit = {
     val prog = {
-      ZIO.foreachParDiscard(tables)(drop)
+      ZIO.foreachParDiscard(tables)(dropTable) *> ZIO.foreachParDiscard(sequences)(dropSequence)
     }
 
     // Actually run the migration async to avoid blocking for that.
