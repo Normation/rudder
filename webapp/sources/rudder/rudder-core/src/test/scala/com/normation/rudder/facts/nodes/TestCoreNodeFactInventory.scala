@@ -192,7 +192,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
   def resetLog:    Unit                            = callbackLog.set(Chunk.empty).runNow
   def getLogName:  Chunk[String]                   = callbackLog.get.map(_.map(_.name)).runNow
 
-  val nodeBySoftwareName = new SoftDaoGetNodesbySofwareName(
+  val nodeBySoftwareName = new SoftDaoGetNodesBySoftwareName(
     new ReadOnlySoftwareDAOImpl(
       mockLdapFactStorage.inventoryDitService,
       mockLdapFactStorage.ldapRo,

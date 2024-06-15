@@ -114,7 +114,7 @@ class TestNodeFactQueryProcessor {
 
   val nodeRepository: CoreNodeFactRepository = {
 
-    object NoopNodeBySoftware extends GetNodesbySofwareName {
+    object NoopNodeBySoftware extends GetNodesBySoftwareName {
       override def apply(softName: String): IOResult[List[(NodeId, Software)]] = Nil.succeed
     }
 

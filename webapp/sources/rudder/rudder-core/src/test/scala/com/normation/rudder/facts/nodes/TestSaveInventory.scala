@@ -466,7 +466,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
   def resetLog:    Unit                            = callbackLog.set(Chunk.empty).runNow
   def getLogName:  Chunk[String]                   = callbackLog.get.map(_.map(_.name)).runNow
 
-  object noopNodeBySoftwareName extends GetNodesbySofwareName {
+  object noopNodeBySoftwareName extends GetNodesBySoftwareName {
     override def apply(softName: String): IOResult[List[(NodeId, Software)]] = {
       Nil.succeed
     }

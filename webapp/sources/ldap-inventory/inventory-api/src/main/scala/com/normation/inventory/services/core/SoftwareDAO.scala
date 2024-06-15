@@ -51,7 +51,7 @@ trait ReadOnlySoftwareNameDAO {
    */
   def getSoftwareByNode(nodeIds: Set[NodeId], status: InventoryStatus): IOResult[Map[NodeId, Seq[Software]]]
 
-  def getNodesbySofwareName(softName: String): IOResult[List[(NodeId, Software)]]
+  def getNodesBySoftwareName(softName: String): IOResult[List[(NodeId, Software)]]
 }
 
 trait ReadOnlySoftwareDAO extends ReadOnlySoftwareNameDAO {
