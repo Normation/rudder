@@ -91,7 +91,7 @@ class TestRestFromFileDef extends ZIOSpecDefault {
         s <- TraitTestApiFromYamlFiles.doTest(
                yamlSourceDirectory,
                yamlDestTmpDirectory,
-               restTestSetUp,
+               restTestSetUp.liftRules,
                Nil,
                transformations
              )
@@ -101,7 +101,6 @@ class TestRestFromFileDef extends ZIOSpecDefault {
              )
       } yield s
     })
-
   }
 
 }

@@ -356,7 +356,7 @@ object errors {
 
       box match {
         case Full(x) => success(x)
-        case Empty   => error(Unexpected("no context was provided"))
+        case Empty   => error(Unexpected("empty box: no context was provided"))
 
         // given how Failure are built in Lift/Rudder, we never have both an Full(exception) and
         // a Full(parent). If it happens nonetheless, we keep parent (which is likely to have ex)

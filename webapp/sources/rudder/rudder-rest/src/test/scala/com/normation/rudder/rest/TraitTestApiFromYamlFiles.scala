@@ -330,7 +330,7 @@ object TraitTestApiFromYamlFiles {
       // You need to take care of the cleanup by yourself.
       yamlDestTmpDirectory: File,
       // the liftRules to use for API
-      restTestSetUp:        RestTestSetUp,
+      liftRules:            LiftRules,
 
       // we have two kinds of files:
       // - yml files directly under /api are considered "use as it" (no post processing)
@@ -341,7 +341,7 @@ object TraitTestApiFromYamlFiles {
   ) = {
 
     ///// tests ////
-    val restTest = new RestTest(restTestSetUp.liftRules)
+    val restTest = new RestTest(liftRules)
 
     val files = (if (limitToFiles.isEmpty) {
                    readYamlFiles(yamlSourceDirectory, yamlDestTmpDirectory, _.endsWith(".yml"), transformations).runNow
@@ -420,9 +420,10 @@ object TraitTestApiFromYamlFiles {
     json.fromJson[Json].map(_.toJsonPretty) match {
       case Left(err)   =>
         // here, we need to take care of the case of a pure string. Rule of thumb: if the first char is not json-ok, fallback
+        // we are not able to rely on response type / headers unfortunately
         err match {
-          case "(unexpected 'O')" => Right(json)
-          case x                  => Left(x)
+          case t if t.contains("(unexpected '") => Right(json)
+          case x                                => Left(x)
         }
       case Right(json) => Right(json)
     }
