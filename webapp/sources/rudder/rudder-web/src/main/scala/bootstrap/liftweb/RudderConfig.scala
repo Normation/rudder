@@ -123,7 +123,7 @@ import com.normation.rudder.facts.nodes.NodeInfoServiceProxy
 import com.normation.rudder.facts.nodes.NoopFactStorage
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectNodeStatus
-import com.normation.rudder.facts.nodes.SoftDaoGetNodesbySofwareName
+import com.normation.rudder.facts.nodes.SoftDaoGetNodesBySoftwareName
 import com.normation.rudder.facts.nodes.WoFactNodeRepositoryProxy
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
@@ -1962,7 +1962,7 @@ object RudderConfigInit {
       uuidGen
     )
 
-    lazy val getNodeBySoftwareName = new SoftDaoGetNodesbySofwareName(deprecated.softwareInventoryDAO)
+    lazy val getNodeBySoftwareName = new SoftDaoGetNodesBySoftwareName(deprecated.softwareInventoryDAO)
 
     lazy val tenantService = DefaultTenantService.make(Nil).runNow
 

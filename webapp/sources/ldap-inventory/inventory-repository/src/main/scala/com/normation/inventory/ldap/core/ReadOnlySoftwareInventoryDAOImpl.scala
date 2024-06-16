@@ -230,7 +230,7 @@ class ReadOnlySoftwareDAOImpl(
     }
   }
 
-  def getNodesbySofwareName(softName: String): IOResult[List[(NodeId, Software)]] = {
+  def getNodesBySoftwareName(softName: String): IOResult[List[(NodeId, Software)]] = {
 
     val n1 = System.currentTimeMillis
     for {

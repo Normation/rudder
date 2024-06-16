@@ -218,8 +218,8 @@ class MockNodeFactFullInventoryRepositoryProxy(backend: NodeFactRepository)
     }
   }
 
-  override def getNodesbySofwareName(softName: String): IOResult[List[(NodeId, Software)]] = {
-    backend.getNodesbySofwareName(softName)
+  override def getNodesBySoftwareName(softName: String): IOResult[List[(NodeId, Software)]] = {
+    backend.getNodesBySoftwareName(softName)
   }
 }
 

@@ -102,7 +102,7 @@ class TestFullInventoryRepoProxy extends Specification {
     _ <- acceptedRef.set(Map())
   } yield ()).runNow
 
-  object noopNodeBySoftwareName extends GetNodesbySofwareName {
+  object noopNodeBySoftwareName extends GetNodesBySoftwareName {
     override def apply(softName: String): IOResult[List[(NodeId, Software)]] = {
       Nil.succeed
     }

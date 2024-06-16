@@ -107,7 +107,7 @@ import com.normation.rudder.facts.nodes.NodeFactStorage
 import com.normation.rudder.facts.nodes.NodeInfoServiceProxy
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
-import com.normation.rudder.facts.nodes.SoftDaoGetNodesbySofwareName
+import com.normation.rudder.facts.nodes.SoftDaoGetNodesBySoftwareName
 import com.normation.rudder.facts.nodes.StorageChangeEventDelete
 import com.normation.rudder.facts.nodes.StorageChangeEventSave
 import com.normation.rudder.facts.nodes.StorageChangeEventStatus
@@ -2188,7 +2188,7 @@ class MockNodes() {
       ???
     }
 
-    def getNodesbySofwareName(softName: String): IOResult[List[(NodeId, Software)]] = {
+    def getNodesBySoftwareName(softName: String): IOResult[List[(NodeId, Software)]] = {
       for {
         facts <- nodeFactRepo.slowGetAllCompat(AcceptedInventory, SelectFacts.softwareOnly).runCollect
       } yield {
@@ -2202,12 +2202,12 @@ class MockNodes() {
     }
   }
 
-  val getNodesbySofwareName = new SoftDaoGetNodesbySofwareName(softwareDao)
+  val getNodesBySoftwareName = new SoftDaoGetNodesBySoftwareName(softwareDao)
 
   val tenantService = DefaultTenantService.make(Nil).runNow
 
   val nodeFactRepo: CoreNodeFactRepository = {
-    CoreNodeFactRepository.make(nodeFactStorage, getNodesbySofwareName, tenantService, Chunk(), Chunk()).runNow
+    CoreNodeFactRepository.make(nodeFactStorage, getNodesBySoftwareName, tenantService, Chunk(), Chunk()).runNow
   }
 
   object queryProcessor extends QueryProcessor {

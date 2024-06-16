@@ -149,7 +149,7 @@ trait NodeFactRepository {
     statusCompat(status, (qc, s) => slowGet(nodeId)(qc, s, attrs))
   }
 
-  def getNodesbySofwareName(softName: String): IOResult[List[(NodeId, Software)]]
+  def getNodesBySoftwareName(softName: String): IOResult[List[(NodeId, Software)]]
 
   /*
    * get all node facts.
@@ -331,7 +331,7 @@ object CoreNodeFactRepository {
 
   def make(
       storage:       NodeFactStorage,
-      softByName:    GetNodesbySofwareName,
+      softByName:    GetNodesBySoftwareName,
       tenants:       TenantService,
       callbacks:     Chunk[NodeFactChangeEventCallback],
       savePreChecks: Chunk[NodeFact => IOResult[Unit]] = defaultSavePreChecks // that should really be used apart in some tests
@@ -348,7 +348,7 @@ object CoreNodeFactRepository {
 
   def make(
       storage:       NodeFactStorage,
-      softByName:    GetNodesbySofwareName,
+      softByName:    GetNodesBySoftwareName,
       tenants:       TenantService,
       pending:       Map[NodeId, CoreNodeFact],
       accepted:      Map[NodeId, CoreNodeFact],
@@ -367,18 +367,18 @@ object CoreNodeFactRepository {
 
 // we have some specialized services / materialized view for complex queries. Implementation can manage cache and
 // react to callbacks (update events) to manage consistency
-trait GetNodesbySofwareName {
+trait GetNodesBySoftwareName {
   def apply(softName: String): IOResult[List[(NodeId, Software)]]
 }
 
-object NoopGetNodesbySofwareName extends GetNodesbySofwareName {
+object NoopGetNodesBySoftwareName extends GetNodesBySoftwareName {
   override def apply(softName: String): IOResult[List[(NodeId, Software)]] = Nil.succeed
 }
 
 // default implementation is just a proxy on top of software dao
-class SoftDaoGetNodesbySofwareName(val softwareDao: ReadOnlySoftwareDAO) extends GetNodesbySofwareName {
+class SoftDaoGetNodesBySoftwareName(val softwareDao: ReadOnlySoftwareDAO) extends GetNodesBySoftwareName {
   override def apply(softName: String): IOResult[List[(NodeId, Software)]] = {
-    softwareDao.getNodesbySofwareName(softName)
+    softwareDao.getNodesBySoftwareName(softName)
   }
 }
 
@@ -395,7 +395,7 @@ class SoftDaoGetNodesbySofwareName(val softwareDao: ReadOnlySoftwareDAO) extends
  */
 class CoreNodeFactRepository(
     storage:        NodeFactStorage,
-    softwareByName: GetNodesbySofwareName,
+    softwareByName: GetNodesBySoftwareName,
     tenantService:  TenantService,
     pendingNodes:   Ref[Map[NodeId, CoreNodeFact]],
     acceptedNodes:  Ref[Map[NodeId, CoreNodeFact]],
@@ -565,7 +565,7 @@ class CoreNodeFactRepository(
     )
   }
 
-  override def getNodesbySofwareName(softName: String): IOResult[List[(NodeId, Software)]] = {
+  override def getNodesBySoftwareName(softName: String): IOResult[List[(NodeId, Software)]] = {
     softwareByName(softName)
   }
 

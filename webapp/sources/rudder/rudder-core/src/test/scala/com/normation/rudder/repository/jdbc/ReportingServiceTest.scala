@@ -55,7 +55,7 @@ import com.normation.rudder.facts.nodes.CoreNodeFactRepository
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.NoopFactStorage
-import com.normation.rudder.facts.nodes.NoopGetNodesbySofwareName
+import com.normation.rudder.facts.nodes.NoopGetNodesBySoftwareName
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.AgentRunIntervalService
@@ -128,7 +128,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       t <- DefaultTenantService.make(Nil)
       r <-
         CoreNodeFactRepository
-          .make(NoopFactStorage, NoopGetNodesbySofwareName, t, Map(), accepted, Chunk.empty, testSavePrechecks)
+          .make(NoopFactStorage, NoopGetNodesBySoftwareName, t, Map(), accepted, Chunk.empty, testSavePrechecks)
     } yield r).runNow
   }
 

@@ -290,7 +290,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
     def slowGet(
         nodeId: NodeId
     )(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): IOResult[Option[NodeFact]] = ???
-    def getNodesbySofwareName(softName:        String): IOResult[List[(NodeId, Software)]] = ???
+    def getNodesBySoftwareName(softName:       String): IOResult[List[(NodeId, Software)]] = ???
     def slowGetAll()(implicit qc:              QueryContext, status:  SelectNodeStatus, attrs: SelectFacts):      errors.IOStream[NodeFact]       = ???
     def save(nodeFact:                         NodeFact)(implicit cc: ChangeContext, attrs:    SelectFacts):      IOResult[NodeFactChangeEventCC] = ???
     def setSecurityTag(nodeId: NodeId, tag: Option[SecurityTag])(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] =
