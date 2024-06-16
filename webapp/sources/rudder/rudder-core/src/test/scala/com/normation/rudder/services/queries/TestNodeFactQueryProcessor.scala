@@ -147,10 +147,10 @@ class TestNodeFactQueryProcessor {
   case class TestQuery(name: String, query: Query, awaited: Seq[NodeId])
 
   // when one need to debug search, you can just uncomment that to set log-level to trace
-  org.slf4j.LoggerFactory
-    .getLogger("query.node-fact")
-    .asInstanceOf[ch.qos.logback.classic.Logger]
-    .setLevel(ch.qos.logback.classic.Level.TRACE)
+//  org.slf4j.LoggerFactory
+//    .getLogger("query.node-fact")
+//    .asInstanceOf[ch.qos.logback.classic.Logger]
+//    .setLevel(ch.qos.logback.classic.Level.TRACE)
 
   val s: Seq[NodeId] = Seq(
     new NodeId("node0"),
