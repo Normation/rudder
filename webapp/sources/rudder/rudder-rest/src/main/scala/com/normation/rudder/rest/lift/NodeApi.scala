@@ -1028,7 +1028,7 @@ class NodeApiService(
       _              <- TimingDebugLoggerPure.trace(s"Getting global mode: ${n5 - n4}ms")
       softToLookAfter = query.software.getOrElse(List.empty)
       softs          <- ZIO
-                           .foreach(softToLookAfter)(soft => nodeFactRepository.getNodesBySoftwareName(soft))
+                          .foreach(softToLookAfter)(soft => nodeFactRepository.getNodesBySoftwareName(soft))
                           .map(_.flatten.groupMap(_._1)(_._2))
       n6             <- currentTimeMillis
       _              <- TimingDebugLoggerPure.trace(s"all data fetched for response: ${n6 - n5}ms")
@@ -1091,7 +1091,7 @@ class NodeApiService(
                       case None          => nodeFactRepository.getAll()
                       case Some(nodeIds) => nodeFactRepository.getAll().map(_.filterKeys(id => nodeIds.contains(id.value)))
                     }
-      softs      <- nodeFactRepository.getNodesBySoftwareName(software).toBox.map(_.toMap).toIO
+      softs      <- nodeFactRepository.getNodesBySoftwareName(software).map(_.toMap)
     } yield {
       nodes.keySet.toList.flatMap(id => softs.get(id).flatMap(_.version.map(v => (id.value, v)))).toMap
     }
