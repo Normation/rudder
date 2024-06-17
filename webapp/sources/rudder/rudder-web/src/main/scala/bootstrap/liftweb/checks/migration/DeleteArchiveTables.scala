@@ -58,7 +58,6 @@ class DeleteArchiveTables(
     "archivednodecompliance",
     "archivednodeconfigurations",
     "archivedruddersysevents",
-    "nodecompliance",
     "migrationeventlog"
   )
 

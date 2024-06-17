@@ -469,17 +469,14 @@ class UpdateExpectedReportsJdbcRepository(
   override def deleteNodeCompliances(date: DateTime): Box[Int] = {
 
     val dateAt_0000 = date.toString("yyyy-MM-dd")
-    val d1          = s"delete from archivednodecompliance where coalesce(runtimestamp, '${dateAt_0000}') < '${dateAt_0000}'"
-    val d2          = s"delete from nodecompliance where coalesce(runtimestamp, '${dateAt_0000}') < '${dateAt_0000}'"
+    val d1          = s"delete from nodecompliance where coalesce(runtimestamp, '${dateAt_0000}') < '${dateAt_0000}'"
 
     logger.debug(s"""Deleting NodeCompliance with SQL query: [[
                     | ${d1}
-                    |]] and: [[
-                    | ${d2}
                     |]]""".stripMargin)
 
     (for {
-      i <- transactRunEither(xa => (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).transact(xa))
+      i <- transactRunEither(xa => (d1 :: Nil).traverse(q => Update0(q, None).run).transact(xa))
     } yield {
       i
     }) match {
