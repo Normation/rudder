@@ -1,6 +1,6 @@
 module Healthcheck.ApiCalls exposing (..)
 
-import Http exposing (emptyBody, expectJson, jsonBody, request)
+import Http exposing (emptyBody, expectJson, header, request)
 
 import Healthcheck.DataTypes exposing (Model, Msg(..))
 import Healthcheck.JsonDecoder exposing (decodeGetRoleApiResult)
@@ -14,7 +14,7 @@ getHealthCheck : Model -> Cmd Msg
 getHealthCheck model =
     request
         { method          = "GET"
-        , headers         = []
+        , headers         = [header "X-Requested-With" "XMLHttpRequest"]
         , url             = getUrl model "/healthcheck"
         , body            = emptyBody
         , expect          = expectJson GetHealthCheckResult decodeGetRoleApiResult
