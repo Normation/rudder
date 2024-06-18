@@ -77,7 +77,7 @@ trait ReportsRepository {
       runs:               Set[AgentRunId],
       filterByRules:      Set[RuleId],
       filterByDirectives: Set[DirectiveId]
-  ): Box[Map[NodeId, Seq[Reports]]]
+  ): IOResult[Map[NodeId, Seq[Reports]]]
 
   /**
    * Returns all reports for the node, between the two differents date (optionnal)

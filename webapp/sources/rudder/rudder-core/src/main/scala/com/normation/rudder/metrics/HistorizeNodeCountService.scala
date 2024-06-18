@@ -154,7 +154,7 @@ class FetchDataServiceImpl(nodeFactRepo: NodeFactRepository, reportingService: R
     (for {
       accepted   <- nodeFactRepo.getAll()(QueryContext.systemQC, SelectNodeStatus.Accepted)
       pending    <- nodeFactRepo.getAll()(QueryContext.systemQC, SelectNodeStatus.Pending)
-      compliance <- reportingService.getUserNodeStatusReports()(QueryContext.systemQC).toIO
+      compliance <- reportingService.getUserNodeStatusReports()(QueryContext.systemQC)
     } yield {
       val modes = compliance.values.groupMapReduce(r => mode(r.compliance))(_ => 1)(_ + _)
       FrequentNodeMetrics(

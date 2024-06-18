@@ -916,7 +916,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   }
   override def getGroupLibrary():                          Box[FullNodeGroupCategory]         = roNodeGroupRepository.getFullGroupLibrary().toBox
   override def getAllGlobalParameters:                     Box[Seq[GlobalParameter]]          = parameterService.getAllGlobalParameters()
-  override def getGlobalComplianceMode():                  Box[GlobalComplianceMode]          = complianceModeService.getGlobalComplianceMode
+  override def getGlobalComplianceMode():                  Box[GlobalComplianceMode]          = complianceModeService.getGlobalComplianceMode.toBox
   override def getGlobalAgentRun():                        Box[AgentRunInterval]              = agentRunService.getGlobalAgentRun()
   override def getAppliedRuleIds(
       rules:            Seq[Rule],

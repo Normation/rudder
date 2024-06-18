@@ -138,8 +138,6 @@ import com.normation.zio.UnsafeRun
 import com.typesafe.config.ConfigFactory
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
-import net.liftweb.common.Box
-import net.liftweb.common.Full
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
 import scala.collection.MapView
@@ -343,11 +341,9 @@ class MockCompliance(mockDirectives: MockDirectives) {
   def reportingService(statusReports: Map[NodeId, NodeStatusReport]): ReportingService = new ReportingService {
     def findRuleNodeStatusReports(nodeIds: Set[NodeId], filterByRules: Set[RuleId])(implicit
         qc: QueryContext
-    ): Box[Map[NodeId, NodeStatusReport]] = {
+    ): IOResult[Map[NodeId, NodeStatusReport]] = {
       val filteredNodeReports = statusReports.view.filterKeys(nodeIds.contains(_)).toMap
-      Full(
-        filterReportsByRules(filteredNodeReports, filterByRules)
-      )
+      filterReportsByRules(filteredNodeReports, filterByRules).succeed
     }
     // used in node details API
     def getSystemAndUserCompliance(
@@ -359,8 +355,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
     def findDirectiveNodeStatusReports(
         nodeIds:            Set[NodeId],
         filterByDirectives: Set[DirectiveId]
-    )(implicit qc: QueryContext): Box[Map[NodeId, NodeStatusReport]] = ???
-    def findUncomputedNodeStatusReports():                                               Box[Map[NodeId, NodeStatusReport]]      = ???
+    )(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] = ???
+    def findUncomputedNodeStatusReports():                                               IOResult[Map[NodeId, NodeStatusReport]] = ???
     def findRuleNodeCompliance(nodeIds: Set[NodeId], tag: PolicyTypeName, filterByRules: Set[RuleId])(implicit
         qc: QueryContext
     ): IOResult[Map[NodeId, ComplianceLevel]] = ???
@@ -371,15 +367,15 @@ class MockCompliance(mockDirectives: MockDirectives) {
     )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
     def findDirectiveRuleStatusReportsByRule(ruleId: RuleId)(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] =
       ???
-    def findNodeStatusReport(nodeId:            NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = ???
-    def findUserNodeStatusReport(nodeId:        NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = ???
-    def findSystemNodeStatusReport(nodeId:      NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = ???
-    def getUserNodeStatusReports()(implicit qc: QueryContext): Box[Map[NodeId, NodeStatusReport]] = ???
+    def findNodeStatusReport(nodeId:            NodeId)(implicit qc: QueryContext): IOResult[NodeStatusReport] = ???
+    def findUserNodeStatusReport(nodeId:        NodeId)(implicit qc: QueryContext): IOResult[NodeStatusReport] = ???
+    def findSystemNodeStatusReport(nodeId:      NodeId)(implicit qc: QueryContext): IOResult[NodeStatusReport] = ???
+    def getUserNodeStatusReports()(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] = ???
     def findStatusReportsForDirective(directiveId: DirectiveId)(implicit
         qc: QueryContext
     ): IOResult[Map[NodeId, NodeStatusReport]] = ???
     def computeComplianceFromReports(reports:   Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = ???
-    def getGlobalUserCompliance()(implicit qc:  QueryContext): Box[Option[(ComplianceLevel, Long)]] = ???
+    def getGlobalUserCompliance()(implicit qc:  QueryContext): IOResult[Option[(ComplianceLevel, Long)]] = ???
   }
 
   val complianceAPIService: ComplianceAPIService = {

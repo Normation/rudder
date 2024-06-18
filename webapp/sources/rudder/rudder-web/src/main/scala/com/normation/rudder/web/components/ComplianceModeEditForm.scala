@@ -37,6 +37,7 @@
 
 package com.normation.rudder.web.components
 
+import com.normation.box.*
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -71,8 +72,8 @@ sealed trait ParseComplianceMode[T <: ComplianceMode] {
 
   def parseMode(jsonMode: JObject): Box[ComplianceModeName] = {
     jsonMode.values.get("name") match {
-      case Some(JString(mode)) => ComplianceModeName.parse(mode)
-      case Some(mode: String)  => ComplianceModeName.parse(mode)
+      case Some(JString(mode)) => ComplianceModeName.parse(mode).toBox
+      case Some(mode: String)  => ComplianceModeName.parse(mode).toBox
       case Some(json: JValue)  => Failure(s"'${(json)}' is not a valid value for compliance mode 'name' attribute")
       // Should not happen, values in lift json are only JValues, but since we type any we have to add it unless we will have a warning
       case Some(any)           => Failure(s"'${any}' is not a valid value for compliance mode 'name' attribute")

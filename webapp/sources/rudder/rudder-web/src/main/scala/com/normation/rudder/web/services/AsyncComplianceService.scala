@@ -38,6 +38,7 @@
 package com.normation.rudder.web.services
 
 import com.normation.box.*
+import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.policies.PolicyTypeName
@@ -76,7 +77,7 @@ class AsyncComplianceService(
     val jsContainer: String
 
     // Compute compliance
-    def computeCompliance()(implicit qc: QueryContext): Box[Map[Kind, Option[ComplianceLevel]]]
+    def computeCompliance()(implicit qc: QueryContext): IOResult[Map[Kind, Option[ComplianceLevel]]]
 
     final protected def toCompliance(id: Kind, reports: Iterable[RuleNodeStatusReport]): (Kind, Some[ComplianceLevel]) = {
       // BE CAREFUL: reports may be a SET - and it's likely that
@@ -110,7 +111,7 @@ class AsyncComplianceService(
         } else {
           val start = System.currentTimeMillis
           for {
-            compliances <- computeCompliance()
+            compliances <- computeCompliance().toBox
             after        = System.currentTimeMillis
             _            = TimingDebugLogger.debug(s"computing compliance in Future took ${after - start}ms")
           } yield {
@@ -130,9 +131,9 @@ class AsyncComplianceService(
     def empty:       Boolean = nodeIds.isEmpty
 
     // Compute compliance
-    def computeCompliance()(implicit qc: QueryContext): Box[Map[NodeId, Option[ComplianceLevel]]] = {
+    def computeCompliance()(implicit qc: QueryContext): IOResult[Map[NodeId, Option[ComplianceLevel]]] = {
       for {
-        compliance <- reportingService.findRuleNodeCompliance(nodeIds, PolicyTypeName.rudderSystem, ruleIds).toBox
+        compliance <- reportingService.findRuleNodeCompliance(nodeIds, PolicyTypeName.rudderSystem, ruleIds)
       } yield {
         val found      = compliance.map { case (id, comp) => (id, toComplianceWithMissing(comp)) }
         // add missing elements with "None" compliance, see #7281, #8030, #8141, #11842
@@ -152,9 +153,9 @@ class AsyncComplianceService(
     def empty:       Boolean = nodeIds.isEmpty
 
     // Compute compliance
-    def computeCompliance()(implicit qc: QueryContext): Box[Map[NodeId, Option[ComplianceLevel]]] = {
+    def computeCompliance()(implicit qc: QueryContext): IOResult[Map[NodeId, Option[ComplianceLevel]]] = {
       for {
-        compliance <- reportingService.findRuleNodeCompliance(nodeIds, PolicyTypeName.rudderBase, ruleIds).toBox
+        compliance <- reportingService.findRuleNodeCompliance(nodeIds, PolicyTypeName.rudderBase, ruleIds)
       } yield {
         val found = compliance.map { case (id, comp) => (id, toComplianceWithMissing(comp)) }
 
@@ -175,7 +176,7 @@ class AsyncComplianceService(
     def empty:       Boolean = ruleIds.isEmpty
 
     // Compute compliance
-    def computeCompliance()(implicit qc: QueryContext): Box[Map[RuleId, Option[ComplianceLevel]]] = {
+    def computeCompliance()(implicit qc: QueryContext): IOResult[Map[RuleId, Option[ComplianceLevel]]] = {
       for {
         reports <- reportingService.findRuleNodeStatusReports(nodeIds, ruleIds)
       } yield {
@@ -240,18 +241,5 @@ class AsyncComplianceService(
     val kind = new RuleCompliance(nodeIds, ruleIds)
     compliance(kind, tableId)
 
-  }
-
-  def nodeCompliance(nodeId: NodeId, ruleIds: Set[RuleId])(implicit qr: QueryContext): Box[ComplianceLevel] = {
-    val node = new NodeCompliance(Set(nodeId), ruleIds)
-    node.computeCompliance() match {
-      case Full(contentMap) =>
-        contentMap.get(nodeId) match {
-          case Some(Some(compliance)) => Full(compliance)
-          case _                      => Failure(s"No compliance found for ${nodeId.value}")
-        }
-      case eb: EmptyBox =>
-        eb ?~! s"Compute compliance of ${nodeId.value} failed"
-    }
   }
 }

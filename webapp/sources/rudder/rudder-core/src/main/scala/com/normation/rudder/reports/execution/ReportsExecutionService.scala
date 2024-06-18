@@ -149,7 +149,7 @@ class ReportsExecutionService(
 
     val startCompliance = System.currentTimeMillis
     for {
-      nodeWithCompliances <- cachedCompliance.findUncomputedNodeStatusReports().toIO
+      nodeWithCompliances <- cachedCompliance.findUncomputedNodeStatusReports()
       _                   <- cachedCompliance.invalidateWithAction(nodeWithCompliances.map {
                                case (nodeid, compliance) => (nodeid, UpdateCompliance(nodeid, compliance))
                              }.toSeq)

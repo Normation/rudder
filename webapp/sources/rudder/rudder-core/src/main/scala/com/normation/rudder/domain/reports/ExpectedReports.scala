@@ -39,7 +39,6 @@ package com.normation.rudder.domain.reports
 
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.policies.DirectiveId
@@ -222,7 +221,7 @@ object ExpectedReportsSerialisation {
     implicit val encoderComplianceModeName: JsonEncoder[ComplianceModeName] =
       JsonEncoder[String].contramap[ComplianceModeName](_.name)
     implicit val decoderComplianceModeName: JsonDecoder[ComplianceModeName] =
-      JsonDecoder[String].mapOrFail(s => ComplianceModeName.parse(s).toPureResult.left.map(_.fullMsg))
+      JsonDecoder[String].mapOrFail(s => ComplianceModeName.parse(s).left.map(_.fullMsg))
     JsonCodec(encoderComplianceModeName, decoderComplianceModeName)
   }
   implicit val codecPolicyMode:          JsonCodec[PolicyMode]          = {

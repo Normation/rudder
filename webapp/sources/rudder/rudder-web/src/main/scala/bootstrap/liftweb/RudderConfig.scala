@@ -67,7 +67,6 @@ import com.normation.cfclerk.services.impl.*
 import com.normation.cfclerk.xmlparsers.*
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
 import com.normation.cfclerk.xmlwriters.SectionSpecWriterImpl
-import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.errors.SystemError
 import com.normation.inventory.domain.*
@@ -1884,7 +1883,7 @@ object RudderConfigInit {
       roNodeGroupRepository,
       reportingService,
       roDirectiveRepository,
-      globalComplianceModeService.getGlobalComplianceMode.toIO,
+      globalComplianceModeService.getGlobalComplianceMode,
       configService.rudder_global_policy_mode()
     )
 
@@ -2899,8 +2898,8 @@ object RudderConfigInit {
 
     lazy val globalComplianceModeService: ComplianceModeService   = {
       new ComplianceModeServiceImpl(
-        () => configService.rudder_compliance_mode_name().toBox,
-        () => configService.rudder_compliance_heartbeatPeriod().toBox
+        configService.rudder_compliance_mode_name(),
+        configService.rudder_compliance_heartbeatPeriod()
       )
     }
     lazy val globalAgentRunService:       AgentRunIntervalService = {
@@ -3092,20 +3091,17 @@ object RudderConfigInit {
           findExpectedRepo,
           reportsRepositoryImpl,
           roAgentRunsRepository,
-          globalAgentRunService,
           nodeFactRepository,
           roLdapDirectiveRepository,
           roRuleRepository,
           cachedNodeConfigurationService,
-          () => globalComplianceModeService.getGlobalComplianceMode,
-          configService.rudder_global_policy_mode _,
-          () => configService.rudder_compliance_unexpected_report_interpretation().toBox,
+          globalComplianceModeService.getGlobalComplianceMode,
+          configService.rudder_global_policy_mode(),
+          configService.rudder_compliance_unexpected_report_interpretation(),
           RUDDER_JDBC_BATCH_MAX_SIZE
         ),
         nodeFactRepository,
         RUDDER_JDBC_BATCH_MAX_SIZE, // use same size as for SQL requests
-
-        complianceRepositoryImpl,
         scoreServiceManager
       )
       // to avoid a StackOverflowError, we set the compliance cache once it'z ready,

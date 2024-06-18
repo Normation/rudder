@@ -37,7 +37,7 @@
 
 package com.normation.rudder.reports
 
-import net.liftweb.common.*
+import com.normation.errors.*
 
 /**
  * Define level of compliance:
@@ -65,14 +65,16 @@ case object ReportsDisabled extends ComplianceModeName {
 object ComplianceModeName {
   val allModes: List[ComplianceModeName] = FullCompliance :: ChangesOnly :: ReportsDisabled :: Nil
 
-  def parse(value: String): Box[ComplianceModeName] = {
+  def parse(value: String): PureResult[ComplianceModeName] = {
     allModes.find(_.name == value) match {
       case None       =>
-        Failure(
-          s"Unable to parse the compliance mode name '${value}'. was expecting ${allModes.map(_.name).mkString("'", "' or '", "'")}."
+        Left(
+          Unexpected(
+            s"Unable to parse the compliance mode name '${value}'. was expecting ${allModes.map(_.name).mkString("'", "' or '", "'")}."
+          )
         )
       case Some(mode) =>
-        Full(mode)
+        Right(mode)
     }
   }
 }
@@ -95,19 +97,19 @@ final case class NodeComplianceMode(
 ) extends ComplianceMode
 
 trait ComplianceModeService {
-  def getGlobalComplianceMode: Box[GlobalComplianceMode]
+  def getGlobalComplianceMode: IOResult[GlobalComplianceMode]
 }
 
 class ComplianceModeServiceImpl(
-    readComplianceMode: () => Box[String],
-    readHeartbeatFreq:  () => Box[Int]
+    readComplianceMode: IOResult[String],
+    readHeartbeatFreq:  IOResult[Int]
 ) extends ComplianceModeService {
 
-  def getGlobalComplianceMode: Box[GlobalComplianceMode] = {
+  def getGlobalComplianceMode: IOResult[GlobalComplianceMode] = {
     for {
-      modeName  <- readComplianceMode()
-      mode      <- ComplianceModeName.parse(modeName)
-      heartbeat <- readHeartbeatFreq()
+      modeName  <- readComplianceMode
+      mode      <- ComplianceModeName.parse(modeName).toIO
+      heartbeat <- readHeartbeatFreq
     } yield {
       GlobalComplianceMode(
         mode,

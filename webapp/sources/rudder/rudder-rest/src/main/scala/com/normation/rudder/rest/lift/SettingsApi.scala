@@ -474,12 +474,12 @@ class SettingsApi(
     }
     def parseJson(json: JValue):   Box[ComplianceModeName]                                            = {
       json match {
-        case JString(value) => ComplianceModeName.parse(value)
+        case JString(value) => ComplianceModeName.parse(value).toBox
         case x              => Failure("Invalid value " + x)
       }
     }
     def parseParam(param: String): Box[ComplianceModeName]                                            = {
-      ComplianceModeName.parse(param)
+      ComplianceModeName.parse(param).toBox
     }
     def toJson(value: ComplianceModeName): JValue = value.name
   }

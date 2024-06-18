@@ -288,7 +288,7 @@ class ShowNodeDetailsFromNode(
       "node_reports",
       "reportsDetails",
       "reportsGrid",
-      RudderConfig.reportingService.findUserNodeStatusReport(_),
+      RudderConfig.reportingService.findUserNodeStatusReport(_).toBox,
       addOverriden = true,
       onlySystem = false
     ) &
@@ -297,7 +297,7 @@ class ShowNodeDetailsFromNode(
       "system_status",
       "systemStatus",
       "systemStatusGrid",
-      RudderConfig.reportingService.findSystemNodeStatusReport(_),
+      RudderConfig.reportingService.findSystemNodeStatusReport(_).toBox,
       addOverriden = false,
       onlySystem = true
     ) &

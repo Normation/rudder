@@ -169,21 +169,22 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def nodeConfigrationService:                                                         NodeConfigurationService                = null
     def findDirectiveRuleStatusReportsByRule(ruleId: RuleId)(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] =
       null
-    def findNodeStatusReport(nodeId:           NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = null
+    def findNodeStatusReport(nodeId:           NodeId)(implicit qc: QueryContext): IOResult[NodeStatusReport] = null
     def findStatusReportsForDirective(directiveId: DirectiveId)(implicit
         qc: QueryContext
     ): IOResult[Map[NodeId, NodeStatusReport]] = null
-    def findUserNodeStatusReport(nodeId:       NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = null
-    def findSystemNodeStatusReport(nodeId:     NodeId)(implicit qc: QueryContext): Box[NodeStatusReport] = null
-    def getGlobalUserCompliance()(implicit qc: QueryContext): Box[Option[(ComplianceLevel, Long)]] = null
-    def findUncomputedNodeStatusReports(): Box[Map[NodeId, NodeStatusReport]] = null
+    def findUserNodeStatusReport(nodeId:       NodeId)(implicit qc: QueryContext): IOResult[NodeStatusReport] = null
+    def findSystemNodeStatusReport(nodeId:     NodeId)(implicit qc: QueryContext): IOResult[NodeStatusReport] = null
+    def getGlobalUserCompliance()(implicit qc: QueryContext): IOResult[Option[(ComplianceLevel, Long)]] = null
+    def findUncomputedNodeStatusReports(): IOResult[Map[NodeId, NodeStatusReport]] = null
 
     @nowarn("msg=parameter.*is never used")
-    def getUserNodeStatusReports()(implicit qc: QueryContext):                  Box[Map[NodeId, NodeStatusReport]] = Full(Map())
+    def getUserNodeStatusReports()(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] = Map().succeed
+
     def getSystemAndUserCompliance(
         optNodeIds: Option[Set[NodeId]]
     )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
-    def computeComplianceFromReports(reports:   Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)]    = None
+    def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = None
 
     override def batchSize: Int = 5000
 
@@ -349,14 +350,13 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     findExpected,
     reportsRepo,
     roAgentRun,
-    agentRunService,
     nodeFactRepo,
     directivesRepos,
     rulesRepos,
     nodeConfigService,
-    () => Full(compliance),
-    () => GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always).succeed,
-    () => Full(UnexpectedReportInterpretation(Set())),
+    compliance.succeed,
+    GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always).succeed,
+    UnexpectedReportInterpretation(Set()).succeed,
     RUDDER_JDBC_BATCH_MAX_SIZE
   )
 

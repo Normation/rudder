@@ -56,6 +56,7 @@ import net.liftweb.common.*
 import org.joda.time.*
 import org.joda.time.format.ISODateTimeFormat
 import zio.interop.catz.*
+import zio.syntax.*
 
 class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Loggable {
   import doobie.*
@@ -81,9 +82,9 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
       runs:               Set[AgentRunId],
       filterByRules:      Set[RuleId],
       filterByDirectives: Set[DirectiveId]
-  ): Box[Map[NodeId, Seq[Reports]]] = {
+  ): IOResult[Map[NodeId, Seq[Reports]]] = {
     runs.map(n => (n.nodeId.value, n.date)).toList.toNel match {
-      case None             => Full(Map())
+      case None             => Map().succeed
       case Some(nodeValues) =>
         val ruleClause      = filterByRules.toList.toNel.map(r => Fragments.in(fr"ruleid", r))
         val directiveClause = filterByDirectives.toList.toNel.map(r => Fragments.in(fr"directiveid", r))
@@ -92,8 +93,10 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
 
         val q =
           sql"select executiondate, ruleid, directiveid, nodeid, reportid, component, keyvalue, executiontimestamp, eventtype, msg from RudderSysEvents " ++ where
-        transactRunBox(xa => q.query[Reports].to[Vector].transact(xa)).map(_.groupBy(_.nodeId)) ?~!
-        s"Error when trying to get last run reports for ${runs.size} nodes"
+
+        transactIOResult(s"Error when trying to get last run reports for ${runs.size} nodes")(xa =>
+          q.query[Reports].to[Vector].transact(xa)
+        ).map(_.groupBy(_.nodeId))
     }
   }
 

@@ -125,5 +125,5 @@ trait FindExpectedReportRepository {
    * Retrieve all the nodeConfigIdInfo for the given list of nodes.
    * The property "nodeIds == returnedResult.keySet" holds.
    */
-  def getNodeConfigIdInfos(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[Vector[NodeConfigIdInfo]]]]
+  def getNodeConfigIdInfos(nodeIds: Set[NodeId]): IOResult[Map[NodeId, Option[Vector[NodeConfigIdInfo]]]]
 }

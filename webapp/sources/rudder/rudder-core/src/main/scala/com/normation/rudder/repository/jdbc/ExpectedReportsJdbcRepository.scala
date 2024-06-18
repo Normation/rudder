@@ -57,6 +57,7 @@ import doobie.implicits.*
 import net.liftweb.common.*
 import net.liftweb.json.*
 import org.joda.time.DateTime
+import zio.{System as _, *}
 import zio.interop.catz.*
 import zio.syntax.*
 
@@ -210,7 +211,7 @@ class FindExpectedReportsJdbcRepository(
    * Return node ids associated to the directive (based on expectedreports (the one still pending)) for this Directive,
    * only limited on the nodeIds in parameter (used when cache is incomplete)
    */
-  override def findCurrentNodeIdsForDirective(directiveId: DirectiveId, nodeIds: Set[NodeId]): IOResult[Set[NodeId]]                              = {
+  override def findCurrentNodeIdsForDirective(directiveId: DirectiveId, nodeIds: Set[NodeId]): IOResult[Set[NodeId]] = {
     if (nodeIds.isEmpty) Set.empty[NodeId].succeed
     else {
       transactIOResult(s"Error when getting nodes for directive '${directiveId.serialize}' from expected reports")(xa => sql"""
@@ -220,30 +221,33 @@ class FindExpectedReportsJdbcRepository(
       """.query[NodeId].to[Set].transact(xa))
     }
   }
-  override def findCurrentNodeIdsForDirective(directiveId: DirectiveId):                       IOResult[Set[NodeId]]                              = {
+  override def findCurrentNodeIdsForDirective(directiveId: DirectiveId):                       IOResult[Set[NodeId]] = {
     transactIOResult(s"Error when getting nodes for directive '${directiveId.serialize}' from expected reports")(xa => sql"""
       select distinct nodeid from nodeconfigurations
       where enddate is null and configuration like ${"%" + directiveId.serialize + "%"}
     """.query[NodeId].to[Set].transact(xa))
   }
+
   /*
    * Retrieve the list of node config ids
    */
-  override def getNodeConfigIdInfos(nodeIds: Set[NodeId]):                                     Box[Map[NodeId, Option[Vector[NodeConfigIdInfo]]]] = {
-    if (nodeIds.isEmpty) Full(Map.empty[NodeId, Option[Vector[NodeConfigIdInfo]]])
+  override def getNodeConfigIdInfos(nodeIds: Set[NodeId]): IOResult[Map[NodeId, Option[Vector[NodeConfigIdInfo]]]] = {
+    if (nodeIds.isEmpty) Map.empty[NodeId, Option[Vector[NodeConfigIdInfo]]].succeed
     else {
       val batchedNodesId = nodeIds.grouped(jdbcMaxBatchSize).toSeq
-      traverse(batchedNodesId) { (ids: Set[NodeId]) =>
-        transactRunBox(xa => {
-          (for {
-            entries <- query[(NodeId, String)](s"""select node_id, config_ids from nodes_info
+      ZIO
+        .foreach(batchedNodesId) { (ids: Set[NodeId]) =>
+          transactIOResult(s"Error when querying NodeConfigIdInfo") { xa =>
+            (for {
+              entries <- query[(NodeId, String)](s"""select node_id, config_ids from nodes_info
                                               where ${in("node_id", ids.map(_.value))}""").to[Vector]
-          } yield {
-            val res = entries.map { case (nodeId, config) => (nodeId, NodeConfigIdSerializer.unserialize(config)) }.toMap
-            ids.map(n => (n, res.get(n)))
-          }).transact(xa)
-        })
-      }.map(_.flatten.toMap)
+            } yield {
+              val res = entries.map { case (nodeId, config) => (nodeId, NodeConfigIdSerializer.unserialize(config)) }.toMap
+              ids.map(n => (n, res.get(n)))
+            }).transact(xa)
+          }
+        }
+        .map(_.flatten.toMap)
     }
   }
 }

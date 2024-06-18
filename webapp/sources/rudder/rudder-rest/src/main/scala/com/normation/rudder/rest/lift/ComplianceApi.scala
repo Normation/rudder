@@ -435,7 +435,7 @@ class ComplianceApi(
       (for {
         level     <- restExtractor.extractComplianceLevel(req.params)
         precision <- restExtractor.extractPercentPrecision(req.params)
-        nodes     <- complianceService.getNodesCompliance(false)
+        nodes     <- complianceService.getNodesCompliance(false).toBox
       } yield {
         if (version.value <= 6) {
           nodes.map(_.toJsonV6)
@@ -472,7 +472,7 @@ class ComplianceApi(
       (for {
         level     <- restExtractor.extractComplianceLevel(req.params)
         precision <- restExtractor.extractPercentPrecision(req.params)
-        node      <- complianceService.getNodeCompliance(NodeId(nodeId), onlySystems = false)
+        node      <- complianceService.getNodeCompliance(NodeId(nodeId), onlySystems = false).toBox
       } yield {
         if (version.value <= 6) {
           node.toJsonV6
@@ -509,7 +509,7 @@ class ComplianceApi(
       (for {
         level     <- restExtractor.extractComplianceLevel(req.params)
         precision <- restExtractor.extractPercentPrecision(req.params)
-        node      <- complianceService.getNodeCompliance(NodeId(nodeId), onlySystems = true)
+        node      <- complianceService.getNodeCompliance(NodeId(nodeId), onlySystems = true).toBox
       } yield {
         node.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2))
       }) match {
@@ -533,7 +533,7 @@ class ComplianceApi(
 
       (for {
         precision     <- restExtractor.extractPercentPrecision(req.params)
-        optCompliance <- complianceService.getGlobalCompliance()
+        optCompliance <- complianceService.getGlobalCompliance().toBox
       } yield {
         optCompliance.toJson(precision.getOrElse(CompliancePrecision.Level2))
       }) match {
@@ -643,7 +643,6 @@ class ComplianceAPIService(
                            nodeFacts.keySet.toSet,
                            directives.map(_.id).toSet
                          )
-                         .toIO
       t5            <- currentTimeMillis
       _             <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - findRuleNodeStatusReports in ${t5 - t4} ms")
 
@@ -761,7 +760,6 @@ class ComplianceAPIService(
                            nodeFacts.keySet.toSet,
                            ruleObjects.keySet
                          )
-                         .toIO
       t6            <- currentTimeMillis
       _             <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - findRuleNodeStatusReports in ${t6 - t5} ms")
 
@@ -910,7 +908,6 @@ class ComplianceAPIService(
                            nodeSettings.keySet,
                            rules.keySet
                          )
-                         .toIO
       t2            <- currentTimeMillis
       _             <- TimingDebugLoggerPure.trace(s"getByNodeGroupCompliance - findRuleNodeStatusReports in ${t2 - t1} ms")
 
@@ -1393,7 +1390,6 @@ class ComplianceAPIService(
                           nodeFacts.keySet.toSet,
                           ruleMap.keySet
                         )
-                        .toIO
 
       directiveOverrides <-
         getDirectiveOverrides[ByNodeDirectiveCompliance](ruleMap, reports, directiveLib, _.toComplianceByNodeRule(_))
@@ -1515,21 +1511,21 @@ class ComplianceAPIService(
     PolicyMode.parse(ComputePolicyMode.ruleMode(globalMode, directives, nodeModes)._1).toOption
   }
 
-  def getNodeCompliance(nodeId: NodeId, onlySystems: Boolean)(implicit qc: QueryContext): Box[ByNodeNodeCompliance] = {
+  def getNodeCompliance(nodeId: NodeId, onlySystems: Boolean)(implicit qc: QueryContext): IOResult[ByNodeNodeCompliance] = {
     for {
-      reports <- this.getByNodesCompliance(Some(nodeId), if (onlySystems) getSystemRules() else getAllUserRules()).toBox
-      report  <- Box(reports.find(_.id == nodeId)) ?~! s"No reports were found for node with ID '${nodeId.value}'"
+      reports <- this.getByNodesCompliance(Some(nodeId), if (onlySystems) getSystemRules() else getAllUserRules())
+      report  <- reports.find(_.id == nodeId).notOptional(s"No reports were found for node with ID '${nodeId.value}'")
     } yield {
       report
     }
 
   }
 
-  def getNodesCompliance(onlySystems: Boolean)(implicit qc: QueryContext): Box[Seq[ByNodeNodeCompliance]] = {
-    this.getByNodesCompliance(None, if (onlySystems) getSystemRules() else getAllUserRules()).toBox
+  def getNodesCompliance(onlySystems: Boolean)(implicit qc: QueryContext): IOResult[Seq[ByNodeNodeCompliance]] = {
+    this.getByNodesCompliance(None, if (onlySystems) getSystemRules() else getAllUserRules())
   }
 
-  def getGlobalCompliance()(implicit qc: QueryContext): Box[Option[(ComplianceLevel, Long)]] = {
+  def getGlobalCompliance()(implicit qc: QueryContext): IOResult[Option[(ComplianceLevel, Long)]] = {
     this.reportingService.getGlobalUserCompliance()
   }
 

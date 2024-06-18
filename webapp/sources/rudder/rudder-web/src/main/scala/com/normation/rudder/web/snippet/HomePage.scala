@@ -40,7 +40,6 @@ package com.normation.rudder.web.snippet
 //lift std import
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
-import com.normation.errors.*
 import com.normation.inventory.domain.AixOS
 import com.normation.inventory.domain.BsdType
 import com.normation.inventory.domain.LinuxType
@@ -197,7 +196,7 @@ class HomePage extends StatefulSnippet {
       _                  = TimingDebugLogger.trace(s"Get rules: ${n3 - n2}ms")
       // reports contains the reports for user rules, used in the donut
       reports           <-
-        reportingService.findRuleNodeStatusReports(HomePage.nodeFacts.get.keys.toSet, userRules)(CurrentUser.queryContext).toIO
+        reportingService.findRuleNodeStatusReports(HomePage.nodeFacts.get.keys.toSet, userRules)(CurrentUser.queryContext)
       n4                <- currentTimeMillis
       _                  = TimingDebugLogger.trace(s"Compute Rule Node status reports for all nodes: ${n4 - n3}ms")
       // global compliance is a unique number, used in the top right hand size, based on

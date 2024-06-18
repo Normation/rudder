@@ -38,6 +38,7 @@
 package com.normation.rudder.repository.jdbc
 
 import cats.implicits.*
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.DB
 import com.normation.rudder.db.DBCommon
@@ -49,6 +50,7 @@ import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.reports.execution.AgentRunId
+import com.normation.zio.*
 import doobie.implicits.*
 import net.liftweb.common.*
 import org.joda.time.DateTime
@@ -68,6 +70,13 @@ class ReportsTest extends DBCommon {
     def open: A = box match {
       case Full(x) => x
       case eb: EmptyBox => throw new IllegalArgumentException(s"Test failed, open an empty box: ${eb}")
+    }
+  }
+
+  implicit class ForceRun[A](io: IOResult[A]) {
+    def open: A = io.either.runNow match {
+      case Right(x)  => x
+      case Left(err) => throw new IllegalArgumentException(s"Test failed, open an empty box: ${err.fullMsg}")
     }
   }
 
