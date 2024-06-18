@@ -1,6 +1,6 @@
 module Onboarding.ApiCalls exposing (..)
 
-import Http exposing (emptyBody, expectJson, jsonBody, request)
+import Http exposing (emptyBody, expectJson, header, jsonBody, request)
 import Json.Encode
 
 import Onboarding.DataTypes exposing (Model, Msg(..), AccountSettings, MetricsState)
@@ -16,7 +16,7 @@ getAccountSettings : Model -> Cmd Msg
 getAccountSettings model =
   request
     { method          = "GET"
-    , headers         = []
+    , headers         = [header "X-Requested-With" "XMLHttpRequest"]
     , url             = getUrl model "/plugins/settings"
     , body            = emptyBody
     , expect          = expectJson GetAccountSettings decodeGetAccountSettings
@@ -45,7 +45,7 @@ postAccountSettings : Model -> AccountSettings -> Cmd Msg
 postAccountSettings model accountSettings =
   request
     { method          = "POST"
-    , headers         = []
+    , headers         = [header "X-Requested-With" "XMLHttpRequest"]
     , url             = getUrl model "/plugins/settings"
     , body            = jsonBody (encodeAccountSettings accountSettings)
     , expect          = expectJson PostAccountSettings decodeGetAccountSettings
@@ -75,7 +75,7 @@ setupDone : Model -> Bool -> Cmd Msg
 setupDone model res =
   request
     { method          = "POST"
-    , headers         = []
+    , headers         = [header "X-Requested-With" "XMLHttpRequest"]
     , url             = getUrl model "/settings/rudder_setup_done"
     , body            = jsonBody (Json.Encode.object [ ("value", Json.Encode.bool res)])
     , expect          = expectJson SetupDone decodeSetupDone
