@@ -488,9 +488,11 @@ object DisplayNode extends Loggable {
          |</div>""".stripMargin.replaceAll("\n", " ")
     }
 
-    val nodeStateIcon = (
-      <span class={"node-state " ++ escape(getNodeState(node.rudderSettings.state).toLowerCase).replaceAll(" ", "-")}></span>
-    )
+    val nodeStateClasses: String =
+      "node-state " ++ escape(getNodeState(node.rudderSettings.state).toLowerCase).replaceAll(" ", "-")
+    val nodeStateIcon = {
+      <span class={nodeStateClasses}></span>
+    }
 
     <div class="header-title">
     <div class={"os-logo " ++ sm.node.main.osDetails.os.name.toLowerCase()} data-bs-toggle="tooltip" title={osTooltip}></div>

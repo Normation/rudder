@@ -867,10 +867,6 @@ class GroupApiService2(
             change.copy(newGroup = change.newGroup.copy(_isEnabled = enableCheck))
           }
 
-        case _ =>
-          Failure(
-            s"Could not create group '${name}' (id:${groupId.serialize}) based on an already existing group, cause is: too many values for source parameter."
-          )
       }
     }
 

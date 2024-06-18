@@ -270,28 +270,26 @@ class NodeGroupUnserialisationImpl(
       isSystem     <- (group \ "isSystem").headOption.flatMap(s =>
                         tryo(s.text.toBoolean)
                       ) ?~! ("Missing attribute 'isSystem' in entry type nodeGroup : " + entry)
-      properties   <- traverse((group \ "properties" \ "property").toList) {
-                        // format: off
-                        case <property>{p @ _*}</property> =>
-                        // format: on
-                          val name = (p \\ "name").text.trim
-                          if (name.trim.isEmpty) {
-                            Failure(s"Found unexpected xml under <properties> tag (name is blank): ${p}")
-                          } else {
-                            GroupProperty
-                              .parse(
-                                (p \\ "name").text.trim,
-                                ParseRev((p \\ "revision").text.trim),
-                                StringEscapeUtils.unescapeXml((p \\ "value").text.trim): @nowarn(
-                                  "msg=class StringEscapeUtils in package lang3 is deprecated"
-                                ),
-                                (p \\ "inheritMode").headOption.flatMap(p => InheritMode.parseString(p.text.trim).toOption),
-                                (p \\ "provider").headOption.map(p => PropertyProvider(p.text.trim))
-                              )
-                              .toBox
-                          }
-                        case xml                           => Failure(s"Found unexpected xml under <properties> tag: ${xml}")
-                      }
+      properties: Seq[GroupProperty] <- traverse(group \ "properties" \ "property") { p =>
+                                          val name = (p \ "name").text.trim
+                                          if (name.isEmpty) {
+                                            Failure(s"Found unexpected xml under <properties> tag (name is blank): ${p}")
+                                          } else {
+                                            GroupProperty
+                                              .parse(
+                                                name,
+                                                ParseRev((p \ "revision").text.trim),
+                                                StringEscapeUtils.unescapeXml((p \ "value").text.trim): @nowarn(
+                                                  "msg=class StringEscapeUtils in package lang3 is deprecated"
+                                                ),
+                                                (p \ "inheritMode").headOption.flatMap(p =>
+                                                  InheritMode.parseString(p.text.trim).toOption
+                                                ),
+                                                (p \ "provider").headOption.map(p => PropertyProvider(p.text.trim))
+                                              )
+                                              .toBox
+                                          }
+                                        }
     } yield {
       NodeGroup(
         id = id,
@@ -855,10 +853,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                             Full(ApiAuthorization.RO)
                           case Some(Text(text)) if text == ApiAuthorizationKind.RW.name =>
                             Full(ApiAuthorization.RW)
-                          // format: off
-                          case Some(<acl>{xml @ _*}</acl>) if (xml.nonEmpty) =>
-                          // format: on
-                            unserAcl(xml.head)
+                          case Some(xml @ <acl>{_*}</acl>) if xml.child.nonEmpty        => unserAcl(xml.child.head)
                           // all other case: serialization pb => None
                           case _                                                        => Full(ApiAuthorization.None)
                         }

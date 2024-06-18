@@ -88,7 +88,6 @@ import org.joda.time.DateTime
 import org.joda.time.Duration
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
-import scala.annotation.nowarn
 import scala.collection.SortedMap
 import scala.concurrent.duration.FiniteDuration
 import zio.*
@@ -178,7 +177,6 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def getGlobalUserCompliance()(implicit qc: QueryContext): Box[Option[(ComplianceLevel, Long)]] = null
     def findUncomputedNodeStatusReports(): Box[Map[NodeId, NodeStatusReport]] = null
 
-    @nowarn("msg=parameter.*is never used")
     def getUserNodeStatusReports()(implicit qc: QueryContext):                  Box[Map[NodeId, NodeStatusReport]] = Full(Map())
     def getSystemAndUserCompliance(
         optNodeIds: Option[Set[NodeId]]

@@ -52,12 +52,13 @@ import com.normation.rudder.domain.policies.*
 import com.normation.utils.StringUuidGeneratorImpl
 import net.liftweb.json.JValue
 import org.junit.runner.RunWith
-import org.specs2.mutable.*
-import org.specs2.runner.JUnitRunner
-import org.specs2.specification.core.Fragments
+import zio.{Tag as _, *}
+import zio.syntax.*
+import zio.test.*
+import zio.test.junit.ZTestJUnitRunner
 
-@RunWith(classOf[JUnitRunner])
-class RestDataExtractorTest extends Specification {
+@RunWith(classOf[ZTestJUnitRunner])
+class RestDataExtractorTest extends ZIOSpecDefault {
 
   val mockGitRepo = new MockGitConfigRepo("")
   val mockTechniques: MockTechniques = MockTechniques(mockGitRepo)
@@ -76,39 +77,43 @@ class RestDataExtractorTest extends Specification {
   )
   val jparse: String => JValue = net.liftweb.json.parse _
 
-  "extract RuleTarget" >> {
-    val tests = List(
-      (
-        """group:3d5d1d6c-4ba5-4ffc-b5a4-12ce02336f52""",
-        JRRuleTarget(GroupTarget(NodeGroupId(NodeGroupUid("3d5d1d6c-4ba5-4ffc-b5a4-12ce02336f52"))))
-      ),
-      ("""group:hasPolicyServer-root""", JRRuleTarget(GroupTarget(NodeGroupId(NodeGroupUid("hasPolicyServer-root"))))),
-      ("""policyServer:root""", JRRuleTarget(PolicyServerTarget(NodeId("root")))),
-      ("""special:all""", JRRuleTarget(AllTarget)),
-      (
-        """{"include":{"or":["special:all"]},"exclude":{"or":["group:all-nodes-with-dsc-agent"]}}""",
-        JRRuleTarget(
-          TargetExclusion(
-            TargetUnion(Set(AllTarget)),
-            TargetUnion(Set(GroupTarget(NodeGroupId(NodeGroupUid("all-nodes-with-dsc-agent")))))
-          )
+  override def spec: Spec[TestEnvironment with Scope, Any] = {
+    suite(s"Extracting data from rules")(
+      suite("extract RuleTarget") {
+        val tests = List(
+          (
+            """group:3d5d1d6c-4ba5-4ffc-b5a4-12ce02336f52""",
+            JRRuleTarget(GroupTarget(NodeGroupId(NodeGroupUid("3d5d1d6c-4ba5-4ffc-b5a4-12ce02336f52"))))
+          ),
+          ("""group:hasPolicyServer-root""", JRRuleTarget(GroupTarget(NodeGroupId(NodeGroupUid("hasPolicyServer-root"))))),
+          ("""policyServer:root""", JRRuleTarget(PolicyServerTarget(NodeId("root")))),
+          ("""special:all""", JRRuleTarget(AllTarget)),
+          (
+            """{"include":{"or":["special:all"]},"exclude":{"or":["group:all-nodes-with-dsc-agent"]}}""",
+            JRRuleTarget(
+              TargetExclusion(
+                TargetUnion(Set(AllTarget)),
+                TargetUnion(Set(GroupTarget(NodeGroupId(NodeGroupUid("all-nodes-with-dsc-agent")))))
+              )
+            )
+          ),
+          (
+            """{"include":{"or":[]},"exclude":{"or":[]}}""",
+            JRRuleTarget(TargetExclusion(TargetUnion(Set()), TargetUnion(Set())))
+          ),
+          ("""{"or":["special:all"]}""", JRRuleTarget(TargetUnion(Set(AllTarget))))
         )
-      ),
-      ("""{"include":{"or":[]},"exclude":{"or":[]}}""", JRRuleTarget(TargetExclusion(TargetUnion(Set()), TargetUnion(Set())))),
-      ("""{"or":["special:all"]}""", JRRuleTarget(TargetUnion(Set(AllTarget))))
-    )
 
-    Fragments.foreach(tests) {
-      case (json, expected) =>
-        (extractRuleTargetJson(json) must beEqualTo(Right(expected)))
-    }
-  }
+        ZIO.foreach(tests) {
+          case (json, expected) =>
+            test(json)(assertTrue(extractRuleTargetJson(json) == Right(expected))).succeed
+        }
+      },
+      suite("extract JsonRule") {
 
-  "extract JsonRule" >> {
-
-    val tests = List(
-      (
-        """{
+        val tests = List(
+          (
+            """{
             "source": "b9f6d98a-28bc-4d80-90f7-d2f14269e215",
             "id": "0c1713ae-cb9d-4f7b-abda-ca38c5d643ea",
             "displayName": "Security policy",
@@ -128,42 +133,44 @@ class RestDataExtractorTest extends Specification {
               }
             ]
          }""",
-        JQRule(
-          RuleId.parse("0c1713ae-cb9d-4f7b-abda-ca38c5d643ea").toOption,
-          Some("Security policy"),
-          Some("38e0c6ea-917f-47b8-82e0-e6a1d3dd62ca"),
-          Some("Baseline applying CIS guidelines"),
-          Some("This rules should be applied to all Linux nodes required basic hardening"),
-          Some(Set(DirectiveId(DirectiveUid("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f")))),
-          Some(Set(JRRuleTargetString(AllTarget))),
-          Some(true),
-          Some(Tags(Set(Tag(TagName("customer"), TagValue("MyCompany"))))),
-          RuleId.parse("b9f6d98a-28bc-4d80-90f7-d2f14269e215").toOption
-        )
-      ),
-      (
-        """{
+            JQRule(
+              RuleId.parse("0c1713ae-cb9d-4f7b-abda-ca38c5d643ea").toOption,
+              Some("Security policy"),
+              Some("38e0c6ea-917f-47b8-82e0-e6a1d3dd62ca"),
+              Some("Baseline applying CIS guidelines"),
+              Some("This rules should be applied to all Linux nodes required basic hardening"),
+              Some(Set(DirectiveId(DirectiveUid("16617aa8-1f02-4e4a-87b6-d0bcdfb4019f")))),
+              Some(Set(JRRuleTargetString(AllTarget))),
+              Some(true),
+              Some(Tags(Set(Tag(TagName("customer"), TagValue("MyCompany"))))),
+              RuleId.parse("b9f6d98a-28bc-4d80-90f7-d2f14269e215").toOption
+            )
+          ),
+          (
+            """{
             "source": "b9f6d98a-28bc-4d80-90f7-d2f14269e215"
          }""",
-        JQRule(source = RuleId.parse("b9f6d98a-28bc-4d80-90f7-d2f14269e215").toOption)
-      ),
-      (
-        """{
+            JQRule(source = RuleId.parse("b9f6d98a-28bc-4d80-90f7-d2f14269e215").toOption)
+          ),
+          (
+            """{
             "category": "38e0c6ea-917f-47b8-82e0-e6a1d3dd62ca"
          }""",
-        JQRule(category = Some("38e0c6ea-917f-47b8-82e0-e6a1d3dd62ca"))
-      ),
-      (
-        """{
+            JQRule(category = Some("38e0c6ea-917f-47b8-82e0-e6a1d3dd62ca"))
+          ),
+          (
+            """{
             "tags": []
          }""",
-        JQRule(tags = Some(Tags(Set())))
-      )
-    )
+            JQRule(tags = Some(Tags(Set())))
+          )
+        )
 
-    Fragments.foreach(tests) {
-      case (json, expected) =>
-        (ruleDecoder.decodeJson(json)) must beEqualTo(Right(expected))
-    }
+        ZIO.foreach(tests) {
+          case (json, expected) =>
+            test(json)(assert(ruleDecoder.decodeJson(json))(Assertion.equalTo(Right(expected)))).succeed
+        }
+      }
+    )
   }
 }

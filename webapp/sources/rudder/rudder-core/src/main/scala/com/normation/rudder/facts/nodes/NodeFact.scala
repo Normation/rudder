@@ -1600,7 +1600,7 @@ object JMachineInfo {
           case JMachineType.PhysicalMachineType => Result.Value(PhysicalMachineType)
           case JMachineType.VirtualMachineType  =>
             Result.fromEitherString(
-              jm.provider.traverse(VmType.parse).map(_.getOrElse(VmType.UnknownVmType)).map(VirtualMachineType)
+              jm.provider.traverse(VmType.parse).map(_.getOrElse(VmType.UnknownVmType)).map(VirtualMachineType.apply)
             )
         }
       }
@@ -2019,16 +2019,6 @@ object NodeFactSerialisation {
           .orElse(decoder)
       )
     }
-//=======
-//    implicit val codecMachineUuid:    JsonCodec[MachineUuid]    = JsonCodec.string.transform[MachineUuid](MachineUuid(_), _.value)
-
-//    implicit val codecManufacturer:   JsonCodec[Manufacturer]   = JsonCodec.string.transform[Manufacturer](Manufacturer(_), _.name)
-//    implicit val codecMachine:        JsonCodec[MachineInfo]    = DeriveJsonCodec.gen
-//    implicit val codecMemorySize:     JsonCodec[MemorySize]     = JsonCodec.long.transform[MemorySize](MemorySize(_), _.size)
-//    implicit val codecSVersion:       JsonCodec[SVersion]       = JsonCodec.string.transform[SVersion](new SVersion(_), _.value)
-//    implicit val codecSoftwareEditor: JsonCodec[SoftwareEditor] =
-//      JsonCodec.string.transform[SoftwareEditor](SoftwareEditor(_), _.name)
-//>>>>>>> branches/rudder/8.1
   }
 
   import SimpleCodec.*
@@ -2056,21 +2046,21 @@ object NodeFactSerialisation {
     }
   }
 
-  implicit val decoderJValue:       JsonDecoder[JValue]       = JsonDecoder[Option[Json]].map {
+  implicit lazy val decoderJValue:       JsonDecoder[JValue]       = JsonDecoder[Option[Json]].map {
     case None    => JNothing
     case Some(v) => recJsonToJValue(v)
   }
-  implicit val encoderJValue:       JsonEncoder[JValue]       = JsonEncoder[Option[Json]].contramap(recJValueToJson(_))
-  implicit val codecCustomProperty: JsonCodec[CustomProperty] = DeriveJsonCodec.gen
+  implicit lazy val encoderJValue:       JsonEncoder[JValue]       = JsonEncoder[Option[Json]].contramap(recJValueToJson(_))
+  implicit lazy val codecCustomProperty: JsonCodec[CustomProperty] = DeriveJsonCodec.gen
 
-  implicit val codecInputDevice:    JsonCodec[InputDevice]    = DeriveJsonCodec.gen
-  implicit val codecLocalGroup:     JsonCodec[LocalGroup]     = DeriveJsonCodec.gen
-  implicit val codecLocalUser:      JsonCodec[LocalUser]      = DeriveJsonCodec.gen
-  implicit val codecLogicalVolume:  JsonCodec[LogicalVolume]  = DeriveJsonCodec.gen
-  implicit val codecPhysicalVolume: JsonCodec[PhysicalVolume] = DeriveJsonCodec.gen
+  implicit lazy val codecInputDevice:    JsonCodec[InputDevice]    = DeriveJsonCodec.gen
+  implicit lazy val codecLocalGroup:     JsonCodec[LocalGroup]     = DeriveJsonCodec.gen
+  implicit lazy val codecLocalUser:      JsonCodec[LocalUser]      = DeriveJsonCodec.gen
+  implicit lazy val codecLogicalVolume:  JsonCodec[LogicalVolume]  = DeriveJsonCodec.gen
+  implicit lazy val codecPhysicalVolume: JsonCodec[PhysicalVolume] = DeriveJsonCodec.gen
 
-  implicit val codecSoftwareFact: JsonCodec[SoftwareFact] = DeriveJsonCodec.gen
+  implicit lazy val codecSoftwareFact: JsonCodec[SoftwareFact] = DeriveJsonCodec.gen
 
-  implicit val codecNodeFact: JsonCodec[NodeFact] = DeriveJsonCodec.gen
+  implicit lazy val codecNodeFact: JsonCodec[NodeFact] = DeriveJsonCodec.gen
 
 }
