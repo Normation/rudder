@@ -152,7 +152,7 @@ class TestInventory extends Specification {
   val inventoryMapper: InventoryMapper =
     new InventoryMapper(inventoryDitService, pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
 
-  val repo = new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, ldap)
+  val repo = new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, ldap, 5)
 
   val readOnlySoftware = new ReadOnlySoftwareDAOImpl(inventoryDitService, roLdap, inventoryMapper)
 

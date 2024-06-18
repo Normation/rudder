@@ -134,7 +134,7 @@ class MockLdapFactStorage {
   val inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingDIT, acceptedDIT, removedDIT)
   val inventoryMapper             = new InventoryMapper(inventoryDitService, pendingDIT, acceptedDIT, removedDIT)
   val ldapMapper                  = new LDAPEntityMapper(rudderDit, nodeDit, acceptedDIT, null, inventoryMapper)
-  val ldapFullInventoryRepository = new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, ldap)
+  val ldapFullInventoryRepository = new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, ldap, 100)
   val softwareGet                 = new ReadOnlySoftwareDAOImpl(inventoryDitService, ldapRo, inventoryMapper)
   val softwareSave                = new NameAndVersionIdFinder("check_name_and_version", ldapRo, inventoryMapper, acceptedDIT)
 

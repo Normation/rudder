@@ -42,6 +42,7 @@ import com.normation.errors.*
 import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.LDAPConstants.A_CONTAINER_DN
 import com.normation.inventory.ldap.core.LDAPConstants.A_NODE_UUID
+import com.normation.inventory.ldap.core.LDAPConstants.A_PROCESS
 import com.normation.inventory.services.core.*
 import com.normation.ldap.sdk.*
 import com.normation.ldap.sdk.BuildFilter.EQ
@@ -64,7 +65,8 @@ trait LDAPFullInventoryRepository extends FullInventoryRepository[Seq[LDIFChange
 class FullInventoryRepositoryImpl(
     inventoryDitService: InventoryDitService,
     mapper:              InventoryMapper,
-    ldap:                LDAPConnectionProvider[RwLDAPConnection]
+    ldap:                LDAPConnectionProvider[RwLDAPConnection],
+    numProcessThreshold: Int // number of process triggering a separate write request
 ) extends MachineRepository[Seq[LDIFChangeRecord]] with LDAPFullInventoryRepository {
 
   /**
@@ -429,7 +431,28 @@ class FullInventoryRepositoryImpl(
       _          <- NodeIdRegex.checkNodeId(inventory.node.main.id.value).toIO
       _          <- HostnameRegex.checkHostname(inventory.node.main.hostname).toIO
       con        <- ldap
-      resServer  <- con.saveTree(mapper.treeFromNode(inventory.node), deleteRemoved = true)
+      // if process are too many, we need to save them apart for perf reason
+      // Let say numProcessThreshold.
+      tree        = mapper.treeFromNode(inventory.node)
+      pair        = if (inventory.node.processes.size > numProcessThreshold) {
+                      (tree, Some(mapper.entryWithProcessFromNode(inventory.node)))
+                    } else {
+                      tree.root.resetValuesTo(A_PROCESS, mapper.processesFromNode(inventory.node)*)
+                      (tree, None)
+                    }
+      resServer  <- con.saveTree(pair._1, deleteRemoved = true)
+      // when pair._2 is non empty, process need to be saved apart for performance reasons
+      _          <- pair._2 match {
+                      case None     => Seq().succeed
+                      case Some(ps) =>
+                        con
+                          .save(ps, removeMissingAttributes = false)
+                          .catchAll(err => { // we don't want to fail because we tried to compensate
+                            InventoryProcessingLogger.error(
+                              s"Couldn't update the processes for node ${inventory.node.main.id.value}, Error is: ${err.fullMsg}"
+                            ) *> Seq().succeed
+                          })
+                    }
       resMachine <- inventory.machine match {
                       case None    => Seq().succeed
                       case Some(m) => this.save(m)
