@@ -376,7 +376,8 @@ class StatusReportTest extends Specification {
                             )
                           )
                         )
-                      )
+                      ),
+                      isSystem = false
                     )
                   ),
                   DateTime.now.plusMinutes(5)

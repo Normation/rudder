@@ -59,10 +59,6 @@ import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository.FindExpectedReportRepository
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.score.GlobalScore
-import com.normation.rudder.score.Score
-import com.normation.rudder.score.ScoreService
-import com.normation.rudder.score.ScoreServiceManager
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.zio.*
@@ -216,28 +212,6 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     def findStatusReportsForDirective(directiveId: DirectiveId)(implicit
         qc: QueryContext
     ): IOResult[Map[NodeId, NodeStatusReport]] = ???
-
-    override def scoreServiceManager: ScoreServiceManager = new ScoreServiceManager(new ScoreService {
-      override def getAll(): IOResult[Map[NodeId, GlobalScore]] = ???
-
-      override def getGlobalScore(nodeId: NodeId): IOResult[GlobalScore] = ???
-
-      override def getScoreDetails(nodeId: NodeId): IOResult[List[Score]] = ???
-
-      override def cleanScore(name: String): IOResult[Unit] = ???
-
-      override def clean(): IOResult[Unit] = ???
-
-      override def update(newScores: Map[NodeId, List[Score]]): IOResult[Unit] = ().succeed
-
-      override def registerScore(newScoreId: String, name: String): IOResult[Unit] = ???
-
-      override def getAvailableScore(): IOResult[List[(String, String)]] = ???
-
-      override def init(): IOResult[Unit] = ???
-
-      override def deleteNodeScore(nodeId: NodeId): IOResult[Unit] = ???
-    })
 
     override def rulesRepo: RoRuleRepository = new RoRuleRepository {
 

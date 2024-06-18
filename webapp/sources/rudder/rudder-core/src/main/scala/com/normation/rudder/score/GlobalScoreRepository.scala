@@ -44,13 +44,25 @@ import doobie.implicits.*
 import doobie.implicits.toSqlInterpolator
 import doobie.postgres.implicits.pgEnumString
 import doobie.util.invariant.InvalidEnum
+import zio.ZIO
 import zio.interop.catz.*
+import zio.syntax.*
 
 trait GlobalScoreRepository {
   def getAll(): IOResult[Map[NodeId, GlobalScore]]
   def get(id:      NodeId): IOResult[Option[GlobalScore]]
   def delete(id:   NodeId): IOResult[Unit]
   def save(nodeId: NodeId, globalScore: GlobalScore): IOResult[(NodeId, GlobalScore)]
+}
+
+/*
+ * a repository that doesn't do anything, for tests
+ */
+class DummyGlobalScoreRepository extends GlobalScoreRepository {
+  override def getAll(): IOResult[Map[NodeId, GlobalScore]] = Map().succeed
+  override def get(id:      NodeId): IOResult[Option[GlobalScore]] = None.succeed
+  override def delete(id:   NodeId): IOResult[Unit] = ZIO.unit
+  override def save(nodeId: NodeId, globalScore: GlobalScore): IOResult[(NodeId, GlobalScore)] = (nodeId, globalScore).succeed
 }
 
 object GlobalScoreRepositoryImpl {
