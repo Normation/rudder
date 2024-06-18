@@ -867,11 +867,19 @@ object RudderParsedProperties {
   }
 
   // don't parse some elements in inventories: processes
-  val INVENTORIES_IGNORE_PROCESSES: Boolean = {
+  val INVENTORIES_IGNORE_PROCESSES:                   Boolean = {
     try {
       config.getBoolean("inventory.parse.ignore.processes")
     } catch {
       case ex: ConfigException => false
+    }
+  }
+  // the limit above which processes need an individual LDAP write request
+  val INVENTORIES_THRESHOLD_PROCESSES_ISOLATED_WRITE: Int     = {
+    try {
+      config.getInt("inventory.threshold.processes.isolatedWrite")
+    } catch {
+      case ex: ConfigException => 1
     }
   }
 
@@ -3557,8 +3565,14 @@ object RudderConfigInit {
      * here goes deprecated services that we can't remove yet, for example because they are used for migration
      */
     object deprecated {
-      lazy val ldapFullInventoryRepository =
-        new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, rwLdap)
+      lazy val ldapFullInventoryRepository = {
+        new FullInventoryRepositoryImpl(
+          inventoryDitService,
+          inventoryMapper,
+          rwLdap,
+          INVENTORIES_THRESHOLD_PROCESSES_ISOLATED_WRITE
+        )
+      }
 
       lazy val softwareInventoryDAO: ReadOnlySoftwareDAO =
         new ReadOnlySoftwareDAOImpl(inventoryDitService, roLdap, inventoryMapper)

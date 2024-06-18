@@ -910,14 +910,19 @@ class InventoryMapper(
     tree
   }
 
+  // map process from node
+  def processesFromNode(node: NodeInventory): Seq[String] = {
+    // convert the processes
+    node.processes.map(x => Serialization.write(x))
+  }
+
   // Create the entry with only processes
   // we need to have a proper object class to avoid error
   // com.unboundid.ldap.sdk.LDAPException: no structural object class provide
-  def processesFromNode(node: NodeInventory): LDAPEntry = {
+  def entryWithProcessFromNode(node: NodeInventory): LDAPEntry = {
     val entry = createNodeModelFromServer(node)
-
     // convert the processes
-    entry.resetValuesTo(A_PROCESS, node.processes.map(x => Serialization.write(x))*)
+    entry.resetValuesTo(A_PROCESS, processesFromNode(node)*)
     entry
   }
 

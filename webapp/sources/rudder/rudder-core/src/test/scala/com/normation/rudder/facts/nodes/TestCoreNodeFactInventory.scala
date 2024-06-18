@@ -498,7 +498,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       test(NodeId("node2")) and test(NodeId("node4"))
     }
 
-    "we can save a whole inventory and changing everything in storage, included software" >> {
+    "we can save a whole inventory and changing everything in storage, included software and processes" >> {
       factStorage.clearCallStack
       val node = factRepo
         .slowGet(node7id)(QueryContext.testQC, SelectNodeStatus.Accepted, SelectFacts.all)
@@ -514,6 +514,8 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
         .using(_.appended(Network("eth0")))
         .modify(_.slots)
         .using(_.appended(Slot("slot0")))
+        .modify(_.processes)
+        .using(_.appended(Process(4242, Some("process 4242 command line"))))
 
       factRepo.save(updated)(testChangeContext, SelectFacts.all).runNow
 
@@ -521,6 +523,9 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       (mockLdapFactStorage.testServer
         .getEntry("nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
         .getAttributeValue("environmentVariable") must beEqualTo("""{"name":"envVAR","value":"envVALUE"}""")) and
+      (mockLdapFactStorage.testServer
+        .getEntry("nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
+        .getAttributeValue("process") must beEqualTo("""{"pid":4242,"commandName":"process 4242 command line"}""")) and
       (mockLdapFactStorage.testServer.entryExists(
         "networkInterface=eth0,nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration"
       ) must beTrue) and

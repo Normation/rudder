@@ -262,6 +262,12 @@ inventory.parse.parallelization=2
 # In that case, node's processes will appear to be empty in node details.
 # Boolean, default to "false" (ie: processes are parsed and displayed)
 inventory.parse.ignore.processes=false
+#
+# In some case, <PROCESSES> cause performance problems in rudder web-app
+# and they are used so you can't ignore them. In that case, Rudder may need to
+# use a different LDAP write request just for them. This is the threshold number of processed
+# above which one dedicated request will be done just for processes.
+inventory.threshold.processes.isolatedWrite=1000
 
 #
 # You can keep exhaustive information about LDAP base modification
