@@ -292,7 +292,7 @@ class ComposedNewNodeManager[A](
     for {
       cnf <-
         nodeFactRepo
-          .get(id)(QueryContext.todoQC, SelectNodeStatus.Pending)
+          .get(id)(cc.toQuery, SelectNodeStatus.Pending)
           .notOptional(s"Node with id '${id.value}' was not found in pending nodes")
       _   <- refuseOne(cnf)
       _   <- nodeFactRepo.delete(id)
@@ -328,7 +328,7 @@ class ComposedNewNodeManager[A](
     for {
       // Get inventory og the node
       cnf       <- nodeFactRepo
-                     .get(id)(QueryContext.todoQC, SelectNodeStatus.Pending)
+                     .get(id)(cc.toQuery, SelectNodeStatus.Pending)
                      .notOptional(s"Missing inventory for node with ID: '${id.value}'")
       // Pre accept it
       preAccept <- passPreAccept(cnf)

@@ -48,6 +48,7 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.TechniqueWriterLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.repository.xml.TechniqueFiles
@@ -68,7 +69,7 @@ trait TechniqueWriter {
       techniqueVersion: String,
       deleteDirective:  Boolean,
       modId:            ModificationId,
-      committer:        EventActor
+      committer:        QueryContext
   ): IOResult[Unit]
 
   def writeTechniqueAndUpdateLib(
@@ -115,7 +116,7 @@ class TechniqueWriterImpl(
       techniqueVersion: String,
       deleteDirective:  Boolean,
       modId:            ModificationId,
-      committer:        EventActor
+      committer:        QueryContext
   ): IOResult[Unit] = deleteService.deleteTechnique(techniqueName, techniqueVersion, deleteDirective, modId, committer)
 
   def writeTechniqueAndUpdateLib(

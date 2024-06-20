@@ -72,6 +72,7 @@ import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.workflows.ChangeRequest
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
 import com.normation.rudder.repository.CategoryWithActiveTechniques
@@ -563,7 +564,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
           techniqueVersion: String,
           deleteDirective:  Boolean,
           modId:            ModificationId,
-          committer:        EventActor
+          committer:        QueryContext
       ): IOResult[Unit] = {
         ZIO.unit
       }

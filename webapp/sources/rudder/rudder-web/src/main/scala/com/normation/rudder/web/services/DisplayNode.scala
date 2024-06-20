@@ -1277,7 +1277,7 @@ object DisplayNode extends Loggable {
       DateTime.now(),
       None,
       S.request.map(_.remoteAddr).toOption,
-      QueryContext.todoQC.nodePerms
+      CurrentUser.nodePerms
     )
 
     // only erase for Rudder 8.0

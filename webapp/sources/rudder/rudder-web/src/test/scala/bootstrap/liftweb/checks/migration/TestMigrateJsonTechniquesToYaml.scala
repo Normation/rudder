@@ -39,11 +39,11 @@ package bootstrap.liftweb.checks.migration
 
 import better.files.File
 import com.normation.errors.IOResult
-import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.MockGitConfigRepo
 import com.normation.rudder.MockTechniques
 import com.normation.rudder.db.DB
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.ncf.DeleteEditorTechnique
 import com.normation.rudder.ncf.EditorTechnique
@@ -97,7 +97,7 @@ class TestMigrateJsonTechniquesToYaml extends Specification with ContentMatchers
         techniqueVersion: String,
         deleteDirective:  Boolean,
         modId:            ModificationId,
-        committer:        EventActor
+        committer:        QueryContext
     ): IOResult[Unit] = ZIO.unit
   }
 

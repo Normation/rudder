@@ -257,7 +257,7 @@ class TechniqueApi(
       val content = {
         for {
           force <- restExtractorService.extractBoolean("force")(req)(identity) map (_.getOrElse(false))
-          _     <- techniqueWriter.deleteTechnique(techniqueInfo._1, techniqueInfo._2, force, modId, authzToken.qc.actor).toBox
+          _     <- techniqueWriter.deleteTechnique(techniqueInfo._1, techniqueInfo._2, force, modId, authzToken.qc).toBox
         } yield {
           import net.liftweb.json.JsonDSL.*
           (("id"       -> techniqueInfo._1)
