@@ -77,18 +77,15 @@ pub fn run() -> Result<()> {
     let args = cli::Args::parse();
 
     // Setup logger early
-    let _guard = rudder_cli::logs::init(
+    let log_r = rudder_cli::logs::init(
         if args.debug { 1 } else { 0 },
         args.quiet,
         rudder_cli::logs::OutputFormat::Human,
         Some((Path::new(DEFAULT_LOG_FOLDER), "rudder-pkg")),
     );
-
-    // Abort of not run as root
-    // Ignore on error
-    #[cfg(not(debug_assertions))]
-    if let Ok(false) = am_i_root() {
-        bail!("This program needs to run as root, aborting.");
+    if let Err(ref e) = log_r {
+        eprintln!("{:?}", e);
+        return log_r;
     }
 
     let r = run_inner(args);
@@ -99,6 +96,13 @@ pub fn run() -> Result<()> {
 }
 
 pub fn run_inner(args: Args) -> Result<()> {
+    // Abort of not run as root
+    // Ignore on error
+    #[cfg(not(debug_assertions))]
+    if let Ok(false) = am_i_root() {
+        bail!("This program needs to run as root, aborting.");
+    }
+
     // Parse configuration file
     debug!("Parsed CLI arguments: {args:?}");
     let cfg = Configuration::read(Path::new(&args.config))
@@ -112,6 +116,10 @@ pub fn run_inner(args: Args) -> Result<()> {
     let mut webapp = Webapp::new(PathBuf::from(WEBAPP_XML_PATH), webapp_version);
     let mut db = Database::read(Path::new(PACKAGES_DATABASE_PATH))?;
 
+    // Global error flag, used to exit with non-zero code
+    // but not interrupt the program.
+    let mut errors = false;
+
     create_dir_all(TMP_PLUGINS_FOLDER).with_context(|| {
         format!(
             "Failed to create temporary directory in '{}'",
@@ -122,7 +130,6 @@ pub fn run_inner(args: Args) -> Result<()> {
     match args.command {
         Command::Install { force, package } => {
             let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
-            let mut errors = false;
             for full_p in &long_names(package) {
                 // Extract version numbers
                 let (p, v) = match full_p.split_once(':') {
@@ -137,11 +144,11 @@ pub fn run_inner(args: Args) -> Result<()> {
             }
             if errors {
                 error!("Some plugin installation failed");
+            } else {
+                info!("Installation ran successfully");
             }
-            info!("Installation ran successfully");
         }
         Command::Uninstall { package } => {
-            let mut errors = false;
             for p in &long_names(package) {
                 if let Err(e) = db.uninstall(p, true, &mut webapp) {
                     errors = true;
@@ -150,8 +157,9 @@ pub fn run_inner(args: Args) -> Result<()> {
             }
             if errors {
                 error!("Some plugin uninstallation failed");
+            } else {
+                info!("Uninstallation ran successfully");
             }
-            info!("Uninstallation ran successfully");
         }
         Command::Upgrade {
             all,
@@ -160,7 +168,6 @@ pub fn run_inner(args: Args) -> Result<()> {
         } => {
             let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
             if all_postinstall {
-                let mut errors = false;
                 for p in db.plugins.values() {
                     if let Err(e) = p.metadata.run_package_script(
                         archive::PackageScript::Postinst,
@@ -176,8 +183,9 @@ pub fn run_inner(args: Args) -> Result<()> {
                 }
                 if errors {
                     error!("Some scripts failed");
+                } else {
+                    info!("All postinstall scripts ran successfully");
                 }
-                info!("All postinstall scripts ran successfully");
             } else {
                 // Normal upgrades
                 let to_upgrade: Vec<String> = if all {
@@ -194,7 +202,6 @@ pub fn run_inner(args: Args) -> Result<()> {
                     }
                     packages
                 };
-                let mut errors = false;
                 for p in &to_upgrade {
                     if let Err(e) = db.install(false, p, None, &repo, index.as_ref(), &mut webapp) {
                         errors = true;
@@ -203,8 +210,9 @@ pub fn run_inner(args: Args) -> Result<()> {
                 }
                 if errors {
                     error!("Some plugins were not upgraded correctly");
+                } else {
+                    info!("All plugins were upgraded successfully");
                 }
-                info!("All plugins were upgraded successfully");
             }
         }
         Command::List {
@@ -271,7 +279,6 @@ pub fn run_inner(args: Args) -> Result<()> {
                     bail!("No plugin provided");
                 }
             } else {
-                let mut errors = false;
                 for p in &to_enable {
                     match db.plugins.get(p) {
                         None => {
@@ -312,7 +319,6 @@ pub fn run_inner(args: Args) -> Result<()> {
                 long_names(package)
             };
 
-            let mut errors = false;
             for p in &to_disable {
                 match db.plugins.get(p) {
                     None => {
@@ -343,6 +349,10 @@ pub fn run_inner(args: Args) -> Result<()> {
     }
     // Restart if needed
     webapp.apply_changes()?;
+
+    if errors {
+        bail!("Plugin action failed");
+    }
     Ok(())
 }
 
