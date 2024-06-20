@@ -1071,12 +1071,12 @@ object ExecutionBatch extends Loggable {
     // okKeys is DirectiveId, ComponentName
     val expected: Iterable[DirectiveStatusReport] = {
       expectedComponents.groupBy(e => (e._1._1, e._1._2)).map {
-        case ((directiveId, tags), expectedComponentsForDirective) =>
+        case ((directiveId, policyTypes), expectedComponentsForDirective) =>
           DirectiveStatusReport(
             directiveId,
-            tags,
+            policyTypes,
             expectedComponentsForDirective.flatMap {
-              case ((directiveId, tags, components), (policyMode, missingReportStatus)) =>
+              case ((directiveId, _, components), (policyMode, missingReportStatus)) =>
                 val filteredReports = reports.get(directiveId).getOrElse(Seq())
                 // We iterate on each effective component (not a component but a component that only contains a unique path to a unique value
                 val r               = components.map { c =>
@@ -1313,6 +1313,8 @@ object ExecutionBatch extends Loggable {
                   directiveId,
                   DirectiveStatusReport(
                     directiveId,
+                    // since we don't know easily what directive lead to these unexpected reports,
+                    // we assume "non system"
                     PolicyTypes.rudderBase,
                     reportsByDirectives.groupBy(_.component).toList.map {
                       case (component, reportsByComponents) =>
@@ -1349,6 +1351,7 @@ object ExecutionBatch extends Loggable {
     reports.map { r =>
       DirectiveStatusReport(
         r.directiveId,
+        // since we don't know for unexpected reports the directive kind easely, assume "non system"
         PolicyTypes.rudderBase,
         ValueStatusReport(
           r.component,

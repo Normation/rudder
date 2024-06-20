@@ -670,30 +670,7 @@ object RudderParsedProperties {
   val RUDDER_BATCH_REPORTS_LOGINTERVAL:         Int    = config.getInt("rudder.batch.reports.logInterval")            // 1 //one minute
   val RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH = "refs/heads/master"
   // THIS ONE IS STILL USED FOR USERS USING GIT REPLICATION
-  val RUDDER_AUTOARCHIVEITEMS:              Boolean = config.getBoolean("rudder.autoArchiveItems")             // true
-  val RUDDER_REPORTS_EXECUTION_MAX_DAYS:    Int     = config.getInt("rudder.batch.storeAgentRunTimes.maxDays") // In days : 0
-  val RUDDER_REPORTS_EXECUTION_MAX_MINUTES: Int     = {                                                        // Tis is handled at the object creation, days and minutes = 0 => 30 minutes
-    try {
-      config.getInt("rudder.batch.storeAgentRunTimes.maxMinutes")
-    } catch {
-      case ex: ConfigException =>
-        ApplicationLogger.info(
-          "Property 'rudder.batch.storeAgentRunTimes.maxMinutes' is missing or empty in rudder.configFile. Default to 0 minutes."
-        )
-        0
-    }
-  }
-  val RUDDER_REPORTS_EXECUTION_MAX_SIZE:    Int     = {                                                        // In minutes: 5
-    try {
-      config.getInt("rudder.batch.storeAgentRunTimes.maxBatchSize")
-    } catch {
-      case ex: ConfigException =>
-        ApplicationLogger.info(
-          "Property 'rudder.batch.storeAgentRunTimes.maxBatchSize' is missing or empty in rudder.configFile. Default to 5 minutes."
-        )
-        5
-    }
-  }
+  val RUDDER_AUTOARCHIVEITEMS: Boolean = config.getBoolean("rudder.autoArchiveItems") // true
 
   val RUDDER_REPORTS_EXECUTION_INTERVAL: duration.Duration =
     config.getInt("rudder.batch.storeAgentRunTimes.updateInterval").seconds.asScala
@@ -3101,8 +3078,7 @@ object RudderConfigInit {
           RUDDER_JDBC_BATCH_MAX_SIZE
         ),
         nodeFactRepository,
-        RUDDER_JDBC_BATCH_MAX_SIZE, // use same size as for SQL requests
-        scoreServiceManager
+        RUDDER_JDBC_BATCH_MAX_SIZE // use same size as for SQL requests
       )
       // to avoid a StackOverflowError, we set the compliance cache once it'z ready,
       // and can construct the nodeconfigurationservice without the comlpince cache
@@ -3494,30 +3470,13 @@ object RudderConfigInit {
     lazy val updatesEntryJdbcRepository = new LastProcessedReportRepositoryImpl(doobie)
 
     lazy val executionService = {
-      val maxCatchupTime  = {
-        val temp = FiniteDuration(RUDDER_REPORTS_EXECUTION_MAX_DAYS.toLong, "day") + FiniteDuration(
-          RUDDER_REPORTS_EXECUTION_MAX_MINUTES.toLong,
-          "minutes"
-        )
-        if (temp.toMillis == 0) {
-          logger.error(
-            "'rudder.aggregateReports.maxDays' and 'rudder.aggregateReports.maxMinutes' properties are both 0 or empty. Set using 30 minutes as default value, please check /opt/rudder/etc/rudder-web.properties"
-          )
-          FiniteDuration(30, "minutes")
-        } else {
-          temp
-        }
-      }
-      val maxCatchupBatch = FiniteDuration(RUDDER_REPORTS_EXECUTION_MAX_SIZE.toLong, "minutes")
-
       new ReportsExecutionService(
         reportsRepository,
         updatesEntryJdbcRepository,
         recentChangesService,
         reportingServiceImpl,
         complianceRepositoryImpl,
-        maxCatchupTime,
-        maxCatchupBatch
+        scoreServiceManager
       )
     }
 

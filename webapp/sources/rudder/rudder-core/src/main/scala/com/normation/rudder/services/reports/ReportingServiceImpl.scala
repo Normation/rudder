@@ -59,8 +59,6 @@ import com.normation.rudder.reports.ReportsDisabled
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository.*
-import com.normation.rudder.score.ComplianceScoreEvent
-import com.normation.rudder.score.ScoreServiceManager
 import com.normation.zio.*
 import org.joda.time.*
 import zio.{System as _, *}
@@ -143,8 +141,7 @@ class ReportingServiceImpl(
 class CachedReportingServiceImpl(
     val defaultFindRuleNodeStatusReports: ReportingServiceImpl,
     val nodeFactRepository:               NodeFactRepository,
-    val batchSize:                        Int,
-    val scoreServiceManager:              ScoreServiceManager
+    val batchSize:                        Int
 ) extends ReportingService with RuleOrNodeReportingServiceImpl with CachedFindRuleNodeStatusReports {
   val confExpectedRepo = defaultFindRuleNodeStatusReports.confExpectedRepo
   val directivesRepo   = defaultFindRuleNodeStatusReports.directivesRepo
@@ -346,7 +343,6 @@ trait CachedFindRuleNodeStatusReports
   def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports
   def nodeFactRepository:               NodeFactRepository
   def batchSize:                        Int
-  def scoreServiceManager:              ScoreServiceManager
   def rulesRepo:                        RoRuleRepository
 
   /**
@@ -405,20 +401,13 @@ trait CachedFindRuleNodeStatusReports
   /**
    * Do something with the action we received
    * All actions must have *exactly* the *same* type
+   * WARNING: do not put I/O or slow computation here, else divergence can appear:
+   * https://github.com/Normation/rudder/pull/5737
    */
   private def performAction(actions: Chunk[CacheComplianceQueueAction]): IOResult[Unit] = {
     import CacheComplianceQueueAction.*
     import CacheExpectedReportAction.*
 
-    def updateScore(nodeId: NodeId, compliance: NodeStatusReport): IOResult[Unit] = {
-      for {
-        userRules              <- rulesRepo.getIds(includeSytem = false)
-        complianceWithoutSystem = NodeStatusReport.filterByRules(compliance, userRules)
-        cp                      = complianceWithoutSystem.compliance.computePercent()
-        event                   = ComplianceScoreEvent(nodeId, cp)
-        _                      <- scoreServiceManager.handleEvent(event)
-      } yield ()
-    }
     // get type of action
     (actions.headOption match {
       case None    => ReportLoggerPure.Cache.debug("Nothing to do")
@@ -428,16 +417,15 @@ trait CachedFindRuleNodeStatusReports
             ReportLoggerPure.Cache.debug(s"Compliance cache updated for nodes: ${actions.map(_.nodeId.value).mkString(", ")}") *>
             // all action should be homogeneous, but still, fails on other cases
             (for {
-              updates      <- ZIO.foreach(actions) {
-                                case a =>
-                                  a match {
-                                    case x: UpdateCompliance => (x.nodeId, x.nodeCompliance).succeed
-                                    case x =>
-                                      Inconsistency(s"Error: found an action of incorrect type in an 'update' for cache: ${x}").fail
-                                  }
-                              }
-              scoreUpdates <- ZIO.foreach(updates)((updateScore _).tupled)
-              _            <- IOResult.attempt { cache = cache ++ updates }
+              updates <- ZIO.foreach(actions) {
+                           case a =>
+                             a match {
+                               case x: UpdateCompliance => (x.nodeId, x.nodeCompliance).succeed
+                               case x =>
+                                 Inconsistency(s"Error: found an action of incorrect type in an 'update' for cache: ${x}").fail
+                             }
+                         }
+              _       <- IOResult.attempt { cache = cache ++ updates }
             } yield ())
 
           case ExpectedReportAction((RemoveNodeInCache(_))) =>
@@ -459,15 +447,14 @@ trait CachedFindRuleNodeStatusReports
             for {
               x <- ZIO.foreach(impactedNodeIds.grouped(batchSize).to(Seq)) { updatedNodes =>
                      for {
-                       updated      <- defaultFindRuleNodeStatusReports
-                                         .findRuleNodeStatusReports(updatedNodes.toSet, Set())(QueryContext.systemQC)
-                       scoreUpdates <- ZIO.foreach(updated.toList)((updateScore _).tupled)
-                       _            <- IOResult.attempt {
-                                         cache = cache ++ updated
-                                       }
-                       _            <- ReportLoggerPure.Cache.debug(
-                                         s"Compliance cache recomputed for nodes: ${updated.keys.map(_.value).mkString(", ")}"
-                                       )
+                       updated <- defaultFindRuleNodeStatusReports
+                                    .findRuleNodeStatusReports(updatedNodes.toSet, Set())(QueryContext.systemQC)
+                       _       <- IOResult.attempt {
+                                    cache = cache ++ updated
+                                  }
+                       _       <- ReportLoggerPure.Cache.debug(
+                                    s"Compliance cache recomputed for nodes: ${updated.keys.map(_.value).mkString(", ")}"
+                                  )
                      } yield ()
                    }
             } yield ()
