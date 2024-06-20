@@ -1305,7 +1305,7 @@ object SelectFacts {
   val noSoftware:   SelectFacts = all.copy(software = all.software.toIgnore)
   val default:      SelectFacts = all.copy(processes = all.processes.toIgnore, software = all.software.toIgnore)
 
-  // inventory elements, not carring for software
+  // inventory elements, not caring about software
   def retrieveInventory(attrs: SelectFacts): Boolean = {
     !(attrs.copy(software = SelectFacts.none.software) == SelectFacts.none)
   }

@@ -260,7 +260,7 @@ final class NodeGrid(
       status     <- InventoryStatus(arg.status).notOptional("Status parameter is mandatory")
       nodeId      = NodeId(arg.id)
       nodeFact   <- nodeFactRepo
-                      .slowGetCompat(nodeId, status, SelectFacts.default)(CurrentUser.queryContext)
+                      .slowGetCompat(nodeId, status, SelectFacts.noSoftware)(CurrentUser.queryContext)
                       .notOptional(s"Error when trying to find information for node '${nodeId.value}'")
       globalMode <- configService
                       .rudder_global_policy_mode()
