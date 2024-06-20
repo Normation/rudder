@@ -143,8 +143,8 @@ class ReportsExecutionService(
   }
 
   def updateScore(nodeId: NodeId, report: NodeStatusReport): IOResult[Unit] = {
-    val cp                      = report.baseCompliance.computePercent()
-    val event                   = ComplianceScoreEvent(nodeId, cp)
+    val cp    = report.baseCompliance.computePercent()
+    val event = ComplianceScoreEvent(nodeId, cp)
 
     scoreServiceManager.handleEvent(event)
   }
