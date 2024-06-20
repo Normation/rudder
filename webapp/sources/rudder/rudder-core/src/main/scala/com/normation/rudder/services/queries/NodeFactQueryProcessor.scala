@@ -184,7 +184,7 @@ class NodeFactQueryProcessor(
         t1  <- currentTimeMillis
         _   <- FactQueryProcessorLoggerPure.Metrics.debug(s"Analyse query in ${t1 - t0} ms")
         res <- nodeFactRepo
-                 .getAll()(QueryContext.todoQC, s)
+                 .getAll()(qc, s)
                  .flatMap { all =>
                    ZIO
                      .filterPar(all.values)(node => FactQueryProcessorLoggerPure.debug(m.debugString) *> processOne(m, node))

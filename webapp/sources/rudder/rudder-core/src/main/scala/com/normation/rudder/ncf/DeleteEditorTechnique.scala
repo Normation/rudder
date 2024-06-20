@@ -47,7 +47,6 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.*
 import com.normation.errors.IOResult
-import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
@@ -75,7 +74,7 @@ trait DeleteEditorTechnique {
       techniqueVersion: String,
       deleteDirective:  Boolean,
       modId:            ModificationId,
-      committer:        EventActor
+      committer:        QueryContext
   ): IOResult[Unit]
 }
 
@@ -96,7 +95,7 @@ class DeleteEditorTechniqueImpl(
       techniqueVersion: String,
       deleteDirective:  Boolean,
       modId:            ModificationId,
-      committer:        EventActor
+      committer:        QueryContext
   ): IOResult[Unit] = {
 
     def createCr(directive: Directive, rootSection: SectionSpec) = {
@@ -109,7 +108,7 @@ class DeleteEditorTechniqueImpl(
         directive.id,
         Some(directive),
         diff,
-        committer,
+        committer.actor,
         None
       )
     }
@@ -143,11 +142,11 @@ class DeleteEditorTechniqueImpl(
                               _  <- wf.startWorkflow(cr)(
                                       ChangeContext(
                                         modId,
-                                        committer,
+                                        committer.actor,
                                         new DateTime(),
                                         Some(s"Deleting technique '${techniqueId.serialize}'"),
                                         None,
-                                        QueryContext.todoQC.nodePerms
+                                        committer.nodePerms
                                       )
                                     ).toIO
                             } yield ()
@@ -166,7 +165,7 @@ class DeleteEditorTechniqueImpl(
                           writeDirectives.deleteActiveTechnique(
                             activeTechnique.id,
                             modId,
-                            committer,
+                            committer.actor,
                             Some(s"Deleting active technique '${techniqueId.name.value}'")
                           )
                       }
@@ -175,11 +174,11 @@ class DeleteEditorTechniqueImpl(
                         techniqueId,
                         categories.map(_.id.name.value),
                         modId,
-                        committer,
+                        committer.actor,
                         s"Deleting technique '${techniqueId}'"
                       )
         _          <- techLibUpdate
-                        .update(modId, committer, Some(s"Update Technique library after deletion of technique '${technique.name}'"))
+                        .update(modId, committer.actor, Some(s"Update Technique library after deletion of technique '${technique.name}'"))
                         .toIO
                         .chainError(
                           s"An error occurred during technique update after deletion of Technique ${technique.name}"
@@ -208,7 +207,7 @@ class DeleteEditorTechniqueImpl(
                            techniqueId,
                            cat,
                            modId,
-                           committer,
+                           committer.actor,
                            s"Deleting invalid technique ${techniqueName}/${techniqueVersion}"
                          )
                          .chainError(
@@ -218,7 +217,7 @@ class DeleteEditorTechniqueImpl(
                      _ <- techLibUpdate
                             .update(
                               modId,
-                              committer,
+                              committer.actor,
                               Some(s"Update Technique library after deletion of invalid Technique ${techniqueName}")
                             )
                             .toIO
