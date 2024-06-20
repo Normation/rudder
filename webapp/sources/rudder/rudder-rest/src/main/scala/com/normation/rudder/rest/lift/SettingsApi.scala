@@ -1068,7 +1068,8 @@ class SettingsApi(
           s""" "delete":["192.168.1.0/24", ...]"}}, got: ${if (json == JNothing) "nothing" else compactRender(json)}"""
         }
         _        <- if (json == JNothing) Failure(msg) else Full(())
-        diff     <- try { Full(json.extract[AllowedNetDiff]) }
+        // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+        diff     <- try { Full(json.extract[AllowedNetDiff]) : @annotation.nowarn("cat=deprecation") }
                     catch { case NonFatal(ex) => Failure(msg) }
         _        <- traverse(diff.add)(checkAllowedNetwork)
         // for now, we use inet as the name, too

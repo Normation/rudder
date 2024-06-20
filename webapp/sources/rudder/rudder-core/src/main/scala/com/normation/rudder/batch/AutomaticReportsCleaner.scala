@@ -157,7 +157,8 @@ object AutomaticReportsCleaning {
       nodes  <- ldap.searchOne(new DN("ou=Nodes,cn=rudder-configuration"), BuildFilter.HAS(runIntervalAttr), runIntervalAttr)
       ints   <- ZIO.foreach(nodes) { node =>                                   // don't fail on parsing error, just return 0
                   (try {
-                    parse(node(runIntervalAttr).getOrElse("{}")).extract[RunInterval].interval
+                    // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+                    parse(node(runIntervalAttr).getOrElse("{}")).extract[RunInterval].interval : @annotation.nowarn("cat=deprecation")
                   } catch {
                     case ex: Exception => 0
                   }).succeed

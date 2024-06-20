@@ -85,10 +85,13 @@ import net.liftweb.json.*
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonDSL.*
 import org.joda.time.DateTime
+
 import scala.util.control.NonFatal
 import zio.*
 import zio.json.*
 import zio.syntax.*
+
+import scala.annotation.nowarn
 
 object NodeStateEncoder {
   implicit def enc(state: NodeState): String = state.name
@@ -180,14 +183,16 @@ class LDAPEntityMapper(
     import net.liftweb.json.JsonParser.*
     implicit val formats: Formats = DefaultFormats
 
-    parse(value).extract[AgentRunInterval]
+    // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+    parse(value).extract[AgentRunInterval] : @nowarn("cat=deprecation")
   }
 
   def unserializeNodeHeartbeatConfiguration(value: String): HeartbeatConfiguration = {
     import net.liftweb.json.JsonParser.*
     implicit val formats: Formats = DefaultFormats
 
-    parse(value).extract[HeartbeatConfiguration]
+    // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+    parse(value).extract[HeartbeatConfiguration] : @nowarn("cat=deprecation")
   }
 
   def entryToNode(e: LDAPEntry): PureResult[Node] = {
@@ -1020,7 +1025,8 @@ class LDAPEntityMapper(
     implicit val formats = net.liftweb.json.DefaultFormats
     for {
       json <- parseOpt(s).toRight(s"The following string can not be parsed as a JSON object for API ACL: ${s}")
-      jacl <- (json.extractOpt[JsonApiAcl]).toRight(s"Can not extract API ACL object from json: ${s}")
+      // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+      jacl <- (json.extractOpt[JsonApiAcl]).toRight(s"Can not extract API ACL object from json: ${s}") : @nowarn("cat=deprecation")
       acl  <- jacl.acl.traverse {
                 case JsonApiAuthz(path, actions) =>
                   for {

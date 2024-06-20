@@ -72,7 +72,6 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JE.JsVar
 import net.liftweb.http.js.JE.Str
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json.JsonDSL.*
 import net.liftweb.util.*
 import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
@@ -485,9 +484,10 @@ object DisplayNode extends Loggable {
          |</div>""".stripMargin.replaceAll("\n", " ")
     }
 
-    val nodeStateIcon = (
-      <span class={"node-state " ++ escape(getNodeState(node.rudderSettings.state).toLowerCase).replaceAll(" ", "-")}></span>
-    )
+    val nodeStateClasses: String = "node-state " ++ escape(getNodeState(node.rudderSettings.state).toLowerCase).replaceAll(" ", "-")
+    val nodeStateIcon = {
+      <span class={nodeStateClasses}></span>
+    }
 
     <div class="header-title">
     <div class={"os-logo " ++ sm.node.main.osDetails.os.name.toLowerCase()} data-bs-toggle="tooltip" title={osTooltip}></div>
@@ -1079,6 +1079,8 @@ object DisplayNode extends Loggable {
       }
      </tr>
     }
+
+    import net.liftweb.json.JsonDSL.*
 
     val os = (
       ("fullName"          -> escape(sm.node.main.osDetails.fullName))

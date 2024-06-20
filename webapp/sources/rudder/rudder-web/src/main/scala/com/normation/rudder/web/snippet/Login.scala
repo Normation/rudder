@@ -8,6 +8,17 @@ import scala.xml.NodeSeq
 class Login extends DispatchSnippet with DefaultExtendableSnippet[Login] {
 
   val userListProvider = RudderConfig.rudderUserListProvider
+  private val script = 
+                 """window.setTimeout('location.reload()', 10000);
+                 |new ClipboardJS('.btn-clipboard');
+                 |var checked;
+                 |$('.btn-cmd-user').on('click', function(){
+                 |  clearInterval(checked);
+                 |  $('.btn-cmd-user .fa-clipboard').attr('class', 'fas fa-check') ;
+                 |    checked = setInterval(function(){
+                 |    $('.btn-cmd-user .fa-check').attr('class', 'far fa-clipboard') ;
+                 |  },700);
+                 |});""".stripMargin
   def mainDispatch: Map[String, NodeSeq => NodeSeq] = Map(
     "display" -> { (authForm: NodeSeq) =>
       if (userListProvider.authConfig.users.isEmpty) {
@@ -36,16 +47,7 @@ class Login extends DispatchSnippet with DefaultExtendableSnippet[Login] {
               </div>
               <script type="text/javascript">
                 // <![CDATA[
-                window.setTimeout('location.reload()', 10000);
-                new ClipboardJS('.btn-clipboard');
-                var checked;
-                $('.btn-cmd-user').on('click', function(){
-                  clearInterval(checked);
-                  $('.btn-cmd-user .fa-clipboard').attr('class', 'fas fa-check') ;
-                    checked = setInterval(function(){
-                    $('.btn-cmd-user .fa-check').attr('class', 'far fa-clipboard') ;
-                  },700);
-                });
+                {script}
                 // ]]>
               </script>
             </div>

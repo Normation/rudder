@@ -185,7 +185,8 @@ class AcceptNode extends Loggable {
    */
   def details(jsonArrayOfIds: String, template: NodeSeq, popupId: String): JsCmd = {
     implicit val formats = DefaultFormats
-    val serverList       = parse(jsonArrayOfIds).extract[List[String]].map(x => NodeId(x))
+    // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+    val serverList       = parse(jsonArrayOfIds).extract[List[String]].map(x => NodeId(x)) : @annotation.nowarn("cat=deprecation")
 
     if (serverList.isEmpty) {
       Alert("You didn't select any nodes")

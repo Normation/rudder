@@ -147,7 +147,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
     def displayDetails(jsonId: String) = {
       implicit val format = json.DefaultFormats
-      json.parseOpt(jsonId).flatMap(_.extractOpt[JsonDirectiveRId]) match {
+      // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+      json.parseOpt(jsonId).flatMap(_.extractOpt[JsonDirectiveRId] : @annotation.nowarn("cat=deprecation")) match {
         case None     =>
           Noop
         case Some(id) =>

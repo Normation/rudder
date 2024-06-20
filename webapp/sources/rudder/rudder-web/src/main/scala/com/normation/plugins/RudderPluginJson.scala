@@ -96,14 +96,16 @@ class ReadPluginPackageInfo(path: String) {
   def parseFile(json: String): IOResult[JsonPluginFile] = {
     IOResult.attempt {
       implicit val formats = net.liftweb.json.DefaultFormats
-      JsonParser.parse(json).extract[JsonPluginFile]
+      // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+      JsonParser.parse(json).extract[JsonPluginFile] : @annotation.nowarn("cat=deprecation")
     }
   }
 
   def decodeOne(plugin: JValue): IOResult[JsonPluginDef] = {
     implicit val formats = net.liftweb.json.DefaultFormats
     for {
-      p       <- IOResult.attempt(plugin.extract[JsonPluginRaw])
+      // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+      p       <- IOResult.attempt(plugin.extract[JsonPluginRaw] : @annotation.nowarn("cat=deprecation"))
       date    <- IOResult.attempt(DateTime.parse(p.`build-date`, ISODateTimeFormat.dateTimeNoMillis()))
       version <- PluginVersion.from(p.version).notOptional(s"Version for '${p.name}' is not a valid plugin version: ${p.version}")
     } yield {

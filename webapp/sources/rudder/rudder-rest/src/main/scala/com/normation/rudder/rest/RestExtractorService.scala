@@ -907,7 +907,8 @@ final case class RestExtractorService(
     if (value == JNothing) Full(None) // missing tag in json means user doesn't want to update them
     else {
       for {
-        jobjects <- Box(value.extractOpt[List[JObject]]) ?~! s"Invalid JSON serialization for Tags ${value}"
+        // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+        jobjects <- Box(value.extractOpt[List[JObject]] : @annotation.nowarn("cat=deprecation")) ?~! s"Invalid JSON serialization for Tags ${value}"
         // be careful, we need to use JObject.obj to get the list even if there is duplicated keys,
         // which would be removed with JObject.values
         pairs    <- Control.traverse(jobjects) { o =>
