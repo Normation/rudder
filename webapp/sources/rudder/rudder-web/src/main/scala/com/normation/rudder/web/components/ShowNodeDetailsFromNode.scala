@@ -50,6 +50,7 @@ import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.score.ComplianceScore
@@ -217,7 +218,7 @@ class ShowNodeDetailsFromNode(
           <p>Error message was: {e.messageChain}</p>
         </div>
       case Full(Some(node)) => // currentSelectedNode = Some(server)
-        nodeFactRepo.slowGet(node.id)(CurrentUser.queryContext).toBox match {
+        nodeFactRepo.slowGet(node.id)(CurrentUser.queryContext, attrs = SelectFacts.noSoftware).toBox match {
           case Full(Some(nf)) =>
             val tab  = displayDetailsMode.tab
             val jsId = JsNodeId(nodeId, "")
