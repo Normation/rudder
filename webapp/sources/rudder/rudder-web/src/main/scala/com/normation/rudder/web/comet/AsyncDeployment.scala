@@ -166,7 +166,12 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
                   </div>
                 </div>
 
-                case _ => <pre class="code">{failure.messageChain.split("<- ").map(x => Text("⇨ " + x.replace("cause was:", "\n    cause was:")) ++ { <br/> })}</pre>
+                case _ =>
+                  <pre class="code">{
+                    failure.messageChain
+                      .split("<- ")
+                      .map(x => Text("⇨ " + x.replace("cause was:", "\n    cause was:")) ++ { <br/> })
+                  }</pre>
               }
             }
 
