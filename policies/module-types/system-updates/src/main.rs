@@ -5,67 +5,73 @@
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 
-mod cache;
+mod actions;
+mod db;
+mod hooks;
+mod output;
 mod package_manager;
+mod scheduler;
 
-use std::{fs, path::PathBuf};
+use std::{env, fs, path::PathBuf};
 
+use crate::package_manager::PackageManager;
 use anyhow::{bail, Context};
+use chrono::{DateTime, Utc};
 use rudder_module_type::{
     parameters::Parameters, run, CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome,
-    PolicyMode, ValidateResult,
+    PolicyMode, ProtocolResult, ValidateResult,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-// Configuration
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Copy)]
-#[serde(rename_all = "snake_case")]
-pub enum State {
-    Present,
-    Absent,
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self::Present
-    }
+/// The description of a package to update
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+struct PackageSpec {
+    name: String,
+    // None means any
+    version: Option<String>,
+    // None means any
+    architecture: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Copy)]
 #[serde(rename_all = "snake_case")]
-pub enum Provider {
-    Default,
-    Yum,
-    Zypper,
-    Apt,
+pub enum RebootType {
+    #[serde(alias = "enabled")]
+    Always,
+    AsNeeded,
+    ServicesOnly,
+    Disabled,
 }
 
-impl Default for Provider {
-    fn default() -> Self {
-        Self::Default
-    }
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Copy, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum CampaignType {
+    #[default]
+    System,
+    Software,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct PackageParameters {
-    /// Required parameter
-    name: String,
     #[serde(default)]
-    state: State,
-    version: Option<String>,
-    architecture: Option<String>,
-    provider: Provider,
-    options: Option<String>,
+    state: CampaignType,
+    provider: PackageManager,
+    campaign_id: String,
+    start: DateTime<Utc>,
+    end: DateTime<Utc>,
+    package_list: Vec<PackageSpec>,
+    report_file: PathBuf,
 }
 
 // Module
 
-struct Package {}
+// Un seul?
 
-impl ModuleType0 for Package {
+struct SystemUpdate {}
+
+impl ModuleType0 for SystemUpdate {
     fn metadata(&self) -> ModuleTypeMetadata {
         let meta = include_str!("../rudder_module_type.yml");
         let docs = include_str!("../README.md");
@@ -74,8 +80,14 @@ impl ModuleType0 for Package {
             .documentation(docs)
     }
 
+    fn init(&mut self) -> ProtocolResult {
+        // FIXME: In the lib?
+        env::set_var("LC_ALL", "C");
+        ProtocolResult::Success
+    }
+
     fn validate(&self, parameters: &Parameters) -> ValidateResult {
-        // Parse as parameters type
+        // Parse as parameter types
         let _parameters: PackageParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))?;
         Ok(())
@@ -92,7 +104,7 @@ impl ModuleType0 for Package {
 // Start runner
 
 fn main() -> Result<(), anyhow::Error> {
-    let package_promise_type = Package {};
+    let package_promise_type = SystemUpdate {};
     // Run the promise executor
     run(package_promise_type)
 }

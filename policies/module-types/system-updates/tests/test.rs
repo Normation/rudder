@@ -39,4 +39,3 @@ fn test(
         assert!(!test_dir.exists());
     }
 }
-

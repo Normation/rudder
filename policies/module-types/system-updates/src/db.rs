@@ -6,24 +6,15 @@
 // Le module est responsable du schéma
 // Il faut une table de clé-valeur en plus
 
-// Installed : name, version (%{version}-%{release}), architecture
-// Available : pareil
-
+use crate::SystemUpdate;
 use anyhow::Result;
 use rusqlite::{self, params, Connection};
 use std::fmt;
 use std::path::Path;
 use std::time::{Instant, SystemTime};
 
-/// Designates a package in a package manager context
-#[derive(Debug)]
-struct Package {
-    name: String,
-    version: String,
-    // here, we use the value used by the package manager, and do not try to
-    // align on common values.
-    architecture: String,
-}
+const DB_DIR: &str = "/var/rudder/cfengine-community/state/";
+const DB_NAME: &str = "system-updates.db";
 
 #[derive(Debug)]
 struct PackageQuery {
@@ -67,7 +58,7 @@ impl PackageCache {
         } else {
             Connection::open_in_memory()
         }?;
-        let schema = include_str!("cache.sql");
+        let schema = include_str!("packages.sql");
         conn.execute(schema, ())?;
         Ok(Self {
             cache_type,
@@ -75,7 +66,7 @@ impl PackageCache {
         })
     }
 
-    pub fn refresh(packages: &[Package]) -> Result<()> {
+    pub fn refresh(packages: &[SystemUpdate]) -> Result<()> {
         Ok(())
     }
 
@@ -118,10 +109,10 @@ fn main() -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{PackageCache, CacheType};
+    use super::{CacheType, PackageCache};
 
     #[test]
-    fn it_privisions_db() {
+    fn it_provisions_db() {
         let db = PackageCache::new(CacheType::Installed, None).unwrap();
     }
 }

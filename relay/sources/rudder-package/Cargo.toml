@@ -18,7 +18,7 @@ chrono = { version = "0.4.31", default-features = false, features = ["clock", "s
 dir-diff = "0.3.2"
 lzma-rs = "0.3.0"
 pretty_assertions = "1.4.0"
-quick-xml = "0.31.0"
+quick-xml = "0.32.0"
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "native-tls"] }
 regex = "1.10.2"
 rstest = "0.21.0"
