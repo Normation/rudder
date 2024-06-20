@@ -67,6 +67,9 @@ import com.normation.rudder.repository.ComplianceRepository
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
+import com.normation.rudder.score.DummyGlobalScoreRepository
+import com.normation.rudder.score.DummyScoreRepository
+import com.normation.rudder.score.ScoreServiceImpl
 import com.normation.rudder.score.ScoreServiceManager
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
@@ -90,7 +93,6 @@ import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import scala.annotation.nowarn
 import scala.collection.SortedMap
-import scala.concurrent.duration.FiniteDuration
 import zio.*
 import zio.interop.catz.*
 import zio.syntax.*
@@ -187,8 +189,6 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
     override def batchSize: Int = 5000
 
-    override def scoreServiceManager: ScoreServiceManager = null
-
     override def rulesRepo: RoRuleRepository = null
   }
 
@@ -225,6 +225,10 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     }
   }
 
+  lazy val dummyScoreManager: ScoreServiceManager = new ScoreServiceManager(
+    new ScoreServiceImpl(new DummyGlobalScoreRepository(), new DummyScoreRepository())
+  )
+
   lazy val updateRuns: ReportsExecutionService = {
     new ReportsExecutionService(
       reportsRepo,
@@ -232,8 +236,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       dummyChangesCache,
       dummyComplianceCache,
       dummyComplianceRepos,
-      FiniteDuration(1, "hour"),
-      FiniteDuration(1, "hour")
+      dummyScoreManager
     )
   }
 
@@ -349,7 +352,6 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     findExpected,
     reportsRepo,
     roAgentRun,
-    agentRunService,
     nodeFactRepo,
     directivesRepos,
     rulesRepos,

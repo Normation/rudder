@@ -76,7 +76,7 @@ class ReportingServiceUtilsTest extends Specification {
   val expiration = new DateTime(0) // not used
 
   val noOverrides = Nil
-  def dirReport(id: DirectiveId): (DirectiveId, DirectiveStatusReport) = (id, DirectiveStatusReport(id, Nil))
+  def dirReport(id: DirectiveId): (DirectiveId, DirectiveStatusReport) = (id, DirectiveStatusReport(id, Nil, isSystem = false))
   def rnReport(nodeId: NodeId, ruleId: RuleId, directives: DirectiveId*): RuleNodeStatusReport = {
     RuleNodeStatusReport(nodeId, ruleId, None, None, directives.map(dirReport _).toMap, expiration)
   }

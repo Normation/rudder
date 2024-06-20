@@ -1017,7 +1017,7 @@ object ExecutionBatch extends Loggable {
 
     val reports = reportsForThatNodeRule.groupBy(x => x.directiveId)
 
-    val expectedComponents: Map[(DirectiveId, List[EffectiveExpectedComponent]), (PolicyMode, ReportType)] = (for {
+    val expectedComponents: Map[(DirectiveId, List[EffectiveExpectedComponent]), (PolicyMode, ReportType, Boolean)] = (for {
       directive          <- directives
       policyMode          = PolicyMode.directivePolicyMode(
                               modes.globalPolicyMode,
@@ -1034,7 +1034,7 @@ object ExecutionBatch extends Loggable {
 
     } yield {
 
-      ((directive.directiveId, getExpectedComponents(component)), (policyMode, missingReportStatus))
+      ((directive.directiveId, getExpectedComponents(component)), (policyMode, missingReportStatus, directive.isSystem))
     }).toMap
     val t2 = System.nanoTime
     timer.u1 += t2 - t1
@@ -1068,10 +1068,13 @@ object ExecutionBatch extends Loggable {
     val expected: Iterable[DirectiveStatusReport] = {
       expectedComponents.groupBy(_._1._1).map {
         case (directiveId, expectedComponentsForDirective) =>
+          // directive should be consistent on isSystem
+          val isSystem = expectedComponentsForDirective.headOption.map(_._2._3).getOrElse(false)
+
           DirectiveStatusReport(
             directiveId,
             expectedComponentsForDirective.flatMap {
-              case ((directiveId, components), (policyMode, missingReportStatus)) =>
+              case ((directiveId, components), (policyMode, missingReportStatus, _)) =>
                 val filteredReports = reports.get(directiveId).getOrElse(Seq())
                 // We iterate on each effective component (not a component but a component that only contains a unique path to a unique value
                 val r               = components.map { c =>
@@ -1088,7 +1091,8 @@ object ExecutionBatch extends Loggable {
                 }
                 // Merge all components together
                 ComponentStatusReport.merge(r.flatten)
-            }.toList
+            }.toList,
+            isSystem = isSystem
           )
       }
     }
@@ -1300,7 +1304,10 @@ object ExecutionBatch extends Loggable {
                               }
                           }
                         )
-                    }
+                    },
+                    // since we don't know esily what directive lead to these unexpected reports,
+                    // we assume "non system"
+                    isSystem = false
                   )
                 )
             },
@@ -1326,7 +1333,9 @@ object ExecutionBatch extends Loggable {
             r.reportId,
             MessageStatusReport(ReportType.Unexpected, r.message) :: Nil
           ) :: Nil
-        ) :: Nil
+        ) :: Nil,
+        // since we don't know for unexpected reports the directive kind easely, assume "non system"
+        isSystem = false
       )
 
     }
@@ -1371,7 +1380,11 @@ object ExecutionBatch extends Loggable {
         val d = directives.map { d =>
           (
             d.directiveId,
-            DirectiveStatusReport(d.directiveId, d.components.map(c => componentExpectedReportToStatusReport(status, c)))
+            DirectiveStatusReport(
+              d.directiveId,
+              d.components.map(c => componentExpectedReportToStatusReport(status, c)),
+              isSystem = d.isSystem
+            )
           )
         }.toMap
         RuleNodeStatusReport(

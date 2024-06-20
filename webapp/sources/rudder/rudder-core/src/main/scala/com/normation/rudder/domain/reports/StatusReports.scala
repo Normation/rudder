@@ -167,6 +167,19 @@ object NodeStatusReport {
       }
     )
   }
+
+  def filterBySystemStatus(nodeStatusReport: NodeStatusReport, isSystem: Boolean): NodeStatusReport = {
+    new NodeStatusReport(
+      nodeStatusReport.nodeId,
+      nodeStatusReport.runInfo,
+      nodeStatusReport.statusInfo,
+      nodeStatusReport.overrides,
+      nodeStatusReport.reports.flatMap { r =>
+        val filterRule = r.copy(directives = r.directives.filter(d => d._2.isSystem == isSystem))
+        if (filterRule.directives.isEmpty) None else Some(filterRule)
+      }
+    )
+  }
 }
 
 /**
@@ -270,8 +283,8 @@ object RuleNodeStatusReport {
 
 final case class DirectiveStatusReport(
     directiveId: DirectiveId, // only one component status report by component name
-
-    components: List[ComponentStatusReport]
+    components:  List[ComponentStatusReport],
+    isSystem:    Boolean
 ) extends StatusReport {
   override lazy val compliance:                                    ComplianceLevel                                        = ComplianceLevel.sum(components.map(_.compliance))
   def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(DirectiveId, String, ComponentValueStatusReport)] = {
@@ -306,8 +319,11 @@ object DirectiveStatusReport {
   def merge(directives: List[DirectiveStatusReport]): Map[DirectiveId, DirectiveStatusReport] = {
     directives.groupBy(_.directiveId).map {
       case (directiveId, reports) =>
+        // DirectiveStatusReport should be for the same directive, and we can't switch
+        // system status between instance. By default: not system.
+        val isSystem      = reports.headOption.map(_.isSystem).getOrElse(false)
         val newComponents = ComponentStatusReport.merge(reports.flatMap(_.components))
-        (directiveId, DirectiveStatusReport(directiveId, newComponents))
+        (directiveId, DirectiveStatusReport(directiveId, newComponents, isSystem = isSystem))
     }
   }
 }

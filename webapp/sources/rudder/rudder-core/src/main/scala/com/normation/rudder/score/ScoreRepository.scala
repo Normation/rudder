@@ -38,6 +38,7 @@
 package com.normation.rudder.score
 
 import com.normation.errors.IOResult
+import com.normation.errors.Unexpected
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
 import doobie.Fragments
@@ -48,8 +49,10 @@ import doobie.implicits.*
 import doobie.implicits.toSqlInterpolator
 import doobie.postgres.implicits.pgEnumString
 import doobie.util.invariant.InvalidEnum
+import zio.ZIO
 import zio.interop.catz.*
 import zio.json.ast.Json
+import zio.syntax.*
 
 trait ScoreRepository {
 
@@ -59,6 +62,19 @@ trait ScoreRepository {
   def saveScore(nodeId:   NodeId, score:   Score):          IOResult[Unit]
   def deleteScore(nodeId: NodeId, scoreId: Option[String]): IOResult[Unit]
 
+}
+
+/*
+ * A score repository that does nothing, for tests
+ */
+class DummyScoreRepository extends ScoreRepository {
+  override def getAll(): IOResult[Map[NodeId, List[Score]]] = Map().succeed
+  override def getScore(nodeId: NodeId, scoreId: Option[String]): IOResult[List[Score]] = Nil.succeed
+  override def getOneScore(nodeId: NodeId, scoreId: String): IOResult[Score] = Unexpected(
+    s"Score node found in dummy repository"
+  ).fail
+  override def saveScore(nodeId:   NodeId, score:   Score):          IOResult[Unit] = ZIO.unit
+  override def deleteScore(nodeId: NodeId, scoreId: Option[String]): IOResult[Unit] = ZIO.unit
 }
 
 class ScoreRepositoryImpl(doobie: Doobie) extends ScoreRepository {
