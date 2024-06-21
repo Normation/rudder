@@ -132,9 +132,9 @@ class ReportingServiceImpl(
     val directivesRepo:              RoDirectiveRepository,
     val rulesRepo:                   RoRuleRepository,
     val nodeConfigService:           NodeConfigurationService,
-    val getGlobalComplianceMode:     IOResult[GlobalComplianceMode],
-    val getGlobalPolicyMode:         IOResult[GlobalPolicyMode],
-    val getUnexpectedInterpretation: IOResult[UnexpectedReportInterpretation],
+    val getGlobalComplianceMode:     () => IOResult[GlobalComplianceMode],
+    val getGlobalPolicyMode:         () => IOResult[GlobalPolicyMode],
+    val getUnexpectedInterpretation: () => IOResult[UnexpectedReportInterpretation],
     val jdbcMaxBatchSize:            Int
 ) extends ReportingService with RuleOrNodeReportingServiceImpl with DefaultFindRuleNodeStatusReports
 
@@ -730,8 +730,8 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
   def nodeConfigService:           NodeConfigurationService
   def reportsRepository:           ReportsRepository
   def agentRunRepository:          RoReportsExecutionRepository
-  def getGlobalComplianceMode:     IOResult[GlobalComplianceMode]
-  def getUnexpectedInterpretation: IOResult[UnexpectedReportInterpretation]
+  def getGlobalComplianceMode:     () => IOResult[GlobalComplianceMode]
+  def getUnexpectedInterpretation: () => IOResult[UnexpectedReportInterpretation]
   def jdbcMaxBatchSize:            Int
 
   override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId])(implicit
@@ -768,8 +768,8 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
      */
     for {
       t0             <- currentTimeMillis
-      complianceMode <- getGlobalComplianceMode
-      unexpectedMode <- getUnexpectedInterpretation
+      complianceMode <- getGlobalComplianceMode()
+      unexpectedMode <- getUnexpectedInterpretation()
       // we want compliance on these nodes
       runInfos       <- getNodeRunInfos(nodeIds, complianceMode)
       t1             <- currentTimeMillis
@@ -820,8 +820,8 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
      */
     for {
       t0             <- currentTimeMillis
-      complianceMode <- getGlobalComplianceMode
-      unexpectedMode <- getUnexpectedInterpretation
+      complianceMode <- getGlobalComplianceMode()
+      unexpectedMode <- getUnexpectedInterpretation()
       // we want compliance on these nodes
       runInfos       <- getNodeRunInfos(nodeIds, complianceMode)
       t1             <- currentTimeMillis
@@ -844,8 +844,8 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
   )(implicit qc: QueryContext): IOResult[Map[NodeId, ComplianceLevel]] = {
     for {
       t0             <- currentTimeMillis
-      complianceMode <- getGlobalComplianceMode
-      unexpectedMode <- getUnexpectedInterpretation
+      complianceMode <- getGlobalComplianceMode()
+      unexpectedMode <- getUnexpectedInterpretation()
       // we want compliance on these nodes
       runInfos       <- getNodeRunInfos(nodeIds, complianceMode)
       t1             <- currentTimeMillis
@@ -868,8 +868,8 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
   )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = {
     for {
       t0             <- currentTimeMillis
-      complianceMode <- getGlobalComplianceMode
-      unexpectedMode <- getUnexpectedInterpretation
+      complianceMode <- getGlobalComplianceMode()
+      unexpectedMode <- getUnexpectedInterpretation()
       // we want compliance on these nodes
       runInfos       <- getNodeRunInfos(nodeIds, complianceMode)
       t1             <- currentTimeMillis
@@ -956,8 +956,8 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
      */
     for {
       t0             <- currentTimeMillis
-      complianceMode <- getGlobalComplianceMode
-      unexpectedMode <- getUnexpectedInterpretation
+      complianceMode <- getGlobalComplianceMode()
+      unexpectedMode <- getUnexpectedInterpretation()
       // get untreated runs
       uncomputedRuns <- getUnComputedNodeRunInfos()
       t1             <- currentTimeMillis

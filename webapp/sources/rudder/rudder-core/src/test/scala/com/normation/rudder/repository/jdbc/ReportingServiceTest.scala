@@ -357,9 +357,9 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     directivesRepos,
     rulesRepos,
     nodeConfigService,
-    compliance.succeed,
-    GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always).succeed,
-    UnexpectedReportInterpretation(Set()).succeed,
+    () => compliance.succeed,
+    () => GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always).succeed,
+    () => UnexpectedReportInterpretation(Set()).succeed,
     RUDDER_JDBC_BATCH_MAX_SIZE
   )
 

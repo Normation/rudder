@@ -101,15 +101,15 @@ trait ComplianceModeService {
 }
 
 class ComplianceModeServiceImpl(
-    readComplianceMode: IOResult[String],
-    readHeartbeatFreq:  IOResult[Int]
+    readComplianceMode: () => IOResult[String],
+    readHeartbeatFreq:  () => IOResult[Int]
 ) extends ComplianceModeService {
 
   def getGlobalComplianceMode: IOResult[GlobalComplianceMode] = {
     for {
-      modeName  <- readComplianceMode
+      modeName  <- readComplianceMode()
       mode      <- ComplianceModeName.parse(modeName).toIO
-      heartbeat <- readHeartbeatFreq
+      heartbeat <- readHeartbeatFreq()
     } yield {
       GlobalComplianceMode(
         mode,

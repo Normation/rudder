@@ -2875,8 +2875,8 @@ object RudderConfigInit {
 
     lazy val globalComplianceModeService: ComplianceModeService   = {
       new ComplianceModeServiceImpl(
-        configService.rudder_compliance_mode_name(),
-        configService.rudder_compliance_heartbeatPeriod()
+        () => configService.rudder_compliance_mode_name(),
+        () => configService.rudder_compliance_heartbeatPeriod()
       )
     }
     lazy val globalAgentRunService:       AgentRunIntervalService = {
@@ -3072,9 +3072,9 @@ object RudderConfigInit {
           roLdapDirectiveRepository,
           roRuleRepository,
           cachedNodeConfigurationService,
-          globalComplianceModeService.getGlobalComplianceMode,
-          configService.rudder_global_policy_mode(),
-          configService.rudder_compliance_unexpected_report_interpretation(),
+          () => globalComplianceModeService.getGlobalComplianceMode,
+          () => configService.rudder_global_policy_mode(),
+          () => configService.rudder_compliance_unexpected_report_interpretation(),
           RUDDER_JDBC_BATCH_MAX_SIZE
         ),
         nodeFactRepository,

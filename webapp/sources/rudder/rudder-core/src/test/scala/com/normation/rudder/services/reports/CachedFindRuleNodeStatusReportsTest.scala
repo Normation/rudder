@@ -161,11 +161,11 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     var updated: List[NodeId] = Nil
 
     override def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports = new DefaultFindRuleNodeStatusReports() {
-      override def confExpectedRepo:            FindExpectedReportRepository             = ???
-      override def reportsRepository:           ReportsRepository                        = ???
-      override def agentRunRepository:          RoReportsExecutionRepository             = ???
-      override def getGlobalComplianceMode:     IOResult[GlobalComplianceMode]           = ???
-      override def getUnexpectedInterpretation: IOResult[UnexpectedReportInterpretation] = ???
+      override def confExpectedRepo:            FindExpectedReportRepository                   = ???
+      override def reportsRepository:           ReportsRepository                              = ???
+      override def agentRunRepository:          RoReportsExecutionRepository                   = ???
+      override def getGlobalComplianceMode:     () => IOResult[GlobalComplianceMode]           = ???
+      override def getUnexpectedInterpretation: () => IOResult[UnexpectedReportInterpretation] = ???
       override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId)(implicit
           qc: QueryContext
       ): IOResult[Map[NodeId, NodeStatusReport]] = ???
