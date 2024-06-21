@@ -12,8 +12,7 @@ pub const NEED_RESTART_PATH: &str = "/usr/bin/needs-restarting";
 pub struct Yum {}
 
 impl Yum {
-    // https://serverfault.com/a/1075175
-
+    /// https://serverfault.com/a/1075175
     pub fn system_update(&self) -> Result<()> {
         Command::new("yum")
             .arg("--assumeyes")
@@ -22,6 +21,7 @@ impl Yum {
         Ok(())
     }
 
+    /// See https://access.redhat.com/solutions/10021
     pub fn system_update_security(&self) -> Result<()> {
         Command::new("yum")
             .arg("--assumeyes")

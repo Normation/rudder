@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
+use crate::PackageSpec;
 use anyhow::Result;
 
 mod apt;
@@ -34,10 +35,17 @@ pub enum PackageManager {
     Dpkg,
 }
 
-pub trait PackageManagerImpl {
+/// Generic implementation of a Linux package manager
+pub trait LinuxPackageManager {
+    /// List installed packages
     fn list_installed(&self) -> Result<PackageList>;
 
+    /// Apply all available upgrades
     fn full_upgrade(&self) -> Result<()>;
 
-    fn upgrade(&self) -> Result<()>;
+    /// Apply all security upgrades
+    fn security_upgrade(&self) -> Result<()>;
+
+    /// Upgrade specific packages
+    fn upgrade(&self, packages: Vec<PackageSpec>) -> Result<()>;
 }
