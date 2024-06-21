@@ -94,20 +94,83 @@ update msg model =
         Err err ->
           processApiError "Getting Policy Mode" err model
 
-    GetChangeRequestSettings res ->
+    GetEnableChangeMsg res ->
       case res of
-        Ok settings ->
+        Ok setting ->
           let
             ui = model.ui
-            getPendingCR = case (model.mode, settings.enableChangeRequest) of
+            settings = case model.ui.crSettings of
+              Just s -> Just {s | enableChangeMessage = setting}
+              Nothing -> Nothing
+          in
+            ( { model | ui = { ui | crSettings = settings } }
+              , Cmd.none
+            )
+        Err err ->
+          processApiError "Getting change request settings `enable_change_message`" err model
+
+    GetMandatoryMsg res ->
+      case res of
+        Ok setting ->
+          let
+            ui = model.ui
+            settings = case model.ui.crSettings of
+              Just s -> Just {s | mandatoryChangeMessage = setting}
+              Nothing -> Nothing
+          in
+            ( { model | ui = { ui | crSettings = settings } }
+              , Cmd.none
+            )
+        Err err ->
+          processApiError "Getting change request settings `mandatory_change_message`" err model
+
+    GetMsgPrompt res ->
+      case res of
+        Ok setting ->
+          let
+            ui = model.ui
+            settings = case model.ui.crSettings of
+              Just s -> Just {s | changeMessagePrompt = setting}
+              Nothing -> Nothing
+          in
+            ( { model | ui = { ui | crSettings = settings } }
+              , Cmd.none
+            )
+        Err err ->
+          processApiError "Getting change request settings `change_message_prompt`" err model
+
+    GetEnableCr res ->
+      case res of
+        Ok settingEnabledCR ->
+          let
+            ui = model.ui
+            getPendingCR = case (model.mode, settingEnabledCR) of
               (RuleForm details, True) -> getPendingChangeRequests model details.rule.id
               _ -> Cmd.none
+            settings = case model.ui.crSettings of
+              Just s -> Just {s | enableChangeRequest = settingEnabledCR}
+              Nothing -> Nothing
           in
-            ( { model | ui = { ui | crSettings = Just settings } }
+            ( { model | ui = { ui | crSettings = settings } }
               , getPendingCR
             )
         Err err ->
-          processApiError "Getting change request settings" err model
+          processApiError "Getting change request settings `enable_change_request`" err model
+
+    --GetChangeRequestSettings res ->
+    --  case res of
+    --    Ok settings ->
+    --      let
+    --        ui = model.ui
+    --        getPendingCR = case (model.mode, settings.enableChangeRequest) of
+    --          (RuleForm details, True) -> getPendingChangeRequests model details.rule.id
+    --          _ -> Cmd.none
+    --      in
+    --        ( { model | ui = { ui | crSettings = Just settings } }
+    --          , getPendingCR
+    --        )
+    --    Err err ->
+    --      processApiError "Getting change request settings" err model
 
     GetPendingChangeRequests res ->
       case res of

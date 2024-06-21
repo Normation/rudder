@@ -14,7 +14,14 @@ init flags =
     initUI       = UI initFilters initFilters initFilters (ComplianceFilters False False []) NoModal flags.hasWriteRights flags.canReadChanqeRequest True False False Nothing
     initModel    = Model flags.contextPath Loading "" initCategory initCategory initCategory Dict.empty Dict.empty Dict.empty Dict.empty initUI
 
-    listCRActions = if (flags.canReadChanqeRequest) then [getCrSettings initModel] else []
+    listCRActions =
+      if (flags.canReadChanqeRequest) then
+        [ getCrSettingsEnableCr initModel
+        , getCrSettingsEnabledMsg initModel
+        , getCrSettingsMandatoryMsg initModel
+        , getCrSettingsChangeMsgPrompt initModel
+        ]
+      else []
     listInitActions =
       [ getPolicyMode      initModel
       , getNodesList       initModel

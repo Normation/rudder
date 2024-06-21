@@ -213,7 +213,14 @@ object AuthorizationApiMapping {
         case UserAccount.Write => UserApi.CreateApiToken.x :: UserApi.DeleteApiToken.x :: Nil
         case UserAccount.Edit  => UserApi.UpdateApiToken.x :: Nil
 
-        case Validator.Read  => Nil // ChangeRequestApi.ListChangeRequests.x :: ChangeRequestApi.ChangeRequestsDetails.x :: Nil
+        case Validator.Read  =>
+          AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("enable_change_message") :: Nil) ::
+          AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("mandatory_change_message") :: Nil) ::
+          AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("change_message_prompt") :: Nil) ::
+          AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("enable_change_request") :: Nil) :: Nil
+        // ChangeRequestApi.ListChangeRequests.x :: ChangeRequestApi.ChangeRequestsDetails.x :: Nil
+
+
         case Validator.Write =>
           Nil // ChangeRequestApi.DeclineRequestsDetails.x :: ChangeRequestApi.AcceptRequestsDetails.x :: Nil
         case Validator.Edit  => Nil // ChangeRequestApi.UpdateRequestsDetails.x :: Nil

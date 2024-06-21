@@ -11,7 +11,7 @@ import List.Extra exposing (find)
 import Rules.DataTypes exposing (..)
 import Rules.JsonDecoder exposing (..)
 import Rules.JsonEncoder exposing (..)
-import Rules.ChangeRequest exposing (changeRequestParameters, decodeGetChangeRequestSettings, decodePendingChangeRequests)
+import Rules.ChangeRequest exposing (changeRequestParameters, decodeGetChangeRequestSettings, decodeGetEnableChangeMsg, decodeGetEnableCr, decodeGetMandatoryMsg, decodeGetMsgPrompt, decodePendingChangeRequests)
 
 --
 -- This files contains all API calls for the Rules UI
@@ -97,22 +97,69 @@ getPolicyMode model =
   in
     req
 
-getCrSettings : Model -> Cmd Msg
-getCrSettings model =
+getCrSettingsEnabledMsg : Model -> Cmd Msg
+getCrSettingsEnabledMsg model =
   let
     req =
       request
         { method  = "GET"
         , headers = []
-        , url     = getUrl model [ "settings" ] []
+        , url     = getUrl model [ "settings",  "enable_change_message"] []
         , body    = emptyBody
-        , expect  = expectJson GetChangeRequestSettings decodeGetChangeRequestSettings
+        , expect  = expectJson GetEnableChangeMsg decodeGetEnableChangeMsg
         , timeout = Nothing
         , tracker = Nothing
         }
   in
     req
 
+getCrSettingsMandatoryMsg : Model -> Cmd Msg
+getCrSettingsMandatoryMsg model =
+  let
+    req =
+      request
+        { method  = "GET"
+        , headers = []
+        , url     = getUrl model [ "settings", "mandatory_change_message" ] []
+        , body    = emptyBody
+        , expect  = expectJson GetMandatoryMsg decodeGetMandatoryMsg
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+  in
+    req
+
+getCrSettingsChangeMsgPrompt : Model -> Cmd Msg
+getCrSettingsChangeMsgPrompt model =
+  let
+    req =
+      request
+        { method  = "GET"
+        , headers = []
+        , url     = getUrl model [ "settings", "change_message_prompt" ] []
+        , body    = emptyBody
+        , expect  = expectJson GetMsgPrompt decodeGetMsgPrompt
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+  in
+    req
+
+getCrSettingsEnableCr : Model -> Cmd Msg
+getCrSettingsEnableCr model =
+  let
+    req =
+      request
+        { method  = "GET"
+        , headers = []
+        , url     = getUrl model [ "settings", "enable_change_request" ] []
+        , body    = emptyBody
+        , expect  = expectJson GetEnableCr decodeGetEnableCr
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+  in
+    req
 getPendingChangeRequests : Model -> RuleId -> Cmd Msg
 getPendingChangeRequests model ruleId =
   let
