@@ -68,6 +68,7 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.*
 import net.liftweb.util.Helpers.*
+import org.apache.commons.text.StringEscapeUtils
 import scala.xml.*
 import zio.syntax.*
 
@@ -154,7 +155,7 @@ class NodeGroupForm(
 
   private[this] def saveButtonCallBack(searchStatus: Boolean, query: Option[NewQuery]): JsCmd = {
     JsRaw(s"""$$('#${saveButtonId}').button();
-        $$('#${saveButtonId}').button("option", "disabled", ${searchStatus});""")
+        $$('#${saveButtonId}').button("option", "disabled", ${searchStatus});""") // JsRaw OK, no user input
   }
 
   setSearchNodeComponent
@@ -182,7 +183,7 @@ class NodeGroupForm(
   def showForm(): NodeSeq = {
     val html = SHtml.ajaxForm(body) ++
       Script(
-        OnLoad(JsRaw("$('#GroupTabs').tabs( {active : 0 });"))
+        OnLoad(JsRaw("$('#GroupTabs').tabs( {active : 0 });")) // JsRaw OK, no user input
       )
 
     (nodeGroup match {
@@ -225,7 +226,9 @@ class NodeGroupForm(
                           </div>
                         </div>
       & "#longDescriptionField *" #> (groupDescription.toForm_! ++ Script(
-        OnLoad(JsRaw(s"""setupMarkdown(${Str(nodeGroup.description).toJsCmd}, "longDescriptionField")"""))
+        OnLoad(
+          JsRaw(s"""setupMarkdown(${Str(nodeGroup.description).toJsCmd}, "longDescriptionField")""")
+        ) // JsRaw OK, toJsCmd encodes
       ))
       & "group-container" #> groupContainer.toForm_!
       & "group-static" #> groupStatic.toForm_!
@@ -282,7 +285,9 @@ class NodeGroupForm(
                   </div>
     & "group-cfeclasses" #> NodeSeq.Empty
     & "#longDescriptionField" #> (groupDescription.toForm_! ++ Script(
-      JsRaw(s"""setupMarkdown(${Str(groupDescription.defaultValue).toJsCmd}, "longDescriptionField")""")
+      JsRaw(
+        s"""setupMarkdown(${Str(groupDescription.defaultValue).toJsCmd}, "longDescriptionField")"""
+      ) // JsRaw OK, toJsCmd encodes
     ))
     & "group-container" #> groupContainer.readOnlyValue
     & "group-static" #> NodeSeq.Empty
@@ -302,7 +307,7 @@ class NodeGroupForm(
   def showGroupProperties(group: NodeGroup): NodeSeq = {
     import com.normation.rudder.AuthorizationType
 
-    val groupId       = group.id.serialize
+    val groupId       = StringEscapeUtils.escapeEcmaScript(group.id.serialize)
     val userHasRights = CurrentUser.checkRights(AuthorizationType.Group.Edit)
 
     val intro = (<div class="info">
@@ -334,7 +339,7 @@ class NodeGroupForm(
       scope.$$apply(function(){
         scope.init("${groupId}",${userHasRights},'group');
       });
-    """)))
+    """))) // JsRaw ok, groupId encoded, userHasRights boolean
   }
 
   ///////////// fields for category settings ///////////////////
@@ -420,7 +425,7 @@ class NodeGroupForm(
 
   private[this] def onFailure: JsCmd = {
     formTracker.addFormError(error("There was a problem with your request."))
-    updateFormClientSide() & JsRaw("""scrollToElement("errorNotification","#ajaxItemContainer");""")
+    updateFormClientSide() & JsRaw("""scrollToElement("errorNotification","#ajaxItemContainer");""") // JsRaw OK, no user input
   }
 
   private[this] def onSubmit(): JsCmd = {
@@ -636,8 +641,8 @@ class NodeGroupForm(
           new ModificationValidationPopup(
             Right(change),
             workflowService,
-            crId => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & successCallback(crId),
-            xml => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure,
+            crId => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & successCallback(crId), // JsRaw OK, no user input
+            xml => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure,              // JsRaw OK, no user input
             parentFormTracker = formTracker
           )
         }
@@ -657,12 +662,12 @@ class NodeGroupForm(
           }
 
           SetHtml("confirmUpdateActionDialog", html) &
-          JsRaw("""createPopup("confirmUpdateActionDialog")""")
+          JsRaw("""createPopup("confirmUpdateActionDialog")""") // JsRaw OK, no user input
         }
     }
   }
 
-  def createPopup(name: String):           JsCmd = {
+  private def createPopup(name: String):   JsCmd = {
     JsRaw(s"""createPopup("${name}");""")
   }
   private[this] def showCloneGroupPopup(): JsCmd = {
@@ -716,12 +721,12 @@ class NodeGroupForm(
       parentCategoryId: NodeGroupCategoryId
   ): JsCmd = {
     val js = group match {
-      case Left(target) => s"'target':'${target.target}"
-      case Right(g)     => s"'groupId':'${g.id.serialize}'"
+      case Left(target) => s"'target':'${StringEscapeUtils.escapeEcmaScript(target.target)}"
+      case Right(g)     => s"'groupId':'${StringEscapeUtils.escapeEcmaScript(g.id.serialize)}'"
     }
     // update UI
     onSuccessCallback(Left((group, parentCategoryId))) &
-    JsRaw(s"""this.window.location.hash = "#" + JSON.stringify({${js}})""")
+    JsRaw(s"""this.window.location.hash = "#" + JSON.stringify({${js}})""") // JsRaw ok, escaped
   }
 
   private[this] def updateAndDisplayNotifications(): NodeSeq = {
@@ -742,7 +747,7 @@ class NodeGroupForm(
   }
 
   private[this] def successPopup: JsCmd = {
-    JsRaw("""createSuccessNotification()""")
+    JsRaw("""createSuccessNotification()""") // JsRaw OK, no user input
   }
 
 }

@@ -66,6 +66,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.http.js.JsExp
 import net.liftweb.util.Helpers.*
+import org.apache.commons.text.StringEscapeUtils
 import scala.xml.NodeSeq
 
 object ShowNodeDetailsFromNode {
@@ -260,14 +261,14 @@ class ShowNodeDetailsFromNode(
           case Full(Some(sm)) =>
             val tab  = displayDetailsMode.tab
             val jsId = JsNodeId(nodeId, "")
-            def htmlId(jsId: JsNodeId, prefix: String): String = prefix + jsId.toString
+            def htmlId(jsId: JsNodeId, prefix: String): String = StringEscapeUtils.escapeEcmaScript(prefix + jsId.toString)
             val detailsId = htmlId(jsId, "details_")
             configService.rudder_global_policy_mode().toBox match {
               case Full(globalMode) =>
                 bindNode(node, sm, withinPopup, globalMode) ++ Script(
                   DisplayNode.jsInit(node.id, sm.node.softwareIds, "") &
                   JsRaw(s"""
-                    $$('#nodeHostname').html("${xml.Utility.escape(sm.node.main.hostname)}");
+                    $$('#nodeHostname').html("${StringEscapeUtils.escapeHtml4(sm.node.main.hostname)}");
                     $$( "#${detailsId}" ).tabs({ active : ${tab} } );
                     $$('#nodeInventory .ui-tabs-vertical .ui-tabs-nav li a').on('click',function(){
                       var tab = $$(this).attr('href');
@@ -276,7 +277,7 @@ class ShowNodeDetailsFromNode(
                       $$('#nodeInventory > .sInventory > .sInventory').hide();
                       $$(tab).show();
                     });
-                    """) &
+                    """) & // JsRaw ok, escaped
                   buildJsTree(groupTreeId)
                 )
               case e: EmptyBox =>
@@ -347,6 +348,6 @@ class ShowNodeDetailsFromNode(
    */
   private def buildJsTree(htmlId: String): JsExp = JsRaw(
     s"""buildGroupTree('#${htmlId}', '${S.contextPath}', [], 'on', undefined, false)"""
-  )
+  ) // JsRaw ok, const string
 
 }

@@ -90,7 +90,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     // else nothing is done because it enables what should not be.
     if (!CurrentUser.checkRights(AuthorizationType.Administration.Edit)) {
 
-      S.appendJs(JsRaw(s"""$$("input, select").attr("disabled", "true")"""))
+      S.appendJs(JsRaw(s"""$$("input, select").attr("disabled", "true")""")) // JsRaw ok, const
     }
     NodeSeq.Empty
   }
@@ -142,7 +142,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         .set_rudder_ui_changeMessage_explanation(explanation)
         .toBox
         .foreach(updateOk => initExplanation = Full(explanation))
-      check() & JsRaw("""createSuccessNotification("Audit logs configuration correctly updated")""")
+      check() & JsRaw("""createSuccessNotification("Audit logs configuration correctly updated")""") // JsRaw ok, const
     }
 
     // Check if there is no modification
@@ -300,7 +300,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
       startNewPolicyGeneration()
-      check() & JsRaw("""createSuccessNotification("Security options correctly updated")""")
+      check() & JsRaw("""createSuccessNotification("Security options correctly updated")""") // JsRaw ok, const
     }
 
     def noModif = (
@@ -402,7 +402,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
       startNewPolicyGeneration()
-      check() & JsRaw("""createSuccessNotification("Relay servers synchronization methods correctly updated")""")
+      check() & JsRaw(
+        """createSuccessNotification("Relay servers synchronization methods correctly updated")"""
+      ) // JsRaw ok, const
     }
 
     def setRelaySyncMethodJs(input: String): JsCmd = {
@@ -410,8 +412,8 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         case Full(method) =>
           relaySyncMethod = method
           method match {
-            case Rsync              => JsRaw(""" $('#relayRsyncSynchronizeFiles').show(); """)
-            case Classic | Disabled => JsRaw(""" $('#relayRsyncSynchronizeFiles').hide(); """)
+            case Rsync              => JsRaw(""" $('#relayRsyncSynchronizeFiles').show(); """) // JsRaw ok, const
+            case Classic | Disabled => JsRaw(""" $('#relayRsyncSynchronizeFiles').hide(); """) // JsRaw ok, const
           }
         case eb: EmptyBox =>
           Noop
@@ -591,10 +593,12 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           .foreach(updateOk => initModifiedFilesTtl = Full(intModifiedFilesTtl))
         // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
         startNewPolicyGeneration()
-        check() & JsRaw("""createSuccessNotification("File retention settings correctly updated")""")
+        check() & JsRaw("""createSuccessNotification("File retention settings correctly updated")""") // JsRaw ok, const
       } catch {
         case ex: NumberFormatException =>
-          Noop & JsRaw(s"""createErrorNotification("Invalid value ${ex.getMessage().replaceFirst("F", "f")})""")
+          Noop & JsRaw(
+            s"""createErrorNotification("Invalid value ${ex.getMessage().replaceFirst("F", "f")})"""
+          ) // JsRaw ok, no user input
       }
     }
 
@@ -642,12 +646,14 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
       } catch {
         case ex: NumberFormatException =>
-          Noop & JsRaw(s"""createErrorNotification("Invalid value ${ex.getMessage().replaceFirst("F", "f")})""")
+          Noop & JsRaw(
+            s"""createErrorNotification("Invalid value ${ex.getMessage().replaceFirst("F", "f")})"""
+          ) // JsRaw ok, no user inputs
       }
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
       startNewPolicyGeneration()
-      check() & JsRaw(s"""createSuccessNotification("'Agent log files duration' property updated.")""")
+      check() & JsRaw(s"""createSuccessNotification("'Agent log files duration' property updated.")""") // JsRaw ok, const
     }
 
     def noModif = (
@@ -955,11 +961,11 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
               initSendMetrics = currentSendMetrics
               // start a promise generation, Since we may have change the mode, if we got there it mean that we need to redeploy
               startNewPolicyGeneration()
-              JsRaw("""createSuccessNotification("'send server metrics' property updated")""")
+              JsRaw("""createSuccessNotification("'send server metrics' property updated")""") // JsRaw ok, const
             case eb: EmptyBox =>
               JsRaw(
                 """createErrorNotification("There was an error when updating the value of the 'send server metrics' property")"""
-              )
+              ) // JsRaw ok, const
           }
           check() & createNotification
         }
@@ -1008,11 +1014,11 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
             case (Full(_), Full(_)) =>
               initDisplayGraphs = currentDisplayGraphs
               initDisplayColumns = currentDisplayColumns
-              JsRaw("""createSuccessNotification("'Compliance display' properties updated")""")
+              JsRaw("""createSuccessNotification("'Compliance display' properties updated")""") // JsRaw ok, const
             case (_, _)             =>
               JsRaw(
                 """createErrorNotification("There was an error when updating the value of the 'display change graphs' property")"""
-              )
+              ) // JsRaw ok, const
           }
           check() & createNotification
         }
@@ -1079,11 +1085,11 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
               }
               JsRaw(
                 """createSuccessNotification("'directive script engine' property updated. The feature will be loaded as soon as you go to another page or reload this one.")"""
-              )
+              ) // JsRaw ok, const
             case eb: EmptyBox =>
               JsRaw(
                 """createErrorNotification("There was an error when updating the value of the 'directive script engine' property")"""
-              )
+              ) // JsRaw ok, const
           }
           check() & createNotification
         }
@@ -1158,9 +1164,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
               initPolicyMode = policyMode
               JsRaw(
                 """createSuccessNotification("Node default configuration post-acceptation correctly saved. Next accepted node will get these default configuration.")"""
-              )
+              ) // JsRaw ok, const
             case eb: EmptyBox =>
-              JsRaw("""createErrorNotification("There was an error when updating node default proerties")""")
+              JsRaw("""createErrorNotification("There was an error when updating node default proerties")""") // JsRaw ok, const
           }
         }
         check() & createNotification
@@ -1217,11 +1223,13 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
             case Full(_) =>
               initSavedValued = x
               // If we disable this feature we want to start policy generation because some data may be invalid
-              JsRaw("""createSuccessNotification("'interpretation of unexpected compliance reports' property updated.")""")
+              JsRaw(
+                """createSuccessNotification("'interpretation of unexpected compliance reports' property updated.")"""
+              ) // JsRaw ok, const
             case eb: EmptyBox =>
               JsRaw(
                 """createErrorNotification("There was an error when updating the value of the 'interpretation of unexpected compliance reports' property")"""
-              )
+              ) // JsRaw ok, const
           }
           check() & createNotification
         }

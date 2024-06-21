@@ -228,7 +228,7 @@ class RuleEditForm(
               }
             });
             """)
-        )
+        ) // JsRaw ok, no user inputs
 
       case (groupLib, directiveLib, allNodes, rootRuleCategory, globalMode) =>
         List(groupLib, directiveLib, allNodes, rootRuleCategory, globalMode).collect {
@@ -429,8 +429,8 @@ class RuleEditForm(
                   |buildDirectiveTree('#${htmlId_activeTechniquesTree}', ${serializedirectiveIds(
                    selectedDirectiveIds.toSeq
                  )},'${S.contextPath}', 0);
-        """.stripMargin) &
-        After(TimeSpan(50), JsRaw("""createTooltip();"""))
+        """.stripMargin) &                                 // JsRaw ok, escaped
+        After(TimeSpan(50), JsRaw("""createTooltip();""")) // JsRaw ok, no user inputs
       )
     )
   }
@@ -491,7 +491,7 @@ class RuleEditForm(
   private[this] def onFailure(): JsCmd = {
     onFailureCallback() &
     updateFormClientSide() &
-    JsRaw("""scrollToElement("notifications", ".rudder_col");""")
+    JsRaw("""scrollToElement("notifications", ".rudder_col");""") // JsRaw ok, no user inputs
   }
 
   private[this] def onNothingToDo(): JsCmd = {
@@ -527,17 +527,17 @@ class RuleEditForm(
     val dirTags        = net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(d.tags))
     JsRaw(
       s"""onClickDirective("${dirId}", ${dirName}, ${dirLink}, ${dirDescription}, ${dirTechName}, ${dirTechVersion}, ${dirMode}, ${dirTags})"""
-    )
+    ) // JsRaw ok, escaped
   }
 
   private[this] def includeRuleTarget(targetInfo: FullRuleTargetInfo): JsCmd = {
-    val target = targetInfo.target.target.target
-    JsRaw(s"""includeTarget(event, "${target}");""")
+    val target = targetInfo.target.target.target.encJs
+    JsRaw(s"""includeTarget(event, "${target}");""") // JsRaw ok, escaped
   }
 
   private[this] def excludeRuleTarget(targetInfo: FullRuleTargetInfo): JsCmd = {
-    val target = targetInfo.target.target.target
-    JsRaw(s"""excludeTarget(event, "${target}");""")
+    val target = targetInfo.target.target.target.encJs
+    JsRaw(s"""excludeTarget(event, "${target}");""") // JsRaw ok, escaped
   }
 
   /////////////////////////////////////////////////////////////////////////
@@ -660,16 +660,16 @@ class RuleEditForm(
     val change = RuleChangeRequest(action, newRule, Some(rule))
     workflow.getForRule(CurrentUser.actor, change) match {
       case eb: EmptyBox =>
-        val msg = "An error occured when trying to find the validation workflow to use for that change."
+        val msg = "An error occurred when trying to find the validation workflow to use for that change."
         logger.error(msg, eb)
-        JsRaw(s"alert('${msg}')")
+        JsRaw(s"alert('${msg}')") // JsRaw ok, no user inputs
 
       case Full(workflowService) =>
         val popup = new RuleModificationValidationPopup(
           change,
           workflowService,
           cr => workflowCallBack(workflowService.needExternalValidation(), action)(cr),
-          () => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure(),
+          () => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure(), // JsRaw ok, no user inputs
           parentFormTracker = Some(formTracker)
         )
 
@@ -677,7 +677,7 @@ class RuleEditForm(
           popup.onSubmit()
         } else {
           SetHtml("confirmUpdateActionDialog", popup.popupContent()) &
-          JsRaw("""createPopup("confirmUpdateActionDialog")""")
+          JsRaw("""createPopup("confirmUpdateActionDialog")""") // JsRaw ok, no user inputs
         }
     }
   }
@@ -695,7 +695,7 @@ class RuleEditForm(
         """.stripMargin) & onSuccessCallback(rule) & SetHtml(
         "editRuleZone",
         <div id={htmlId_rule}> Rule '{rule.name}' successfully deleted</div>
-      )
+      ) // JsRaw ok, no user inputs
     } else {
       returns match {
         case Left(rule)             => // ok, we've received a rule, do as before
@@ -706,7 +706,7 @@ class RuleEditForm(
          scope.$apply(function(){
            scope.filterGlobal(scope.searchStr);
          });
-        """.stripMargin) & onSuccess()
+        """.stripMargin) & onSuccess() // JsRaw ok, no user inputs
         case Right(changeRequestId) => // oh, we have a change request, go to it
           linkUtil.redirectToChangeRequestLink(changeRequestId)
       }
@@ -739,10 +739,12 @@ class RuleEditForm(
         case (true, true)  =>
           JsRaw(
             """createWarningNotification("This Rule is not applied to any Groups and does not have any Directives to apply.")"""
-          )
-        case (true, false) => JsRaw("""createWarningNotification("This Rule is not applied to any Groups.")""")
-        case (false, true) => JsRaw("""createWarningNotification("This Rule does not have any Directives to apply.")""")
-        case (_)           => JsRaw("")
+          ) // JsRaw ok, no user inputs
+        case (true, false) =>
+          JsRaw("""createWarningNotification("This Rule is not applied to any Groups.")""") // JsRaw ok, no user inputs
+        case (false, true) =>
+          JsRaw("""createWarningNotification("This Rule does not have any Directives to apply.")""") // JsRaw ok, no user inputs
+        case (_)           => JsRaw("") // JsRaw ok, no user inputs
       }
     }
 

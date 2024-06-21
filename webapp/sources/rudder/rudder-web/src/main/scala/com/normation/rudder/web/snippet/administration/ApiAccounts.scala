@@ -55,6 +55,8 @@ class ApiAccounts extends DispatchSnippet with DefaultExtendableSnippet[ApiAccou
     "body"   -> identity
   )
 
-  def render(xml: NodeSeq): NodeSeq = <head>{Script(JsRaw(s"""var apiPath = "${S.contextPath + relativePath}"; """))}</head>
+  def render(xml: NodeSeq): NodeSeq = <head>{
+    Script(JsRaw(s"""var apiPath = "${S.contextPath + relativePath}"; """))
+  }</head> // JsRaw ok, const
 
 }

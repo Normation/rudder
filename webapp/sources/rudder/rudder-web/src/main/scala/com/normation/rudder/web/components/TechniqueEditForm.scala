@@ -218,7 +218,9 @@ class TechniqueEditForm(
             (
               "#techniqueName" #> t.name &
               "#techniqueDescription *" #> Script(
-                OnLoad(JsRaw(s"""generateMarkdown(${Str(t.description).toJsCmd}, "#techniqueDescription")"""))
+                OnLoad(
+                  JsRaw(s"""generateMarkdown(${Str(t.description).toJsCmd}, "#techniqueDescription")""")
+                ) // JsRaw ok, escaped
               ) &
               "#techniqueLongDescription" #> t.longDescription &
               "#isSingle *" #> showIsSingle(t)
@@ -253,7 +255,7 @@ class TechniqueEditForm(
       $([document.documentElement, document.body]).animate({
         scrollTop: $("#bottomPanel").offset().top-50
       }, 400);
-    """)))
+    """))) // JsRaw ok, const
   }
 
   private[this] val crReasons = {
@@ -343,13 +345,13 @@ class TechniqueEditForm(
   }
 
   private[this] def updateRemoveFormClientSide(): JsCmd = {
-    val jsDisplayRemoveDiv = JsRaw("""$("#deleteActionDialog").bsModal('show')""")
+    val jsDisplayRemoveDiv = JsRaw("""$("#deleteActionDialog").bsModal('show')""") // JsRaw ok, const
     Replace("deleteActionDialog", this.showRemovePopupForm()) &
     jsDisplayRemoveDiv
   }
 
   private[this] def updateDisableFormClientSide(): JsCmd = {
-    val jsDisplayRemoveDiv = JsRaw("""$("#disableActionDialog").bsModal('show')""")
+    val jsDisplayRemoveDiv = JsRaw("""$("#disableActionDialog").bsModal('show')""") // JsRaw ok, const
     Replace("disableActionDialog", this.showDisactivatePopupForm()) &
     jsDisplayRemoveDiv
   }
@@ -362,7 +364,7 @@ class TechniqueEditForm(
       if (formTrackerRemovePopup.hasErrors) {
         onFailureRemovePopup()
       } else {
-        JsRaw("$('#deleteActionDialog').bsModal('hide');") & {
+        JsRaw("$('#deleteActionDialog').bsModal('hide');") & { // JsRaw ok, const
           val modId = ModificationId(uuidGen.newUuid)
           (for {
             deleted <- dependencyService.cascadeDeleteTechnique(id, modId, CurrentUser.actor, crReasonsRemovePopup.map(_.get))
@@ -405,7 +407,7 @@ class TechniqueEditForm(
         onFailureDisablePopup()
       } else {
         currentActiveTechnique = currentActiveTechnique.map(activeTechnique => activeTechnique.copy(_isEnabled = status))
-        JsRaw("$('#disableActionDialog').bsModal('hide');") &
+        JsRaw("$('#disableActionDialog').bsModal('hide');") & // JsRaw ok, const
         statusAndDeployTechnique(activeTechnique.id, status)
       }
     }
@@ -595,7 +597,7 @@ class TechniqueEditForm(
 
   ///////////// success pop-up ///////////////
   private[this] def successPopup: JsCmd = {
-    JsRaw("""createSuccessNotification()""")
+    JsRaw("""createSuccessNotification()""") // JsRaw ok, const
   }
 
 }

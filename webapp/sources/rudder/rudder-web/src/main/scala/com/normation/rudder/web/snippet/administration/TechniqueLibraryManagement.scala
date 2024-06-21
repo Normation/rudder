@@ -65,6 +65,7 @@ import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json.*
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.*
+import org.apache.commons.text.StringEscapeUtils
 import scala.xml.*
 
 /**
@@ -338,7 +339,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                 SHtml.ajaxCall(JsVar("arg"), moveCategory _)._2.toJsCmd,
                 htmlId_techniqueLibraryTree
               )
-            )
+            ) // JsRaw ok, escaped
           )
         )
       }
@@ -427,9 +428,9 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                 """setTimeout(function() { $("[activeTechniqueId=%s]").attempt("highlight", {}, 2000)}, 100)""".format(
                   sourceactiveTechniqueId
                 )
-              ) & refreshBottomPanel(res)
+              ) & refreshBottomPanel(res) // JsRaw ok, inputs comes from json
             case f: Failure => Alert(f.messageChain + "\nPlease reload the page")
-            case Empty =>
+            case Empty     =>
               Alert(
                 "Error while trying to move Active Technique with requested id '%s' to category id '%s'\nPlease reload the page."
                   .format(sourceactiveTechniqueId, destCatId)
@@ -476,10 +477,10 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                 JsRaw(
                   """setTimeout(function() { $("[catid=%s]").attempt("highlight", {}, 2000);}, 100)"""
                     .format(sourceCatId)
-                )
+                ) // JsRaw ok, input comes from json
               )
             case f: Failure => Alert(f.messageChain + "\nPlease reload the page")
-            case Empty =>
+            case Empty     =>
               Alert(
                 "Error while trying to move category with requested id '%s' to category id '%s'\nPlease reload the page.".format(
                   sourceCatId,
@@ -532,7 +533,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                     .attempt("highlight", {}, 2000)}, 100)"""
                 refreshTree() & JsRaw(
                   jsString
-                    .format(sourceactiveTechniqueId)
+                    .format(sourceactiveTechniqueId) // JsRaw ok, comes from json
                 ) &
                 refreshBottomPanel(res.id)
               case f: Failure => Alert(f.messageChain + "\nPlease reload the page")
@@ -554,7 +555,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     val jsStr = """setTimeout(function() { $("[activeTechniqueId=%s]")
       .attempt("highlight", {}, 2000)}, 100)"""
     refreshTree() &
-    JsRaw(jsStr) & refreshBottomPanel(id)
+    JsRaw(jsStr) & refreshBottomPanel(id) // JsRaw ok, const
   }
 
   def onFailureReasonPopup(srcActiveTechId: String, destCatId: String): JsCmd = {
@@ -566,7 +567,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   private[this] def refreshTree(): JsCmd = {
     Replace(htmlId_techniqueLibraryTree, systemLibrary()) &
     Replace(htmlId_activeTechniquesTree, userLibrary()) &
-    OnLoad(After(TimeSpan(100), JsRaw("""createTooltip();""")))
+    OnLoad(After(TimeSpan(100), JsRaw("""createTooltip();"""))) // JsRaw ok, const
   }
 
   private[this] def refreshActiveTreeLibrary(): JsCmd = {
@@ -592,13 +593,13 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     """buildReferenceTechniqueTree('#%s','%s','%s')""".format(
       htmlId_techniqueLibraryTree, {
         techniqueId match {
-          case Full(activeTechniqueId) => "ref-technique-" + activeTechniqueId
+          case Full(activeTechniqueId) => "ref-technique-" + StringEscapeUtils.escapeEcmaScript(activeTechniqueId)
           case _                       => ""
         }
       },
       S.contextPath
     )
-  )
+  ) // JsRaw ok, escaped
 
   /**
    * Javascript to initialize the user library tree
@@ -610,7 +611,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       CurrentUser.checkRights(AuthorizationType.Technique.Write),
       S.contextPath
     )
-  )
+  ) // JsRaw ok, escaped
 
   // ajax function that update the bottom of the page when a Technique is clicked
   private[this] def onClickTemplateNode(technique: Option[Technique], activeTechnique: Option[ActiveTechnique]): JsCmd = {
@@ -855,8 +856,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
     // update UI
     SetHtml("createActiveTechniquesCategoryContainer", createPopup) &
-    JsRaw("""createPopup("createActiveTechniqueCategoryPopup")
-     """)
+    JsRaw("""createPopup("createActiveTechniqueCategoryPopup")""") // JsRaw ok, const
 
   }
 
@@ -869,7 +869,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     // update UI
 
     SetHtml("createActiveTechniquesContainer", createReasonPopup) &
-    JsRaw("""createPopup("createActiveTechniquePopup")""")
+    JsRaw("""createPopup("createActiveTechniquePopup")""") // JsRaw ok, const
   }
 
   private[this] def reloadTechniqueLibrary(isTechniqueLibraryPage: Boolean): NodeSeq = {
@@ -882,11 +882,11 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         Some("Technique library reloaded by user")
       ) match {
         case Full(x) =>
-          JsRaw("""createSuccessNotification("The Technique library was successfully reloaded")""")
+          JsRaw("""createSuccessNotification("The Technique library was successfully reloaded")""") // JsRaw ok, const
         case e: EmptyBox =>
           val error = e ?~! "An error occured when updating the Technique library from file system"
           logger.debug(error.messageChain, e)
-          JsRaw(s"""createErrorNotification(s"${error.msg}}")""")
+          JsRaw(s"""createErrorNotification(s"${error.msg}}")""") // JsRaw ok, no user input
       }
 
       val processAction = {

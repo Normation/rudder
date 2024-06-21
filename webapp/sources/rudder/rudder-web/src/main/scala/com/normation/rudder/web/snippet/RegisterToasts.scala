@@ -41,12 +41,12 @@ import net.liftweb.http.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds.*
+import org.apache.commons.text.StringEscapeUtils
 import scala.xml.NodeSeq
-import scala.xml.Utility
 
 sealed trait ToastNotification {
   def in:      String
-  def message: String = Utility.escape(in).replaceAll("""\n""", " ")
+  def message: String = StringEscapeUtils.escapeHtml4(in).replaceAll("""\n""", " ")
 }
 
 object ToastNotification {
@@ -81,8 +81,10 @@ class RegisterToasts {
             list
               .map(t => {
                 t match {
-                  case x: ToastNotification.Error   => JsRaw(s"""createErrorNotification("${x.message}")""").cmd
-                  case x: ToastNotification.Success => JsRaw(s"""createSuccessNotification("${x.message}")""").cmd
+                  case x: ToastNotification.Error   =>
+                    JsRaw(s"""createErrorNotification("${x.message}")""").cmd // JsRaw ok, no user inputs
+                  case x: ToastNotification.Success =>
+                    JsRaw(s"""createSuccessNotification("${x.message}")""").cmd // JsRaw ok, no user inputs
                 }
               })
               .reduce[JsCmd](_ & _)

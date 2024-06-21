@@ -58,6 +58,7 @@ import net.liftweb.http.SHtml.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
+import org.apache.commons.text.StringEscapeUtils
 import org.slf4j
 import org.slf4j.LoggerFactory
 import scala.xml.*
@@ -128,10 +129,11 @@ class SrvGrid(
       refreshNodes:     Option[() => Option[Seq[NodeInfo]]]
   ): JsCmd = {
 
-    val nodeIds = nodes.map(nodes => JsArray(nodes.map(n => Str(n.id.value)).toList).toJsCmd).getOrElse("undefined")
+    val jsTableId = StringEscapeUtils.escapeEcmaScript(tableId)
+    val nodeIds   = nodes.map(nodes => JsArray(nodes.map(n => Str(n.id.value)).toList).toJsCmd).getOrElse("undefined")
     JsRaw(s"""nodeIds = ${nodeIds};
-             | createNodeTable("${tableId}",function() {reloadTable("${tableId}")} );
-                   """.stripMargin)
+             | createNodeTable("${jsTableId}",function() {reloadTable("${jsTableId}")} );
+                   """.stripMargin) // JsRaw ok, escaped
   }
 
   def getTableData(
@@ -177,7 +179,7 @@ class SrvGrid(
         JsRaw(s"""
           nodeIds = ${nodeIds}
           reloadTable("${tableId}");
-      """)
+      """) // JsRaw ok, escaped
       }
     )
 

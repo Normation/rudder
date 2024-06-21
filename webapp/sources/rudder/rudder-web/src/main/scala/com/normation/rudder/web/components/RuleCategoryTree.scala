@@ -53,6 +53,7 @@ import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json.*
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.*
+import org.apache.commons.text.StringEscapeUtils
 import scala.xml.*
 
 /**
@@ -112,7 +113,7 @@ class RuleCategoryTree(
     }
     Replace(htmlId_RuleCategoryTree, html) &
     selectCategory() &
-    OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();""")))
+    OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();"""))) // JsRaw ok, no user inputs
   }
 
   // Update selected category and select it in the tree (trigger its function)
@@ -120,7 +121,9 @@ class RuleCategoryTree(
     selectedCategoryId = newSelection
     // Select the new node, boolean flag to true to respect select limitation
     JsRaw(s"""
-        $$("#${htmlId_RuleCategoryTree}").jstree("select_node", "#${newSelection.value}", true);
+        $$("#${htmlId_RuleCategoryTree}").jstree("select_node", "#${StringEscapeUtils.escapeEcmaScript(
+        newSelection.value
+      )}", true);
     """) &
     selectCategory()
   }
@@ -134,11 +137,11 @@ class RuleCategoryTree(
       fqdn
     }) match {
       case Full((long, short)) =>
-        val escaped = Utility.escape(short)
+        val escaped = StringEscapeUtils.escapeEcmaScript(short)
         OnLoad(JsRaw(s"""
             filter='${escaped}';
             filterTableInclude('#grid_rules_grid_zone',filter,include);
-        """)) &
+        """)) & // JsRaw ok, escaped
         SetHtml("categoryDisplay", Text(long)) &
         check()
       case e: EmptyBox => // Display an error, for now, nothing
@@ -205,7 +208,7 @@ class RuleCategoryTree(
       After(
         TimeSpan(50),
         JsRaw(s"""
-          ${treeFun}('#${htmlId_RuleCategoryTree}','${getSelected.value}','${S.contextPath}');
+          ${treeFun}('#${htmlId_RuleCategoryTree}','${StringEscapeUtils.escapeEcmaScript(getSelected.value)}','${S.contextPath}');
           $$('#${htmlId_RuleCategoryTree}').bind("move_node.jstree", function (e,data) {
             var sourceCatId = data.node.id;
             var destCatId = data.parent;
@@ -227,6 +230,11 @@ class RuleCategoryTree(
     )
   }
 
+  // escape Rule id to make it a checkbox id
+  def toCheckboxId(id: RuleCategoryId): String = {
+    StringEscapeUtils.escapeEcmaScript(id.value) + "Checkbox"
+  }
+
   private[this] def categoryNode(category: RuleCategory): JsTreeNode = new JsTreeNode {
     val tooltipId = Helpers.nextFuncName
 
@@ -243,15 +251,19 @@ class RuleCategoryTree(
                   After(
                     TimeSpan(50),
                     JsRaw(s"""
-                        $$('#${category.id.value + "Checkbox"}').prop("indeterminate",false);
-                        ${rules.map(c => s"""$$('#${c.serialize}Checkbox').prop("checked",${status}); """).mkString("\n")}
-                        ${completeCategories
-                        .map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",false); """)
+                        $$('#${toCheckboxId(category.id)}').prop("indeterminate",false);
+                        ${rules
+                        .map(c =>
+                          s"""$$('#${StringEscapeUtils.escapeEcmaScript(c.serialize)}Checkbox').prop("checked",${status}); """
+                        )
                         .mkString("\n")}
                         ${completeCategories
-                        .map(c => s"""$$('#${c.value}Checkbox').prop("checked",${status}); """)
+                        .map(c => s"""$$('#${toCheckboxId(c)}').prop("indeterminate",false); """)
                         .mkString("\n")}
-                        ${indeterminate.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",true); """).mkString("\n")}
+                        ${completeCategories
+                        .map(c => s"""$$('#${toCheckboxId(c)}').prop("checked",${status}); """)
+                        .mkString("\n")}
+                        ${indeterminate.map(c => s"""$$('#${toCheckboxId(c)}').prop("indeterminate",true); """).mkString("\n")}
                       """)
                   )
               }
@@ -261,7 +273,7 @@ class RuleCategoryTree(
             SHtml.ajaxCheckbox(
               directiveApplication.isCompletecategory(category.id),
               check _,
-              ("id", category.id.value + "Checkbox"),
+              ("id", toCheckboxId(category.id)),
               ("style", "margin : 2px 5px 0px 2px;")
             ) ++
             Script(
@@ -269,8 +281,8 @@ class RuleCategoryTree(
                 After(
                   TimeSpan(400),
                   JsRaw(s"""
-                  $$('#${category.id.value + "Checkbox"}').click(function (e) { e.stopPropagation(); })
-                  $$('#${category.id.value + "Checkbox"}').prop("indeterminate",${directiveApplication.isIndeterminateCategory(
+                  $$('#${toCheckboxId(category.id)}').click(function (e) { e.stopPropagation(); })
+                  $$('#${toCheckboxId(category.id)}').prop("indeterminate",${directiveApplication.isIndeterminateCategory(
                       category.id
                     )});""")
                 )

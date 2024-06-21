@@ -111,7 +111,7 @@ class CreateCategoryOrGroupPopup(
             $('#itemTitle').text('Category');
           }
         );
-     """)
+     """) // JsRaw ok, const
   }
 
   def popupContent(): NodeSeq = {
@@ -232,7 +232,7 @@ class CreateCategoryOrGroupPopup(
   private[this] def error(msg: String) = Text(msg)
 
   private[this] def closePopup(): JsCmd = {
-    JsRaw(""" $('#createGroupPopup').bsModal('hide');""")
+    JsRaw(""" $('#createGroupPopup').bsModal('hide');""") // JsRaw ok, const
   }
 
   /**
@@ -296,7 +296,7 @@ class CreateCategoryOrGroupPopup(
             onSuccessCallback(x.group.id.serialize) & onSuccessGroup(
               Right(x.group),
               NodeGroupCategoryId(piContainer.get)
-            ) & OnLoad(JsRaw("""$("[href='#groupCriteriaTab']").click();"""))
+            ) & OnLoad(JsRaw("""$("[href='#groupCriteriaTab']").click();""")) // JsRaw ok, const
           case Empty            =>
             logger.error("An error occurred while saving the group")
             formTracker.addFormError(error("An error occurred while saving the group"))
