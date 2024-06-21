@@ -8,11 +8,26 @@ use std::process::Command;
 
 pub const NEED_RESTART_PATH: &str = "/usr/bin/needs-restarting";
 
+/// Also supports dnf through yum wrapper, should only use compatible commands
 pub struct Yum {}
 
 impl Yum {
+    // https://serverfault.com/a/1075175
+
     pub fn system_update(&self) -> Result<()> {
-        Command::new("yum").arg("-y").arg("update").output()?;
+        Command::new("yum")
+            .arg("--assumeyes")
+            .arg("update")
+            .output()?;
+        Ok(())
+    }
+
+    pub fn system_update_security(&self) -> Result<()> {
+        Command::new("yum")
+            .arg("--assumeyes")
+            .arg("--security")
+            .arg("update")
+            .output()?;
         Ok(())
     }
 

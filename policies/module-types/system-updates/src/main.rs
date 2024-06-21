@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2021 Normation SAS
+// SPDX-FileCopyrightText: 2024 Normation SAS
 
 #![allow(dead_code)]
 #![allow(unused_variables)]
