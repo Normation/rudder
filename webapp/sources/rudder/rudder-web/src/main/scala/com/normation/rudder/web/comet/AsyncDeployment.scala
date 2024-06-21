@@ -170,7 +170,12 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
               }
             }
 
-            val callback = JsRaw("$('#errorDetailsDialog').bsModal('show');") & SetHtml("errorDetailsMessage", popupContent)
+            val callback = {
+              JsRaw("$('#errorDetailsDialog').bsModal('show');") & SetHtml(
+                "errorDetailsMessage",
+                popupContent
+              ) // JsRaw OK, no user input
+            }
 
             commonStatement(
               start,
@@ -189,7 +194,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private[this] def closePopup(): JsCmd = {
-    JsRaw("""$('#generatePoliciesDialog').hide();""")
+    JsRaw("""$('#generatePoliciesDialog').hide();""") // JsRaw OK, no user input
   }
 
   private[this] def fullPolicyGeneration:      NodeSeq = {
@@ -211,7 +216,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     </lift:authz>
   }
   private[this] def showGeneratePoliciesPopup: NodeSeq = {
-    val callback = JsRaw("$('#generatePoliciesDialog').bsModal('show');")
+    val callback = JsRaw("$('#generatePoliciesDialog').bsModal('show');") // JsRaw OK, no user input
     <lift:authz role="deployment_write"> {
       SHtml.a(
         Text("Regenerate all policies"),

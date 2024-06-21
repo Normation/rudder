@@ -62,9 +62,9 @@ class ClearCache extends DispatchSnippet with Loggable {
       val createNotification = clearCacheService.action(CurrentUser.actor) match {
         case empty: EmptyBox =>
           val e = empty ?~! "Error while clearing caches"
-          JsRaw(s"""createErrorNotification("${e.messageChain}")""")
+          JsRaw(s"""createErrorNotification("${e.messageChain}")""") // JsRaw ok, no user inputs
         case Full(result) =>
-          JsRaw("""createSuccessNotification("Caches were successfully cleared")""")
+          JsRaw("""createSuccessNotification("Caches were successfully cleared")""") // JsRaw ok, const
 
       }
       Replace("clearCacheForm", outerXml.applyAgain()) & createNotification

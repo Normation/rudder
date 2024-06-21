@@ -185,7 +185,7 @@ class CreateOrUpdateGlobalParameterPopup(
   }
 
   private[this] def closePopup(): JsCmd = {
-    JsRaw("""$('#createGlobalParameterPopup').bsModal('hide');""")
+    JsRaw("""$('#createGlobalParameterPopup').bsModal('hide');""") // JsRaw ok, const
   }
 
   /**

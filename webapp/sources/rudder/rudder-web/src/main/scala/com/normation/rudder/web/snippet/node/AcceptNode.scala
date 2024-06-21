@@ -55,6 +55,7 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json.*
 import net.liftweb.util.Helpers.*
+import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
@@ -208,8 +209,8 @@ class AcceptNode extends Loggable {
             "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ],
             "pageLength": 25
           });""") & JsRaw(s"""
-              createPopup("${popupId}");
-        $$('#pendingNodeConfirm_info').remove();""")
+              createPopup("${StringEscapeUtils.escapeEcmaScript(popupId)}");
+        $$('#pendingNodeConfirm_info').remove();""") // JsRaw ok, const or escaped
       )
     }
   }
@@ -262,7 +263,7 @@ class AcceptNode extends Loggable {
             & "servergrid-close" #>
             SHtml.ajaxButton(
               "Cancel",
-              () => JsRaw(" $('#confirmPopup').bsModal('hide');$('#refusePopup').bsModal('hide');"): JsCmd,
+              () => JsRaw(" $('#confirmPopup').bsModal('hide');$('#refusePopup').bsModal('hide');"): JsCmd, // JsRaw ok, const
               ("class", "btn btn-default")
             )
           )(template)
@@ -283,7 +284,7 @@ class AcceptNode extends Loggable {
         var selectedNode = JSON.stringify($('input[name="serverids"]:checkbox:checked').map(function() {
           return $(this).val();
         }).get())
-      """) & SHtml.ajaxCall(JsVar("selectedNode"), details(_, template, popupId))._2
+      """) & SHtml.ajaxCall(JsVar("selectedNode"), details(_, template, popupId))._2 // JsRaw ok, const
   }
 
   /**
@@ -291,7 +292,7 @@ class AcceptNode extends Loggable {
    */
   def showExpectedPolicyPopup(node: Srv): JsCmd = {
     SetHtml("expectedPolicyZone", (new ExpectedPolicyPopup("expectedPolicyZone", node)).display) &
-    OnLoad(JsRaw("""createPopup("expectedPolicyPopup")"""))
+    OnLoad(JsRaw("""createPopup("expectedPolicyPopup")""")) // JsRaw ok, const
   }
 
   def display(html: NodeSeq, nodes: Seq[Srv]): NodeSeq = {

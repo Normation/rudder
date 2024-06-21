@@ -69,13 +69,18 @@ import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JE.JsArray
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json
 import net.liftweb.util.Helpers.*
 import net.liftweb.util.Helpers.TimeSpan
+import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import scala.xml.*
+import zio.json.*
 
 final case class JsonDirectiveRId(directiveId: String, rev: Option[String])
+
+object JsonDirectiveRId {
+  implicit val decoder: JsonDecoder[JsonDirectiveRId] = DeriveJsonDecoder.gen[JsonDirectiveRId]
+}
 
 /**
  * Snippet for managing the System and Active Technique libraries.
@@ -146,8 +151,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private[this] def parseJsArg(): JsCmd = {
 
     def displayDetails(jsonId: String) = {
-      implicit val format = json.DefaultFormats
-      json.parseOpt(jsonId).flatMap(_.extractOpt[JsonDirectiveRId]) match {
+      jsonId.fromJson[JsonDirectiveRId].toOption match {
         case None     =>
           Noop
         case Some(id) =>
@@ -166,7 +170,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           ${SHtml.ajaxCall(JsVar("directiveId"), displayDetails _)._2.toJsCmd};
         }
         removeBsTooltips();
-    """)
+    """) // JsRaw ok, escaped
   }
 
   /**
@@ -228,7 +232,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         $$('.sidebar-body').on('scroll', function(){
           removeBsTooltips();
         });
-    """)
+    """) // JsRaw ok, const
   }
 
   def initDirectiveDetails(): NodeSeq = directiveId match {
@@ -319,7 +323,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             }</span> &
             "#techniqueID *" #> technique.id.name.value &
             "#techniqueDescription *" #> Script(
-              JsRaw(s"""generateMarkdown(${Str(technique.description).toJsCmd}, "#techniqueDescription")""")
+              JsRaw(s"""generateMarkdown(${Str(technique.description).toJsCmd}, "#techniqueDescription")""") // JsRaw ok, escaped
             ) &
             "#techniqueLongDescription" #> technique.longDescription &
             "#isSingle *" #> showIsSingle(technique) &
@@ -422,12 +426,12 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             scope.init(${dataArray.toJsCmd});
           } );
           removeBsTooltips();
-          createTooltip();""")))
+          createTooltip();"""))) // JsRaw ok, escaped
   }
 
   ///////////// finish migration pop-up ///////////////
   private[this] def displayFinishMigrationPopup: JsCmd = {
-    JsRaw(""" callPopupWithTimeout(200,"finishMigrationPopup") """)
+    JsRaw(""" callPopupWithTimeout(200,"finishMigrationPopup") """) // JsRaw ok, const
   }
 
   /**
@@ -462,13 +466,13 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                       currentDirectiveSettingForm.set(Empty)
                       Replace(htmlId_policyConf, showDirectiveDetails()) & JsRaw(
                         """createTooltip();"""
-                      ) & onRemoveSuccessCallBack()
+                      ) & onRemoveSuccessCallBack() // JsRaw ok, const
                     case eb: EmptyBox =>
                       val msg =
                         (eb ?~! s"Error when trying to delete directive '${directive.name}' (${directive.id.debugString})").messageChain
                       // redisplay this form with the new error
                       currentDirectiveSettingForm.set(Failure(msg))
-                      Replace(htmlId_policyConf, showDirectiveDetails()) & JsRaw("""createTooltip();""")
+                      Replace(htmlId_policyConf, showDirectiveDetails()) & JsRaw("""createTooltip();""") // JsRaw ok, const
                   }
                 },
                 ("class", "dangerButton")
@@ -524,7 +528,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         // Update UI
         Replace(htmlId_policyConf, showDirectiveDetails()) &
         SetHtml(html_techniqueDetails, NodeSeq.Empty) &
-        JsRaw("""createTooltip();""")
+        JsRaw("""createTooltip();""") // JsRaw ok, const
       case eb: EmptyBox =>
         val fail      = eb ?~! "Could not get global policy mode while creating new Directive"
         logger.error(fail.messageChain)
@@ -570,8 +574,10 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     }
 
     val json = directiveId.rev match {
-      case GitVersion.DEFAULT_REV => s"""{"directiveId":"${directiveId.uid.value}"}"""
-      case r                      => s"""{"directiveId":"${directiveId.uid.value}", "rev":"${r.value}"}"""
+      case GitVersion.DEFAULT_REV => s"""{"directiveId":"${StringEscapeUtils.escapeEcmaScript(directiveId.uid.value)}"}"""
+      case r                      =>
+        s"""{"directiveId":"${StringEscapeUtils.escapeEcmaScript(directiveId.uid.value)}", "rev":"${StringEscapeUtils
+            .escapeEcmaScript(r.value)}"}"""
     }
     SetHtml(html_techniqueDetails, NodeSeq.Empty) &
     Replace(htmlId_policyConf, showDirectiveDetails()) &
@@ -658,7 +664,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       case Left(dir) => // ok, we've received a directive, show it
         updateDirectiveLibrary() &
         updateDirectiveForm(Left(dir), None) &
-        After(TimeSpan(0), JsRaw("""applyFilter('directiveFilter');"""))
+        After(TimeSpan(0), JsRaw("""applyFilter('directiveFilter');""")) // JsRaw ok, const
 
       case Right(changeRequestId) => // oh, we have a change request, go to it
         linkUtil.redirectToChangeRequestLink(changeRequestId)
@@ -667,7 +673,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
   private[this] def onRemoveSuccessCallBack(): JsCmd = {
     updateDirectiveLibrary() &
-    After(TimeSpan(0), JsRaw("""applyFilter('directiveFilter');"""))
+    After(TimeSpan(0), JsRaw("""applyFilter('directiveFilter');""")) // JsRaw ok, const
   }
 
   private[this] def updateDirectiveLibrary(): JsCmd = {
@@ -688,7 +694,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     // Update UI
     Replace(html_techniqueDetails, techniqueDetails.applyAgain()) &
     Replace(htmlId_policyConf, showDirectiveDetails()) &
-    JsRaw("""createTooltip();""")
+    JsRaw("""createTooltip();""") // JsRaw ok, const
   }
 
 }

@@ -42,6 +42,7 @@ import net.liftweb.common.Loggable
 import net.liftweb.http.js.JE.JsArray
 import net.liftweb.http.js.JsExp
 import net.liftweb.http.js.JsObj
+import org.apache.commons.text.StringEscapeUtils
 
 /*
  * That class represent a Line in a DataTable.
@@ -51,7 +52,7 @@ trait JsTableLine extends Loggable {
   def json: JsObj
 
   // this is needed because DataTable doesn't escape HTML element when using table.rows.add
-  def escapeHTML(s: String): JsExp = JsExp.strToJsExp(xml.Utility.escape(s))
+  def escapeHTML(s: String): JsExp = JsExp.strToJsExp(StringEscapeUtils.escapeHtml4(s))
 
   import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.*
   def jsCompliance(compliance: ComplianceLevel) = compliance.toJsArray

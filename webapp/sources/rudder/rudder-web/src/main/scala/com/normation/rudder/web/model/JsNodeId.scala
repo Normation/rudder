@@ -38,6 +38,7 @@
 package com.normation.rudder.web.model
 
 import com.normation.inventory.domain.NodeId
+import org.apache.commons.text.StringEscapeUtils
 
 /**
  * An utility class which gives an valid Js Id
@@ -47,6 +48,6 @@ import com.normation.inventory.domain.NodeId
 final case class JsNodeId(nodeId: NodeId, salt: String = "") {
   override val toString: String = {
     val uuid = nodeId.value.replaceAll("-", "")
-    salt + uuid.substring(0, java.lang.Math.min(uuid.length, 6))
+    StringEscapeUtils.escapeEcmaScript(salt + uuid.substring(0, java.lang.Math.min(uuid.length, 6)))
   }
 }

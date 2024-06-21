@@ -48,6 +48,7 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.repository.*
 import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.reports.NodeChanges
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.services.ComputePolicyMode
@@ -68,6 +69,7 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonParser
 import net.liftweb.json.JString
 import net.liftweb.util.Helpers.*
+import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.Interval
 import scala.concurrent.*
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -231,14 +233,16 @@ class RuleGrid(
               refreshTable("${htmlId_rulesGridId}", ${newData.json.toJsCmd});
               ${futureCompliance.toJsCmd}
               ${futureChanges.toJsCmd}
-          """)
+          """) // JsRaw ok, escaped
           }) match {
             case Full(cmd) =>
               cmd
             case eb: EmptyBox =>
               val fail = eb ?~! ("an error occured during data update")
               logger.error(s"Could not refresh Rule table data cause is: ${fail.msg}")
-              JsRaw(s"""$$("#ruleTableError").text("Could not refresh Rule table data cause is: ${fail.msg}");""")
+              JsRaw(
+                s"""$$("#ruleTableError").text("Could not refresh Rule table data cause is: ${fail.msg}");"""
+              ) // JsRaw ok, no user inputs
           }
         }
       )
@@ -303,7 +307,7 @@ class RuleGrid(
             <div id={htmlId_rulesGridId + "_paginate_area"}></div>
           </div>
         </div> ++
-        Script(OnLoad(JsRaw(onLoad)))
+        Script(OnLoad(JsRaw(onLoad))) // JsRaw ok, escaped
     }
   }
 
@@ -324,14 +328,15 @@ class RuleGrid(
               case ruleIds =>
                 directiveApp.checkRules(ruleIds, status) match {
                   case DirectiveApplicationResult(rules, completeCategories, indeterminate) =>
+                    def toId(s: String): String = StringEscapeUtils.escapeEcmaScript(s) + "Checkbox"
                     After(
                       TimeSpan(50),
                       JsRaw(s"""
-                    ${rules.map(c => s"""$$('#${c.serialize}Checkbox').prop("checked",${status}); """).mkString("\n")}
-                    ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",false); """).mkString("\n")}
-                    ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("checked",${status}); """).mkString("\n")}
-                    ${indeterminate.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",true); """).mkString("\n")}
-                  """)
+                    ${rules.map(c => s"""$$('#${toId(c.serialize)}').prop("checked",${status}); """).mkString("\n")}
+                    ${completeCategories.map(c => s"""$$('#${toId(c.value)}').prop("indeterminate",false); """).mkString("\n")}
+                    ${completeCategories.map(c => s"""$$('#${toId(c.value)}').prop("checked",${status}); """).mkString("\n")}
+                    ${indeterminate.map(c => s"""$$('#${toId(c.value)}').prop("indeterminate",true); """).mkString("\n")}
+                  """) // JsRaw ok, escaped
                     )
                 }
             }
@@ -349,7 +354,7 @@ class RuleGrid(
             var rules = $$.map(data, function(e,i) { return e.id })
             var rulesIds = JSON.stringify({ "rules" : rules });
             ${SHtml.ajaxCall(JsVar("rulesIds"), moveCategory _)};
-        """)
+        """) // JsRaw ok, no user inputs
       case None               => Noop
     }
   }
@@ -386,7 +391,9 @@ class RuleGrid(
             } yield {
               val changeCount = change.values.sum
               val data        = NodeChanges.json(change, recentChanges.getCurrentValidIntervals(None))
-              s"""computeChangeGraph(${data.toJsCmd},"${ruleId.serialize}",currentPageIds, ${changeCount}, ${showChangesGraph})"""
+              s"""computeChangeGraph(${data.toJsCmd},"${StringEscapeUtils.escapeEcmaScript(
+                  ruleId.serialize
+                )}",currentPageIds, ${changeCount}, ${showChangesGraph})"""
             }
 
             JsRaw(s"""
@@ -395,7 +402,7 @@ class RuleGrid(
             var currentPageIds = $$.map( currentPageRow , function(val) { return val.id});
             ${computeGraphs.mkString(";")}
             resortTable("${htmlId_rulesGridId}")
-          """)
+          """) // JsRaw ok, escaped
 
           case eb: EmptyBox =>
             val error = eb ?~! "error while fetching compliances"
@@ -626,11 +633,13 @@ class RuleGrid(
           def check(value: Boolean): JsCmd = {
             directiveApplication.checkRule(line.rule.id, value) match {
               case DirectiveApplicationResult(rules, completeCategories, indeterminate) =>
+                def cid(c: RuleCategoryId) = StringEscapeUtils.escapeEcmaScript(c.value + "Checkbox")
+
                 JsRaw(s"""
-                ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",false); """).mkString("\n")}
-                ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("checked",${value}); """).mkString("\n")}
-                ${indeterminate.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",true); """).mkString("\n")}
-              """)
+                ${completeCategories.map(c => s"""$$('#${cid(c)}').prop("indeterminate",false); """).mkString("\n")}
+                ${completeCategories.map(c => s"""$$('#${cid(c)}').prop("checked",${value}); """).mkString("\n")}
+                ${indeterminate.map(c => s"""$$('#${cid(c)}').prop("indeterminate",true); """).mkString("\n")}
+              """) // JsRaw ok, escaped
             }
           }
           // We check the rule status in the directive application object instead of looking directly in the rule.

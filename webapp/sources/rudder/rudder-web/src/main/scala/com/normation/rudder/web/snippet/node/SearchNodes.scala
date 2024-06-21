@@ -118,8 +118,8 @@ class SearchNodes extends StatefulSnippet with Loggable {
     <head>
       {
       Script(
-        JsRaw(s"function forceParseHashtag() { ${parseHashtag().toJsCmd} }") &
-        OnLoad(JsRaw("forceParseHashtag()"))
+        JsRaw(s"function forceParseHashtag() { ${parseHashtag().toJsCmd} }") & // JsRaw ok, escaped
+        OnLoad(JsRaw("forceParseHashtag()"))                                   // JsRaw ok, const
       )
     }
     </head>
@@ -163,7 +163,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
       "htmlIdCategory",
       query,
       srvList,
-      () => JsRaw("""$("#createGroupFromQueryButton").prop("disabled", false)"""),
+      () => JsRaw("""$("#createGroupFromQueryButton").prop("disabled", false)"""), // JsRaw ok, const
       Some(showNodeDetails),
       onSearchCallback = updateQueryHash,
       groupPage = false
@@ -217,10 +217,10 @@ class SearchNodes extends StatefulSnippet with Loggable {
       Replace(
         "SearchNodes",
         queryForm(sc)
-      ) & JsRaw("$('#SubmitSearch').click();")
+      ) & JsRaw("$('#SubmitSearch').click();") // JsRaw ok, const
     }
 
-    JsRaw(s"""parseSearchHash(function(x) { ${SHtml.ajaxCall(JsVar("x"), executeQuery _)._2.toJsCmd} })""")
+    JsRaw(s"""parseSearchHash(function(x) { ${SHtml.ajaxCall(JsVar("x"), executeQuery _)._2.toJsCmd} })""") // JsRaw ok, escaped
   }
 
   /**
@@ -240,7 +240,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
         setCreationPopup(r.getQuery(), r.getSrvList())
         // update UI
         SetHtml("createGroupContainer", createPopup) &
-        JsRaw(""" createPopup("createGroupPopup") """)
+        JsRaw(""" createPopup("createGroupPopup") """) // JsRaw ok, const
 
       case eb: EmptyBox => Alert("Error when trying to retrieve the request, please try again")
     }
@@ -248,7 +248,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
   private def updateQueryHash(button: Boolean, query: Option[NewQuery]): JsCmd = {
     query match {
       case Some(q) =>
-        JsRaw(s"updateHashString('query', ${q.toJSONString})")
+        JsRaw(s"updateHashString('query', ${q.toJSONString})") // JsRaw ok, escaped
       case None    => Noop
     }
   }

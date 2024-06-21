@@ -67,7 +67,7 @@ class EventListDisplayer(repos: EventLogRepository) extends Loggable {
     def displayEvents(events: Box[Seq[EventLog]]): JsCmd = {
       events match {
         case Full(events) =>
-          JsRaw(s"refreshTable('${gridName}',[])")
+          JsRaw(s"refreshTable('${gridName}',[])") // JsRaw ok, const
         case eb: EmptyBox =>
           val fail = eb ?~! "Could not get latest event logs"
           logger.error(fail.messageChain)
@@ -132,7 +132,7 @@ class EventListDisplayer(repos: EventLogRepository) extends Loggable {
      initDatePickers("#filterLogs", ${AnonFunc("param", SHtml.ajaxCall(JsVar("param"), getEventsInterval)._2).toJsCmd});
      createEventLogTable('${gridName}',[], '${S.contextPath}', refreshEventLogs)
      refreshEventLogs();
-    """)))
+    """))) // JsRaw ok, escaped
   }
 
 }

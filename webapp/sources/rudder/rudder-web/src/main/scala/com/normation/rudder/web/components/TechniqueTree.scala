@@ -49,6 +49,7 @@ import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
+import org.apache.commons.text.StringEscapeUtils
 import scala.xml.*
 
 /**
@@ -92,7 +93,9 @@ class TechniqueTree(
         { <ul>{treeNode.toXml}</ul> } ++ Script(
           OnLoad(
             JsRaw(
-              """buildTechniqueDependencyTree('#%s'); createTooltip();""".format(htmlId_activeTechniquesTree)
+              """buildTechniqueDependencyTree('#%s'); createTooltip();""".format(
+                StringEscapeUtils.escapeEcmaScript(htmlId_activeTechniquesTree)
+              )
             )
           )
         )

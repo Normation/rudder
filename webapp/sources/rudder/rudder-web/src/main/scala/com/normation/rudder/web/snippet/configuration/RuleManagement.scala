@@ -40,7 +40,6 @@ package com.normation.rudder.web.snippet.configuration
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.plugins.DefaultExtendableSnippet
-import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.web.components.DisplayColumn
 import com.normation.rudder.web.components.RuleDisplayer
@@ -49,10 +48,10 @@ import com.normation.rudder.web.components.popup.CreateOrCloneRulePopup
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.LocalSnippet
-import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
+import org.apache.commons.text.StringEscapeUtils
 import scala.xml.*
 
 /**
@@ -64,8 +63,6 @@ import scala.xml.*
 class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleManagement] with Loggable {
   import RuleManagement.*
 
-  private[this] val ruleRepository = RudderConfig.roRuleRepository
-
   // the popup component
   private[this] val currentRuleForm      = new LocalSnippet[RuleEditForm]
   private[this] val currentRuleDisplayer = new LocalSnippet[RuleDisplayer]
@@ -74,47 +71,14 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
     RudderConfig.configService.rudder_ui_changeMessage_enabled().toBox match {
       case Full(changeMsgEnabled) =>
         Map(
-          "head"      -> { (_: NodeSeq) => head(changeMsgEnabled) },
-          "editRule"  -> { (_: NodeSeq) => editRule(changeMsgEnabled) },
           "viewRules" -> { (_: NodeSeq) => viewRules(changeMsgEnabled) }
         )
       case eb: EmptyBox =>
         val e = eb ?~! "Error when getting Rudder application configuration for change audit message activation"
         logger.error(s"Error when displaying Rules : ${e.messageChain}")
         Map(
-          "head"      -> { (_: NodeSeq) => NodeSeq.Empty },
-          "editRule"  -> { (_: NodeSeq) => NodeSeq.Empty },
           "viewRules" -> { (_: NodeSeq) => <div class="error">{e.msg}</div> }
         )
-    }
-  }
-
-  def head(changeMsgEnabled: Boolean): NodeSeq = {
-    RuleEditForm.staticInit ++ {
-      <head>
-      {
-        Script(
-          JsRaw("""
-          $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disabled";
-            function updateTips( t ) {
-              tips.text( t ).addClass( "ui-state-highlight" );
-              setTimeout(function() {
-                tips.removeClass( "ui-state-highlight", 1500 );
-              }, 500 );
-            }
-            function checkLength( o, n, min, max ) {
-              if ( o.val().length > max || o.val().length < min ) {
-                o.addClass( "ui-state-error" );
-                updateTips( "Length of " + n + " must be between " + min + " and " + max + "." );
-                return false;
-              }
-              return true;
-            }
-        """) &
-          OnLoad(parseJsArg(changeMsgEnabled)())
-        )
-      }
-    </head>
     }
   }
 
@@ -165,48 +129,8 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
 
     // update UI
     onRuleChange(changeMsgEnabled)(rule) &
-    JsRaw(s"sessionStorage.removeItem('tags-${rule.id.serialize}');") &
+    JsRaw(s"sessionStorage.removeItem('tags-${StringEscapeUtils.escapeEcmaScript(rule.id.serialize)}');") & // JsRaw ok, escaped
     Replace(htmlId_editRuleDiv, editRule(changeMsgEnabled, action))
-  }
-
-  /**
-   * If a query is passed as argument, try to dejoniffy-it, in a best effort
-   * way - just don't take of errors.
-   *
-   * We want to look for #{ "ruleId":"XXXXXXXXXXXX" }
-   */
-  private[this] def parseJsArg(changeMsgEnabled: Boolean)(): JsCmd = {
-    def displayDetails(ruleData: String) = {
-      import net.liftweb.json.*
-      val json = parse(ruleData)
-      json \ "ruleId" match {
-        case JString(ruleId) =>
-          RuleId.parse(ruleId).toBox.flatMap(id => ruleRepository.get(id).toBox) match {
-            case Full(rule) =>
-              json \ "action" match {
-                case JString(action) =>
-                  onCreateRule(changeMsgEnabled)(rule, action)
-                case _               =>
-                  onCreateRule(changeMsgEnabled)(rule, "showForm")
-              }
-
-            case _ => Noop
-          }
-        case _               => Noop
-      }
-    }
-
-    JsRaw(s"""
-        var ruleData = null;
-        try {
-          ruleData = decodeURI(window.location.hash.substring(1)) ;
-        } catch(e) {
-          ruleData = null
-        }
-        if( ruleData != null && ruleData.length > 0) {
-          ${SHtml.ajaxCall(JsVar("ruleData"), displayDetails _)._2.toJsCmd}
-        }
-    """)
   }
 
   /**
@@ -223,7 +147,7 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
   private[this] def showPopup(clonedRule: Option[Rule]): JsCmd = {
     val popupHtml = createPopup(clonedRule: Option[Rule])
     SetHtml(CreateOrCloneRulePopup.htmlId_popupContainer, popupHtml) &
-    JsRaw(s""" createPopup("${CreateOrCloneRulePopup.htmlId_popup}") """)
+    JsRaw(s""" createPopup("${CreateOrCloneRulePopup.htmlId_popup}") """) // JsRaw ok, const
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -241,12 +165,14 @@ class RuleManagement extends DispatchSnippet with DefaultExtendableSnippet[RuleM
 
   private[this] def detailsCallbackLink(changeMsgEnabled: Boolean)(rule: Rule, action: String): JsCmd = {
     updateEditComponent(rule, changeMsgEnabled)
+    // existing rule id may be unsafe and needs escaping when building raw JS
+    val ruleId = StringEscapeUtils.escapeEcmaScript(rule.id.serialize)
     // update UI
     Replace(htmlId_editRuleDiv, editRule(changeMsgEnabled, action)) &
     JsRaw(s"""
-      sessionStorage.removeItem('tags-${rule.id.serialize}');
-      this.window.location.hash = "#" + JSON.stringify({'ruleId':'${rule.id.serialize}'});
-    """.stripMargin)
+      sessionStorage.removeItem('tags-${ruleId}');
+      this.window.location.hash = "#" + JSON.stringify({'ruleId':'${ruleId}'});
+    """.stripMargin) // JsRaw ok, escaped
   }
 
 }

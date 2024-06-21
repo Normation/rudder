@@ -308,7 +308,7 @@ class HomePage extends Loggable {
           , ${data.toJsCmd}
           , ${diagramColor.toJsCmd}
           , ${pendingNodes.toJsCmd}
-        )""")))
+        )"""))) // JsRaw ok, escaped
     }) match {
       case Full(homePageCompliance) => homePageCompliance
       case eb: EmptyBox =>
@@ -358,7 +358,7 @@ class HomePage extends Loggable {
           , ${osArray.toJsCmd}
           , ${nodeInfos.size}
           , ${osNames.toJsCmd}
-        )""")))
+        )"""))) // JsRaw ok, escaped
     }) match {
       case Full(inventory) => inventory
       case _               => NodeSeq.Empty
@@ -387,7 +387,7 @@ class HomePage extends Loggable {
         homePageSoftware(
             ${agentsData.toJsCmd}
           , ${agents.map(_._2).sum}
-     )""")))
+     )"""))) // JsRaw ok, escaped
   }
 
   /**

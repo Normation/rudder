@@ -155,7 +155,7 @@ class RuleCompliance(
       createNodeComplianceTable("nodeReportsGrid",[],"${S.contextPath}", refresh);
       createChangesTable("changesGrid",[],"${S.contextPath}", refresh);
       refresh();
-    """)
+    """) // JsRaw ok, escaped
       )
     )
   }
@@ -186,7 +186,7 @@ class RuleCompliance(
             ${SHtml.ajaxCall(JsRaw("recentChanges.t[selectedIndex]"), s => refreshTableChanges(Some(s.toLong)))}
           }
         });
-      """)
+      """) // JsRaw ok, escaped
       }) match {
         case Full(cmd) => cmd
         case eb: EmptyBox =>
@@ -239,7 +239,7 @@ class RuleCompliance(
 
         JsRaw(s"""
         refreshTable("changesGrid", ${JsArray(changesArray).toJsCmd});
-      """)
+      """) // JsRaw ok, escaped
       }) match {
         case Full(cmd) => cmd
         case eb: EmptyBox =>
@@ -283,7 +283,7 @@ class RuleCompliance(
           refreshTable("reportsGrid", ${directiveData});
           refreshTable("nodeReportsGrid", ${nodeData});
           createTooltip();
-        """)
+        """) // JsRaw ok, escaoed with toJsCmd
     }).either.runNow match {
       case Right(cmd) => cmd
       case Left(err)  =>

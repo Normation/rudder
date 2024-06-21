@@ -207,13 +207,13 @@ class NodeGroupCategoryForm(
       }
       SHtml.ajaxSubmit(
         "Delete",
-        () => SetHtml("basePopup", popupContent) & JsRaw("""createPopup("basePopup")"""),
+        () => SetHtml("basePopup", popupContent) & JsRaw("""createPopup("basePopup")"""), // JsRaw OK, no user input
         ("class", "btn btn-danger")
       )
     } else {
       (<span class="btn btn-danger btn-tooltip disabled" data-toggle="tooltip" data-placement="bottom" data-html="true" data-original-title={
         "<div><i class='fa fa-exclamation-triangle text-warning'></i>Only empty and non root categories can be deleted.</div>"
-      }>Delete</span>) ++ Script(JsRaw("""$('.btn-tooltip').bsTooltip();"""))
+      }>Delete</span>) ++ Script(JsRaw("""$('.btn-tooltip').bsTooltip();""")) // JsRaw OK, no user input
     }
   }
 
@@ -227,7 +227,7 @@ class NodeGroupCategoryForm(
       )
       .toBox match {
       case Full(id) =>
-        JsRaw("""$('#basePopup').bsModal('hide');""") &
+        JsRaw("""$('#basePopup').bsModal('hide');""") & // JsRaw OK, no user input
         SetHtml(htmlIdCategory, NodeSeq.Empty) &
         onSuccessCallback(nodeGroupCategory.id.value) &
         successPopup
@@ -308,7 +308,7 @@ class NodeGroupCategoryForm(
 
   private[this] def onFailure: JsCmd = {
     formTracker.addFormError(error("There was a problem with your request."))
-    updateFormClientSide & JsRaw("""scrollToElement("notifications","#ajaxItemContainer");""")
+    updateFormClientSide & JsRaw("""scrollToElement("notifications","#ajaxItemContainer");""") // JsRaw OK, no user input
   }
 
   private[this] def onSubmit(): JsCmd = {
@@ -370,7 +370,7 @@ class NodeGroupCategoryForm(
 
   ///////////// success pop-up ///////////////
   private[this] def successPopup: JsCmd = {
-    JsRaw("""createSuccessNotification()""")
+    JsRaw("""createSuccessNotification()""") // JsRaw OK, no user input
   }
 
 }
