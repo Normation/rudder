@@ -3,6 +3,7 @@
 
 // TODO macros for log+output
 
+use crate::package_manager::PackageDiff;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
@@ -61,21 +62,11 @@ impl ResultOutputBuilder {
     }
 }
 
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-struct SoftwareReport {
-    pub name: String,
-    pub arch: String,
-    pub old_version: String,
-    pub new_version: String,
-    pub action: String,
-}
-
 // Same as the Python implementation in 8.1.
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 struct Report {
-    pub software_updated: Vec<SoftwareReport>,
+    pub software_updated: Vec<PackageDiff>,
     pub status: String,
     pub output: String,
 }

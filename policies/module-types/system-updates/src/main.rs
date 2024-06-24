@@ -6,33 +6,25 @@
 #![allow(unused_imports)]
 
 mod actions;
+mod campaign;
 mod db;
 mod hooks;
 mod output;
 mod package_manager;
 mod scheduler;
 
-use std::{env, fs, path::PathBuf};
+use std::{env, path::PathBuf};
 
 use crate::package_manager::PackageManager;
-use anyhow::{bail, Context};
+use anyhow::Context;
 use chrono::{DateTime, Utc};
+use package_manager::PackageSpec;
 use rudder_module_type::{
     parameters::Parameters, run, CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome,
     PolicyMode, ProtocolResult, ValidateResult,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-
-/// The description of a package to update
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-struct PackageSpec {
-    name: String,
-    // None means any
-    version: Option<String>,
-    // None means any
-    architecture: Option<String>,
-}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Copy)]
 #[serde(rename_all = "snake_case")]

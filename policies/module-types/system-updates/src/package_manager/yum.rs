@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::PackageSpec;
+use crate::package_manager::PackageSpec;
 use anyhow::{bail, Result};
 use std::io::BufRead;
 use std::process::Command;

@@ -1,14 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::package_manager::{Package, PackageManager};
+use crate::package_manager::{PackageId, PackageInfo, PackageList, PackageManager};
 use anyhow::Result;
+use std::collections::HashMap;
+use std::env;
 use std::process::Command;
 
 pub struct Rpm {}
 
 impl Rpm {
-    fn get_installed() -> Result<Vec<Package>> {
+    fn new() -> Self {
+        Self
+    }
+
+    fn get_installed(&self) -> Result<PackageList> {
         let output_format = r###"%{name} %{epochnum}:%{version}-%{release} %{arch}\n"###;
         let c = Command::new("rpm")
             .arg("-qa")
@@ -16,12 +22,13 @@ impl Rpm {
             .arg(output_format)
             .output();
 
-        let todo = c?;
-        Ok(vec![])
+        let out = String::from_utf8_lossy(&*c?.stdout);
+        let packages = self.parse_installed(out.as_ref())?;
+        Ok(packages)
     }
 
-    fn parse_installed(s: &str) -> Result<Vec<Package>> {
-        let mut packages = vec![];
+    fn parse_installed(&self, s: &str) -> Result<PackageList> {
+        let mut packages = HashMap::new();
 
         for l in s.lines() {
             let parts: Vec<&str> = l.split(' ').collect();
@@ -33,21 +40,17 @@ impl Rpm {
                 parts[1]
             };
 
-            // FIXME: Store name with arch to allow fast indexing, when comparing versions,
-            // we can have several packages with the same name and different arches
-
-            let p = Package {
-                name: parts[0].to_string(),
+            let p = PackageId::new(parts[0].to_string(), parts[2].to_string());
+            let i = PackageInfo {
                 version: version.to_string(),
-                architecture: parts[2].to_string(),
                 // TODO?
                 from: "".to_string(),
                 source: PackageManager::Rpm,
             };
-            packages.push(p);
+            packages.insert(p, i);
         }
 
-        Ok(packages)
+        Ok(PackageList { inner: packages })
     }
 }
 
@@ -64,44 +67,41 @@ gtksourceview5 5.4.2-1.fc36 x86_64
 gnome-software 42.2-4.fc36 x86_64
 google-chrome-stable 0:103.0.5060.53-1 x86_64";
 
-        let reference = vec![
-            Package {
-                name: "sushi".to_string(),
+        let mut l = HashMap::new();
+        l.insert(
+            PackageId::new("sushi".to_string(), "x86_64".to_string()),
+            PackageInfo {
                 version: "2:41.2-2.fc36".to_string(),
-                architecture: "x86_64".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Rpm,
             },
-            Package {
-                name: "mesa-vulkan-drivers".to_string(),
-                version: "22.1.2-1.fc36".to_string(),
-                architecture: "x86_64".to_string(),
-                from: "".to_string(),
-                source: PackageManager::Rpm,
-            },
-            Package {
-                name: "gtksourceview5".to_string(),
+        );
+        l.insert(
+            PackageId::new("gtksourceview5".to_string(), "x86_64".to_string()),
+            PackageInfo {
                 version: "5.4.2-1.fc36".to_string(),
-                architecture: "x86_64".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Rpm,
             },
-            Package {
-                name: "gnome-software".to_string(),
+        );
+        l.insert(
+            PackageId::new("gnome-software".to_string(), "x86_64".to_string()),
+            PackageInfo {
                 version: "42.2-4.fc36".to_string(),
-                architecture: "x86_64".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Rpm,
             },
-            Package {
-                name: "google-chrome-stable".to_string(),
+        );
+        l.insert(
+            PackageId::new("google-chrome-stable".to_string(), "x86_64".to_string()),
+            PackageInfo {
                 version: "103.0.5060.53-1".to_string(),
-                architecture: "x86_64".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Rpm,
             },
-        ];
+        );
 
-        assert_eq!(Rpm::parse_installed(output).unwrap(), reference);
+        let rpm = Rpm::new();
+        assert_eq!(rpm.parse_installed(output).unwrap(), l);
     }
 }
