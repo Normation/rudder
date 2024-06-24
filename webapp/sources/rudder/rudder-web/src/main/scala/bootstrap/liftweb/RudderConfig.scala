@@ -1648,7 +1648,8 @@ object RudderConfigInit {
         acceptedNodesDit,
         rudderDit,
         roDirectiveRepository,
-        nodeFactRepository
+        nodeFactRepository,
+        ncfTechniqueReader
       ),
       userService,
       linkUtil
