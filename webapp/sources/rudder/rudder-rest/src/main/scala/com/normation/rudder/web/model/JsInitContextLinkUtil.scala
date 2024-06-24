@@ -102,6 +102,12 @@ class LinkUtil(
   def directiveLink(id: DirectiveUid): String =
     s"""${S.contextPath}${baseDirectiveLink(id)}"""
 
+  def baseTechniqueLink(id: String): String =
+    s"""/secure/configurationManager/techniqueEditor/technique/${id}"""
+
+  def techniqueLink(id: String): String =
+    s"""${S.contextPath}${baseTechniqueLink(id)}"""
+
   def redirectToDirectiveLink(id: DirectiveUid): JsCmd =
     RedirectTo(baseDirectiveLink(id))
 
