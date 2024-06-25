@@ -58,6 +58,7 @@ import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.marshalling.*
 import net.liftweb.util.Helpers.*
+import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.xml.*
@@ -646,9 +647,11 @@ class EventLogFactoryImpl(
         modifyDiff.modIsActivated.map(x => SimpleDiff.booleanToXml(<isEnabled/>, x)) ++
         modifyDiff.modIsSystem.map(x => SimpleDiff.booleanToXml(<isSystem/>, x)) ++
         modifyDiff.modProperties.map(x => {
-          SimpleDiff.toXml[List[GroupProperty]](<properties/>, x)(props =>
-            props.flatMap(p => <property><name>{p.name}</name><value>{xml.Utility.escape(p.valueAsString)}</value></property>)
-          )
+          SimpleDiff.toXml[List[GroupProperty]](<properties/>, x)(props => {
+            props.flatMap(p =>
+              <property><name>{p.name}</name><value>{StringEscapeUtils.escapeHtml4(p.valueAsString)}</value></property>
+            )
+          })
         })
       }
       </nodeGroup>)

@@ -55,6 +55,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers
+import org.apache.commons.text.StringEscapeUtils
 import scala.xml.Elem
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
@@ -139,7 +140,6 @@ object DisplayDirectiveTree extends Loggable {
       keepTechnique:    FullActiveTechnique => Boolean = _ => true,
       keepDirective:    Directive => Boolean = _ => true
   ): NodeSeq = {
-    import scala.xml.Utility.escape as escapeHTML
 
     def displayCategory(
         category: FullActiveTechniqueCategory,
@@ -331,7 +331,7 @@ object DisplayDirectiveTree extends Loggable {
         val editButton = {
           if (addEditLink && !directive.isSystem) {
             val tooltipContent = s"""
-              <h4>${scala.xml.Utility.escape(directive.name)}</h4>
+              <h4>${StringEscapeUtils.escapeHtml4(directive.name)}</h4>
               <div class="tooltip-content">
                 <p>Configure this Directive.</p>
               </div>
@@ -349,8 +349,10 @@ object DisplayDirectiveTree extends Loggable {
         val directiveTagsListHtml = <div>{
           directive.tags.tags.map(tag => {
             <span class="tags-label"><i class="fa fa-tag"></i> <span class="tag-key">{
-              escapeHTML(tag.name.value)
-            }</span><span class="tag-separator"> = </span><span class="tag-value">{escapeHTML(tag.value.value)}</span></span>
+              StringEscapeUtils.escapeHtml4(tag.name.value)
+            }</span><span class="tag-separator"> = </span><span class="tag-value">{
+              StringEscapeUtils.escapeHtml4(tag.value.value)
+            }</span></span>
           })
         }</div>
         val tagsTooltipContent    = s"""
@@ -453,9 +455,9 @@ object DisplayDirectiveTree extends Loggable {
             NodeSeq.Empty
           }
           val tooltipContent = s"""
-            <h4>${scala.xml.Utility.escape(directive.name)}</h4>
+            <h4>${StringEscapeUtils.escapeHtml4(directive.name)}</h4>
             <div class="tooltip-content directive">
-              <p>${scala.xml.Utility.escape(directive.shortDescription)}</p>
+              <p>${StringEscapeUtils.escapeHtml4(directive.shortDescription)}</p>
               <div>
                 <b>Technique version:</b>
                 ${directive.techniqueVersion.debugString}${deprecatedIcon}
@@ -501,7 +503,7 @@ object DisplayDirectiveTree extends Loggable {
             JsRaw(
               s"""$$('#badge-apm-${tooltipId}').replaceWith(createBadgeAgentPolicyMode('directive',"${policyMode}", "${explanation
                   .toString()}"));"""
-            )
+            ) // JsRaw ok, const
           )
         }
 

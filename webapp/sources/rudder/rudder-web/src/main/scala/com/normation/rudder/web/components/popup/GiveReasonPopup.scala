@@ -56,6 +56,7 @@ import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
+import org.apache.commons.text.StringEscapeUtils
 import scala.xml.*
 
 class GiveReasonPopup(
@@ -134,7 +135,7 @@ class GiveReasonPopup(
   private def error(msg: String) = <span class="col-xl-12 errors-container">{msg}</span>
 
   private def closePopup(): JsCmd = {
-    JsRaw("""hideBsModal('createActiveTechniquePopup');""")
+    JsRaw("""hideBsModal('createActiveTechniquePopup');""") // JsRaw ok, const
   }
 
   /**
@@ -175,7 +176,7 @@ class GiveReasonPopup(
           formTracker.clean
           closePopup() &
           onSuccessCallback(res.id) &
-          JsRaw(jsString.format(sourceActiveTechniqueId.value))
+          JsRaw(jsString.format(StringEscapeUtils.escapeEcmaScript(sourceActiveTechniqueId.value)))
         case f: Failure =>
           Alert(f.messageChain + "\nPlease reload the page")
         case Empty     =>

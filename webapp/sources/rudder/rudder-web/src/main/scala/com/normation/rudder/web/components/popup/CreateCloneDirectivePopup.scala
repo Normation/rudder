@@ -175,7 +175,7 @@ class CreateCloneDirectivePopup(
   private def error(msg: String) = Text(msg)
 
   private def closePopup(): JsCmd = {
-    JsRaw("""hideBsModal('basePopup');""")
+    JsRaw("""hideBsModal('basePopup');""") // JsRaw ok, const
   }
 
   /**

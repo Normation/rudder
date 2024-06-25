@@ -84,7 +84,7 @@ class CreateCloneGroupPopup(
   )
 
   private def closePopup(): JsCmd = {
-    JsRaw("""hideBsModal('createCloneGroupPopup');""")
+    JsRaw("""hideBsModal('createCloneGroupPopup');""") // JsRaw ok, const
   }
 
   private def onFailure()(implicit qc: QueryContext): JsCmd = {

@@ -118,8 +118,8 @@ class TechniqueCategoryEditForm(
       .toBox match {
       case Full(id) =>
         // update UI
-        JsRaw("hideBsModal('removeCategoryActionDialog');") &
-        onSuccessCallback() & // Replace(htmlId_activeTechniquesTree, userLibrary) &
+        JsRaw("hideBsModal('removeCategoryActionDialog');") & // JsRaw ok, const
+        onSuccessCallback() &                                 // Replace(htmlId_activeTechniquesTree, userLibrary) &
         SetHtml(htmlId_form, <span class="greenscala">Category successfully deleted</span>) &
         successPopup
 
@@ -242,7 +242,7 @@ class TechniqueCategoryEditForm(
             Script(OnLoad(JsRaw("""$( "#deleteCategoryButton" ).click(function() {
                 iniBsModal("removeCategoryActionDialog");
                 return false;
-              })""")))
+              })"""))) // JsRaw ok, const
           } ++ {
             <button id="deleteCategoryButton" class="btn btn-danger">Delete</button>
               <span id="deleteCategoryMsg"/>
@@ -270,6 +270,6 @@ class TechniqueCategoryEditForm(
 
   ///////////// success pop-up ///////////////
   private def successPopup: JsCmd = {
-    JsRaw("""createSuccessNotification()""")
+    JsRaw("""createSuccessNotification()""") // JsRaw ok, const
   }
 }

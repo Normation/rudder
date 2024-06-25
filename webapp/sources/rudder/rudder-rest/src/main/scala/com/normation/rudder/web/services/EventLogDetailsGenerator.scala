@@ -1214,7 +1214,7 @@ class EventLogDetailsGenerator(
             var after  = "after${id}";
             var result = "result${id}";
             makeDiff(before,after,result);
-            """)))
+            """))) // JsRaw OK, id is int
     }
   }
 
@@ -1385,7 +1385,7 @@ class EventLogDetailsGenerator(
                  |document.getElementById('nodediff-${s}').innerHTML = jsondiffpatch.formatters.html.format(
                  |  jsondiffpatch.diff( ${stringify(diff.oldValue)}, ${stringify(diff.newValue)} )
                  |);
-                 |""".stripMargin
+                 |""".stripMargin // JsRaw OK, no user input
             )
           )
         )
@@ -1650,7 +1650,7 @@ class EventLogDetailsGenerator(
                 $("#cancel%3$s").show();
                 scrollToElement('%2$s', ".rudder_col");
                 if($('#%2$s').prop('open') != "opened")
-                $('#%2$s').click();""".format("gridName", rollbackInfo.target.id, id)),
+                $('#%2$s').click();""".format("gridName", rollbackInfo.target.id, id)), // JsRaw OK, id is int
         Text(rollbackInfo.target.id.toString)
       )
     } has been completed.
@@ -1739,7 +1739,7 @@ class EventLogDetailsGenerator(
             ],
             "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>'
           });
-        """))
+        """)) // JsRaw OK, id is int.
   }
 
   private def authorizedNetworksXML() = (

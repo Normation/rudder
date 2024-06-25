@@ -143,7 +143,7 @@ class AutoCompleteAutoSubmit {
         ("formatItem", "function(row, i, max) { return row.name; }") ::
         Nil ::: jsonOptions
       val json                = jqOptions.map(t => t._1 + ":" + t._2).mkString("{", ",", "}")
-      val autocompleteOptions = JsRaw(json)
+      val autocompleteOptions = JsRaw(json) // JsRaw OK, no user input
 
       val onLoad = JsRaw("""
       jQuery(document).ready(function(){
@@ -151,7 +151,7 @@ class AutoCompleteAutoSubmit {
         jQuery("#""" + id + """").autocomplete(data, """ + autocompleteOptions.toJsCmd + """).result(function(event, dt, formatted) {
           jQuery("#""" + hidden + """").val(formatted);
         });
-      });""")
+      });""") // JsRaw OK, no user input
 
       <span>
         <head>

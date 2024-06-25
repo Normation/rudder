@@ -259,7 +259,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
                 $$(".networkField").keydown( function(event) {
                   processKey(event , 'submitAllowedNetwork${policyServerId.value}')
                 });
-              """)
+              """) // JsRaw ok, no user inputs
             )
           )
         }
@@ -268,6 +268,6 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
 
   ///////////// success pop-up ///////////////
   private def successNotification: JsCmd = {
-    JsRaw(""" createSuccessNotification() """)
+    JsRaw(""" createSuccessNotification() """) // JsRaw ok, const
   }
 }

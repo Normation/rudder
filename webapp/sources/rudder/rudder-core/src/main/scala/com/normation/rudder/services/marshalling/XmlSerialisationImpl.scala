@@ -80,6 +80,7 @@ import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.marshalling.MarshallingUtil.createTrimedElem
 import net.liftweb.common.*
+import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.format.ISODateTimeFormat
 import scala.xml.{Node as XNode, *}
 import scala.xml.NodeSeq
@@ -263,7 +264,7 @@ class NodeGroupSerialisationImpl(xmlVersion: String) extends NodeGroupSerialisat
           // value parsing of properties is a bit messy and semantically linked
           // to json, since value part can be a string or json object.
           // Parsing that back from xml would be tedious.
-          <property><name>{p.name}</name><value>{xml.Utility.escape(p.valueAsString)}</value></property>
+          <property><name>{p.name}</name><value>{StringEscapeUtils.escapeHtml4(p.valueAsString)}</value></property>
         }
       }</properties>
     )

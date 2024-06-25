@@ -179,7 +179,8 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
               }
             }
 
-            val callback = JsRaw("initBsModal('errorDetailsDialog');") & SetHtml("errorDetailsMessage", popupContent)
+            val callback =
+              JsRaw("initBsModal('errorDetailsDialog');") & SetHtml("errorDetailsMessage", popupContent) // JsRaw ok, const
 
             commonStatement(
               start,
@@ -198,7 +199,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private def closePopup(): JsCmd = {
-    JsRaw("""hideBsModal('generatePoliciesDialog')""")
+    JsRaw("""hideBsModal('generatePoliciesDialog')""") // JsRaw ok, const
   }
 
   private def fullPolicyGeneration: NodeSeq = {
@@ -220,7 +221,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private def showGeneratePoliciesPopup: NodeSeq = {
-    val callback = JsRaw("initBsModal('generatePoliciesDialog')")
+    val callback = JsRaw("initBsModal('generatePoliciesDialog')") // JsRaw ok, const
     if (havePerm(AuthorizationType.Deployer.Write)) {
       SHtml.a(
         Text("Regenerate all policies"),

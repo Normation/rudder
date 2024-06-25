@@ -437,7 +437,7 @@ class ModificationValidationPopup(
 
   private def closePopup(): JsCmd = {
     JsRaw("""hideBsModal('confirmUpdateActionDialog');
-            |hideBsModal('basePopup');""".stripMargin)
+            |hideBsModal('basePopup');""".stripMargin) // JsRaw ok, const
   }
 
   /**
@@ -697,7 +697,7 @@ class ModificationValidationPopup(
     formTracker.addFormError(error("There was a problem with your request"))
     updateFormClientSide() & JsRaw(
       """scrollToElementPopup('#notifications', 'confirmUpdateActionDialogconfirmUpdateActionDialog')"""
-    )
+    ) // JsRaw ok, const
   }
 
   private def updateAndDisplayNotifications(): NodeSeq = {

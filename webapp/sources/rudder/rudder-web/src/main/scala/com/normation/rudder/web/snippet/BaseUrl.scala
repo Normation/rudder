@@ -58,7 +58,7 @@ class BaseUrl {
   def display: NodeSeq = WithNonce.scriptWithNonce(
     Script(
       JsRaw(s"""var contextPath = '${S.contextPath}'; var resourcesPath = '${S.contextPath}/${StaticResourceRewrite.prefix}'""")
-    )
+    ) // JsRaw ok, no user inputs
   )
 
   /*I keep the old base url as a reminder <base href={(urlService.baseUrl getOrElse S.hostAndPath)+"/"} />*/

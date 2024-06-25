@@ -64,6 +64,7 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json.*
 import net.liftweb.util.*
+import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import scala.xml.*
 
@@ -258,7 +259,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
               // no modification, so no refreshGroupLib
               refreshTree(htmlTreeNodeId(groupId)) &
               showGroupSection(Right(fullGroupTarget.nodeGroup), lib.categoryByGroupId(gid)) &
-              JsRaw("initBsTooltips()")
+              JsRaw("initBsTooltips()") // JsRaw ok, const
           }
       }
     }
@@ -267,7 +268,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
         case Some(t: NonGroupRuleTarget) =>
           refreshTree(htmlTreeNodeId(targetName)) &
           showGroupSection(Left(t), NodeGroupCategoryId("SystemGroups")) &
-          JsRaw("initBsTooltips()")
+          JsRaw("initBsTooltips()") // JsRaw ok, const
         case _                           => displayGroupNotFound
       }
     }
@@ -290,7 +291,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
           ${SHtml.ajaxCall(JsVar("targetName"), displayDetailsTarget _)._2.toJsCmd};
           hasGroupToDisplay = true;
         }
-    """)
+    """) // JsRaw ok, escaped
   }
 
   ////////////////////////////////////////////////////////////////////////////////////
@@ -430,7 +431,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
             $$.jstree.rollback(data.rlbk);
           }
         });
-      """)
+      """) // JsRaw ok, escaped
           )
         )
     }
@@ -487,11 +488,11 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
                 refreshTree(htmlTreeNodeId(ng.id.serialize))
                 & JsRaw(
                   """setTimeout(function() { $("[groupid=%s]").attempt("highlight", {}, 2000)}, 100)""".format(sourceGroupId)
-                )
+                ) // JsRaw ok, comes from json
                 & refreshRightPanel(GroupForm(Right(ng), cat))
               )
             case f: Failure => Alert(f.messageChain + "\nPlease reload the page")
-            case Empty =>
+            case Empty           =>
               Alert(
                 "Error while trying to move group with requested id '%s' to category id '%s'\nPlease reload the page.".format(
                   sourceGroupId,
@@ -542,11 +543,11 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
                 refreshTree(htmlTreeNodeId(id))
                 & OnLoad(
                   JsRaw("""setTimeout(function() { $("[catid=%s]").attempt("highlight", {}, 2000);}, 100)""".format(sourceCatId))
-                )
+                ) // JsRaw ok, comes from json
                 & refreshRightPanel(CategoryForm(res))
               )
             case f: Failure => Alert(f.messageChain + "\nPlease reload the page")
-            case Empty =>
+            case Empty           =>
               Alert(
                 "Error while trying to move category with requested id '%s' to category id '%s'\nPlease reload the page.".format(
                   sourceCatId,
@@ -587,7 +588,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     selectedCategoryId = Full(category.id)
     // update UI - no modification here, so no refreshGroupLib
     refreshRightPanel(CategoryForm(category)) &
-    JsRaw("""$('#ajaxItemContainer').show();""")
+    JsRaw("""$('#ajaxItemContainer').show();""") // JsRaw ok, const
   }
 
   // adaptater
@@ -603,7 +604,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
   }
 
   private[this] def showGroupProperties(g: Either[NonGroupRuleTarget, NodeGroup], parentCategoryId: NodeGroupCategoryId) = {
-    val value = g.fold(_.target, _.id.serialize)
+    val value = StringEscapeUtils.escapeEcmaScript(g.fold(_.target, _.id.serialize))
     val js    = g match {
       case Left(_)  => s"'target':'${value}'"
       case Right(_) => s"'groupId':'${value}'"
@@ -649,7 +650,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
              |    });
              |  }
              |});
-             |""".stripMargin)
+             |""".stripMargin) // JsRaw ok, escaped
 
   }
 
@@ -676,7 +677,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
 
         // update UI
         SetHtml("createGroupContainer", createPopup) &
-        JsRaw("""initBsModal("createGroupPopup")""")
+        JsRaw("""initBsModal("createGroupPopup")""") // JsRaw ok, const
     }
   }
 }

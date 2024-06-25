@@ -55,6 +55,7 @@ import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json.JsonAST.JString
+import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import scala.collection.*
@@ -150,7 +151,7 @@ class LogDisplayer(
       """
       } else ""}
     createTechnicalLogsTable("${tableId}",[], "${S.contextPath}",function() {${refresh.toJsCmd}}, ${runDate.isEmpty});
-    """)
+    """) // JsRaw ok, escaped
   }
 
   /**
@@ -215,7 +216,7 @@ class LogDisplayer(
 
     val data = getReportsLineForNode(nodeId, reports).json.toJsCmd
 
-    OnLoad(JsRaw(s"""refreshTable("${tableId}",${data});"""))
+    OnLoad(JsRaw(s"""refreshTable("${StringEscapeUtils.escapeEcmaScript(tableId)}",${data});"""))
   }
 }
 

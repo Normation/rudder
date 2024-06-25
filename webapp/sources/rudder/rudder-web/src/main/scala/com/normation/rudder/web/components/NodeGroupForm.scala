@@ -66,6 +66,7 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.*
 import net.liftweb.util.Helpers.*
+import org.apache.commons.text.StringEscapeUtils
 import scala.xml.*
 import zio.ZIO
 import zio.json.*
@@ -154,7 +155,7 @@ class NodeGroupForm(
   }
 
   private def saveButtonCallBack(searchStatus: Boolean, query: Option[Query]): JsCmd = {
-    JsRaw(s"""$$('#${saveButtonId}').prop("disabled", ${searchStatus})""")
+    JsRaw(s"""$$('#${saveButtonId}').prop("disabled", ${searchStatus})""") // JsRaw ok, no string input
   }
 
   setSearchNodeComponent
@@ -305,7 +306,9 @@ class NodeGroupForm(
                           </div>
                         </div>
       & "#longDescriptionField *" #> (groupDescription.toForm_! ++ Script(
-        OnLoad(JsRaw(s"""setupMarkdown(${Str(nodeGroup.description).toJsCmd}, "longDescriptionField")"""))
+        OnLoad(
+          JsRaw(s"""setupMarkdown(${Str(nodeGroup.description).toJsCmd}, "longDescriptionField")""")
+        ) // JsRaw OK, toJsCmd encodes
       ))
       & "group-container" #> groupContainer.toForm_!
       & "group-static" #> groupStatic.toForm_!
@@ -390,7 +393,9 @@ class NodeGroupForm(
                   </div>
     & "group-cfeclasses" #> NodeSeq.Empty
     & "#longDescriptionField" #> (groupDescription.toForm_! ++ Script(
-      JsRaw(s"""setupMarkdown(${Str(groupDescription.defaultValue).toJsCmd}, "longDescriptionField")""")
+      JsRaw(
+        s"""setupMarkdown(${Str(groupDescription.defaultValue).toJsCmd}, "longDescriptionField")"""
+      ) // JsRaw OK, toJsCmd encodes
     ))
     & "group-container" #> groupContainer.readOnlyValue
     & "group-static" #> NodeSeq.Empty
@@ -545,7 +550,7 @@ class NodeGroupForm(
 
   private def onFailure: JsCmd = {
     formTracker.addFormError(error("There was a problem with your request."))
-    updateFormClientSide() & JsRaw("""scrollToElement("errorNotification","#ajaxItemContainer");""")
+    updateFormClientSide() & JsRaw("""scrollToElement("errorNotification","#ajaxItemContainer");""") // JsRaw OK, no user input
   }
 
   private def onSubmit(): JsCmd = {
@@ -761,8 +766,8 @@ class NodeGroupForm(
           new ModificationValidationPopup(
             Right(change),
             workflowService,
-            crId => JsRaw("hideBsModal('confirmUpdateActionDialog');") & successCallback(crId),
-            xml => JsRaw("hideBsModal('confirmUpdateActionDialog');") & onFailure,
+            crId => JsRaw("hideBsModal('confirmUpdateActionDialog');") & successCallback(crId), // JsRaw ok, const
+            xml => JsRaw("hideBsModal('confirmUpdateActionDialog');") & onFailure,              // JsRaw ok, const
             parentFormTracker = formTracker
           )
         }
@@ -782,13 +787,13 @@ class NodeGroupForm(
           }
 
           SetHtml("confirmUpdateActionDialog", html) &
-          JsRaw("""initBsModal("confirmUpdateActionDialog")""")
+          JsRaw("""initBsModal("confirmUpdateActionDialog")""") // JsRaw ok, const
         }
     }
   }
 
   def createPopup(name: String):     JsCmd = {
-    JsRaw(s"""initBsModal("${name}");""")
+    JsRaw(s"""initBsModal("${name}");""") // JsRaw ok, const
   }
   private def showCloneGroupPopup(): JsCmd = {
 
@@ -841,12 +846,12 @@ class NodeGroupForm(
       parentCategoryId: NodeGroupCategoryId
   ): JsCmd = {
     val js = group match {
-      case Left(target) => s"'target':'${target.target}"
-      case Right(g)     => s"'groupId':'${g.id.serialize}'"
+      case Left(target) => s"'target':'${StringEscapeUtils.escapeEcmaScript(target.target)}"
+      case Right(g)     => s"'groupId':'${StringEscapeUtils.escapeEcmaScript(g.id.serialize)}'"
     }
     // update UI
     onSuccessCallback(Left((group, parentCategoryId))) &
-    JsRaw(s"""this.window.location.hash = "#" + JSON.stringify({${js}})""")
+    JsRaw(s"""this.window.location.hash = "#" + JSON.stringify({${js}})""") // JsRaw ok, escaped
   }
 
   private def updateAndDisplayNotifications(): NodeSeq = {
@@ -867,7 +872,7 @@ class NodeGroupForm(
   }
 
   private def successPopup: JsCmd = {
-    JsRaw("""createSuccessNotification()""")
+    JsRaw("""createSuccessNotification()""") // JsRaw ok, const
   }
 
 }
