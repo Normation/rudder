@@ -40,6 +40,7 @@ package com.normation.cfclerk.domain
 import com.normation.inventory.domain.AgentType
 import com.normation.utils.Utils.*
 import enumeratum.*
+import org.apache.commons.text.StringEscapeUtils
 
 /**
  * A name, used as an identifier, for a policy.
@@ -208,8 +209,8 @@ final case class Technique(
   require(!isEmpty(name), "Name is required in policy")
 
   /**
-   * Utity method that retrieve all templates IDs
-   * Be carefull, you will get all templates for all agents
+   * Utility method that retrieve all templates IDs
+   * Be carefully, you will get all templates for all agents
    */
   val templatesIds: Set[TechniqueResourceId] = agentConfigs.flatMap(cfg => cfg.templates.map(_.id)).toSet
 
@@ -218,7 +219,7 @@ final case class Technique(
 
   // Escape the description, so that text cannot be used to inject anything in display
   def escapedDescription: String = {
-    xml.Utility.escape(description)
+    StringEscapeUtils.escapeHtml4(description)
   }
 }
 

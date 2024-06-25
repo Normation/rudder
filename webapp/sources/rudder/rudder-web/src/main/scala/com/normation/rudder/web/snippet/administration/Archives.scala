@@ -262,7 +262,7 @@ class Archives extends DispatchSnippet with Loggable {
       val e = eb ?~! msg
       logger.error(e.messageChain)
       logger.error(e.exceptionChain.mkString("", "\n", ""))
-      JsRaw(s"""createErrorNotification('${msg}')""") &
+      JsRaw(s"""createErrorNotification('${msg}')""") & // JsRaw ok, no user inputs
       Replace(formName, outerXml.applyAgain())
     }
 
@@ -286,7 +286,7 @@ class Archives extends DispatchSnippet with Loggable {
         all.foreach(logger.warn(_))
 
         val error = "The archive was created but some element have not been archived." ++ all.map(msg => msg).mkString(". ")
-        JsRaw(s"""createWarningNotification(${error})""")
+        JsRaw(s"""createWarningNotification(${error})""") // JsRaw ok, no user inputs
       }
 
       Replace(formName, outerXml.applyAgain()) &
@@ -388,7 +388,7 @@ class Archives extends DispatchSnippet with Loggable {
           JsRaw(
             """enableIfNonEmpty("%s", "%s");$("#%s").prop("disabled",true);"""
               .format(archiveDateSelectId, restoreButtonId, restoreButtonId)
-          )
+          ) // JsRaw ok, all const values of actionFormBuilder
         )
       )): NodeSeq
     } &
@@ -399,7 +399,7 @@ class Archives extends DispatchSnippet with Loggable {
           JsRaw(
             """enableIfNonEmpty("%s", "%s");$("#%s").prop("disabled",true);"""
               .format(archiveDateSelectId, downloadButtonId, downloadButtonId)
-          )
+          ) // JsRaw ok, all const values of actionFormBuilder
         )
       )): NodeSeq
     }
@@ -407,6 +407,6 @@ class Archives extends DispatchSnippet with Loggable {
 
   ///////////// success pop-up ///////////////
   private def successPopup: JsCmd = {
-    JsRaw("""createSuccessNotification()""")
+    JsRaw("""createSuccessNotification()""") // JsRaw ok, const
   }
 }

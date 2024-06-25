@@ -49,6 +49,7 @@ import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
+import org.apache.commons.text.StringEscapeUtils
 import scala.xml.*
 
 /**
@@ -92,8 +93,10 @@ class TechniqueTree(
         { <ul>{treeNode.toXml}</ul> } ++ Script(
           OnLoad(
             JsRaw(
-              """buildTechniqueDependencyTree('#%s'); initBsTooltips();""".format(htmlId_activeTechniquesTree)
-            )
+              """buildTechniqueDependencyTree('#%s'); initBsTooltips();""".format(
+                StringEscapeUtils.escapeEcmaScript(htmlId_activeTechniquesTree)
+              )
+            ) // JsRax OK, escaped
           )
         )
       case e: EmptyBox =>

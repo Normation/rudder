@@ -70,6 +70,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.http.js.JsExp
 import net.liftweb.util.Helpers.*
+import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import scala.xml.NodeSeq
 
@@ -222,7 +223,7 @@ class ShowNodeDetailsFromNode(
           case Full(Some(nf)) =>
             val tab  = displayDetailsMode.tab
             val jsId = JsNodeId(nodeId, "")
-            def htmlId(jsId: JsNodeId, prefix: String): String = prefix + jsId.toString
+            def htmlId(jsId: JsNodeId, prefix: String): String = StringEscapeUtils.escapeEcmaScript(prefix + jsId.toString)
             val detailsId = htmlId(jsId, "details_")
 
             val globalScore = scoreService.getGlobalScore(nodeId).toBox.getOrElse(GlobalScore(NoScore, "", Nil))
@@ -235,7 +236,7 @@ class ShowNodeDetailsFromNode(
                     var activeTabBtn = nodeTabs.get(${tab}).querySelector("button");
                     activeTabBtn.classList.add('active');
                     var activeTab = document.querySelector("#"+activeTabBtn.getAttribute("aria-controls")).classList.add('active', 'show')
-                    """) &
+                    """) & // JsRaw ok, escaped
                   buildJsTree(groupTreeId)
                 )
               case e: EmptyBox =>
@@ -322,6 +323,6 @@ class ShowNodeDetailsFromNode(
    */
   private def buildJsTree(htmlId: String): JsExp = JsRaw(
     s"""buildGroupTree('#${htmlId}', '${S.contextPath}', [], 'on', undefined, false)"""
-  )
+  ) // JsRaw ok, const string
 
 }

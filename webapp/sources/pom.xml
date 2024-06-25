@@ -436,7 +436,8 @@ limitations under the License.
     <jodatime-version>2.12.5</jodatime-version>
     <jodaconvert-version>2.2.3</jodaconvert-version>
     <commons-io-version>2.15.0</commons-io-version>
-    <commons-lang-version>3.13.0</commons-lang-version>
+    <commons-lang-version>3.14.0</commons-lang-version>
+    <commons-text-version>1.12.0</commons-text-version>
     <commons-codec-version>1.16.0</commons-codec-version>
     <commons-fileupload>1.5</commons-fileupload>
     <commons-csv-version>1.10.0</commons-csv-version>
@@ -677,6 +678,16 @@ limitations under the License.
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
         <version>${commons-io-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+        <version>${commons-lang-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-text</artifactId>
+        <version>${commons-text-version}</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>

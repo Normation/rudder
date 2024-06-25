@@ -56,6 +56,7 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json.*
 import net.liftweb.util.Helpers.*
+import org.apache.commons.text.StringEscapeUtils
 import org.slf4j
 import org.slf4j.LoggerFactory
 import scala.xml.*
@@ -101,7 +102,7 @@ final class NodeGrid(
     Script(initJs(tableId, columns, aoColumns, searchable, paginate))
   }
 
-  def jsVarNameForId(tableId: String): String = "oTable" + tableId
+  def jsVarNameForId(tableId: String): String = StringEscapeUtils.escapeEcmaScript("oTable" + tableId)
 
   /*
    * Init Javascript for the table with ID
@@ -115,18 +116,19 @@ final class NodeGrid(
       searchable: Boolean,
       paginate:   Boolean
   )(implicit qr: QueryContext): JsCmd = {
+    val jsTableId = StringEscapeUtils.escapeEcmaScript(tableId)
 
     JsRaw(s"""
-        var ${jsVarNameForId(tableId)};
+        var ${jsVarNameForId(jsTableId)};
         /* Formating function for row details */
         function fnFormatDetails ( id ) {
           var sOut = '<span id="'+id+'" class="sgridbph"/>';
           return sOut;
         }
-      """) & OnLoad(
+      """) & OnLoad( // JsRaw ok, escaped
       JsRaw(s"""
           /* Event handler function */
-          ${jsVarNameForId(tableId)} = $$('#${tableId}').dataTable({
+          ${jsVarNameForId(jsTableId)} = $$('#${jsTableId}').dataTable({
             "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
             "bFilter" : ${searchable},
@@ -134,10 +136,10 @@ final class NodeGrid(
             "bLengthChange": true,
             "bStateSave": true,
                     "fnStateSave": function (oSettings, oData) {
-                      localStorage.setItem( 'DataTables_${tableId}', JSON.stringify(oData) );
+                      localStorage.setItem( 'DataTables_${jsTableId}', JSON.stringify(oData) );
                     },
                     "fnStateLoad": function (oSettings) {
-                      return JSON.parse( localStorage.getItem('DataTables_${tableId}') );
+                      return JSON.parse( localStorage.getItem('DataTables_${jsTableId}') );
                     },
             "bJQueryUI": false,
             "aaSorting": [[ 0, "asc" ]],
@@ -154,9 +156,8 @@ final class NodeGrid(
             "pageLength": 25 ,
             "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>'
           });
-            """) &
-
-      initJsCallBack(tableId)
+            """) &   // JsRaw ok, escaped
+      initJsCallBack(jsTableId)
     )
 
   }
@@ -189,7 +190,7 @@ final class NodeGrid(
             }
           } );
         } )
-      """)
+      """) // JsRaw ok, escaped
   }
 
   /**
@@ -215,14 +216,14 @@ final class NodeGrid(
   ): NodeSeq = {
     // bind the table
     val headers: NodeSeq = columns flatMap { c => <th>{c._1}</th> }
-    def escape(s: String) = xml.Utility.escape(s)
+    def escapeHTML(s: String) = StringEscapeUtils.escapeHtml4(s)
 
     def serverLine(server: Srv): NodeSeq = {
       (".hostname *" #> {
-        (if (isEmpty(server.hostname)) "(Missing host name) " + server.id.value else escape(server.hostname))
+        (if (isEmpty(server.hostname)) "(Missing host name) " + server.id.value else escapeHTML(server.hostname))
       } &
-      ".fullos *" #> escape(server.osFullName) &
-      ".ips *" #> ((server.ips.flatMap(ip => <div class="ip">{escape(ip)}</div>)):             NodeSeq) & // TODO : enhance this
+      ".fullos *" #> escapeHTML(server.osFullName) &
+      ".ips *" #> ((server.ips.flatMap(ip => <div class="ip">{escapeHTML(ip)}</div>)):         NodeSeq) & // TODO : enhance this
       ".other" #> ((columns flatMap { c => <td style="overflow:hidden">{c._2(server)}</td> }): NodeSeq) &
       ".nodetr [jsuuid]" #> { server.id.value.replaceAll("-", "") } &
       ".nodetr [nodeid]" #> { server.id.value } &

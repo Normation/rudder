@@ -257,13 +257,15 @@ trait SectionField extends SectionChildField {
    * Takes sectionId : the id of the section as a parameter
    * Caution : it mutates the current field
    */
-  def visibilityCallBack(sectionId: String): net.liftweb.http.GUIDJsExp = {
+  private[model] def visibilityCallBack(sectionId: String): net.liftweb.http.GUIDJsExp = {
     SHtml.ajaxCall(
       JsRaw(""),
       (v: String) => {
         displayed = Some(!displayed.getOrElse(displayedByDefault))
-        JsRaw("""
-               $('#%s').toggleClass("foldedSection").toggleClass("unfoldedSection"); """.format(sectionId))
+        JsRaw(
+          """
+               $('#%s').toggleClass("foldedSection").toggleClass("unfoldedSection"); """.format(sectionId)
+        ) // JsRaw ok; no user input
       }
     )
   }
@@ -313,7 +315,9 @@ final case class SectionFieldImp(
               {childrenXml}
           </table>
         </div>
-      </td></tr> ++ Script(JsRaw(""" function %s { %s } """.format(methodName, changeVisibility.toJsCmd)))
+      </td></tr> ++ Script(
+        JsRaw(""" function %s { %s } """.format(methodName, changeVisibility.toJsCmd))
+      ) // JsRaw ok, no user input
     }
   }
 
@@ -465,7 +469,9 @@ final case class MultivaluedSectionField(
           <div  id={sectionId} class={classes}>
               <div class="section-title" onclick={methodName}>{"%s #%s".format(name, i + 1)}</div>
               {showFormEntry(section, i)}
-            </div> ++ Script(JsRaw(""" function %s { %s } """.format(methodName, changeVisibility.toJsCmd)))
+            </div> ++ Script(
+            JsRaw(""" function %s { %s } """.format(methodName, changeVisibility.toJsCmd))
+          ) // JsRaw ok, no user inputs
       }
     }</div>
       <div> {showAddAnother()} </div>

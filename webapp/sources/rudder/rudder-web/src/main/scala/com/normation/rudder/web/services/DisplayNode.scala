@@ -75,9 +75,9 @@ import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json.JsonDSL.*
 import net.liftweb.util.*
 import net.liftweb.util.Helpers.*
+import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import scala.xml.*
-import scala.xml.Utility.escape
 import zio.syntax.*
 
 /**
@@ -100,8 +100,8 @@ object DisplayNode extends Loggable {
   private val uuidGen              = RudderConfig.stringUuidGenerator
   private val linkUtil             = RudderConfig.linkUtil
 
-  private def escapeJs(in:   String):         JsExp   = Str(escape(in))
-  private def escapeHTML(in: String):         NodeSeq = Text(escape(in))
+  private def escapeJs(in:   String):         JsExp   = Str(StringEscapeUtils.escapeEcmaScript(in))
+  private def escapeHTML(in: String):         NodeSeq = Text(StringEscapeUtils.escapeHtml4(in))
   private def ?(in:          Option[String]): NodeSeq = in.map(escapeHTML).getOrElse(NodeSeq.Empty)
 
   private def loadSoftware(jsId: JsNodeId)(nodeId: String): JsCmd = {
@@ -147,7 +147,7 @@ object DisplayNode extends Loggable {
             "pageLength": 25
         });
         $$('.dataTables_filter input').attr("placeholder", "Filter");
-            """)).toBox match {
+            """)).toBox match { // JsRaw ok, escaped
       case Empty            => Alert("No software found for that server")
       case Failure(m, _, _) => Alert("Error when trying to fetch software. Reported message: " + m)
       case Full(js)         => js
@@ -177,7 +177,7 @@ object DisplayNode extends Loggable {
       "videos"
     )
 
-    JsRaw("var " + softGridDataId + "= null") &
+    JsRaw("var " + softGridDataId + "= null") & // JsRaw ok, escaped
     OnLoad({
         eltIds.map { i =>
           JsRaw(s"""
@@ -208,7 +208,7 @@ object DisplayNode extends Loggable {
 
               $$('.dataTables_filter input').attr("placeholder", "Filter");
                    | """.stripMargin('|')): JsCmd
-        }.reduceLeft((i, acc) => acc & i)
+        }.reduceLeft((i, acc) => acc & i) // JsRaw ok, escaped
       } & {
         eltIdswidth.map {
           case (id, columns, sorting) =>
@@ -240,16 +240,16 @@ object DisplayNode extends Loggable {
                 "pageLength": 25
               });
               $$('.dataTables_filter input').attr("placeholder", "Filter");
-           """): JsCmd
+           """): JsCmd // JsRaw ok, no user inputs
         }.reduceLeft((i, acc) => acc & i)
       } &
       // for the software tab, we check for the panel id, and the firstChild id
       // if the firstChild.id == softGridId, then it hasn't been loaded, otherwise it is softGridId_wrapper
       JsRaw(s"""
         $$("#${softPanelId}").click(function() {
-            ${SHtml.ajaxCall(JsRaw("'" + nodeId.value + "'"), loadSoftware(jsId))._2.toJsCmd}
+            ${SHtml.ajaxCall(JsRaw("'" + StringEscapeUtils.escapeEcmaScript(nodeId.value) + "'"), loadSoftware(jsId))._2.toJsCmd}
         });
-        """)
+        """) // JsRaw ok, escaped
     )
   }
 
@@ -372,7 +372,9 @@ object DisplayNode extends Loggable {
     <div id={tabId} class="sInventory d-flex">
       <ul class="list-tabs-inventory nav flex-column pe-3" aria-orientation="vertical">{mainTabDeclaration}</ul>
       <div class="tab-content">{tabContent.flatten}</div>
-    </div> ++ Script(OnLoad(JsRaw(s"$$('.sInventory .tab-content > .tab-pane:first-child').addClass('active');")))
+    </div> ++ Script(
+      OnLoad(JsRaw(s"$$('.sInventory .tab-content > .tab-pane:first-child').addClass('active');"))
+    ) // JsRaw OK, const
 
   }
 
@@ -429,24 +431,24 @@ object DisplayNode extends Loggable {
          |<div class='tooltip-content'>
          |  <ul>
          |    <li><b>Type:</b> ${displayMachineType(sm.machine)}</li>
-         |    <li><b>Total physical memory (RAM):</b> ${xml.Utility.escape(
+         |    <li><b>Total physical memory (RAM):</b> ${StringEscapeUtils.escapeHtml4(
           sm.node.ram.map(_.toStringMo).getOrElse("-")
         )}</li>
-         |    <li><b>Manufacturer:</b> ${xml.Utility.escape(
+         |    <li><b>Manufacturer:</b> ${StringEscapeUtils.escapeHtml4(
           sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-")
         )}</li>
-         |    <li><b>Total swap space:</b> ${xml.Utility.escape(sm.node.swap.map(_.toStringMo).getOrElse("-"))}</li>
-         |    <li><b>System serial number:</b> ${xml.Utility.escape(
+         |    <li><b>Total swap space:</b> ${StringEscapeUtils.escapeHtml4(sm.node.swap.map(_.toStringMo).getOrElse("-"))}</li>
+         |    <li><b>System serial number:</b> ${StringEscapeUtils.escapeHtml4(
           sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-")
         )}</li>
-         |    <li><b>Time zone:</b> ${xml.Utility.escape(
+         |    <li><b>Time zone:</b> ${StringEscapeUtils.escapeHtml4(
           sm.node.timezone
             .map(x => if (x.name.toLowerCase == "utc") "UTC" else s"${x.name} (UTC ${x.offset})")
             .getOrElse("unknown")
         )}</li>
          |    <li>${sm.machine
           .map(_.id.value)
-          .map(machineId => "<b>Machine ID:</b> " ++ { xml.Utility.escape(machineId) })
+          .map(machineId => "<b>Machine ID:</b> " ++ { StringEscapeUtils.escapeHtml4(machineId) })
           .getOrElse("<span class='error'>Machine Information are missing for that node</span>")}</li>
          |  </ul>
          |</div>
@@ -475,18 +477,20 @@ object DisplayNode extends Loggable {
          |<h4>Operating system details</h4>
          |<div class='tooltip-content'>
          |  <ul>
-         |    <li><b>Type:</b> ${xml.Utility.escape(sm.node.main.osDetails.os.kernelName)}</li>
-         |    <li><b>Name:</b> ${xml.Utility.escape(S.?("os.name." + sm.node.main.osDetails.os.name))}</li>
-         |    <li><b>Version:</b> ${xml.Utility.escape(sm.node.main.osDetails.version.value)}</li>
-         |    <li><b>Service pack:</b> ${xml.Utility.escape(sm.node.main.osDetails.servicePack.getOrElse("None"))}</li>
-         |    <li><b>Architecture:</b> ${xml.Utility.escape(sm.node.archDescription.getOrElse("None"))}</li>
-         |    <li><b>Kernel version:</b> ${xml.Utility.escape(sm.node.main.osDetails.kernelVersion.value)}</li>
+         |    <li><b>Type:</b> ${StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.os.kernelName)}</li>
+         |    <li><b>Name:</b> ${StringEscapeUtils.escapeHtml4(S.?("os.name." + sm.node.main.osDetails.os.name))}</li>
+         |    <li><b>Version:</b> ${StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.version.value)}</li>
+         |    <li><b>Service pack:</b> ${StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.servicePack.getOrElse("None"))}</li>
+         |    <li><b>Architecture:</b> ${StringEscapeUtils.escapeHtml4(sm.node.archDescription.getOrElse("None"))}</li>
+         |    <li><b>Kernel version:</b> ${StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.kernelVersion.value)}</li>
          |  </ul>
          |</div>""".stripMargin.replaceAll("\n", " ")
     }
 
     val nodeStateIcon = (
-      <span class={"node-state " ++ escape(getNodeState(node.rudderSettings.state).toLowerCase).replaceAll(" ", "-")}></span>
+      <span class={
+        "node-state " ++ StringEscapeUtils.escapeHtml4(getNodeState(node.rudderSettings.state).toLowerCase).replaceAll(" ", "-")
+      }></span>
     )
 
     <div class="header-title">
@@ -636,9 +640,11 @@ object DisplayNode extends Loggable {
         case (mode, explanation) =>
           <label>Policy mode:</label><span id="badge-apm"></span> ++
           Script(OnLoad(JsRaw(s"""
-                $$('#badge-apm').append(createBadgeAgentPolicyMode('node',"${mode}","${explanation}"));
+                $$('#badge-apm').append(createBadgeAgentPolicyMode('node',"${mode}","${StringEscapeUtils.escapeEcmaScript(
+              explanation
+            )}"));
                 //initBsTooltips(getNodeInfo);
-              """)))
+              """))) // JsRaw OK, escaped
       }
     }
         </div>
@@ -737,7 +743,7 @@ object DisplayNode extends Loggable {
       } else NodeSeq.Empty
     }
         <pre id={publicKeyId} class="display-keys" style="display:none;"><div>{agent.securityToken.key}</div></pre>{
-      Script(OnLoad(JsRaw(s"""initBsTooltips();""")))
+      Script(OnLoad(JsRaw(s"""initBsTooltips();"""))) // JsRaw ok, const
     }
       </div>
     </div>
@@ -763,16 +769,19 @@ object DisplayNode extends Loggable {
             s"security-${nodeFact.id.value}",
             displaySecurityInfo(nodeFact.modify(_.rudderSettings.keyStatus).setTo(UndefinedKey))
           ) &
-          JsRaw(s"""createSuccessNotification("Key status for node '${nodeFact.id.value}' correctly changed.")""")
+          JsRaw(s"""createSuccessNotification("Key status for node '${StringEscapeUtils.escapeEcmaScript(
+              nodeFact.id.value
+            )}' correctly changed.")""") // JsRaw ok, escaped
         }
         js
       }
       .catchAll { err =>
         val js: JsCmd = JsRaw(
-          s"""createErrorNotification("${s"An error happened when trying to change key status of node '${nodeFact.fqdn}' [${nodeFact.id.value}]. " +
+          s"""createErrorNotification("${s"An error happened when trying to change key status of node '${StringEscapeUtils
+                .escapeEcmaScript(nodeFact.fqdn)}' [${StringEscapeUtils.escapeEcmaScript(nodeFact.id.value)}]. " +
             "Please contact your server admin to resolve the problem. " +
             s"Error was: '${err.fullMsg}'"}")"""
-        )
+        ) // JsRaw ok, escaped
         js.succeed
       }
       .runNow
@@ -812,7 +821,7 @@ object DisplayNode extends Loggable {
   private def displayPolicyServerInfos(sm: FullInventory)(implicit qr: QueryContext): NodeSeq = {
     nodeFactRepository.get(sm.node.main.policyServerId).either.runNow match {
       case Left(err)                        =>
-        val e = s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${escape(
+        val e = s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${escapeHTML(
             sm.node.main.hostname
           )}' ('${sm.node.main.id.value}'): ${err.fullMsg}"
         logger.error(e)
@@ -820,7 +829,7 @@ object DisplayNode extends Loggable {
       case Right(Some(policyServerDetails)) =>
         <div><label>Policy server:</label> <a href={linkUtil.baseNodeLink(policyServerDetails.id)}  onclick={
           s"updateNodeIdAndReload('${policyServerDetails.id.value}')"
-        }>{escape(policyServerDetails.fqdn)}</a></div>
+        }>{escapeHTML(policyServerDetails.fqdn)}</a></div>
       case Right(None)                      =>
         logger.error(
           s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${sm.node.main.hostname}' ('${sm.node.main.id.value}')"
@@ -845,12 +854,10 @@ object DisplayNode extends Loggable {
   // show a comma separated list with description in tooltip
 
   private def displayAccounts(node: NodeInventory): String = {
-    escape {
-      if (node.accounts.isEmpty) {
-        "None"
-      } else {
-        node.accounts.sortWith(_ < _).mkString(", ")
-      }
+    if (node.accounts.isEmpty) {
+      "None"
+    } else {
+      node.accounts.sortWith(_ < _).mkString(", ")
     }
   }
 
@@ -898,34 +905,37 @@ object DisplayNode extends Loggable {
       // special: add name -> value to be displayed as a table
       Full(
         Seq(
-          ("Node ID", escape(sm.node.main.id.value)),
-          ("Hostname", escape(sm.node.main.hostname)),
-          ("Policy server ID", escape(sm.node.main.policyServerId.value)),
-          ("Operating system detailed name", escape(sm.node.main.osDetails.fullName)),
-          ("Operating system type", escape(sm.node.main.osDetails.os.kernelName)),
-          ("Operating system name", escape(S.?("os.name." + sm.node.main.osDetails.os.name))),
-          ("Operating system version", escape(sm.node.main.osDetails.version.value)),
-          ("Operating system service pack", escape(sm.node.main.osDetails.servicePack.getOrElse("None"))),
-          ("Operating system architecture description", escape(sm.node.archDescription.getOrElse("None"))),
-          ("Kernel version", escape(sm.node.main.osDetails.kernelVersion.value)),
-          ("Total physical memory (RAM)", escape(sm.node.ram.map(_.toStringMo).getOrElse("-"))),
-          ("Manufacturer", escape(sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-"))),
+          ("Node ID", StringEscapeUtils.escapeHtml4(sm.node.main.id.value)),
+          ("Hostname", StringEscapeUtils.escapeHtml4(sm.node.main.hostname)),
+          ("Policy server ID", StringEscapeUtils.escapeHtml4(sm.node.main.policyServerId.value)),
+          ("Operating system detailed name", StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.fullName)),
+          ("Operating system type", StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.os.kernelName)),
+          ("Operating system name", StringEscapeUtils.escapeHtml4(S.?("os.name." + sm.node.main.osDetails.os.name))),
+          ("Operating system version", StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.version.value)),
+          ("Operating system service pack", StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.servicePack.getOrElse("None"))),
+          ("Operating system architecture description", StringEscapeUtils.escapeHtml4(sm.node.archDescription.getOrElse("None"))),
+          ("Kernel version", StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.kernelVersion.value)),
+          ("Total physical memory (RAM)", StringEscapeUtils.escapeHtml4(sm.node.ram.map(_.toStringMo).getOrElse("-"))),
+          (
+            "Manufacturer",
+            StringEscapeUtils.escapeHtml4(sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-"))
+          ),
           ("Machine type", displayMachineType(sm.machine).text),
-          ("Total swap space (Swap)", escape(sm.node.swap.map(_.toStringMo).getOrElse("-"))),
-          ("System serial number", escape(sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-"))),
-          ("Agent type", escape(sm.node.agents.headOption.map(_.agentType.displayName).getOrElse("-"))),
-          ("Node state", escape(getNodeState(node.rudderSettings.state))),
+          ("Total swap space (Swap)", StringEscapeUtils.escapeHtml4(sm.node.swap.map(_.toStringMo).getOrElse("-"))),
+          ("System serial number", StringEscapeUtils.escapeHtml4(sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-"))),
+          ("Agent type", StringEscapeUtils.escapeHtml4(sm.node.agents.headOption.map(_.agentType.displayName).getOrElse("-"))),
+          ("Node state", StringEscapeUtils.escapeHtml4(getNodeState(node.rudderSettings.state))),
           ("Account(s)", displayAccounts(sm.node)),
-          ("Administrator account", escape(sm.node.main.rootUser)),
-          ("IP addresses", escape(sm.node.serverIps.mkString(", "))),
+          ("Administrator account", StringEscapeUtils.escapeHtml4(sm.node.main.rootUser)),
+          ("IP addresses", StringEscapeUtils.escapeHtml4(sm.node.serverIps.mkString(", "))),
           (
             "Last inventory date",
-            escape(node.lastInventoryDate.map(DateFormaterService.getDisplayDate).getOrElse("-"))
+            StringEscapeUtils.escapeHtml4(node.lastInventoryDate.map(DateFormaterService.getDisplayDate).getOrElse("-"))
           ),
-          ("Policy server ID", escape(sm.node.main.policyServerId.value)),
+          ("Policy server ID", StringEscapeUtils.escapeHtml4(sm.node.main.policyServerId.value)),
           (
             "Time zone",
-            escape(
+            StringEscapeUtils.escapeHtml4(
               sm.node.timezone
                 .map(x => if (x.name.toLowerCase == "utc") "UTC" else s"${x.name} (UTC ${x.offset})")
                 .getOrElse("unknown")
@@ -934,7 +944,7 @@ object DisplayNode extends Loggable {
           (
             "Machine ID",
             sm.machine
-              .map(x => escape(x.id.value))
+              .map(x => StringEscapeUtils.escapeHtml4(x.id.value))
               .getOrElse("Machine information is missing for that node")
           )
         )
@@ -1081,29 +1091,29 @@ object DisplayNode extends Loggable {
     }
 
     val os = (
-      ("fullName"          -> escape(sm.node.main.osDetails.fullName))
-        ~ ("name"          -> escape(S.?("os.name." + sm.node.main.osDetails.os.name)))
-        ~ ("version"       -> escape(sm.node.main.osDetails.version.value))
-        ~ ("servicePack"   -> escape(sm.node.main.osDetails.servicePack.getOrElse("None")))
-        ~ ("kernelVersion" -> escape(sm.node.main.osDetails.kernelVersion.value))
+      ("fullName"          -> StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.fullName))
+        ~ ("name"          -> StringEscapeUtils.escapeHtml4(S.?("os.name." + sm.node.main.osDetails.os.name)))
+        ~ ("version"       -> StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.version.value))
+        ~ ("servicePack"   -> StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.servicePack.getOrElse("None")))
+        ~ ("kernelVersion" -> StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.kernelVersion.value))
     )
 
     val machine = (
-      ("manufacturer"    -> escape(sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("")))
-        ~ ("machineType" -> displayMachineType(sm.machine).text.toString)
+      ("manufacturer"    -> StringEscapeUtils.escapeHtml4(sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("")))
+        ~ ("machineType" -> displayMachineType(sm.machine).text)
     )
 
     val values = Seq[(String, String)](
-      ("localAdministratorAccountName", escape(sm.node.main.rootUser)),
-      ("hostname", escape(sm.node.main.hostname)),
-      ("policyServerId", escape(sm.node.main.policyServerId.value)),
+      ("localAdministratorAccountName", StringEscapeUtils.escapeHtml4(sm.node.main.rootUser)),
+      ("hostname", StringEscapeUtils.escapeHtml4(sm.node.main.hostname)),
+      ("policyServerId", StringEscapeUtils.escapeHtml4(sm.node.main.policyServerId.value)),
       ("os", net.liftweb.json.prettyRender(os)),
-      ("archDescription", escape(sm.node.archDescription.getOrElse("None"))),
-      ("ram", escape(sm.node.ram.map(_.size.toString).getOrElse(""))),
+      ("archDescription", StringEscapeUtils.escapeHtml4(sm.node.archDescription.getOrElse("None"))),
+      ("ram", StringEscapeUtils.escapeHtml4(sm.node.ram.map(_.size.toString).getOrElse(""))),
       ("machine", net.liftweb.json.prettyRender(machine)),
       (
         "timezone",
-        escape(
+        StringEscapeUtils.escapeHtml4(
           sm.node.timezone
             .map(x => if (x.name.toLowerCase == "utc") "UTC" else s"${x.name} (UTC ${x.offset})")
             .getOrElse("unknown")

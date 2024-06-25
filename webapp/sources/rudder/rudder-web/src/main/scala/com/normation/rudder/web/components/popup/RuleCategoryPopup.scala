@@ -192,7 +192,7 @@ class RuleCategoryPopup(
   private def error(msg: String) = <span class="col-xl-12 errors-container">{msg}</span>
 
   private def closePopup(): JsCmd = {
-    JsRaw("""hideBsModal('createRuleCategoryPopup');""")
+    JsRaw("""hideBsModal('createRuleCategoryPopup');""") // JsRaw ok, const
   }
 
   /**

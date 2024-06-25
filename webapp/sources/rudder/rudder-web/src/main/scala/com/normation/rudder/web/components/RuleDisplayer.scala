@@ -50,6 +50,7 @@ import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
+import org.apache.commons.text.StringEscapeUtils
 import scala.xml.*
 
 /**
@@ -123,7 +124,7 @@ class RuleDisplayer(
         include=${value};
         filterTableInclude('#grid_rules_grid_zone',filter,include); """)) & check(),
       ("id", "includeCheckbox")
-    )
+    ) // JsRaw ok, no user inputs
   }
   def actionButtonCategory: NodeSeq = {
     if (directive.isEmpty) {
@@ -166,8 +167,8 @@ class RuleDisplayer(
 
   def check(): JsCmd = {
     def action(ruleId: RuleId, status: Boolean) = {
-      JsRaw(s"""$$('#${ruleId.serialize}Checkbox').prop("checked",${status}); """)
-    }
+      JsRaw(s"""$$('#${StringEscapeUtils.escapeEcmaScript(ruleId.serialize)}Checkbox').prop("checked",${status}); """)
+    } // JsRaw ok, escaped
 
     directive match {
       case Some(d) =>
@@ -336,7 +337,7 @@ class RuleDisplayer(
         </div> ++ Script(JsRaw(s"""
                   var include = true;
                   var filter = "";
-                  var column = ${columnToFilter};"""))
+                  var column = ${columnToFilter};""")) // JsRaw ok, no user inputs
       case eb: EmptyBox =>
         val fail = eb ?~! "Could not get root category"
         val msg  = s"An error occured while fetching Rule categories , cause is ${fail.messageChain}"
@@ -400,7 +401,7 @@ class RuleDisplayer(
       }
     }
     SetHtml(htmlId_popup, popupHtml) &
-    JsRaw(s""" initBsModal("${htmlId_popup}") """)
+    JsRaw(s""" initBsModal("${htmlId_popup}") """) // JsRaw ok, const
   }
 
   /**
@@ -423,6 +424,6 @@ class RuleDisplayer(
       }
     }
     SetHtml(htmlId_popup, popupHtml) &
-    JsRaw(s"""initBsModal("${htmlId_popup}");""")
+    JsRaw(s"""initBsModal("${htmlId_popup}");""") // JsRaw ok, const
   }
 }

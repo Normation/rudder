@@ -90,7 +90,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
         </ul> &
     "#archiveReports" #> SHtml.ajaxSubmit("Clean reports", process _, ("class", "btn btn-default")) &
     "#reportFromDate" #> SHtml.text(from, x => from = x))(xml) ++ Script(
-      OnLoad(JsRaw("""initReportDatepickler("#reportFromDate");""") & updateValue)
+      OnLoad(JsRaw("""initReportDatepickler("#reportFromDate");""") & updateValue) // JsRaw ok, const
     )
   }
 
@@ -156,19 +156,19 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
       if (dbCleaner.archivettl > 1)
         SetHtml("autoArchiveDays", Text("%d".format(dbCleaner.archivettl)))
       else
-        JsRaw(""" $('#autoArchiveDetails').hide(); """)
+        JsRaw(""" $('#autoArchiveDetails').hide(); """) // JsRaw ok, const
     } &
     SetHtml("autoDeleteStatus", if (dbCleaner.deletettl > 0) Text("Enabled") else Text("Disabled")) & {
       if (dbCleaner.deletettl > 1)
         SetHtml("autoDeleteDays", Text("%d".format(dbCleaner.deletettl)))
       else
-        JsRaw(""" $('#autoDeleteDetails').hide(); """)
+        JsRaw(""" $('#autoDeleteDetails').hide(); """) // JsRaw ok, const
     } & {
       if (dbCleaner.deletettl > 1 || dbCleaner.archivettl > 1) {
         SetHtml("cleanFrequency", Text(dbCleaner.freq.toString())) &
         SetHtml("nextRun", displayDate(Full(Option(dbCleaner.freq.next))))
       } else {
-        JsRaw(""" $('#automaticCleanDetails').hide(); """)
+        JsRaw(""" $('#automaticCleanDetails').hide(); """) // JsRaw ok, const
       }
     }
   }
@@ -177,11 +177,11 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     val cancel: JsCmd = {
       SetHtml("confirm", NodeSeq.Empty) &
       JsRaw(""" $('#archiveReports').show();
-                $('#cleanParam').show(); """)
+                $('#cleanParam').show(); """) // JsRaw ok, const
     }
     val btnClass = if (action.name == "archive") { "btn-primary" }
     else { "btn-danger" }
-    val dialog   = {
+    val dialog = {
       <div class="callout-fade callout-info">
         <div class="marker"><span class="fa fa-exclamation-triangle"></span></div>
         Are you sure you want to
@@ -201,7 +201,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
           { () =>
             val askResult = action.ask(date)
             JsRaw("""$('#cleanResultText').html('%s, you can see more details in the webapp log file (<span class="text-bold">/var/log/rudder/core/rudder-webapp.log</span>)');
-                 $('#cleanResult').show();""".format(askResult)) & cancel & updateValue
+                 $('#cleanResult').show();""".format(askResult)) & cancel & updateValue // JsRaw ok, const
           },
           ("class", ("btn " ++ btnClass))
         )
@@ -215,7 +215,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
       JsRaw(""" $('#archiveReports').hide();
                 $('#cleanParam').hide();
                 $('#cleanResult').hide();
-                $('#confirm').stop(true, true).slideDown(1000); """)
+                $('#confirm').stop(true, true).slideDown(1000); """) // JsRaw ok, const
     }
 
     showDialog

@@ -56,6 +56,7 @@ import net.liftweb.util.CssSel
 import net.liftweb.util.FieldError
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.*
+import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import org.joda.time.LocalDate
 import org.joda.time.LocalTime
@@ -113,7 +114,7 @@ class TextField(
     val initScript                                   = {
       Script(OnLoad(JsRaw(s"""
        newInputText("${formId}", ${Str(currentValue).toJsCmd}, ${Str(currentPrefix).toJsCmd}, ${scriptEnabled.toJsCmd});
-       """)))
+       """))) // JsRaw ok, const
     }
 
     val form = (".text-section *+" #> valueInput).apply(xml(formId)) ++ initScript
@@ -403,18 +404,19 @@ class DateField(format: DateTimeFormatter)(val id: String) extends DirectiveFiel
   def toClient:               String                              = if (null == _x) "" else _x.toString(format)
 
   def toForm: Full[NodeSeq] = {
-    val xml = (SHtml.text(toClient, x => parseClient(x)) % ("id" -> this.id)) ++
+    val escapedId = StringEscapeUtils.escapeEcmaScript(this.id)
+    val xml       = (SHtml.text(toClient, x => parseClient(x)) % ("id" -> escapedId)) ++
       Script(
         OnLoad(
           JsRaw(
             "var init%s = $.datepicker.regional['%s']; init%s['showOn'] = 'both';jQuery('#%s').datepicker(init%s)".format(
-              id,
+              escapedId,
               format.getLocale.getLanguage,
-              id,
-              id,
-              id
+              escapedId,
+              escapedId,
+              escapedId
             )
-          )
+          ) // JsRaw ok, escaped
         )
       )
 
@@ -452,18 +454,19 @@ class TimeField(format: DateTimeFormatter)(val id: String) extends DirectiveFiel
   def toClient:               String                              = if (null == _x) "" else _x.toString(format)
 
   def toForm: Full[NodeSeq] = {
-    val xml = (SHtml.text(toClient, x => parseClient(x)) % ("id" -> this.id)) ++
+    val escapedId = StringEscapeUtils.escapeEcmaScript(this.id)
+    val xml       = (SHtml.text(toClient, x => parseClient(x)) % ("id" -> escapedId)) ++
       Script(
         OnLoad(
           JsRaw(
             "var init%s = $.datepicker.regional['%s']; init%s['showOn'] = 'both';jQuery('#%s').datepicker(init%s)".format(
-              id,
+              escapedId,
               format.getLocale.getLanguage,
-              id,
-              id,
-              id
+              escapedId,
+              escapedId,
+              escapedId
             )
-          )
+          ) // JsRaw ok, escaped
         )
       )
 
@@ -864,7 +867,7 @@ class PasswordField(
        passwordForms["${formId}"] = passwordForm;
        initPasswordFormEvents("${formId}");
        updatePasswordFormView("${formId}");
-       """)))
+       """))) // JsRaw ok, escaped
     }
 
     val form = (".password-section *+" #> valueInput).apply(PasswordField.xml(formId)) ++ initScript

@@ -120,7 +120,7 @@ object PendingHistoryGrid extends Loggable {
             "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>'
           });
           $('.dataTables_filter input').attr("placeholder", "Filter");
-          """.replaceAll("#table_var#", jsVarNameForId())) & initJsCallBack(entries)
+          """.replaceAll("#table_var#", jsVarNameForId())) & initJsCallBack(entries) // JsRaw ok, const
     )
   }
 
@@ -210,7 +210,7 @@ object PendingHistoryGrid extends Loggable {
                 })
           """
         .format(SHtml.ajaxCall(JsVar("ajaxParam"), displayPastInventory(deletedNodes) _)._2.toJsCmd)
-        .replaceAll("#table_var#", jsVarNameForId())
+        .replaceAll("#table_var#", jsVarNameForId()) // JsRaw ok, escaped
     )
   }
 

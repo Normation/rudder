@@ -336,7 +336,7 @@ class HomePage extends StatefulSnippet {
           , ${data.toJsCmd}
           , ${pendingNodes.toJsCmd}
           , ${scoreDetailsData.toJsCmd}
-        )""")))
+        )"""))) // JsRaw ok, escaped
     }).either.runNow match {
       case Right(homePageCompliance) => homePageCompliance
       case Left(err)                 =>
@@ -382,7 +382,7 @@ class HomePage extends StatefulSnippet {
           ${machinesArray.toJsCmd}
         , ${osArray.toJsCmd}
         , ${osNames.toJsCmd}
-      )""")))
+      )"""))) // JsRaw ok, escaped
   }
 
   def rudderAgentVersion(): Node = {
@@ -399,7 +399,7 @@ class HomePage extends StatefulSnippet {
     Script(OnLoad(JsRaw(s"""
         homePageSoftware(
             ${agentsData.toJsCmd}
-     )""")))
+     )"""))) // JsRaw ok, escaped
   }
 
   /**

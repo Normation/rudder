@@ -63,6 +63,7 @@ import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
+import org.apache.commons.text.StringEscapeUtils
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.Buffer
@@ -411,8 +412,9 @@ class SearchNodeComponent(
     // If saved button id is not defined do not disable save button
     val disableGridOnChange: JsCmd = if (saveButtonId != "") {
       JE.JsRaw(
-        s"""activateButtonDeactivateGridOnFormChange("queryParameters", "SubmitSearch",  "serverGrid", "${saveButtonId}");"""
-      )
+        s"""activateButtonDeactivateGridOnFormChange("queryParameters", "SubmitSearch",  "serverGrid", "${StringEscapeUtils
+            .escapeEcmaScript(saveButtonId)}");"""
+      ) // JsRaw ok, escaped
     } else {
       Noop
     }
@@ -429,7 +431,7 @@ class SearchNodeComponent(
     srvList match {
       case Full(seq) =>
         val refresh = srvGrid.refreshData(() => Some(seq), onClickCallback, tableId)
-        JsRaw(s"""(${refresh.toJsCmd}());initBsTooltips();""") & onUpdateCallback()
+        JsRaw(s"""(${refresh.toJsCmd}());initBsTooltips();""") & onUpdateCallback() // JsRaw ok, escaped
 
       case Empty =>
         Noop
@@ -602,7 +604,7 @@ object SearchNodeComponent {
       JE.JsRaw(
         "this.value+',at_%s,'+%s+',ct_%s,'+ %s +',v_%s,'+%s"
           .format(i, ValById("at_" + i).toJsCmd, i, ValById("ct_" + i).toJsCmd, i, Str("").toJsCmd)
-      ),
+      ),            // JsRaw ok, escaped
       s => After(TimeSpan(200), replaceAttributes(x => lines(i) = lines(i).copy(value = x))(s))
     )
   }
@@ -612,13 +614,16 @@ object SearchNodeComponent {
       JE.JsRaw(
         "%s+','+this.value+',ct_%s,'+ %s +',v_%s,'+%s"
           .format(ValById("ot_" + i).toJsCmd, i, ValById("ct_" + i).toJsCmd, i, Str("").toJsCmd)
-      ),
+      ),            // JsRaw ok, escaped
       s => After(TimeSpan(200), replaceComp(x => lines(i) = lines(i).copy(value = x))(s))
     )
   }
   // expect "newCompValue,valueSelectEltId"
   def ajaxVal(lines: Buffer[CriterionLine], i: Int):  GUIDJsExp = {
-    SHtml.ajaxCall(JE.JsRaw("this.value+',v_%s'".format(i)), s => After(TimeSpan(200), replaceValue(s)))
+    SHtml.ajaxCall(
+      JE.JsRaw("this.value+',v_%s'".format(i)),
+      s => After(TimeSpan(200), replaceValue(s))
+    ) // JsRaw ok, no user input
   }
 
   ////////

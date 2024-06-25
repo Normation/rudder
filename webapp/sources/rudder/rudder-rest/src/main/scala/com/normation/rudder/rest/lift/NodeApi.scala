@@ -151,6 +151,7 @@ import net.liftweb.json.JsonDSL.*
 import net.liftweb.json.JsonDSL.pair2jvalue
 import net.liftweb.json.JsonDSL.string2jvalue
 import net.liftweb.json.JValue
+import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import scala.collection.MapView
 import scalaj.http.Http
@@ -1047,7 +1048,7 @@ class NodeApiService(
       score:                  GlobalScore
   ): JObject = {
 
-    def escapeHTML(s: String): String = JsExp.strToJsExp(xml.Utility.escape(s)).str
+    def escapeHTML(s: String): String = JsExp.strToJsExp(StringEscapeUtils.escapeHtml4(s)).str
 
     import net.liftweb.json.JsonDSL.*
     def toComplianceArray(comp: ComplianceLevel): JArray = {

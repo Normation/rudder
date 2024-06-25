@@ -118,7 +118,7 @@ class ReportDisplayer(
           }
         })
       );
-    """)))
+    """))) // JsRaw ok, escaped
   }
 
   /**
@@ -147,7 +147,9 @@ class ReportDisplayer(
       } yield {
         import net.liftweb.util.Helpers.encJs
         val intro = encJs(displayIntro(report).toString)
-        JsRaw(s"""refreshTable("${tableId}",${data.json.toJsCmd}); $$("#node-compliance-intro").replaceWith(${intro})""")
+        JsRaw(
+          s"""refreshTable("${tableId}",${data.json.toJsCmd}); $$("#node-compliance-intro").replaceWith(${intro})"""
+        ) // JsRaw ok, escaped
       }
     }
 
@@ -739,7 +741,7 @@ class ReportDisplayer(
          ${colums}
        ]
      } );
-    """))
+    """)) // JsRaw ok, const
   }
 
 }
