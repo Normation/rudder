@@ -504,7 +504,7 @@ class Boot extends Loggable {
     LiftRules.noCometSessionCmd.default.set(() => {
       JsRaw(
         s"isLoggedIn=false; createErrorNotification('You have been signed out. Please reload the page to sign in again.');"
-      ).cmd
+      ).cmd // JsRaw ok, no user input
     })
 
     // Log CSP violations

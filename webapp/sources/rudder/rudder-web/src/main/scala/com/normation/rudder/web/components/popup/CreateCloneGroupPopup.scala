@@ -81,7 +81,7 @@ class CreateCloneGroupPopup(
   )
 
   private[this] def closePopup(): JsCmd = {
-    JsRaw(""" $('#createCloneGroupPopup').bsModal('hide');""")
+    JsRaw(""" $('#createCloneGroupPopup').bsModal('hide');""") // JsRaw ok, const
   }
 
   private[this] def onFailure(): JsCmd = {

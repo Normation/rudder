@@ -226,7 +226,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
             } );
           })
 
-      """.replaceAll("#table_var#", jsVarNameForId(gridName)))
+      """.replaceAll("#table_var#", jsVarNameForId(gridName))) // JsRaw ok, const
     )
   }
 
@@ -239,7 +239,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
       case eb: EmptyBox =>
         val msg = "An error occured when trying to find the validation workflow to use for that change."
         logger.error(msg, eb)
-        JsRaw(s"alert('${msg}')")
+        JsRaw(s"alert('${msg}')") // JsRaw ok, const
 
       case Full(workflowService) =>
         parameterPopup.set(
@@ -253,7 +253,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
         )
         val popupHtml = createPopup
         SetHtml(CreateOrUpdateGlobalParameterPopup.htmlId_popupContainer, popupHtml) &
-        JsRaw(""" createPopup("%s",300,600) """.format(CreateOrUpdateGlobalParameterPopup.htmlId_popup))
+        JsRaw(""" createPopup("%s",300,600) """.format(CreateOrUpdateGlobalParameterPopup.htmlId_popup)) // JsRaw ok, const
     }
   }
 
@@ -289,7 +289,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
 
   ///////////// success pop-up ///////////////
   private[this] def successPopup: JsCmd = {
-    JsRaw("""createSuccessNotification()""")
+    JsRaw("""createSuccessNotification()""") // JsRaw ok, const
   }
 
   private[this] def onSuccessDeleteCallback(): JsCmd = {
@@ -297,7 +297,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
   }
 
   private[this] def closePopup(): JsCmd = {
-    JsRaw(""" $('.modal').bsModal('hide');""")
+    JsRaw(""" $('.modal').bsModal('hide');""") // JsRaw ok, const
   }
 
 }

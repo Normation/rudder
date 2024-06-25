@@ -213,7 +213,7 @@ class RuleModificationValidationPopup(
   private[this] def error(msg: String) = <span>{msg}</span>
 
   private[this] def closePopup(): JsCmd = {
-    JsRaw("""$('#confirmUpdateActionDialog').bsModal('hide');""")
+    JsRaw("""$('#confirmUpdateActionDialog').bsModal('hide');""") // JsRaw ok, const
   }
 
   /**

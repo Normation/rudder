@@ -194,7 +194,7 @@ class CreateOrCloneRulePopup(
   private[this] def error(msg: String) = <span class="col-lg-12 errors-container">{msg}</span>
 
   private[this] def closePopup(): JsCmd = {
-    JsRaw("""$('#createRulePopup').bsModal('hide');""")
+    JsRaw("""$('#createRulePopup').bsModal('hide');""") // JsRaw ok, const
   }
 
   /**
@@ -238,7 +238,7 @@ class CreateOrCloneRulePopup(
       }
       createRule & JsRaw(s"""
         localStorage.setItem('Active_Rule_Tab', 1);
-      """.stripMargin)
+      """.stripMargin) // JsRaw ok, const
     }
   }
 

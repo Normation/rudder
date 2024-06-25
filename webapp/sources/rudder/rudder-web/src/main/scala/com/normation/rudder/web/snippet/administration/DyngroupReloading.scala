@@ -61,7 +61,7 @@ class DyngroupReloading extends DispatchSnippet with Loggable {
       updateDynamicGroups.forceStartUpdate
       Replace("dyngroupReloadingForm", outerXml.applyAgain()) & JsRaw(
         """createSuccessNotification("Dynamic group reloading started")"""
-      )
+      ) // JsRaw ok, const
     }
 
     val initJs = SetHtml("dynGroupUpdateInterval", <span>{updateDynamicGroupsInterval}</span>)

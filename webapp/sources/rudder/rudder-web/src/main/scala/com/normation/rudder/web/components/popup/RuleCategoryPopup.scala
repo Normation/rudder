@@ -192,7 +192,7 @@ class RuleCategoryPopup(
   private[this] def error(msg: String) = <span class="col-lg-12 errors-container">{msg}</span>
 
   private[this] def closePopup(): JsCmd = {
-    JsRaw(""" $('#createRuleCategoryPopup').bsModal('hide');""")
+    JsRaw(""" $('#createRuleCategoryPopup').bsModal('hide');""") // JsRaw ok, const
   }
 
   /**

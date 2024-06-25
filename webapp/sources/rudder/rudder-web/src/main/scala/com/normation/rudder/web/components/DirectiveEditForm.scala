@@ -376,7 +376,7 @@ class DirectiveEditForm(
                  |$$("#complianceNav").hide();
                  |}else{
                  |$$("#complianceNav").show();
-                 |}""".stripMargin)
+                 |}""".stripMargin) // JsRaw OK, input are encoded via encJs
       )
     )
 
@@ -805,7 +805,6 @@ class DirectiveEditForm(
       case eb: EmptyBox =>
         val msg = s"Error when getting the validation workflow for changes in directive '${change.newDirective.name}'"
         logger.warn(msg, eb)
-        JsRaw(s"alert('${msg}')")
       case Full(workflowService) =>
         val popup = {
           // if it's not a creation and we have workflow, then we redirect to the CR

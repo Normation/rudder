@@ -63,6 +63,7 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json.*
 import net.liftweb.json.JsonDSL.*
+import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
@@ -134,7 +135,7 @@ sealed trait CriterionType extends ComparatorList {
   def destroyForm(formId: String):               JsCmd              = {
     OnLoad(
       JsRaw(
-        """$('#%s').datepicker( "destroy" );""".format(formId)
+        """$('#%s').datepicker( "destroy" );""".format(StringEscapeUtils.escapeEcmaScript(formId))
       )
     )
   }
@@ -582,9 +583,11 @@ case object DateComparator extends LDAPCriterionType {
        init['showOn'] = 'focus';
        init['dateFormat'] = 'dd/mm/yy';
        $('#%s').datepicker(init);
-       """.format(formId)))
-  override def destroyForm(formId: String): JsCmd                       = OnLoad(JsRaw("""$('#%s').datepicker( "destroy" );""".format(formId)))
-  override def toLDAP(value:       String): Either[RudderError, String] = parseDate(value).map(GeneralizedTime(_).toString)
+       """.format(StringEscapeUtils.escapeEcmaScript(formId))))
+  override def destroyForm(formId: String):                                           JsCmd              = OnLoad(
+    JsRaw("""$('#%s').datepicker( "destroy" );""".format(StringEscapeUtils.escapeEcmaScript(formId)))
+  )
+  override def toLDAP(value: String): Either[RudderError, String] = parseDate(value).map(GeneralizedTime(_).toString)
 
   private[this] def parseDate(value: String): PureResult[DateTime] = try {
     val date = frenchFmt.parseDateTime(value)

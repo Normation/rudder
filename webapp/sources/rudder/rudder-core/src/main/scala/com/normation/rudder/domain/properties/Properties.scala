@@ -49,6 +49,7 @@ import com.typesafe.config.*
 import java.util.regex.Pattern
 import net.liftweb.json.*
 import net.liftweb.json.JsonDSL.*
+import org.apache.commons.text.StringEscapeUtils
 
 /*
  * A property provider is the thing responsible for that property.
@@ -902,8 +903,8 @@ object JsonPropertySerialisation {
       buildHierarchy(list => {
         list.reverse
           .map(p => {
-            s"<p>from <b>${p.displayName}</b>:<pre>${xml.Utility
-                .escape(p.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>"
+            s"<p>from <b>${p.displayName}</b>:<pre>${StringEscapeUtils
+                .escapeHtml4(p.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>"
           })
           .mkString("")
       })

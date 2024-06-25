@@ -52,6 +52,7 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.TimeSpan
+import org.apache.commons.text.StringEscapeUtils
 import scala.concurrent.*
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -206,9 +207,9 @@ class AsyncComplianceService(
             JsRaw(
               s"""
               ${bars.mkString(";")}
-              resortTable("${tableId}")
+              resortTable("${StringEscapeUtils.escapeEcmaScript(tableId)}")
               """
-            )
+            ) // JsRaw ok, escaped
 
           case eb: EmptyBox =>
             val error = eb ?~! "error while fetching compliances"
