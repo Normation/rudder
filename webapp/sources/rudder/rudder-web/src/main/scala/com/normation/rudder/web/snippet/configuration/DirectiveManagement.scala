@@ -619,7 +619,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     Replace(htmlId_policyConf, showDirectiveDetails()) &
     JsRaw(s"""
         this.window.location.hash = "#" + JSON.stringify(${json})
-        sessionStorage.removeItem('tags-${directiveId.uid.value}');
+        sessionStorage.removeItem('tags-${StringEscapeUtils.escapeEcmaScript(directiveId.uid.value)}');
       """.stripMargin) &
     After(TimeSpan(0), JsRaw("""removeBsTooltips();createTooltip();""")) // OnLoad or JsRaw createTooltip does not work ...
   }
