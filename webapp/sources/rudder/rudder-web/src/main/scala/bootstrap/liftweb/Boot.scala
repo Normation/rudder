@@ -897,7 +897,7 @@ class Boot extends Loggable {
         if (
           (workflowEnabled && (CurrentUser.checkRights(AuthorizationType.Validator.Read) || CurrentUser
             .checkRights(AuthorizationType.Deployer.Read))) || CurrentUser
-            .checkRights(AuthorizationType.Administration.Read) || CurrentUser.checkRights(AuthorizationType.Technique.Read)
+            .checkRights(AuthorizationType.Administration.Read)
         ) {
           Empty
         } else {
