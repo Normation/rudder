@@ -628,7 +628,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     JsRaw(s"""
         removeBsTooltips();
         this.window.location.hash = "#" + JSON.stringify(${json})
-        sessionStorage.removeItem('tags-${directiveId.uid.value}');
+        sessionStorage.removeItem('tags-${StringEscapeUtils.escapeEcmaScript(directiveId.uid.value)}');
       """.stripMargin) &
     After(TimeSpan(0), JsRaw("""removeBsTooltips();initBsTooltips();"""))
   }
