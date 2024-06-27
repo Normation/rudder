@@ -217,12 +217,13 @@ class TechniqueEditForm(
           case Some(t) =>
             (
               "#techniqueName" #> t.name &
-              "#techniqueDescription *" #> Script(
+              "#techniqueDescription *" #> t.description &
+              "#techniqueDocumentation [class]" #> (if (t.longDescription.isEmpty) "visually-hidden" else "") &
+              "#techniqueLongDescription" #> Script(
                 OnLoad(
-                  JsRaw(s"""generateMarkdown(${Str(t.description).toJsCmd}, "#techniqueDescription")""")
+                  JsRaw(s"""generateMarkdown(${Str(t.longDescription).toJsCmd}, "#techniqueLongDescription")""")
                 ) // JsRaw ok, escaped
               ) &
-              "#techniqueLongDescription" #> t.longDescription &
               "#isSingle *" #> showIsSingle(t)
             )(div)
         }
