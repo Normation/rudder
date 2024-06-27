@@ -221,7 +221,7 @@ class TechniqueEditForm(
               "#techniqueDocumentation [class]" #> (if (t.longDescription.isEmpty) "visually-hidden" else "") &
               "#techniqueLongDescription" #> Script(
                 OnLoad(
-                  JsRaw(s"""generateMarkdown(${Str(t.longDescription).toJsCmd}, "#techniqueDescription")""")
+                  JsRaw(s"""generateMarkdown(${Str(t.longDescription).toJsCmd}, "#techniqueLongDescription")""")
                 ) // JsRaw ok, escaped
               ) &
               "#isSingle *" #> showIsSingle(t)
