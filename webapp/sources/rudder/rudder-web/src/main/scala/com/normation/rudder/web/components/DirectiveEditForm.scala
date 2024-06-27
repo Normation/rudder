@@ -63,6 +63,7 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.*
 import net.liftweb.util.Helpers.*
+import org.apache.commons.text.StringEscapeUtils
 import scala.xml.*
 
 object DirectiveEditForm {
@@ -356,7 +357,7 @@ class DirectiveEditForm(
                  |} );
                  |var main = document.getElementById("directiveComplianceApp")
                  |var initValues = {
-                 |  directiveId : "${directive.id.uid.value}",
+                 |  directiveId : "${StringEscapeUtils.escapeEcmaScript(directive.id.uid.value)}",
                  |  contextPath : contextPath
                  |};
                  |var app = Elm.Directivecompliance.init({node: main, flags: initValues});

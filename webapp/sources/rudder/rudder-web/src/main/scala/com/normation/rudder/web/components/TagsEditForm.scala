@@ -10,6 +10,7 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers.*
+import org.apache.commons.text.StringEscapeUtils
 import scala.xml.NodeSeq
 
 class TagsEditForm(tags: Tags, objectId: String) extends Loggable {
@@ -56,8 +57,8 @@ class TagsEditForm(tags: Tags, objectId: String) extends Loggable {
       }
       var scope = angular.element($$("#${controllerId}")).scope();
       scope.$$apply(function(){
-        scope.init(  ${jsTags}, "${filterId}" ,  ${isEditForm}, ${isRule}, "${objectId}");
+        scope.init(  ${jsTags}, "${filterId}" ,  ${isEditForm}, ${isRule}, "${StringEscapeUtils.escapeEcmaScript(objectId)}");
       });
-    """)))
+    """))) // JsRaw ok, escaped
   }
 }
