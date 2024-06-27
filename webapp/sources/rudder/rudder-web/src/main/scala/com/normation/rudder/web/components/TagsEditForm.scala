@@ -10,6 +10,7 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers.*
+import org.apache.commons.text.StringEscapeUtils
 import scala.xml.NodeSeq
 
 class TagsEditForm(tags: Tags, objectId: String) extends Loggable {
@@ -61,7 +62,7 @@ class TagsEditForm(tags: Tags, objectId: String) extends Loggable {
                                                 |  , filterId       : "${filterId}"
                                                 |  , isEditForm     : ${isEditForm}
                                                 |  , objectType     : "${objectType}"
-                                                |  , objectId       : "${objectId}"
+                                                |  , objectId       : "${StringEscapeUtils.escapeEcmaScript(objectId)}"
                                                 |};
                                                 |tagsApp = Elm.Tags.init({node: main, flags: initValues});
                                                 |tagsApp.ports.updateResult.subscribe(function(result) {
