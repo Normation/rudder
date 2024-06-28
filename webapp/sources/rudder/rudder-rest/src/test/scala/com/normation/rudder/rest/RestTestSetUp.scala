@@ -125,7 +125,7 @@ import com.normation.rudder.services.healthcheck.CheckFreeSpace
 import com.normation.rudder.services.healthcheck.HealthcheckNotificationService
 import com.normation.rudder.services.healthcheck.HealthcheckService
 import com.normation.rudder.services.marshalling.DeploymentStatusSerialisation
-import com.normation.rudder.services.nodes.PropertyUsageService
+//import com.normation.rudder.services.nodes.PropertyUsageService
 import com.normation.rudder.services.policies.DependencyAndDeletionServiceImpl
 import com.normation.rudder.services.policies.FindDependencies
 import com.normation.rudder.services.policies.InterpolationContext
@@ -925,10 +925,10 @@ class RestTestSetUp {
 
   }
 
-  val propertyUsageService = new PropertyUsageService(
-    directivesRepos,
-    mockEditorTechniques
-  )
+//  val propertyUsageService = new PropertyUsageService(
+//    directivesRepos,
+//    mockEditorTechniques
+//  )
 
   val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema with SortIndex]] = List(
     systemApi,
@@ -962,8 +962,7 @@ class RestTestSetUp {
       nodeApiService,
       null,
       uuidGen,
-      DeleteMode.Erase,
-      propertyUsageService
+      DeleteMode.Erase
     ),
     new GroupsApi(
       mockNodeGroups.groupsRepo,

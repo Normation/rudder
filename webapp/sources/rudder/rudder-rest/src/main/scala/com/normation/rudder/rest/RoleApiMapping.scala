@@ -181,7 +181,7 @@ object AuthorizationApiMapping {
           NodeApi.PendingNodeDetails.x :: NodeApi.NodeDetailsSoftware.x :: NodeApi.NodeDetailsProperty.x ::
           NodeApi.GetNodesStatus.x :: InventoryApi.QueueInformation.x ::
           NodeApi.NodeGlobalScore.x :: NodeApi.NodeScoreDetail.x :: NodeApi.NodeScoreDetails.x ::
-          NodeApi.GetNodesStatus.x :: NodeApi.NodeFindUsageProperty.x ::
+          NodeApi.GetNodesStatus.x ::
           // score about node
           NodeApi.NodeGlobalScore.x :: NodeApi.NodeScoreDetails.x :: NodeApi.NodeScoreDetail.x ::
           InventoryApi.QueueInformation.x ::
