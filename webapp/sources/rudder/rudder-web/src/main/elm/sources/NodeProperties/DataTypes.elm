@@ -4,9 +4,7 @@ import List.Extra
 import Http exposing (Error)
 import Dict exposing (Dict)
 import Json.Encode exposing (Value)
-
-import Ui.Datatable exposing (TableFilters)
-
+import QuickSearch.Datatypes exposing (SearchResult)
 --
 -- All our data types
 --
@@ -18,8 +16,8 @@ type alias UsageInfo =
   , name : String
   }
 type alias PropertyUsage =
-  { directives : List UsageInfo
-  , techniques : List UsageInfo
+  { directives : Maybe SearchResult
+  , techniques : Maybe SearchResult
   }
 
 type FindUsageIn = Techniques | Directives
@@ -106,13 +104,33 @@ getPageMax pagination =
   else
     1
 
+extractUsage : List SearchResult -> PropertyUsage
+extractUsage result =
+  let
+    directives =
+      result
+        |> List.filter (\s -> s.header.type_ == QuickSearch.Datatypes.Directive)
+        |> List.head
+    techniques =
+      result
+        |> List.filter (\s -> s.header.type_ == QuickSearch.Datatypes.Technique)
+        |> List.head
+  in
+    PropertyUsage directives techniques
+
+getSearchResultLength : PropertyUsage -> FindUsageIn -> Int
+getSearchResultLength result kind =
+  case kind of
+    Techniques -> result.techniques |> Maybe.map (\d -> d.header.numbers) |> Maybe.withDefault 0
+    Directives -> result.directives |> Maybe.map (\d -> d.header.numbers) |> Maybe.withDefault 0
+
 type Msg
   = Ignore
   | Copy String
   | CallApi (Model -> Cmd Msg)
   | SaveProperty String (Result Error (List Property))
   | GetNodeProperties (Result Error (List Property))
-  | FindPropertyUsage String (Result Error PropertyUsage)
+  | FindPropertyUsage String (Result Error (List SearchResult))
   | UpdateNewProperty EditProperty
   | UpdateProperty String EditProperty
   | AddProperty
