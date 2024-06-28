@@ -5,17 +5,15 @@ import Html.Attributes exposing (attribute, class, colspan, href, id, name, plac
 import Html.Attributes.Extra exposing (role)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode exposing (decodeValue)
-import Maybe.Extra exposing (isJust)
 import List.Extra
 import Dict exposing (Dict)
 import Json.Encode exposing (..)
 import NaturalOrdering as N
+import QuickSearch.Datatypes exposing (SearchResult, SearchResultItem)
 import String exposing (toInt)
 import SyntaxHighlight exposing (useTheme, gitHub, json, toInlineHtml)
 import NodeProperties.DataTypes exposing (..)
 import NodeProperties.ApiCalls exposing (deleteProperty, findPropertyUsage)
-import Json.Decode exposing (decodeString)
-import Set exposing (Set)
 
 
 searchString : String -> String
@@ -136,7 +134,7 @@ getFormatConflictWarning property =
         text ""
     Nothing -> text ""
 
-getSortFunctionUsage : Model -> UsageInfo -> UsageInfo -> Order
+getSortFunctionUsage : Model -> SearchResultItem -> SearchResultItem -> Order
 getSortFunctionUsage model p1 p2 =
   let
     order = N.compare p1.name p2.name
@@ -362,21 +360,29 @@ showModal model =
               |> List.map (\currentPage -> option [value (String.fromInt currentPage), selected (currentPage == page )][text (String.fromInt currentPage)])
         classNextBtn = if(page >= getPageMax pagination) then "disabled" else ""
         classPreviousBtn = if(page <= 1) then "disabled" else ""
+        nbDirective = getSearchResultLength found Directives
+        nbTechnique = getSearchResultLength found Techniques
         row = case filters.findUsageIn of
           Techniques ->
-            found.techniques
-              |> List.filter (\technique -> filterSearch model.ui.filtersOnUsage.filter [technique.name])
-              |> List.drop start
-              |> List.take (end - start)
-              |> List.sortWith (getSortFunctionUsage model)
-              |> List.map (\info -> tr [][td [] [a [href ("/rudder/secure/configurationManager/techniqueEditor/technique/" ++ info.id)][text info.name]]])
+            case found.techniques of
+              Just t ->
+                t.items
+                |> List.filter (\technique -> filterSearch model.ui.filtersOnUsage.filter [technique.name])
+                |> List.drop start
+                |> List.take (end - start)
+                |> List.sortWith (getSortFunctionUsage model)
+                |> List.map (\info -> tr [][td [] [a [href info.url][text info.name]]])
+              Nothing -> [div [][]]
           Directives ->
-            found.directives
-              |> List.filter (\directive -> filterSearch model.ui.filtersOnUsage.filter [directive.name])
-              |> List.drop start
-              |> List.take (end - start)
-              |> List.sortWith (getSortFunctionUsage model)
-              |> List.map (\info -> tr [][td [] [a [href ("/rudder/secure/configurationManager/directiveManagement#{\"directiveId\":\"" ++ info.id ++ "\"}")][text info.name]]])
+            case found.directives of
+              Just d ->
+                d.items
+                |> List.filter (\directive -> filterSearch model.ui.filtersOnUsage.filter [directive.name])
+                |> List.drop start
+                |> List.take (end - start)
+                |> List.sortWith (getSortFunctionUsage model)
+                |> List.map (\info -> tr [][td [] [a [href info.url][text info.name]]])
+              Nothing -> [div [][]]
         activeClassTechniquesUsage =
           case filters.findUsageIn of
             Techniques -> "active"
@@ -406,7 +412,7 @@ showModal model =
                     [ attribute "role" "tab", type_ "button", class ("nav-link " ++ activeClassDirectivesUsage), onClick ChangeViewUsage]
                     [ text "In directives"
                     , span [class "badge badge-secondary badge-resources tooltip-bs"]
-                      [ span [class "nb-resources"] [text (String.fromInt (List.length found.directives))]
+                      [ span [class "nb-resources"] [text (String.fromInt nbDirective)]
                       ]
                     ]
                   ]
@@ -415,7 +421,7 @@ showModal model =
                     [ attribute "role" "tab", type_ "button", class ("nav-link " ++ activeClassTechniquesUsage), onClick ChangeViewUsage]
                     [ text "In techniques"
                     , span [class "badge badge-secondary badge-resources tooltip-bs"]
-                      [ span [class "nb-resources"] [text (String.fromInt (List.length found.techniques))]
+                      [ span [class "nb-resources"] [text (String.fromInt nbTechnique)]
                       ]
                     ]
                   ]

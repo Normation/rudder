@@ -12,7 +12,6 @@ import NodeProperties.DataTypes exposing (..)
 import NodeProperties.Init exposing (init)
 import NodeProperties.View exposing (view)
 
-
 -- PORTS / SUBSCRIPTIONS
 port errorNotification   : String -> Cmd msg
 port successNotification : String -> Cmd msg
@@ -175,27 +174,27 @@ update msg model =
       case res of
         Ok found ->
           let
+            propertyUsage = extractUsage found
             ---------------- BEGINNING FAKE DATA LOGIC
-            techs =
-              List.range 0 231
-                |> List.map (\x -> UsageInfo "id" ((String.fromInt x) ++ " - technique "))
-            dirs =
-              List.range 0 482
-                |> List.map (\x -> UsageInfo "id" ((String.fromInt x) ++ " - directive"))
-            fakeData =
-              PropertyUsage (dirs ++ found.directives) (techs ++ found.techniques)
-            maxNbRow = List.length fakeData.directives
-            pagi = TablePagination 1 1 10 maxNbRow
-            ------------------ END FAKE DATA LOGIC
-            --maxNbRow = List.length found.directives
+            --  List.range 0 231
+            --    |> List.map (\x -> UsageInfo "id" ((String.fromInt x) ++ " - technique "))
+            --dirs =
+            --  List.range 0 482
+            --    |> List.map (\x -> UsageInfo "id" ((String.fromInt x) ++ " - directive"))
+            --fakeData =
+            --  PropertyUsage (dirs ++ found.directives) (techs ++ found.techniques)
+            --maxNbRow = List.length fakeData.directives
             --pagi = TablePagination 1 1 10 maxNbRow
+            ------------------ END FAKE DATA LOGIC
+            maxNbRow = getSearchResultLength propertyUsage Directives
+            pagi = TablePagination 1 1 10 maxNbRow
             ui = model.ui
             filtersModel = model.ui.filtersOnUsage
-            fakeNewModel = { model | ui = {ui | modalState = Usage pName fakeData, filtersOnUsage = {filtersModel | findUsageIn = Directives, pagination = pagi}} }
-            --newModel = { model | ui = {ui | modalState = Usage pName found, filtersOnUsage = {filtersModel | findUsageIn = Directives, pagination = pagi}} }
+            --fakeNewModel = { model | ui = {ui | modalState = Usage pName fakeData, filtersOnUsage = {filtersModel | findUsageIn = Directives, pagination = pagi}} }
+            newModel = { model | ui = {ui | modalState = Usage pName propertyUsage, filtersOnUsage = {filtersModel | findUsageIn = Directives, pagination = pagi}} }
           in
-            --(newModel, Cmd.batch [ initInputs "", initTooltips ""])
-            (fakeNewModel, Cmd.batch [ initInputs "", initTooltips ""])
+            (newModel, Cmd.batch [ initInputs "", initTooltips ""])
+            --(fakeNewModel, Cmd.batch [ initInputs "", initTooltips ""])
         Err err ->
           processApiError "Find node property usage" err model
     ChangeViewUsage ->
@@ -203,15 +202,15 @@ update msg model =
         switchView = if(model.ui.filtersOnUsage.findUsageIn == Directives) then Techniques else Directives
         ui = model.ui
         filtersModelUsage = model.ui.filtersOnUsage
-        directives = case model.ui.modalState of
-          Usage propName findUsage -> findUsage.directives
-          _ -> []
-        techniques = case model.ui.modalState of
-          Usage propName findUsage -> findUsage.techniques
-          _ -> []
+        nbDirectives = case model.ui.modalState of
+          Usage propName findUsage -> getSearchResultLength findUsage Directives
+          _ -> 0
+        nbTechniques = case model.ui.modalState of
+          Usage propName findUsage -> getSearchResultLength findUsage Techniques
+          _ -> 0
         nbRow = case switchView of
-          Techniques -> List.length techniques
-          Directives -> List.length directives
+          Techniques -> nbTechniques
+          Directives -> nbDirectives
         pageOnDir = model.ui.filtersOnUsage.pagination.pageDirective
         pageOnTech = model.ui.filtersOnUsage.pagination.pageTechnique
         pagination = model.ui.filtersOnUsage.pagination

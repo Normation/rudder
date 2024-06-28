@@ -1,7 +1,9 @@
 module NodeProperties.ApiCalls exposing (..)
 
 import Http exposing (..)
-import Url.Builder exposing (QueryParameter)
+import Json.Decode exposing (at, list)
+import QuickSearch.JsonDecoder exposing (decoderResult)
+import Url.Builder exposing (QueryParameter, string)
 
 import NodeProperties.DataTypes exposing (..)
 import NodeProperties.JsonDecoder exposing (..)
@@ -67,15 +69,16 @@ deleteProperty property model =
 findPropertyUsage : String -> Model -> Cmd Msg
 findPropertyUsage propertyName model =
   let
-    -- TODO: change when the URL path is defined
-    urlTest = Url.Builder.relative (model.contextPath :: "secure" :: "api"  :: "nodes" :: "details" :: "property" :: "usage" :: propertyName :: []) []
+    property = "${node.properties[" ++ propertyName ++ "]"
+    param = string "value" property
+    urlTest = Url.Builder.relative (model.contextPath :: "secure" :: "api"  :: "quicksearch" :: []) [ param ]
     req =
       request
         { method  = "GET"
         , headers = []
         , url     = urlTest
         , body    = emptyBody
-        , expect  = expectJson (FindPropertyUsage propertyName) decodeFindPropertyUsage
+        , expect  = expectJson (FindPropertyUsage propertyName) (at ["data"] (list decoderResult))
         , timeout = Nothing
         , tracker = Nothing
         }
