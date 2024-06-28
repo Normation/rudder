@@ -444,11 +444,6 @@ object NodeApi       extends Enum[NodeApi] with ApiModuleProvider[NodeApi] {
     val description    = "Getting a property value for a set of Nodes"
     val (action, path) = POST / "nodes" / "details" / "property" / "{property}"
   }
-  final case object NodeFindUsageProperty extends NodeApi with InternalApi with OneParam with StartsAtVersion13 with SortIndex {
-    val z: Int = implicitly[Line].value
-    val description    = "Find a usage of a given property"
-    val (action, path) = GET / "nodes" / "details" / "property" / "usage" / "{property}"
-  }
   case object UpdateNode extends NodeApi with GeneralApi with OneParam with StartsAtVersion5 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Update given node information (node properties, policy mode...)"
