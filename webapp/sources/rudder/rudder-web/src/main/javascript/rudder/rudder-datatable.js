@@ -2096,9 +2096,10 @@ function reportsSum (complianceArray) {
  *
  */
 function buildComplianceBar(compliance) {
+  var container = $('<div></div>');
+  var content = $("<div class='placeholder-bar progress'></div>");
   if (Array.isArray(compliance)) {
-    var container = $('<div></div>');
-    var content = $('<div class="progress progress-flex"></div>');
+    content = $('<div class="progress progress-flex"></div>');
     // Correct compliance array, if sum is over 100, fix it y removing the excedent amount to the max value
     var sum = compliance.reduce(function(pv, cv) {return pv[1] + cv[1]; }, 0);
     if (sum > 100) {
@@ -2217,8 +2218,6 @@ function buildComplianceBar(compliance) {
       adjustComplianceBar(content);
     });
 
-  } else {
-    content = $("<div class='placeholder-bar progress'></div>");
   }
   container.append(content);
   return container
