@@ -125,17 +125,16 @@ object CacheComplianceQueueAction       {
  * Just the composition of the two defaults implementation.
  */
 class ReportingServiceImpl(
-    val confExpectedRepo:            FindExpectedReportRepository,
-    val reportsRepository:           ReportsRepository,
-    val agentRunRepository:          RoReportsExecutionRepository,
-    val nodeFactRepository:          NodeFactRepository,
-    val directivesRepo:              RoDirectiveRepository,
-    val rulesRepo:                   RoRuleRepository,
-    val nodeConfigService:           NodeConfigurationService,
-    val getGlobalComplianceMode:     () => IOResult[GlobalComplianceMode],
-    val getGlobalPolicyMode:         () => IOResult[GlobalPolicyMode],
-    val getUnexpectedInterpretation: () => IOResult[UnexpectedReportInterpretation],
-    val jdbcMaxBatchSize:            Int
+    val confExpectedRepo:        FindExpectedReportRepository,
+    val reportsRepository:       ReportsRepository,
+    val agentRunRepository:      RoReportsExecutionRepository,
+    val nodeFactRepository:      NodeFactRepository,
+    val directivesRepo:          RoDirectiveRepository,
+    val rulesRepo:               RoRuleRepository,
+    val nodeConfigService:       NodeConfigurationService,
+    val getGlobalComplianceMode: () => IOResult[GlobalComplianceMode],
+    val getGlobalPolicyMode:     () => IOResult[GlobalPolicyMode],
+    val jdbcMaxBatchSize:        Int
 ) extends ReportingService with RuleOrNodeReportingServiceImpl with DefaultFindRuleNodeStatusReports
 
 class CachedReportingServiceImpl(
@@ -726,13 +725,12 @@ trait CachedFindRuleNodeStatusReports
 
 trait DefaultFindRuleNodeStatusReports extends ReportingService {
 
-  def confExpectedRepo:            FindExpectedReportRepository
-  def nodeConfigService:           NodeConfigurationService
-  def reportsRepository:           ReportsRepository
-  def agentRunRepository:          RoReportsExecutionRepository
-  def getGlobalComplianceMode:     () => IOResult[GlobalComplianceMode]
-  def getUnexpectedInterpretation: () => IOResult[UnexpectedReportInterpretation]
-  def jdbcMaxBatchSize:            Int
+  def confExpectedRepo:        FindExpectedReportRepository
+  def nodeConfigService:       NodeConfigurationService
+  def reportsRepository:       ReportsRepository
+  def agentRunRepository:      RoReportsExecutionRepository
+  def getGlobalComplianceMode: () => IOResult[GlobalComplianceMode]
+  def jdbcMaxBatchSize:        Int
 
   override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId])(implicit
       qc: QueryContext
@@ -769,14 +767,13 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
     for {
       t0             <- currentTimeMillis
       complianceMode <- getGlobalComplianceMode()
-      unexpectedMode <- getUnexpectedInterpretation()
       // we want compliance on these nodes
       runInfos       <- getNodeRunInfos(nodeIds, complianceMode)
       t1             <- currentTimeMillis
       _              <- TimingDebugLoggerPure.trace(s"Compliance: get node run infos: ${t1 - t0}ms")
 
       // compute the status
-      nodeStatusReports <- buildNodeStatusReports(runInfos, ruleIds, Set(), complianceMode.mode, unexpectedMode)
+      nodeStatusReports <- buildNodeStatusReports(runInfos, ruleIds, Set(), complianceMode.mode)
 
       t2 <- currentTimeMillis
       _  <- TimingDebugLoggerPure.debug(s"Compliance: compute compliance reports: ${t2 - t1}ms")
@@ -821,14 +818,13 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
     for {
       t0             <- currentTimeMillis
       complianceMode <- getGlobalComplianceMode()
-      unexpectedMode <- getUnexpectedInterpretation()
       // we want compliance on these nodes
       runInfos       <- getNodeRunInfos(nodeIds, complianceMode)
       t1             <- currentTimeMillis
       _              <- TimingDebugLoggerPure.trace(s"Compliance: get node run infos: ${t1 - t0}ms")
 
       // compute the status
-      nodeStatusReports <- buildNodeStatusReports(runInfos, Set(), directiveIds, complianceMode.mode, unexpectedMode)
+      nodeStatusReports <- buildNodeStatusReports(runInfos, Set(), directiveIds, complianceMode.mode)
 
       t2 <- currentTimeMillis
       _  <- TimingDebugLoggerPure.debug(s"Compliance: compute compliance reports: ${t2 - t1}ms")
@@ -845,14 +841,13 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
     for {
       t0             <- currentTimeMillis
       complianceMode <- getGlobalComplianceMode()
-      unexpectedMode <- getUnexpectedInterpretation()
       // we want compliance on these nodes
       runInfos       <- getNodeRunInfos(nodeIds, complianceMode)
       t1             <- currentTimeMillis
       _              <- TimingDebugLoggerPure.trace(s"Compliance: get node run infos: ${t1 - t0}ms")
 
       // compute the status
-      nodeStatusReports <- buildNodeStatusReports(runInfos, filterByRules, Set(), complianceMode.mode, unexpectedMode)
+      nodeStatusReports <- buildNodeStatusReports(runInfos, filterByRules, Set(), complianceMode.mode)
       compliance         = nodeStatusReports.map { case (k, v) => (k, v.compliance) }
       t2                <- currentTimeMillis
       _                 <- TimingDebugLoggerPure.debug(s"Compliance: compute compliance reports: ${t2 - t1}ms")
@@ -869,7 +864,6 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
     for {
       t0             <- currentTimeMillis
       complianceMode <- getGlobalComplianceMode()
-      unexpectedMode <- getUnexpectedInterpretation()
       // we want compliance on these nodes
       runInfos       <- getNodeRunInfos(nodeIds, complianceMode)
       t1             <- currentTimeMillis
@@ -877,9 +871,9 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
 
       // compute the status
       nodeUserStatusReports   <-
-        buildNodeStatusReports(runInfos, filterByUserRules, Set(), complianceMode.mode, unexpectedMode)
+        buildNodeStatusReports(runInfos, filterByUserRules, Set(), complianceMode.mode)
       nodeSystemStatusReports <-
-        buildNodeStatusReports(runInfos, filterBySystemRules, Set(), complianceMode.mode, unexpectedMode)
+        buildNodeStatusReports(runInfos, filterBySystemRules, Set(), complianceMode.mode)
       nodeUserCompliance       = nodeUserStatusReports.map {
                                    case (nodeId, nodeStatusReports) => (nodeId, nodeStatusReports.compliance)
                                  }
@@ -957,14 +951,13 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
     for {
       t0             <- currentTimeMillis
       complianceMode <- getGlobalComplianceMode()
-      unexpectedMode <- getUnexpectedInterpretation()
       // get untreated runs
       uncomputedRuns <- getUnComputedNodeRunInfos()
       t1             <- currentTimeMillis
       _              <- TimingDebugLoggerPure.trace(s"Compliance: get uncomputed node run infos: ${t1 - t0}ms")
 
       // compute the status
-      nodeStatusReports <- buildNodeStatusReports(uncomputedRuns, Set(), Set(), complianceMode.mode, unexpectedMode)
+      nodeStatusReports <- buildNodeStatusReports(uncomputedRuns, Set(), Set(), complianceMode.mode)
       t2                <- currentTimeMillis
       _                 <- TimingDebugLoggerPure.debug(s"Compliance: compute compliance reports: ${t2 - t1}ms")
     } yield {
@@ -1000,11 +993,10 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
    * So runInfos.keySet == returnedMap.keySet holds.
    */
   private def buildNodeStatusReports(
-      runInfos:                 Map[NodeId, RunAndConfigInfo],
-      ruleIds:                  Set[RuleId],
-      directiveIds:             Set[DirectiveId],
-      complianceModeName:       ComplianceModeName,
-      unexpectedInterpretation: UnexpectedReportInterpretation
+      runInfos:           Map[NodeId, RunAndConfigInfo],
+      ruleIds:            Set[RuleId],
+      directiveIds:       Set[DirectiveId],
+      complianceModeName: ComplianceModeName
   ): IOResult[Map[NodeId, NodeStatusReport]] = {
 
     val batchedRunsInfos = runInfos.grouped(jdbcMaxBatchSize).toSeq
@@ -1050,8 +1042,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
                                   ExecutionBatch.getNodeStatusReports(
                                     nodeId,
                                     runInfo,
-                                    reports.getOrElse(nodeId, Seq()),
-                                    unexpectedInterpretation
+                                    reports.getOrElse(nodeId, Seq())
                                   )
                                 }
                                 (status.nodeId, status)

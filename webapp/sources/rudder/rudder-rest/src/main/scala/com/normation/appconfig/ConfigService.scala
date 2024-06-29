@@ -61,8 +61,6 @@ import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.services.policies.SendMetrics
-import com.normation.rudder.services.reports.UnexpectedReportBehavior
-import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.*
 import com.normation.rudder.services.workflows.WorkflowLevelService
@@ -195,11 +193,6 @@ trait ReadConfigService {
   def rudder_node_onaccept_default_state():       IOResult[NodeState]
 
   def node_accept_duplicated_hostname(): IOResult[Boolean]
-
-  /**
-   * What is the behavior to adopt regarding unexpected reports ?
-   */
-  def rudder_compliance_unexpected_report_interpretation(): IOResult[UnexpectedReportInterpretation]
 
   /**
    * For debugging / disabling some part of Rudder. Should not be exposed in UI
@@ -338,8 +331,6 @@ trait UpdateConfigService {
 
   def set_node_accept_duplicated_hostname(accept: Boolean): IOResult[Unit]
 
-  def set_rudder_compliance_unexpected_report_interpretation(mode: UnexpectedReportInterpretation): IOResult[Unit]
-
   def set_rudder_compute_changes(value:              Boolean): IOResult[Unit]
   def set_rudder_generation_compute_dyngroups(value: Boolean): IOResult[Unit]
   def set_rudder_save_db_compliance_levels(value:    Boolean): IOResult[Unit]
@@ -409,7 +400,6 @@ class GenericConfigService(
        rudder.featureSwitch.directiveScriptEngine=enabled
        rudder.node.onaccept.default.state=enabled
        rudder.node.onaccept.default.policyMode=default
-       rudder.compliance.unexpectedReportUnboundedVarValues=true
        rudder.compute.changes=true
        rudder.generation.compute.dyngroups=true
        rudder.save.db.compliance.levels=true
@@ -721,21 +711,6 @@ class GenericConfigService(
    */
   def node_accept_duplicated_hostname(): IOResult[Boolean] = get("node_accept_duplicated_hostname")
   def set_node_accept_duplicated_hostname(accept: Boolean): IOResult[Unit] = save("node_accept_duplicated_hostname", accept)
-
-  def rudder_compliance_unexpected_report_interpretation():                                         IOResult[UnexpectedReportInterpretation] = {
-    for {
-      iterators <- get[Boolean]("rudder_compliance_unexpectedReportUnboundedVarValues")
-    } yield {
-      UnexpectedReportInterpretation(
-        (if (iterators) Set(UnexpectedReportBehavior.UnboundVarValues) else Set())
-      )
-    }
-  }
-  def set_rudder_compliance_unexpected_report_interpretation(mode: UnexpectedReportInterpretation): IOResult[Unit]                           = {
-    for {
-      _ <- save("rudder_compliance_unexpectedReportUnboundedVarValues", mode.isSet(UnexpectedReportBehavior.UnboundVarValues))
-    } yield ()
-  }
 
   ///// debug / perf /////
   def rudder_compute_changes(): IOResult[Boolean] = get("rudder_compute_changes")

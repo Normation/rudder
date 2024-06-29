@@ -255,56 +255,6 @@ final case class ComputeCompliance(
   val lastRunConfigInfo: Some[NodeExpectedReports] = Some(expectedConfig)
 }
 
-/*
- * An ADT to describe the behaviour regarding Unexpected reports.
- * Unexpected reports are reports that the node sent but that were not
- * awaited in the expected configuration reporting.
- * There is mainly 4 causes for unexpected rerpots:
- * - a bug in a Technique that send a report when it should not. This is a really unexpected report, and
- *   shoud be reported to Technique maintener for correction.
- * - a Technique is executed when it should not. Typically, the node didn't fetch the updated version
- *   of its policies and it still report on the previous one. Real unexpectation.
- * - the network sneezed and syslog went mad. In such a case, we can miss reports or have some duplicated. Missing
- *   reports is embarassing, but syslog tries very hard to not do that, so we have more often duplicated ones.
- * - reports were on a part of the technique with a cfengine parameter which happened to be an iterator and
- *   so it was exectued several time, and there is as many reports. This case is expected, but in the general case,
- *   we don't have anything that allows to anticipate the number of reports sent back (and specific cases like "the
- *   number is available in a server-side known variable" are hard, too, because it means that we know to parse and
- *   interpret a lot more of cfengine gramar).
- *
- * The last two cases bring a lot of false positive bad compliance, and we want to let the user be able to
- * accept them. We want that to be optionnal, has in each cases, it could be real unexpected reports (but it's very
- * unlikely).
- */
-sealed trait UnexpectedReportBehavior
-object UnexpectedReportBehavior {
-  // if a reports originally has a CFEngine var, allows to get several reports value for it.
-  case object UnboundVarValues extends UnexpectedReportBehavior
-}
-
-final case class UnexpectedReportInterpretation(options: Set[UnexpectedReportBehavior]) {
-
-  // true if the set of option contains `option`
-  def isSet(opt: UnexpectedReportBehavior): Boolean = options.contains(opt)
-
-  // check if ALL the provided options are set
-  def allSet(opts: UnexpectedReportBehavior*): Boolean = {
-    val o = opts.toSet
-    options.intersect(o) == o
-  }
-
-  // check if AT LEAST ONE of provided options is set
-  def anySet(opts: UnexpectedReportBehavior*): Boolean = options.intersect(opts.toSet).nonEmpty
-
-  // return a copy of that interpretation with the given value set
-  def set(opt: UnexpectedReportBehavior): UnexpectedReportInterpretation = UnexpectedReportInterpretation(options + opt)
-
-  // return a copy of that interpretation with the given value removed
-  def unset(opt: UnexpectedReportBehavior): UnexpectedReportInterpretation = UnexpectedReportInterpretation(
-    options.filter(_ != opt)
-  )
-}
-
 /**
  * An execution batch contains the node reports for a given Rule / Directive at a given date
  * An execution Batch is at a given time <- TODO : Is it relevant when we have several node ?
@@ -509,7 +459,7 @@ object ExecutionBatch extends Loggable {
           // [II] Second case: we DO have a run.
           // We need to look if it has an associated expected configuration,
           // and if not try to gather piece of information from elsewhere.
-          // Then analyse the consistancy of the result.
+          // Then analyse the consistency of the result.
           //
           case Some(runInfos) =>
 //          ComplianceDebugLogger.node(nodeId).debug(s"Node run configuration: ${(nodeId, complianceMode, runInfos).toLog }")
@@ -743,8 +693,7 @@ object ExecutionBatch extends Loggable {
 
       runInfo: RunAndConfigInfo, // reports we get on the last know run
 
-      agentExecutionReports:    Seq[Reports],
-      unexpectedInterpretation: UnexpectedReportInterpretation
+      agentExecutionReports: Seq[Reports]
   ): NodeStatusReport = {
 
     // UnexpectedVersion are always called for only one node
@@ -798,8 +747,7 @@ object ExecutionBatch extends Loggable {
           MergeInfo(nodeId, Some(lastRunDateTime), Some(expectedConfig.nodeConfigId), expirationTime),
           nodeStatusReports,
           expectedConfig,
-          expectedConfig,
-          unexpectedInterpretation
+          expectedConfig
         )
 
       case Pending(expectedConfig, optLastRun, expirationTime) =>
@@ -832,8 +780,7 @@ object ExecutionBatch extends Loggable {
               MergeInfo(nodeId, Some(runTime), Some(expectedConfig.nodeConfigId), expirationTime),
               nodeStatusReports,
               runConfig,
-              expectedConfig,
-              unexpectedInterpretation
+              expectedConfig
             )
         }
 
@@ -983,14 +930,13 @@ object ExecutionBatch extends Loggable {
   }
 
   private[reports] def getComplianceForRule(
-      mergeInfo:                MergeInfo, // only report for that ruleId, for that nodeid, of type ResultReports,
+      mergeInfo:              MergeInfo, // only report for that ruleId, for that nodeid, of type ResultReports,
       // for the correct run, for the correct version
 
-      reportsForThatNodeRule:   Seq[ResultReports],
-      modes:                    NodeModeConfig,
-      ruleExpectedReports:      RuleExpectedReports,
-      unexpectedInterpretation: UnexpectedReportInterpretation,
-      timer:                    ComputeComplianceTimer
+      reportsForThatNodeRule: Seq[ResultReports],
+      modes:                  NodeModeConfig,
+      ruleExpectedReports:    RuleExpectedReports,
+      timer:                  ComputeComplianceTimer
   ): List[RuleNodeStatusReport] = {
 
     // An effective expected component contains only the component path from the root component to a unique Value
@@ -1087,8 +1033,7 @@ object ExecutionBatch extends Loggable {
                     c.component,
                     filteredReports,
                     missingReportStatus,
-                    policyMode,
-                    unexpectedInterpretation
+                    policyMode
                   )
                 }
                 // Merge all components together
@@ -1144,12 +1089,11 @@ object ExecutionBatch extends Loggable {
    *
    */
   private[reports] def getComplianceForRun(
-      mergeInfo:                MergeInfo, // only report for that nodeid, of type ResultReports,
+      mergeInfo:         MergeInfo, // only report for that nodeid, of type ResultReports,
       // for the correct run, for the correct version
 
-      executionReports:         Seq[ResultReports],
-      lastRunNodeConfig:        NodeExpectedReports,
-      unexpectedInterpretation: UnexpectedReportInterpretation
+      executionReports:  Seq[ResultReports],
+      lastRunNodeConfig: NodeExpectedReports
   ): Map[(RuleId, PolicyTypeName), RuleNodeStatusReport] = {
 
     val timer = new ComputeComplianceTimer()
@@ -1166,7 +1110,6 @@ object ExecutionBatch extends Loggable {
         reportsForThatNodeRule,
         lastRunNodeConfig.modes,
         ruleExpectedReport,
-        unexpectedInterpretation,
         timer
       )
 
@@ -1229,18 +1172,17 @@ object ExecutionBatch extends Loggable {
    * to the "serial" of rule.
    */
   private[reports] def mergeCompareByRule(
-      mergeInfo:                MergeInfo, // only report for that nodeid, of type ResultReports,
+      mergeInfo:         MergeInfo, // only report for that nodeid, of type ResultReports,
       // for the correct run, for the correct version
 
-      executionReports:         Seq[ResultReports],
-      lastRunNodeConfig:        NodeExpectedReports,
-      currentConfig:            NodeExpectedReports,
-      unexpectedInterpretation: UnexpectedReportInterpretation
+      executionReports:  Seq[ResultReports],
+      lastRunNodeConfig: NodeExpectedReports,
+      currentConfig:     NodeExpectedReports
   ): Set[RuleNodeStatusReport] = {
 
     val t0 = System.currentTimeMillis()
 
-    val complianceForRun = getComplianceForRun(mergeInfo, executionReports, lastRunNodeConfig, unexpectedInterpretation)
+    val complianceForRun = getComplianceForRun(mergeInfo, executionReports, lastRunNodeConfig)
 
     val t10 = System.currentTimeMillis()
 
@@ -1441,9 +1383,7 @@ object ExecutionBatch extends Loggable {
       expectedComponent: ComponentExpectedReport,
       filteredReports:   Seq[ResultReports],
       noAnswerType:      ReportType,
-      policyMode:        PolicyMode, // the one of the directive, or node, or global
-
-      unexpectedInterpretation: UnexpectedReportInterpretation
+      policyMode:        PolicyMode // the one of the directive, or node, or global
   ): List[ComponentStatusReport] = {
     // an utility class that store an expected value and the list of matching reports for it
     final case class Value(
@@ -1468,8 +1408,7 @@ object ExecutionBatch extends Loggable {
         reports:      List[ResultReports],
         freeValues:   List[Value],
         pairedValues: List[Value],
-        unexpected:   List[ResultReports],
-        mode:         UnexpectedReportInterpretation
+        unexpected:   List[ResultReports]
     ): (List[Value], List[ResultReports]) = {
       // utility function: given a list of Values and one report, try to find a value whose pattern matches reports component value.
       // the first matching value is used (they must be sorted by specificity).
@@ -1528,17 +1467,15 @@ object ExecutionBatch extends Loggable {
 
           tryPair match {
             case Some(v) =>
-              recPairReports(tail, newFreeValues, v :: pairedValues, unexpected, mode)
+              recPairReports(tail, newFreeValues, v :: pairedValues, unexpected)
             case None    =>
               // here, we don't have found any free value for that report. We are not done yet because it can be an
               // unexpected reports bound to an already existing value (and so the whole component should be
-              // unexpected or if mode allows duplicates or unbound var values, it can be ok.
+              // unexpected) or if it's a var (and since we always accept unbound values since #20540)
 
               val unboundedVar = (value: Value, report: ResultReports) => {
-                mode.isSet(UnexpectedReportBehavior.UnboundVarValues) && {
-                  // this predicate is simpler: it just have to be a variable
-                  value.isVar
-                }
+                // this predicate is simpler: it just have to be a variable
+                value.isVar
               }
 
               val (newPairedValues, pairedAgain) = findMatchingValue(report, pairedValues, unboundedVar)
@@ -1547,9 +1484,9 @@ object ExecutionBatch extends Loggable {
 
               pairedAgain match {
                 case None    => // really unexpected after all
-                  recPairReports(tail, newFreeValues, newPairedValues, report :: unexpected, mode)
+                  recPairReports(tail, newFreeValues, newPairedValues, report :: unexpected)
                 case Some(v) => // found a new pair!
-                  recPairReports(tail, newFreeValues, v :: newPairedValues, unexpected, mode)
+                  recPairReports(tail, newFreeValues, v :: newPairedValues, unexpected)
               }
           }
       }
@@ -1564,7 +1501,7 @@ object ExecutionBatch extends Loggable {
           g.reportingLogic,
           g.subComponents.flatMap {
             case e =>
-              checkExpectedComponentWithReports(e, filteredReports, noAnswerType, policyMode, unexpectedInterpretation)
+              checkExpectedComponentWithReports(e, filteredReports, noAnswerType, policyMode)
           }
         ) :: Nil
 
@@ -1653,8 +1590,7 @@ object ExecutionBatch extends Loggable {
           sortedReports.toList.filter(_.component == expectedComponent.componentName),
           values,
           Nil,
-          Nil,
-          unexpectedInterpretation
+          Nil
         )
 
         if (logger.isTraceEnabled) {
