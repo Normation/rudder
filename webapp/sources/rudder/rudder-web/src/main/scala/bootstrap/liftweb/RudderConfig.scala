@@ -3074,7 +3074,6 @@ object RudderConfigInit {
           cachedNodeConfigurationService,
           () => globalComplianceModeService.getGlobalComplianceMode,
           () => configService.rudder_global_policy_mode(),
-          () => configService.rudder_compliance_unexpected_report_interpretation(),
           RUDDER_JDBC_BATCH_MAX_SIZE
         ),
         nodeFactRepository,
