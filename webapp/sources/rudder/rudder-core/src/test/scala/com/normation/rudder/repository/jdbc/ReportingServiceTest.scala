@@ -185,7 +185,6 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def getSystemAndUserCompliance(
         optNodeIds: Option[Set[NodeId]]
     )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
-    def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = None
 
     override def batchSize: Int = 5000
 
