@@ -58,7 +58,6 @@ import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.services.reports.ExecutionBatch.ComputeComplianceTimer
 import com.normation.rudder.services.reports.ExecutionBatch.MergeInfo
-import com.normation.rudder.services.reports.UnexpectedReportBehavior.UnboundVarValues
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.*
@@ -86,7 +85,6 @@ class ExecutionBatchTest extends Specification {
 
   import ReportType.*
 
-  val strictUnexpectedInterpretation: UnexpectedReportInterpretation = UnexpectedReportInterpretation(Set())
   val executionTimestamp = new DateTime()
 
   val globalPolicyMode: GlobalPolicyMode = GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always)
@@ -107,7 +105,7 @@ class ExecutionBatchTest extends Specification {
       nbRules:         Int,
       nbDirectives:    Int,
       nbReportsPerDir: Int
-  ): (MergeInfo, IndexedSeq[ResultSuccessReport], NodeExpectedReports, NodeExpectedReports, UnexpectedReportInterpretation) = {
+  ): (MergeInfo, IndexedSeq[ResultSuccessReport], NodeExpectedReports, NodeExpectedReports) = {
     val ruleIds      = (1 to nbRules).map("rule_id_" + _ + nodeId).toSeq
     val directiveIds = (1 to nbDirectives).map("directive_id_" + _ + nodeId).toSeq
     val dirPerRule   = ruleIds.map(rule => (RuleId(rule), directiveIds.map(dir => DirectiveId(DirectiveUid(dir + "@@" + rule)))))
@@ -175,7 +173,7 @@ class ExecutionBatchTest extends Specification {
 
     val mergeInfo = MergeInfo(NodeId(nodeId), Some(now), Some(nodeConfigId), now.plus(100))
 
-    (mergeInfo, executionReports, nodeExpectedReport, nodeExpectedReport, strictUnexpectedInterpretation)
+    (mergeInfo, executionReports, nodeExpectedReport, nodeExpectedReport)
 
   }
 
@@ -220,7 +218,7 @@ class ExecutionBatchTest extends Specification {
       val info    = nodeExpectedReports(nodeId)
       val runInfo = ComputeCompliance(runTime, info, runTime.plusMinutes(5))
 
-      (nodeId, ExecutionBatch.getNodeStatusReports(nodeId, runInfo, reportsParam, strictUnexpectedInterpretation))
+      (nodeId, ExecutionBatch.getNodeStatusReports(nodeId, runInfo, reportsParam))
     })
 
     res.toMap
@@ -333,8 +331,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         mixedReports,
         ReportType.EnforceSuccess, // change only on enforce
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
     val withErrors  = ExecutionBatch
@@ -342,8 +339,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         allErrors,
         ReportType.EnforceSuccess, // change only on enforce
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
     val withSuccess = ExecutionBatch
@@ -351,8 +347,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         allSuccesses,
         ReportType.EnforceSuccess, // change only on enforce
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
 
@@ -547,8 +542,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         reports,
         ReportType.Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
     val withBad  = ExecutionBatch
@@ -556,8 +550,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         badReports,
         Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
 
@@ -619,8 +612,7 @@ class ExecutionBatchTest extends Specification {
           expectedComponent,
           noAnswer,
           ReportType.NoAnswer,
-          PolicyMode.Enforce,
-          strictUnexpectedInterpretation
+          PolicyMode.Enforce
         )
         .head
       res.compliance === ComplianceLevel(noAnswer = 2)
@@ -631,8 +623,7 @@ class ExecutionBatchTest extends Specification {
           expectedComponent,
           missing,
           ReportType.Missing,
-          PolicyMode.Enforce,
-          strictUnexpectedInterpretation
+          PolicyMode.Enforce
         )
         .head
       res.compliance === ComplianceLevel(success = 1, missing = 1)
@@ -711,8 +702,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         reports,
         ReportType.Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
     val withBad           = ExecutionBatch
@@ -720,8 +710,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         badReports,
         ReportType.Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
 
@@ -829,8 +818,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         reports,
         ReportType.Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
     val withBad  = ExecutionBatch
@@ -838,8 +826,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         badReports,
         Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
 
@@ -951,8 +938,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         reports,
         ReportType.Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
     val withBad  = ExecutionBatch
@@ -960,8 +946,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         badReports,
         Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
 
@@ -1073,8 +1058,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         reports,
         ReportType.Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
     val withBad  = ExecutionBatch
@@ -1082,8 +1066,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         badReports,
         Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
 
@@ -1198,8 +1181,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         reports,
         ReportType.Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
     val withBad  = ExecutionBatch
@@ -1207,8 +1189,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         badReports,
         Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
 
@@ -1400,7 +1381,6 @@ class ExecutionBatchTest extends Specification {
         reports,
         mode,
         ruleExpectedReports,
-        strictUnexpectedInterpretation,
         new ComputeComplianceTimer()
       )
       .collect { case r => r.directives("policy") }
@@ -1410,7 +1390,6 @@ class ExecutionBatchTest extends Specification {
         badReports,
         mode,
         ruleExpectedReports,
-        strictUnexpectedInterpretation,
         new ComputeComplianceTimer()
       )
       .collect { case r => r.directives("policy") }
@@ -1580,7 +1559,6 @@ class ExecutionBatchTest extends Specification {
         reportsWithLoop,
         mode,
         ruleExpectedReports,
-        UnexpectedReportInterpretation(Set(UnboundVarValues)),
         new ComputeComplianceTimer()
       )
       .collect { case r => r.directives("policy") }
@@ -1726,7 +1704,6 @@ class ExecutionBatchTest extends Specification {
         reportsWithLoop,
         mode,
         ruleExpectedReports,
-        UnexpectedReportInterpretation(Set(UnboundVarValues)),
         new ComputeComplianceTimer()
       )
       .collect { case r => r.directives("policy") }
@@ -1944,7 +1921,6 @@ class ExecutionBatchTest extends Specification {
         reports,
         mode,
         ruleExpectedReports,
-        strictUnexpectedInterpretation,
         new ComputeComplianceTimer()
       )
       .collect { case r => r.directives("policy") }
@@ -1955,7 +1931,6 @@ class ExecutionBatchTest extends Specification {
         badReports,
         mode,
         ruleExpectedReports,
-        strictUnexpectedInterpretation,
         new ComputeComplianceTimer()
       )
       .collect { case r => r.directives("policy") }
@@ -2161,7 +2136,6 @@ class ExecutionBatchTest extends Specification {
         reports,
         mode,
         ruleExpectedReports,
-        strictUnexpectedInterpretation,
         new ComputeComplianceTimer()
       )
       .collect { case r => r.directives("policy") }
@@ -2172,7 +2146,6 @@ class ExecutionBatchTest extends Specification {
         badReports,
         mode,
         ruleExpectedReports,
-        strictUnexpectedInterpretation,
         new ComputeComplianceTimer()
       )
       .collect { case r => r.directives("policy") }
@@ -2303,8 +2276,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         reports,
         ReportType.Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
     val withBad  = ExecutionBatch
@@ -2312,8 +2284,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         badReports,
         Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
 
@@ -2421,8 +2392,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         reports,
         ReportType.Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
     val withBad  = ExecutionBatch
@@ -2430,8 +2400,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         badReports,
         ReportType.Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
 
@@ -2551,8 +2520,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         reports,
         ReportType.Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
     val withBad  = ExecutionBatch
@@ -2560,8 +2528,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         badReports,
         ReportType.Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
 
@@ -2703,8 +2670,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         reports,
         ReportType.Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
     val withBad  = ExecutionBatch
@@ -2712,8 +2678,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         badReports,
         ReportType.Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
 
@@ -2850,7 +2815,6 @@ class ExecutionBatchTest extends Specification {
       reports,
       mode,
       ruleExpectedReports,
-      strictUnexpectedInterpretation,
       new ComputeComplianceTimer()
     )
 
@@ -3013,8 +2977,7 @@ class ExecutionBatchTest extends Specification {
           expectedComponent,
           duplicated,
           ReportType.Missing,
-          PolicyMode.Enforce,
-          strictUnexpectedInterpretation
+          PolicyMode.Enforce
         )
         .head
       res.compliance === ComplianceLevel(success = 1, unexpected = 2) // 2 unexpected because the whole "foo" becomes unexpected
@@ -3025,8 +2988,7 @@ class ExecutionBatchTest extends Specification {
           expectedComponent,
           duplicated,
           ReportType.Missing,
-          PolicyMode.Enforce,
-          UnexpectedReportInterpretation(Set())
+          PolicyMode.Enforce
         )
         .head
       res.compliance === ComplianceLevel(success = 1, unexpected = 2)
@@ -3037,8 +2999,7 @@ class ExecutionBatchTest extends Specification {
           expectedComponent,
           tooMuchDuplicated,
           ReportType.Missing,
-          PolicyMode.Enforce,
-          UnexpectedReportInterpretation(Set())
+          PolicyMode.Enforce
         )
         .head
       res.compliance === ComplianceLevel(success = 1, unexpected = 4)
@@ -3050,20 +3011,7 @@ class ExecutionBatchTest extends Specification {
           expectedComponent,
           unboundedVars,
           ReportType.Missing,
-          PolicyMode.Enforce,
-          strictUnexpectedInterpretation
-        )
-        .head
-      res.compliance === ComplianceLevel(success = 1, unexpected = 3)
-    }
-    "when on strict mode, out of bound vars are unexpected" in {
-      val res = ExecutionBatch
-        .checkExpectedComponentWithReports(
-          expectedComponent,
-          unboundedVars,
-          ReportType.Missing,
-          PolicyMode.Enforce,
-          UnexpectedReportInterpretation(Set(UnexpectedReportBehavior.UnboundVarValues))
+          PolicyMode.Enforce
         )
         .head
       res.compliance === ComplianceLevel(success = 4)
@@ -3106,8 +3054,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         reports,
         ReportType.Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
 
@@ -3132,8 +3079,7 @@ class ExecutionBatchTest extends Specification {
         id:                 String,
         patterns:           Seq[(String, Seq[Kind])],
         reports:            Seq[(String, Kind)],
-        unexpectedNotValue: Seq[String] = Nil,
-        mode:               UnexpectedReportInterpretation = strictUnexpectedInterpretation
+        unexpectedNotValue: Seq[String] = Nil
     ) = {
 
       // expected components are the list of key for patterns
@@ -3188,8 +3134,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         resultReports,
         ReportType.Missing,
-        PolicyMode.Enforce,
-        mode
+        PolicyMode.Enforce
       )
       val t2     = System.currentTimeMillis - t1
 
@@ -3275,10 +3220,11 @@ class ExecutionBatchTest extends Specification {
       // , unexpectedNotValue = Seq("baz")
     )
 
+    // here, the var get all extra reports
     test(
       "one var and simple reports",
-      patterns = ("${sys.bla}", Seq(Unexpected, Unexpected)) :: ("bar", Seq(Success)) :: Nil,
-      reports = ("/var/cfengine", Repaired) :: ("/var/cfengine", Success) :: ("bar", Success) :: Nil
+      patterns = ("${sys.bla}", Seq(Success, Success)) :: ("bar", Seq(Success)) :: Nil,
+      reports = ("/var/cfengine", Success) :: ("/var/cfengine", Success) :: ("bar", Success) :: Nil
     )
 
     /*
@@ -3295,9 +3241,10 @@ class ExecutionBatchTest extends Specification {
       reports = ("/var/cfengine", Repaired) :: ("/var/cfengine", Success) :: Nil
     )
 
+    // the first var get extra reports
     test(
       "same patterns with unexpected",
-      patterns = ("${sys.bla}", Seq(Repaired)) :: ("${sys.foo}", Seq(Unexpected, Unexpected)) :: Nil,
+      patterns = ("${sys.bla}", Seq(Repaired)) :: ("${sys.foo}", Seq(Success, Success)) :: Nil,
       reports = ("/var/cfengine", Repaired) :: ("/var/cfengine", Success) :: ("/var/cfengine", Success) :: Nil
     )
 
@@ -4234,8 +4181,7 @@ class ExecutionBatchTest extends Specification {
         expectedComponent,
         reports,
         ReportType.Missing,
-        PolicyMode.Enforce,
-        strictUnexpectedInterpretation
+        PolicyMode.Enforce
       )
       .head
 
