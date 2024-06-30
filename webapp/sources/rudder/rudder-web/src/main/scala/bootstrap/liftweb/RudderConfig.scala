@@ -107,6 +107,7 @@ import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.queries.*
+import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.facts.nodes.AppLogNodeFactChangeEventCallback
 import com.normation.rudder.facts.nodes.CacheInvalidateNodeFactEventCallback
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
@@ -1465,8 +1466,7 @@ object RudderConfigInit {
     // all cache that need to be cleared are stored here
     lazy val clearableCache: Seq[CachedRepository] = Seq(
       cachedAgentRunRepository,
-      recentChangesService,
-      reportingServiceImpl
+      recentChangesService
     )
 
     lazy val pluginSettingsService = new FilePluginSettingsService(
@@ -1792,7 +1792,7 @@ object RudderConfigInit {
       removeNodeServiceImpl,
       restExtractorService,
       restDataSerializer,
-      reportingServiceImpl,
+      reportingService,
       queryProcessor,
       inventoryQueryChecker,
       () => configService.rudder_global_policy_mode().toBox,
@@ -2981,7 +2981,7 @@ object RudderConfigInit {
         interpolationCompiler,
         globalComplianceModeService,
         globalAgentRunService,
-        reportingServiceImpl,
+        findNewNodeStatusReports,
         rudderCf3PromisesFileWriterService,
         new WriteNodeCertificatesPemImpl(Some(RUDDER_RELAY_RELOAD)),
         cachedNodeConfigurationService,
@@ -3063,30 +3063,31 @@ object RudderConfigInit {
       x
     }
 
-    lazy val reportingServiceImpl: CachedReportingServiceImpl = {
-      val reportingServiceImpl = new CachedReportingServiceImpl(
-        new ReportingServiceImpl(
-          findExpectedRepo,
-          reportsRepositoryImpl,
-          roAgentRunsRepository,
-          nodeFactRepository,
-          roLdapDirectiveRepository,
-          roRuleRepository,
-          cachedNodeConfigurationService,
-          () => globalComplianceModeService.getGlobalComplianceMode,
-          () => configService.rudder_global_policy_mode(),
-          RUDDER_JDBC_BATCH_MAX_SIZE
-        ),
-        nodeFactRepository,
-        RUDDER_JDBC_BATCH_MAX_SIZE // use same size as for SQL requests
-      )
-      // to avoid a StackOverflowError, we set the compliance cache once it'z ready,
-      // and can construct the nodeconfigurationservice without the comlpince cache
-      cachedNodeConfigurationService.addHook(reportingServiceImpl)
-      reportingServiceImpl
-    }
+    lazy val findNewNodeStatusReports: FindNewNodeStatusReports = new FindNewNodeStatusReportsImpl(
+      findExpectedRepo,
+      cachedNodeConfigurationService,
+      reportsRepository,
+      roAgentRunsRepository,
+      () => globalComplianceModeService.getGlobalComplianceMode,
+      RUDDER_JDBC_BATCH_MAX_SIZE
+    )
 
-    lazy val reportingService: ReportingService = reportingServiceImpl
+    lazy val nodeStatusReportRepository: NodeStatusReportRepository = new DummyNodeStatusReportRepository(
+      Ref.make(Map[NodeId, NodeStatusReport]()).runNow
+    )
+
+    lazy val computeNodeStatusReportService: ComputeNodeStatusReportService = new ComputeNodeStatusReportServiceImpl(
+      nodeStatusReportRepository,
+      nodeFactRepository,
+      findNewNodeStatusReports,
+      RUDDER_JDBC_BATCH_MAX_SIZE
+    )
+
+    // to avoid a StackOverflowError, we set the compliance cache once it'z ready,
+    // and can construct the nodeconfigurationservice without the comlpince cache
+    cachedNodeConfigurationService.addHook(computeNodeStatusReportService)
+
+    lazy val reportingService: ReportingService = new ReportingServiceImpl2(nodeStatusReportRepository)
 
     lazy val pgIn                     = new PostgresqlInClause(70)
     lazy val findExpectedRepo         = new FindExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
@@ -3344,7 +3345,7 @@ object RudderConfigInit {
         uuidGen
       ),
       new CreateSystemToken(roLDAPApiAccountRepository.systemAPIAccount),
-      new LoadNodeComplianceCache(nodeFactInfoService, reportingServiceImpl),
+      new LoadNodeComplianceCache(nodeFactRepository, computeNodeStatusReportService),
       new CloseOpenUserSessions(userRepository)
     )
 
@@ -3474,7 +3475,8 @@ object RudderConfigInit {
         reportsRepository,
         updatesEntryJdbcRepository,
         recentChangesService,
-        reportingServiceImpl,
+        computeNodeStatusReportService,
+        findNewNodeStatusReports,
         complianceRepositoryImpl,
         scoreServiceManager
       )
@@ -3597,7 +3599,7 @@ object RudderConfigInit {
         logRepository,
         nodeReadWriteMutex,
         cachedNodeConfigurationService,
-        reportingServiceImpl
+        computeNodeStatusReportService
       )
     }
 
@@ -3620,7 +3622,7 @@ object RudderConfigInit {
       deprecated.softwareInventoryDAO,
       eventLogRepository,
       eventLogDetailsServiceImpl,
-      reportingServiceImpl,
+      reportingService,
       complianceAPIService,
       asynComplianceService,
       scriptLauncher,
@@ -3737,7 +3739,7 @@ object RudderConfigInit {
       new GenerationOnChange(updateDynamicGroups, asyncDeploymentAgent, uuidGen)
     ) *>
     nodeFactRepository.registerChangeCallbackAction(
-      new CacheInvalidateNodeFactEventCallback(cachedNodeConfigurationService, reportingServiceImpl, Nil)
+      new CacheInvalidateNodeFactEventCallback(cachedNodeConfigurationService, computeNodeStatusReportService, Nil)
     )).runNow
     // This needs to be done at the end, to be sure that all is initialized
     deploymentService.setDynamicsGroupsService(dyngroupUpdaterBatch)
@@ -3750,7 +3752,7 @@ object RudderConfigInit {
     userCleanupBatch.start()
 
     // UpdateDynamicGroups is part of rci
-    // reportingServiceImpl part of rci
+    // reportingService part of rci
     // checkInventoryUpdate part of rci
     // purgeDeletedInventories part of rci
     // purgeUnreferencedSoftwares part of rci
