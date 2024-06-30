@@ -39,7 +39,6 @@ package com.normation.rudder.repository
 
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.reports.execution.AgentRun
@@ -74,9 +73,7 @@ trait ReportsRepository {
    * the result compared to inputs.
    */
   def getExecutionReports(
-      runs:               Set[AgentRunId],
-      filterByRules:      Set[RuleId],
-      filterByDirectives: Set[DirectiveId]
+      runs: Set[AgentRunId]
   ): IOResult[Map[NodeId, Seq[Reports]]]
 
   /**

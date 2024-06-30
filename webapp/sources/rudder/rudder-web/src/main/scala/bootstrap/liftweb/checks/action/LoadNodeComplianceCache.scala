@@ -40,26 +40,33 @@ package bootstrap.liftweb.checks.action
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
 import com.normation.box.*
-import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.domain.logger.ReportLoggerPure
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpectedReportAction
-import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.reports.CacheExpectedReportAction.InsertNodeInCache
+import com.normation.rudder.services.reports.ComputeNodeStatusReportService
 import javax.servlet.UnavailableException
 import net.liftweb.common.EmptyBox
 
 /**
  * At startup, we preload node compliance cache
  */
-class LoadNodeComplianceCache(nodeInfoService: NodeInfoService, reportingService: CachedFindRuleNodeStatusReports)
-    extends BootstrapChecks {
+class LoadNodeComplianceCache(
+    nodeFactRepository:             NodeFactRepository,
+    computeNodeStatusReportService: ComputeNodeStatusReportService
+) extends BootstrapChecks {
 
-  override val description = "Load node compliance cache"
+  override val description = "Initialize node compliance cache"
 
   @throws(classOf[UnavailableException])
   override def checks(): Unit = {
     (for {
-      nodeIds <- nodeInfoService.getAllNodesIds()
-      _       <- reportingService.invalidateWithAction(nodeIds.toSeq.map(x => (x, ExpectedReportAction(InsertNodeInCache(x)))))
+      nodeIds <- nodeFactRepository.getAll()(QueryContext.systemQC).map(_.keys)
+      _       <- ReportLoggerPure.Repository.debug(s"Initialize node status reports for ${nodeIds.size} nodes")
+      _       <- computeNodeStatusReportService.invalidateWithAction(
+                   nodeIds.toSeq.map(x => (x, ExpectedReportAction(InsertNodeInCache(x))))
+                 )
     } yield ()).toBox match {
       case eb: EmptyBox =>
         val err = eb ?~! s"Error when loading node compliance cache:"

@@ -42,7 +42,6 @@ import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie.*
-import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.Reports
@@ -79,17 +78,13 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
 
   // We assume that this method is called with a limited list of runs
   override def getExecutionReports(
-      runs:               Set[AgentRunId],
-      filterByRules:      Set[RuleId],
-      filterByDirectives: Set[DirectiveId]
+      runs: Set[AgentRunId]
   ): IOResult[Map[NodeId, Seq[Reports]]] = {
     runs.map(n => (n.nodeId.value, n.date)).toList.toNel match {
       case None             => Map().succeed
       case Some(nodeValues) =>
-        val ruleClause      = filterByRules.toList.toNel.map(r => Fragments.in(fr"ruleid", r))
-        val directiveClause = filterByDirectives.toList.toNel.map(r => Fragments.in(fr"directiveid", r))
-        val values          = Fragments.in(fr"(nodeid, executiontimestamp)", nodeValues)
-        val where           = Fragments.whereAndOpt(Some(values), ruleClause, directiveClause)
+        val values = Fragments.in(fr"(nodeid, executiontimestamp)", nodeValues)
+        val where  = Fragments.whereAnd(values)
 
         val q =
           sql"select executiondate, ruleid, directiveid, nodeid, reportid, component, keyvalue, executiontimestamp, eventtype, msg from RudderSysEvents " ++ where

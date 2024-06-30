@@ -356,7 +356,6 @@ class MockCompliance(mockDirectives: MockDirectives) {
         nodeIds:            Set[NodeId],
         filterByDirectives: Set[DirectiveId]
     )(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] = ???
-    def findUncomputedNodeStatusReports():                                               IOResult[Map[NodeId, NodeStatusReport]] = ???
     def findSystemAndUserRuleCompliances(
         nodeIds: Set[NodeId]
     )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
