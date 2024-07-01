@@ -79,6 +79,13 @@
   white-space: pre-line;
   word-break: break-word;
 }
+pre.code{
+  color: #c7254e;
+  background-color: #f9f2f4;
+  border-color: #c7254e22;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 .legend-square {
   width: 12px;
   height: 12px;
