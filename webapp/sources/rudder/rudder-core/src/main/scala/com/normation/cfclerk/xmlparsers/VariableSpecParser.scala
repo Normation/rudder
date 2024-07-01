@@ -152,6 +152,7 @@ class VariableSpecParser extends Loggable {
             varName = reportKeysVariableName(parentSectionName),
             description = s"Expected Report key names for component ${parentSectionName}",
             markerName = markerName,
+            variableName = None,
             longDescription = "",
             valueslabels = Nil,
             multivalued = true,
@@ -190,6 +191,12 @@ class VariableSpecParser extends Loggable {
                 )
               }
             }
+            variableName   <- (elt \ VAR_VARIABLE_NAME).toList match {
+                                case var_name :: Nil => Right(Some(var_name.text))
+                                case Nil             => Right(None)
+                                case _               => Left(LoadTechniqueError.Consistancy(s"Only one <${VAR_VARIABLE_NAME}> is authorized"))
+
+                              }
             multiValued     = getUniqueNodeText(elt, VAR_IS_MULTIVALUED, "false").toLowerCase match {
                                 case "true" => true
                                 case _      => false
@@ -206,6 +213,7 @@ class VariableSpecParser extends Loggable {
                 varName = name,
                 description = desc,
                 markerName = markerName,
+                variableName = variableName,
                 longDescription = longDescription,
                 valueslabels = items,
                 multivalued = multiValued,
@@ -309,6 +317,7 @@ class VariableSpecParser extends Loggable {
         varName = s"${parentName}_${postfix}",
         description = s"This password field value is derived from input value from ${parentName}",
         markerName = INPUT,
+        variableName = None,
         constraint = Constraint(vtype, defaultValue, mayBeEmpty, Set()),
         valueslabels = Nil,
         providedValues = Nil,

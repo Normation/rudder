@@ -127,7 +127,7 @@ class PolicyAgregationTest extends Specification {
   val technique3_2: Technique = technique3_1.copy(id = TechniqueId(TechniqueName("tech_3"), TechniqueVersionHelper("2.0")))
 
   def newPolicy(technique: Technique, id: String, varName: String, values: Seq[String]): BoundPolicyDraft = {
-    val v = InputVariable(InputVariableSpec("card", "description for " + varName, multivalued = true, id = None), values)
+    val v = InputVariable(InputVariableSpec("card", "description for " + varName, None, multivalued = true, id = None), values)
     BoundPolicyDraft(
       id,
       "rule name",
