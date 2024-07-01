@@ -161,11 +161,10 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     var updated: List[NodeId] = Nil
 
     override def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports = new DefaultFindRuleNodeStatusReports() {
-      override def confExpectedRepo:            FindExpectedReportRepository                   = ???
-      override def reportsRepository:           ReportsRepository                              = ???
-      override def agentRunRepository:          RoReportsExecutionRepository                   = ???
-      override def getGlobalComplianceMode:     () => IOResult[GlobalComplianceMode]           = ???
-      override def getUnexpectedInterpretation: () => IOResult[UnexpectedReportInterpretation] = ???
+      override def confExpectedRepo:        FindExpectedReportRepository         = ???
+      override def reportsRepository:       ReportsRepository                    = ???
+      override def agentRunRepository:      RoReportsExecutionRepository         = ???
+      override def getGlobalComplianceMode: () => IOResult[GlobalComplianceMode] = ???
       override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId)(implicit
           qc: QueryContext
       ): IOResult[Map[NodeId, NodeStatusReport]] = ???
@@ -173,11 +172,10 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
       override def getSystemAndUserCompliance(
           optNodeIds: Option[Set[NodeId]]
       )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
-      override def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = ???
       override def getGlobalUserCompliance()(implicit qc: QueryContext): IOResult[Option[(ComplianceLevel, Long)]] = ???
-      override def findNodeStatusReport(nodeId:           NodeId)(implicit qc: QueryContext): IOResult[NodeStatusReport] = ???
-      override def findUserNodeStatusReport(nodeId:       NodeId)(implicit qc: QueryContext): IOResult[NodeStatusReport] = ???
-      override def findSystemNodeStatusReport(nodeId:     NodeId)(implicit qc: QueryContext): IOResult[NodeStatusReport] = ???
+      override def findNodeStatusReport(nodeId:       NodeId)(implicit qc: QueryContext): IOResult[NodeStatusReport] = ???
+      override def findUserNodeStatusReport(nodeId:   NodeId)(implicit qc: QueryContext): IOResult[NodeStatusReport] = ???
+      override def findSystemNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext): IOResult[NodeStatusReport] = ???
       override def nodeConfigService: NodeConfigurationService = ???
       override def jdbcMaxBatchSize:  Int                      = batchSize
       override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId])(implicit
@@ -199,7 +197,6 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     override def findNodeStatusReport(nodeId: NodeId)(implicit qc: QueryContext): IOResult[NodeStatusReport] = ???
     override def findUncomputedNodeStatusReports(): IOResult[Map[NodeId, NodeStatusReport]] = ???
     override def getUserNodeStatusReports()(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] = ???
-    override def computeComplianceFromReports(reports:   Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = ???
     override def getGlobalUserCompliance()(implicit qc:  QueryContext): IOResult[Option[(ComplianceLevel, Long)]] = ???
     override def findUserNodeStatusReport(nodeId:        NodeId)(implicit qc: QueryContext): IOResult[NodeStatusReport] = ???
     override def findSystemNodeStatusReport(nodeId:      NodeId)(implicit qc: QueryContext): IOResult[NodeStatusReport] = ???

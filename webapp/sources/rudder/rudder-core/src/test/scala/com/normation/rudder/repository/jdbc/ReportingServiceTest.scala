@@ -79,7 +79,6 @@ import com.normation.rudder.services.reports.NodeChangesServiceImpl
 import com.normation.rudder.services.reports.NodeConfigurationService
 import com.normation.rudder.services.reports.NodeConfigurationServiceImpl
 import com.normation.rudder.services.reports.ReportingServiceImpl
-import com.normation.rudder.services.reports.UnexpectedReportInterpretation
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
@@ -186,7 +185,6 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def getSystemAndUserCompliance(
         optNodeIds: Option[Set[NodeId]]
     )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
-    def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = None
 
     override def batchSize: Int = 5000
 
@@ -359,7 +357,6 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     nodeConfigService,
     () => compliance.succeed,
     () => GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always).succeed,
-    () => UnexpectedReportInterpretation(Set()).succeed,
     RUDDER_JDBC_BATCH_MAX_SIZE
   )
 

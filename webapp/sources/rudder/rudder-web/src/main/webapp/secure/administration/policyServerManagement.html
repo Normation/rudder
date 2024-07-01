@@ -194,67 +194,6 @@
             <div id="complianceMode" class="lift:administration.PropertiesManagement.complianceMode"></div>
 
             <div class="inner-portlet">
-              <h3 class="page-title">Reporting behavior</h3>
-              <div class="portlet-content">
-                <div class="lift:administration.PropertiesManagement.unexpectedReportInterpretation" id="unexpectedReportInterpretation">
-                  <form class="lift:form.ajax form-horizontal" >
-                    <div class="explanation-text">
-                      The following settings affect the interpretation given to some type of unexpected reports when computing compliance.
-                      This option will take effect when the next reports are received from a node or if you "clear caches" below.
-                    </div>
-                    <div class="explanation-text">
-                      <p><b>Unbounded reports by elements when a variable is used</b></p>
-                      <p>
-                        Rudder await exactly one compliance report for each configuration point of control. If it gets more than one,
-                        the leftover reports will be considered as unexpected. This is not what one want in the case where:
-                      <ul>
-                        <li>
-                          the point of control is parametrized by a variable,
-                        </li>
-                        <li>
-                          that variable is multivalued.
-                        </li>
-                      </ul>
-                      </p>
-                      <p>
-                        For example, if you build a technique in editor with the generic method "Variable iterator" to define a list of
-                        packages and you use the resulting variable in "Package present" generic method for the "name" parameter,
-                        it is normal and expected to get several compliance reports, one for each configuration value.
-                      </p>
-                      <p>
-                        That option allows to increase the number of expected reports to the number of configuration values and so
-                        it avoids to get and "unexpected" compliance in that case.
-                      </p>
-                      <p>
-                        Unless it is more important for you to get "unexpected" compliance than the actual compliance of each
-                        configuration value, you should check that option.
-                      </p>
-                    </div>
-                    <ul>
-                      <li class="rudder-form">
-                        <div class="input-group">
-                          <label class="input-group-text" for="unboundVarValues">
-                            <input id="unboundVarValues" type="checkbox">
-                            <label for="unboundVarValues" class="label-radio">
-                              <span class="ion ion-checkmark-round"></span>
-                            </label>
-                            <span class="ion ion-checkmark-round check-icon"></span>
-                          </label>
-                          <label class="form-control" for="unboundVarValues">
-                            Allows multiple reports for configuration based on a multivalued variable:
-                          </label>
-                        </div>
-                      </li>
-                    </ul>
-                    <lift:authz role="administration_write">
-                      <input type="submit" value="[save]" id="unexpectedReportInterpretationFormSubmit"/>
-                    </lift:authz>
-                  </form>
-                </div>
-              </div>
-            </div>
-
-            <div class="inner-portlet">
               <h3 class="page-title">Default settings for new nodes</h3>
               <div class="portlet-content">
                 <div class="lift:administration.PropertiesManagement.nodeOnAcceptDefaults" id="nodeOnAcceptDefaults">

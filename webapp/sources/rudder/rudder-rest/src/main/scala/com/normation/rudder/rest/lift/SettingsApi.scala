@@ -61,7 +61,6 @@ import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.SettingsApi as API
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.SendMetrics
-import com.normation.rudder.services.reports.UnexpectedReportBehavior
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
@@ -119,7 +118,6 @@ class SettingsApi(
     RestSendMetrics ::
     RestOnAcceptNodeState ::
     RestOnAcceptPolicyMode ::
-    RestChangeRequestUnexpectedUnboundVarValues ::
     RestComputeChanges ::
     RestGenerationComputeDynGroups ::
     RestPersistComplianceLevels ::
@@ -695,31 +693,6 @@ class SettingsApi(
     def get:                     IOResult[NodeState]                                       = configService.rudder_node_onaccept_default_state()
     def set:                     (NodeState, EventActor, Option[String]) => IOResult[Unit] = (value: NodeState, _, _) =>
       configService.set_rudder_node_onaccept_default_state(value)
-  }
-
-  trait RestChangeUnexpectedReportInterpretation extends RestBooleanSetting {
-    def prop: UnexpectedReportBehavior
-    def get:  ZIO[Any, RudderError, Boolean]                                       =
-      configService.rudder_compliance_unexpected_report_interpretation().map(_.isSet(prop))
-    def set:  (Boolean, EventActor, Option[String]) => ZIO[Any, RudderError, Unit] = (value: Boolean, _, _) => {
-      for {
-        config  <- configService.rudder_compliance_unexpected_report_interpretation()
-        newConf  = if (value) {
-                     config.set(prop)
-                   } else {
-                     config.unset(prop)
-                   }
-        updated <- configService.set_rudder_compliance_unexpected_report_interpretation(newConf)
-      } yield {
-        updated
-      }
-    }
-  }
-
-  case object RestChangeRequestUnexpectedUnboundVarValues extends RestChangeUnexpectedReportInterpretation {
-    val startPolicyGeneration = false
-    val key                   = "unexpected_unbound_var_values"
-    val prop: UnexpectedReportBehavior.UnboundVarValues.type = UnexpectedReportBehavior.UnboundVarValues
   }
 
   def startNewPolicyGeneration(actor: EventActor): Unit = {
