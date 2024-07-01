@@ -36,6 +36,7 @@
       <SECTION name="Technique parameters">
         <INPUT>
           <NAME>server</NAME>
+          <VARIABLENAME>My_parameter</VARIABLENAME>
           <DESCRIPTION>My parameter</DESCRIPTION>
           <LONGDESCRIPTION>My interesting parameter</LONGDESCRIPTION>
           <CONSTRAINT>

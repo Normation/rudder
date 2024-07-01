@@ -27,6 +27,7 @@
     <SECTION name="Technique parameters">
       <INPUT>
         <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27A</NAME>
+        <VARIABLENAME>server_a</VARIABLENAME>
         <DESCRIPTION>description</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
@@ -34,6 +35,7 @@
       </INPUT>
       <INPUT>
         <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27B</NAME>
+        <VARIABLENAME>server_b</VARIABLENAME>
         <DESCRIPTION>The server hostname</DESCRIPTION>
         <LONGDESCRIPTION>This is markdown</LONGDESCRIPTION>
         <CONSTRAINT>
@@ -46,6 +48,7 @@
       </INPUT>
       <SELECT1>
         <NAME>server_c</NAME>
+        <VARIABLENAME>server_c</VARIABLENAME>
         <DESCRIPTION>The package name</DESCRIPTION>
         <ITEM>
           <LABEL>htop</LABEL>
@@ -61,6 +64,7 @@
       </SELECT1>
       <INPUT>
         <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27D</NAME>
+        <VARIABLENAME>server_d</VARIABLENAME>
         <DESCRIPTION>server_d</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>mail</TYPE>
@@ -68,6 +72,7 @@
       </INPUT>
       <INPUT>
         <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27E</NAME>
+        <VARIABLENAME>server_e</VARIABLENAME>
         <DESCRIPTION>server_e</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>boolean</TYPE>
@@ -75,6 +80,7 @@
       </INPUT>
       <INPUT>
         <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27F</NAME>
+        <VARIABLENAME>server_f</VARIABLENAME>
         <DESCRIPTION>server_f</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>password</TYPE>
@@ -83,6 +89,7 @@
       </INPUT>
       <INPUT>
         <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C271</NAME>
+        <VARIABLENAME>server_g</VARIABLENAME>
         <DESCRIPTION>server_g</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>password</TYPE>
@@ -91,6 +98,7 @@
       </INPUT>
       <INPUT>
         <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C272</NAME>
+        <VARIABLENAME>server_h</VARIABLENAME>
         <DESCRIPTION>server_h</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>perm</TYPE>
@@ -98,6 +106,7 @@
       </INPUT>
       <INPUT>
         <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C273</NAME>
+        <VARIABLENAME>server_i</VARIABLENAME>
         <DESCRIPTION>server_i</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>size-gb</TYPE>
@@ -105,6 +114,7 @@
       </INPUT>
       <INPUT>
         <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C274</NAME>
+        <VARIABLENAME>server_j</VARIABLENAME>
         <DESCRIPTION>server_j</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
@@ -112,6 +122,7 @@
       </INPUT>
       <INPUT>
         <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C275</NAME>
+        <VARIABLENAME>server_k</VARIABLENAME>
         <DESCRIPTION>server_k</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>ipv6</TYPE>
@@ -119,6 +130,7 @@
       </INPUT>
       <INPUT>
         <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C276</NAME>
+        <VARIABLENAME>server_l</VARIABLENAME>
         <DESCRIPTION>server_l</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>
@@ -126,6 +138,7 @@
       </INPUT>
       <INPUT>
         <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C277</NAME>
+        <VARIABLENAME>server_m</VARIABLENAME>
         <DESCRIPTION>server_m</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>integer</TYPE>
@@ -134,6 +147,7 @@
       </INPUT>
       <INPUT>
         <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C278</NAME>
+        <VARIABLENAME>server_n</VARIABLENAME>
         <DESCRIPTION>server_n</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>

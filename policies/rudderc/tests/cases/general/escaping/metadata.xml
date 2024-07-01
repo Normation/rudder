@@ -29,6 +29,7 @@
     <SECTION name="Technique parameters">
       <INPUT>
         <NAME>3439BBB0-D8F1-4C43-95A9-0C56BFB8C27E</NAME>
+        <VARIABLENAME>server</VARIABLENAME>
         <DESCRIPTION>server</DESCRIPTION>
         <LONGDESCRIPTION>${sys.host} . | / ${sys.${host}} &apos; &apos;&apos; &apos;&apos;&apos; $ $$ &quot; &quot;&quot; \ \\😋aà3
 	</LONGDESCRIPTION>
