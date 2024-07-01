@@ -41,7 +41,6 @@ import com.normation.box.*
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.TimingDebugLogger
-import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.*
@@ -123,51 +122,6 @@ class AsyncComplianceService(
     }
   }
 
-  private class NodeSystemCompliance(
-      val nodeIds: Set[NodeId],
-      val ruleIds: Set[RuleId]
-  ) extends ComplianceBy[NodeId] {
-    def value(key: NodeId): String = key.value
-    val jsContainer: String  = "nodeSystemCompliances"
-    def empty:       Boolean = nodeIds.isEmpty
-
-    // Compute compliance
-    def computeCompliance()(implicit qc: QueryContext): IOResult[Map[NodeId, Option[ComplianceLevel]]] = {
-      for {
-        compliance <- reportingService.findRuleNodeCompliance(nodeIds, PolicyTypeName.rudderSystem, ruleIds)
-      } yield {
-        val found      = compliance.map { case (id, comp) => (id, toComplianceWithMissing(comp)) }
-        // add missing elements with "None" compliance, see #7281, #8030, #8141, #11842
-        val missingIds = nodeIds -- found.keySet
-        found ++ (missingIds.map(id => (id, None)))
-      }
-    }
-
-  }
-
-  private class NodeCompliance(
-      val nodeIds: Set[NodeId],
-      val ruleIds: Set[RuleId]
-  ) extends ComplianceBy[NodeId] {
-    def value(key: NodeId): String = key.value
-    val jsContainer: String  = "nodeCompliances"
-    def empty:       Boolean = nodeIds.isEmpty
-
-    // Compute compliance
-    def computeCompliance()(implicit qc: QueryContext): IOResult[Map[NodeId, Option[ComplianceLevel]]] = {
-      for {
-        compliance <- reportingService.findRuleNodeCompliance(nodeIds, PolicyTypeName.rudderBase, ruleIds)
-      } yield {
-        val found = compliance.map { case (id, comp) => (id, toComplianceWithMissing(comp)) }
-
-        // add missing elements with "None" compliance, see #7281, #8030, #8141, #11842
-        val missingIds = nodeIds -- found.keySet
-        found ++ (missingIds.map(id => (id, None)))
-      }
-    }
-
-  }
-
   private class RuleCompliance(
       val nodeIds: Set[NodeId],
       val ruleIds: Set[RuleId]
@@ -226,16 +180,6 @@ class AsyncComplianceService(
         After(TimeSpan(500), compliance(kind, tableId))
       }
     })
-
-  }
-
-  def complianceByNode(nodeIds: Set[NodeId], ruleIds: Set[RuleId], tableId: String):       JsCmd = {
-    val kind = new NodeCompliance(nodeIds, ruleIds)
-    compliance(kind, tableId)
-  }
-  def systemComplianceByNode(nodeIds: Set[NodeId], ruleIds: Set[RuleId], tableId: String): JsCmd = {
-    val kind = new NodeSystemCompliance(nodeIds, ruleIds)
-    compliance(kind, tableId)
   }
 
   def complianceByRule(nodeIds: Set[NodeId], ruleIds: Set[RuleId], tableId: String): JsCmd = {

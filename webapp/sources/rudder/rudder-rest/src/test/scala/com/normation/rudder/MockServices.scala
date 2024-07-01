@@ -343,7 +343,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
         qc: QueryContext
     ): IOResult[Map[NodeId, NodeStatusReport]] = {
       val filteredNodeReports = statusReports.view.filterKeys(nodeIds.contains(_)).toMap
-      filterReportsByRules(filteredNodeReports, filterByRules).succeed
+      ReportingService.filterReportsByRules(filteredNodeReports, filterByRules).succeed
     }
     // used in node details API
     def getSystemAndUserCompliance(
@@ -356,14 +356,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
         nodeIds:            Set[NodeId],
         filterByDirectives: Set[DirectiveId]
     )(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] = ???
-    def findUncomputedNodeStatusReports():                                               IOResult[Map[NodeId, NodeStatusReport]] = ???
-    def findRuleNodeCompliance(nodeIds: Set[NodeId], tag: PolicyTypeName, filterByRules: Set[RuleId])(implicit
-        qc: QueryContext
-    ): IOResult[Map[NodeId, ComplianceLevel]] = ???
     def findSystemAndUserRuleCompliances(
-        nodeIds:             Set[NodeId],
-        filterBySystemRules: Set[RuleId],
-        filterByUserRules:   Set[RuleId]
+        nodeIds: Set[NodeId]
     )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
     def findDirectiveRuleStatusReportsByRule(ruleId: RuleId)(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] =
       ???
@@ -374,7 +368,6 @@ class MockCompliance(mockDirectives: MockDirectives) {
     def findStatusReportsForDirective(directiveId: DirectiveId)(implicit
         qc: QueryContext
     ): IOResult[Map[NodeId, NodeStatusReport]] = ???
-    def computeComplianceFromReports(reports:   Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = ???
     def getGlobalUserCompliance()(implicit qc:  QueryContext): IOResult[Option[(ComplianceLevel, Long)]] = ???
   }
 

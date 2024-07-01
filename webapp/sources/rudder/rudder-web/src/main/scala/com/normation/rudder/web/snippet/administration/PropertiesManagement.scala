@@ -107,7 +107,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "sendMetricsConfiguration"           => sendMetricsConfiguration
     case "displayGraphsConfiguration"         => displayGraphsConfiguration
     case "directiveScriptEngineConfiguration" => directiveScriptEngineConfiguration
-    case "unexpectedReportInterpretation"     => unexpectedReportInterpretation
     case "onloadScript"                       => _ => disableInputs
     case "nodeOnAcceptDefaults"               => nodeOnAcceptDefaultsConfiguration
     case "generationHookCfpromise"            => generationHookCfpromise
@@ -1158,58 +1157,5 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }
 
     ("#nodeOnAcceptDefaults" #> process).apply(xml)
-  }
-
-  def unexpectedReportInterpretation: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
-    import com.normation.rudder.services.reports.UnexpectedReportBehavior.*
-
-    (configService.rudder_compliance_unexpected_report_interpretation().toBox match {
-      case Full(initialValue) =>
-        var initSavedValued = initialValue
-        var x               = initialValue
-        def noModif()       = x == initSavedValued
-        def check()         = {
-          Run(s"""$$("#unexpectedReportInterpretationFormSubmit").prop("disabled",${noModif()});""")
-        }
-
-        def submit() = {
-          val save               = configService.set_rudder_compliance_unexpected_report_interpretation(x).toBox
-          val createNotification = save match {
-            case Full(_) =>
-              initSavedValued = x
-              // If we disable this feature we want to start policy generation because some data may be invalid
-              JsRaw(
-                """createSuccessNotification("'interpretation of unexpected compliance reports' property updated.")"""
-              ) // JsRaw ok, const
-            case eb: EmptyBox =>
-              JsRaw(
-                """createErrorNotification("There was an error when updating the value of the 'interpretation of unexpected compliance reports' property")"""
-              ) // JsRaw ok, const
-          }
-          check() & createNotification
-        }
-
-        ("#unboundVarValues" #> {
-          SHtml.ajaxCheckbox(
-            x.isSet(UnboundVarValues),
-            (b: Boolean) => {
-              if (b) { x = x.set(UnboundVarValues) }
-              else { x = x.unset(UnboundVarValues) }; check()
-            },
-            ("id", "unboundVarValues")
-          )
-        } &
-        "#unexpectedReportInterpretationFormSubmit " #> {
-          SHtml.ajaxSubmit("Save changes", submit _, ("class", "btn btn-success"), ("disabled", "disabled"))
-        })
-
-      case eb: EmptyBox =>
-        ("#unexpectedReportInterpretation" #> {
-          val fail =
-            eb ?~ "there was an error while fetching value of property: 'interpretation of unexpected compliance reports'"
-          logger.error(fail.messageChain)
-          <div class="error">{fail.messageChain}</div>
-        })
-    }) apply xml
   }
 }

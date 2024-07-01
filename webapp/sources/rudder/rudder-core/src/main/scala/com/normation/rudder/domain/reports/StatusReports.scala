@@ -126,6 +126,14 @@ final class NodeStatusReport private (
 
   def systemCompliance: ComplianceLevel = getCompliance(PolicyTypeName.rudderSystem)
   def baseCompliance:   ComplianceLevel = getCompliance(PolicyTypeName.rudderBase)
+
+  def forPolicyType(t: PolicyTypeName): NodeStatusReport = {
+    val r = reports.get(t) match {
+      case Some(r) => Map((t, r))
+      case None    => Map.empty[PolicyTypeName, AggregatedStatusReport]
+    }
+    new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, r)
+  }
 }
 
 object NodeStatusReport {

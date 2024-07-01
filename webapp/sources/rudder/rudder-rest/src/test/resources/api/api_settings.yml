@@ -60,8 +60,7 @@ response:
           "rudder_setup_done":false,
           "run_frequency":5,
           "send_metrics":"not_defined",
-          "splay_time":4,
-          "unexpected_unbound_var_values":true
+          "splay_time":4
         }
       }
     }
