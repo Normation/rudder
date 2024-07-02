@@ -41,9 +41,8 @@ view model =
                                 [ if hasClearTextTokens then
                                     div [ class "alert alert-warning" ]
                                         [ i [ class "fa fa-exclamation-triangle" ] []
-                                        , text "You have API accounts with tokens generated on a previous Rudder versions, those for which the "
-                                        , text "beginning of the token value is displayed in the table. They are now deprecated, you should "
-                                        , text "re-generate or replace them for improved security."
+                                        , text "You have API accounts with clear-text tokens generated before Rudder 8.0. "
+                                        , text "They don't work anymore, you need to re-generate or replace them."
                                         ]
 
                                   else

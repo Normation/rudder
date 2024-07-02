@@ -64,6 +64,9 @@ final case class ApiAccountName(value: String) extends AnyVal
  *
  * * v1: 32 alphanumeric characters stored as clear text
  *       they are also displayed in clear text in the interface.
+ *
+*        REMOVED in 8.2.
+ *
  * * v2: starting from Rudder 8.1, tokens are still 32 alphanumeric characters,
  *       but are now stored hashed in sha512 (128 characters), prefixed with "v2:".
  *       The tokens are only displayed once at creation.
