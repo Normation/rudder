@@ -179,6 +179,7 @@ sealed trait VariableSpec {
   type V <: Variable // type of variable linked to that variable spec
 
   def name:            String
+  def variableName:    Option[String]
   def description:     String
   def longDescription: String
 
@@ -218,6 +219,7 @@ sealed trait VariableSpec {
 final case class SystemVariableSpec(
     override val name:   String,
     val description:     String,
+    variableName:        Option[String] = None,
     val longDescription: String = "",
     val valueslabels:    Seq[ValueLabel] = Seq(),
     val multivalued:     Boolean, // we expect that by default the variable will be checked
@@ -248,10 +250,10 @@ final case class TrackerVariableSpec(
   override type T = TrackerVariableSpec
   override type V = TrackerVariable
 
-  override val name:        String = TRACKINGKEY
-  override val description: String = "Variable which kept information about the policy"
-
-  override val checked: Boolean = false
+  override val name:         String         = TRACKINGKEY
+  override val description:  String         = "Variable which kept information about the policy"
+  override val variableName: Option[String] = None
+  override val checked:      Boolean        = false
 
   val constraint: Constraint = Constraint()
 
@@ -284,6 +286,7 @@ trait ValueLabelVariableSpec extends SectionVariableSpec {
 final case class SelectVariableSpec(
     override val name:   String,
     val description:     String,
+    variableName:        Option[String],
     val longDescription: String = "",
     val valueslabels:    Seq[ValueLabel] = Seq(),
     val multivalued:     Boolean = false, // we expect that by default the variable will be checked
@@ -305,6 +308,7 @@ final case class SelectVariableSpec(
 final case class SelectOneVariableSpec(
     override val name:   String,
     val description:     String,
+    variableName:        Option[String],
     val longDescription: String = "",
     val valueslabels:    Seq[ValueLabel] = Seq(),
     val multivalued:     Boolean = false, // we expect that by default the variable will be checked
@@ -326,12 +330,13 @@ final case class SelectOneVariableSpec(
  * won't be able to change them.
  */
 final case class PredefinedValuesVariableSpec(
-    override val name: String,
-    val description:   String, // The list of predefined values, provided
+    override val name:   String,
+    val description:     String,         // The list of predefined values, provided
     // directly in the variable spec
     // that list can not be empty (but Scala does not have a NonEmptyList type)
     // Values are ordered.
 
+    variableName:        Option[String],
     val providedValues:  (String, Seq[String]),
     val longDescription: String = "",
     val multivalued:     Boolean = true, // we expect that by default the variable will be checked
@@ -357,6 +362,7 @@ final case class PredefinedValuesVariableSpec(
 final case class InputVariableSpec(
     override val name:   String,
     val description:     String,
+    variableName:        Option[String],
     val longDescription: String = "",
     val multivalued:     Boolean = false, // we expect that by default the variable will be checked
 
@@ -391,6 +397,7 @@ object SectionVariableSpec {
       varName:         String,
       description:     String,
       markerName:      String,
+      variableName:    Option[String],
       longDescription: String = "",
       valueslabels:    Seq[ValueLabel],
       multivalued:     Boolean = false,
@@ -402,11 +409,31 @@ object SectionVariableSpec {
 
     markerName match {
       case INPUT       =>
-        InputVariableSpec(varName, description, longDescription, multivalued, checked, constraint, id)
+        InputVariableSpec(varName, description, variableName, longDescription, multivalued, checked, constraint, id)
       case SELECT      =>
-        SelectVariableSpec(varName, description, longDescription, valueslabels, multivalued, checked, constraint, id)
+        SelectVariableSpec(
+          varName,
+          description,
+          variableName,
+          longDescription,
+          valueslabels,
+          multivalued,
+          checked,
+          constraint,
+          id
+        )
       case SELECT1     =>
-        SelectOneVariableSpec(varName, description, longDescription, valueslabels, multivalued, checked, constraint, id)
+        SelectOneVariableSpec(
+          varName,
+          description,
+          variableName,
+          longDescription,
+          valueslabels,
+          multivalued,
+          checked,
+          constraint,
+          id
+        )
       case REPORT_KEYS =>
         if (providedValues.isEmpty) {
           throw EmptyReportKeysValue(varName)
@@ -414,6 +441,7 @@ object SectionVariableSpec {
           PredefinedValuesVariableSpec(
             varName,
             description,
+            variableName,
             (providedValues.head, providedValues.tail),
             longDescription,
             multivalued,

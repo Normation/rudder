@@ -82,10 +82,10 @@ class NodeExpectedReportTest extends Specification {
   // a technique with a var non multi-valued and a mutivalued section with 2 components
   // a non multivalued var
   def tvar(x: String):  SectionVariableSpec =
-    SectionVariableSpec(s"var_${x}", "", "INPUT", valueslabels = Nil, providedValues = Nil, id = None)
+    SectionVariableSpec(s"var_${x}", "", "INPUT", None, valueslabels = Nil, providedValues = Nil, id = None)
   // a multivalued var
   def tmvar(x: String): SectionVariableSpec =
-    SectionVariableSpec(s"m_var_${x}", "", "INPUT", multivalued = true, valueslabels = Nil, providedValues = Nil, id = None)
+    SectionVariableSpec(s"m_var_${x}", "", "INPUT", None, multivalued = true, valueslabels = Nil, providedValues = Nil, id = None)
 
   // return the couple of (var name, var with value)
   def v(x: String, values: String*):  (ComponentId, SectionVariableSpec#V) = {
@@ -427,6 +427,7 @@ class NodeExpectedReportTest extends Specification {
         "expectedReportKey " + componentKey,
         "",
         "REPORTKEYS",
+        None,
         valueslabels = Nil,
         providedValues = Seq(value),
         id = None

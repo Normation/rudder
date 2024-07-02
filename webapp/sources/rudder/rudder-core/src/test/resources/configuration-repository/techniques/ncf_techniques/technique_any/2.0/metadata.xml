@@ -33,6 +33,7 @@
     <SECTION name="Technique parameters">
       <INPUT>
         <NAME>PACKAGE_VERSION</NAME>
+        <VARIABLE_NAME>version</VARIABLE_NAME>
         <DESCRIPTION>package version</DESCRIPTION>
         <LONGDESCRIPTION>Package version to install</LONGDESCRIPTION>
         <CONSTRAINT>

@@ -56,15 +56,15 @@ class DummyTechniqueRepository(policies: Seq[Technique] = Seq()) extends Techniq
     "",
     agentCfg("one"),
     TrackerVariableSpec(id = None),
-    SectionSpec(name = "root", children = Seq(InputVariableSpec("$variable1", "a variable1", id = None))),
+    SectionSpec(name = "root", children = Seq(InputVariableSpec("$variable1", "a variable1", None, id = None))),
     None
   )
 
   val sections: SectionSpec = SectionSpec(
     name = "root",
     children = Seq(
-      InputVariableSpec("$variable2", "a variable2", multivalued = true, id = None),
-      InputVariableSpec("$variable22", "a variable22", id = None)
+      InputVariableSpec("$variable2", "a variable2", Some("var_name"), multivalued = true, id = None),
+      InputVariableSpec("$variable22", "a variable22", None, id = None)
     )
   )
   val policy2:  Technique   = Technique(
@@ -78,7 +78,7 @@ class DummyTechniqueRepository(policies: Seq[Technique] = Seq()) extends Techniq
   )
 
   val sections3: SectionSpec =
-    SectionSpec(name = "root", children = Seq(InputVariableSpec("$variable3", "a variable3", id = None)))
+    SectionSpec(name = "root", children = Seq(InputVariableSpec("$variable3", "a variable3", None, id = None)))
   val policy3:   Technique   = Technique(
     TechniqueId(TechniqueName("policy3"), TechniqueVersionHelper("1.0")),
     "policy3",
@@ -90,7 +90,7 @@ class DummyTechniqueRepository(policies: Seq[Technique] = Seq()) extends Techniq
   )
 
   val sections4: SectionSpec =
-    SectionSpec(name = "root", children = Seq(InputVariableSpec("$variable4", "an variable4", id = None)))
+    SectionSpec(name = "root", children = Seq(InputVariableSpec("$variable4", "an variable4", Some("var_name_4"), id = None)))
   val policy4:   Technique   = Technique(
     TechniqueId(TechniqueName("policy4"), TechniqueVersionHelper("1.0")),
     "policy4",
@@ -101,7 +101,7 @@ class DummyTechniqueRepository(policies: Seq[Technique] = Seq()) extends Techniq
     None
   )
 
-  val sectionsFoo: SectionSpec = SectionSpec(name = "root", children = Seq(InputVariableSpec("$bar", "bar", id = None)))
+  val sectionsFoo: SectionSpec = SectionSpec(name = "root", children = Seq(InputVariableSpec("$bar", "bar", None, id = None)))
   val foo:         Technique   = Technique(
     TechniqueId(TechniqueName("foo"), TechniqueVersionHelper("1.0")),
     "foo",

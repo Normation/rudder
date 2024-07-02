@@ -61,6 +61,7 @@ class SectionValTest extends Specification with Loggable {
         children = InputVariableSpec(
           name = "var1",
           description = "",
+          variableName = None,
           id = None
         ) ::
           Nil
@@ -141,30 +142,30 @@ class SectionValTest extends Specification with Loggable {
       name = "root",
       children = SectionSpec(
         name = "sec0",
-        children = InputVariableSpec(name = "var0", description = "", id = None) ::
+        children = InputVariableSpec(name = "var0", description = "", variableName = Some("variable_name0"), id = None) ::
           Nil
       ) ::
         SectionSpec(
           name = "sec1",
           isMultivalued = true,
-          children = InputVariableSpec(name = "var1", description = "", id = None) ::
+          children = InputVariableSpec(name = "var1", description = "", variableName = None, id = None) ::
             SectionSpec(
               name = "sec2",
-              children = InputVariableSpec(name = "var2", description = "", id = None) ::
+              children = InputVariableSpec(name = "var2", description = "", variableName = None, id = None) ::
                 Nil
             ) ::
             Nil
         ) ::
         SectionSpec(
           name = "sec3",
-          children = InputVariableSpec(name = "var3", description = "", id = None) ::
+          children = InputVariableSpec(name = "var3", description = "", variableName = None, id = None) ::
             SectionSpec(
               name = "sec4",
               isMultivalued = true,
-              children = InputVariableSpec(name = "var4", description = "", id = None) ::
+              children = InputVariableSpec(name = "var4", description = "", variableName = None, id = None) ::
                 SectionSpec(
                   name = "sec5",
-                  children = InputVariableSpec(name = "var5", description = "", id = None) ::
+                  children = InputVariableSpec(name = "var5", description = "", variableName = None, id = None) ::
                     Nil
                 ) ::
                 Nil
