@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 type: object
 properties:
-  isPreHahed:
+  isPreHashed:
     type: boolean
     description: If you want to provide hashed password set this property to `true` otherwise we will hash the plain password and store the hash
     enum:
