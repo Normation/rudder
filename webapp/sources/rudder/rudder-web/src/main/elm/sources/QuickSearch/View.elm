@@ -16,6 +16,7 @@ kindName k =
     Group -> "group"
     Parameter -> "parameter"
     Directive -> "directive"
+    Technique -> "technique"
     Rule -> "rule"
 
 viewItem: SearchResultItem -> Html Msg

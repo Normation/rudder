@@ -46,6 +46,7 @@ import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.ncf.EditorTechniqueReader
 import com.normation.rudder.repository.RoDirectiveRepository
 import zio.ZIO
 
@@ -57,12 +58,13 @@ import zio.ZIO
  * object type and UUID
  */
 class FullQuickSearchService(implicit
-    val ldapConnection: LDAPConnectionProvider[RoLDAPConnection],
-    val nodeDit:        NodeDit,
-    val inventoryDit:   InventoryDit,
-    val rudderDit:      RudderDit,
-    val directiveRepo:  RoDirectiveRepository,
-    val nodeInfos:      NodeFactRepository
+    val ldapConnection:  LDAPConnectionProvider[RoLDAPConnection],
+    val nodeDit:         NodeDit,
+    val inventoryDit:    InventoryDit,
+    val rudderDit:       RudderDit,
+    val directiveRepo:   RoDirectiveRepository,
+    val nodeInfos:       NodeFactRepository,
+    val techniqueReader: EditorTechniqueReader
 ) {
 
   import QuickSearchService.*
@@ -104,12 +106,13 @@ object QuickSearchService {
   }
 
   implicit class QSBackendImpl(b: QSBackend)(implicit
-      directiveRepo: RoDirectiveRepository,
-      ldap:          LDAPConnectionProvider[RoLDAPConnection],
-      inventoryDit:  InventoryDit,
-      nodeDit:       NodeDit,
-      rudderDit:     RudderDit,
-      nodeFactRepo:  NodeFactRepository
+      directiveRepo:   RoDirectiveRepository,
+      ldap:            LDAPConnectionProvider[RoLDAPConnection],
+      inventoryDit:    InventoryDit,
+      nodeDit:         NodeDit,
+      rudderDit:       RudderDit,
+      nodeFactRepo:    NodeFactRepository,
+      techniqueReader: EditorTechniqueReader
   ) {
 
     import QSBackend.*
@@ -117,6 +120,7 @@ object QuickSearchService {
     def search(query: Query)(implicit qc: QueryContext): IOResult[Seq[QuickSearchResult]] = b match {
       case LdapBackend      => QSLdapBackend.search(query)
       case DirectiveBackend => QSDirectiveBackend.search(query)
+      case TechniqueBackend => QSTechniqueBackend.search(query)
       case NodeFactBackend  => QSNodeFactBackend.search(query)
     }
 

@@ -63,6 +63,7 @@ sealed trait QSBackend extends EnumEntry
 object QSBackend extends Enum[QSBackend] {
   case object LdapBackend      extends QSBackend
   case object DirectiveBackend extends QSBackend
+  case object TechniqueBackend extends QSBackend
   case object NodeFactBackend  extends QSBackend
 
   final val values: IndexedSeq[QSBackend] = findValues
@@ -169,6 +170,12 @@ object QSAttribute extends Enum[QSAttribute] {
     override val name = "technique_name"
   }
 
+  // Techniques
+  case object TechniqueMethodValue extends QSAttribute {
+    override val name    = "technique_method_value"
+    override val display = "Technique method value"
+  }
+
   case object TechniqueVersion extends QSAttribute { override val name = "technique_version" }
 
   case object Tags      extends QSAttribute {
@@ -258,6 +265,14 @@ object QSObject extends Enum[QSObject] {
       TechniqueVersion
     )
   }
+  case object Technique extends QSObject {
+    override val name = "technique"
+    override val attributes: Set[QSAttribute] = Common.attributes ++ tagsAttribute ++ Set(
+      TechniqueId,
+      TechniqueName,
+      TechniqueMethodValue
+    )
+  }
   case object Parameter extends QSObject {
     override val name = "parameter"
     override val attributes: Set[QSAttribute] = Common.attributes ++ Set(ParameterName, ParameterValue)
@@ -281,6 +296,7 @@ object QSObject extends Enum[QSObject] {
       case Parameter => 3
       case Directive => 4
       case Rule      => 5
+      case Technique => 6
     }
   }
   def sortQSObject(a: QSObject, b: QSObject): Boolean = {
@@ -403,6 +419,9 @@ object QuickSearchResultId {
   }
   final case class QRDirectiveId(value: String) extends AnyVal with QuickSearchResultId {
     override def tpe: QSObject.Directive.type = Directive
+  }
+  final case class QRTechniqueId(value: String) extends AnyVal with QuickSearchResultId {
+    override def tpe: QSObject.Technique.type = Technique
   }
   final case class QRParameterId(value: String) extends AnyVal with QuickSearchResultId {
     override def tpe: QSObject.Parameter.type = Parameter

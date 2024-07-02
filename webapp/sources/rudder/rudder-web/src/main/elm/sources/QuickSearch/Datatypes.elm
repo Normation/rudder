@@ -32,10 +32,10 @@ type alias SearchResultItem =
   }
 
 type Filter = All | FilterKind Kind
-type Kind = Node | Group | Parameter | Directive | Rule
+type Kind = Node | Group | Parameter | Directive | Rule | Technique
 
 allKinds : List Kind
-allKinds = [Node, Group, Parameter, Directive, Rule]
+allKinds = [Node, Group, Parameter, Directive, Rule, Technique]
 
 allFilters : List Filter
 allFilters = List.map FilterKind allKinds

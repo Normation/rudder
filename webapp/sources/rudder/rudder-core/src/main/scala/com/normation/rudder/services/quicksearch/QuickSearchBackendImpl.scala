@@ -55,6 +55,11 @@ import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.ncf.EditorTechnique
+import com.normation.rudder.ncf.EditorTechniqueReader
+import com.normation.rudder.ncf.MethodBlock
+import com.normation.rudder.ncf.MethodCall
+import com.normation.rudder.ncf.MethodElem
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.unboundid.ldap.sdk.Attribute
@@ -122,48 +127,49 @@ object QSNodeFactBackend extends Loggable {
        * A set of value to check against / value to return to the user
        */
       a match {
-        case QSNodeId          => someSet(node.id.value)
-        case Fqdn              => someSet(node.fqdn)
-        case OsType            => someSet(node.os.os.kernelName)
-        case OsName            => someSet(node.os.os.name)
-        case OsVersion         => someSet(node.os.version.value)
-        case OsFullName        => someSet(node.os.fullName)
-        case OsKernelVersion   => someSet(node.os.kernelVersion.value)
-        case OsServicePack     => optSet(node.os.servicePack)
-        case Arch              => optSet(node.archDescription)
-        case Ram               => optSet(node.ram.map(_.size.toString))
-        case IpAddresses       => Some(MinimalNodeFactInterface.ipAddresses(node).map(ip => (ip, ip)).toSet)
-        case PolicyServerId    => someSet(node.rudderSettings.policyServerId.value)
-        case Properties        =>
+        case QSNodeId             => someSet(node.id.value)
+        case Fqdn                 => someSet(node.fqdn)
+        case OsType               => someSet(node.os.os.kernelName)
+        case OsName               => someSet(node.os.os.name)
+        case OsVersion            => someSet(node.os.version.value)
+        case OsFullName           => someSet(node.os.fullName)
+        case OsKernelVersion      => someSet(node.os.kernelVersion.value)
+        case OsServicePack        => optSet(node.os.servicePack)
+        case Arch                 => optSet(node.archDescription)
+        case Ram                  => optSet(node.ram.map(_.size.toString))
+        case IpAddresses          => Some(MinimalNodeFactInterface.ipAddresses(node).map(ip => (ip, ip)).toSet)
+        case PolicyServerId       => someSet(node.rudderSettings.policyServerId.value)
+        case Properties           =>
           Some(node.properties.collect {
             case p if (p.provider != Some(NodeProperty.customPropertyProvider)) => (p.toData, p.toData)
           }.toSet)
-        case GroupProperties   => None
-        case CustomProperties  =>
+        case GroupProperties      => None
+        case CustomProperties     =>
           Some(node.properties.collect {
             case p if (p.provider == Some(NodeProperty.customPropertyProvider)) => (p.toData, p.toData)
           }.toSet)
-        case NodeState         => someSet(node.rudderSettings.state.name)
-        case DirectiveId       => None
-        case DirectiveVarName  => None
-        case DirectiveVarValue => None
-        case TechniqueName     => None
-        case TechniqueId       => None
-        case TechniqueVersion  => None
-        case Description       => None
-        case LongDescription   => None
-        case Name              => None
-        case IsEnabled         => None
-        case Tags              => None
-        case TagKeys           => None
-        case TagValues         => None
-        case GroupId           => None
-        case IsDynamic         => None
-        case ParameterName     => None
-        case ParameterValue    => None
-        case RuleId            => None
-        case DirectiveIds      => None
-        case Targets           => None
+        case NodeState            => someSet(node.rudderSettings.state.name)
+        case DirectiveId          => None
+        case DirectiveVarName     => None
+        case DirectiveVarValue    => None
+        case TechniqueName        => None
+        case TechniqueId          => None
+        case TechniqueVersion     => None
+        case TechniqueMethodValue => None
+        case Description          => None
+        case LongDescription      => None
+        case Name                 => None
+        case IsEnabled            => None
+        case Tags                 => None
+        case TagKeys              => None
+        case TagValues            => None
+        case GroupId              => None
+        case IsDynamic            => None
+        case ParameterName        => None
+        case ParameterValue       => None
+        case RuleId               => None
+        case DirectiveIds         => None
+        case Targets              => None
       }
     }
 
@@ -241,44 +247,45 @@ object QSDirectiveBackend extends Loggable {
        * A set of value to check against / value to return to the user
        */
       a match {
-        case QSDirectiveId     => Some(Set((dir.id.uid.value, dir.id.uid.value)))
-        case DirectiveVarName  =>
+        case QSDirectiveId        => Some(Set((dir.id.uid.value, dir.id.uid.value)))
+        case DirectiveVarName     =>
           Some(dir.parameters.flatMap(param => param._2.map(value => (param._1, param._1 + ":" + value))).toSet)
-        case DirectiveVarValue =>
+        case DirectiveVarValue    =>
           Some(dir.parameters.flatMap(param => param._2.map(value => (value, param._1 + ":" + value))).toSet)
-        case TechniqueName     => Some(at.techniques.map { case (_, t) => (t.name, t.name) }.toSet)
-        case TechniqueId       => Some(Set((at.techniqueName.value, at.techniqueName.value)))
-        case TechniqueVersion  => Some(Set((dir.techniqueVersion.serialize, dir.techniqueVersion.serialize)))
-        case Description       => Some(Set((dir.shortDescription, dir.shortDescription), (dir.longDescription, dir.longDescription)))
-        case LongDescription   => Some(Set((dir.longDescription, dir.longDescription)))
-        case Name              => Some(Set((dir.name, dir.name)))
-        case IsEnabled         => Some(isEnabled)
-        case Tags              => Some(dir.tags.map { case Tag(TagName(k), TagValue(v)) => (s"$k=$v", s"$k=$v") }.toSet)
-        case TagKeys           => Some(dir.tags.map { case Tag(TagName(k), _) => (k, k) }.toSet)
-        case TagValues         => Some(dir.tags.map { case Tag(_, TagValue(v)) => (v, v) }.toSet)
-        case NodeId            => None
-        case Fqdn              => None
-        case OsType            => None
-        case OsName            => None
-        case OsVersion         => None
-        case OsFullName        => None
-        case OsKernelVersion   => None
-        case OsServicePack     => None
-        case Arch              => None
-        case Ram               => None
-        case IpAddresses       => None
-        case PolicyServerId    => None
-        case Properties        => None
-        case GroupProperties   => None
-        case CustomProperties  => None
-        case NodeState         => None
-        case GroupId           => None
-        case IsDynamic         => None
-        case ParameterName     => None
-        case ParameterValue    => None
-        case RuleId            => None
-        case DirectiveIds      => None
-        case Targets           => None
+        case TechniqueName        => Some(at.techniques.map { case (_, t) => (t.name, t.name) }.toSet)
+        case TechniqueId          => Some(Set((at.techniqueName.value, at.techniqueName.value)))
+        case TechniqueVersion     => Some(Set((dir.techniqueVersion.serialize, dir.techniqueVersion.serialize)))
+        case TechniqueMethodValue => None
+        case Description          => Some(Set((dir.shortDescription, dir.shortDescription), (dir.longDescription, dir.longDescription)))
+        case LongDescription      => Some(Set((dir.longDescription, dir.longDescription)))
+        case Name                 => Some(Set((dir.name, dir.name)))
+        case IsEnabled            => Some(isEnabled)
+        case Tags                 => Some(dir.tags.map { case Tag(TagName(k), TagValue(v)) => (s"$k=$v", s"$k=$v") }.toSet)
+        case TagKeys              => Some(dir.tags.map { case Tag(TagName(k), _) => (k, k) }.toSet)
+        case TagValues            => Some(dir.tags.map { case Tag(_, TagValue(v)) => (v, v) }.toSet)
+        case NodeId               => None
+        case Fqdn                 => None
+        case OsType               => None
+        case OsName               => None
+        case OsVersion            => None
+        case OsFullName           => None
+        case OsKernelVersion      => None
+        case OsServicePack        => None
+        case Arch                 => None
+        case Ram                  => None
+        case IpAddresses          => None
+        case PolicyServerId       => None
+        case Properties           => None
+        case GroupProperties      => None
+        case CustomProperties     => None
+        case NodeState            => None
+        case GroupId              => None
+        case IsDynamic            => None
+        case ParameterName        => None
+        case ParameterValue       => None
+        case RuleId               => None
+        case DirectiveIds         => None
+        case Targets              => None
       }
     }
 
@@ -289,6 +296,103 @@ object QSDirectiveBackend extends Loggable {
             QuickSearchResult(
               QRDirectiveId(dir.id.uid.value),
               dir.name,
+              Some(a),
+              value
+            )
+        }
+      }
+    }
+  }
+}
+
+object QSTechniqueBackend extends Loggable {
+  import QSAttribute.{TechniqueId as QSTechniqueId, *}
+  import QSObject.Technique as QSTechnique
+  import QuickSearchResultId.QRTechniqueId
+  import zio.syntax.*
+
+  /**
+   * Lookup techniques
+   */
+  def search(query: Query)(implicit techniqueReader: EditorTechniqueReader): IOResult[Seq[QuickSearchResult]] = {
+
+    val attributes: Set[QSAttribute] = query.attributes.intersect(QSObject.Technique.attributes)
+
+    if (query.objectClass.contains(QSTechnique) && attributes.nonEmpty) {
+      for {
+        res               <- techniqueReader.readTechniquesMetadataFile
+        (techniques, _, _) = res
+      } yield {
+        techniques.flatMap(t => attributes.flatMap(a => a.find(t, query.userToken)).toSeq)
+      }
+    } else {
+      Seq().succeed
+    }
+  }
+
+  implicit class QSAttributeFilter(val a: QSAttribute) extends AnyVal {
+
+    private def toMatch(tech: EditorTechnique): Option[Set[(String, String)]] = {
+      def getParam(methods: MethodElem): List[(String, List[String])] = {
+        methods match {
+          case b: MethodBlock => b.calls.flatten(getParam)
+          case c: MethodCall  => List((c.method.value, c.parameters.values.toList))
+        }
+      }
+
+      def someSet(v: String) = Some(Set((v, v)))
+      /*
+       * A set of value to check against / value to return to the user
+       */
+      a match {
+        case QSTechniqueId        => someSet(tech.id.value)
+        case TechniqueMethodValue =>
+          Some(tech.calls.flatMap(c => getParam(c).flatMap(m => m._2.map(value => (value, m._1 + ":" + value)).toSet)).toSet)
+        case TechniqueName        => someSet(tech.name)
+        case DirectiveVarValue    => None
+        case DirectiveVarName     => None
+        case DirectiveId          => None
+        case TechniqueVersion     => None
+        case Description          => None
+        case LongDescription      => None
+        case Name                 => None
+        case IsEnabled            => None
+        case Tags                 => None
+        case TagKeys              => None
+        case TagValues            => None
+        case NodeId               => None
+        case Fqdn                 => None
+        case OsType               => None
+        case OsName               => None
+        case OsVersion            => None
+        case OsFullName           => None
+        case OsKernelVersion      => None
+        case OsServicePack        => None
+        case Arch                 => None
+        case Ram                  => None
+        case IpAddresses          => None
+        case PolicyServerId       => None
+        case Properties           => None
+        case GroupProperties      => None
+        case CustomProperties     => None
+        case NodeState            => None
+        case GroupId              => None
+        case IsDynamic            => None
+        case ParameterName        => None
+        case ParameterValue       => None
+        case RuleId               => None
+        case DirectiveIds         => None
+        case Targets              => None
+      }
+    }
+
+    def find(tech: EditorTechnique, token: String): Option[QuickSearchResult] = {
+      toMatch(tech).flatMap { set =>
+        set.collectFirst {
+          case (s, value) if QSPattern(token).matcher(s).matches =>
+            QuickSearchResult(
+              QRTechniqueId(tech.id.value),
+              tech.name,
               Some(a),
               value
             )
@@ -347,42 +451,43 @@ object QSLdapBackend {
    */
   private val attributeNameMapping: Map[QSAttribute, String] = {
     val m: Map[QSAttribute, String] = Map(
-      Name              -> A_NAME,
-      Description       -> A_DESCRIPTION,
-      LongDescription   -> A_LONG_DESCRIPTION,
-      IsEnabled         -> A_IS_ENABLED,
-      GroupId           -> A_NODE_GROUP_UUID,
-      IsDynamic         -> A_IS_DYNAMIC,
-      NodeId            -> A_NODE_UUID,
-      Fqdn              -> "",
-      OsType            -> "",
-      OsName            -> "",
-      OsVersion         -> "",
-      OsFullName        -> "",
-      OsKernelVersion   -> "",
-      OsServicePack     -> "",
-      Arch              -> "",
-      Ram               -> "",
-      IpAddresses       -> "",
-      PolicyServerId    -> "",
-      Properties        -> "",
-      GroupProperties   -> A_JSON_PROPERTY,
-      CustomProperties  -> "",
-      NodeState         -> "",
-      DirectiveId       -> "",
-      DirectiveVarName  -> "",
-      DirectiveVarValue -> "",
-      TechniqueId       -> "",
-      TechniqueName     -> "",
-      TechniqueVersion  -> "",
-      ParameterName     -> A_PARAMETER_NAME,
-      ParameterValue    -> A_PARAMETER_VALUE,
-      RuleId            -> A_RULE_UUID,
-      DirectiveIds      -> A_DIRECTIVE_UUID,
-      Targets           -> A_RULE_TARGET,
-      Tags              -> A_SERIALIZED_TAGS,
-      TagKeys           -> A_SERIALIZED_TAGS,
-      TagValues         -> A_SERIALIZED_TAGS
+      Name                 -> A_NAME,
+      Description          -> A_DESCRIPTION,
+      LongDescription      -> A_LONG_DESCRIPTION,
+      IsEnabled            -> A_IS_ENABLED,
+      GroupId              -> A_NODE_GROUP_UUID,
+      IsDynamic            -> A_IS_DYNAMIC,
+      NodeId               -> A_NODE_UUID,
+      Fqdn                 -> "",
+      OsType               -> "",
+      OsName               -> "",
+      OsVersion            -> "",
+      OsFullName           -> "",
+      OsKernelVersion      -> "",
+      OsServicePack        -> "",
+      Arch                 -> "",
+      Ram                  -> "",
+      IpAddresses          -> "",
+      PolicyServerId       -> "",
+      Properties           -> "",
+      GroupProperties      -> A_JSON_PROPERTY,
+      CustomProperties     -> "",
+      NodeState            -> "",
+      DirectiveId          -> "",
+      DirectiveVarName     -> "",
+      DirectiveVarValue    -> "",
+      TechniqueId          -> "",
+      TechniqueName        -> "",
+      TechniqueVersion     -> "",
+      TechniqueMethodValue -> "",
+      ParameterName        -> A_PARAMETER_NAME,
+      ParameterValue       -> A_PARAMETER_VALUE,
+      RuleId               -> A_RULE_UUID,
+      DirectiveIds         -> A_DIRECTIVE_UUID,
+      Targets              -> A_RULE_TARGET,
+      Tags                 -> A_SERIALIZED_TAGS,
+      TagKeys              -> A_SERIALIZED_TAGS,
+      TagValues            -> A_SERIALIZED_TAGS
     )
 
     if (m.size != QSAttribute.values.size) {
@@ -461,42 +566,43 @@ object QSLdapBackend {
 
     def filter(token: String): Option[Filter] = {
       a match {
-        case Name              => sub(a, token)
-        case Description       => sub(a, token)
-        case LongDescription   => sub(a, token)
-        case NodeId            => sub(a, token)
-        case Fqdn              => sub(a, token)
-        case OsType            => Some(EQ(a.ldapName, token + NODE_POSTFIX)) // // objectClass=linuxNode, and only EQ is supported
-        case OsName            => sub(a, token)
-        case OsVersion         => sub(a, token)
-        case OsFullName        => sub(a, token)
-        case OsKernelVersion   => sub(a, token)
-        case OsServicePack     => sub(a, token)
-        case Arch              => sub(a, token)
-        case Ram               => Some(EQ(a.ldapName, token))                // int doesn't have substring match - and its in kb :/
-        case IpAddresses       => Some(EQ(a.ldapName, token))                // ipHostNumber doesn't have substring match :/
-        case PolicyServerId    => sub(a, token)
-        case Properties        => sub(a, token)
-        case GroupProperties   => sub(a, token)
-        case CustomProperties  => sub(a, token)
-        case NodeState         => sub(a, token)
-        case GroupId           => sub(a, token)
-        case IsEnabled         => bool(MatchEnable, a, token)
-        case IsDynamic         => bool(MatchDynamic, a, token)
-        case DirectiveId       => None
-        case DirectiveVarName  => None
-        case DirectiveVarValue => None
-        case TechniqueName     => None
-        case TechniqueId       => None
-        case TechniqueVersion  => None
-        case ParameterName     => sub(a, token)
-        case ParameterValue    => sub(a, token)
-        case RuleId            => sub(a, token)
-        case DirectiveIds      => sub(a, token)
-        case Targets           => sub(a, token)
-        case Tags              => sub(a, token)
-        case TagKeys           => sub(a, token)
-        case TagValues         => sub(a, token)
+        case Name                 => sub(a, token)
+        case Description          => sub(a, token)
+        case LongDescription      => sub(a, token)
+        case NodeId               => sub(a, token)
+        case Fqdn                 => sub(a, token)
+        case OsType               => Some(EQ(a.ldapName, token + NODE_POSTFIX)) // // objectClass=linuxNode, and only EQ is supported
+        case OsName               => sub(a, token)
+        case OsVersion            => sub(a, token)
+        case OsFullName           => sub(a, token)
+        case OsKernelVersion      => sub(a, token)
+        case OsServicePack        => sub(a, token)
+        case Arch                 => sub(a, token)
+        case Ram                  => Some(EQ(a.ldapName, token))                // int doesn't have substring match - and its in kb :/
+        case IpAddresses          => Some(EQ(a.ldapName, token))                // ipHostNumber doesn't have substring match :/
+        case PolicyServerId       => sub(a, token)
+        case Properties           => sub(a, token)
+        case GroupProperties      => sub(a, token)
+        case CustomProperties     => sub(a, token)
+        case NodeState            => sub(a, token)
+        case GroupId              => sub(a, token)
+        case IsEnabled            => bool(MatchEnable, a, token)
+        case IsDynamic            => bool(MatchDynamic, a, token)
+        case DirectiveId          => None
+        case DirectiveVarName     => None
+        case DirectiveVarValue    => None
+        case TechniqueName        => None
+        case TechniqueId          => None
+        case TechniqueVersion     => None
+        case TechniqueMethodValue => None
+        case ParameterName        => sub(a, token)
+        case ParameterValue       => sub(a, token)
+        case RuleId               => sub(a, token)
+        case DirectiveIds         => sub(a, token)
+        case Targets              => sub(a, token)
+        case Tags                 => sub(a, token)
+        case TagKeys              => sub(a, token)
+        case TagValues            => sub(a, token)
       }
     }
   }
@@ -555,6 +661,7 @@ object QSLdapBackend {
       case Node      => Nil
       case Group     => AND(IS(OC_RUDDER_NODE_GROUP), Filter.create(s"entryDN:dnSubtreeMatch:=${rudderDit.GROUP.dn.toString}")) :: Nil
       case Directive => Nil
+      case Technique => Nil
       case Parameter =>
         AND(IS(OC_PARAMETER), Filter.create(s"entryDN:dnOneLevelMatch:=${rudderDit.PARAMETERS.dn.toString}")) :: Nil
       case Rule      => AND(IS(OC_RULE), Filter.create(s"entryDN:dnSubtreeMatch:=${rudderDit.RULES.dn.toString}")) :: Nil
