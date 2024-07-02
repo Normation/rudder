@@ -20,8 +20,10 @@ pub struct Parameters {
     pub backup_dir: PathBuf,
     /// Unique node identifier
     pub node_id: Option<String>,
+    /// Agent run frequency
+    pub agent_frequency_minutes: usize,
     /// Version of the Rudder module protocol
-    pub(crate) rudder_module_protocol: String,
+    pub(crate) rudder_module_protocol: usize,
     /// Module type parameters
     pub data: Map<String, Value>,
     // Only passed if warn

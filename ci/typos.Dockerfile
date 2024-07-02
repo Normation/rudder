@@ -1,4 +1,4 @@
-FROM rust:1.78.0-bookworm
+FROM rust:1.79.0-bookworm
 LABEL ci=rudder/ci/typos.Dockerfile
 ARG VERSION
 
