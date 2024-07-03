@@ -117,6 +117,7 @@ class RestQuicksearch(
     val groupOK      = user.checkRights(AuthorizationType.Group.Read)
     val ruleOK       = user.checkRights(AuthorizationType.Configuration.Read) || user.checkRights(AuthorizationType.Rule.Read)
     val directiveOK  = user.checkRights(AuthorizationType.Configuration.Read) || user.checkRights(AuthorizationType.Directive.Read)
+    val techniqueOK  = user.checkRights(AuthorizationType.Technique.Read)
     val parametersOK =
       user.checkRights(AuthorizationType.Configuration.Read) || user.checkRights(AuthorizationType.Parameter.Read)
 
@@ -127,6 +128,7 @@ class RestQuicksearch(
         case _: QRRuleId      => ruleOK
         case _: QRParameterId => parametersOK
         case _: QRDirectiveId => directiveOK
+        case _: QRTechniqueId => techniqueOK
       }
     }
   }
@@ -214,6 +216,7 @@ class RestQuicksearch(
         case QRNodeId(value)      => nodeLink(NodeId(value))
         case QRRuleId(value)      => ruleLink(RuleId(RuleUid(value)))
         case QRDirectiveId(value) => directiveLink(DirectiveUid(value))
+        case QRTechniqueId(value) => techniqueLink(value)
         case QRGroupId(value)     => groupLink(NodeGroupId(NodeGroupUid(value)))
         case QRParameterId(value) => globalParameterLink(value)
       }

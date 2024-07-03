@@ -40,6 +40,7 @@ decoderType =
           "group" -> succeed Group
           "parameter" -> succeed Parameter
           "directive" -> succeed Directive
+          "technique" -> succeed Technique
           "rule" -> succeed Rule
           _ -> fail ("'" ++ v ++ "' is not valid quicksearch result type")
       )
