@@ -179,7 +179,7 @@ displayNodePropertyRow model =
         defaultEditProperty = EditProperty p.name (displayJsonValue origVal) format True True False
 
         editedProperty = Dict.get p.name model.ui.editedProperties
-        (providerBadge, editRight) = case p.provider of
+        (providerBadge, editRight, deleteRight) = case p.provider of
           Just pr ->
             let
               pTitle = case pr of
@@ -195,9 +195,10 @@ displayNodePropertyRow model =
               , attribute "data-bs-container" "body"
               , title pTitle
               ] [ text pr ]
-              , (pr == "overridden")
+              , pr == "overridden" || pr == "inherited"
+              , pr == "overridden"
               )
-          Nothing -> (text "", True)
+          Nothing -> (text "", True, True)
 
         isTooLong : Value -> Bool
         isTooLong value =
@@ -247,11 +248,12 @@ displayNodePropertyRow model =
             , td [class "text-center default-actions"]
               [ (if (editRight) then
                 div []
-                [ span [ class "action-icon fa fa-pencil", title "Edit", onClick (ToggleEditProperty p.name defaultEditProperty False)][]
-                , span [ class "action-icon fa fa-times text-danger", title "Delete", onClick (ToggleEditPopup (Deletion p.name))][]
-                ]
-                else
-                text ""
+                ( (span [ class "action-icon fa fa-pencil", title "Edit", onClick (ToggleEditProperty p.name defaultEditProperty False)][]
+                  ) :: if (deleteRight) then (
+                    [ span [ class "action-icon fa fa-times text-danger", title "Delete", onClick (ToggleEditPopup (Deletion p.name))][] ]
+                  ) else []
+                )
+                else text ""
                 )
               ]
             ]
