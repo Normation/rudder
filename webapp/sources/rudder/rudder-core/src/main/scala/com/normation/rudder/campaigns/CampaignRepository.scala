@@ -74,21 +74,25 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File,
     extends CampaignRepository {
 
   def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue]): IOResult[List[Campaign]] = {
-    for {
-      jsonFiles          <- IOResult.attempt(path.collectChildren(_.extension.exists(_ == ".json")))
-      campaigns          <- (ZIO.foreach(jsonFiles.toList) { json =>
-                              (for {
-                                c <-
-                                  campaignSerializer.parse(json.contentAsString)
-                              } yield {
-                                c
-                              }).either.chainError("Error when getting all campaigns from filesystem")
-                            })
-      (errs, campaignRes) = campaigns.partitionMap(identity)
-      _                  <- ZIO.foreach(errs)(err => CampaignLogger.error(err.msg))
-      filteredCampaign    = Campaign.filter(campaignRes, typeFilter, statusFilter)
-    } yield {
-      filteredCampaign
+    if (path.exists) {
+      for {
+        jsonFiles          <- IOResult.attempt(path.collectChildren(_.extension.exists(_ == ".json")))
+        campaigns          <- (ZIO.foreach(jsonFiles.toList) { json =>
+                                (for {
+                                  c <-
+                                    campaignSerializer.parse(json.contentAsString)
+                                } yield {
+                                  c
+                                }).either.chainError("Error when getting all campaigns from filesystem")
+                              })
+        (errs, campaignRes) = campaigns.partitionMap(identity)
+        _                  <- ZIO.foreach(errs)(err => CampaignLogger.error(err.msg))
+        filteredCampaign    = Campaign.filter(campaignRes, typeFilter, statusFilter)
+      } yield {
+        filteredCampaign
+      }
+    } else {
+      Nil.succeed
     }
   }
   def get(id: CampaignId):                                                             IOResult[Campaign]       = {
