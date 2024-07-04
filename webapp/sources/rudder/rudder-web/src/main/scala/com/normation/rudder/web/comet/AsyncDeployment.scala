@@ -175,7 +175,12 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
                   </div>
                 </div>
 
-                case _ => <div class="pre">{failure.messageChain.split("<-").map(x => Text("⇨ " + x) ++ { <br/> })}</div>
+                case _ =>
+                  <pre class="code">{
+                    failure.messageChain
+                      .split("<- ")
+                      .map(x => Text("⇨ " + x.replace("cause was:", "\n    cause was:")) ++ { <br/> })
+                  }</pre>
               }
             }
 
@@ -252,7 +257,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   private def errorPopup = {
     <div class="modal fade" tabindex="-1" id="errorDetailsDialog" data-bs-backdrop="false">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Error</h5>
