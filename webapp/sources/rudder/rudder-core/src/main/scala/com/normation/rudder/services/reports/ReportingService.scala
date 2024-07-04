@@ -70,23 +70,12 @@ trait ReportingService {
   def findUncomputedNodeStatusReports(): IOResult[Map[NodeId, NodeStatusReport]]
 
   /**
-   * Retrieve a set of rule/node compliances given the nodes Id.
-   * Optionally restrict the set to some rules if filterByRules is non empty (else,
-   * find node status reports for all rules)
-   */
-  def findRuleNodeCompliance(nodeIds: Set[NodeId], tag: PolicyTypeName, filterByRules: Set[RuleId])(implicit
-      qc: QueryContext
-  ): IOResult[Map[NodeId, ComplianceLevel]]
-
-  /**
    * Retrieve two sets of rule/node compliances level given the nodes Id.
    * Optionally restrict the set to some rules if filterByRules is non empty (else,
    * find node status reports for all rules)
    */
   def findSystemAndUserRuleCompliances(
-      nodeIds:             Set[NodeId],
-      filterBySystemRules: Set[RuleId],
-      filterByUserRules:   Set[RuleId]
+      nodeIds: Set[NodeId]
   )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])]
 
   /**
@@ -124,15 +113,6 @@ trait ReportingService {
   )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])]
 
   /**
-   * * Get the global compliance for reports passed in parameters
-   * * Returns get an unique number which describe the global compliance value (without
-   * * taking into account pending reports).
-   * * It's what is displayed on Rudder home page.
-   * * If reports are empty, returns none.
-   */
-  def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)]
-
-  /**
   * Get the global compliance, restricted to user defined rules/directives.
   * Also get an unique number which describe the global compliance value (without
   * taking into account pending reports).
@@ -141,7 +121,10 @@ trait ReportingService {
   */
   def getGlobalUserCompliance()(implicit qc: QueryContext): IOResult[Option[(ComplianceLevel, Long)]]
 
-  // Utilitary method to filter reports by rules
+}
+
+object ReportingService {
+  // Utility method to filter reports by rules
   def filterReportsByRules(reports: Map[NodeId, NodeStatusReport], ruleIds: Set[RuleId]): Map[NodeId, NodeStatusReport] = {
     if (ruleIds.isEmpty) {
       reports
@@ -177,17 +160,36 @@ trait ReportingService {
       }.toMap
   }
 
-  def complianceByRules(report: NodeStatusReport, tag: PolicyTypeName, ruleIds: Set[RuleId]): ComplianceLevel = {
-    if (ruleIds.isEmpty) {
-      report.compliance
-    } else {
-      // compute compliance only for the selected rules
-      // BE CAREFUL: reports is a SET - and it's likely that
-      // some compliance will be equals. So change to seq.
-      ComplianceLevel.sum(report.reports.toSeq.collect {
-        case (t, r) if (t == tag) =>
-          r.filterByRules(ruleIds).compliance
-      })
+  def complianceByPolicyType(report: NodeStatusReport, policyType: PolicyTypeName): ComplianceLevel = {
+    ComplianceLevel.sum(report.reports.toSeq.collect {
+      case (t, r) if t == policyType =>
+        r.compliance
+    })
+  }
+
+  /**
+   * * Get the global compliance for reports passed in parameters
+   * * Returns get an unique number which describe the global compliance value (without
+   * * taking into account pending reports).
+   * * It's what is displayed on Rudder home page.
+   * * If reports are empty, returns none.
+   */
+  def computeComplianceFromReports(reports: Map[NodeId, NodeStatusReport]): Option[(ComplianceLevel, Long)] = {
+    // if we don't have any report that is not a system one, the user-rule global compliance is undefined
+    val n1 = System.currentTimeMillis
+    if (reports.isEmpty) {
+      None
+    } else { // aggregate values
+      val complianceLevel = ComplianceLevel.sum(reports.flatMap(_._2.reports.map(_._2.compliance)))
+      val n2              = System.currentTimeMillis
+      TimingDebugLogger.trace(s"Aggregating compliance level for  global user compliance in: ${n2 - n1}ms")
+
+      Some(
+        (
+          complianceLevel,
+          complianceLevel.withoutPending.computePercent().compliance.round
+        )
+      )
     }
   }
 }
