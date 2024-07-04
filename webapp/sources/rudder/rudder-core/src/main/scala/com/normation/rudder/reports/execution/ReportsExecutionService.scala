@@ -50,8 +50,9 @@ import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.score.ComplianceScoreEvent
 import com.normation.rudder.score.ScoreServiceManager
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.UpdateCompliance
-import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
+import com.normation.rudder.services.reports.ComputeNodeStatusReportService
+import com.normation.rudder.services.reports.FindNewNodeStatusReports
 import net.liftweb.common.*
 import org.joda.time.DateTime
 import org.joda.time.format.PeriodFormat
@@ -65,12 +66,13 @@ final case class InvalidateComplianceCacheMsg(updatedNodeIds: Set[NodeId])
  * interval of same criticity together.
  */
 class ReportsExecutionService(
-    reportsRepository:      ReportsRepository,
-    statusUpdateRepository: LastProcessedReportRepository,
-    cachedChanges:          CachedNodeChangesServiceImpl,
-    cachedCompliance:       CachedFindRuleNodeStatusReports,
-    complianceRepos:        ComplianceRepository,
-    scoreServiceManager:    ScoreServiceManager
+    reportsRepository:              ReportsRepository,
+    statusUpdateRepository:         LastProcessedReportRepository,
+    cachedChanges:                  CachedNodeChangesServiceImpl,
+    computeNodeStatusReportService: ComputeNodeStatusReportService,
+    findNewNodeStatusReports:       FindNewNodeStatusReports,
+    complianceRepos:                ComplianceRepository,
+    scoreServiceManager:            ScoreServiceManager
 ) {
 
   val logger = ReportLogger
@@ -158,8 +160,8 @@ class ReportsExecutionService(
 
     val startCompliance = System.currentTimeMillis
     for {
-      nodeWithCompliances <- cachedCompliance.findUncomputedNodeStatusReports()
-      _                   <- cachedCompliance.invalidateWithAction(nodeWithCompliances.map {
+      nodeWithCompliances <- findNewNodeStatusReports.findUncomputedNodeStatusReports()
+      _                   <- computeNodeStatusReportService.invalidateWithAction(nodeWithCompliances.map {
                                case (nodeid, compliance) => (nodeid, UpdateCompliance(nodeid, compliance))
                              }.toSeq)
       _                   <- ReportLoggerPure.Cache.debug(
@@ -167,9 +169,8 @@ class ReportsExecutionService(
                              )
       _                   <- complianceRepos.saveRunCompliance(nodeWithCompliances.values.toList) // unsure if here or in the queue
       _                   <- ZIO.foreachDiscard(nodeWithCompliances) { case (id, r) => updateScore(id, r) }
-
-      _ <- cachedCompliance.outDatedCompliance()
-      _ <-
+      _                   <- computeNodeStatusReportService.outDatedCompliance()
+      _                   <-
         ReportLoggerPure.Cache.debug(
           s"Computing compliance in : ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startCompliance).toPeriod())}"
         )

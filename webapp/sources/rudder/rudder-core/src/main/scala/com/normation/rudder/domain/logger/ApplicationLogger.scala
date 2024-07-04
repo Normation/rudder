@@ -248,6 +248,10 @@ object ComplianceLogger extends Logger {
   override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("compliance")
 }
 
+object ComplianceLoggerPure extends NamedZioLogger {
+  override def loggerName: String = "compliance"
+}
+
 object ReportLogger extends Logger {
   override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("report")
 
@@ -267,11 +271,14 @@ object FactQueryProcessorLoggerPure extends NamedZioLogger {
 object ReportLoggerPure extends NamedZioLogger {
   override def loggerName: String = "report"
 
-  object Changes extends NamedZioLogger {
+  object Changes    extends NamedZioLogger {
     override def loggerName: String = "report.changes"
   }
-  object Cache   extends NamedZioLogger {
+  object Cache      extends NamedZioLogger {
     override def loggerName: String = "report.cache"
+  }
+  object Repository extends NamedZioLogger {
+    override def loggerName: String = "report.repository"
   }
 }
 

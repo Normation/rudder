@@ -91,9 +91,9 @@ import com.normation.rudder.services.policies.nodeconfig.FileBasedNodeConfigurat
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRepository
 import com.normation.rudder.services.policies.write.PolicyWriterService
-import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.reports.CachedNodeConfigurationService
 import com.normation.rudder.services.reports.CacheExpectedReportAction
+import com.normation.rudder.services.reports.FindNewNodeStatusReports
 import com.normation.rudder.utils.ParseMaxParallelism
 import com.normation.utils.Control.*
 import com.softwaremill.quicklens.*
@@ -827,7 +827,7 @@ class PromiseGenerationServiceImpl(
     override val interpolatedValueCompiler:         InterpolatedValueCompiler,
     override val complianceModeService:             ComplianceModeService,
     override val agentRunService:                   AgentRunIntervalService,
-    override val complianceCache:                   CachedFindRuleNodeStatusReports,
+    override val complianceCache:                   FindNewNodeStatusReports,
     override val promisesFileWriterService:         PolicyWriterService,
     override val writeNodeCertificatesPem:          WriteNodeCertificatesPem,
     override val cachedNodeConfigurationService:    CachedNodeConfigurationService,
@@ -1649,7 +1649,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
-  def complianceCache:                CachedFindRuleNodeStatusReports
+  def complianceCache:                FindNewNodeStatusReports
   def confExpectedRepo:               UpdateExpectedReportsRepository
   def cachedNodeConfigurationService: CachedNodeConfigurationService
 

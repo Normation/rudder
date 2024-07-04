@@ -213,7 +213,7 @@ class CachedNodeConfigurationService(
   override def invalidateWithAction(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = {
     ZIO.when(actions.nonEmpty) {
       logger.debug(
-        s"Node Configuration cache: invalidation request for nodes with action: [${actions.map(_._2).mkString(",")}]"
+        s"Node Configuration cache: invalidation request for nodes with action: [${actions.map(_._2.getClass.getSimpleName).mkString(",")}]"
       ) *>
       invalidateMergeUpdateSemaphore.withPermit(for {
         elements  <- invalidateNodeConfigurationRequest.takeAll

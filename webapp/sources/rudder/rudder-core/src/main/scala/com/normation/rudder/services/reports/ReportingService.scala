@@ -67,12 +67,13 @@ trait ReportingService {
       filterByDirectives: Set[DirectiveId]
   )(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]]
 
-  def findUncomputedNodeStatusReports(): IOResult[Map[NodeId, NodeStatusReport]]
-
   /**
    * Retrieve two sets of rule/node compliances level given the nodes Id.
    * Optionally restrict the set to some rules if filterByRules is non empty (else,
    * find node status reports for all rules)
+   *
+   * The first set is System compliance.
+   * The second set is User compliance.
    */
   def findSystemAndUserRuleCompliances(
       nodeIds: Set[NodeId]
