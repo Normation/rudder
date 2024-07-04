@@ -6,6 +6,7 @@ import Dict.Extra
 import Http exposing (..)
 
 
+import GroupRelatedRules.DataTypes exposing (GroupId)
 import Groups.ApiCalls exposing (..)
 import Groups.DataTypes exposing (..)
 import Groups.Init exposing (init)
@@ -25,11 +26,13 @@ port adjustComplianceCols   : () -> Cmd msg
 port createGroupModal       : () -> Cmd msg
 port closeModal             : (() -> msg) -> Sub msg
 port loadGroupTable         : (() -> msg) -> Sub msg
+port readUrl                : (String -> msg) -> Sub msg
 
 subscriptions : Model -> Sub Msg
 subscriptions _ = Sub.batch
   [ closeModal (\_ -> CloseModal)
   , loadGroupTable (\_ -> LoadGroupTable)
+  , readUrl (\s -> OpenGroupDetails (GroupId s))
   ]
 
 main =

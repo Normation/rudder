@@ -22,7 +22,7 @@ kindName k =
 viewItem: SearchResultItem -> Html Msg
 viewItem item =
   li [ class "list-group-item" ] [
-    a [href item.url, style "text-decoration" "none"] [
+    a [href item.url, style "text-decoration" "none", onClick Close] [
       span [] [ text item.name ]
     , div [ class "description" ] [ text item.desc ]
     ]

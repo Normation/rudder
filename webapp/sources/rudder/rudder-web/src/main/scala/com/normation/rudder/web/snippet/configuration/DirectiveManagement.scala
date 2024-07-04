@@ -160,6 +160,22 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     }
 
     JsRaw(s"""
+        // support loading another directive from change in URL hash while staying in page (e.g. from quicksearch result)
+        window.addEventListener('hashchange', function (e) {
+          var newHash = e.target.location.hash;
+          var splitHash = newHash.split("#");
+          if (splitHash.length > 0) {
+            var hashJson = decodeURIComponent(splitHash[1]);
+            try {
+              var hashJsonObj = JSON.parse(hashJson);
+              if ("directiveId" in hashJsonObj) {
+                // displayDetails needs stringified object
+                ${SHtml.ajaxCall(JsVar("hashJson"), displayDetails _)._2.toJsCmd};
+              }
+            } catch {}
+          }
+        });
+
         var directiveId = null;
         try {
           var directiveId = decodeURI(window.location.hash.substring(1)) ;

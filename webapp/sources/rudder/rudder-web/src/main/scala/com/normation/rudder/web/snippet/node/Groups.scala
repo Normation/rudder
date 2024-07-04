@@ -163,6 +163,19 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
                |    window.location.hash = JSON.stringify({[hashKey]: hashValue});
                |  }
                |});
+               |// support loading another group from change in URL hash while staying in page (e.g. from quicksearch result)
+               |window.addEventListener('hashchange', function (e) {
+               |  var newHash = e.target.location.hash;
+               |  var splitHash = newHash.split("#");
+               |  if (splitHash.length > 0) {
+               |    try {
+               |      var hashJsonObj = JSON.parse(decodeURIComponent(splitHash[1]));
+               |      if ("groupId" in hashJsonObj) {
+               |        app.ports.readUrl.send(hashJsonObj["groupId"]);
+               |      }
+               |    } catch {}
+               |  }
+               |});
                |app.ports.adjustComplianceCols.subscribe(function() {
                |  //call the equalize width function
                |  var group = $$(".compliance-col");
