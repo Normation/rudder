@@ -3,7 +3,7 @@ module NodeProperties.ApiCalls exposing (..)
 import Http exposing (..)
 import Json.Decode exposing (at, list)
 import QuickSearch.JsonDecoder exposing (decoderResult)
-import Url.Builder exposing (QueryParameter, string)
+import Url.Builder exposing (QueryParameter, int, string)
 
 import NodeProperties.DataTypes exposing (..)
 import NodeProperties.JsonDecoder exposing (..)
@@ -69,9 +69,11 @@ deleteProperty property model =
 findPropertyUsage : String -> Model -> Cmd Msg
 findPropertyUsage propertyName model =
   let
+    queryFilter = "is:Directive,Technique in:dir_param_value,technique_method_value "
     property = "${node.properties[" ++ propertyName ++ "]"
-    param = string "value" property
-    urlTest = Url.Builder.relative (model.contextPath :: "secure" :: "api"  :: "quicksearch" :: []) [ param ]
+    param = string "value" (queryFilter ++ property)
+    paramLimit = int "limit" 0
+    urlTest = Url.Builder.relative (model.contextPath :: "secure" :: "api"  :: "quicksearch" :: []) [ param, paramLimit ]
     req =
       request
         { method  = "GET"

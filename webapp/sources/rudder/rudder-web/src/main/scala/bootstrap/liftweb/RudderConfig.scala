@@ -2175,8 +2175,7 @@ object RudderConfigInit {
           userPropertyService,
           nodeInheritedProperties,
           uuidGen,
-          DeleteMode.Erase, // only supported mode for Rudder 8.0
-          new PropertyUsageService(roDirectiveRepository, ncfTechniqueReader)
+          DeleteMode.Erase // only supported mode for Rudder 8.0
         ),
         new ParameterApi(restExtractorService, zioJsonExtractor, parameterApiService2, parameterApiService14),
         new SettingsApi(
