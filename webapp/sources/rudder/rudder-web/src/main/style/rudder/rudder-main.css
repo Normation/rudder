@@ -2442,11 +2442,14 @@ span.techversion {
   background-image    : url(../../images/dsc-icon.svg);
   background-repeat   : no-repeat;
   background-size     : contain;
-  margin-top : -6px;
-  position   : relative;
   display    : inline-block;
   height     : 20px;
   width      : 16px;
+}
+.jstree .dsc-icon,
+.btn .dsc-icon{
+  margin-top : -6px;
+  position   : relative;
   top        : 5px;
 }
 .fa.warnicon{
