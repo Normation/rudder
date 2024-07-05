@@ -39,6 +39,7 @@ package com.normation.rudder.web.services
 import com.normation.box.*
 import com.normation.eventlog.EventLog
 import com.normation.rudder.repository.*
+import com.normation.rudder.web.snippet.WithNonce
 import doobie.*
 import doobie.implicits.*
 import doobie.implicits.javasql.*
@@ -127,12 +128,12 @@ class EventListDisplayer(repos: EventLogRepository) extends Loggable {
 
     val refresh = AnonFunc(SHtml.ajaxInvoke(() => getLastEvents))
 
-    Script(OnLoad(JsRaw(s"""
+    WithNonce.scriptWithNonce(Script(OnLoad(JsRaw(s"""
      var refreshEventLogs = ${refresh.toJsCmd};
      initDatePickers("#filterLogs", ${AnonFunc("param", SHtml.ajaxCall(JsVar("param"), getEventsInterval)._2).toJsCmd});
      createEventLogTable('${gridName}',[], '${S.contextPath}', refreshEventLogs)
      refreshEventLogs();
-    """))) // JsRaw ok, escaped
+    """)))) // JsRaw ok, escaped
   }
 
 }

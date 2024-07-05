@@ -68,6 +68,7 @@ import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.web.snippet.CustomPageJs
 import com.normation.rudder.web.snippet.WithCachedResource
+import com.normation.rudder.web.snippet.WithEnabledCSP
 import com.normation.rudder.web.snippet.WithNonce
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
@@ -92,7 +93,6 @@ import org.springframework.security.core.context.SecurityContextHolder
 import scala.concurrent.duration.DAYS
 import scala.concurrent.duration.Duration
 import scala.util.chaining.*
-import scala.util.matching.Regex
 import scala.xml.Elem
 import scala.xml.Node
 import scala.xml.NodeSeq
@@ -104,26 +104,11 @@ import zio.syntax.*
  */
 object Boot {
 
-  object RequestHeadersFactoryVendor {
-
-    /**
-     * A list of uris to match against when deciding whether to add a nonce to the CSP header for strict CSP
-     * (see level 3 specification section for nonce : https://www.w3.org/TR/CSP3/#framework-directive-source-list).
-     *
-     * This will apply our custom CSP headers for all html tags within the page with the `with-nonce` snippet directive.
-     */
-    val customCSPUrisRegexList: List[Regex] = List(
-      "^.*/secure/utilities/healthcheck$" // healthcheck: main page
-    ).map(_.r)
-
-  }
-
   /**
     * A vendor for our custom headers.
     * We use it as default vendor for headers with our custom routing logic of CSP headers for instance.
     */
   final class RequestHeadersFactoryVendor(csp: ContentSecurityPolicy) extends Vendor[List[(String, String)]] {
-    import RequestHeadersFactoryVendor.*
 
     LiftRules.registerInjection(this)
 
@@ -140,32 +125,30 @@ object Boot {
       * Returns all headers depending on page url, using current request nonce and add all other initial CSP directives
       */
     private def addCspHeaders(allHeaders: List[(String, String)]): List[(String, String)] = {
-      S.uri match {
-        case uri if customCSPUrisRegexList.exists(_.matches(uri)) => {
-          val nonce = WithNonce.getCurrentNonce
+      if (WithEnabledCSP.isEnabled) {
+        val nonce = WithNonce.getCurrentNonce
 
-          val cspHeader     = compileCSPHeader(
-            cspDirectives
-              .pipe(
-                replaceCSPRestrictionDirectives("script-src", s"'nonce-${nonce}' 'strict-dynamic'")(_)
-              )
-              .pipe(
-                replaceCSPRestrictionDirectives("object-src", "'none'")(_)
-              )
-              .pipe(
-                _ :+ ("base-uri" -> "'none'") :+ ("report-uri" -> s"${S.contextPath}/${LiftRules.liftContextRelativePath}/content-security-policy-report")
-              )
-          )
-          val newCspHeaders = csp
-            .headers()
-            .collect {
-              // replace all content security policies directives
-              case (header, _) if cspHeaderNames.contains(header) => header -> cspHeader
-            }
-          newCspHeaders ++ allHeaders.filterNot(h => cspHeaderNames.contains(h._1))
-        }
-        case _                                                    =>
-          allHeaders // no headers to override
+        val cspHeader     = compileCSPHeader(
+          cspDirectives
+            .pipe(
+              replaceCSPRestrictionDirectives("script-src", s"'nonce-${nonce}' 'strict-dynamic'")(_)
+            )
+            .pipe(
+              replaceCSPRestrictionDirectives("object-src", "'none'")(_)
+            )
+            .pipe(
+              _ :+ ("base-uri" -> "'none'") :+ ("report-uri" -> s"${S.contextPath}/${LiftRules.liftContextRelativePath}/content-security-policy-report")
+            )
+        )
+        val newCspHeaders = csp
+          .headers()
+          .collect {
+            // replace all content security policies directives
+            case (header, _) if cspHeaderNames.contains(header) => header -> cspHeader
+          }
+        newCspHeaders ++ allHeaders.filterNot(h => cspHeaderNames.contains(h._1))
+      } else {
+        allHeaders // no headers to override
       }
     }
 
@@ -597,7 +580,7 @@ class Boot extends Loggable {
         ContentSourceRestriction.Self :: ContentSourceRestriction.UnsafeInline :: ContentSourceRestriction.UnsafeEval :: Nil
     )
 
-    LiftRules.snippetDispatch.append(Map("with-nonce" -> WithNonce))
+    LiftRules.snippetDispatch.append(Map("with-nonce" -> WithNonce, "with-enabled-csp" -> WithEnabledCSP))
     LiftRules.securityRules = () => {
       SecurityRules(
         https = hsts,
