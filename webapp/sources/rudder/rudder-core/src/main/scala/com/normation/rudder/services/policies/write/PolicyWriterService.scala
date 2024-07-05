@@ -848,9 +848,10 @@ class PolicyWriterServiceImpl(
       val writeAgent = for {
         // changing `writeAllAgentSpecificFiles.write` to IOResult breaks DSC
         t0 <- currentTimeNanos
-        _  <- IOResult
-                .attempt(writeAllAgentSpecificFiles.write(prepared))
+        _  <- writeAllAgentSpecificFiles
+                .write(prepared)
                 .chainError(s"Error with node '${prepared.paths.nodeId.value}'")
+                .toIO
         t1 <- currentTimeNanos
         _  <- writeTimer.agentSpecific.update(_ + t1 - t0)
       } yield ()

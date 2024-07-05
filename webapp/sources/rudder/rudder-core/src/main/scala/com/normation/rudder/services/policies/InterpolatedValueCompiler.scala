@@ -163,8 +163,16 @@ object PropertyParserTokens {
     def prefix(p: String): CharSeq = CharSeq(p + s)
   }
 
-  // ${} but not for rudder
-  final case class NonRudderVar(s: String) extends AnyVal with Token
+  // ${} but not for rudder, with a path and accessors
+  final case class NonRudderVar(path: String, accessors: List[String] = List.empty) extends Token {
+    // Original syntax for indexing the variable : var.path[accessor][another]
+    def indexedPath: String = if (accessors.isEmpty) path else s"${path}${accessors.mkString("[", "][", "]")}"
+    // Convenience syntax for path-based access (DSC agent)
+    def fullPath:    String = if (accessors.isEmpty) path else s"${path}.${accessors.mkString(".")}"
+  }
+
+  // ${} but not for rudder, represents any unsafe interpolation which is of unknown format
+  final case class UnsafeRudderVar(s: String) extends AnyVal with Token
 
   // an interpolation
   sealed trait Interpolation extends Any with Token
@@ -245,8 +253,9 @@ trait AnalyseInterpolation[T, I <: GenericInterpolationContext[T]] {
    */
   def analyse(context: I, token: Token): IOResult[String] = {
     token match {
-      case CharSeq(s)            => s.succeed
-      case NonRudderVar(s)       => s"$${${s}}".succeed
+      case CharSeq(s) => s.succeed
+      case v: NonRudderVar => s"$${${v.indexedPath}}".succeed
+      case UnsafeRudderVar(s)    => s"$${${s}}".succeed
       case NodeAccessor(path)    => getNodeAccessorTarget(context, path).toIO
       case Param(path)           => getRudderGlobalParam(context, path)
       case RudderEngine(e, m, o) => expandWithPropertyEngine(e, m, o)
@@ -458,10 +467,11 @@ class InterpolatedValueCompilerImpl(p: PropertyEngineService) extends Interpolat
   // Transform a token to its correct value for the agent passed as parameter
   def translate(agent: AgentType, token: Token): String = {
     token match {
-      case CharSeq(s)            => s
-      case NonRudderVar(s)       => s"$${${s}}"
-      case NodeAccessor(path)    => s"$${rudder.node.${path.mkString(".")}}"
-      case Param(name)           => s"$${rudder.param.${name}}"
+      case CharSeq(s)         => s
+      case NodeAccessor(path) => s"$${rudder.node.${path.mkString(".")}}"
+      case v: NonRudderVar => s"$${${v.indexedPath}}"
+      case UnsafeRudderVar(s)    => s"$${${s}}"
+      case Param(name)           => s"$${rudder.param.${name}}" // FIXME: is this a bug ? name is a List[String]
       case RudderEngine(e, m, o) =>
         val opt = o match {
           case Some(options) => options.map(o => s"| ${o.name} = ${o.value}").mkString(" ")
@@ -501,12 +511,12 @@ object PropertyParser {
   /*
    * Defines what is accepted as a valid property character name.
    */
-  final val invalidPropertyChar:       Set[Char]          = Set('"', '$', '{', '}', '[', ']')
-  def validPropertyNameChar(c: Char):  Boolean            = {
-    !(c.isControl || c.isSpaceChar || c.isWhitespace || invalidPropertyChar.contains(c))
+  final val invalidPropertyChar:                                       Set[Char]          = Set('"', '$', '{', '}', '[', ']')
+  def validPropertyNameChar(c: Char, allowSpaceChar: Boolean = false): Boolean            = {
+    !(c.isControl || invalidPropertyChar.contains(c)) && (allowSpaceChar || !(c.isSpaceChar || c.isWhitespace))
   }
-  def validPropertyName(name: String): PureResult[String] = {
-    if (name.forall(validPropertyNameChar)) Right(name)
+  def validPropertyName(name: String):                                 PureResult[String] = {
+    if (name.forall(validPropertyNameChar(_))) Right(name)
     else {
       Left(
         Inconsistency(
@@ -517,8 +527,10 @@ object PropertyParser {
     }
   }
 
-  def all[A: P]: P[List[Token]] =
-    P(Start ~ ((noVariableStart | variable | ("${" ~ noVariableEnd.map(_.prefix("${")))).rep(1) | empty) ~ End).map(_.toList)
+  def all[A: P]: P[List[Token]] = {
+    P(Start ~ ((noVariableStart | variable | unknownVariable | ("${" ~ noVariableEnd.map(_.prefix("${")))).rep(1) | empty) ~ End)
+      .map(_.toList)
+  }
 
   // empty string is a special case that must be look appart from plain string.
   def empty[A:           P]: P[List[CharSeq]] = P("").map(_ => CharSeq("") :: Nil)
@@ -530,13 +542,20 @@ object PropertyParser {
 
   def variable[A: P]: P[Token] = P("${" ~ space ~ variableType ~ space ~ "}")
 
-  def variableType[A: P]: P[Token]  = P(interpolatedVariable | otherVariable)
+  def variableType[A: P]: P[Token] = P(interpolatedVariable | otherVariable)
   def variableId[A:   P]: P[String] = P(CharIn("""\-_a-zA-Z0-9""").rep(1).!)
-  def propertyId[A:   P]: P[String] = P(CharsWhile(validPropertyNameChar).!)
+  def propertyId[A:   P](allowSpaceChar: Boolean = false): P[String] = P(CharsWhile(validPropertyNameChar(_, allowSpaceChar)).!)
 
-  // other cases of ${}: cfengine variables, etc
-  def otherVariable[A: P]: P[NonRudderVar] = P((variableId ~ ".").rep(0) ~ variableId).map {
-    case (begin, end) => NonRudderVar((begin :+ end).mkString("."))
+  // other cases of ${}: cfengine variables with path and accessor
+  def otherVariable[A: P]: P[NonRudderVar] = {
+    P(((variableId ~ ".").rep(0) ~ variableId) ~ arrayNames(allowSpaceInProperty = true).?).map {
+      case ((begin, end, accessors)) => NonRudderVar((begin :+ end).mkString("."), accessors.getOrElse(List.empty))
+    }
+  }
+
+  // other unknown cases of ${}
+  def unknownVariable[A: P]: P[UnsafeRudderVar] = {
+    P("${" ~/ (!"}" ~ AnyChar).rep(1).! ~ "}").map(UnsafeRudderVar(_))
   }
 
   def interpolatedVariable[A: P]: P[Interpolation] = P(rudderVariable | nodeProperty | rudderEngine)
@@ -561,7 +580,7 @@ object PropertyParser {
 
   // ${data.name[val][val2] | option1 = xxx | option2 = xxx}
   // ${rudder-data.name[val][val2] | option1 = xxx | option2 = xxx}
-  def rudderEngineFormat[A: P]: P[Interpolation] = P(propertyId ~/ arrayNames ~/ engineOption.?).map {
+  def rudderEngineFormat[A: P]: P[Interpolation] = P(propertyId() ~/ arrayNames() ~/ engineOption.?).map {
     case (name, methods, opt) => RudderEngine(name, methods, opt)
   }
 
@@ -571,20 +590,23 @@ object PropertyParser {
   }
 
   // a parameter new syntax looks like: ${rudder.parameters[PARAM_NAME][SUB_NAME]}
-  def parameters[A: P]: P[Interpolation] = P(IgnoreCase("parameters") ~/ arrayNames).map(p => Param(p.toList))
+  def parameters[A: P]: P[Interpolation] = P(IgnoreCase("parameters") ~/ arrayNames()).map(p => Param(p))
 
   // a node property looks like: ${node.properties[.... Cut after "properties".
-  def nodeProperty[A: P]: P[Interpolation] = (IgnoreCase("node") ~ space ~ "." ~ space ~ IgnoreCase("properties") ~/ arrayNames ~/
-    nodePropertyOption.?).map { case (path, opt) => Property(path.toList, opt) }
+  def nodeProperty[A: P]: P[Interpolation] = {
+    (IgnoreCase("node") ~ space ~ "." ~ space ~ IgnoreCase("properties") ~/ arrayNames() ~/
+    nodePropertyOption.?).map { case (path, opt) => Property(path, opt) }
+  }
 
   // parse an array of property names: `[name1][name2]..` (for parameter/node properties)
-  def arrayNames[A: P]: P[List[String]] = P((space ~ "[" ~ space ~ propertyId ~ space ~ "]").rep(1)).map(_.toList)
+  def arrayNames[A: P](allowSpaceInProperty: Boolean = false): P[List[String]] =
+    P((space ~ "[" ~ space ~ propertyId(allowSpaceInProperty) ~ space ~ "]").rep(1)).map(_.toList)
 
   // here, the number of " must be strictly decreasing - ie. triple quote before
   def nodePropertyOption[A: P]: P[PropertyOption] = P(space ~ "|" ~/ space ~ (onNodeOption | defaultOption))
 
   def engineOption[A: P]: P[List[EngineOption]] = {
-    P((space ~ "|" ~/ space ~ propertyId ~ space ~ "=" ~/ space ~/ propertyId).rep(1)).map { opts =>
+    P((space ~ "|" ~/ space ~ propertyId() ~ space ~ "=" ~/ space ~/ propertyId()).rep(1)).map { opts =>
       opts.toList.map(o => EngineOption(o._1, o._2))
     }
   }

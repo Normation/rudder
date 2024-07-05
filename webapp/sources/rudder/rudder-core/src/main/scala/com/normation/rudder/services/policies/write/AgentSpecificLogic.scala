@@ -37,15 +37,13 @@
 
 package com.normation.rudder.services.policies.write
 
+import cats.syntax.traverse.*
+import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Bsd
 import com.normation.inventory.domain.Linux
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.services.policies.NodeRunHook
-import com.normation.utils.Control.traverse
-import net.liftweb.common.Box
-import net.liftweb.common.Failure
-import net.liftweb.common.Full
 
 /*
  * This file contain agent-type specific logic used during the policy
@@ -71,7 +69,7 @@ trait AgentFormatBundleVariables {
       inputs:   List[InputFile],
       bundles:  List[TechniqueBundles],
       runHooks: List[NodeRunHook]
-  ): BundleSequenceVariables
+  ): PureResult[BundleSequenceVariables]
 }
 
 // does that implementation knows something about the current agent type
@@ -85,7 +83,7 @@ trait AgentSpecificGenerationHandle {
 
 //write what must be written for the given configuration
 trait WriteAgentSpecificFiles {
-  def write(cfg: AgentNodeWritableConfiguration): Box[List[AgentSpecificFile]]
+  def write(cfg: AgentNodeWritableConfiguration): PureResult[List[AgentSpecificFile]]
 }
 
 trait AgentSpecificGeneration
@@ -113,9 +111,9 @@ class AgentRegister {
 
   /**
    * Find the first agent matching the required agentType/osDetail and apply f on it.
-   * If none is found, return a failure.
+   * If none is found, return an error message for the user.
    */
-  def findMap[T](agentNodeProps: AgentNodeProperties)(f: AgentSpecificGeneration => Box[T]): Box[T] = {
+  def findMap[T](agentNodeProps: AgentNodeProperties)(f: AgentSpecificGeneration => PureResult[T]): PureResult[T] = {
     pipeline.find(handler => handler.handle(agentNodeProps)) match {
       case None =>
         val msg = if (agentNodeProps.isPolicyServer) {
@@ -126,7 +124,7 @@ class AgentRegister {
           s"""'${agentNodeProps.agentType
               .toString()}' agent and '${agentNodeProps.osDetails.fullName}' system. Maybe you are missing a dedicated plugin?"""
         }
-        Failure(msg)
+        Left(Unexpected(msg))
 
       case Some(h) => f(h)
     }
@@ -134,23 +132,10 @@ class AgentRegister {
 
   /**
    * Find the first agent matching the required agentType/osDetail.
-   * If none is found, return a failure.
+   * If none is found, return an error message for the user.
    */
-  def findHandler(agentNodeProps: AgentNodeProperties): Box[AgentSpecificGeneration] = {
-    pipeline.find(handler => handler.handle(agentNodeProps)) match {
-      case None =>
-        val msg = if (agentNodeProps.isPolicyServer) {
-          s"""We could not generate policies for server '${agentNodeProps.nodeId.value}', therefore making updates """ +
-          s"""for nodes behind it unavailable. Maybe you are missing 'scale out' plugin?"""
-        } else {
-          s"""We could not generate policies for node '${agentNodeProps.nodeId.value}' based on """ +
-          s"""'${agentNodeProps.agentType
-              .toString()}' agent and '${agentNodeProps.osDetails.fullName}' system. Maybe you are missing a dedicated plugin?"""
-        }
-        Failure(msg)
-
-      case Some(h) => Full(h)
-    }
+  def findHandler(agentNodeProps: AgentNodeProperties): PureResult[AgentSpecificGeneration] = {
+    findMap[AgentSpecificGeneration](agentNodeProps)(Right(_))
   }
 
   /**
@@ -160,8 +145,8 @@ class AgentRegister {
    */
   def traverseMap[T](
       agentNodeProps: AgentNodeProperties
-  )(default: () => Box[List[T]], f: AgentSpecificGeneration => Box[List[T]]): Box[List[T]] = {
-    (traverse(pipeline) { handler =>
+  )(default: () => PureResult[List[T]], f: AgentSpecificGeneration => PureResult[List[T]]): PureResult[List[T]] = {
+    (pipeline.traverse { handler =>
       if (handler.handle(agentNodeProps)) {
         f(handler)
       } else {
@@ -175,8 +160,8 @@ class AgentRegister {
 // the pipeline of processing for the specific writes
 class WriteAllAgentSpecificFiles(agentRegister: AgentRegister) extends WriteAgentSpecificFiles {
 
-  override def write(cfg: AgentNodeWritableConfiguration): Box[List[AgentSpecificFile]] = {
-    agentRegister.traverseMap(cfg.agentNodeProps)(() => Full(Nil), _.write(cfg))
+  override def write(cfg: AgentNodeWritableConfiguration): PureResult[List[AgentSpecificFile]] = {
+    agentRegister.traverseMap(cfg.agentNodeProps)(() => Right(Nil), _.write(cfg))
   }
 
   import BuildBundleSequence.BundleSequenceVariables
@@ -187,9 +172,9 @@ class WriteAllAgentSpecificFiles(agentRegister: AgentRegister) extends WriteAgen
       inputs:         List[InputFile],
       bundles:        List[TechniqueBundles],
       runHooks:       List[NodeRunHook]
-  ): Box[BundleSequenceVariables] = {
+  ): PureResult[BundleSequenceVariables] = {
     // we only choose the first matching agent for that
-    agentRegister.findMap(agentNodeProps)(a => Full(a.getBundleVariables(inputs, bundles, runHooks)))
+    agentRegister.findMap(agentNodeProps)(a => a.getBundleVariables(inputs, bundles, runHooks))
   }
 }
 
@@ -220,8 +205,8 @@ object CFEngineAgentSpecificGeneration extends AgentSpecificGeneration {
     )
   }
 
-  override def write(cfg: AgentNodeWritableConfiguration): Box[List[AgentSpecificFile]] = {
-    Full(Nil)
+  override def write(cfg: AgentNodeWritableConfiguration): PureResult[List[AgentSpecificFile]] = {
+    Right(Nil)
   }
 
   import BuildBundleSequence.BundleSequenceVariables
@@ -231,7 +216,7 @@ object CFEngineAgentSpecificGeneration extends AgentSpecificGeneration {
       inputs:   List[InputFile],
       bundles:  List[TechniqueBundles],
       runHooks: List[NodeRunHook]
-  ): BundleSequenceVariables =
-    CfengineBundleVariables.getBundleVariables(escape, inputs, bundles, runHooks)
+  ): PureResult[BundleSequenceVariables] =
+    Right(CfengineBundleVariables.getBundleVariables(escape, inputs, bundles, runHooks))
 
 }

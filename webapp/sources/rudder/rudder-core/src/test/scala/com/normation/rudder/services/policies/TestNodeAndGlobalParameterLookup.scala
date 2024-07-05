@@ -208,7 +208,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
   val barParam:   ParameterForConfiguration = ParameterForConfiguration("bar", "barValue")
   val recurParam: ParameterForConfiguration = ParameterForConfiguration("recurToFoo", """${rudder.param.foo}""")
 
-  val badChars = """$¹ ${plop} (foo) \$ @ %plop & \\ | $[xas]^"""
+  val badChars = """$¹ ${plop[]} (foo) \$ @ %plop & \\ | $[xas]^"""
   val dangerousChars: ParameterForConfiguration = ParameterForConfiguration("danger", badChars)
 
   def p(params: ParameterForConfiguration*): Map[String, ParamInterpolationContext => IOResult[String]] = {
@@ -286,8 +286,33 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       test(all(_), """${something.cfengine}""", List(NonRudderVar("something.cfengine")))
     }
 
-    "parse a non valid cfengine variable as a string" in {
-      test(all(_), """${something . cfengine}""", List(CharSeq("${something . cfengine"), CharSeq("}")))
+    "parse a non rudder param variable with accessor" in {
+      test(all(_), """${something.cfengine[foo]}""", List(NonRudderVar("something.cfengine", List("foo"))))
+    }
+
+    "parse a non rudder param variable with space in accessor" in {
+      test(all(_), """${something.cfengine[foo bar]}""", List(NonRudderVar("something.cfengine", List("foo bar"))))
+    }
+
+    "parse a non rudder param variable amid other chars" in {
+      test(
+        all(_),
+        """foo ${something.cfengine[foo]} bar""",
+        List(CharSeq("foo "), NonRudderVar("something.cfengine", List("foo")), CharSeq(" bar"))
+      )
+    }
+
+    // this case is considered unsafe because nested interpolation is not yet supported : ${...${...}}. When it is, it should be
+    "parse a non rudder param variable with interpolation accessor" in {
+      test(
+        all(_),
+        """${something.cfengine[foo][${node.properties[bar]}]}""",
+        List(UnsafeRudderVar("something.cfengine[foo][${node.properties[bar]"), CharSeq("]}"))
+      )
+    }
+
+    "parse a non valid cfengine variable as unsafe" in {
+      test(all(_), """${something . cfengine}""", List(UnsafeRudderVar("something . cfengine")))
     }
 
     "parse a valid engine" in {
@@ -375,23 +400,21 @@ class TestNodeAndGlobalParameterLookup extends Specification {
 
     "parse text and variable and text" in {
       val s1 = "plj jmoji h imj "
-      val s2 = " alkjf fm ^{i àié" // will be split at '$'
-      val s3 = "${rudde ut ùt "
+      val s2 = " alkjf fm ^{i àié$rudde ut ùt ending"
       test(
         all(_),
-        s1 + "${rudder.node.policyserver.id}" + s2 + s3,
-        List(CharSeq(s1), NodeAccessor(List("policyserver", "id")), CharSeq(s2), CharSeq(s3))
+        s1 + "${rudder.node.policyserver.id}" + s2,
+        List(CharSeq(s1), NodeAccessor(List("policyserver", "id")), CharSeq(s2))
       )
     }
 
     "parse (multiline) text and variable and text" in {
       val s1 = "plj jmoji \n h \timj "
-      val s2 = " alkjf \n\rfm ^{i àié"
-      val s3 = "${rudde ut ùt "
+      val s2 = " alkjf \n\rfm ^{i àié$rudde ut ùt "
       test(
         all(_),
-        s1 + "${rudder.node.policyserver.id}" + s2 + s3,
-        List(CharSeq(s1), NodeAccessor(List("policyserver", "id")), CharSeq(s2), CharSeq(s3))
+        s1 + "${rudder.node.policyserver.id}" + s2,
+        List(CharSeq(s1), NodeAccessor(List("policyserver", "id")), CharSeq(s2))
       )
     }
 

@@ -211,9 +211,7 @@ class PrepareTemplateVariablesImpl(
                                       parameters   <- ZIO.foreach(agentNodeConfig.config.parameters) { x =>
                                                         agentRegister
                                                           .findMap(agentNodeProps) { agent =>
-                                                            net.liftweb.common.Full(
-                                                              ParameterEntry(x.name, agent.escape(x.value), agentNodeConfig.agentType)
-                                                            )
+                                                            Right(ParameterEntry(x.name, agent.escape(x.value), agentNodeConfig.agentType))
                                                           }
                                                           .toIO
                                                       }

@@ -39,16 +39,23 @@ package com.normation.rudder.ncf
 
 import better.files.File
 import cats.data.NonEmptyList
+import cats.syntax.functor.*
 import com.normation.cfclerk.domain.ReportingLogic
-import com.normation.errors.Inconsistency
-import com.normation.errors.IOResult
-import com.normation.errors.PureResult
-import com.normation.errors.Unexpected
+import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.ncf.Constraint.CheckResult
 import com.normation.rudder.ncf.Constraint.Constraint
+import com.normation.rudder.services.policies.PropertyParser
+import com.normation.rudder.services.policies.PropertyParserTokens.CharSeq
+import com.normation.rudder.services.policies.PropertyParserTokens.NodeAccessor
+import com.normation.rudder.services.policies.PropertyParserTokens.NonRudderVar
+import com.normation.rudder.services.policies.PropertyParserTokens.Param
+import com.normation.rudder.services.policies.PropertyParserTokens.Property
+import com.normation.rudder.services.policies.PropertyParserTokens.RudderEngine
+import com.normation.rudder.services.policies.PropertyParserTokens.Token
+import com.normation.rudder.services.policies.PropertyParserTokens.UnsafeRudderVar
 import java.util.regex.Pattern
 import zio.ZIO
 import zio.json.SnakeCase
@@ -240,12 +247,64 @@ object ParameterType {
         case (Raw, _)                                                                         => Right(value)
         case (StringParameter | HereString, AgentType.CfeCommunity | AgentType.CfeEnterprise) =>
           Right(s""""${value.replaceAll("""\\""", """\\\\""").replaceAll(""""""", """\\"""")}"""")
-        case (HereString, AgentType.Dsc)                                                      => Right(s"""@'
-                                                     |${value}
-                                                     |'@""".stripMargin)
-        case (StringParameter, AgentType.Dsc)                                                 => Right(s""""${value.replaceAll("\"", "`\"")}"""")
+        case (HereString, AgentType.Dsc)                                                      =>
+          translateDscHereString(value)
+        case (StringParameter, AgentType.Dsc)                                                 =>
+          Right(s""""${value.replaceAll("\"", "`\"")}"""")
         case (_, _)                                                                           => Left(Unexpected("Cannot translate"))
       }
+    }
+
+    private def translateDscHereString(value: String): PureResult[String] = {
+      // Format to DSC specific expression for a known Rudder path variable.
+      def mkDatastate(path: List[String]) = s"""([Rudder.Datastate]::Render('{{' + @'
+                                               |vars.${path.mkString(".")}
+                                               |'@ + '}}'))""".stripMargin
+
+      // Refuse "dots" in individual path keys for DSC. For now, assume we only have names without interpolation itself in a path element
+      def validatedPath(path: List[String]): PureResult[Unit] = {
+        Either.cond(
+          !path.exists(_.contains('.')),
+          (),
+          Unexpected(
+            s"Cannot use property in DSC agent, '.' is not supported in object keys for provided path ${path.mkString("->")}"
+          )
+        )
+      }
+
+      def translateToken(token: Token) = token match {
+        case CharSeq(s) => Right(s"""@'
+                                    |${s}
+                                    |'@""".stripMargin)
+        case v: NonRudderVar =>
+          validatedPath(v.accessors).as(mkDatastate(List(v.fullPath)))
+        case UnsafeRudderVar(s)              =>
+          Left(
+            Unexpected(
+              s"Cannot use property '${s}' in DSC agent, the syntax is considered unsafe. Please consider using documented Rudder properties interpolations"
+            )
+          )
+        case NodeAccessor(path)              =>
+          validatedPath(path).as(mkDatastate("rudder" :: "node" :: path))
+        case Param(path)                     =>
+          validatedPath(path).as(
+            mkDatastate("rudder" :: "param" :: path)
+          ) // "param" : same as in InterpolatedValueCompilerImpl#translate
+        case Property(
+              path,
+              _ // templating options can be ignored because template is already rendered statically with default value when necessary
+            ) =>
+          validatedPath(path).as(mkDatastate("node" :: "properties" :: path))
+        case RudderEngine(engine, method, _) =>
+          validatedPath(method).as(mkDatastate("data" :: engine :: method))
+      }
+
+      def assembleDscExpr(tokens: List[Token]) = tokens.accumulatePure(translateToken).map {
+        case single :: Nil => single
+        case o             => o.mkString("(", " + ", ")")
+      }
+
+      PropertyParser.parse(value).flatMap(assembleDscExpr)
     }
   }
 
