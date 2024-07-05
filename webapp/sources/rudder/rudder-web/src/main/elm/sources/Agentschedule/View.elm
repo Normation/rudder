@@ -110,10 +110,10 @@ view model =
                 [ label [class "col-sm-2 col-form-label"][text "First run time"]
                 , div[class "col-sm-10"]
                   [ div[class "input-group input-group-sm d-inline-flex w-auto"]
-                    [ select [class "form-select input-sm", id "startHour", onInput (\h -> UpdateSchedule {selectedSettings | startHour = Maybe.withDefault 0 (String.toInt h)}), disabled (disableForm || List.length (hourOptions selectedStartH) <= 1) ]
+                    [ select [class "form-select w-auto", id "startHour", onInput (\h -> UpdateSchedule {selectedSettings | startHour = Maybe.withDefault 0 (String.toInt h)}), disabled (disableForm || List.length (hourOptions selectedStartH) <= 1) ]
                       (hourOptions selectedStartH)
                     , label [for "startHour", class "input-group-text"][text ("Hour" ++ if selectedSettings.startHour > 1 then "s" else "")]
-                    , select [class "form-select", id "startMinute", onInput (\m -> UpdateSchedule {selectedSettings | startMinute = Maybe.withDefault 0 (String.toInt m)}), disabled disableForm ]
+                    , select [class "form-select w-auto", id "startMinute", onInput (\m -> UpdateSchedule {selectedSettings | startMinute = Maybe.withDefault 0 (String.toInt m)}), disabled disableForm ]
                       (minuteOptions selectedStartM)
                     , label [for "startMinute", class "input-group-text"][text ("Minute" ++ if selectedSettings.startMinute > 1 then "s" else "")]
                     ]
@@ -123,10 +123,10 @@ view model =
                 [ label [class "col-sm-2 col-form-label"][text "Maximum delay"]
                 , div[class "col-sm-10"]
                   [ div[class "input-group input-group-sm d-inline-flex w-auto"]
-                    [ select [class "form-select input-sm", id "splayHour", onInput (\h -> UpdateSchedule {selectedSettings | splayHour = Maybe.withDefault 0 (String.toInt h)}), disabled (disableForm || List.length (hourOptions selectedSplayH) <= 1) ]
+                    [ select [class "form-select w-auto", id "splayHour", onInput (\h -> UpdateSchedule {selectedSettings | splayHour = Maybe.withDefault 0 (String.toInt h)}), disabled (disableForm || List.length (hourOptions selectedSplayH) <= 1) ]
                       (hourOptions selectedSplayH)
                     , label [for "splayHour", class "input-group-text"][text ("Hour" ++ if selectedSettings.splayHour > 1 then "s" else "")]
-                    , select [class "form-select", id "splayMinute", onInput (\m -> UpdateSchedule {selectedSettings | splayMinute = Maybe.withDefault 0 (String.toInt m)}), disabled disableForm ]
+                    , select [class "form-select w-auto", id "splayMinute", onInput (\m -> UpdateSchedule {selectedSettings | splayMinute = Maybe.withDefault 0 (String.toInt m)}), disabled disableForm ]
                       (minuteOptions selectedSplayM)
                     , label [for "splayMinute", class "input-group-text"][text ("Minute" ++ if selectedSettings.splayMinute > 1 then "s" else "")]
                     ]
