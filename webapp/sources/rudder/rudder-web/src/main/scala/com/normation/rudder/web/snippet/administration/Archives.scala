@@ -48,6 +48,7 @@ import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.repository.*
 import com.normation.rudder.users.CurrentUser
+import com.normation.rudder.web.snippet.WithNonce
 import com.normation.utils.DateFormaterService
 import net.liftweb.common.*
 import net.liftweb.http.*
@@ -383,24 +384,28 @@ class Archives extends DispatchSnippet with Loggable {
     } &
     ("#" + restoreButtonId) #> {
       (SHtml.ajaxSubmit(restoreButtonName, restore _, ("id" -> restoreButtonId), ("class", "btn btn-default")) ++
-      Script(
-        OnLoad(
-          JsRaw(
-            """enableIfNonEmpty("%s", "%s");$("#%s").prop("disabled",true);"""
-              .format(archiveDateSelectId, restoreButtonId, restoreButtonId)
-          ) // JsRaw ok, all const values of actionFormBuilder
-        )
+      WithNonce.scriptWithNonce(
+        Script(
+          OnLoad(
+            JsRaw(
+              """enableIfNonEmpty("%s", "%s");$("#%s").prop("disabled",true);"""
+                .format(archiveDateSelectId, restoreButtonId, restoreButtonId)
+            )
+          )
+        ) // JsRaw ok, all const values of actionFormBuilder
       )): NodeSeq
     } &
     ("#" + downloadButtonId) #> {
       (SHtml.ajaxSubmit(downloadButtonName, download _, ("id" -> downloadButtonId), ("class", "btn btn-default")) ++
-      Script(
-        OnLoad(
-          JsRaw(
-            """enableIfNonEmpty("%s", "%s");$("#%s").prop("disabled",true);"""
-              .format(archiveDateSelectId, downloadButtonId, downloadButtonId)
-          ) // JsRaw ok, all const values of actionFormBuilder
-        )
+      WithNonce.scriptWithNonce(
+        Script(
+          OnLoad(
+            JsRaw(
+              """enableIfNonEmpty("%s", "%s");$("#%s").prop("disabled",true);"""
+                .format(archiveDateSelectId, downloadButtonId, downloadButtonId)
+            )
+          )
+        ) // JsRaw ok, all const values of actionFormBuilder
       )): NodeSeq
     }
   }

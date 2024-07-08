@@ -1,4 +1,4 @@
-<lift:surround with="common-layout" at="content">
+<lift:surround data-lift="with-enabled-csp" with="common-layout" at="content">
 
   <head_merge>
     <title>Rudder - Event logs</title>
@@ -69,7 +69,7 @@
       </div>
     </div>
   </div>
-  <script id="rollbackBlock" type="text/template">
+  <script data-lift="with-nonce" id="rollbackBlock" type="text/template">
     <div class='rollbackDisplay'>
       <fieldset class='rollbackFieldSet'>
         <legend>Rollback</legend>
