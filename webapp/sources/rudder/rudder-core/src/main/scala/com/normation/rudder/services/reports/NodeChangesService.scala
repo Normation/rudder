@@ -185,7 +185,7 @@ final case class ChangesCache(
 
 /**
  * A cached version of NodeChangeService that:
- * - get its config (interval lenght) and first results from an other service
+ * - get its config (interval length) and first results from an other service
  * - is able to update a cache from other
  */
 class CachedNodeChangesServiceImpl(
@@ -315,7 +315,9 @@ class CachedNodeChangesServiceImpl(
    * important than responsiveness.
    */
   def update(lowestId: Long, highestId: Long): Box[Unit] = {
-    addUpdate(ChangesUpdate.For(lowestId, highestId)).toBox
+    if (lowestId < highestId) {
+      addUpdate(ChangesUpdate.For(lowestId, highestId)).toBox
+    } else Full(())
   }
 
   def addUpdate(update: ChangesUpdate): IOResult[Unit] = {

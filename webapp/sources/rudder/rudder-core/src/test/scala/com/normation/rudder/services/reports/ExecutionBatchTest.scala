@@ -427,7 +427,7 @@ class ExecutionBatchTest extends Specification {
         )
       }
 
-      val res = ExecutionBatch.computeNodesRunInfo(runs, currentNodeConfigs, runInfo)(nodeId)
+      val res = ExecutionBatch.computeNodesRunInfo(runs, currentNodeConfigs, runInfo, DateTime.now())(nodeId)
 
       // here, the end date depend on run time, so we need to check by case
       res match {
@@ -460,7 +460,7 @@ class ExecutionBatchTest extends Specification {
         )
       }
 
-      val res = ExecutionBatch.computeNodesRunInfo(runs, currentNodeConfigs, runInfo)(nodeId)
+      val res = ExecutionBatch.computeNodesRunInfo(runs, currentNodeConfigs, runInfo, DateTime.now())(nodeId)
 
       res match {
         case NoReportInInterval(exp, t) => exp must beEqualTo(generatedExpectedReports)

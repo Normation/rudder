@@ -215,7 +215,7 @@ class StatusReportTest extends Specification {
 
   "Node status reports" should {
     val modesConfig = NodeConfigData.defaultModesConfig
-    val report      = NodeStatusReport(
+    val report      = NodeStatusReport.buildWith(
       NodeId("n1"),
       Pending(
         NodeExpectedReports(

@@ -122,6 +122,19 @@ class ReportDisplayer(
     """))) // JsRaw ok, escaped
   }
 
+  def getRunDate(r: RunAndConfigInfo): Option[DateTime] = {
+    r match {
+      case a: ComputeCompliance         => Some(a.lastRunDateTime)
+      case a: LastRunAvailable          => Some(a.lastRunDateTime)
+      case a: NoExpectedReport          => Some(a.lastRunDateTime)
+      case a: NoReportInInterval        => None
+      case a: Pending                   => a.optLastRun.map(_._1)
+      case a: KeepLastCompliance        => a.optLastRun.map(_._1)
+      case a: ReportsDisabledInInterval => None
+      case NoRunNoExpectedReport => None
+    }
+  }
+
   /**
    * Refresh the main compliance table
    */
@@ -135,16 +148,7 @@ class ReportDisplayer(
       for {
         report <- getReports(node.id)
         data   <- getComplianceData(node.id, report, addOverriden)
-        runDate: Option[DateTime] = report.runInfo match {
-                                      case a: ComputeCompliance         => Some(a.lastRunDateTime)
-                                      case a: LastRunAvailable          => Some(a.lastRunDateTime)
-                                      case a: NoExpectedReport          => Some(a.lastRunDateTime)
-                                      case a: NoReportInInterval        => None
-                                      case a: Pending                   => a.optLastRun.map(_._1)
-                                      case a: ReportsDisabledInInterval => None
-                                      case NoRunNoExpectedReport => None
-
-                                    }
+        runDate: Option[DateTime] = getRunDate(report.runInfo)
       } yield {
         import net.liftweb.util.Helpers.encJs
         val intro = encJs(displayIntro(report).toString)
@@ -225,6 +229,23 @@ class ReportDisplayer(
             <p>{currentConfigId(expectedConfig)}.</p>
           )
 
+        case KeepLastCompliance(expectedConfig, expiredSince, keepUntil, optLastRun) =>
+          (
+            <p>No recent reports have been received for this node in the grace period since the last configuration policy change.
+              The grace period is expired since {expiredSince.toString(dateFormat)}.
+               Still, this node has a configuration to keep its last known compliance until {
+              keepUntil.toString(dateFormat)
+            }.</p><p>{
+              optLastRun match {
+                case None         =>
+                  "We don't have more information about a run that might have provided compliance."
+                case Some((_, i)) =>
+                  s"The run from which that compliance was computed started at ${i.beginDate.toString(dateFormat)}."
+              }
+            }</p><p>For information, expected node policies are displayed below.</p>
+            <p>{currentConfigId(expectedConfig)}.</p>
+          )
+
         case NoRunNoExpectedReport =>
           <p>This is a new node that does not yet have a configured policy. If a policy generation is in progress, this will apply to this node when it is done.</p>
 
@@ -300,7 +321,7 @@ class ReportDisplayer(
       case _: Pending | _: NoUserRulesDefined =>
         ("alert alert-info", NodeSeq.Empty)
 
-      case _: ComputeCompliance =>
+      case _: ComputeCompliance | _: KeepLastCompliance =>
         if (report.compliance.total <= 0) { // should not happen
           ("alert alert-success", NodeSeq.Empty)
         } else {
@@ -383,15 +404,7 @@ class ReportDisplayer(
                       directiveLib <- directiveRepository.getFullDirectiveLibrary().toBox
                     } yield {
 
-                      val runDate: Option[DateTime] = report.runInfo match {
-                        case a: ComputeCompliance         => Some(a.lastRunDateTime)
-                        case a: LastRunAvailable          => Some(a.lastRunDateTime)
-                        case a: NoExpectedReport          => Some(a.lastRunDateTime)
-                        case a: NoReportInInterval        => None
-                        case a: Pending                   => a.optLastRun.map(_._1)
-                        case a: ReportsDisabledInInterval => None
-                        case NoRunNoExpectedReport => None
-                      }
+                      val runDate: Option[DateTime] = getRunDate(report.runInfo)
 
                       val intro = if (tableId == "reportsGrid") displayIntro(report) else NodeSeq.Empty
 
@@ -469,7 +482,7 @@ class ReportDisplayer(
                             & "lastreportgrid-unexpected" #> NodeSeq.Empty
                           )(reportByNodeTemplate) ++ displayRunLogs(node.id, runDate, tabId, tableId)
 
-                        case _: Pending | _: ComputeCompliance =>
+                        case _: Pending | _: ComputeCompliance | _: KeepLastCompliance =>
                           val missing    = getComponents(ReportType.Missing, report, directiveLib).toSet
                           val unexpected = getComponents(ReportType.Unexpected, report, directiveLib).toSet
 

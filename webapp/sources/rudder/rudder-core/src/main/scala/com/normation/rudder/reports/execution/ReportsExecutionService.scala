@@ -44,11 +44,8 @@ import com.normation.rudder.batch.FindNewReportsExecution
 import com.normation.rudder.db.DB
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.logger.ReportLoggerPure
-import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.repository.ComplianceRepository
 import com.normation.rudder.repository.ReportsRepository
-import com.normation.rudder.score.ComplianceScoreEvent
-import com.normation.rudder.score.ScoreServiceManager
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.UpdateCompliance
 import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
 import com.normation.rudder.services.reports.ComputeNodeStatusReportService
@@ -56,7 +53,6 @@ import com.normation.rudder.services.reports.FindNewNodeStatusReports
 import net.liftweb.common.*
 import org.joda.time.DateTime
 import org.joda.time.format.PeriodFormat
-import zio.{System as _, *}
 
 // message for the queue: what nodes were updated?
 final case class InvalidateComplianceCacheMsg(updatedNodeIds: Set[NodeId])
@@ -71,8 +67,7 @@ class ReportsExecutionService(
     cachedChanges:                  CachedNodeChangesServiceImpl,
     computeNodeStatusReportService: ComputeNodeStatusReportService,
     findNewNodeStatusReports:       FindNewNodeStatusReports,
-    complianceRepos:                ComplianceRepository,
-    scoreServiceManager:            ScoreServiceManager
+    complianceRepos:                ComplianceRepository
 ) {
 
   val logger = ReportLogger
@@ -144,13 +139,6 @@ class ReportsExecutionService(
     }
   }
 
-  def updateScore(nodeId: NodeId, report: NodeStatusReport): IOResult[Unit] = {
-    val cp    = report.baseCompliance.computePercent()
-    val event = ComplianceScoreEvent(nodeId, cp)
-
-    scoreServiceManager.handleEvent(event)
-  }
-
   def fetchRunsAndCompliance(): IOResult[Seq[NodeId]] = {
     // fetch unprocessed run
     // process
@@ -168,8 +156,7 @@ class ReportsExecutionService(
                                s"Invalidated and updated compliance for nodes ${nodeWithCompliances.map(_._1.value).mkString(",")}"
                              )
       _                   <- complianceRepos.saveRunCompliance(nodeWithCompliances.values.toList) // unsure if here or in the queue
-      _                   <- ZIO.foreachDiscard(nodeWithCompliances) { case (id, r) => updateScore(id, r) }
-      _                   <- computeNodeStatusReportService.outDatedCompliance()
+      _                   <- computeNodeStatusReportService.outDatedCompliance(new DateTime(startCompliance))
       _                   <-
         ReportLoggerPure.Cache.debug(
           s"Computing compliance in : ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startCompliance).toPeriod())}"

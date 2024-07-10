@@ -3082,6 +3082,8 @@ object RudderConfigInit {
       nodeStatusReportRepository,
       nodeFactRepository,
       findNewNodeStatusReports,
+      new NodePropertyBasedComplianceExpirationService(nodeFactRepository, "rudder", "keep_compliance_duration"),
+      Ref.make(Chunk[NodeStatusReportUpdateHook](new ScoreNodeStatusReportUpdateHook(scoreServiceManager))).runNow,
       RUDDER_JDBC_BATCH_MAX_SIZE
     )
 
@@ -3479,8 +3481,7 @@ object RudderConfigInit {
         recentChangesService,
         computeNodeStatusReportService,
         findNewNodeStatusReports,
-        complianceRepositoryImpl,
-        scoreServiceManager
+        complianceRepositoryImpl
       )
     }
 

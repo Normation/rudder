@@ -109,6 +109,14 @@ object ComplianceDebugLogger extends Logger {
         s"expected NodeConfigId: ${expectedConfigId.toLog}|" +
         s" last run: none available (or too old)"
 
+      case KeepLastCompliance(expectedConfigId, expirationDateTime, keepUntil, optLastRun) =>
+        val run = optLastRun match {
+          case Some(r) => s"nodeConfigId: ${r._2.nodeConfigId.value} received at ${r._1.toIsoStringNoMillis}"
+          case None    => "unknown"
+        }
+        s"expected NodeConfigId: ${expectedConfigId.toLog}|" +
+        s" last: ${run} ; expired at ${expirationDateTime.toIsoStringNoMillis} but will be kept until ${keepUntil.toIsoStringNoMillis}"
+
       case ReportsDisabledInInterval(expectedConfigId, _) =>
         s"expected NodeConfigId: ${expectedConfigId.toLog}|" +
         s" last run: none available (compliance mode is reports-disabled)]"
@@ -156,6 +164,7 @@ object ComplianceDebugLogger extends Logger {
       case _: Pending                   => "Pending"
       case _: ComputeCompliance         => "ComputeCompliance"
       case _: NoUserRulesDefined        => "NoUserRulesDefined"
+      case _: KeepLastCompliance        => "KeepLastCompliance"
     }
 
     def toLog: String = logName + ": " + logDetails

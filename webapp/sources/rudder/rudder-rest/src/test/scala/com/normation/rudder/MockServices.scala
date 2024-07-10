@@ -745,7 +745,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       ruleNodeReports: Set[RuleNodeStatusReport],
       overrides:       List[OverridenPolicy] = List.empty
   ): NodeStatusReport = {
-    NodeStatusReport(
+    NodeStatusReport.buildWith(
       nodeId,
       ComputeCompliance(
         DateTime.parse("2023-01-01T00:00:00.000Z"),

@@ -39,6 +39,7 @@ package com.normation.rudder.services.reports
 
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.reports.NodeComplianceExpiration
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeStatusReport
@@ -78,7 +79,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   }
 
   def run(id: String, info: RunAndConfigInfo): NodeStatusReport =
-    NodeStatusReport(NodeId(id), info, RunComplianceInfo.OK, Nil, Set())
+    NodeStatusReport.buildWith(NodeId(id), info, RunComplianceInfo.OK, Nil, Set())
 
   // a list of node, one node by type of reports, in a triplet:
   // (node, expired report, still ok report)
@@ -173,10 +174,13 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     override def findUncomputedNodeStatusReports(): IOResult[Map[NodeId, NodeStatusReport]] = ???
   }
 
-  def newServices: (DummyNodeStatusReportRepository, TestFindNewStatusReports, ComputeNodeStatusReportServiceImpl) = {
+  def newServices(
+      policy: NodeComplianceExpiration
+  ): (DummyNodeStatusReportRepository, TestFindNewStatusReports, ComputeNodeStatusReportServiceImpl) = {
     val x = new DummyNodeStatusReportRepository(Ref.make(Map[NodeId, NodeStatusReport]()).runNow)
     val y = new TestFindNewStatusReports()
-    (x, y, new ComputeNodeStatusReportServiceImpl(x, nodeFactRepo, y, 3))
+    val r = Ref.make(Chunk[NodeStatusReportUpdateHook]()).runNow
+    (x, y, new ComputeNodeStatusReportServiceImpl(x, nodeFactRepo, y, new DummyComplianceExpirationService(policy), r, 3))
   }
 
   implicit val qc: QueryContext = QueryContext.testQC
@@ -184,8 +188,8 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   /*
    * rule1/dir1 is applied on node1 and node2 and is both here (node1) and skipped (node2)
    */
-  "When a value is experied, it is added to compliance repos" >> {
-    val (repo, finder, computer) = newServices
+  "When a value is expired, it is added to compliance repos" >> {
+    val (repo, finder, computer) = newServices(NodeComplianceExpiration.ExpireImmediately)
     val id                       = NodeId("n1")
     finder.reports = nodes.collect { case (n, a, _) if (n._1 == id) => (n._1, a) }.toMap
 
@@ -203,7 +207,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   }
 
   "Cache should return expired compliance but also ask for renew" >> {
-    val (repo, finder, computer) = newServices
+    val (repo, finder, computer) = newServices(NodeComplianceExpiration.ExpireImmediately)
     finder.reports = nodes.map { case (n, a, _) => (n._1, a) }.toMap
 
     // node not in cache, empty, returns nothing
@@ -216,7 +220,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     // now node was ask, it will return all nodes, even expired, see: https://issues.rudder.io/issues/16612
     val n2 = repo.getNodeStatusReports(finder.reports.keySet).runNow
     // check for outdated compliance
-    computer.outDatedCompliance().runNow
+    computer.outDatedCompliance(DateTime.now()).runNow
 
     // let a chance for zio to exec again to find back expired
     Thread.sleep(1000)
@@ -231,8 +235,37 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     (finder.updated.size must beEqualTo(9 + 6))
   }
 
+  "When run are expired but we keep compliance, we keep compliance in repo" >> {
+    val grace                    = scala.concurrent.duration.Duration("1h")
+    val (repo, finder, computer) = newServices(NodeComplianceExpiration.KeepLast(grace))
+
+    val longExpired = expired.minusMinutes(30)
+    val initReport  = nodes.collect {
+      case ((id @ NodeId("n2"), _), a, _) => (id, a.modify(_.runInfo).setTo(NoReportInInterval(null, longExpired)))
+    }.toMap
+    val computed    = nodes.collect {
+      case ((id @ NodeId("n2"), _), a, _) =>
+        (id, a.modify(_.runInfo).setTo(KeepLastCompliance(null, longExpired, longExpired.plusMillis(grace.toMillis.toInt), None)))
+    }.toMap
+
+    finder.reports = initReport
+
+    // node not in cache, empty, returns nothing
+    val n1 = repo.getNodeStatusReports(finder.reports.keySet).runNow
+    computer.invalidateWithAction(finder.reports.keySet.toList.map(n => (n, ExpiredCompliance(n)))).runNow
+
+    // let a chance for zio to exec
+    Thread.sleep(1000)
+
+    // now node was ask, it will return all nodes, even expired, see: https://issues.rudder.io/issues/16612
+    val n2 = repo.getNodeStatusReports(finder.reports.keySet).runNow
+
+    (n1 must beEqualTo(Map())) and
+    (n2 must beEqualTo(computed))
+  }
+
   "Cache should not return ask for renew of up to date components" >> {
-    val (repo, finder, computer) = newServices
+    val (repo, finder, computer) = newServices(NodeComplianceExpiration.ExpireImmediately)
     finder.reports = nodes.map { case (n, _, b) => (n._1, b) }.toMap
 
     // node not in cache, empty, returns nothing
@@ -245,7 +278,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     // now node was ask, it will return only non expired reports (ie only NoReport and such here)
     val n2 = repo.getNodeStatusReports(finder.reports.keySet).runNow
     // check for outdated compliance
-    computer.outDatedCompliance().runNow
+    computer.outDatedCompliance(DateTime.now()).runNow
 
     // let a chance for zio to exec again to find back expired
     Thread.sleep(1000)

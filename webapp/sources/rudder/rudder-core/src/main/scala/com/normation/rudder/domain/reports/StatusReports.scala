@@ -106,12 +106,12 @@ object RunComplianceInfo {
   final case class PolicyModeInconsistency(problems: List[PolicyModeError]) extends RunComplianceInfo
 }
 
-final class NodeStatusReport private (
-    val nodeId:     NodeId,
-    val runInfo:    RunAndConfigInfo,
-    val statusInfo: RunComplianceInfo,
-    val overrides:  List[OverridenPolicy],
-    val reports:    Map[PolicyTypeName, AggregatedStatusReport]
+final case class NodeStatusReport(
+    nodeId:     NodeId,
+    runInfo:    RunAndConfigInfo,
+    statusInfo: RunComplianceInfo,
+    overrides:  List[OverridenPolicy],
+    reports:    Map[PolicyTypeName, AggregatedStatusReport]
 ) extends StatusReport {
   // for compat reason, node compliance is the sum of all aspects
   lazy val compliance: ComplianceLevel = ComplianceLevel.sum(reports.values.map(_.compliance))
@@ -132,14 +132,14 @@ final class NodeStatusReport private (
       case Some(r) => Map((t, r))
       case None    => Map.empty[PolicyTypeName, AggregatedStatusReport]
     }
-    new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, r)
+    NodeStatusReport(nodeId, runInfo, statusInfo, overrides, r)
   }
 }
 
 object NodeStatusReport {
   // To use when you are sure that all reports are indeed for the designated node. RuleNodeStatusReports must be merged
   // Only used in `getNodeStatusReports`
-  def apply(
+  def buildWith(
       nodeId:     NodeId,
       runInfo:    RunAndConfigInfo,
       statusInfo: RunComplianceInfo,
@@ -155,7 +155,7 @@ object NodeStatusReport {
     )
     // group map and aggregate
     val aggregates = reports.groupBy(_.complianceTag).map { case (tag, reports) => (tag, AggregatedStatusReport(reports)) }
-    new NodeStatusReport(nodeId, runInfo, statusInfo, overrides, aggregates)
+    NodeStatusReport(nodeId, runInfo, statusInfo, overrides, aggregates)
   }
 
   /*
@@ -167,7 +167,7 @@ object NodeStatusReport {
    */
   def filterByRules(nodeStatusReport: NodeStatusReport, ruleIds: Set[RuleId]): NodeStatusReport = {
 
-    new NodeStatusReport(
+    NodeStatusReport(
       nodeStatusReport.nodeId,
       nodeStatusReport.runInfo,
       nodeStatusReport.statusInfo,
@@ -178,7 +178,7 @@ object NodeStatusReport {
 
   def filterByDirectives(nodeStatusReport: NodeStatusReport, directiveIds: Set[DirectiveId]): NodeStatusReport = {
 
-    new NodeStatusReport(
+    NodeStatusReport(
       nodeStatusReport.nodeId,
       nodeStatusReport.runInfo,
       nodeStatusReport.statusInfo,
@@ -534,6 +534,10 @@ object NodeStatusReportSerialization {
       case NoReportInInterval(e, _)                 =>
         (("type"              -> "NoReportInInterval")
         ~ ("expectedConfigId" -> e.nodeConfigId.value))
+      case KeepLastCompliance(e, exp, keep, r)      =>
+        (("type"              -> "KeepLastCompliance")
+        ~ ("expectedConfigId" -> e.nodeConfigId.value)
+        ~ ("runConfigId"      -> r.map(_._2.nodeConfigId.value)))
       case ReportsDisabledInInterval(e, _)          =>
         (("type"              -> "ReportsDisabled")
         ~ ("expectedConfigId" -> e.nodeConfigId.value))

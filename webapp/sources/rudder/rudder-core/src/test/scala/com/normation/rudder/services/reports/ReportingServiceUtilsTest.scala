@@ -127,8 +127,14 @@ class ReportingServiceUtilsTest extends Specification {
    */
   "a rule can not overrides itself" in {
     val reports = List(
-      NodeStatusReport(node1, NoRunNoExpectedReport, RunComplianceInfo.OK, List(), Set(rnReport(node1, rule1, dir1))),
-      NodeStatusReport(node2, NoRunNoExpectedReport, RunComplianceInfo.OK, List(thisOverrideThatOn(rule2, rule1, dir1)), Set())
+      NodeStatusReport.buildWith(node1, NoRunNoExpectedReport, RunComplianceInfo.OK, List(), Set(rnReport(node1, rule1, dir1))),
+      NodeStatusReport.buildWith(
+        node2,
+        NoRunNoExpectedReport,
+        RunComplianceInfo.OK,
+        List(thisOverrideThatOn(rule2, rule1, dir1)),
+        Set()
+      )
     ).map(r => (r.nodeId, r)).toMap
 
     ReportingServiceUtils
@@ -143,7 +149,13 @@ class ReportingServiceUtilsTest extends Specification {
    */
   "only overridden leads to skip" in {
     val reports = List(
-      NodeStatusReport(node1, NoRunNoExpectedReport, RunComplianceInfo.OK, List(thisOverrideThatOn(rule2, rule1, dir1)), Set())
+      NodeStatusReport.buildWith(
+        node1,
+        NoRunNoExpectedReport,
+        RunComplianceInfo.OK,
+        List(thisOverrideThatOn(rule2, rule1, dir1)),
+        Set()
+      )
     ).map(r => (r.nodeId, r)).toMap
 
     ReportingServiceUtils
@@ -154,7 +166,13 @@ class ReportingServiceUtilsTest extends Specification {
   }
   "directives on other rules are not kept in overrides" in {
     val reports = List(
-      NodeStatusReport(node1, NoRunNoExpectedReport, RunComplianceInfo.OK, List(thisOverrideThatOn(rule2, rule3, dir1)), Set())
+      NodeStatusReport.buildWith(
+        node1,
+        NoRunNoExpectedReport,
+        RunComplianceInfo.OK,
+        List(thisOverrideThatOn(rule2, rule3, dir1)),
+        Set()
+      )
     ).map(r => (r.nodeId, r)).toMap
 
     ReportingServiceUtils
@@ -173,8 +191,8 @@ class ReportingServiceUtilsTest extends Specification {
    */
   "a rule not overridden on all nodes is not written overridden" in {
     val reports = List(
-      NodeStatusReport(node1, NoRunNoExpectedReport, RunComplianceInfo.OK, List(), Set(rnReport(node1, rule1, dir1))),
-      NodeStatusReport(
+      NodeStatusReport.buildWith(node1, NoRunNoExpectedReport, RunComplianceInfo.OK, List(), Set(rnReport(node1, rule1, dir1))),
+      NodeStatusReport.buildWith(
         node2,
         NoRunNoExpectedReport,
         RunComplianceInfo.OK,
@@ -202,7 +220,7 @@ class ReportingServiceUtilsTest extends Specification {
    */
   "a rule not overridden on all nodes is not written overriden" in {
     val reports = List(
-      NodeStatusReport(
+      NodeStatusReport.buildWith(
         node1,
         NoRunNoExpectedReport,
         RunComplianceInfo.OK,

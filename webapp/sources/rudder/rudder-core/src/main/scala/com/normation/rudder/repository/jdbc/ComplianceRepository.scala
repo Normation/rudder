@@ -124,8 +124,10 @@ class ComplianceJdbcRepository(
        */
       reports.flatMap { r =>
         r.runInfo match {
-          // ignore case with no runs
-          case _: NoReportInInterval | NoRunNoExpectedReport | _: ReportsDisabledInInterval | _: NoUserRulesDefined => None
+          // ignore case with no runs or when compliance should be kept
+          case _: KeepLastCompliance | _: NoReportInInterval | NoRunNoExpectedReport | _: ReportsDisabledInInterval |
+              _: NoUserRulesDefined =>
+            None
 
           case x: Pending =>
             x.optLastRun match {

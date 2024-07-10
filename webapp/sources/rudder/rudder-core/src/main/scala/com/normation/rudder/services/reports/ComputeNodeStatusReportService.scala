@@ -52,9 +52,13 @@ import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ReportsDisabled
 import com.normation.rudder.reports.execution.AgentRunId
+import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository.*
+import com.normation.rudder.score.ComplianceScoreEvent
+import com.normation.rudder.score.ScoreServiceManager
 import com.normation.zio.*
+import com.softwaremill.quicklens.*
 import org.joda.time.*
 import zio.{System as _, *}
 import zio.syntax.*
@@ -112,7 +116,7 @@ trait ComputeNodeStatusReportService extends InvalidateCache[CacheComplianceQueu
     )
   }
 
-  def outDatedCompliance(): IOResult[Unit]
+  def outDatedCompliance(now: DateTime): IOResult[Unit]
 
   /*
    * Register a callback action that should be called when a new (set of) node status reports are computed and made available.
@@ -120,6 +124,25 @@ trait ComputeNodeStatusReportService extends InvalidateCache[CacheComplianceQueu
    */
 //  def registerCallback(callback: ComputedNodeStatusReportCallback): IOResult[Unit]
 
+}
+
+trait NodeStatusReportUpdateHook {
+  def name:     String
+  def onUpdate: Iterable[(NodeId, NodeStatusReport)] => UIO[Unit]
+}
+
+class ScoreNodeStatusReportUpdateHook(scoreServiceManager: ScoreServiceManager) extends NodeStatusReportUpdateHook {
+  override val name:     String                                            = "UpdateScoreOnNodeComplianceUpdate"
+  override def onUpdate: Iterable[(NodeId, NodeStatusReport)] => UIO[Unit] = { nodeWithCompliances =>
+    ZIO.foreachDiscard(nodeWithCompliances) {
+      case (id, report) =>
+        val cp    = report.baseCompliance.computePercent()
+        val event = ComplianceScoreEvent(id, cp)
+
+        ReportLoggerPure.trace(s"Updating compliance score for node '${id.value}' with values: ${cp}'") *>
+        scoreServiceManager.handleEvent(event)
+    }
+  }
 }
 
 /**
@@ -132,11 +155,18 @@ trait ComputeNodeStatusReportService extends InvalidateCache[CacheComplianceQueu
  *   and then, in case of success, the hooks accordingly.
  */
 class ComputeNodeStatusReportServiceImpl(
-    nsrRepo:                  NodeStatusReportRepository,
-    nodeFactRepository:       NodeFactRepository,
-    findNewNodeStatusReports: FindNewNodeStatusReports,
-    batchSize:                Int
+    nsrRepo:                     NodeStatusReportRepository,
+    nodeFactRepository:          NodeFactRepository,
+    findNewNodeStatusReports:    FindNewNodeStatusReports,
+    complianceExpirationService: ComplianceExpirationService,
+    hooksRef:                    Ref[Chunk[NodeStatusReportUpdateHook]],
+    batchSize:                   Int
 ) extends ComputeNodeStatusReportService {
+
+  // add hook in last position of post update hooks
+  def addHook(h: NodeStatusReportUpdateHook): UIO[Unit] = {
+    hooksRef.update(_ :+ h)
+  }
 
   /**
    * The queue of invalidation request.
@@ -183,6 +213,8 @@ class ComputeNodeStatusReportServiceImpl(
    * All actions must have *exactly* the *same* type
    * WARNING: do not put I/O or slow computation here, else divergence can appear:
    * https://github.com/Normation/rudder/pull/5737
+   * UPDATE: in 8.2, we are trying that back, since now the compliance are in
+   * NodeStatusReportRepository.
    */
   private def performAction(actions: Chunk[CacheComplianceQueueAction]): IOResult[Unit] = {
     import CacheComplianceQueueAction.*
@@ -205,7 +237,7 @@ class ComputeNodeStatusReportServiceImpl(
                                  Inconsistency(s"Error: found an action of incorrect type in an 'update' for cache: ${x}").fail
                              }
                          }
-              _       <- nsrRepo.saveNodeStatusReports(updates)(ChangeContext.newForRudder())
+              _       <- saveUpdatedCompliance(updates)
             } yield ())
 
           case ExpectedReportAction((RemoveNodeInCache(_))) =>
@@ -229,16 +261,65 @@ class ComputeNodeStatusReportServiceImpl(
                      for {
                        updated <- findNewNodeStatusReports
                                     .findRuleNodeStatusReports(updatedNodes.toSet)(QueryContext.systemQC)
-                       _       <- nsrRepo.saveNodeStatusReports(updated)(ChangeContext.newForRudder())
-                       _       <- ReportLoggerPure.Cache.debug(
-                                    s"Compliance cache recomputed for nodes: ${updated.keys.map(_.value).mkString(", ")}"
-                                  )
+                       _       <- saveUpdatedCompliance(updated)
                      } yield ()
                    }
             } yield ()
 
         }
     })
+  }
+
+  /*
+   * handle the save and hook trigger for updated compliance in a centralized place.
+   */
+  def saveUpdatedCompliance(newReports: Iterable[(NodeId, NodeStatusReport)]) = {
+    for {
+      now     <- currentTimeMillis
+      kept    <- updateKeepCompliance(new DateTime(now), newReports)
+      updated <- nsrRepo.saveNodeStatusReports(kept)(ChangeContext.newForRudder())
+      // exec hooks
+      hooks   <- hooksRef.get
+      _       <- ZIO.foreachDiscard(hooks)(_.onUpdate(updated))
+      _       <- ReportLoggerPure.Cache.debug(
+                   s"Compliance recomputed, saved and score updated for nodes: ${updated.map(_._1.value).mkString(", ")}"
+                 )
+    } yield ()
+  }
+
+  /*
+   * Filter out reports that are marked as "NoReportInInterval" but have a policy to keep them longer
+   */
+  private[reports] def updateKeepCompliance(
+      now:     DateTime,
+      reports: Iterable[(NodeId, NodeStatusReport)]
+  ): IOResult[Iterable[(NodeId, NodeStatusReport)]] = {
+
+    val expired = reports.collect { case (id, r) if r.runInfo.isInstanceOf[NoReportInInterval] => id }
+    for {
+      expirationPolicy <- complianceExpirationService.getExpirationPolicy(expired)
+    } yield {
+      reports.map {
+        case (id, r) =>
+          r.runInfo match {
+            case NoReportInInterval(conf, expiration) =>
+              expirationPolicy.get(id) match {
+                case Some(NodeComplianceExpiration.KeepLast(d)) =>
+                  val keepUntil = expiration.plus(d.toMillis)
+                  if (now.isBefore(keepUntil)) {
+                    (id, r.modify(_.runInfo).setTo(KeepLastCompliance(conf, expiration, keepUntil, None)))
+                  } else {
+                    (id, r)
+                  }
+
+                case _ => (id, r)
+              }
+
+            case _ =>
+              (id, r)
+          }
+      }
+    }
   }
 
   /**
@@ -296,9 +377,8 @@ class ComputeNodeStatusReportServiceImpl(
   /**
    * Find in cache all outdated compliance, and add to queue to recompute them
    */
-  override def outDatedCompliance(): IOResult[Unit] = {
+  override def outDatedCompliance(now: DateTime): IOResult[Unit] = {
     nsrRepo.getAll()(QueryContext.systemQC).flatMap { cache =>
-      val now                        = DateTime.now
       val nodeWithOutdatedCompliance = cache.filter {
         case (id, compliance) =>
           compliance.runInfo match {
@@ -313,10 +393,10 @@ class ComputeNodeStatusReportServiceImpl(
       }.toSeq
 
       if (nodeWithOutdatedCompliance.isEmpty) {
-        ReportLoggerPure.Cache.trace("No compliance cache is expired")
+        ReportLoggerPure.Cache.trace("Compliance status isn't expired for any node")
       } else {
         ReportLoggerPure.Cache.debug(
-          s"Compliance cache is expired for nodes: ${nodeWithOutdatedCompliance.map(_._1.value).mkString(", ")}"
+          s"Compliance status is expired for nodes: ${nodeWithOutdatedCompliance.map(_._1.value).mkString(", ")}"
         ) *>
         // send outdated message to queue
         invalidateWithAction(nodeWithOutdatedCompliance.map(x => (x._1, CacheComplianceQueueAction.ExpiredCompliance(x._1))))
@@ -495,14 +575,38 @@ class FindNewNodeStatusReportsImpl(
       complianceMode: GlobalComplianceMode
   ): IOResult[Map[NodeId, RunAndConfigInfo]] = {
     for {
-      t0                <- currentTimeMillis
-      runs              <- complianceMode.mode match {
-                             // this is an optimisation to avoid querying the db in that case
-                             case ReportsDisabled => nodeIds.map(id => (id, None)).toMap.succeed
-                             case _               => agentRunRepository.getNodesLastRun(nodeIds)
-                           }
+      t0         <- currentTimeMillis
+      runs       <- complianceMode.mode match {
+                      // this is an optimisation to avoid querying the db in that case
+                      case ReportsDisabled => nodeIds.map(id => (id, None)).toMap.succeed
+                      case _               => agentRunRepository.getNodesLastRun(nodeIds)
+                    }
+      t1         <- currentTimeMillis
+      _          <- TimingDebugLoggerPure.trace(s"Compliance: get nodes last run : ${t1 - t0}ms")
+      compliance <- computeNodeStatusReportsForRuns(runs)
+    } yield {
+      compliance
+    }
+  }
+
+  private def getUnComputedNodeRunInfos(): IOResult[Map[NodeId, RunAndConfigInfo]] = {
+    for {
+      t0         <- currentTimeMillis
+      runs       <- agentRunRepository.getNodesAndUncomputedCompliance()
+      t1         <- currentTimeMillis
+      _          <- TimingDebugLoggerPure.trace(s"Compliance: get nodes last run : ${t1 - t0}ms")
+      compliance <- computeNodeStatusReportsForRuns(runs)
+    } yield {
+      compliance
+    }
+  }
+
+  private def computeNodeStatusReportsForRuns(
+      runs: Map[NodeId, Option[AgentRunWithNodeConfig]]
+  ): IOResult[Map[NodeId, RunAndConfigInfo]] = {
+    for {
       t1                <- currentTimeMillis
-      _                 <- TimingDebugLoggerPure.trace(s"Compliance: get nodes last run : ${t1 - t0}ms")
+      nodeIds            = runs.keys.toSet
       currentConfigs    <- nodeConfigService.getCurrentExpectedReports(nodeIds)
       t2                <- currentTimeMillis
       _                 <- TimingDebugLoggerPure.trace(s"Compliance: get current expected reports: ${t2 - t1}ms")
@@ -510,7 +614,7 @@ class FindNewNodeStatusReportsImpl(
       t3                <- currentTimeMillis
       _                 <- TimingDebugLoggerPure.trace(s"Compliance: get Node Config Id Infos: ${t3 - t2}ms")
     } yield {
-      ExecutionBatch.computeNodesRunInfo(runs, currentConfigs, nodeConfigIdInfos)
+      ExecutionBatch.computeNodesRunInfo(runs, currentConfigs, nodeConfigIdInfos, DateTime.now())
     }
   }
 
@@ -635,24 +739,6 @@ class FindNewNodeStatusReportsImpl(
       _                 <- TimingDebugLoggerPure.debug(s"Compliance: compute compliance reports: ${t2 - t1}ms")
     } yield {
       nodeStatusReports
-    }
-  }
-
-  private def getUnComputedNodeRunInfos(): IOResult[Map[NodeId, RunAndConfigInfo]] = {
-    for {
-      t0                <- currentTimeMillis
-      runs              <- agentRunRepository.getNodesAndUncomputedCompliance()
-      t1                <- currentTimeMillis
-      _                 <- TimingDebugLoggerPure.trace(s"Compliance: get nodes last run : ${t1 - t0}ms")
-      nodeIds            = runs.keys.toSet
-      currentConfigs    <- nodeConfigService.getCurrentExpectedReports(nodeIds)
-      t2                <- currentTimeMillis
-      _                 <- TimingDebugLoggerPure.trace(s"Compliance: get current expected reports: ${t2 - t1}ms")
-      nodeConfigIdInfos <- confExpectedRepo.getNodeConfigIdInfos(nodeIds)
-      t3                <- currentTimeMillis
-      _                 <- TimingDebugLoggerPure.trace(s"Compliance: get Node Config Id Infos: ${t3 - t2}ms")
-    } yield {
-      ExecutionBatch.computeNodesRunInfo(runs, currentConfigs, nodeConfigIdInfos)
     }
   }
 

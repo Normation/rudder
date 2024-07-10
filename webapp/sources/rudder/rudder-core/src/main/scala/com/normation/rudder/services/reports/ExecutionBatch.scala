@@ -184,6 +184,16 @@ final case class NoReportInInterval(
 ) extends NoReport
 
 /*
+ * When we want to keep compliance even in case of NoReportInterval
+ */
+final case class KeepLastCompliance(
+    expectedConfig:     NodeExpectedReports,
+    expiredSince:       DateTime,
+    expirationDateTime: DateTime,
+    optLastRun:         Option[(DateTime, NodeExpectedReports)]
+) extends NoReport with ExpiringStatus
+
+/*
  * No report of interest but expected because
  * we are on the correct mode for that
  */
@@ -359,26 +369,30 @@ object ExecutionBatch extends Loggable {
       // If exists, the last run received for these nodes is coupled with the
       // corresponding expected node configuration for that run, which will allow to know what
       // config option to apply.
-      runs:               Map[NodeId, Option[AgentRunWithNodeConfig]], // the current expected node configurations for all nodes.
+      runs: Map[NodeId, Option[AgentRunWithNodeConfig]],
+
+      // the current expected node configurations for all nodes.
       // This is useful for nodes without runs (ex in no-report mode), node with a run not for the
       // last config (show diff etc). It may be none for ex. when a node was added since last generation
+      currentNodeConfigs: Map[NodeId, Option[NodeExpectedReports]],
 
-      currentNodeConfigs: Map[NodeId, Option[
-        NodeExpectedReports
-      ]], // other config information to allows better reporting on error
+      // other config information to allows better reporting on error.
+      // They are not used for anything but error reporting.
+      nodeConfigIdInfos: Map[NodeId, Option[Seq[NodeConfigIdInfo]]],
 
-      nodeConfigIdInfos: Map[NodeId, Option[Seq[NodeConfigIdInfo]]]
+      // the reference time compared to which expiration will be computed
+      now: DateTime
   ): Map[NodeId, RunAndConfigInfo] = {
 
     /*
-     * How long time a run is valid AFTER AN UPDATE (i.e, not in permanent regime).
+     * How long a run is valid AFTER AN UPDATE (i.e, not in permanent regime).
      * This is shorter than runValidityTime, because a config update IS a change and
      * force to send reports in all case.
      */
     def updateValidityDuration(runIntervalInfo: ResolvedAgentRunInterval) = runIntervalInfo.interval.plus(GRACE_TIME_PENDING)
 
     /*
-     * How long time a run is valid before receiving any report (but not after an update)
+     * How long a run is valid before receiving any report (but not after an update)
      */
     def runValidityDuration(runIntervalInfo: ResolvedAgentRunInterval, complianceMode: ComplianceMode) = {
       complianceMode.mode match {
@@ -392,8 +406,10 @@ object ExecutionBatch extends Loggable {
       }
     }
 
-    /** Compute expiration date from a datetime (run in most case, but can be now in case of no run)
-     * and the configured interval */
+    /**
+     * Compute expiration date from a datetime (run in most case, but can be now in case of no run)
+     * and the configured interval
+     */
     def computeExpirationDate(
         date:            DateTime,
         runIntervalInfo: ResolvedAgentRunInterval,
@@ -401,8 +417,6 @@ object ExecutionBatch extends Loggable {
     ): DateTime = {
       date.plus(runValidityDuration(runIntervalInfo, complianceMode))
     }
-
-    val now = DateTime.now
 
     runs.map {
       case (nodeId, optRun) =>
@@ -499,10 +513,10 @@ object ExecutionBatch extends Loggable {
                  * Here, we want to check two things:
                  * - does the run should have contain a config id ?
                  *   It should if the oldest config was created a long time ago,
-                 *   and if it is the case most likelly the node can't get
+                 *   and if it is the case most likely the node can't get
                  *   its updated promises.
                  *   The logic is that only nodes with initial promises send reports without a config Id. So
-                 *   if a node is in that case, it is because it never got genererated promises.
+                 *   if a node is in that case, it is because it never got generated promises.
                  *   If the first generated promises for that node are beyond the grace period, it means that
                  *   the run should have used theses promises, and we have a (DNS) problem because it didn't.
                  *
@@ -559,7 +573,7 @@ object ExecutionBatch extends Loggable {
               //      But no corresponding expected Node. A
               //      And no current one.
               case ((AgentRunWithNodeConfig(AgentRunId(_, t), Some((rv, None)), _)), Some(currentConfig))            =>
-                // it's a bad version, but we have config id in DB => likelly a corruption on node
+                // it's a bad version, but we have config id in DB => likely a corruption on node
                 // expirationTime is the date after which we must have gotten a report for the current version
                 val expirationTime = t.plus(runValidityDuration(currentConfig.agentRun, currentConfig.complianceMode))
 
@@ -796,6 +810,20 @@ object ExecutionBatch extends Loggable {
           ReportType.NoAnswer
         )
 
+      case KeepLastCompliance(expectedConfig, expirationTime, keepUntil, optLastRun) =>
+        ComplianceDebugLogger
+          .node(nodeId)
+          .debug(
+            s"Node didn't received reports recently, status depend of the compliance mode and previous report status and will be kept until ${keepUntil}"
+          )
+        buildRuleNodeStatusReport(
+          // these reports need to expire, so that we can recompute them automatically
+          // at expiration, and store that the nodes were not answering
+          MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), expirationTime),
+          expectedConfig,
+          ReportType.NoAnswer
+        )
+
       case UnexpectedVersion(runTime, Some(runConfig), runExpiration, expectedConfig, expectedExpiration, _) =>
         ComplianceDebugLogger
           .node(nodeId)
@@ -910,7 +938,7 @@ object ExecutionBatch extends Loggable {
       case _ => Nil
     }
 
-    NodeStatusReport.apply(nodeId, runInfo, status, overrides, ruleNodeStatusReports.toSet)
+    NodeStatusReport.buildWith(nodeId, runInfo, status, overrides, ruleNodeStatusReports.toSet)
   }
 
   // utility method to find how missing report should be reported given the compliance
