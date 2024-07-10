@@ -1232,6 +1232,7 @@ object RudderConfig extends Loggable {
   val roDirectiveRepository:               RoDirectiveRepository                      = rci.roDirectiveRepository
   val roLDAPConnectionProvider:            LDAPConnectionProvider[RoLDAPConnection]   = rci.roLDAPConnectionProvider
   val roLDAPParameterRepository:           RoLDAPParameterRepository                  = rci.roLDAPParameterRepository
+  val woLDAPParameterRepository:           WoLDAPParameterRepository                  = rci.woLDAPParameterRepository
   val roNodeGroupRepository:               RoNodeGroupRepository                      = rci.roNodeGroupRepository
   val roParameterService:                  RoParameterService                         = rci.roParameterService
   val roRuleCategoryRepository:            RoRuleCategoryRepository                   = rci.roRuleCategoryRepository
@@ -1415,6 +1416,7 @@ case class RudderServiceApi(
     apiAuthorizationLevelService:        DefaultApiAuthorizationLevel,
     tokenGenerator:                      TokenGeneratorImpl,
     roLDAPParameterRepository:           RoLDAPParameterRepository,
+    woLDAPParameterRepository:           WoLDAPParameterRepository,
     interpolationCompiler:               InterpolatedValueCompilerImpl,
     deploymentService:                   PromiseGeneration_Hooks,
     campaignEventRepo:                   CampaignEventRepositoryImpl,
@@ -3715,6 +3717,7 @@ object RudderConfigInit {
       apiAuthorizationLevelService,
       tokenGenerator,
       roLDAPParameterRepository,
+      woLDAPParameterRepository,
       interpolationCompiler,
       deploymentService,
       campaignEventRepo,
