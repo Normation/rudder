@@ -1,13 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::package_manager::dpkg::Dpkg;
+use crate::output::ResultOutput;
+use crate::package_manager::{
+    apt::AptPackageManager, dpkg::DpkgPackageManager, rpm::RpmPackageManager,
+    yum::YumPackageManager, zypper::ZypperPackageManager,
+};
 /// Implementation of Linux package manager interactions.
 ///
 /// Used both for campaigns and simple package promises.
-use anyhow::Result;
+use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
+use std::str::FromStr;
+
+use serde::de::Error;
+use serde::{Deserializer, Serializer};
 
 mod apt;
 mod dpkg;
@@ -16,18 +25,18 @@ mod yum;
 mod zypper;
 
 /// Details of a package (installed or available) in a package manager context
-#[derive(Clone, Debug, Serialize, Deserialize)]
-struct PackageList {
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PackageList {
     // This structure allows querying the presence of a package efficiently
-    inner: HashMap<PackageId, PackageInfo>,
+    pub(crate) inner: HashMap<PackageId, PackageInfo>,
 }
 
 /// Details of a package (installed or available) in a package manager context
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-struct PackageInfo {
-    version: String,
-    from: String,
-    source: PackageManager,
+pub(crate) struct PackageInfo {
+    pub(crate) version: String,
+    pub(crate) from: String,
+    pub(crate) source: PackageManager,
 }
 
 impl PackageList {
@@ -35,11 +44,11 @@ impl PackageList {
         // FIXME: check package managers
         let mut changes = vec![];
 
-        for (p, info) in self.inner {
+        for (p, info) in &self.inner {
             if !new.inner.contains_key(&p) {
                 let action = PackageDiff {
                     id: p.clone(),
-                    old_version: Some(info.version),
+                    old_version: Some(info.version.clone()),
                     new_version: None,
                     action: PackageAction::Removed,
                 };
@@ -75,7 +84,7 @@ impl PackageList {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PackageDiff {
     id: PackageId,
@@ -86,7 +95,7 @@ pub struct PackageDiff {
     action: PackageAction,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PackageAction {
     Removed,
@@ -107,12 +116,41 @@ pub struct PackageSpec {
 /// We consider packages with the same name but different arch as different packages.
 ///
 /// All other package properties are considered variable (version, repo, etc.).
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PackageId {
     name: String,
     /// We don't need to know about the architecture, we use each package manager's
     /// arch names as is.
     arch: String,
+}
+
+impl serde::Serialize for PackageId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let s = format!("{}@{}", self.name, self.arch);
+        serializer.serialize_str(&s)
+    }
+}
+
+// Custom serialize/deserialize to be storable as JSON
+
+impl<'de> Deserialize<'de> for PackageId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        let parts: Vec<&str> = s.split('@').collect();
+        if parts.len() != 2 {
+            return Err(D::Error::custom("expected name@arch format"));
+        }
+        Ok(PackageId {
+            name: parts[0].to_owned(),
+            arch: parts[1].to_owned(),
+        })
+    }
 }
 
 impl PackageId {
@@ -122,6 +160,7 @@ impl PackageId {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum PackageManager {
     Yum,
     Apt,
@@ -130,19 +169,32 @@ pub enum PackageManager {
     Dpkg,
 }
 
-/// Generic implementation of a Linux package manager
+impl PackageManager {
+    pub fn get(self) -> Result<Box<dyn LinuxPackageManager>> {
+        Ok(match self {
+            PackageManager::Yum => Box::new(YumPackageManager::new()),
+            PackageManager::Apt => Box::new(AptPackageManager::new()?),
+            //PackageManager::Zypper => Box::new(ZypperPackageManager::new()),
+            _ => bail!("This package manager does not provide patch management features"),
+        })
+    }
+}
+
+/// A generic interface of a Linux package manager
 pub trait LinuxPackageManager {
     /// List installed packages
+    ///
+    /// It doesn't use a cache and queries the package manager directly.
     fn list_installed(&self) -> Result<PackageList>;
 
     /// Apply all available upgrades
-    fn full_upgrade(&self) -> Result<()>;
+    fn full_upgrade(&self) -> ResultOutput<()>;
 
     /// Apply all security upgrades
-    fn security_upgrade(&self) -> Result<()>;
+    fn security_upgrade(&self) -> ResultOutput<()>;
 
     /// Upgrade specific packages
-    fn upgrade(&self, packages: Vec<PackageSpec>) -> Result<()>;
+    fn upgrade(&self, packages: Vec<PackageSpec>) -> ResultOutput<()>;
 }
 
 #[cfg(test)]
@@ -239,7 +291,7 @@ mod tests {
         let old_p = PackageList { inner: old };
         let new_p = PackageList { inner: new };
 
-        let reference = vec![
+        let mut reference = vec![
             PackageDiff {
                 id: PackageId::new("mesa-vulkan-drivers".to_string(), "x86_64".to_string()),
                 old_version: Some("22.1.2-1.fc36".to_string()),
@@ -260,6 +312,10 @@ mod tests {
             },
         ];
 
-        assert_eq!(old_p.diff(new_p), reference);
+        let mut result = old_p.diff(new_p);
+        result.sort();
+        reference.sort();
+
+        assert_eq!(result, reference);
     }
 }

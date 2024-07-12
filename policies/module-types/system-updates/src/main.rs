@@ -5,19 +5,21 @@
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 
-mod actions;
 mod campaign;
 mod db;
 mod hooks;
 mod output;
 mod package_manager;
 mod scheduler;
+mod system;
 
 use std::{env, path::PathBuf};
 
+use crate::campaign::check_update;
 use crate::package_manager::PackageManager;
 use anyhow::Context;
-use chrono::{DateTime, Utc};
+use chrono::RoundingError::DurationExceedsTimestamp;
+use chrono::{DateTime, Duration, Utc};
 use package_manager::PackageSpec;
 use rudder_module_type::{
     parameters::Parameters, run, CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome,
@@ -48,9 +50,10 @@ pub enum CampaignType {
 #[serde(rename_all = "snake_case")]
 pub struct PackageParameters {
     #[serde(default)]
-    state: CampaignType,
+    campaign_type: CampaignType,
     provider: PackageManager,
-    campaign_id: String,
+    event_id: String,
+    reboot_type: RebootType,
     start: DateTime<Utc>,
     end: DateTime<Utc>,
     package_list: Vec<PackageSpec>,
@@ -87,8 +90,10 @@ impl ModuleType0 for SystemUpdate {
 
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
         assert!(self.validate(parameters).is_ok());
-        let parameters: PackageParameters =
+        let package_parameters: PackageParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))?;
+        let agent_freq = Duration::minutes(parameters.agent_frequency_minutes as i64);
+        check_update(&parameters.node_id, agent_freq, package_parameters)?;
         Ok(Outcome::Success(None))
     }
 }

@@ -15,7 +15,7 @@ serde_json = "1"
 regex = "1.10.2"
 rusqlite = { version = "0.31.0", features = ["bundled"] }
 rudder_module_type = { path = "../../rudder-module-type" }
-chrono = "0.4.38"
+chrono = { version = "0.4.38", features = ["serde"] }
 fnv = "1.0.7"
 log = "0.4.21"
 

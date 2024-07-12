@@ -7,23 +7,25 @@ use std::collections::HashMap;
 use std::env;
 use std::process::Command;
 
-pub struct Dpkg {}
+pub struct DpkgPackageManager {}
 
-impl Dpkg {
-    fn new() -> Self {
+// FIXME ADD arbitrary options
+
+impl DpkgPackageManager {
+    pub fn new() -> Self {
         env::set_var("DEBIAN_FRONTEND", "noninteractive");
-        Self
+        Self {}
     }
 
-    fn get_installed(&self) -> Result<PackageList> {
+    pub fn installed(&self) -> Result<PackageList> {
         let output_format = r###"${Package} ${Version} ${Architecture} ${Status}\n"###;
         let c = Command::new("dpkg-query")
             .arg("--showformat")
             .arg(output_format)
             .arg("-W")
-            .output();
+            .output()?;
 
-        let out = String::from_utf8_lossy(&*c?.stdout);
+        let out = String::from_utf8_lossy(&*c.stdout);
         let packages = self.parse_installed(out.as_ref())?;
         Ok(packages)
     }
@@ -84,7 +86,7 @@ python3.7 3.7.3-2+deb10u3 amd64 install ok installed";
             },
         );
 
-        let d = Dpkg::new();
-        assert_eq!(d.parse_installed(output).unwrap(), l);
+        let d = DpkgPackageManager::new();
+        assert_eq!(d.parse_installed(output).unwrap().inner, l);
     }
 }

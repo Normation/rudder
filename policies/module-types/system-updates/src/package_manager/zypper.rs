@@ -6,9 +6,13 @@ use anyhow::{bail, Result};
 use std::io::BufRead;
 use std::process::Command;
 
-pub struct Zypper {}
+pub struct ZypperPackageManager {}
 
-impl Zypper {
+impl ZypperPackageManager {
+    pub fn new() -> Self {
+        Self {}
+    }
+
     pub fn system_update(&self) -> Result<()> {
         Command::new("zypper").arg("refresh").output()?;
         Command::new("zypper")
@@ -25,7 +29,7 @@ impl Zypper {
             .arg("--name")
             .arg("update")
             // FIXME
-            .args(vec![])
+            .args(vec!["TODO"])
             .output()?;
         Ok(())
     }

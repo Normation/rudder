@@ -19,7 +19,7 @@ pub struct Parameters {
     #[serde(default = "Parameters::default_backup_dir")]
     pub backup_dir: PathBuf,
     /// Unique node identifier
-    pub node_id: Option<String>,
+    pub node_id: String,
     /// Agent run frequency
     pub agent_frequency_minutes: usize,
     /// Version of the Rudder module protocol

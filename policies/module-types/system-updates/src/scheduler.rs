@@ -6,12 +6,13 @@ use chrono::{DateTime, Duration, Utc};
 use fnv::FnvHasher;
 use std::hash::Hasher;
 
-/// Simple local scheduler
+/// Local scheduler
 ///
 /// Its goal is to choose a stable run time for the campaign event between two timestamps.
 ///
 /// Choose a start DateTime that is after `start` and before `end` - (agent_schedule + 5min).
-/// The choice is based on a hash of the unique_value to make it uniformly distributed over nodes.
+/// The choice is based on a hash of the unique_value to make it uniformly distributed over nodes
+/// (and we want it to be deterministic, so random is not enough).
 pub fn splayed_start(
     start: DateTime<Utc>,
     end: DateTime<Utc>,
@@ -26,7 +27,7 @@ pub fn splayed_start(
     if real_end <= start {
         let campaign_window = (end - start).num_minutes();
         bail!("Campaign execution schedule is too short, the minimal schedule should be superior to \
-              the agent run periodicity with an extra 6 minutes of margin.
+              the agent run periodicity with an extra 6 minutes of margin. \
               Current agent run frequency is {} minutes and current campaign schedule is {} minutes.",
         agent_schedule, campaign_window);
     }

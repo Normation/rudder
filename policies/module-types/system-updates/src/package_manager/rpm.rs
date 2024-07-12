@@ -1,28 +1,30 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::package_manager::{PackageId, PackageInfo, PackageList, PackageManager};
+use crate::package_manager::{
+    PackageDiff, PackageId, PackageInfo, PackageList, PackageManager, PackageSpec,
+};
 use anyhow::Result;
 use std::collections::HashMap;
 use std::env;
 use std::process::Command;
 
-pub struct Rpm {}
+pub struct RpmPackageManager {}
 
-impl Rpm {
-    fn new() -> Self {
-        Self
+impl RpmPackageManager {
+    pub fn new() -> Self {
+        Self {}
     }
 
-    fn get_installed(&self) -> Result<PackageList> {
+    pub fn installed(&self) -> Result<PackageList> {
         let output_format = r###"%{name} %{epochnum}:%{version}-%{release} %{arch}\n"###;
         let c = Command::new("rpm")
             .arg("-qa")
             .arg("--qf")
             .arg(output_format)
-            .output();
+            .output()?;
 
-        let out = String::from_utf8_lossy(&*c?.stdout);
+        let out = String::from_utf8_lossy(&*c.stdout);
         let packages = self.parse_installed(out.as_ref())?;
         Ok(packages)
     }
@@ -62,7 +64,6 @@ mod tests {
     #[test]
     fn it_parses_installed_list() {
         let output = "sushi 2:41.2-2.fc36 x86_64
-mesa-vulkan-drivers 22.1.2-1.fc36 x86_64
 gtksourceview5 5.4.2-1.fc36 x86_64
 gnome-software 42.2-4.fc36 x86_64
 google-chrome-stable 0:103.0.5060.53-1 x86_64";
@@ -101,7 +102,8 @@ google-chrome-stable 0:103.0.5060.53-1 x86_64";
             },
         );
 
-        let rpm = Rpm::new();
-        assert_eq!(rpm.parse_installed(output).unwrap(), l);
+        let rpm = RpmPackageManager::new();
+
+        assert_eq!(rpm.parse_installed(output).unwrap().inner, l);
     }
 }

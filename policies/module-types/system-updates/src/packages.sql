@@ -1,30 +1,20 @@
+-- Database for package management
 
--- liste des packages installés:
---
--- plusieurs types d'accès :
--- * global pour diff
--- * accès random pour vérifier présence/version
+-- For JSON data, we store the text as blob, as we don't do any query inside the JSON.
+-- The data validity is ensured by the application.
 
-
-
-
-
--- installed packages
-CREATE TABLE IF NOT EXISTS installed (
+-- Update events
+CREATE TABLE IF NOT EXISTS update_event (
     id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    version TEXT NOT NULL,
-    architecture TEXT NOT NULL
-);
-
--- update campaigns
-CREATE TABLE IF NOT EXISTS campaigns (
-    id INTEGER PRIMARY KEY,
+    -- event_id
+    event_id TEXT NOT NULL,
+    -- started, pending-report, completed
+    status TEXT NOT NULL,
     -- timestamps
-    creation_date TEXT NOT NULL,
-    start_date TEXT NOT NULL,
-    end_date TEXT NOT NULL,
-    report_date TEXT NOT NULL,
-    -- JSON
-    report BLOB,
-) STRICT;
+    run_datetime TEXT NOT NULL,
+    report_datetime TEXT,
+    -- package list before
+    packages_before TEXT, -- json string
+    -- report sent to the server
+    report TEXT -- json string
+);

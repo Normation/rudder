@@ -1,20 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-// On veut passer les infos d'expiration de cache
-// On veut passer le dossier de stockage de state
-// Le module est responsable du schéma
-// Il faut une table de clé-valeur en plus
-
+use crate::campaign::UpdateStatus;
+use crate::output::Report;
+use crate::package_manager::PackageList;
+/// Database using SQLite
+///
+/// The module is responsible for maintaining the database: schema upgrade, cleanup, etc.
+///
 use crate::SystemUpdate;
-use anyhow::Result;
+use chrono::Duration;
+use rudder_module_type::rudder_debug;
 use rusqlite::{self, params, Connection};
 use std::fmt;
 use std::path::Path;
 use std::time::{Instant, SystemTime};
 
-const DB_DIR: &str = "/var/rudder/cfengine-community/state/";
-const DB_NAME: &str = "system-updates.db";
+/// Reuse the path used by CFEngine for storing agent state
+///
+pub const DB_DIR: &str = "/var/rudder/cfengine-community/state/";
+const DB_NAME: &str = "system-updates.sqlite";
 
 #[derive(Debug)]
 struct PackageQuery {
@@ -25,94 +30,182 @@ struct PackageQuery {
     architecture: Option<String>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum CacheType {
-    Installed,
-    AvailableUpdates,
+pub struct PackageDatabase {
+    conn: Connection,
 }
 
-impl fmt::Display for CacheType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                CacheType::Installed => "installed",
-                CacheType::AvailableUpdates => "updates",
-            }
-        )
-    }
-}
-
-struct PackageCache {
-    db: Connection,
-    cache_type: CacheType,
-}
-
-impl PackageCache {
-    /// Open the database, creating it if necessary, but do not populate it.
+impl PackageDatabase {
+    /// Open the database, creating it if necessary.
     /// When no path is provided, the database is created in memory.
-    pub fn new(cache_type: CacheType, path: Option<&Path>) -> Result<Self> {
+    pub fn new(path: Option<&Path>) -> Result<Self, rusqlite::Error> {
         let conn = if let Some(p) = path {
-            Connection::open(p)
+            let full_path = p.join(DB_NAME);
+            rudder_debug!(
+                "Opening database {} (sqlite {})",
+                full_path.display(),
+                rusqlite::version()
+            );
+            Connection::open(full_path)
         } else {
+            rudder_debug!(
+                "Opening in-memory database (sqlite {})",
+                rusqlite::version()
+            );
             Connection::open_in_memory()
         }?;
         let schema = include_str!("packages.sql");
         conn.execute(schema, ())?;
-        Ok(Self {
-            cache_type,
-            db: conn,
-        })
+        Ok(Self { conn })
     }
 
-    pub fn refresh(packages: &[SystemUpdate]) -> Result<()> {
+    /// Purge entries
+    pub fn clean(&self, retention: Duration) -> Result<(), rusqlite::Error> {
+        rudder_debug!("Purging old events");
+        self.conn.execute(
+            "DELETE FROM update_event WHERE date(run_datetime) < date('now', ?1)",
+            (&format!("-{} minutes", retention.num_minutes()),),
+        )?;
         Ok(())
     }
 
-    pub fn contains(package: &PackageQuery) -> Result<bool> {
-        Ok(false)
+    /// Start an event
+    ///
+    /// The insertion also acts as the locking mechanism
+    pub fn start_event(&mut self, event_id: &str) -> Result<bool, rusqlite::Error> {
+        let tx = self.conn.transaction()?;
+
+        let r = tx.query_row(
+            "SELECT id FROM update_event WHERE event_id = ?1",
+            [&event_id],
+            |row| Ok(()),
+        );
+        let already_there = match r {
+            Ok(_) => true,
+            Err(e) if e == rusqlite::Error::QueryReturnedNoRows => false,
+            Err(e) => return Err(e.into()),
+        };
+        if !already_there {
+            tx.execute(
+                "INSERT INTO update_event (event_id, status, run_datetime) VALUES (?1, ?2, datetime('now'))",
+                (&event_id, UpdateStatus::Started.to_string()),
+            )?;
+        }
+
+        tx.commit()?;
+        Ok(already_there)
     }
 
-    /// When the cache was refreshed
-    pub fn date() -> Result<SystemTime> {
-        Ok(SystemTime::now())
-    }
-
-    pub fn clear() -> Result<()> {
+    pub fn store_packages(
+        &self,
+        event_id: &str,
+        packages_before: &PackageList,
+    ) -> Result<(), rusqlite::Error> {
+        self.conn.execute(
+            "UPDATE update_event SET packages_before = ?1 where event_id = ?2",
+            (serde_json::to_string(packages_before).unwrap(), &event_id),
+        )?;
         Ok(())
     }
-}
 
-/*
-fn main() -> Result<()> {
-    conn.execute(
-        "INSERT INTO person (name, data) VALUES (?1, ?2)",
-        (&me.name, &me.data),
-    )?;
-
-    let mut stmt = conn.prepare("SELECT id, name, data FROM person")?;
-    let person_iter = stmt.query_map([], |row| {
-        Ok(Person {
-            id: row.get(0)?,
-            name: row.get(1)?,
-            data: row.get(2)?,
-        })
-    })?;
-
-    for person in person_iter {
-        println!("Found person {:?}", person.unwrap());
+    pub fn get_packages(&self, event_id: &str) -> Result<PackageList, rusqlite::Error> {
+        self.conn.query_row(
+            "SELECT packages_before FROM update_event WHERE event_id = ?1",
+            [&event_id],
+            |row| {
+                let v: String = row.get_unwrap(0);
+                let p: PackageList = serde_json::from_str(&v).unwrap();
+                Ok(p)
+            },
+        )
     }
-    Ok(())
+
+    pub fn store_report(&self, event_id: &str, report: &Report) -> Result<(), rusqlite::Error> {
+        self.conn.execute(
+            "UPDATE update_event SET report = ?1 where event_id = ?2",
+            (serde_json::to_string(report).unwrap(), &event_id),
+        )?;
+        Ok(())
+    }
+
+    pub fn get_report(&self, event_id: &str) -> Result<Report, rusqlite::Error> {
+        self.conn.query_row(
+            "SELECT report FROM update_event WHERE event_id = ?1",
+            [&event_id],
+            |row| {
+                let v: String = row.get_unwrap(0);
+                let p: Report = serde_json::from_str(&v).unwrap();
+                Ok(p)
+            },
+        )
+    }
 }
-*/
 
 #[cfg(test)]
 mod tests {
-    use super::{CacheType, PackageCache};
+    use super::{PackageDatabase, DB_NAME};
+    use crate::campaign::UpdateStatus;
+    use crate::output::Report;
+    use crate::package_manager::{PackageId, PackageList, PackageManager};
+    use chrono::Duration;
+    use std::collections::HashMap;
+    use std::path::Path;
 
     #[test]
-    fn it_provisions_db() {
-        let db = PackageCache::new(CacheType::Installed, None).unwrap();
+    fn new_creates_new_database() {
+        let t = tempfile::tempdir().unwrap();
+        let db = PackageDatabase::new(Some(t.path())).unwrap();
+        assert!(t.path().join(DB_NAME).exists());
     }
+
+    #[test]
+    fn clean_removes_expired_entries() {
+        let db = PackageDatabase::new(None).unwrap();
+        let retention = Duration::minutes(30);
+        // Ensure that it works even when the database is empty
+        db.clean(retention).unwrap();
+    }
+
+    #[test]
+    fn start_event_inserts_and_returns_false_for_new_events() {
+        let mut db = PackageDatabase::new(None).unwrap();
+        let event_id = "TEST";
+        // If the event was not present before, this should be false
+        assert_eq!(false, db.start_event(event_id).unwrap());
+    }
+
+    #[test]
+    fn store_packages_saves_package_information() {
+        let mut db = PackageDatabase::new(None).unwrap();
+
+        let mut hm = HashMap::new();
+        hm.insert(
+            PackageId::new("mesa-vulkan-drivers".to_string(), "x86_64".to_string()),
+            crate::package_manager::PackageInfo {
+                version: "22.1.2-1.fc36".to_string(),
+                from: "".to_string(),
+                source: PackageManager::Yum,
+            },
+        );
+        let package_list = PackageList { inner: hm };
+
+        let event_id = "TEST";
+        db.start_event(event_id).unwrap();
+        db.store_packages(event_id, &package_list).unwrap();
+
+        // Now get the data back and see if it matches
+        let stored_packages = db.get_packages(event_id).unwrap();
+        assert_eq!(package_list, stored_packages);
+    }
+    /*
+    #[test]
+    fn store_and_get_report_works() {
+        let mut db = PackageDatabase::new(None).unwrap();
+        let report = Report { /* your report data here. */ };
+        let event_id = "TEST";
+        db.store_report(event_id, report.clone()).unwrap();
+
+        // Now get the data back and see if it matches
+        let got_report = db.get_report(event_id).unwrap();
+        assert_eq!(report, got_report);
+    }*/
 }
