@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS update_event (
     id INTEGER PRIMARY KEY,
     -- event_id
     event_id TEXT NOT NULL,
-    -- started, pending-report, completed
+    -- running, pending-report, completed
     status TEXT NOT NULL,
     -- timestamps
     run_datetime TEXT NOT NULL,

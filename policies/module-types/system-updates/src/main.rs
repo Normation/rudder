@@ -15,11 +15,8 @@ mod system;
 
 use std::{env, path::PathBuf};
 
-use crate::campaign::check_update;
-use crate::package_manager::PackageManager;
 use anyhow::Context;
-use chrono::RoundingError::DurationExceedsTimestamp;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration, RoundingError::DurationExceedsTimestamp, Utc};
 use package_manager::PackageSpec;
 use rudder_module_type::{
     parameters::Parameters, run, CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome,
@@ -27,6 +24,11 @@ use rudder_module_type::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+use crate::{campaign::check_update, package_manager::PackageManager};
+
+// Same as the python implementation
+pub const MODULE_DIR: &str = "/var/rudder/system-update";
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Copy)]
 #[serde(rename_all = "snake_case")]
@@ -51,13 +53,14 @@ pub enum CampaignType {
 pub struct PackageParameters {
     #[serde(default)]
     campaign_type: CampaignType,
-    provider: PackageManager,
+    package_manager: PackageManager,
     event_id: String,
     reboot_type: RebootType,
     start: DateTime<Utc>,
     end: DateTime<Utc>,
     package_list: Vec<PackageSpec>,
     report_file: PathBuf,
+    schedule_file: PathBuf,
 }
 
 // Module
@@ -89,12 +92,11 @@ impl ModuleType0 for SystemUpdate {
     }
 
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
-        assert!(self.validate(parameters).is_ok());
+        //assert!(self.validate(parameters).is_ok());
         let package_parameters: PackageParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))?;
         let agent_freq = Duration::minutes(parameters.agent_frequency_minutes as i64);
-        check_update(&parameters.node_id, agent_freq, package_parameters)?;
-        Ok(Outcome::Success(None))
+        check_update(&parameters.node_id, agent_freq, package_parameters)
     }
 }
 

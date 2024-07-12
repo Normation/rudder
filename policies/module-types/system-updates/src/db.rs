@@ -1,24 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use crate::campaign::UpdateStatus;
-use crate::output::Report;
-use crate::package_manager::PackageList;
+use std::{
+    fmt,
+    path::Path,
+    time::{Instant, SystemTime},
+};
+
+use chrono::Duration;
+use rudder_module_type::rudder_debug;
+use rusqlite::{self, params, Connection};
+
 /// Database using SQLite
 ///
 /// The module is responsible for maintaining the database: schema upgrade, cleanup, etc.
 ///
 use crate::SystemUpdate;
-use chrono::Duration;
-use rudder_module_type::rudder_debug;
-use rusqlite::{self, params, Connection};
-use std::fmt;
-use std::path::Path;
-use std::time::{Instant, SystemTime};
+use crate::{campaign::UpdateStatus, output::Report, package_manager::PackageList};
 
 /// Reuse the path used by CFEngine for storing agent state
 ///
-pub const DB_DIR: &str = "/var/rudder/cfengine-community/state/";
 const DB_NAME: &str = "system-updates.sqlite";
 
 #[derive(Debug)]
@@ -87,12 +88,24 @@ impl PackageDatabase {
         if !already_there {
             tx.execute(
                 "INSERT INTO update_event (event_id, status, run_datetime) VALUES (?1, ?2, datetime('now'))",
-                (&event_id, UpdateStatus::Started.to_string()),
+                (&event_id, UpdateStatus::Running.to_string()),
             )?;
         }
 
         tx.commit()?;
         Ok(already_there)
+    }
+
+    pub fn status(&mut self, event_id: &str) -> Result<UpdateStatus, rusqlite::Error> {
+        let r = self.conn.query_row(
+            "SELECT status FROM update_event WHERE event_id = ?1",
+            [&event_id],
+            |row| {
+                let s: String = row.get_unwrap(0);
+                Ok(s.parse().unwrap())
+            },
+        )?;
+        Ok(r)
     }
 
     pub fn store_report(&self, event_id: &str, report: &Report) -> Result<(), rusqlite::Error> {
@@ -118,13 +131,16 @@ impl PackageDatabase {
 
 #[cfg(test)]
 mod tests {
-    use super::{PackageDatabase, DB_NAME};
-    use crate::campaign::UpdateStatus;
-    use crate::output::Report;
-    use crate::package_manager::{PackageId, PackageList, PackageManager};
+    use std::{collections::HashMap, path::Path};
+
     use chrono::Duration;
-    use std::collections::HashMap;
-    use std::path::Path;
+
+    use super::{PackageDatabase, DB_NAME};
+    use crate::{
+        campaign::UpdateStatus,
+        output::Report,
+        package_manager::{PackageId, PackageList, PackageManager},
+    };
 
     #[test]
     fn new_creates_new_database() {

@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::package_manager::PackageDiff;
+use std::process::{Command, Output};
+
 use anyhow::{anyhow, Error, Result};
+use chrono::{DateTime, Utc};
 use log::debug;
 use serde::{Deserialize, Serialize};
-use std::process::{Command, Output};
+
+use crate::package_manager::PackageDiff;
 
 /// Outcome of each function
 ///
@@ -57,6 +60,7 @@ pub enum Status {
     Error,
     Success,
     Repaired,
+    Scheduled,
 }
 
 // Same as the Python implementation in 8.1.
@@ -77,6 +81,23 @@ impl Report {
             status: Status::Error,
             output: "".to_string(),
             errors: None,
+        }
+    }
+}
+
+// Same as the Python implementation in 8.1.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) struct ScheduleReport {
+    pub status: Status,
+    pub date: DateTime<Utc>,
+}
+
+impl ScheduleReport {
+    pub fn new(datetime: DateTime<Utc>) -> Self {
+        Self {
+            status: Status::Error,
+            date: datetime,
         }
     }
 }

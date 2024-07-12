@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::output::ResultOutput;
-use crate::package_manager::dpkg::DpkgPackageManager;
-use crate::package_manager::rpm::RpmPackageManager;
-use crate::package_manager::{LinuxPackageManager, PackageDiff, PackageList, PackageSpec};
+use std::{env, io::BufRead, path::Path, process::Command};
+
 use anyhow::{bail, Result};
 use regex::Regex;
-use std::env;
-use std::io::BufRead;
-use std::path::Path;
-use std::process::Command;
+
+use crate::{
+    output::ResultOutput,
+    package_manager::{
+        dpkg::DpkgPackageManager, rpm::RpmPackageManager, LinuxPackageManager, PackageDiff,
+        PackageList, PackageSpec,
+    },
+};
 // FIXME install needrestart in the technique!
 
 // FIXME : list compatible OS

@@ -1,22 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::output::ResultOutput;
-use crate::package_manager::{
-    apt::AptPackageManager, dpkg::DpkgPackageManager, rpm::RpmPackageManager,
-    yum::YumPackageManager, zypper::ZypperPackageManager,
-};
+use std::{collections::HashMap, fmt, str::FromStr};
+
 /// Implementation of Linux package manager interactions.
 ///
 /// Used both for campaigns and simple package promises.
 use anyhow::{bail, Result};
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fmt;
-use std::str::FromStr;
+use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 
-use serde::de::Error;
-use serde::{Deserializer, Serializer};
+use crate::{
+    output::ResultOutput,
+    package_manager::{
+        apt::AptPackageManager, dpkg::DpkgPackageManager, rpm::RpmPackageManager,
+        yum::YumPackageManager, zypper::ZypperPackageManager,
+    },
+};
 
 mod apt;
 mod dpkg;
@@ -178,8 +177,9 @@ pub trait LinuxPackageManager {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use pretty_assertions::assert_eq;
+
+    use super::*;
 
     #[test]
     fn it_diffs_package_lists() {

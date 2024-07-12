@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::package_manager::{PackageId, PackageInfo, PackageList, PackageManager};
+use std::{collections::HashMap, env, process::Command};
+
 use anyhow::Result;
-use std::collections::HashMap;
-use std::env;
-use std::process::Command;
+
+use crate::package_manager::{PackageId, PackageInfo, PackageList, PackageManager};
 
 pub struct DpkgPackageManager {}
 
@@ -59,8 +59,9 @@ impl DpkgPackageManager {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use pretty_assertions::assert_eq;
+
+    use super::*;
 
     #[test]
     fn it_parses_installed_list() {

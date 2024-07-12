@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::output::ResultOutput;
+use std::{path::Path, process::Command};
+
 use anyhow::{bail, Result};
-use std::path::Path;
-use std::process::Command;
+
+use crate::output::ResultOutput;
 // We have systemd everywhere.
 
 pub struct System {}
@@ -14,7 +15,7 @@ impl System {
         Self {}
     }
 
-    // FIXME: smarter way of rebooting...
+    // Maybe add a delay before rebooting?
     pub fn reboot(&self) -> ResultOutput<()> {
         let mut res = ResultOutput::new(Ok(()));
         let mut c = Command::new("systemctl");

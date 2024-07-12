@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
+use std::{collections::HashMap, env, process::Command};
+
+use anyhow::Result;
+
 use crate::package_manager::{
     PackageDiff, PackageId, PackageInfo, PackageList, PackageManager, PackageSpec,
 };
-use anyhow::Result;
-use std::collections::HashMap;
-use std::env;
-use std::process::Command;
 
 pub struct RpmPackageManager {}
 
@@ -58,8 +58,9 @@ impl RpmPackageManager {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use pretty_assertions::assert_eq;
+
+    use super::*;
 
     #[test]
     fn it_parses_installed_list() {

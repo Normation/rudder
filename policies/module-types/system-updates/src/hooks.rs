@@ -1,20 +1,43 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
+use std::{
+    fmt,
+    fmt::format,
+    fs,
+    fs::DirEntry,
+    os::unix::prelude::{MetadataExt, PermissionsExt},
+    path::Path,
+    process::Command,
+};
+
 use crate::output::ResultOutput;
+use crate::MODULE_DIR;
 use anyhow::{bail, Result};
 use rudder_module_type::{rudder_debug, rudder_info, rudder_warning};
-use std::fmt::format;
-use std::fs;
-use std::fs::DirEntry;
-use std::os::unix::prelude::{MetadataExt, PermissionsExt};
-use std::path::Path;
-use std::process::Command;
+use serde::{Deserialize, Serialize};
 
 const HOOKS_DIR: &str = "/var/rudder/system-update/hooks.d/";
 const PRE_HOOK: &str = "pre-upgrade";
 const PRE_REBOOT_HOOK: &str = "pre-reboot";
 const POST_HOOK_DIR: &str = "post-upgrade";
+
+#[derive(Clone, Debug, Copy)]
+pub enum Hooks {
+    PreUpgrade,
+    PreReboot,
+    PostUpgrade,
+}
+
+impl fmt::Display for Hooks {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Hooks::PreUpgrade => write!(f, "pre-upgrade"),
+            Hooks::PreReboot => write!(f, "pre-reboot"),
+            Hooks::PostUpgrade => write!(f, "post-upgrade"),
+        }
+    }
+}
 
 #[link(name = "c")]
 extern "C" {
@@ -47,48 +70,55 @@ fn hook_is_runnable(path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn run_hooks(path: &Path) -> ResultOutput<()> {
-    let mut res = ResultOutput::new(Ok(()));
-
-    if !path.exists() {
-        let s = format!(
-            "The hook directory {} does not exist, skipping",
-            path.display()
-        );
-        rudder_debug!("{}", s);
-        res.stderr(s);
-        return res;
-    }
-    if !path.is_dir() {
-        let s = format!("{} exists but is not a directory, skipping", path.display());
-        rudder_debug!("{}", s);
-        res.stderr(s);
-        return res;
+impl Hooks {
+    pub fn run(self) -> ResultOutput<()> {
+        let path = Path::new(MODULE_DIR).join(self.to_string());
+        Self::run_dir(path.as_path())
     }
 
-    let mut hooks: Vec<_> = fs::read_dir("/").unwrap().map(|r| r.unwrap()).collect();
-    // Sort hooks by lexicographical order
-    hooks.sort_by_key(|e| e.path());
+    fn run_dir(path: &Path) -> ResultOutput<()> {
+        let mut res = ResultOutput::new(Ok(()));
 
-    for hook in hooks {
-        let p = hook.path();
-        let out = match hook_is_runnable(p.as_path()) {
-            Ok(()) => {
-                res.stdout(format!("Running hook '{}'", p.display()));
-                res.stderr(format!("Running hook '{}'", p.display()));
-                rudder_info!("Running hook '{}'", p.display());
-                let hook_res = res.command(Command::new(p));
-                //if hook_res
-            }
-            Err(e) => {
-                res.stderr(format!("Skipping hook '{}' : {:?}", p.display(), e));
-                rudder_info!("Skipping hook '{}' : {:?}", p.display(), e);
-                continue;
-            }
-        };
+        if !path.exists() {
+            let s = format!(
+                "The hook directory {} does not exist, skipping",
+                path.display()
+            );
+            rudder_debug!("{}", s);
+            res.stderr(s);
+            return res;
+        }
+        if !path.is_dir() {
+            let s = format!("{} exists but is not a directory, skipping", path.display());
+            rudder_debug!("{}", s);
+            res.stderr(s);
+            return res;
+        }
+
+        let mut hooks: Vec<_> = fs::read_dir("/").unwrap().map(|r| r.unwrap()).collect();
+        // Sort hooks by lexicographical order
+        hooks.sort_by_key(|e| e.path());
+
+        for hook in hooks {
+            let p = hook.path();
+            let out = match hook_is_runnable(p.as_path()) {
+                Ok(()) => {
+                    res.stdout(format!("Running hook '{}'", p.display()));
+                    res.stderr(format!("Running hook '{}'", p.display()));
+                    rudder_info!("Running hook '{}'", p.display());
+                    let hook_res = res.command(Command::new(p));
+                    //if hook_res
+                }
+                Err(e) => {
+                    res.stderr(format!("Skipping hook '{}' : {:?}", p.display(), e));
+                    rudder_info!("Skipping hook '{}' : {:?}", p.display(), e);
+                    continue;
+                }
+            };
+        }
+
+        res
     }
-
-    res
 }
 
 /*
@@ -122,10 +152,11 @@ def run_hooks(directory):
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use std::fs::File;
-    use std::os::unix::fs::PermissionsExt;
+    use std::{fs::File, os::unix::fs::PermissionsExt};
+
     use tempfile::tempdir;
+
+    use super::*;
 
     #[test]
     fn test_hook_is_runnable() {
@@ -155,7 +186,7 @@ mod tests {
         let file_path = dir_path.join("tempfile");
         File::create(&file_path).unwrap();
 
-        let result = run_hooks(&dir_path);
+        let result = Hooks::run_dir(&dir_path);
         assert!(result.res.is_ok());
     }
 }

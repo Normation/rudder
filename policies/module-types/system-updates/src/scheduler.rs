@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
+use std::hash::Hasher;
+
 use anyhow::{bail, Result};
 use chrono::{DateTime, Duration, Utc};
 use fnv::FnvHasher;
-use std::hash::Hasher;
 
-/// Local scheduler
+/// A uniform local scheduler.
 ///
 /// Its goal is to choose a stable run time for the campaign event between two timestamps.
 ///

@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::package_manager::PackageSpec;
+use std::{io::BufRead, process::Command};
+
 use anyhow::{bail, Result};
-use std::io::BufRead;
-use std::process::Command;
+
+use crate::package_manager::PackageSpec;
 
 pub struct ZypperPackageManager {}
 
