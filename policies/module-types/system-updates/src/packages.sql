@@ -13,8 +13,6 @@ CREATE TABLE IF NOT EXISTS update_event (
     -- timestamps
     run_datetime TEXT NOT NULL,
     report_datetime TEXT,
-    -- package list before
-    packages_before TEXT, -- json string
     -- report sent to the server
     report TEXT -- json string
 );

@@ -94,33 +94,12 @@ impl AptPackageManager {
             .collect())
     }
 
-    pub fn services_to_restart(&self) -> Result<Vec<String>> {
-        let o = Command::new("needrestart")
-            // list only
-            .arg("-r")
-            .arg("l")
-            // batch mode (parsable output)
-            .arg("-b")
-            .output()?;
-        if !o.status.success() {
-            bail!("TODO");
-        }
-        let o = String::from_utf8_lossy(&o.stdout);
-        self.parse_services_to_restart(&o)
-    }
-
     fn update(&self) -> ResultOutput<()> {
         let mut res = ResultOutput::new(Ok(()));
         let mut c = Command::new("apt-get");
         c.arg("--yes").arg("update");
         let _ = res.command(c);
         res
-    }
-
-    pub fn reboot_required(&self) -> Result<bool> {
-        // `needrestart` doesn't bring anything more here. It only covers kernel-based required reboots,
-        // which are already covered with this file.
-        Ok(Path::new(REBOOT_REQUIRED_FILE_PATH).exists())
     }
 }
 
@@ -170,6 +149,27 @@ impl LinuxPackageManager for AptPackageManager {
 
         let _ = res.command(c);
         res
+    }
+
+    fn reboot_pending(&self) -> Result<bool> {
+        // `needrestart` doesn't bring anything more here. It only covers kernel-based required reboots,
+        // which are already covered with this file.
+        Ok(Path::new(REBOOT_REQUIRED_FILE_PATH).exists())
+    }
+
+    fn services_to_restart(&self) -> Result<Vec<String>> {
+        let o = Command::new("needrestart")
+            // list only
+            .arg("-r")
+            .arg("l")
+            // batch mode (parsable output)
+            .arg("-b")
+            .output()?;
+        if !o.status.success() {
+            bail!("TODO");
+        }
+        let o = String::from_utf8_lossy(&o.stdout);
+        self.parse_services_to_restart(&o)
     }
 }
 

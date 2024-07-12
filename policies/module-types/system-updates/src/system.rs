@@ -14,6 +14,7 @@ impl System {
         Self {}
     }
 
+    // FIXME: smarter way of rebooting...
     pub fn reboot(&self) -> ResultOutput<()> {
         let mut res = ResultOutput::new(Ok(()));
         let mut c = Command::new("systemctl");

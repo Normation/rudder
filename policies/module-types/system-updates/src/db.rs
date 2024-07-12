@@ -95,30 +95,6 @@ impl PackageDatabase {
         Ok(already_there)
     }
 
-    pub fn store_packages(
-        &self,
-        event_id: &str,
-        packages_before: &PackageList,
-    ) -> Result<(), rusqlite::Error> {
-        self.conn.execute(
-            "UPDATE update_event SET packages_before = ?1 where event_id = ?2",
-            (serde_json::to_string(packages_before).unwrap(), &event_id),
-        )?;
-        Ok(())
-    }
-
-    pub fn get_packages(&self, event_id: &str) -> Result<PackageList, rusqlite::Error> {
-        self.conn.query_row(
-            "SELECT packages_before FROM update_event WHERE event_id = ?1",
-            [&event_id],
-            |row| {
-                let v: String = row.get_unwrap(0);
-                let p: PackageList = serde_json::from_str(&v).unwrap();
-                Ok(p)
-            },
-        )
-    }
-
     pub fn store_report(&self, event_id: &str, report: &Report) -> Result<(), rusqlite::Error> {
         self.conn.execute(
             "UPDATE update_event SET report = ?1 where event_id = ?2",
@@ -171,41 +147,19 @@ mod tests {
         let event_id = "TEST";
         // If the event was not present before, this should be false
         assert_eq!(false, db.start_event(event_id).unwrap());
+        assert_eq!(true, db.start_event(event_id).unwrap());
     }
 
-    #[test]
-    fn store_packages_saves_package_information() {
-        let mut db = PackageDatabase::new(None).unwrap();
-
-        let mut hm = HashMap::new();
-        hm.insert(
-            PackageId::new("mesa-vulkan-drivers".to_string(), "x86_64".to_string()),
-            crate::package_manager::PackageInfo {
-                version: "22.1.2-1.fc36".to_string(),
-                from: "".to_string(),
-                source: PackageManager::Yum,
-            },
-        );
-        let package_list = PackageList { inner: hm };
-
-        let event_id = "TEST";
-        db.start_event(event_id).unwrap();
-        db.store_packages(event_id, &package_list).unwrap();
-
-        // Now get the data back and see if it matches
-        let stored_packages = db.get_packages(event_id).unwrap();
-        assert_eq!(package_list, stored_packages);
-    }
-    /*
     #[test]
     fn store_and_get_report_works() {
         let mut db = PackageDatabase::new(None).unwrap();
-        let report = Report { /* your report data here. */ };
+        let report = Report::new();
         let event_id = "TEST";
-        db.store_report(event_id, report.clone()).unwrap();
+        db.start_event(event_id).unwrap();
+        db.store_report(event_id, &report).unwrap();
 
         // Now get the data back and see if it matches
         let got_report = db.get_report(event_id).unwrap();
         assert_eq!(report, got_report);
-    }*/
+    }
 }

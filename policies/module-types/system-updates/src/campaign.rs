@@ -4,12 +4,29 @@
 use crate::db::{PackageDatabase, DB_DIR};
 use crate::output::{Report, Status};
 use crate::package_manager::{LinuxPackageManager, PackageSpec};
+use crate::system::System;
 use crate::{scheduler, CampaignType, PackageParameters, RebootType};
 use anyhow::Result;
 use chrono::{DateTime, Duration, Utc};
 use std::fmt::{Display, Formatter};
-use std::fs;
 use std::path::Path;
+use std::{fs, process};
+
+// FIXME: reprise en cas d'interruption à n'importe quel moment
+
+// Stages:
+//
+// * `pre-upgrade` hooks
+// * Before actual start. Send the schedule to the server.
+// * Running upgrade (can take tens of minutes)
+// * Upgrade is finished
+// * [service restart] (if needed)
+// * `pre-reboot` hooks
+// * [reboot] (if needed)
+//
+// can be a different agent run
+
+// * `post-upgrade` hooks
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum UpdateStatus {
@@ -89,7 +106,27 @@ pub fn run_update(
     }
 
     let before = pm.list_installed()?;
-    db.store_packages(&event_id, &before)?;
+
+    let r = match campaign_type {
+        CampaignType::System => pm.full_upgrade(),
+        CampaignType::Software => pm.upgrade(packages),
+    };
+
+    let after = pm.list_installed()?;
+    report.software_updated = before.diff(after);
+
+    // Now take system actions
+    let system = System::new();
+
+    if reboot_type == RebootType::Always {
+        system.reboot();
+    }
+
+    if reboot_type == RebootType::AsNeeded {
+        if pm.reboot_pending()? {
+            system.reboot();
+        }
+    }
 
     db.clean(Duration::days(60))?;
     Ok(report)
@@ -101,20 +138,7 @@ pub fn run_update(
        # race condition here but we can live with that
        self.set_lock()
 
-       before = self.installed()
-       self.store_file('before', before)
 
-       restart_services = (reboot == 'as_needed') or (
-           reboot == 'services_only'
-       )
-       (code, output, errors) = self.update(packages, restart_services)
-
-       after = self.installed()
-       self.store_file('after', after)
-
-       updates = self.diff(before, after)
-
-       report['software-updated'] = updates
 
        if output:
            report['output'] += output

@@ -116,7 +116,7 @@ pub struct PackageSpec {
 /// We consider packages with the same name but different arch as different packages.
 ///
 /// All other package properties are considered variable (version, repo, etc.).
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct PackageId {
     name: String,
     /// We don't need to know about the architecture, we use each package manager's
@@ -124,34 +124,7 @@ pub struct PackageId {
     arch: String,
 }
 
-impl serde::Serialize for PackageId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let s = format!("{}@{}", self.name, self.arch);
-        serializer.serialize_str(&s)
-    }
-}
-
-// Custom serialize/deserialize to be storable as JSON
-
-impl<'de> Deserialize<'de> for PackageId {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        let parts: Vec<&str> = s.split('@').collect();
-        if parts.len() != 2 {
-            return Err(D::Error::custom("expected name@arch format"));
-        }
-        Ok(PackageId {
-            name: parts[0].to_owned(),
-            arch: parts[1].to_owned(),
-        })
-    }
-}
+// FIXME serialize
 
 impl PackageId {
     pub fn new(name: String, arch: String) -> Self {
@@ -195,6 +168,12 @@ pub trait LinuxPackageManager {
 
     /// Upgrade specific packages
     fn upgrade(&self, packages: Vec<PackageSpec>) -> ResultOutput<()>;
+
+    /// Is a reboot pending?
+    fn reboot_pending(&self) -> Result<bool>;
+
+    /// List the services to restart
+    fn services_to_restart(&self) -> Result<Vec<String>>;
 }
 
 #[cfg(test)]

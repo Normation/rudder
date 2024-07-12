@@ -34,29 +34,6 @@ impl YumPackageManager {
         }
         res
     }
-
-    pub fn services_to_restart(&self) -> Result<Vec<String>> {
-        let o = Command::new(NEED_RESTART_PATH).arg("--services").output()?;
-        if !o.status.success() {
-            bail!("TODO");
-        }
-        // One service name per line
-        o.stdout
-            .lines()
-            .map(|s| {
-                s.map(|service| service.trim().to_string())
-                    .map_err(|e| e.into())
-            })
-            .collect()
-    }
-
-    pub fn reboot_required(&self) -> Result<bool> {
-        // only report whether a reboot is required (exit code 1) or not (exit code 0)
-        Ok(!Command::new(NEED_RESTART_PATH)
-            .arg("--reboothint")
-            .status()?
-            .success())
-    }
 }
 
 impl LinuxPackageManager for YumPackageManager {
@@ -92,5 +69,28 @@ impl LinuxPackageManager for YumPackageManager {
         );
         let _ = res.command(c);
         res
+    }
+
+    fn reboot_pending(&self) -> Result<bool> {
+        // only report whether a reboot is required (exit code 1) or not (exit code 0)
+        Ok(!Command::new(NEED_RESTART_PATH)
+            .arg("--reboothint")
+            .status()?
+            .success())
+    }
+
+    fn services_to_restart(&self) -> Result<Vec<String>> {
+        let o = Command::new(NEED_RESTART_PATH).arg("--services").output()?;
+        if !o.status.success() {
+            bail!("TODO");
+        }
+        // One service name per line
+        o.stdout
+            .lines()
+            .map(|s| {
+                s.map(|service| service.trim().to_string())
+                    .map_err(|e| e.into())
+            })
+            .collect()
     }
 }

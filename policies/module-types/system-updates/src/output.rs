@@ -10,6 +10,7 @@ use std::process::{Command, Output};
 /// Outcome of each function
 ///
 /// We need to collect outputs for reporting
+#[must_use]
 pub struct ResultOutput<T> {
     pub res: Result<T>,
     pub stdout: Vec<String>,
