@@ -89,7 +89,7 @@ class FullQuickSearchService(implicit
                      .chainError(s"Error with quicksearch bachend ${b}")
                  })
     } yield {
-      results.toSet.flatten
+      results.toSet.flatten.take(query.limit)
     }
   }
 
