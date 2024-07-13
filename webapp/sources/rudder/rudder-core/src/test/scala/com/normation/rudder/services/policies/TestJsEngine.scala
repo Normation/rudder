@@ -67,7 +67,7 @@ import zio.syntax.*
 class TestJsEngine extends Specification {
 
   val hashPrefix = "test"
-  val variableSpec: InputVariableSpec = InputVariableSpec(hashPrefix, "", id = None)
+  val variableSpec: InputVariableSpec = InputVariableSpec(hashPrefix, "", None, id = None)
 
   val noscriptVariable:     InputVariable = variableSpec.toVariable(Seq("simple ${rudder} value"))
   val get4scriptVariable:   InputVariable = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS} 2+2"))

@@ -118,14 +118,15 @@ object BuildBundleSequence {
   // (double quote is the default, and simple quote are used mostly for JSON)
   sealed trait BundleParam {
     def quote(agentEscape: String => String): String
-    def name:  String
-    def value: String
+    def name:         String
+    def value:        String
+    def variableName: Option[String]
   }
   object BundleParam       {
-    final case class SimpleQuote(value: String, name: String) extends BundleParam {
+    final case class SimpleQuote(value: String, name: String, variableName: Option[String]) extends BundleParam {
       def quote(agentEscape: String => String): String = "'" + value + "'"
     }
-    final case class DoubleQuote(value: String, name: String) extends BundleParam {
+    final case class DoubleQuote(value: String, name: String, variableName: Option[String]) extends BundleParam {
       def quote(agentEscape: String => String): String = "\"" + agentEscape(value) + "\""
     }
   }
@@ -152,8 +153,10 @@ object BuildBundleSequence {
         case (false, PolicyMode.Enforce) => enforce
       }
     }
-    val audit:                                                 Bundle = Bundle.apply(None, BundleName("""set_dry_run_mode"""), BundleParam.DoubleQuote("true", "mode") :: Nil)
-    val enforce:                                               Bundle = Bundle.apply(None, BundleName("""set_dry_run_mode"""), BundleParam.DoubleQuote("false", "mode") :: Nil)
+    val audit:                                                 Bundle =
+      Bundle.apply(None, BundleName("""set_dry_run_mode"""), BundleParam.DoubleQuote("true", "mode", None) :: Nil)
+    val enforce:                                               Bundle =
+      Bundle.apply(None, BundleName("""set_dry_run_mode"""), BundleParam.DoubleQuote("false", "mode", None) :: Nil)
   }
 
   /*
@@ -194,12 +197,12 @@ object BuildBundleSequence {
             None,
             BundleName("rudder_reporting_context_v4"),
             List(
-              (id.directiveId.serialize, "directiveId"),
-              (id.ruleId.serialize, "ruleId"),
-              (techniqueId.name.value, "techniqueName"),
-              ("", "component"),
-              ("", "value"),
-              (id.directiveId.serialize ++ id.ruleId.serialize, "report_id")
+              (id.directiveId.serialize, "directiveId", None),
+              (id.ruleId.serialize, "ruleId", None),
+              (techniqueId.name.value, "techniqueName", None),
+              ("", "component", None),
+              ("", "value", None),
+              (id.directiveId.serialize ++ id.ruleId.serialize, "report_id", None)
             ).map((BundleParam.DoubleQuote.apply _).tupled)
           ) :: Nil
       }
@@ -381,11 +384,13 @@ class BuildBundleSequence(
                 //      N/A       |        N/A      |    value = values.get(variable.name) = values.get(parameter.id)
                 // We would definitely be happier if we add a way to describe them as Rudder technique parameter and not as variable
 
-                (varId, varName) <-
-                  policy.technique.rootSection.copyWithoutSystemVars.getAllVariables.map(v => (v.name, v.description))
+                (varId, varName, variableName) <-
+                  policy.technique.rootSection.copyWithoutSystemVars.getAllVariables.map(v =>
+                    (v.name, v.description, v.variableName)
+                  )
               } yield {
                 val value = policy.expandedVars.get(varId).map(_.values.headOption.getOrElse("")).getOrElse("")
-                BundleParam.DoubleQuote(value, varName)
+                BundleParam.DoubleQuote(value, varName, variableName)
               }
             case TechniqueGenerationMode.MergeDirectives | TechniqueGenerationMode.MultipleDirectives =>
               Nil
@@ -573,7 +578,7 @@ object CfengineBundleVariables {
       case RunHook.Kind.Post => "post-run-hook"
     }
     import BundleParam.*
-    (promiser, Bundle(None, BundleName(hook.bundle), List(SimpleQuote(hook.jsonParam, "hook_param"))) :: Nil)
+    (promiser, Bundle(None, BundleName(hook.bundle), List(SimpleQuote(hook.jsonParam, "hook_param", None))) :: Nil)
   }
 
   /*

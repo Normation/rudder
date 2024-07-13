@@ -681,6 +681,7 @@ class WebappTechniqueCompiler(
       //     name       |   description
       <INPUT>
         <NAME>{parameter.id.value.toUpperCase()}</NAME>
+        <VARIABLENAME>{parameter.name}</VARIABLENAME>
         <DESCRIPTION>{parameter.description.getOrElse(parameter.name)}</DESCRIPTION>
         <LONGDESCRIPTION>{parameter.documentation.getOrElse("")}</LONGDESCRIPTION>
         <CONSTRAINT>

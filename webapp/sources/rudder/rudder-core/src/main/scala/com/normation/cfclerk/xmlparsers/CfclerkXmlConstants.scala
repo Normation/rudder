@@ -111,6 +111,7 @@ object CfclerkXmlConstants {
   val VAR_NAME                        = "NAME"
   val VAR_DESCRIPTION                 = "DESCRIPTION"
   val VAR_LONG_DESCRIPTION            = "LONGDESCRIPTION"
+  val VAR_VARIABLE_NAME               = "VARIABLENAME"
   val VAR_IS_UNIQUE_VARIABLE          = "UNIQUEVARIABLE"
   val VAR_IS_MULTIVALUED              = "MULTIVALUED"
   val VAR_CONSTRAINT                  = "CONSTRAINT"
