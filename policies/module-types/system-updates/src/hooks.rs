@@ -39,12 +39,13 @@ impl fmt::Display for Hooks {
     }
 }
 
-#[link(name = "c")]
-extern "C" {
-    fn geteuid() -> u32;
+fn geteuid() -> u32 {
+    fs::metadata("/proc/self")
+        .map(|m| m.uid())
+        .expect("Could not read /proc/self")
 }
 
-fn hook_is_runnable(path: &Path) -> Result<()> {
+fn hook_is_runnable(path: &Path, euid: u32) -> Result<()> {
     let metadata = path.metadata()?;
     let user = metadata.uid();
     let perms = metadata.permissions();
@@ -61,7 +62,7 @@ fn hook_is_runnable(path: &Path) -> Result<()> {
     }
 
     unsafe {
-        let is_owned_by_current_user = user == geteuid();
+        let is_owned_by_current_user = user == euid;
         if !is_owned_by_current_user {
             bail!("Hook is not owned by current user, skipping");
         }
@@ -78,6 +79,8 @@ impl Hooks {
 
     fn run_dir(path: &Path) -> ResultOutput<()> {
         let mut res = ResultOutput::new(Ok(()));
+        // we only support pretty modern Linux systems, should work fine
+        let euid = geteuid();
 
         if !path.exists() {
             let s = format!(
@@ -101,7 +104,7 @@ impl Hooks {
 
         for hook in hooks {
             let p = hook.path();
-            let out = match hook_is_runnable(p.as_path()) {
+            let out = match hook_is_runnable(p.as_path(), euid) {
                 Ok(()) => {
                     res.stdout(format!("Running hook '{}'", p.display()));
                     res.stderr(format!("Running hook '{}'", p.display()));
@@ -160,6 +163,8 @@ mod tests {
 
     #[test]
     fn test_hook_is_runnable() {
+        let euid = geteuid();
+
         let dir = tempdir().unwrap();
         let file_path = dir.path().join("tempfile");
         let file = File::create(&file_path).unwrap();
@@ -168,15 +173,15 @@ mod tests {
 
         permissions.set_mode(0o700);
         file.set_permissions(permissions.clone()).unwrap();
-        assert!(hook_is_runnable(&file_path).is_ok());
+        assert!(hook_is_runnable(&file_path, euid).is_ok());
 
         permissions.set_mode(0o777);
         file.set_permissions(permissions.clone()).unwrap();
-        assert!(hook_is_runnable(&file_path).is_err());
+        assert!(hook_is_runnable(&file_path, euid).is_err());
 
         permissions.set_mode(0o666);
         file.set_permissions(permissions).unwrap();
-        assert!(hook_is_runnable(&file_path).is_err());
+        assert!(hook_is_runnable(&file_path, euid).is_err());
     }
 
     #[test]
