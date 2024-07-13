@@ -29,11 +29,11 @@ impl YumPackageManager {
     fn package_spec_as_argument(p: PackageSpec) -> String {
         let mut res = p.name;
         if let Some(v) = p.version {
-            res.push_str("-");
+            res.push('-');
             res.push_str(&v);
         }
         if let Some(a) = p.architecture {
-            res.push_str(".");
+            res.push('.');
             res.push_str(&a);
         }
         res
@@ -69,7 +69,7 @@ impl LinuxPackageManager for YumPackageManager {
         c.arg("--assumeyes").arg("update").args(
             packages
                 .into_iter()
-                .map(|p| Self::package_spec_as_argument(p)),
+                .map(Self::package_spec_as_argument),
         );
         let _ = res.command(c);
         res

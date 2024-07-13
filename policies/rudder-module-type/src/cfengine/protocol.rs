@@ -276,11 +276,12 @@ mod tests {
         );
         let params = Parameters {
             data,
-            node_id: None,
+            node_id: "test".to_string(),
             temporary_dir: "".into(),
             backup_dir: "/backup".into(),
-            rudder_module_protocol: "0".into(),
+            rudder_module_protocol: 0,
             action_policy: ActionPolicy::Fix,
+            agent_frequency_minutes: 5,
         };
         let ref_val = ValidateRequest {
             operation: ValidateOperation::ValidatePromise,
@@ -310,11 +311,12 @@ mod tests {
         );
         let params = Parameters {
             data,
-            node_id: None,
+            node_id: "test".to_string(),
             temporary_dir: "".into(),
             backup_dir: "/backup".into(),
-            rudder_module_protocol: "0".into(),
+            rudder_module_protocol: 0,
             action_policy: ActionPolicy::Fix,
+            agent_frequency_minutes: 5,
         };
         let ref_val = EvaluateRequest {
             operation: EvaluateOperation::EvaluatePromise,

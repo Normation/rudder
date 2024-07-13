@@ -44,7 +44,7 @@ impl PackageList {
         let mut changes = vec![];
 
         for (p, info) in &self.inner {
-            if !new.inner.contains_key(&p) {
+            if !new.inner.contains_key(p) {
                 let action = PackageDiff {
                     id: p.clone(),
                     old_version: Some(info.version.clone()),

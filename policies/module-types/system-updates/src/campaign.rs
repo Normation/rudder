@@ -189,7 +189,7 @@ pub fn post_update(event_id: &str, db: &mut PackageDatabase) -> Result<Option<Re
     // TODO read report and enrich
     // FIXME locking
 
-    let mut report = db.get_report(event_id)?;
+    let report = db.get_report(event_id)?;
 
     let hook_res = Hooks::PostUpgrade.run();
 

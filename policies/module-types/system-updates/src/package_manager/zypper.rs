@@ -39,11 +39,11 @@ impl ZypperPackageManager {
         let mut res = p.name;
 
         if let Some(a) = p.architecture {
-            res.push_str(".");
+            res.push('.');
             res.push_str(&a);
         }
         if let Some(v) = p.version {
-            res.push_str("=");
+            res.push('=');
             res.push_str(&v);
         }
         res

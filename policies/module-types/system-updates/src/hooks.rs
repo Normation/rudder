@@ -61,11 +61,9 @@ fn hook_is_runnable(path: &Path, euid: u32) -> Result<()> {
         bail!("Hook is writable by everyone, skipping");
     }
 
-    unsafe {
-        let is_owned_by_current_user = user == euid;
-        if !is_owned_by_current_user {
-            bail!("Hook is not owned by current user, skipping");
-        }
+    let is_owned_by_current_user = user == euid;
+    if !is_owned_by_current_user {
+        bail!("Hook is not owned by current user, skipping");
     }
 
     Ok(())
@@ -104,7 +102,7 @@ impl Hooks {
 
         for hook in hooks {
             let p = hook.path();
-            let out = match hook_is_runnable(p.as_path(), euid) {
+            match hook_is_runnable(p.as_path(), euid) {
                 Ok(()) => {
                     res.stdout(format!("Running hook '{}'", p.display()));
                     res.stderr(format!("Running hook '{}'", p.display()));

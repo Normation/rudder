@@ -25,7 +25,7 @@ impl DpkgPackageManager {
             .arg("-W")
             .output()?;
 
-        let out = String::from_utf8_lossy(&*c.stdout);
+        let out = String::from_utf8_lossy(&c.stdout);
         let packages = self.parse_installed(out.as_ref())?;
         Ok(packages)
     }

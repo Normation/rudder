@@ -66,11 +66,11 @@ impl AptPackageManager {
     fn package_spec_as_argument(p: PackageSpec) -> String {
         let mut res = p.name;
         if let Some(a) = p.architecture {
-            res.push_str(":");
+            res.push(':');
             res.push_str(&a);
         }
         if let Some(v) = p.version {
-            res.push_str("=");
+            res.push('=');
             res.push_str(&v);
         }
         res
@@ -86,11 +86,7 @@ impl AptPackageManager {
         Ok(output
             .lines()
             .flat_map(|line| {
-                let service_name = if let Some(cap) = re.captures(line) {
-                    Some(cap.get(1).map_or("", |m| m.as_str()).to_string())
-                } else {
-                    None
-                };
+                let service_name = re.captures(line).map(|cap| cap.get(1).map_or("", |m| m.as_str()).to_string());
                 service_name
             })
             .collect())
@@ -146,7 +142,7 @@ impl LinuxPackageManager for AptPackageManager {
         c.args(
             packages
                 .into_iter()
-                .map(|p| Self::package_spec_as_argument(p)),
+                .map(Self::package_spec_as_argument),
         );
 
         let _ = res.command(c);

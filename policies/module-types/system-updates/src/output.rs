@@ -42,10 +42,10 @@ impl<T> ResultOutput<T> {
         let res = c.output();
 
         if let Ok(ref o) = res {
-            let stdout_s = String::from_utf8_lossy(&*o.stdout);
+            let stdout_s = String::from_utf8_lossy(&o.stdout);
             self.stdout.push(stdout_s.to_string());
             debug!("stdout: {stdout_s}");
-            let stderr_s = String::from_utf8_lossy(&*o.stderr);
+            let stderr_s = String::from_utf8_lossy(&o.stderr);
             self.stderr.push(stderr_s.to_string());
             debug!("stderr: {stderr_s}");
         };

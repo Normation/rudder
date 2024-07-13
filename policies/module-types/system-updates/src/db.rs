@@ -82,8 +82,8 @@ impl PackageDatabase {
         );
         let already_there = match r {
             Ok(_) => true,
-            Err(e) if e == rusqlite::Error::QueryReturnedNoRows => false,
-            Err(e) => return Err(e.into()),
+            Err(rusqlite::Error::QueryReturnedNoRows) => false,
+            Err(e) => return Err(e),
         };
         if !already_there {
             tx.execute(
