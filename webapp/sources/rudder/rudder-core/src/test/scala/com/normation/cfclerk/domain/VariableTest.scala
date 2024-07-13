@@ -63,12 +63,13 @@ class VariableTest extends Specification {
 
   val nbVariables = 28
 
-  val refName        = "name"
-  val refDescription = "description"
-  val refValue       = "value"
-  val dateValue      = "2010-01-16T12:00:00.000+01:00"
-  val listValue      = "value1;value2"
-  val defaultValue   = "default_value"
+  val refName         = "name"
+  val refDescription  = "description"
+  val refValue        = "value"
+  val refVariableName = Some("variable_name")
+  val dateValue       = "2010-01-16T12:00:00.000+01:00"
+  val listValue       = "value1;value2"
+  val defaultValue    = "default_value"
 
   val rawValue  = """This is a test \ " \\ """
   val escapedTo = """This is a test \\ \" \\\\ """
@@ -168,13 +169,13 @@ class VariableTest extends Specification {
   ///////////////// generic tests about variable construction, do not use files /////////////////
 
   "Unsetted Variable" should {
-    implicit val variable = InputVariable(InputVariableSpec(refName, refDescription, id = None), Seq())
+    implicit val variable = InputVariable(InputVariableSpec(refName, refDescription, refVariableName, id = None), Seq())
     haveName()
     haveDescription()
   }
 
   "Variable" should {
-    val v = InputVariable(InputVariableSpec(refName, refDescription, id = None), Seq())
+    val v = InputVariable(InputVariableSpec(refName, refDescription, refVariableName, id = None), Seq())
     implicit val variable: InputVariable = v.copyWithSavedValue(refValue).orThrow
 
     haveName()
@@ -183,7 +184,8 @@ class VariableTest extends Specification {
   }
 
   "Multivalued variable" should {
-    val variable = InputVariable(InputVariableSpec(refName, refDescription, multivalued = true, id = None), Seq())
+    val variable =
+      InputVariable(InputVariableSpec(refName, refDescription, refVariableName, multivalued = true, id = None), Seq())
     implicit val v: InputVariable = variable.copyWithSavedValues(listValue.split(";").toSeq).orThrow
 
     haveName()
@@ -192,7 +194,8 @@ class VariableTest extends Specification {
   }
 
   "Select variable" should {
-    val variable = SelectVariable(SelectVariableSpec(refName, refDescription, valueslabels = refItem, id = None), Seq())
+    val variable =
+      SelectVariable(SelectVariableSpec(refName, refDescription, refVariableName, valueslabels = refItem, id = None), Seq())
     implicit val v: SelectVariable = variable.copyWithSavedValue(refValue).orThrow
 
     haveName()
@@ -201,7 +204,7 @@ class VariableTest extends Specification {
   }
 
   "Input variable" should {
-    val variable = InputVariable(InputVariableSpec(refName, refDescription, id = None), Seq())
+    val variable = InputVariable(InputVariableSpec(refName, refDescription, refVariableName, id = None), Seq())
     implicit val v: InputVariable = variable.copyWithSavedValue(refValue).orThrow
 
     haveName()
@@ -210,7 +213,7 @@ class VariableTest extends Specification {
   }
 
   "Nulled variable" should {
-    val variable = InputVariable(InputVariableSpec(refName, refDescription, id = None), Seq())
+    val variable = InputVariable(InputVariableSpec(refName, refDescription, refVariableName, id = None), Seq())
     implicit val v: InputVariable = variable.copyWithSavedValue(null).orThrow
 
     haveName()
@@ -219,7 +222,7 @@ class VariableTest extends Specification {
   }
 
   "Valid variable" should {
-    val variable = InputVariable(InputVariableSpec(refName, refDescription, id = None), Seq())
+    val variable = InputVariable(InputVariableSpec(refName, refDescription, refVariableName, id = None), Seq())
     implicit val v: InputVariable = variable.copyWithSavedValue(refValue).orThrow
 
     haveName()
@@ -228,8 +231,12 @@ class VariableTest extends Specification {
   }
 
   "Boolean variable" should {
-    val variable =
-      InputVariable(InputVariableSpec(refName, refDescription, constraint = Constraint(BooleanVType), id = None), Seq())
+    val variable = {
+      InputVariable(
+        InputVariableSpec(refName, refDescription, refVariableName, constraint = Constraint(BooleanVType), id = None),
+        Seq()
+      )
+    }
 
     implicit val v: InputVariable = variable.copyWithSavedValue("true").orThrow
     haveName()
@@ -238,8 +245,12 @@ class VariableTest extends Specification {
   }
 
   "Boolean variable" should {
-    val variable =
-      InputVariable(InputVariableSpec(refName, refDescription, constraint = Constraint(BooleanVType), id = None), Seq())
+    val variable = {
+      InputVariable(
+        InputVariableSpec(refName, refDescription, refVariableName, constraint = Constraint(BooleanVType), id = None),
+        Seq()
+      )
+    }
 
     implicit val v: InputVariable = variable.copyWithSavedValue("false").orThrow
     haveValue(false)
@@ -247,7 +258,7 @@ class VariableTest extends Specification {
 
   "Invalid variable" should {
     implicit val variable =
-      new SelectVariable(SelectVariableSpec(refName, refDescription, valueslabels = refItem, id = None), Seq())
+      new SelectVariable(SelectVariableSpec(refName, refDescription, refVariableName, valueslabels = refItem, id = None), Seq())
 
     "throw a VariableException" in {
       variable.copyWithSavedValue(unvalidValue) must beLeft[LoadTechniqueError]

@@ -90,6 +90,7 @@ class RuleValServiceTest extends Specification {
     PredefinedValuesVariableSpec(
       reportKeysVariableName(name),
       "description",
+      None,
       providedValues,
       id = None
     )

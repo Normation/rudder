@@ -27,6 +27,7 @@
     <SECTION name="Technique parameters">
       <INPUT>
         <NAME>2F415DC5-9F9E-4FBE-B836-8960AF613EC9</NAME>
+        <VARIABLENAME>file</VARIABLENAME>
         <DESCRIPTION>file</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>

@@ -96,6 +96,7 @@ impl From<Parameter> for Input {
 
         Self {
             name: p.id.to_string().to_uppercase(),
+            variable_name: p.name.clone(),
             description: p.description.unwrap_or(p.name),
             long_description: p.documentation,
             constraint: Constraint {
@@ -135,6 +136,7 @@ impl From<Parameter> for SelectOne {
 
         Self {
             name: p.name.clone(),
+            variable_name: p.name.clone(),
             description: p.description.unwrap_or(p.name),
             long_description: p.documentation,
             item: items,
@@ -376,11 +378,12 @@ struct SectionInput {
 struct Input {
     // actually, the id
     name: String,
+    #[serde(rename = "VARIABLENAME")]
     // actually, the name
+    variable_name: String,
     description: String,
     #[serde(rename = "LONGDESCRIPTION")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    // actually, the description
     long_description: Option<String>,
     constraint: Constraint,
 }
@@ -390,11 +393,12 @@ struct Input {
 struct SelectOne {
     // actually, the id
     name: String,
+    #[serde(rename = "VARIABLENAME")]
     // actually, the name
+    variable_name: String,
     description: String,
     #[serde(rename = "LONGDESCRIPTION")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    // actually, the description
     long_description: Option<String>,
     item: Vec<SelectItem>,
     constraint: Constraint,
@@ -519,6 +523,7 @@ mod tests {
                         name: "Technique parameters".to_string(),
                         section: vec![InputType::Input(Input {
                             name: "server".to_string(),
+                            variable_name: "My_parameter".to_string(),
                             description: "My parameter".to_string(),
                             long_description: Some("My interesting parameter".to_string()),
                             constraint: Constraint {
