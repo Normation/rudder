@@ -120,19 +120,19 @@ impl Expression {
         self,
         target: Target,
         t_id: &str,
-        parameter_calls_shortcut: Vec<technique::Parameter>,
+        t_parameters: Vec<technique::Parameter>,
     ) -> Result<Self> {
         match self.clone() {
             Expression::Empty => Ok(self),
             Expression::Scalar(_) => Ok(self),
             Expression::Const(e) => Ok(Expression::Const(Box::new(
-                e.force_long_name_for_technique_params(target, t_id, parameter_calls_shortcut)?,
+                e.force_long_name_for_technique_params(target, t_id, t_parameters)?,
             ))),
             Expression::GlobalParameter(e) => Ok(Expression::GlobalParameter(Box::new(
-                e.force_long_name_for_technique_params(target, t_id, parameter_calls_shortcut)?,
+                e.force_long_name_for_technique_params(target, t_id, t_parameters)?,
             ))),
             Expression::NcfConst(e) => Ok(Expression::NcfConst(Box::new(
-                e.force_long_name_for_technique_params(target, t_id, parameter_calls_shortcut)?,
+                e.force_long_name_for_technique_params(target, t_id, t_parameters)?,
             ))),
             Expression::Sys(v) => Ok(Expression::Sys(
                 v.iter()
@@ -140,7 +140,7 @@ impl Expression {
                         e.clone().force_long_name_for_technique_params(
                             target,
                             t_id,
-                            parameter_calls_shortcut.clone(),
+                            t_parameters.clone(),
                         )
                     })
                     .collect::<Result<Vec<Expression>>>()?,
@@ -151,7 +151,7 @@ impl Expression {
                         e.clone().force_long_name_for_technique_params(
                             target,
                             t_id,
-                            parameter_calls_shortcut.clone(),
+                            t_parameters.clone(),
                         )
                     })
                     .collect::<Result<Vec<Expression>>>()?,
@@ -162,7 +162,7 @@ impl Expression {
                         e.clone().force_long_name_for_technique_params(
                             target,
                             t_id,
-                            parameter_calls_shortcut.clone(),
+                            t_parameters.clone(),
                         )
                     })
                     .collect::<Result<Vec<Expression>>>()?,
@@ -173,50 +173,44 @@ impl Expression {
                         e.clone().force_long_name_for_technique_params(
                             target,
                             t_id,
-                            parameter_calls_shortcut.clone(),
+                            t_parameters.clone(),
                         )
                     })
                     .collect::<Result<Vec<Expression>>>()?,
             )),
             Expression::GenericVar(v) => {
-                if v.len() != 1 {
+                if v.len() == 1 {
+                    // If the generic var is made of one unique scalar and does not contain any '.'
+                    // it is most likely a parameter call using the short name
+                    match v[0].clone() {
+                        Expression::Scalar(_) => {
+                            if t_parameters.iter().any(|s| s.name == v[0].fmt(target)) {
+                                Ok(Expression::GenericVar(vec![
+                                    Expression::Scalar(t_id.to_string()),
+                                    v[0].clone(),
+                                ]))
+                            } else {
+                                Ok(self)
+                            }
+                        }
+                        _ => v[0].clone().force_long_name_for_technique_params(
+                            target,
+                            t_id,
+                            t_parameters,
+                        ),
+                    }
+                } else {
                     Ok(Expression::GenericVar(
                         v.iter()
                             .map(|e| {
                                 e.clone().force_long_name_for_technique_params(
                                     target,
                                     t_id,
-                                    parameter_calls_shortcut.clone(),
+                                    t_parameters.clone(),
                                 )
                             })
                             .collect::<Result<Vec<Expression>>>()?,
                     ))
-                } else {
-                    // If the generic var is made of one unique scalar, it is most likely a parameter call using the short name
-                    match v[0].clone() {
-                        Expression::Scalar(_) => {
-                            if parameter_calls_shortcut
-                                .iter()
-                                .any(|s| s.name == v[0].fmt(target))
-                            {
-                                Ok(Expression::GenericVar(vec![
-                                    Expression::Scalar(t_id.to_string()),
-                                    v[0].clone(),
-                                ]))
-                            } else {
-                                v[0].clone().force_long_name_for_technique_params(
-                                    target,
-                                    t_id,
-                                    parameter_calls_shortcut,
-                                )
-                            }
-                        }
-                        _ => v[0].clone().force_long_name_for_technique_params(
-                            target,
-                            t_id,
-                            parameter_calls_shortcut,
-                        ),
-                    }
                 }
             }
         }
@@ -623,9 +617,8 @@ fn key(s: &str) -> IResult<&str, Expression> {
 
 #[cfg(test)]
 mod tests {
-    use pretty_assertions::assert_eq;
-
     use super::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn it_reads_string() {
@@ -959,6 +952,20 @@ vars.bundle.plouf.key
                 .to_string()
         );
         assert_eq!(e.fmt(Target::Unix), "${bundle.plouf[key]}".to_string());
+
+        let f = Expression::Sequence(vec![
+            Expression::Scalar("bundle.plouf is ".to_string()),
+            Expression::GenericVar(vec![Expression::Scalar("bundle.plouf".to_string())]),
+        ]);
+        assert_eq!(
+            f.fmt(Target::Windows),
+            r#"@'
+bundle.plouf is 
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.bundle.plouf
+'@ + '}}'))"#
+                .to_string()
+        );
     }
 
     #[test]
@@ -967,5 +974,83 @@ vars.bundle.plouf.key
         assert_eq!(did_you_mean("Félou", values).unwrap(), "Félix");
         assert_eq!(did_you_mean("Vince", values).unwrap(), "Vincent");
         assert!(did_you_mean("GLORG", values).is_none());
+    }
+
+    #[test]
+    fn it_simplifies_expressions_using_technique_params() {
+        let target = Target::Windows;
+        let t_id = "technique_id";
+        let technique_params = vec![technique::Parameter {
+            name: "param1".to_string(),
+            description: None,
+            documentation: None,
+            id: technique::Id::from_str("param_id").unwrap(),
+            _type: technique::ParameterType::String,
+            constraints: technique::Constraints {
+                allow_empty: false,
+                regex: None,
+                select: None,
+                password_hashes: None,
+            },
+            default: None,
+        }];
+        // ${bundle.plouf[key]}
+        let e = Expression::GenericVar(vec![
+            Expression::Scalar("bundle.plouf".to_string()),
+            Expression::Scalar("key".to_string()),
+        ]);
+        assert_eq!(
+            e.clone()
+                .force_long_name_for_technique_params(target, t_id, technique_params.clone())
+                .unwrap(),
+            e
+        );
+
+        // ${bundle.plouf}
+        let e = Expression::GenericVar(vec![Expression::Scalar("bundle.plouf".to_string())]);
+        assert_eq!(
+            e.clone()
+                .force_long_name_for_technique_params(target, t_id, technique_params.clone())
+                .unwrap(),
+            e
+        );
+
+        // ${param1} -> ${technique_id.param1}
+        let e = Expression::GenericVar(vec![Expression::Scalar("param1".to_string())]);
+        assert_eq!(
+            e.force_long_name_for_technique_params(target, t_id, technique_params.clone())
+                .unwrap(),
+            Expression::GenericVar(vec![
+                Expression::Scalar("technique_id".to_string()),
+                Expression::Scalar("param1".to_string())
+            ])
+        );
+        // ${singleWord} -> ${singleWord}
+        let e = Expression::GenericVar(vec![Expression::Scalar("singleWord".to_string())]);
+        assert_eq!(
+            e.force_long_name_for_technique_params(target, t_id, technique_params.clone())
+                .unwrap(),
+            Expression::GenericVar(vec![Expression::Scalar("singleWord".to_string()),])
+        );
+        // ${notTechniqueParam.param1} -> ${notTechniqueParam.param1}
+        let e = Expression::GenericVar(vec![
+            Expression::Scalar("notTechniqueParam".to_string()),
+            Expression::Scalar("param1".to_string()),
+        ]);
+        assert_eq!(
+            e.force_long_name_for_technique_params(target, t_id, technique_params.clone())
+                .unwrap(),
+            Expression::GenericVar(vec![
+                Expression::Scalar("notTechniqueParam".to_string()),
+                Expression::Scalar("param1".to_string()),
+            ])
+        );
+        // ${param11} -> ${param11}
+        let e = Expression::GenericVar(vec![Expression::Scalar("param11".to_string())]);
+        assert_eq!(
+            e.force_long_name_for_technique_params(target, t_id, technique_params.clone())
+                .unwrap(),
+            Expression::GenericVar(vec![Expression::Scalar("param11".to_string()),])
+        );
     }
 }

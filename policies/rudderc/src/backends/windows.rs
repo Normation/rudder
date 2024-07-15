@@ -357,7 +357,10 @@ impl Windows {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use pretty_assertions::assert_eq;
+    use rudder_commons::Escaping;
 
     use crate::backends::windows::filters::canonify_condition;
 
@@ -395,6 +398,8 @@ vars.plouf
     }
 
     use crate::backends::windows::filters::camel_case;
+    use crate::backends::windows::filters::parameter_fmt;
+    use crate::ir::technique;
 
     #[test]
     fn it_camelcase_method_params() {
@@ -417,5 +422,121 @@ vars.plouf
         let r = "ReportMessage";
         let res = camel_case(p).unwrap();
         assert_eq!(res, r);
+    }
+
+    #[test]
+    fn it_renders_parameters() {
+        let t_id = "technique_id";
+        let t_params = vec![technique::Parameter {
+            name: "param1".to_string(),
+            description: None,
+            documentation: None,
+            id: technique::Id::from_str("param_id").unwrap(),
+            _type: technique::ParameterType::String,
+            constraints: technique::Constraints {
+                allow_empty: false,
+                regex: None,
+                select: None,
+                password_hashes: None,
+            },
+            default: None,
+        }];
+        // Basic case with plain text
+        let m_param = (
+            "method_param_name".to_string(),
+            "a simple test".to_string(),
+            Escaping::String,
+        );
+        assert_eq!(
+            "@'
+a simple test
+'@",
+            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+        );
+
+        // Basic case with a GenericVar
+        let m_param = (
+            "method_param_name".to_string(),
+            "a less simple ${plouf.plouf} test".to_string(),
+            Escaping::String,
+        );
+        assert_eq!(
+            "@'
+a less simple 
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.plouf.plouf
+'@ + '}}')) + @'
+ test
+'@",
+            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+        );
+
+        // Basic case with a call to a short param name
+        let m_param = (
+            "method_param_name".to_string(),
+            "a less simple ${param1} test".to_string(),
+            Escaping::String,
+        );
+        assert_eq!(
+            "@'
+a less simple 
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.technique_id.param1
+'@ + '}}')) + @'
+ test
+'@",
+            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+        );
+
+        // Complex case with a Generic looking like a technique param
+        let m_param = (
+            "method_param_name".to_string(),
+            "a less simple ${plouf.param1} test".to_string(),
+            Escaping::String,
+        );
+        assert_eq!(
+            "@'
+a less simple 
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.plouf.param1
+'@ + '}}')) + @'
+ test
+'@",
+            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+        );
+
+        // With a Generic var looking like a technique param
+        let m_param = (
+            "method_param_name".to_string(),
+            "a less simple ${param1or2} test".to_string(),
+            Escaping::String,
+        );
+        assert_eq!(
+            "@'
+a less simple 
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.param1or2
+'@ + '}}')) + @'
+ test
+'@",
+            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+        );
+
+        // With a sys variable
+        let m_param = (
+            "method_param_name".to_string(),
+            "a less simple ${sys.host} test".to_string(),
+            Escaping::String,
+        );
+        assert_eq!(
+            "@'
+a less simple 
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.sys.host
+'@ + '}}')) + @'
+ test
+'@",
+            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+        );
     }
 }

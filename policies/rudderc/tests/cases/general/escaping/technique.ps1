@@ -25,8 +25,10 @@ vars.sys.host
 '@ + '}}')) + @'
  . | / 
 '@ + ([Rudder.Datastate]::Render('{{' + @'
-vars.sys.host
-'@ + '}}')) + @'
+vars.sys.
+'@ + [Rudder.Datastate]::Render('{{' + @'
+vars.host
+'@ + '}}') + '}}')) + @'
  ' '' ''' $ $$ " "" \ \\😋aà3
 	
 '@
@@ -38,8 +40,10 @@ vars.sys.host
 '@ + '}}')) + @'
  . | / 
 '@ + ([Rudder.Datastate]::Render('{{' + @'
-vars.sys.host
-'@ + '}}')) + @'
+vars.sys.
+'@ + [Rudder.Datastate]::Render('{{' + @'
+vars.host
+'@ + '}}') + '}}')) + @'
  ' '' ''' $ $$ " "" \ \\😋aà3
 	
 '@
@@ -49,13 +53,15 @@ vars.sys.host
         TechniqueName = $techniqueName
     }
     
-    $class = ([Rudder.Condition]::canonify(@'
-my_cond
-'@ + @'
+    $class = ([Rudder.Condition]::canonify(([Rudder.Datastate]::Render('{{' + @'
+vars.my_cond
+'@ + '}}')) + @'
 .debian|
 '@ + ([Rudder.Datastate]::Render('{{' + @'
-vars.sys.plouf
-'@ + '}}'))))
+vars.sys.
+'@ + [Rudder.Datastate]::Render('{{' + @'
+vars.plouf
+'@ + '}}') + '}}'))))
     if ([Rudder.Datastate]::Evaluate($class)) {
         $methodParams = @{
             Architecture = ''
@@ -64,8 +70,10 @@ vars.sys.host
 '@ + '}}')) + @'
  . | / 
 '@ + ([Rudder.Datastate]::Render('{{' + @'
-vars.sys.host
-'@ + '}}')) + @'
+vars.sys.
+'@ + [Rudder.Datastate]::Render('{{' + @'
+vars.host
+'@ + '}}') + '}}')) + @'
  ' '' ''' $ $$ " "" \ \\😋aà3
 	
 '@
@@ -87,8 +95,10 @@ vars.sys.host
 '@ + '}}')) + @'
  . | / 
 '@ + ([Rudder.Datastate]::Render('{{' + @'
-vars.sys.host
-'@ + '}}')) + @'
+vars.sys.
+'@ + [Rudder.Datastate]::Render('{{' + @'
+vars.host
+'@ + '}}') + '}}')) + @'
  ' '' ''' $ $$ " "" \ \\😋aà3
 	
 '@
@@ -100,8 +110,10 @@ vars.sys.host
 '@ + '}}')) + @'
  . | / 
 '@ + ([Rudder.Datastate]::Render('{{' + @'
-vars.sys.host
-'@ + '}}')) + @'
+vars.sys.
+'@ + [Rudder.Datastate]::Render('{{' + @'
+vars.host
+'@ + '}}') + '}}')) + @'
  ' '' ''' $ $$ " "" \ \\😋aà3
 	
 '@
@@ -118,8 +130,10 @@ vars.sys.host
 '@ + '}}')) + @'
  . | / 
 '@ + ([Rudder.Datastate]::Render('{{' + @'
-vars.sys.host
-'@ + '}}')) + @'
+vars.sys.
+'@ + [Rudder.Datastate]::Render('{{' + @'
+vars.host
+'@ + '}}') + '}}')) + @'
  ' '' ''' $ $$ " "" \ \\😋aà3
 	
 '@
