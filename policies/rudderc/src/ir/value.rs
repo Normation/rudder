@@ -462,16 +462,30 @@ impl Expression {
                     Expression::GenericVar(x.to_vec()).fmt(target)
                 }
             },
-            Self::Const(e) => {
-                let a = *e.to_owned();
-                let key = a.fmt(target);
-                format!("${{const.{}}}", key)
-            }
-            Self::NcfConst(e) => {
-                let a = *e.to_owned();
-                let key = a.fmt(target);
-                format!("${{ncf_const.{}}}", key)
-            }
+            Self::Const(e) => match target {
+                Target::Unix => {
+                    let a = *e.to_owned();
+                    let key = a.fmt(target);
+                    format!("${{const.{}}}", key)
+                }
+                Target::Windows => Expression::GenericVar(vec![
+                    Expression::Scalar("const".to_string()),
+                    *e.to_owned(),
+                ])
+                .fmt(target),
+            },
+            Self::NcfConst(e) => match target {
+                Target::Unix => {
+                    let a = *e.to_owned();
+                    let key = a.fmt(target);
+                    format!("${{ncf_const.{}}}", key)
+                }
+                Target::Windows => Expression::GenericVar(vec![
+                    Expression::Scalar("ncf_const".to_string()),
+                    *e.to_owned(),
+                ])
+                .fmt(target),
+            },
             Self::Empty => "".to_string(),
         }
     }

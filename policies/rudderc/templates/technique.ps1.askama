@@ -22,24 +22,42 @@ function {{ id|technique_name }} {
 {% if has_resources %}
     $resources_dir = $PSScriptRoot + "\resources"
 {% endif %}
+    $fallBackReportParams = @{
+        ClassPrefix = 'skipped_method'
+        ComponentKey = 'None'
+        ComponentName = 'None'
+        TechniqueName = $techniqueName
+    }
 
 {% for m in methods %}
     $reportId=$reportIdBase + "{{ m.id }}"
     $componentKey = {{ m.component_key|value_fmt(id, parameters) }}
-    $reportParams = @{
-        ClassPrefix = ([Rudder.Condition]::canonify(("{{ m.class_prefix }}_" + $componentKey)))
-        ComponentKey = $componentKey
-        ComponentName = {{ m.component_name|value_fmt(id, parameters) }}
-        PolicyMode = {{ m.policy_mode_override|policy_mode_fmt }}
-        ReportId = $reportId
-        DisableReporting = ${{ m.disable_reporting }}
-        TechniqueName = $techniqueName
-    }
-  {%- if m.is_supported %}
-    {% match m.condition %}
-    {%- when Some with (cond) %}
-    $class = {{ cond|canonify_condition_with_context(id, parameters) }}
-    if ([Rudder.Datastate]::Evaluate($class)) {
+    $reportParams = try {
+        @{
+            ClassPrefix = ([Rudder.Condition]::canonify(("{{ m.class_prefix }}_" + $componentKey)))
+            ComponentKey = $componentKey
+            ComponentName = {{ m.component_name|value_fmt(id, parameters) }}
+            PolicyMode = {{ m.policy_mode_override|policy_mode_fmt }}
+            ReportId = $reportId
+            DisableReporting = ${{ m.disable_reporting }}
+            TechniqueName = $techniqueName
+        }
+      {%- if m.is_supported %}
+        {% match m.condition %}
+        {%- when Some with (cond) %}
+        $class = {{ cond|canonify_condition_with_context(id, parameters) }}
+        if ([Rudder.Datastate]::Evaluate($class)) {
+            $methodParams = @{
+                {% for arg in m.args %}
+                    {{- arg.0 }} = {{ arg|parameter_fmt(id, parameters) }}
+                {% endfor %}
+            }
+            $call = {{ m.name|dsc_case }} @methodParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }}
+            Compute-Method-Call @reportParams -MethodCall $call
+        } else {
+            Rudder-Report-NA @reportParams
+        }
+        {%- when None %}
         $methodParams = @{
             {% for arg in m.args %}
                 {{- arg.0 }} = {{ arg|parameter_fmt(id, parameters) }}
@@ -47,22 +65,30 @@ function {{ id|technique_name }} {
         }
         $call = {{ m.name|dsc_case }} @methodParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }}
         Compute-Method-Call @reportParams -MethodCall $call
-    } else {
+        {% endmatch %}
+      {%- else %}
         Rudder-Report-NA @reportParams
+      {%- endif %}
+    } catch [Nustache.Core.NustacheDataContextMissException] {
+        $failedCall = New-Object -TypeName "Rudder.MethodResult" -ArgumentList @(
+            ([String]::Format(
+                'The method call was skipped because it references an undefined variable "{0}"',
+                (Format-Exception $_)[1]
+            )),
+            $techniqueName
+        )
+        Compute-Method-Call @fallBackReportParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }} -ReportId $reportId -DisableReporting:${{ m.disable_reporting }} -MethodCall $failedCall
+    } catch {
+        $failedCall = New-Object -TypeName "Rudder.MethodResult" -ArgumentList @(
+            [Rudder.MethodStatus]::Error,
+            ([String]::Format(
+                'The method call was skipped as an unexpected error was thrown "{0}"',
+                (Format-Exception $_)[1]
+            )),
+            $techniqueName
+        )
+        Compute-Method-Call @fallBackReportParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }} -ReportId $reportId -DisableReporting:${{ m.disable_reporting }} -MethodCall $failedCall
     }
-    {%- when None %}
-    $methodParams = @{
-        {% for arg in m.args %}
-            {{- arg.0 }} = {{ arg|parameter_fmt(id, parameters) }}
-        {% endfor %}
-    }
-    $call = {{ m.name|dsc_case }} @methodParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }}
-    Compute-Method-Call @reportParams -MethodCall $call
-    {% endmatch %}
-  {%- else %}
-    Rudder-Report-NA @reportParams
-  {%- endif %}
 {% endfor %}
-
     EndTechniqueCall -Name $techniqueName
 }

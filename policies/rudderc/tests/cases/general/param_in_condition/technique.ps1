@@ -17,6 +17,12 @@
     BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
     $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
 
+    $fallBackReportParams = @{
+        ClassPrefix = 'skipped_method'
+        ComponentKey = 'None'
+        ComponentName = 'None'
+        TechniqueName = $techniqueName
+    }
 
 
     $reportId=$reportIdBase + "9e763779-9f33-44bc-ad73-1c5d5732301c"
@@ -25,49 +31,90 @@
 '@ + ([Rudder.Datastate]::Render('{{' + @'
 vars.param_in_condition.file
 '@ + '}}'))
-    $reportParams = @{
-        ClassPrefix = ([Rudder.Condition]::canonify(("file_check_exists_" + $componentKey)))
-        ComponentKey = $componentKey
-        ComponentName = 'Check if a file exists'
-        PolicyMode = $policyMode
-        ReportId = $reportId
-        DisableReporting = $false
-        TechniqueName = $techniqueName
+    $reportParams = try {
+        @{
+            ClassPrefix = ([Rudder.Condition]::canonify(("file_check_exists_" + $componentKey)))
+            ComponentKey = $componentKey
+            ComponentName = 'Check if a file exists'
+            PolicyMode = $policyMode
+            ReportId = $reportId
+            DisableReporting = $false
+            TechniqueName = $techniqueName
+        }
+        Rudder-Report-NA @reportParams
+    } catch [Nustache.Core.NustacheDataContextMissException] {
+        $failedCall = New-Object -TypeName "Rudder.MethodResult" -ArgumentList @(
+            ([String]::Format(
+                'The method call was skipped because it references an undefined variable "{0}"',
+                (Format-Exception $_)[1]
+            )),
+            $techniqueName
+        )
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+    } catch {
+        $failedCall = New-Object -TypeName "Rudder.MethodResult" -ArgumentList @(
+            [Rudder.MethodStatus]::Error,
+            ([String]::Format(
+                'The method call was skipped as an unexpected error was thrown "{0}"',
+                (Format-Exception $_)[1]
+            )),
+            $techniqueName
+        )
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
     }
-    Rudder-Report-NA @reportParams
 
     $reportId=$reportIdBase + "e8362340-dc50-4231-9b7f-748b51e9fa07"
     $componentKey = 'echo "May be executed or not"'
-    $reportParams = @{
-        ClassPrefix = ([Rudder.Condition]::canonify(("command_execution_" + $componentKey)))
-        ComponentKey = $componentKey
-        ComponentName = 'Execute only if...'
-        PolicyMode = $policyMode
-        ReportId = $reportId
-        DisableReporting = $false
-        TechniqueName = $techniqueName
-    }
-    
-    $class = ([Rudder.Condition]::canonify(@'
+    $reportParams = try {
+        @{
+            ClassPrefix = ([Rudder.Condition]::canonify(("command_execution_" + $componentKey)))
+            ComponentKey = $componentKey
+            ComponentName = 'Execute only if...'
+            PolicyMode = $policyMode
+            ReportId = $reportId
+            DisableReporting = $false
+            TechniqueName = $techniqueName
+        }
+        
+        $class = ([Rudder.Condition]::canonify(@'
 file_check_exists__tmp_
 '@ + ([Rudder.Datastate]::Render('{{' + @'
 vars.param_in_condition.file
 '@ + '}}')) + @'
 _kept
 '@))
-    if ([Rudder.Datastate]::Evaluate($class)) {
-        $methodParams = @{
-            Command = @'
+        if ([Rudder.Datastate]::Evaluate($class)) {
+            $methodParams = @{
+                Command = @'
 echo "May be executed or not"
 '@
-            
+                
+            }
+            $call = Command-Execution @methodParams -PolicyMode $policyMode
+            Compute-Method-Call @reportParams -MethodCall $call
+        } else {
+            Rudder-Report-NA @reportParams
         }
-        $call = Command-Execution @methodParams -PolicyMode $policyMode
-        Compute-Method-Call @reportParams -MethodCall $call
-    } else {
-        Rudder-Report-NA @reportParams
+    } catch [Nustache.Core.NustacheDataContextMissException] {
+        $failedCall = New-Object -TypeName "Rudder.MethodResult" -ArgumentList @(
+            ([String]::Format(
+                'The method call was skipped because it references an undefined variable "{0}"',
+                (Format-Exception $_)[1]
+            )),
+            $techniqueName
+        )
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+    } catch {
+        $failedCall = New-Object -TypeName "Rudder.MethodResult" -ArgumentList @(
+            [Rudder.MethodStatus]::Error,
+            ([String]::Format(
+                'The method call was skipped as an unexpected error was thrown "{0}"',
+                (Format-Exception $_)[1]
+            )),
+            $techniqueName
+        )
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
     }
-
 
     EndTechniqueCall -Name $techniqueName
 }

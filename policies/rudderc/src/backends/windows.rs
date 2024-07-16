@@ -538,5 +538,22 @@ vars.sys.host
 '@",
             parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
         );
+
+        // With a const variable
+        let m_param = (
+            "method_param_name".to_string(),
+            "a less simple ${const.n} test".to_string(),
+            Escaping::String,
+        );
+        assert_eq!(
+            "@'
+a less simple 
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.const.n
+'@ + '}}')) + @'
+ test
+'@",
+            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+        );
     }
 }

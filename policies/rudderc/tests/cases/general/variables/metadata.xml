@@ -1,0 +1,45 @@
+<TECHNIQUE name="Testing variables expansion">
+  <DESCRIPTION>Testing variables expansion</DESCRIPTION>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+  <MULTIINSTANCE>true</MULTIINSTANCE>
+  <POLICYGENERATION>separated-with-parameters</POLICYGENERATION>
+  <AGENT type="cfengine-community">
+    <BUNDLES>
+      <NAME>test_windows</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>Technique-Test-Windows</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.ps1">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <SECTIONS>
+    <SECTION name="Technique parameters">
+      <INPUT>
+        <NAME>638228CE-A048-46C1-A4B2-1C22F011A280</NAME>
+        <VARIABLENAME>content</VARIABLENAME>
+        <DESCRIPTION>content</DESCRIPTION>
+        <CONSTRAINT>
+          <TYPE>textarea</TYPE>
+        </CONSTRAINT>
+      </INPUT>
+    </SECTION>
+    <SECTION name="File content" id="d982a7e6-494a-40a5-aea1-7d9a185eed61" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE id="d982a7e6-494a-40a5-aea1-7d9a185eed61">
+          /some/path
+        </VALUE>
+      </REPORTKEYS>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>

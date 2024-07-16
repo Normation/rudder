@@ -17,6 +17,12 @@
     BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
     $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
 
+    $fallBackReportParams = @{
+        ClassPrefix = 'skipped_method'
+        ComponentKey = 'None'
+        ComponentName = 'None'
+        TechniqueName = $techniqueName
+    }
 
 
     $reportId=$reportIdBase + "a86ce2e5-d5b6-45cc-87e8-c11cca71d966"
@@ -32,10 +38,11 @@ vars.host
  ' '' ''' $ $$ " "" \ \\😋aà3
 	
 '@
-    $reportParams = @{
-        ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
-        ComponentKey = $componentKey
-        ComponentName = ([Rudder.Datastate]::Render('{{' + @'
+    $reportParams = try {
+        @{
+            ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
+            ComponentKey = $componentKey
+            ComponentName = ([Rudder.Datastate]::Render('{{' + @'
 vars.sys.host
 '@ + '}}')) + @'
  . | / 
@@ -47,13 +54,13 @@ vars.host
  ' '' ''' $ $$ " "" \ \\😋aà3
 	
 '@
-        PolicyMode = $policyMode
-        ReportId = $reportId
-        DisableReporting = $false
-        TechniqueName = $techniqueName
-    }
-    
-    $class = ([Rudder.Condition]::canonify(([Rudder.Datastate]::Render('{{' + @'
+            PolicyMode = $policyMode
+            ReportId = $reportId
+            DisableReporting = $false
+            TechniqueName = $techniqueName
+        }
+        
+        $class = ([Rudder.Condition]::canonify(([Rudder.Datastate]::Render('{{' + @'
 vars.my_cond
 '@ + '}}')) + @'
 .debian|
@@ -62,7 +69,88 @@ vars.sys.
 '@ + [Rudder.Datastate]::Render('{{' + @'
 vars.plouf
 '@ + '}}') + '}}'))))
-    if ([Rudder.Datastate]::Evaluate($class)) {
+        if ([Rudder.Datastate]::Evaluate($class)) {
+            $methodParams = @{
+                Architecture = ''
+                Name = ([Rudder.Datastate]::Render('{{' + @'
+vars.sys.host
+'@ + '}}')) + @'
+ . | / 
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.sys.
+'@ + [Rudder.Datastate]::Render('{{' + @'
+vars.host
+'@ + '}}') + '}}')) + @'
+ ' '' ''' $ $$ " "" \ \\😋aà3
+	
+'@
+                Provider = ''
+                Version = @'
+if(Get-Service "Zabbix agent") { write-output "exists" }
+'@
+                
+            }
+            $call = Package-Present @methodParams -PolicyMode $policyMode
+            Compute-Method-Call @reportParams -MethodCall $call
+        } else {
+            Rudder-Report-NA @reportParams
+        }
+    } catch [Nustache.Core.NustacheDataContextMissException] {
+        $failedCall = New-Object -TypeName "Rudder.MethodResult" -ArgumentList @(
+            ([String]::Format(
+                'The method call was skipped because it references an undefined variable "{0}"',
+                (Format-Exception $_)[1]
+            )),
+            $techniqueName
+        )
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+    } catch {
+        $failedCall = New-Object -TypeName "Rudder.MethodResult" -ArgumentList @(
+            [Rudder.MethodStatus]::Error,
+            ([String]::Format(
+                'The method call was skipped as an unexpected error was thrown "{0}"',
+                (Format-Exception $_)[1]
+            )),
+            $techniqueName
+        )
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+    }
+
+    $reportId=$reportIdBase + "a86ce2e5-d5b6-45cc-87e8-c11cca71d977"
+    $componentKey = ([Rudder.Datastate]::Render('{{' + @'
+vars.sys.host
+'@ + '}}')) + @'
+ . | / 
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.sys.
+'@ + [Rudder.Datastate]::Render('{{' + @'
+vars.host
+'@ + '}}') + '}}')) + @'
+ ' '' ''' $ $$ " "" \ \\😋aà3
+	
+'@
+    $reportParams = try {
+        @{
+            ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
+            ComponentKey = $componentKey
+            ComponentName = ([Rudder.Datastate]::Render('{{' + @'
+vars.sys.host
+'@ + '}}')) + @'
+ . | / 
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.sys.
+'@ + [Rudder.Datastate]::Render('{{' + @'
+vars.host
+'@ + '}}') + '}}')) + @'
+ ' '' ''' $ $$ " "" \ \\😋aà3
+	
+'@
+            PolicyMode = $policyMode
+            ReportId = $reportId
+            DisableReporting = $false
+            TechniqueName = $techniqueName
+        }
+        
         $methodParams = @{
             Architecture = ''
             Name = ([Rudder.Datastate]::Render('{{' + @'
@@ -85,68 +173,27 @@ if(Get-Service "Zabbix agent") { write-output "exists" }
         }
         $call = Package-Present @methodParams -PolicyMode $policyMode
         Compute-Method-Call @reportParams -MethodCall $call
-    } else {
-        Rudder-Report-NA @reportParams
-    }
-
-    $reportId=$reportIdBase + "a86ce2e5-d5b6-45cc-87e8-c11cca71d977"
-    $componentKey = ([Rudder.Datastate]::Render('{{' + @'
-vars.sys.host
-'@ + '}}')) + @'
- . | / 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
-vars.sys.
-'@ + [Rudder.Datastate]::Render('{{' + @'
-vars.host
-'@ + '}}') + '}}')) + @'
- ' '' ''' $ $$ " "" \ \\😋aà3
-	
-'@
-    $reportParams = @{
-        ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
-        ComponentKey = $componentKey
-        ComponentName = ([Rudder.Datastate]::Render('{{' + @'
-vars.sys.host
-'@ + '}}')) + @'
- . | / 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
-vars.sys.
-'@ + [Rudder.Datastate]::Render('{{' + @'
-vars.host
-'@ + '}}') + '}}')) + @'
- ' '' ''' $ $$ " "" \ \\😋aà3
-	
-'@
-        PolicyMode = $policyMode
-        ReportId = $reportId
-        DisableReporting = $false
-        TechniqueName = $techniqueName
-    }
-    
-    $methodParams = @{
-        Architecture = ''
-        Name = ([Rudder.Datastate]::Render('{{' + @'
-vars.sys.host
-'@ + '}}')) + @'
- . | / 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
-vars.sys.
-'@ + [Rudder.Datastate]::Render('{{' + @'
-vars.host
-'@ + '}}') + '}}')) + @'
- ' '' ''' $ $$ " "" \ \\😋aà3
-	
-'@
-        Provider = ''
-        Version = @'
-if(Get-Service "Zabbix agent") { write-output "exists" }
-'@
         
+    } catch [Nustache.Core.NustacheDataContextMissException] {
+        $failedCall = New-Object -TypeName "Rudder.MethodResult" -ArgumentList @(
+            ([String]::Format(
+                'The method call was skipped because it references an undefined variable "{0}"',
+                (Format-Exception $_)[1]
+            )),
+            $techniqueName
+        )
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+    } catch {
+        $failedCall = New-Object -TypeName "Rudder.MethodResult" -ArgumentList @(
+            [Rudder.MethodStatus]::Error,
+            ([String]::Format(
+                'The method call was skipped as an unexpected error was thrown "{0}"',
+                (Format-Exception $_)[1]
+            )),
+            $techniqueName
+        )
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
     }
-    $call = Package-Present @methodParams -PolicyMode $policyMode
-    Compute-Method-Call @reportParams -MethodCall $call
-    
-
 
     EndTechniqueCall -Name $techniqueName
 }
