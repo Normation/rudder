@@ -1,4 +1,4 @@
-﻿function Technique-Windows-Long-Param-Names {
+﻿function Technique-Test-Windows {
     [CmdletBinding()]
     param (
         [parameter(Mandatory = $true)]
@@ -6,10 +6,13 @@
         [parameter(Mandatory = $true)]
         [string]$techniqueName,
 
+        [parameter(Mandatory = $true)]
+        [string]$content,
         [Rudder.PolicyMode]$policyMode
     )
     $techniqueParams = @{
 
+        "content" = $content
     }
     BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
     $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
@@ -22,19 +25,57 @@
     }
 
 
-    $reportId=$reportIdBase + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907"
-    $componentKey = 'This should be ReportMessage'
+    $reportId=$reportIdBase + "d982a7e6-494a-40a5-aea1-7d9a185eed61"
+    $componentKey = '/some/path'
     $reportParams = try {
         @{
-            ClassPrefix = ([Rudder.Condition]::canonify(("report_if_condition_" + $componentKey)))
+            ClassPrefix = ([Rudder.Condition]::canonify(("file_lines_present_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Report if condition'
+            ComponentName = 'File content'
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
         }
-        Rudder-Report-NA @reportParams
+        
+        $methodParams = @{
+            Enforce = @'
+true
+'@
+            Lines = @'
+# Raw string
+foo foobar
+# With parameter
+foo 
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.test_windows.content
+'@ + '}}')) + @'
+ foobar
+# With a var looking like a parameter
+foo 
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.contentbis
+'@ + '}}')) + @'
+
+# With a const
+
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.const.n
+'@ + '}}')) + @'
+
+# With node properties
+
+'@ + ([Rudder.Datastate]::Render('{{' + @'
+vars.node.properties.name.key
+'@ + '}}'))
+            Path = @'
+/some/path
+'@
+            
+        }
+        $call = File-Content @methodParams -PolicyMode $policyMode
+        Compute-Method-Call @reportParams -MethodCall $call
+        
     } catch [Nustache.Core.NustacheDataContextMissException] {
         $failedCall = New-Object -TypeName "Rudder.MethodResult" -ArgumentList @(
             ([String]::Format(

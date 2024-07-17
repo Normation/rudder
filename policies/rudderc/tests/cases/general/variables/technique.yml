@@ -1,0 +1,27 @@
+id: test_windows
+name: Testing variables expansion
+version: '1.0'
+category: ncf_techniques
+params:
+  - id: 638228ce-a048-46c1-a4b2-1c22f011a280
+    name: content
+    constraints:
+      allow_empty: false
+items:
+  - id: d982a7e6-494a-40a5-aea1-7d9a185eed61
+    name: ''
+    method: file_content
+    params:
+      path: /some/path
+      lines: |-
+        # Raw string
+        foo foobar
+        # With parameter
+        foo ${content} foobar
+        # With a var looking like a parameter
+        foo ${contentbis}
+        # With a const
+        ${const.n}
+        # With node properties
+        ${node.properties[name][key]}
+      enforce: 'true'
