@@ -153,20 +153,23 @@ impl FromStr for RudderVersion {
 
     fn from_str(raw: &str) -> Result<Self, Self::Err> {
         let re = Regex::new(r"^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(?<spec>.*)$")?;
-        let caps = match re.captures(raw) {
-            None => bail!("Unparsable Rudder version '{}'", raw),
-            Some(c) => c,
-        };
-        let major: u32 = caps["major"].parse()?;
-        let minor: u32 = caps["minor"].parse()?;
-        let patch: u32 = caps["patch"].parse()?;
+        // For old Rudder versions, we don't have the patch version. Assume it is 0.
+        let re_old = Regex::new(r"^(?<major>\d+)\.(?<minor>\d+)(?<spec>.*)$")?;
 
-        // spec contains the version type, plus the nightly tag if relevant
-        let (raw_mode, nightly) = if caps["spec"].contains("~git") {
-            let s: Vec<&str> = caps["spec"].split("~git").collect();
+        let (major, minor, patch, spec): (u32, u32, u32, String) = if let Some(c) = re.captures(raw) {
+            (c["major"].parse()?, c["minor"].parse()?, c["patch"].parse()?, c["spec"].to_string())
+        } else { if let Some(c) = re_old.captures(raw) {
+            (c["major"].parse()?, c["minor"].parse()?, 0, c["spec"].to_string())
+        } else {
+            bail!("Unparsable Rudder version '{}'", raw)
+        }};
+
+        // spec contains the version type, plus the nightly tag if relevant.
+        let (raw_mode, nightly) = if spec.contains("~git") {
+            let s: Vec<&str> = spec.split("~git").collect();
             (s[0], Some(s[1].to_string()))
         } else {
-            (&caps["spec"], None)
+            (spec.as_str(), None)
         };
         let mode: RudderVersionMode = RudderVersionMode::from_str(raw_mode)?;
 
@@ -276,6 +279,7 @@ mod tests {
     #[case("8.0.1~rc1", 8, 0, 1, "~rc1", "")]
     #[case("8.0.1~rc1~git2024", 8, 0, 1, "~rc1", "2024")]
     #[case("8.0.1~git2024", 8, 0, 1, "", "2024")]
+    #[case("6.0", 6, 0, 0, "", "")]
     fn test_rudder_version_parsing(
         #[case] raw: &str,
         #[case] e_major: u32,
@@ -474,6 +478,7 @@ mod tests {
     #[case("8.0.2-2.0-nightly")]
     #[case("8.0.2-2.1-nightly")]
     #[case("8.0.2-2.2-nightly")]
+    #[case("6.0-2.9")]
     fn test_rpkg_version(#[case] a: &str) {
         let _ = ArchiveVersion::from_str(a).unwrap();
     }
