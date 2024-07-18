@@ -442,7 +442,7 @@ class FusionInventoryParser(
           }
         version        <-
           findAgent(inventory.applications, agentType).notOptional(
-            s"Agent is not present in software list and so we can't get its version. This is not supported anymore"
+            s"Agent is not present in software list and so we can't get its version. This is not supported anymore."
           )
       } yield {
 
