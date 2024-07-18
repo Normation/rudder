@@ -54,6 +54,7 @@ impl LinuxPackageManager for YumPackageManager {
         res
     }
 
+    /// `yum install yum-plugin-security` is only needed on RHEL < 7, which are not supported.
     fn security_upgrade(&self) -> ResultOutput<()> {
         // See https://access.redhat.com/solutions/10021
         let mut res = ResultOutput::new(Ok(()));

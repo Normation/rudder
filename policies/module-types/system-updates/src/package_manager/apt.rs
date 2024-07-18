@@ -121,8 +121,7 @@ impl LinuxPackageManager for AptPackageManager {
     }
 
     fn security_upgrade(&self) -> ResultOutput<()> {
-        // tricky
-        todo!()
+        todo!("security_upgrade")
     }
 
     fn upgrade(&self, packages: Vec<PackageSpec>) -> ResultOutput<()> {
