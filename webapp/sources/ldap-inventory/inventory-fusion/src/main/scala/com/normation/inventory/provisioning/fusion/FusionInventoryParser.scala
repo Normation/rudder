@@ -440,12 +440,13 @@ class FusionInventoryParser(
                 "could not parse agent security token (tag AGENT_CERT), which is mandatory"
               ).fail
           }
-
+        version        <-
+          findAgent(inventory.applications, agentType).notOptional(
+            s"Agent is not present in software list and so we can't get its version. This is not supported anymore"
+          )
       } yield {
 
-        val version = findAgent(inventory.applications, agentType)
-
-        Some((AgentInfo(agentType, version, securityToken, Set()), rootUser, policyServerId))
+        Some((AgentInfo(agentType, Some(version), securityToken, Set()), rootUser, policyServerId))
       }
 
       agent.catchAll { eb =>

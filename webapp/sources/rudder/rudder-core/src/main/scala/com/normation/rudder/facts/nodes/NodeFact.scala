@@ -636,9 +636,15 @@ object NodeFact {
   }
 
   def agentFromInventory(node: NodeInventory): Option[RudderAgent] = {
-    node.agents.headOption.flatMap(a =>
-      a.version.map(v => RudderAgent(a.agentType, node.main.rootUser, v, a.securityToken, a.capabilities.toChunk))
-    )
+    node.agents.headOption.map { a =>
+      RudderAgent(
+        a.agentType,
+        node.main.rootUser,
+        a.version.getOrElse(AgentVersion("Missing version")),
+        a.securityToken,
+        a.capabilities.toChunk
+      )
+    }
   }
 
   def defaultRudderSettings(status: InventoryStatus): RudderSettings = {
