@@ -8,6 +8,10 @@
       <NAME>Debian</NAME>
       <VERSION>5.0.8</VERSION>
     </OPERATINGSYSTEM>
+    <SOFTWARES>
+      <NAME>rudder-agent</NAME>
+      <VERSION>8.1.0</VERSION>
+    </SOFTWARES>
     <RUDDER>
       <AGENT>
         <AGENT_NAME>cfengine-community</AGENT_NAME>
