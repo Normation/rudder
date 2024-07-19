@@ -464,7 +464,7 @@ limitations under the License.
     <caffeine-version>3.1.8</caffeine-version>
     <jgrapht-version>1.5.2</jgrapht-version>
     <reflections-version>0.10.2</reflections-version>
-    <graalvm-version>24.0.1</graalvm-version>
+    <graalvm-version>24.0.2</graalvm-version>
     <chimney-version>0.8.5</chimney-version>
     <cron4s-version>0.7.0</cron4s-version>
     <ipaddress-version>5.5.0</ipaddress-version>
