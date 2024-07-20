@@ -29,15 +29,19 @@ impl<T> ResultOutput<T> {
         }
     }
 
+    /// Add logs to stdout
     pub fn stdout(&mut self, s: String) {
+        debug!("stdout: {s}");
         self.stdout.push(s)
     }
 
+    /// Add logs to stderr
     pub fn stderr(&mut self, s: String) {
+        debug!("stderr: {s}");
         self.stderr.push(s)
     }
 
-    /// Returns stdout
+    /// Run a command and return output
     pub fn command(&mut self, mut c: Command) -> Result<Output> {
         let res = c.output();
 

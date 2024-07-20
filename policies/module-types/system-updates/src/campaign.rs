@@ -82,6 +82,7 @@ pub fn check_update(node_id: &str, agent_freq: Duration, p: PackageParameters) -
     let start_run = scheduler::splayed_start(p.start, p.end, agent_freq, node_id)?;
     let now: DateTime<Utc> = Utc::now();
 
+    // Update should have start/have started already
     if now >= start_run {
         let r = update(
             pm,
@@ -96,7 +97,7 @@ pub fn check_update(node_id: &str, agent_freq: Duration, p: PackageParameters) -
         if let Some(report) = r {
             // Write the report into the destination tmp file
             fs::write(p.report_file, serde_json::to_string(&report)?.as_bytes())?;
-            // The repaired status is the trigger to read and send it
+            // The repaired status is the trigger to read and send it.
             Ok(Outcome::Repaired("TODO".to_string()))
         } else {
             Ok(Outcome::Success(None))
