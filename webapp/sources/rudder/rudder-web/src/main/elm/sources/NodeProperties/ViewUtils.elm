@@ -407,7 +407,7 @@ showModal model =
             ]
           , div [ class "modal-body" ]
             [ div [class "dataTables_wrapper no-footer"]
-              [ ul [class "nav nav-underline"]
+              [ ul [class "nav nav-underline nav-modal-usage"]
                 [ li [class ("nav-item " ++ activeClassDirectivesUsage)]
                   [ button
                     [ attribute "role" "tab", type_ "button", class ("nav-link " ++ activeClassDirectivesUsage), onClick ChangeViewUsage]
