@@ -105,15 +105,15 @@ editionTemplate model details =
 
     (diffDirectivesPos, diffDirectivesNeg) = getDiffList (Maybe.Extra.unwrap [] .directives originRule) rule.directives
 
-    getTargetExludedIds : List RuleTarget -> List String
-    getTargetExludedIds listTargets =
+    getTargetExcludedIds : List RuleTarget -> List String
+    getTargetExcludedIds listTargets =
       List.concatMap (\target -> case target of
          NodeGroupId groupId -> [groupId]
-         Composition _ e     -> getTargetExludedIds[ e ]
+         Composition _ e     -> getTargetExcludedIds[ e ]
          Special spe         -> [spe]
          Node node           -> [node]
-         Or t                -> getTargetExludedIds t
-         And t               -> getTargetExludedIds t
+         Or t                -> getTargetExcludedIds t
+         And t               -> getTargetExcludedIds t
       ) listTargets
 
     getTargetIncludedIds : List RuleTarget -> List String
@@ -144,8 +144,8 @@ editionTemplate model details =
       in
       (diffPos + totalSwap, diffNeg + totalSwap)
 
-    (originRuleGroupsExcld, originRuleGroupsIncld) = (getTargetExludedIds (Maybe.Extra.unwrap [] .targets originRule), getTargetIncludedIds (Maybe.Extra.unwrap [] .targets originRule))
-    (diffGroupsPos, diffGroupsNeg) = getDiffGroups originRuleGroupsExcld originRuleGroupsIncld (getTargetExludedIds rule.targets ) ( getTargetIncludedIds rule.targets)
+    (originRuleGroupsExcld, originRuleGroupsIncld) = (getTargetExcludedIds (Maybe.Extra.unwrap [] .targets originRule), getTargetIncludedIds (Maybe.Extra.unwrap [] .targets originRule))
+    (diffGroupsPos, diffGroupsNeg) = getDiffGroups originRuleGroupsExcld originRuleGroupsIncld (getTargetExcludedIds rule.targets ) ( getTargetIncludedIds rule.targets)
 
     nbDirectives = case originRule of
       Just oR -> Maybe.withDefault 0 details.numberOfDirectives

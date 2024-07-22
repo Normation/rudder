@@ -1104,3 +1104,4 @@ rulesTableHeader ruleFilters =
             ]
             [ text "Changes" ]
         ]
+
