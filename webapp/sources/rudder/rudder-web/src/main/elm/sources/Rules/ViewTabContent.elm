@@ -613,7 +613,7 @@ directivesTab model details =
           Nothing -> (rule.directives == [], [])
       in
         div[class "row flex-container"]
-        [ div[class "list-edit col-sm-12 col-md-6 col-xl-7"]
+        [ div[class "list-edit d-flex flex-column col-sm-12 col-md-6 col-xl-7"]
           [ div[class "list-container"]
             [ div[class "list-heading"]
               [ h4[][text "Apply these directives"]
@@ -791,7 +791,7 @@ groupsTab model details =
   in
     if not details.ui.editGroups then
       div [class "row lists"]
-      [ div[class "list-edit col-sm-12 col-md-6"]
+      [ div[class "list-edit d-flex flex-column col-sm-12 col-md-6"]
         [ div[class "list-container"]
           [ div[class "list-heading"]
             [ h4[][text "Applied to Nodes in any of these Groups"]
@@ -815,7 +815,7 @@ groupsTab model details =
             )
           ]
         ]
-      , div[class "list-edit col-sm-12 col-md-6"]
+      , div[class "list-edit d-flex flex-column col-sm-12 col-md-6"]
         [ div[class "list-container"]
           [ div[class "list-heading except"]
             [ h4[][text "Except to Nodes in any of these Groups"]
@@ -910,7 +910,7 @@ groupsTab model details =
           Nothing -> (rule.targets == [], [])
       in
         div[class "row flex-container"]
-        [ div[class "list-edit col-sm-12 col-md-6 col-xl-7"]
+        [ div[class "list-edit d-flex flex-column col-sm-12 col-md-6 col-xl-7"]
           [ div[class "list-container"]
             [ div[class "list-heading"]
               [ h4[][text "Apply to Nodes in any of these Groups"]
