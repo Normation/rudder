@@ -102,7 +102,7 @@ class RestQuicksearch(
             toJsonError(None, e.messageChain)
 
           case Full(results) =>
-            toJsonResponse(None, prepare(results, MAX_RES_BY_KIND))
+            toJsonResponse(None, prepare(results))
         }
       }
     }
@@ -142,19 +142,17 @@ class RestQuicksearch(
    *   crunching the browser with thousands of answers
    */
 
-  private def prepare(results: Set[QuickSearchResult], maxByKind: Int): JValue = {
+  private def prepare(results: Set[QuickSearchResult]): JValue = {
     val filteredResult = filter(results)
     // group by kind, and build the summary for each
     val map            = filteredResult.groupBy(_.id.tpe).map {
       case (tpe, set) =>
         // distinct by id:
-        val unique   = set.map(x => (x.id, x)).toMap.values.toSeq.sortBy(_.name)
+        val unique  = set.map(x => (x.id, x)).toMap.values.toSeq.sortBy(_.name)
         // on take the nth first, sorted by name
-        val returned = unique.take(maxByKind)
+        val summary = ResultTypeSummary(tpe.name, unique.size, unique.size)
 
-        val summary = ResultTypeSummary(tpe.name, unique.size, returned.size)
-
-        (tpe, (summary, returned))
+        (tpe, (summary, unique))
     }
 
     // now, transformed to the wanted results: an array.

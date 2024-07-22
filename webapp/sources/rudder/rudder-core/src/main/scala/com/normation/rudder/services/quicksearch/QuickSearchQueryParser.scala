@@ -88,14 +88,18 @@ object QSRegexQueryParser {
    * The funny part that for each token add the interpretation of the token
    * by composing interpretation function.
    */
-  def interprete(parsed: (QueryString, List[Filter])): PureResult[Query] = {
+  def interprete(parsed: (QueryString, List[Parameter])): PureResult[Query] = {
 
     parsed match {
-      case (EmptyQuery, _)           =>
+      case (EmptyQuery, _)          =>
         Left(Unexpected("No query string was found (the query is only composed of whitespaces and filters)"))
-      case (CharSeq(query), filters) =>
-        val is = filters.collect { case FilterType(set) => set }.flatten
-        val in = filters.collect { case FilterAttr(set) => set }.flatten
+      case (CharSeq(query), params) =>
+        val is    = params.collect { case FilterType(set) => set }.flatten
+        val in    = params.collect { case FilterAttr(set) => set }.flatten
+        val limit = params.collect { case Limit(int) => int }.headOption match {
+          case Some(v) => v
+          case None    => 10
+        }
 
         (for {
           o <- getObjects(is.toSet) chainError ("The 'is' filter(s) contain unknown value(s)")
@@ -113,7 +117,8 @@ object QSRegexQueryParser {
             if (objs.isEmpty) { QSObject.all }
             else { objs },
             if (attrs.isEmpty) { QSAttribute.all }
-            else { attrs }
+            else { attrs },
+            limit
           )
         })
     }
@@ -134,10 +139,15 @@ object QSRegexQueryParser {
   final case class CharSeq(s: String) extends QueryString
   case object EmptyQuery              extends QueryString
 
+  sealed trait Parameter                         extends Token
   // filters like in:rule,directive,names,descriptions
-  sealed trait Filter                            extends Token { def keys: Set[String] }
+  sealed trait Filter                            extends Parameter { def keys: Set[String] }
   final case class FilterAttr(keys: Set[String]) extends Filter
   final case class FilterType(keys: Set[String]) extends Filter
+  case class Limit(limit: Int)                   extends Parameter
+
+  // to define how many result we want -> limit:42
+  case object DefaultLimit extends Parameter
 
   //// parsing language
 
@@ -150,50 +160,58 @@ object QSRegexQueryParser {
    * - have a query string, which is in one piece, and is exactly parsed as it is (unicode, regex, etc)
    *   - in particular, regex must not be interpreted, because they are often use in groups
    */
-  type QF = (QueryString, List[Filter])
+  type QF = (QueryString, List[Parameter])
 
   /////
   ///// this is the entry point /////
   /////
 
-  private def all[A: P]: P[QF] = P(Start ~ (nominal | onlyFilters) ~ End)
+  private def all[A: P]: P[QF] = P(Start ~ (nominal | onlyParams) ~ End)
 
   /////
   ///// different structure of queries
   /////
 
   // degenerated case with only filters, no query string
-  private def onlyFilters[A: P]: P[QF] = P(filter.rep(1)) map { case f => (EmptyQuery, f.toList) }
+  private def onlyParams[A: P]: P[QF] = P(parameter.rep(1)) map { case f => (EmptyQuery, f.toList) }
 
   // nonimal case: zero of more filter, a query string, zero or more filter
-  private def nominal[A: P]: P[QF] = P(filter.rep(0) ~/ (case0 | case1)) map {
-    case (f1, (q, f2)) => (check(q), f1.toList ::: f2.toList)
+  private def nominal[A: P]: P[QF] = P(parameter.rep(0) ~/ (case0 | case1)) map {
+    case (f1, (q, f2)) => (check(q), f1.toList ::: f2)
   }
 
   // need the two following rules so that so the parsing is correctly done for filter in the end
-  private def case0[A: P]: P[QF] = P(queryInMiddle ~ filter.rep(1)) map { case (q, f) => (check(q), f.toList) }
+  private def case0[A: P]: P[QF] = P(queryInMiddle ~ parameter.rep(1)) map { case (q, f) => (check(q), f.toList) }
   private def case1[A: P]: P[QF] = P(queryAtEnd) map { case q => (check(q), Nil) }
 
   /////
   ///// simple elements: filters
   /////
 
-  // deal with filters: they all start with "in:"
-  private def filter[A:     P]: P[Filter] = P(filterAttr | filterType)
-  private def filterType[A: P]: P[Filter] = P(IgnoreCase("is:") ~ filterKeys) map { FilterType.apply }
-  private def filterAttr[A: P]: P[Filter] = P(IgnoreCase("in:") ~ filterKeys) map { FilterAttr.apply }
+  private def parameter[A:  P]: P[Parameter] = P(limitRes | filter)
+  private def filter[A:     P]: P[Filter]    = P(filterAttr | filterType)
+  private def filterType[A: P]: P[Filter]    = P(IgnoreCase("is:") ~ filterKeys) map { FilterType.apply }
+  private def filterAttr[A: P]: P[Filter]    = P(IgnoreCase("in:") ~ filterKeys) map { FilterAttr.apply }
 
   // the keys part
   private def filterKeys[A: P]: P[Set[String]] = P(filterKey.rep(sep = ",")) map { l => l.toSet }
   private def filterKey[A:  P]: P[String]      = P(CharsWhileIn("""\\-._a-zA-Z0-9""").!)
 
+  private def limitRes[A:   P]: P[Parameter] = P(IgnoreCase("limit:") ~ limitValue) map { Limit.apply }
+  private def limitValue[A: P]: P[Int]       = P(CharsWhileIn("""0-9""").rep(1).!.map(_.toInt))
   /////
   ///// simple elements: query string
   /////
 
   // we need to case, because regex are bad to look-ahead and see if there is still filter after. .+? necessary to stop at first filter
-  private def queryInMiddle[A: P]: P[QueryString] = P((!("in:" | "is:") ~ AnyChar).rep(1).!) map { x => CharSeq(x.trim) }
-  private def queryAtEnd[A:    P]: P[QueryString] = P(AnyChar.rep(1).!) map { x => CharSeq(x.trim) }
+  private def queryInMiddle[A: P]: P[QueryString] = P((!("in:" | "is:" | "limit:") ~ AnyChar).rep(1).!) map { x =>
+    CharSeq(x.trim)
+  }
+  private def queryAtEnd[A: P]: P[QueryString] = P(AnyChar.rep(1).!) map { x => CharSeq(x.trim) }
+
+  /////
+  ///// limit
+  /////
 
   /////
   ///// utility methods

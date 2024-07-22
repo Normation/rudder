@@ -88,49 +88,77 @@ class QSRegexQueryParserTest extends Specification {
   "Simple queries" should {
     "give the exact same string, but trimed" in {
       val q = """ some node """
-      parse(q) must beRight(Query(q.trim, QSObject.all, QSAttribute.all))
+      parse(q) must beRight(Query(q.trim, QSObject.all, QSAttribute.all, 10))
     }
     "give the exact same string, but trimed, even with regexp" in {
       val q = """ some.node[0-9]+.foo """
-      parse(q) must beRight(Query(q.trim, QSObject.all, QSAttribute.all))
+      parse(q) must beRight(Query(q.trim, QSObject.all, QSAttribute.all, 10))
     }
     "give the exact same string, but trimed, even with part of rudder variable" in {
       val q = """ /foo/${rudder. """
-      parse(q) must beRight(Query(q.trim, QSObject.all, QSAttribute.all))
+      parse(q) must beRight(Query(q.trim, QSObject.all, QSAttribute.all, 10))
     }
   }
 
   "Queries with filter" should {
     "if only on object, give all attributes" in {
       parse(" Is:Directives is:RuLes here, the query") must beRight(
-        Query("here, the query", Set(Directive, Rule), QSAttribute.all)
+        Query("here, the query", Set(Directive, Rule), QSAttribute.all, 10)
       )
     }
 
     "if only on attributes, give all objects" in {
       parse(" iN:display_name here, the query in:Node_Id") must beRight(
-        Query("here, the query", QSObject.all, Set(NodeId, Name))
+        Query("here, the query", QSObject.all, Set(NodeId, Name), 10)
       )
     }
 
     "on both sides works" in {
       parse(" Is:Directive is:RuLes iN:display_Name here, the query in:Node_Id") must beRight(
-        Query("here, the query", Set(Directive, Rule), Set(NodeId, Name))
+        Query("here, the query", Set(Directive, Rule), Set(NodeId, Name), 10)
       )
     }
     "only at end works" in {
       parse(" here, the query is:node in:descriptions") must beRight(
-        Query("here, the query", Set(Node), Set(Description, LongDescription))
+        Query("here, the query", Set(Node), Set(Description, LongDescription), 10)
       )
     }
     "only at starts works" in {
       parse(" is:Directive is:RuLes in:display_Name here, the query ") must beRight(
-        Query("here, the query", Set(Directive, Rule), Set(Name))
+        Query("here, the query", Set(Directive, Rule), Set(Name), 10)
       )
     }
     "parse multiple filter comma separated" in {
       parse(" is:Directive,rules in:display_Name here, the query in:Node_Id,Rule_Id") must beRight(
-        Query("here, the query", Set(Directive, Rule), Set(NodeId, Name, RuleId))
+        Query("here, the query", Set(Directive, Rule), Set(NodeId, Name, RuleId), 10)
+      )
+    }
+    "parse multiple filter comma separated hu" in {
+      parse(" is:Directive,rules in:display_Name here, the query in:Node_Id,Rule_Id limit: 30") must beRight(
+        Query("here, the query", Set(Directive, Rule), Set(NodeId, Name, RuleId), 30)
+      )
+    }
+  }
+
+  "Queries with limit" should {
+    "absence give default limit value" in {
+      parse(" Is:Directives is:RuLes here, the query") must beRight(
+        Query("here, the query", Set(Directive, Rule), QSAttribute.all, 10)
+      )
+    }
+    "between filters works" in {
+      parse(" Is:Directive limit: 54 is:RuLes iN:display_Name here, the query in:Node_Id") must beRight(
+        Query("here, the query", Set(Directive, Rule), Set(NodeId, Name), 54)
+      )
+    }
+    "only at end works" in {
+      parse(" here, the query is:node in:descriptions limit:23") must beRight(
+        Query("here, the query", Set(Node), Set(Description, LongDescription), 23)
+      )
+    }
+    "only at starts works" in {
+      parse(" limit:12 is:Directive is:RuLes in:display_Name here, the query ") must beRight(
+        Query("here, the query", Set(Directive, Rule), Set(Name), 12)
       )
     }
   }
