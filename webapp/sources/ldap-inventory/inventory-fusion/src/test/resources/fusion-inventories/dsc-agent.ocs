@@ -389,6 +389,10 @@ QHjxOfVdBMBBXq0oHSUsOzf9rIxMlWQmCQyNDB6qD+bXZnAZp7j7
       <UUID>2C15A03F-782C-4970-AF45-7A75DFBA4F59</UUID>
     </RUDDER>
     <SOFTWARES>
+      <NAME>Rudder agent (DSC)</NAME>
+      <VERSION>8.1.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
       <ARCH>x86_64</ARCH>
       <FROM>registry</FROM>
       <GUID>FusionInventory-Agent</GUID>

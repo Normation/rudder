@@ -460,9 +460,9 @@ class TestInventoryParsing extends Specification with Loggable {
       version must beEqualTo(Some(AgentVersion("2.3.0.beta1~git-1")))
     }
 
-    "be unknown if rudder agent is missing" in {
-      val version = parseRun("fusion-inventories/rudder-tag/minimal-two-agents.ocs").node.agents(0).version
-      version must beEqualTo(None)
+    "lead to an error if missing (no software for agent)" in {
+      val agents = parseRun("fusion-inventories/rudder-tag/minimal-two-agents.ocs").node.agents
+      agents must beEmpty
     }
 
   }
