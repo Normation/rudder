@@ -734,6 +734,33 @@ ul {
   padding: 6px;
   text-align: center;
 }
+/* properties usage */
+.modal-find-prop {
+  max-height:700px;
+}
+.table-find-prop {
+ display: block;
+  max-height: 375px;
+  overflow-y: scroll;
+  width:100%;
+}
+.th-find-prop {
+  width:870px;
+}
+#props_paginate {
+  margin-top: 6px;
+}
+.page-find-prop {
+  padding: 2px;
+  margin-left:2px;
+  margin-right:2px;
+  background-color: #fff;
+  border-radius: 4px;
+  color: #555;
+  border: 1px solid #ccc;
+}
+
+
 /* FOLDABLE ROWS */
 .dataTable.compliance-table thead tr th:last-child,
 .dataTable.compliance-table tbody tr td:last-child,

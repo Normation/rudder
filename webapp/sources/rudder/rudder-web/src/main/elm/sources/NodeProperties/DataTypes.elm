@@ -4,14 +4,24 @@ import List.Extra
 import Http exposing (Error)
 import Dict exposing (Dict)
 import Json.Encode exposing (Value)
-
-import Ui.Datatable exposing (TableFilters)
-
+import QuickSearch.Datatypes exposing (SearchResult)
+import Ui.Datatable exposing (SortOrder)
 --
 -- All our data types
 --
 
-type ModalState = NoModal | Deletion String
+type ModalState = NoModal | Deletion String | Usage String PropertyUsage
+
+type alias UsageInfo =
+  { id : String
+  , name : String
+  }
+type alias PropertyUsage =
+  { directives : Maybe SearchResult
+  , techniques : Maybe SearchResult
+  }
+
+type FindUsageIn = Techniques | Directives
 
 type alias EditProperty =
   { name      : String
@@ -43,19 +53,43 @@ type alias ParentGroupProperty = { id : String, name : String, valueType : Strin
 type alias ParentNodeProperty = { id : String, name : String, valueType : String }
 type ParentProperty = ParentGlobal ParentGlobalProperty | ParentGroup ParentGroupProperty | ParentNode ParentNodeProperty
 
+
+type SortOrder = Asc | Desc
+
 type SortBy
   = Name
   | Format
   | Value
 
+type alias TableFiltersOnProperty =
+  { sortBy    : SortBy
+  , sortOrder : SortOrder
+  , filter    : String
+  }
+
+type alias TableFiltersOnUsage =
+  { sortBy      : SortBy
+  , sortOrder   : SortOrder
+  , filter      : String
+  , findUsageIn : FindUsageIn
+  , pagination  : TablePagination
+  }
+
+type alias TablePagination =
+  { pageDirective : Int
+  , pageTechnique : Int
+  , tableSize: Int
+  , totalRow: Int
+  }
 type alias UI =
-  { hasNodeWrite     : Bool
-  , hasNodeRead      : Bool
-  , loading          : Bool
-  , modalState       : ModalState
-  , editedProperties : Dict String EditProperty
-  , showMore         : List String
-  , filters          : TableFilters SortBy
+  { hasNodeWrite      : Bool
+  , hasNodeRead       : Bool
+  , loading           : Bool
+  , modalState        : ModalState
+  , editedProperties  : Dict String EditProperty
+  , showMore          : List String
+  , filtersOnProperty : TableFiltersOnProperty
+  , filtersOnUsage    : TableFiltersOnUsage
   }
 
 type alias Model =
@@ -67,12 +101,40 @@ type alias Model =
   , ui               : UI
   }
 
+getPageMax : TablePagination -> Int
+getPageMax pagination =
+  if(pagination.tableSize /= 0 && pagination.tableSize /= pagination.totalRow) then
+    (pagination.totalRow // pagination.tableSize) + 1
+  else
+    1
+
+extractUsage : List SearchResult -> PropertyUsage
+extractUsage result =
+  let
+    directives =
+      result
+        |> List.filter (\s -> s.header.type_ == QuickSearch.Datatypes.Directive)
+        |> List.head
+    techniques =
+      result
+        |> List.filter (\s -> s.header.type_ == QuickSearch.Datatypes.Technique)
+        |> List.head
+  in
+    PropertyUsage directives techniques
+
+getSearchResultLength : PropertyUsage -> FindUsageIn -> Int
+getSearchResultLength result kind =
+  case kind of
+    Techniques -> result.techniques |> Maybe.map (\d -> d.header.numbers) |> Maybe.withDefault 0
+    Directives -> result.directives |> Maybe.map (\d -> d.header.numbers) |> Maybe.withDefault 0
+
 type Msg
   = Ignore
   | Copy String
   | CallApi (Model -> Cmd Msg)
   | SaveProperty String (Result Error (List Property))
   | GetNodeProperties (Result Error (List Property))
+  | FindPropertyUsage String (Result Error (List SearchResult))
   | UpdateNewProperty EditProperty
   | UpdateProperty String EditProperty
   | AddProperty
@@ -80,8 +142,16 @@ type Msg
   | ToggleEditPopup ModalState
   | ClosePopup Msg
   | ToggleEditProperty String EditProperty Bool
-  | UpdateTableFilters (TableFilters SortBy)
+  | UpdateTableFiltersProperty TableFiltersOnProperty
+  | UpdateTableFiltersUsage TableFiltersOnUsage
+  | ChangeViewUsage
   | ShowMore String
+  | UpdateTableSize Int
+  | NexPage
+  | PreviousPage
+  | LastPage
+  | FirstPage
+  | GoToPage Int
 
 valueTypeToValueFormat : String -> ValueFormat
 valueTypeToValueFormat valueType =
@@ -93,14 +163,14 @@ valueTypeToValueFormat valueType =
 getPossibleFormatsFromPropertyName : Model -> String -> List ValueFormat
 getPossibleFormatsFromPropertyName model propertyName =
   let
-    getOtherHierarchyValueType p = 
+    getOtherHierarchyValueType p =
       case p of
         ParentGlobal { valueType } -> Just valueType
-        ParentGroup { id, valueType } -> 
+        ParentGroup { id, valueType } ->
           if id /= model.nodeId then Just valueType else Nothing
         ParentNode { id, valueType } ->
           if id /= model.nodeId then Just valueType else Nothing
-    mergedValueTypes = 
+    mergedValueTypes =
       List.Extra.find (\p -> p.name == propertyName) model.properties
       |> Maybe.andThen (\p -> p.hierarchyStatus)
       |> Maybe.map (\hs -> List.filterMap (getOtherHierarchyValueType >> Maybe.map valueTypeToValueFormat) hs.fullHierarchy)
