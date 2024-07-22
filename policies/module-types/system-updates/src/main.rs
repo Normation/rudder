@@ -14,7 +14,7 @@ mod scheduler;
 mod system;
 
 use std::{env, path::PathBuf};
-
+use std::process::exit;
 use anyhow::Context;
 use chrono::{DateTime, Duration, RoundingError::DurationExceedsTimestamp, Utc};
 use package_manager::PackageSpec;
@@ -44,7 +44,11 @@ pub enum RebootType {
 #[serde(rename_all = "snake_case")]
 pub enum CampaignType {
     #[default]
+    /// Install all available updates
     System,
+    /// Install all security upgrades
+    Security,
+    /// Install the updates from the provided package list
     Software,
 }
 
@@ -96,14 +100,38 @@ impl ModuleType0 for SystemUpdate {
         let package_parameters: PackageParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))?;
         let agent_freq = Duration::minutes(parameters.agent_frequency_minutes as i64);
-        check_update(&parameters.node_id, agent_freq, package_parameters)
+        check_update(&parameters.node_id, parameters.state_dir.as_path(), agent_freq, package_parameters)
     }
 }
 
 // Start runner
 
 fn main() -> Result<(), anyhow::Error> {
-    let package_promise_type = SystemUpdate {};
+    let mut package_promise_type = SystemUpdate {};
+
+    let args: Vec<String> = env::args().collect();
+    dbg!(args);
+
+    package_promise_type.check_apply(
+        PolicyMode::Enforce,
+        &Parameters::new(
+            "toto".to_string(),
+            serde_json::json!({
+                "campaign_type": "system",
+                "package_manager": "yum",
+                "event_id": "event_id",
+                "reboot_type": "as_needed",
+                "start": "2024-01-01T00:00:00Z",
+                "end": "2024-01-01T00:00:00Z",
+                "package_list": [],
+                "report_file": "/tmp/report.json",
+                "schedule_file": "/tmp/schedule.json",
+            }).as_object().unwrap().clone(),
+            PathBuf::from("/tmp")
+        ),
+    )?;
+
+    exit(0);
     // Run the promise executor
     run(package_promise_type)
 }

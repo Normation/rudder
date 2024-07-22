@@ -146,7 +146,7 @@ impl PackageManager {
         Ok(match self {
             PackageManager::Yum => Box::new(YumPackageManager::new()),
             PackageManager::Apt => Box::new(AptPackageManager::new()?),
-            //PackageManager::Zypper => Box::new(ZypperPackageManager::new()),
+            PackageManager::Zypper => Box::new(ZypperPackageManager::new()),
             _ => bail!("This package manager does not provide patch management features"),
         })
     }

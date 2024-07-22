@@ -22,15 +22,6 @@ use crate::{campaign::UpdateStatus, output::Report, package_manager::PackageList
 ///
 const DB_NAME: &str = "system-updates.sqlite";
 
-#[derive(Debug)]
-struct PackageQuery {
-    name: String,
-    // None means any
-    version: Option<String>,
-    // None means any
-    architecture: Option<String>,
-}
-
 pub struct PackageDatabase {
     conn: Connection,
 }
@@ -63,7 +54,7 @@ impl PackageDatabase {
     pub fn clean(&self, retention: Duration) -> Result<(), rusqlite::Error> {
         rudder_debug!("Purging old events");
         self.conn.execute(
-            "DELETE FROM update_event WHERE date(run_datetime) < date('now', ?1)",
+            "DELETE FROM update_events WHERE date(run_datetime) < date('now', ?1)",
             (&format!("-{} minutes", retention.num_minutes()),),
         )?;
         Ok(())
@@ -76,7 +67,7 @@ impl PackageDatabase {
         let tx = self.conn.transaction()?;
 
         let r = tx.query_row(
-            "SELECT id FROM update_event WHERE event_id = ?1",
+            "SELECT id FROM update_events WHERE event_id = ?1",
             [&event_id],
             |row| Ok(()),
         );
@@ -87,7 +78,7 @@ impl PackageDatabase {
         };
         if !already_there {
             tx.execute(
-                "INSERT INTO update_event (event_id, status, run_datetime) VALUES (?1, ?2, datetime('now'))",
+                "INSERT INTO update_events (event_id, status, run_datetime) VALUES (?1, ?2, datetime('now'))",
                 (&event_id, UpdateStatus::Running.to_string()),
             )?;
         }
@@ -98,7 +89,7 @@ impl PackageDatabase {
 
     pub fn status(&mut self, event_id: &str) -> Result<UpdateStatus, rusqlite::Error> {
         let r = self.conn.query_row(
-            "SELECT status FROM update_event WHERE event_id = ?1",
+            "SELECT status FROM update_events WHERE event_id = ?1",
             [&event_id],
             |row| {
                 let s: String = row.get_unwrap(0);
@@ -110,7 +101,7 @@ impl PackageDatabase {
 
     pub fn store_report(&self, event_id: &str, report: &Report) -> Result<(), rusqlite::Error> {
         self.conn.execute(
-            "UPDATE update_event SET report = ?1 where event_id = ?2",
+            "UPDATE update_events SET report = ?1 where event_id = ?2",
             (serde_json::to_string(report).unwrap(), &event_id),
         )?;
         Ok(())
@@ -118,7 +109,7 @@ impl PackageDatabase {
 
     pub fn get_report(&self, event_id: &str) -> Result<Report, rusqlite::Error> {
         self.conn.query_row(
-            "SELECT report FROM update_event WHERE event_id = ?1",
+            "SELECT report FROM update_events WHERE event_id = ?1",
             [&event_id],
             |row| {
                 let v: String = row.get_unwrap(0);

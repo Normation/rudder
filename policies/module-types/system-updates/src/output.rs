@@ -12,7 +12,7 @@ use crate::package_manager::PackageDiff;
 
 /// Outcome of each function
 ///
-/// We need to collect outputs for reporting
+/// We need to collect outputs for reporting, but also to log in live for debugging purposes.
 #[must_use]
 pub struct ResultOutput<T> {
     pub res: Result<T>,
@@ -89,7 +89,9 @@ impl Report {
     }
 }
 
-// Same as the Python implementation in 8.1.
+/// Report before the start datetime. It is sent to the web application for user information.
+/// 
+/// Same as the Python implementation in 8.1.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct ScheduleReport {

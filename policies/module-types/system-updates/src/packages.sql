@@ -4,7 +4,7 @@
 -- The data validity is ensured by the application.
 
 -- Update events
-CREATE TABLE IF NOT EXISTS update_event (
+CREATE TABLE IF NOT EXISTS update_events (
     id INTEGER PRIMARY KEY,
     -- event_id
     event_id TEXT NOT NULL,

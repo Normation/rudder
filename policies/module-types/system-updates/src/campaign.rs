@@ -73,8 +73,8 @@ impl FromStr for UpdateStatus {
 }
 
 /// Called at each module run
-pub fn check_update(node_id: &str, agent_freq: Duration, p: PackageParameters) -> Result<Outcome> {
-    let mut db = PackageDatabase::new(Some(Path::new(MODULE_DIR)))?;
+pub fn check_update(node_id: &str, state_dir: &Path, agent_freq: Duration, p: PackageParameters) -> Result<Outcome> {
+    let mut db = PackageDatabase::new(Some(Path::new(state_dir)))?;
     db.clean(Duration::days(60))?;
 
     let pm = p.package_manager.get()?;
@@ -153,6 +153,7 @@ pub fn update(
     let r = match campaign_type {
         CampaignType::System => pm.full_upgrade(),
         CampaignType::Software => pm.upgrade(packages),
+        CampaignType::Security => pm.security_upgrade(),
     };
 
     let after = pm.list_installed()?;
@@ -160,6 +161,8 @@ pub fn update(
 
     // Now take system actions
     let system = System::new();
+
+    // FIXME: pouvoir envoyer le report même en cas d'erreur de hook
 
     let hook_res = Hooks::PreReboot.run();
 
@@ -180,7 +183,6 @@ pub fn update(
 
     let hook_res = Hooks::PostUpgrade.run();
 
-    db.clean(Duration::days(60))?;
     db.store_report(event_id, &report)?;
     Ok(None)
 }
@@ -254,7 +256,4 @@ def run_action(package_manager, reboot, start, end, package_list, node_id, campa
                 message = 'Update should have run at ' + str(start)
             else:
                 message = 'Update will run at ' + str(start)
-
-
-
  */
