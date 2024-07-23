@@ -77,7 +77,7 @@ findPropertyUsage propertyName model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = urlTest
         , body    = emptyBody
         , expect  = expectJson (FindPropertyUsage propertyName) (at ["data"] (list decoderResult))
