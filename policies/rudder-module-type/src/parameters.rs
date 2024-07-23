@@ -4,6 +4,7 @@
 //! Rudder module protocol encapsulated in CFEngine custom promise type
 
 use serde::{Deserialize, Serialize};
+use serde_aux::prelude::*;
 use serde_json::{Map, Value};
 use std::path::PathBuf;
 
@@ -24,9 +25,11 @@ pub struct Parameters {
     pub node_id: String,
     /// Agent run frequency in minutes
     #[serde(default = "Parameters::default_agent_frequency_minutes")]
+    #[serde(deserialize_with = "deserialize_number_from_string")]
     pub agent_frequency_minutes: usize,
     /// Version of the Rudder module protocol
     #[serde(default)]
+    #[serde(deserialize_with = "deserialize_number_from_string")]
     pub(crate) rudder_module_protocol: usize,
     /// Module type parameters
     pub data: Map<String, Value>,

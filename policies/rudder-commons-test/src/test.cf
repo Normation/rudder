@@ -14,6 +14,8 @@ bundle agent main {
   test_type:
       "test"
         rudder_module_protocol => "0",
+        agent_frequency_minutes => "5",
+        node_id => "test",
         data => parsejson("${test.data}"),
         action_policy => "${test.action_policy}",
         classes => test_classes;
