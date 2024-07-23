@@ -282,6 +282,7 @@ mod tests {
             rudder_module_protocol: 0,
             action_policy: ActionPolicy::Fix,
             agent_frequency_minutes: 5,
+            state_dir: Default::default(),
         };
         let ref_val = ValidateRequest {
             operation: ValidateOperation::ValidatePromise,
@@ -317,6 +318,7 @@ mod tests {
             rudder_module_protocol: 0,
             action_policy: ActionPolicy::Fix,
             agent_frequency_minutes: 5,
+            state_dir: Default::default(),
         };
         let ref_val = EvaluateRequest {
             operation: EvaluateOperation::EvaluatePromise,

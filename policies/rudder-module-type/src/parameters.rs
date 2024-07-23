@@ -3,7 +3,6 @@
 
 //! Rudder module protocol encapsulated in CFEngine custom promise type
 
-use chrono::Duration;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::path::PathBuf;
