@@ -13,15 +13,11 @@ pub struct DpkgPackageManager {}
 
 impl DpkgPackageManager {
     pub fn new() -> Self {
-        dbg!("TOTO dpkgnew");
-
         env::set_var("DEBIAN_FRONTEND", "noninteractive");
         Self {}
     }
 
     pub fn installed(&self) -> Result<PackageList> {
-        dbg!("TOTO DPK");
-
         let output_format = r###"${Package} ${Version} ${Architecture} ${Status}\n"###;
         let c = Command::new("dpkg-query")
             .arg("--showformat")

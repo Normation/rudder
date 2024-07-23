@@ -171,8 +171,6 @@ impl CfengineRunner {
                 // Stop the runner
                 return Ok(());
             } else {
-                dbg!(serde_json::from_str::<EvaluateRequest>(&line));
-
                 // Stop the program? Not sure if there is something better and safe to do.
                 bail!("Could not parse request: {}", line);
             };

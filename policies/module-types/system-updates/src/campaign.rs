@@ -80,21 +80,15 @@ pub fn check_update(
     p: PackageParameters,
 ) -> Result<Outcome> {
     let mut db = PackageDatabase::new(Some(Path::new(state_dir)))?;
-    dbg!("TOTO");
 
     db.clean(Duration::days(60))?;
-    dbg!("TOTO");
     let pm = p.package_manager.get()?;
-    dbg!("TOTO");
 
     let start_run = scheduler::splayed_start(p.start, p.end, agent_freq, node_id)?;
     let now: DateTime<Utc> = Utc::now();
-    dbg!("TOTO");
 
     // Update should have start/have started already
     if now >= start_run {
-        dbg!("TOTO START");
-
         let r = update(
             pm,
             &p.event_id,
@@ -162,7 +156,6 @@ pub fn update(
     let hook_res = Hooks::PreUpgrade.run();
 
     let before = pm.list_installed()?;
-    dbg!(&before);
 
     let r = match campaign_type {
         CampaignType::System => pm.full_upgrade(),
@@ -215,59 +208,3 @@ pub fn post_update(event_id: &str, db: &mut PackageDatabase) -> Result<Option<Re
 
     Ok(Some(report))
 }
-
-/*
-
-def run_action(package_manager, reboot, start, end, package_list, node_id, campaign_id):
-    if not schedule_done:
-        schedule = package_manager.send_schedule(start)
-
-    # Common to update and report
-    if finished:
-        if not sent and os.path.exists(path):
-            output = path
-            # Post-hook
-            # Only add log, don't change behavior or reporting
-            report = package_manager.get_file('report')
-            (result, o, e) = run_hooks(POST_HOOK_DIR)
-            report['output'] += o
-            report['errors'] += e
-            package_manager.store_file('report', report)
-            package_manager.set_sent()
-            message = 'Sending update report for update started at ' + str(
-                locked
-            )
-        else:
-            message = 'Update report already sent at ' + str(sent)
-        outcome = 'result_success'
-    elif locked:
-        message = 'Update is running since ' + str(locked)
-    else:
-        # not locked = not started
-        if should_run(start, end):
-            message = 'Running system update'
-            # Pre-hooks
-            report = {}
-            (is_ok, report['output'], report['errors']) = run_hooks(
-                PRE_HOOK_DIR
-            )
-            if not is_ok:
-                report['status'] = 'error'
-            package_manager.store_file('report', report)
-            if is_ok:
-                output = package_manager.run_update(reboot, package_list, node_id)
-                if node_id == 'root':
-                    outcome = 'result_error'
-                    message = "System update campaign are not supported on the Rudder root server."
-                else:
-                    outcome = 'result_repaired'
-            else:
-                output = package_manager.get_file_path('report')
-                message = 'Aborted system update due to failed pre-hooks'
-                outcome = 'result_error'
-        else:
-            if is_past(start):
-                message = 'Update should have run at ' + str(start)
-            else:
-                message = 'Update will run at ' + str(start)
- */
