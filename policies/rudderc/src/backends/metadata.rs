@@ -11,7 +11,7 @@
 use std::path::Path;
 
 use anyhow::{Error, Result};
-use quick_xml::se::Serializer;
+use quick_xml::se::{QuoteLevel, Serializer};
 use rudder_commons::{Target, ALL_TARGETS};
 use serde::Serialize;
 
@@ -40,6 +40,7 @@ impl Metadata {
     fn xml(technique: Technique) -> Result<String> {
         let mut out = String::new();
         let mut ser = Serializer::with_root(&mut out, Some("TECHNIQUE")).unwrap();
+        ser.set_quote_level(QuoteLevel::Full);
         ser.indent(' ', 2);
         technique.serialize(ser)?;
         Ok(out)
