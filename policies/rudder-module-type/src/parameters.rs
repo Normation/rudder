@@ -3,10 +3,10 @@
 
 //! Rudder module protocol encapsulated in CFEngine custom promise type
 
-use std::path::PathBuf;
 use chrono::Duration;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use std::path::PathBuf;
 
 use crate::cfengine::protocol::ActionPolicy;
 
@@ -39,7 +39,11 @@ pub struct Parameters {
 impl Parameters {
     pub fn new(node_id: String, data: Map<String, Value>, state_dir: PathBuf) -> Self {
         Self {
-            data, node_id, state_dir, agent_frequency_minutes: Self::default_agent_frequency_minutes(), ..Default::default()
+            data,
+            node_id,
+            state_dir,
+            agent_frequency_minutes: Self::default_agent_frequency_minutes(),
+            ..Default::default()
         }
     }
 
