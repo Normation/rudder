@@ -23,9 +23,9 @@
 
 
     $reportId=$reportIdBase + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907"
-    $componentKey = 'This should be ReportMessage'
-    $reportParams = try {
-        @{
+    try {
+        $componentKey = 'This should be ReportMessage'
+        $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("report_if_condition_" + $componentKey)))
             ComponentKey = $componentKey
             ComponentName = 'Report if condition'
@@ -36,16 +36,16 @@
         }
         Rudder-Report-NA @reportParams
     } catch [Nustache.Core.NustacheDataContextMissException] {
-        $failedCall = New-Object -TypeName "Rudder.MethodResult" -ArgumentList @(
+        $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
                 'The method call was skipped because it references an undefined variable "{0}"',
-                (Format-Exception $_)[1]
+                $_.ToString()
             )),
             $techniqueName
         )
         Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
     } catch {
-        $failedCall = New-Object -TypeName "Rudder.MethodResult" -ArgumentList @(
+        $failedCall = [Rudder.MethodResult]::Error()
             [Rudder.MethodStatus]::Error,
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',

@@ -31,9 +31,9 @@ function {{ id|technique_name }} {
 
 {% for m in methods %}
     $reportId=$reportIdBase + "{{ m.id }}"
-    $componentKey = {{ m.component_key|value_fmt(id, parameters) }}
-    $reportParams = try {
-        @{
+    try {
+        $componentKey = {{ m.component_key|value_fmt(id, parameters) }}
+        $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("{{ m.class_prefix }}_" + $componentKey)))
             ComponentKey = $componentKey
             ComponentName = {{ m.component_name|value_fmt(id, parameters) }}
@@ -70,16 +70,16 @@ function {{ id|technique_name }} {
         Rudder-Report-NA @reportParams
       {%- endif %}
     } catch [Nustache.Core.NustacheDataContextMissException] {
-        $failedCall = New-Object -TypeName "Rudder.MethodResult" -ArgumentList @(
+        $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
                 'The method call was skipped because it references an undefined variable "{0}"',
-                (Format-Exception $_)[1]
+                $_.ToString()
             )),
             $techniqueName
         )
         Compute-Method-Call @fallBackReportParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }} -ReportId $reportId -DisableReporting:${{ m.disable_reporting }} -MethodCall $failedCall
     } catch {
-        $failedCall = New-Object -TypeName "Rudder.MethodResult" -ArgumentList @(
+        $failedCall = [Rudder.MethodResult]::Error()
             [Rudder.MethodStatus]::Error,
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',
