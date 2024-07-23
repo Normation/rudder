@@ -26,7 +26,8 @@
 
 
     $reportId=$reportIdBase + "a86ce2e5-d5b6-45cc-87e8-c11cca71d966"
-    $componentKey = ([Rudder.Datastate]::Render('{{' + @'
+    try {
+        $componentKey = ([Rudder.Datastate]::Render('{{' + @'
 vars.sys.host
 '@ + '}}')) + @'
  . | / 
@@ -38,8 +39,7 @@ vars.host
  ' '' ''' $ $$ " "" \ \\😋aà3
 	
 '@
-    $reportParams = try {
-        @{
+        $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
             ComponentKey = $componentKey
             ComponentName = ([Rudder.Datastate]::Render('{{' + @'
@@ -96,16 +96,16 @@ if(Get-Service "Zabbix agent") { write-output "exists" }
             Rudder-Report-NA @reportParams
         }
     } catch [Nustache.Core.NustacheDataContextMissException] {
-        $failedCall = New-Object -TypeName "Rudder.MethodResult" -ArgumentList @(
+        $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
                 'The method call was skipped because it references an undefined variable "{0}"',
-                (Format-Exception $_)[1]
+                $_.ToString()
             )),
             $techniqueName
         )
         Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
     } catch {
-        $failedCall = New-Object -TypeName "Rudder.MethodResult" -ArgumentList @(
+        $failedCall = [Rudder.MethodResult]::Error()
             [Rudder.MethodStatus]::Error,
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',
@@ -117,7 +117,8 @@ if(Get-Service "Zabbix agent") { write-output "exists" }
     }
 
     $reportId=$reportIdBase + "a86ce2e5-d5b6-45cc-87e8-c11cca71d977"
-    $componentKey = ([Rudder.Datastate]::Render('{{' + @'
+    try {
+        $componentKey = ([Rudder.Datastate]::Render('{{' + @'
 vars.sys.host
 '@ + '}}')) + @'
  . | / 
@@ -129,8 +130,7 @@ vars.host
  ' '' ''' $ $$ " "" \ \\😋aà3
 	
 '@
-    $reportParams = try {
-        @{
+        $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
             ComponentKey = $componentKey
             ComponentName = ([Rudder.Datastate]::Render('{{' + @'
@@ -175,16 +175,16 @@ if(Get-Service "Zabbix agent") { write-output "exists" }
         Compute-Method-Call @reportParams -MethodCall $call
         
     } catch [Nustache.Core.NustacheDataContextMissException] {
-        $failedCall = New-Object -TypeName "Rudder.MethodResult" -ArgumentList @(
+        $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
                 'The method call was skipped because it references an undefined variable "{0}"',
-                (Format-Exception $_)[1]
+                $_.ToString()
             )),
             $techniqueName
         )
         Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
     } catch {
-        $failedCall = New-Object -TypeName "Rudder.MethodResult" -ArgumentList @(
+        $failedCall = [Rudder.MethodResult]::Error()
             [Rudder.MethodStatus]::Error,
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',
