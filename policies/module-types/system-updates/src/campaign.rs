@@ -75,18 +75,25 @@ impl FromStr for UpdateStatus {
 /// Called at each module run
 pub fn check_update(node_id: &str, state_dir: &Path, agent_freq: Duration, p: PackageParameters) -> Result<Outcome> {
     let mut db = PackageDatabase::new(Some(Path::new(state_dir)))?;
-    db.clean(Duration::days(60))?;
+    dbg!("TOTO");
 
+    db.clean(Duration::days(60))?;
+dbg!("TOTO");
     let pm = p.package_manager.get()?;
+    dbg!("TOTO");
 
     let start_run = scheduler::splayed_start(p.start, p.end, agent_freq, node_id)?;
     let now: DateTime<Utc> = Utc::now();
+    dbg!("TOTO");
 
     // Update should have start/have started already
     if now >= start_run {
+        dbg!("TOTO START");
+
         let r = update(
             pm,
             &p.event_id,
+            &p.campaign_name,
             &mut db,
             p.reboot_type,
             node_id,
@@ -116,13 +123,14 @@ pub fn check_update(node_id: &str, state_dir: &Path, agent_freq: Duration, p: Pa
 pub fn update(
     pm: Box<dyn LinuxPackageManager>,
     event_id: &str,
+    campaign_name: &str,
     db: &mut PackageDatabase,
     reboot_type: RebootType,
     node_id: &str,
     campaign_type: CampaignType,
     packages: Vec<PackageSpec>,
 ) -> Result<Option<Report>> {
-    let already_started = db.start_event(event_id)?;
+    let already_started = db.start_event(event_id, campaign_name)?;
     if already_started {
         return Ok(None);
     }
@@ -149,6 +157,7 @@ pub fn update(
     let hook_res = Hooks::PreUpgrade.run();
 
     let before = pm.list_installed()?;
+    dbg!(&before);
 
     let r = match campaign_type {
         CampaignType::System => pm.full_upgrade(),

@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS update_events (
     id INTEGER PRIMARY KEY,
     -- event_id
     event_id TEXT NOT NULL,
+    -- campaign name
+    campaign_name TEXT NOT NULL,
     -- running, pending-report, completed
     status TEXT NOT NULL,
     -- timestamps

@@ -3,7 +3,7 @@
 
 use std::{collections::HashMap, env, process::Command};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 use crate::package_manager::{
     PackageDiff, PackageId, PackageInfo, PackageList, PackageManager, PackageSpec,
@@ -22,7 +22,7 @@ impl RpmPackageManager {
             .arg("-qa")
             .arg("--qf")
             .arg(output_format)
-            .output()?;
+            .output().context("Running rpm")?;
 
         let out = String::from_utf8_lossy(&c.stdout);
         let packages = self.parse_installed(out.as_ref())?;

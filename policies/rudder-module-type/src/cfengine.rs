@@ -30,6 +30,12 @@
 
 pub use runner::CfengineRunner;
 
+/// Passed in Rudder agent to all modules
+/// to indicate that the module is running in CFEngine mode.
+/// 
+/// NOTE: This is a Rudder-specific behavior.
+pub const CFENGINE_MODE_ARG: &str = "--cfengine";
+
 pub mod header;
 pub mod protocol;
 pub mod runner;

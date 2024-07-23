@@ -17,7 +17,6 @@ use crate::{
 
 // FIXME : list compatible OS
 
-const NEED_RESTART_PATH: &str = "/usr/bin/needs-restarting";
 const REBOOT_REQUIRED_FILE_PATH: &str = "/var/run/reboot-required";
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]

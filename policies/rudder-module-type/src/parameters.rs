@@ -39,7 +39,7 @@ pub struct Parameters {
 impl Parameters {
     pub fn new(node_id: String, data: Map<String, Value>, state_dir: PathBuf) -> Self {
         Self {
-            data, node_id, state_dir, ..Default::default()
+            data, node_id, state_dir, agent_frequency_minutes: Self::default_agent_frequency_minutes(), ..Default::default()
         }
     }
 

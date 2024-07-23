@@ -3,7 +3,7 @@
 
 use std::process::{Command, Output};
 
-use anyhow::{anyhow, Error, Result};
+use anyhow::{anyhow, Context, Error, Result};
 use chrono::{DateTime, Utc};
 use log::debug;
 use serde::{Deserialize, Serialize};

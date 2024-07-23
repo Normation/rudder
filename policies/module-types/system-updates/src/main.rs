@@ -13,7 +13,7 @@ mod package_manager;
 mod scheduler;
 mod system;
 
-use std::{env, path::PathBuf};
+use std::{env, fs, path::PathBuf};
 use std::process::exit;
 use anyhow::Context;
 use chrono::{DateTime, Duration, RoundingError::DurationExceedsTimestamp, Utc};
@@ -24,7 +24,7 @@ use rudder_module_type::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-
+use rudder_module_type::cfengine::CFENGINE_MODE_ARG;
 use crate::{campaign::check_update, package_manager::PackageManager};
 
 // Same as the python implementation
@@ -57,8 +57,11 @@ pub enum CampaignType {
 pub struct PackageParameters {
     #[serde(default)]
     campaign_type: CampaignType,
+    /// Rely on the agent to detect the OS and chose the right package manager.
+    /// Avoid multiplying the amount of environment detection sources.
     package_manager: PackageManager,
     event_id: String,
+    campaign_name: String,
     reboot_type: RebootType,
     start: DateTime<Utc>,
     end: DateTime<Utc>,
@@ -66,10 +69,6 @@ pub struct PackageParameters {
     report_file: PathBuf,
     schedule_file: PathBuf,
 }
-
-// Module
-
-// Un seul?
 
 struct SystemUpdate {}
 
@@ -91,14 +90,14 @@ impl ModuleType0 for SystemUpdate {
     fn validate(&self, parameters: &Parameters) -> ValidateResult {
         // Parse as parameter types
         let _parameters: PackageParameters =
-            serde_json::from_value(Value::Object(parameters.data.clone()))?;
+            serde_json::from_value(Value::Object(parameters.data.clone())).context("Parsing module parameters")?;
         Ok(())
     }
 
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
         //assert!(self.validate(parameters).is_ok());
         let package_parameters: PackageParameters =
-            serde_json::from_value(Value::Object(parameters.data.clone()))?;
+            serde_json::from_value(Value::Object(parameters.data.clone())).context("Parsing module parameters")?;
         let agent_freq = Duration::minutes(parameters.agent_frequency_minutes as i64);
         check_update(&parameters.node_id, parameters.state_dir.as_path(), agent_freq, package_parameters)
     }
@@ -110,28 +109,32 @@ fn main() -> Result<(), anyhow::Error> {
     let mut package_promise_type = SystemUpdate {};
 
     let args: Vec<String> = env::args().collect();
-    dbg!(args);
-
-    package_promise_type.check_apply(
-        PolicyMode::Enforce,
-        &Parameters::new(
-            "toto".to_string(),
-            serde_json::json!({
+    dbg!(&args);
+    
+    // Run the promise executor
+    if args.contains(&CFENGINE_MODE_ARG.to_string()) {
+        run(package_promise_type)
+    } else {
+        let _ = fs::remove_file("/tmp/system-updates.sqlite");
+        package_promise_type.check_apply(
+            PolicyMode::Enforce,
+            &Parameters::new(
+                "test".to_string(),
+                serde_json::json!({
                 "campaign_type": "system",
-                "package_manager": "yum",
+                "campaign_name": "My campaign",
+                "package_manager": "apt",
                 "event_id": "event_id",
                 "reboot_type": "as_needed",
                 "start": "2024-01-01T00:00:00Z",
-                "end": "2024-01-01T00:00:00Z",
+                "end": "2024-01-02T00:00:00Z",
                 "package_list": [],
                 "report_file": "/tmp/report.json",
                 "schedule_file": "/tmp/schedule.json",
             }).as_object().unwrap().clone(),
-            PathBuf::from("/tmp")
-        ),
-    )?;
-
-    exit(0);
-    // Run the promise executor
-    run(package_promise_type)
+                PathBuf::from("/tmp")
+            ),
+        )?;
+        Ok(())
+    }
 }

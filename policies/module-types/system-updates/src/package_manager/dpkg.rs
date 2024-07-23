@@ -3,7 +3,7 @@
 
 use std::{collections::HashMap, env, process::Command};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 use crate::package_manager::{PackageId, PackageInfo, PackageList, PackageManager};
 
@@ -13,17 +13,21 @@ pub struct DpkgPackageManager {}
 
 impl DpkgPackageManager {
     pub fn new() -> Self {
+        dbg!("TOTO dpkgnew");
+
         env::set_var("DEBIAN_FRONTEND", "noninteractive");
         Self {}
     }
 
     pub fn installed(&self) -> Result<PackageList> {
+        dbg!("TOTO DPK");
+
         let output_format = r###"${Package} ${Version} ${Architecture} ${Status}\n"###;
         let c = Command::new("dpkg-query")
             .arg("--showformat")
             .arg(output_format)
             .arg("-W")
-            .output()?;
+            .output().context("Running dpkg-query")?;
 
         let out = String::from_utf8_lossy(&c.stdout);
         let packages = self.parse_installed(out.as_ref())?;

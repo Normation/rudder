@@ -63,7 +63,7 @@ impl PackageDatabase {
     /// Start an event
     ///
     /// The insertion also acts as the locking mechanism
-    pub fn start_event(&mut self, event_id: &str) -> Result<bool, rusqlite::Error> {
+    pub fn start_event(&mut self, event_id: &str, campaign_name: &str) -> Result<bool, rusqlite::Error> {
         let tx = self.conn.transaction()?;
 
         let r = tx.query_row(
@@ -78,8 +78,8 @@ impl PackageDatabase {
         };
         if !already_there {
             tx.execute(
-                "INSERT INTO update_events (event_id, status, run_datetime) VALUES (?1, ?2, datetime('now'))",
-                (&event_id, UpdateStatus::Running.to_string()),
+                "INSERT INTO update_events (event_id, campaign_name, status, run_datetime) VALUES (?1, ?2, ?3, datetime('now'))",
+                (&event_id, &campaign_name, UpdateStatus::Running.to_string()),
             )?;
         }
 
@@ -152,9 +152,10 @@ mod tests {
     fn start_event_inserts_and_returns_false_for_new_events() {
         let mut db = PackageDatabase::new(None).unwrap();
         let event_id = "TEST";
+        let campaign_id = "CAMPAIGN";
         // If the event was not present before, this should be false
-        assert_eq!(false, db.start_event(event_id).unwrap());
-        assert_eq!(true, db.start_event(event_id).unwrap());
+        assert_eq!(false, db.start_event(event_id, campaign_id).unwrap());
+        assert_eq!(true, db.start_event(event_id, campaign_id).unwrap());
     }
 
     #[test]
@@ -162,7 +163,8 @@ mod tests {
         let mut db = PackageDatabase::new(None).unwrap();
         let report = Report::new();
         let event_id = "TEST";
-        db.start_event(event_id).unwrap();
+        let campaign_id = "CAMPAIGN";
+        db.start_event(event_id, campaign_id).unwrap();
         db.store_report(event_id, &report).unwrap();
 
         // Now get the data back and see if it matches
