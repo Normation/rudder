@@ -63,7 +63,11 @@ impl PackageDatabase {
     /// Start an event
     ///
     /// The insertion also acts as the locking mechanism
-    pub fn start_event(&mut self, event_id: &str, campaign_name: &str) -> Result<bool, rusqlite::Error> {
+    pub fn start_event(
+        &mut self,
+        event_id: &str,
+        campaign_name: &str,
+    ) -> Result<bool, rusqlite::Error> {
         let tx = self.conn.transaction()?;
 
         let r = tx.query_row(

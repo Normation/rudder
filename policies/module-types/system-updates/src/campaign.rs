@@ -73,12 +73,17 @@ impl FromStr for UpdateStatus {
 }
 
 /// Called at each module run
-pub fn check_update(node_id: &str, state_dir: &Path, agent_freq: Duration, p: PackageParameters) -> Result<Outcome> {
+pub fn check_update(
+    node_id: &str,
+    state_dir: &Path,
+    agent_freq: Duration,
+    p: PackageParameters,
+) -> Result<Outcome> {
     let mut db = PackageDatabase::new(Some(Path::new(state_dir)))?;
     dbg!("TOTO");
 
     db.clean(Duration::days(60))?;
-dbg!("TOTO");
+    dbg!("TOTO");
     let pm = p.package_manager.get()?;
     dbg!("TOTO");
 

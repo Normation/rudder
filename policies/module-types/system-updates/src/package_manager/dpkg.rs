@@ -27,7 +27,8 @@ impl DpkgPackageManager {
             .arg("--showformat")
             .arg(output_format)
             .arg("-W")
-            .output().context("Running dpkg-query")?;
+            .output()
+            .context("Running dpkg-query")?;
 
         let out = String::from_utf8_lossy(&c.stdout);
         let packages = self.parse_installed(out.as_ref())?;

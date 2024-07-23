@@ -85,7 +85,9 @@ impl AptPackageManager {
         Ok(output
             .lines()
             .flat_map(|line| {
-                let service_name = re.captures(line).map(|cap| cap.get(1).map_or("", |m| m.as_str()).to_string());
+                let service_name = re
+                    .captures(line)
+                    .map(|cap| cap.get(1).map_or("", |m| m.as_str()).to_string());
                 service_name
             })
             .collect())
@@ -137,11 +139,7 @@ impl LinuxPackageManager for AptPackageManager {
             c.arg("--with-new-pkgs");
         }
 
-        c.args(
-            packages
-                .into_iter()
-                .map(Self::package_spec_as_argument),
-        );
+        c.args(packages.into_iter().map(Self::package_spec_as_argument));
 
         let _ = res.command(c);
         res

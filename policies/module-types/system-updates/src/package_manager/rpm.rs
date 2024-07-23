@@ -22,7 +22,8 @@ impl RpmPackageManager {
             .arg("-qa")
             .arg("--qf")
             .arg(output_format)
-            .output().context("Running rpm")?;
+            .output()
+            .context("Running rpm")?;
 
         let out = String::from_utf8_lossy(&c.stdout);
         let packages = self.parse_installed(out.as_ref())?;

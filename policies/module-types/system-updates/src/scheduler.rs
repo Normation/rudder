@@ -48,17 +48,13 @@ mod tests {
         let start = Utc.with_ymd_and_hms(2022, 7, 4, 18, 40, 24).unwrap();
         let end = Utc.with_ymd_and_hms(2022, 7, 4, 20, 40, 24).unwrap();
 
-        let splay = splayed_start(
-            start,
-            end,
-            Duration::minutes(5),
-            "root",
-        ).unwrap();
+        let splay = splayed_start(start, end, Duration::minutes(5), "root").unwrap();
         assert_eq!(splay.timestamp(), 1656961861);
-        
+
         for schedule in [5, 10, 15] {
             for i in 0..100 {
-                let start_s = splayed_start(start, end, Duration::minutes(schedule), &i.to_string()).unwrap();
+                let start_s =
+                    splayed_start(start, end, Duration::minutes(schedule), &i.to_string()).unwrap();
                 assert!(start_s >= start);
                 assert!(start_s < end);
             }

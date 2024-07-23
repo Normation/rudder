@@ -13,19 +13,19 @@ mod package_manager;
 mod scheduler;
 mod system;
 
-use std::{env, fs, path::PathBuf};
-use std::process::exit;
+use crate::{campaign::check_update, package_manager::PackageManager};
 use anyhow::Context;
 use chrono::{DateTime, Duration, RoundingError::DurationExceedsTimestamp, Utc};
 use package_manager::PackageSpec;
+use rudder_module_type::cfengine::CFENGINE_MODE_ARG;
 use rudder_module_type::{
     parameters::Parameters, run, CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome,
     PolicyMode, ProtocolResult, ValidateResult,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use rudder_module_type::cfengine::CFENGINE_MODE_ARG;
-use crate::{campaign::check_update, package_manager::PackageManager};
+use std::process::exit;
+use std::{env, fs, path::PathBuf};
 
 // Same as the python implementation
 pub const MODULE_DIR: &str = "/var/rudder/system-update";
@@ -90,16 +90,23 @@ impl ModuleType0 for SystemUpdate {
     fn validate(&self, parameters: &Parameters) -> ValidateResult {
         // Parse as parameter types
         let _parameters: PackageParameters =
-            serde_json::from_value(Value::Object(parameters.data.clone())).context("Parsing module parameters")?;
+            serde_json::from_value(Value::Object(parameters.data.clone()))
+                .context("Parsing module parameters")?;
         Ok(())
     }
 
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
         //assert!(self.validate(parameters).is_ok());
         let package_parameters: PackageParameters =
-            serde_json::from_value(Value::Object(parameters.data.clone())).context("Parsing module parameters")?;
+            serde_json::from_value(Value::Object(parameters.data.clone()))
+                .context("Parsing module parameters")?;
         let agent_freq = Duration::minutes(parameters.agent_frequency_minutes as i64);
-        check_update(&parameters.node_id, parameters.state_dir.as_path(), agent_freq, package_parameters)
+        check_update(
+            &parameters.node_id,
+            parameters.state_dir.as_path(),
+            agent_freq,
+            package_parameters,
+        )
     }
 }
 
@@ -110,7 +117,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     let args: Vec<String> = env::args().collect();
     dbg!(&args);
-    
+
     // Run the promise executor
     if args.contains(&CFENGINE_MODE_ARG.to_string()) {
         run(package_promise_type)
@@ -121,18 +128,21 @@ fn main() -> Result<(), anyhow::Error> {
             &Parameters::new(
                 "test".to_string(),
                 serde_json::json!({
-                "campaign_type": "system",
-                "campaign_name": "My campaign",
-                "package_manager": "apt",
-                "event_id": "event_id",
-                "reboot_type": "as_needed",
-                "start": "2024-01-01T00:00:00Z",
-                "end": "2024-01-02T00:00:00Z",
-                "package_list": [],
-                "report_file": "/tmp/report.json",
-                "schedule_file": "/tmp/schedule.json",
-            }).as_object().unwrap().clone(),
-                PathBuf::from("/tmp")
+                    "campaign_type": "system",
+                    "campaign_name": "My campaign",
+                    "package_manager": "apt",
+                    "event_id": "event_id",
+                    "reboot_type": "as_needed",
+                    "start": "2024-01-01T00:00:00Z",
+                    "end": "2024-01-02T00:00:00Z",
+                    "package_list": [],
+                    "report_file": "/tmp/report.json",
+                    "schedule_file": "/tmp/schedule.json",
+                })
+                .as_object()
+                .unwrap()
+                .clone(),
+                PathBuf::from("/tmp"),
             ),
         )?;
         Ok(())

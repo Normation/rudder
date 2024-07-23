@@ -67,11 +67,9 @@ impl LinuxPackageManager for YumPackageManager {
     fn upgrade(&self, packages: Vec<PackageSpec>) -> ResultOutput<()> {
         let mut res = ResultOutput::new(Ok(()));
         let mut c = Command::new("yum");
-        c.arg("--assumeyes").arg("update").args(
-            packages
-                .into_iter()
-                .map(Self::package_spec_as_argument),
-        );
+        c.arg("--assumeyes")
+            .arg("update")
+            .args(packages.into_iter().map(Self::package_spec_as_argument));
         let _ = res.command(c);
         res
     }

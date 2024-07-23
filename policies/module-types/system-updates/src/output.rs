@@ -90,7 +90,7 @@ impl Report {
 }
 
 /// Report before the start datetime. It is sent to the web application for user information.
-/// 
+///
 /// Same as the Python implementation in 8.1.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]

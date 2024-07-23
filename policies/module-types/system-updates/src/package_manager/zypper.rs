@@ -60,7 +60,10 @@ impl LinuxPackageManager for ZypperPackageManager {
         let mut res = ResultOutput::new(Ok(()));
         let mut c = Command::new("zypper");
 
-        c.arg("--non-interactive").arg("--category").arg("security").arg("patch");
+        c.arg("--non-interactive")
+            .arg("--category")
+            .arg("security")
+            .arg("patch");
 
         let _ = res.command(c);
         res
