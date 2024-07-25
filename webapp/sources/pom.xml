@@ -171,7 +171,7 @@ limitations under the License.
             <compilerPlugin>
               <groupId>org.scalameta</groupId>
               <artifactId>semanticdb-scalac_${scala-version}</artifactId>
-              <version>4.8.14</version>
+              <version>4.9.8</version>
             </compilerPlugin>
           </compilerPlugins>
           <args>
@@ -436,21 +436,21 @@ limitations under the License.
     <jodatime-version>2.12.7</jodatime-version>
     <jodaconvert-version>2.2.3</jodaconvert-version>
     <commons-io-version>2.16.1</commons-io-version>
-    <commons-lang-version>3.14.0</commons-lang-version>
+    <commons-lang-version>3.15.0</commons-lang-version>
     <commons-text-version>1.12.0</commons-text-version>
-    <commons-codec-version>1.16.1</commons-codec-version>
+    <commons-codec-version>1.17.0</commons-codec-version> <!-- can't update to 1.17.1 because of md5 requiring a non-empty salt prefix -->
     <commons-fileupload>1.5</commons-fileupload>
-    <commons-csv-version>1.10.0</commons-csv-version>
-    <jgit-version>6.9.0.202403050737-r</jgit-version>
-    <spring-version>5.3.34</spring-version>
-    <spring-security-version>5.8.12</spring-security-version>
+    <commons-csv-version>1.11.0</commons-csv-version>
+    <jgit-version>6.10.0.202406032230-r</jgit-version>
+    <spring-version>5.3.37</spring-version>
+    <spring-security-version>5.8.13</spring-security-version>
     <cglib-version>3.3.0</cglib-version>
     <asm-version>9.7</asm-version>
     <!-- Level of Java compatibility, here 1.8+ -->
     <bouncycastle-compat>jdk18on</bouncycastle-compat>
     <bouncycastle-version>1.78.1</bouncycastle-version>
     <better-files-version>3.9.2</better-files-version>
-    <sourcecode-version>0.4.1</sourcecode-version>
+    <sourcecode-version>0.4.2</sourcecode-version>
     <quicklens-version>1.9.7</quicklens-version>
     <hikaricp-version>5.1.0</hikaricp-version>
     <nuprocess-version>2.0.6</nuprocess-version>
@@ -459,7 +459,7 @@ limitations under the License.
     <json-smart-version>2.5.1</json-smart-version>
     <scalaj-version>2.4.2</scalaj-version>
     <unboundid-version>7.0.0</unboundid-version>
-    <fastparse-version>3.1.0</fastparse-version>
+    <fastparse-version>3.1.1</fastparse-version>
     <config-version>1.4.3</config-version>
     <caffeine-version>3.1.8</caffeine-version>
     <jgrapht-version>1.5.2</jgrapht-version>
@@ -477,17 +477,18 @@ limitations under the License.
       We declare cats in "test" here, because it is not directly needed
       in any project before rudder.
     -->
-    <specs2-version>4.20.5</specs2-version>
+    <specs2-version>4.20.8</specs2-version>
     <junit-version>4.13.2</junit-version>
-    <cats-version>2.10.0</cats-version>
-    <ip4s-version>3.4.0</ip4s-version>
+    <cats-version>2.12.0</cats-version>
+    <ip4s-version>3.6.0</ip4s-version>
     <doobie-version>1.0.0-RC5</doobie-version>
     <fs2-version>3.10.2</fs2-version>
-    <shapeless-version>2.3.10</shapeless-version>
+    <shapeless-version>2.3.12</shapeless-version>
     <cats-effect-version>3.5.4</cats-effect-version>
     <dev-zio-version>2.0.22</dev-zio-version>
     <zio-cats-version>23.1.0.2</zio-cats-version> <!-- gives fs2 3.10.2, but doobie 1.0.0-RC5 is in 3.9.3 -->
-    <zio-json-version>0.6.2</zio-json-version>
+    <zio-json-version>0.7.1</zio-json-version>
+    <enumeratum-version>1.7.4</enumeratum-version>
 
     <!--
       Hack to make scalac jvm parameters like RAM configurable.
@@ -858,7 +859,7 @@ limitations under the License.
     <dependency>
       <groupId>com.beachape</groupId>
       <artifactId>enumeratum_${scala-binary-version}</artifactId>
-      <version>1.7.3</version>
+      <version>${enumeratum-version}</version>
     </dependency>
     <!-- joda-time is used in all projects -->
     <dependency>
