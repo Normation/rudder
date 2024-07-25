@@ -1000,7 +1000,7 @@ response:
                 }
               ]
             },
-            "nodeIds":[ "node1", "node2" ],
+            "nodeIds":[ "node1", "node1-pending", "node2", "node2-pending" ],
             "dynamic":true,
             "enabled":false,
             "groupClass":[
@@ -1066,7 +1066,9 @@ response:
             },
             "nodeIds":[
               "node1",
-              "node2"
+              "node1-pending",
+              "node2",
+              "node2-pending"
             ],
             "dynamic":true,
             "enabled":false,
@@ -1132,7 +1134,9 @@ response:
             },
             "nodeIds":[
               "node1",
-              "node2"
+              "node1-pending",
+              "node2",
+              "node2-pending"
             ],
             "dynamic":true,
             "enabled":false,
@@ -1193,7 +1197,9 @@ response:
             },
             "nodeIds":[
               "node1",
-              "node2"
+              "node1-pending",
+              "node2",
+              "node2-pending"
             ],
             "dynamic":true,
             "enabled":false,
@@ -1254,7 +1260,9 @@ response:
             },
             "nodeIds":[
               "node1",
-              "node2"
+              "node1-pending",
+              "node2",
+              "node2-pending"
             ],
             "dynamic":true,
             "enabled":false,
