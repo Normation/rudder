@@ -1,24 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use std::{collections::HashMap, fmt, str::FromStr};
+use std::collections::HashMap;
 
 /// Implementation of Linux package manager interactions.
 ///
-/// Used both for campaigns and simple package promises.
 use anyhow::{bail, Result};
-use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "apt")]
+use crate::package_manager::apt::AptPackageManager;
 use crate::{
     output::ResultOutput,
-    package_manager::{
-        apt::AptPackageManager, dpkg::DpkgPackageManager, rpm::RpmPackageManager,
-        yum::YumPackageManager, zypper::ZypperPackageManager,
-    },
+    package_manager::{yum::YumPackageManager, zypper::ZypperPackageManager},
 };
+use std::{process::Command, str::FromStr};
 
+#[cfg(feature = "apt")]
 mod apt;
-mod dpkg;
 mod rpm;
 mod yum;
 mod zypper;
@@ -39,6 +38,10 @@ pub(crate) struct PackageInfo {
 }
 
 impl PackageList {
+    pub fn new(list: HashMap<PackageId, PackageInfo>) -> Self {
+        Self { inner: list }
+    }
+
     pub fn diff(&self, new: Self) -> Vec<PackageDiff> {
         // FIXME: check package managers
         let mut changes = vec![];
@@ -107,9 +110,21 @@ pub enum PackageAction {
 pub struct PackageSpec {
     name: String,
     // None means any
+    #[serde(skip_serializing_if = "Option::is_none")]
     version: Option<String>,
     // None means any
+    #[serde(skip_serializing_if = "Option::is_none")]
     architecture: Option<String>,
+}
+
+impl PackageSpec {
+    pub fn new(name: String, version: Option<String>, architecture: Option<String>) -> Self {
+        Self {
+            name,
+            version,
+            architecture,
+        }
+    }
 }
 
 /// We consider packages with the same name but different arch as different packages.
@@ -131,24 +146,57 @@ impl PackageId {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum PackageManager {
+    #[serde(alias = "dnf")]
+    #[default]
     Yum,
+    #[cfg(feature = "apt")]
     Apt,
     Zypper,
     Rpm,
-    Dpkg,
+}
+
+impl FromStr for PackageManager {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        Ok(match s {
+            "yum" => PackageManager::Yum,
+            "dnf" => PackageManager::Yum,
+            #[cfg(feature = "apt")]
+            "apt" => PackageManager::Apt,
+            "zypper" => PackageManager::Zypper,
+            "rpm" => PackageManager::Rpm,
+            _ => bail!("Unknown package manager: {}", s),
+        })
+    }
 }
 
 impl PackageManager {
     pub fn get(self) -> Result<Box<dyn LinuxPackageManager>> {
         Ok(match self {
             PackageManager::Yum => Box::new(YumPackageManager::new()),
+            #[cfg(feature = "apt")]
             PackageManager::Apt => Box::new(AptPackageManager::new()?),
             PackageManager::Zypper => Box::new(ZypperPackageManager::new()),
             _ => bail!("This package manager does not provide patch management features"),
         })
+    }
+
+    // Helper function for parsing one service name by line in a command's stdout.
+    fn parse_one_by_line(mut c: Command) -> Result<Vec<String>> {
+        let output = c.output()?;
+
+        if !output.status.success() {
+            let e = String::from_utf8_lossy(&output.stderr);
+            bail!("Command failed: {:?}", e);
+        } else {
+            let o = String::from_utf8_lossy(&output.stdout);
+            // One service name per line
+            Ok(o.lines().map(|s| s.trim().to_string()).collect())
+        }
     }
 }
 
@@ -157,16 +205,16 @@ pub trait LinuxPackageManager {
     /// List installed packages
     ///
     /// It doesn't use a cache and queries the package manager directly.
-    fn list_installed(&self) -> Result<PackageList>;
+    fn list_installed(&mut self) -> Result<PackageList>;
 
     /// Apply all available upgrades
-    fn full_upgrade(&self) -> ResultOutput<()>;
+    fn full_upgrade(&mut self) -> ResultOutput<()>;
 
     /// Apply all security upgrades
-    fn security_upgrade(&self) -> ResultOutput<()>;
+    fn security_upgrade(&mut self) -> ResultOutput<()>;
 
     /// Upgrade specific packages
-    fn upgrade(&self, packages: Vec<PackageSpec>) -> ResultOutput<()>;
+    fn upgrade(&mut self, packages: Vec<PackageSpec>) -> ResultOutput<()>;
 
     /// Is a reboot pending?
     fn reboot_pending(&self) -> Result<bool>;

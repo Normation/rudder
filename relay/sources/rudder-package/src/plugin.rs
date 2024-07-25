@@ -11,8 +11,7 @@ use crate::{
     archive::{self, PackageScript, PackageScriptArg},
     cmd::CmdOutput,
     dependency::Dependencies,
-    versions::{self, RudderVersion},
-    PACKAGES_FOLDER,
+    versions, PACKAGES_FOLDER,
 };
 
 pub fn long_names(l: Vec<String>) -> Vec<String> {
@@ -87,10 +86,6 @@ Build-commit: {}",
 }
 
 impl Metadata {
-    pub fn is_compatible(&self, webapp_version: &RudderVersion) -> bool {
-        webapp_version.is_compatible(&self.version)
-    }
-
     pub fn is_webapp(&self) -> bool {
         !self.jar_files.is_empty()
     }

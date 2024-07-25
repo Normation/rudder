@@ -18,7 +18,7 @@ license = "GPL-3.0-or-later"
 repository = "https://github.com/Normation/rudder"
 
 [profile.dev]
-# Disabling debug info speeds up builds a bunch,
+# Disabling debug information speeds up builds a bunch,
 # and we don't rely on it for debugging that much.
 debug = 0
 

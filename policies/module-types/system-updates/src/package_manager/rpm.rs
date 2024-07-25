@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use std::{collections::HashMap, env, process::Command};
+use std::{collections::HashMap, process::Command};
 
 use anyhow::{Context, Result};
 
-use crate::package_manager::{
-    PackageDiff, PackageId, PackageInfo, PackageList, PackageManager, PackageSpec,
-};
+use crate::package_manager::{PackageId, PackageInfo, PackageList, PackageManager};
 
 pub struct RpmPackageManager {}
 
@@ -53,7 +51,7 @@ impl RpmPackageManager {
             packages.insert(p, i);
         }
 
-        Ok(PackageList { inner: packages })
+        Ok(PackageList::new(packages))
     }
 }
 
