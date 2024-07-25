@@ -1,31 +1,30 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-#![allow(dead_code)]
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-
 mod campaign;
 mod db;
 mod hooks;
 mod output;
 mod package_manager;
 mod scheduler;
+mod state;
 mod system;
 
 use crate::{campaign::check_update, package_manager::PackageManager};
-use anyhow::Context;
-use chrono::{DateTime, Duration, RoundingError::DurationExceedsTimestamp, Utc};
+use anyhow::{bail, Context};
+use chrono::{DateTime, Duration, Utc};
+use gumdrop::Options;
 use package_manager::PackageSpec;
 use rudder_module_type::cfengine::CFENGINE_MODE_ARG;
 use rudder_module_type::{
-    parameters::Parameters, run, CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome,
-    PolicyMode, ProtocolResult, ValidateResult,
+    parameters::Parameters, run, CheckApplyResult, ModuleType0, ModuleTypeMetadata, PolicyMode,
+    ValidateResult,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::process::exit;
 use std::{env, fs, path::PathBuf};
+
+const MODULE_NAME: &str = env!("CARGO_PKG_NAME");
 
 // Same as the python implementation
 pub const MODULE_DIR: &str = "/var/rudder/system-update";
@@ -58,7 +57,7 @@ pub struct PackageParameters {
     #[serde(default)]
     campaign_type: CampaignType,
     /// Rely on the agent to detect the OS and chose the right package manager.
-    /// Avoid multiplying the amount of environment detection sources.
+    /// Avoid multiplying the number of environment detection sources.
     package_manager: PackageManager,
     event_id: String,
     campaign_name: String,
@@ -81,22 +80,28 @@ impl ModuleType0 for SystemUpdate {
             .documentation(docs)
     }
 
-    fn init(&mut self) -> ProtocolResult {
-        // FIXME: In the lib?
-        env::set_var("LC_ALL", "C");
-        ProtocolResult::Success
-    }
-
     fn validate(&self, parameters: &Parameters) -> ValidateResult {
         // Parse as parameter types
-        let _parameters: PackageParameters =
+        let p_parameters: PackageParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))
                 .context("Parsing module parameters")?;
+        let i_am_root = parameters.node_id == "root";
+        if i_am_root && p_parameters.campaign_type == CampaignType::System {
+            bail!("System campaign are not allowed on the Rudder root server, aborting.");
+        }
+        if p_parameters.campaign_type == CampaignType::Software
+            && p_parameters.package_list.is_empty()
+        {
+            bail!("Software update without a package list. This is inconsistent, aborting.");
+        }
         Ok(())
     }
 
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
-        //assert!(self.validate(parameters).is_ok());
+        assert!(self.validate(parameters).is_ok());
+        if mode == PolicyMode::Audit {
+            bail!("{} does not support audit mode", MODULE_NAME);
+        }
         let package_parameters: PackageParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))
                 .context("Parsing module parameters")?;
@@ -110,18 +115,67 @@ impl ModuleType0 for SystemUpdate {
     }
 }
 
+#[derive(Debug, Options)]
+struct CliOptions {
+    #[options(help = "print help message")]
+    help: bool,
+    #[options(help = "be verbose")]
+    verbose: bool,
+    #[options(command)]
+    command: Option<Command>,
+}
+
+#[derive(Debug, Options)]
+enum Command {
+    #[options(help = "show help for a command")]
+    Help(HelpOpts),
+    #[options(help = "make stuff")]
+    Make(MakeOpts),
+    #[options(help = "install stuff")]
+    Install(InstallOpts),
+}
+
+// Options accepted for the `help` command
+#[derive(Debug, Options)]
+struct HelpOpts {
+    #[options(free)]
+    free: Vec<String>,
+}
+
+// Options accepted for the `make` command
+#[derive(Debug, Options)]
+struct MakeOpts {
+    #[options(free)]
+    free: Vec<String>,
+    #[options(help = "number of jobs", meta = "N")]
+    jobs: Option<u32>,
+}
+
+// Options accepted for the `install` command
+#[derive(Debug, Options)]
+struct InstallOpts {
+    #[options(help = "target directory")]
+    dir: Option<String>,
+}
+
 // Start runner
 
 fn main() -> Result<(), anyhow::Error> {
+    env::set_var("LC_ALL", "C");
     let mut package_promise_type = SystemUpdate {};
 
     let args: Vec<String> = env::args().collect();
     dbg!(&args);
 
-    // Run the promise executor
     if args.contains(&CFENGINE_MODE_ARG.to_string()) {
+        // Run the promise executor.
+        // Don't parse the arguments, the runner has its own CLI.
         run(package_promise_type)
     } else {
+        let opts = CliOptions::parse_args_default_or_exit();
+
+        println!("{:#?}", opts);
+
         let _ = fs::remove_file("/tmp/system-updates.sqlite");
         package_promise_type.check_apply(
             PolicyMode::Enforce,
@@ -130,7 +184,7 @@ fn main() -> Result<(), anyhow::Error> {
                 serde_json::json!({
                     "campaign_type": "system",
                     "campaign_name": "My campaign",
-                    "package_manager": "apt",
+                    "package_manager": "yum",
                     "event_id": "event_id",
                     "reboot_type": "as_needed",
                     "start": "2024-01-01T00:00:00Z",

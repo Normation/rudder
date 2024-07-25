@@ -1,24 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use std::{collections::HashMap, fmt, str::FromStr};
+use std::collections::HashMap;
 
 /// Implementation of Linux package manager interactions.
 ///
-/// Used both for campaigns and simple package promises.
 use anyhow::{bail, Result};
-use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "apt")]
+use crate::package_manager::apt::AptPackageManager;
 use crate::{
     output::ResultOutput,
-    package_manager::{
-        apt::AptPackageManager, dpkg::DpkgPackageManager, rpm::RpmPackageManager,
-        yum::YumPackageManager, zypper::ZypperPackageManager,
-    },
+    package_manager::{yum::YumPackageManager, zypper::ZypperPackageManager},
 };
 
+#[cfg(feature = "apt")]
 mod apt;
-mod dpkg;
 mod rpm;
 mod yum;
 mod zypper;
@@ -39,6 +37,10 @@ pub(crate) struct PackageInfo {
 }
 
 impl PackageList {
+    pub fn new(list: HashMap<PackageId, PackageInfo>) -> Self {
+        Self { inner: list }
+    }
+
     pub fn diff(&self, new: Self) -> Vec<PackageDiff> {
         // FIXME: check package managers
         let mut changes = vec![];
@@ -135,16 +137,17 @@ impl PackageId {
 #[serde(rename_all = "lowercase")]
 pub enum PackageManager {
     Yum,
+    #[cfg(feature = "apt")]
     Apt,
     Zypper,
     Rpm,
-    Dpkg,
 }
 
 impl PackageManager {
     pub fn get(self) -> Result<Box<dyn LinuxPackageManager>> {
         Ok(match self {
             PackageManager::Yum => Box::new(YumPackageManager::new()),
+            #[cfg(feature = "apt")]
             PackageManager::Apt => Box::new(AptPackageManager::new()?),
             PackageManager::Zypper => Box::new(ZypperPackageManager::new()),
             _ => bail!("This package manager does not provide patch management features"),
@@ -157,16 +160,16 @@ pub trait LinuxPackageManager {
     /// List installed packages
     ///
     /// It doesn't use a cache and queries the package manager directly.
-    fn list_installed(&self) -> Result<PackageList>;
+    fn list_installed(&mut self) -> Result<PackageList>;
 
     /// Apply all available upgrades
-    fn full_upgrade(&self) -> ResultOutput<()>;
+    fn full_upgrade(&mut self) -> ResultOutput<()>;
 
     /// Apply all security upgrades
-    fn security_upgrade(&self) -> ResultOutput<()>;
+    fn security_upgrade(&mut self) -> ResultOutput<()>;
 
     /// Upgrade specific packages
-    fn upgrade(&self, packages: Vec<PackageSpec>) -> ResultOutput<()>;
+    fn upgrade(&mut self, packages: Vec<PackageSpec>) -> ResultOutput<()>;
 
     /// Is a reboot pending?
     fn reboot_pending(&self) -> Result<bool>;

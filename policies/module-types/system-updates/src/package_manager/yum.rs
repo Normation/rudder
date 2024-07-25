@@ -7,11 +7,13 @@ use anyhow::{bail, Result};
 
 use crate::{
     output::ResultOutput,
-    package_manager::{
-        apt::AptPackageManager, rpm::RpmPackageManager, LinuxPackageManager, PackageDiff,
-        PackageList, PackageSpec,
-    },
+    package_manager::{rpm::RpmPackageManager, LinuxPackageManager, PackageList, PackageSpec},
 };
+
+/// We need to be compatible with:
+///
+/// * RHEL 7+
+/// * Amazon Linux 2+
 
 pub const NEED_RESTART_PATH: &str = "/usr/bin/needs-restarting";
 
@@ -41,11 +43,11 @@ impl YumPackageManager {
 }
 
 impl LinuxPackageManager for YumPackageManager {
-    fn list_installed(&self) -> Result<PackageList> {
+    fn list_installed(&mut self) -> Result<PackageList> {
         self.rpm.installed()
     }
 
-    fn full_upgrade(&self) -> ResultOutput<()> {
+    fn full_upgrade(&mut self) -> ResultOutput<()> {
         // https://serverfault.com/a/1075175
         let mut res = ResultOutput::new(Ok(()));
         let mut c = Command::new("yum");
@@ -55,7 +57,7 @@ impl LinuxPackageManager for YumPackageManager {
     }
 
     /// `yum install yum-plugin-security` is only needed on RHEL < 7, which are not supported.
-    fn security_upgrade(&self) -> ResultOutput<()> {
+    fn security_upgrade(&mut self) -> ResultOutput<()> {
         // See https://access.redhat.com/solutions/10021
         let mut res = ResultOutput::new(Ok(()));
         let mut c = Command::new("yum");
@@ -64,7 +66,7 @@ impl LinuxPackageManager for YumPackageManager {
         res
     }
 
-    fn upgrade(&self, packages: Vec<PackageSpec>) -> ResultOutput<()> {
+    fn upgrade(&mut self, packages: Vec<PackageSpec>) -> ResultOutput<()> {
         let mut res = ResultOutput::new(Ok(()));
         let mut c = Command::new("yum");
         c.arg("--assumeyes")

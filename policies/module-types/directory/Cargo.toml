@@ -1,5 +1,5 @@
 [package]
-name = "rudder-module-type-directory"
+name = "rudder-module-directory"
 version = "0.0.0-dev"
 description = "Directory management"
 authors.workspace = true
