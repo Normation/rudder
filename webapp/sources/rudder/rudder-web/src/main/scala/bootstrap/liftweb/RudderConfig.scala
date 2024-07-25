@@ -1991,7 +1991,7 @@ object RudderConfigInit {
         // deprecated: we use fact repo now
 //      :: new PostCommitLogger(ldifInventoryLogger)
         new TriggerInventoryScorePostCommit[Unit](scoreServiceManager) ::
-        new PostCommitInventoryHooks[Unit](HOOKS_D, HOOKS_IGNORE_SUFFIXES)
+        new PostCommitInventoryHooks[Unit](HOOKS_D, HOOKS_IGNORE_SUFFIXES, nodeFactRepository)
         // removed: this is done as a callback of CoreNodeFactRepos
         // :: new TriggerPolicyGenerationPostCommit[Unit](asyncDeploymentAgent, uuidGen)
         :: Nil
