@@ -58,6 +58,7 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HooksLogger
+import com.normation.rudder.hooks.PureHooksLogger
 import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
@@ -138,14 +139,11 @@ class PostNodeAcceptanceHookScripts(
   override def name: String = "new-node-post-accept-hooks"
 
   override def run(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Unit] = {
-    val systemEnv = {
-      import scala.jdk.CollectionConverters.*
-      HookEnvPairs.build(System.getenv.asScala.toSeq*)
-    }
+    import scala.jdk.CollectionConverters.*
 
-    HooksLogger.debug(s"Executing post-node-acceptance hooks for node with id '${nodeId.value}'")
-    for {
-      postHooksTime0 <- currentTimeMillis
+    HooksLogger.debug(s"Executing node-post-acceptance hooks for node with id '${nodeId.value}'")
+    (for {
+      systemEnv      <- IOResult.attempt(java.lang.System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq*))
       nodeFact       <- nodeFactRepository
                           .get(nodeId)
                           .notOptional(
@@ -159,13 +157,12 @@ class PostNodeAcceptanceHookScripts(
                           ("RUDDER_AGENT_TYPE", nodeFact.rudderAgent.agentType.id)
                         )
       postHooks      <- RunHooks.getHooksPure(HOOKS_D + "/node-post-acceptance", HOOKS_IGNORE_SUFFIXES)
-      runPostHook    <- RunHooks.asyncRun(postHooks, hookEnv, systemEnv)
+      postHooksTime0 <- currentTimeMillis
+      runPostHook    <- RunHooks.asyncRun(postHooks, hookEnv, systemEnv, 1.minutes)
       postHooksTime1 <- currentTimeMillis
       timePostHooks   = (postHooksTime1 - postHooksTime0)
-      _              <- NodeLoggerPure.PendingNode.debug(s"Node-post-acceptance scripts hooks ran in ${timePostHooks} ms")
-    } yield {
-      ()
-    }
+      _              <- PureHooksLogger.trace(s"node-post-acceptance scripts hooks ran in $timePostHooks ms")
+    } yield ()).catchAll(err => PureHooksLogger.error(err.fullMsg))
   }
 }
 
@@ -185,7 +182,7 @@ class NewNodeManagerHooksImpl(
     .runNow
 
   override def afterNodeAcceptedAsync(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Unit] = {
-    codeHooks.get.flatMap(hooks => ZIO.foreach(hooks)(h => IOResult.attempt(h.run(nodeId)))).unit
+    codeHooks.get.flatMap(hooks => ZIO.foreach(hooks)(h => h.run(nodeId))).unit
   }
 
   def appendPostAcceptCodeHook(hook: NewNodePostAcceptHooks): IOResult[Unit] = {
