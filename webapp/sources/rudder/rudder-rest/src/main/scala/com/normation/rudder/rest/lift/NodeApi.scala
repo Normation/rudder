@@ -429,7 +429,7 @@ class NodeApi(
           nodeApiService.changeNodeStatus(List(NodeId(id)), status.status.transformInto[NodeStatusAction], Some(req.remoteAddr))
       } yield {
         res
-      }).chainError("Error when changing Node status").toLiftResponseOne(params, schema, _ => Some(id))
+      }).chainError("Error when changing Node status").toLiftResponseList(params, schema)
     }
   }
 
