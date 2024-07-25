@@ -12,14 +12,11 @@ RUN ./rust.sh
 
 ENV RUSTC_WRAPPER="sccache"
 
-RUN apt-get update && apt-get install -y rsync msitools
-
-# we need cf-promises
-# the easiest way is to install an agent
-RUN wget https://repository.rudder.io/tools/rudder-setup
+RUN <<EOF
+set -e
+wget https://github.com/PowerShell/PowerShell/releases/download/v7.4.0/powershell_7.4.0-1.deb_amd64.deb
+apt-get install ./powershell_7.4.0-1.deb_amd64.deb
+apt-get update && apt-get install -y rsync msitools
 # ignore postinst failures
-RUN sh rudder-setup setup-agent $RUDDER_VER || true
-
-# and PowerShell!
-RUN wget https://github.com/PowerShell/PowerShell/releases/download/v7.4.0/powershell_7.4.0-1.deb_amd64.deb
-RUN apt-get install ./powershell_7.4.0-1.deb_amd64.deb
+curl https://repository.rudder.io/tools/rudder-setup | sed 's/rudder agent \(.*\)/rudder agent \1 \| true/g' | bash -s setup-agent $RUDDER_VER
+EOF
