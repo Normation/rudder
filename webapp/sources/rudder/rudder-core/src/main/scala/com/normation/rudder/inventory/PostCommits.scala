@@ -70,24 +70,28 @@ import zio.syntax.*
  */
 class PostCommitInventoryHooks[A](
     HOOKS_D:               String,
-    HOOKS_IGNORE_SUFFIXES: List[String]
+    HOOKS_IGNORE_SUFFIXES: List[String],
+    nodeFactRepo:          NodeFactRepository
 ) extends PostCommit[A] {
+  import QueryContext.todoQC
   import scala.jdk.CollectionConverters.*
-
   override val name = "post_commit_inventory:run_node-inventory-received_hooks"
 
   override def apply(inventory: Inventory, records: A): IOResult[A] = {
     val node  = inventory.node.main
     val hooks = (for {
       systemEnv <- IOResult.attempt(java.lang.System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq*))
-      hooks     <- if (node.status == PendingInventory) {
-                     RunHooks.getHooksPure(HOOKS_D + "/node-inventory-received-pending", HOOKS_IGNORE_SUFFIXES)
-                   } else if (node.status == AcceptedInventory) {
-                     RunHooks.getHooksPure(HOOKS_D + "/node-inventory-received-accepted", HOOKS_IGNORE_SUFFIXES)
-                   } else {
-                     Inconsistency(
-                       s"node-inventory-received-* hooks are not supported for node '${node.hostname}' [${node.id.value}] wiht status '${node.status.name}'"
-                     ).fail
+      hooks     <- nodeFactRepo.getStatus(node.id).flatMap { s =>
+                     s match {
+                       case PendingInventory  =>
+                         RunHooks.getHooksPure(HOOKS_D + "/node-inventory-received-pending", HOOKS_IGNORE_SUFFIXES)
+                       case AcceptedInventory =>
+                         RunHooks.getHooksPure(HOOKS_D + "/node-inventory-received-accepted", HOOKS_IGNORE_SUFFIXES)
+                       case s                 =>
+                         Inconsistency(
+                           s"node-inventory-received-* hooks are not supported for node '${node.hostname}' [${node.id.value}] with status '${s.name}'"
+                         ).fail
+                     }
                    }
       _         <- for {
                      timeHooks0 <- currentTimeMillis
