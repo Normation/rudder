@@ -73,6 +73,7 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeModeConfig
@@ -228,9 +229,9 @@ class RestTestSetUp {
   val mockTechniques: MockTechniques = MockTechniques(mockGitRepo)
   val mockDirectives                                 = new MockDirectives(mockTechniques)
   val mockRules                                      = new MockRules()
-  val mockNodes                                      = new MockNodes()
   val mockParameters                                 = new MockGlobalParam()
-  val mockNodeGroups                                 = new MockNodeGroups(mockNodes)
+  val mockNodes                                      = new MockNodes()
+  val mockNodeGroups                                 = new MockNodeGroups(mockNodes, mockParameters)
   val mockLdapQueryParsing                           = new MockLdapQueryParsing(mockGitRepo, mockNodeGroups)
   val uuidGen                                        = new StringUuidGeneratorImpl()
   val mockConfigRepo                                 = new MockConfigRepo(mockTechniques, mockDirectives, mockRules, mockNodeGroups, mockLdapQueryParsing)
@@ -324,17 +325,17 @@ class RestTestSetUp {
     override def writeCertificatesPem(allNodeInfos: MapView[NodeId, CoreNodeFact]): Unit = ???
     override def triggerNodeGroupUpdate(): Box[Unit] = ???
     override def beforeDeploymentSync(generationTime: DateTime): Box[Unit] = ???
-    override def HOOKS_D:                     String                                  = ???
-    override def HOOKS_IGNORE_SUFFIXES:       List[String]                            = ???
-    override def UPDATED_NODE_IDS_PATH:       String                                  = ???
-    override def GENERATION_FAILURE_MSG_PATH: String                                  = ???
+    override def HOOKS_D:                     String                                              = ???
+    override def HOOKS_IGNORE_SUFFIXES:       List[String]                                        = ???
+    override def UPDATED_NODE_IDS_PATH:       String                                              = ???
+    override def GENERATION_FAILURE_MSG_PATH: String                                              = ???
     override def getAppliedRuleIds(
         rules:        Seq[Rule],
         groupLib:     FullNodeGroupCategory,
         directiveLib: FullActiveTechniqueCategory,
         allNodeInfos: MapView[NodeId, Boolean]
     ): Set[RuleId] = ???
-    override def findDependantRules():        Box[Seq[Rule]]                          = ???
+    override def findDependantRules():        Box[Seq[Rule]]                                      = ???
     override def buildRuleVals(
         activesRules: Set[RuleId],
         rules:        Seq[Rule],
@@ -342,16 +343,20 @@ class RestTestSetUp {
         groupLib:     FullNodeGroupCategory,
         allNodeInfos: MapView[NodeId, Boolean]
     ): Box[Seq[RuleVal]] = ???
+    override def getNodeProperties:           IOResult[Map[NodeId, Chunk[NodePropertyHierarchy]]] = {
+      ???
+    }
     override def getNodeContexts(
         nodeIds:              Set[NodeId],
         allNodeInfos:         MapView[NodeId, CoreNodeFact],
+        inheritedProps:       Map[NodeId, Chunk[NodePropertyHierarchy]],
         allGroups:            FullNodeGroupCategory,
         globalParameters:     List[GlobalParameter],
         globalAgentRun:       AgentRunInterval,
         globalComplianceMode: ComplianceMode,
         globalPolicyMode:     GlobalPolicyMode
     ): Box[NodesContextResult] = ???
-    override def getFilteredTechnique():      Map[NodeId, List[TechniqueName]]        = ???
+    override def getFilteredTechnique():      Map[NodeId, List[TechniqueName]]                    = ???
     override def buildNodeConfigurations(
         activeNodeIds:             Set[NodeId],
         ruleVals:                  Seq[RuleVal],
@@ -365,7 +370,7 @@ class RestTestSetUp {
         generationContinueOnError: Boolean
     ): Box[NodeConfigurations] = ???
     override def forgetOtherNodeConfigurationState(keep: Set[NodeId]): Box[Set[NodeId]] = ???
-    override def getNodeConfigurationHash():  Box[Map[NodeId, NodeConfigurationHash]] = ???
+    override def getNodeConfigurationHash():  Box[Map[NodeId, NodeConfigurationHash]]             = ???
     override def getNodesConfigVersion(
         allNodeConfigs: Map[NodeId, NodeConfiguration],
         hashes:         Map[NodeId, NodeConfigurationHash],
@@ -589,7 +594,15 @@ class RestTestSetUp {
   }
 
   val fakeUpdateDynamicGroups: UpdateDynamicGroups = {
-    new UpdateDynamicGroups(dynGroupService, dynGroupUpdaterService, asyncDeploymentAgent, uuidGen, 1, () => Full("1")) {
+    new UpdateDynamicGroups(
+      dynGroupService,
+      dynGroupUpdaterService,
+      mockNodeGroups.propService,
+      asyncDeploymentAgent,
+      uuidGen,
+      1,
+      () => Full("1")
+    ) {
       // for some reason known only by Scala inheritance rules, the underlying LAUpdateDyngroup is null, so we need to override that.
       override lazy val laUpdateDyngroupManager = new LAUpdateDyngroupManager() {
         override protected def messageHandler: PartialFunction[GroupUpdateMessage, Unit] = { case _ => () }
@@ -749,8 +762,7 @@ class RestTestSetUp {
   class nodeApiService extends NodeApiService(
         null,
         mockNodes.nodeFactRepo,
-        mockNodeGroups.groupsRepo,
-        mockParameters.paramsRepo,
+        mockNodes.propRepo,
         roReportsExecutionRepository,
         null,
         uuidGen,
@@ -760,7 +772,6 @@ class RestTestSetUp {
         mockNodes.newNodeManager,
         mockNodes.removeNodeService,
         restExtractorService,
-        restDataSerializer,
         mockCompliance.reportingService(Map.empty),
         mockNodes.queryProcessor,
         null,
@@ -838,16 +849,15 @@ class RestTestSetUp {
     mockNodes.nodeFactRepo,
     mockNodeGroups.groupsRepo,
     mockNodeGroups.groupsRepo,
-    mockParameters.paramsRepo,
+    mockNodes.propRepo,
     uuidGen,
     asyncDeploymentAgent,
     workflowLevelService,
-    restExtractorService,
     mockLdapQueryParsing.queryParser,
     mockNodes.queryProcessor,
     restDataSerializer
   )
-  val groupApiInheritedProperties = new GroupApiInheritedProperties(mockNodeGroups.groupsRepo, mockParameters.paramsRepo)
+  val groupApiInheritedProperties = new GroupApiInheritedProperties(mockNodes.propRepo)
   val ncfTechniqueWriter:  TechniqueWriter       = null
   val ncfTechniqueReader:  EditorTechniqueReader = null
   val techniqueRepository: TechniqueRepository   = null
@@ -925,11 +935,7 @@ class RestTestSetUp {
       restDataSerializer,
       nodeApiService,
       userPropertyService,
-      new NodeApiInheritedProperties(
-        mockNodes.nodeFactRepo,
-        mockNodeGroups.groupsRepo,
-        mockParameters.paramsRepo
-      ),
+      new NodeApiInheritedProperties(mockNodes.propRepo),
       uuidGen,
       DeleteMode.Erase
     ),

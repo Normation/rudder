@@ -48,13 +48,16 @@ import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.properties.NodePropertiesService
 import com.normation.rudder.services.queries.*
 import com.normation.rudder.utils.ParseMaxParallelism
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Utils.DateToIsoString
+import com.normation.zio.*
 import net.liftweb.actor.*
 import net.liftweb.common.*
 import org.joda.time.*
+
 //Message to send to the updater manager to start a new update of all dynamic groups or get results
 sealed trait GroupUpdateMessage
 
@@ -92,12 +95,12 @@ final case class StartDynamicUpdate(id: Long, modId: ModificationId, started: Da
  * - else, use the given value.
  */
 class UpdateDynamicGroups(
-    dynGroupService:        DynGroupService,
-    dynGroupUpdaterService: DynGroupUpdaterService,
-    asyncDeploymentAgent:   AsyncDeploymentActor,
-    uuidGen:                StringUuidGenerator,
-    updateInterval:         Int, // in minutes
-
+    dynGroupService:               DynGroupService,
+    dynGroupUpdaterService:        DynGroupUpdaterService,
+    propertiesService:             NodePropertiesService,
+    asyncDeploymentAgent:          AsyncDeploymentActor,
+    uuidGen:                       StringUuidGenerator,
+    updateInterval:                Int, // in minutes
     getComputeDynGroupParallelism: () => Box[String]
 ) {
 
@@ -308,57 +311,56 @@ class UpdateDynamicGroups(
               (s: String) => DynamicGroupLoggerPure.logEffect.warn(s)
             )
 
-            DynamicGroupLoggerPure.logEffect.debug(
-              s"Starting computation of dynamic groups with max ${maxParallelism} threads for computing groups without dependencies"
-            )
-            val initialTime = System.currentTimeMillis
-            val result      = (for {
-              results <- dynGroupIds.accumulateParN(maxParallelism) {
-                           case dynGroupId =>
-                             dynGroupUpdaterService
-                               .update(dynGroupId)(
-                                 ChangeContext(
-                                   modId,
-                                   RudderEventActor,
-                                   new DateTime(),
-                                   Some("Update group due to batch update of dynamic groups"),
-                                   None,
-                                   QueryContext.systemQC.nodePerms
-                                 )
-                               )
-                               .toIO
-                               .either
-                               .map(x => (dynGroupId, x))
-                         }
-
-              timeComputeNonDependantGroups = (System.currentTimeMillis - initialTime)
-              _                             = DynamicGroupLoggerPure.Timing.logEffect.debug(
+            val result = (for {
+              _                            <-
+                DynamicGroupLoggerPure.debug(
+                  s"Starting computation of dynamic groups with max ${maxParallelism} threads for computing groups without dependencies"
+                )
+              initialTime                  <- currentTimeMillis
+              results                      <- dynGroupIds.accumulateParN(maxParallelism) { dynGroupId =>
+                                                dynGroupUpdaterService
+                                                  .update(dynGroupId)(
+                                                    ChangeContext(
+                                                      modId,
+                                                      RudderEventActor,
+                                                      new DateTime(),
+                                                      Some("Update group due to batch update of dynamic groups"),
+                                                      None,
+                                                      QueryContext.systemQC.nodePerms
+                                                    )
+                                                  )
+                                                  .toIO
+                                                  .either
+                                                  .map(x => (dynGroupId, x))
+                                              }
+              t1                           <- currentTimeMillis
+              timeComputeNonDependantGroups = (t1 - initialTime)
+              _                            <- DynamicGroupLoggerPure.Timing.debug(
                                                 s"Computing dynamic groups without dependencies finished in ${timeComputeNonDependantGroups} ms"
                                               )
-              preComputeDependantGroups     = System.currentTimeMillis
-
-              results2 <- dynGroupsWithDependencyIds.accumulateParN(1) {
-                            case dynGroupId =>
-                              dynGroupUpdaterService
-                                .update(dynGroupId)(
-                                  ChangeContext(
-                                    modId,
-                                    RudderEventActor,
-                                    new DateTime(),
-                                    Some("Update group due to batch update of dynamic groups"),
-                                    None,
-                                    QueryContext.systemQC.nodePerms
-                                  )
-                                )
-                                .toIO
-                                .either
-                                .map(x => (dynGroupId, x))
-                          }
-              _         = {
-                DynamicGroupLoggerPure.Timing.logEffect.debug(
+              preComputeDependantGroups    <- currentTimeMillis
+              results2                     <- dynGroupsWithDependencyIds.accumulateParN(1) { dynGroupId =>
+                                                dynGroupUpdaterService
+                                                  .update(dynGroupId)(
+                                                    ChangeContext(
+                                                      modId,
+                                                      RudderEventActor,
+                                                      new DateTime(),
+                                                      Some("Update group due to batch update of dynamic groups"),
+                                                      None,
+                                                      QueryContext.systemQC.nodePerms
+                                                    )
+                                                  )
+                                                  .toIO
+                                                  .either
+                                                  .map(x => (dynGroupId, x))
+                                              }
+              _                            <-
+                DynamicGroupLoggerPure.Timing.debug(
                   s"Computing dynamic groups with dependencies finished in ${System.currentTimeMillis - preComputeDependantGroups} ms"
                 )
-              }
+              // update all inherited properties with the new group graphe
+              _                            <- propertiesService.updateAll()
             } yield {
               results ++ results2
             }).toBox
