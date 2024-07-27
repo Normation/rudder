@@ -963,10 +963,10 @@ class Boot extends Loggable {
     // release guard for promise generation awaiting end of boot
     RudderConfig.policyGenerationBootGuard.succeed(()).runNow
 
-  }
+    // Run a health check
+    RudderConfig.healthcheckNotificationService.init
 
-  // Run a health check
-  RudderConfig.healthcheckNotificationService.init
+  }
 
   private def addPluginsMenuTo(plugins: List[RudderPluginDef], menus: List[Menu]): List[Menu] = {
     // return the updated siteMap

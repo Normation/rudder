@@ -79,6 +79,7 @@ import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.hooks.Hooks
 import com.normation.rudder.hooks.HooksLogger
 import com.normation.rudder.hooks.RunHooks
+import com.normation.rudder.properties.PropertiesRepository
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.ComplianceMode
@@ -86,7 +87,6 @@ import com.normation.rudder.reports.ComplianceModeService
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.repository.*
-import com.normation.rudder.services.nodes.MergeNodeProperties
 import com.normation.rudder.services.policies.nodeconfig.FileBasedNodeConfigurationHashRepository
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRepository
@@ -312,6 +312,9 @@ trait PromiseGenerationService {
                                                             globalAgentRun       <- getGlobalAgentRun()
                                                             fetch6Time            = System.currentTimeMillis
                                                             _                     = PolicyGenerationLogger.timing.trace(s"Fetched run infos in ${fetch6Time - fetch5Time} ms")
+                                                            mergedProps          <- getNodeProperties.toBox
+                                                            fetch7Time            = System.currentTimeMillis
+                                                            _                     = PolicyGenerationLogger.timing.trace(s"Fetched merged properties ${fetch7Time - fetch6Time} ms")
                                                             scriptEngineEnabled  <-
                                                               getScriptEngineEnabled() ?~! "Could not get if we should use the script engine to evaluate directive parameters"
                                                             globalComplianceMode <- getGlobalComplianceMode()
@@ -358,6 +361,7 @@ trait PromiseGenerationService {
                                                               getNodeContexts(
                                                                 activeNodeIds,
                                                                 nodeFacts,
+                                                                mergedProps,
                                                                 groupLib,
                                                                 allParameters.toList,
                                                                 globalAgentRun,
@@ -563,7 +567,8 @@ trait PromiseGenerationService {
    * - directives library
    * - groups library
    */
-  def getNodeFacts(): Box[MapView[NodeId, CoreNodeFact]]
+  def getNodeFacts():    Box[MapView[NodeId, CoreNodeFact]]
+  def getNodeProperties: IOResult[Map[NodeId, Chunk[NodePropertyHierarchy]]]
   // get full active technique category, checking that:
   // - all ids in parameter are in it,
   // - filtering out other directives (and pruning relevant branches).
@@ -685,6 +690,7 @@ trait PromiseGenerationService {
   def getNodeContexts(
       nodeIds:              Set[NodeId],
       nodeFacts:            MapView[NodeId, CoreNodeFact],
+      inheritedProps:       Map[NodeId, Chunk[NodePropertyHierarchy]],
       allGroups:            FullNodeGroupCategory,
       globalParameters:     List[GlobalParameter],
       globalAgentRun:       AgentRunInterval,
@@ -818,6 +824,7 @@ class PromiseGenerationServiceImpl(
     override val systemVarService:                  SystemVariableService,
     override val nodeConfigurationService:          NodeConfigurationHashRepository,
     override val nodeFactRepository:                NodeFactRepository,
+    override val propertiesRepository:              PropertiesRepository,
     override val confExpectedRepo:                  UpdateExpectedReportsRepository,
     override val roNodeGroupRepository:             RoNodeGroupRepository,
     override val roDirectiveRepository:             RoDirectiveRepository,
@@ -907,17 +914,22 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   def interpolatedValueCompiler:    InterpolatedValueCompiler
   def systemVarService:             SystemVariableService
   def ruleApplicationStatusService: RuleApplicationStatusService
+  def propertiesRepository:         PropertiesRepository
   def getGlobalPolicyMode:          () => Box[GlobalPolicyMode]
 
-  override def findDependantRules():                       Box[Seq[Rule]]                     = roRuleRepo.getAll(true).toBox
-  override def getNodeFacts():                             Box[MapView[NodeId, CoreNodeFact]] = nodeFactRepository.getAll()(QueryContext.systemQC).toBox
-  override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory]   = {
+  override def findDependantRules(): Box[Seq[Rule]]                     = roRuleRepo.getAll(true).toBox
+  override def getNodeFacts():       Box[MapView[NodeId, CoreNodeFact]] = nodeFactRepository.getAll()(QueryContext.systemQC).toBox
+
+  override def getNodeProperties: IOResult[Map[NodeId, Chunk[NodePropertyHierarchy]]] =
+    propertiesRepository.getAllNodeProps()(QueryContext.systemQC)
+
+  override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory] = {
     configurationRepository.getDirectiveLibrary(ids).toBox
   }
-  override def getGroupLibrary():                          Box[FullNodeGroupCategory]         = roNodeGroupRepository.getFullGroupLibrary().toBox
-  override def getAllGlobalParameters:                     Box[Seq[GlobalParameter]]          = parameterService.getAllGlobalParameters()
-  override def getGlobalComplianceMode():                  Box[GlobalComplianceMode]          = complianceModeService.getGlobalComplianceMode.toBox
-  override def getGlobalAgentRun():                        Box[AgentRunInterval]              = agentRunService.getGlobalAgentRun()
+  override def getGroupLibrary():                          Box[FullNodeGroupCategory]       = roNodeGroupRepository.getFullGroupLibrary().toBox
+  override def getAllGlobalParameters:                     Box[Seq[GlobalParameter]]        = parameterService.getAllGlobalParameters()
+  override def getGlobalComplianceMode():                  Box[GlobalComplianceMode]        = complianceModeService.getGlobalComplianceMode.toBox
+  override def getGlobalAgentRun():                        Box[AgentRunInterval]            = agentRunService.getGlobalAgentRun()
   override def getAppliedRuleIds(
       rules:            Seq[Rule],
       groupLib:         FullNodeGroupCategory,
@@ -972,7 +984,7 @@ trait PromiseGeneration_BuildNodeContext {
    * Build interpolation contexts.
    *
    * An interpolation context is a node-dependant
-   * context for resolving ("expdanding", "binding")
+   * context for resolving ("expanding", "binding")
    * interpolation variable in directive values.
    *
    * It's also the place where parameters are looked for
@@ -981,6 +993,7 @@ trait PromiseGeneration_BuildNodeContext {
   def getNodeContexts(
       nodeIds:              Set[NodeId],
       nodeFacts:            MapView[NodeId, CoreNodeFact],
+      inheritedProps:       Map[NodeId, Chunk[NodePropertyHierarchy]],
       allGroups:            FullNodeGroupCategory,
       globalParameters:     List[GlobalParameter],
       globalAgentRun:       AgentRunInterval,
@@ -989,10 +1002,10 @@ trait PromiseGeneration_BuildNodeContext {
   ): Box[NodesContextResult] = {
 
     /*
-     * parameters have to be taken appart:
+     * parameters have to be taken apart:
      *
-     * - they can be overriden by node - not handled here, it will be in the resolution of node
-     *   when implemented. Most likelly, we will have the information in the node info. And
+     * - they can be overridden by node - not handled here, it will be in the resolution of node
+     *   when implemented. Most likely, we will have the information in the node info. And
      *   in that case, we could just use an interpolation variable
      *
      * - they can be plain string => nothing to do
@@ -1047,8 +1060,7 @@ trait PromiseGeneration_BuildNodeContext {
                                    .toBox
             nodeTargets        = allGroups.getTarget(info).map(_._2).toList
             timeMerge          = System.nanoTime
-            mergedProps       <-
-              MergeNodeProperties.forNode(info.toNodeInfo, nodeTargets, nodeParam.map { case (k, v) => (k, v) }.toMap).toBox
+            mergedProps        = inheritedProps.getOrElse(nodeId, Chunk())
             nodeContextBefore <- systemVarService.getSystemVariables(
                                    info,
                                    nodeFacts,

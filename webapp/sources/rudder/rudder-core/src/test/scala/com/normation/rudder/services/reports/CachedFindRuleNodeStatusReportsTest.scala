@@ -40,6 +40,7 @@ package com.normation.rudder.services.reports
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.NodeComplianceExpiration
+import com.normation.rudder.domain.reports.NodeComplianceExpirationMode
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeStatusReport
@@ -189,7 +190,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
    * rule1/dir1 is applied on node1 and node2 and is both here (node1) and skipped (node2)
    */
   "When a value is expired, it is added to compliance repos" >> {
-    val (repo, finder, computer) = newServices(NodeComplianceExpiration.ExpireImmediately)
+    val (repo, finder, computer) = newServices(NodeComplianceExpiration.default)
     val id                       = NodeId("n1")
     finder.reports = nodes.collect { case (n, a, _) if (n._1 == id) => (n._1, a) }.toMap
 
@@ -207,7 +208,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   }
 
   "Cache should return expired compliance but also ask for renew" >> {
-    val (repo, finder, computer) = newServices(NodeComplianceExpiration.ExpireImmediately)
+    val (repo, finder, computer) = newServices(NodeComplianceExpiration.default)
     finder.reports = nodes.map { case (n, a, _) => (n._1, a) }.toMap
 
     // node not in cache, empty, returns nothing
@@ -237,7 +238,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
 
   "When run are expired but we keep compliance, we keep compliance in repo" >> {
     val grace                    = scala.concurrent.duration.Duration("1h")
-    val (repo, finder, computer) = newServices(NodeComplianceExpiration.KeepLast(grace))
+    val (repo, finder, computer) = newServices(NodeComplianceExpiration(NodeComplianceExpirationMode.KeepLast, Some(grace)))
 
     val longExpired = expired.minusMinutes(30)
     val initReport  = nodes.collect {
@@ -265,7 +266,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   }
 
   "Cache should not return ask for renew of up to date components" >> {
-    val (repo, finder, computer) = newServices(NodeComplianceExpiration.ExpireImmediately)
+    val (repo, finder, computer) = newServices(NodeComplianceExpiration.default)
     finder.reports = nodes.map { case (n, _, b) => (n._1, b) }.toMap
 
     // node not in cache, empty, returns nothing

@@ -37,9 +37,11 @@
 
 package com.normation.rudder.properties
 
-import com.normation.errors.IOResult
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.properties.NodePropertyHierarchy
+import com.normation.errors.*
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.repository.RoNodeGroupRepository
+import com.normation.rudder.repository.RoParameterRepository
 import zio.*
 
 /*
@@ -47,52 +49,34 @@ import zio.*
  * of the computation of a property from the node, group and global context.
  */
 
-trait NodePropertiesRepository {
+trait NodePropertiesService {
 
   /*
-   * Get all properties for node with given ID
+   * Update all property hierarchy
    */
-  def getNodeAll(nodeId: NodeId): IOResult[Option[Chunk[NodePropertyHierarchy]]]
-
-  /*
-   * Get a given property for a given node
-   */
-  def getNodeProp(nodeId: NodeId, propName: String): IOResult[Option[NodePropertyHierarchy]]
-
-  /*
-   * Save updated properties for nodes.
-   * The chunk is considered to be all of the node properties, so previous
-   * properties not in the new chunk will be deleted.
-   */
-  def save(props: Map[NodeId, Chunk[NodePropertyHierarchy]]): IOResult[Unit]
-
-  /*
-   * Delete all properties for a node
-   */
-  def deleteNode(nodeId: NodeId): IOResult[Unit]
+  def updateAll(): IOResult[Unit]
 
 }
 
-object InMemoryNodePropertiesRepository {
-  def make(): IOResult[InMemoryNodePropertiesRepository] = {
-    Ref.make(Map.empty[NodeId, Chunk[NodePropertyHierarchy]]).map(c => new InMemoryNodePropertiesRepository(c))
-  }
-}
-
-class InMemoryNodePropertiesRepository(cache: Ref[Map[NodeId, Chunk[NodePropertyHierarchy]]]) extends NodePropertiesRepository {
-  override def getNodeAll(nodeId: NodeId): IOResult[Option[Chunk[NodePropertyHierarchy]]] = {
-    cache.get.map(_.get(nodeId))
-  }
-
-  override def getNodeProp(nodeId: NodeId, propName: String): IOResult[Option[NodePropertyHierarchy]] = {
-    cache.get.map(_.get(nodeId).flatMap(_.find(_.prop.name == propName)))
-  }
-
-  override def save(props: Map[NodeId, Chunk[NodePropertyHierarchy]]): IOResult[Unit] = {
-    cache.set(props)
-  }
-
-  override def deleteNode(nodeId: NodeId): IOResult[Unit] = {
-    cache.update(_.removed(nodeId))
+class NodePropertiesServiceImpl(
+    globalPropsRepo:       RoParameterRepository,
+    roNodeGroupRepository: RoNodeGroupRepository,
+    nodeFactRepository:    NodeFactRepository,
+    propertiesRepository:  PropertiesRepository
+) extends NodePropertiesService {
+  override def updateAll(): IOResult[Unit] = {
+    for {
+      params       <- globalPropsRepo.getAllGlobalParameters().map(_.map(x => (x.name, x)).toMap)
+      groups       <- roNodeGroupRepository.getFullGroupLibrary()
+      nodes        <- nodeFactRepository.getAll()(QueryContext.systemQC).map(_.values)
+      mergedGroups <- ZIO.foreach(groups.allGroups.keys) { gid =>
+                        MergeNodeProperties.forGroup(gid, groups.allGroups, params).toIO.map(p => (gid, p))
+                      }
+      mergedNodes  <- ZIO.foreach(nodes)(n =>
+                        MergeNodeProperties.forNode(n, groups.getTarget(n).values.toList, params).toIO.map(p => (n.id, p))
+                      )
+      _            <- propertiesRepository.saveNodeProps(mergedNodes.toMap)
+      _            <- propertiesRepository.saveGroupProps(mergedGroups.toMap)
+    } yield ()
   }
 }

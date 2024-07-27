@@ -39,7 +39,10 @@ package com.normation.rudder.properties
 
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
 import zio.*
 
 /*
@@ -47,17 +50,21 @@ import zio.*
  * of the computation of a property from the node, group and global context.
  */
 
-trait NodePropertiesRepository {
+trait PropertiesRepository {
+
+  def getAllNodeProps()(implicit qc: QueryContext): IOResult[Map[NodeId, Chunk[NodePropertyHierarchy]]]
 
   /*
    * Get all properties for node with given ID
    */
-  def getNodeAll(nodeId: NodeId): IOResult[Option[Chunk[NodePropertyHierarchy]]]
+  def getNodeProps(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Option[Chunk[NodePropertyHierarchy]]]
 
   /*
    * Get a given property for a given node
    */
-  def getNodeProp(nodeId: NodeId, propName: String): IOResult[Option[NodePropertyHierarchy]]
+  def getNodesProp(nodeIds: Set[NodeId], propName: String)(implicit
+      qc: QueryContext
+  ): IOResult[Map[NodeId, NodePropertyHierarchy]]
 
   /*
    * Save updated properties for nodes.
@@ -71,28 +78,103 @@ trait NodePropertiesRepository {
    */
   def deleteNode(nodeId: NodeId): IOResult[Unit]
 
+  /*
+   * Get all properties for node with given ID
+   */
+  def getGroupProps(groupId: NodeGroupId): IOResult[Option[Chunk[NodePropertyHierarchy]]]
+
+  /*
+   * Get a given property for a given node
+   */
+  def getGroupProp(groupId: NodeGroupId, propName: String): IOResult[Option[NodePropertyHierarchy]]
+
+  /*
+   * Save updated properties for nodes.
+   * The chunk is considered to be all of the node properties, so previous
+   * properties not in the new chunk will be deleted.
+   */
+  def saveGroupProps(props: Map[NodeGroupId, Chunk[NodePropertyHierarchy]]): IOResult[Unit]
+
+  /*
+   * Delete all properties for a node
+   */
+  def deleteGroup(groupId: NodeGroupId): IOResult[Unit]
 }
 
-object InMemoryNodePropertiesRepository {
-  def make(): IOResult[InMemoryNodePropertiesRepository] = {
-    Ref.make(Map.empty[NodeId, Chunk[NodePropertyHierarchy]]).map(c => new InMemoryNodePropertiesRepository(c))
+object InMemoryPropertiesRepository {
+  def make(nodeFactRepo: NodeFactRepository): IOResult[InMemoryPropertiesRepository] = {
+    for {
+      nodes  <- Ref.make(Map.empty[NodeId, Chunk[NodePropertyHierarchy]])
+      groups <- Ref.make(Map.empty[NodeGroupId, Chunk[NodePropertyHierarchy]])
+    } yield {
+      new InMemoryPropertiesRepository(nodeFactRepo, nodes, groups)
+    }
   }
 }
 
-class InMemoryNodePropertiesRepository(cache: Ref[Map[NodeId, Chunk[NodePropertyHierarchy]]]) extends NodePropertiesRepository {
-  override def getNodeAll(nodeId: NodeId): IOResult[Option[Chunk[NodePropertyHierarchy]]] = {
-    cache.get.map(_.get(nodeId))
+class InMemoryPropertiesRepository(
+    nodeFactRepository: NodeFactRepository,
+    nodeProps:          Ref[Map[NodeId, Chunk[NodePropertyHierarchy]]],
+    groupProps:         Ref[Map[NodeGroupId, Chunk[NodePropertyHierarchy]]]
+) extends PropertiesRepository {
+
+  override def getAllNodeProps()(implicit qc: QueryContext): IOResult[Map[NodeId, Chunk[NodePropertyHierarchy]]] = {
+    // we need core node fact to filter access
+    for {
+      ids   <- nodeFactRepository.getAll().map(_.keySet)
+      props <- nodeProps.get
+    } yield {
+      props.filter { case (id, _) => ids.contains(id) }
+    }
   }
 
-  override def getNodeProp(nodeId: NodeId, propName: String): IOResult[Option[NodePropertyHierarchy]] = {
-    cache.get.map(_.get(nodeId).flatMap(_.find(_.prop.name == propName)))
+  override def getNodeProps(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Option[Chunk[NodePropertyHierarchy]]] = {
+    for {
+      // needed to check access to node
+      _     <- nodeFactRepository.get(nodeId)
+      props <- nodeProps.get
+    } yield {
+      props.get(nodeId)
+    }
+  }
+
+  override def getNodesProp(nodeIds: Set[NodeId], propName: String)(implicit
+      qc: QueryContext
+  ): IOResult[Map[NodeId, NodePropertyHierarchy]] = {
+    for {
+      // needed to check access to node
+      ids   <- nodeFactRepository.getAll().map(_.keySet)
+      props <- nodeProps.get
+    } yield {
+      val view = ids.intersect(nodeIds)
+      props.collect {
+        case (id, ps) if view.contains(id) =>
+          ps.find(_.prop.name == propName).map(p => (id, p))
+      }.flatten.toMap
+    }
   }
 
   override def saveNodeProps(props: Map[NodeId, Chunk[NodePropertyHierarchy]]): IOResult[Unit] = {
-    cache.set(props)
+    nodeProps.set(props)
   }
 
   override def deleteNode(nodeId: NodeId): IOResult[Unit] = {
-    cache.update(_.removed(nodeId))
+    nodeProps.update(_.removed(nodeId))
+  }
+
+  override def getGroupProps(groupId: NodeGroupId): IOResult[Option[Chunk[NodePropertyHierarchy]]] = {
+    groupProps.get.map(_.get(groupId))
+  }
+
+  override def getGroupProp(groupId: NodeGroupId, propName: String): IOResult[Option[NodePropertyHierarchy]] = {
+    groupProps.get.map(_.get(groupId).flatMap(_.find(_.prop.name == propName)))
+  }
+
+  override def saveGroupProps(props: Map[NodeGroupId, Chunk[NodePropertyHierarchy]]): IOResult[Unit] = {
+    groupProps.set(props)
+  }
+
+  override def deleteGroup(groupId: NodeGroupId): IOResult[Unit] = {
+    groupProps.update(_.removed(groupId))
   }
 }

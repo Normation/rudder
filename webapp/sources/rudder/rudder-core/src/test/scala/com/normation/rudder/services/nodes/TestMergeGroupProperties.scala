@@ -40,6 +40,7 @@ package com.normation.rudder.services.nodes
 import com.normation.GitVersion
 import com.normation.errors.PureResult
 import com.normation.errors.RudderError
+import com.normation.inventory.domain.AcceptedInventory
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
@@ -55,6 +56,9 @@ import com.normation.rudder.domain.properties.ParentProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.queries.ResultTransformation.*
+import com.normation.rudder.facts.nodes.NodeFact
+import com.normation.rudder.properties.GroupProp
+import com.normation.rudder.properties.MergeNodeProperties
 import com.normation.rudder.services.policies.NodeConfigData
 import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigValue
@@ -548,9 +552,15 @@ class TestMergeGroupProperties extends Specification {
       val node    = nodeInfo
         .modify(_.node.properties)
         .setTo(List(NodeProperty.parse("foo", """{"node"  :"node value"  , "override":"node"  }""", None, None).forceGet))
-      val merged  = MergeNodeProperties.forNode(node, List(parent, child_).map(_.toTarget), globals).forceGet
+      val merged  = MergeNodeProperties
+        .forNode(
+          NodeFact.fromCompat(node, Left(AcceptedInventory), Seq(), None).toCore,
+          List(parent, child_).map(_.toTarget),
+          globals
+        )
+        .forceGet
 
-      val actual   = merged.toApiJsonRenderParents
+      val actual   = merged.toList.toApiJsonRenderParents
       val expected = JArray(
         List(
           ("name"          -> "foo")

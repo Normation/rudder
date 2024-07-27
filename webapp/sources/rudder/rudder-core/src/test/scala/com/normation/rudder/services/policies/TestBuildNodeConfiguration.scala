@@ -58,6 +58,7 @@ import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
+import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.repository.FullActiveTechnique
@@ -73,6 +74,7 @@ import org.specs2.runner.*
 import scala.collection.MapView
 import scala.collection.SortedMap
 import scala.concurrent.duration.*
+import zio.Chunk
 
 /*
  * This class test the JsEngine. 6.0
@@ -185,6 +187,8 @@ class TestBuildNodeConfiguration extends Specification {
   val jsTimeout: FiniteDuration = FiniteDuration(5, "minutes")
   val generationContinueOnError = false
 
+  val inheritedProps: Map[NodeId, Chunk[NodePropertyHierarchy]] = Map()
+
   // you can debug detail timing by setting "TRACE" level below:
   org.slf4j.LoggerFactory
     .getLogger("policy.generation")
@@ -206,6 +210,7 @@ class TestBuildNodeConfiguration extends Specification {
         .getNodeContexts(
           allNodes.keySet.toSet,
           allNodes,
+          inheritedProps,
           groupLib,
           Nil,
           data.globalAgentRun,

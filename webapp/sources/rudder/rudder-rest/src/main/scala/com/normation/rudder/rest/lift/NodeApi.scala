@@ -75,11 +75,11 @@ import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.facts.nodes.SelectNodeStatus
+import com.normation.rudder.properties.MergeNodeProperties
+import com.normation.rudder.properties.PropertiesRepository
 import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
-import com.normation.rudder.repository.RoNodeGroupRepository
-import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.rest.ApiModuleProvider
@@ -106,7 +106,6 @@ import com.normation.rudder.score.Score
 import com.normation.rudder.score.ScoreSerializer
 import com.normation.rudder.score.ScoreService
 import com.normation.rudder.score.ScoreValue
-import com.normation.rudder.services.nodes.MergeNodeProperties
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.reports.ReportingService
@@ -749,9 +748,7 @@ class NodeApi(
 }
 
 class NodeApiInheritedProperties(
-    infoService: NodeFactRepository,
-    groupRepo:   RoNodeGroupRepository,
-    paramRepo:   RoParameterRepository
+    propRepo: PropertiesRepository
 ) {
 
   /*
@@ -761,16 +758,12 @@ class NodeApiInheritedProperties(
       qc: QueryContext
   ): IOResult[JRNodeInheritedProperties] = {
     for {
-      nodeFact         <- infoService.get(nodeId).notOptional(s"Node with ID '${nodeId.value}' was not found.'")
-      groups           <- groupRepo.getFullGroupLibrary()
-      nodeTargets       = groups.getTarget(nodeFact).map(_._2).toList
-      params           <- paramRepo.getAllGlobalParameters()
-      properties       <- MergeNodeProperties.forNode(nodeFact.toNodeInfo, nodeTargets, params.map(p => (p.name, p)).toMap).toIO
+      properties       <- propRepo.getNodeProps(nodeId).notOptional(s"Node with ID '${nodeId.value}' was not found.'")
       propertiesDetails = properties
                             .groupBy(_.prop.name)
                             .map(props => {
                               val hasConflicts = MergeNodeProperties
-                                .checkValueTypes(props._2)
+                                .checkValueTypes(props._2.toList)
                                 .isLeft
                               (
                                 props._1,
@@ -793,8 +786,7 @@ class NodeApiInheritedProperties(
 class NodeApiService(
     ldapConnection:             LDAPConnectionProvider[RwLDAPConnection],
     val nodeFactRepository:     NodeFactRepository,
-    groupRepo:                  RoNodeGroupRepository,
-    paramRepo:                  RoParameterRepository,
+    propertiesRepo:             PropertiesRepository,
     reportsExecutionRepository: RoReportsExecutionRepository,
     ldapEntityMapper:           LDAPEntityMapper,
     uuidGen:                    StringUuidGenerator,
@@ -804,7 +796,6 @@ class NodeApiService(
     newNodeManager:             NewNodeManager,
     removeNodeService:          RemoveNodeService,
     restExtractor:              RestExtractorService,
-    restSerializer:             RestDataSerializer,
     reportingService:           ReportingService,
     acceptedNodeQueryProcessor: QueryProcessor,
     pendingNodeQueryProcessor:  QueryChecker,
@@ -974,29 +965,25 @@ class NodeApiService(
   def getNodesPropertiesTree(
       nodeInfos:  MapView[NodeId, CoreNodeFact],
       properties: List[String]
-  ): IOResult[Map[NodeId, List[NodePropertyHierarchy]]] = {
+  )(implicit qc: QueryContext): IOResult[Map[NodeId, List[NodePropertyHierarchy]]] = {
     for {
-      groups      <- groupRepo.getFullGroupLibrary()
-      nodesTargets = nodeInfos.values.map(i => (i, groups.getTarget(i).map(_._2).toList))
-      params      <- paramRepo.getAllGlobalParameters()
-      properties  <-
-        ZIO.foreach(nodesTargets.toList) {
-          case (nodeInfo, nodeTargets) =>
-            MergeNodeProperties
-              .forNode(nodeInfo.toNodeInfo, nodeTargets, params.map(p => (p.name, p)).toMap)
-              .toIO
-              .fold(
-                err =>
-                  (
-                    nodeInfo.id,
-                    nodeInfo.properties.toList.collect { case p if properties.contains(p.name) => NodePropertyHierarchy(p, Nil) }
-                  ),
-                props => {
-                  // here we can have the whole parent hierarchy like in node properties details with p.toApiJsonRenderParents but it needs
-                  // adaptation in datatable display
-                  (nodeInfo.id, props.collect { case p if properties.contains(p.prop.name) => p })
-                }
-              )
+      properties <-
+        ZIO.foreach(nodeInfos.values) { fact =>
+          propertiesRepo
+            .getNodeProps(fact.id)
+            .notOptional(s"Properties for node with '${fact.id.value}' were not found")
+            .fold(
+              err =>
+                (
+                  fact.id,
+                  fact.properties.toList.collect { case p if properties.contains(p.name) => NodePropertyHierarchy(p, Nil) }
+                ),
+              props => {
+                // here we can have the whole parent hierarchy like in node properties details with p.toApiJsonRenderParents but it needs
+                // adaptation in datatable display
+                (fact.id, props.toList.collect { case p if properties.contains(p.prop.name) => p })
+              }
+            )
         }
     } yield {
       properties.toMap
