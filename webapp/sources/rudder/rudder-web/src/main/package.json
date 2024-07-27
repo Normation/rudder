@@ -9,6 +9,7 @@
     "diff": "^5.1.0",
     "elm-review": "^2.11.1",
     "gaugeJS": "^1.3.7",
+    "gulp-svgmin": "^4.1.0",
     "jquery": "^3.7.0",
     "jquery-ui": "^1.13.2",
     "jquery-ui-timepicker-addon": "^1.6.3",
