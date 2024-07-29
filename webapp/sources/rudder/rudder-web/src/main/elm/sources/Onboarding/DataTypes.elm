@@ -23,7 +23,7 @@ type MetricsState
 
 type alias AccountSettings =
   { username      : String
-  , password      : String
+  , password      : Maybe String
   , url           : String
   , proxyUrl      : Maybe String
   , proxyUser     : Maybe String
