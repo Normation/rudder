@@ -9,17 +9,13 @@ import Onboarding.DataTypes exposing (..)
 
 decodeGetAccountSettings : Decoder AccountSettings
 decodeGetAccountSettings =
-  at [ "data", "pluginSettings" ] decodeAccountSettings
+  at [ "data" ] decodeAccountSettings
 
 decodeAccountSettings : Decoder AccountSettings
 decodeAccountSettings =
   D.succeed AccountSettings
-    |> required "username"      D.string
+    |> optional "username"      (D.map Just string) Nothing
     |> optional "password"      (D.map Just string) Nothing
-    |> required "url"           D.string
-    |> optional "proxyUrl"      (D.map Just string) Nothing
-    |> optional "proxyUser"     (D.map Just string) Nothing
-    |> optional "proxyPassword" (D.map Just string) Nothing
 
 decodeGetMetricsSettings : Decoder MetricsState
 decodeGetMetricsSettings =
