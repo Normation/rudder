@@ -50,7 +50,7 @@ import zio.json.*
 case class PluginSettings(
     url:           String,
     username:      String,
-    password:      String,
+    password:      Option[String],
     proxyUrl:      Option[String],
     proxyUser:     Option[String],
     proxyPassword: Option[String]
@@ -190,21 +190,27 @@ class FilePluginSettingsService(pluginConfFile: File) extends PluginSettingsServ
                           if (res == "") None else Some(res)
                         }
     } yield {
-      PluginSettings(url, userName, pass, proxy, proxy_user, proxy_password)
+      PluginSettings(url, userName, Some(pass), proxy, proxy_user, proxy_password)
     }
   }
 
-  def writePluginSettings(settings: PluginSettings): IOResult[Unit] = {
-    IOResult.attempt({
-      pluginConfFile.write(s"""[Rudder]
-                              |url = ${settings.url}
-                              |username = ${settings.username}
-                              |password = ${settings.password}
-                              |proxy_url = ${settings.proxyUrl.getOrElse("")}
-                              |proxy_user = ${settings.proxyUser.getOrElse("")}
-                              |proxy_password = ${settings.proxyPassword.getOrElse("")}
-                              |""".stripMargin)
-    })
-
+  def writePluginSettings(update: PluginSettings): IOResult[Unit] = {
+    for {
+      base <- readPluginSettings()
+      _    <- IOResult.attempt({
+                val settings = update.copy(
+                  password = update.password orElse base.password,
+                  proxyPassword = update.proxyPassword orElse base.proxyPassword
+                )
+                pluginConfFile.write(s"""[Rudder]
+                                     |url = ${settings.url}
+                                     |username = ${settings.username}
+                                     |password = ${settings.password}
+                                     |proxy_url = ${settings.proxyUrl.getOrElse("")}
+                                     |proxy_user = ${settings.proxyUser.getOrElse("")}
+                                     |proxy_password = ${settings.proxyPassword.getOrElse("")}
+                                     |""".stripMargin)
+              })
+    } yield {}
   }
 }

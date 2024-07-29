@@ -11,7 +11,7 @@ encodeAccountSettings accountSettings =
   let
     data = object
       [ ("username"      , string accountSettings.username           )
-      , ("password"      , string accountSettings.password           )
+      , ("password"      , maybe string accountSettings.password     )
       , ("url"           , string accountSettings.url                )
       , ("proxyUrl"      , maybe string accountSettings.proxyUrl     )
       , ("proxyUser"     , maybe string accountSettings.proxyUser    )

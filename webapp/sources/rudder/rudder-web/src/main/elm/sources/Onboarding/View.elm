@@ -130,7 +130,7 @@ view model =
                   ]
                 , div [class "form-group"]
                   [ label[] [text "Password"]
-                  , input[class "form-control sm-width", type_ "password", name "rudder-password", id "rudder-password", value settings.password, onInput (\str -> UpdateSection 1 (Account state { settings | password = str } ))][]
+                  , input[class "form-control sm-width", type_ "password", name "rudder-password", id "rudder-password", value (Maybe.withDefault "" settings.password), onInput (\str -> UpdateSection 1 (Account state { settings | password = if String.isEmpty str then Nothing else Just str } ))][]
                   ]
                 , div[ class "wizard-btn-group sm-width"]
                   [ button[class "btn btn-success", type_ "button", onClick (ChangeActiveSection (model.activeSection+1))] [text "Continue"] -- "Skip, I will create my account later"

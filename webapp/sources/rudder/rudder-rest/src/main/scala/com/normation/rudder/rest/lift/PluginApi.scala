@@ -48,12 +48,15 @@ import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.PluginApi as API
 import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils
+import com.normation.rudder.rest.RudderJsonRequest.ReqToJson
 import com.normation.rudder.rest.implicits.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json.DefaultFormats
-import net.liftweb.json.Serialization
+import zio.json.DeriveJsonDecoder
+import zio.json.DeriveJsonEncoder
+import zio.json.EncoderOps
+import zio.json.JsonDecoder
+import zio.json.JsonEncoder
 
 class PluginApi(
     restExtractorService:  RestExtractorService,
@@ -80,32 +83,18 @@ class PluginApi(
     }
   }
 
+  implicit val encoder: JsonEncoder[PluginSettings] = DeriveJsonEncoder.gen[PluginSettings]
+  implicit val decoder: JsonDecoder[PluginSettings] = DeriveJsonDecoder.gen[PluginSettings]
+
   object GetPluginSettings extends LiftApiModule0 {
     val schema: API.GetPluginsSettings.type = API.GetPluginsSettings
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      import com.normation.box.*
-      val json = for {
+      (for {
         conf <- pluginSettingsService.readPluginSettings()
       } yield {
-        import net.liftweb.json.JsonDSL.*
-        (("username"       -> conf.username)
-        ~ ("password"      -> "")
-        ~ ("url"           -> conf.url)
-        ~ ("proxyUrl"      -> conf.proxyUrl)
-        ~ ("proxyUser"     -> conf.proxyUser)
-        ~ ("proxyPassword" -> ""))
-
-      }
-      RestUtils.response(
-        restExtractor,
-        "pluginSettings",
-        None
-      )(
-        json.toBox,
-        req,
-        s"Could not get plugin settings"
-      )("getPluginSettings")
+        conf.copy(password = None, proxyPassword = None).toJson
+      }).toLiftResponseOne(params, schema, None)
     }
 
   }
@@ -114,36 +103,17 @@ class PluginApi(
     val schema: API.UpdatePluginsSettings.type = API.UpdatePluginsSettings
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      import com.normation.box.*
       import com.normation.errors.*
-
-      implicit val formats = DefaultFormats
-      val json             = {
+      ({
         for {
-          json <- req.json.toIO
-          conf <- IOResult.attempt(Serialization.read[PluginSettings](net.liftweb.json.compactRender(json)))
-          _    <- pluginSettingsService.writePluginSettings(conf)
+          json <- req.fromJson[PluginSettings].toIO
+          _    <- pluginSettingsService.writePluginSettings(json)
 
         } yield {
-          import net.liftweb.json.JsonDSL.*
-          (("username"       -> conf.username)
-          ~ ("password"      -> "")
-          ~ ("url"           -> conf.url)
-          ~ ("proxyUrl"      -> conf.proxyUrl)
-          ~ ("proxyUser"     -> conf.proxyUser)
-          ~ ("proxyPassword" -> ""))
+          json.copy(password = None, proxyPassword = None).toJson
 
         }
-      }
-      RestUtils.response(
-        restExtractor,
-        "pluginSettings",
-        None
-      )(
-        json.toBox,
-        req,
-        s"Could not update plugin settings"
-      )("updatePluginSettings")
+      }).toLiftResponseOne(params, schema, None)
     }
   }
 
