@@ -15,7 +15,7 @@ decodeAccountSettings : Decoder AccountSettings
 decodeAccountSettings =
   D.succeed AccountSettings
     |> required "username"      D.string
-    |> required "password"      D.string
+    |> optional "password"      (D.map Just string) Nothing
     |> required "url"           D.string
     |> optional "proxyUrl"      (D.map Just string) Nothing
     |> optional "proxyUser"     (D.map Just string) Nothing
