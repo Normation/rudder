@@ -71,8 +71,8 @@ update msg model =
       case res of
         Ok s ->
           let
-            newState    = if String.isEmpty s.username && Maybe.Extra.isNothing s.password then Default else Completed
-            newSection  = Account newState (AccountSettings s.username s.password s.url s.proxyUrl s.proxyUser s.proxyPassword)
+            newState    = if Maybe.Extra.isNothing s.username && Maybe.Extra.isNothing s.password then Default else Completed
+            newSection  = Account newState (AccountSettings s.username s.password)
             newSections = List.Extra.setAt 1 newSection model.sections
             newModel    = {model | sections = newSections}
           in
@@ -124,8 +124,8 @@ update msg model =
         accountSettings = case List.Extra.getAt 1 model.sections of
           Just  s -> case s of
             Account _ settings -> settings
-            _ -> AccountSettings "" Nothing "" Nothing Nothing Nothing
-          Nothing -> AccountSettings "" Nothing "" Nothing Nothing Nothing
+            _ -> AccountSettings Nothing Nothing
+          Nothing -> AccountSettings Nothing Nothing
         listActions =  [ postAccountSettings model accountSettings ]
       in
         (model, Cmd.batch listActions)

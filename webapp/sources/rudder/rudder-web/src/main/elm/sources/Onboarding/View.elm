@@ -75,7 +75,7 @@ view model =
 
           Account s ac ->
             case s of
-              Completed -> ( completeClass , completeIcon , "Account "++ ac.username ++ " will be updated for your Rudder server."  )
+              Completed -> ( completeClass , completeIcon , "Your account will be setup."  )
               Warning   -> ( warningClass  , warningIcon  , "There is a problem with your account credentials."       )
               _         -> ( defaultClass  , defaultIcon  , "No account has been linked yet to your Rudder installation." )
 
@@ -126,7 +126,7 @@ view model =
               , form[ class "wizard-form", name "wizard-account"]
                 [ div [class "form-group"]
                   [ label[] [text "Username"]
-                  , input[class "form-control sm-width", type_ "text"    , name "rudder-username", id "rudder-username", value settings.username, onInput (\str -> UpdateSection 1 (Account state { settings | username = str } ))][]
+                  , input[class "form-control sm-width", type_ "text"    , name "rudder-username", id "rudder-username", value (Maybe.withDefault "" settings.username), onInput (\str -> UpdateSection 1 (Account state { settings | username = if String.isEmpty str then Nothing else Just str } ))][]
                   ]
                 , div [class "form-group"]
                   [ label[] [text "Password"]

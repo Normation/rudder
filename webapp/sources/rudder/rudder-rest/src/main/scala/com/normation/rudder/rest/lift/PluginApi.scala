@@ -54,7 +54,6 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import zio.json.DeriveJsonDecoder
 import zio.json.DeriveJsonEncoder
-import zio.json.EncoderOps
 import zio.json.JsonDecoder
 import zio.json.JsonEncoder
 
@@ -93,7 +92,7 @@ class PluginApi(
       (for {
         conf <- pluginSettingsService.readPluginSettings()
       } yield {
-        conf.copy(password = None, proxyPassword = None).toJson
+        conf.copy(password = None, proxyPassword = None)
       }).toLiftResponseOne(params, schema, None)
     }
 
@@ -110,7 +109,7 @@ class PluginApi(
           _    <- pluginSettingsService.writePluginSettings(json)
 
         } yield {
-          json.copy(password = None, proxyPassword = None).toJson
+          json.copy(password = None, proxyPassword = None)
 
         }
       }).toLiftResponseOne(params, schema, None)

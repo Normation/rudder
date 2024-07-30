@@ -19,17 +19,19 @@
     </div>
 
     <script>
-      var main = document.getElementById("setup-content")
-      var initValues = {
-        contextPath : contextPath
-      };
-      var app  = Elm.Onboarding.init({node: main, flags: initValues});
+        $(document).ready(function () {
+          var main = document.getElementById("setup-content")
+          var initValues = {
+            contextPath : contextPath
+          };
+          var app  = Elm.Onboarding.init({node: main, flags: initValues});
 
-      app.ports.errorNotification.subscribe(function(message) {
-        createErrorNotification(message);
-      });
-      app.ports.successNotification.subscribe(function(message) {
-        createSuccessNotification(message);
-      });
+          app.ports.errorNotification.subscribe(function(message) {
+            createErrorNotification(message);
+          });
+          app.ports.successNotification.subscribe(function(message) {
+            createSuccessNotification(message);
+          });
+        })
     </script>
 </lift:surround>
