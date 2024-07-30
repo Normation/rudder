@@ -598,12 +598,14 @@ object PluginApi       extends Enum[PluginApi] with ApiModuleProvider[PluginApi]
     val (action, path) = GET / "plugins" / "info"
   }
   case object GetPluginsSettings    extends PluginApi with ZeroParam with StartsAtVersion14 with SortIndex {
-    val z: Int = implicitly[Line].value
+    val z:                      Int            = implicitly[Line].value
+    override def dataContainer: Option[String] = None
     val description    = "List plugin system settings"
     val (action, path) = GET / "plugins" / "settings"
   }
   case object UpdatePluginsSettings extends PluginApi with ZeroParam with StartsAtVersion14 with SortIndex {
-    val z: Int = implicitly[Line].value
+    val z:                      Int            = implicitly[Line].value
+    override def dataContainer: Option[String] = None
     val description    = "Update plugin system settings"
     val (action, path) = POST / "plugins" / "settings"
   }

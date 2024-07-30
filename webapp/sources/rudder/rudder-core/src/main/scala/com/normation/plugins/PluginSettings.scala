@@ -48,8 +48,8 @@ import zio.*
 import zio.json.*
 
 case class PluginSettings(
-    url:           String,
-    username:      String,
+    url:           Option[String],
+    username:      Option[String],
     password:      Option[String],
     proxyUrl:      Option[String],
     proxyUser:     Option[String],
@@ -172,11 +172,20 @@ class FilePluginSettingsService(pluginConfFile: File) extends PluginSettingsServ
     for {
       _ <- IOResult.attempt(s"Reading properties from ${pluginConfFile.pathAsString}")(p.load(pluginConfFile.newInputStream))
 
-      url            <- IOResult.attempt(s"Getting plugin repository url in ${pluginConfFile.pathAsString}")(p.getProperty("url"))
+      url            <- IOResult.attempt(s"Getting plugin repository url in ${pluginConfFile.pathAsString}") {
+                          val res = p.getProperty("url", "")
+                          if (res == "") None else Some(res)
+                        }
       userName       <-
-        IOResult.attempt(s"Getting user name for plugin download in ${pluginConfFile.pathAsString}")(p.getProperty("username"))
+        IOResult.attempt(s"Getting user name for plugin download in ${pluginConfFile.pathAsString}") {
+          val res = p.getProperty("username", "")
+          if (res == "") None else Some(res)
+        }
       pass           <-
-        IOResult.attempt(s"Getting password for plugin download in ${pluginConfFile.pathAsString}")(p.getProperty("password"))
+        IOResult.attempt(s"Getting password for plugin download in ${pluginConfFile.pathAsString}") {
+          val res = p.getProperty("password", "")
+          if (res == "") None else Some(res)
+        }
       proxy          <- IOResult.attempt(s"Getting proxy for plugin download in ${pluginConfFile.pathAsString}") {
                           val res = p.getProperty("proxy_url", "")
                           if (res == "") None else Some(res)
@@ -190,7 +199,7 @@ class FilePluginSettingsService(pluginConfFile: File) extends PluginSettingsServ
                           if (res == "") None else Some(res)
                         }
     } yield {
-      PluginSettings(url, userName, Some(pass), proxy, proxy_user, proxy_password)
+      PluginSettings(url, userName, pass, proxy, proxy_user, proxy_password)
     }
   }
 
@@ -198,14 +207,18 @@ class FilePluginSettingsService(pluginConfFile: File) extends PluginSettingsServ
     for {
       base <- readPluginSettings()
       _    <- IOResult.attempt({
-                val settings = update.copy(
+                val settings = base.copy(
+                  url = update.url orElse base.url,
+                  username = update.username orElse base.username,
                   password = update.password orElse base.password,
+                  proxyUrl = update.proxyUrl orElse base.proxyUrl,
+                  proxyUser = update.proxyUser orElse base.proxyUser,
                   proxyPassword = update.proxyPassword orElse base.proxyPassword
                 )
                 pluginConfFile.write(s"""[Rudder]
-                                     |url = ${settings.url}
-                                     |username = ${settings.username}
-                                     |password = ${settings.password}
+                                     |url = ${settings.url.getOrElse("")}
+                                     |username = ${settings.username.getOrElse("")}
+                                     |password = ${settings.password.getOrElse("")}
                                      |proxy_url = ${settings.proxyUrl.getOrElse("")}
                                      |proxy_user = ${settings.proxyUser.getOrElse("")}
                                      |proxy_password = ${settings.proxyPassword.getOrElse("")}

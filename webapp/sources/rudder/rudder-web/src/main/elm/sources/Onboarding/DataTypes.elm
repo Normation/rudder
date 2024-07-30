@@ -22,12 +22,8 @@ type MetricsState
   | Complete -}
 
 type alias AccountSettings =
-  { username      : String
+  { username      : Maybe String
   , password      : Maybe String
-  , url           : String
-  , proxyUrl      : Maybe String
-  , proxyUser     : Maybe String
-  , proxyPassword : Maybe String
   }
 
 type alias Model =
