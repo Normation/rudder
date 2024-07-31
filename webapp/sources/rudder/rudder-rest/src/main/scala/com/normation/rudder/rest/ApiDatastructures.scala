@@ -663,7 +663,7 @@ trait BuildHandler[REQ, RESP, T, P] {
                 )
                 val response: RESP = (for {
                   token         <- authz.checkAuthz(endpoint, info.path).leftMap { error =>
-                                     logger.error(
+                                     logger.warn(
                                        s"Authorization error for '${info.action.name.toUpperCase()} ${info.path.value}': ${error.msg}"
                                      )
                                      error
