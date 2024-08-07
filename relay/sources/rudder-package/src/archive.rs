@@ -188,7 +188,7 @@ impl Rpkg {
     }
 
     pub fn install(&self, force: bool, db: &mut Database, webapp: &mut Webapp) -> Result<()> {
-        info!("Installing rpkg '{}'...", self.path.display());
+        debug!("Installing rpkg file '{}'...", self.path.display());
         let is_upgrade = self.is_installed(db);
         // Verify webapp compatibility
         if !webapp.version.is_compatible(&self.metadata.version) && !force {
