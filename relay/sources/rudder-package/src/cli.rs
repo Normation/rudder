@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
+use clap::{Parser, Subcommand, ValueEnum};
 use std::fmt::Display;
 
-use clap::{Parser, Subcommand, ValueEnum};
-
-use crate::CONFIG_PATH;
+const CONFIG_PATH: &str = "/opt/rudder/etc/rudder-pkg/rudder-pkg.conf";
 
 #[derive(ValueEnum, Copy, Clone, Debug, Default)]
 pub enum Format {
