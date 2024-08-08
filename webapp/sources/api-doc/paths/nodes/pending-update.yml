@@ -1,17 +1,23 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
-# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+# SPDX-FileCopyrightText: 2013-2024 Normation SAS
 post:
-  summary: Update pending node status
-  description: Accept or refuse a pending node
-  operationId: changePendingNodeStatus
-  parameters:
-    - $ref: ../../components/parameters/node-id.yml
+  summary: Update pending nodes status
+  description: Accept or refuse one or many pending nodes
+  operationId: changePendingNodesStatus
   requestBody:
     content:
       application/json:
         schema:
           type: object
           properties:
+            nodeId:
+              type: array
+              description: List of nodes to change status
+              items:
+                type: string
+                format: uuid
+                example: 109142a2-40eb-4e6d-84b4-7ebe3670474c
+                description: ID of pending node
             status:
               type: string
               description: New status of the pending node
@@ -57,4 +63,4 @@ post:
   x-codeSamples:
     - lang: curl
       source:
-        $ref: ../../code_samples/curl/nodes/pending-id.sh
+        $ref: ../../code_samples/curl/nodes/pending-update.sh
