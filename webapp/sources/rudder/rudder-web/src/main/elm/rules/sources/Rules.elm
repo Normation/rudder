@@ -87,7 +87,7 @@ update msg model =
       case res of
         Ok p ->
             ( { model | policyMode = p }
-              , Cmd.none
+              , initTooltips ""
             )
         Err err ->
           processApiError "Getting Policy Mode" err model
@@ -195,14 +195,14 @@ update msg model =
     GetRulesComplianceResult res ->
       case res of
         Ok r ->
-          ( { model | rulesCompliance  =  Dict.Extra.fromListBy (.id >> .value)  r } , Cmd.none )
+          ( { model | rulesCompliance  =  Dict.Extra.fromListBy (.id >> .value)  r } , initTooltips "" )
         Err err ->
           processApiError "Getting compliance" err model
 
     GetRuleChanges res ->
       case res of
         Ok r ->
-          ( { model | changes = r} , Cmd.none )
+          ( { model | changes = r} , initTooltips "" )
         Err err ->
           processApiError "Getting changes" err model
 
@@ -215,7 +215,7 @@ update msg model =
               let
                  newDetails = {details | numberOfNodes  = Just r.numberOfNodes, numberOfDirectives = Just r.numberOfDirectives }
               in
-                 ({model | mode = RuleForm newDetails }, Cmd.none)
+                 ({model | mode = RuleForm newDetails }, initTooltips "")
             _ ->
                (model, Cmd.none)
         Err err ->
@@ -230,7 +230,7 @@ update msg model =
               let
                 newDetails = {details | compliance = Just r}
               in
-                ({model | mode = RuleForm newDetails }, Cmd.none)
+                ({model | mode = RuleForm newDetails }, initTooltips "")
             _ ->
               (model, Cmd.none)
         Err err ->
@@ -246,7 +246,7 @@ update msg model =
               let
                 newDetails = {details | reports = r}
               in
-                ({model | mode = RuleForm newDetails }, Cmd.none)
+                ({model | mode = RuleForm newDetails }, initTooltips "")
             _ ->
               (model, Cmd.none)
         Err err ->
@@ -257,7 +257,7 @@ update msg model =
     UpdateCategoryForm details ->
       case model.mode of
         CategoryForm _   ->
-          ({model | mode = CategoryForm details }, Cmd.none)
+          ({model | mode = CategoryForm details }, initTooltips "")
         _   -> (model, Cmd.none)
 
     SelectGroup targetId includeBool->
@@ -284,7 +284,7 @@ update msg model =
       in
         case model.mode of
           RuleForm details ->
-            ({model | mode = RuleForm   {details | rule = (updateTargets details.rule)}}, Cmd.none)
+            ({model | mode = RuleForm   {details | rule = (updateTargets details.rule)}}, initTooltips "")
           _   -> (model, Cmd.none)
 
     UpdateRuleForm details ->
@@ -313,14 +313,14 @@ update msg model =
         rule        = Rule id "" "rootRuleCategory" "" "" True False [] [] "" (RuleStatus "" Nothing) [] Nothing
         ruleDetails = RuleDetails Nothing rule Information {defaultRulesUI | editGroups = True, editDirectives = True} Nothing Nothing Nothing []
       in
-        ({model | mode = RuleForm ruleDetails}, Cmd.none)
+        ({model | mode = RuleForm ruleDetails}, initTooltips "")
 
     NewCategory id ->
       let
         category        = Category id "" "" (SubCategories []) []
         categoryDetails = CategoryDetails Nothing category "rootRuleCategory" Information
       in
-        ({model | mode = CategoryForm categoryDetails}, Cmd.none )
+        ({model | mode = CategoryForm categoryDetails}, initTooltips "")
 
     SaveRuleDetails (Ok ruleDetails) ->
       case model.mode of
