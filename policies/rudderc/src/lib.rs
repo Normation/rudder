@@ -113,6 +113,10 @@ pub fn run(args: MainArgs) -> Result<()> {
         } => {
             let library = check_libraries(library)?;
             let actual_output = output.unwrap_or(target);
+            if actual_output.canonicalize()? == input.canonicalize()?.parent().unwrap() {
+                bail!("Output directory cannot be the same as the input directory");
+            }
+
             action::build(
                 library.as_slice(),
                 input,
