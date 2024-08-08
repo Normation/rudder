@@ -200,6 +200,12 @@ impl Rpkg {
                 bail!("Some dependencies are missing, install them before trying to install the plugin.")
             }
         }
+
+        if is_upgrade {
+            // First uninstall old version, but without running prerm/portrm scripts
+            db.uninstall(&self.metadata.name, false, webapp)?;
+        }
+
         // Extract package scripts
         self.unpack_embedded_txz(
             PACKAGE_SCRIPTS_ARCHIVE,
@@ -213,11 +219,6 @@ impl Rpkg {
         };
         self.metadata
             .run_package_script(PackageScript::Preinst, arg)?;
-
-        if is_upgrade {
-            // First uninstall old version, but without running prerm/portrm scripts
-            db.uninstall(&self.metadata.name, false, webapp)?;
-        }
 
         // Extract archive content
         let keys = self.metadata.content.keys().clone();
