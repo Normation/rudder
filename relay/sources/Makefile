@@ -43,7 +43,10 @@ build: man
 	$(CACHE) put relayd/target/ --with-env name=relayd major=$(RUDDER_MAJOR_VERSION) || true
 	### rudder-package
 	$(CACHE) get rudder-package/target/ --with-env name=rudder-package major=$(RUDDER_MAJOR_VERSION) || true
-	cd rudder-package && make build
+	cd rudder-package && COMPLETION_OUT_DIR=../../../target make build
+	# Modify completion to make it callable by our global completion function
+	sed -i "s@_rudder() {@_rudderpkg() {@" ../../target/rudder.bash
+	sed -i '/^if/,$d' ../../target/rudder.bash 
 	# the cache is always updated and cargo will rebuild only what is needed
 	$(CACHE) put rudder-package/target/ --with-env name=rudder-package major=$(RUDDER_MAJOR_VERSION) || true
 	### common
@@ -100,6 +103,7 @@ install: build
 
 	# Install rudder-package
 	install -m 755 ../../target/release/rudder-package $(DESTDIR)/opt/rudder/bin/rudder-package
+	install -m 644 ../../target/rudder.bash $(DESTDIR)/etc/bash_completion.d/rudder-package.sh
 	install -m 644 rudder-package/tools/rudder_plugins_key.gpg $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.gpg
 	install -m 755 rudder-package/tools/rudder-package.sh $(DESTDIR)/opt/rudder/share/commands/package
 	install -m 644 rudder-package/tools/rudder-pkg.conf $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder-pkg.conf

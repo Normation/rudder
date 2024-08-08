@@ -75,6 +75,9 @@ do
   htpasswd -bc ${passwdfile} rudder rudder >> ${LOG_FILE} 2>&1
 done
 
+# Remove old completion
+rm -f /etc/bash_completion.d/rudder-pkg.sh
+
 # Previous HTTPS key and cert
 if [ -f /opt/rudder/etc/ssl/rudder.crt ]; then
   mv /opt/rudder/etc/ssl/rudder.crt "${BACKUP_DIR}/rudder-`date +%Y%m%d`.crt"
