@@ -139,7 +139,7 @@ object HomePage {
     }
   }
 
-  object nodeFacts extends SessionVar[MapView[NodeId, CoreNodeFact]](initNodeInfos()(CurrentUser.queryContext))
+  object nodeFacts extends RequestVar[MapView[NodeId, CoreNodeFact]](initNodeInfos()(CurrentUser.queryContext))
 }
 
 class HomePage extends StatefulSnippet {
