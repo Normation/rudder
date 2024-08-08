@@ -415,6 +415,7 @@ object NodeApi       extends Enum[NodeApi] with ApiModuleProvider[NodeApi] {
   }
   case object ChangePendingNodeStatus extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion2 with SortIndex {
     val z: Int = implicitly[Line].value
+    override val name  = "changePendingNodeStatus"
     val description    = "Accept or refuse pending nodes"
     val (action, path) = POST / "nodes" / "pending"
   }
@@ -457,7 +458,7 @@ object NodeApi       extends Enum[NodeApi] with ApiModuleProvider[NodeApi] {
   }
   case object ChangePendingNodeStatus2 extends NodeApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex {
     val z: Int = implicitly[Line].value
-    override val name  = "ChangePendingNodeStatus"
+    override val name  = "changePendingNodeStatus"
     val description    = "Accept or refuse given pending node"
     val (action, path) = POST / "nodes" / "pending" / "{id}"
   }

@@ -1737,6 +1737,10 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   val admin1    = "root"
   val id2: NodeId = NodeId("node2")
   val hostname2 = "node2.localhost"
+  val pendingId1: NodeId = NodeId("node1-pending")
+  val hostnamePending1 = "node1-pending.localhost"
+  val pendingId2: NodeId = NodeId("node2-pending")
+  val hostnamePending2 = "node2-pending.localhost"
   val rootId: NodeId = NodeId("root")
   val rootHostname = "server.rudder.local"
   val rootAdmin    = "root"
@@ -1903,25 +1907,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   // node1 us a relay
   val node2Node:      Node          = node1Node.copy(id = id2, name = id2.value)
   val node2:          NodeInfo      = node1.copy(node = node2Node, hostname = hostname2, policyServerId = root.id)
-  val nodeInventory2: NodeInventory = {
-    import com.softwaremill.quicklens.*
-    nodeInventory1
-      .copy()
-      .modify(_.main)
-      .setTo(
-        NodeSummary(
-          node2.id,
-          AcceptedInventory,
-          node2.localAdministratorAccountName,
-          node2.hostname,
-          node2.osDetails,
-          root.id,
-          node2.keyStatus
-        )
-      )
-      .modify(_.softwareUpdates)
-      .setTo(Nil)
-  }
+  val nodeInventory2: NodeInventory = copyInventory(nodeInventory1, node2, AcceptedInventory)
 
   val node2NodeFact = NodeFact.fromCompat(node2, Right(FullInventory(nodeInventory2, None)), softwares.drop(5).take(10), None)
 
@@ -1938,6 +1924,18 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     policyMode = None,
     securityTag = None
   )
+
+  val pendingNode1Node:      Node          = node1Node.copy(id = pendingId1, name = pendingId1.value)
+  val pendingNode1:          NodeInfo      = node1.copy(node = pendingNode1Node, hostname = hostnamePending1, policyServerId = root.id)
+  val pendingNodeInventory1: NodeInventory = copyInventory(nodeInventory1, pendingNode1, PendingInventory)
+
+  val pendingNode1Fact = NodeFact.fromCompat(pendingNode1, Right(FullInventory(pendingNodeInventory1, None)), List.empty, None)
+
+  val pendingNode2Node:      Node          = node2Node.copy(id = pendingId2, name = pendingId2.value)
+  val pendingNode2:          NodeInfo      = node2.copy(node = pendingNode2Node, hostname = hostnamePending2, policyServerId = root.id)
+  val pendingNodeInventory2: NodeInventory = copyInventory(nodeInventory1, pendingNode2, PendingInventory)
+
+  val pendingNode2Fact = NodeFact.fromCompat(pendingNode2, Right(FullInventory(pendingNodeInventory2, None)), List.empty, None)
 
   val dscNode1: NodeInfo = NodeInfo(
     dscNode1Node,
@@ -1989,12 +1987,13 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
 
   val dscNodeFact = NodeFact.fromCompat(dscNode1, Right(FullInventory(dscInventory1, None)), softwares.drop(5).take(7), None)
 
-  val allNodesInfo:       Map[NodeId, NodeInfo] = Map(rootId -> root, node1.id -> node1, node2.id -> node2)
   val allNodeFacts:       Map[NodeId, NodeFact] = Map(
     rootId      -> rootNodeFact,
     node1.id    -> node1NodeFact,
     node2.id    -> node2NodeFact,
-    dscNode1.id -> dscNodeFact
+    dscNode1.id -> dscNodeFact,
+    pendingId1  -> pendingNode1Fact,
+    pendingId2  -> pendingNode2Fact
   )
   val defaultModesConfig: NodeModeConfig        = NodeModeConfig(
     globalComplianceMode = GlobalComplianceMode(FullCompliance, 30),
@@ -2079,6 +2078,25 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     }
   ).map(n => (n.id, n)).toMap
 
+  private def copyInventory(base: NodeInventory, targetNode: NodeInfo, status: InventoryStatus): NodeInventory = {
+    import com.softwaremill.quicklens.*
+    base
+      .copy()
+      .modify(_.main)
+      .setTo(
+        NodeSummary(
+          targetNode.id,
+          status,
+          targetNode.localAdministratorAccountName,
+          targetNode.hostname,
+          targetNode.osDetails,
+          root.id,
+          targetNode.keyStatus
+        )
+      )
+      .modify(_.softwareUpdates)
+      .setTo(Nil)
+  }
 }
 
 class MockNodes() {

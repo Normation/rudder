@@ -683,6 +683,264 @@ response:
       }
     }
 ---
+description: List all pending nodes with configurable details level
+method: GET
+url: /api/latest/nodes/pending
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "listPendingNodes",
+      "result" : "success",
+      "data" : {
+        "nodes" : [
+          {
+            "id" : "node1-pending",
+            "hostname" : "node1-pending.localhost",
+            "status" : "pending",
+            "state" : "enabled",
+            "os" : {
+              "type" : "Linux",
+              "name" : "Debian",
+              "version" : "10.6",
+              "fullName" : "Buster",
+              "kernelVersion" : "4.19"
+            },
+            "ram" : 1460132,
+            "machine" : {
+              "id" : "machine1",
+              "type" : "Virtual",
+              "provider" : "vbox"
+            },
+            "ipAddresses" : [
+              "192.168.0.10"
+            ],
+            "description" : "",
+            "lastInventoryDate" : "2021-01-30T01:20:00+01:00",
+            "policyServerId" : "root",
+            "managementTechnology" : [
+              {
+                "name" : "Rudder",
+                "version" : "7.0.0",
+                "capabilities" : [],
+                "nodeKind" : "node"
+              }
+            ],
+            "properties" : [],
+            "policyMode" : "enforce",
+            "timezone" : {
+              "name" : "UTC",
+              "offset" : "+00"
+            }
+          },
+          {
+            "id" : "node2-pending",
+            "hostname" : "node2-pending.localhost",
+            "status" : "pending",
+            "state" : "enabled",
+            "os" : {
+              "type" : "Linux",
+              "name" : "Debian",
+              "version" : "10.6",
+              "fullName" : "Buster",
+              "kernelVersion" : "4.19"
+            },
+            "ram" : 1460132,
+            "machine" : {
+              "id" : "machine1",
+              "type" : "Virtual",
+              "provider" : "vbox"
+            },
+            "ipAddresses" : [
+              "192.168.0.10"
+            ],
+            "description" : "",
+            "lastInventoryDate" : "2021-01-30T01:20:00+01:00",
+            "policyServerId" : "root",
+            "managementTechnology" : [
+              {
+                "name" : "Rudder",
+                "version" : "7.0.0",
+                "capabilities" : [],
+                "nodeKind" : "node"
+              }
+            ],
+            "properties" : [],
+            "policyMode" : "enforce",
+            "timezone" : {
+              "name" : "UTC",
+              "offset" : "+00"
+            }
+          }
+        ]
+      }
+    }
+---
+description: Accept pending nodes
+method: POST
+url: /api/latest/nodes/pending
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "nodeId" : ["node1-pending"],
+    "status" : "accepted"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "changePendingNodeStatus",
+      "result" : "success",
+      "data" : {
+        "nodes" : [
+          {
+            "id" : "node1-pending",
+            "status" : "accepted",
+            "hostname" : "node1-pending.localhost",
+            "osName" : "Debian",
+            "osVersion" : "10.6",
+            "machineType" : "Virtual"
+          }
+        ]
+      }
+    }
+---
+description: Refuse pending nodes
+method: POST
+url: /api/latest/nodes/pending
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "nodeId" : ["node2-pending"],
+    "status" : "refuse"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "changePendingNodeStatus",
+      "result" : "success",
+      "data" : {
+        "nodes" : [
+          {
+            "id" : "node2-pending",
+            "status" : "pending",
+            "hostname" : "node2-pending.localhost",
+            "osName" : "Debian"
+          }
+        ]
+      }
+    }
+---
+description: List no pending nodes after acceptation and refusal
+method: GET
+url: /api/latest/nodes/pending
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "listPendingNodes",
+      "result" : "success",
+      "data" : {
+        "nodes" : []
+      }
+    }
+---
+description: Accept or refuse pending nodes fail without node
+method: POST
+url: /api/latest/nodes/pending
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "status" : "accepted"
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "changePendingNodeStatus",
+      "result" : "error",
+      "errorDetails" : "Error when changing Node status; cause was: Node ID or status not correctly sent; cause was: Unexpected: .nodeId(missing)"
+    }
+---
+description: Accept or refuse pending nodes fail without status
+method: POST
+url: /api/latest/nodes/pending
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "nodeId" : ["node1-pending"]
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "changePendingNodeStatus",
+      "result" : "error",
+      "errorDetails" : "Error when changing Node status; cause was: Node ID or status not correctly sent; cause was: Unexpected: .status(missing)"
+    }
+---
+description: Accept or refuse pending nodes fail without body
+method: POST
+url: /api/latest/nodes/pending
+headers:
+  - "Content-Type: application/json"
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "changePendingNodeStatus",
+      "result" : "error",
+      "errorDetails" : "Error when changing Node status; cause was: Node ID or status not correctly sent; cause was: Unexpected: Unexpected end of input"
+    }
+---
+description: Accept or refuse given pending node
+method: POST
+url: /api/latest/nodes/pending/node1-pending
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "status" : "accepted"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "changePendingNodeStatus",
+      "result" : "success",
+      "data" : {
+        "nodes" : [
+          {
+            "id" : "node1-pending",
+            "status" : "accepted",
+            "hostname" : "node1-pending.localhost",
+            "osName" : "Debian",
+            "osVersion" : "10.6",
+            "machineType" : "Virtual"
+          }
+        ]
+      }
+    }
+---
+description: Accept or refuse given pending node without status
+method: POST
+url: /api/latest/nodes/pending/node1-pending
+headers:
+  - "Content-Type: application/json"
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "changePendingNodeStatus",
+      "result" : "error",
+      "errorDetails" : "Error when changing Node status; cause was: Node status not correctly sent; cause was: Unexpected: Unexpected end of input"
+    }
+---
 description: Get the status (pending, accepted, unknown) of the comma separated list of nodes given by `ids` parameter
 method: GET
 url: /api/latest/nodes/status?ids=node1,378740d3-c4a9-4474-8485-478e7e52db53
@@ -1139,6 +1397,13 @@ response:
   code: 200
   content: >-
     {
+      "node1-pending" : {
+        "name" : "stringParam",
+        "value" : "some string",
+        "provider" : "inherited",
+        "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>&quot;some string&quot;</pre></p>",
+        "origval" : "some string"
+      },
       "node-dsc" : {
         "name" : "stringParam",
         "value" : "some string",
