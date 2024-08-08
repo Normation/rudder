@@ -10,10 +10,16 @@
   <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-rules.js"></script>
   <script>
     var hasWriteRights = false;
+    var canReadChanqeRequest = false;
   </script>
   <lift:authz role="rule_write">
     <script>
       hasWriteRights = true;
+    </script>
+  </lift:authz>
+  <lift:authz role="validator_read">
+    <script>
+      canReadChanqeRequest = true;
     </script>
   </lift:authz>
   <script>
@@ -22,6 +28,7 @@
       var initValues = {
         contextPath    : contextPath
       , hasWriteRights : hasWriteRights
+      , canReadChanqeRequest : canReadChanqeRequest
       };
 
       var app = Elm.Rules.init({node: main, flags: initValues});
