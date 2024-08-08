@@ -33,7 +33,7 @@ view model =
       [ div [class "row", id "nodeProp"]
         [ div [ class "col-sm-12" ] [
             div [ class "alert alert-info" ] [
-                text "These are node properties that can be used in directive inputs with the "
+                text "These are properties that can be used in directive inputs with the "
               , b [ class "code" ] [ text "${node.properties[NAME]}" ]
               , text " syntax."
               ]
@@ -114,7 +114,7 @@ view model =
                     [ tr[]
                       [ td [class "empty", colspan 4]
                         [ i [class "fa fa-exclamation-triangle"][]
-                        , text "This node has no properties"
+                        , text "No properties defined"
                         ]
                       ]
                     ]
