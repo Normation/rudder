@@ -399,7 +399,7 @@ class NodeApi(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
       (for {
-        nodeIdStatus <- restExtractor.extractNodeIdStatus(req).toIO.chainError("Node status not correctly sent")
+        nodeIdStatus <- restExtractor.extractNodeIdStatus(req).toIO.chainError("Node ID or status not correctly sent")
         res          <- nodeApiService.changeNodeStatus(
                           nodeIdStatus.nodeId,
                           nodeIdStatus.status.transformInto[NodeStatusAction],
@@ -407,7 +407,7 @@ class NodeApi(
                         )
       } yield {
         res
-      }).chainError("Error when changing Node status").toLiftResponseOne(params, schema, _ => None)
+      }).chainError("Error when changing Node status").toLiftResponseList(params, schema)
     }
   }
 
@@ -429,7 +429,7 @@ class NodeApi(
           nodeApiService.changeNodeStatus(List(NodeId(id)), status.status.transformInto[NodeStatusAction], Some(req.remoteAddr))
       } yield {
         res
-      }).chainError("Error when changing Node status").toLiftResponseOne(params, schema, _ => Some(id))
+      }).chainError("Error when changing Node status").toLiftResponseList(params, schema)
     }
   }
 
