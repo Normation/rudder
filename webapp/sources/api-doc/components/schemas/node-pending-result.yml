@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2024 Normation SAS
+type: object
+required:
+  - id
+  - hostname
+  - status
+properties:
+  ##########
+  #
+  # minimal
+  #
+  ##########
+  id:
+    type: string
+    description: Unique id of the node
+    format: uuid (or "root")
+    example: "9a1773c9-0889-40b6-be89-f6504443ac1b"
+  hostname:
+    type: string
+    description: Fully qualified name of the node
+    example: node1.example.com
+  status:
+    type: string
+    description: Status of the node
+    enum:
+      - pending
+      - accepted
+      - deleted
+    example: accepted
+  ##########
+  #
+  # optional : pending nodes API may return these
+  #
+  ##########
+  osName:
+    type: string
+    description: Operating system name (distribution on Linux, etc.)
+    example: "Centos"
+  osVersion:
+    type: string
+    description: OS version
+    example: "7.6.1810"
+  machineType:
+    type: string
+    description: The kind of machine for the node (use vm for a generic VM)
+    enum:
+      - physical
+      - vm
+      - aixlpar
+      - bsdjail
+      - hyperv
+      - qemu
+      - solariszone
+      - vbox
+      - vmware
+      - xen
