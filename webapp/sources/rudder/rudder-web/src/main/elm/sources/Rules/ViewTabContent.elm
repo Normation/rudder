@@ -221,8 +221,8 @@ informationTab model details =
 
     pendingCrWarning = case model.ui.crSettings of
       Just settings ->
-        if settings.enableChangeRequest && not (List.isEmpty settings.pendingChangeRequests) then
-          div [class "col-md-12"]
+        if (settings.enableChangeRequest && not (List.isEmpty settings.pendingChangeRequests)) then
+          div [class "col-sm-12"]
           [ div[class ("callout-fade callout-info callout-cr" ++ if settings.collapsePending then " list-hidden" else ""), id "accordionCR"]
             [ p[]
               [ b[]
