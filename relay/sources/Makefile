@@ -31,14 +31,6 @@ target/man-source/%: man/%.adoc
 	mkdir -p target/man-source
 	asciidoctor -D target/man-source -b manpage $<
 
-autocomplete/rudder-pkg.sh:
-	# docopt-completion needs python3
-	PIP_BREAK_SYSTEM_PACKAGES=1 pip3 install infi.docopt-completion
-	# rudder-pkg may use dodopt python2
-	if head -n1 $(CURDIR)/rudder-pkg/rudder-pkg | grep python2 >/dev/null 2>&1; then pip install docopt; fi
-	mkdir -p autocomplete
-	export PATH=$$PATH:/usr/local/bin; export PYTHONPATH=$(CURDIR)/rudder-pkg/lib/rudder-pkg:$$PYTHONPATH; cd autocomplete && docopt-completion $(CURDIR)/rudder-pkg/rudder-pkg --manual-bash && cd -
-
 man: target/man/rudder-relayd.1.gz;
 
 target/man/rudder-relayd.1.gz:
@@ -47,7 +39,7 @@ target/man/rudder-relayd.1.gz:
 	gzip -f target/man/rudder-relayd.1
 
 CACHE=cache() { [ -x ../../../../../build-caching ] && ../../../../../build-caching "$$@"; [ -x ../../../../../../build-caching ] && ../../../../../../build-caching "$$@" ; } ; cache
-build: man rudder-pkg/rudder_plugins_key.pub autocomplete/rudder-pkg.sh
+build: man rudder-pkg/rudder_plugins_key.pub
 	# Build rust binaries
 	mkdir -p ../../../../../.cargo/ relayd/target/ rudder-package/target/
 	$(CACHE) get ../../../../../.cargo/ name=cargo major=$(RUDDER_MAJOR_VERSION) || true
@@ -58,7 +50,10 @@ build: man rudder-pkg/rudder_plugins_key.pub autocomplete/rudder-pkg.sh
 	$(CACHE) put relayd/target/ --with-env name=relayd major=$(RUDDER_MAJOR_VERSION) || true
 	### rudder-package
 	$(CACHE) get rudder-package/target/ --with-env name=rudder-package major=$(RUDDER_MAJOR_VERSION) || true
-	cd rudder-package && make build
+	cd rudder-package && COMPLETION_OUT_DIR=../../../target make build
+	# Modify completion to make it callable by our global completion function
+	sed -i "s@_rudder() {@_rudderpkg() {@" ../../target/rudder.bash
+	sed -i '/^if/,$d' ../../target/rudder.bash 
 	# the cache is always updated and cargo will rebuild only what is needed
 	$(CACHE) put rudder-package/target/ --with-env name=rudder-package major=$(RUDDER_MAJOR_VERSION) || true
 	### common
@@ -115,6 +110,7 @@ install: build
 
 	# rudder-package new implementation
 	install -m 755 ../../target/release/rudder-package $(DESTDIR)/opt/rudder/bin/rudder-package
+	install -m 644 ../../target/rudder.bash $(DESTDIR)/etc/bash_completion.d/rudder-package.sh
 	install -m 644 rudder-package/tools/rudder_plugins_key.gpg $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.gpg
 	install -m 755 rudder-package/tools/rudder-package.sh $(DESTDIR)/opt/rudder/share/commands/package
 	install -m 644 rudder-pkg/rudder-pkg.conf $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder-pkg.conf
@@ -124,7 +120,6 @@ install: build
 	install -m 755 rudder-pkg/rudder-pkg $(DESTDIR)/opt/rudder/share/python/rudder-pkg/rudder-pkg
 	ln -ns ../share/commands/package $(DESTDIR)/opt/rudder/bin/rudder-pkg
 	install -m 644 rudder-pkg/rudder_plugins_key.pub $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.pub
-	install -m 644 autocomplete/rudder-pkg.sh $(DESTDIR)/etc/bash_completion.d/
 	cp -r rudder-pkg/lib/* $(DESTDIR)/opt/rudder/share/python/
 
 	# Apache
@@ -181,7 +176,6 @@ clean:
 	rm -rf rudder-pkg/lib/rudder-pkg/*.pyc
 	rm -rf rudder-pkg/lib/rudder-pkg/tests/.hypothesis/
 	rm -rf rudder-pkg/rudder_plugins_key.pub
-	rm -rf autocomplete
 	cd relayd && cargo clean
 
 veryclean: clean

@@ -52,7 +52,6 @@ const LICENSES_FOLDER: &str = "/opt/rudder/etc/plugins/licenses";
 const WEBAPP_XML_PATH: &str = "/opt/rudder/share/webapps/rudder.xml";
 const PACKAGES_DATABASE_PATH: &str = "/var/rudder/packages/index.json";
 const PACKAGE_SCRIPTS_ARCHIVE: &str = "scripts.txz";
-const CONFIG_PATH: &str = "/opt/rudder/etc/rudder-pkg/rudder-pkg.conf";
 const SIGNATURE_KEYRING_PATH: &str = "/opt/rudder/etc/rudder-pkg/rudder_plugins_key.gpg";
 const RUDDER_VERSION_PATH: &str = "/opt/rudder/share/versions/rudder-server-version";
 const REPOSITORY_INDEX_PATH: &str = "/var/rudder/tmp/plugins/rpkg.index";
