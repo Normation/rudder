@@ -320,6 +320,7 @@ type alias UI =
     , complianceFilters : ComplianceFilters
     , modal : ModalState
     , hasWriteRights : Bool
+    , canReadChanqeRequest : Bool
     , loadingRules : Bool
     , isAllCatFold : Bool
     , saving : Bool
@@ -372,7 +373,10 @@ type Msg
     | CallApi Bool (Model -> Cmd Msg)
     | GetRuleDetailsResult (Result Error Rule)
     | GetPolicyModeResult (Result Error String)
-    | GetChangeRequestSettings (Result Error ChangeRequestSettings)
+    | GetEnableChangeMsg (Result Error Bool)
+    | GetMandatoryMsg (Result Error Bool)
+    | GetMsgPrompt (Result Error String)
+    | GetEnableCr (Result Error Bool)
     | GetPendingChangeRequests (Result Error (List ChangeRequest))
     | GetCategoryDetailsResult (Result Error (Category Rule))
     | GetRulesComplianceResult (Result Error (List RuleComplianceGlobal))
