@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2024 Normation SAS
+type: object
+required:
+  - username
+  - password
+  - permissions
+  - isPreHashed
+properties:
+  username:
+    type: string
+    description: A new username
+    example: johndoe
+  password:
+    type: string
+    description: This password will be hashed for you if the `isPreHashed` is set on false
+    example: passwdWillBeStoredHashed
+  permissions:
+    type: array
+    description: Roles or authorizations
+    items:
+      type: string
+      example: admin
+  isPreHashed:
+    type: boolean
+    description: If you want to provide hashed password set this property to `true` otherwise we will hash the plain password and store the hash
+    enum:
+      - false
+      - true
+  name:
+    type: string
+    example: John Doe
+  email:
+    type: string
+    example: john.doe@example.com
+  otherInfo:
+    type: object
+    additionalProperties:
+      type: string
+    example:
+      phone: "+1234"

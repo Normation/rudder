@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2024 Normation SAS
+type: object
+required:
+  - username
+  - password
+  - permissions
+  - isPreHashed
+properties:
+  username:
+    type: string
+    description: A new username or an empty string to ignore the update of username.
+    example: johndoe
+  password:
+    type: string
+    description: This password will be hashed for you if the `isPreHashed` is set on false. Empty string means that no update is requested.
+    example: passwdWillBeStoredHashed
+  permissions:
+    type: array
+    description: Roles or authorizations
+    items:
+      type: string
+      example: admin
+  isPreHashed:
+    type: boolean
+    description: If you want to provide hashed password set this property to `true` otherwise we will hash the plain password and store the hash
+    enum:
+      - false
+      - true

@@ -1,13 +1,15 @@
 post:
-  summary: Add user
-  description: Add a new user
-  operationId: addUser
+  summary: Update user information
+  description: Modify name and email of user, and add or remove custom additional string fields
+  operationId: updateUserInfo
+  parameters:
+    - $ref: ../../components/parameters/username.yml
   requestBody:
     required: true
     content:
       application/json:
         schema:
-          $ref: ../../components/schemas/user-new.yml
+          $ref: ../../components/schemas/user-info.yml
   responses:
     "200":
       description: Updated
@@ -30,34 +32,15 @@ post:
                 type: string
                 description: The id of the action
                 enum:
-                  - addUser
+                  - updateUser
               data:
                 type: object
                 required:
-                  - addedUser
+                  - updatedUser
                 properties:
-                  addedUser:
+                  updatedUser:
                     type: object
-                    required:
-                      - username
-                      - password
-                      - permissions
-                      - isPreHashed
                     properties:
-                      username:
-                        type: string
-                        description: New username
-                        example: johndoe
-                      password:
-                        type: string
-                        description: New given password, hashed or not
-                        example: secret_password
-                      permissions:
-                        type: array
-                        description: Permissions of new user
-                        items:
-                          type: string
-                          example: inventory
                       name:
                         type: string
                         example: John Doe
@@ -75,4 +58,4 @@ post:
   x-codeSamples:
     - lang: curl
       source:
-        $ref: ../../code_samples/curl/usermanagement/add.sh
+        $ref: ../../code_samples/curl/usermanagement/update-info.sh
