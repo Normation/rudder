@@ -279,7 +279,6 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
-    extern crate dir_diff;
 
     #[test]
     fn test_read_rpkg_metadata() {

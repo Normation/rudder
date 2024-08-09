@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use std::{path::Path, process::Command};
+use std::{process::Command};
 
-use anyhow::{bail, Result};
 
 use crate::output::ResultOutput;
 // We have systemd everywhere.

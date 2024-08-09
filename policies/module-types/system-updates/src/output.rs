@@ -3,7 +3,7 @@
 
 use std::process::{Command, Output};
 
-use anyhow::{anyhow, Context, Error, Result};
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use log::debug;
 use serde::{Deserialize, Serialize};
@@ -12,7 +12,7 @@ use crate::package_manager::PackageDiff;
 
 /// Outcome of each function
 ///
-/// We need to collect outputs for reporting, but also to log in live for debugging purposes.
+/// We need to collect outputs for reporting, but  also to log in live for debugging purposes.
 #[must_use]
 pub struct ResultOutput<T> {
     pub res: Result<T>,

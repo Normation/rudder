@@ -8,6 +8,11 @@ use crate::package_manager::rpm::RpmPackageManager;
 use crate::package_manager::{LinuxPackageManager, PackageList, PackageSpec};
 use anyhow::{bail, Result};
 
+/// We need to be compatible with:
+///
+/// * SLES 12 SP5+
+/// * SLES 15 SP2+
+
 pub struct ZypperPackageManager {
     rpm: RpmPackageManager,
 }
@@ -42,11 +47,11 @@ impl ZypperPackageManager {
 }
 
 impl LinuxPackageManager for ZypperPackageManager {
-    fn list_installed(&self) -> Result<PackageList> {
+    fn list_installed(&mut self) -> Result<PackageList> {
         self.rpm.installed()
     }
 
-    fn full_upgrade(&self) -> ResultOutput<()> {
+    fn full_upgrade(&mut self) -> ResultOutput<()> {
         let mut res = ResultOutput::new(Ok(()));
         let mut c = Command::new("zypper");
 
@@ -56,7 +61,7 @@ impl LinuxPackageManager for ZypperPackageManager {
         res
     }
 
-    fn security_upgrade(&self) -> ResultOutput<()> {
+    fn security_upgrade(&mut self) -> ResultOutput<()> {
         let mut res = ResultOutput::new(Ok(()));
         let mut c = Command::new("zypper");
 
@@ -69,7 +74,7 @@ impl LinuxPackageManager for ZypperPackageManager {
         res
     }
 
-    fn upgrade(&self, packages: Vec<PackageSpec>) -> ResultOutput<()> {
+    fn upgrade(&mut self, packages: Vec<PackageSpec>) -> ResultOutput<()> {
         let mut res = ResultOutput::new(Ok(()));
         let mut c = Command::new("zypper");
 

@@ -2,23 +2,18 @@
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
 use std::{
-    fmt,
-    fmt::format,
-    fs,
-    fs::DirEntry,
+    fmt, fs,
     os::unix::prelude::{MetadataExt, PermissionsExt},
     path::Path,
     process::Command,
 };
 
 use crate::output::ResultOutput;
-use crate::MODULE_DIR;
 use anyhow::{bail, Result};
-use rudder_module_type::{rudder_debug, rudder_info, rudder_warning};
-use serde::{Deserialize, Serialize};
+use rudder_module_type::{rudder_debug, rudder_info};
 
 const HOOKS_DIR: &str = "/var/rudder/system-update/hooks.d/";
-const PRE_HOOK: &str = "pre-upgrade";
+const PRE_UPGRADE_HOOK: &str = "pre-upgrade";
 const PRE_REBOOT_HOOK: &str = "pre-reboot";
 const POST_HOOK_DIR: &str = "post-upgrade";
 
@@ -32,9 +27,9 @@ pub enum Hooks {
 impl fmt::Display for Hooks {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Hooks::PreUpgrade => write!(f, "pre-upgrade"),
-            Hooks::PreReboot => write!(f, "pre-reboot"),
-            Hooks::PostUpgrade => write!(f, "post-upgrade"),
+            Hooks::PreUpgrade => write!(f, "{}", PRE_UPGRADE_HOOK),
+            Hooks::PreReboot => write!(f, "{}", PRE_REBOOT_HOOK),
+            Hooks::PostUpgrade => write!(f, "{}", POST_HOOK_DIR),
         }
     }
 }
@@ -71,7 +66,7 @@ fn hook_is_runnable(path: &Path, euid: u32) -> Result<()> {
 
 impl Hooks {
     pub fn run(self) -> ResultOutput<()> {
-        let path = Path::new(MODULE_DIR).join(self.to_string());
+        let path = Path::new(HOOKS_DIR).join(self.to_string());
         Self::run_dir(path.as_path())
     }
 
@@ -187,9 +182,9 @@ mod tests {
         let dir = tempdir().unwrap();
         let dir_path = dir.path();
         let file_path = dir_path.join("tempfile");
-        File::create(&file_path).unwrap();
+        File::create(file_path).unwrap();
 
-        let result = Hooks::run_dir(&dir_path);
+        let result = Hooks::run_dir(dir_path);
         assert!(result.res.is_ok());
     }
 }
