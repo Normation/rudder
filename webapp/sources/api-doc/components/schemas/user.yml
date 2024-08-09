@@ -75,6 +75,11 @@ properties:
         type: array
         items:
           $ref: right.yml
+  tenants:
+    type: array
+    items:
+      type: string
+      example: zone-fr-servers
   lastLogin:
     type: string
     format: date-time
