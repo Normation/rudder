@@ -30,8 +30,12 @@ get:
               data:
                 type: object
                 required:
-                  - digest
+                  - roleListOverride
+                  - authenticationBackends
+                  - providerProperties
                   - users
+                  - digest
+                  - tenantsEnabled
                 properties:
                   roleListOverride:
                     $ref: ../../components/schemas/role-list-override.yml
