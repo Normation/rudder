@@ -175,7 +175,10 @@ final case class JsonRights(
 }
 
 object JsonRights {
-  implicit val transformer: Transformer[Rights, JsonRights] = rights => JsonRights(rights.authorizationTypes.map(_.id))
+  implicit val transformer: Transformer[Rights, JsonRights] = {
+    case rights if rights == Rights.NoRights => JsonRights.empty
+    case rights                              => JsonRights(rights.authorizationTypes.map(_.id))
+  }
 
   // We don't want to send "no_rights" for now, as it is not yet handled back as an empty set of rights when updating a user
   val empty:     JsonRights = JsonRights(Set.empty)

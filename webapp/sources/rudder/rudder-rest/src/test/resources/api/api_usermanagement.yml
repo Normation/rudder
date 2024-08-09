@@ -57,7 +57,7 @@ response:
               "rule_only",
               "user"
             ],
-            "customRights" : ["no_rights"],
+            "customRights" : [],
             "providers" : [
               "file"
             ],
@@ -93,7 +93,7 @@ response:
                 "roles" : [
                   "user"
                 ],
-                "customRights" : ["no_rights"]
+                "customRights" : []
               }
             },
             "tenants" : "zoneA"
@@ -127,7 +127,7 @@ response:
               "read_only",
               "rule_only"
             ],
-            "customRights" : ["no_rights"],
+            "customRights" : [],
             "providers" : [
               "file"
             ],
@@ -154,7 +154,7 @@ response:
                 "roles" : [
                   "read_only"
                 ],
-                "customRights" : ["no_rights"]
+                "customRights" : []
               }
             },
             "tenants" : "all",
@@ -179,9 +179,9 @@ response:
             "providersInfo" : {
               "manager" : {
                 "provider" : "manager",
-                "authz" : ["no_rights"],
+                "authz" : [],
                 "roles" : [],
-                "customRights" : ["no_rights"]
+                "customRights" : []
               }
             },
             "tenants" : "none"
