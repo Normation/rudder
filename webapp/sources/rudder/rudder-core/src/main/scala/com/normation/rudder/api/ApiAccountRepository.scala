@@ -164,24 +164,7 @@ final class RoLDAPApiAccountRepository(
         // here, be careful to the semantic of get with a filter!
         optEntry <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, hash))
         optRes   <- optEntry match {
-                      case None    => {
-                        // Fallback on v1 clear text tokens
-                        for {
-                          optEntry <-
-                            // here, be careful to the semantic of get with a filter!
-                            ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, token.value))
-                          optRes   <- optEntry match {
-                                        case None    => None.succeed
-                                        case Some(e) =>
-                                          mapper
-                                            .entry2ApiAccount(e)
-                                            .map(Some(_))
-                                            .toIO
-                                      }
-                        } yield {
-                          optRes
-                        }
-                      }
+                      case None    => None.succeed
                       case Some(e) => mapper.entry2ApiAccount(e).map(Some(_)).toIO
                     }
       } yield {
