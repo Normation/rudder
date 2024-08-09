@@ -42,7 +42,7 @@ get:
                         example: Done
 
   tags:
-    - 🧩 User Management
+    - User management
   x-codeSamples:
     - lang: curl
       source:

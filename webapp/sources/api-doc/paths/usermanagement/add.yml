@@ -71,7 +71,7 @@ post:
                         example:
                           phone: "+1234"
   tags:
-    - 🧩 User Management
+    - User management
   x-codeSamples:
     - lang: curl
       source:
