@@ -64,10 +64,6 @@ get:
                     type: string
                     enum:
                       - BCRYPT
-                      - SHA512
-                      - SHA256
-                      - SHA1
-                      - MD5
                     description: Default password hash algorithm
                   tenantsEnabled:
                     type: boolean
