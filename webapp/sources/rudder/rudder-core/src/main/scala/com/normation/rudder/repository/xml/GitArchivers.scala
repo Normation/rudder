@@ -40,6 +40,7 @@ package com.normation.rudder.repository.xml
 import com.normation.NamedZioLogger
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueCategoryMetadata
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.TechniqueRepository
@@ -52,6 +53,7 @@ import com.normation.rudder.domain.Constants.CONFIGURATION_RULES_ARCHIVE_TAG
 import com.normation.rudder.domain.Constants.GROUPS_ARCHIVE_TAG
 import com.normation.rudder.domain.Constants.PARAMETERS_ARCHIVE_TAG
 import com.normation.rudder.domain.Constants.POLICY_LIBRARY_ARCHIVE_TAG
+import com.normation.rudder.domain.logger.GitArchiveLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
@@ -70,6 +72,7 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.services.marshalling.*
 import com.normation.rudder.services.user.PersonIdentService
 import java.io.File
+import java.io.FileNotFoundException
 import net.liftweb.common.*
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
@@ -238,6 +241,7 @@ trait TechniqueArchiver {
       committer:   EventActor,
       msg:         String
   ): IOResult[Unit]
+
   def saveTechnique(
       techniqueId:     TechniqueId,
       categories:      Seq[String],
@@ -245,6 +249,14 @@ trait TechniqueArchiver {
       modId:           ModificationId,
       committer:       EventActor,
       msg:             String
+  ): IOResult[Unit]
+
+  def saveTechniqueCategory(
+      categories: Seq[String], // path (inclusive) to the category
+      metadata:   TechniqueCategoryMetadata,
+      modId:      ModificationId,
+      committer:  EventActor,
+      msg:        String
   ): IOResult[Unit]
 }
 
@@ -414,6 +426,41 @@ class TechniqueArchiverImpl(
     } yield ()).chainError(s"error when committing Technique '${techniqueId.serialize}'").unit
   }
 
+  def saveTechniqueCategory(
+      categories: Seq[String], // path (inclusive) to the category
+      metadata:   TechniqueCategoryMetadata,
+      modId:      ModificationId,
+      committer:  EventActor,
+      msg:        String
+  ): IOResult[Unit] = {
+    val categoryPath = categories.filter(_ != "/").mkString("/")
+    val catGitPath   = s"${relativePath}/${categoryPath}/${TechniqueCategoryMetadata.FILE_NAME_XML}"
+    val categoryFile = gitRepo.rootDirectory / catGitPath
+    val xml          = metadata.toXml
+
+    categories.lastOption match {
+      case None        => Unexpected("You can't change the root category information").fail
+      case Some(catId) =>
+        (for {
+          // the file may not exist, which is not an error in that case
+          existing <- IOResult.attempt {
+                        val elem = XML.load(Source.fromFile(categoryFile.toJava))
+                        Some(TechniqueCategoryMetadata.parseXML(elem, catId))
+                      }.catchSome { case SystemError(_, _: FileNotFoundException) => None.succeed }
+          _        <- if (existing.contains(metadata)) {
+                        GitArchiveLoggerPure.debug(s"Not commiting '${catGitPath}' because it already exists with these values")
+                      } else {
+                        for {
+                          ident <- personIdentservice.getPersonIdentOrDefault(committer.name)
+                          parent = categoryFile.parent
+                          _     <- writeXml(categoryFile.toJava, xml, s"Archived technique category: ${catGitPath}")
+                          _     <- IOResult.attempt(gitRepo.git.add.addFilepattern(catGitPath).call())
+                          _     <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
+                        } yield ()
+                      }
+        } yield ()).chainError(s"error when committing technique category '${catGitPath}'").unit
+    }
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////

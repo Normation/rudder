@@ -136,7 +136,11 @@ object ZipUtils {
   def zip(zipout: OutputStream, toAdds: Seq[Zippable]): IOResult[Unit] = {
     // we must ensure that each entry is unique, else zip fails
     val unique = toAdds.distinctBy(_.path)
-    ZIO.acquireReleaseWith(IOResult.attempt(new ZipOutputStream(zipout)))(zout => effectUioUnit(zout.close())) { zout =>
+    ZIO.acquireReleaseWith(IOResult.attempt(new ZipOutputStream(zipout)))(zout => {
+      // if the connection is interrupted, for ex if you use curl without a --output arg,
+      // then the usual effectUioUnit(zout.close()) leads to a big stack trace (unactionnable, uninteresting).
+      ZIO.attemptBlocking(zout.close()).orElseSucceed(ZIO.unit)
+    }) { zout =>
       val addToZout = (is: InputStream) => IOResult.attempt("Error when copying file")(IOUtils.copy(is, zout))
 
       ZIO.foreachDiscard(unique) { x =>
