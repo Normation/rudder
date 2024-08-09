@@ -37,128 +37,119 @@
 
 package com.normation.rudder.rest
 
-import better.files.File
 import com.normation.rudder.campaigns.CampaignEvent
+import com.normation.rudder.campaigns.CampaignEventState
 import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.campaigns.Scheduled
-import com.normation.rudder.rest.RudderJsonResponse.JsonRudderApiResponse
-import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
+import com.normation.rudder.rest.RestTestSetUp2.TestDir
+import com.normation.rudder.rest.ZioLiftAssertions.assertJsonResponse
 import com.normation.utils.DateFormaterService
-import com.normation.zio.*
-import net.liftweb.common.Full
 import net.liftweb.common.Loggable
-import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
-import org.junit.runner.RunWith
-import org.specs2.mutable.Specification
-import org.specs2.runner.JUnitRunner
-import org.specs2.specification.AfterAll
-import scala.annotation.nowarn
+import zio.Clock
+import zio.Scope
+import zio.ZIO
+import zio.ZLayer
 import zio.json.*
+import zio.json.ast.Json
+import zio.test.*
+import zio.test.Assertion.*
 
-@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
-@RunWith(classOf[JUnitRunner])
-class CampaignApiTest extends Specification with AfterAll with Loggable {
+object CampaignApiTest extends ZIOSpecDefault with Loggable {
 
-  val restTestSetUp = RestTestSetUp.newEnv
-  ZioRuntime.unsafeRun(MainCampaignService.start(restTestSetUp.mockCampaign.mainCampaignService))
-  val restTest      = new RestTest(restTestSetUp.liftRules)
+  val spec: Spec[TestEnvironment & Scope, Throwable] = (suite("CampaignApiTest")(
+    suite("when rudder starts, we should")(
+      test("have one campaign") {
+        val expected = {
+          s"""[{"info":{
+             |"id":"c0",
+             |"name":"first campaign",
+             |"description":"a test campaign present when rudder boot",
+             |"status":{"value":"enabled"},
+             |"schedule":{"start":{"day":1,"hour":3,"minute":42},"end":{"day":1,"hour":4,"minute":42},"type":"weekly"}
+             |},
+             |"details":{"name":"campaign #0"},
+             |"campaignType":"dumb-campaign",
+             |"version":1
+             |}]""".stripMargin.replaceAll("\n", "")
+        }
+        for {
+          restTest <- ZIO.service[RestTest2]
+          actual    = restTest.testGETResponse("/secure/api/campaigns")
+        } yield assert(actual)(
+          assertJsonResponse[Map[String, List[Json]]](hasKey("campaigns", hasField("json", _.toJson, equalTo(expected))))
+        )
+      },
+      test("have two campaign events, one finished and one scheduled") {
+        Live.live {
+          for {
+            ce0      <- ZIO.serviceWith[RestTestSetUp2](_.mockCampaign.e0)
+            restTest <- ZIO.service[RestTest2]
+            now      <- Clock.instant
+            actual    = restTest.testGETResponse("/secure/api/campaigns/events")
+          } yield assert(actual)(
+            assertJsonResponse[Map[String, List[CampaignEvent]]](
+              hasKey(
+                "campaignEvents",
+                hasSize[CampaignEvent](equalTo(2)) &&
+                contains(ce0) &&
+                hasField[List[CampaignEvent], Option[CampaignEvent]](
+                  name = "next",
+                  proj = _.collectFirst { case x if x.id != ce0.id => x },
+                  assertion = isSome(
+                    hasField[CampaignEvent, CampaignEventState]("state", _.state, equalTo(Scheduled)) &&
+                    hasField[CampaignEvent, Long]("start", _.start.getMillis, isGreaterThan(now.toEpochMilli)) &&
+                    hasField("campaignId", _.campaignId, equalTo(ce0.campaignId))
+                  )
+                )
+              )
+            )
+          )
 
-  val testDir: File = File(s"/tmp/test-rudder-campaign-${DateFormaterService.serialize(DateTime.now())}")
-  testDir.createDirectoryIfNotExists(true)
+        }
+      },
+      test("save one campaign") {
+        val c1json = {
+          """{"info":{
+            |"id":"c1",
+            |"name":"second campaign",
+            |"description":"a test campaign present when rudder boot",
+            |"status":{"value":"enabled"},
+            |"schedule":{"start":{"day":1,"hour":3,"minute":42},"end":{"day":1,"hour":4,"minute":42},"type":"weekly"}
+            |},
+            |"details":{"name":"campaign #0"},
+            |"campaignType":"dumb-campaign",
+            |"version":1
+            |}""".stripMargin.replaceAll("""\n""", "")
+        }
 
-  override def afterAll(): Unit = {
-    if (System.getProperty("tests.clean.tmp") != "false") {
-      logger.info("Cleanup rest env ")
-      restTestSetUp.cleanup()
-      logger.info("Deleting directory " + testDir.pathAsString)
-      FileUtils.deleteDirectory(testDir.toJava)
-    }
-  }
+        val expected = s"""[$c1json]"""
 
-  def children(f: File): List[String] = f.children.toList.map(_.name)
-
-  // start service now, it takes sometime and is async, so we need to start it early to avoid flakiness
-
-//  org.slf4j.LoggerFactory.getLogger("campaign").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
-
-  val c0json: String = {
-    """{"info":{
-      |"id":"c0",
-      |"name":"first campaign",
-      |"description":"a test campaign present when rudder boot",
-      |"status":{"value":"enabled"},
-      |"schedule":{"start":{"day":1,"hour":3,"minute":42},"end":{"day":1,"hour":4,"minute":42},"type":"weekly"}
-      |},
-      |"details":{"name":"campaign #0"},
-      |"campaignType":"dumb-campaign",
-      |"version":1
-      |}""".stripMargin.replaceAll("""\n""", "")
-  }
-
-  // init in mock
-  val ce0 = restTestSetUp.mockCampaign.e0
-
-  sequential
-
-  "when rudder starts, we" should {
-    "have one campaign" in {
-      val resp = s"""[$c0json]"""
-
-      restTest.testGETResponse("/secure/api/campaigns") {
-        case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, _, Some(map), _), _, _)) =>
-          map.asInstanceOf[Map[String, List[zio.json.ast.Json]]]("campaigns").toJson must beEqualTo(resp)
-        case err                                                                        =>
-          ko(s"I got an error in test: ${err}")
+        for {
+          restTest <- ZIO.service[RestTest2]
+          actual    = restTest.testPOSTResponse("/secure/api/campaigns", net.liftweb.json.parse(c1json))
+        } yield assert(actual)(
+          assertJsonResponse[Map[String, List[Json]]](hasKey("campaigns", hasField("json", _.toJson, equalTo(expected))))
+        )
       }
-    }
+    )
+  ) @@ TestAspect.beforeAll(
+    ZIO.attemptBlocking(
+      org.slf4j.LoggerFactory
+        .getLogger("campaign")
+        .asInstanceOf[ch.qos.logback.classic.Logger]
+        .setLevel(ch.qos.logback.classic.Level.TRACE)
+    )
+  ) @@ TestAspect.before(
+    // start service now, it takes sometime and is async, so we need to start it early to avoid flakiness
+    ZIO.serviceWithZIO[RestTestSetUp2](x => MainCampaignService.start(x.mockCampaign.mainCampaignService).forkScoped)
+  ) @@ TestAspect.before(ZIO.serviceWithZIO[TestDir](_ => ZIO.unit)) // ensure testDir is created
+  )
+    .provideSome[Scope](
+      ZLayer.succeed(logger),
+      RestTestSetUp2.testDir(s"/tmp/test-rudder-campaign-${DateFormaterService.serialize(DateTime.now())}"),
+      RestTestSetUp2.layer,
+      RestTest2.layer
+    ) @@ TestAspect.sequential
 
-    "have two campaign events, one finished and one scheduled" in {
-
-      restTest.testGETResponse("/secure/api/campaigns/events") {
-        case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, _, Some(map), _), _, _)) =>
-          val events = map.asInstanceOf[Map[String, List[CampaignEvent]]]("campaignEvents")
-          val ce0res = events.find(_.id == ce0.id)
-          // ce0 exists
-          (ce0res must beEqualTo(Some(ce0))) and
-          // scheduled event
-          (events.size must beEqualTo(2)) and {
-            val next = events.collectFirst { case x if x.id != ce0.id => x }
-              .getOrElse(throw new IllegalArgumentException(s"Missing test value"))
-            // it's in the future
-            (next.start.getMillis must be_>(System.currentTimeMillis())) and
-            (next.state must beEqualTo(Scheduled)) and
-            (next.campaignId must beEqualTo(ce0.campaignId))
-          }
-
-        case err => ko(s"I got an error in test: ${err}")
-      }
-    }
-
-    "save one campaign" in {
-
-      val c1json = {
-        """{"info":{
-          |"id":"c1",
-          |"name":"second campaign",
-          |"description":"a test campaign present when rudder boot",
-          |"status":{"value":"enabled"},
-          |"schedule":{"start":{"day":1,"hour":3,"minute":42},"end":{"day":1,"hour":4,"minute":42},"type":"weekly"}
-          |},
-          |"details":{"name":"campaign #0"},
-          |"campaignType":"dumb-campaign",
-          |"version":1
-          |}""".stripMargin.replaceAll("""\n""", "")
-      }
-
-      val resp = s"""[$c1json]"""
-
-      restTest.testPOSTResponse("/secure/api/campaigns", net.liftweb.json.parse(c1json)) {
-        case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, _, Some(map), _), _, _)) =>
-          map.asInstanceOf[Map[String, List[zio.json.ast.Json]]]("campaigns").toJson must beEqualTo(resp)
-        case err                                                                        =>
-          ko(s"I got an error in test: ${err}")
-      }
-    }
-  }
 }
