@@ -57,9 +57,10 @@ import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.properties.MergeNodeProperties
+import com.normation.rudder.properties.PropertiesRepository
 import com.normation.rudder.repository.CategoryAndNodeGroup
 import com.normation.rudder.repository.RoNodeGroupRepository
-import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.rest.*
 import com.normation.rudder.rest.GroupApi as API
@@ -67,7 +68,6 @@ import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.implicits.*
-import com.normation.rudder.services.nodes.MergeNodeProperties
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.QueryProcessor
 import com.normation.rudder.services.workflows.*
@@ -679,8 +679,7 @@ class GroupsApi(
 }
 
 class GroupApiInheritedProperties(
-    groupRepo: RoNodeGroupRepository,
-    paramRepo: RoParameterRepository
+    propRepo: PropertiesRepository
 ) {
 
   /*
@@ -690,14 +689,12 @@ class GroupApiInheritedProperties(
   def getNodePropertiesTree(groupId: NodeGroupId, renderInHtml: RenderInheritedProperties): IOResult[JArray] = {
 
     for {
-      allGroups  <- groupRepo.getFullGroupLibrary().map(_.allGroups)
-      params     <- paramRepo.getAllGlobalParameters()
-      properties <- MergeNodeProperties.forGroup(groupId, allGroups, params.map(p => (p.name, p)).toMap).toIO
+      properties <- propRepo.getGroupProps(groupId).notOptional(s"Group with ID '${groupId.serialize}' was not found")
     } yield {
       import com.normation.rudder.domain.properties.JsonPropertySerialisation.*
       val rendered = renderInHtml match {
-        case RenderInheritedProperties.HTML => properties.toApiJsonRenderParents
-        case RenderInheritedProperties.JSON => properties.toApiJson
+        case RenderInheritedProperties.HTML => properties.toList.toApiJsonRenderParents
+        case RenderInheritedProperties.JSON => properties.toList.toApiJson
       }
       JArray(
         (
@@ -1077,11 +1074,10 @@ class GroupApiService14(
     nodeFactRepo:         NodeFactRepository,
     readGroup:            RoNodeGroupRepository,
     writeGroup:           WoNodeGroupRepository,
-    paramRepo:            RoParameterRepository,
+    propertiesRepo:       PropertiesRepository,
     uuidGen:              StringUuidGenerator,
     asyncDeploymentAgent: AsyncDeploymentActor,
     workflowLevelService: WorkflowLevelService,
-    restExtractor:        RestExtractorService,
     queryParser:          CmdbQueryParser,
     queryProcessor:       QueryProcessor,
     restDataSerializer:   RestDataSerializer
@@ -1352,33 +1348,32 @@ class GroupApiService14(
 
       nodes <- nodeFactRepo.getAll().map(_.filterKeys(serverList.contains(_)).values.toList)
 
-      params           <- paramRepo.getAllGlobalParameters().map(_.map(p => (p.name, p)).toMap)
-      parentProperties <- MergeNodeProperties.forGroup(groupId, allGroups, params).toIO
+      parentProperties <-
+        propertiesRepo.getGroupProps(groupId).notOptional(s"Inherited properties for group '${groupId.serialize}' were not found")
       properties       <- ZIO.foreach(nodes) { nodeFact =>
                             // for each property, find merged properties for nodes in the group and report type conflict
-                            MergeNodeProperties
-                              .forNode(
-                                nodeFact.toNodeInfo,
-                                groupLibrary.getTarget(nodeFact).map(_._2).toList,
-                                params
+                            propertiesRepo
+                              .getNodeProps(nodeFact.id)
+                              .notOptional(
+                                s"Inherited properties for node '${nodeFact.id.value}' were not found while it's contained into group '${groupId.serialize}''"
                               )
-                              .map(childProperties => {
-                                parentProperties
-                                  .map(p => {
-                                    val matchingChildProperties = childProperties.collect {
-                                      case cp if cp.prop.name == p.prop.name => cp.hierarchy
-                                    }
-                                    val hasConflicts            = MergeNodeProperties
-                                      .checkValueTypes(matchingChildProperties.map(NodePropertyHierarchy(p.prop, _)))
-                                      .isLeft
-                                    (
-                                      p,
-                                      matchingChildProperties.flatten,
-                                      hasConflicts
-                                    )
-                                  })
-                              })
-                              .toIO
+                              .map { childProperties =>
+                                parentProperties.map { p =>
+                                  val matchingChildProperties = childProperties.collect {
+                                    case cp if cp.prop.name == p.prop.name => cp.hierarchy
+                                  }.toList
+
+                                  val hasConflicts = MergeNodeProperties
+                                    .checkValueTypes(matchingChildProperties.map(NodePropertyHierarchy(p.prop, _)))
+                                    .isLeft
+
+                                  (
+                                    p,
+                                    matchingChildProperties.flatten,
+                                    hasConflicts
+                                  )
+                                }
+                              }
                           }
 
     } yield {

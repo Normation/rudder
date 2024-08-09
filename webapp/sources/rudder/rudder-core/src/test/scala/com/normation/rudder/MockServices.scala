@@ -97,12 +97,16 @@ import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.queries.CriterionComposition
+import com.normation.rudder.domain.reports.NodeComplianceExpirationMode
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
 import com.normation.rudder.facts.nodes.MockNodeFactFullInventoryRepositoryProxy
 import com.normation.rudder.facts.nodes.NodeFact
+import com.normation.rudder.facts.nodes.NodeFactChangeEvent
+import com.normation.rudder.facts.nodes.NodeFactChangeEventCallback
+import com.normation.rudder.facts.nodes.NodeFactChangeEventCC
 import com.normation.rudder.facts.nodes.NodeFactStorage
 import com.normation.rudder.facts.nodes.NodeInfoServiceProxy
 import com.normation.rudder.facts.nodes.QueryContext
@@ -117,6 +121,9 @@ import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.git.SimpleGitRevisionProvider
 import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.properties.InMemoryPropertiesRepository
+import com.normation.rudder.properties.NodePropertiesServiceImpl
+import com.normation.rudder.properties.PropertiesRepository
 import com.normation.rudder.reports.*
 import com.normation.rudder.repository.*
 import com.normation.rudder.repository.RoRuleRepository
@@ -138,6 +145,7 @@ import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.SystemVariableServiceImpl
 import com.normation.rudder.services.queries.*
+import com.normation.rudder.services.reports.NodePropertyBasedComplianceExpirationService
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.FactListNewNodes
 import com.normation.rudder.services.servers.FactRemoveNodeBackend
@@ -1538,10 +1546,11 @@ class MockGlobalParam() {
     InheritMode(ObjectMode.Override, ArrayMode.Prepend, StringMode.Append)
   }
 
-  val stringParam: GlobalParameter              =
+  val stringParam: GlobalParameter =
     GlobalParameter("stringParam", GitVersion.DEFAULT_REV, "some string".toConfigValue, None, "a simple string param", None)
   // json: the key will be sorted alpha-num by Config lib; array value order is kept.
-  val jsonParam:   GlobalParameter              = GlobalParameter
+
+  val jsonParam: GlobalParameter = GlobalParameter
     .parse(
       "jsonParam",
       GitVersion.DEFAULT_REV,
@@ -1551,9 +1560,11 @@ class MockGlobalParam() {
       None
     )
     .getOrElse(throw new RuntimeException("error in mock jsonParam"))
-  val modeParam:   GlobalParameter              =
+
+  val modeParam: GlobalParameter =
     GlobalParameter("modeParam", GitVersion.DEFAULT_REV, "some string".toConfigValue, Some(mode), "a simple string param", None)
-  val systemParam: GlobalParameter              = GlobalParameter(
+
+  val systemParam: GlobalParameter = GlobalParameter(
     "systemParam",
     GitVersion.DEFAULT_REV,
     "some string".toConfigValue,
@@ -1561,10 +1572,37 @@ class MockGlobalParam() {
     "a simple string param",
     Some(PropertyProvider.systemPropertyProvider)
   )
-  val all:         Map[String, GlobalParameter] = List(stringParam, jsonParam, modeParam, systemParam).map(p => (p.name, p)).toMap
+
+  val rudderConfig: GlobalParameter = GlobalParameter
+    .parse(
+      "rudder",
+      GitVersion.DEFAULT_REV,
+      s"""{ "${NodePropertyBasedComplianceExpirationService.PROP_KEY}":
+         |  { "${NodePropertyBasedComplianceExpirationService.PROP_NAME}":
+         |    { "mode":"${NodeComplianceExpirationMode.ExpireImmediately}"}
+         | }}""".stripMargin,
+      None,
+      "rudder system config",
+      Some(PropertyProvider.systemPropertyProvider)
+    )
+    .getOrElse(throw new RuntimeException("error in mock jsonParam"))
+
+  val all: Map[String, GlobalParameter] =
+    List(stringParam, jsonParam, modeParam, systemParam, rudderConfig).map(p => (p.name, p)).toMap
 
   val paramsRepo: paramsRepo = new paramsRepo
   class paramsRepo extends RoParameterRepository with WoParameterRepository {
+
+    // needed because we don't have real dyngroup update in mock, so propertiesService is
+    // not called when it should.
+    val callbacks = Ref.make(Chunk.empty[UIO[Unit]]).runNow
+
+    def runCallbacks[A](a: A): UIO[A] = {
+      for {
+        cs <- callbacks.get
+        _  <- ZIO.foreachDiscard(cs)(identity)
+      } yield a
+    }
 
     val paramsMap: Ref.Synchronized[Map[String, GlobalParameter]] =
       Ref.Synchronized.make[Map[String, GlobalParameter]](all).runNow
@@ -1593,6 +1631,7 @@ class MockGlobalParam() {
           }
         })
         .map(_ => AddGlobalParameterDiff(parameter))
+        .flatMap(runCallbacks)
     }
 
     override def updateParameter(
@@ -1616,6 +1655,7 @@ class MockGlobalParam() {
             ModifyGlobalParameterDiff(parameter.name, diff(_.value), diff(_.description), diff(_.provider), diff(_.inheritMode))
           )
         }
+        .flatMap(runCallbacks)
     }
 
     override def delete(
@@ -1625,15 +1665,17 @@ class MockGlobalParam() {
         actor:         EventActor,
         reason:        Option[String]
     ): IOResult[Option[DeleteGlobalParameterDiff]] = {
-      paramsMap.modifyZIO(params => {
-        params.get(parameterName) match {
-          case Some(r) =>
-            val m = (params - parameterName)
-            (Some(DeleteGlobalParameterDiff(r)), m).succeed
-          case None    =>
-            (None, params).succeed
-        }
-      })
+      paramsMap
+        .modifyZIO(params => {
+          params.get(parameterName) match {
+            case Some(r) =>
+              val m = (params - parameterName)
+              (Some(DeleteGlobalParameterDiff(r)), m).succeed
+            case None    =>
+              (None, params).succeed
+          }
+        })
+        .flatMap(runCallbacks)
     }
 
     override def swapParameters(newParameters: Seq[GlobalParameter]): IOResult[ParameterArchiveId] = {
@@ -2228,6 +2270,10 @@ class MockNodes() {
     CoreNodeFactRepository.make(nodeFactStorage, getNodesBySoftwareName, tenantService, Chunk(), Chunk()).runNow
   }
 
+  val propRepo: PropertiesRepository = {
+    InMemoryPropertiesRepository.make(nodeFactRepo).runNow
+  }
+
   object queryProcessor extends QueryProcessor {
 
     import cats.implicits.*
@@ -2372,7 +2418,7 @@ class MockNodes() {
   }
 }
 
-class MockNodeGroups(nodesRepo: MockNodes) {
+class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
 
   object groupsRepo extends RoNodeGroupRepository with WoNodeGroupRepository {
     implicit val qc:       QueryContext                   = QueryContext.testQC
@@ -2791,7 +2837,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
         None,
         None
       )
-      .getOrElse(null) // for test
+      .getOrElse(throw new RuntimeException(s"error group prop: jsonParam")) // for test
   )
 
   val g0:     NodeGroup                     = NodeGroup(
@@ -2942,6 +2988,31 @@ class MockNodeGroups(nodesRepo: MockNodes) {
 
   // init with full lib
   groupsRepo.categories.set(groupLib).runNow
+
+  val propService =
+    new NodePropertiesServiceImpl(mockGlobalParam.paramsRepo, groupsRepo, mockNodes.nodeFactRepo, mockNodes.propRepo)
+
+  (
+    propService.updateAll() *>
+    // that should be handle by dynamic group re-computation, but we don't have that in mock
+    mockNodes.nodeFactRepo.registerChangeCallbackAction(new NodeFactChangeEventCallback {
+      override def name: String = "update inherited properties"
+
+      override def run(change: NodeFactChangeEventCC): IOResult[Unit] = {
+        change.event match {
+          case NodeFactChangeEvent.Accepted(node, attrs)            => propService.updateAll()
+          case NodeFactChangeEvent.Updated(oldNode, newNode, attrs) => propService.updateAll()
+          case _                                                    => ZIO.unit
+        }
+      }
+    }) *> mockGlobalParam.paramsRepo.callbacks.update(
+      _.appended(
+        propService
+          .updateAll()
+          .catchAll(err => throw new RuntimeException(s"An exception should not happen here in tests: ${err.fullMsg}"))
+      )
+    )
+  ).runNow
 
 }
 
