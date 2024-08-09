@@ -20,4 +20,4 @@ mv cargo-deny-$DENY_VER-x86_64-unknown-linux-musl/cargo-deny /usr/local/bin/
 
 # Build & check tools
 cargo install --locked cargo-auditable@0.6.4
-cargo install --locked cargo-cyclonedx@0.7.0
+cargo install --locked cargo-cyclonedx@0.5.5
