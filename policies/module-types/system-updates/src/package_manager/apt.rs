@@ -120,7 +120,7 @@ impl LinuxPackageManager for AptPackageManager {
             };
             let id = PackageId {
                 name: p.name().to_string(),
-                arch: p.().to_string(),
+                arch: p.arch().to_string(),
             };
 
             list.insert(id, info);
