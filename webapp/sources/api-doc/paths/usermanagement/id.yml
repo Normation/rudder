@@ -44,7 +44,7 @@ delete:
                         description: Username of the deleted user
                         example: Toto
   tags:
-    - 🧩 User Management
+    - User management
   x-codeSamples:
     - lang: curl
       source:
