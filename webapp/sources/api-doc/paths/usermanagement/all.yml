@@ -41,10 +41,33 @@ get:
                       - SHA256
                       - SHA1
                       - MD5
+                  roleListOverride:
+                    $ref: ../../components/schemas/role-list-override.yml
+                  authenticationBackends:
+                    type: array
+                    items:
+                      type: string
+                      enum:
+                        - rootAdmin
+                        - file
+                        - ldap
+                        - oidc
+                        - oauth2
+                  providerProperties:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        roleListOverride:
+                          $ref: ../../components/schemas/role-list-override.yml
+                    example:
+                      file:
+                        roleListOverride:
+                          override
                   users:
                     type: array
                     items:
-                      $ref: ../../components/schemas/users.yml
+                      $ref: ../../components/schemas/user.yml
   tags:
     - 🧩 User Management
   x-codeSamples:

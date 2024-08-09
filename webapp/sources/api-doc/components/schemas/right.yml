@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2024 Normation SAS
+type: string
+pattern: ^(administration|compliance|configuration|deployer|deployment|directive|group|node|rule|parameter|technique|userAccount|validator)_(read|write|edit|all)$

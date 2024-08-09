@@ -3,7 +3,7 @@
 name: "username"
 in: path
 required: true
-description: Username of an user (unique)
+description: Username of an user (unique and must not contain whitespace)
 schema:
   type: string
   example: JaneDoe
