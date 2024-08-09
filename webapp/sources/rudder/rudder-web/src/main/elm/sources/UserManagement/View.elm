@@ -765,9 +765,13 @@ displayUsersTable model =
             else
                 text ""
             )
-            , td []
+            , ( if model.tenantsEnabled then
+                td []
                 [ displayTenants user
                 ]
+            else
+                text ""
+            )
             , td []
                 [ displayUserPreviousLogin user
                 ]
@@ -810,7 +814,11 @@ displayUsersTable model =
         else
             text ""
         )
-        , th [class (thClass model.ui.tableFilters Tenants        ), onClick (UpdateTableFilters (sortTable filters Tenants        ))] [ text "Tenants"        ]
+        , ( if model.tenantsEnabled then
+            th [class (thClass model.ui.tableFilters Tenants        ), onClick (UpdateTableFilters (sortTable filters Tenants        ))] [ text "Tenants"        ]
+        else
+            text ""
+        )
         , th [class (thClass model.ui.tableFilters PreviousLogin  ), onClick (UpdateTableFilters (sortTable filters PreviousLogin  ))] [ text "Previous login" ]
         , th [style "width" "220px"][ text "Actions" ]
         ]
