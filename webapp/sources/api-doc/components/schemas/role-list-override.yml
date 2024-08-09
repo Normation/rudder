@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2024 Normation SAS
+type: string
+enum:
+  - override
+  - no-override
+  - none

@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2024 Normation SAS
+type: object
+properties:
+  name:
+    type: string
+    example: John Doe
+  email:
+    type: string
+    example: john.doe@example.com
+  otherInfo:
+    type: object
+    additionalProperties:
+      type: string
+    example:
+      phone: "+1234"

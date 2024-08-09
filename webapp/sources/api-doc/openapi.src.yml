@@ -94,7 +94,7 @@ tags:
       **Requires that the `user-management` plugin is installed on the server.**
 
 
-      Manage users settings and configuration file.
+      Manage user information and configuration file.
   - name: "🧩 Branding"
     description: >-
       **Requires that the `branding` plugin is installed on the server.**
@@ -134,6 +134,8 @@ paths:
     $ref: paths/usermanagement/id.yml
   "/usermanagement/update/{username}":
     $ref: paths/usermanagement/update.yml
+  "/usermanagement/update/info/{username}":
+    $ref: paths/usermanagement/update-info.yml
   "/usermanagement/roles":
     $ref: paths/usermanagement/roles.yml
   "/usermanagement/users/reload":

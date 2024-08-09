@@ -1,0 +1,80 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2024 Normation SAS
+type: object
+required:
+  - login
+  - otherInfo
+  - status
+  - authz
+  - permissions
+  - rolesCoverage
+  - customRights
+  - providers
+  - providersInfo
+properties:
+  login:
+    type: string
+    example: johndoe
+  name:
+    type: string
+    example: John Doe
+  email:
+    type: string
+    example: john.doe@example.com
+  otherInfo:
+    type: object
+    additionalProperties:
+      type: string
+    example:
+      phone: "+12345"
+  status:
+    type: string
+    enum:
+      - active
+      - deleted
+      - disabled
+  authz:
+    type: array
+    items:
+      $ref: right.yml
+  permissions:
+    type: array
+    items:
+      type: string
+      example: inventory
+  rolesCoverage:
+    type: array
+    items:
+      type: string
+      example: inventory
+  customRights:
+    type: array
+    items:
+      $ref: right.yml
+  providers:
+    type: array
+    items:
+      type: string
+      example: file
+  providersInfo:
+    type: object
+    properties:
+      provider:
+        type: string
+        example: file
+      authz:
+        type: array
+        items:
+          $ref: right.yml
+      roles:
+        type: array
+        items:
+          type: string
+          example: inventory
+      customRights:
+        type: array
+        items:
+          $ref: right.yml
+  lastLogin:
+    type: string
+    format: date-time
