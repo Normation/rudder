@@ -45,6 +45,7 @@ import com.normation.appconfig.ModifyGlobalPropertyInfo
 import com.normation.cfclerk.domain.TechniqueVersionHelper
 import com.normation.errors
 import com.normation.errors.IOResult
+import com.normation.errors.IOStream
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.FullInventory
@@ -93,6 +94,7 @@ import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.domain.reports.ValueStatusReport
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.NodeFactChangeEventCallback
 import com.normation.rudder.facts.nodes.NodeFactChangeEventCC
@@ -124,6 +126,8 @@ import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.PolicyServers
 import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import com.normation.rudder.services.workflows.WorkflowLevelService
+import com.normation.rudder.tenants.TenantId
+import com.normation.rudder.tenants.TenantService
 import com.normation.rudder.users.EventTrace
 import com.normation.rudder.users.FileUserDetailListProvider
 import com.normation.rudder.users.PasswordEncoderDispatcher
@@ -872,6 +876,28 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
 
   val providerRoleExtension: Map[String, ProviderRoleExtension] = Map("file" -> ProviderRoleExtension.WithOverride)
   val authBackendProviders:  Set[String]                        = Set("file")
+
+  object tenantsService extends TenantService {
+    override def tenantsEnabled: Boolean            = false
+    override def getTenants():   UIO[Set[TenantId]] = ???
+    override def updateTenants(ids:                             Set[TenantId]): IOResult[Unit] = ???
+    override def nodeFilter[A <: MinimalNodeFactInterface](opt: Option[A])(implicit qc:          QueryContext): UIO[Option[A]]     = ???
+    override def nodeFilterStream(s:                            IOStream[NodeFact])(implicit qc: QueryContext): IOStream[NodeFact] = ???
+    override def nodeFilterMapView(nodes: Ref[Map[NodeId, CoreNodeFact]])(implicit
+        qc: QueryContext
+    ): IOResult[MapView[NodeId, CoreNodeFact]] = ???
+    override def nodeGetMapView(nodes: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
+        qc: QueryContext
+    ): IOResult[Option[CoreNodeFact]] = ???
+    override def manageUpdate[A](existing: Option[CoreNodeFact], updated: NodeFact, cc: ChangeContext)(
+        action: NodeFact => IOResult[A]
+    ): IOResult[A] = ???
+    override def checkDelete(
+        existing:         CoreNodeFact,
+        cc:               ChangeContext,
+        availableTenants: Set[TenantId]
+    ): Either[errors.RudderError, CoreNodeFact] = ???
+  }
 }
 
 object MockUserManagement {

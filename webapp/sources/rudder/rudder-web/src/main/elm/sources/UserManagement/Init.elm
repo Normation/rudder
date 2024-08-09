@@ -16,7 +16,7 @@ init flags =
         initUi = UI Closed False (TableFilters UserLogin Asc "")
         initUserInfoForm = UserInfoForm "" "" Dict.empty
         initUserForm = UserForm "" "" True False [] initUserInfoForm [] ValidInputs 
-        initModel = Model flags.contextPath "" (fromList []) (fromList []) [] None initUserForm initUi [] Dict.empty
+        initModel = Model flags.contextPath "" False (fromList []) (fromList []) [] None initUserForm initUi [] Dict.empty
     in
     ( initModel
     , getUsersConf initModel
@@ -34,8 +34,7 @@ getErrorMessage e =
                 Http.BadStatus status ->
                     "Code " ++ String.fromInt status
 
-                Http.BadUrl str ->
-                    "Invalid API url"
+                Http.BadUrl str -> "Invalid API url"
 
                 Http.Timeout ->
                     "It took too long to get a response"

@@ -53,6 +53,7 @@ import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.*
 import com.normation.rudder.rest.EndpointSchema.syntax.*
 import com.normation.rudder.rest.implicits.*
+import com.normation.rudder.tenants.TenantService
 import com.normation.rudder.users.EventTrace
 import com.normation.rudder.users.FileUserDetailListProvider
 import com.normation.rudder.users.JsonAddedUser
@@ -196,6 +197,7 @@ class UserManagementApiImpl(
     userService:               FileUserDetailListProvider,
     userManagementService:     UserManagementService,
     roleApiMapping:            RoleApiMapping,
+    tenantsService:            TenantService,
     getProviderRoleExtensions: () => Map[String, ProviderRoleExtension],
     getAuthBackendsProviders:  () => Set[String]
 ) extends LiftApiModuleProvider[UserManagementApi] {
@@ -568,7 +570,7 @@ class UserManagementApiImpl(
     val roleListOverride       = providerRoleExtensions.values.max
     val providersProperties    = providerRoleExtensions.view.mapValues(_.transformInto[JsonProviderProperty]).toMap
 
-    JsonAuthConfig(roleListOverride, getAuthBackendsProviders(), providersProperties, users)
+    JsonAuthConfig(roleListOverride, getAuthBackendsProviders(), providersProperties, users, tenantsService.tenantsEnabled)
   }
 
   private def transformUser(
