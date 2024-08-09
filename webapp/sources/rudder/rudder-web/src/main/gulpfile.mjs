@@ -14,8 +14,13 @@ import * as dartSass from 'sass';
 import gulpSass from 'gulp-sass';
 const sass = gulpSass(dartSass);
 import sourcemaps from 'gulp-sourcemaps';
+import svgmin from 'gulp-svgmin';
 
 const paths = {
+    'svg': {
+        'src': 'svg/**/*.svg',
+        'dest': 'webapp/images',  
+    },
     'css': {
         'src': 'style/libs/**/*',
         'dest': 'webapp/style',
@@ -154,6 +159,12 @@ function css(cb) {
     cb();
 };
 
+function svg(cb) {
+    src(paths.svg.src)
+        .pipe(svgmin())
+        .pipe(dest(paths.svg.dest));
+    cb();
+}
 
 function vendor_css(cb) {
     src(paths.vendor_css.src)
@@ -183,6 +194,7 @@ function scss(cb) {
 task('elm', series(clean, elm));
 
 task('watch', series(clean, function() {
+    watch(paths.svg.watch, { ignoreInitial: false }, svg);
     watch(paths.elm.watch, { ignoreInitial: false }, elm);
     watch(paths.js.src, { ignoreInitial: false }, js);
     watch(paths.css.src, { ignoreInitial: false }, css);
@@ -191,4 +203,4 @@ task('watch', series(clean, function() {
     watch(paths.vendor_css.src, { ignoreInitial: false }, vendor_css);
 }));
 
-task('default', series(clean, parallel(elm, css, scss, js, vendor_css, vendor_js)));
+task('default', series(clean, parallel(svg, elm, css, scss, js, vendor_css, vendor_js)));
