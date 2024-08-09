@@ -53,7 +53,7 @@ get:
                           - userAccount_all
 
   tags:
-    - 🧩 User Management
+    - User management
   x-codeSamples:
     - lang: curl
       source:
