@@ -21,7 +21,7 @@ view model =
                 text "Waiting for data from server..."
 
             else
-                displayUsersConf model model.users
+                displayUsersConf model
 
         deleteModal =
             if model.ui.openDeleteModal then
@@ -514,8 +514,8 @@ displayRightPanel model user =
         ]
 
 
-displayUsersConf : Model -> Users -> Html Msg
-displayUsersConf model u =
+displayUsersConf : Model -> Html Msg
+displayUsersConf model =
     let
         newUserMenu =
             if model.ui.panelMode == AddMode then
@@ -547,8 +547,15 @@ displayUsersConf model u =
 
         tableFilters = model.ui.tableFilters
 
-        nbUsers = Dict.size model.users
-        firstItem = if nbUsers > 0 then "1" else "0"
+        existingUsers = model.users
+          |> Dict.values
+          |> List.filter (\user -> user.status /= Deleted)
+        filteredUsers = existingUsers
+          |> List.filter (\u -> filterSearch model.ui.tableFilters.filter (searchField u))
+          |> List.sortWith (getSortFunction model)
+
+        nbUsers = List.length existingUsers
+        nbFilteredUsers = List.length filteredUsers
 
     in
     div [ class "one-col flex-fill" ]
@@ -591,10 +598,10 @@ displayUsersConf model u =
                                             [ button [ class "btn btn-default", onClick SendReload ] [ i [ class "fa fa-refresh" ] [] ]
                                             ]
                                         ]
-                                      , displayUsersTable model
+                                      , displayUsersTable model filteredUsers
                                       , div[class "dataTables_wrapper_bottom"]
                                           [ div [class "dataTables_info"]
-                                              [ text ("Showing " ++ firstItem ++ " to " ++ (String.fromInt nbUsers) ++ "  of "++ (String.fromInt nbUsers) ++ " entries") ]
+                                              [ text ("Showing " ++ (String.fromInt nbFilteredUsers) ++ " of "++ (String.fromInt nbUsers) ++ " entries") ]
                                           ]
                                     ]
                                 ]
@@ -731,8 +738,8 @@ displayUserPreviousLogin user =
         Just l ->
             text (String.replace "T" " " l)
 
-displayUsersTable : Model -> Html Msg
-displayUsersTable model =
+displayUsersTable : Model -> List User -> Html Msg
+displayUsersTable model users =
   let
     hasExternal =
         isJust (takeFirstExtProvider model.providers)
@@ -793,11 +800,6 @@ displayUsersTable model =
               ]
             ]
     filters = model.ui.tableFilters
-    filteredUsers = model.users
-      |> Dict.values
-      |> List.filter (\user -> user.status /= Deleted)
-      |> List.filter (\u -> filterSearch model.ui.tableFilters.filter (searchField u))
-      |> List.sortWith (getSortFunction model)
   in
     table [class "dataTable"]
     [ thead []
@@ -820,12 +822,12 @@ displayUsersTable model =
         [ tr[]
           [ td[class "empty", colspan 7][i [class"fa fa-exclamation-triangle"][], text "There are no users defined"] ]
         ]
-      else if List.isEmpty filteredUsers then
+      else if List.isEmpty users then
         [ tr[]
           [ td[class "empty", colspan 7][i [class"fa fa-exclamation-triangle"][], text "No users match your filters"] ]
         ]
       else
-        List.map (\u -> trUser u ) filteredUsers
+        List.map (\u -> trUser u ) users
       )
     ]
 
