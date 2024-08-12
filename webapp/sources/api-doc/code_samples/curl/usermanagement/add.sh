@@ -1,5 +1,7 @@
-add.json:
-
+curl --header "X-API-Token: yourToken" \
+  --request POST https://rudder.example.com/rudder/api/latest/usermanagement \
+  --header "Content-type: application/json" \
+  --data @- <<EOF
 {
 	"isPreHashed" : false,
 	"username" : "johndoe",
@@ -11,6 +13,4 @@ add.json:
 		"phone" : "+1234"
 	}
 }
-
-curl --header "X-API-Token: yourToken" --request POST https://rudder.example.com/rudder/api/latest/usermanagement --header "Content-type: application/json" --data @add.json
-
+EOF
