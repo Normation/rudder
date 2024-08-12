@@ -18,6 +18,14 @@ sources="../webapp/sources/rudder/rudder-web/src/main/svg/logo/*.svg"
 png_sizes=(512 1024)
 
 #################################################
+# Favicon
+
+out_dir="${target}/favicons"
+mkdir -p "${out_dir}"
+cd ../webapp/sources/rudder/rudder-web/src/main/ && ./favicon.sh && cd - >/dev/null
+cp ../webapp/sources/rudder/rudder-web/src/main/webapp/images/rudder-favicon.ico "${target}/favicons/"
+
+#################################################
 ### Optimized SVG
 
 out_dir="${target}/svg"
@@ -30,8 +38,8 @@ do
     echo "${file}"
     echo "    optimizing (svgo) -> ${out}"
     svgo --quiet --multipass --input "${file}" --output "${out}"
-    echo "    compressing (gzip) -> ${zout}"
-    gzip --best --stdout "${out}" > "${zout}"
+    #echo "    compressing (gzip) -> ${zout}"
+    #gzip --best --stdout "${out}" > "${zout}"
 done
 
 #################################################
@@ -52,7 +60,6 @@ do
         zopflipng -y -m "${out}" "${out}" >/dev/null
     done
 done
-
 
 #################################################
 # Archive
