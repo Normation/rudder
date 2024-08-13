@@ -668,18 +668,22 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
   override def setExistingUsers(origin: String, users: List[String], trace: EventTrace): IOResult[Unit] = {
     def toMap(us: Iterable[UserInfo]) = us.map(u => (u.id, u)).toMap
 
-    users match {
-      case Nil    => ZIO.unit
-      case h :: t =>
-        // get managed (all from that origin) and zombies (in the given list of existing, but deleted)
-        val updatable = sql"""select * from users where managedby = ${origin} or (status = 'deleted' and """ ++
+    // get managed (all from that origin) and zombies (in the given list of existing, but deleted)
+    val updatable = {
+      users match {
+        case Nil    =>
+          sql"""select * from users where managedby = ${origin}"""
+        case h :: t =>
+          sql"""select * from users where managedby = ${origin} or (status = 'deleted' and """ ++
           Fragments.in(fr"id", NonEmptyList.of(h, t*)) ++
           fr")"
+      }
+    }
 
-        def update(updated: Vector[UserInfo]): ConnectionIO[Int] = {
-          // never update the user personal information of an existing user which may have been provided and modified by another origin
-          val sql =
-            """insert into users (id, creationdate, status, managedby, name, email, lastlogin, statushistory, otherinfo)
+    def update(updated: Vector[UserInfo]): ConnectionIO[Int] = {
+      // never update the user personal information of an existing user which may have been provided and modified by another origin
+      val sql =
+        """insert into users (id, creationdate, status, managedby, name, email, lastlogin, statushistory, otherinfo)
                   values (?,?,?,?,? , ?,?,?,?)
                on conflict (id) do update
                 set (creationdate, status, managedby, lastlogin, statushistory) =
@@ -695,17 +699,16 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
                   )
                   """
 
-          Update[UserInfo](sql).updateMany(updated)
-        }
+      Update[UserInfo](sql).updateMany(updated)
+    }
 
-        transactIOResult("Erreur when updating the list of") { xa =>
-          (for {
-            maybeUpdate       <- updatable.query[UserInfo].to[Vector]
-            (zombies, managed) = maybeUpdate.partition(_.status == UserStatus.Deleted)
-            updated            = UserRepository.computeUpdatedUserList(users, origin, trace, toMap(zombies), toMap(managed))
-            _                 <- update(updated.values.toVector)
-          } yield ()).transact(xa)
-        }
+    transactIOResult("Erreur when updating the list of") { xa =>
+      (for {
+        maybeUpdate       <- updatable.query[UserInfo].to[Vector]
+        (zombies, managed) = maybeUpdate.partition(_.status == UserStatus.Deleted)
+        updated            = UserRepository.computeUpdatedUserList(users, origin, trace, toMap(zombies), toMap(managed))
+        _                 <- update(updated.values.toVector)
+      } yield ()).transact(xa)
     }
   }
 
