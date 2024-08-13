@@ -53,7 +53,7 @@ build: man rudder-pkg/rudder_plugins_key.pub
 	cd rudder-package && COMPLETION_OUT_DIR=../../../target make build
 	# Modify completion to make it callable by our global completion function
 	sed -i "s@_rudder() {@_rudderpkg() {@" ../../target/rudder.bash
-	sed -i '/^if/,$d' ../../target/rudder.bash 
+	sed -i '/^if/,$$d' ../../target/rudder.bash 
 	# the cache is always updated and cargo will rebuild only what is needed
 	$(CACHE) put rudder-package/target/ --with-env name=rudder-package major=$(RUDDER_MAJOR_VERSION) || true
 	### common
