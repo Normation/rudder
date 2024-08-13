@@ -42,10 +42,12 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ComplianceLogger
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.reports.NodeComplianceExpiration
-import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.properties.PropertiesRepository
 import com.typesafe.config.ConfigException
+import com.typesafe.config.ConfigRenderOptions
 import zio.Chunk
+import zio.json.*
 import zio.syntax.*
 
 /**
@@ -72,37 +74,57 @@ class DummyComplianceExpirationService(policy: NodeComplianceExpiration) extends
  * (that's NOT what we want, but it's free. The inherited version need to be
  * able to have a cache of computed node properties)
  */
-class NodePropertyBasedComplianceExpirationService(factRepo: NodeFactRepository, propertyKey: String, propertyName: String)
-    extends ComplianceExpirationService {
+class NodePropertyBasedComplianceExpirationService(
+    propRepository: PropertiesRepository,
+    propertyKey:    String,
+    propertyName:   String
+) extends ComplianceExpirationService {
 
   override def getExpirationPolicy(nodeIds: Iterable[NodeId]): IOResult[Map[NodeId, NodeComplianceExpiration]] = {
     val ids = nodeIds.toSet
-    factRepo
-      .getAll()(QueryContext.systemQC)
-      .map(_.collect {
-        case (id, fact) if (ids.contains(id)) =>
-          val p = NodePropertyBasedComplianceExpirationService.getPolicyFromProp(fact.properties, propertyKey, propertyName, id)
-          (id, p)
-      }.toMap)
+    for {
+      propMap <- propRepository.getNodesProp(ids, propertyName)(QueryContext.systemQC)
+    } yield {
+      nodeIds.map { id =>
+        (
+          id,
+          propMap.get(id) match {
+            case Some(p) => NodePropertyBasedComplianceExpirationService.getPolicy(p.prop, propertyKey, propertyName, id)
+            case None    => NodeComplianceExpiration.default
+          }
+        )
+      }.toMap
+    }
   }
 }
 
 object NodePropertyBasedComplianceExpirationService {
+  // default key of the JSON structure containing the compliance duration configuration
+  val PROP_KEY  = "rudder"
+  // default name of the sub-key for compliance duration configuration value.
+  val PROP_NAME = "compliance_expiration_policy"
+
   def getPolicy(p: NodeProperty, propKey: String, propName: String, debugId: NodeId): NodeComplianceExpiration = {
     try {
       // direct access to implementation details is so-so, but alternative force to go
       // to json and is quite convoluted, and ConfigValue is horrible.
-      val v = p.config.getString("value." + propName)
-      NodeComplianceExpiration.KeepLast(scala.concurrent.duration.Duration(v))
+      // We are looking for a json structure like:
+      //  { "mode":"keep_last", "duration":"1 hour" }
+      // Or for immediate expiration:
+      //  { "mode":"expire_immediately" }
+      p.config
+        .getObject("value." + propName)
+        .render(ConfigRenderOptions.concise())
+        .fromJson[NodeComplianceExpiration]
+        .getOrElse(NodeComplianceExpiration.default)
     } catch {
       case ex: ConfigException       =>
-        ex.printStackTrace()
-        NodeComplianceExpiration.ExpireImmediately
+        NodeComplianceExpiration.default
       case ex: NumberFormatException =>
         ComplianceLogger.error(
           s"Node with id '${debugId.value}' has the keep expired compliance property set (${propKey}.${propName}) but value can not be parsed: ${ex.getMessage}"
         )
-        NodeComplianceExpiration.ExpireImmediately
+        NodeComplianceExpiration.default
     }
   }
 
@@ -114,7 +136,7 @@ object NodePropertyBasedComplianceExpirationService {
   ): NodeComplianceExpiration = {
     properties.find(_.name == propKey) match {
       case Some(p) => getPolicy(p, propKey, propName, debugId)
-      case None    => NodeComplianceExpiration.ExpireImmediately
+      case None    => NodeComplianceExpiration.default
     }
   }
 }

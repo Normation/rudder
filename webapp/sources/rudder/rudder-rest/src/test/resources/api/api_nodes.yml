@@ -1303,6 +1303,45 @@ response:
               "origval" : "some string"
             },
             {
+              "name" : "rudder",
+              "value" : {
+                "rudder" : {
+                  "compliance_expiration_policy" : {
+                    "mode" : "ExpireImmediately"
+                  }
+                }
+              },
+              "provider" : "inherited",
+              "hierarchy" : [
+                {
+                  "kind" : "global",
+                  "value" : {
+                    "rudder" : {
+                      "compliance_expiration_policy" : {
+                        "mode" : "ExpireImmediately"
+                      }
+                    }
+                  }
+                }
+              ],
+              "hierarchyStatus" : {
+                "hasChildTypeConflicts" : false,
+                "fullHierarchy" : [
+                  {
+                    "kind" : "global",
+                    "valueType" : "Object"
+                  }
+                ]
+              },
+              "origval" : {
+                "rudder" : {
+                  "compliance_expiration_policy" : {
+                    "mode" : "ExpireImmediately"
+                  }
+                }
+              }
+            },            
+            {
               "name" : "someJson2",
               "value" : "string",
               "inheritMode" : "opa",

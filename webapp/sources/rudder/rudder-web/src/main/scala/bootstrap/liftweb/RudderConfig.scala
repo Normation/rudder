@@ -152,6 +152,10 @@ import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.ncf.TechniqueWriterImpl
 import com.normation.rudder.ncf.WebappTechniqueCompiler
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
+import com.normation.rudder.properties.InMemoryPropertiesRepository
+import com.normation.rudder.properties.NodePropertiesService
+import com.normation.rudder.properties.NodePropertiesServiceImpl
+import com.normation.rudder.properties.PropertiesRepository
 import com.normation.rudder.reports.*
 import com.normation.rudder.reports.execution.*
 import com.normation.rudder.repository.*
@@ -1768,11 +1772,10 @@ object RudderConfigInit {
         nodeFactRepository,
         roNodeGroupRepository,
         woNodeGroupRepository,
-        roLDAPParameterRepository,
+        propertiesRepository,
         uuidGen,
         asyncDeploymentAgent,
         workflowLevelService,
-        restExtractorService,
         queryParser,
         queryProcessor,
         restDataSerializer
@@ -1782,8 +1785,7 @@ object RudderConfigInit {
     lazy val nodeApiService = new NodeApiService(
       rwLdap,
       nodeFactRepository,
-      roNodeGroupRepository,
-      roLDAPParameterRepository,
+      propertiesRepository,
       roAgentRunsRepository,
       ldapEntityMapper,
       stringUuidGenerator,
@@ -1793,7 +1795,6 @@ object RudderConfigInit {
       newNodeManagerImpl,
       removeNodeServiceImpl,
       restExtractorService,
-      restDataSerializer,
       reportingService,
       queryProcessor,
       inventoryQueryChecker,
@@ -1970,6 +1971,11 @@ object RudderConfigInit {
       repo
     }
 
+    lazy val propertiesRepository: PropertiesRepository = InMemoryPropertiesRepository.make(nodeFactRepository).runNow
+
+    lazy val propertiesService: NodePropertiesService =
+      new NodePropertiesServiceImpl(roLDAPParameterRepository, roNodeGroupRepository, nodeFactRepository, propertiesRepository)
+
     lazy val inventorySaver = new NodeFactInventorySaver(
       nodeFactRepository,
       (
@@ -2136,9 +2142,8 @@ object RudderConfigInit {
     lazy val rudderApi           = {
       import com.normation.rudder.rest.lift.*
 
-      val nodeInheritedProperties  =
-        new NodeApiInheritedProperties(nodeFactRepository, roNodeGroupRepository, roLDAPParameterRepository)
-      val groupInheritedProperties = new GroupApiInheritedProperties(roNodeGroupRepository, roLDAPParameterRepository)
+      val nodeInheritedProperties  = new NodeApiInheritedProperties(propertiesRepository)
+      val groupInheritedProperties = new GroupApiInheritedProperties(propertiesRepository)
 
       val campaignApi = new lift.CampaignApi(
         campaignRepo,
@@ -2974,6 +2979,7 @@ object RudderConfigInit {
         systemVariableService,
         nodeConfigurationHashRepo,
         nodeFactRepository,
+        propertiesRepository,
         updateExpectedRepo,
         roNodeGroupRepository,
         roDirectiveRepository,
@@ -3082,7 +3088,11 @@ object RudderConfigInit {
       nodeStatusReportRepository,
       nodeFactRepository,
       findNewNodeStatusReports,
-      new NodePropertyBasedComplianceExpirationService(nodeFactRepository, "rudder", "keep_compliance_duration"),
+      new NodePropertyBasedComplianceExpirationService(
+        propertiesRepository,
+        NodePropertyBasedComplianceExpirationService.PROP_KEY,
+        NodePropertyBasedComplianceExpirationService.PROP_NAME
+      ),
       Ref.make(Chunk[NodeStatusReportUpdateHook](new ScoreNodeStatusReportUpdateHook(scoreServiceManager))).runNow,
       RUDDER_JDBC_BATCH_MAX_SIZE
     )
@@ -3176,6 +3186,7 @@ object RudderConfigInit {
     lazy val dyngroupUpdaterBatch:           UpdateDynamicGroups        = new UpdateDynamicGroups(
       dynGroupServiceImpl,
       dynGroupUpdaterService,
+      propertiesService,
       asyncDeploymentAgentImpl,
       uuidGen,
       RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL,
@@ -3754,6 +3765,9 @@ object RudderConfigInit {
     gitConfigRepoGC.start()
     rudderUserListProvider.registerCallback(UserRepositoryUpdateOnFileReload.createCallback(userRepository))
     userCleanupBatch.start()
+
+    // init node properties
+    propertiesService.updateAll().runNow
 
     // UpdateDynamicGroups is part of rci
     // reportingService part of rci

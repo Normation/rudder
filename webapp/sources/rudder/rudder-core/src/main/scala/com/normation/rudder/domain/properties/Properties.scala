@@ -847,7 +847,7 @@ sealed trait ParentProperty {
 }
 
 /**
- * A node property with its ohneritance/overriding context.
+ * A node property with its inheritance/overriding context.
  */
 final case class NodePropertyHierarchy(prop: NodeProperty, hierarchy: List[ParentProperty])
 

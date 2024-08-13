@@ -42,6 +42,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.reports.NodeComplianceExpiration
+import com.normation.rudder.domain.reports.NodeComplianceExpirationMode
 import java.util.concurrent.TimeUnit
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
@@ -68,7 +69,7 @@ class ComplianceExpirationServiceTest extends Specification {
   val rudder_ok1:  NodeProperty = NodeProperty
     .parse(
       "rudder",
-      """{"keep_compliance_duration": "1 hour"}""",
+      s"""{"${NodePropertyBasedComplianceExpirationService.PROP_NAME}": { "mode":"keep_last", "duration":"1 hour"}}""",
       None,
       Some(PropertyProvider.systemPropertyProvider)
     )
@@ -76,7 +77,15 @@ class ComplianceExpirationServiceTest extends Specification {
   val rudder_ok2:  NodeProperty = NodeProperty
     .parse(
       "rudder",
-      """{"keep_compliance_duration": "1 hour"}""",
+      s"""{"${NodePropertyBasedComplianceExpirationService.PROP_NAME}": { "mode":"keep_last", "duration":"1 hour"}}""",
+      None,
+      None
+    )
+    .force
+  val rudder_ok3:  NodeProperty = NodeProperty
+    .parse(
+      "rudder",
+      s"""{"${NodePropertyBasedComplianceExpirationService.PROP_NAME}": { "mode":"expire_immediately"}}""",
       None,
       None
     )
@@ -84,7 +93,7 @@ class ComplianceExpirationServiceTest extends Specification {
   val rudder_nok1: NodeProperty = NodeProperty
     .parse(
       "rudder",
-      """{ "bad": {"keep_compliance_duration": "1 hour"}}""",
+      s"""{ "bad": {"${NodePropertyBasedComplianceExpirationService.PROP_NAME}": { "mode": "keep_last", "duration":"1 hour"}}}""",
       None,
       Some(PropertyProvider.systemPropertyProvider)
     )
@@ -94,31 +103,50 @@ class ComplianceExpirationServiceTest extends Specification {
   val rudder_nok3: NodeProperty = NodeProperty
     .parse(
       "not_rudder",
-      """{"keep_compliance_duration": "1 hour"}""",
+      s"""{"${NodePropertyBasedComplianceExpirationService.PROP_NAME}": { "mode":"keep_last", "duration":"1 hour"}}""",
       None,
       Some(PropertyProvider.systemPropertyProvider)
     )
     .force
 
-  "When keep_compliance_duration we should find it" >> {
-    val keep1h = NodeComplianceExpiration.KeepLast(scala.concurrent.duration.Duration(1, TimeUnit.HOURS))
-    (getPolicyFromProp(Chunk(rudder_ok1), "rudder", "keep_compliance_duration", NodeId("node1")) must beEqualTo(
+  s"When ${NodePropertyBasedComplianceExpirationService.PROP_NAME} is set we should find it" >> {
+    val keep1h =
+      NodeComplianceExpiration(NodeComplianceExpirationMode.KeepLast, Some(scala.concurrent.duration.Duration(1, TimeUnit.HOURS)))
+
+    (getPolicyFromProp(
+      Chunk(rudder_ok1),
+      "rudder",
+      s"${NodePropertyBasedComplianceExpirationService.PROP_NAME}",
+      NodeId("node1")
+    ) must beEqualTo(
       keep1h
-    )) and (getPolicyFromProp(Chunk(rudder_ok2), "rudder", "keep_compliance_duration", NodeId("node1")) must beEqualTo(
+    )) and (getPolicyFromProp(
+      Chunk(rudder_ok2),
+      "rudder",
+      s"${NodePropertyBasedComplianceExpirationService.PROP_NAME}",
+      NodeId("node1")
+    ) must beEqualTo(
       keep1h
+    )) and (getPolicyFromProp(
+      Chunk(rudder_ok3),
+      "rudder",
+      s"${NodePropertyBasedComplianceExpirationService.PROP_NAME}",
+      NodeId("node1")
+    ) must beEqualTo(
+      NodeComplianceExpiration.default
     ))
   }
 
-//  "Expire immediately in other cases " >> {
-//
-//    getPolicyFromProp(
-//      Chunk(rudder_nok1, rudder_nok2, rudder_nok3),
-//      "rudder",
-//      "keep_compliance_duration",
-//      NodeId("node1")
-//    ) must beEqualTo(
-//      NodeComplianceExpiration.ExpireImmediately
-//    )
-//
-//  }
+  "Expire immediately in other cases " >> {
+
+    getPolicyFromProp(
+      Chunk(rudder_nok1, rudder_nok2, rudder_nok3),
+      "rudder",
+      s"${NodePropertyBasedComplianceExpirationService.PROP_NAME}",
+      NodeId("node1")
+    ) must beEqualTo(
+      NodeComplianceExpiration.default
+    )
+
+  }
 }
