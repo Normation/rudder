@@ -146,6 +146,45 @@ response:
                 "origval":"some string"
               },
               {
+                "name" : "rudder",
+                "value" : {
+                  "rudder" : {
+                    "compliance_expiration_policy" : {
+                      "mode" : "ExpireImmediately"
+                    }
+                  }
+                },
+                "provider" : "inherited",
+                "hierarchy" : [
+                  {
+                    "kind" : "global",
+                    "value" : {
+                      "rudder" : {
+                        "compliance_expiration_policy" : {
+                          "mode" : "ExpireImmediately"
+                        }
+                      }
+                    }
+                  }
+                ],
+                "hierarchyStatus" : {
+                  "hasChildTypeConflicts" : false,
+                  "fullHierarchy" : [
+                    {
+                      "kind" : "global",
+                      "valueType" : "Object"
+                    }
+                  ]
+                },
+                "origval" : {
+                  "rudder" : {
+                    "compliance_expiration_policy" : {
+                      "mode" : "ExpireImmediately"
+                    }
+                  }
+                }
+              },
+              {
                 "name":"stringParam",
                 "value":"stringsome string",
                 "inheritMode":"map",
@@ -206,7 +245,7 @@ response:
       }
     }
 ---
-description: Get a group inherited properties in JSON
+description: Get a group inherited properties with hierarchy HTML
 method: GET
 url: /secure/api/groups/0000f5d3-8c61-4d20-88a7-bb947705ba8a/displayInheritedProperties
 response:
@@ -270,6 +309,33 @@ response:
                 "origval":"some string"
               },
               {
+                "name" : "rudder",
+                "value" : {
+                  "rudder" : {
+                    "compliance_expiration_policy" : {
+                      "mode" : "ExpireImmediately"
+                    }
+                  }
+                },
+                "provider" : "inherited",
+                "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>{\n    \"rudder\" : {\n        \"compliance_expiration_policy\" : {\n            \"mode\" : \"ExpireImmediately\"\n        }\n    }\n}\n</pre></p>",
+                "hierarchyStatus" : {
+                  "hasChildTypeConflicts" : false,
+                  "fullHierarchy" : [
+                    {
+                      "kind" : "global",
+                      "valueType" : "Object"
+                    }
+                  ]
+                },
+                "origval" : {
+                  "rudder" : {
+                    "compliance_expiration_policy" : {
+                      "mode" : "ExpireImmediately"
+                    }
+                  }
+                }
+              },              {
                 "name":"stringParam",
                 "value":"stringsome string",
                 "inheritMode":"map",

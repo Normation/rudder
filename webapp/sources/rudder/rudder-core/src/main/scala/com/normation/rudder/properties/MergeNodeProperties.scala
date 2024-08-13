@@ -35,7 +35,7 @@
  *************************************************************************************
  */
 
-package com.normation.rudder.services.nodes
+package com.normation.rudder.properties
 
 import cats.implicits.*
 import com.normation.GitVersion
@@ -44,7 +44,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.FullCompositeRuleTarget
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.FullOtherTarget
@@ -58,7 +57,8 @@ import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.properties.ParentProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.*
-import com.normation.rudder.services.nodes.GroupProp.*
+import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.properties.GroupProp.*
 import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigParseOptions
 import com.typesafe.config.ConfigRenderOptions
@@ -68,6 +68,7 @@ import org.jgrapht.graph.DefaultDirectedGraph
 import org.jgrapht.graph.DefaultEdge
 import org.jgrapht.traverse.TopologicalOrderIterator
 import scala.jdk.CollectionConverters.*
+import zio.*
 
 /**
  * This file handle how node properties are merged with other (global, groups, etc)
@@ -212,16 +213,21 @@ object MergeNodeProperties {
    * Groups are not sorted, but all groups with that node are present.
    */
   def forNode(
-      node:         NodeInfo,
+      node:         CoreNodeFact,
       nodeTargets:  List[FullRuleTargetInfo],
       globalParams: Map[String, GlobalParameter]
-  ): PureResult[List[NodePropertyHierarchy]] = {
+  ): PureResult[Chunk[NodePropertyHierarchy]] = {
     for {
       properties <- checkPropertyMerge(nodeTargets, globalParams)
     } yield {
-      mergeDefault(node.node.id.value, node.properties.map(p => (p.name, p)).toMap, properties.map(p => (p.prop.name, p)).toMap)
-        .map(_._2)
-        .toList
+      Chunk
+        .fromIterable(
+          mergeDefault(
+            node.id.value,
+            node.properties.map(p => (p.name, p)).toMap,
+            properties.map(p => (p.prop.name, p)).toMap
+          ).values
+        )
         .sortBy(_.prop.name)
     }
   }
@@ -233,7 +239,7 @@ object MergeNodeProperties {
       groupId:      NodeGroupId,
       allGroups:    Map[NodeGroupId, FullGroupTarget],
       globalParams: Map[String, GlobalParameter]
-  ): PureResult[List[NodePropertyHierarchy]] = {
+  ): PureResult[Chunk[NodePropertyHierarchy]] = {
     // get parents till the top, recursively.
     // This can fail is a parent is missing from "all groups"
     def withParents(
@@ -252,7 +258,6 @@ object MergeNodeProperties {
                 case Right(acc) =>
                   if (acc.isDefinedAt(g.nodeGroup.id)) Right(acc) // already done previously
                   else {
-                    import com.normation.rudder.services.nodes.GroupProp.*
                     for {
                       prop    <- g.nodeGroup.toGroupProp
                       parents <- prop.parentGroups.traverse { parentId =>
@@ -293,7 +298,7 @@ object MergeNodeProperties {
       hierarchies <- checkPropertyMerge(parents.toList, globalParams)
     } yield {
       val groupProps = group.nodeGroup.properties.map(g => (g.name, g)).toMap
-      mergeDefault(groupId.serialize, groupProps, hierarchies.map(h => (h.prop.name, h)).toMap).values.toList
+      Chunk.fromIterable(mergeDefault(groupId.serialize, groupProps, hierarchies.map(h => (h.prop.name, h)).toMap).values)
     }
   }
 
@@ -323,13 +328,12 @@ object MergeNodeProperties {
       }
       (k, NodePropertyHierarchy(mergedProp, obj :: d.hierarchy))
     }.toMap
-    (
-      defaults.filter(kv => fullyInherited.contains(kv._1))
-      ++ overrided
-      ++ properties.flatMap {
-        case (k, v) => if (fromNodeOnly.contains(k)) Some((k, NodePropertyHierarchy(NodeProperty(v.config), Nil))) else None
-      }.toMap
-    )
+
+    defaults.filter(kv => fullyInherited.contains(kv._1))
+    ++ overrided
+    ++ properties.flatMap {
+      case (k, v) => if (fromNodeOnly.contains(k)) Some((k, NodePropertyHierarchy(NodeProperty(v.config), Nil))) else None
+    }
   }
 
   /**
@@ -577,8 +581,8 @@ object MergeNodeProperties {
 
   /**
     * Check that all properties have the same type in all down the hierarchy (comparing valueType of config).
-    * If not, report all downward elements that have overrides with a different type : 
-    * - inheriting groups that override the proprety
+    * If not, report all downward elements that have overrides with a different type :
+    * - inheriting groups that override the property
     * - nodes that override the property
     */
   def checkValueTypes(properties: List[NodePropertyHierarchy]): PureResult[Unit] = {

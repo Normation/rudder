@@ -304,7 +304,7 @@ class ComputeNodeStatusReportServiceImpl(
           r.runInfo match {
             case NoReportInInterval(conf, expiration) =>
               expirationPolicy.get(id) match {
-                case Some(NodeComplianceExpiration.KeepLast(d)) =>
+                case Some(NodeComplianceExpiration(NodeComplianceExpirationMode.KeepLast, Some(d))) =>
                   val keepUntil = expiration.plus(d.toMillis)
                   if (now.isBefore(keepUntil)) {
                     (id, r.modify(_.runInfo).setTo(KeepLastCompliance(conf, expiration, keepUntil, None)))
