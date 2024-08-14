@@ -120,7 +120,7 @@ getCrSettingsMandatoryMsg model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "settings", "mandatory_change_message" ] []
         , body    = emptyBody
         , expect  = expectJson GetMandatoryMsg decodeGetMandatoryMsg
@@ -136,7 +136,7 @@ getCrSettingsChangeMsgPrompt model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "settings", "change_message_prompt" ] []
         , body    = emptyBody
         , expect  = expectJson GetMsgPrompt decodeGetMsgPrompt
@@ -152,7 +152,7 @@ getCrSettingsEnableCr model =
     req =
       request
         { method  = "GET"
-        , headers = []
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "settings", "enable_change_request" ] []
         , body    = emptyBody
         , expect  = expectJson GetEnableCr decodeGetEnableCr
