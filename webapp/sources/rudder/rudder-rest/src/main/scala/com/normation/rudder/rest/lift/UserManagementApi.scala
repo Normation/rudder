@@ -489,7 +489,8 @@ class UserManagementApiImpl(
                             DateTime.now,
                             "User current disabled status set to 'active' by user management API"
                           )
-                          userRepo.setActive(List(user.id), eventTrace).as(JsonStatus(UserStatus.Active))
+                          (userRepo.setActive(List(user.id), eventTrace) *> userService.reloadPure())
+                            .as(JsonStatus(UserStatus.Active))
                         }
                         case UserStatus.Deleted  =>
                           Inconsistency(s"User '$id' cannot be activated because the user is currently deleted").fail
@@ -521,7 +522,8 @@ class UserManagementApiImpl(
                             DateTime.now,
                             "User current active status set to 'disabled' by user management API"
                           )
-                          userRepo.disable(List(user.id), None, List.empty, eventTrace).as(JsonStatus(UserStatus.Disabled))
+                          (userRepo.disable(List(user.id), None, List.empty, eventTrace) *> userService.reloadPure())
+                            .as(JsonStatus(UserStatus.Disabled))
                         }
                         case UserStatus.Deleted  =>
                           Inconsistency(s"User '$id' cannot be disabled because the user is currently deleted").fail

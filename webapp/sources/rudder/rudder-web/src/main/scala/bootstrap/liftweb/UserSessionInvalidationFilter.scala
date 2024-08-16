@@ -36,9 +36,12 @@
  */
 package bootstrap.liftweb
 
+import com.normation.rudder.users.FileUserDetailListProvider
+import com.normation.rudder.users.RudderAuthorizationFileReloadCallback
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.users.UserRepository
 import com.normation.rudder.users.UserStatus
+import com.normation.rudder.users.ValidatedUserList
 import com.normation.zio.UnsafeRun
 import java.io.IOException
 import javax.servlet.FilterChain

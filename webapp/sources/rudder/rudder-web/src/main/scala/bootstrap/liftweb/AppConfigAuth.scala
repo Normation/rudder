@@ -266,7 +266,7 @@ class AppConfigAuth extends ApplicationContextAware {
     )
     rudderUserListProvider.registerCallback(checkUsersFileCallback)
 
-    val updatePasswordEncoder  = RudderAuthorizationFileReloadCallback(
+    val updatePasswordEncoder = RudderAuthorizationFileReloadCallback(
       "update-password-encoder",
       (c: ValidatedUserList) => effectUioUnit(provider.setPasswordEncoder(c.encoder))
     )
