@@ -265,11 +265,14 @@ object UserRepositoryUpdateOnFileReload {
     RudderAuthorizationFileReloadCallback(
       "update-pg-users-on-xml-file-reload",
       userList => {
-        userRepository.setExistingUsers(
-          DefaultAuthBackendProvider.FILE,
-          userList.users.keys.toList,
-          EventTrace(RudderEventActor, DateTime.now(), "Updating users because `rudder-users.xml` was reloaded")
-        )
+        userRepository
+          .setExistingUsers(
+            DefaultAuthBackendProvider.FILE,
+            userList.users.keys.toList,
+            EventTrace(RudderEventActor, DateTime.now(), "Updating users because `rudder-users.xml` was reloaded"),
+            userList.isCaseSensitive
+          )
+          .unit
       }
     )
   }

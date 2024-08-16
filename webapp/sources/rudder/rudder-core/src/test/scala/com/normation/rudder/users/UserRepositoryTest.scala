@@ -395,9 +395,28 @@ trait UserRepositoryTest extends Specification with Loggable {
       repo.get("Alice").runNow must beNone
       repo.get("Alice", isCaseSensitive = false).runNow must beSome
     }
+    "Setting users should handle case sensitivity parameter false value and return non-updated users" >> {
+      val notUpdated = repo
+        .setExistingUsers(
+          AUTH_PLUGIN_NAME_LOCAL,
+          users.map {
+            case "alice" => "AlIcE" // the update will not occur
+            case o       => o
+          },
+          traceInit,
+          isCaseSensitive = false
+        )
+        .runNow
+      notUpdated must containTheSameElementsAs(List("alice"))
+      repo.getAll().runNow.toUTC must containTheSameElementsAs(userInfosInit)
+    }
+    "Setting users should handle case sensitivity parameter true value" >> {
+      // even if "alice" already exist
+      repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, "Alice" :: users, traceInit, isCaseSensitive = true).runNow
+      repo.getAll().map(_.map(_.id)).runNow must containTheSameElementsAs("Alice" :: users)
+    }
 
     "Getting user should raise an error for multiple found users" >> {
-      repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, users :+ "Alice", traceInit).runNow
       repo.get("alice").runNow must beSome
       repo.get("Alice").runNow must beSome
       repo.get("alice", isCaseSensitive = false).either.runNow must beLeft(
