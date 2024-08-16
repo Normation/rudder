@@ -19,7 +19,6 @@ package bootstrap.liftweb;
 import com.normation.rudder.AuthorizationType;
 import com.normation.rudder.domain.logger.ApplicationLogger;
 import com.normation.rudder.users.*;
-import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -39,8 +38,6 @@ import org.springframework.util.Assert;
 
 import java.util.Arrays;
 import java.util.List;
-
-import com.normation.JZioRuntime;
 
 
 /**
@@ -112,6 +109,7 @@ public class RudderProviderManager implements org.springframework.security.authe
 		Class<? extends Authentication> toTest = authentication.getClass();
 		AuthenticationException lastException = null;
 		Authentication result = null;
+		RequestAttributes requestAttributes = RequestContextHolder.currentRequestAttributes();
 		boolean debug = logger.isDebugEnabled();
 
 		for (AuthenticationProvider provider : getProviders()) {
@@ -168,33 +166,31 @@ public class RudderProviderManager implements org.springframework.security.authe
                                 // game, spring is not helping
                                 String sessionId = null;
                                 if(result.getDetails() instanceof WebAuthenticationDetails) {
-																  WebAuthenticationDetails authDetails = ((WebAuthenticationDetails)result.getDetails());
-																	if (authDetails.getSessionId() != null) {
-                 	                  sessionId = authDetails.getSessionId();
-																	} else {
-																		// Session has not been generated yet, do it now so that we are able to log it later
-																		RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
-																    if (requestAttributes instanceof ServletRequestAttributes) {
-																			sessionId = ((ServletRequestAttributes) requestAttributes).getSessionId();
-																		} else {
-																		  ApplicationLogger.warn(() -> "Rudder does not know how to get sessionId on this authentication using " + requestAttributes.getClass().getName() + ". It could happen when previous session has not been closed properly. Please retry to log in after clearing the browser cache.");
-																			throw new IllegalStateException("Unknown request attributes type for session id retrieval: " + requestAttributes.getClass().getName() + ", aborting authentication");
-																		}
-																	}
+									WebAuthenticationDetails authDetails = ((WebAuthenticationDetails)result.getDetails());
+									if (authDetails.getSessionId() != null) {
+                 	                	sessionId = authDetails.getSessionId();
+									} else {
+										// Session has not been generated yet, do it now so that we are able to log it later
+										if (requestAttributes instanceof ServletRequestAttributes) {
+											sessionId = requestAttributes.getSessionId();
+										} else {
+											ApplicationLogger.warn(() -> "Rudder does not know how to get sessionId on this authentication using " + requestAttributes.getClass().getName() + ". It could happen when previous session has not been closed properly. Please retry to log in after clearing the browser cache.");
+											throw new IllegalStateException("Unknown request attributes type for session id retrieval: " + requestAttributes.getClass().getName() + ", aborting authentication");
+										}
+									}
                                 } else {
                                   final String className = result.getDetails().getClass().getName();
                                   ApplicationLogger.warn(() -> "Rudder does not know how to get sessionId from '"+className+"'. Please report to developers that message");
                                   sessionId = Integer.toHexString(result.getDetails().hashCode());
                                 }
-                                JZioRuntime.runNow(userRepository.logStartSession(
-                                  details.getUsername(),
-                                  com.normation.rudder.Role.toDisplayNames(details.roles()),
-                                  com.normation.rudder.Rights.combineAll(details.roles().toList().map(r -> r.rights())).authorizationTypes().toList().map(AuthorizationType::id),
-                                  details.nodePerms().value(),
-                                  com.normation.rudder.users.SessionId.apply(sessionId),
-                                  p.name(),
-                                  org.joda.time.DateTime.now()
-                                ));
+								// Authentication under the same session id may have already been attempted, to prevent session fixation, refuse authentication and renew login session
+								RudderProviderManagerUtil.logStartSession(
+									userRepository,
+									details,
+									com.normation.rudder.users.SessionId.apply(sessionId),
+									p.name(),
+									requestAttributes
+								);
                             }
                         }
                     }

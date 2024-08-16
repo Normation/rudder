@@ -37,6 +37,7 @@ package com.normation.rudder.users
  *************************************************************************************
  */
 
+import cats.ApplicativeError
 import cats.data.NonEmptyList
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
@@ -555,7 +556,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
  *   endCause     text
  */
 class JdbcUserRepository(doobie: Doobie) extends UserRepository {
-  import com.normation.rudder.db.Doobie.DateTimeMeta
+  import com.normation.rudder.db.Doobie.*
   import com.normation.rudder.db.json.implicits.*
   import com.normation.rudder.users.UserSerialization.*
   import doobie.*
@@ -625,10 +626,15 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
 
     transactIOResult(s"Error when saving session '${sessionId.value}' info for user '${userId}'")(xa => {
       (for {
-        _ <- session.update.run
         _ <- lastLogin.update.run
+        _ <- session.update.run
+               .onUniqueViolation(
+                 ApplicativeError[ConnectionIO, Throwable].raiseError(
+                   new IllegalArgumentException(s"User session for ${userId} has already been saved")
+                 )
+               )
       } yield ()).transact(xa)
-    }).unit
+    }).catchSome { case SystemError(_, ex: IllegalArgumentException) => Inconsistency(ex.getMessage).fail }
   }
 
   override def logCloseSession(userId: String, endDate: DateTime, endCause: String): IOResult[Unit] = {
