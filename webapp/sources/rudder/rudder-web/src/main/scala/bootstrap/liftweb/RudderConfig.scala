@@ -2227,6 +2227,7 @@ object RudderConfigInit {
             UserFileProcessing.getUserResourceFile()
           ),
           roleApiMapping,
+          tenantService,
           () => authenticationProviders.getProviderProperties().view.mapValues(_.providerRoleExtension).toMap,
           () => authenticationProviders.getConfiguredProviders().map(_.name).toSet
         ),

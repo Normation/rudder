@@ -146,6 +146,7 @@ final case class JsonAuthConfig(
     authenticationBackends: Set[String],
     providerProperties:     Map[String, JsonProviderProperty],
     users:                  List[JsonUser],
+    tenantsEnabled:         Boolean,
     digest:                 PasswordEncoderType = PasswordEncoderType.DEFAULT // default value
 )
 

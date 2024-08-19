@@ -969,6 +969,7 @@ class RestTestSetUp {
       mockUserManagement.userService,
       mockUserManagement.userManagementService,
       new RoleApiMapping(new ExtensibleAuthorizationApiMapping(AuthorizationApiMapping.Core :: Nil)),
+      mockUserManagement.tenantsService,
       () => mockUserManagement.providerRoleExtension,
       () => mockUserManagement.authBackendProviders
     )

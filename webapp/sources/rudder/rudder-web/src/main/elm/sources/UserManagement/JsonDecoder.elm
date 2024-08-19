@@ -27,6 +27,7 @@ decodeCurrentUsersConf =
         |> required "authenticationBackends" (D.list <| D.string)
         |> required "providerProperties" (D.dict decodeProviderProperties)
         |> required "users" (D.list <| decodeUser)
+        |> required "tenantsEnabled" D.bool
 
 decodeProviderProperties : Decoder ProviderProperties
 decodeProviderProperties =

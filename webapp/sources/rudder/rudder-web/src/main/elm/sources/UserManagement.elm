@@ -49,7 +49,7 @@ update msg model =
                         ui = model.ui
                         newUI = {ui | panelMode = newPanelMode} 
                         newModel =
-                            { model | roleListOverride = u.roleListOverride, users = users, ui = newUI, digest = u.digest, providers = (userProviders u.authenticationBackends), providersProperties = u.providersProperties}
+                            { model | roleListOverride = u.roleListOverride, users = users, ui = newUI, digest = u.digest, providers = (userProviders u.authenticationBackends), providersProperties = u.providersProperties, tenantsEnabled = u.tenantsEnabled }
 
                     in
                     ( newModel, getRoleConf model )
