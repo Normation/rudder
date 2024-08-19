@@ -48,9 +48,10 @@ import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.CompliancePercent
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.reports.RuleNodeStatusReport
+import com.normation.rudder.domain.reports.RunAnalysis
+import com.normation.rudder.domain.reports.RunAnalysisKind
 import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.repository.ComplianceRepository
-import com.normation.rudder.services.reports.*
 import doobie.*
 import doobie.implicits.*
 import net.liftweb.common.Box
@@ -62,7 +63,7 @@ final case class RunCompliance(
     nodeId:       NodeId,
     runTimestamp: DateTime,
     endOfLife:    DateTime,
-    runInfo:      (RunAndConfigInfo, RunComplianceInfo),
+    runInfo:      (RunAnalysis, RunComplianceInfo),
     summary:      CompliancePercent,
     details:      Set[RuleNodeStatusReport]
 )
@@ -123,37 +124,26 @@ class ComplianceJdbcRepository(
        * a run
        */
       reports.flatMap { r =>
-        r.runInfo match {
+        r.runInfo.kind match {
           // ignore case with no runs or when compliance should be kept
-          case _: KeepLastCompliance | _: NoReportInInterval | NoRunNoExpectedReport | _: ReportsDisabledInInterval |
-              _: NoUserRulesDefined =>
+          case RunAnalysisKind.KeepLastCompliance | RunAnalysisKind.NoReportInInterval | RunAnalysisKind.NoRunNoExpectedReport |
+              RunAnalysisKind.ReportsDisabledInInterval | RunAnalysisKind.NoUserRulesDefined =>
             None
-
-          case x: Pending =>
-            x.optLastRun match {
-              case None                      =>
-                None
-              case Some((runTime, expected)) =>
-                Some(RunCompliance.from(runTime, x.expirationDateTime, r))
+          case _ =>
+            (r.runInfo.lastRunDateTime, r.runInfo.expirationDateTime) match {
+              case (Some(a), Some(b)) =>
+                Some(RunCompliance.from(a, b, r))
+              case (Some(a), None)    =>
+                r.runInfo.lastRunExpiration match {
+                  case Some(b) => Some(RunCompliance.from(a, b, r))
+                  // here, the expiration date has not much meaning, since we don't have
+                  // information on that node configuration (and so the node has most likely no
+                  // idea whatsoever of any config, even global). Take default values,
+                  // ie 5min for run + 5min for grace
+                  case None    => Some(RunCompliance.from(a, a.plusMinutes(10), r))
+                }
+              case _                  => None
             }
-
-          case x: NoExpectedReport         =>
-            // here, the expiration date has not much meaning, since we don't have
-            // information on that node configuration (and so the node has most likelly no
-            // idea whatsoever of any config, even global). Take default values,
-            // ie 5min for run + 5min for grace
-            Some(RunCompliance.from(x.lastRunDateTime, x.lastRunDateTime.plusMinutes(10), r))
-          case x: UnexpectedVersion        =>
-            Some(RunCompliance.from(x.lastRunDateTime, x.lastRunExpiration, r))
-          case x: UnexpectedNoVersion      =>
-            Some(RunCompliance.from(x.lastRunDateTime, x.lastRunExpiration, r))
-          case x: UnexpectedUnknownVersion =>
-            // same has for NoExpectedReport, we can't now what the node
-            // thing its configuration is.
-            Some(RunCompliance.from(x.lastRunDateTime, x.lastRunDateTime.plusMinutes(10), r))
-          case x: ComputeCompliance        =>
-            Some(RunCompliance.from(x.lastRunDateTime, x.expirationDateTime, r))
-
         }
       }
     } else {
@@ -188,10 +178,10 @@ class ComplianceJdbcRepository(
       Nil
     }
 
-    val saveComplianceDetails = if (getSaveComplianceDetails().getOrElse(false)) {
+    val saveComplianceDetails: ConnectionIO[Unit] = if (getSaveComplianceDetails().getOrElse(false)) {
       val queryCompliance = """insert into nodecompliance (nodeid, runtimestamp, endoflife, runanalysis, summary, details)
                               | values (?, ?, ?, ?, ?, ?)""".stripMargin
-      Update[RunCompliance](queryCompliance).updateMany(runCompliances)
+      Update[RunCompliance](queryCompliance).updateMany(runCompliances).void
     } else {
       logger
         .debug(
@@ -214,8 +204,8 @@ class ComplianceJdbcRepository(
 
     transactIOResult("Error when saving node compliances:")(xa => {
       (for {
-        updated <- saveComplianceDetails
-        levels  <- saveComplianceLevels
+        _ <- saveComplianceDetails
+        _ <- saveComplianceLevels
       } yield ()).transact(xa)
     }).foldZIO(
       err => {

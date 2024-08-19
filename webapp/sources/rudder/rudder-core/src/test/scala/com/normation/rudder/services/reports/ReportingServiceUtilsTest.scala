@@ -47,7 +47,6 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.AggregatedStatusReport
 import com.normation.rudder.domain.reports.DirectiveStatusReport
-import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.reports.OverridenPolicy
 import com.normation.rudder.domain.reports.RuleNodeStatusReport
 import com.normation.rudder.domain.reports.RuleStatusReport
@@ -127,14 +126,24 @@ class ReportingServiceUtilsTest extends Specification {
    */
   "a rule can not overrides itself" in {
     val reports = List(
-      NodeStatusReport.buildWith(node1, NoRunNoExpectedReport, RunComplianceInfo.OK, List(), Set(rnReport(node1, rule1, dir1))),
-      NodeStatusReport.buildWith(
-        node2,
-        NoRunNoExpectedReport,
-        RunComplianceInfo.OK,
-        List(thisOverrideThatOn(rule2, rule1, dir1)),
-        Set()
-      )
+      NodeStatusReportInternal
+        .buildWith(
+          node1,
+          NoRunNoExpectedReport,
+          RunComplianceInfo.OK,
+          List(),
+          Set(rnReport(node1, rule1, dir1))
+        )
+        .toNodeStatusReport(),
+      NodeStatusReportInternal
+        .buildWith(
+          node2,
+          NoRunNoExpectedReport,
+          RunComplianceInfo.OK,
+          List(thisOverrideThatOn(rule2, rule1, dir1)),
+          Set()
+        )
+        .toNodeStatusReport()
     ).map(r => (r.nodeId, r)).toMap
 
     ReportingServiceUtils
@@ -149,13 +158,15 @@ class ReportingServiceUtilsTest extends Specification {
    */
   "only overridden leads to skip" in {
     val reports = List(
-      NodeStatusReport.buildWith(
-        node1,
-        NoRunNoExpectedReport,
-        RunComplianceInfo.OK,
-        List(thisOverrideThatOn(rule2, rule1, dir1)),
-        Set()
-      )
+      NodeStatusReportInternal
+        .buildWith(
+          node1,
+          NoRunNoExpectedReport,
+          RunComplianceInfo.OK,
+          List(thisOverrideThatOn(rule2, rule1, dir1)),
+          Set()
+        )
+        .toNodeStatusReport()
     ).map(r => (r.nodeId, r)).toMap
 
     ReportingServiceUtils
@@ -166,13 +177,15 @@ class ReportingServiceUtilsTest extends Specification {
   }
   "directives on other rules are not kept in overrides" in {
     val reports = List(
-      NodeStatusReport.buildWith(
-        node1,
-        NoRunNoExpectedReport,
-        RunComplianceInfo.OK,
-        List(thisOverrideThatOn(rule2, rule3, dir1)),
-        Set()
-      )
+      NodeStatusReportInternal
+        .buildWith(
+          node1,
+          NoRunNoExpectedReport,
+          RunComplianceInfo.OK,
+          List(thisOverrideThatOn(rule2, rule3, dir1)),
+          Set()
+        )
+        .toNodeStatusReport()
     ).map(r => (r.nodeId, r)).toMap
 
     ReportingServiceUtils
@@ -191,14 +204,18 @@ class ReportingServiceUtilsTest extends Specification {
    */
   "a rule not overridden on all nodes is not written overridden" in {
     val reports = List(
-      NodeStatusReport.buildWith(node1, NoRunNoExpectedReport, RunComplianceInfo.OK, List(), Set(rnReport(node1, rule1, dir1))),
-      NodeStatusReport.buildWith(
-        node2,
-        NoRunNoExpectedReport,
-        RunComplianceInfo.OK,
-        List(thisOverrideThatOn2(rule2, dir2, rule1, dir1)),
-        Set(rnReport(node2, rule2, dir2))
-      )
+      NodeStatusReportInternal
+        .buildWith(node1, NoRunNoExpectedReport, RunComplianceInfo.OK, List(), Set(rnReport(node1, rule1, dir1)))
+        .toNodeStatusReport(),
+      NodeStatusReportInternal
+        .buildWith(
+          node2,
+          NoRunNoExpectedReport,
+          RunComplianceInfo.OK,
+          List(thisOverrideThatOn2(rule2, dir2, rule1, dir1)),
+          Set(rnReport(node2, rule2, dir2))
+        )
+        .toNodeStatusReport()
     ).map(r => (r.nodeId, r)).toMap
 
     ReportingServiceUtils
@@ -220,36 +237,38 @@ class ReportingServiceUtilsTest extends Specification {
    */
   "a rule not overridden on all nodes is not written overriden" in {
     val reports = List(
-      NodeStatusReport.buildWith(
-        node1,
-        NoRunNoExpectedReport,
-        RunComplianceInfo.OK,
-        List(
-          // on rule1, both dir2 and dir3 are overridden by rule2/dir1
-          thisOverrideThatOn2(rule2, dir1, rule1, dir2),
-          thisOverrideThatOn2(rule2, dir1, rule1, dir3), // on rule2, both dir2 and dir3 are overridden by rule2/dir1
+      NodeStatusReportInternal
+        .buildWith(
+          node1,
+          NoRunNoExpectedReport,
+          RunComplianceInfo.OK,
+          List(
+            // on rule1, both dir2 and dir3 are overridden by rule2/dir1
+            thisOverrideThatOn2(rule2, dir1, rule1, dir2),
+            thisOverrideThatOn2(rule2, dir1, rule1, dir3), // on rule2, both dir2 and dir3 are overridden by rule2/dir1
 
-          thisOverrideThatOn2(rule2, dir1, rule2, dir2),
-          thisOverrideThatOn2(rule2, dir1, rule2, dir3), // on rule3, dir2, dir2 and dir3 are overridden by rule2/dir1
+            thisOverrideThatOn2(rule2, dir1, rule2, dir2),
+            thisOverrideThatOn2(rule2, dir1, rule2, dir3), // on rule3, dir2, dir2 and dir3 are overridden by rule2/dir1
 
-          thisOverrideThatOn2(rule2, dir1, rule3, dir1),
-          thisOverrideThatOn2(rule2, dir1, rule3, dir2),
-          thisOverrideThatOn2(
-            rule2,
-            dir1,
-            rule3,
-            dir3
-          ), // and these one are real but should not be kept to avoid having several time the same "skipped"
+            thisOverrideThatOn2(rule2, dir1, rule3, dir1),
+            thisOverrideThatOn2(rule2, dir1, rule3, dir2),
+            thisOverrideThatOn2(
+              rule2,
+              dir1,
+              rule3,
+              dir3
+            ), // and these one are real but should not be kept to avoid having several time the same "skipped"
 
-          thisOverrideThatOn2(rule1, dir2, rule1, dir3),
-          thisOverrideThatOn2(rule2, dir2, rule2, dir3),
-          thisOverrideThatOn2(rule3, dir1, rule3, dir2),
-          thisOverrideThatOn2(rule3, dir1, rule3, dir3),
-          thisOverrideThatOn2(rule3, dir2, rule3, dir3)
-        ), // only one expected report: dir1 on rule2
+            thisOverrideThatOn2(rule1, dir2, rule1, dir3),
+            thisOverrideThatOn2(rule2, dir2, rule2, dir3),
+            thisOverrideThatOn2(rule3, dir1, rule3, dir2),
+            thisOverrideThatOn2(rule3, dir1, rule3, dir3),
+            thisOverrideThatOn2(rule3, dir2, rule3, dir3)
+          ), // only one expected report: dir1 on rule2
 
-        Set(rnReport(node1, rule2, dir1))
-      )
+          Set(rnReport(node1, rule2, dir1))
+        )
+        .toNodeStatusReport()
     ).map(r => (r.nodeId, r)).toMap
 
     ReportingServiceUtils

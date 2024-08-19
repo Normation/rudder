@@ -44,6 +44,7 @@ import com.normation.NamedZioLogger
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.NodeConfigIdInfo
 import com.normation.rudder.domain.reports.NodeExpectedReports
+import com.normation.rudder.domain.reports.RunAnalysis
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ResolvedAgentRunInterval
@@ -85,6 +86,52 @@ object ComplianceDebugLogger extends Logger {
     )
 
   def node(id: NodeId): Logger = nodeCache.get(id.value)
+
+  implicit class RunAnalysisInfoToLog(val c: RunAnalysis) extends AnyVal {
+    import com.normation.rudder.domain.reports.RunAnalysisKind.*
+
+    def logId:  String = {
+      val configId = c.expectedConfigId.fold("unknown id")(_.value)
+      val start    = c.expectedConfigStart.fold("unknown start time")(_.toIsoStringNoMillis)
+      val end      = c.expirationDateTime.fold("unknown expiration date")(_.toIsoStringNoMillis)
+
+      s"${configId}/[${start}-${end}]"
+    }
+    def logRun: String = {
+      val configId = c.lastRunConfigId.fold("none or too old")(i => s"configId: ${i.value}")
+      val date     = c.lastRunDateTime.fold("unknown")(_.toIsoStringNoMillis)
+      val exp      = c.lastRunExpiration.fold("")(r => s" | expired at ${r.toIsoStringNoMillis}")
+
+      s"${configId} received at: ${date}${exp}"
+    }
+
+    def logDetails: String = c.kind match {
+      case NoRunNoExpectedReport =>
+        "expected NodeConfigId: not found | last run: not found"
+
+      case NoExpectedReport =>
+        s"expected NodeConfigId: not found |" +
+        s" last run: nodeConfigId: ${c.lastRunConfigId.fold("none")(_.value)} received at ${c.lastRunDateTime.fold("undef")(_.toIsoStringNoMillis)}"
+
+      case NoReportInInterval =>
+        s"expected NodeConfigId: ${c.logId} |" +
+        s" last run: none available (or too old)"
+
+      case KeepLastCompliance =>
+        s"expected NodeConfigId: ${c.logId} |" +
+        s" last: ${c.logRun} ; expired but will be kept until ${c.expirationDateTime.fold("unknown")(_.toIsoStringNoMillis)}"
+
+      case ReportsDisabledInInterval =>
+        s"expected NodeConfigId: ${c.logId} |" +
+        s" last run: none available (compliance mode is reports-disabled)]"
+
+      case _ =>
+        s"expected NodeConfigId: ${c.logId} |" +
+        s" last run: ${c.logRun}"
+    }
+
+    def toLog: String = s"${c.kind.entryName}: ${logDetails}"
+  }
 
   implicit class NodeConfigIdInfoToLog(val n: NodeConfigIdInfo)      extends AnyVal {
     def toLog: String =
@@ -150,7 +197,6 @@ object ComplianceDebugLogger extends Logger {
         s"expected NodeConfigId: ${expectedConfig.toLog} |" +
         s" last run: nodeConfigId: ${x.lastRunConfigId.value} received at ${lastRunDateTime.toIsoStringNoMillis} |" +
         s" expired at ${expirationDateTime.toIsoStringNoMillis}"
-
     }
 
     def logName: String = c match {

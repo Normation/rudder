@@ -47,7 +47,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
-import com.normation.rudder.services.reports.RunAndConfigInfo
 import com.normation.zio.*
 import doobie.*
 import doobie.implicits.javasql.*
@@ -235,7 +234,7 @@ object Doobie {
   }
 
   /*
-   * Do not use that one for extraction, only to save NodeExpectedReports
+   * Do not use that one for extraction, only to save NodeStatusReport
    */
   implicit val SerializeNodeExpectedReportsWrite: Write[NodeExpectedReports] = {
     import ExpectedReportsSerialisation.*
@@ -266,7 +265,7 @@ object Doobie {
     Write[String].contramap(x => compactRender(x.toJson))
   }
 
-  implicit val ComplianceRunInfoComposite: Write[(RunAndConfigInfo, RunComplianceInfo)] = {
+  implicit val ComplianceRunInfoComposite: Write[(RunAnalysis, RunComplianceInfo)] = {
     import NodeStatusReportSerialization.*
     Write[String].contramap(_.toCompactJson)
   }

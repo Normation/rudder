@@ -44,6 +44,7 @@ import com.normation.rudder.domain.reports.NodeComplianceExpirationMode
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeStatusReport
+import com.normation.rudder.domain.reports.RunAnalysisKind
 import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
@@ -80,11 +81,14 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   }
 
   def run(id: String, info: RunAndConfigInfo): NodeStatusReport =
-    NodeStatusReport.buildWith(NodeId(id), info, RunComplianceInfo.OK, Nil, Set())
+    NodeStatusReportInternal.buildWith(NodeId(id), info, RunComplianceInfo.OK, Nil, Set()).toNodeStatusReport()
 
   // a list of node, one node by type of reports, in a triplet:
   // (node, expired report, still ok report)
   def expected(id: String): NodeExpectedReports = NodeExpectedReports(NodeId(id), NodeConfigId(id), null, null, null, Nil, Nil)
+
+  val date0         = new DateTime(0)
+  val dummyExpected = NodeExpectedReports(NodeId("dummy"), NodeConfigId("dummy"), date0, null, null, Nil, Nil)
 
   val nodes: List[((NodeId, CoreNodeFact), NodeStatusReport, NodeStatusReport)] = List(
     (
@@ -99,38 +103,38 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     ),
     (
       buildNode("n2"),
-      run("n2", NoReportInInterval(null, expired)),
-      run("n2", NoReportInInterval(null, stillOk))
+      run("n2", NoReportInInterval(dummyExpected, expired)),
+      run("n2", NoReportInInterval(dummyExpected, stillOk))
     ),
     (
       buildNode("n3"),
-      run("n3", ReportsDisabledInInterval(null, expired)),
-      run("n3", ReportsDisabledInInterval(null, stillOk))
+      run("n3", ReportsDisabledInInterval(dummyExpected, expired)),
+      run("n3", ReportsDisabledInInterval(dummyExpected, stillOk))
     ),
     (
       buildNode("n4"),
-      run("n4", Pending(null, None, expired)),
-      run("n4", Pending(null, None, stillOk))
+      run("n4", Pending(dummyExpected, None, expired)),
+      run("n4", Pending(dummyExpected, None, stillOk))
     ),
     (
       buildNode("n5"),
-      run("n5", UnexpectedVersion(null, Some(expected("n5")), expired, null, expired, expired)),
-      run("n5", UnexpectedVersion(null, Some(expected("n5")), stillOk, null, stillOk, stillOk))
+      run("n5", UnexpectedVersion(date0, Some(expected("n5")), expired, dummyExpected, expired, expired)),
+      run("n5", UnexpectedVersion(date0, Some(expected("n5")), stillOk, dummyExpected, stillOk, stillOk))
     ),
     (
       buildNode("n6"),
-      run("n6", UnexpectedNoVersion(null, NodeConfigId("x"), expired, null, expired, expired)),
-      run("n6", UnexpectedNoVersion(null, NodeConfigId("x"), stillOk, null, stillOk, stillOk))
+      run("n6", UnexpectedNoVersion(date0, NodeConfigId("x"), expired, dummyExpected, expired, expired)),
+      run("n6", UnexpectedNoVersion(date0, NodeConfigId("x"), stillOk, dummyExpected, stillOk, stillOk))
     ),
     (
       buildNode("n7"),
-      run("n7", UnexpectedUnknownVersion(null, NodeConfigId("x"), null, expired, expired)),
-      run("n7", UnexpectedUnknownVersion(null, NodeConfigId("x"), null, stillOk, stillOk))
+      run("n7", UnexpectedUnknownVersion(date0, NodeConfigId("x"), dummyExpected, expired, expired)),
+      run("n7", UnexpectedUnknownVersion(date0, NodeConfigId("x"), dummyExpected, stillOk, stillOk))
     ),
     (
       buildNode("n8"),
-      run("n8", ComputeCompliance(null, expected("n5"), expired)),
-      run("n8", ComputeCompliance(null, expected("n5"), stillOk))
+      run("n8", ComputeCompliance(date0, expected("n5"), expired)),
+      run("n8", ComputeCompliance(date0, expected("n5"), stillOk))
     )
   )
 
@@ -242,11 +246,26 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
 
     val longExpired = expired.minusMinutes(30)
     val initReport  = nodes.collect {
-      case ((id @ NodeId("n2"), _), a, _) => (id, a.modify(_.runInfo).setTo(NoReportInInterval(null, longExpired)))
+      case ((id @ NodeId("n2"), _), a, _) =>
+        (
+          id,
+          a.modify(_.runInfo.kind)
+            .setTo(RunAnalysisKind.NoReportInInterval)
+            .modify(_.runInfo.expirationDateTime)
+            .setTo(Some(longExpired))
+        )
     }.toMap
     val computed    = nodes.collect {
       case ((id @ NodeId("n2"), _), a, _) =>
-        (id, a.modify(_.runInfo).setTo(KeepLastCompliance(null, longExpired, longExpired.plusMillis(grace.toMillis.toInt), None)))
+        (
+          id,
+          a.modify(_.runInfo.kind)
+            .setTo(RunAnalysisKind.KeepLastCompliance)
+            .modify(_.runInfo.expiredSince)
+            .setTo(Some(longExpired))
+            .modify(_.runInfo.expirationDateTime)
+            .setTo(Some(longExpired.plusMillis(grace.toMillis.toInt)))
+        )
     }.toMap
 
     finder.reports = initReport

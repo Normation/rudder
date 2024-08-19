@@ -45,8 +45,9 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.services.reports.*
 import com.softwaremill.quicklens.*
+import enumeratum.Enum
+import enumeratum.EnumEntry
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
 
@@ -106,9 +107,38 @@ object RunComplianceInfo {
   final case class PolicyModeInconsistency(problems: List[PolicyModeError]) extends RunComplianceInfo
 }
 
+sealed trait RunAnalysisKind extends EnumEntry
+object RunAnalysisKind       extends Enum[RunAnalysisKind] {
+
+  case object NoRunNoExpectedReport     extends RunAnalysisKind
+  case object NoExpectedReport          extends RunAnalysisKind
+  case object NoUserRulesDefined        extends RunAnalysisKind
+  case object NoReportInInterval        extends RunAnalysisKind
+  case object KeepLastCompliance        extends RunAnalysisKind
+  case object ReportsDisabledInInterval extends RunAnalysisKind
+  case object Pending                   extends RunAnalysisKind
+  case object UnexpectedVersion         extends RunAnalysisKind
+  case object UnexpectedNoVersion       extends RunAnalysisKind
+  case object UnexpectedUnknownVersion  extends RunAnalysisKind
+  case object ComputeCompliance         extends RunAnalysisKind
+
+  override def values: IndexedSeq[RunAnalysisKind] = findValues
+}
+
+final case class RunAnalysis(
+    kind:                RunAnalysisKind,
+    expectedConfigId:    Option[NodeConfigId],
+    expectedConfigStart: Option[DateTime],
+    expirationDateTime:  Option[DateTime],
+    expiredSince:        Option[DateTime],
+    lastRunDateTime:     Option[DateTime],
+    lastRunConfigId:     Option[NodeConfigId],
+    lastRunExpiration:   Option[DateTime]
+)
+
 final case class NodeStatusReport(
     nodeId:     NodeId,
-    runInfo:    RunAndConfigInfo,
+    runInfo:    RunAnalysis,
     statusInfo: RunComplianceInfo,
     overrides:  List[OverridenPolicy],
     reports:    Map[PolicyTypeName, AggregatedStatusReport]
@@ -137,26 +167,6 @@ final case class NodeStatusReport(
 }
 
 object NodeStatusReport {
-  // To use when you are sure that all reports are indeed for the designated node. RuleNodeStatusReports must be merged
-  // Only used in `getNodeStatusReports`
-  def buildWith(
-      nodeId:     NodeId,
-      runInfo:    RunAndConfigInfo,
-      statusInfo: RunComplianceInfo,
-      overrides:  List[OverridenPolicy],
-      reports:    Set[RuleNodeStatusReport]
-  ): NodeStatusReport = {
-    assert(
-      reports.forall(_.nodeId == nodeId),
-      s"You can't build a NodeStatusReport with reports for other node than itself. Current node id: ${nodeId.value}; Wrong reports: ${reports
-          .filter(_.nodeId != nodeId)
-          .map(r => s"${r.nodeId.value}:${r.ruleId.serialize}")
-          .mkString("|")}"
-    )
-    // group map and aggregate
-    val aggregates = reports.groupBy(_.complianceTag).map { case (tag, reports) => (tag, AggregatedStatusReport(reports)) }
-    NodeStatusReport(nodeId, runInfo, statusInfo, overrides, aggregates)
-  }
 
   /*
    * This method filters an NodeStatusReport by Rules.
@@ -523,50 +533,12 @@ object NodeStatusReportSerialization {
   import net.liftweb.json.*
   import net.liftweb.json.JsonDSL.*
 
-  def jsonRunInfo(runInfo: RunAndConfigInfo): JValue = {
-
-    runInfo match {
-      case NoRunNoExpectedReport                    =>
-        ("type" -> "NoRunNoExpectedReport")
-      case NoExpectedReport(t, id)                  =>
-        (("type"             -> "NoExpectedReport")
-        ~ ("lastRunConfigId" -> id.map(_.value)))
-      case NoReportInInterval(e, _)                 =>
-        (("type"              -> "NoReportInInterval")
-        ~ ("expectedConfigId" -> e.nodeConfigId.value))
-      case KeepLastCompliance(e, exp, keep, r)      =>
-        (("type"              -> "KeepLastCompliance")
-        ~ ("expectedConfigId" -> e.nodeConfigId.value)
-        ~ ("runConfigId"      -> r.map(_._2.nodeConfigId.value)))
-      case ReportsDisabledInInterval(e, _)          =>
-        (("type"              -> "ReportsDisabled")
-        ~ ("expectedConfigId" -> e.nodeConfigId.value))
-      case UnexpectedVersion(t, id, _, e, _, _)     =>
-        (("type"              -> "UnexpectedVersion")
-        ~ ("expectedConfigId" -> e.nodeConfigId.value)
-        ~ ("runConfigId"      -> id.get.nodeConfigId.value))
-      case UnexpectedNoVersion(_, id, _, e, _, _)   =>
-        (("type"              -> "UnexpectedNoVersion")
-        ~ ("expectedConfigId" -> e.nodeConfigId.value)
-        ~ ("runConfigId"      -> id.value))
-      case UnexpectedUnknownVersion(_, id, e, _, _) =>
-        (("type"              -> "UnexpectedUnknownVersion")
-        ~ ("expectedConfigId" -> e.nodeConfigId.value)
-        ~ ("runConfigId"      -> id.value))
-      case Pending(e, r, _)                         =>
-        (("type"              -> "Pending")
-        ~ ("expectedConfigId" -> e.nodeConfigId.value)
-        ~ ("runConfigId"      -> r.map(_._2.nodeConfigId.value)))
-      case ComputeCompliance(_, e, _)               =>
-        (("type"              -> "ComputeCompliance")
-        ~ ("expectedConfigId" -> e.nodeConfigId.value)
-        ~ ("runConfigId"      -> e.nodeConfigId.value))
-      case NoUserRulesDefined(_, e, _, _, _)        =>
-        (("type"              -> "NoUserRulesDefined")
-        ~ ("expectedConfigId" -> e.nodeConfigId.value)
-        ~ ("runConfigId"      -> e.nodeConfigId.value))
-    }
+  def jsonRunInfo(runInfo: RunAnalysis): JValue = {
+    (("type"              -> runInfo.kind.entryName)
+    ~ ("expectedConfigId" -> runInfo.expectedConfigId.map(_.value))
+    ~ ("runConfigId"      -> runInfo.lastRunConfigId.map(_.value)))
   }
+
   def jsonStatusInfo(statusInfo: RunComplianceInfo): JValue = {
     (
       ("status"  -> (statusInfo match {
@@ -587,7 +559,7 @@ object NodeStatusReportSerialization {
     )
   }
 
-  implicit class RunComplianceInfoToJs(val x: (RunAndConfigInfo, RunComplianceInfo)) extends AnyVal {
+  implicit class RunComplianceInfoToJs(val x: (RunAnalysis, RunComplianceInfo)) extends AnyVal {
     def toJValue: JObject = {
       (
         ("run"      -> jsonRunInfo(x._1))

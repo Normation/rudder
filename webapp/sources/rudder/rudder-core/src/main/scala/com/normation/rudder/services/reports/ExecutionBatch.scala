@@ -51,6 +51,8 @@ import com.normation.rudder.domain.reports.ReportType.BadPolicyMode
 import com.normation.rudder.reports.*
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
+import io.scalaland.chimney.*
+import io.scalaland.chimney.syntax.*
 import java.util.regex.Pattern
 import net.liftweb.common.Loggable
 import org.apache.commons.lang3.StringUtils
@@ -92,7 +94,9 @@ import scala.util.matching.Regex
  *
  */
 
-sealed trait RunAndConfigInfo
+sealed trait RunAndConfigInfo {
+  def toRunAnalysis: RunAnalysis
+}
 
 /**
  * The type of report to use for missing reports
@@ -138,7 +142,18 @@ sealed trait LastRunAvailable extends RunAndConfigInfo {
 /*
  * Really, that node exists ?
  */
-case object NoRunNoExpectedReport extends ErrorNoConfigData
+case object NoRunNoExpectedReport extends ErrorNoConfigData {
+  def toRunAnalysis: RunAnalysis = RunAnalysis(
+    RunAnalysisKind.NoRunNoExpectedReport,
+    expectedConfigId = None,
+    expectedConfigStart = None,
+    expirationDateTime = None,
+    expiredSince = None,
+    lastRunDateTime = None,
+    lastRunConfigId = None,
+    lastRunExpiration = None
+  )
+}
 
 /*
  * We don't have the needed configId in the expected
@@ -150,17 +165,19 @@ case object NoRunNoExpectedReport extends ErrorNoConfigData
 final case class NoExpectedReport(
     lastRunDateTime: DateTime,
     lastRunConfigId: Option[NodeConfigId]
-) extends ErrorNoConfigData
+) extends ErrorNoConfigData {
+  def toRunAnalysis: RunAnalysis = RunAnalysis(
+    RunAnalysisKind.NoExpectedReport,
+    expectedConfigId = None,
+    expectedConfigStart = None,
+    expirationDateTime = None,
+    expiredSince = None,
+    lastRunDateTime = Some(lastRunDateTime),
+    lastRunConfigId = lastRunConfigId,
+    lastRunExpiration = None
+  )
+}
 
-/*
- * The run doesn't provide an expected report: it is probably broken
- * we assume it is the current expected report, but more important,
- * we must complain loudly to the users
- */
-final case class RunWithoutExpectedReport(
-    lastRunDateTime: DateTime,
-    expectedConfig:  NodeExpectedReports
-)
 /*
  * No Rules defined, but run was ok
  */
@@ -170,7 +187,18 @@ final case class NoUserRulesDefined(
     lastRunConfigId:    NodeConfigId,
     lastRunConfigInfo:  Option[NodeExpectedReports],
     expirationDateTime: DateTime
-) extends NoReport with LastRunAvailable
+) extends NoReport with LastRunAvailable {
+  def toRunAnalysis: RunAnalysis = RunAnalysis(
+    RunAnalysisKind.NoUserRulesDefined,
+    expectedConfigId = Some(expectedConfig.nodeConfigId),
+    expectedConfigStart = Some(expectedConfig.beginDate),
+    expirationDateTime = Some(expirationDateTime),
+    expiredSince = None,
+    lastRunDateTime = Some(lastRunDateTime),
+    lastRunConfigId = Some(lastRunConfigId),
+    lastRunExpiration = lastRunConfigInfo.flatMap(_.endDate)
+  )
+}
 
 /*
  * No report of interest (either none, or
@@ -181,7 +209,18 @@ final case class NoUserRulesDefined(
 final case class NoReportInInterval(
     expectedConfig:     NodeExpectedReports,
     expirationDateTime: DateTime
-) extends NoReport
+) extends NoReport {
+  def toRunAnalysis: RunAnalysis = RunAnalysis(
+    RunAnalysisKind.NoReportInInterval,
+    expectedConfigId = Some(expectedConfig.nodeConfigId),
+    expectedConfigStart = Some(expectedConfig.beginDate),
+    expirationDateTime = Some(expirationDateTime),
+    expiredSince = None,
+    lastRunDateTime = None,
+    lastRunConfigId = None,
+    lastRunExpiration = None
+  )
+}
 
 /*
  * When we want to keep compliance even in case of NoReportInterval
@@ -191,7 +230,18 @@ final case class KeepLastCompliance(
     expiredSince:       DateTime,
     expirationDateTime: DateTime,
     optLastRun:         Option[(DateTime, NodeExpectedReports)]
-) extends NoReport with ExpiringStatus
+) extends NoReport with ExpiringStatus {
+  def toRunAnalysis: RunAnalysis = RunAnalysis(
+    RunAnalysisKind.KeepLastCompliance,
+    expectedConfigId = Some(expectedConfig.nodeConfigId),
+    expectedConfigStart = Some(expectedConfig.beginDate),
+    expirationDateTime = Some(expirationDateTime),
+    expiredSince = Some(expiredSince),
+    lastRunDateTime = optLastRun.map(_._1),
+    lastRunConfigId = optLastRun.map(_._2.nodeConfigId),
+    lastRunExpiration = Some(expirationDateTime)
+  )
+}
 
 /*
  * No report of interest but expected because
@@ -200,13 +250,35 @@ final case class KeepLastCompliance(
 final case class ReportsDisabledInInterval(
     expectedConfig:     NodeExpectedReports,
     expirationDateTime: DateTime
-) extends NoReport
+) extends NoReport {
+  def toRunAnalysis: RunAnalysis = RunAnalysis(
+    RunAnalysisKind.ReportsDisabledInInterval,
+    expectedConfigId = Some(expectedConfig.nodeConfigId),
+    expectedConfigStart = Some(expectedConfig.beginDate),
+    expirationDateTime = Some(expirationDateTime),
+    expiredSince = None,
+    lastRunDateTime = None,
+    lastRunConfigId = None,
+    lastRunExpiration = None
+  )
+}
 
 final case class Pending(
     expectedConfig:     NodeExpectedReports,
     optLastRun:         Option[(DateTime, NodeExpectedReports)],
     expirationDateTime: DateTime
-) extends NoReport with ExpiringStatus
+) extends NoReport with ExpiringStatus {
+  def toRunAnalysis: RunAnalysis = RunAnalysis(
+    RunAnalysisKind.Pending,
+    expectedConfigId = Some(expectedConfig.nodeConfigId),
+    expectedConfigStart = Some(expectedConfig.beginDate),
+    expirationDateTime = Some(expirationDateTime),
+    expiredSince = None,
+    lastRunDateTime = optLastRun.map(_._1),
+    lastRunConfigId = optLastRun.map(_._2.nodeConfigId),
+    lastRunExpiration = optLastRun.flatMap(_._2.endDate)
+  )
+}
 
 /*
  * the case where we have a version on the run,
@@ -222,6 +294,16 @@ final case class UnexpectedVersion(
     expirationDateTime: DateTime
 ) extends Unexpected with LastRunAvailable {
   val lastRunConfigId = lastRunConfigInfo.get.nodeConfigId
+  def toRunAnalysis: RunAnalysis = RunAnalysis(
+    RunAnalysisKind.UnexpectedVersion,
+    expectedConfigId = Some(expectedConfig.nodeConfigId),
+    expectedConfigStart = None,
+    expirationDateTime = Some(expirationDateTime),
+    expiredSince = None,
+    lastRunDateTime = Some(lastRunDateTime),
+    lastRunConfigId = lastRunConfigInfo.map(_.nodeConfigId),
+    lastRunExpiration = Some(lastRunExpiration)
+  )
 }
 
 /**
@@ -238,6 +320,17 @@ final case class UnexpectedNoVersion(
     expirationDateTime: DateTime
 ) extends Unexpected with LastRunAvailable {
   val lastRunConfigInfo: Option[NodeExpectedReports] = None
+
+  def toRunAnalysis: RunAnalysis = RunAnalysis(
+    RunAnalysisKind.UnexpectedNoVersion,
+    expectedConfigId = Some(expectedConfig.nodeConfigId),
+    expectedConfigStart = Some(expectedConfig.beginDate),
+    expirationDateTime = Some(expectedExpiration),
+    expiredSince = None,
+    lastRunDateTime = Some(lastRunDateTime),
+    lastRunConfigId = Some(lastRunConfigId),
+    lastRunExpiration = Some(lastRunExpiration)
+  )
 }
 
 /**
@@ -254,6 +347,17 @@ final case class UnexpectedUnknownVersion(
     expirationDateTime: DateTime
 ) extends Unexpected with LastRunAvailable {
   val lastRunConfigInfo: Option[NodeExpectedReports] = None
+
+  def toRunAnalysis: RunAnalysis = RunAnalysis(
+    RunAnalysisKind.UnexpectedUnknownVersion,
+    expectedConfigId = Some(lastRunConfigId),
+    expectedConfigStart = Some(expectedConfig.beginDate),
+    expirationDateTime = Some(expirationDateTime),
+    expiredSince = None,
+    lastRunDateTime = Some(lastRunDateTime),
+    lastRunConfigId = Some(lastRunConfigId),
+    lastRunExpiration = None
+  )
 }
 
 final case class ComputeCompliance(
@@ -263,6 +367,84 @@ final case class ComputeCompliance(
 ) extends Ok with LastRunAvailable {
   val lastRunConfigId = expectedConfig.nodeConfigId
   val lastRunConfigInfo: Some[NodeExpectedReports] = Some(expectedConfig)
+
+  def toRunAnalysis: RunAnalysis = RunAnalysis(
+    RunAnalysisKind.ComputeCompliance,
+    expectedConfigId = Some(expectedConfig.nodeConfigId),
+    expectedConfigStart = Some(expectedConfig.beginDate),
+    expirationDateTime = Some(expirationDateTime),
+    expiredSince = None,
+    lastRunDateTime = Some(lastRunDateTime),
+    lastRunConfigId = Some(expectedConfig.nodeConfigId),
+    lastRunExpiration = None
+  )
+}
+
+/*
+ * Used internally to have more information to compute things
+ */
+final case class NodeStatusReportInternal(
+    nodeId:     NodeId,
+    runInfo:    RunAndConfigInfo,
+    statusInfo: RunComplianceInfo,
+    overrides:  List[OverridenPolicy],
+    reports:    Map[PolicyTypeName, AggregatedStatusReport]
+) {
+  // for compat reason, node compliance is the sum of all aspects
+  lazy val compliance: ComplianceLevel = ComplianceLevel.sum(reports.values.map(_.compliance))
+
+  // get the compliance level for a given type, or compliance 0 is that type is missing
+  def getCompliance(t: PolicyTypeName): ComplianceLevel = {
+    reports.get(t) match {
+      case Some(x) => x.compliance
+      case None    => ComplianceLevel()
+    }
+  }
+
+  def systemCompliance: ComplianceLevel = getCompliance(PolicyTypeName.rudderSystem)
+  def baseCompliance:   ComplianceLevel = getCompliance(PolicyTypeName.rudderBase)
+
+  def forPolicyType(t: PolicyTypeName): NodeStatusReportInternal = {
+    val r = reports.get(t) match {
+      case Some(r) => Map((t, r))
+      case None    => Map.empty[PolicyTypeName, AggregatedStatusReport]
+    }
+    NodeStatusReportInternal(nodeId, runInfo, statusInfo, overrides, r)
+  }
+
+  def toNodeStatusReport(): NodeStatusReport = {
+    this.transformInto[NodeStatusReport]
+  }
+}
+
+object NodeStatusReportInternal {
+  implicit lazy val transformer: Transformer[NodeStatusReportInternal, NodeStatusReport] = {
+    Transformer
+      .define[NodeStatusReportInternal, NodeStatusReport]
+      .withFieldComputed(_.runInfo, _.runInfo.toRunAnalysis)
+      .buildTransformer
+  }
+
+  // To use when you are sure that all reports are indeed for the designated node. RuleNodeStatusReports must be merged
+  // Only used in `getNodeStatusReports`
+  def buildWith(
+      nodeId:     NodeId,
+      runInfo:    RunAndConfigInfo,
+      statusInfo: RunComplianceInfo,
+      overrides:  List[OverridenPolicy],
+      reports:    Set[RuleNodeStatusReport]
+  ): NodeStatusReportInternal = {
+    assert(
+      reports.forall(_.nodeId == nodeId),
+      s"You can't build a NodeStatusReport with reports for other node than itself. Current node id: ${nodeId.value}; Wrong reports: ${reports
+          .filter(_.nodeId != nodeId)
+          .map(r => s"${r.nodeId.value}:${r.ruleId.serialize}")
+          .mkString("|")}"
+    )
+    // group map and aggregate
+    val aggregates = reports.groupBy(_.complianceTag).map { case (tag, reports) => (tag, AggregatedStatusReport(reports)) }
+    NodeStatusReportInternal(nodeId, runInfo, statusInfo, overrides, aggregates)
+  }
 }
 
 /**
@@ -693,7 +875,7 @@ object ExecutionBatch extends Loggable {
 
   /**
    * This is the main entry point to get the detailed reporting
-   * It returns a Sequence of NodeStatusReport which gives, for
+   * It returns a Sequence of NodeStatusReportInternal which gives, for
    * each node, the status and all the directives associated.
    *
    * The contract is to give to that function a list of expected
@@ -711,7 +893,7 @@ object ExecutionBatch extends Loggable {
   ): NodeStatusReport = {
 
     // UnexpectedVersion are always called for only one node
-    // The status can't merge, as the merge group by nodeconfigid, and unexpected and missing have, by constuct, different configid
+    // The status can't merge, as the merge group by nodeconfigid, and unexpected and missing have, by construct, different configId
     def buildUnexpectedVersion(
         runTime:            DateTime,
         runVersion:         Option[NodeConfigIdInfo],
@@ -728,7 +910,6 @@ object ExecutionBatch extends Loggable {
         ReportType.Missing
       ).toSet ++
       buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), runVersion.map(_.configId), runExpiration), nodeStatusReports)
-
     }
 
     // only interesting reports: for that node, with a status
@@ -938,7 +1119,7 @@ object ExecutionBatch extends Loggable {
       case _ => Nil
     }
 
-    NodeStatusReport.buildWith(nodeId, runInfo, status, overrides, ruleNodeStatusReports.toSet)
+    NodeStatusReportInternal.buildWith(nodeId, runInfo, status, overrides, ruleNodeStatusReports.toSet).toNodeStatusReport()
   }
 
   // utility method to find how missing report should be reported given the compliance
