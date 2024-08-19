@@ -103,6 +103,7 @@ import com.normation.rudder.configuration.RuleRevisionRepository
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain.*
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -3766,8 +3767,8 @@ object RudderConfigInit {
     rudderUserListProvider.registerCallback(UserRepositoryUpdateOnFileReload.createCallback(userRepository))
     userCleanupBatch.start()
 
-    // init node properties
-    propertiesService.updateAll().runNow
+    // init node properties - don't fail on error, just log
+    propertiesService.updateAll().catchAll(err => ApplicationLoggerPure.warn(err.fullMsg)).runNow
 
     // UpdateDynamicGroups is part of rci
     // reportingService part of rci
