@@ -308,7 +308,7 @@ class HomePage extends StatefulSnippet {
         val detailDiagramColor = JsObj(complianceDiagram.map(_.jsColor)*)
         val name: String = existingScore.find(_._1 == scoreId).map(_._2).getOrElse(scoreId)
         JsObj(
-          "scoreId" -> scoreId,
+          "scoreId" -> scoreId.replace(":", "_"),
           "data"    -> detailData,
           "colors"  -> detailDiagramColor,
           "count"   -> detailChart.map(_.value).sum,

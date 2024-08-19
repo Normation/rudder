@@ -195,45 +195,50 @@ $small-prefix : "sm-";
 
   &.A {
     @include badge-url("A", "");
-    &.sm{
+    &.sm, &.xs{
       @include badge-url("A", $small-prefix);
     }
   }
   &.B {
     @include badge-url("B", "");
-    &.sm{
+    &.sm, &.xs{
       @include badge-url("B", $small-prefix);
     }
   }
   &.C {
     @include badge-url("C", "");
-    &.sm{
+    &.sm, &.xs{
       @include badge-url("C", $small-prefix);
     }
   }
   &.D {
     @include badge-url("D", "");
-    &.sm{
+    &.sm, &.xs{
       @include badge-url("D", $small-prefix);
     }
   }
   &.E {
     @include badge-url("E", "");
-    &.sm{
+    &.sm, &.xs{
       @include badge-url("E", $small-prefix);
     }
   }
   &.F {
     @include badge-url("F", "");
-    &.sm{
+    &.sm, &.xs{
       @include badge-url("F", $small-prefix);
     }
   }
   &.X {
     @include badge-url("X", "");
-    &.sm{
+    &.sm, &.xs{
       @include badge-url("X", $small-prefix);
     }
+  }
+
+  &.sm {
+    height: $badge-breakdown-size;
+    width: $badge-breakdown-size;
   }
 
   &.xs {

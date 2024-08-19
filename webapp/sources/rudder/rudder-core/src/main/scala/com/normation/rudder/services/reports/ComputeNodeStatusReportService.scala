@@ -126,6 +126,10 @@ trait ComputeNodeStatusReportService extends InvalidateCache[CacheComplianceQueu
 
 }
 
+trait HasNodeStatusReportUpdateHook {
+  def addHook(h: NodeStatusReportUpdateHook): UIO[Unit]
+}
+
 trait NodeStatusReportUpdateHook {
   def name:     String
   def onUpdate: Iterable[(NodeId, NodeStatusReport)] => UIO[Unit]
@@ -161,7 +165,7 @@ class ComputeNodeStatusReportServiceImpl(
     complianceExpirationService: ComplianceExpirationService,
     hooksRef:                    Ref[Chunk[NodeStatusReportUpdateHook]],
     batchSize:                   Int
-) extends ComputeNodeStatusReportService {
+) extends ComputeNodeStatusReportService with HasNodeStatusReportUpdateHook {
 
   // add hook in last position of post update hooks
   def addHook(h: NodeStatusReportUpdateHook): UIO[Unit] = {

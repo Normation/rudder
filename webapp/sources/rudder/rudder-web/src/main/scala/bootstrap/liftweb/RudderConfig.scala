@@ -170,12 +170,7 @@ import com.normation.rudder.rest.lift
 import com.normation.rudder.rest.lift.*
 import com.normation.rudder.rule.category.*
 import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
-import com.normation.rudder.score.GlobalScoreRepositoryImpl
-import com.normation.rudder.score.ScoreRepositoryImpl
-import com.normation.rudder.score.ScoreService
-import com.normation.rudder.score.ScoreServiceImpl
-import com.normation.rudder.score.ScoreServiceManager
-import com.normation.rudder.score.SystemUpdateScoreHandler
+import com.normation.rudder.score.*
 import com.normation.rudder.services.*
 import com.normation.rudder.services.eventlog.*
 import com.normation.rudder.services.eventlog.EventLogFactoryImpl
@@ -1438,7 +1433,9 @@ case class RudderServiceApi(
     nodeFactRepository:                  NodeFactRepository,
     scoreServiceManager:                 ScoreServiceManager,
     scoreService:                        ScoreService,
-    tenantService:                       TenantService
+    tenantService:                       TenantService,
+    computeNodeStatusReportService:      ComputeNodeStatusReportService & HasNodeStatusReportUpdateHook,
+    scoreRepository:                     ScoreRepository
 )
 
 /*
@@ -3085,18 +3082,20 @@ object RudderConfigInit {
       Ref.make(Map[NodeId, NodeStatusReport]()).runNow
     )
 
-    lazy val computeNodeStatusReportService: ComputeNodeStatusReportService = new ComputeNodeStatusReportServiceImpl(
-      nodeStatusReportRepository,
-      nodeFactRepository,
-      findNewNodeStatusReports,
-      new NodePropertyBasedComplianceExpirationService(
-        propertiesRepository,
-        NodePropertyBasedComplianceExpirationService.PROP_KEY,
-        NodePropertyBasedComplianceExpirationService.PROP_NAME
-      ),
-      Ref.make(Chunk[NodeStatusReportUpdateHook](new ScoreNodeStatusReportUpdateHook(scoreServiceManager))).runNow,
-      RUDDER_JDBC_BATCH_MAX_SIZE
-    )
+    lazy val computeNodeStatusReportService: ComputeNodeStatusReportService & HasNodeStatusReportUpdateHook = {
+      new ComputeNodeStatusReportServiceImpl(
+        nodeStatusReportRepository,
+        nodeFactRepository,
+        findNewNodeStatusReports,
+        new NodePropertyBasedComplianceExpirationService(
+          propertiesRepository,
+          NodePropertyBasedComplianceExpirationService.PROP_KEY,
+          NodePropertyBasedComplianceExpirationService.PROP_NAME
+        ),
+        Ref.make(Chunk[NodeStatusReportUpdateHook](new ScoreNodeStatusReportUpdateHook(scoreServiceManager))).runNow,
+        RUDDER_JDBC_BATCH_MAX_SIZE
+      )
+    }
 
     // to avoid a StackOverflowError, we set the compliance cache once it'z ready,
     // and can construct the nodeconfigurationservice without the comlpince cache
@@ -3747,7 +3746,9 @@ object RudderConfigInit {
       nodeFactRepository,
       scoreServiceManager,
       scoreService,
-      tenantService
+      tenantService,
+      computeNodeStatusReportService,
+      scoreRepository
     )
 
     // need to be done here to avoid cyclic dependencies
