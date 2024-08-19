@@ -154,6 +154,7 @@ type alias UsersConf =
     , authenticationBackends: List String
     , providersProperties : Dict String ProviderProperties
     , users : List User
+    , tenantsEnabled : Bool
     }
 
 type PanelMode
@@ -180,6 +181,7 @@ type alias UserForm =
 type alias Model =
     { contextPath : String
     , digest: String
+    , tenantsEnabled : Bool
     , users: Users
     , roles: Roles
     , rolesConf : RoleConf  -- from API

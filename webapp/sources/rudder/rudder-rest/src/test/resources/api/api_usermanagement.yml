@@ -187,6 +187,7 @@ response:
             "tenants" : "none"
           }
         ],
+        "tenantsEnabled" : false,
         "digest" : "BCRYPT"
       }
     }
