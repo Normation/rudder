@@ -1,5 +1,6 @@
 module UserManagement.View exposing (..)
 
+import Dict.Extra
 import UserManagement.ApiCalls exposing (deleteUser)
 import UserManagement.DataTypes exposing (..)
 import Dict exposing (Dict, keys)
@@ -712,15 +713,34 @@ displayRights user roles =
     else
         span [ class "list-auths" ] (List.append userRoles tooltipAuths)
 
-displayProviders : User -> Html Msg
-displayProviders user =
-    if List.isEmpty user.providers then
-      i[][text "None"]
-    else
-      div[]
-      ( user.providers
-          |> List.map (\p -> span[class "badge"][text p])
-      )
+displayProviders : Model -> User -> Html Msg
+displayProviders model user =
+    let
+        tooltipContent =
+            buildTooltipContent "Provider not configured" "This user cannot log in with this provider, because it is not configured with the \"rudder.auth.provider\" property."
+        attributes p =
+            if List.member p model.providers then
+                [ class "badge" ]
+            else
+                [ class "badge badge-provider-warning"
+                , attribute "data-bs-toggle" "tooltip"
+                , attribute "data-bs-placement" "top"
+                , attribute "data-bs-html" "true"
+                , title tooltipContent
+                ]
+        providerEl p =
+            if List.member p model.providers then
+                span (attributes p)[text p]
+            else
+                span(attributes p)[i[class "fa fa-exclamation-triangle warning-icon"][], text p]
+
+
+    in
+        if List.isEmpty user.providers then
+          i[][text "None"]
+        else
+          div[]
+          (List.map providerEl user.providers)
     
 displayTenants : User -> Html Msg
 displayTenants user =
@@ -741,8 +761,10 @@ displayUserPreviousLogin user =
 displayUsersTable : Model -> List User -> Html Msg
 displayUsersTable model users =
   let
+    hasUserWithUnknownProvider =
+        model.users |> Dict.Extra.any (\_ user -> List.any (\p -> List.Extra.notMember p model.providers) user.providers)
     hasExternal =
-        isJust (takeFirstExtProvider model.providers)
+        isJust (takeFirstExtProvider model.providers) || hasUserWithUnknownProvider
 
     trUser : User -> Html Msg
     trUser user  =
@@ -768,7 +790,7 @@ displayUsersTable model users =
                 [ displayRights user model.roles
                 ]
             , ( if hasExternal then
-                td [] [ displayProviders user ]
+                td [] [ displayProviders model user ]
             else
                 text ""
             )
