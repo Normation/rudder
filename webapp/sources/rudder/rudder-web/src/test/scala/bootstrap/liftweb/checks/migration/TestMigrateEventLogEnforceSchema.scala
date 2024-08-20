@@ -70,21 +70,6 @@ class TestMigrateEventLogEnforceSchema extends DBCommon with IOChecker {
     }
   }
 
-  override def cleanDb(): Unit = {
-    doobie.transactRunEither(
-      sql"""
-        DROP TABLE IF EXISTS $tempTable;
-        DROP SEQUENCE IF EXISTS eventLogIdSeq_temp;
-        DROP INDEX IF EXISTS eventType_idx_temp;
-        DROP INDEX IF EXISTS creationDate_idx_temp;
-        DROP INDEX IF EXISTS eventlog_fileFormat_idx_temp;
-      """.update.run.transact(_)
-    ) match {
-      case Right(_) => ()
-      case Left(ex) => throw ex
-    }
-  }
-
   // The previous schema, with the renamed table for this test
   // We need to know for sure the initial state and the final state of the migrated table,
   // so we define and use the previous schema without conflicting with the current one (with all values renamed)
