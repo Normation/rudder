@@ -120,10 +120,22 @@
   background-color: #E3E6ED;
 }
 
+.badge.badge-provider-warning {
+  background-color: rgba(238,150,0,.1490196078) !important;
+  color: #ee9600 !important;
+
+  & > i.warning-icon {
+    padding-top: 0.15em;
+    padding-bottom: 0.15em;
+    margin-right: 0.3em;
+  }
+}
+
 .dataTable {
 
   .role,
-  .auth {
+  .auth,
+  .badge.badge-provider-warning {
     cursor: help;
   }
 }
