@@ -36,6 +36,9 @@
  */
 package bootstrap.liftweb
 
+import com.normation.errors.IOResult
+import com.normation.errors.SystemError
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.users.FileUserDetailListProvider
 import com.normation.rudder.users.RudderAuthorizationFileReloadCallback
 import com.normation.rudder.users.RudderUserDetail
@@ -50,7 +53,8 @@ import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.filter.OncePerRequestFilter
-import zio.Ref
+import zio.*
+import zio.syntax.*
 
 /**
  * A filter that invalidates sessions of non-active users.
@@ -82,21 +86,46 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
   @throws[IOException]
   override def doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, filterChain: FilterChain): Unit = {
     val session = request.getSession(false)
-    val auth    = SecurityContextHolder.getContext.getAuthentication
-    if (auth != null) {
-      val userDetails = auth.getPrincipal
-      userDetails match { // we should only do session invalidation in specific cases : status is disabled/deleted, user is unknown
-        case user: RudderUserDetail =>
-          val status =
-            userStatuses.get.map(_.getOrElse(user.getUsername, UserStatus.Deleted)) // unknown user : falls back to deleted
+    if (session != null) { // else do nothing : not logged in
+      val auth = SecurityContextHolder.getContext.getAuthentication
+      if (auth != null) { // else not logged in
+        val userDetails = auth.getPrincipal
+        userDetails match { // we should only do session invalidation in specific cases : status is disabled/deleted, user is unknown
+          case user: RudderUserDetail =>
+            val status =
+              userStatuses.get.map(_.getOrElse(user.getUsername, UserStatus.Deleted)) // unknown user : falls back to deleted
 
-          status.runNow match {
-            case UserStatus.Disabled | UserStatus.Deleted => session.invalidate()
-            case _                                        => ()
-          }
-        case _ => ()
+            status.flatMap {
+              case status if status.in(UserStatus.Disabled, UserStatus.Deleted) =>
+                IOResult
+                  .attempt(session.invalidate())
+                  .foldZIO(
+                    {
+                      case SystemError(_, _: IllegalStateException) =>
+                        ApplicationLoggerPure.info(
+                          s"User session for user '${user.getUsername}' is already invalidated for user with status '${status.value}'"
+                        )
+                      case err                                      =>
+                        err
+                          .copy(msg = {
+                            s"User session for user '${user.getUsername}' could not be invalidated. " +
+                            s"Please contact Rudder developers with the following explanation : ${err.fullMsg}"
+                          })
+                          .fail
+                    },
+                    _ => {
+                      ApplicationLoggerPure.info(
+                        s"User session for user '${user.getUsername}' is invalidated because user has status '${status.value}'"
+                      )
+                    }
+                  )
+              case _                                                            =>
+                ZIO.unit
+            }
+          case _ => ()
+        }
       }
-    } // else do nothing : not logged in
+    }
 
     filterChain.doFilter(request, response)
   }
