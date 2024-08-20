@@ -234,21 +234,25 @@ class AppConfigAuth extends ApplicationContextAware {
    * log-in into Rudder.
    */
   @Bean(name = Array("org.springframework.security.authenticationManager"))
-  def authenticationManager = new RudderProviderManager(RudderConfig.authenticationProviders, RudderConfig.userRepository)
+  def authenticationManager = new RudderProviderManager(RudderConfig.authenticationProviders, userRepository)
 
   @Bean def rudderWebAuthenticationFailureHandler: AuthenticationFailureHandler = new RudderUrlAuthenticationFailureHandler(
     "/index.html?login_error=true"
   )
 
+  @Bean def userRepository: UserRepository = RudderConfig.userRepository
+
+  @Bean def rudderUserListProvider: FileUserDetailListProvider = RudderConfig.rudderUserListProvider
+
   @Bean def rudderUserDetailsService: RudderInMemoryUserDetailsService = {
-    new RudderInMemoryUserDetailsService(RudderConfig.rudderUserListProvider, RudderConfig.userRepository)
+    new RudderInMemoryUserDetailsService(rudderUserListProvider, userRepository)
   }
 
   @Bean def passwordEncoderDispatcher: PasswordEncoderDispatcher = {
     new PasswordEncoderDispatcher(RudderConfig.RUDDER_BCRYPT_COST)
   }
 
-  @Bean def checkUsersFile: CheckUsersFile = new CheckUsersFile(RudderConfig.rudderUserListProvider)
+  @Bean def checkUsersFile: CheckUsersFile = new CheckUsersFile(rudderUserListProvider)
 
   @Bean def fileAuthenticationProvider: AuthenticationProvider = {
     val provider = new DaoAuthenticationProvider()
@@ -257,15 +261,16 @@ class AppConfigAuth extends ApplicationContextAware {
 
     // we need to register a callback to check and update users file and a callback to update password encoder when needed
     val checkUsersFileCallback = RudderAuthorizationFileReloadCallback(
-      "checkUsersFileCallback",
+      "check-users-file-callback",
       (c: ValidatedUserList) => checkUsersFile.allChecks(c.encoder.securityLevel)
     )
-    RudderConfig.rudderUserListProvider.registerCallback(checkUsersFileCallback)
+    rudderUserListProvider.registerCallback(checkUsersFileCallback)
+
     val updatePasswordEncoder  = RudderAuthorizationFileReloadCallback(
-      "updatePasswordEncoder",
+      "update-password-encoder",
       (c: ValidatedUserList) => effectUioUnit(provider.setPasswordEncoder(c.encoder))
     )
-    RudderConfig.rudderUserListProvider.registerCallback(updatePasswordEncoder)
+    rudderUserListProvider.registerCallback(updatePasswordEncoder)
 
     provider
   }
@@ -339,6 +344,9 @@ class AppConfigAuth extends ApplicationContextAware {
       response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")
     }
   }
+
+  @Bean def userSessionInvalidationFilter: UserSessionInvalidationFilter =
+    new UserSessionInvalidationFilter(userRepository, rudderUserListProvider)
 
   /**
    * Map an user from XML user config file

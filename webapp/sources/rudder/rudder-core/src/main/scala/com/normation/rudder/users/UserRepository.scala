@@ -54,6 +54,7 @@ import org.joda.time.DateTime
 import zio.*
 import zio.interop.catz.*
 import zio.json.ast.*
+import zio.syntax.*
 
 /*
  * Repository that deals with users and sessions
@@ -200,6 +201,8 @@ trait UserRepository {
   def getAll(): IOResult[List[UserInfo]]
 
   def get(userId: String, isCaseSensitive: Boolean = true): IOResult[Option[UserInfo]]
+
+  def getStatuses(userIds: List[String]): IOResult[Map[String, UserStatus]]
 }
 
 object UserRepository {
@@ -522,6 +525,10 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
       }
     })
   }
+
+  override def getStatuses(userIds: List[String]): IOResult[Map[String, UserStatus]] = {
+    userBase.get.map(_.collect { case (user, info) if userIds.contains(user) => (user, info.status) })
+  }
 }
 
 /*
@@ -564,6 +571,8 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
         (u.id, u.creationDate, u.status.value, u.managedBy, u.name, u.email, u.lastLogin, u.statusHistory, u.otherInfo)
     }
   }
+
+  implicit val userStatusMeta: Meta[UserStatus] = Meta[String].tiemap(UserStatus.parse(_))(_.value)
 
   implicit val userRead: Read[UserInfo] = {
     Read[
@@ -916,6 +925,20 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
         val sql = fr"""update users""" ++ Fragments.set(h, tail*) ++ fr"""where id = ${id}"""
 
         transactIOResult(s"Error when updating user information for '${id}'")(xa => sql.update.run.transact(xa)).unit
+    }
+  }
+
+  override def getStatuses(userIds: List[String]): IOResult[Map[String, UserStatus]] = {
+    NonEmptyList.fromList(userIds) match {
+      case None        => Map.empty[String, UserStatus].succeed
+      case Some(value) =>
+        transactIOResult(s"Error when getting status for users")(xa => {
+          (fr"select id, status from users where" ++ Fragments.in(fr"id", value))
+            .query[(String, UserStatus)]
+            .toMap
+            .transact(xa)
+        })
+
     }
   }
 }
