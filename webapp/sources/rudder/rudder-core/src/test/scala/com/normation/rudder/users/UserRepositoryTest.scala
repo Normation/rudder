@@ -219,6 +219,8 @@ trait UserRepositoryTest extends Specification with Loggable {
         .using(_.toDateTime(DateTimeZone.UTC))
         .modify(_.statusHistory)
         .using(hs => hs.map(h => h.modify(_.trace.actionDate).using(_.toDateTime(DateTimeZone.UTC))))
+        .modify(_.lastLogin)
+        .using(_.map(_.toDateTime(DateTimeZone.UTC)))
     })
   }
 
@@ -447,6 +449,24 @@ trait UserRepositoryTest extends Specification with Loggable {
     val date3 = DateTime.parse("2023-03-03T03:03:03Z")
     val date4 = DateTime.parse("2024-04-04T04:04:04Z")
     val date5 = DateTime.parse("2025-05-05T05:05:05Z")
+    val date6 = DateTime.parse("2023-09-06T06:06:06Z")
+
+    val trace1          = EventTrace(actor, date1)
+    val traceAllDeleted = EventTrace(actor, date6)
+
+    val userInfosAllDeleted = List(
+      UserInfo(
+        "david",
+        date1,
+        UserStatus.Deleted,
+        AUTH_PLUGIN_NAME_LOCAL,
+        None,
+        None,
+        Some(date4),
+        List(StatusHistory(UserStatus.Deleted, traceAllDeleted), StatusHistory(UserStatus.Active, trace1)),
+        Json.Obj()
+      )
+    )
 
     "deleting+purging all users not logged in since a date in the future should remove all users" >> {
       // set delete trace event to "dateInit" to make it simpler to know when the "deleted before" must be set to
@@ -514,6 +534,11 @@ trait UserRepositoryTest extends Specification with Loggable {
       (repo.delete(Nil, Some(date4), Nil, EventTrace(actor, date3)) *>
       repo.purge(Nil, Some(date4), Nil, EventTrace(actor, date5))).runNow
       repo.getAll().runNow.map(_.id) must containTheSameElementsAs(List("david"))
+    }
+
+    "delete all from setting existing users to Nil should set remaining users to 'deleted' status" >> {
+      repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, List.empty, traceAllDeleted).runNow
+      repo.getAll().runNow.toUTC must containTheSameElementsAs(userInfosAllDeleted)
     }
   }
 }
