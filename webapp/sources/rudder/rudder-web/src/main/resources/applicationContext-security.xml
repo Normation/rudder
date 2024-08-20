@@ -49,6 +49,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 <!--        <protect-pointcut expression="execution(* bigbank.*Service.post*(..))" access="ROLE_TELLER"/>-->
 <!--        -->
 <!--    </global-method-security>-->
+    <beans:bean id="userSessionInvalidationFilter" class="bootstrap.liftweb.UserSessionInvalidationFilter" />
 
     <http pattern="/style/**" security="none"/>
     <http pattern="/images/**" security="none"/>
@@ -112,6 +113,8 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
             always-use-default-target="false"
         />
 <!--        <remember-me />-->
+
+        <custom-filter after="BASIC_AUTH_FILTER" ref="userSessionInvalidationFilter" />
 
       <!--authorization-code/callback-->
     </http>
