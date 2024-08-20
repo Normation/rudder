@@ -63,19 +63,6 @@ class TestMigrateChangeValidationEnforceSchema extends DBCommon with IOChecker {
 
   override def transactor: Transactor[cats.effect.IO] = doobie.xaio
 
-  override def cleanDb(): Unit = {
-    doobie.transactRunEither(
-      sql"""
-        DROP TABLE IF EXISTS ${tempWorkflowTable};
-        DROP TABLE IF EXISTS ${tempCRTable};
-        DROP SEQUENCE IF EXISTS ChangeRequestId_temp;
-      """.update.run.transact(_)
-    ) match {
-      case Right(_) => ()
-      case Left(ex) => throw ex
-    }
-  }
-
   // The previous schema, with the renamed table for this test
   // We need to know for sure the initial state and the final state of the migrated table,
   // so we define and use the previous schema without conflicting with the current one (with all values renamed)
@@ -162,7 +149,6 @@ class TestMigrateChangeValidationEnforceSchema extends DBCommon with IOChecker {
 }
 
 object TestMigrateChangeValidationEnforceSchema {
-  // the tables are setup and tear down for the lifetime of this test execution
   private val tempCRTableName       = "changerequest_migratetest"
   private val tempCRTable           = fragment.Fragment.const(tempCRTableName)
   private val tempWorkflowTableName = "workflow_migratetest"

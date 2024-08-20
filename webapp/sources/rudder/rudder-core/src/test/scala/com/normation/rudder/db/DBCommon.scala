@@ -74,8 +74,14 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
    * everything is temporary
    */
   def sqlInit: String = {
-    val is      = this.getClass().getClassLoader().getResourceAsStream("reportsSchema.sql")
-    val sqlText = Source
+    val is              = this.getClass().getClassLoader().getResourceAsStream("reportsSchema.sql")
+    // This is a way to create and use all DDL under a schema, that will be dropped at the end of tests
+    val setTestNamepace = {
+      """
+        |SET search_path TO pg_temp
+        |""".stripMargin
+    }
+    val sqlText         = Source
       .fromInputStream(is)
       .getLines()
       .toSeq
@@ -83,15 +89,10 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
         val s = line.trim(); s.isEmpty || s.startsWith("/*") || s.startsWith("*")
       }
       .map(s => {
-        s
-          // using toLowerCase is safer, it will always replace create table by a temp one,
-          // but it also mean that we will not know when we won't be strict with ourselves
-          .toLowerCase
-          .replaceAll("create table", "create temp table")
-          .replaceAll("create sequence", "create temp sequence")
-          .replaceAll("alter database rudder", "alter database test")
+        // we work on a "test" database which needs to be created, and which is cleaned (see clean methods)
+        s.replaceAll("alter database rudder", "alter database test")
       })
-      .mkString("\n")
+      .mkString(s"${setTestNamepace};\n", "\n", "")
     is.close()
 
     sqlText
@@ -120,8 +121,12 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     }
   }
 
-  def cleanDb(): Unit = {
-    if (sqlClean.trim.size > 0) doobie.transactRunEither(xa => Update0(sqlClean, None).run.transact(xa)) match {
+  final def cleanDb(): Unit = {
+    doobie.transactRunEither(xa => {
+      ZIO.when(sqlClean.trim.size > 0)(
+        Update0(sqlClean, None).run.transact(xa)
+      )
+    }) match {
       case Right(x) => ()
       case Left(ex) => throw ex
     }
