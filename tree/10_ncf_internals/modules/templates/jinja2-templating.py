@@ -43,8 +43,6 @@ from optparse import OptionParser
 import jinja2
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-import pkgutil
-
 try:
     import simplejson as json
 except ImportError:
@@ -87,9 +85,15 @@ def render(opts, args):
     if opts.strict:
         env.undefined = StrictUndefined
 
-    # Register customs
+    # Register custom filters
     sys.path.append(os.path.join(os.path.dirname(__file__), "..", "extensions"))
-    custom_filters = pkgutil.find_loader('jinja2_custom') is not None
+    # importlib was introduced in 3.4 and pkgutil deprecated in 3.12 in favor of it
+    try:
+        import importlib.util
+        custom_filters = importlib.util.find_spec("jinja2_custom") is not None
+    except:
+        import pkgutil
+        custom_filters = pkgutil.find_loader('jinja2_custom') is not None
 
     if custom_filters:
         import jinja2_custom # pylint: disable=import-error
