@@ -8,6 +8,7 @@ import Json.Decode exposing (decodeValue)
 import List.Extra
 import Dict exposing (Dict)
 import Json.Encode exposing (..)
+import Maybe.Extra
 import NaturalOrdering as N
 import QuickSearch.Datatypes exposing (SearchResult, SearchResultItem)
 import String exposing (toInt)
@@ -356,6 +357,7 @@ showModal model =
         totalNbRow = pagination.totalRow
         start = (page - 1) * tableSize
         end = min (start + tableSize) totalNbRow
+        displayStart = start + 1
         pagesOpt =
             List.range 1 (getPageMax pagination)
               |> List.map (\currentPage -> option [value (String.fromInt currentPage), selected (currentPage == page )][text (String.fromInt currentPage)])
@@ -373,7 +375,7 @@ showModal model =
                 |> List.take (end - start)
                 |> List.sortWith (getSortFunctionUsage model)
                 |> List.map (\info -> tr [][td [] [a [href info.url][text info.name]]])
-              Nothing -> [div [][]]
+              Nothing -> [div [][text messageNoUsageFound]]
           Directives ->
             case found.directives of
               Just d ->
@@ -392,6 +394,10 @@ showModal model =
           case filters.findUsageIn of
             Techniques -> ""
             Directives -> "active"
+        hasNoUsage =
+          case filters.findUsageIn of
+            Techniques -> found.techniques |> Maybe.andThen (.items >> List.head) |> Maybe.Extra.isNothing
+            Directives -> found.directives |> Maybe.andThen (.items >> List.head) |> Maybe.Extra.isNothing
         messageNoUsageFound =
           case filters.findUsageIn of
             Techniques -> "No usage found in Techniques"
@@ -445,41 +451,44 @@ showModal model =
                     ]
                   ]
                 , tbody []
-                  ( if(List.isEmpty row) then
-                      [ tr [] [ td [colspan 2, class "dataTables_empty" ] [ text messageNoUsageFound ] ] ]
+                  ( if hasNoUsage then
+                      [ tr [] [ td [colspan 2, class "dataTables_empty empty" ] [ i [class "fa fa-exclamation-triangle"][], text messageNoUsageFound ] ] ]
                     else
                       row
                   )
                ]
-              , div [class "dataTables_wrapper_bottom"]
-                [ div [class "dataTables_length"]
-                  [ label []
-                    [ text "Show"
-                    , select [onInput (\str -> UpdateTableSize (toInt str |> Maybe.withDefault 10))]
-                      [ option [value "10"][text "10"]
-                      , option [value "25"][text "25"]
-                      , option [value "50"][text "50"]
-                      , option [value "100"][text "100"]
-                      , option [value "500"][text "500"]
-                      , option [value "1000"][text "1000"]
-                      , option [value "-1"][text "All"]
+              , if hasNoUsage  then
+                  text ""
+                else
+                  div [class "dataTables_wrapper_bottom"]
+                  [ div [class "dataTables_length"]
+                    [ label []
+                      [ text "Show"
+                      , select [onInput (\str -> UpdateTableSize (toInt str |> Maybe.withDefault 10))]
+                        [ option [value "10"][text "10"]
+                        , option [value "25"][text "25"]
+                        , option [value "50"][text "50"]
+                        , option [value "100"][text "100"]
+                        , option [value "500"][text "500"]
+                        , option [value "1000"][text "1000"]
+                        , option [value "-1"][text "All"]
+                        ]
+                      , text "entries"
                       ]
-                    , text "entries"
+                    ]
+                  , div [class "dataTables_info"]
+                    [ text ("Showing " ++ (String.fromInt displayStart) ++ " to " ++ (String.fromInt end) ++ " of " ++ (String.fromInt totalNbRow) ++ " entries")
+                    ]
+                  , div [id "props_paginate", class "dataTables_paginate paging_full_numbers"]
+                    [ a [id "node_previous", class ("paginate_button first " ++ classPreviousBtn), role "link", onClick FirstPage][text "First"]
+                    , a [id "node_previous", class ("paginate_button previous " ++ classPreviousBtn), role "link", onClick PreviousPage][text "Previous"]
+                    , span []
+                      [ select [class "page-find-prop", onInput (\str -> GoToPage (toInt str |> Maybe.withDefault 1))](pagesOpt)
+                      ]
+                    , a [class ("paginate_button next " ++ classNextBtn), onClick NexPage][text "Next"]
+                    , a [class ("paginate_button last " ++ classNextBtn), onClick LastPage][text "Last"]
                     ]
                   ]
-                , div [class "dataTables_info"]
-                  [ text ("Showing " ++ (String.fromInt start) ++ " to " ++ (String.fromInt end) ++ " of " ++ (String.fromInt totalNbRow) ++ " entries") --Todo dynamic value
-                  ]
-                , div [id "props_paginate", class "dataTables_paginate paging_full_numbers"]
-                  [ a [id "node_previous", class ("paginate_button first " ++ classPreviousBtn), role "link", onClick FirstPage][text "First"]
-                  , a [id "node_previous", class ("paginate_button previous " ++ classPreviousBtn), role "link", onClick PreviousPage][text "Previous"]
-                  , span []
-                    [ select [class "page-find-prop", onInput (\str -> GoToPage (toInt str |> Maybe.withDefault 1))](pagesOpt)
-                    ]
-                  , a [class ("paginate_button next " ++ classNextBtn), onClick NexPage][text "Next"]
-                  , a [class ("paginate_button last " ++ classNextBtn), onClick LastPage][text "Last"]
-                  ]
-                ]
               ]
             ]
           , div [ class "modal-footer" ]
