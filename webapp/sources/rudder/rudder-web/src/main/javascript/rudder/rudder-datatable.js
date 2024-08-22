@@ -1336,7 +1336,6 @@ function createNodeTable(gridId, refresh, scores) {
       , "title": "Compliance"
       , "sSortDataType": "node-compliance"
       , "type" : "numeric"
-      , "class" : "tw-bs"
       , "createdCell" : function (nTd, sData, oData, iRow, iCol) {
           var link = callbackElement(oData, true)
           var complianceBar = "<span class='text-muted'>N/A</span>"
