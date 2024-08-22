@@ -3,6 +3,7 @@ module FileManager.Model exposing (..)
 import Browser.Dom exposing (Element)
 import File exposing (File)
 import Http exposing (Error)
+import Http.Detailed
 import FileManager.Vec exposing (..)
 import Dict exposing (Dict)
 
@@ -83,7 +84,7 @@ type Msg
   | GotFiles File (List File)
   | Progress Http.Progress
   | Cancel
-  | Uploaded (Result Http.Error ())
+  | Uploaded (Result (Http.Detailed.Error String) (Http.Metadata, UploadResponse))
   | OpenNameDialog DialogAction
   | CloseNameDialog
   | ConfirmNameDialog
@@ -114,3 +115,7 @@ type EnvMsg
 
 type DialogAction = Rename FileMeta String | NewFile String | NewDir String | Edit String String | Closed
 type FileUpdateError = FileValidationError String | FileUpdateHttpError Http.Error
+type alias UploadResponse =
+  { success : Bool
+  , error : Maybe String
+  }

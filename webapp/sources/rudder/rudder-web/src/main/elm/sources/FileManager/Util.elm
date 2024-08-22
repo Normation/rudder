@@ -1,10 +1,13 @@
 module FileManager.Util exposing (..)
 
+import FileManager.Model exposing (UploadResponse)
 import FileManager.Port exposing (errorNotification)
 import Html exposing (Attribute, Html)
 import Html.Attributes exposing (type_)
 import Array exposing (Array, fromList, get, toList)
 import Http
+import Http.Detailed as Detailed
+import Json.Decode
 import List exposing (drop, indexedMap, map2, take)
 
 -- List
@@ -62,7 +65,8 @@ processApiError apiName err =
         Http.Timeout ->
             "Unable to reach the server, try again"
         Http.NetworkError ->
-            "Unable to reach the server, check your network connection"
+            -- Firefox behavior is causing a network error with NS_ERROR_NET_RESET code, so we need to anticipate for both
+            "You are trying to upload a file that exceeds the maximum upload size, or we are unable to reach the server, so please check your network connection."
         Http.BadStatus 500 ->
             "The server had a problem, try again later"
         Http.BadStatus 400 ->
@@ -74,3 +78,24 @@ processApiError apiName err =
 
   in
     errorNotification ("Error when " ++ apiName ++ ", details: \n" ++ message )
+
+processApiDetailedError : String -> Json.Decode.Decoder UploadResponse -> Detailed.Error String -> Cmd msg
+processApiDetailedError apiName decoder err =
+  let
+    formatApiNameMessage msg = "Error when "++ apiName ++ " : \n" ++ msg
+    message =
+      case err of
+        Detailed.BadUrl url ->
+          formatApiNameMessage ("The URL " ++ url ++ " was invalid")
+        Detailed.Timeout ->
+          formatApiNameMessage ("Unable to reach the server, try again")
+        Detailed.NetworkError ->
+          formatApiNameMessage ("Unable to reach the server, check your network connection")
+        Detailed.BadStatus metadata body ->
+          case Json.Decode.decodeString decoder body of
+            Ok { error } -> formatApiNameMessage (Maybe.withDefault "Unknown error" error)
+            Err _ -> formatApiNameMessage "Unable to parse server response"
+        Detailed.BadBody metadata body msg ->
+          formatApiNameMessage msg
+  in
+    errorNotification message

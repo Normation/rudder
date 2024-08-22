@@ -38,12 +38,14 @@
 package com.normation.rudder.rest.internal
 
 import better.files.*
+import cats.syntax.apply.*
 import com.normation.box.*
 import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.internal.SharedFilesAPI.sanitizePath
+import com.normation.rudder.users.UserService
 import com.normation.zio.*
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -65,13 +67,20 @@ import net.liftweb.json.JsonAST.JNull
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonAST.JValue
+import org.apache.commons.fileupload.FileUploadBase.SizeLimitExceededException
 import org.joda.time.DateTime
 import org.joda.time.Instant
 import scala.jdk.CollectionConverters.*
+import scala.util.Try
 import zio.ZIO
 import zio.syntax.*
 
 object SharedFilesAPI {
+  // Configured max number of bytes in an uploaded file in Lift :
+  // LiftRules.maxMimeSize and LiftRules.maxMimeFileSize are the configured values,
+  // set to 8MB (default value of LiftRules.maxMimeSize)
+  val MAX_FILE_SIZE: Int = 8388608
+
   def sanitizePath(path: String, baseFolder: File): IOResult[File] = {
     IOResult.attemptZIO {
       // Actually canonifies the path
@@ -94,6 +103,7 @@ object SharedFilesAPI {
 
 class SharedFilesAPI(
     restExtractor:    RestExtractorService,
+    userService:      UserService,
     sharedFolderPath: String,
     configRepoPath:   String
 ) extends RestHelper with Loggable {
@@ -104,7 +114,7 @@ class SharedFilesAPI(
     sanitizePath(path, baseFolder).flatMap(fun)
   }
 
-  def serialize(file: File):             IOResult[JValue]       = {
+  def serialize(file: File):                           IOResult[JValue]       = {
     import net.liftweb.json.JsonDSL.*
     IOResult.attempt(s"Error when serializing file ${file.name}") {
       val date = new DateTime(Instant.ofEpochMilli(Files.getLastModifiedTime(file.path, File.LinkOptions.noFollow*).toMillis))
@@ -116,15 +126,15 @@ class SharedFilesAPI(
       ~ ("rights" -> file.permissionsAsString(File.LinkOptions.noFollow)))
     }
   }
-  def errorResponse(message: String):    LiftResponse           = {
+  def errorResponse(message: String, code: Int = 500): LiftResponse           = {
     import net.liftweb.json.JsonDSL.*
     val content = {
       (("success" -> false)
       ~ ("error"  -> message))
     }
-    JsonResponse(content, Nil, Nil, 500)
+    JsonResponse(content, Nil, Nil, code)
   }
-  val basicSuccessResponse:              LiftResponse           = {
+  val basicSuccessResponse:                            LiftResponse           = {
     import net.liftweb.json.JsonDSL.*
     val content = {
       (("success" -> true)
@@ -132,7 +142,7 @@ class SharedFilesAPI(
     }
     JsonResponse(content, Nil, Nil, 200)
   }
-  def downloadFile(file: File):          IOResult[LiftResponse] = {
+  def downloadFile(file: File):                        IOResult[LiftResponse] = {
     IOResult.attemptZIO {
       if (file.exists) {
         if (file.isRegularFile) {
@@ -152,7 +162,7 @@ class SharedFilesAPI(
       }
     }
   }
-  def directoryContent(directory: File): IOResult[LiftResponse] = {
+  def directoryContent(directory: File):               IOResult[LiftResponse] = {
 
     IOResult.attemptZIO {
       if (directory.exists) {
@@ -296,167 +306,192 @@ class SharedFilesAPI(
       implicit val prettify = false
       implicit val action: String = "writeFileResource"
 
-      OldInternalApiAuthz.withWriteConfig {
-        req.params.get("destination") match {
-          case Some(dest :: Nil) =>
-            // process uploaded files as a side effect.
-            // We check that we have only one file uploaded, else return an error to avoid that
-            // the last as decided by the uploaded-files logic wins and overide others.
+      OldInternalApiAuthz.withWriteConfig(userService.getCurrentUser) {
+        // Accessing any of params, body and uploadedFiles on request may cause an Exception : Lift initializes
+        // these as lazy val at the same time
+        // ZIO introduced mapN since 2.1.7, we will likely want ZIO.attempt instead of cats in 8.3
+        (
+          Try(req.params),
+          Try(req.uploadedFiles)
+        ).mapN {
+          case (params, uploadedFiles) => {
+            params.get("destination") match {
+              case Some(dest :: Nil) =>
+                // process uploaded files as a side effect.
+                // We check that we have only one file uploaded, else return an error to avoid that
+                // the last as decided by the uploaded-files logic wins and overide others.
 
-            req.uploadedFiles.toList match {
-              case Nil         => errorResponse(s"Missing file to copy to ${dest}")
-              case file :: Nil =>
-                sanitizePath(dest.replaceFirst("/", "") + '/' + file.fileName, basePath).map { path =>
-                  for {
-                    in  <- file.fileStream.autoClosed
-                    out <- path.newOutputStream.autoClosed
-                  } yield {
-                    in.pipeTo(out)
-                  }
-                }.either.runNow match {
-                  case Left(err) => errorResponse(err.fullMsg)
-                  case Right(_)  => basicSuccessResponse
-                }
-              case several     =>
-                errorResponse(
-                  s"This API only support one uploaded file to copy to ${dest}, but ${several.size} were provided"
-                )
-            }
-
-          case _ =>
-            (req.json match {
-              case Full(json) =>
-                def simpleAction(actionName: String, itemName: String, action: File => IOResult[LiftResponse]) = {
-                  json \ itemName match {
-                    case JString(path) =>
-                      checkPathAndContinue(path, basePath)(f => {
-                        (IOResult.attemptZIO(s"An error occurred while running action '${actionName}' ") {
-                          action(f)
-                        })
-                      }).toBox
-                    case _             => Failure(s"'${itemName}' is not correctly defined for '${actionName}' action")
-                  }
-                }
-
-                def actionWithParam(
-                    actionName: String,
-                    itemName:   String,
-                    paramName:  String,
-                    action:     String => File => IOResult[LiftResponse]
-                ) = {
-                  json \ itemName match {
-                    case JString(item) =>
-                      json \ paramName match {
-                        case JString(param) =>
-                          checkPathAndContinue(item, basePath)(action(param)).toBox
-                        case _              => Failure(s"'${paramName}' is not correctly defined for '${actionName}' action")
+                uploadedFiles match {
+                  case Nil         => errorResponse(s"Missing file to copy to ${dest}")
+                  case file :: Nil =>
+                    sanitizePath(dest.replaceFirst("/", "") + '/' + file.fileName, basePath).map { path =>
+                      for {
+                        in  <- file.fileStream.autoClosed
+                        out <- path.newOutputStream.autoClosed
+                      } yield {
+                        in.pipeTo(out)
                       }
-                    case _             => Failure(s"'${itemName}' is not correctly defined for '${actionName}' action")
-                  }
-                }
-
-                def actionList(
-                    actionName: String,
-                    itemName:   String,
-                    paramName:  String,
-                    action:     String => File => IOResult[LiftResponse]
-                ) = {
-                  json \ itemName match {
-                    case JArray(items) =>
-                      ZIO
-                        .foreach(items) {
-                          case JString(item) =>
-                            json \ paramName match {
-                              case JString(param) =>
-                                checkPathAndContinue(item, basePath)(action(param))
-                              case _              => Unexpected(s"'${paramName}' is not correctly defined for '${actionName}' action").fail
-                            }
-                          case item          =>
-                            Unexpected(
-                              s"a value from array '${itemName}', for action '${actionName}' is not valid, should be a string but is: ${net.liftweb.json
-                                  .compactRender(item)}"
-                            ).fail
-                        }
-                        .map(_ => basicSuccessResponse)
-                        .toBox
-                    case _             => Failure(s"'${itemName}' is not correctly defined for '${actionName}' action")
-                  }
-                }
-
-                json \ "action" match {
-
-                  case JString("list") =>
-                    simpleAction("list", "path", directoryContent)
-
-                  case JString("getContent") =>
-                    simpleAction("getContent", "item", fileContent)
-
-                  case JString("createFolder") =>
-                    simpleAction("createFolder", "newPath", createFolder)
-
-                  case JString("createFile") =>
-                    simpleAction("createFolder", "newPath", createFile)
-
-                  case JString("edit") =>
-                    actionWithParam("edit", "item", "content", editFile)
-
-                  case JString("rename") =>
-                    actionWithParam(
-                      "rename",
-                      "item",
-                      "newItemPath",
-                      (newItem => oldFile => checkPathAndContinue(newItem, basePath)(renameFile(oldFile)))
+                    }.either.runNow match {
+                      case Left(err) => errorResponse(err.fullMsg)
+                      case Right(_)  => basicSuccessResponse
+                    }
+                  case several     =>
+                    errorResponse(
+                      s"This API only support one uploaded file to copy to ${dest}, but ${several.size} were provided"
                     )
+                }
 
-                  case JString("remove") =>
-                    json \ "items" match {
-                      case JArray(items) =>
-                        ZIO
-                          .foreach(items) {
-                            case JString(item) =>
-                              checkPathAndContinue(item, basePath)(removeFile)
-                            case item          =>
-                              Unexpected(
-                                s"a value from array 'items', for action 'remove' is not valid, should be a string but is: ${net.liftweb.json
-                                    .compactRender(item)}"
-                              ).fail
-                          }
-                          .map(_ => basicSuccessResponse)
-                          .toBox
-                      case _             => Failure("'item' is not correctly defined for 'getContent' action")
+              case _ => {
+                (req.json match {
+                  case Full(json) => {
+                    def simpleAction(actionName: String, itemName: String, action: File => IOResult[LiftResponse]) = {
+                      json \ itemName match {
+                        case JString(path) =>
+                          checkPathAndContinue(path, basePath)(f => {
+                            (IOResult.attemptZIO(s"An error occurred while running action '${actionName}' ") {
+                              action(f)
+                            })
+                          }).toBox
+                        case _             => Failure(s"'${itemName}' is not correctly defined for '${actionName}' action")
+                      }
                     }
 
-                  case JString("changePermissions") =>
-                    actionList("changePermissions", "items", "perms", setPerms)
+                    def actionWithParam(
+                        actionName: String,
+                        itemName:   String,
+                        paramName:  String,
+                        action:     String => File => IOResult[LiftResponse]
+                    ) = {
+                      json \ itemName match {
+                        case JString(item) =>
+                          json \ paramName match {
+                            case JString(param) =>
+                              checkPathAndContinue(item, basePath)(action(param)).toBox
+                            case _              => Failure(s"'${paramName}' is not correctly defined for '${actionName}' action")
+                          }
+                        case _             => Failure(s"'${itemName}' is not correctly defined for '${actionName}' action")
+                      }
+                    }
 
-                  case JString("move") =>
-                    actionList(
-                      "move",
-                      "items",
-                      "newPath",
-                      (newItem => oldFile => checkPathAndContinue(newItem, basePath)(moveToDirectory(oldFile)))
-                    )
+                    def actionList(
+                        actionName: String,
+                        itemName:   String,
+                        paramName:  String,
+                        action:     String => File => IOResult[LiftResponse]
+                    ) = {
+                      json \ itemName match {
+                        case JArray(items) =>
+                          ZIO
+                            .foreach(items) {
+                              case JString(item) =>
+                                json \ paramName match {
+                                  case JString(param) =>
+                                    checkPathAndContinue(item, basePath)(action(param))
+                                  case _              => Unexpected(s"'${paramName}' is not correctly defined for '${actionName}' action").fail
+                                }
+                              case item          =>
+                                Unexpected(
+                                  s"a value from array '${itemName}', for action '${actionName}' is not valid, should be a string but is: ${net.liftweb.json
+                                      .compactRender(item)}"
+                                ).fail
+                            }
+                            .map(_ => basicSuccessResponse)
+                            .toBox
+                        case _             => Failure(s"'${itemName}' is not correctly defined for '${actionName}' action")
+                      }
+                    }
 
-                  case JString("copy") =>
-                    actionList(
-                      "copy",
-                      "items",
-                      "newPath",
-                      (newItem => oldFile => checkPathAndContinue(newItem, basePath)(copyToDirectory(oldFile)))
-                    )
+                    (json \ "action" match {
 
-                  case _ => Failure("Action not supported")
+                      case JString("list") =>
+                        simpleAction("list", "path", directoryContent)
+
+                      case JString("getContent") =>
+                        simpleAction("getContent", "item", fileContent)
+
+                      case JString("createFolder") =>
+                        simpleAction("createFolder", "newPath", createFolder)
+
+                      case JString("createFile") =>
+                        simpleAction("createFolder", "newPath", createFile)
+
+                      case JString("edit") =>
+                        actionWithParam("edit", "item", "content", editFile)
+
+                      case JString("rename") =>
+                        actionWithParam(
+                          "rename",
+                          "item",
+                          "newItemPath",
+                          (newItem => oldFile => checkPathAndContinue(newItem, basePath)(renameFile(oldFile)))
+                        )
+
+                      case JString("remove") =>
+                        json \ "items" match {
+                          case JArray(items) =>
+                            ZIO
+                              .foreach(items) {
+                                case JString(item) =>
+                                  checkPathAndContinue(item, basePath)(removeFile)
+                                case item          =>
+                                  Unexpected(
+                                    s"a value from array 'items', for action 'remove' is not valid, should be a string but is: ${net.liftweb.json
+                                        .compactRender(item)}"
+                                  ).fail
+                              }
+                              .map(_ => basicSuccessResponse)
+                              .toBox
+                          case _             => Failure("'item' is not correctly defined for 'getContent' action")
+                        }
+
+                      case JString("changePermissions") =>
+                        actionList("changePermissions", "items", "perms", setPerms)
+
+                      case JString("move") =>
+                        actionList(
+                          "move",
+                          "items",
+                          "newPath",
+                          (newItem => oldFile => checkPathAndContinue(newItem, basePath)(moveToDirectory(oldFile)))
+                        )
+
+                      case JString("copy") =>
+                        actionList(
+                          "copy",
+                          "items",
+                          "newPath",
+                          (newItem => oldFile => checkPathAndContinue(newItem, basePath)(copyToDirectory(oldFile)))
+                        )
+
+                      case _ => Failure("Action not supported")
+                    })
+
+                  }
+                  case _          => Failure("'action' is not defined in json data")
+                }) match {
+                  case Full(response) =>
+                    response
+                  case eb: EmptyBox =>
+                    val fail = eb ?~! s"An error occurred while looking into directory"
+                    logger.error(fail.messageChain)
+                    errorResponse(fail.messageChain)
                 }
-              case _          => Failure("'action' is not defined in json data")
-            }) match {
-              case Full(response) =>
-                response
-              case eb: EmptyBox =>
-                val fail = eb ?~! s"An error occurred while looking into directory"
-                logger.error(fail.messageChain)
-                errorResponse(fail.messageChain)
+              }
             }
+          }
+        }.recover {
+          // Lift uses apache file upload under the hood and this file exception can happen because of LiftRules.maxMimeSize.
+          // The value should be approximately matching MAX_FILE_SIZE, if it is not the case then change either of them.
+          case ex: SizeLimitExceededException => {
+            // This is rounded to MB which is the order of magnitude of file upload limit
+            val allowedSizeMb: Long = ex.getPermittedSize / 1024 / 1024
+            errorResponse(s"File exceeds the maximum upload size of ${allowedSizeMb}MB", code = 413)
+          }
         }
+          .fold(
+            throw _,
+            identity
+          )
       }
     }
   }

@@ -2235,7 +2235,8 @@ object RudderConfigInit {
     }
 
     // Internal APIs
-    lazy val sharedFileApi     = new SharedFilesAPI(restExtractorService, RUDDER_DIR_SHARED_FILES_FOLDER, RUDDER_GIT_ROOT_CONFIG_REPO)
+    lazy val sharedFileApi     =
+      new SharedFilesAPI(restExtractorService, userService, RUDDER_DIR_SHARED_FILES_FOLDER, RUDDER_GIT_ROOT_CONFIG_REPO)
     lazy val eventLogApi       = new EventLogAPI(eventLogRepository, restExtractorService, eventLogDetailsGenerator, personIdentService)
     lazy val asyncWorkflowInfo = new AsyncWorkflowInfo
     lazy val configService: ReadConfigService with UpdateConfigService = {

@@ -5,7 +5,8 @@ import File.Download
 import File.Select
 import FileManager.Port exposing (errorNotification)
 import List exposing (map, filter)
-import Http
+import Http exposing (Error(..))
+import Http.Detailed
 import Maybe
 import Dict exposing (Dict)
 
@@ -13,7 +14,7 @@ import FileManager.Model exposing (..)
 import FileManager.Vec exposing (..)
 import FileManager.Action exposing (..)
 import FileManager.Env exposing (handleEnvMsg)
-import FileManager.Util exposing (getDirPath, processApiError)
+import FileManager.Util exposing (getDirPath, processApiDetailedError, processApiError)
 
 init : Flags -> (Model, Cmd Msg)
 init flags = (initModel flags, let { api, dir, initRun } = flags in if initRun then listDirectory api [dir] else Cmd.none )
@@ -70,7 +71,7 @@ update msg model = case msg of
   Progress progress -> ({ model | progress = progress }, Cmd.none)
   Cancel -> (model, reload)
   Uploaded result -> case result of
-    Ok () -> case model.uploadQueue of
+    Ok (_, _) -> case model.uploadQueue of
         file :: files ->
           ( { model
             | filesAmount = model.filesAmount - 1
@@ -82,7 +83,7 @@ update msg model = case msg of
               ]
           )
         _ -> ({ model | filesAmount = 0 }, listDirectory model.api model.dir)
-    Err err -> (model, processApiError "uploading file" err)
+    Err err -> (model, processApiDetailedError "uploading file" decoderUploadResponse err)
   OpenNameDialog state->
     let
       cmd =

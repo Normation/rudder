@@ -107,6 +107,7 @@ import com.normation.rudder.rest.internal.GroupInternalApiService
 import com.normation.rudder.rest.internal.GroupsInternalApi
 import com.normation.rudder.rest.internal.RuleInternalApiService
 import com.normation.rudder.rest.internal.RulesInternalApi
+import com.normation.rudder.rest.internal.SharedFilesAPI
 import com.normation.rudder.rest.lift.*
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.rule.category.RuleCategoryService
@@ -474,6 +475,13 @@ class RestTestSetUp {
   val restDataSerializer: RestDataSerializerImpl = RestDataSerializerImpl(
     mockTechniques.techniqueRepo,
     null // diffService
+  )
+
+  val sharedFilesApi = new SharedFilesAPI(
+    restExtractorService,
+    userService,
+    "unknown-shared-folder-path",
+    mockGitRepo.configurationRepositoryRoot.pathAsString
   )
 
   // TODO
@@ -963,6 +971,7 @@ class RestTestSetUp {
   val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))
 
   liftRules.statelessDispatch.append(RestStatus)
+  liftRules.statelessDispatch.append(sharedFilesApi)
 
   val baseTempDirectory = mockGitRepo.abstractRoot
 
