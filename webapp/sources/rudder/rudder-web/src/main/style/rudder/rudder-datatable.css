@@ -80,23 +80,27 @@
 /* </TABLE> */
 
 /* <THEAD> */
-.dataTable tr.head{
+.dataTable tr.head,
+.dataTables_scrollHead thead > tr {
   border-bottom : 1px solid #d6deef;
   font-size: 1.15em;
 }
 /* </THEAD> */
 
 /* <TH> */
-.dataTable tr.head th .DataTables_sort_wrapper {
+.dataTable tr.head th .DataTables_sort_wrapper,
+.dataTables_scrollHead thead > tr th .DataTables_sort_wrapper{
   top: 1px;
   position: relative;
   padding-right: 4px;
 }
-.dataTable tr.head th .DataTables_sort_wrapper .DataTables_sort_icon{
+.dataTable tr.head th .DataTables_sort_wrapper .DataTables_sort_icon,
+.dataTables_scrollHead thead > tr th .DataTables_sort_wrapper .DataTables_sort_icon{
   position: absolute;
 }
 
-.dataTable tr.head th{
+.dataTable tr.head th,
+.dataTables_scrollHead thead > tr th{
   padding: 10px 6px;
   outline: none !important;
   cursor: pointer;
@@ -104,17 +108,23 @@
 }
 .dataTable tr.head th.sorting,
 .dataTable tr.head th.sorting_asc,
-.dataTable tr.head th.sorting_desc{
+.dataTable tr.head th.sorting_desc,
+.dataTables_scrollHead thead > tr th.sorting,
+.dataTables_scrollHead thead > tr th.sorting_asc,
+.dataTables_scrollHead thead > tr th.sorting_desc{
   white-space: pre;
 }
-.dataTable tr.head th.sorting:after{
+.dataTable tr.head th.sorting:after,
+.dataTables_scrollHead thead > tr th.sorting:after{
   content: "";
   display: inline-block;
   min-width: 12px;
   margin-left: 6px;
 }
 .dataTable tr.head th.sorting_asc:after,
-.dataTable tr.head th.sorting_desc:after{
+.dataTable tr.head th.sorting_desc:after,
+.dataTables_scrollHead thead > tr th.sorting_asc:after,
+.dataTables_scrollHead thead > tr th.sorting_desc:after{
   display: inline-block;
   min-width: 12px;
   font-family: "Font Awesome 5 Free";
@@ -131,26 +141,34 @@
   position: relative;
   top: 1px;
 }
-.dataTable tr.head th.sorting_asc:after{
+.dataTable tr.head th.sorting_asc:after,
+.dataTables_scrollHead thead > tr th.sorting_asc:after{
   content: "\f0d8";
 }
-.dataTable tr.head th.sorting_desc:after{
+.dataTable tr.head th.sorting_desc:after,
+.dataTables_scrollHead thead > tr th.sorting_desc:after{
   content: "\f0d7";
 }
 .dataTable .dataTable tr.head th {
   padding: 4px 6px;
   font-size: 0.9em;
 }
-.dataTable tr.head th.sorting{
+.dataTable tr.head th.sorting,
+.dataTables_scrollHead thead > tr th.sorting{
   color: #738195;
 }
 .dataTable tr.head th.sorting.sorting_desc,
-.dataTable tr.head th.sorting.sorting_asc{
+.dataTable tr.head th.sorting.sorting_asc,
+.dataTables_scrollHead thead > tr th.sorting_asc,
+.dataTables_scrollHead thead > tr th.sorting_desc{
   color: #041922;
 }
 .dataTable tr.head th.sorting:hover,
 .dataTable tr.head th.sorting.sorting_desc:hover,
-.dataTable tr.head th.sorting.sorting_asc:hover{
+.dataTable tr.head th.sorting.sorting_asc:hover,
+.dataTables_scrollHead thead > tr th.sorting:hover,
+.dataTables_scrollHead thead > tr th.sorting_asc:hover,
+.dataTables_scrollHead thead > tr th.sorting_desc:hover{
   cursor: pointer;
   color: #0e5e9f;
 }
