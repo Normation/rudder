@@ -838,7 +838,7 @@ tr.parametersDescription {
   list-style-type: disc;
 }
 .evloglmargin{
-  margin: 7px;
+  margin: 7px 0;
 }
 
 .reportsNode {
@@ -1009,20 +1009,9 @@ fieldset {
  */
 
 .rollbackFieldSet {
-  float : right;
-  padding : 10px 0px;
-  width : 400px;
+  min-width : 520px;
   text-align : center;
 }
-
-.rollbackFieldSet legend{
-  margin-left : 10px;
-}
-
-.alignRollback {
-  vertical-align:50%
-}
-
 /**
  * Pending change request
  */

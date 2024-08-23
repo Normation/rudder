@@ -1968,10 +1968,10 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
                       var rollback ='#rollback'+id
                       $(rollback).hide();
                       var confirm = "#confirm" + id.toString();
-                      var radios = $('.radio');
+                      var radios = $('.radio-btn');
                       var action = getRadioChecked(radios);
-                      var confirmHtml = "<p><i class='fa fa-exclamation-triangle warnicon' aria-hidden='true'></i><b>Are you sure you want to restore configuration policy " + action + " this</b></p><span><button class='btn btn-default rollback-action' onclick=cancelRollback(" + id + ")>Cancel</button></span>&nbsp;&nbsp;<button class='btn btn-danger rollback-action' onClick=confirmRollback(" + id + ")>Confirm</button></span>";
-                      $(confirm).append(confirmHtml);
+                      var confirmHtml = "<div class='d-flex text-start align-items-center'><i class='fa fa-exclamation-triangle fs-2 me-3' aria-hidden='true'></i>Are you sure you want to restore configuration policy " + action + " this</div><span><button class='btn btn-default rollback-action' onclick=cancelRollback(" + id + ")>Cancel</button></span>&nbsp;&nbsp;<button class='btn btn-danger rollback-action' onClick=confirmRollback(" + id + ")>Confirm</button></span>";
+                      $(confirm).append(confirmHtml).addClass("alert alert-warning d-flex align-items-center");
                     });
                   } else {
                     table.row(row).child(html).show();
@@ -2016,7 +2016,7 @@ function getRadioChecked(radios) {
 }
 
 function confirmRollback(id) {
-  var radios = $('.radio');
+  var radios = $('.radio-btn');
   var action = getRadioChecked(radios);
   $.ajax({
     type: "GET",
@@ -2040,7 +2040,7 @@ function confirmRollback(id) {
 }
 
 function cancelRollback(id) {
-  $('#confirm'+id).empty();
+  $('#confirm'+id).empty().removeClass();
   $('#rollback'+id).show();
 }
 function computeCompliancePercentFromString(complianceString) {
