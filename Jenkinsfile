@@ -345,7 +345,9 @@ pipeline {
                     agent {
                         dockerfile {
                             filename 'policies/Dockerfile'
-                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${env.RUDDER_VERSION}-nightly"
+                            // no 8.3 build for now
+                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=8.2-nightly"
+                            //additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${env.RUDDER_VERSION}-nightly"
                             // mount cache
                             args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache -v /srv/cache/cargo-vet:/home/jenkins/.cache/cargo-vet'
                         }
