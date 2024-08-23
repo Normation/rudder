@@ -810,6 +810,9 @@ ul {
 .rudder-template .template-main .dataTable tr.details td.details{
   padding-left: 0;
 }
+.rudder-template .dataTable>tbody>tr.opened + tr {
+  background-color: #fff !important;
+}
 .rudder-template .dataTable > tbody > tr:nth-child(even),
 .filemanager-container .dataTable > tbody > tr:nth-child(even){
   background-color: $rudder-bg-gray;

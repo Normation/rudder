@@ -266,7 +266,7 @@ class EventLogDetailsGenerator(
           case None     => NodeSeq.Empty
           case Some(id) =>
             NodeSeq.Empty
-          //          <h4 style="padding:5px"> This change was introduced by change request {SHtml.a(() => S.redirectTo(linkUtil.changeRequestLink(id)),Text(s"#${id}"))}</h4>
+          //          <h5 style="padding:5px"> This change was introduced by change request {SHtml.a(() => S.redirectTo(linkUtil.changeRequestLink(id)),Text(s"#${id}"))}</h5>
         }
       }
 
@@ -280,11 +280,9 @@ class EventLogDetailsGenerator(
               <b class="action">Show</b>
               raw technical details
             </button>
-              <pre id={"showParametersInfo%s".format(id)} style="display:none;" class="technical-details">
-                {
+            <pre id={"showParametersInfo%s".format(id)} style="display:none;" class="technical-details">{
               event.details.map(n => xmlPretty.format(n) + "\n")
-            }
-              </pre>
+            }</pre>
         }
       }
 
@@ -292,7 +290,7 @@ class EventLogDetailsGenerator(
         val r = event.eventDetails.reason.getOrElse("")
         if (r == "") NodeSeq.Empty
         else <div style="margin-top:2px;">
-          <b>Reason:</b>{r}
+          <b>Reason: </b>{r}
         </div>
       }
 
@@ -300,13 +298,13 @@ class EventLogDetailsGenerator(
         logger.debug(e ?~! "Error when parsing details.", e)
         <xml:group>
           <div class="evloglmargin">
-            <h4>Details for that node were not in a recognized format.
-              Raw data are displayed next:</h4>{xmlParameters(event.id)}
+            <h5>Details for that node were not in a recognized format.
+              Raw data are displayed next:</h5>{xmlParameters(event.id)}
           </div>
         </xml:group>
       }
 
-      <td colspan="5">
+      <div class="py-2 flex-fill">
         {
         (event match {
           /*
@@ -352,19 +350,19 @@ class EventLogDetailsGenerator(
                 case Full(modDiff) =>
                   <div class="evloglmargin">
 
-                    {generatedByChangeRequest}<h4>Rule overview:</h4>
+                    {generatedByChangeRequest}<h5>Rule overview:</h5>
                     <ul class="evlogviewpad">
                       <li>
-                        <b>Rule ID:</b>{modDiff.id.serialize}
+                        <b>Rule ID: </b>{modDiff.id.serialize}
                       </li>
                       <li>
-                        <b>Name:</b>{modDiff.modName.map(diff => diff.newValue).getOrElse(modDiff.name)}
+                        <b>Name: </b>{modDiff.modName.map(diff => diff.newValue).getOrElse(modDiff.name)}
                       </li>
                     </ul>{
                     val modCategory = modDiff.modCategory.map {
                       case SimpleDiff(oldOne, newOne) =>
                         <li>
-                          <b>Rule category changed:</b>
+                          <b>Rule category changed: </b>
                         </li> ++
                         diffDisplayer.displayRuleCategory(rootRuleCategory, oldOne, Some(newOne))
                     }
@@ -379,14 +377,14 @@ class EventLogDetailsGenerator(
                       "#target" #> (modDiff.modTarget.map {
                         case SimpleDiff(oldOnes, newOnes) =>
                           <li>
-                              <b>Group Targets changed:</b>
+                              <b>Group Targets changed: </b>
                             </li> ++
                           diffDisplayer.displayRuleTargets(oldOnes.toSeq, newOnes.toSeq, groupLib)
                       }) &
                       "#policies" #> (modDiff.modDirectiveIds.map {
                         case SimpleDiff(oldOnes, newOnes) =>
                           <li>
-                              <b>Directives changed:</b>
+                              <b>Directives changed: </b>
                             </li> ++
                           diffDisplayer.displayDirectiveChangeList(oldOnes.toSeq, newOnes.toSeq)
                       })
@@ -406,13 +404,13 @@ class EventLogDetailsGenerator(
                 case Full(modDiff)    =>
                   <div class="evloglmargin">
 
-                    {generatedByChangeRequest}<h4>Directive overview:</h4>
+                    {generatedByChangeRequest}<h5>Directive overview:</h5>
                     <ul class="evlogviewpad">
                       <li>
-                        <b>Directive ID:</b>{modDiff.id.serialize}
+                        <b>Directive ID: </b>{modDiff.id.serialize}
                       </li>
                       <li>
-                        <b>Name:</b>{modDiff.modName.map(diff => diff.newValue.toString).getOrElse(modDiff.name)}
+                        <b>Name: </b>{modDiff.modName.map(diff => diff.newValue.toString).getOrElse(modDiff.name)}
                       </li>
                     </ul>{
                     (
@@ -481,13 +479,13 @@ class EventLogDetailsGenerator(
                 case Full(modDiff) =>
                   <div class="evloglmargin">
 
-                    {generatedByChangeRequest}<h4>Group overview:</h4>
+                    {generatedByChangeRequest}<h5>Group overview:</h5>
                     <ul class="evlogviewpad">
                       <li>
-                        <b>Node Group ID:</b>{modDiff.id.withDefaultRev.serialize}
+                        <b>Node Group ID: </b>{modDiff.id.withDefaultRev.serialize}
                       </li>
                       <li>
-                        <b>Name:</b>{modDiff.modName.map(diff => diff.newValue.toString).getOrElse(modDiff.name)}
+                        <b>Name: </b>{modDiff.modName.map(diff => diff.newValue.toString).getOrElse(modDiff.name)}
                       </li>
                     </ul>{
                     (
@@ -557,7 +555,7 @@ class EventLogDetailsGenerator(
                 case Full(details) =>
                   <div class="evloglmargin">
 
-                    <h4>Node accepted overview:</h4>{nodeDetails(details)}{reasonHtml}{xmlParameters(event.id)}
+                    <h5>Node accepted overview:</h5>{nodeDetails(details)}{reasonHtml}{xmlParameters(event.id)}
                   </div>
                 case e: EmptyBox => errorMessage(e)
               }
@@ -570,7 +568,7 @@ class EventLogDetailsGenerator(
                 case Full(details) =>
                   <div class="evloglmargin">
 
-                    <h4>Node refused overview:</h4>{nodeDetails(details)}{reasonHtml}{xmlParameters(event.id)}
+                    <h5>Node refused overview:</h5>{nodeDetails(details)}{reasonHtml}{xmlParameters(event.id)}
                   </div>
                 case e: EmptyBox => errorMessage(e)
               }
@@ -583,7 +581,7 @@ class EventLogDetailsGenerator(
                 case Full(details) =>
                   <div class="evloglmargin">
 
-                    <h4>Node deleted overview:</h4>{nodeDetails(details)}{reasonHtml}{xmlParameters(event.id)}
+                    <h5>Node deleted overview:</h5>{nodeDetails(details)}{reasonHtml}{xmlParameters(event.id)}
                   </div>
                 case e: EmptyBox => errorMessage(e)
               }
@@ -597,16 +595,16 @@ class EventLogDetailsGenerator(
                 case Full(SuccessStatus(id, started, ended, _)) =>
                   <div class="evloglmargin">
 
-                    <h4>Successful policy update:</h4>
+                    <h5>Successful policy update:</h5>
                     <ul class="evlogviewpad">
                       <li>
-                        <b>ID:</b> &nbsp;{id}
+                        <b>ID: </b> &nbsp;{id}
                       </li>
                       <li>
-                        <b>Start time:</b> &nbsp;{DateFormaterService.getDisplayDate(started)}
+                        <b>Start time: </b> &nbsp;{DateFormaterService.getDisplayDate(started)}
                       </li>
                       <li>
-                        <b>End Time:</b> &nbsp;{DateFormaterService.getDisplayDate(ended)}
+                        <b>End Time: </b> &nbsp;{DateFormaterService.getDisplayDate(ended)}
                       </li>
                     </ul>{reasonHtml}{xmlParameters(event.id)}
                   </div>
@@ -621,20 +619,19 @@ class EventLogDetailsGenerator(
               val xml: NodeSeq = logDetailsService.getDeploymentStatusDetails(x.details) match {
                 case Full(ErrorStatus(id, started, ended, failure)) =>
                   <div class="evloglmargin">
-
-                    <h4>Failed policy update:</h4>
+                    <h5>Failed policy update:</h5>
                     <ul class="evlogviewpad">
                       <li>
-                        <b>ID:</b> &nbsp;{id}
+                        <b>ID: </b> &nbsp;{id}
                       </li>
                       <li>
-                        <b>Start time:</b> &nbsp;{DateFormaterService.getDisplayDate(started)}
+                        <b>Start time: </b> &nbsp;{DateFormaterService.getDisplayDate(started)}
                       </li>
                       <li>
-                        <b>End Time:</b> &nbsp;{DateFormaterService.getDisplayDate(ended)}
+                        <b>End Time: </b> &nbsp;{DateFormaterService.getDisplayDate(ended)}
                       </li>
                       <li>
-                        <b>Error stack trace:</b> &nbsp;{failure.messageChain}
+                        <b>Error stack trace: </b> &nbsp;{failure.messageChain}
                       </li>
                     </ul>{reasonHtml}{xmlParameters(event.id)}
                   </div>
@@ -688,7 +685,7 @@ class EventLogDetailsGenerator(
                 case Full(details) =>
                   <div class="evloglmargin">
 
-                    <b>The Technique library was reloaded and following Techniques were updated:</b>
+                    <b>The Technique library was reloaded and following Techniques were updated: </b>
                     <ul>
                       {
                     details.map { technique =>
@@ -712,13 +709,13 @@ class EventLogDetailsGenerator(
                 case Full(modDiff) =>
                   <div class="evloglmargin">
 
-                    <h4>Technique overview:</h4>
+                    <h5>Technique overview:</h5>
                     <ul class="evlogviewpad">
                       <li>
-                        <b>Technique ID:</b>{modDiff.id.value}
+                        <b>Technique ID: </b>{modDiff.id.value}
                       </li>
                       <li>
-                        <b>Name:</b>{modDiff.name}
+                        <b>Name: </b>{modDiff.name}
                       </li>
                     </ul>{
                     (
@@ -792,16 +789,16 @@ class EventLogDetailsGenerator(
                       (modName, modDesc)
                   }
                   <div class="evloglmargin">
-                    <h4>Change request details:</h4>
+                    <h5>Change request details:</h5>
                     <ul class="evlogviewpad">
                       <li>
-                        <b>Id:</b>{diff.changeRequest.id}
+                        <b>Id: </b>{diff.changeRequest.id}
                       </li>
                       <li>
-                        <b>Name:</b>{name}
+                        <b>Name: </b>{name}
                       </li>
                       <li>
-                        <b>Description:</b>{desc}
+                        <b>Description: </b>{desc}
                       </li>
                     </ul>
                   </div>
@@ -816,16 +813,16 @@ class EventLogDetailsGenerator(
               logDetailsService.getWorkflotStepChange(x.details) match {
                 case Full(step) =>
                   <div class="evloglmargin">
-                    <h4>Change request status modified:</h4>
+                    <h5>Change request status modified:</h5>
                     <ul class="evlogviewpad">
                       <li>
-                        <b>Id:</b>{step.id}
+                        <b>Id: </b>{step.id}
                       </li>
                       <li>
-                        <b>From status:</b>{step.from}
+                        <b>From status: </b>{step.from}
                       </li>
                       <li>
-                        <b>To status:</b>{step.to}
+                        <b>To status: </b>{step.to}
                       </li>{reasonHtml}
                     </ul>
                   </div>
@@ -875,10 +872,10 @@ class EventLogDetailsGenerator(
                 case Full(modDiff) =>
                   <div class="evloglmargin">
 
-                    {generatedByChangeRequest}<h4>Global Parameter overview:</h4>
+                    {generatedByChangeRequest}<h5>Global Parameter overview:</h5>
                     <ul class="evlogviewpad">
                       <li>
-                        <b>Global Parameter name:</b>{modDiff.name}
+                        <b>Global Parameter name: </b>{modDiff.name}
                       </li>
                     </ul>{
                     (
@@ -932,10 +929,10 @@ class EventLogDetailsGenerator(
                 case Full(apiAccountDiff) =>
                   <div class="evloglmargin">
 
-                    {generatedByChangeRequest}<h4>API account overview:</h4>
+                    {generatedByChangeRequest}<h5>API account overview:</h5>
                     <ul class="evlogviewpad">
                       <li>
-                        <b>Account ID:</b>{apiAccountDiff.id.value}
+                        <b>Account ID: </b>{apiAccountDiff.id.value}
                       </li>
                     </ul>{
                     (
@@ -973,19 +970,19 @@ class EventLogDetailsGenerator(
                 case Full((oldProp, newProp)) =>
                   val diff = SimpleDiff(oldProp.value, newProp.value)
                   <div class="evloglmargin">
-                    <h4>Global property overview:</h4>
+                    <h5>Global property overview:</h5>
                     <ul class="evlogviewpad">
                       <li>
-                        <b>Name:</b>{mod.propertyName}
+                        <b>Name: </b>{mod.propertyName}
                       </li>
                       <li>
-                        <b>Old Value:</b>
+                        <b>Old Value: </b>
                         <span class="diffOldValue">
                           {diff.oldValue}
                         </span>
                       </li>
                       <li>
-                        <b>New Value:</b>
+                        <b>New Value: </b>
                         <span class="diffNewValue">
                           {diff.newValue}
                         </span>
@@ -1006,12 +1003,12 @@ class EventLogDetailsGenerator(
                   logger.info(modDiff.modAgentRun)
                   <div class="evloglmargin">
 
-                    {generatedByChangeRequest}<h4>Node '
+                    {generatedByChangeRequest}<h5>Node '
                     {modDiff.id.value}
-                    ' modified:</h4>
+                    ' modified:</h5>
                     <ul class="evlogviewpad">
                       <li>
-                        <b>Node ID:</b>{modDiff.id.value}
+                        <b>Node ID: </b>{modDiff.id.value}
                       </li>
                     </ul>{
                     mapComplexDiff(modDiff.modAgentRun) { (optAr: Option[AgentRunInterval]) =>
@@ -1053,7 +1050,7 @@ class EventLogDetailsGenerator(
                 case Full(details) =>
                   <div class="evloglmargin">
 
-                    <h4>Node promoted to relay overview:</h4>{promotedNodeDetails(details._1, details._2)}{reasonHtml}{
+                    <h5>Node promoted to relay overview:</h5>{promotedNodeDetails(details._1, details._2)}{reasonHtml}{
                     xmlParameters(event.id)
                   }
                   </div>
@@ -1105,13 +1102,13 @@ class EventLogDetailsGenerator(
                   }
                   <div class="evloglmargin">
 
-                    <h4>Secret overview:</h4>
+                    <h5>Secret overview:</h5>
                     <ul class="evlogviewpad">
                       <li>
-                        <b>Secret name:</b>{modDiff.name}
+                        <b>Secret name: </b>{modDiff.name}
                       </li>
                       <li>
-                        <b>Secret description:</b>{modDiff.description}
+                        <b>Secret description: </b>{modDiff.description}
                       </li>
                     </ul>{
                     (
@@ -1131,7 +1128,7 @@ class EventLogDetailsGenerator(
 
         })(event.details)
       }
-      </td>
+      </div>
 
     }).merge.runNow
 
@@ -1220,7 +1217,7 @@ class EventLogDetailsGenerator(
 
   private def displayExportArchiveDetails(gitArchiveId: GitArchiveId, rawData: NodeSeq) = {
     <div class="evloglmargin">
-      <h4>Details of the new archive:</h4>
+      <h5>Details of the new archive:</h5>
       <ul class="evlogviewpad">
         <li><b>Git path of the archive: </b>{gitArchiveId.path.value}</li>
         <li><b>Commit ID (hash): </b>{gitArchiveId.commit.value}</li>
@@ -1233,7 +1230,7 @@ class EventLogDetailsGenerator(
 
   private def displayImportArchiveDetails(gitCommitId: GitCommitId, rawData: NodeSeq) = {
     <div class="evloglmargin">
-      <h4>Details of the restored archive:</h4>
+      <h5>Details of the restored archive:</h5>
       <ul class="evlogviewpad">
         <li><b>Commit ID (hash): </b>{gitCommitId.value}</li>
       </ul>
@@ -1445,7 +1442,7 @@ class EventLogDetailsGenerator(
 
   private val crDetailsXML = {
     <div>
-      <h4>Rule overview:</h4>
+      <h5>Rule overview:</h5>
       <ul class="evlogviewpad">
         <li><b>ID:&nbsp;</b><value id="ruleID"/></li>
         <li><b>Name:&nbsp;</b><value id="ruleName"/></li>
@@ -1462,7 +1459,7 @@ class EventLogDetailsGenerator(
 
   private val piDetailsXML = {
     <div>
-      <h4>Directive overview:</h4>
+      <h5>Directive overview:</h5>
       <ul class="evlogviewpad">
         <li><b>ID:&nbsp;</b><value id="directiveID"/></li>
         <li><b>Name:&nbsp;</b><value id="directiveName"/></li>
@@ -1479,7 +1476,7 @@ class EventLogDetailsGenerator(
 
   private val groupDetailsXML = {
     <div>
-      <h4>Group overview:</h4>
+      <h5>Group overview:</h5>
       <ul class="evlogviewpad">
         <li><b>ID: </b><value id="groupID"/></li>
         <li><b>Name: </b><value id="groupName"/></li>
@@ -1495,7 +1492,7 @@ class EventLogDetailsGenerator(
 
   private val techniqueDetailsXML = {
     <div>
-      <h4>Technique overview:</h4>
+      <h5>Technique overview:</h5>
       <ul class="evlogviewpad">
         <li><b>ID:&nbsp;</b><value id="techniqueID"/></li>
         <li><b>Name:&nbsp;</b><value id="techniqueName"/></li>
@@ -1507,7 +1504,7 @@ class EventLogDetailsGenerator(
 
   private val globalParamDetailsXML = {
     <div>
-      <h4>Global Parameter overview:</h4>
+      <h5>Global Parameter overview:</h5>
       <ul class="evlogviewpad">
         <li><b>Name:&nbsp;</b><value id="name"/></li>
         <li><b>Value:&nbsp;</b><value id="value"/></li>
@@ -1519,7 +1516,7 @@ class EventLogDetailsGenerator(
 
   private val apiAccountDetailsXML = {
     <div>
-      <h4>API account overview:</h4>
+      <h5>API account overview:</h5>
       <ul class="evlogviewpad">
         <li><b>Rudder ID: </b><value id="id"/></li>
         <li><b>Name:&nbsp;</b><value id="name"/></li>
@@ -1550,7 +1547,7 @@ class EventLogDetailsGenerator(
 
   private def liModDetailsXML(id: String, name: String) = (
     <div id={id}>
-      <b>{name} changed:</b>
+      <b>{name} changed: </b>
       <ul class="evlogviewpad">
         <li><b>Old value:&nbsp;</b><span class="diffOldValue">old value</span></li>
         <li><b>New value:&nbsp;</b><span class="diffNewValue">new value</span></li>
@@ -1560,7 +1557,7 @@ class EventLogDetailsGenerator(
 
   private def liModDirectiveDetailsXML(id: String, name: String) = (
     <div id={id}>
-      <b>{name} changed:</b>
+      <b>{name} changed: </b>
       <ul class="evlogviewpad">
         <li><b>Differences: </b><div id="diff" /></li>
       </ul>
@@ -1618,7 +1615,7 @@ class EventLogDetailsGenerator(
 
   private val secretXML = {
     <div>
-      <h4>Secret overview:</h4>
+      <h5>Secret overview:</h5>
       <ul class="evlogviewpad">
         <li><b>Name:&nbsp;</b><value id="name"/></li>
         <li><b>Description:&nbsp;</b><value id="description"/></li>
@@ -1639,7 +1636,7 @@ class EventLogDetailsGenerator(
     <div class="evloglmargin">
       <div style="width:50%; float:left;">
         <br/>
-        <h4>Details of the rollback:</h4>
+        <h5>Details of the rollback:</h5>
         <br/>
         <span>A rollback to {rollbackInfo.rollbackType} event
           {
@@ -1744,7 +1741,7 @@ class EventLogDetailsGenerator(
 
   private def authorizedNetworksXML() = (
     <div>
-      <b>Networks authorized on policy server were updated:</b>
+      <b>Networks authorized on policy server were updated: </b>
       <table class="eventLogUpdatePolicy">
         <thead><tr><th>from:</th><th>to:</th></tr></thead>
         <tbody>
