@@ -86,6 +86,7 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.archives.ParameterArchiveId
 import com.normation.rudder.domain.archives.RuleArchiveId
 import com.normation.rudder.domain.nodes.*
+import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.AddGlobalParameterDiff
 import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
@@ -2879,6 +2880,26 @@ class MockNodeGroups(nodesRepo: MockNodes) {
         description = "Liste de l'ensemble de serveurs cassés à réparer",
         isEnabled = true,
         isSystem = false
+      ),
+      FullRuleTargetInfo(
+        FullGroupTarget(
+          GroupTarget(NodeGroupId(NodeGroupUid("all-nodes"))),
+          NodeGroup(
+            NodeGroupId(NodeGroupUid("all-nodes")),
+            name = "All nodes",
+            description = "All nodes known by Rudder (including Rudder policy servers)",
+            properties = Nil,
+            query = None,
+            isDynamic = false,
+            serverList = MockNodes.nodeIds,
+            _isEnabled = true,
+            isSystem = true
+          )
+        ),
+        name = "System groups",
+        description = "system groups that cannot be deleted",
+        isEnabled = true,
+        isSystem = true
       ),
       FullRuleTargetInfo(
         FullOtherTarget(PolicyServerTarget(NodeId("root"))),

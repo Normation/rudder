@@ -962,10 +962,15 @@ class GroupApiService2(
 
     NodeGroupId.parse(sid).toIO.flatMap(readGroup.getNodeGroup).toBox match {
       case Full((group, _)) =>
-        val deleteGroupDiff = DeleteNodeGroupDiff(group)
-        implicit val cc: ChangeContext =
-          ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), None, None, qc.nodePerms)
-        createChangeRequestAndAnswer(sid, deleteGroupDiff, group, Some(group), None, actor, req, DGModAction.Delete, apiVersion)
+        if (group.isSystem) {
+          val message = s"Could not delete group '${sid}', cause is: system groups cannot be deleted."
+          toJsonError(Some(sid), message)
+        } else {
+          val deleteGroupDiff = DeleteNodeGroupDiff(group)
+          implicit val cc: ChangeContext =
+            ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), None, None, qc.nodePerms)
+          createChangeRequestAndAnswer(sid, deleteGroupDiff, group, Some(group), None, actor, req, DGModAction.Delete, apiVersion)
+        }
 
       case eb: EmptyBox =>
         val fail    = eb ?~ (s"Could not find Group ${sid}")
@@ -1246,17 +1251,23 @@ class GroupApiService14(
   }
 
   def deleteGroup(id: NodeGroupId, params: DefaultParams, actor: EventActor)(implicit qc: QueryContext): IOResult[JRGroup] = {
-    readGroup.getNodeGroupOpt(id).flatMap {
-      case Some((group, cat)) =>
-        val deleteGroupDiff = DeleteNodeGroupDiff(group)
-        val change          = NodeGroupChangeRequest(DGModAction.Delete, group, Some(cat), Some(group))
-        implicit val cc: ChangeContext =
-          ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), None, None, qc.nodePerms)
-        createChangeRequest(deleteGroupDiff, change, params, actor).toIO
+    readGroup
+      .getNodeGroupOpt(id)
+      .reject {
+        case Some((group, cat)) if group.isSystem =>
+          Inconsistency(s"Could not delete group '${id.serialize}', cause is: system groups cannot be deleted.")
+      }
+      .flatMap {
+        case Some((group, cat)) =>
+          val deleteGroupDiff = DeleteNodeGroupDiff(group)
+          val change          = NodeGroupChangeRequest(DGModAction.Delete, group, Some(cat), Some(group))
+          implicit val cc: ChangeContext =
+            ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), None, None, qc.nodePerms)
+          createChangeRequest(deleteGroupDiff, change, params, actor).toIO
 
-      case None =>
-        JRGroup.empty(id.serialize).succeed
-    }
+        case None =>
+          JRGroup.empty(id.serialize).succeed
+      }
   }
 
   def updateGroup(restGroup: JQGroup, params: DefaultParams, actor: EventActor)(implicit qc: QueryContext): IOResult[JRGroup] = {
