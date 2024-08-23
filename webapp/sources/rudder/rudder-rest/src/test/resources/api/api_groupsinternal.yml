@@ -63,6 +63,14 @@ response:
               }
             ],
             "targets" : []
+          },
+          {
+            "id" : "system-category1",
+            "name" : "system category1",
+            "description" : "a system group category",
+            "categories" : [],
+            "groups" : [],
+            "targets" : []
           }
         ],
         "groups" : [
@@ -83,15 +91,6 @@ response:
             "dynamic" : false,
             "enabled" : true,
             "target" : "group:6666f5d3-8c61-4d20-88a7-bb947705ba8a"
-          },
-          {
-            "id" : "4444f5d3-8c61-4d20-88a7-bb947705ba8a",
-            "displayName" : "Odd nodes",
-            "description" : "",
-            "category" : "GroupRoot",
-            "dynamic" : false,
-            "enabled" : true,
-            "target" : "group:4444f5d3-8c61-4d20-88a7-bb947705ba8a"
           },
           {
             "id" : "3333f5d3-8c61-4d20-88a7-bb947705ba8a",
@@ -128,6 +127,24 @@ response:
             "dynamic" : true,
             "enabled" : true,
             "target" : "group:a-group-for-root-only"
+          },
+          {
+            "id" : "all-nodes",
+            "displayName" : "All nodes",
+            "description" : "All nodes known by Rudder(including Rudder policy servers)",
+            "category" : "GroupRoot",
+            "dynamic" : false,
+            "enabled" : true,
+            "target" : "group:all-nodes"
+          },
+          {
+            "id" : "4444f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName" : "Odd nodes",
+            "description" : "",
+            "category" : "GroupRoot",
+            "dynamic" : false,
+            "enabled" : true,
+            "target" : "group:4444f5d3-8c61-4d20-88a7-bb947705ba8a"
           },
           {
             "id" : "2222f5d3-8c61-4d20-88a7-bb947705ba8a",
