@@ -7,7 +7,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-#[cfg(not(feature = "embedded-lib"))]
 use anyhow::bail;
 use anyhow::{anyhow, Context, Result};
 use rudder_cli::custom_panic_hook_ignore_sigpipe;
