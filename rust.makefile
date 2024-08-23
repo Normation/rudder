@@ -12,13 +12,14 @@ version:
 	cargo --version
 	rustc --version
 	@echo "RUSTC_WRAPPER=$${RUSTC_WRAPPER}"
+	# sccache is used if present
 	sccache --show-stats || true
 
 # https://matklad.github.io/2021/09/04/fast-rust-builds.html#ci-workflow
 build: CARGO_INCREMENTAL=0
 build: version
 	cargo install --locked cargo-auditable@0.6.1
-	cargo auditable build --release --locked
+	cargo auditable build ${CARGO_FEATURES} --release --locked
 
 dev-doc:
 	cargo doc --document-private-items --open

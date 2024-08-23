@@ -1,5 +1,5 @@
 [package]
-name = "rudder-module-type-system-updates"
+name = "rudder-module-system-updates"
 version = "0.0.0-dev"
 description = "Patch management"
 authors.workspace = true
