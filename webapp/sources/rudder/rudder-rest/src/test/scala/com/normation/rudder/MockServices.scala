@@ -803,7 +803,12 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
 
     override def deleteOldSessions(olderThan: DateTime): IOResult[Unit] = ???
 
-    override def setExistingUsers(origin: String, users: List[String], trace: EventTrace): IOResult[Unit] = ???
+    override def setExistingUsers(
+        origin:          String,
+        users:           List[String],
+        trace:           EventTrace,
+        isCaseSensitive: Boolean
+    ): IOResult[Set[String]] = ???
 
     override def disable(
         userId:            List[String],
