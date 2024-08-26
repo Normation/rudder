@@ -104,7 +104,17 @@ case class JSONReportsAnalyser(reportsRepository: ReportsRepository, propRepo: R
    * start the handler process. It will execute at provided intervals
    */
   def start(interval: Duration): ZIO[Any, RudderError, Nothing] = {
-    loop.delay(interval).forever
+    CampaignLogger.info(s"Starting campaign report handler running every ${interval.render}") *>
+      loop.catchAllCause(cause =>
+        cause.failureOrCause match {
+          case Left(err) =>
+            CampaignLogger.error(s"An error occurred while handling campaign reports, error message: ${err.msg}") *>
+              CampaignLogger.debug(s"Campaign report handling error details: ${err.fullMsg}")
+          case Right(systemErrCause) =>
+            CampaignLogger.error(s"An error occurred within campaign reports handling system, restarting it, details in debug") *>
+              CampaignLogger.debug(s"Campaign report handling system error details: ${systemErrCause.toString}")
+        }
+      ).delay(interval).forever
   }
 
 }
