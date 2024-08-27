@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, Context, Result};
 use regex::Regex;
 use std::{collections::HashMap, env, path::Path, process::Command};
 
@@ -63,11 +63,15 @@ impl AptPackageManager {
     }
 
     /// Take the existing cache, or create a new one if it is not available.
-    fn cache(&mut self) -> Result<rust_apt::Cache> {
+    fn cache(&mut self) -> ResultOutput<rust_apt::Cache> {
         Ok(if self.cache.is_some() {
-            self.cache.take().unwrap()
+            ResultOutput::new(Ok(self.cache.take().unwrap()))
         } else {
-            new_cache!()?
+            let r = new_cache!();
+            match r {
+                Ok(c) => ResultOutput::new(Ok(c)),
+                Err(e) => Self::apt_errors_to_output(Err(e)),
+            }
         })
     }
 
@@ -96,7 +100,7 @@ impl AptPackageManager {
         Self::apt_errors_to_output(cache.update(&mut progress))
     }
 
-    fn apt_errors_to_output(res: Result<(), AptErrors>) -> ResultOutput<()> {
+    fn apt_errors_to_output<T>(res: Result<T, AptErrors>) -> ResultOutput<()> {
         match res {
             Ok(_) => ResultOutput::new(Ok(())),
             Err(e) => {
@@ -113,7 +117,7 @@ impl AptPackageManager {
                 }
 
                 if has_error {
-                    res.inner = Err(e.into().context("APT error"));
+                    res.inner = Err(anyhow!("APT errors"));
                 }
                 res
             }
@@ -122,8 +126,8 @@ impl AptPackageManager {
 }
 
 impl LinuxPackageManager for AptPackageManager {
-    fn list_installed(&mut self) -> Result<PackageList> {
-        let cache = self.cache()?;
+    fn list_installed(&mut self) -> ResultOutput<PackageList> {
+        let cache = self.cache();
         // FIXME: compare with dpkg output
         let filter = PackageSort::default().installed().include_virtual();
 
@@ -180,7 +184,13 @@ impl LinuxPackageManager for AptPackageManager {
         let filter = PackageSort::default().installed().include_virtual();
 
         for p in cache.packages(&filter) {
-            todo!("Mark packages for security upgrade");
+            p.versions().for_each(|v| {
+                // FIXME: get actual default rules from unnatended upgrades
+                if v.source_name().contains("security") {
+                    v.set_candidate();
+                    p.mark_install(false, false);
+                }
+            });
         }
 
         // Resolve dependencies
@@ -229,27 +239,36 @@ impl LinuxPackageManager for AptPackageManager {
         Self::apt_errors_to_output(cache.commit(&mut acquire_progress, &mut install_progress))
     }
 
-    fn reboot_pending(&self) -> Result<bool> {
+    fn reboot_pending(&self) -> ResultOutput<bool> {
         // The `needrestart` command doesn't bring anything more here.
         // It only covers kernel-based required reboots, which are also covered with this file.
-        Ok(Path::new(REBOOT_REQUIRED_FILE_PATH).try_exists()?)
+        let pending_reboot = Path::new(REBOOT_REQUIRED_FILE_PATH)
+            .try_exists()
+            .context(format!(
+                "Checking if a reboot is pending by checking for '{}' existence",
+                REBOOT_REQUIRED_FILE_PATH
+            ));
+        ResultOutput::new(pending_reboot)
     }
 
-    fn services_to_restart(&self) -> Result<Vec<String>> {
-        let output = Command::new("needrestart")
+    fn services_to_restart(&self) -> ResultOutput<Vec<String>> {
+        let mut c = Command::new("needrestart");
+        c
             // list only
             .arg("-r")
             .arg("l")
             // batch mode (parsable output)
-            .arg("-b")
-            .output()?;
-        if !output.status.success() {
-            let e = String::from_utf8_lossy(&output.stderr);
-            bail!("Command failed: {:?}", e);
-        } else {
-            let o = String::from_utf8_lossy(&output.stdout);
-            self.parse_services_to_restart(&o)
-        }
+            .arg("-b");
+        let res = ResultOutput::command(c);
+        let (r, o, e) = (res.inner, res.stdout, res.stderr);
+        let res = match r {
+            Ok(_) => {
+                let services = o.iter().map(|s| s.trim().to_string()).collect();
+                Ok(services)
+            }
+            Err(e) => Err(e),
+        };
+        ResultOutput::new_output(res, o, e)
     }
 }
 

@@ -14,7 +14,7 @@ use crate::{
     output::ResultOutput,
     package_manager::{yum::YumPackageManager, zypper::ZypperPackageManager},
 };
-use std::{process::Command, str::FromStr};
+use std::str::FromStr;
 
 #[cfg(feature = "apt")]
 mod apt;
@@ -184,20 +184,6 @@ impl PackageManager {
             _ => bail!("This package manager does not provide patch management features"),
         })
     }
-
-    // Helper function for parsing one service name by line in a command's stdout.
-    fn parse_one_by_line(mut c: Command) -> Result<Vec<String>> {
-        let output = c.output()?;
-
-        if !output.status.success() {
-            let e = String::from_utf8_lossy(&output.stderr);
-            bail!("Command failed: {:?}", e);
-        } else {
-            let o = String::from_utf8_lossy(&output.stdout);
-            // One service name per line
-            Ok(o.lines().map(|s| s.trim().to_string()).collect())
-        }
-    }
 }
 
 /// A generic interface of a Linux package manager
@@ -205,7 +191,7 @@ pub trait LinuxPackageManager {
     /// List installed packages
     ///
     /// It doesn't use a cache and queries the package manager directly.
-    fn list_installed(&mut self) -> Result<PackageList>;
+    fn list_installed(&mut self) -> ResultOutput<PackageList>;
 
     /// Apply all available upgrades
     fn full_upgrade(&mut self) -> ResultOutput<()>;
@@ -217,10 +203,10 @@ pub trait LinuxPackageManager {
     fn upgrade(&mut self, packages: Vec<PackageSpec>) -> ResultOutput<()>;
 
     /// Is a reboot pending?
-    fn reboot_pending(&self) -> Result<bool>;
+    fn reboot_pending(&self) -> ResultOutput<bool>;
 
     /// List the services to restart
-    fn services_to_restart(&self) -> Result<Vec<String>>;
+    fn services_to_restart(&self) -> ResultOutput<Vec<String>>;
 }
 
 #[cfg(test)]

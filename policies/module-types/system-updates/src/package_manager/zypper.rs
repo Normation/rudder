@@ -5,11 +5,8 @@ use std::process::{Command, Output};
 
 use crate::{
     output::ResultOutput,
-    package_manager::{
-        rpm::RpmPackageManager, LinuxPackageManager, PackageList, PackageManager, PackageSpec,
-    },
+    package_manager::{rpm::RpmPackageManager, LinuxPackageManager, PackageList, PackageSpec},
 };
-use anyhow::Result;
 
 /// We need to be compatible with:
 ///
@@ -42,53 +39,74 @@ impl ZypperPackageManager {
 
     fn refresh(&self) -> ResultOutput<Output> {
         let mut c = Command::new("zypper");
-        c.arg("-non-interactive").arg("refresh");
+        c.arg("--non-interactive").arg("refresh");
         ResultOutput::command(c)
     }
 }
 
 impl LinuxPackageManager for ZypperPackageManager {
-    fn list_installed(&mut self) -> Result<PackageList> {
+    fn list_installed(&mut self) -> ResultOutput<PackageList> {
         self.rpm.installed()
     }
 
     fn full_upgrade(&mut self) -> ResultOutput<()> {
-        let mut res = self.refresh();
+        let res = self.refresh();
+
         // FIXME fail in case of refresh error?
         let mut c = Command::new("zypper");
         c.arg("--non-interactive").arg("--name").arg("update");
-        res.step(ResultOutput::command(c));
-        res.clear_ok()
+        let res_update = ResultOutput::command(c);
+        let final_res = res.step(res_update);
+        final_res.clear_ok()
     }
 
     fn security_upgrade(&mut self) -> ResultOutput<()> {
-        let mut res = self.refresh();
+        let res = self.refresh();
         let mut c = Command::new("zypper");
         c.arg("--non-interactive")
             .arg("--category")
             .arg("security")
             .arg("patch");
-        res.step(ResultOutput::command(c));
-        res.clear_ok()
+        let res_update = ResultOutput::command(c);
+        let final_res = res.step(res_update);
+        final_res.clear_ok()
     }
 
     fn upgrade(&mut self, packages: Vec<PackageSpec>) -> ResultOutput<()> {
-        let mut res = self.refresh();
+        let res = self.refresh();
         let mut c = Command::new("zypper");
         c.arg("--non-interactive").arg("--name").arg("update");
         c.args(packages.into_iter().map(Self::package_spec_as_argument));
-        res.step(ResultOutput::command(c));
-        res.clear_ok()
+        let res_update = ResultOutput::command(c);
+        let final_res = res.step(res_update);
+        final_res.clear_ok()
     }
 
-    fn reboot_pending(&self) -> Result<bool> {
-        let o = Command::new("zypper").arg("ps").arg("-s").output()?;
-        Ok(String::from_utf8_lossy(&o.stdout).contains("Reboot is suggested"))
+    fn reboot_pending(&self) -> ResultOutput<bool> {
+        let mut c = Command::new("zypper");
+        c.arg("ps").arg("-s");
+        let res = ResultOutput::command(c);
+
+        let (r, o, e) = (res.inner, res.stdout, res.stderr);
+        let res = match r {
+            Ok(_) => Ok(o.iter().any(|l| l.contains("Reboot is suggested"))),
+            Err(e) => Err(e),
+        };
+        ResultOutput::new_output(res, o, e)
     }
 
-    fn services_to_restart(&self) -> Result<Vec<String>> {
+    fn services_to_restart(&self) -> ResultOutput<Vec<String>> {
         let mut c = Command::new("zypper");
         c.arg("ps").arg("-sss");
-        PackageManager::parse_one_by_line(c)
+        let res = ResultOutput::command(c);
+        let (r, o, e) = (res.inner, res.stdout, res.stderr);
+        let res = match r {
+            Ok(_) => {
+                let services = o.iter().map(|s| s.trim().to_string()).collect();
+                Ok(services)
+            }
+            Err(e) => Err(e),
+        };
+        ResultOutput::new_output(res, o, e)
     }
 }

@@ -3,9 +3,9 @@
 
 use std::{collections::HashMap, process::Command};
 
-use anyhow::{Context, Result};
-
+use crate::output::ResultOutput;
 use crate::package_manager::{PackageId, PackageInfo, PackageList, PackageManager};
+use anyhow::Result;
 
 pub struct RpmPackageManager {}
 
@@ -14,18 +14,23 @@ impl RpmPackageManager {
         Self {}
     }
 
-    pub fn installed(&self) -> Result<PackageList> {
+    pub fn installed(&self) -> ResultOutput<PackageList> {
         let output_format = r###"%{name} %{epochnum}:%{version}-%{release} %{arch}\n"###;
-        let c = Command::new("rpm")
-            .arg("-qa")
-            .arg("--qf")
-            .arg(output_format)
-            .output()
-            .context("Running rpm")?;
-
-        let out = String::from_utf8_lossy(&c.stdout);
-        let packages = self.parse_installed(out.as_ref())?;
-        Ok(packages)
+        let mut c = Command::new("rpm");
+        c.arg("-qa").arg("--qf").arg(output_format);
+        let res = ResultOutput::command(c);
+        let (r, o, e) = (res.inner, res.stdout, res.stderr);
+        let res = match r {
+            Ok(o) => {
+                let out = String::from_utf8_lossy(&o.stdout);
+                match self.parse_installed(out.as_ref()) {
+                    Ok(packages) => Ok(packages),
+                    Err(e) => Err(e.context("Parsing rpm output")),
+                }
+            }
+            Err(e) => Err(e.context("Running rpm command")),
+        };
+        ResultOutput::new_output(res, o, e)
     }
 
     fn parse_installed(&self, s: &str) -> Result<PackageList> {

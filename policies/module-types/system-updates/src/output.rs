@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use std::{
-    fmt::Display,
-    process::{Command, Output},
-};
-
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use log::debug;
 use serde::{Deserialize, Serialize};
+use std::{
+    fmt::Display,
+    process::{Command, Output},
+};
 
 use crate::package_manager::PackageDiff;
 
@@ -32,6 +31,14 @@ impl<T> ResultOutput<T> {
         }
     }
 
+    pub fn new_output(res: Result<T>, stdout: Vec<String>, stderr: Vec<String>) -> Self {
+        Self {
+            inner: res,
+            stdout,
+            stderr,
+        }
+    }
+
     /// Add logs to stdout
     pub fn stdout(&mut self, s: String) {
         self.stdout.push(s)
@@ -43,24 +50,34 @@ impl<T> ResultOutput<T> {
     }
 
     /// Chain a `ResultOutput` to another
-    pub fn step(&mut self, res: ResultOutput<T>) {
-        for l in res.stderr {
-            self.stderr.push(l)
-        }
-        for l in res.stdout {
-            self.stdout.push(l)
-        }
-        self.inner = res.inner;
-    }
-}
+    pub fn step<S>(self, s: ResultOutput<S>) -> ResultOutput<S> {
+        let mut res = ResultOutput::new(s.inner);
 
-impl<T, S> ResultOutput<T> {
-    pub fn result(self, res: Result<S>) -> ResultOutput<S> {
-        Self {
-            inner: res,
-            stdout: self.stdout,
-            stderr: self.stderr,
+        for l in self.stderr {
+            res.stderr.push(l)
         }
+        for l in self.stdout {
+            res.stdout.push(l)
+        }
+
+        for l in s.stderr {
+            res.stderr.push(l)
+        }
+        for l in s.stdout {
+            res.stdout.push(l)
+        }
+        res
+    }
+
+    pub fn clear_ok(self) -> ResultOutput<()> {
+        let mut n = ResultOutput::new(Ok(()));
+
+        if let Err(e) = self.inner {
+            n.inner = Err(e)
+        }
+        n.stdout = self.stdout;
+        n.stderr = self.stderr;
+        n
     }
 }
 
@@ -80,17 +97,6 @@ impl ResultOutput<Output> {
             debug!("stderr: {stderr_s}");
         };
         res
-    }
-
-    pub fn clear_ok(self) -> ResultOutput<()> {
-        let mut n = ResultOutput::new(Ok(()));
-
-        if let Err(e) = self.inner {
-            n.inner = Err(e)
-        }
-        n.stdout = self.stdout;
-        n.stderr = self.stderr;
-        n
     }
 }
 

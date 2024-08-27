@@ -24,11 +24,11 @@ impl System {
         // Make sure the units are up-to-date
         let mut c = Command::new("systemctl");
         c.arg("daemon-reload");
-        let mut res = ResultOutput::command(c);
+        let res = ResultOutput::command(c);
 
         let mut c = Command::new("systemctl");
         c.arg("restart").args(services);
-        res.step(ResultOutput::command(c));
+        let res = res.step(ResultOutput::command(c));
         res.clear_ok()
     }
 }

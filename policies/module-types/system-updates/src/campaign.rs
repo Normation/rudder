@@ -118,7 +118,14 @@ fn update(
         return Ok(report);
     }
 
-    let before = pm.list_installed()?;
+    // We consider failure to probe system state a blocking error
+    let before = pm.list_installed();
+    if before.inner.is_err() {
+        report.stderr("Failed to list installed packages, aborting upgrade");
+        return Ok(report);
+    }
+    let before_list = before.inner.as_ref().unwrap().clone();
+    report.step(before);
 
     let update_result = match campaign_type {
         CampaignType::SystemUpdate => pm.full_upgrade(),
@@ -127,8 +134,16 @@ fn update(
     };
     report.step(update_result);
 
-    let after = pm.list_installed()?;
-    report.diff(before.diff(after));
+    let after = pm.list_installed();
+    if after.inner.is_err() {
+        report.stderr("Failed to list installed packages, aborting upgrade");
+        return Ok(report);
+    }
+    let after_list = after.inner.as_ref().unwrap().clone();
+    report.step(after);
+
+    // Compute package list diff
+    report.diff(before_list.diff(after_list));
 
     // Now take system actions
     let system = System::new();
@@ -136,19 +151,36 @@ fn update(
     let pre_reboot_result = Hooks::PreReboot.run();
     report.step(pre_reboot_result);
 
-    if reboot_type == RebootType::Always
-        || (reboot_type == RebootType::AsNeeded && pm.reboot_pending()?)
-    {
+    let pending = pm.reboot_pending();
+    let is_pending = match pending.inner {
+        Ok(p) => p,
+        Err(_) => {
+            report.stderr("Failed to check if a reboot is pending");
+            true
+        }
+    };
+    report.step(pending);
+
+    if reboot_type == RebootType::Always || (reboot_type == RebootType::AsNeeded && is_pending) {
         let reboot_result = system.reboot();
         report.step(reboot_result);
         // Stop there
         return Ok(report);
     }
 
+    let services = pm.services_to_restart();
+    let services_list = match services.inner {
+        Ok(ref p) => p.clone(),
+        Err(_) => {
+            vec![]
+        }
+    };
+    report.step(services);
+
     if reboot_type == RebootType::ServicesOnly || reboot_type == RebootType::AsNeeded {
-        let s = pm.services_to_restart()?;
-        if !s.is_empty() {
-            let restart_result = system.restart_services(&s);
+        if !services_list.is_empty() {
+            let restart_result = system.restart_services(&services_list);
+            // Don't fail on service restart failure
             report.step(restart_result);
         }
     }

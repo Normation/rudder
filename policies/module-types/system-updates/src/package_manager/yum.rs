@@ -3,13 +3,9 @@
 
 use std::process::Command;
 
-use anyhow::Result;
-
 use crate::{
     output::ResultOutput,
-    package_manager::{
-        rpm::RpmPackageManager, LinuxPackageManager, PackageList, PackageManager, PackageSpec,
-    },
+    package_manager::{rpm::RpmPackageManager, LinuxPackageManager, PackageList, PackageSpec},
 };
 
 /// We need to be compatible with:
@@ -43,7 +39,7 @@ impl YumPackageManager {
 }
 
 impl LinuxPackageManager for YumPackageManager {
-    fn list_installed(&mut self) -> Result<PackageList> {
+    fn list_installed(&mut self) -> ResultOutput<PackageList> {
         self.rpm.installed()
     }
 
@@ -76,15 +72,26 @@ impl LinuxPackageManager for YumPackageManager {
         c.arg("--reboothint");
         let res = ResultOutput::command(c);
 
-        match res.inner {
-            Ok(ref o) => res.result(Ok(!o.status.success())),
-            Err(ref e) => res.result(Err(e)),
-        }
+        let (r, o, e) = (res.inner, res.stdout, res.stderr);
+        let res = match r {
+            Ok(o) => Ok(o.status.success()),
+            Err(e) => Err(e),
+        };
+        ResultOutput::new_output(res, o, e)
     }
 
-    fn services_to_restart(&self) -> Result<Vec<String>> {
+    fn services_to_restart(&self) -> ResultOutput<Vec<String>> {
         let mut c = Command::new("needs-restarting");
         c.arg("--services");
-        PackageManager::parse_one_by_line(c)
+        let res = ResultOutput::command(c);
+        let (r, o, e) = (res.inner, res.stdout, res.stderr);
+        let res = match r {
+            Ok(_) => {
+                let services = o.iter().map(|s| s.trim().to_string()).collect();
+                Ok(services)
+            }
+            Err(e) => Err(e),
+        };
+        ResultOutput::new_output(res, o, e)
     }
 }
