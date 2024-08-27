@@ -11,7 +11,7 @@ use fnv::FnvHasher;
 ///
 /// Its goal is to choose a stable run time for the campaign event between two timestamps.
 ///
-/// Choose a start DateTime that is after `start` and before `end` - (agent_schedule + 5min).
+/// Choose a start DateTime that is after `start` and before `end` - (agent_schedule + 5 min).
 /// The choice is based on a hash of the unique_value to make it uniformly distributed over nodes
 /// (and we want it to be deterministic, so random is not enough).
 pub fn splayed_start(

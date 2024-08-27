@@ -171,7 +171,7 @@ pub trait Runner0 {
 
 /// Automatically select the right runner for the target platform and run it with
 /// default settings.
-pub fn run<T: ModuleType0>(module_type: T) -> Result<(), Error> {
+pub fn run_module<T: ModuleType0>(module_type: T) -> Result<(), Error> {
     let cli_cfg = CliConfiguration::parse_args_default_or_exit();
 
     if cli_cfg.version {
@@ -210,7 +210,7 @@ pub struct CliConfiguration {
     pub info: bool,
     #[options(help = "display the module type specification in yaml format")]
     pub yaml: bool,
-    /// Automatically used for help flag
+    /// Automatically used by the help flag
     #[options(help = "print help message")]
     help: bool,
     #[options(help = "print version", short = "V")]
@@ -219,11 +219,32 @@ pub struct CliConfiguration {
     pub verbose: bool,
 }
 
+/// Provide facts about the system
+///
+/// Some of these are also provided by the agent, but we need to be able to run in standalone mode.
+pub mod inventory {
+    use anyhow::{bail, Result};
+    use rudder_commons::NODE_ID_PATH;
+    use std::fs;
+    use std::path::Path;
+
+    /// Only works on a system managed by a Rudder agent
+    ///
+    /// Should not be used for development or testing purposes.
+    pub fn system_node_id() -> Result<String> {
+        Ok(if Path::new(NODE_ID_PATH).exists() {
+            fs::read_to_string(NODE_ID_PATH)?
+        } else {
+            bail!("Could not find node id file {}", NODE_ID_PATH)
+        })
+    }
+}
+
 #[cfg(feature = "backup")]
 pub mod backup {
     //! Helper to produce Rudder-compatible backup files
     //!
-    //! The output file name format is taken from our Unix agent.
+    //! The output filename format is taken from our Unix agent.
     //!
     //! Dates are all localtime.
 

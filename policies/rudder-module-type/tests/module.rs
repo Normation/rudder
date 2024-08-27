@@ -4,7 +4,7 @@
 // Minimal module type
 
 use rudder_module_type::{
-    parameters::Parameters, run, CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome,
+    parameters::Parameters, run_module, CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome,
     PolicyMode,
 };
 
@@ -23,5 +23,5 @@ impl ModuleType0 for Test {
 
 fn main() -> Result<(), anyhow::Error> {
     let test = Test {};
-    run(test)
+    run_module(test)
 }

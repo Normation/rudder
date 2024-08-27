@@ -1,5 +1,5 @@
 mod os_release;
-mod packages;
+pub mod packages;
 mod properties;
 
 use std::{env, fs, fs::read_to_string, path::PathBuf, process::Command, str};
@@ -10,7 +10,7 @@ use clap::Parser;
 use os_release::OsRelease;
 use quick_xml::se::Serializer;
 use serde::Serialize;
-use sysinfo::{System, Users};
+use sysinfo::{ProcessesToUpdate, System, Users};
 #[cfg(unix)]
 use uname_rs::Uname;
 
@@ -138,7 +138,7 @@ impl Inventory {
         let uts = Uname::new()?;
         let hostname = hostname::get()?
             .into_string()
-            .map_err(|_| anyhow!("Non-utf8 hostname"))?;
+            .map_err(|_| anyhow!("Non-UTF8 hostname"))?;
         let os_release = OsRelease::new()?;
 
         let users_src = Users::new_with_refreshed_list();
@@ -153,7 +153,7 @@ impl Inventory {
             })
             .collect();
 
-        sys.refresh_cpu();
+        sys.refresh_cpu_all();
         let cpus = sys
             .cpus()
             .iter()
@@ -163,13 +163,20 @@ impl Inventory {
             })
             .collect();
 
-        sys.refresh_processes();
+        sys.refresh_processes(ProcessesToUpdate::All);
 
         let processes = sys
             .processes()
             .iter()
             .map(|(pid, p)| Process {
-                cmd: match p.cmd().join(" ").trim() {
+                cmd: match p
+                    .cmd()
+                    .iter()
+                    .map(|s| s.to_string_lossy().to_string())
+                    .collect::<Vec<String>>()
+                    .join(" ")
+                    .trim()
+                {
                     "" => p.exe().unwrap().to_string_lossy().to_string(),
                     c => c.to_string(),
                 },

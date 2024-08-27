@@ -3,12 +3,11 @@
 
 use std::{env, fs, path::Path};
 
-use anyhow::anyhow;
 use rudder_commons_test::module_type::unix;
-use rudder_module_type::{CheckApplyResult, Outcome, PolicyMode};
+use rudder_module_type::{CheckApplyResult, PolicyMode};
 use tempfile::tempdir;
 
-const BIN: &str = concat!("../../target/debug/", env!("CARGO_PKG_NAME"));
+const BIN: &str = concat!("../../../../target/debug/", env!("CARGO_PKG_NAME"));
 
 fn test(
     create_before: bool,

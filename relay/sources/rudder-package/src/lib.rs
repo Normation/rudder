@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-#![allow(dead_code)]
-
 mod archive;
 mod cli;
 mod cmd;
@@ -19,10 +17,11 @@ mod signature;
 mod versions;
 mod webapp;
 
+#[cfg(not(debug_assertions))]
+use std::process;
 use std::{
     fs::create_dir_all,
     path::{Path, PathBuf},
-    process,
 };
 
 use anyhow::{anyhow, bail, Context, Result};
@@ -59,6 +58,7 @@ const TMP_PLUGINS_FOLDER: &str = "/var/rudder/tmp/plugins";
 const PLUGIN_STATUS_BACKUP_PATH: &str = "/tmp/rudder-plugins-upgrade";
 const DONT_RESTART_ENV_VAR: &str = "RUDDER_PACKAGE_DONT_RESTART";
 
+#[cfg(not(debug_assertions))]
 fn am_i_root() -> Result<bool> {
     let out = process::Command::new("id").arg("--user").output()?;
     let uid = String::from_utf8_lossy(&out.stdout)
@@ -353,12 +353,4 @@ pub fn run_inner(args: Args) -> Result<()> {
         bail!("Plugin action failed");
     }
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn i_am_not_root() {
-        assert!(!super::am_i_root().unwrap())
-    }
 }

@@ -55,10 +55,6 @@ impl RepoIndex {
         }
     }
 
-    pub fn inner(&self) -> &[Plugin] {
-        self.index.as_slice()
-    }
-
     /// Get latest version of all plugins (for list)
     pub fn latest_compatible_plugins(&self, webapp_version: &RudderVersion) -> Vec<&Plugin> {
         let names = self

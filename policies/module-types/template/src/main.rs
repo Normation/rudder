@@ -9,13 +9,13 @@ use std::{
 
 use anyhow::{bail, Context, Result};
 use minijinja::UndefinedBehavior;
+use rudder_module_type::cfengine::{called_from_agent, CFENGINE_MODE_ARG};
 use rudder_module_type::{
-    backup::Backup, parameters::Parameters, rudder_debug, run, CheckApplyResult, ModuleType0,
-    ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
+    backup::Backup, parameters::Parameters, rudder_debug, run_module, CheckApplyResult,
+    ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-
 // Configuration
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Copy)]
@@ -211,10 +211,12 @@ impl ModuleType0 for Template {
     }
 }
 
-// Start runner
-
 fn main() -> Result<(), anyhow::Error> {
-    let directory_promise_type = Template {};
-    // Run the promise executor
-    run(directory_promise_type)
+    let promise_type = Template {};
+
+    if called_from_agent() {
+        run_module(promise_type)
+    } else {
+        unimplemented!("Only CFEngine mode is supported")
+    }
 }

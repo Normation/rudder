@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use std::{io::BufRead, process::Command};
+use std::process::Command;
 
-use crate::output::ResultOutput;
-use crate::package_manager::rpm::RpmPackageManager;
-use crate::package_manager::{LinuxPackageManager, PackageList, PackageSpec};
-use anyhow::{bail, Result};
+use crate::{
+    output::ResultOutput,
+    package_manager::{rpm::RpmPackageManager, LinuxPackageManager, PackageList, PackageSpec},
+};
+
+/// We need to be compatible with:
+///
+/// * SLES 12 SP5+
+/// * SLES 15 SP2+
 
 pub struct ZypperPackageManager {
     rpm: RpmPackageManager,
@@ -31,73 +36,70 @@ impl ZypperPackageManager {
         }
         res
     }
-
-    fn refresh(&self) -> ResultOutput<()> {
-        let mut res = ResultOutput::new(Ok(()));
-        let mut c = Command::new("zypper");
-        c.arg("-non-interactive").arg("refresh");
-        let _ = res.command(c);
-        res
-    }
 }
 
 impl LinuxPackageManager for ZypperPackageManager {
-    fn list_installed(&self) -> Result<PackageList> {
+    fn update_cache(&mut self) -> ResultOutput<()> {
+        let mut c = Command::new("zypper");
+        c.arg("--non-interactive").arg("refresh");
+        let res_update = ResultOutput::command(c);
+        res_update.clear_ok()
+    }
+
+    fn list_installed(&mut self) -> ResultOutput<PackageList> {
         self.rpm.installed()
     }
 
-    fn full_upgrade(&self) -> ResultOutput<()> {
-        let mut res = ResultOutput::new(Ok(()));
+    fn full_upgrade(&mut self) -> ResultOutput<()> {
         let mut c = Command::new("zypper");
-
         c.arg("--non-interactive").arg("--name").arg("update");
-
-        let _ = res.command(c);
-        res
+        let res_update = ResultOutput::command(c);
+        res_update.clear_ok()
     }
 
-    fn security_upgrade(&self) -> ResultOutput<()> {
-        let mut res = ResultOutput::new(Ok(()));
+    fn security_upgrade(&mut self) -> ResultOutput<()> {
         let mut c = Command::new("zypper");
-
         c.arg("--non-interactive")
             .arg("--category")
             .arg("security")
             .arg("patch");
-
-        let _ = res.command(c);
-        res
+        let res_update = ResultOutput::command(c);
+        res_update.clear_ok()
     }
 
-    fn upgrade(&self, packages: Vec<PackageSpec>) -> ResultOutput<()> {
-        let mut res = ResultOutput::new(Ok(()));
+    fn upgrade(&mut self, packages: Vec<PackageSpec>) -> ResultOutput<()> {
         let mut c = Command::new("zypper");
-
         c.arg("--non-interactive").arg("--name").arg("update");
-
         c.args(packages.into_iter().map(Self::package_spec_as_argument));
-
-        let _ = res.command(c);
-        res
+        let res_update = ResultOutput::command(c);
+        res_update.clear_ok()
     }
 
-    fn reboot_pending(&self) -> Result<bool> {
-        let o = Command::new("zypper").arg("ps").arg("-s").output()?;
-        Ok(String::from_utf8_lossy(&o.stdout).contains("Reboot is suggested"))
+    fn reboot_pending(&self) -> ResultOutput<bool> {
+        let mut c = Command::new("zypper");
+        c.arg("ps").arg("-s");
+        let res = ResultOutput::command(c);
+
+        let (r, o, e) = (res.inner, res.stdout, res.stderr);
+        let res = match r {
+            Ok(_) => Ok(o.iter().any(|l| l.contains("Reboot is suggested"))),
+            Err(e) => Err(e),
+        };
+        ResultOutput::new_output(res, o, e)
     }
 
-    fn services_to_restart(&self) -> Result<Vec<String>> {
-        let o = Command::new("zypper").arg("ps").arg("-sss").output()?;
-        if !o.status.success() {
-            bail!("TODO");
-        }
-        // One service name per line
-        o.stdout
-            .lines()
-            .map(|s| {
-                s.map(|service| service.trim().to_string())
-                    .map_err(|e| e.into())
-            })
-            .collect()
+    fn services_to_restart(&self) -> ResultOutput<Vec<String>> {
+        let mut c = Command::new("zypper");
+        c.arg("ps").arg("-sss");
+        let res = ResultOutput::command(c);
+        let (r, o, e) = (res.inner, res.stdout, res.stderr);
+        let res = match r {
+            Ok(_) => {
+                let services = o.iter().map(|s| s.trim().to_string()).collect();
+                Ok(services)
+            }
+            Err(e) => Err(e),
+        };
+        ResultOutput::new_output(res, o, e)
     }
 }
