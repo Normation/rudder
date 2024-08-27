@@ -210,7 +210,7 @@ pub struct CliConfiguration {
     pub info: bool,
     #[options(help = "display the module type specification in yaml format")]
     pub yaml: bool,
-    /// Automatically used fby the help flag
+    /// Automatically used by the help flag
     #[options(help = "print help message")]
     help: bool,
     #[options(help = "print version", short = "V")]

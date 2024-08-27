@@ -56,7 +56,7 @@ We decided to use the `libapt` C++ library through Rust bindings instead of the 
 * Share the APT cache for the best performance and always up-to-date cache.
 
 The drawbacks:
-* Makes the build a bit mure cumbersome.
+* Makes the build a bit more cumbersome.
 * Prevents being able to run an equivalent command easily for debugging or understanding what happens.
 
 We are on par with other tools using the `python-apt` library, which provides a similar interface.
