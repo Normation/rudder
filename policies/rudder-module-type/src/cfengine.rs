@@ -43,5 +43,5 @@ pub mod log;
 
 /// Is the current program run from a CFEngine agent?
 pub fn called_from_agent() -> bool {
-    env::args().any(|x| &x == CFENGINE_MODE_ARG)
+    env::args().any(|x| x == CFENGINE_MODE_ARG)
 }

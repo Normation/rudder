@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use std::process::{Command, Output};
+use std::process::Command;
 
 use crate::{
     output::ResultOutput,
@@ -36,50 +36,43 @@ impl ZypperPackageManager {
         }
         res
     }
-
-    fn refresh(&self) -> ResultOutput<Output> {
-        let mut c = Command::new("zypper");
-        c.arg("--non-interactive").arg("refresh");
-        ResultOutput::command(c)
-    }
 }
 
 impl LinuxPackageManager for ZypperPackageManager {
+    fn update_cache(&mut self) -> ResultOutput<()> {
+        let mut c = Command::new("zypper");
+        c.arg("--non-interactive").arg("refresh");
+        let res_update = ResultOutput::command(c);
+        res_update.clear_ok()
+    }
+
     fn list_installed(&mut self) -> ResultOutput<PackageList> {
         self.rpm.installed()
     }
 
     fn full_upgrade(&mut self) -> ResultOutput<()> {
-        let res = self.refresh();
-
-        // FIXME fail in case of refresh error?
         let mut c = Command::new("zypper");
         c.arg("--non-interactive").arg("--name").arg("update");
         let res_update = ResultOutput::command(c);
-        let final_res = res.step(res_update);
-        final_res.clear_ok()
+        res_update.clear_ok()
     }
 
     fn security_upgrade(&mut self) -> ResultOutput<()> {
-        let res = self.refresh();
         let mut c = Command::new("zypper");
         c.arg("--non-interactive")
             .arg("--category")
             .arg("security")
             .arg("patch");
         let res_update = ResultOutput::command(c);
-        let final_res = res.step(res_update);
-        final_res.clear_ok()
+        res_update.clear_ok()
     }
 
     fn upgrade(&mut self, packages: Vec<PackageSpec>) -> ResultOutput<()> {
-        let res = self.refresh();
         let mut c = Command::new("zypper");
         c.arg("--non-interactive").arg("--name").arg("update");
         c.args(packages.into_iter().map(Self::package_spec_as_argument));
         let res_update = ResultOutput::command(c);
-        let final_res = res.step(res_update);
-        final_res.clear_ok()
+        res_update.clear_ok()
     }
 
     fn reboot_pending(&self) -> ResultOutput<bool> {

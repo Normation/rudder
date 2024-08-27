@@ -118,6 +118,7 @@ pub struct PackageSpec {
 }
 
 impl PackageSpec {
+    #[allow(dead_code)]
     pub fn new(name: String, version: Option<String>, architecture: Option<String>) -> Self {
         Self {
             name,
@@ -188,6 +189,11 @@ impl PackageManager {
 
 /// A generic interface of a Linux package manager
 pub trait LinuxPackageManager {
+    /// Update the package cache
+    fn update_cache(&mut self) -> ResultOutput<()> {
+        ResultOutput::new(Ok(()))
+    }
+
     /// List installed packages
     ///
     /// It doesn't use a cache and queries the package manager directly.

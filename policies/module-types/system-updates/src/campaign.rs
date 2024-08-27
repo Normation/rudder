@@ -127,6 +127,12 @@ fn update(
     let before_list = before.inner.as_ref().unwrap().clone();
     report.step(before);
 
+    // Update package cache
+    //
+    // Don't fail on cache update failure
+    let cache_result = pm.update_cache();
+    report.step(cache_result);
+
     let update_result = match campaign_type {
         CampaignType::SystemUpdate => pm.full_upgrade(),
         CampaignType::SoftwareUpdate => pm.upgrade(packages),
@@ -177,12 +183,12 @@ fn update(
     };
     report.step(services);
 
-    if reboot_type == RebootType::ServicesOnly || reboot_type == RebootType::AsNeeded {
-        if !services_list.is_empty() {
-            let restart_result = system.restart_services(&services_list);
-            // Don't fail on service restart failure
-            report.step(restart_result);
-        }
+    if (reboot_type == RebootType::ServicesOnly || reboot_type == RebootType::AsNeeded)
+        && !services_list.is_empty()
+    {
+        let restart_result = system.restart_services(&services_list);
+        // Don't fail on service restart failure
+        report.step(restart_result);
     }
 
     Ok(report)

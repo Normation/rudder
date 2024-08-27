@@ -64,26 +64,22 @@ impl AptPackageManager {
 
     /// Take the existing cache, or create a new one if it is not available.
     fn cache(&mut self) -> ResultOutput<rust_apt::Cache> {
-        Ok(if self.cache.is_some() {
+        if self.cache.is_some() {
             ResultOutput::new(Ok(self.cache.take().unwrap()))
         } else {
-            let r = new_cache!();
-            match r {
-                Ok(c) => ResultOutput::new(Ok(c)),
-                Err(e) => Self::apt_errors_to_output(Err(e)),
-            }
-        })
+            Self::apt_errors_to_output(new_cache!())
+        }
     }
 
     /// Parses the batch output of needrestart.
     /// It conveniently exposes a stable parsing-friendly output.
     ///
     /// https://github.com/liske/needrestart/blob/master/README.batch.md
-    pub fn parse_services_to_restart(&self, output: &str) -> Result<Vec<String>> {
+    pub fn parse_services_to_restart(&self, output: &[String]) -> Result<Vec<String>> {
         let svc_re = Regex::new(r"NEEDRESTART-SVC:\s*(\S+)\s*")?;
 
         Ok(output
-            .lines()
+            .iter()
             .flat_map(|line| {
                 let service_name = svc_re
                     .captures(line)
@@ -93,83 +89,99 @@ impl AptPackageManager {
             .collect())
     }
 
-    fn update(&mut self) -> ResultOutput<()> {
-        let cache = self.cache().unwrap();
-
-        let mut progress = AcquireProgress::apt();
-        Self::apt_errors_to_output(cache.update(&mut progress))
-    }
-
-    fn apt_errors_to_output<T>(res: Result<T, AptErrors>) -> ResultOutput<()> {
-        match res {
-            Ok(_) => ResultOutput::new(Ok(())),
+    fn apt_errors_to_output<T>(res: Result<T, AptErrors>) -> ResultOutput<T> {
+        let mut stderr = vec![];
+        let r = match res {
+            Ok(o) => Ok(o),
             Err(e) => {
-                let mut res = ResultOutput::new(Ok(()));
-                let mut has_error = false;
-
                 for error in e.iter() {
                     if error.is_error {
-                        has_error = true;
-                        res.stderr(format!("Error: {}", error.msg));
+                        stderr.push(format!("Error: {}", error.msg));
                     } else {
-                        res.stderr(format!("Warning: {}", error.msg));
+                        stderr.push(format!("Warning: {}", error.msg));
                     }
                 }
-
-                if has_error {
-                    res.inner = Err(anyhow!("APT errors"));
-                }
-                res
+                Err(anyhow!("Apt error"))
             }
-        }
+        };
+        ResultOutput::new_output(r, vec![], stderr)
     }
 }
 
 impl LinuxPackageManager for AptPackageManager {
+    fn update_cache(&mut self) -> ResultOutput<()> {
+        let cache = self.cache();
+
+        if let Ok(o) = cache.inner {
+            let mut progress = AcquireProgress::apt();
+            Self::apt_errors_to_output(o.update(&mut progress))
+        } else {
+            cache.clear_ok()
+        }
+    }
+
     fn list_installed(&mut self) -> ResultOutput<PackageList> {
         let cache = self.cache();
-        // FIXME: compare with dpkg output
-        let filter = PackageSort::default().installed().include_virtual();
 
-        let mut list = HashMap::new();
-        for p in cache.packages(&filter) {
-            let v = p.installed().expect("Only installed packages are listed");
-            let info = PackageInfo {
-                version: v.version().to_string(),
-                from: "FIXME".to_string(),
-                source: PackageManager::Apt,
-            };
-            let id = PackageId {
-                name: p.name().to_string(),
-                arch: p.arch().to_string(),
-            };
+        let step = if let Ok(ref c) = cache.inner {
+            // FIXME: compare with dpkg output
+            let filter = PackageSort::default().installed().include_virtual();
 
-            list.insert(id, info);
-        }
-        self.cache = Some(cache);
-        Ok(PackageList::new(list))
+            let mut list = HashMap::new();
+            for p in c.packages(&filter) {
+                let v = p.installed().expect("Only installed packages are listed");
+                let info = PackageInfo {
+                    version: v.version().to_string(),
+                    from: "FIXME".to_string(),
+                    source: PackageManager::Apt,
+                };
+                let id = PackageId {
+                    name: p.name().to_string(),
+                    arch: p.arch().to_string(),
+                };
+
+                list.insert(id, info);
+            }
+            ResultOutput::new(Ok(PackageList::new(list)))
+        } else {
+            ResultOutput::new(Err(anyhow!("Error listing installed packages")))
+        };
+
+        // FIXME keep cache?
+        cache.step(step)
     }
 
     fn full_upgrade(&mut self) -> ResultOutput<()> {
-        let cache = self.cache().unwrap();
+        let cache = self.cache();
 
-        // Upgrade type: `apt upgrade` (not `dist-upgrade`).
-        // Allows adding packages, but not removing.
-        // FIXME: release notes, we did a dist-upgrade before
-        let upgrade_type = Upgrade::Upgrade;
+        if let Ok(c) = cache.inner {
+            // Upgrade type: `apt upgrade` (not `dist-upgrade`).
+            // Allows adding packages, but not removing.
+            // FIXME: release notes, we did a dist-upgrade before
+            let upgrade_type = Upgrade::Upgrade;
 
-        // Mark all packages for upgrade
-        let res = Self::apt_errors_to_output(cache.upgrade(upgrade_type));
+            // Mark all packages for upgrade
+            let res_mark = Self::apt_errors_to_output(c.upgrade(upgrade_type));
+            if res_mark.inner.is_err() {
+                return res_mark;
+            }
 
-        // Resolve dependencies
-        cache.resolve(true);
+            // Resolve dependencies
+            let res_resolve = Self::apt_errors_to_output(c.resolve(true));
+            if res_resolve.inner.is_err() {
+                return res_resolve;
+            }
+            let res = res_mark.step(res_resolve);
 
-        // Do the changes
-        let mut install_progress = InstallProgress::apt();
-        let mut acquire_progress = AcquireProgress::apt();
-        cache.commit(&mut acquire_progress, &mut install_progress);
-
-        res
+            // Do the changes
+            let mut install_progress = InstallProgress::apt();
+            let mut acquire_progress = AcquireProgress::apt();
+            let res_commit =
+                Self::apt_errors_to_output(c.commit(&mut acquire_progress, &mut install_progress));
+            res.step(res_commit)
+        } else {
+            cache.clear_ok()
+        }
     }
 
     fn security_upgrade(&mut self) -> ResultOutput<()> {
@@ -180,63 +192,81 @@ impl LinuxPackageManager for AptPackageManager {
         // https://www.debian.org/doc/manuals/securing-debian-manual/security-update.en.html
         // https://wiki.debian.org/UnattendedUpgrades
 
-        let cache = self.cache().unwrap();
-        let filter = PackageSort::default().installed().include_virtual();
+        let cache = self.cache();
+        if let Ok(c) = cache.inner {
+            let filter = PackageSort::default().installed().include_virtual();
 
-        for p in cache.packages(&filter) {
-            p.versions().for_each(|v| {
-                // FIXME: get actual default rules from unnatended upgrades
-                if v.source_name().contains("security") {
-                    v.set_candidate();
-                    p.mark_install(false, false);
-                }
-            });
+            for p in c.packages(&filter) {
+                p.versions().for_each(|v| {
+                    // FIXME: get actual default rules from unnatended upgrades
+                    if v.source_name().contains("security") {
+                        v.set_candidate();
+                        p.mark_install(false, false);
+                    }
+                });
+            }
+
+            // Resolve dependencies
+            let res_resolve = Self::apt_errors_to_output(c.resolve(true));
+            if res_resolve.inner.is_err() {
+                return res_resolve;
+            }
+
+            // Do the changes
+            let mut acquire_progress = AcquireProgress::apt();
+            let mut install_progress = InstallProgress::apt();
+            let res_commit =
+                Self::apt_errors_to_output(c.commit(&mut acquire_progress, &mut install_progress));
+            res_resolve.step(res_commit)
+        } else {
+            cache.clear_ok()
         }
-
-        // Resolve dependencies
-        cache.resolve(true);
-
-        // Do the changes
-        let mut acquire_progress = AcquireProgress::apt();
-        let mut install_progress = InstallProgress::apt();
-        Self::apt_errors_to_output(cache.commit(&mut acquire_progress, &mut install_progress))
     }
 
     fn upgrade(&mut self, packages: Vec<PackageSpec>) -> ResultOutput<()> {
-        let cache = self.cache().unwrap();
+        let cache = self.cache();
 
-        for p in packages {
-            let package_id = if let Some(a) = p.architecture {
-                format!("{}:{}", p.name, a)
-            } else {
-                p.name
-            };
-            // Get package from cache
-            // FIXME: handle absent package
-            let pkg = cache.get(&package_id).unwrap();
+        if let Ok(c) = cache.inner {
+            for p in packages {
+                let package_id = if let Some(a) = p.architecture {
+                    format!("{}:{}", p.name, a)
+                } else {
+                    p.name
+                };
+                // Get package from cache
+                // FIXME: handle absent package
+                let pkg = c.get(&package_id).unwrap();
 
-            if let Some(spec_version) = p.version {
-                let candidate = pkg
-                    .versions()
-                    .find(|v| v.version() == spec_version.as_str());
-                if let Some(candidate) = candidate {
-                    candidate.set_candidate();
-                    // FIXME check result, error if not found, but still do the others
+                if let Some(spec_version) = p.version {
+                    let candidate = pkg
+                        .versions()
+                        .find(|v| v.version() == spec_version.as_str());
+                    if let Some(candidate) = candidate {
+                        candidate.set_candidate();
+                        // FIXME check result, error if not found, but still do the others
+                        pkg.mark_install(false, false);
+                    }
+                } else {
+                    // FIXME check marking because it's not clear
                     pkg.mark_install(false, false);
                 }
-            } else {
-                // FIXME check marking because it's not clear
-                pkg.mark_install(false, false);
             }
+
+            // Resolve dependencies
+            let res_resolve = Self::apt_errors_to_output(c.resolve(true));
+            if res_resolve.inner.is_err() {
+                return res_resolve;
+            }
+
+            // Do the changes
+            let mut acquire_progress = AcquireProgress::apt();
+            let mut install_progress = InstallProgress::apt();
+            let res_commit =
+                Self::apt_errors_to_output(c.commit(&mut acquire_progress, &mut install_progress));
+            res_resolve.step(res_commit)
+        } else {
+            cache.clear_ok()
         }
-
-        // Resolve dependencies
-        cache.resolve(true);
-
-        // Do the changes
-        let mut acquire_progress = AcquireProgress::apt();
-        let mut install_progress = InstallProgress::apt();
-        Self::apt_errors_to_output(cache.commit(&mut acquire_progress, &mut install_progress))
     }
 
     fn reboot_pending(&self) -> ResultOutput<bool> {
@@ -262,10 +292,7 @@ impl LinuxPackageManager for AptPackageManager {
         let res = ResultOutput::command(c);
         let (r, o, e) = (res.inner, res.stdout, res.stderr);
         let res = match r {
-            Ok(_) => {
-                let services = o.iter().map(|s| s.trim().to_string()).collect();
-                Ok(services)
-            }
+            Ok(_) => self.parse_services_to_restart(&o),
             Err(e) => Err(e),
         };
         ResultOutput::new_output(res, o, e)
@@ -290,11 +317,19 @@ NEEDRESTART-SVC: getty@tty1.service
 NEEDRESTART-SESS: amousset @ session #54207
 NEEDRESTART-SESS: amousset @ user manager service";
         let expected1 = vec!["apache2.service", "cron.service", "getty@tty1.service"];
-        assert_eq!(apt.parse_services_to_restart(output1).unwrap(), expected1);
+        let lines1: Vec<String> = output1.lines().map(|s| s.to_string()).collect();
+        assert_eq!(
+            apt.parse_services_to_restart(lines1.as_slice()).unwrap(),
+            expected1
+        );
 
         // Test with an empty string
         let output2 = "";
         let expected2: Vec<String> = Vec::new();
-        assert_eq!(apt.parse_services_to_restart(output2).unwrap(), expected2);
+        let lines2: Vec<String> = output2.lines().map(|s| s.to_string()).collect();
+        assert_eq!(
+            apt.parse_services_to_restart(lines2.as_slice()).unwrap(),
+            expected2
+        );
     }
 }
