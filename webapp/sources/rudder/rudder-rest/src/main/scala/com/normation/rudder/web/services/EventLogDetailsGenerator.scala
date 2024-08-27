@@ -109,7 +109,7 @@ class EventLogDetailsGenerator(
       val name = (x.details \ "rule" \ "displayName").text
       Text("Rule ") ++ {
         if (id.serialize.length < 1) Text(name)
-        else <a href={ruleLink(id)} onclick="noBubble(event);">{name}</a> ++ actionName
+        else <a href={ruleLink(id)}>{name}</a> ++ actionName
       }
     }
 
@@ -118,7 +118,7 @@ class EventLogDetailsGenerator(
       val name = (x.details \ "directive" \ "displayName").text
       Text("Directive ") ++ {
         if (id.size < 1) Text(name)
-        else <a href={directiveLink(DirectiveUid(id))} onclick="noBubble(event);">{name}</a> ++ actionName
+        else <a href={directiveLink(DirectiveUid(id))}>{name}</a> ++ actionName
       }
     }
 
@@ -127,7 +127,7 @@ class EventLogDetailsGenerator(
       val name = (x.details \ "nodeGroup" \ "displayName").text
       Text("Group ") ++ {
         if (id.size < 1) Text(name)
-        else <a href={groupLink(NodeGroupId(NodeGroupUid(id)))} onclick="noBubble(event);">{name}</a> ++ actionName
+        else <a href={groupLink(NodeGroupId(NodeGroupUid(id)))}>{name}</a> ++ actionName
       }
     }
 
@@ -136,7 +136,7 @@ class EventLogDetailsGenerator(
       val name = (x.details \\ "node" \ "hostname").text
       Text("Node ") ++ {
         if ((id.size < 1) || (actionName == Text(" deleted"))) Text(name)
-        else <a href={nodeLink(NodeId(id))} onclick="noBubble(event);">{name}</a> ++ actionName
+        else <a href={nodeLink(NodeId(id))}>{name}</a> ++ actionName
       }
     }
 
@@ -158,7 +158,7 @@ class EventLogDetailsGenerator(
           if (actionName == Text(" deleted"))
             Text(name)
           else
-            <a href={changeRequestLink(ChangeRequestId(id))} onclick="noBubble(event);">{name}</a>
+            <a href={changeRequestLink(ChangeRequestId(id))}>{name}</a>
 
         case Catch(e) =>
           logger.error(s"could not translate ${idNode} to a correct chage request identifier: ${e.getMessage()}")
@@ -171,7 +171,7 @@ class EventLogDetailsGenerator(
       logDetailsService.getWorkflotStepChange(x.details) match {
         case Full(WorkflowStepChange(crId, from, to)) =>
           Text("Change request #") ++
-          <a href={changeRequestLink(crId)} onclick="noBubble(event);">{crId}</a> ++
+          <a href={changeRequestLink(crId)}>{crId}</a> ++
           Text(s" status modified from '${from.value}' to '${to.value}''")
 
         case eb: EmptyBox =>
@@ -274,13 +274,13 @@ class EventLogDetailsGenerator(
         eventId match {
           case None     => NodeSeq.Empty
           case Some(id) =>
-            <button id={"showParameters%s".format(id)} class="btn btn-default showParameters" onclick={
-              "showParameters(event, %s)".format(id)
-            }>
+            val btnId = s"showParameters${id}"
+            val preId = s"showParametersInfo${id}"
+            <button id={btnId} class="btn btn-default showParameters">
               <b class="action">Show</b>
               raw technical details
             </button>
-            <pre id={"showParametersInfo%s".format(id)} style="display:none;" class="technical-details">{
+            <pre id={preId} style="display:none;" class="technical-details">{
               event.details.map(n => xmlPretty.format(n) + "\n")
             }</pre>
         }
