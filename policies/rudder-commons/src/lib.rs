@@ -10,6 +10,11 @@ use std::{ffi::OsStr, fmt, path::Path, str::FromStr};
 use anyhow::{anyhow, bail, Error, Result};
 use serde::{Deserialize, Deserializer, Serialize};
 
+#[cfg(unix)]
+pub const NODE_ID_PATH: &str = "/opt/rudder/etc/uuid.hive";
+#[cfg(windows)]
+pub const NODE_ID_PATH: &str = r"C:\Program Files\Rudder\etc\uuid.hive";
+
 pub const ALL_TARGETS: &[Target] = &[Target::Unix, Target::Windows];
 
 pub const DEFAULT_MAX_PARAM_LENGTH: usize = 16384;

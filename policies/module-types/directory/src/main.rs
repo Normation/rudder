@@ -5,13 +5,13 @@ use std::{fs, path::PathBuf};
 
 use anyhow::{bail, Context};
 use file_owner::PathExt;
+use rudder_module_type::cfengine::called_from_agent;
 use rudder_module_type::{
-    parameters::Parameters, run, CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome,
+    parameters::Parameters, run_module, CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome,
     PolicyMode, ValidateResult,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-
 // Configuration
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Copy)]
@@ -112,10 +112,12 @@ impl ModuleType0 for Directory {
     }
 }
 
-// Start runner
+fn main() -> anyhow::Result<(), anyhow::Error> {
+    let promise_type = Directory {};
 
-fn main() -> Result<(), anyhow::Error> {
-    let directory_promise_type = Directory {};
-    // Run the promise executor
-    run(directory_promise_type)
+    if called_from_agent() {
+        run_module(promise_type)
+    } else {
+        unimplemented!("Only CFEngine mode is supported")
+    }
 }

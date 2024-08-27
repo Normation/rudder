@@ -1,37 +1,47 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use std::{
-    fmt,
-    path::Path,
-    time::{Instant, SystemTime},
-};
-
-use chrono::Duration;
+use chrono::{DateTime, Duration, Utc};
 use rudder_module_type::rudder_debug;
-use rusqlite::{self, params, Connection};
+use rusqlite::{self, Connection};
+use std::path::{Path, PathBuf};
 
 /// Database using SQLite
 ///
 /// The module is responsible for maintaining the database: schema upgrade, cleanup, etc.
 ///
-use crate::SystemUpdate;
-use crate::{campaign::UpdateStatus, output::Report, package_manager::PackageList};
+use crate::MODULE_NAME;
+use crate::{output::Report, state::UpdateStatus};
 
-/// Reuse the path used by CFEngine for storing agent state
-///
-const DB_NAME: &str = "system-updates.sqlite";
+const DB_EXTENSION: &str = "sqlite";
 
 pub struct PackageDatabase {
     conn: Connection,
 }
 
+/// Information about an event stored in the database
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Event {
+    pub(crate) id: String,
+    pub(crate) campaign_name: String,
+    pub(crate) status: UpdateStatus,
+    pub(crate) scheduled_datetime: DateTime<Utc>,
+    pub(crate) run_datetime: Option<DateTime<Utc>>,
+    pub(crate) report_datetime: Option<DateTime<Utc>>,
+    pub(crate) report: Option<Report>,
+}
+
 impl PackageDatabase {
+    fn db_name() -> PathBuf {
+        Path::new(MODULE_NAME).with_extension(DB_EXTENSION)
+    }
+
     /// Open the database, creating it if necessary.
     /// When no path is provided, the database is created in memory.
     pub fn new(path: Option<&Path>) -> Result<Self, rusqlite::Error> {
+        let db_name = Self::db_name();
         let conn = if let Some(p) = path {
-            let full_path = p.join(DB_NAME);
+            let full_path = p.join(db_name);
             rudder_debug!(
                 "Opening database {} (sqlite {})",
                 full_path.display(),
@@ -50,98 +60,207 @@ impl PackageDatabase {
         Ok(Self { conn })
     }
 
-    /// Purge entries
+    /// Purge entries, regardless of their status.
     pub fn clean(&self, retention: Duration) -> Result<(), rusqlite::Error> {
         rudder_debug!("Purging old events");
         self.conn.execute(
-            "DELETE FROM update_events WHERE date(run_datetime) < date('now', ?1)",
+            "delete from update_events where date(run_datetime) < date('now', ?1)",
             (&format!("-{} minutes", retention.num_minutes()),),
         )?;
         Ok(())
     }
 
-    /// Start an event
+    /// Schedule an event
     ///
     /// The insertion also acts as the locking mechanism
-    pub fn start_event(
+    pub fn schedule_event(
         &mut self,
         event_id: &str,
         campaign_name: &str,
+        schedule_datetime: DateTime<Utc>,
     ) -> Result<bool, rusqlite::Error> {
         let tx = self.conn.transaction()?;
 
         let r = tx.query_row(
-            "SELECT id FROM update_events WHERE event_id = ?1",
+            "select id from update_events where event_id = ?1",
             [&event_id],
-            |row| Ok(()),
+            |_| Ok(()),
         );
-        let already_there = match r {
+        let already_scheduled = match r {
             Ok(_) => true,
             Err(rusqlite::Error::QueryReturnedNoRows) => false,
             Err(e) => return Err(e),
         };
-        if !already_there {
+        if !already_scheduled {
             tx.execute(
-                "INSERT INTO update_events (event_id, campaign_name, status, run_datetime) VALUES (?1, ?2, ?3, datetime('now'))",
-                (&event_id, &campaign_name, UpdateStatus::Running.to_string()),
+                "insert into update_events (event_id, campaign_name, status, schedule_datetime) values (?1, ?2, ?3, ?4)",
+                (&event_id, &campaign_name, UpdateStatus::Scheduled.to_string(), schedule_datetime.to_rfc3339()),
             )?;
         }
 
         tx.commit()?;
-        Ok(already_there)
+        Ok(already_scheduled)
     }
 
-    pub fn status(&mut self, event_id: &str) -> Result<UpdateStatus, rusqlite::Error> {
-        let r = self.conn.query_row(
-            "SELECT status FROM update_events WHERE event_id = ?1",
-            [&event_id],
-            |row| {
-                let s: String = row.get_unwrap(0);
-                Ok(s.parse().unwrap())
-            },
-        )?;
-        Ok(r)
+    /// Start an event
+    ///
+    /// The update also acts as the locking mechanism
+    pub fn start_event(
+        &mut self,
+        event_id: &str,
+        start_datetime: DateTime<Utc>,
+    ) -> Result<bool, rusqlite::Error> {
+        let tx = self.conn.transaction()?;
+
+        let r = tx.query_row(
+            "select id from update_events where event_id = ?1 and status = ?2",
+            (&event_id, UpdateStatus::Scheduled.to_string()),
+            |_| Ok(()),
+        );
+        let pending_update = match r {
+            Ok(_) => true,
+            Err(rusqlite::Error::QueryReturnedNoRows) => false,
+            Err(e) => return Err(e),
+        };
+        if pending_update {
+            tx.execute(
+                "update update_events set status = ?1, run_datetime = ?2 where event_id = ?3",
+                (
+                    UpdateStatus::Running.to_string(),
+                    start_datetime.to_rfc3339(),
+                    &event_id,
+                ),
+            )?;
+        }
+
+        tx.commit()?;
+        Ok(pending_update)
+    }
+
+    /// Start post-event action. Can happen after a reboot in a separate run.
+    ///
+    /// The update also acts as the locking mechanism
+    pub fn post_event(
+        &mut self,
+        event_id: &str,
+        post_datetime: DateTime<Utc>,
+    ) -> Result<bool, rusqlite::Error> {
+        let tx = self.conn.transaction()?;
+
+        let r = tx.query_row(
+            "select id from update_events where event_id = ?1 and status = ?2",
+            (&event_id, UpdateStatus::Scheduled.to_string()),
+            |_| Ok(()),
+        );
+        let pending_post_actions = match r {
+            Ok(_) => true,
+            Err(rusqlite::Error::QueryReturnedNoRows) => false,
+            Err(e) => return Err(e),
+        };
+        if pending_post_actions {
+            tx.execute(
+                "update update_events set status = ?1, run_datetime = ?2 where event_id = ?3",
+                (
+                    UpdateStatus::Running.to_string(),
+                    post_datetime.to_rfc3339(),
+                    &event_id,
+                ),
+            )?;
+        }
+
+        tx.commit()?;
+        Ok(pending_post_actions)
     }
 
     pub fn store_report(&self, event_id: &str, report: &Report) -> Result<(), rusqlite::Error> {
         self.conn.execute(
-            "UPDATE update_events SET report = ?1 where event_id = ?2",
-            (serde_json::to_string(report).unwrap(), &event_id),
+            "update update_events set report = ?1, status = ?2 where event_id = ?3",
+            (
+                serde_json::to_string(report).unwrap(),
+                UpdateStatus::PendingReport.to_string(),
+                &event_id,
+            ),
         )?;
         Ok(())
     }
 
     pub fn get_report(&self, event_id: &str) -> Result<Report, rusqlite::Error> {
         self.conn.query_row(
-            "SELECT report FROM update_events WHERE event_id = ?1",
+            "select report from update_events where event_id = ?1",
             [&event_id],
             |row| {
-                let v: String = row.get_unwrap(0);
+                let v: String = row.get(0)?;
                 let p: Report = serde_json::from_str(&v).unwrap();
                 Ok(p)
             },
         )
     }
+
+    /// Mark the event as completed
+    pub fn sent(
+        &self,
+        event_id: &str,
+        report_datetime: DateTime<Utc>,
+    ) -> Result<(), rusqlite::Error> {
+        self.conn.execute(
+            "update update_events set status = ?1 and report_datetime = ?2 where event_id = ?3",
+            (
+                UpdateStatus::Completed.to_string(),
+                report_datetime.to_rfc3339(),
+                &event_id,
+            ),
+        )?;
+        Ok(())
+    }
+
+    /// Get data from all stored events
+    pub fn events(&self) -> Result<Vec<Event>, rusqlite::Error> {
+        let mut stmt = self.conn.prepare("select event_id,campaign_name,status,schedule_datetime,run_datetime,report_datetime,report from update_events")?;
+        let event_map = stmt.query_map([], |row| {
+            Ok(Event {
+                id: row.get(0)?,
+                campaign_name: row.get(1)?,
+                status: {
+                    let v: String = row.get(2)?;
+                    v.parse().unwrap()
+                },
+                scheduled_datetime: {
+                    let v: String = row.get(3)?;
+                    DateTime::from(DateTime::parse_from_rfc3339(&v).unwrap())
+                },
+                run_datetime: {
+                    let v: Option<String> = row.get(4)?;
+                    v.map(|s| DateTime::from(DateTime::parse_from_rfc3339(&s).unwrap()))
+                },
+                report_datetime: {
+                    let v: Option<String> = row.get(5)?;
+                    v.map(|s| DateTime::from(DateTime::parse_from_rfc3339(&s).unwrap()))
+                },
+                report: {
+                    let v: Option<String> = row.get(6)?;
+                    v.map(|s| serde_json::from_str(&s).unwrap())
+                },
+            })
+        })?;
+        let events: Result<Vec<Event>, rusqlite::Error> = event_map.collect();
+        events
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, path::Path};
+    use chrono::{Duration, Utc};
+    use std::ops::Add;
 
-    use chrono::Duration;
-
-    use super::{PackageDatabase, DB_NAME};
-    use crate::{
-        campaign::UpdateStatus,
-        output::Report,
-        package_manager::{PackageId, PackageList, PackageManager},
-    };
+    use super::{Event, PackageDatabase};
+    use crate::{output::Report, state::UpdateStatus};
 
     #[test]
     fn new_creates_new_database() {
         let t = tempfile::tempdir().unwrap();
-        let db = PackageDatabase::new(Some(t.path())).unwrap();
-        assert!(t.path().join(DB_NAME).exists());
+        PackageDatabase::new(Some(t.path())).unwrap();
+        let db_name = PackageDatabase::db_name();
+        assert!(t.path().join(db_name).exists());
     }
 
     #[test]
@@ -157,9 +276,10 @@ mod tests {
         let mut db = PackageDatabase::new(None).unwrap();
         let event_id = "TEST";
         let campaign_id = "CAMPAIGN";
-        // If the event was not present before, this should be false
-        assert_eq!(false, db.start_event(event_id, campaign_id).unwrap());
-        assert_eq!(true, db.start_event(event_id, campaign_id).unwrap());
+        let now = Utc::now();
+        // If the event was not present before, this should be false.
+        assert!(!db.schedule_event(event_id, campaign_id, now).unwrap());
+        assert!(db.schedule_event(event_id, campaign_id, now).unwrap());
     }
 
     #[test]
@@ -167,12 +287,28 @@ mod tests {
         let mut db = PackageDatabase::new(None).unwrap();
         let report = Report::new();
         let event_id = "TEST";
-        let campaign_id = "CAMPAIGN";
-        db.start_event(event_id, campaign_id).unwrap();
+        let campaign_name = "CAMPAIGN";
+        let schedule = Utc::now();
+        let start = schedule.add(Duration::minutes(2));
+        db.schedule_event(event_id, campaign_name, schedule)
+            .unwrap();
+        db.start_event(event_id, start).unwrap();
         db.store_report(event_id, &report).unwrap();
 
         // Now get the data back and see if it matches
         let got_report = db.get_report(event_id).unwrap();
         assert_eq!(report, got_report);
+
+        let events = db.events().unwrap();
+        let event = Event {
+            id: event_id.to_string(),
+            campaign_name: campaign_name.to_string(),
+            status: UpdateStatus::PendingReport,
+            scheduled_datetime: schedule,
+            run_datetime: Some(start),
+            report_datetime: None,
+            report: Some(report),
+        };
+        assert_eq!(events, vec![event]);
     }
 }

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-//! Warning: Target != Backend, we could have different targets compiled by the same backend
+//! Warning: `Target` != `Backend`, we could have different targets compiled by the same backend
 //!
 //! We have different types of backends:
 //!
 //! * Some special cases (metadata for the webapp, markdown documentation). They to not produce runnable policies
-//! but information about the source policy.
+//!   but information about the source policy.
 //! * Windows backend. It is template-based, as:
 //!   * We have full control of the target platform, so what we generate is simple.
 //!   * We generate a program directly.
