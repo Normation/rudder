@@ -1961,20 +1961,26 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
                 success: function (response, status, jqXHR) {
                   var id = response["data"]["id"]
                   var rollback = setupRollbackBlock(id)
-                  var html = $.parseHTML( response["data"]["content"], true );
+                  var parser = new DOMParser();
+                  var content = parser.parseFromString(response["data"]["content"], 'text/html');
+                  var html = $(content.body).contents();
                   if(response["data"]["canRollback"]){
                     table.row(row).child($(rollback).append(html)).show();
+                    $('#showParameters' + id).off('click').on('click', function() { showParameters(event, id) });
                     $("#restoreBtn" + id).click(function(event){
                       var rollback ='#rollback'+id
                       $(rollback).hide();
                       var confirm = "#confirm" + id.toString();
                       var radios = $('.radio-btn');
                       var action = getRadioChecked(radios);
-                      var confirmHtml = "<div class='d-flex text-start align-items-center'><i class='fa fa-exclamation-triangle fs-2 me-3' aria-hidden='true'></i>Are you sure you want to restore configuration policy " + action + " this</div><span><button class='btn btn-default rollback-action' onclick=cancelRollback(" + id + ")>Cancel</button></span>&nbsp;&nbsp;<button class='btn btn-danger rollback-action' onClick=confirmRollback(" + id + ")>Confirm</button></span>";
+                      var confirmHtml = "<div class='d-flex text-start align-items-center'><i class='fa fa-exclamation-triangle fs-2 me-3' aria-hidden='true'></i>Are you sure you want to restore configuration policy " + action + " this</div><span><button class='btn btn-default rollback-action'>Cancel</button></span>&nbsp;&nbsp;<button class='btn btn-danger rollback-action'>Confirm</button></span>";
                       $(confirm).append(confirmHtml).addClass("alert alert-warning d-flex align-items-center");
+                      $('#confirm' + id + ' .rollback-action.btn-danger').off('click').on('click', '', function() { confirmRollback(id) });
+                      $('#confirm' + id + ' .rollback-action.btn-default').off('click').on('click', '', function() { cancelRollback(id) });
                     });
                   } else {
                     table.row(row).child(html).show();
+                    $('#showParameters' + id).off('click').on('click', function() { showParameters(event, id) });
                   }
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
