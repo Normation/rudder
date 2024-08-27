@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration, SecondsFormat, Utc};
 use rudder_module_type::rudder_debug;
-use rusqlite::{self, Connection};
-use std::path::{Path, PathBuf};
+use rusqlite::{self, Connection, Row};
+use std::{
+    fmt::{Display, Formatter},
+    fs,
+    path::{Path, PathBuf},
+};
 
 /// Database using SQLite
 ///
@@ -31,6 +35,35 @@ pub struct Event {
     pub(crate) report: Option<Report>,
 }
 
+impl Display for Event {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!("\nEvent ID: {}\n", self.id))?;
+        f.write_str(&format!("Campaign name: {}\n", self.campaign_name))?;
+        f.write_str(&format!("Status: {}\n", self.status))?;
+        f.write_str(&format!(
+            "Scheduled: {}\n",
+            self.scheduled_datetime
+                .to_rfc3339_opts(SecondsFormat::Secs, true)
+        ))?;
+        if let Some(d) = self.run_datetime {
+            f.write_str(&format!(
+                "Run: {}\n",
+                d.to_rfc3339_opts(SecondsFormat::Secs, true)
+            ))?;
+        }
+        if let Some(d) = self.report_datetime {
+            f.write_str(&format!(
+                "Reported: {}\n",
+                d.to_rfc3339_opts(SecondsFormat::Secs, true)
+            ))?;
+        }
+        if let Some(ref r) = self.report {
+            f.write_str(&format!("Report: {}\n", serde_json::to_string(&r).unwrap()))?;
+        }
+        Ok(())
+    }
+}
+
 impl PackageDatabase {
     fn db_name() -> PathBuf {
         Path::new(MODULE_NAME).with_extension(DB_EXTENSION)
@@ -38,9 +71,10 @@ impl PackageDatabase {
 
     /// Open the database, creating it if necessary.
     /// When no path is provided, the database is created in memory.
-    pub fn new(path: Option<&Path>) -> Result<Self, rusqlite::Error> {
+    pub fn new(path: Option<&Path>) -> anyhow::Result<Self> {
         let db_name = Self::db_name();
         let conn = if let Some(p) = path {
+            fs::create_dir_all(p)?;
             let full_path = p.join(db_name);
             rudder_debug!(
                 "Opening database {} (sqlite {})",
@@ -55,6 +89,7 @@ impl PackageDatabase {
             );
             Connection::open_in_memory()
         }?;
+        // Migrations are included in the file
         let schema = include_str!("packages.sql");
         conn.execute(schema, ())?;
         Ok(Self { conn })
@@ -64,7 +99,7 @@ impl PackageDatabase {
     pub fn clean(&self, retention: Duration) -> Result<(), rusqlite::Error> {
         rudder_debug!("Purging old events");
         self.conn.execute(
-            "delete from update_events where date(run_datetime) < date('now', ?1)",
+            "delete from update_events where datetime(run_datetime) < datetime('now', ?1)",
             (&format!("-{} minutes", retention.num_minutes()),),
         )?;
         Ok(())
@@ -140,16 +175,12 @@ impl PackageDatabase {
     /// Start post-event action. Can happen after a reboot in a separate run.
     ///
     /// The update also acts as the locking mechanism
-    pub fn post_event(
-        &mut self,
-        event_id: &str,
-        post_datetime: DateTime<Utc>,
-    ) -> Result<bool, rusqlite::Error> {
+    pub fn post_event(&mut self, event_id: &str) -> Result<bool, rusqlite::Error> {
         let tx = self.conn.transaction()?;
 
         let r = tx.query_row(
-            "select id from update_events where event_id = ?1 and status = ?2",
-            (&event_id, UpdateStatus::Scheduled.to_string()),
+            "select event_id from update_events where event_id = ?1 and status = ?2",
+            (&event_id, UpdateStatus::Running.to_string()),
             |_| Ok(()),
         );
         let pending_post_actions = match r {
@@ -159,12 +190,8 @@ impl PackageDatabase {
         };
         if pending_post_actions {
             tx.execute(
-                "update update_events set status = ?1, run_datetime = ?2 where event_id = ?3",
-                (
-                    UpdateStatus::Running.to_string(),
-                    post_datetime.to_rfc3339(),
-                    &event_id,
-                ),
+                "update update_events set status = ?1 where event_id = ?2",
+                (UpdateStatus::PendingPostActions.to_string(), &event_id),
             )?;
         }
 
@@ -174,12 +201,8 @@ impl PackageDatabase {
 
     pub fn store_report(&self, event_id: &str, report: &Report) -> Result<(), rusqlite::Error> {
         self.conn.execute(
-            "update update_events set report = ?1, status = ?2 where event_id = ?3",
-            (
-                serde_json::to_string(report).unwrap(),
-                UpdateStatus::PendingReport.to_string(),
-                &event_id,
-            ),
+            "update update_events set report = ?1 where event_id = ?2",
+            (serde_json::to_string(report).unwrap(), &event_id),
         )?;
         Ok(())
     }
@@ -203,7 +226,7 @@ impl PackageDatabase {
         report_datetime: DateTime<Utc>,
     ) -> Result<(), rusqlite::Error> {
         self.conn.execute(
-            "update update_events set status = ?1 and report_datetime = ?2 where event_id = ?3",
+            "update update_events set status = ?1, report_datetime = ?2 where event_id = ?3",
             (
                 UpdateStatus::Completed.to_string(),
                 report_datetime.to_rfc3339(),
@@ -213,37 +236,45 @@ impl PackageDatabase {
         Ok(())
     }
 
+    /// Get data from all a specific event
+    pub fn event(&self, id: String) -> Result<Event, rusqlite::Error> {
+        let mut stmt = self.conn.prepare("select event_id,campaign_name,status,schedule_datetime,run_datetime,report_datetime,report from update_events where event_id like ?1 || '%'")?;
+        stmt.query_row([id], Self::extract_event)
+    }
+
     /// Get data from all stored events
     pub fn events(&self) -> Result<Vec<Event>, rusqlite::Error> {
-        let mut stmt = self.conn.prepare("select event_id,campaign_name,status,schedule_datetime,run_datetime,report_datetime,report from update_events")?;
-        let event_map = stmt.query_map([], |row| {
-            Ok(Event {
-                id: row.get(0)?,
-                campaign_name: row.get(1)?,
-                status: {
-                    let v: String = row.get(2)?;
-                    v.parse().unwrap()
-                },
-                scheduled_datetime: {
-                    let v: String = row.get(3)?;
-                    DateTime::from(DateTime::parse_from_rfc3339(&v).unwrap())
-                },
-                run_datetime: {
-                    let v: Option<String> = row.get(4)?;
-                    v.map(|s| DateTime::from(DateTime::parse_from_rfc3339(&s).unwrap()))
-                },
-                report_datetime: {
-                    let v: Option<String> = row.get(5)?;
-                    v.map(|s| DateTime::from(DateTime::parse_from_rfc3339(&s).unwrap()))
-                },
-                report: {
-                    let v: Option<String> = row.get(6)?;
-                    v.map(|s| serde_json::from_str(&s).unwrap())
-                },
-            })
-        })?;
+        let mut stmt = self.conn.prepare("select event_id,campaign_name,status,schedule_datetime,run_datetime,report_datetime,report from update_events order by schedule_datetime asc")?;
+        let event_map = stmt.query_map([], Self::extract_event)?;
         let events: Result<Vec<Event>, rusqlite::Error> = event_map.collect();
         events
+    }
+
+    fn extract_event(row: &Row) -> Result<Event, rusqlite::Error> {
+        Ok(Event {
+            id: row.get(0)?,
+            campaign_name: row.get(1)?,
+            status: {
+                let v: String = row.get(2)?;
+                v.parse().unwrap()
+            },
+            scheduled_datetime: {
+                let v: String = row.get(3)?;
+                DateTime::from(DateTime::parse_from_rfc3339(&v).unwrap())
+            },
+            run_datetime: {
+                let v: Option<String> = row.get(4)?;
+                v.map(|s| DateTime::from(DateTime::parse_from_rfc3339(&s).unwrap()))
+            },
+            report_datetime: {
+                let v: Option<String> = row.get(5)?;
+                v.map(|s| DateTime::from(DateTime::parse_from_rfc3339(&s).unwrap()))
+            },
+            report: {
+                let v: Option<String> = row.get(6)?;
+                v.map(|s| serde_json::from_str(&s).unwrap())
+            },
+        })
     }
 }
 
@@ -307,8 +338,20 @@ mod tests {
             scheduled_datetime: schedule,
             run_datetime: Some(start),
             report_datetime: None,
-            report: Some(report),
+            report: Some(report.clone()),
         };
         assert_eq!(events, vec![event]);
+
+        let event = db.event("TES".to_string()).unwrap();
+        let ref_event = Event {
+            id: event_id.to_string(),
+            campaign_name: campaign_name.to_string(),
+            status: UpdateStatus::PendingReport,
+            scheduled_datetime: schedule,
+            run_datetime: Some(start),
+            report_datetime: None,
+            report: Some(report),
+        };
+        assert_eq!(event, ref_event);
     }
 }

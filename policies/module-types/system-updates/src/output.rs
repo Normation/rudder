@@ -87,7 +87,6 @@ impl ResultOutput<Output> {
         let output = c.output();
         let mut res = ResultOutput::new(output.map_err(|e| e.into()));
 
-        // FIXME review
         if let Ok(ref o) = res.inner {
             let stdout_s = String::from_utf8_lossy(&o.stdout);
             res.stdout.push(stdout_s.to_string());
@@ -194,6 +193,9 @@ impl Report {
     pub fn step<T>(&mut self, res: ResultOutput<T>) {
         self.stdout_lines(res.stdout.as_slice());
         self.stderr_lines(res.stderr.as_slice());
+        if let Err(ref e) = res.inner {
+            self.stderr(format!("{:?}", e));
+        }
         self.status = match (self.status, res.inner.is_ok()) {
             (Status::Error, _) => Status::Error,
             (_, false) => Status::Error,

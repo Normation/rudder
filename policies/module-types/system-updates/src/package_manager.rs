@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use std::collections::HashMap;
-
 /// Implementation of Linux package manager interactions.
 ///
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, fs::read_to_string};
 
 #[cfg(feature = "apt")]
 use crate::package_manager::apt::AptPackageManager;
@@ -43,7 +42,7 @@ impl PackageList {
     }
 
     pub fn diff(&self, new: Self) -> Vec<PackageDiff> {
-        // FIXME: check package managers
+        // FIXME: check package managers?
         let mut changes = vec![];
 
         for (p, info) in &self.inner {
@@ -139,8 +138,6 @@ pub struct PackageId {
     arch: String,
 }
 
-// FIXME serialize
-
 impl PackageId {
     pub fn new(name: String, arch: String) -> Self {
         Self { name, arch }
@@ -184,6 +181,26 @@ impl PackageManager {
             PackageManager::Zypper => Box::new(ZypperPackageManager::new()),
             _ => bail!("This package manager does not provide patch management features"),
         })
+    }
+
+    /// Only used in CLI mode
+    pub fn detect() -> Result<Self> {
+        let os_release = read_to_string("/etc/os-release")?;
+        for l in os_release.lines() {
+            if l.starts_with("ID=") {
+                let id = l.split('=').skip(1).next().unwrap();
+                return Ok(match id {
+                    #[cfg(feature = "apt")]
+                    "debian" | "ubuntu" => Self::Apt,
+                    "fedora" | "centos" | "rhel" | "rocky" | "ol" | "almalinux" | "amzn" => {
+                        Self::Yum
+                    }
+                    "sles" | "sled" => Self::Zypper,
+                    _ => bail!("Unknown package manager: {}", l),
+                });
+            }
+        }
+        bail!("No OS id found, could not detect package manager");
     }
 }
 

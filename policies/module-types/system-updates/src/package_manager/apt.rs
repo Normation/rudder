@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use anyhow::{anyhow, Context, Result};
-use regex::Regex;
-use std::{collections::HashMap, env, path::Path, process::Command};
-
 use crate::{
     output::ResultOutput,
     package_manager::{
         LinuxPackageManager, PackageId, PackageInfo, PackageList, PackageManager, PackageSpec,
     },
 };
+use anyhow::{anyhow, Context, Result};
+use memfile::MemFile;
+use regex::Regex;
 use rust_apt::{
     cache::Upgrade,
     config::Config,
@@ -19,6 +18,8 @@ use rust_apt::{
     progress::{AcquireProgress, InstallProgress},
     PackageSort,
 };
+use std::{collections::HashMap, env, io::Read, path::Path, process::Command};
+use stdio_override::StdoutOverride;
 
 /// Reference guides:
 /// * https://www.debian.org/doc/manuals/debian-faq/uptodate.en.html
@@ -44,9 +45,9 @@ pub struct AptPackageManager {
 
 impl AptPackageManager {
     pub fn new() -> Result<Self> {
-        // FIXME: do we need this with the lib?
+        // TODO: do we need this with the lib?
         env::set_var("DEBIAN_FRONTEND", "noninteractive");
-        // FIXME: do we really want to disable list changes.
+        // TODO: do we really want to disable list changes?
         // It will be switched to non-interactive mode automatically.
         env::set_var("APT_LISTCHANGES_FRONTEND", "none");
         // We will do this by calling `needrestart` ourselves, turn off the APT hook.
@@ -89,6 +90,7 @@ impl AptPackageManager {
             .collect())
     }
 
+    /// Converts a list of APT errors to a `ResultOutput`.
     fn apt_errors_to_output<T>(res: Result<T, AptErrors>) -> ResultOutput<T> {
         let mut stderr = vec![];
         let r = match res {
@@ -114,7 +116,17 @@ impl LinuxPackageManager for AptPackageManager {
 
         if let Ok(o) = cache.inner {
             let mut progress = AcquireProgress::apt();
-            Self::apt_errors_to_output(o.update(&mut progress))
+
+            // Collect stdout through an in-memory fd.
+            let mut file = MemFile::create_default("foo").unwrap();
+            let guard = StdoutOverride::override_raw(file.try_clone().unwrap()).unwrap();
+            let mut r = Self::apt_errors_to_output(o.update(&mut progress));
+            drop(guard);
+            let mut out = String::new();
+            file.read_to_string(&mut out).unwrap();
+            // FIXME should be inserted before
+            r.stdout(out);
+            r
         } else {
             cache.clear_ok()
         }
@@ -293,7 +305,7 @@ impl LinuxPackageManager for AptPackageManager {
         let (r, o, e) = (res.inner, res.stdout, res.stderr);
         let res = match r {
             Ok(_) => self.parse_services_to_restart(&o),
-            Err(e) => Err(e),
+            Err(e) => Err(e).context("Checking services to restart with the needrestart command"),
         };
         ResultOutput::new_output(res, o, e)
     }

@@ -179,7 +179,7 @@ async fn put_forward(
 ) -> Result<StatusCode, Error> {
     let client = job_config.upstream_client.read().await.inner().clone();
     client
-        .put(&format!(
+        .put(format!(
             "{}/{}/{}",
             job_config.cfg.upstream_url(),
             "relay-api/shared-files",
@@ -310,7 +310,7 @@ async fn head_forward(
     let client = job_config.upstream_client.read().await.inner().clone();
 
     client
-        .head(&format!(
+        .head(format!(
             "{}/{}/{}",
             job_config.cfg.upstream_url(),
             "relay-api/shared-files",

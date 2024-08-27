@@ -217,6 +217,8 @@ pub struct CliConfiguration {
     pub version: bool,
     #[options(help = "verbose", short = "v")]
     pub verbose: bool,
+    #[options(help = "noop option")]
+    pub cfengine: bool,
 }
 
 /// Provide facts about the system

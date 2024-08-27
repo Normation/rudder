@@ -13,6 +13,7 @@ use fnv::FnvHasher;
 ///
 /// Choose a start DateTime that is after `start` and before `end` - (agent_schedule + 5 min).
 /// The choice is based on a hash of the unique_value to make it uniformly distributed over nodes
+/// in case the `unique_value` is not uniformly distributed
 /// (and we want it to be deterministic, so random is not enough).
 pub fn splayed_start(
     start: DateTime<Utc>,

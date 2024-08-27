@@ -35,7 +35,7 @@ impl FromStr for UpdateStatus {
 
     fn from_str(s: &str) -> anyhow::Result<Self, Self::Err> {
         match s {
-            "started" => Ok(Self::Running),
+            "running" => Ok(Self::Running),
             "scheduled" => Ok(Self::Scheduled),
             "completed" => Ok(Self::Completed),
             "pending-report" => Ok(Self::PendingReport),

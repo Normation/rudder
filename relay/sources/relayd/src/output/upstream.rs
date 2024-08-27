@@ -52,7 +52,7 @@ async fn forward_file(
     let client = job_config.upstream_client.read().await.inner().clone();
 
     let result = client
-        .put(&format!(
+        .put(format!(
             "{}/{}/{}",
             job_config.cfg.upstream_url(),
             endpoint,

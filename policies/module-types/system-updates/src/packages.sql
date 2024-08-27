@@ -7,18 +7,22 @@
 create table if not exists update_events (
     id integer primary key,
     -- event_id
-    event_id text not null,
+    -- use nocase to allow using index for like queries
+    event_id text not null collate nocase unique,
     -- campaign name
     campaign_name text not null,
     -- scheduled, running, pending-post-action, completed
     status text not null,
+
     -- timestamps
     -- stored as rfc3339 string (https://rust10x.com/post/sqlite-time-text-vs-integer)
     schedule_datetime text not null,
     -- will be slightly after schedule_timestamp
     run_datetime text,
-    -- FIXME end_datetime?
     report_datetime text,
+
     -- report sent to the server
     report text -- json string
 );
+
+create index if not exists idx_event_id on update_events (event_id);
