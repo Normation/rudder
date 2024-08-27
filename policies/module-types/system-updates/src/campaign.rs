@@ -55,7 +55,7 @@ pub fn check_update(
     };
     let already_scheduled = db.schedule_event(&p.event_id, &p.campaign_name, schedule_datetime)?;
 
-    // Update should have start/have started already
+    // Update should have started already
     let now = Utc::now();
     if schedule == FullSchedule::Immediate || now >= schedule_datetime {
         let do_update = db.start_event(&p.event_id, now)?;
