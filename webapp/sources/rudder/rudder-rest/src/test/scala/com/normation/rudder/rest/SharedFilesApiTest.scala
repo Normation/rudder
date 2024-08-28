@@ -38,8 +38,12 @@
 package com.normation.rudder.rest
 
 import better.files.*
+import com.normation.JsonSpecMatcher
+import com.normation.rudder.rest.internal.SharedFilesAPI
 import com.normation.rudder.rest.internal.SharedFilesAPI.*
 import com.normation.zio.ZioRuntime
+import net.liftweb.common.Full
+import net.liftweb.http.JsonResponse
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.*
@@ -47,7 +51,7 @@ import org.specs2.mutable.*
 import org.specs2.runner.*
 
 @RunWith(classOf[JUnitRunner])
-class SharedFilesApiTest extends Specification {
+class SharedFilesApiTest extends Specification with JsonSpecMatcher {
 
   // Setup temporary test files
   val tmp:      File = File(s"/tmp/rudder-test-shared-files/${DateTime.now.toString(ISODateTimeFormat.dateTime())}")
@@ -60,6 +64,9 @@ class SharedFilesApiTest extends Specification {
   file2.createFile()
   val symlink1: File = tmp / "symlink1"
   symlink1.symbolicLinkTo(File("/etc"))
+
+  val restTestSetUp = RestTestSetUp.newEnv
+  val restTest      = new RestTest(restTestSetUp.liftRules)
 
   "sanitize valid path" >> {
     val tail = "/file2"
@@ -90,4 +97,56 @@ class SharedFilesApiTest extends Specification {
     val res  = ZioRuntime.unsafeRun(sanitizePath(tail, tmp).isFailure)
     res must beTrue
   }
+
+  "Testing resourceExplorer" >> {
+    "uploading file" in {
+      restTest.testBinaryPOSTResponse(
+        "/secure/api/resourceExplorer/draft/09533e85-37ae-431e-b9bb-87666aeecf6b/1.0",
+        "file",
+        "test-file.txt",
+        "test upload shared file content".getBytes("UTF-8"),
+        Map("destination" -> "/")
+      ) {
+        // This is still the old Lift Json response, migrate to JsonRudderApiResponse after migrating SharedFilesAPI to zio-json
+        case Full(jsonResponse: JsonResponse) =>
+          jsonResponse.code must beEqualTo(200)
+          jsonResponse.json.toJsCmd must equalsJsonSemantic("""
+                                                              |{
+                                                              |  "success":true,
+                                                              |  "error":null
+                                                              |}
+                                                              |""".stripMargin)
+
+        case err => ko(s"I got an error in test: ${err}")
+      }
+    }
+
+    "uploading file which is too big" in {
+      val fileContent: Array[Byte] = new Array(SharedFilesAPI.MAX_FILE_SIZE + 1)
+      // Fill with random bytes
+      // scala.util.Random.nextBytes(fileContent)
+
+      restTest.testBinaryPOSTResponse(
+        "/secure/api/resourceExplorer/draft/09533e85-37ae-431e-b9bb-87666aeecf6b/1.0",
+        "file",
+        "test-file.txt",
+        fileContent,
+        Map("destination" -> "/")
+      ) {
+        // This is still the old Lift Json response, migrate to JsonRudderApiResponse after migrating SharedFilesAPI to zio-json
+        case Full(jsonResponse: JsonResponse) =>
+          jsonResponse.code must beEqualTo(413)
+          val maxSize = restTestSetUp.liftRules.maxMimeSize / 1024 / 1024
+          jsonResponse.json.toJsCmd must equalsJsonSemantic(s"""
+                                                               |{
+                                                               |  "success":false,
+                                                               |  "error":"File exceeds the maximum upload size of ${maxSize}MB"
+                                                               |}
+                                                               |""".stripMargin)
+
+        case err => ko(s"I got an error in test: ${err}")
+      }
+    }
+  }
+
 }
