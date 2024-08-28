@@ -56,27 +56,7 @@ import com.normation.inventory.ldap.core.InventoryDitService
 import com.normation.inventory.ldap.core.InventoryDitServiceImpl
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.rudder.MockNodes.allNodeFacts
-import com.normation.rudder.campaigns.Campaign
-import com.normation.rudder.campaigns.CampaignDetails
-import com.normation.rudder.campaigns.CampaignEvent
-import com.normation.rudder.campaigns.CampaignEventId
-import com.normation.rudder.campaigns.CampaignEventRepository
-import com.normation.rudder.campaigns.CampaignId
-import com.normation.rudder.campaigns.CampaignInfo
-import com.normation.rudder.campaigns.CampaignParsingInfo
-import com.normation.rudder.campaigns.CampaignRepository
-import com.normation.rudder.campaigns.CampaignSerializer
-import com.normation.rudder.campaigns.CampaignStatusValue
-import com.normation.rudder.campaigns.CampaignType
-import com.normation.rudder.campaigns.DayTime
-import com.normation.rudder.campaigns.Enabled
-import com.normation.rudder.campaigns.Finished
-import com.normation.rudder.campaigns.JSONTranslateCampaign
-import com.normation.rudder.campaigns.MainCampaignService
-import com.normation.rudder.campaigns.Monday
-import com.normation.rudder.campaigns.Running
-import com.normation.rudder.campaigns.Scheduled
-import com.normation.rudder.campaigns.WeeklySchedule
+import com.normation.rudder.campaigns.*
 import com.normation.rudder.configuration.ConfigurationRepositoryImpl
 import com.normation.rudder.configuration.DirectiveRevisionRepository
 import com.normation.rudder.configuration.GroupRevisionRepository
@@ -88,35 +68,14 @@ import com.normation.rudder.domain.archives.RuleArchiveId
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.domain.properties.AddGlobalParameterDiff
-import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
+import com.normation.rudder.domain.properties.*
 import com.normation.rudder.domain.properties.GenericProperty.StringToConfigValue
-import com.normation.rudder.domain.properties.GlobalParameter
-import com.normation.rudder.domain.properties.GroupProperty
-import com.normation.rudder.domain.properties.InheritMode
-import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
-import com.normation.rudder.domain.properties.PropertyProvider
+import com.normation.rudder.domain.properties.Visibility.Hidden
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.queries.CriterionComposition
 import com.normation.rudder.domain.reports.NodeComplianceExpirationMode
 import com.normation.rudder.domain.reports.NodeModeConfig
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.facts.nodes.CoreNodeFactRepository
-import com.normation.rudder.facts.nodes.MockNodeFactFullInventoryRepositoryProxy
-import com.normation.rudder.facts.nodes.NodeFact
-import com.normation.rudder.facts.nodes.NodeFactChangeEvent
-import com.normation.rudder.facts.nodes.NodeFactChangeEventCallback
-import com.normation.rudder.facts.nodes.NodeFactChangeEventCC
-import com.normation.rudder.facts.nodes.NodeFactStorage
-import com.normation.rudder.facts.nodes.NodeInfoServiceProxy
-import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.facts.nodes.SelectFacts
-import com.normation.rudder.facts.nodes.SoftDaoGetNodesBySoftwareName
-import com.normation.rudder.facts.nodes.StorageChangeEventDelete
-import com.normation.rudder.facts.nodes.StorageChangeEventSave
-import com.normation.rudder.facts.nodes.StorageChangeEventStatus
-import com.normation.rudder.facts.nodes.WoFactNodeRepositoryProxy
+import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
@@ -147,16 +106,8 @@ import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.SystemVariableServiceImpl
 import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.reports.NodePropertyBasedComplianceExpirationService
-import com.normation.rudder.services.servers.AllowedNetwork
-import com.normation.rudder.services.servers.FactListNewNodes
-import com.normation.rudder.services.servers.FactRemoveNodeBackend
-import com.normation.rudder.services.servers.NewNodeManager
-import com.normation.rudder.services.servers.PolicyServerManagementService
-import com.normation.rudder.services.servers.PolicyServers
-import com.normation.rudder.services.servers.PolicyServersUpdateCommand
-import com.normation.rudder.services.servers.PostNodeDeleteAction
+import com.normation.rudder.services.servers.*
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
-import com.normation.rudder.services.servers.RemoveNodeServiceImpl
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGeneratorImpl
@@ -1549,8 +1500,14 @@ class MockGlobalParam() {
 
   val stringParam: GlobalParameter =
     GlobalParameter("stringParam", GitVersion.DEFAULT_REV, "some string".toConfigValue, None, "a simple string param", None)
-  // json: the key will be sorted alpha-num by Config lib; array value order is kept.
 
+  // an hidden parameter: skipped in listing, can be accessed directly or when displaying hidden is true.
+  val hiddenParam: GlobalParameter = {
+    GlobalParameter("hiddenParam", GitVersion.DEFAULT_REV, "hidden value".toConfigValue, None, "a hidden param", None)
+      .withVisibility(Hidden)
+  }
+
+  // json: the key will be sorted alpha-num by Config lib; array value order is kept.
   val jsonParam: GlobalParameter = GlobalParameter
     .parse(
       "jsonParam",
@@ -1589,14 +1546,14 @@ class MockGlobalParam() {
     .getOrElse(throw new RuntimeException("error in mock jsonParam"))
 
   val all: Map[String, GlobalParameter] =
-    List(stringParam, jsonParam, modeParam, systemParam, rudderConfig).map(p => (p.name, p)).toMap
+    List(stringParam, hiddenParam, jsonParam, modeParam, systemParam, rudderConfig).map(p => (p.name, p)).toMap
 
   val paramsRepo: paramsRepo = new paramsRepo
   class paramsRepo extends RoParameterRepository with WoParameterRepository {
 
     // needed because we don't have real dyngroup update in mock, so propertiesService is
     // not called when it should.
-    val callbacks = Ref.make(Chunk.empty[UIO[Unit]]).runNow
+    val callbacks: Ref[Chunk[UIO[Unit]]] = Ref.make(Chunk.empty[UIO[Unit]]).runNow
 
     def runCallbacks[A](a: A): UIO[A] = {
       for {
@@ -1948,7 +1905,14 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
   val node1NodeFact = NodeFact.fromCompat(node1, Right(FullInventory(nodeInventory1, None)), softwares.drop(5).take(10), None)
 
   // node1 us a relay
-  val node2Node:      Node          = node1Node.copy(id = id2, name = id2.value)
+  val node2Node:      Node          = node1Node.copy(
+    id = id2,
+    name = id2.value,
+    properties = List(
+      NodeProperty("simpleString", "string value".toConfigValue, None, None),
+      NodeProperty("hiddenProp", "hidden value".toConfigValue, None, None).withVisibility(Hidden)
+    )
+  )
   val node2:          NodeInfo      = node1.copy(node = node2Node, hostname = hostname2, policyServerId = root.id)
   val nodeInventory2: NodeInventory = copyInventory(nodeInventory1, node2, AcceptedInventory)
 
@@ -2838,7 +2802,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
         None,
         None
       )
-      .getOrElse(throw new RuntimeException(s"error group prop: jsonParam")) // for test
+      .getOrElse(throw new RuntimeException(s"error group prop: jsonParam")), // for test
+    GroupProperty("hiddenProp", GitVersion.DEFAULT_REV, "hidden prop value".toConfigValue, None, None).withVisibility(Hidden)
   )
 
   val g0:     NodeGroup                     = NodeGroup(

@@ -54,6 +54,7 @@ import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
+import com.normation.rudder.domain.properties.Visibility.Displayed
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
@@ -1376,20 +1377,21 @@ class GroupApiService14(
                                 s"Inherited properties for node '${nodeFact.id.value}' were not found while it's contained into group '${groupId.serialize}''"
                               )
                               .map { childProperties =>
-                                parentProperties.map { p =>
-                                  val matchingChildProperties = childProperties.collect {
-                                    case cp if cp.prop.name == p.prop.name => cp.hierarchy
-                                  }.toList
+                                parentProperties.collect {
+                                  case p if p.prop.visibility == Displayed =>
+                                    val matchingChildProperties = childProperties.collect {
+                                      case cp if cp.prop.name == p.prop.name => cp.hierarchy
+                                    }.toList
 
-                                  val hasConflicts = MergeNodeProperties
-                                    .checkValueTypes(matchingChildProperties.map(NodePropertyHierarchy(p.prop, _)))
-                                    .isLeft
+                                    val hasConflicts = MergeNodeProperties
+                                      .checkValueTypes(matchingChildProperties.map(NodePropertyHierarchy(p.prop, _)))
+                                      .isLeft
 
-                                  (
-                                    p,
-                                    matchingChildProperties.flatten,
-                                    hasConflicts
-                                  )
+                                    (
+                                      p,
+                                      matchingChildProperties.flatten,
+                                      hasConflicts
+                                    )
                                 }
                               }
                           }

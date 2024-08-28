@@ -54,6 +54,7 @@ import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
+import com.normation.rudder.domain.properties.Visibility.Displayed
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.ncf.ResourceFile
@@ -572,7 +573,8 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       val (group, _) = restTestSetUp.mockNodeGroups.groupsRepo
         .getNodeGroup(NodeGroupId(NodeGroupUid("0000f5d3-8c61-4d20-88a7-bb947705ba8a")))
         .runNow
-      group.copy(description = "a new description")
+      // hidden properties are not copied in archive
+      group.copy(description = "a new description").copy(properties = group.properties.filter(_.visibility == Displayed))
     }
     val rule1 = restTestSetUp.mockRules.ruleRepo
       .getOpt(RuleId(RuleUid("rule1")))

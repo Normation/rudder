@@ -73,6 +73,7 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.properties.ParentProperty
 import com.normation.rudder.domain.properties.PropertyProvider
+import com.normation.rudder.domain.properties.Visibility.Displayed
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
@@ -339,7 +340,9 @@ object JsonResponseObjects {
         )
         .withFieldComputed(
           _.properties,
-          levelField("properties")(Chunk.fromIterable(nodeInfo.properties.sortBy(_.name).map(JRProperty.fromNodeProp)))
+          levelField("properties")(
+            Chunk.fromIterable(nodeInfo.properties.filter(_.visibility == Displayed).sortBy(_.name).map(JRProperty.fromNodeProp))
+          )
         )
         .withFieldComputed(_.policyMode, levelField("policyMode")(nodeInfo.policyMode.map(_.name).getOrElse("default")))
         .withFieldComputed(_.timezone, levelField(_)("timezone")(nodeInfo.timezone))
@@ -1476,7 +1479,7 @@ object JsonResponseObjects {
         .withFieldComputed(_.query, _.query.map(JRQuery.fromQuery(_)))
         .withFieldComputed(_.nodeIds, _.serverList.toList.map(_.value).sorted)
         .withFieldComputed(_.groupClass, x => List(x.id.serialize, x.name).map(RuleTarget.toCFEngineClassName _).sorted)
-        .withFieldComputed(_.properties, _.properties.map(JRProperty.fromGroupProp(_)))
+        .withFieldComputed(_.properties, _.properties.filter(_.visibility == Displayed).map(JRProperty.fromGroupProp(_)))
         .withFieldComputed(_.target, x => GroupTarget(x.id).target)
         .withFieldComputed(_.system, _.isSystem)
         .transform
