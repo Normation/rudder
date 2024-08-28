@@ -38,6 +38,7 @@
 package com.normation.rudder.metrics
 
 import com.normation.errors.*
+import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import java.util.concurrent.TimeUnit
 import zio.*
 import zio.syntax.*
@@ -105,12 +106,14 @@ class Scheduler[A](
    * We need to special case the first iteration, because for it the max time is
    * really max time, while for next iteration, it's only (max - min).
    */
-  val loop: ZIO[Any, Nothing, Nothing] = {
-    def oneStep(d: Duration) = {
+  val loop: UIO[Nothing] = {
+    def oneStep(d: Duration): UIO[Unit] = {
       for {
         a <- queue.take.race(ZIO.unit.delay(d) *> default)
         n <- ZIO.clockWith(_.currentTime(TimeUnit.MINUTES))
-        _ <- action(a)
+        _ <- action(a).catchAllDefect(err =>
+               ScheduledJobLoggerPure.error(s"Scheduled logs for node metrics failed for value ${a}", err)
+             )
         _ <- ZIO.clockWith(_.sleep(min))
       } yield ()
     }
@@ -120,5 +123,5 @@ class Scheduler[A](
   /*
    *  Start a forever running fiber.
    */
-  def start = loop.forkDaemon
+  def start: UIO[Fiber.Runtime[?, ?]] = loop.forkDaemon
 }
