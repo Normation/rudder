@@ -68,7 +68,7 @@ class PurgeDeletedInventories(
       logger.debug(
         s"***** starting batch that purge deleted inventories older than ${TTL} days, every ${updateInterval.toString()} *****"
       )
-      val prog = purgeDeletedNodes
+      val prog: UIO[Unit] = purgeDeletedNodes
         .purgeDeletedNodesPreviousDate(DateTime.now().withTimeAtStartOfDay().minusDays(TTL))
         .either
         .flatMap(_ match {
@@ -85,8 +85,18 @@ class PurgeDeletedInventories(
             val error = Chained(s"Error when purging deleted nodes inventories older than ${TTL} days", err)
             ScheduledJobLoggerPure.error(error.fullMsg)
         })
+        .unit
       import zio.Duration.fromScala as zduration
-      ZioRuntime.unsafeRun(prog.delay(zduration(updateInterval)).repeat(Schedule.spaced(zduration(updateInterval))).forkDaemon)
+      // Effect should be running forever and every defect caught into the UIO
+      ZioRuntime.unsafeRun(
+        prog
+          .catchAllDefect(err =>
+            ScheduledJobLoggerPure.error(s"Error in process or purging deleted nodes inventories older than ${TTL} days", err)
+          )
+          .delay(zduration(updateInterval))
+          .repeat(Schedule.spaced(zduration(updateInterval)): Schedule[Any, Any, Long])
+          .forkDaemon
+      )
     }
   }
 }

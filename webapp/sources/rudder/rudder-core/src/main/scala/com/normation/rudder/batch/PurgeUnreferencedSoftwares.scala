@@ -40,7 +40,6 @@ package com.normation.rudder.batch
 import com.normation.inventory.ldap.core.SoftwareService
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.zio.*
-import scala.annotation.nowarn
 import scala.concurrent.duration.FiniteDuration
 import zio.*
 
@@ -62,12 +61,17 @@ class PurgeUnreferencedSoftwares(
     logger.debug(
       s"[purge unreferenced software] starting batch that purge unreferenced softwares, every ${updateInterval.toString()}"
     )
-    val prog = softwareService.deleteUnreferencedSoftware()
+    val prog: UIO[Unit] = softwareService.deleteUnreferencedSoftware().unit
     import zio.Duration.fromScala as zduration
     ZioRuntime.unsafeRun(
-      prog.delay(1.hour).repeat(Schedule.spaced(zduration(updateInterval))).forkDaemon
-    ): @nowarn(
-      "msg=a type was inferred to be `Any`"
+      // Effect should be running forever and every defect caught into the UIO
+      prog
+        .catchAllDefect(err =>
+          ZIO.succeed(logger.error(s"[purge unreferenced software] Error in process of purging unreferenced software", err))
+        )
+        .delay(1.hour)
+        .repeat(Schedule.spaced(zduration(updateInterval)): Schedule[Any, Any, Long])
+        .forkDaemon
     )
   }
 }
