@@ -47,7 +47,7 @@ import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.RudderDit
 import com.normation.zio.*
 import com.unboundid.ldap.sdk.DN
-import javax.servlet.UnavailableException
+import jakarta.servlet.UnavailableException
 import net.liftweb.common.*
 import zio.*
 import zio.syntax.*

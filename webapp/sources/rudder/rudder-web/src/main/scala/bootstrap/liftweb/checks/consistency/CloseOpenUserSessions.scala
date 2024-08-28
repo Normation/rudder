@@ -41,7 +41,7 @@ import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
 import com.normation.rudder.users.*
 import com.normation.zio.*
-import javax.servlet.UnavailableException
+import jakarta.servlet.UnavailableException
 import org.joda.time.DateTime
 
 /**

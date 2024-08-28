@@ -42,9 +42,9 @@ import com.normation.errors.SystemError
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.zio.*
 import com.typesafe.config.ConfigException
+import jakarta.servlet.ServletContextEvent
 import java.io.File
 import java.net.URL
-import javax.servlet.ServletContextEvent
 import net.liftweb.common.*
 import org.springframework.core.io.ClassPathResource as CPResource
 import org.springframework.core.io.FileSystemResource as FSResource
@@ -86,7 +86,7 @@ class LiftInitContextListener extends ContextLoaderListener {
             config.getPath
           )
         )
-        throw new javax.servlet.UnavailableException("Configuration file not found: %s".format(config.getPath))
+        throw new jakarta.servlet.UnavailableException("Configuration file not found: %s".format(config.getPath))
       }
   }
 

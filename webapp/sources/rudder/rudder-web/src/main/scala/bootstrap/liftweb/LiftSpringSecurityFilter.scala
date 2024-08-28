@@ -39,20 +39,21 @@ package bootstrap.liftweb
 
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.spring.SecurityFilter
-import javax.servlet.FilterChain
-import javax.servlet.ServletRequest
-import javax.servlet.ServletResponse
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
+import jakarta.servlet.FilterChain
+import jakarta.servlet.ServletRequest
+import jakarta.servlet.ServletResponse
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 import org.springframework.http.HttpHeaders
 import org.springframework.security.web.firewall.RequestRejectedException
+import org.springframework.web.context.WebApplicationContext
 
 /**
  * Our Spring security filter, only redefined to override the way
  * the Spring Application context is accessed
  */
 class LiftSpringSecurityFilter extends SecurityFilter {
-  override def webApplicationContext = LiftSpringApplicationContext.springContext
+  override def webApplicationContext: WebApplicationContext = LiftSpringApplicationContext.springContext
 
   override def doFilter(request: ServletRequest, response: ServletResponse, filterChain: FilterChain): Unit = {
     try {
