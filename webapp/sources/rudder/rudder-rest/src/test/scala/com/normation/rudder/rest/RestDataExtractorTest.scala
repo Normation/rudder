@@ -166,4 +166,17 @@ class RestDataExtractorTest extends Specification {
         (ruleDecoder.decodeJson(json)) must beEqualTo(Right(expected))
     }
   }
+
+  "extract node Classes" >> {
+    val tests = List(
+      ("", JQClasses(None)),
+      ("""{"classes":[]}""", JQClasses(Some(List.empty))),
+      ("""{"classes":["class1"]}""", JQClasses(Some(List("class1"))))
+    )
+
+    Fragments.foreach(tests) {
+      case (json, expected) =>
+        (classesDecoder.decodeJson(json)) must beRight(expected)
+    }
+  }
 }
