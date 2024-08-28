@@ -12,6 +12,7 @@ use anyhow::{anyhow, Context, Result};
 use rudder_cli::custom_panic_hook_ignore_sigpipe;
 #[cfg(not(feature = "embedded-lib"))]
 use tracing::debug;
+use tracing::error;
 
 use crate::cli::{Command, MainArgs};
 
@@ -79,6 +80,10 @@ pub fn run(args: MainArgs) -> Result<()> {
     }
 
     if let Some(cwd) = args.directory {
+        if !cwd.clone().exists() {
+            error!("Directory path passed using the '-d' or '--directory' options must exist.");
+            bail!("Path not found '{}'", cwd.display())
+        }
         // Also support being passed the technique.yml file
         if cwd.ends_with(TECHNIQUE_SRC) {
             set_current_dir(
@@ -87,9 +92,15 @@ pub fn run(args: MainArgs) -> Result<()> {
                 })?,
             )?;
         } else {
-            set_current_dir(&cwd)?;
+            set_current_dir(&cwd).with_context(|| {
+                format!(
+                    "Failed to change the current workdir to '{}'",
+                    cwd.display()
+                )
+            })?;
         }
     }
+    debug!("WORKDIR: '{}'", cwd.clone().canonicalize()?.display());
 
     match args.command {
         Command::Init => action::init(&cwd, None),
@@ -112,7 +123,9 @@ pub fn run(args: MainArgs) -> Result<()> {
         } => {
             let library = check_libraries(library)?;
             let actual_output = output.unwrap_or(target);
-            if actual_output.canonicalize()? == input.canonicalize()?.parent().unwrap() {
+            if actual_output.exists()
+                && actual_output.canonicalize()? == input.canonicalize()?.parent().unwrap()
+            {
                 bail!("Output directory cannot be the same as the input directory");
             }
 
