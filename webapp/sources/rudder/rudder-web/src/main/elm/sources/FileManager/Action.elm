@@ -1,10 +1,11 @@
 module FileManager.Action exposing (..)
 
 import File exposing (File)
-import Json.Decode as Decode exposing (andThen, fail, succeed)
+import Json.Decode as Decode exposing (andThen, bool, fail, maybe, succeed)
 import Json.Decode exposing (Decoder)
+import Http.Detailed
 import Http exposing (Body, emptyBody, expectJson, header, request, stringBody)
-import Json.Decode.Pipeline exposing (required)
+import Json.Decode.Pipeline exposing (required, optional)
 import Json.Encode
 import List exposing ( map)
 import List.Extra
@@ -13,7 +14,7 @@ import String exposing (dropLeft)
 import Url.Builder exposing (string, toQuery, QueryParameter)
 
 import FileManager.Model exposing (..)
-import FileManager.Util exposing (getDirPath, processApiError)
+import FileManager.Util exposing (getDirPath)
 
 get :  String -> Decoder a -> (Result Http.Error a -> msg) -> Cmd msg
 get url decoder handler =
@@ -46,7 +47,7 @@ upload api dir file =
     , headers = [header "X-Requested-With" "XMLHttpRequest"]
     , url = api
     , body = Http.multipartBody [ Http.stringPart "destination" dir, Http.filePart "file" file ]
-    , expect = Http.expectWhatever Uploaded
+    , expect = Http.Detailed.expectJson Uploaded decoderUploadResponse
     , timeout = Nothing
     , tracker = Just "upload"
     }
@@ -201,3 +202,9 @@ handleFileUpdate : Result Http.Error a -> Msg
 handleFileUpdate r = case r of
   Ok _ -> EnvMsg (Refresh (Ok ()))
   Err e -> FileUpdate (FileUpdateHttpError e)
+
+decoderUploadResponse : Decoder UploadResponse
+decoderUploadResponse =
+  succeed UploadResponse
+    |> required "success" bool
+    |> optional "error" (maybe Decode.string) Nothing

@@ -48,6 +48,7 @@ import com.normation.rudder.api.ApiAuthorization as ApiAuthz
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.domain.logger.ApiLogger
 import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.users.AuthenticatedUser
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.RudderAccount
 import com.normation.rudder.users.UserService
@@ -314,5 +315,11 @@ object OldInternalApiAuthz {
 
   def withWriteConfig(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
     withPerm(CurrentUser.checkRights(Configuration.Write) || CurrentUser.checkRights(Configuration.Edit), resp)
+  }
+
+  def withWriteConfig(
+      user: AuthenticatedUser
+  )(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
+    withPerm(user.checkRights(Configuration.Write) || user.checkRights(Configuration.Edit), resp)
   }
 }

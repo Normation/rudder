@@ -1,0 +1,45 @@
+description: List files
+method: POST
+url: /secure/api/resourceExplorer/draft/09533e85-37ae-431e-b9bb-87666aeecf6b/1.0
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+      "action": "list",
+      "path": "/"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "result": []
+    }
+---
+description: Upload files
+method: POST
+url: /secure/api/resourceExplorer/draft/09533e85-37ae-431e-b9bb-87666aeecf6b/1.0
+headers:
+  - "Content-Type: application/x-www-form-urlencoded"
+body:
+params:
+  destination: "/"
+  file: "file content is not detected in yml tests, see SharedAPITest"
+response:
+  code: 500
+  content: >-
+    {
+      "success": false,
+      "error": "Missing file to copy to /"
+    }
+---
+# TODO: Many other actions to test !
+description: Upload file without payload
+method: POST
+url: /secure/api/resourceExplorer/draft/09533e85-37ae-431e-b9bb-87666aeecf6b/1.0
+response:
+  code: 500
+  content: >-
+    {
+      "success": false,
+      "error": "An error occurred while looking into directory <- 'action' is not defined in json data"
+    }

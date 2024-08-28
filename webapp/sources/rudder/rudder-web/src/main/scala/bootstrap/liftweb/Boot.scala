@@ -456,7 +456,8 @@ class Boot extends Loggable {
     LiftRules.ajaxEnd = Full(() => LiftRules.jsArtifacts.hide("ajax-loader").cmd)
     LiftRules.ajaxPostTimeout = 30000
 
-    LiftRules.maxMimeFileSize = 10 * 1024 * 1024
+    // Same as default LiftRules.maxMimeSize
+    LiftRules.maxMimeFileSize = 8 * 1024 * 1024
 
     // We don't want to reload the page
     LiftRules.redirectAsyncOnSessionLoss = false;
