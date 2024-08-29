@@ -557,11 +557,38 @@ response:
             "properties":[],
             "target":"group:a-group-for-root-only",
             "system":false
+          },
+          {
+            "id" : "all-nodes",
+            "displayName" : "All nodes",
+            "description" : "All nodes known by Rudder(including Rudder policy servers)",
+            "category" : "GroupRoot",
+            "nodeIds" : [
+              "0",
+              "1",
+              "10",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9"
+            ],
+            "dynamic" : false,
+            "enabled" : true,
+            "groupClass" : [
+              "group_all_nodes",
+              "group_all_nodes"
+            ],
+            "properties" : [],
+            "target" : "group:all-nodes",
+            "system" : true
           }
         ]
       }
     }
----
 description: Create a node group (JSON)
 method: PUT
 url: /api/latest/groups
@@ -1352,6 +1379,47 @@ response:
       }
     }
 ---
+description: Delete a non-existing group with success
+method: DELETE
+url: /api/latest/groups/a-non-existing-group
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "deleteGroup",
+      "id" : "a-non-existing-group",
+      "result" : "success",
+      "data" : {
+        "groups" : [
+          {
+            "id" : "a-non-existing-group",
+            "displayName" : "",
+            "description" : "",
+            "category" : "",
+            "nodeIds" : [],
+            "dynamic" : false,
+            "enabled" : false,
+            "groupClass" : [],
+            "properties" : [],
+            "target" : "",
+            "system" : false
+          }
+        ]
+      }
+    }
+---
+description: Delete a system group with error
+method: DELETE
+url: /api/latest/groups/all-nodes
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "deleteGroup",
+      "result" : "error",
+      "errorDetails" : "Inconsistency: Could not delete group 'all-nodes', cause is: system groups cannot be deleted."
+    }
+---
 description: Create a node group category (JSON)
 method: PUT
 url: /api/latest/groups/categories
@@ -1478,6 +1546,42 @@ response:
       }
     }
 ---
+description: Delete a group category
+method: DELETE
+url: /api/latest/groups/categories/category-to-be-deleted
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "deleteGroupCategory",
+      "id" : "category-to-be-deleted",
+      "result" : "success",
+      "data" : {
+        "groupCategories" : {
+          "id" : "category-to-be-deleted",
+          "name" : "a category to be deleted",
+          "description" : "no life",
+          "parent" : "GroupRoot",
+          "categories" : [],
+          "groups" : [],
+          "targets" : []
+        }
+      }
+    }
+---
+description: Delete a system group category
+method: DELETE
+url: /api/latest/groups/categories/system-category1
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "deleteGroupCategory",
+      "id" : "system-category1",
+      "result" : "error",
+      "errorDetails" : "Could not delete Group category 'system-category1' <- Could not delete group category 'system-category1', cause is: system categories cannot be deleted."
+    }
+---
 description: Get minimal info on group category category1
 method: GET
 url: /api/latest/groups/categories/category1
@@ -1575,6 +1679,14 @@ response:
               }
             ],
             "targets" : []
+          },
+          {
+            "id" : "system-category1",
+            "name" : "system category 1",
+            "description" : "a system group category",
+            "categories" : [],
+            "groups" : [],
+            "targets" : []
           }
         ],
         "groups" : [
@@ -1595,15 +1707,6 @@ response:
             "dynamic" : false,
             "enabled" : true,
             "target" : "group:6666f5d3-8c61-4d20-88a7-bb947705ba8a"
-          },
-          {
-            "id" : "4444f5d3-8c61-4d20-88a7-bb947705ba8a",
-            "displayName" : "Odd nodes",
-            "description" : "",
-            "category" : "GroupRoot",
-            "dynamic" : false,
-            "enabled" : true,
-            "target" : "group:4444f5d3-8c61-4d20-88a7-bb947705ba8a"
           },
           {
             "id" : "3333f5d3-8c61-4d20-88a7-bb947705ba8a",
@@ -1640,6 +1743,24 @@ response:
             "dynamic" : true,
             "enabled" : true,
             "target" : "group:a-group-for-root-only"
+          },
+          {
+            "id" : "all-nodes",
+            "displayName" : "All nodes",
+            "description" : "All nodes known by Rudder (including Rudder policy servers)",
+            "category" : "GroupRoot",
+            "dynamic" : false,
+            "enabled" : true,
+            "target" : "group:all-nodes"
+          },
+          {
+            "id" : "4444f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName" : "Odd nodes",
+            "description" : "",
+            "category" : "GroupRoot",
+            "dynamic" : false,
+            "enabled" : true,
+            "target" : "group:4444f5d3-8c61-4d20-88a7-bb947705ba8a"
           },
           {
             "id" : "2222f5d3-8c61-4d20-88a7-bb947705ba8a",

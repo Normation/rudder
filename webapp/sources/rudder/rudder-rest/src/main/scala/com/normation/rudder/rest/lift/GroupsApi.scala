@@ -957,11 +957,16 @@ class GroupApiService2(
     val actor             = RestUtils.getActor(req)
 
     NodeGroupId.parse(sid).toIO.flatMap(readGroup.getNodeGroup).toBox match {
-      case Full((group, _)) =>
-        val deleteGroupDiff = DeleteNodeGroupDiff(group)
-        implicit val cc: ChangeContext =
-          ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), None, None, qc.nodePerms)
-        createChangeRequestAndAnswer(sid, deleteGroupDiff, group, Some(group), None, actor, req, DGModAction.Delete, apiVersion)
+      case Full((group, cat)) =>
+        val deletionError = s"Could not delete group '${sid}', cause is: system groups cannot be deleted."
+        if (group.isSystem) {
+          toJsonError(Some(sid), deletionError)
+        } else {
+          val deleteGroupDiff = DeleteNodeGroupDiff(group)
+          implicit val cc: ChangeContext =
+            ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), None, None, qc.nodePerms)
+          createChangeRequestAndAnswer(sid, deleteGroupDiff, group, Some(group), None, actor, req, DGModAction.Delete, apiVersion)
+        }
 
       case eb: EmptyBox =>
         val fail    = eb ?~ (s"Could not find Group ${sid}")
@@ -1028,6 +1033,9 @@ class GroupApiService6(
     for {
       root     <- readGroup.getFullGroupLibrary().toBox
       category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
+      _        <- if (category.isSystem)
+                    Failure(s"Could not delete group category '${id.value}', cause is: system categories cannot be deleted.")
+                  else Full(())
       parent   <- Box(root.parentCategories.get(id)) ?~! s"Cannot find Groupl category '${id.value}' parent"
       _        <- writeGroup.delete(id, modId, actor, reason).toBox
     } yield {
@@ -1241,17 +1249,24 @@ class GroupApiService14(
   }
 
   def deleteGroup(id: NodeGroupId, params: DefaultParams, actor: EventActor)(implicit qc: QueryContext): IOResult[JRGroup] = {
-    readGroup.getNodeGroupOpt(id).flatMap {
-      case Some((group, cat)) =>
-        val deleteGroupDiff = DeleteNodeGroupDiff(group)
-        val change          = NodeGroupChangeRequest(DGModAction.Delete, group, Some(cat), Some(group))
-        implicit val cc: ChangeContext =
-          ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), None, None, qc.nodePerms)
-        createChangeRequest(deleteGroupDiff, change, params, actor).toIO
+    val error = Inconsistency(s"Could not delete group '${id.serialize}', cause is: system groups cannot be deleted.")
+    readGroup
+      .getNodeGroupOpt(id)
+      // error should be thrown when group is system
+      .reject {
+        case Some((group, _)) if group.isSystem => error
+      }
+      .flatMap {
+        case Some((group, cat)) =>
+          val deleteGroupDiff = DeleteNodeGroupDiff(group)
+          val change          = NodeGroupChangeRequest(DGModAction.Delete, group, Some(cat), Some(group))
+          implicit val cc: ChangeContext =
+            ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), None, None, qc.nodePerms)
+          createChangeRequest(deleteGroupDiff, change, params, actor).toIO
 
-      case None =>
-        JRGroup.empty(id.serialize).succeed
-    }
+        case None =>
+          JRGroup.empty(id.serialize).succeed
+      }
   }
 
   def updateGroup(restGroup: JQGroup, params: DefaultParams, actor: EventActor)(implicit qc: QueryContext): IOResult[JRGroup] = {
@@ -1295,6 +1310,9 @@ class GroupApiService14(
     for {
       root     <- readGroup.getFullGroupLibrary().toBox
       category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
+      _        <- if (category.isSystem)
+                    Failure(s"Could not delete group category '${id.value}', cause is: system categories cannot be deleted.")
+                  else Full(())
       parent   <- Box(root.parentCategories.get(id)) ?~! s"Cannot find Groupl category '${id.value}' parent"
       _        <- writeGroup.delete(id, modId, actor, reason).toBox
     } yield {
