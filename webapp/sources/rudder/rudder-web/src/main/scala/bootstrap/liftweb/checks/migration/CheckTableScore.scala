@@ -43,7 +43,6 @@ import com.normation.rudder.db.Doobie
 import com.normation.zio.*
 import doobie.implicits.*
 import zio.interop.catz.*
-import zio.syntax.ToZio
 
 /*
  * During 8.1 cycle, we added a score that is applied to every nodes to give a better understanding
@@ -58,9 +57,15 @@ class CheckTableScore(
 
   def createScoreTables: IOResult[Unit] = {
 
-    val checkType = sql"SELECT 1 FROM pg_type WHERE typname = 'score'"
-    val sqlType   = sql"""CREATE TYPE score AS enum ('A', 'B', 'C', 'D', 'E', 'F', 'X')"""
-    val sql1      = sql"""CREATE TABLE IF NOT EXISTS GlobalScore (
+    val checkType     = sql"SELECT 1 FROM pg_type WHERE typname = 'score'"
+    val sqlType       = sql"""CREATE TYPE score AS enum ('A', 'B', 'C', 'D', 'E', 'F', 'X')"""
+    val sqlTypeUpdate = {
+      sql"""
+        ALTER TYPE score ADD VALUE IF NOT EXISTS 'F';
+        ALTER TYPE score ADD VALUE IF NOT EXISTS 'X';
+      """
+    }
+    val sql1          = sql"""CREATE TABLE IF NOT EXISTS GlobalScore (
       nodeId  text primary key
     , score   score NOT NULL
     , message text NOT NULL CHECK (message <> '')
@@ -77,7 +82,7 @@ class CheckTableScore(
     );"""
 
     transactIOResult(s"Error with 'score' type creation")(xa =>
-      checkType.query[Int].option.transact(xa).flatMap(i => if (i.isDefined) ().succeed else sqlType.update.run.transact(xa))
+      checkType.query[Int].option.transact(xa).flatMap(i => (if (i.isDefined) sqlTypeUpdate else sqlType).update.run.transact(xa))
     ).unit *>
     transactIOResult(s"Error with 'GlobalScore' table creation")(xa => sql1.update.run.transact(xa)).unit *>
     transactIOResult(s"Error with 'ScoreDetails' table creation")(xa => sql2.update.run.transact(xa)).unit
