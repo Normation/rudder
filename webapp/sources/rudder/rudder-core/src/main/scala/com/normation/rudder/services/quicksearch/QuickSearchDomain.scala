@@ -52,9 +52,7 @@ final case class Query(
 
     objectClass: Set[QSObject], // what object to look for ? If empty => result empty
 
-    attributes: Set[QSAttribute], // limit the search on which attributes ?
-
-    limit: Int
+    attributes: Set[QSAttribute] // limit the search on which attributes ?
 )
 
 /**

@@ -105,6 +105,7 @@ import com.normation.rudder.rest.data.Creation.CreationError
 import com.normation.rudder.rest.data.NodeSetup
 import com.normation.rudder.rest.internal.GroupInternalApiService
 import com.normation.rudder.rest.internal.GroupsInternalApi
+import com.normation.rudder.rest.internal.RestQuicksearch
 import com.normation.rudder.rest.internal.RuleInternalApiService
 import com.normation.rudder.rest.internal.RulesInternalApi
 import com.normation.rudder.rest.internal.SharedFilesAPI
@@ -132,6 +133,7 @@ import com.normation.rudder.services.policies.RuleVal
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.queries.DynGroupService
 import com.normation.rudder.services.queries.DynGroupUpdaterServiceImpl
+import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.system.DebugInfoScriptResult
@@ -143,6 +145,7 @@ import com.normation.rudder.services.workflows.DefaultWorkflowLevel
 import com.normation.rudder.services.workflows.NoWorkflowServiceImpl
 import com.normation.rudder.users.*
 import com.normation.rudder.web.model.DirectiveField
+import com.normation.rudder.web.model.LinkUtil
 import com.normation.rudder.web.services.DirectiveEditorServiceImpl
 import com.normation.rudder.web.services.DirectiveFieldFactory
 import com.normation.rudder.web.services.Section2FieldService
@@ -242,6 +245,16 @@ class RestTestSetUp {
 
   val dynGroupUpdaterService =
     new DynGroupUpdaterServiceImpl(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, mockNodes.queryProcessor)
+
+  val quickSearchService = new FullQuickSearchService()( // no LDAP : only directives, etc. are searchable
+    null,
+    null,
+    null,
+    null,
+    mockDirectives.directiveRepo,
+    mockNodes.nodeFactRepo,
+    null // not able to search techniques
+  )
 
   object dynGroupService extends DynGroupService {
     override def getAllDynGroups(): Box[Seq[NodeGroup]] = {
@@ -995,8 +1008,21 @@ class RestTestSetUp {
   }
   val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))
 
+  // RestHelpers
   liftRules.statelessDispatch.append(RestStatus)
   liftRules.statelessDispatch.append(sharedFilesApi)
+  liftRules.statelessDispatch.append(
+    new RestQuicksearch(
+      quickSearchService,
+      userService,
+      new LinkUtil(
+        mockRules.ruleRepo,
+        mockNodeGroups.groupsRepo,
+        mockDirectives.directiveRepo,
+        mockNodes.nodeInfoService
+      )
+    )
+  )
 
   val baseTempDirectory = mockGitRepo.abstractRoot
 
