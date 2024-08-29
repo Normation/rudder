@@ -70,6 +70,10 @@ object CampaignRepositoryImpl {
   }
 }
 
+/*
+ * A default implementation for the campaign repository. Campaigns are stored in a json file
+ * (by default for Rudder in /var/rudder/configuration-repository/campaigns)
+ */
 class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File, campaignEventRepository: CampaignEventRepository)
     extends CampaignRepository {
 
@@ -77,25 +81,27 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File,
     if (path.exists) {
       for {
         jsonFiles          <- IOResult.attempt(path.collectChildren(_.extension.exists(_ == ".json")))
-        campaigns          <- (ZIO.foreach(jsonFiles.toList) { json =>
+        campaigns          <- ZIO.foreach(jsonFiles.toList) { json =>
                                 (for {
                                   c <-
-                                    campaignSerializer.parse(json.contentAsString)
+                                    campaignSerializer
+                                      .parse(json.contentAsString)
+                                      .chainError(s"Error when parsing campaign file at '${json.pathAsString}'")
                                 } yield {
                                   c
-                                }).either.chainError("Error when getting all campaigns from filesystem")
-                              })
+                                }).either
+                              }
         (errs, campaignRes) = campaigns.partitionMap(identity)
         _                  <- ZIO.foreach(errs)(err => CampaignLogger.error(err.msg))
-        filteredCampaign    = Campaign.filter(campaignRes, typeFilter, statusFilter)
       } yield {
-        filteredCampaign
+        Campaign.filter(campaignRes, typeFilter, statusFilter)
       }
     } else {
       Nil.succeed
     }
   }
-  def get(id: CampaignId):                                                             IOResult[Campaign]       = {
+
+  def get(id: CampaignId): IOResult[Campaign] = {
     for {
       content  <- IOResult.attempt(s"error when getting campaign file for campaign with id '${id.value}'") {
                     val file = path / (s"${id.value}.json")
@@ -107,7 +113,8 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File,
       campaign
     }
   }
-  def save(c: Campaign):                                                               IOResult[Campaign]       = {
+
+  def save(c: Campaign): IOResult[Campaign] = {
     for {
       _       <- ZIO.when(c.info.id.value.isBlank)(Inconsistency("A campaign id must be defined and non empty").fail)
       _       <- ZIO.when(c.info.name.isBlank)(Inconsistency("A campaign name must be defined and non empty").fail)
