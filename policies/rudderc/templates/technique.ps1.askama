@@ -79,7 +79,7 @@ function {{ id|technique_name }} {
         )
         Compute-Method-Call @fallBackReportParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }} -ReportId $reportId -DisableReporting:${{ m.disable_reporting }} -MethodCall $failedCall
     } catch {
-        $failedCall = [Rudder.MethodResult]::Error()
+        $failedCall = [Rudder.MethodResult]::Error(
             [Rudder.MethodStatus]::Error,
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',

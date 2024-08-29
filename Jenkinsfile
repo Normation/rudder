@@ -345,7 +345,7 @@ pipeline {
                     agent {
                         dockerfile {
                             filename 'policies/Dockerfile'
-                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${env.RUDDER_VERSION}-nightly"
+                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${env.RUDDER_VERSION}-nightly --build-arg PSANALYZER_VER=1.20.0"
                             // mount cache
                             args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache -v /srv/cache/cargo-vet:/home/jenkins/.cache/cargo-vet'
                         }

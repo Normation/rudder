@@ -6,6 +6,7 @@ COPY ci/user.sh .
 RUN ./user.sh $USER_ID
 
 ARG RUDDER_VER=latest
+ARG PSANALYZER_VERSION=1.20.0
 
 COPY ci/rust.sh .
 RUN ./rust.sh
@@ -21,4 +22,5 @@ apt-get install ./powershell_7.4.0-1.deb_amd64.deb
 apt-get update && apt-get install -y rsync msitools
 # ignore postinst failures
 curl https://repository.rudder.io/tools/rudder-setup | sed 's/rudder agent \(.*\)/rudder agent \1 \| true/g' | bash -s setup-agent $RUDDER_VER
+pwsh -Command Install-Module -Name PSScriptAnalyzer -RequiredVersion $PSANALYZER_VERSION -Scope AllUsers -Confirm:\$false -Force
 EOF
