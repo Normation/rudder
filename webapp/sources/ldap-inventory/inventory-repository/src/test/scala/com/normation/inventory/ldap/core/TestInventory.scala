@@ -454,14 +454,14 @@ class TestInventory extends Specification {
   }
 
   "Softwares" should {
-    "Find 2 software referenced by nodes with the repository" in {
+    "Find 3 software referenced by nodes with the repository" in {
       val softwares = readOnlySoftware.getSoftwaresForAllNodes().testRun
-      softwares.map(_.size) must beRight(2)
+      softwares.map(_.size) must beRight(3)
     }
 
-    "Find 3 software in ou=software with the repository" in {
+    "Find 4 software in ou=software with the repository" in {
       val softwares = readOnlySoftware.getAllSoftwareIds().testRun
-      softwares.map(_.size) must beRight(3)
+      softwares.map(_.size) must beRight(4)
     }
 
     "Purge one unreferenced software with the SoftwareService" in {
