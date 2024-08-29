@@ -18,6 +18,9 @@ test: libs
 	# Parse lib
 	cargo run --quiet --bin rudderc -- --quiet lib -f json --stdout -l target/repos/ncf/tree/30_generic_methods/ -l target/repos/dsc/plugin/src/ncf/30_generic_methods/ >/dev/null
 
+test-powershell:
+	pwsh -command 'Get-ChildItem -Recurse -Path tests/cases/general -Include "*.ps1" | ? { $$_.FullName -inotmatch "target" } | %{ echo $$_.Directory.FullName; Invoke-ScriptAnalyzer -Settings ./PSScriptAnalyzerSettings.psd1 -Path $$_.Directory.FullName -EnableExit -ReportSummary }'
+
 static: libs version
 	cargo auditable build --release --locked --features embedded-lib
 
@@ -44,6 +47,6 @@ agent-windows: libs
 	# Simulate a real agent to get correct reporting
 	echo "1d58a791-7278-4a2c-a10d-048c7b4be2a6" > target/agent-windows/Rudder/etc/uuid.hive
 
-check: lint test test-docs
+check: lint test test-docs test-powershell
 
 .PHONY: docs libs clean

@@ -86,7 +86,7 @@ vars.node.properties.name.key
         )
         Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
     } catch {
-        $failedCall = [Rudder.MethodResult]::Error()
+        $failedCall = [Rudder.MethodResult]::Error(
             [Rudder.MethodStatus]::Error,
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',
