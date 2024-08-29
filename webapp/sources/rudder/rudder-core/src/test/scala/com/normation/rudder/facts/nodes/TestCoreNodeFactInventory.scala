@@ -223,7 +223,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
   sequential
 
   // node7 has the following inventory info:
-  // - one software
+  // - two softwares
   // - one mount point
   // - machine2 (physical)
   // - a bios
@@ -291,8 +291,10 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
           Some(MemorySize(803838361699L))
         )
       ) and
-      (node.software.size === 1) and
-      (node.software.head === SoftwareFact("Software 0", new Version("1.0.0"))) and
+      (node.software.size === 2) and
+      (node.software must containTheSameElementsAs(
+        List(SoftwareFact("Software 0", Some(new Version("1.0.0"))), SoftwareFact("Software 4", None))
+      )) and
       (node7UndefinedElements(node) must contain((x: Chunk[?]) => x must beEmpty).foreach)
 
     }
@@ -317,8 +319,10 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       (node.bios.size === 0) and
       (node.machine === MachineInfo(machineId, VirtualMachineType(VmType.VMWare), None, None)) and // we always get that
       (node.fileSystems.size === 0) and
-      (node.software.size === 1) and
-      (node.software.head === SoftwareFact("Software 0", new Version("1.0.0"))) and
+      (node.software.size === 2) and
+      (node.software must containTheSameElementsAs(
+        List(SoftwareFact("Software 0", Some(new Version("1.0.0"))), SoftwareFact("Software 4", None))
+      )) and
       (node7UndefinedElements(node) must contain((x: Chunk[?]) => x must beEmpty).foreach)
     }
 
@@ -507,7 +511,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
       val updated = node
         .modify(_.software)
-        .using(_.appended(SoftwareFact("s2", new Version("1.2"))))
+        .using(_.appended(SoftwareFact("s2", Some(new Version("1.2")))))
         .modify(_.environmentVariables)
         .using(_.appended(("envVAR", "envVALUE")))
         .modify(_.networks)
@@ -550,7 +554,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
       val updated = node
         .modify(_.software)
-        .using(_.appended(SoftwareFact("s3", new Version("1.3"))))
+        .using(_.appended(SoftwareFact("s3", Some(new Version("1.3")))))
         .modify(_.environmentVariables)
         .using(_.appended(("bad", "bad")))
         .modify(_.networks)
