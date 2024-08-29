@@ -39,6 +39,7 @@ package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
+import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.AuthorizationType
@@ -187,7 +188,9 @@ class NodeGroupForm(
       case Left(target)                     =>
         showFormTarget(target)(html) ++ showRelatedRulesTree(target) ++ showGroupCompliance(target.target)
       case Right(group) if (group.isSystem) =>
-        showFormTarget(GroupTarget(group.id))(html) ++ showRelatedRulesTree(GroupTarget(group.id)) ++ showGroupCompliance(
+        showFormTarget(GroupTarget(group.id), Some(group))(html) ++ showRelatedRulesTree(
+          GroupTarget(group.id)
+        ) ++ showGroupCompliance(
           group.id.uid.value
         )
       case Right(group)                     =>
@@ -343,7 +346,9 @@ class NodeGroupForm(
         } else NodeSeq.Empty
       }
       & "group-delete" #> SHtml.ajaxButton(
-        <span>Delete <i class="fa fa-trash"></i></span>,
+        <span>Delete
+          <i class="fa fa-trash"></i>
+        </span>,
         () => onSubmitDelete(),
         ("class" -> " btn btn-danger btn-icon")
       )
@@ -365,7 +370,7 @@ class NodeGroupForm(
     )
   }
 
-  private def showFormTarget(target: SimpleTarget): CssSel = {
+  private def showFormTarget(target: SimpleTarget, group: Option[NodeGroup] = None): CssSel = {
     ("group-pendingchangerequest" #> NodeSeq.Empty
     & "#group-name" #> <span>{groupNameString}<span class="group-system"></span></span>
     & "group-name" #> groupName.readOnlyValue
@@ -400,7 +405,7 @@ class NodeGroupForm(
     & "group-container" #> groupContainer.readOnlyValue
     & "group-static" #> NodeSeq.Empty
     & "group-showgroup" #> NodeSeq.Empty
-    & "group-clone" #> NodeSeq.Empty
+    & "group-clone" #> group.map(systemGroupCloneButton).getOrElse(NodeSeq.Empty)
     & "group-close" #>
     <button class="btn btn-default" onclick={
       s"""$$('#${htmlIdCategory}').trigger("group-close-detail")"""
@@ -409,7 +414,7 @@ class NodeGroupForm(
       <i class="fa fa-times"></i>
     </button>
     & "group-save" #> NodeSeq.Empty
-    & "group-delete" #> NodeSeq.Empty
+    & "group-delete" #> group.map(systemGroupDeleteButton).getOrElse(NodeSeq.Empty)
     & "group-notifications" #> NodeSeq.Empty
     & "#group-shownodestable *" #> (searchNodeComponent.get match {
       case Full(req) => req.displayNodesTable
@@ -424,6 +429,35 @@ class NodeGroupForm(
       ".groupTargetedComplianceProgressBar",
       loadComplianceBar(false)
     ))
+  }
+  private def systemGroupDeleteButton(group: NodeGroup) = {
+    // cve-groups category has another delete button in the CVE UI
+    if (rootCategory.categoryByGroupId.get(group.id).exists(_.value == "cve-groups")) { // button is a link with a tooltip
+      val href           = s"/secure/security/cveManagement/cve/${StringEscapeUtils.escapeHtml4(group.id.uid.value)}"
+      val tooltipContent =
+        "<h4 class='tags-tooltip-title'>CVE group not deletable from here</h4><div class='tooltip-inner-content'>This group can only be deleted from the CVE details page from where it has been created.</div>"
+      <a class="btn btn-default btn-icon" href={
+        href
+      } data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" data-bs-original-title={
+        tooltipContent
+      }>
+        Delete
+        <i class="fa fa-arrow-right"></i>
+      </a>
+    } else { // delete button not shown for all other system groups
+      NodeSeq.Empty
+    }
+  }
+
+  private def systemGroupCloneButton(group: NodeGroup) = {
+    if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
+      SHtml.ajaxButton(
+        <span>Clone
+            <i class="fa fa-clone"></i>
+          </span>,
+        () => showCloneGroupPopup()
+      ) % ("id" -> "groupCloneButtonId") % ("class" -> " btn btn-default btn-icon")
+    } else NodeSeq.Empty
   }
 
   def showGroupProperties(group: NodeGroup): NodeSeq = {
@@ -719,7 +753,9 @@ class NodeGroupForm(
     nodeGroup match {
       case Left(_)   => Noop
       case Right(ng) =>
-        getDependingGroups(ng.id, onlyStatic = false).either.runNow match {
+        (ZIO.when(ng.isSystem) {
+          Inconsistency(s"Could not delete group '${ng.id.serialize}', cause is: system groups cannot be deleted.").fail
+        } *> getDependingGroups(ng.id, onlyStatic = false).either).runNow match {
           case Left(err)  =>
             onFailure & onFailureCallback()
           case Right(msg) =>

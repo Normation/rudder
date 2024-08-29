@@ -86,6 +86,7 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.archives.ParameterArchiveId
 import com.normation.rudder.domain.archives.RuleArchiveId
 import com.normation.rudder.domain.nodes.*
+import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.AddGlobalParameterDiff
 import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
@@ -2938,6 +2939,22 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
         subCategories = Nil,
         targetInfos = List(groupsTargetInfos.head), // that g0 id:0000f5d3-8c61-4d20-88a7-bb947705ba8
         isSystem = false
+      ),
+      FullNodeGroupCategory(
+        NodeGroupCategoryId("system-category1"),
+        name = "system category 1",
+        description = "a system group category",
+        subCategories = Nil,
+        targetInfos = List.empty,
+        isSystem = true
+      ),
+      FullNodeGroupCategory(
+        NodeGroupCategoryId("category-to-be-deleted"),
+        name = "a category to be deleted",
+        description = "no life",
+        subCategories = Nil,
+        targetInfos = List.empty,
+        isSystem = false
       )
     ),
     List(
@@ -2960,6 +2977,26 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
         description = "Liste de l'ensemble de serveurs cassés à réparer",
         isEnabled = true,
         isSystem = false
+      ),
+      FullRuleTargetInfo(
+        FullGroupTarget(
+          GroupTarget(NodeGroupId(NodeGroupUid("all-nodes"))),
+          NodeGroup(
+            NodeGroupId(NodeGroupUid("all-nodes")),
+            name = "All nodes",
+            description = "All nodes known by Rudder (including Rudder policy servers)",
+            properties = Nil,
+            query = None,
+            isDynamic = false,
+            serverList = MockNodes.nodeIds,
+            _isEnabled = true,
+            isSystem = true
+          )
+        ),
+        name = "System groups",
+        description = "system groups that cannot be deleted",
+        isEnabled = true,
+        isSystem = true
       ),
       FullRuleTargetInfo(
         FullOtherTarget(PolicyServerTarget(NodeId("root"))),

@@ -181,11 +181,13 @@ class NodeGroupCategoryForm(
 
   /**
    * Delete button is only enabled is that category
-   * has zero child
+   * has zero child and is not a system category
    */
   private def deleteButton: NodeSeq = {
 
-    if (parentCategory.isDefined && _nodeGroupCategory.children.isEmpty && _nodeGroupCategory.items.isEmpty) {
+    if (
+      parentCategory.isDefined && !_nodeGroupCategory.isSystem && _nodeGroupCategory.children.isEmpty && _nodeGroupCategory.items.isEmpty
+    ) {
       val popupContent = {
         <div class="modal-dialog">
              <div class="modal-content">
@@ -218,7 +220,7 @@ class NodeGroupCategoryForm(
       )
     } else {
       (<span class="btn btn-danger disabled" data-bs-toggle="tooltip" data-bs-placement="bottom" title={
-        "<div><i class='fa fa-exclamation-triangle text-warning'></i>Only empty and non root categories can be deleted.</div>"
+        "<div><i class='fa fa-exclamation-triangle text-warning'></i>Only empty and user created categories can be deleted.</div>"
       }>Delete</span>) ++ Script(JsRaw("""initBsTooltips();""")) // JsRaw ok, const
     }
   }
