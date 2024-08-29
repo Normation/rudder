@@ -85,7 +85,7 @@ informationTab model details =
       case getRuleCompliance model rule.id of
        Just co ->
           buildComplianceBar defaultComplianceFilter co.complianceDetails
-       Nothing -> text "No report"
+       Nothing -> div [class "text-muted"] [ text "No data available" ]
     rightCol =
       if isNewRule then
         div [class "callout-fade callout-info"]
