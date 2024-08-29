@@ -165,7 +165,7 @@ final case class VolumeGroup(
 
 final case class SoftwareFact(
     name:               String,
-    version:            SVersion,
+    version:            Option[SVersion],
     arch:               Option[String] = None,
     size:               Option[Long] = None,
     from:               Option[String] = None,
@@ -187,7 +187,7 @@ object SoftwareFact {
       SoftwareUuid(""), // here, we don't know the uuid. We need a way to mark that it's not valid and don't risk using a bad one
       Some(sf.name),
       None,
-      Some(sf.version),
+      sf.version,
       sf.publisher.map(SoftwareEditor.apply),
       None,
       sf.licenseName.map(l => License(l, sf.licenseDescription, sf.productId, sf.productKey, sf.oem, sf.expirationDate)),
@@ -442,10 +442,9 @@ object NodeFact {
   implicit class SoftwareToFact(s: Software)                         {
     def toFact: Option[SoftwareFact] = for {
       n <- s.name
-      v <- s.version
     } yield SoftwareFact(
       n,
-      v,
+      s.version,
       None,
       None,
       None,
