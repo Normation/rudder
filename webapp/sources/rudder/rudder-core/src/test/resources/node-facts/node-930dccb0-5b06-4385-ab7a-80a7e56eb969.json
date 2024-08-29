@@ -188,6 +188,10 @@
       "version": "3.118ubuntu5",
       "publisher": "Ubuntu",
       "sourceVersion": "3.118ubuntu5"
+    },
+    {
+      "name": "windows KB12345",
+      "publisher": "Windows"
     }
   ],
   "storages": [
