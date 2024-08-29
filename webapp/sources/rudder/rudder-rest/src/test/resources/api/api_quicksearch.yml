@@ -1,0 +1,140 @@
+description: Search all directives with default limit to 10
+method: GET
+url: /secure/api/quicksearch?value=is:directive dir
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "completeTagsValue",
+      "result" : "success",
+      "data" : [
+        {
+          "header" : {
+            "type" : "Directive",
+            "summary" : "10 found",
+            "numbers" : 10
+          },
+          "items" : [
+            {
+              "name" : "00. Generic Variable Def #2",
+              "type" : "directive",
+              "id" : "gvd-directive2",
+              "value" : "gvd-directive2",
+              "desc" : "ID: gvd-directive2",
+              "url" : "/secure/configurationManager/directiveManagement#{\"directiveId\":\"gvd-directive2\"}"
+            },
+            {
+              "name" : "10. Clock Configuration",
+              "type" : "directive",
+              "id" : "directive1",
+              "value" : "directive1",
+              "desc" : "ID: directive1",
+              "url" : "/secure/configurationManager/directiveManagement#{\"directiveId\":\"directive1\"}"
+            },
+            {
+              "name" : "99. Generic Variable Def #1",
+              "type" : "directive",
+              "id" : "gvd-directive1",
+              "value" : "gvd-directive1",
+              "desc" : "ID: gvd-directive1",
+              "url" : "/secure/configurationManager/directiveManagement#{\"directiveId\":\"gvd-directive1\"}"
+            },
+            {
+              "name" : "directive 16617aa8-1f02-4e4a-87b6-d0bcdfb4019f",
+              "type" : "directive",
+              "id" : "16617aa8-1f02-4e4a-87b6-d0bcdfb4019f",
+              "value" : "directive 16617aa8-1f02-4e4a-87b6-d0bcdfb4019f",
+              "desc" : "Name: directive 16617aa8-1f02-4e4a-87b6-d0bcdfb4019f",
+              "url" : "/secure/configurationManager/directiveManagement#{\"directiveId\":\"16617aa8-1f02-4e4a-87b6-d0bcdfb4019f\"}"
+            },
+            {
+              "name" : "directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9",
+              "type" : "directive",
+              "id" : "16d86a56-93ef-49aa-86b7-0d10102e4ea9",
+              "value" : "directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9",
+              "desc" : "Name: directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9",
+              "url" : "/secure/configurationManager/directiveManagement#{\"directiveId\":\"16d86a56-93ef-49aa-86b7-0d10102e4ea9\"}"
+            },
+            {
+              "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
+              "type" : "directive",
+              "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+              "value" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
+              "desc" : "Name: directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
+              "url" : "/secure/configurationManager/directiveManagement#{\"directiveId\":\"99f4ef91-537b-4e03-97bc-e65b447514cc\"}"
+            },
+            {
+              "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+              "type" : "directive",
+              "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+              "value" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+              "desc" : "Name: directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+              "url" : "/secure/configurationManager/directiveManagement#{\"directiveId\":\"e9a1a909-2490-4fc9-95c3-9d0aa01717c9\"}"
+            },
+            {
+              "name" : "directive-copyGitFile",
+              "type" : "directive",
+              "id" : "directive-copyGitFile",
+              "value" : "directive-copyGitFile",
+              "desc" : "ID: directive-copyGitFile",
+              "url" : "/secure/configurationManager/directiveManagement#{\"directiveId\":\"directive-copyGitFile\"}"
+            },
+            {
+              "name" : "directive2",
+              "type" : "directive",
+              "id" : "directive2",
+              "value" : "directive2",
+              "desc" : "ID: directive2",
+              "url" : "/secure/configurationManager/directiveManagement#{\"directiveId\":\"directive2\"}"
+            },
+            {
+              "name" : "test_import_export_archive_directive",
+              "type" : "directive",
+              "id" : "test_import_export_archive_directive",
+              "value" : "test_import_export_archive_directive",
+              "desc" : "ID: test_import_export_archive_directive",
+              "url" : "/secure/configurationManager/directiveManagement#{\"directiveId\":\"test_import_export_archive_directive\"}"
+            }
+          ]
+        }
+      ]
+    }
+---
+description: Search directives with limit parameter
+method: GET
+url: /secure/api/quicksearch?limit=4&value=is:directive Generic Variable Def
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "completeTagsValue",
+      "result" : "success",
+      "data" : [
+        {
+          "header" : {
+            "type" : "Directive",
+            "summary" : "2 found",
+            "numbers" : 2
+          },
+          "items" : [
+            {
+              "name" : "00. Generic Variable Def #2",
+              "type" : "directive",
+              "id" : "gvd-directive2",
+              "value" : "00. Generic Variable Def #2",
+              "desc" : "Name: 00. Generic Variable Def #2",
+              "url" : "/secure/configurationManager/directiveManagement#{\"directiveId\":\"gvd-directive2\"}"
+            },
+            {
+              "name" : "99. Generic Variable Def #1",
+              "type" : "directive",
+              "id" : "gvd-directive1",
+              "value" : "99. Generic Variable Def #1",
+              "desc" : "Name: 99. Generic Variable Def #1",
+              "url" : "/secure/configurationManager/directiveManagement#{\"directiveId\":\"gvd-directive1\"}"
+            }
+          ]
+        }
+      ]
+    }
+comment: Searching by name change the "value" and "desc" to be the searched completion i.e. full name of the directives

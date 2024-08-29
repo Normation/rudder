@@ -309,6 +309,10 @@ object OldInternalApiAuthz {
   }
 
   // for quick search
+  def withReadUser(user: AuthenticatedUser)(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
+    withPerm(user.checkRights(Configuration.Read) || user.checkRights(Node.Read), resp)
+  }
+
   def withReadUser(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
     withPerm(CurrentUser.checkRights(Configuration.Read) || CurrentUser.checkRights(Node.Read), resp)
   }

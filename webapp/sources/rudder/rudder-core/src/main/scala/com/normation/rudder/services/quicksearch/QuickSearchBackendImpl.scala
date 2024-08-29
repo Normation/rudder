@@ -68,6 +68,7 @@ import java.util.regex.Pattern
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import scala.util.control.NonFatal
+import zio.syntax.*
 
 /**
  * Correctly quote a token
@@ -430,14 +431,13 @@ object QSLdapBackend {
     val returnedAttributes =
       (query.attributes.map(_.ldapName).toSeq ++ Seq(A_OC, A_HOSTNAME, A_NAME, A_UUID, A_PARAMETER_NAME, A_IS_SYSTEM)).distinct
 
-    for {
-      connection <- ldap
-      entries    <- connection.search(rudderDit.BASE_DN, Sub, filter, returnedAttributes*)
-    } yield {
-
-      if (ocFilter.isEmpty || attrFilter.isEmpty) { // nothing to search for in that backend
-        Seq()
-      } else {
+    if (ocFilter.isEmpty || attrFilter.isEmpty) { // nothing to search for in that backend
+      Seq.empty[QuickSearchResult].succeed
+    } else {
+      for {
+        connection <- ldap
+        entries    <- connection.search(rudderDit.BASE_DN, Sub, filter, returnedAttributes*)
+      } yield {
         // transformat LDAPEntries to quicksearch results, keeping only the attribute
         // that matches the query on the result and no system entries but nodes.
         // Also, only keep nodes that exists.

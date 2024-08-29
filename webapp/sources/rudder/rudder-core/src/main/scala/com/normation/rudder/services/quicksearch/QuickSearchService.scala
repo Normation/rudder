@@ -75,8 +75,12 @@ class FullQuickSearchService(implicit
    * containing token.
    * The results are raw: they are not sorted, and may be not unique for
    * a given id (i.e, we can have to answer for the node id "root").
+   * Limit parameter when present is used to take elements in raw results :
+   * the same limit of elements for each type of backend result, contrary to a global limit
+   * (applying the limit takes the first elements of backend results).
+   *
    */
-  def search(token: String)(implicit qc: QueryContext): IOResult[Set[QuickSearchResult]] = {
+  def search(token: String, limit: Option[Int])(implicit qc: QueryContext): IOResult[Set[QuickSearchResult]] = {
     for {
       query   <- token.parse()
       _       <- logger.debug(
@@ -86,10 +90,14 @@ class FullQuickSearchService(implicit
       results <- ZIO.foreach(QSBackend.values)(b => {
                    b.search(query)
                      .tap(results => logger.debug(s"  - [${b}] found ${results.size} results"))
+                     .map(limit match {
+                       case Some(value) => _.take(value)
+                       case None        => identity
+                     })
                      .chainError(s"Error with quicksearch bachend ${b}")
                  })
     } yield {
-      results.toSet.flatten.take(query.limit)
+      results.flatten.toSet
     }
   }
 

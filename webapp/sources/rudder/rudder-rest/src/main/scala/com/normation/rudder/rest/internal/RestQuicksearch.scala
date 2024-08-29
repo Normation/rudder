@@ -54,7 +54,6 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonAST.*
 import net.liftweb.json.JsonDSL.*
-import scala.collection.Seq
 
 /**
  * A class for the Quicksearch rest endpoint.
@@ -82,27 +81,28 @@ class RestQuicksearch(
     linkUtil:    LinkUtil
 ) extends RestHelper with Loggable {
 
-  final val MAX_RES_BY_KIND = 10
+  final private val MAX_RES_BY_KIND = 10
 
   serve {
     case Get("secure" :: "api" :: "quicksearch" :: Nil, req) => {
       implicit val prettify = false
       implicit val action: String = "completeTagsValue"
 
-      OldInternalApiAuthz.withReadUser {
+      OldInternalApiAuthz.withReadUser(userService.getCurrentUser) {
         val token = req.params.get("value") match {
           case Some(value :: Nil) => value
           case None               => ""
           // Should not happen, but for now make one token from it, maybe we should only take head ?
           case Some(values)       => values.mkString("")
         }
-        quicksearch.search(token)(CurrentUser.queryContext).toBox match {
+        val limit = req.params.get("limit").flatMap(_.headOption).flatMap(_.toIntOption)
+        quicksearch.search(token, limit)(CurrentUser.queryContext).toBox match {
           case eb: EmptyBox =>
             val e = eb ?~! s"Error when looking for object containing '${token}'"
             toJsonError(None, e.messageChain)
 
           case Full(results) =>
-            toJsonResponse(None, prepare(results))
+            toJsonResponse(None, prepare(results, limit.getOrElse(MAX_RES_BY_KIND)))
         }
       }
     }
@@ -142,17 +142,19 @@ class RestQuicksearch(
    *   crunching the browser with thousands of answers
    */
 
-  private def prepare(results: Set[QuickSearchResult]): JValue = {
+  private def prepare(results: Set[QuickSearchResult], maxByKind: Int): JValue = {
     val filteredResult = filter(results)
     // group by kind, and build the summary for each
     val map            = filteredResult.groupBy(_.id.tpe).map {
       case (tpe, set) =>
-        // distinct by id:
-        val unique  = set.map(x => (x.id, x)).toMap.values.toSeq.sortBy(_.name)
-        // on take the nth first, sorted by name
-        val summary = ResultTypeSummary(tpe.name, unique.size, unique.size)
+        // distinct by id, sorted by name
+        val unique   = set.map(x => (x.id, x)).toMap.values.toSeq.sortBy(_.name)
+        // take the nth first
+        val returned = unique.take(maxByKind)
 
-        (tpe, (summary, unique))
+        val summary = ResultTypeSummary(tpe.name, unique.size, returned.size)
+
+        (tpe, (summary, returned))
     }
 
     // now, transformed to the wanted results: an array.
