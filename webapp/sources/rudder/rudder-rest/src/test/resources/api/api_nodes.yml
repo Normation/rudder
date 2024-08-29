@@ -765,7 +765,12 @@ response:
                 "nodeKind" : "node"
               }
             ],
-            "properties" : [],
+            "properties" : [
+              {
+                "name" : "simpleString",
+                "value" : "string value"
+              }
+            ],
             "policyMode" : "enforce",
             "timezone" : {
               "name" : "UTC",

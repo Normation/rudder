@@ -78,7 +78,7 @@ import org.apache.commons.text.StringEscapeUtils
  * For example an user wants to update a node property that was set by datasources => error.
  *
  * Providers don't limit inheritance nor overriding. If a global parameter has a `system`
- * provider, it can be overriden by a group or node property.
+ * provider, it can be overridden by a group or node property.
  */
 final case class PropertyProvider(value: String) extends AnyVal
 
@@ -161,6 +161,21 @@ object PropertyProvider {
 }
 
 /*
+ * Visibility of a property.
+ * A property can be hidden or displayed. When hidden, it is skipped from API/UI list of properties.
+ */
+sealed abstract class Visibility(override val entryName: String) extends EnumEntry
+object Visibility                                                extends Enum[Visibility] {
+  case object Hidden    extends Visibility("hidden")
+  case object Displayed extends Visibility("displayed")
+
+  // by default, if that attribute is not explicitly defined, then Visibility has that value:
+  def default: Visibility = Displayed
+
+  override def values: IndexedSeq[Visibility] = findValues
+}
+
+/*
  * Utility class to ease update of generic property values
  */
 final case class PatchProperty(
@@ -168,14 +183,15 @@ final case class PatchProperty(
     value:       Option[ConfigValue] = None,
     provider:    Option[PropertyProvider] = None,
     description: Option[String] = None,
-    inheritMode: Option[InheritMode] = None
+    inheritMode: Option[InheritMode] = None,
+    visibility:  Option[Visibility] = None
 )
 
 /*
  * A property is backed by an HOCON config that MUST looks like:
  * { "name": name, "value": value, "provider": "default", "description":"..." }
  * Any other format will lead to errors.
- * Only the name is mandatory, and it is alway escapped as a string.
+ * Only the name is mandatory, and it is always escaped as a string.
  * Description, if not provided will return an empty string. Anything else than a string will lead to an error.
  * Provider, if not provided will return None
  * This trait provides update methods for generic processing (since we don't have case class compiler support).
@@ -211,12 +227,27 @@ sealed trait GenericProperty[P <: GenericProperty[?]] {
     GenericProperty.getMode(config)
   }
 
+  final def display: Option[Revision] = {
+    if (config.hasPath(REV_ID)) Some(Revision(config.getString(REV_ID)))
+    else None
+  }
+
+  final def visibility: Visibility = {
+    if (config.hasPath(VISIBILITY)) Visibility.withNameOption(config.getString(VISIBILITY)).getOrElse(Visibility.default)
+    else Visibility.default
+  }
+
   final def withName(name:     String):           P = patch(PatchProperty(name = Some(name)))
   final def withValue(value:   ConfigValue):      P = patch(PatchProperty(value = Some(value)))
   final def withValue(value:   String):           P = patch(PatchProperty(value = Some(value.toConfigValue)))
   final def withProvider(p:    PropertyProvider): P = patch(PatchProperty(provider = Some(p)))
   final def withDescription(d: String):           P = patch(PatchProperty(description = Some(d)))
   final def withMode(m:        InheritMode):      P = patch(PatchProperty(inheritMode = Some(m)))
+
+  final def withVisibility(v: Visibility): P = {
+    fromConfig(patchVisibility(config, Some(v)))
+  }
+
   final def patch(p: PatchProperty): P      = {
     def patchOne[A](key: String, update: Option[A], toValue: A => ConfigValue)(c: Config): Config = {
       update match {
@@ -231,7 +262,8 @@ sealed trait GenericProperty[P <: GenericProperty[?]] {
         patchOne[ConfigValue](GenericProperty.VALUE, p.value, identity)(_),
         patchOne[PropertyProvider](GenericProperty.PROVIDER, p.provider, _.value.toConfigValue)(_),
         patchOne[String](GenericProperty.DESCRIPTION, p.description, _.toConfigValue)(_),
-        patchOne[InheritMode](GenericProperty.INHERIT_MODE, p.inheritMode, _.value.toConfigValue)(_)
+        patchOne[InheritMode](GenericProperty.INHERIT_MODE, p.inheritMode, _.value.toConfigValue)(_),
+        (c: Config) => patchVisibility(c, p.visibility)
       ).foldLeft(config) { case (c, patchStep) => patchStep(c) }
     )
   }
@@ -247,6 +279,7 @@ object GenericProperty {
   val PROVIDER     = "provider"
   val DESCRIPTION  = "description"
   val INHERIT_MODE = "inheritMode" // options: inheritance mode
+  val VISIBILITY   = "visibility"  // optional, if missing Visibility.default is used.
 
   /**
    * Property name must matches that pattern
@@ -292,7 +325,7 @@ object GenericProperty {
 
   /**
    * Serialize to hocon format, but just authorize comments (else keep json).
-   * We may relaxe constraints later.
+   * We may relax constraints later.
    * See `serialize` for info about how different value type are serialized.
    */
   def serializeToHocon(value: ConfigValue): String = {
@@ -385,9 +418,19 @@ object GenericProperty {
     }
   }
 
+  /*
+   * Patch visibility on a config, with the semantic that using the default remove
+   * it to avoid cluttering props.
+   */
+  final private def patchVisibility(c: Config, v: Option[Visibility]): Config = v match {
+    case None                               => c
+    case Some(v) if v == Visibility.default => c.withoutPath(GenericProperty.VISIBILITY)
+    case Some(v)                            => c.withValue(GenericProperty.VISIBILITY, v.entryName.toConfigValue)
+  }
+
   /**
    * Merge two properties. newProp values will win.
-   * You should have check before that "name" and "provider" are OK.
+   * You should have checked before that "name" and "provider" are OK.
    */
   def mergeConfig(oldProp: Config, newProp: Config)(implicit defaultInheritMode: Option[InheritMode]): Config = {
     val mode           = ((GenericProperty.getMode(oldProp), GenericProperty.getMode(newProp)) match {
@@ -407,9 +450,9 @@ object GenericProperty {
   }
 
   /**
-   * Find the first non comment char in a (multiline) string. In our convention, an
+   * Find the first non comment char in a (multiline) string. In our convention, a
    * hocon object must starts (excluded comments and whitespaces) by a '{'.
-   * Optionnally return the first char, the original string or the one without options, and option mode.
+   * Optionally return the first char, the original string or the one without options, and option mode.
    */
   @scala.annotation.tailrec
   def firstNonCommentChar(s: String): Option[Char] = {
@@ -445,7 +488,7 @@ object GenericProperty {
    * - object, which are mandatory to start with a '{' and end by a '}'
    *   (in middle, it's whatever hocon authorize: comments, etc. But the structure must be key/value structured)
    * - arrays, which are mandatory to start with a '['
-   * - strings, which must not start by '{' (you must escape it with \ if so). <- check that. Is it indempotent regarding serialisation?
+   * - strings, which must not start by '{' (you must escape it with \ if so). <- check that. Is it idempotent regarding serialisation?
    *   String can't have comments or anything, they are taken "as is".
    */
   def parseValue(value: String): PureResult[ConfigValue] = {
@@ -578,9 +621,10 @@ object GenericProperty {
       mode:        Option[InheritMode],
       provider:    Option[PropertyProvider],
       description: Option[String],
+      visibility:  Option[Visibility],
       options:     ConfigParseOptions = ConfigParseOptions.defaults()
   ): PureResult[Config] = {
-    parseValue(value).map(v => toConfig(name, rev, v, mode, provider, description, options))
+    parseValue(value).map(v => toConfig(name, rev, v, mode, provider, description, visibility, options))
   }
 
   /**
@@ -593,6 +637,7 @@ object GenericProperty {
       mode:        Option[InheritMode],
       provider:    Option[PropertyProvider],
       description: Option[String],
+      visibility:  Option[Visibility],
       options:     ConfigParseOptions = ConfigParseOptions.defaults()
   ): Config = {
     val m = new java.util.HashMap[String, ConfigValue]()
@@ -605,7 +650,7 @@ object GenericProperty {
     description.foreach(x => m.put(DESCRIPTION, ConfigValueFactory.fromAnyRef(x)))
     m.put(VALUE, value)
     mode.foreach(x => m.put(INHERIT_MODE, ConfigValueFactory.fromAnyRef(x.value)))
-    ConfigFactory.parseMap(m)
+    GenericProperty.patchVisibility(ConfigFactory.parseMap(m, options.getOriginDescription), visibility)
   }
 
   def valueToConfig(value: ConfigValue): Config = {
@@ -686,7 +731,7 @@ object GenericProperty {
 /**
  * A node property is a key/value pair + metadata.
  * For now, only metadata available is:
- * - the provider of the property. By default Rudder.
+ * - the provider of the property. By default, Rudder.
  *
  * Only the provider of a property can modify it.
  */
@@ -702,8 +747,8 @@ object NodeProperty {
   /**
    * A builder with the logic to handle the value part.
    *
-   * For compatibity reason, we want to be able to process
-   * empty (JNothing) and primitive types, especially string, specificaly as
+   * For compatibility reason, we want to be able to process
+   * empty (JNothing) and primitive types, especially string, specifically as
    * a JString *but* a string representing an actual JSON should be
    * used as json.
    */
@@ -713,10 +758,10 @@ object NodeProperty {
       mode:     Option[InheritMode],
       provider: Option[PropertyProvider]
   ): PureResult[NodeProperty] = {
-    GenericProperty.parseConfig(name, GitVersion.DEFAULT_REV, value, mode, provider, None).map(c => new NodeProperty(c))
+    GenericProperty.parseConfig(name, GitVersion.DEFAULT_REV, value, mode, provider, None, None).map(c => new NodeProperty(c))
   }
   def apply(name: String, value: ConfigValue, mode: Option[InheritMode], provider: Option[PropertyProvider]): NodeProperty = {
-    new NodeProperty(GenericProperty.toConfig(name, GitVersion.DEFAULT_REV, value, mode, provider, None))
+    new NodeProperty(GenericProperty.toConfig(name, GitVersion.DEFAULT_REV, value, mode, provider, None, None))
   }
 
   def unserializeLdapNodeProperty(json: String): PureResult[NodeProperty] = {
@@ -736,8 +781,8 @@ object GroupProperty {
   /**
    * A builder with the logic to handle the value part.
    *
-   * For compatibity reason, we want to be able to process
-   * empty (JNothing) and primitive types, especially string, specificaly as
+   * For compatibility reason, we want to be able to process
+   * empty (JNothing) and primitive types, especially string, specifically as
    * a JString *but* a string representing an actual JSON should be
    * used as json.
    */
@@ -748,7 +793,7 @@ object GroupProperty {
       mode:     Option[InheritMode],
       provider: Option[PropertyProvider]
   ): PureResult[GroupProperty] = {
-    GenericProperty.parseConfig(name, rev, value, mode, provider, None).map(c => new GroupProperty(c))
+    GenericProperty.parseConfig(name, rev, value, mode, provider, None, None).map(c => new GroupProperty(c))
   }
   def apply(
       name:     String,
@@ -757,7 +802,7 @@ object GroupProperty {
       mode:     Option[InheritMode],
       provider: Option[PropertyProvider]
   ): GroupProperty = {
-    new GroupProperty(GenericProperty.toConfig(name, rev, value, mode, provider, None))
+    new GroupProperty(GenericProperty.toConfig(name, rev, value, mode, provider, None, None))
   }
 
   def unserializeLdapGroupProperty(json: String): PureResult[GroupProperty] = {
@@ -773,7 +818,7 @@ object CompareProperties {
    * - if a key of the map matches a property name,
    *   use the map value for the key as value for
    *   the property
-   * - if the value is the emtpy string, remove
+   * - if the value is the empty string, remove
    *   the property
    *
    * Each time, we have to check the provider of the update to see if it's compatible.
@@ -797,7 +842,7 @@ object CompareProperties {
 
         // update only according to rights - we get a seq of option[either[remove, update]]
         for {
-          updated <- newProps.toList.traverse { newProp =>
+          updated <- newProps.traverse { newProp =>
                        oldPropsMap.get(newProp.name) match {
                          case None          =>
                            if (isDelete(newProp)) {
@@ -842,7 +887,7 @@ object CompareProperties {
  *   - name of the diff provider: group/target name, global parameter
  */
 sealed trait ParentProperty {
-  def displayName: String // human readable information about the parent providing prop
+  def displayName: String // human-readable information about the parent providing prop
   def value:       ConfigValue
 }
 
@@ -977,7 +1022,7 @@ object JsonPropertySerialisation {
 }
 
 /**
- * A Global Parameter is a parameter globally defined, that may be overriden
+ * A Global Parameter is a parameter globally defined, that may be overridden
  */
 final case class GlobalParameter(config: Config) extends GenericProperty[GlobalParameter] {
   override def fromConfig(c: Config): GlobalParameter = GlobalParameter(c)
@@ -988,8 +1033,8 @@ object GlobalParameter {
   /**
    * A builder with the logic to handle the value part.
    *,
-   * For compatibity reason, we want to be able to process
-   * empty (JNothing) and primitive types, especially string, specificaly as
+   * For compatibility reason, we want to be able to process
+   * empty (JNothing) and primitive types, especially string, specifically as
    * a JString *but* a string representing an actual JSON should be
    * used as json.
    */
@@ -1001,7 +1046,7 @@ object GlobalParameter {
       description: String,
       provider:    Option[PropertyProvider]
   ): PureResult[GlobalParameter] = {
-    GenericProperty.parseConfig(name, rev, value, mode, provider, Some(description)).map(c => new GlobalParameter(c))
+    GenericProperty.parseConfig(name, rev, value, mode, provider, Some(description), None).map(c => new GlobalParameter(c))
   }
   def apply(
       name:        String,
@@ -1011,7 +1056,7 @@ object GlobalParameter {
       description: String,
       provider:    Option[PropertyProvider]
   ): GlobalParameter = {
-    new GlobalParameter(GenericProperty.toConfig(name, rev, value, mode, provider, Some(description)))
+    new GlobalParameter(GenericProperty.toConfig(name, rev, value, mode, provider, Some(description), None))
   }
 
 }

@@ -20,6 +20,27 @@ response:
       }
     }
 ---
+description: Get a hidden parameter directly (absent from list)
+method: GET
+url: /api/latest/parameters/hiddenParam
+response:
+  code: 200
+  content: >-
+    {
+      "action":"parameterDetails",
+      "id":"hiddenParam",
+      "result":"success",
+      "data":{
+        "parameters":[
+          {
+            "id":"hiddenParam",
+            "value":"hidden value",
+            "description":"a hidden param"
+          }
+        ]
+      }
+    }
+---
 description: Get a missing parameter
 method: GET
 url: /api/latest/parameters/xxxxxxxx
@@ -33,7 +54,7 @@ response:
       "errorDetails":"Inconsistency: Could not find Parameter xxxxxxxx"
     }
 ---
-description: List parameters
+description: List parameters (hiddenParam is not listed)
 method: GET
 url: /api/latest/parameters
 response:

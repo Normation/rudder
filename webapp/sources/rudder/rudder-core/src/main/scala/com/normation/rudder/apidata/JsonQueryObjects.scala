@@ -63,6 +63,7 @@ import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PatchProperty
 import com.normation.rudder.domain.properties.PropertyProvider
+import com.normation.rudder.domain.properties.Visibility.Hidden
 import com.normation.rudder.domain.queries.NodeReturnType
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
@@ -368,11 +369,17 @@ object JsonQueryObjects {
 
     def updateGroup(group: NodeGroup, queryParser: CmdbQueryParser): PureResult[NodeGroup] = {
       for {
-        q <- query match {
-               case None    => Right(None)
-               case Some(x) => queryParser.parse(x).toPureResult.map(Some(_))
-             }
-        p <- CompareProperties.updateProperties(group.properties, properties)
+        q        <- query match {
+                      case None    => Right(None)
+                      case Some(x) => queryParser.parse(x).toPureResult.map(Some(_))
+                    }
+        // when properties come from REST, we add hidden properties since the user should not change them.
+        // Still, if the user redefines a hidden property by using the same name, we keep the user one.
+        propNames = properties.getOrElse(Nil).map(_.name).toSet
+        p        <- CompareProperties.updateProperties(
+                      group.properties,
+                      properties.map(_ ::: group.properties.filter(p => p.visibility == Hidden && !propNames.contains(p.name)))
+                    )
       } yield {
         group.patchUsing(
           GroupPatch(

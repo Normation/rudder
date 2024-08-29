@@ -379,7 +379,8 @@ class TestMergeGroupProperties extends Specification {
     def beMerged(configValue: ConfigValue, mode: Option[InheritMode], globalProperty: Option[ConfigValue]) = {
       (haveLength[List[NodePropertyHierarchy]](1)) and
       (beEqualTo(
-        GenericProperty.toConfig("foo", GitVersion.DEFAULT_REV, configValue, mode, Some(PropertyProvider("inherited")), None)
+        GenericProperty
+          .toConfig("foo", GitVersion.DEFAULT_REV, configValue, mode, Some(PropertyProvider("inherited")), None, None)
       ) ^^ { (l: List[NodePropertyHierarchy]) => l.head.prop.config }) and
       (beEqualTo(globalProperty match {
         case Some(prop) => List(c, p2, p1).toH3("foo", prop).hierarchy

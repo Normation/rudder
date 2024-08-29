@@ -51,6 +51,9 @@ import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
+import com.normation.rudder.domain.properties.GenericProperty.StringToConfigValue
+import com.normation.rudder.domain.properties.NodeProperty
+import com.normation.rudder.domain.properties.Visibility.Hidden
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.repository.FullNodeGroupCategory
@@ -67,6 +70,7 @@ import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.filepaths
 import com.normation.templates.FillTemplatesService
 import com.normation.zio.*
+import com.softwaremill.quicklens.ModifyPimp
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.util.regex.Pattern
@@ -85,6 +89,7 @@ import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import org.specs2.text.LinesContent
 import scala.collection.MapView
+import zio.Chunk
 import zio.syntax.*
 
 /**
@@ -193,12 +198,16 @@ class TestSystemData {
 
   /// For root, we are using the same system variable and base root node config
   // the root node configuration
-  val baseRootDrafts:     List[BoundPolicyDraft] = List(common(root.id, allNodesInfo_rootOnly)) ++ allRootPolicies
-  val baseRootNodeConfig: NodeConfiguration      = rootNodeConfig.copy(
-    policies = policies(rootNodeConfig.nodeInfo, baseRootDrafts),
-    nodeContext = getSystemVars(factRoot, allNodeFacts_rootOnly, groupLib),
-    parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
-  )
+  val baseRootDrafts:                                 List[BoundPolicyDraft] = List(common(root.id, allNodesInfo_rootOnly)) ++ allRootPolicies
+  def baseRootNodeConfig(props: Chunk[NodeProperty]): NodeConfiguration      = {
+    val fr = factRoot.modify(_.properties).setTo(props)
+    rootNodeConfig.copy(
+      nodeInfo = fr,
+      policies = policies(fr, baseRootDrafts),
+      nodeContext = getSystemVars(fr, MapView(fr.id -> fr), groupLib),
+      parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
+    )
+  }
 
   val cfeNodeConfig: NodeConfiguration = NodeConfigData.node1NodeConfig.copy(
     nodeInfo = factCfe,
@@ -309,12 +318,17 @@ class WriteSystemTechniquesTest extends TechniquesTest {
     }
   }
 
-  "A root node, with no node connected" should {
-    def writeNodeConfigWithUserDirectives(promiseWriter: PolicyWriterService, userDrafts: BoundPolicyDraft*) = {
-      val rnc = baseRootNodeConfig.copy(
-        policies = policies(baseRootNodeConfig.nodeInfo, baseRootDrafts ++ userDrafts), // testing escape of "
+  "A root node, with no node connected and an hidden property" should {
+    def writeNodeConfigWithUserDirectives(
+        promiseWriter: PolicyWriterService,
+        props:         List[NodeProperty],
+        userDrafts:    BoundPolicyDraft*
+    ) = {
+      val cfg = baseRootNodeConfig(Chunk(NodeProperty("hidden", "hiddenValue".toConfigValue, None, None).withVisibility(Hidden)))
+      val rnc = cfg.copy(
+        policies = policies(cfg.nodeInfo, baseRootDrafts ++ userDrafts), // testing escape of "
 
-        parameters = baseRootNodeConfig.parameters + ParameterForConfiguration("ntpserver", """pool."ntp".org""")
+        parameters = cfg.parameters + ParameterForConfiguration("ntpserver", """pool."ntp".org""")
       )
 
       // Actually write the promise files for the root node
@@ -332,7 +346,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
 
     "correctly write the expected policies files with default installation" in {
       val (rootPath, writer) = getPromiseWriter("root-default-install")
-      (writeNodeConfigWithUserDirectives(writer) must beFull) and
+      (writeNodeConfigWithUserDirectives(writer, Nil) must beFull) and
       compareWith(rootPath, "root-default-install")
     }
 
@@ -374,13 +388,13 @@ class WriteSystemTechniquesTest extends TechniquesTest {
       inventory.mkdirs()
       addCrap(inventory.getAbsolutePath + "/test-inventory.pl")
 
-      (writeNodeConfigWithUserDirectives(writer) must beFull) and
+      (writeNodeConfigWithUserDirectives(writer, Nil) must beFull) and
       compareWith(rootPath, "root-default-install")
     }
 
     "correctly write the expected policies files when 2 directives configured" in {
       val (rootPath, writer) = getPromiseWriter("root-with-two-directives")
-      (writeNodeConfigWithUserDirectives(writer, clock, rpm) must beFull) and
+      (writeNodeConfigWithUserDirectives(writer, Nil, clock, rpm) must beFull) and
       compareWith(
         rootPath,
         "root-with-two-directives",
@@ -392,7 +406,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
 
     "correctly write the expected policies files with a multi-policy configured, skipping fileTemplate3 from bundle order" in {
       val (rootPath, writer) = getPromiseWriter("root-with-one-multipolicy")
-      (writeNodeConfigWithUserDirectives(writer, fileTemplate1, fileTemplate2, fileTemplate3) must beFull) and
+      (writeNodeConfigWithUserDirectives(writer, Nil, fileTemplate1, fileTemplate2, fileTemplate3) must beFull) and
       compareWith(
         rootPath,
         "root-with-one-multipolicy",
@@ -699,10 +713,10 @@ class WriteSystemTechniqueWithRevisionTest extends TechniquesTest {
     }
 
     def writeNodeConfigWithUserDirectives(promiseWriter: PolicyWriterService, userDrafts: BoundPolicyDraft*) = {
-      val rnc = baseRootNodeConfig.copy(
-        policies = policies(baseRootNodeConfig.nodeInfo, baseRootDrafts ++ userDrafts), // testing escape of "
+      val rnc = baseRootNodeConfig(Chunk.empty).copy(
+        policies = policies(baseRootNodeConfig(Chunk.empty).nodeInfo, baseRootDrafts ++ userDrafts), // testing escape of "
 
-        parameters = baseRootNodeConfig.parameters + ParameterForConfiguration("ntpserver", """pool."ntp".org""")
+        parameters = baseRootNodeConfig(Chunk.empty).parameters + ParameterForConfiguration("ntpserver", """pool."ntp".org""")
       )
 
       // Actually write the promise files for the root node

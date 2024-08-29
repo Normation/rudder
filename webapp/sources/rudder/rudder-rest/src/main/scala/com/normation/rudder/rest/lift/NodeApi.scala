@@ -67,6 +67,8 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.properties.CompareProperties
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
+import com.normation.rudder.domain.properties.Visibility.Displayed
+import com.normation.rudder.domain.properties.Visibility.Hidden
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
@@ -752,7 +754,8 @@ class NodeApiInheritedProperties(
 ) {
 
   /*
-   * Full list of node properties, including inherited ones for a node
+   * Full list of node properties, including inherited ones for a node but
+   * without hidden property.
    */
   def getNodePropertiesTree(nodeId: NodeId, renderInHtml: RenderInheritedProperties)(implicit
       qc: QueryContext
@@ -760,6 +763,7 @@ class NodeApiInheritedProperties(
     for {
       properties       <- propRepo.getNodeProps(nodeId).notOptional(s"Node with ID '${nodeId.value}' was not found.'")
       propertiesDetails = properties
+                            .filter(_.prop.visibility == Displayed)
                             .groupBy(_.prop.name)
                             .map(props => {
                               val hasConflicts = MergeNodeProperties
@@ -1279,9 +1283,15 @@ class NodeApiService(
     ): CoreNodeFact = {
       import com.softwaremill.quicklens.*
 
+      val propNames: Set[String] = newProperties.map(_.name).toSet
+
       node
         .modify(_.properties)
-        .setTo(Chunk.fromIterable(newProperties))
+        // we need to keep hidden properties, since the user can't know they are here.
+        // Still, if a duplicate key exists, the user provided one wins.
+        .setTo(
+          Chunk.fromIterable(newProperties) ++ node.properties.filter(p => p.visibility == Hidden && !propNames.contains(p.name))
+        )
         .modify(_.rudderSettings.policyMode)
         .using(current => update.policyMode.getOrElse(current))
         .modify(_.rudderSettings.state)

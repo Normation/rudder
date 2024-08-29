@@ -129,7 +129,7 @@ object GroupProp {
         (
           p.name,
           NodePropertyHierarchy(
-            NodeProperty(p.config).withProvider(INHERITANCE_PROVIDER),
+            NodeProperty(p.config).withProvider(INHERITANCE_PROVIDER).withVisibility(p.visibility),
             ParentProperty.Group(g.groupName, g.groupId, p.value) :: Nil
           ) -> globalInheritMode
         )
@@ -450,6 +450,7 @@ object MergeNodeProperties {
                          v.inheritMode,
                          Some(INHERITANCE_PROVIDER),
                          None,
+                         Some(v.visibility),
                          ConfigParseOptions.defaults().setOriginDescription(s"Global parameter '${n}'")
                        )
                        (n, NodePropertyHierarchy(NodeProperty(config), ParentProperty.Global(v.value) :: Nil) -> v.inheritMode)
