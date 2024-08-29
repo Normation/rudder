@@ -970,7 +970,12 @@ limitations under the License.
       <version>${dev-zio-version}</version>
       <scope>test</scope>
     </dependency>
-
+    <dependency>
+      <groupId>dev.zio</groupId>
+      <artifactId>zio-test-junit_${scala-binary-version}</artifactId>
+      <version>${dev-zio-version}</version>
+      <scope>test</scope>
+    </dependency>
     <!--
         included to use slf4j native backend
         If you want to use another backend,
