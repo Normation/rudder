@@ -39,7 +39,6 @@ package com.normation.rudder.domain.reports
 
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.ReportingLogic.*
-import com.normation.cfclerk.domain.WorstReportReportingLogic
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.*
 import com.softwaremill.quicklens.*
@@ -357,7 +356,7 @@ final case class BlockStatusReport(
       // simple weighted compliance, as usual
       case WeightedReport => ComplianceLevel.sum(subComponents.map(_.compliance))
       // worst case bubble up, and its weight can be either 1 or the sum of sub-component weight
-      case worst: WorstReportReportingLogic =>
+      case worst: WorstReportWeightedReportingLogic =>
         val worstReport = ReportType.getWorseType(subComponents.map(_.status))
         val allReports  = getValues(_ => true).flatMap(_.messages.map(_ => worstReport))
         val kept        = worst match {
@@ -365,6 +364,19 @@ final case class BlockStatusReport(
           case WorstReportWeightedSum => allReports
         }
         ComplianceLevel.compute(kept)
+      case WorstReportByPercent =>
+        // Get reports of sub-components to find the worst by percent
+        val allReports = subComponents.map {
+          case b: BlockStatusReport =>
+            // Convert block compliance to percent, take the worst
+            b.getValues(_ => true).flatMap(_.messages.map(m => m.reportType))
+          case o: ValueStatusReport =>
+            // Value has 1 count
+            List(ReportType.getWorseType(o.getValues(_ => true).flatMap(_.messages.map(_ => o.status))))
+        }
+        // Find worst by percent: compute numeric compliance with default precision
+        val worst      = allReports.minBy(ComplianceLevel.compute(_).computePercent().compliance)
+        ComplianceLevel.compute(worst)
       // focus on a given sub-component name (can be present several time, or 0 which leads to N/A)
       case FocusReport(component) => ComplianceLevel.sum(findChildren(component).map(_.compliance))
     }
@@ -384,9 +396,9 @@ final case class BlockStatusReport(
 
   def status: ReportType = {
     reportingLogic match {
-      case WorstReportWeightedOne | WorstReportWeightedSum | WeightedReport =>
+      case WorstReportByPercent | WorstReportWeightedOne | WorstReportWeightedSum | WeightedReport =>
         ReportType.getWorseType(subComponents.map(_.status))
-      case FocusReport(component)                                           =>
+      case FocusReport(component)                                                                  =>
         ReportType.getWorseType(findChildren(component).map(_.status))
     }
   }
@@ -422,8 +434,8 @@ final case class ValueStatusReport(
 /**
  * Merge component status reports.
  * We assign a arbitrary preponderance order for reporting logic mode:
- * WorstReportWeightedOne > WorstReportWeightedSum > WeightedReport > FocusReport
- * In the case of two focus, the focus for first component is kept.
+ * WorstReportWeightedOne > WorstReportWeightedSum > WorstReportByPercent > WeightedReport > FocusReport
+ * In the case of two focus, the focust for first component is kept.
  */
 object ComponentStatusReport extends Loggable {
 
@@ -450,6 +462,7 @@ object ComponentStatusReport extends Loggable {
                 (a, b) match {
                   case (WorstReportWeightedOne, _) | (_, WorstReportWeightedOne) => WorstReportWeightedOne
                   case (WorstReportWeightedSum, _) | (_, WorstReportWeightedSum) => WorstReportWeightedSum
+                  case (WorstReportByPercent, _) | (_, WorstReportByPercent)     => WorstReportByPercent
                   case (WeightedReport, _) | (_, WeightedReport)                 => WeightedReport
                   case (FocusReport(a), _)                                       => FocusReport(a)
                 }

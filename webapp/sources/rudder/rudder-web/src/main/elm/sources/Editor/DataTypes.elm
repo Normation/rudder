@@ -91,7 +91,7 @@ type alias Technique =
 type MethodElem = Call (Maybe CallId) MethodCall | Block (Maybe CallId) MethodBlock
 
 
-type WorstReportKind = WorstReportWeightedOne | WorstReportWeightedSum
+type WorstReportKind = WorstReportWeightedOne | WorstReportWeightedSum | WorstReportByPercent
 
 type ReportingLogic = WorstReport WorstReportKind | WeightedReport | FocusReport String
 
