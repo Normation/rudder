@@ -38,7 +38,7 @@
 package bootstrap.liftweb
 
 import com.normation.NamedZioLogger
-import javax.servlet.UnavailableException
+import jakarta.servlet.UnavailableException
 import org.joda.time.Duration
 import org.joda.time.format.PeriodFormatter
 import org.joda.time.format.PeriodFormatterBuilder

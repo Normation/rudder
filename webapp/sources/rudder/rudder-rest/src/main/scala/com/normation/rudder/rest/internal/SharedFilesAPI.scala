@@ -67,7 +67,7 @@ import net.liftweb.json.JsonAST.JNull
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonAST.JValue
-import org.apache.commons.fileupload.FileUploadBase.SizeLimitExceededException
+import org.apache.commons.fileupload2.core.FileUploadSizeException
 import org.joda.time.DateTime
 import org.joda.time.Instant
 import scala.jdk.CollectionConverters.*
@@ -482,9 +482,9 @@ class SharedFilesAPI(
         }.recover {
           // Lift uses apache file upload under the hood and this file exception can happen because of LiftRules.maxMimeSize.
           // The value should be approximately matching MAX_FILE_SIZE, if it is not the case then change either of them.
-          case ex: SizeLimitExceededException => {
+          case ex: FileUploadSizeException => {
             // This is rounded to MB which is the order of magnitude of file upload limit
-            val allowedSizeMb: Long = ex.getPermittedSize / 1024 / 1024
+            val allowedSizeMb: Long = ex.getPermitted / 1024 / 1024
             errorResponse(s"File exceeds the maximum upload size of ${allowedSizeMb}MB", code = 413)
           }
         }

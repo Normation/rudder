@@ -43,7 +43,7 @@ import com.normation.box.*
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.repository.jdbc.RudderDatasourceProvider
-import javax.servlet.UnavailableException
+import jakarta.servlet.UnavailableException
 import net.liftweb.common.*
 
 /**

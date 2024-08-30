@@ -46,11 +46,11 @@ import com.normation.rudder.users.UserRepository
 import com.normation.rudder.users.UserStatus
 import com.normation.rudder.users.ValidatedUserList
 import com.normation.zio.UnsafeRun
+import jakarta.servlet.FilterChain
+import jakarta.servlet.ServletException
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 import java.io.IOException
-import javax.servlet.FilterChain
-import javax.servlet.ServletException
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.filter.OncePerRequestFilter
 import zio.*
@@ -58,7 +58,7 @@ import zio.syntax.*
 
 /**
  * A filter that invalidates sessions of non-active users.
- * It has a local cache of user statuses that are updated from the actual database values, 
+ * It has a local cache of user statuses that are updated from the actual database values,
  * only when the users file is reloaded (using the RudderAuthorizationFileReloadCallback).
  */
 class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailListProvider: FileUserDetailListProvider)

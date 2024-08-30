@@ -46,7 +46,7 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpectedReportAction
 import com.normation.rudder.services.reports.CacheExpectedReportAction.InsertNodeInCache
 import com.normation.rudder.services.reports.ComputeNodeStatusReportService
-import javax.servlet.UnavailableException
+import jakarta.servlet.UnavailableException
 import net.liftweb.common.EmptyBox
 
 /**

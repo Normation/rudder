@@ -307,7 +307,7 @@ object RudderProperties {
         ApplicationLogger.error(
           s"Can not find configuration file specified by JVM property '${JVM_CONFIG_FILE_KEY}': '${config.getPath}' ; abort"
         )
-        throw new javax.servlet.UnavailableException(s"Configuration file not found: ${config.getPath}")
+        throw new jakarta.servlet.UnavailableException(s"Configuration file not found: ${config.getPath}")
       }
   }
 
@@ -1522,7 +1522,7 @@ object RudderConfigInit {
         case Left(err)       =>
           ApplicationLogger.error(err.fullMsg)
           // make the application not available
-          throw new javax.servlet.UnavailableException(s"Error when trying to parse Rudder users file, aborting.")
+          throw new jakarta.servlet.UnavailableException(s"Error when trying to parse Rudder users file, aborting.")
       }
     }
 

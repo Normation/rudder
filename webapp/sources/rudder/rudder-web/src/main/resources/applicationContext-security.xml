@@ -75,17 +75,17 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         <session-management session-fixation-protection="migrateSession" />
     </http>
 
-    <http use-expressions="true" disable-url-rewriting="true" name="mainHttpSecurityFilters">
+    <http use-expressions="true" disable-url-rewriting="true" name="mainHttpSecurityFilters" security-context-explicit-save="false">
         <headers>
             <xss-protection disabled="true"/>
             <frame-options disabled="true"/>
         </headers>
 
         <csrf disabled="true"/>
-        <session-management session-fixation-protection="migrateSession">
+        <session-management session-fixation-protection="migrateSession" authentication-strategy-explicit-invocation="false">
           <!--
             One can control the maximum concurrent session to have in parallel.
-            Unfortunatly, it seems to be unbeliebely hard to make it a configurable property.
+            Unfortunately, it seems to be unbelievably hard to make it a configurable property.
             One can add the control if wanted by uncommenting the line below.
           -->
           <!--

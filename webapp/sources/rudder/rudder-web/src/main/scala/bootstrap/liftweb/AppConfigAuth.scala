@@ -52,14 +52,14 @@ import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigException
+import jakarta.servlet.Filter
+import jakarta.servlet.FilterChain
+import jakarta.servlet.FilterConfig
+import jakarta.servlet.ServletRequest
+import jakarta.servlet.ServletResponse
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 import java.util.Collection
-import javax.servlet.Filter
-import javax.servlet.FilterChain
-import javax.servlet.FilterConfig
-import javax.servlet.ServletRequest
-import javax.servlet.ServletResponse
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
 import net.liftweb.common.*
 import org.joda.time.DateTime
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer
@@ -674,7 +674,7 @@ class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
 
 /**
  * Our rest filter, we just look for X-API-Token and
- * ckeck if a token exists with that value.
+ * check if a token exists with that value.
  * For Account with type "user", we need to also check
  * for the user and update REST token ACL with that knowledge
  */
@@ -684,8 +684,8 @@ class RestAuthenticationFilter(
     systemApiAcl:       ApiAuthorization,
     apiTokenHeaderName: String = "X-API-Token"
 ) extends Filter with Loggable {
-  def destroy(): Unit = {}
-  def init(config: FilterConfig): Unit = {}
+  override def destroy(): Unit = {}
+  override def init(config: FilterConfig): Unit = {}
 
   private val not_authenticated_api = List(
     "/api/status"
