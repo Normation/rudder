@@ -93,7 +93,7 @@ object DateFormaterService {
    * Format a date for serialisation (json, database, etc). We use
    * ISO 8601 (rfc 3339) for that (without millis)
    */
-  def serialize(datetime: DateTime): String = datetime.toString(ISODateTimeFormat.dateTimeNoMillis)
+  def serialize(datetime: DateTime): String = datetime.toString(ISODateTimeFormat.dateTimeNoMillis.withZoneUTC())
 
   def serializeZDT(datetime: ZonedDateTime): String = datetime.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 

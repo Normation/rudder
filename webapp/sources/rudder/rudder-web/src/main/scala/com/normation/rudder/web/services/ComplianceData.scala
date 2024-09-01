@@ -404,7 +404,7 @@ object ComplianceData extends Loggable {
     val overridesByRules = if (addOverriden) {
       report.overrides.groupBy(_.policy.ruleId)
     } else {
-      Map[RuleId, List[OverridenPolicy]]()
+      Map[RuleId, List[OverriddenPolicy]]()
     }
 
     // we can have rules with only overridden reports, so we just prepend them. When
@@ -444,7 +444,7 @@ object ComplianceData extends Loggable {
   }
 
   def getOverridenDirectiveDetails(
-      overrides:    List[OverridenPolicy],
+      overrides:    List[OverriddenPolicy],
       directiveLib: FullActiveTechniqueCategory,
       rules:        Seq[Rule],
       onRuleScreen: Option[Rule] // if we are on a rule, we want to adapt message
@@ -453,8 +453,8 @@ object ComplianceData extends Loggable {
       // we don't want to write an overriden directive several time for the same overriding rule/directive.
       over                            <- overrides
       (overridenTech, overridenDir)   <- directiveLib.allDirectives.get(over.policy.directiveId)
-      overridingRule                  <- rules.find(_.id == over.overridenBy.ruleId)
-      (overridingTech, overridingDir) <- directiveLib.allDirectives.get(over.overridenBy.directiveId)
+      overridingRule                  <- rules.find(_.id == over.overriddenBy.ruleId)
+      (overridingTech, overridingDir) <- directiveLib.allDirectives.get(over.overriddenBy.directiveId)
     } yield {
       val overridenTechName    =
         overridenTech.techniques.get(overridenDir.techniqueVersion).map(_.name).getOrElse("Unknown technique")

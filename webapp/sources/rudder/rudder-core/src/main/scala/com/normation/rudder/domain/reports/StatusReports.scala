@@ -41,15 +41,13 @@ import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.ReportingLogic.*
 import com.normation.cfclerk.domain.WorstReportReportingLogic
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.PolicyTypeName
-import com.normation.rudder.domain.policies.PolicyTypes
-import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.*
 import com.softwaremill.quicklens.*
 import enumeratum.Enum
 import enumeratum.EnumEntry
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
+import zio.Chunk
 
 /**
  * That file contains all the kind of status reports for:
@@ -77,7 +75,7 @@ sealed trait StatusReport {
 final class RuleStatusReport private (
     val forRule:   RuleId,
     val report:    AggregatedStatusReport,
-    val overrides: List[OverridenPolicy]
+    val overrides: List[OverriddenPolicy]
 ) extends StatusReport {
   lazy val compliance = report.compliance
   lazy val byNodes: Map[NodeId, AggregatedStatusReport] =
@@ -85,7 +83,7 @@ final class RuleStatusReport private (
 }
 
 object RuleStatusReport {
-  def apply(ruleId: RuleId, reports: Iterable[RuleNodeStatusReport], overrides: List[OverridenPolicy]): RuleStatusReport = {
+  def apply(ruleId: RuleId, reports: Iterable[RuleNodeStatusReport], overrides: List[OverriddenPolicy]): RuleStatusReport = {
     new RuleStatusReport(ruleId, AggregatedStatusReport(reports.toSet.filter(_.ruleId == ruleId)), overrides)
   }
 }
@@ -103,7 +101,7 @@ object RunComplianceInfo {
     final case class AgentAbortMessage(cause: String, message: String) extends PolicyModeError
   }
 
-  object OK                                                                 extends RunComplianceInfo
+  case object OK                                                            extends RunComplianceInfo
   final case class PolicyModeInconsistency(problems: List[PolicyModeError]) extends RunComplianceInfo
 }
 
@@ -140,7 +138,7 @@ final case class NodeStatusReport(
     nodeId:     NodeId,
     runInfo:    RunAnalysis,
     statusInfo: RunComplianceInfo,
-    overrides:  List[OverridenPolicy],
+    overrides:  List[OverriddenPolicy],
     reports:    Map[PolicyTypeName, AggregatedStatusReport]
 ) extends StatusReport {
   // for compat reason, node compliance is the sum of all aspects
@@ -627,5 +625,333 @@ object NodeStatusReportSerialization {
 
     def toJson:        String = prettyRender(toJValue)
     def toCompactJson: String = compactRender(toJValue)
+  }
+}
+
+/*
+ * NodeStatusReport to persist into PostgreSQL.
+ * The structure is a leaner copy of NodeStatusReport easily mappable to/from JSON and to/from the original with chimney
+ *
+ * Since the whole goal is to make the serialization/deserialisation as simple as possible, we won't try to change the
+ * json layout (only name to save space).
+ * Still, since that will be saved in base, we will need unit test to enforce that we don't introduce unwanted non
+ * backward compatible changes: we must be able to always read previous version (even if the rewrite is different).
+ *
+ * For name, we get first letter while trying:
+ * - to have unique identifier for each kind of things. It simplifies debugging and future changes
+ * - to append a 's' for collections
+ * - xxxxId becomes xid, easier when debugging to identify an id.
+ */
+object JsonPostgresqlSerialization {
+
+  import com.normation.cfclerk.domain.TechniqueVersion
+  import com.normation.rudder.apidata.implicits.*
+  import com.normation.rudder.domain.reports.ExpectedReportsSerialisation.*
+  import com.normation.rudder.domain.reports.RunComplianceInfo.PolicyModeError
+  import com.normation.rudder.services.policies.PolicyId
+  import com.normation.utils.DateFormaterService.json.*
+  import io.scalaland.chimney.*
+  import io.scalaland.chimney.syntax.*
+  import zio.json.*
+
+  implicit lazy val codecNodeConfigId:      JsonCodec[NodeConfigId]      = JsonCodec.string.transform(NodeConfigId.apply, _.value)
+  implicit lazy val codecReportType:        JsonCodec[ReportType]        = DeriveJsonCodec.gen
+  implicit lazy val encoderReportingLogic:  JsonEncoder[ReportingLogic]  = JsonEncoder.string.contramap(_.value)
+  implicit lazy val decoderReportingLogic:  JsonDecoder[ReportingLogic]  =
+    JsonDecoder.string.mapOrFail(s => ReportingLogic.parse(s).left.map(_.fullMsg))
+  implicit lazy val codecRunComplianceInfo: JsonCodec[RunComplianceInfo] = DeriveJsonCodec.gen
+  implicit lazy val codecPolicyModeError:   JsonCodec[PolicyModeError]   = DeriveJsonCodec.gen
+  implicit lazy val codecPolicyId:          JsonCodec[PolicyId]          = new JsonCodec(
+    JsonEncoder.chunk[String].contramap(x => Chunk(x.ruleId.serialize, x.directiveId.serialize, x.techniqueVersion.serialize)),
+    JsonDecoder.chunk[String].mapOrFail {
+      case Chunk(a, b, c) =>
+        for {
+          r <- RuleId.parse(a)
+          d <- DirectiveId.parse(b)
+          t <- TechniqueVersion.parse(c)
+        } yield PolicyId(r, d, t)
+      case x              => Left(s"Can not deserialize '${x}' into a policy ID.")
+    }
+  )
+  implicit lazy val codecOverriddenPolicy:  JsonCodec[OverriddenPolicy]  = DeriveJsonCodec.gen
+  implicit lazy val codecTechniqueVersion:  JsonCodec[TechniqueVersion]  = new JsonCodec(
+    JsonEncoder.string.contramap(_.serialize),
+    JsonDecoder.string.mapOrFail(TechniqueVersion.parse)
+  )
+
+  final case class JRunAnalysis(
+      @jsonField("k")
+      kind:                RunAnalysisKind,
+      @jsonField("ecid")
+      expectedConfigId:    Option[NodeConfigId],
+      @jsonField("ecs")
+      expectedConfigStart: Option[DateTime],
+      @jsonField("exp")
+      expirationDateTime:  Option[DateTime],
+      @jsonField("expSince")
+      expiredSince:        Option[DateTime],
+      @jsonField("rt")
+      lastRunDateTime:     Option[DateTime],
+      @jsonField("rid")
+      lastRunConfigId:     Option[NodeConfigId],
+      @jsonField("rexp")
+      lastRunExpiration:   Option[DateTime]
+  ) {
+    def to: RunAnalysis = this.transformInto[RunAnalysis]
+  }
+
+  object JRunAnalysis {
+    implicit lazy val i: Iso[JRunAnalysis, RunAnalysis] = Iso.derive
+
+    implicit lazy val encoderRunAnalysisKind: JsonEncoder[RunAnalysisKind] = JsonEncoder.string.contramap(_.entryName)
+    implicit lazy val decoderRunAnalysisKind: JsonDecoder[RunAnalysisKind] =
+      JsonDecoder.string.mapOrFail(x => RunAnalysisKind.withNameEither(x).left.map(_.getMessage()))
+
+    implicit lazy val codecRunAnalysis: JsonCodec[JRunAnalysis] = DeriveJsonCodec.gen
+
+    def from(r: RunAnalysis): JRunAnalysis = {
+      r.transformInto[JRunAnalysis]
+    }
+  }
+
+  @jsonHint("nsr")
+  final case class JNodeStatusReport(
+      @jsonField("nid")
+      nodeId:     NodeId,
+      @jsonField("ri")
+      runInfo:    JRunAnalysis,
+      @jsonField("si")
+      statusInfo: RunComplianceInfo,
+      @jsonField("os")
+      overrides:  List[OverriddenPolicy],
+      @jsonField("rs")
+      reports:    Seq[(PolicyTypeName, JAggregatedStatusReport)] // a seq so that we can enforce sorting
+  ) {
+    def to: NodeStatusReport = this.transformInto[NodeStatusReport]
+  }
+
+  object JNodeStatusReport {
+    implicit val a: Transformer[JNodeStatusReport, NodeStatusReport] = {
+      Transformer
+        .define[JNodeStatusReport, NodeStatusReport]
+        .withFieldComputed(_.reports, _.reports.map { case (a, b) => (a, b.transformInto[AggregatedStatusReport]) }.toMap)
+        .buildTransformer
+    }
+    implicit val b: Transformer[NodeStatusReport, JNodeStatusReport] = {
+      Transformer
+        .define[NodeStatusReport, JNodeStatusReport]
+        .withFieldComputed(_.reports, _.reports.map { case (a, b) => (a, b.transformInto[JAggregatedStatusReport]) }.toSeq)
+        .buildTransformer
+    }
+
+    implicit val codecJNodeStatusReport: JsonCodec[JNodeStatusReport] = DeriveJsonCodec.gen
+
+    def from(r: NodeStatusReport): JNodeStatusReport = {
+      r.transformInto[JNodeStatusReport]
+    }
+  }
+
+  /**
+ * build an aggregated view of a set of reports,
+ * allowing to access compound compliance for rules,
+ * directives and so on
+ */
+  @jsonHint("asr")
+  final case class JAggregatedStatusReport(
+      @jsonField("rnsrs")
+      val reports: Seq[JRuleNodeStatusReport]
+  ) {
+    def to: AggregatedStatusReport = this.transformInto[AggregatedStatusReport]
+  }
+
+  object JAggregatedStatusReport {
+    implicit val a: Transformer[JAggregatedStatusReport, AggregatedStatusReport] = (x: JAggregatedStatusReport) =>
+      AggregatedStatusReport(x.reports.map(_.transformInto[RuleNodeStatusReport]))
+
+    implicit val b: Transformer[AggregatedStatusReport, JAggregatedStatusReport] = {
+      Transformer
+        .define[AggregatedStatusReport, JAggregatedStatusReport]
+        .withFieldComputed(_.reports, _.reports.toSeq.map(_.transformInto[JRuleNodeStatusReport]).sortBy(_.ruleId.uid.value))
+        .buildTransformer
+    }
+
+    implicit val codecJAggregatedStatusReport: JsonCodec[JAggregatedStatusReport] = DeriveJsonCodec.gen
+
+    def from(r: RuleNodeStatusReport): JRuleNodeStatusReport = {
+      r.transformInto[JRuleNodeStatusReport]
+    }
+  }
+
+  @jsonHint("rnsr")
+  final case class JRuleNodeStatusReport(
+      @jsonField("nid")
+      nodeId:         NodeId,
+      @jsonField("rid")
+      ruleId:         RuleId,
+      @jsonField("ct")
+      complianceTag:  PolicyTypeName,
+      @jsonField("art")
+      agentRunTime:   Option[DateTime],
+      @jsonField("cid")
+      configId:       Option[NodeConfigId],
+      @jsonField("exp")
+      expirationDate: DateTime,
+      @jsonField("dsrs")
+      directives:     Seq[JDirectiveStatusReport]
+  ) {
+    def to: RuleNodeStatusReport = this.transformInto[RuleNodeStatusReport]
+  }
+
+  object JRuleNodeStatusReport {
+    implicit val a: Transformer[JRuleNodeStatusReport, RuleNodeStatusReport] = {
+      Transformer
+        .define[JRuleNodeStatusReport, RuleNodeStatusReport]
+        .withFieldComputed(_.directives, _.directives.map(d => (d.directiveId, d.transformInto[DirectiveStatusReport])).toMap)
+        .buildTransformer
+    }
+    implicit val b: Transformer[RuleNodeStatusReport, JRuleNodeStatusReport] = {
+      Transformer
+        .define[RuleNodeStatusReport, JRuleNodeStatusReport]
+        .withFieldComputed(
+          _.directives,
+          _.directives.map { case (_, d) => d.transformInto[JDirectiveStatusReport] }.toSeq.sortBy(_.directiveId.uid.value)
+        )
+        .buildTransformer
+    }
+
+    implicit val codecJRuleNodeStatusReport: JsonCodec[JRuleNodeStatusReport] = DeriveJsonCodec.gen
+
+    def from(r: RuleNodeStatusReport): JRuleNodeStatusReport = {
+      r.transformInto[JRuleNodeStatusReport]
+    }
+  }
+
+  @jsonHint("dsr")
+  final case class JDirectiveStatusReport(
+      @jsonField("did")
+      directiveId: DirectiveId,
+      @jsonField("pts")
+      policyTypes: PolicyTypes,
+      @jsonField("csrs")
+      components:  List[JComponentStatusReport]
+  ) {
+    def to: DirectiveStatusReport = this.transformInto[DirectiveStatusReport]
+  }
+
+  object JDirectiveStatusReport {
+    implicit lazy val i: Iso[JDirectiveStatusReport, DirectiveStatusReport] = Iso.derive
+
+    implicit val codecJDirectiveStatusReport: JsonCodec[JDirectiveStatusReport] = DeriveJsonCodec.gen
+
+    def from(r: DirectiveStatusReport): JDirectiveStatusReport = {
+      r.transformInto[JDirectiveStatusReport]
+    }
+  }
+
+  sealed trait JComponentStatusReport {
+    def componentName: String
+    def to:            ComponentStatusReport = this.transformInto[ComponentStatusReport]
+  }
+
+  object JComponentStatusReport {
+    // can't use Iso and need to teach chimey about recursive sealed coproduct
+    implicit lazy val a1: Transformer[JBlockStatusReport, BlockStatusReport]         = Transformer.derive
+    implicit lazy val b1: Transformer[JValueStatusReport, ValueStatusReport]         = Transformer.derive
+    implicit lazy val c1: Transformer[JComponentStatusReport, ComponentStatusReport] = {
+      case x: JBlockStatusReport => x.transformInto[BlockStatusReport]
+      case x: JValueStatusReport => x.transformInto[ValueStatusReport]
+    }
+    implicit lazy val a2: Transformer[BlockStatusReport, JBlockStatusReport]         = Transformer.derive
+    implicit lazy val b2: Transformer[ValueStatusReport, JValueStatusReport]         = Transformer.derive
+    implicit lazy val c2: Transformer[ComponentStatusReport, JComponentStatusReport] = Transformer
+      .define[ComponentStatusReport, JComponentStatusReport]
+      .withSealedSubtypeHandled[BlockStatusReport](_.transformInto[JBlockStatusReport])
+      .withSealedSubtypeHandled[ValueStatusReport](_.transformInto[JValueStatusReport])
+      .buildTransformer
+
+    implicit lazy val codecJComponentStatusReport: JsonCodec[JComponentStatusReport] = DeriveJsonCodec.gen
+    implicit lazy val codecJBlockStatusReport:     JsonCodec[JBlockStatusReport]     = DeriveJsonCodec.gen
+    implicit lazy val codecJValueStatusReport:     JsonCodec[JValueStatusReport]     = DeriveJsonCodec.gen
+
+    def from(r: ComponentStatusReport): JComponentStatusReport = {
+      r.transformInto[JComponentStatusReport]
+    }
+
+    def from(r: BlockStatusReport): JBlockStatusReport = {
+      r.transformInto[JBlockStatusReport]
+    }
+
+    def from(r: ValueStatusReport): JValueStatusReport = {
+      r.transformInto[JValueStatusReport]
+    }
+
+    @jsonHint("bsr")
+    final case class JBlockStatusReport(
+        @jsonField("cn")
+        componentName:  String,
+        @jsonField("rl")
+        reportingLogic: ReportingLogic,
+        @jsonField("csrs")
+        subComponents:  List[JComponentStatusReport]
+    ) extends JComponentStatusReport {
+      override def to: ComponentStatusReport = this.transformInto[BlockStatusReport]
+    }
+
+    @jsonHint("vsr")
+    final case class JValueStatusReport(
+        @jsonField("cn")
+        componentName:         String,
+        @jsonField("ecn")
+        expectedComponentName: String,
+        @jsonField("cvsrs")
+        componentValues:       List[JComponentValueStatusReport]
+    ) extends JComponentStatusReport {
+      override def to: ComponentStatusReport = this.transformInto[ValueStatusReport]
+    }
+  }
+
+  @jsonHint("cvsr")
+  final case class JComponentValueStatusReport(
+      @jsonField("cn")
+      componentValue:         String,
+      @jsonField("ecn")
+      expectedComponentValue: String,
+      @jsonField("rtid")
+      reportId:               String,
+      @jsonField("msrs")
+      messages:               List[JMessageStatusReport]
+  ) {
+    def to: ComponentValueStatusReport = this.transformInto[ComponentValueStatusReport]
+  }
+
+  object JComponentValueStatusReport {
+    implicit lazy val i: Iso[JComponentValueStatusReport, ComponentValueStatusReport] = Iso.derive
+
+    implicit val codecJComponentValueStatusReport: JsonCodec[JComponentValueStatusReport] = DeriveJsonCodec.gen
+
+    def from(r: ComponentValueStatusReport): JComponentValueStatusReport = {
+      r.transformInto[JComponentValueStatusReport]
+    }
+  }
+
+  @jsonHint("msr")
+  final case class JMessageStatusReport(
+      @jsonField("rt")
+      reportType: ReportType,
+      @jsonField("m")
+      message:    Option[String]
+  ) {
+    def to: MessageStatusReport = this.transformInto[MessageStatusReport]
+  }
+
+  object JMessageStatusReport {
+    implicit val i: Iso[JMessageStatusReport, MessageStatusReport] = Iso.derive
+
+    implicit val codecJMessageStatusReport: JsonCodec[JMessageStatusReport] = DeriveJsonCodec.gen
+
+    def from(r: MessageStatusReport): JMessageStatusReport = {
+      r.transformInto[JMessageStatusReport]
+    }
+
   }
 }

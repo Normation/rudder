@@ -87,7 +87,7 @@ import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.domain.reports.NodeStatusReport
-import com.normation.rudder.domain.reports.OverridenPolicy
+import com.normation.rudder.domain.reports.OverriddenPolicy
 import com.normation.rudder.domain.reports.ReportType
 import com.normation.rudder.domain.reports.RuleNodeStatusReport
 import com.normation.rudder.domain.reports.RunComplianceInfo
@@ -671,11 +671,11 @@ class MockCompliance(mockDirectives: MockDirectives) {
           simpleRuleNodeStatusReport(nodeId(6), ruleId(5), d4.id, ReportType.NoAnswer)
         ),
         List(
-          OverridenPolicy(
+          OverriddenPolicy(
             PolicyId(ruleId(6), d4.id, TechniqueVersionHelper("1.0")),
             PolicyId(ruleId(4), d4.id, TechniqueVersionHelper("1.0"))
           ),
-          OverridenPolicy(
+          OverriddenPolicy(
             PolicyId(ruleId(6), d4.id, TechniqueVersionHelper("1.0")),
             PolicyId(ruleId(5), d4.id, TechniqueVersionHelper("1.0"))
           )
@@ -748,7 +748,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
   private def simpleNodeStatusReport(
       nodeId:          NodeId,
       ruleNodeReports: Set[RuleNodeStatusReport],
-      overrides:       List[OverridenPolicy] = List.empty
+      overrides:       List[OverriddenPolicy] = List.empty
   ): NodeStatusReport = {
     NodeStatusReportInternal
       .buildWith(
