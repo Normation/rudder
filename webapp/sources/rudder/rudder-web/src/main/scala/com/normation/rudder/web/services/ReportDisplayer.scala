@@ -47,14 +47,16 @@ import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.domain.reports.*
+import com.normation.rudder.domain.reports.RunAnalysisKind as R
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.RudderSettings
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.services.reports.*
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
+import com.normation.zio.*
 import net.liftweb.common.*
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JE.*
@@ -99,9 +101,10 @@ class ReportDisplayer(
       addOverriden: Boolean,
       onlySystem:   Boolean
   ): NodeSeq = {
+    val i        = configService.agent_run_interval().option.runNow.getOrElse(10)
     val callback = {
       SHtml.ajaxInvoke(() =>
-        SetHtml(containerId, displayReports(node, getReports, tabId, tableId, containerId, addOverriden, onlySystem))
+        SetHtml(containerId, displayReports(node, getReports, tabId, tableId, containerId, addOverriden, onlySystem, i))
       )
     }
     Script(OnLoad(JsRaw(s"""
@@ -122,27 +125,19 @@ class ReportDisplayer(
     """))) // JsRaw ok, escaped
   }
 
-  def getRunDate(r: RunAndConfigInfo): Option[DateTime] = {
-    r match {
-      case a: ComputeCompliance         => Some(a.lastRunDateTime)
-      case a: LastRunAvailable          => Some(a.lastRunDateTime)
-      case a: NoExpectedReport          => Some(a.lastRunDateTime)
-      case a: NoReportInInterval        => None
-      case a: Pending                   => a.optLastRun.map(_._1)
-      case a: KeepLastCompliance        => a.optLastRun.map(_._1)
-      case a: ReportsDisabledInInterval => None
-      case NoRunNoExpectedReport => None
-    }
+  def getRunDate(r: RunAnalysis): Option[DateTime] = {
+    r.lastRunDateTime
   }
 
   /**
    * Refresh the main compliance table
    */
   def refreshReportDetail(
-      node:         CoreNodeFact,
-      tableId:      String,
-      getReports:   NodeId => Box[NodeStatusReport],
-      addOverriden: Boolean
+      node:               CoreNodeFact,
+      tableId:            String,
+      getReports:         NodeId => Box[NodeStatusReport],
+      addOverriden:       Boolean,
+      defaultRunInterval: Int
   ): AnonFunc = {
     def refreshData: Box[JsCmd] = {
       for {
@@ -151,7 +146,7 @@ class ReportDisplayer(
         runDate: Option[DateTime] = getRunDate(report.runInfo)
       } yield {
         import net.liftweb.util.Helpers.encJs
-        val intro = encJs(displayIntro(report).toString)
+        val intro = encJs(displayIntro(report, node.rudderSettings, defaultRunInterval).toString)
         JsRaw(
           s"""refreshTable("${tableId}",${data.json.toJsCmd}); $$("#node-compliance-intro").replaceWith(${intro})"""
         ) // JsRaw ok, escaped
@@ -168,160 +163,158 @@ class ReportDisplayer(
     AnonFunc(ajaxCall)
   }
 
-  private def displayIntro(report: NodeStatusReport): NodeSeq = {
+  private def displayIntro(report: NodeStatusReport, nodeSettings: RudderSettings, defaultInterval: Int): NodeSeq = {
 
-    def explainCompliance(info: RunAndConfigInfo): NodeSeq = {
+    import com.normation.rudder.domain.logger.ComplianceDebugLogger.RunAnalysisInfoToLog
+
+    def explainCompliance(info: RunAnalysis): NodeSeq = {
       val dateFormat = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ssZ")
 
-      def currentConfigId(expectedConfig: NodeExpectedReports) = {
-        s"Current configuration ID for this node is '${expectedConfig.nodeConfigId.value}' (generated on ${expectedConfig.beginDate
-            .toString(dateFormat)})"
+      def currentConfigId(expectedConfig: RunAnalysis): String = {
+        s"Current configuration ID for this node is '${expectedConfig.expectedConfigId.fold("unknown")(_.value)}' (generated on ${expectedConfig.expectedConfigStart
+            .fold("unknown date")(_.toString(dateFormat))})"
       }
 
-      info match {
-        case ComputeCompliance(lastRunDateTime, expectedConfig, expirationDateTime) =>
+      info.kind match {
+        case R.ComputeCompliance =>
           (<p>This node has up to date policy and the agent is running. Reports below are from the latest run, which started on the node at {
-            lastRunDateTime.toString(dateFormat)
-          }.</p>
-            <p>{currentConfigId(expectedConfig)}.</p>)
-        case NoUserRulesDefined(lastRunDateTime, expectedConfig, _, _, _)           =>
-          (<p>This node has up to date policy and the agent is running, but no user rules are defined. Last run was started on the node at {
-            lastRunDateTime.toString(dateFormat)
-          }.</p>
-            <p>{currentConfigId(expectedConfig)}.</p>)
+            info.logRun
+          }.</p><p>{currentConfigId(info)}.</p>)
 
-        case Pending(expectedConfig, optLastRun, expirationDateTime) =>
-          val runInfo = optLastRun match {
-            case None             =>
+        case R.NoUserRulesDefined =>
+          (<p>This node has up to date policy and the agent is running, but no user rules are defined. Last run was started on the node at {
+            info.logRun
+          }.</p><p>{currentConfigId(info)}.</p>)
+
+        case R.Pending =>
+          val runInfo = info.lastRunDateTime match {
+            case None       =>
               "No recent reports have been received for this node. Check that the agent is running (run 'rudder agent check' on the node)."
-            case Some((date, id)) =>
-              (id.endDate match {
+            case Some(date) =>
+              (info.lastRunExpiration match {
                 case None      =>
                   // here, if the date of last run is very old, the node was grey and it changed to blue due to the new config, but it's
-                  // very unlikely that it will starts to answer.
+                  // very unlikely that it will start to answer.
                   val runIntervalMinutes =
-                    expectedConfig.modes.nodeAgentRun.getOrElse(expectedConfig.modes.globalAgentRun).interval
-                  val minDate            = expectedConfig.beginDate.minusMinutes(runIntervalMinutes * 2)
+                    nodeSettings.reportingConfiguration.agentRunInterval.map(_.interval).getOrElse(defaultInterval)
+                  val minDate            = info.expectedConfigStart.getOrElse(DateTime.now()).minusMinutes(runIntervalMinutes * 2)
+                  val expiration         = info.expirationDateTime.getOrElse(DateTime.now()).plus(runIntervalMinutes * 2L)
+
                   if (date.isBefore(minDate)) { // most likely a disconnected node
                     s"The node was reporting on a previous configuration policy, and didn't send reports since a long time: please" +
                     s" check that the node connection to server is correct. It should report on the new one at latest" +
-                    s" ${expirationDateTime.toString(dateFormat)}. Previous known states are displayed below."
+                    s" ${expiration.toString(dateFormat)}. Previous known states are displayed below."
                   } else {
                     s"This is expected, the node is reporting on the previous configuration policy and should report on the new one at latest" +
-                    s" ${expirationDateTime.toString(dateFormat)}. Previous known states are displayed below."
+                    s" ${expiration.toString(dateFormat)}. Previous known states are displayed below."
                   }
                 case Some(exp) =>
                   s"This is unexpected, since the node is reporting on a configuration policy that expired at ${exp.toString(dateFormat)}."
               }) +
-              s" The latest reports received for this node are from a run started at ${date.toString(dateFormat)} with configuration ID ${id.nodeConfigId.value}."
+              s" The latest reports received for this node are from a run started at ${date.toString(dateFormat)} (${info.logRun})."
           }
+
           (
             <p>This node has recently been assigned a new policy but no reports have been received for the new policy yet.</p>
             <p>{runInfo}</p>
-            <p>{currentConfigId(expectedConfig)}.</p>
+            <p>{currentConfigId(info)}.</p>
           )
 
-        case NoReportInInterval(expectedConfig, _) =>
+        case R.NoReportInInterval =>
           (
             <p>No recent reports have been received for this node in the grace period since the last configuration policy change.
                This is unexpected. Please check the status of the agent by running 'rudder agent health' on the node.</p>
             <p>For information, expected node policies are displayed below.</p>
-            <p>{currentConfigId(expectedConfig)}.</p>
+            <p>{currentConfigId(info)}.</p>
           )
 
-        case KeepLastCompliance(expectedConfig, expiredSince, keepUntil, optLastRun) =>
+        case R.KeepLastCompliance =>
           (
             <p>No recent reports have been received for this node in the grace period since the last configuration policy change.
-              The grace period is expired since {expiredSince.toString(dateFormat)}.
+              The grace period is expired since {info.expiredSince.fold("an unknown date")(_.toString(dateFormat))}.
                Still, this node has a configuration to keep its last known compliance until {
-              keepUntil.toString(dateFormat)
+              info.expirationDateTime.fold("an unknown date")(_.toString(dateFormat))
             }.</p><p>{
-              optLastRun match {
-                case None         =>
+              info.lastRunDateTime match {
+                case None    =>
                   "We don't have more information about a run that might have provided compliance."
-                case Some((_, i)) =>
-                  s"The run from which that compliance was computed started at ${i.beginDate.toString(dateFormat)}."
+                case Some(t) =>
+                  s"The run from which that compliance was computed started at ${t.toString(dateFormat)}."
               }
             }</p><p>For information, expected node policies are displayed below.</p>
-            <p>{currentConfigId(expectedConfig)}.</p>
+            <p>{currentConfigId(info)}.</p>
           )
 
-        case NoRunNoExpectedReport =>
+        case R.NoRunNoExpectedReport =>
           <p>This is a new node that does not yet have a configured policy. If a policy generation is in progress, this will apply to this node when it is done.</p>
 
-        case NoExpectedReport(lastRunDateTime, lastRunConfigId) =>
-          val configIdmsg = lastRunConfigId match {
+        case R.NoExpectedReport =>
+          val configIdmsg = info.lastRunConfigId match {
             case None     => "without a configuration ID, although one is required"
             case Some(id) => s"with configuration ID '${id.value}' that is unknown to Rudder"
           }
 
           <p>This node has no configuration policy assigned to it, but reports have been received for it {
             configIdmsg
-          } (run started at {lastRunDateTime.toString(dateFormat)}).
+          } (run started at {info.lastRunDateTime.fold("an unknown date")(_.toString(dateFormat))}).
              Either this node was deleted from Rudder but still has a running agent or the node is sending a corrupted configuration ID.
              Please run "rudder agent update -f" on the node to force a policy update and, if the problem persists,
              force a policy regeneration with the "Clear caches" button in Administration > Settings.</p>
 
-        case UnexpectedVersion(
-              lastRunDateTime,
-              Some(lastRunConfigInfo),
-              lastRunExpiration,
-              expectedConfig,
-              expectedExpiration,
-              _
-            ) =>
+        case R.UnexpectedVersion =>
           (
             <p>This node is sending reports from an out-of-date configuration policy ({
-              lastRunConfigInfo.nodeConfigId.value
-            }, run started at {lastRunDateTime.toString(dateFormat)}).
+              info.lastRunConfigId.fold("unknown")(_.value)
+            }, run started at {info.lastRunDateTime.fold("an unknown date")(_.toString(dateFormat))}).
                Please check that the node is able to update it's policy by running 'rudder agent update' on the node.</p>
             <p>For information, expected node policies are displayed below.</p>
-            <p>{currentConfigId(expectedConfig)}</p>
+            <p>{currentConfigId(info)}</p>
           )
 
-        case UnexpectedNoVersion(lastRunDateTime, lastRunConfigId, lastRunExpiration, expectedConfig, expectedExpiration, _) =>
+        case R.UnexpectedNoVersion =>
           (
             <p>This node is sending reports without a configuration ID (run started on the node at {
-              lastRunDateTime.toString(dateFormat)
+              info.lastRunConfigId.fold("unknown")(_.value)
             }), although one is required.</p>
             <p>Please run "rudder agent update -f" on the node to force a policy update.</p>
             <p>For information, expected node policies are displayed below.</p>
-            <p>{currentConfigId(expectedConfig)}</p>
+            <p>{currentConfigId(info)}</p>
           )
 
-        case ReportsDisabledInInterval(expectedConfigId, _) =>
+        case R.ReportsDisabledInInterval =>
           (
-            <p>{currentConfigId(expectedConfigId)} and reports are disabled for that node.</p>
+            <p>{currentConfigId(info)} and reports are disabled for that node.</p>
           )
 
-        case UnexpectedUnknownVersion(lastRunDateTime, lastRunConfigId, expectedConfig, expectedExpiration, _) =>
+        case R.UnexpectedUnknownVersion =>
           (
-            <p>This node is sending reports from an unknown configuration policy (with configuration ID '{lastRunConfigId.value}'
-               that is unknown to Rudder, run started at {lastRunDateTime.toString(dateFormat)}).
+            <p>This node is sending reports from an unknown configuration policy (with configuration ID '{
+              info.lastRunConfigId.fold("missing")(_.value)
+            }'
+               that is unknown to Rudder, run started at {info.lastRunDateTime.fold("an unknown date")(_.toString(dateFormat))}).
                Please run "rudder agent update -f" on the node to force a policy update.</p>
             <p>For information, expected node policies are displayed below.</p>
-            <p>{currentConfigId(expectedConfig)}</p>
+            <p>{currentConfigId(info)}</p>
           )
       }
-
     }
 
     /*
      * Number of reports requiring attention. We only display that message if we are in a case where
      * compliance is actually meaningful.
      */
-    val (background, lookReportsMessage) = report.runInfo match {
-      case NoRunNoExpectedReport | _: NoExpectedReport | _: UnexpectedVersion | _: UnexpectedNoVersion |
-          _: UnexpectedUnknownVersion | _: NoReportInInterval =>
+    val (background, lookReportsMessage) = report.runInfo.kind match {
+      case R.NoRunNoExpectedReport | R.NoExpectedReport | R.UnexpectedVersion | R.UnexpectedNoVersion |
+          R.UnexpectedUnknownVersion | R.NoReportInInterval =>
         ("alert alert-danger", NodeSeq.Empty)
 
-      case _: ReportsDisabledInInterval =>
+      case R.ReportsDisabledInInterval =>
         ("progress-bar-reportsdisabled", NodeSeq.Empty)
 
-      case _: Pending | _: NoUserRulesDefined =>
+      case R.Pending | R.NoUserRulesDefined =>
         ("alert alert-info", NodeSeq.Empty)
 
-      case _: ComputeCompliance | _: KeepLastCompliance =>
+      case R.ComputeCompliance | R.KeepLastCompliance =>
         if (report.compliance.total <= 0) { // should not happen
           ("alert alert-success", NodeSeq.Empty)
         } else {
@@ -353,7 +346,7 @@ class ReportDisplayer(
           <div>
           <p>The node is reporting an error regarding the requested policy mode of the policies. This problem require special attention.</p>
           <ul>{
-            list.map(error => {
+            list.map { error =>
               error match {
                 case RunComplianceInfo.PolicyModeError.TechniqueMixedMode(msg)       => <li>{msg}</li>
                 case RunComplianceInfo.PolicyModeError.AgentAbortMessage(cause, msg) =>
@@ -370,7 +363,7 @@ class ReportDisplayer(
                       <li><b>That node runs an agent too old to run policies from this server, please upgrade the agent. The run was aborted to avoid any unexpected behavior</b></li>
                   }
               }
-            })
+            }
           }</ul>
         </div>
         )
@@ -386,13 +379,14 @@ class ReportDisplayer(
   }
 
   private def displayReports(
-      node:         CoreNodeFact,
-      getReports:   NodeId => Box[NodeStatusReport],
-      tabId:        String,
-      tableId:      String,
-      containerId:  String,
-      addOverriden: Boolean,
-      onlySystem:   Boolean
+      node:               CoreNodeFact,
+      getReports:         NodeId => Box[NodeStatusReport],
+      tabId:              String,
+      tableId:            String,
+      containerId:        String,
+      addOverriden:       Boolean,
+      onlySystem:         Boolean,
+      defaultRunInterval: Int
   ): NodeSeq = {
     val boxXml = (if (node.rudderSettings.state == NodeState.Ignored) {
                     Full(
@@ -406,7 +400,10 @@ class ReportDisplayer(
 
                       val runDate: Option[DateTime] = getRunDate(report.runInfo)
 
-                      val intro = if (tableId == "reportsGrid") displayIntro(report) else NodeSeq.Empty
+                      val intro = {
+                        if (tableId == "reportsGrid") displayIntro(report, node.rudderSettings, defaultRunInterval)
+                        else NodeSeq.Empty
+                      }
 
                       /*
                        * Start a remote run for that node and display results.
@@ -420,7 +417,7 @@ class ReportDisplayer(
                         ) {
                           <div id="triggerAgent">
             <button id="triggerBtn" class="btn btn-primary btn-trigger"  onclick={
-                            s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, addOverriden).toJsCmd});"
+                            s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, addOverriden, defaultRunInterval).toJsCmd});"
                           }>
               <span>Trigger agent</span>
               &nbsp;
@@ -458,8 +455,8 @@ class ReportDisplayer(
                        * And if don't even have expected configuration, don't display anything.
                        */
 
-                      report.runInfo match {
-                        case NoRunNoExpectedReport | _: NoExpectedReport =>
+                      report.runInfo.kind match {
+                        case R.NoRunNoExpectedReport | R.NoExpectedReport =>
                           (
                             "lastreportgrid-intro" #> intro
                             & "runagent" #> triggerAgent(node)
@@ -468,8 +465,8 @@ class ReportDisplayer(
                             & "lastreportgrid-unexpected" #> NodeSeq.Empty
                           )(reportByNodeTemplate)
 
-                        case _: UnexpectedVersion | _: UnexpectedNoVersion | _: UnexpectedUnknownVersion | _: NoReportInInterval |
-                            _: ReportsDisabledInInterval | _: NoUserRulesDefined =>
+                        case R.UnexpectedVersion | R.UnexpectedNoVersion | R.UnexpectedUnknownVersion | R.NoReportInInterval |
+                            R.ReportsDisabledInInterval | R.NoUserRulesDefined =>
                           (
                             "lastreportgrid-intro" #> intro
                             & "runagent" #> triggerAgent(node)
@@ -482,7 +479,7 @@ class ReportDisplayer(
                             & "lastreportgrid-unexpected" #> NodeSeq.Empty
                           )(reportByNodeTemplate) ++ displayRunLogs(node.id, runDate, tabId, tableId)
 
-                        case _: Pending | _: ComputeCompliance | _: KeepLastCompliance =>
+                        case R.Pending | R.ComputeCompliance | R.KeepLastCompliance =>
                           val missing    = getComponents(ReportType.Missing, report, directiveLib).toSet
                           val unexpected = getComponents(ReportType.Unexpected, report, directiveLib).toSet
 

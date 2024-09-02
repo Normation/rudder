@@ -47,6 +47,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.ReportType.*
 import com.normation.rudder.services.policies.NodeConfigData
+import com.normation.rudder.services.reports.NodeStatusReportInternal
 import com.normation.rudder.services.reports.Pending
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
@@ -215,31 +216,33 @@ class StatusReportTest extends Specification {
 
   "Node status reports" should {
     val modesConfig = NodeConfigData.defaultModesConfig
-    val report      = NodeStatusReport.buildWith(
-      NodeId("n1"),
-      Pending(
-        NodeExpectedReports(
-          NodeId("n1"),
-          NodeConfigId("plop"),
-          DateTime.now(),
-          None,
-          modesConfig,
-          Nil,
-          List()
-        ), // TODO : correct that test
+    val report      = NodeStatusReportInternal
+      .buildWith(
+        NodeId("n1"),
+        Pending(
+          NodeExpectedReports(
+            NodeId("n1"),
+            NodeConfigId("plop"),
+            DateTime.now(),
+            None,
+            modesConfig,
+            Nil,
+            List()
+          ), // TODO : correct that test
 
-        None,
-        DateTime.now.plusMinutes(15)
-      ),
-      RunComplianceInfo.OK,
-      Nil,
-      parse("""
+          None,
+          DateTime.now.plusMinutes(15)
+        ),
+        RunComplianceInfo.OK,
+        Nil,
+        parse("""
        n1, r1, 0, d1, c0  , v0  , "", pending   , pending msg
        n1, r1, 0, d1, c1  , v1  , "", pending   , pending msg
        n1, r2, 0, d1, c0  , v0  , "", success   , pending msg
        n1, r3, 0, d1, c1  , v1  , "", error     , pending msg
     """).toSet
-    )
+      )
+      .toNodeStatusReport()
 
     "Correctly compute the compliance" in {
       report.compliance === ComplianceLevel(pending = 2, success = 1, error = 1)

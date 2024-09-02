@@ -41,6 +41,7 @@ import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ReportLoggerPure
 import com.normation.rudder.domain.reports.NodeStatusReport
+import com.normation.rudder.domain.reports.RunAnalysisKind
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.softwaremill.quicklens.ModifyPimp
@@ -113,23 +114,32 @@ class DummyNodeStatusReportRepository(
       // we need to take special care for node with "keep compliance"
       val newOrUpdated = reports.flatMap {
         case (id, report) =>
-          report.runInfo match {
+          report.runInfo.kind match {
             // if we are asked to keep compliance, start by checking we do have one
-            case k: KeepLastCompliance =>
+            case RunAnalysisKind.KeepLastCompliance =>
               m.get(id) match {
                 case Some(e) =>
-                  e.runInfo match {
-                    case c: ComputeCompliance => // keep existing compliance, change run info
-                      val optLastRun = c.lastRunConfigInfo.map(x => (c.lastRunDateTime, x))
-                      Some((id, e.modify(_.runInfo).setTo(k.modify(_.optLastRun).setTo(optLastRun))))
-                    case _ => // in any other case, change nothing but check if there's an actual change
+                  e.runInfo.kind match {
+                    case RunAnalysisKind.ComputeCompliance => // keep existing compliance, change run info
+                      Some(
+                        (
+                          id,
+                          e.modify(_.runInfo.lastRunExpiration)
+                            .setTo(report.runInfo.lastRunExpiration)
+                            .modify(_.runInfo.lastRunDateTime)
+                            .setTo(report.runInfo.lastRunDateTime)
+                            .modify(_.runInfo.lastRunConfigId)
+                            .setTo(report.runInfo.lastRunConfigId)
+                        )
+                      )
+                    case _                                 => // in any other case, change nothing but check if there's an actual change
                       if (e == report) None else Some((id, e))
                   }
                 case None    => // ok, just a new report
                   Some((id, report))
               }
             // in other case, just update what is in cache if it's actually different
-            case _ =>
+            case _                                  =>
               m.get(id) match {
                 case Some(e) => if (e == report) None else Some((id, report))
                 case None    => Some((id, report))

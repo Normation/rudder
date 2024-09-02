@@ -119,6 +119,7 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.reports.ComputeCompliance
+import com.normation.rudder.services.reports.NodeStatusReportInternal
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.PolicyServer
@@ -749,32 +750,34 @@ class MockCompliance(mockDirectives: MockDirectives) {
       ruleNodeReports: Set[RuleNodeStatusReport],
       overrides:       List[OverridenPolicy] = List.empty
   ): NodeStatusReport = {
-    NodeStatusReport.buildWith(
-      nodeId,
-      ComputeCompliance(
-        DateTime.parse("2023-01-01T00:00:00.000Z"),
-        NodeExpectedReports(
-          nodeId,
-          NodeConfigId(s"${nodeId.value}-config"),
+    NodeStatusReportInternal
+      .buildWith(
+        nodeId,
+        ComputeCompliance(
           DateTime.parse("2023-01-01T00:00:00.000Z"),
-          None,
-          NodeModeConfig(
-            GlobalComplianceMode(FullCompliance, 0),
+          NodeExpectedReports(
+            nodeId,
+            NodeConfigId(s"${nodeId.value}-config"),
+            DateTime.parse("2023-01-01T00:00:00.000Z"),
             None,
-            AgentRunInterval(None, 1, 0, 0, 0),
-            None,
-            GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Unoverridable),
-            None
+            NodeModeConfig(
+              GlobalComplianceMode(FullCompliance, 0),
+              None,
+              AgentRunInterval(None, 1, 0, 0, 0),
+              None,
+              GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Unoverridable),
+              None
+            ),
+            List.empty,
+            List.empty
           ),
-          List.empty,
-          List.empty
+          DateTime.parse("2024-01-01T00:00:00.000Z")
         ),
-        DateTime.parse("2024-01-01T00:00:00.000Z")
-      ),
-      RunComplianceInfo.OK,
-      overrides,
-      ruleNodeReports
-    )
+        RunComplianceInfo.OK,
+        overrides,
+        ruleNodeReports
+      )
+      .toNodeStatusReport()
   }
 
 }

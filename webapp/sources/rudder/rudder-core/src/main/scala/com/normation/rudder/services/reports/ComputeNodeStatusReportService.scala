@@ -299,19 +299,28 @@ class ComputeNodeStatusReportServiceImpl(
       reports: Iterable[(NodeId, NodeStatusReport)]
   ): IOResult[Iterable[(NodeId, NodeStatusReport)]] = {
 
-    val expired = reports.collect { case (id, r) if r.runInfo.isInstanceOf[NoReportInInterval] => id }
+    val expired = reports.collect { case (id, r) if r.runInfo.kind == RunAnalysisKind.NoReportInInterval => id }
     for {
       expirationPolicy <- complianceExpirationService.getExpirationPolicy(expired)
     } yield {
       reports.map {
         case (id, r) =>
-          r.runInfo match {
-            case NoReportInInterval(conf, expiration) =>
-              expirationPolicy.get(id) match {
-                case Some(NodeComplianceExpiration(NodeComplianceExpirationMode.KeepLast, Some(d))) =>
+          r.runInfo.kind match {
+            case RunAnalysisKind.NoReportInInterval =>
+              (expirationPolicy.get(id), r.runInfo.expirationDateTime) match {
+                case (Some(NodeComplianceExpiration(NodeComplianceExpirationMode.KeepLast, Some(d))), Some(expiration)) =>
                   val keepUntil = expiration.plus(d.toMillis)
                   if (now.isBefore(keepUntil)) {
-                    (id, r.modify(_.runInfo).setTo(KeepLastCompliance(conf, expiration, keepUntil, None)))
+                    (
+                      id,
+                      r
+                        .modify(_.runInfo.kind)
+                        .setTo(RunAnalysisKind.KeepLastCompliance)
+                        .modify(_.runInfo.expiredSince)
+                        .setTo(r.runInfo.expirationDateTime)
+                        .modify(_.runInfo.expirationDateTime)
+                        .setTo(Some(keepUntil))
+                    )
                   } else {
                     (id, r)
                   }
@@ -338,7 +347,7 @@ class ComputeNodeStatusReportServiceImpl(
   }
 
   private def cacheToLog(c: Map[NodeId, NodeStatusReport]): String = {
-    import com.normation.rudder.domain.logger.ComplianceDebugLogger.RunAndConfigInfoToLog
+    import com.normation.rudder.domain.logger.ComplianceDebugLogger.*
 
     // display compliance value and expiration date.
     c.map {
@@ -385,14 +394,17 @@ class ComputeNodeStatusReportServiceImpl(
     nsrRepo.getAll()(QueryContext.systemQC).flatMap { cache =>
       val nodeWithOutdatedCompliance = cache.filter {
         case (id, compliance) =>
-          compliance.runInfo match {
+          compliance.runInfo.kind match {
             // here, we have a special case for unexpected version: it is useless to recompute compliance until we don't have a new run,
             // ie the node config was changed elsewhere. It means that "unexpected version" wins above "No report in interval",
             // ie that that error is bigger.
-            case _: UnexpectedVersion => false
+            case RunAnalysisKind.UnexpectedVersion => false
             // other expiring status
-            case t: ExpiringStatus    => t.expirationDateTime.isBefore(now)
-            case _ => false
+            case _                                 =>
+              compliance.runInfo.expirationDateTime match {
+                case Some(t) => t.isBefore(now)
+                case None    => false
+              }
           }
       }.toSeq
 
@@ -461,9 +473,9 @@ class ComputeNodeStatusReportServiceImpl(
          */
         upToDate      = inCache.filter {
                           case (_, report) =>
-                            val expired = report.runInfo match {
-                              case t: ExpiringStatus => t.expirationDateTime.isBefore(now)
-                              case _ => false
+                            val expired = report.runInfo.expirationDateTime match {
+                              case Some(t) => t.isBefore(now)
+                              case _       => false
                             }
                             !expired
                         }
