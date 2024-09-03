@@ -44,9 +44,11 @@ import com.normation.box.*
 import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.db.json.implicits.*
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
+import com.normation.rudder.domain.reports.JsonPostgresqlSerialization.JNodeStatusReport
 import com.normation.zio.*
 import doobie.*
 import doobie.implicits.javasql.*
@@ -64,6 +66,7 @@ import scala.xml.Elem
 import scala.xml.XML
 import zio.*
 import zio.interop.catz.*
+import zio.json.*
 import zio.json.JsonDecoder
 import zio.json.JsonEncoder
 import zio.json.ast.Json
@@ -259,6 +262,25 @@ object Doobie {
     })
   }
 
+  /*
+   * Read/Write JNodeStatusReports as a minimized Json field with all data.
+   * It's Put/Get since it will be hold on a single column
+   */
+  implicit val jNodeStatusReportGet: Get[JNodeStatusReport] = {
+    import com.normation.rudder.domain.reports.JsonPostgresqlSerialization.*
+    Get.Advanced.other[PGobject](NonEmptyList.of("json")).temap[JNodeStatusReport](o => o.getValue.fromJson[JNodeStatusReport])
+  }
+
+  implicit val jNodeStatusReportPut: Put[JNodeStatusReport] = {
+    import com.normation.rudder.domain.reports.JsonPostgresqlSerialization.*
+    Put.Advanced.other[PGobject](NonEmptyList.of("json")).tcontramap[JNodeStatusReport] { j =>
+      val o = new PGobject
+      o.setType("json")
+      o.setValue(j.toJson)
+      o
+    }
+  }
+
   implicit val CompliancePercentWrite: Write[CompliancePercent] = {
     import ComplianceLevelSerialisation.*
     import net.liftweb.json.*
@@ -310,8 +332,10 @@ trait JsonInstances {
   import zio.json.EncoderOps
   import zio.json.ast.Json.Null
 
-  implicit private val showPGobject: Show[PGobject] = Show.show(_.getValue.take(250))
-  implicit private val showJson:     Show[Json]     = Show.show(_.toString().take(250))
+  // for debugging. 250 is the default documented val in
+  // https://tpolecat.github.io/doobie/docs/12-Custom-Mappings.html#defining-get-and-put-for-exotic-types
+  implicit val showPGobject:     Show[PGobject] = Show.show(_.getValue.take(250))
+  implicit private val showJson: Show[Json]     = Show.show(_.toString().take(250))
 
   implicit val jsonPut: Put[Json] = {
     Put.Advanced

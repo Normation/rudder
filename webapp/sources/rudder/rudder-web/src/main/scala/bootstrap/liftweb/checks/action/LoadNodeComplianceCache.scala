@@ -40,21 +40,28 @@ package bootstrap.liftweb.checks.action
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
 import com.normation.box.*
+import com.normation.errors.*
+import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain.logger.ReportLoggerPure
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpectedReportAction
 import com.normation.rudder.services.reports.CacheExpectedReportAction.InsertNodeInCache
 import com.normation.rudder.services.reports.ComputeNodeStatusReportService
+import com.normation.rudder.services.reports.NodeStatusReportRepositoryImpl
+import doobie.implicits.*
 import jakarta.servlet.UnavailableException
 import net.liftweb.common.EmptyBox
+import zio.interop.catz.*
 
 /**
  * At startup, we preload node compliance cache
  */
 class LoadNodeComplianceCache(
+    nodeStatusReportRepositoryImpl: NodeStatusReportRepositoryImpl,
     nodeFactRepository:             NodeFactRepository,
-    computeNodeStatusReportService: ComputeNodeStatusReportService
+    computeNodeStatusReportService: ComputeNodeStatusReportService,
+    doobie:                         Doobie
 ) extends BootstrapChecks {
 
   override val description = "Initialize node compliance cache"
@@ -62,11 +69,14 @@ class LoadNodeComplianceCache(
   @throws(classOf[UnavailableException])
   override def checks(): Unit = {
     (for {
-      nodeIds <- nodeFactRepository.getAll()(QueryContext.systemQC).map(_.keys)
-      _       <- ReportLoggerPure.Repository.debug(s"Initialize node status reports for ${nodeIds.size} nodes")
-      _       <- computeNodeStatusReportService.invalidateWithAction(
-                   nodeIds.toSeq.map(x => (x, ExpectedReportAction(InsertNodeInCache(x))))
-                 )
+      isInDB <- isComplianceInDB()
+      _      <- if (isInDB) {
+                  BootstrapLogger.info(s"Table 'NodeLastCompliance' is in used, loading past compliance from it") *>
+                  loadFromDB()
+                } else {
+                  BootstrapLogger.info(s"Table 'NodeLastCompliance' is empty, compute last compliance from last available runs") *>
+                  computeNewCompliane()
+                }
     } yield ()).toBox match {
       case eb: EmptyBox =>
         val err = eb ?~! s"Error when loading node compliance cache:"
@@ -75,4 +85,28 @@ class LoadNodeComplianceCache(
       // ok
     }
   }
+
+  // test if there is a least one report in base
+  def isComplianceInDB(): IOResult[Boolean] = {
+    import doobie.*
+    val q = sql"select exists (select * from NodeLastCompliance limit 1)"
+    transactIOResult(s"error when checking if compliance data exists")(xa => q.query[Boolean].unique.transact(xa))
+  }
+
+  // load from database
+  def loadFromDB(): IOResult[Unit] = {
+    nodeStatusReportRepositoryImpl.init()
+  }
+
+  // compute from last available runs, for example for migration
+  def computeNewCompliane(): IOResult[Unit] = {
+    for {
+      nodeIds <- nodeFactRepository.getAll()(QueryContext.systemQC).map(_.keys)
+      _       <- ReportLoggerPure.Repository.debug(s"Initialize node status reports for ${nodeIds.size} nodes")
+      _       <- computeNodeStatusReportService.invalidateWithAction(
+                   nodeIds.toSeq.map(x => (x, ExpectedReportAction(InsertNodeInCache(x))))
+                 )
+    } yield ()
+  }
+
 }

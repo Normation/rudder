@@ -71,8 +71,8 @@ class TestNodeFactSerialisation extends Specification with JsonSpecMatcher {
           Chunk.empty
         ),
         Chunk.empty,
-        DateTime.parse("2024-05-16T17:20:12+02:00"),
-        DateTime.parse("2024-05-16T17:20:12+02:00")
+        DateTime.parse("2024-05-16T15:20:12Z"),
+        DateTime.parse("2024-05-16T15:20:12Z")
       )
 
       // we have to match machineType specifically because nodefact does not seem to be exactly equal

@@ -138,8 +138,9 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     )
   )
 
-  val accepted:                             Map[NodeId, CoreNodeFact]                                 = nodes.map { case (n, _, _) => n }.toMap
-  val (nodeFactRepo, nodeStatusReportRepo): (CoreNodeFactRepository, DummyNodeStatusReportRepository) = {
+  val accepted: Map[NodeId, CoreNodeFact] = nodes.map { case (n, _, _) => n }.toMap
+
+  val (nodeFactRepo, nodeStatusReportRepo): (CoreNodeFactRepository, NodeStatusReportRepository) = {
     val testSavePrechecks = Chunk.empty[NodeFact => IOResult[Unit]]
 
     (for {
@@ -147,7 +148,8 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
       r <- CoreNodeFactRepository
              .make(NoopFactStorage, NoopGetNodesBySoftwareName, t, Map(), accepted, Chunk.empty, testSavePrechecks)
       x <- Ref.make(Map[NodeId, NodeStatusReport]())
-    } yield (r, new DummyNodeStatusReportRepository(x))).runNow
+      s  = new InMemoryNodeStatusReportStorage(x)
+    } yield (r, new NodeStatusReportRepositoryImpl(s, x))).runNow
   }
 
   class TestFindNewStatusReports extends FindNewNodeStatusReports() {
@@ -181,11 +183,16 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
 
   def newServices(
       policy: NodeComplianceExpiration
-  ): (DummyNodeStatusReportRepository, TestFindNewStatusReports, ComputeNodeStatusReportServiceImpl) = {
-    val x = new DummyNodeStatusReportRepository(Ref.make(Map[NodeId, NodeStatusReport]()).runNow)
-    val y = new TestFindNewStatusReports()
-    val r = Ref.make(Chunk[NodeStatusReportUpdateHook]()).runNow
-    (x, y, new ComputeNodeStatusReportServiceImpl(x, nodeFactRepo, y, new DummyComplianceExpirationService(policy), r, 3))
+  ): (NodeStatusReportRepository, TestFindNewStatusReports, ComputeNodeStatusReportServiceImpl) = {
+    (for {
+      r1 <- Ref.make(Map[NodeId, NodeStatusReport]())
+      s   = new InMemoryNodeStatusReportStorage(r1)
+      x  <- NodeStatusReportRepositoryImpl.makeAndInit(s)
+      y   = new TestFindNewStatusReports()
+      r2 <- Ref.make(Chunk[NodeStatusReportUpdateHook]())
+    } yield {
+      (x, y, new ComputeNodeStatusReportServiceImpl(x, nodeFactRepo, y, new DummyComplianceExpirationService(policy), r2, 3))
+    }).runNow
   }
 
   implicit val qc: QueryContext = QueryContext.testQC

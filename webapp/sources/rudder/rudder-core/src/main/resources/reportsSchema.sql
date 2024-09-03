@@ -185,6 +185,26 @@ CREATE INDEX nodeConfigurations_nodeConfigId ON nodeConfigurations (nodeConfigId
 
 ALTER TABLE nodeconfigurations set (autovacuum_vacuum_threshold = 0);
 
+/*
+ *************************************************************************************
+ * The following table stores the last compliance computed for a node.
+ * It must be autonomous and in particular it must remains meaningful even if the
+ * corresponding expected reports or run are deleted.
+ *************************************************************************************
+ */
+
+CREATE TABLE NodeLastCompliance (
+  nodeId              text NOT NULL CHECK (nodeId <> '') primary key
+
+-- the time when the compliance was computed. Used to know if it's sill valid or should be cleaned/ignored
+, computationDateTime timestamp with time zone NOT NULL
+
+-- all information about the run and what lead to that compliance:
+-- the run config version, the awaited config version, etc
+-- plus the node compliance for that policy type in JSON (meaning / details linked to type)
+, details             jsonb NOT NULL
+);
+
 
 /*
  *************************************************************************************

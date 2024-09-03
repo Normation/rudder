@@ -38,125 +38,47 @@
 package bootstrap.liftweb
 
 import better.files.File.root
-import bootstrap.liftweb.checks.action.CheckNcfTechniqueUpdate
-import bootstrap.liftweb.checks.action.CheckTechniqueLibraryReload
-import bootstrap.liftweb.checks.action.CreateSystemToken
-import bootstrap.liftweb.checks.action.LoadNodeComplianceCache
-import bootstrap.liftweb.checks.action.RemoveFaultyLdapEntries
-import bootstrap.liftweb.checks.action.TriggerPolicyUpdate
-import bootstrap.liftweb.checks.consistency.CheckConnections
-import bootstrap.liftweb.checks.consistency.CheckDIT
-import bootstrap.liftweb.checks.consistency.CheckRudderGlobalParameter
-import bootstrap.liftweb.checks.consistency.CloseOpenUserSessions
-import bootstrap.liftweb.checks.migration.CheckAddSpecialNodeGroupsDescription
-import bootstrap.liftweb.checks.migration.CheckRemoveRuddercSetting
-import bootstrap.liftweb.checks.migration.CheckTableScore
-import bootstrap.liftweb.checks.migration.CheckTableUsers
-import bootstrap.liftweb.checks.migration.CheckUsersFile
-import bootstrap.liftweb.checks.migration.DeleteArchiveTables
-import bootstrap.liftweb.checks.migration.MigrateChangeValidationEnforceSchema
-import bootstrap.liftweb.checks.migration.MigrateEventLogEnforceSchema
-import bootstrap.liftweb.checks.migration.MigrateJsonTechniquesToYaml
-import bootstrap.liftweb.checks.migration.MigrateNodeAcceptationInventories
-import bootstrap.liftweb.checks.onetimeinit.CheckInitUserTemplateLibrary
-import bootstrap.liftweb.checks.onetimeinit.CheckInitXmlExport
+import bootstrap.liftweb.checks.action.*
+import bootstrap.liftweb.checks.consistency.*
+import bootstrap.liftweb.checks.migration.*
+import bootstrap.liftweb.checks.onetimeinit.*
 import com.normation.appconfig.*
 import com.normation.box.*
 import com.normation.cfclerk.services.*
 import com.normation.cfclerk.services.impl.*
 import com.normation.cfclerk.xmlparsers.*
-import com.normation.cfclerk.xmlwriters.SectionSpecWriter
-import com.normation.cfclerk.xmlwriters.SectionSpecWriterImpl
-import com.normation.errors.IOResult
-import com.normation.errors.SystemError
+import com.normation.cfclerk.xmlwriters.*
+import com.normation.errors.*
 import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.*
-import com.normation.inventory.ldap.provisioning.AddIpValues
-import com.normation.inventory.ldap.provisioning.CheckOsType
-import com.normation.inventory.ldap.provisioning.LastInventoryDate
-import com.normation.inventory.ldap.provisioning.NameAndVersionIdFinder
-import com.normation.inventory.provisioning.fusion.FusionInventoryParser
-import com.normation.inventory.provisioning.fusion.PreInventoryParserCheckConsistency
+import com.normation.inventory.ldap.provisioning.*
+import com.normation.inventory.provisioning.fusion.*
 import com.normation.inventory.services.core.*
-import com.normation.inventory.services.provisioning.DefaultInventoryParser
-import com.normation.inventory.services.provisioning.InventoryDigestServiceV1
-import com.normation.inventory.services.provisioning.InventoryParser
+import com.normation.inventory.services.provisioning.*
 import com.normation.ldap.sdk.*
-import com.normation.plugins.FilePluginSettingsService
-import com.normation.plugins.ReadPluginPackageInfo
-import com.normation.plugins.SnippetExtensionRegister
-import com.normation.plugins.SnippetExtensionRegisterImpl
+import com.normation.plugins.*
 import com.normation.rudder.api.*
-import com.normation.rudder.apidata.RestDataSerializer
-import com.normation.rudder.apidata.RestDataSerializerImpl
-import com.normation.rudder.apidata.ZioJsonExtractor
+import com.normation.rudder.apidata.*
 import com.normation.rudder.batch.*
-import com.normation.rudder.campaigns.CampaignEventRepositoryImpl
-import com.normation.rudder.campaigns.CampaignRepositoryImpl
-import com.normation.rudder.campaigns.CampaignSerializer
-import com.normation.rudder.campaigns.JSONReportsAnalyser
-import com.normation.rudder.campaigns.MainCampaignService
-import com.normation.rudder.configuration.ConfigurationRepository
-import com.normation.rudder.configuration.ConfigurationRepositoryImpl
-import com.normation.rudder.configuration.GroupRevisionRepository
-import com.normation.rudder.configuration.RuleRevisionRepository
+import com.normation.rudder.campaigns.*
+import com.normation.rudder.configuration.*
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain.*
-import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.domain.logger.ApplicationLoggerPure
-import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
-import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
+import com.normation.rudder.domain.logger.*
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.reports.NodeStatusReport
-import com.normation.rudder.facts.nodes.AppLogNodeFactChangeEventCallback
-import com.normation.rudder.facts.nodes.CacheInvalidateNodeFactEventCallback
-import com.normation.rudder.facts.nodes.CoreNodeFactRepository
-import com.normation.rudder.facts.nodes.EventLogsNodeFactChangeEventCallback
-import com.normation.rudder.facts.nodes.GenerationOnChange
-import com.normation.rudder.facts.nodes.GitNodeFactStorageImpl
-import com.normation.rudder.facts.nodes.HistorizeNodeState
-import com.normation.rudder.facts.nodes.LdapNodeFactStorage
-import com.normation.rudder.facts.nodes.NodeFactChangeEventCallback
-import com.normation.rudder.facts.nodes.NodeFactInventorySaver
-import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.NodeInfoServiceProxy
-import com.normation.rudder.facts.nodes.NoopFactStorage
-import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.facts.nodes.SelectNodeStatus
-import com.normation.rudder.facts.nodes.SoftDaoGetNodesBySoftwareName
-import com.normation.rudder.facts.nodes.WoFactNodeRepositoryProxy
+import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
-import com.normation.rudder.inventory.DefaultProcessInventoryService
-import com.normation.rudder.inventory.InventoryFailedHook
-import com.normation.rudder.inventory.InventoryFileWatcher
-import com.normation.rudder.inventory.InventoryMover
-import com.normation.rudder.inventory.InventoryProcessor
-import com.normation.rudder.inventory.PostCommitInventoryHooks
-import com.normation.rudder.inventory.ProcessFile
-import com.normation.rudder.inventory.TriggerInventoryScorePostCommit
+import com.normation.rudder.inventory.*
 import com.normation.rudder.metrics.*
 import com.normation.rudder.ncf
-import com.normation.rudder.ncf.DeleteEditorTechniqueImpl
-import com.normation.rudder.ncf.EditorTechniqueReader
-import com.normation.rudder.ncf.EditorTechniqueReaderImpl
-import com.normation.rudder.ncf.GitResourceFileService
+import com.normation.rudder.ncf.*
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
-import com.normation.rudder.ncf.RuddercServiceImpl
-import com.normation.rudder.ncf.TechniqueCompiler
-import com.normation.rudder.ncf.TechniqueCompilerApp
-import com.normation.rudder.ncf.TechniqueCompilerWithFallback
-import com.normation.rudder.ncf.TechniqueSerializer
-import com.normation.rudder.ncf.TechniqueWriter
-import com.normation.rudder.ncf.TechniqueWriterImpl
-import com.normation.rudder.ncf.WebappTechniqueCompiler
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
-import com.normation.rudder.properties.InMemoryPropertiesRepository
-import com.normation.rudder.properties.NodePropertiesService
-import com.normation.rudder.properties.NodePropertiesServiceImpl
-import com.normation.rudder.properties.PropertiesRepository
+import com.normation.rudder.properties.*
 import com.normation.rudder.reports.*
 import com.normation.rudder.reports.execution.*
 import com.normation.rudder.repository.*
@@ -173,16 +95,11 @@ import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
 import com.normation.rudder.score.*
 import com.normation.rudder.services.*
 import com.normation.rudder.services.eventlog.*
-import com.normation.rudder.services.eventlog.EventLogFactoryImpl
 import com.normation.rudder.services.healthcheck.*
 import com.normation.rudder.services.marshalling.*
-import com.normation.rudder.services.modification.DiffService
-import com.normation.rudder.services.modification.DiffServiceImpl
-import com.normation.rudder.services.modification.ModificationService
+import com.normation.rudder.services.modification.*
 import com.normation.rudder.services.nodes.*
-import com.normation.rudder.services.nodes.history.impl.FullInventoryFileParser
-import com.normation.rudder.services.nodes.history.impl.InventoryHistoryJdbcRepository
-import com.normation.rudder.services.nodes.history.impl.InventoryHistoryLogRepository
+import com.normation.rudder.services.nodes.history.impl.*
 import com.normation.rudder.services.policies.*
 import com.normation.rudder.services.policies.nodeconfig.*
 import com.normation.rudder.services.policies.write.*
@@ -193,8 +110,7 @@ import com.normation.rudder.services.servers.*
 import com.normation.rudder.services.system.*
 import com.normation.rudder.services.user.*
 import com.normation.rudder.services.workflows.*
-import com.normation.rudder.tenants.DefaultTenantService
-import com.normation.rudder.tenants.TenantService
+import com.normation.rudder.tenants.*
 import com.normation.rudder.users.*
 import com.normation.rudder.web.model.*
 import com.normation.rudder.web.services.*
@@ -214,7 +130,6 @@ import java.nio.file.attribute.PosixFilePermission
 import java.security.Security
 import java.util.concurrent.TimeUnit
 import net.liftweb.common.*
-import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
@@ -3080,9 +2995,13 @@ object RudderConfigInit {
       RUDDER_JDBC_BATCH_MAX_SIZE
     )
 
-    lazy val nodeStatusReportRepository: NodeStatusReportRepository = new DummyNodeStatusReportRepository(
-      Ref.make(Map[NodeId, NodeStatusReport]()).runNow
-    )
+    // we need to expose impl at that level to call `.init()` in bootstrap checks
+    lazy val nodeStatusReportRepository: NodeStatusReportRepositoryImpl = {
+      (for {
+        x <- Ref.make(Map[NodeId, NodeStatusReport]())
+        s  = new JdbcNodeStatusReportStorage(doobie)
+      } yield new NodeStatusReportRepositoryImpl(s, x)).runNow
+    }
 
     lazy val computeNodeStatusReportService: ComputeNodeStatusReportService & HasNodeStatusReportUpdateHook = {
       new ComputeNodeStatusReportServiceImpl(
@@ -3302,6 +3221,7 @@ object RudderConfigInit {
       new CheckConnections(dataSourceProvider, rwLdap),
       new CheckTableScore(doobie),
       new CheckTableUsers(doobie),
+      new CheckTableNodeLastCompliance(doobie),
       new MigrateEventLogEnforceSchema(doobie),
       new MigrateChangeValidationEnforceSchema(doobie),
       new DeleteArchiveTables(doobie),
@@ -3362,7 +3282,7 @@ object RudderConfigInit {
         uuidGen
       ),
       new CreateSystemToken(roLDAPApiAccountRepository.systemAPIAccount),
-      new LoadNodeComplianceCache(nodeFactRepository, computeNodeStatusReportService),
+      new LoadNodeComplianceCache(nodeStatusReportRepository, nodeFactRepository, computeNodeStatusReportService, doobie),
       new CloseOpenUserSessions(userRepository)
     )
 
