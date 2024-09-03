@@ -12,6 +12,7 @@ allow = [
     "Unicode-DFS-2016",
     "BSD-3-Clause",
     "BSL-1.0",
+    "MPL-2.0",
 ]
 
 [advisories]
