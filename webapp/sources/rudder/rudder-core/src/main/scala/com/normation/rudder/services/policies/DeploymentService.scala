@@ -68,7 +68,7 @@ import com.normation.rudder.domain.reports.ExpectedValueMatch
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeModeConfig
-import com.normation.rudder.domain.reports.OverridenPolicy
+import com.normation.rudder.domain.reports.OverriddenPolicy
 import com.normation.rudder.domain.reports.RuleExpectedReports
 import com.normation.rudder.domain.reports.ValueExpectedReport
 import com.normation.rudder.facts.nodes.CoreNodeFact
@@ -1676,7 +1676,7 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
     allNodeConfigurations.collect {
       case (nodeId, nodeConfig) if (updatedNodeIds.contains(nodeId)) =>
         // overrides are in the reverse way, we need to transform them into OverridenPolicy
-        val overrides = nodeConfig.policies.flatMap(p => p.overrides.map(overriden => OverridenPolicy(overriden, p.id)))
+        val overrides = nodeConfig.policies.flatMap(p => p.overrides.map(overriden => OverriddenPolicy(overriden, p.id)))
 
         NodeExpectedReports(
           nodeId,

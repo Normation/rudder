@@ -47,7 +47,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.AggregatedStatusReport
 import com.normation.rudder.domain.reports.DirectiveStatusReport
-import com.normation.rudder.domain.reports.OverridenPolicy
+import com.normation.rudder.domain.reports.OverriddenPolicy
 import com.normation.rudder.domain.reports.RuleNodeStatusReport
 import com.normation.rudder.domain.reports.RuleStatusReport
 import com.normation.rudder.domain.reports.RunComplianceInfo
@@ -84,8 +84,8 @@ class ReportingServiceUtilsTest extends Specification {
   }
 
   // a case where the same directive is on two rules
-  def thisOverrideThatOn(overrider: RuleId, overridden: RuleId, directive: DirectiveId): OverridenPolicy = {
-    OverridenPolicy(
+  def thisOverrideThatOn(overrider: RuleId, overridden: RuleId, directive: DirectiveId): OverriddenPolicy = {
+    OverriddenPolicy(
       PolicyId(overridden, directive, TechniqueVersionHelper("1.0")), // this one is
 
       PolicyId(overrider, directive, TechniqueVersionHelper("1.0")) // overriden by that one
@@ -97,8 +97,8 @@ class ReportingServiceUtilsTest extends Specification {
       directiver: DirectiveId,
       overridden: RuleId,
       directiven: DirectiveId
-  ): OverridenPolicy = {
-    OverridenPolicy(
+  ): OverriddenPolicy = {
+    OverriddenPolicy(
       PolicyId(overridden, directiven, TechniqueVersionHelper("1.0")), // this one is
 
       PolicyId(overrider, directiver, TechniqueVersionHelper("1.0")) // overridden by that one

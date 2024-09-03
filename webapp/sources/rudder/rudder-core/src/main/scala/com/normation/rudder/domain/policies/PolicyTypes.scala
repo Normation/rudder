@@ -73,7 +73,11 @@ object PolicyTypes {
     }
   }
 
-  implicit val codecFeatureTag: JsonCodec[PolicyTypes] = DeriveJsonCodec.gen
+  implicit val encoderPolicyTypes: JsonEncoder[PolicyTypes] = JsonEncoder.chunk[String].contramap(_.types.toChunk.map(_.value))
+  implicit val decoderPolicyTypes: JsonDecoder[PolicyTypes] = JsonDecoder.list[String].mapOrFail {
+    case Nil       => Left(s"At least one policy type name is needed for deserialization of policy types")
+    case h :: tail => Right(PolicyTypes.fromStrings(h, tail*))
+  }
 
   def compat(isSystem: Boolean) = if (isSystem) rudderSystem else rudderBase
 
@@ -88,7 +92,7 @@ object PolicyTypes {
 final case class PolicyTypeName(value: String)
 
 object PolicyTypeName {
-  implicit val codecFeatureTagName: JsonCodec[PolicyTypeName] = DeriveJsonCodec.gen
+  implicit val codecFeatureTagName: JsonCodec[PolicyTypeName] = JsonCodec.string.transform(PolicyTypeName.apply, _.value)
 
   val rudderSystem: PolicyTypeName = PolicyTypeName("rudder.system")
   val rudderBase:   PolicyTypeName = PolicyTypeName("rudder.base")

@@ -75,12 +75,12 @@ final case class NodeModeConfig(
 )
 
 /*
- * A place where we store overriden directive. We keep what rule->directive
- * is overriden by what other rule->directive
+ * A place where we store overridden directive. We keep what rule->directive
+ * is overridden by what other rule->directive
  */
-final case class OverridenPolicy(
-    policy:      PolicyId,
-    overridenBy: PolicyId
+final case class OverriddenPolicy(
+    policy:       PolicyId,
+    overriddenBy: PolicyId
 )
 
 final case class NodeExpectedReports(
@@ -90,7 +90,7 @@ final case class NodeExpectedReports(
     endDate:             Option[DateTime],
     modes:               NodeModeConfig,
     ruleExpectedReports: List[RuleExpectedReports],
-    overrides:           List[OverridenPolicy]
+    overrides:           List[OverriddenPolicy]
 ) {
 
   def configInfo: NodeConfigIdInfo = NodeConfigIdInfo(nodeConfigId, beginDate, endDate)
@@ -209,7 +209,7 @@ object ExpectedReportsSerialisation {
   final case class JsonNodeExpectedReports private[reports] (
       modes:               NodeModeConfig,
       ruleExpectedReports: List[RuleExpectedReports],
-      overrides:           List[OverridenPolicy]
+      overrides:           List[OverriddenPolicy]
   )
 
   val v00: TechniqueVersion = TechniqueVersion
@@ -407,10 +407,10 @@ object ExpectedReportsSerialisation {
         p:  JsonPolicy7_1,
         ob: JsonPolicy7_1
     ) {
-      def transform: OverridenPolicy = OverridenPolicy(p.transform, ob.transform)
+      def transform: OverriddenPolicy = OverriddenPolicy(p.transform, ob.transform)
     }
-    implicit class _JsonOverrides7_1(x: OverridenPolicy)           {
-      def transform: JsonOverrides7_1 = JsonOverrides7_1(x.policy.transform, x.overridenBy.transform)
+    implicit class _JsonOverrides7_1(x: OverriddenPolicy)          {
+      def transform: JsonOverrides7_1 = JsonOverrides7_1(x.policy.transform, x.overriddenBy.transform)
     }
     final case class JsonExpectedValueId7_1(id: String, v: String) {
       def transform: ExpectedValueId = ExpectedValueId(v, id)
@@ -472,7 +472,7 @@ object ExpectedReportsSerialisation {
 
     /*
      * In 8.2 we changed the s: Option[Boolean] for isSystem to t: Option[ComplianceTag]
-     * We sill want to be able to decode json with s, but never write it. This is done by
+     * We still want to be able to decode json with s, but never write it. This is done by
      * being sure that when we go from DirectiveExpectedReports to JsonDirectiveExpectedReports8_2,
      * we always let the s value to None.
      * The chosen strategy means that when there is neither s nor t present in json (ie the common

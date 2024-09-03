@@ -69,7 +69,7 @@ object ReportingServiceUtils {
       .toList
       .distinct
     // and we must make overrides unique - ie, we don't keep overridden that are overridden by directive themselve in the overridden list
-    val overrides2 = overrides.filterNot(o => overrides.exists(_.policy == o.overridenBy))
+    val overrides2 = overrides.filterNot(o => overrides.exists(_.policy == o.overriddenBy))
     RuleStatusReport(ruleId, toKeep, overrides2)
   }
 }

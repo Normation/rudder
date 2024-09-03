@@ -75,6 +75,12 @@ final case class TechniqueVersion protected (version: Version, rev: Revision) ex
 
 object TechniqueVersion {
 
+  // predefined object 1.0 because we use it in a lot of places
+  val V1_0: TechniqueVersion = new TechniqueVersion(
+    Version(0, PartType.Numeric(1), List(VersionPart.After(Separator.Dot, PartType.Numeric(0)))),
+    GitVersion.DEFAULT_REV
+  )
+
   /*
    * A technique version is *much* simpler than a full blown version.
    * We can only have: a.b.c.etc+commitId

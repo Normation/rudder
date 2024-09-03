@@ -39,14 +39,22 @@ package com.normation.rudder.services.reports
 
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.db.Doobie
+import com.normation.rudder.db.Doobie.*
+import com.normation.rudder.domain.logger.ComplianceLoggerPure
 import com.normation.rudder.domain.logger.ReportLoggerPure
+import com.normation.rudder.domain.reports.JsonPostgresqlSerialization.JNodeStatusReport
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.reports.RunAnalysisKind
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.softwaremill.quicklens.ModifyPimp
+import doobie.*
+import doobie.implicits.*
+import org.joda.time.DateTime
 import scala.annotation.nowarn
 import zio.{System as _, *}
+import zio.interop.catz.*
 
 /*
  * The role of that repository is just to be able to save and retrieve NodeStatusReports in
@@ -84,16 +92,47 @@ trait NodeStatusReportRepository {
   def deleteNodeStatusReports(nodeIds: Chunk[NodeId])(implicit cc: ChangeContext): IOResult[Unit]
 }
 
+trait NodeStatusReportStorage {
+
+  def getAll(): IOResult[Map[NodeId, NodeStatusReport]]
+
+  // this method save (add or update) these nodes with the provided status reports
+  def save(reports: Iterable[(NodeId, NodeStatusReport)]): IOResult[Unit]
+
+  // this method erase these node status reports
+  def delete(nodes: Iterable[NodeId]): IOResult[Unit]
+}
+
+object NodeStatusReportRepositoryImpl {
+
+  def makeAndInit(storage: NodeStatusReportStorage): IOResult[NodeStatusReportRepositoryImpl] = {
+    for {
+      reports <- storage.getAll()
+      ref     <- Ref.make(reports)
+    } yield new NodeStatusReportRepositoryImpl(storage, ref)
+  }
+
+}
+
 /*
- * Dummy class for tests:
- *   - in memory
- *   - doesn't use Query/ChangeContext
+ * Default implementation for the NodeStatusReportRepository.
+ * It only relies on a local cache for access methods.
+ * The cache is update along with an underlying cold storage on update/delete operation.
  */
-class DummyNodeStatusReportRepository(
+class NodeStatusReportRepositoryImpl(
+    storage:        NodeStatusReportStorage,
     initialReports: Ref[Map[NodeId, NodeStatusReport]]
 ) extends NodeStatusReportRepository {
 
   val cache: Ref[Map[NodeId, NodeStatusReport]] = initialReports
+
+  // load data from the data storage in cache
+  def init(): IOResult[Unit] = {
+    for {
+      reports <- storage.getAll()
+      _       <- cache.set(reports)
+    } yield ()
+  }
 
   @nowarn
   override def getAll()(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] = {
@@ -107,53 +146,120 @@ class DummyNodeStatusReportRepository(
   override def saveNodeStatusReports(
       reports: Iterable[(NodeId, NodeStatusReport)]
   )(implicit cc: ChangeContext): IOResult[Chunk[(NodeId, NodeStatusReport)]] = {
-    ReportLoggerPure.Repository.debug(
-      s"Add NodeStatusReports to repository for nodes: [${reports.map(_._1.value).mkString(", ")}]"
-    ) *>
-    cache.modify { m =>
-      // we need to take special care for node with "keep compliance"
-      val newOrUpdated = reports.flatMap {
-        case (id, report) =>
-          report.runInfo.kind match {
-            // if we are asked to keep compliance, start by checking we do have one
-            case RunAnalysisKind.KeepLastCompliance =>
-              m.get(id) match {
-                case Some(e) =>
-                  e.runInfo.kind match {
-                    case RunAnalysisKind.ComputeCompliance => // keep existing compliance, change run info
-                      Some(
-                        (
-                          id,
-                          e.modify(_.runInfo.lastRunExpiration)
-                            .setTo(report.runInfo.lastRunExpiration)
-                            .modify(_.runInfo.lastRunDateTime)
-                            .setTo(report.runInfo.lastRunDateTime)
-                            .modify(_.runInfo.lastRunConfigId)
-                            .setTo(report.runInfo.lastRunConfigId)
-                        )
-                      )
-                    case _                                 => // in any other case, change nothing but check if there's an actual change
-                      if (e == report) None else Some((id, e))
-                  }
-                case None    => // ok, just a new report
-                  Some((id, report))
-              }
-            // in other case, just update what is in cache if it's actually different
-            case _                                  =>
-              m.get(id) match {
-                case Some(e) => if (e == report) None else Some((id, report))
-                case None    => Some((id, report))
-              }
-          }
-      }
-      (Chunk.fromIterable(newOrUpdated), m ++ newOrUpdated)
-    }
+    for {
+      _       <- ReportLoggerPure.Repository.debug(
+                   s"Add NodeStatusReports to repository for nodes: [${reports.map(_._1.value).mkString(", ")}]"
+                 )
+      updated <- cache.modify { m =>
+                   // we need to take special care for node with "keep compliance"
+                   val newOrUpdated = reports.flatMap {
+                     case (id, report) =>
+                       report.runInfo.kind match {
+                         // if we are asked to keep compliance, start by checking we do have one
+                         case RunAnalysisKind.KeepLastCompliance =>
+                           m.get(id) match {
+                             case Some(e) =>
+                               e.runInfo.kind match {
+                                 case RunAnalysisKind.ComputeCompliance => // keep existing compliance, change run info
+                                   Some(
+                                     (
+                                       id,
+                                       e.modify(_.runInfo.lastRunExpiration)
+                                         .setTo(report.runInfo.lastRunExpiration)
+                                         .modify(_.runInfo.lastRunDateTime)
+                                         .setTo(report.runInfo.lastRunDateTime)
+                                         .modify(_.runInfo.lastRunConfigId)
+                                         .setTo(report.runInfo.lastRunConfigId)
+                                     )
+                                   )
+                                 case _                                 => // in any other case, change nothing but check if there's an actual change
+                                   if (e == report) None else Some((id, e))
+                               }
+                             case None    => // ok, just a new report
+                               Some((id, report))
+                           }
+                         // in other case, just update what is in cache if it's actually different
+                         case _                                  =>
+                           m.get(id) match {
+                             case Some(e) => if (e == report) None else Some((id, report))
+                             case None    => Some((id, report))
+                           }
+                       }
+                   }
+                   (Chunk.fromIterable(newOrUpdated), m ++ newOrUpdated)
+                 }
+      _       <- storage.save(updated)
+    } yield updated
   }
 
   override def deleteNodeStatusReports(nodeIds: Chunk[NodeId])(implicit cc: ChangeContext): IOResult[Unit] = {
-    ReportLoggerPure.Repository.debug(
-      s"Remove NodeStatusReports from repository for nodes: [${nodeIds.map(_.value).mkString(", ")}]"
-    ) *>
-    cache.update(_ -- nodeIds)
+    for {
+      _ <- ReportLoggerPure.Repository.debug(
+             s"Remove NodeStatusReports from repository for nodes: [${nodeIds.map(_.value).mkString(", ")}]"
+           )
+      _ <- cache.update(_ -- nodeIds)
+      _ <- storage.delete(nodeIds)
+    } yield ()
   }
+}
+
+/*
+ * Dummy, in memory storage. For test.
+ */
+class InMemoryNodeStatusReportStorage(storage: Ref[Map[NodeId, NodeStatusReport]]) extends NodeStatusReportStorage {
+  override def getAll(): IOResult[Map[NodeId, NodeStatusReport]] = {
+    storage.get
+  }
+
+  override def save(reports: Iterable[(NodeId, NodeStatusReport)]): IOResult[Unit] = {
+    storage.update(_ ++ reports)
+  }
+
+  override def delete(nodeIds: Iterable[NodeId]): IOResult[Unit] = {
+    storage.update(_ -- nodeIds)
+  }
+}
+
+/*
+ * What we save in base is segmented by policy type if
+ */
+
+/*
+ * A JDBC implementation using the `NodeLastCompliance` table as backend
+ */
+class JdbcNodeStatusReportStorage(doobie: Doobie) extends NodeStatusReportStorage {
+  import doobie.*
+
+  override def getAll(): IOResult[Map[NodeId, NodeStatusReport]] = {
+    val query = sql"""select nodeid, details from NodeLastCompliance"""
+
+    ComplianceLoggerPure.debug(s"Get all compliance from base") *>
+    transactIOResult(s"error when getting save compliance for nodes")(xa =>
+      query.query[(NodeId, JNodeStatusReport)].to[Chunk].transact(xa)
+    ).map(_.map { case (id, d) => (id, d.to) }.toMap)
+  }
+
+  override def save(reports: Iterable[(NodeId, NodeStatusReport)]): IOResult[Unit] = {
+    val t = DateTime.now()
+    val rows: Vector[(NodeId, DateTime, JNodeStatusReport)] = reports.map {
+      case (a, b) => (a, t, JNodeStatusReport.from(b))
+    }.toVector
+
+    val query = Update[(NodeId, DateTime, JNodeStatusReport)](
+      """INSERT INTO NodeLastCompliance (nodeId, computationDateTime, details) VALUES (?,?,?)
+        |  ON CONFLICT (nodeId) DO UPDATE
+        |  SET computationDateTime = excluded.computationDateTime, details = excluded.details ;""".stripMargin
+    ).updateMany(rows)
+
+    ComplianceLoggerPure.debug(s"Saving compliance state for ${reports.size} nodes in base") *>
+    transactIOResult(s"error when saving compliance for nodes")(xa => query.transact(xa)).unit
+  }
+
+  override def delete(nodes: Iterable[NodeId]): IOResult[Unit] = {
+    val query = Update[NodeId]("delete from NodeLastCompliance where nodeId = ?").updateMany(nodes.toVector)
+
+    ComplianceLoggerPure.debug(s"Deleting compliance state for ${nodes.size} nodes from base") *>
+    transactIOResult(s"error when saving compliance for nodes")(xa => query.transact(xa)).unit
+  }
+
 }

@@ -275,15 +275,15 @@ final case class DirectiveComplianceOverride(
 
 object ComplianceOverrides {
   def getOverridenDirective(
-      overrides:  List[OverridenPolicy],
+      overrides:  List[OverriddenPolicy],
       directives: Map[DirectiveId, (FullActiveTechnique, Directive)]
   ): List[DirectiveComplianceOverride] = {
     val overridesData = for {
       over               <- overrides
       (_, overridenDir)  <- directives.get(over.policy.directiveId)
-      (_, overridingDir) <- directives.get(over.overridenBy.directiveId)
+      (_, overridingDir) <- directives.get(over.overriddenBy.directiveId)
     } yield {
-      DirectiveComplianceOverride(over.policy.ruleId, over.policy.directiveId, overridenDir.name, over.overridenBy.ruleId)
+      DirectiveComplianceOverride(over.policy.ruleId, over.policy.directiveId, overridenDir.name, over.overriddenBy.ruleId)
 
     }
     overridesData.toList
