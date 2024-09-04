@@ -92,7 +92,7 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
             val status =
               userStatuses.get.map(_.getOrElse(user.getUsername, UserStatus.Deleted)) // unknown user : falls back to deleted
 
-            status.flatMap {
+            (status.flatMap {
               case status if status.in(UserStatus.Disabled, UserStatus.Deleted) =>
                 IOResult
                   .attempt(session.invalidate())
@@ -118,7 +118,7 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
                   )
               case _                                                            =>
                 ZIO.unit
-            }
+            }).runNow
           case _ => ()
         }
       }
