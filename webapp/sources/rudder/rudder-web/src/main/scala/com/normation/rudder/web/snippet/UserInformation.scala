@@ -67,7 +67,7 @@ class UserInformation extends DispatchSnippet with DefaultExtendableSnippet[User
       case Some(u) =>
         val displayName = userRepo.get(u.getUsername).runNow match {
           case None       => u.getUsername
-          case Some(info) => info.name.getOrElse(info.id)
+          case Some(info) => info.name.filter(_.strip.nonEmpty).getOrElse(info.id)
         }
 
         val roles       = s"User roles : ${Role.toDisplayNames(u.roles).mkString(", ")}"
