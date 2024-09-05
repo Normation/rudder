@@ -1,4 +1,4 @@
-FROM python
+FROM python:3.11.9-bookworm
 LABEL ci=rudder/relay/sources/rudder-pkg/Dockerfile
 
 # Jenkins user with correct uid

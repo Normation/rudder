@@ -77,9 +77,14 @@ Commands:
 
 import sys, logging
 
+if sys.version_info.major >= 3 and sys.version_info.minor >= 12:
+    print(
+        "Rudder-pkg is not supported anymore since python 3.12. Please use the 'rudder package' command instead"
+    )
+    exit(1)
+
 sys.path.insert(0, '/opt/rudder/share/python')
 sys.path.insert(0, '/opt/rudder/share/python/rudder-pkg')
-
 import docopt
 import rudderPkg
 import rudderPkgLogger
