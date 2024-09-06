@@ -481,7 +481,7 @@ class ParameterApiService14(
   }
 
   def listParameters(): IOResult[Seq[JRGlobalParameter]] = {
-    readParameter.getAllGlobalParameters().map(_.map(JRGlobalParameter.fromGlobalParameter(_, None)))
+    readParameter.getAllGlobalParameters().map(_.map(JRGlobalParameter.fromGlobalParameter(_, None)).sortBy(_.id))
   }
 
   def parameterDetails(id: String): IOResult[JRGlobalParameter] = {

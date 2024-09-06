@@ -852,6 +852,8 @@ class RestTestSetUp {
     restDataSerializer
   )
   val groupApiInheritedProperties = new GroupApiInheritedProperties(mockNodeGroups.groupsRepo, mockParameters.paramsRepo)
+  val nodeApiInheritedProperties  =
+    new NodeApiInheritedProperties(mockNodes.nodeFactRepo, mockNodeGroups.groupsRepo, mockParameters.paramsRepo)
   val ncfTechniqueWriter:  TechniqueWriter       = null
   val ncfTechniqueReader:  EditorTechniqueReader = null
   val techniqueRepository: TechniqueRepository   = null
@@ -929,7 +931,7 @@ class RestTestSetUp {
       restExtractorService,
       restDataSerializer,
       nodeApiService,
-      null,
+      nodeApiInheritedProperties,
       uuidGen,
       DeleteMode.Erase
     ),

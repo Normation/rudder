@@ -1536,10 +1536,11 @@ class MockGlobalParam() {
     InheritMode(ObjectMode.Override, ArrayMode.Prepend, StringMode.Append)
   }
 
-  val stringParam: GlobalParameter              =
+  val stringParam: GlobalParameter =
     GlobalParameter("stringParam", GitVersion.DEFAULT_REV, "some string".toConfigValue, None, "a simple string param", None)
+
   // json: the key will be sorted alpha-num by Config lib; array value order is kept.
-  val jsonParam:   GlobalParameter              = GlobalParameter
+  val jsonParam:   GlobalParameter = GlobalParameter
     .parse(
       "jsonParam",
       GitVersion.DEFAULT_REV,
@@ -1549,9 +1550,9 @@ class MockGlobalParam() {
       None
     )
     .getOrElse(throw new RuntimeException("error in mock jsonParam"))
-  val modeParam:   GlobalParameter              =
+  val modeParam:   GlobalParameter =
     GlobalParameter("modeParam", GitVersion.DEFAULT_REV, "some string".toConfigValue, Some(mode), "a simple string param", None)
-  val systemParam: GlobalParameter              = GlobalParameter(
+  val systemParam: GlobalParameter = GlobalParameter(
     "systemParam",
     GitVersion.DEFAULT_REV,
     "some string".toConfigValue,
@@ -1559,7 +1560,8 @@ class MockGlobalParam() {
     "a simple string param",
     Some(PropertyProvider.systemPropertyProvider)
   )
-  val all:         Map[String, GlobalParameter] = List(stringParam, jsonParam, modeParam, systemParam).map(p => (p.name, p)).toMap
+
+  val all: Map[String, GlobalParameter] = List(stringParam, jsonParam, modeParam, systemParam).map(p => (p.name, p)).toMap
 
   val paramsRepo: paramsRepo = new paramsRepo
   class paramsRepo extends RoParameterRepository with WoParameterRepository {
@@ -2756,7 +2758,7 @@ class MockNodeGroups(nodesRepo: MockNodes) {
         None,
         None
       )
-      .getOrElse(null) // for test
+      .getOrElse(null)
   )
 
   val g0:     NodeGroup                     = NodeGroup(
