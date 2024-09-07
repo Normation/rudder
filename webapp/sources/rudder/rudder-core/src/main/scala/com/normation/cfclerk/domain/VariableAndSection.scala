@@ -137,9 +137,9 @@ sealed trait Variable {
       res <- if (seq != null) {
                if (!this.spec.checked) {
                  Right(seq)
-               } else if (!this.spec.multivalued && values.lengthCompare(1) > 0) {
+               } else if (!this.spec.multivalued && seq.lengthCompare(1) > 0) {
                  Left(LoadTechniqueError.Variable("Wrong variable length for " + this.spec.name))
-               } else if (values.map(x => Variable.checkValue(this, x)).contains(false)) {
+               } else if (seq.map(x => Variable.checkValue(this, x)).contains(false)) {
                  Left(
                    LoadTechniqueError.Variable("Wrong variable value for " + this.spec.name)
                  ) // this should really not be thrown
