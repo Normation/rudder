@@ -39,6 +39,7 @@ package com.normation.rudder.services.reports
 
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.logger.ComplianceLoggerPure
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.logger.ReportLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
@@ -57,6 +58,7 @@ import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository.*
 import com.normation.rudder.score.ComplianceScoreEvent
 import com.normation.rudder.score.ScoreServiceManager
+import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import org.joda.time.*
@@ -280,6 +282,9 @@ class ComputeNodeStatusReportServiceImpl(
   def saveUpdatedCompliance(newReports: Iterable[(NodeId, NodeStatusReport)]) = {
     for {
       now     <- currentTimeMillis
+      _       <- ReportLoggerPure.Cache.trace(
+                   s"Reports to save: ${newReports.map { case (id, r) => s"${id.value}: ${r.runInfo}" }.mkString("\n  ")}"
+                 )
       kept    <- updateKeepCompliance(new DateTime(now), newReports)
       updated <- nsrRepo.saveNodeStatusReports(kept)(ChangeContext.newForRudder())
       // exec hooks
@@ -287,6 +292,9 @@ class ComputeNodeStatusReportServiceImpl(
       _       <- ZIO.foreachDiscard(hooks)(_.onUpdate(updated))
       _       <- ReportLoggerPure.Cache.debug(
                    s"Compliance recomputed, saved and score updated for nodes: ${updated.map(_._1.value).mkString(", ")}"
+                 )
+      _       <- ReportLoggerPure.Cache.trace(
+                   s"Reports actually saved: ${updated.map { case (id, r) => s"${id.value}: ${r.runInfo}" }.mkString("\n  ")}"
                  )
     } yield ()
   }
@@ -302,36 +310,51 @@ class ComputeNodeStatusReportServiceImpl(
     val expired = reports.collect { case (id, r) if r.runInfo.kind == RunAnalysisKind.NoReportInInterval => id }
     for {
       expirationPolicy <- complianceExpirationService.getExpirationPolicy(expired)
+      res              <- ZIO.foreach(reports) {
+                            case (id, r) =>
+                              r.runInfo.kind match {
+                                case RunAnalysisKind.NoReportInInterval =>
+                                  (expirationPolicy.get(id), r.runInfo.expirationDateTime) match {
+                                    case (Some(NodeComplianceExpiration(NodeComplianceExpirationMode.KeepLast, Some(d))), Some(expiration)) =>
+                                      val keepUntil = expiration.plus(d.toMillis)
+                                      if (now.isBefore(keepUntil)) {
+                                        ComplianceLoggerPure.info(
+                                          s"Node with id '${id.value}' hasn't send report in expected time but " +
+                                          s"${NodePropertyBasedComplianceExpirationService.PROP_NAME}.${NodePropertyBasedComplianceExpirationService.PROP_SUB_NAME} " +
+                                          s"is configured to keep compliance for ${d}: waiting until ${keepUntil.toString(DateFormaterService.rfcDateformat)}"
+                                        ) *>
+                                        ComplianceLoggerPure.trace(s"Last run info for '${id.value}': ${r.runInfo}") *>
+                                        (
+                                          id,
+                                          r
+                                            .modify(_.runInfo.kind)
+                                            .setTo(RunAnalysisKind.KeepLastCompliance)
+                                            .modify(_.runInfo.expiredSince)
+                                            .setTo(r.runInfo.expirationDateTime)
+                                            .modify(_.runInfo.expirationDateTime)
+                                            .setTo(Some(keepUntil))
+                                        ).succeed
+                                      } else {
+                                        ComplianceLoggerPure.debug(
+                                          s"Node with id '${id.value}' hasn't send report in expected time and the additional duration from policy expired at ${keepUntil
+                                              .toString(DateFormaterService.rfcDateformat)}"
+                                        ) *>
+                                        (id, r).succeed
+                                      }
+
+                                    case _ =>
+                                      ComplianceLoggerPure.debug(
+                                        s"Node with id '${id.value}' hasn't send report in expected time and compliance expiration policy expires immediately (default)"
+                                      ) *>
+                                      (id, r).succeed
+                                  }
+
+                                case _ =>
+                                  (id, r).succeed
+                              }
+                          }
     } yield {
-      reports.map {
-        case (id, r) =>
-          r.runInfo.kind match {
-            case RunAnalysisKind.NoReportInInterval =>
-              (expirationPolicy.get(id), r.runInfo.expirationDateTime) match {
-                case (Some(NodeComplianceExpiration(NodeComplianceExpirationMode.KeepLast, Some(d))), Some(expiration)) =>
-                  val keepUntil = expiration.plus(d.toMillis)
-                  if (now.isBefore(keepUntil)) {
-                    (
-                      id,
-                      r
-                        .modify(_.runInfo.kind)
-                        .setTo(RunAnalysisKind.KeepLastCompliance)
-                        .modify(_.runInfo.expiredSince)
-                        .setTo(r.runInfo.expirationDateTime)
-                        .modify(_.runInfo.expirationDateTime)
-                        .setTo(Some(keepUntil))
-                    )
-                  } else {
-                    (id, r)
-                  }
-
-                case _ => (id, r)
-              }
-
-            case _ =>
-              (id, r)
-          }
-      }
+      res
     }
   }
 
@@ -391,18 +414,25 @@ class ComputeNodeStatusReportServiceImpl(
    * Find in cache all outdated compliance, and add to queue to recompute them
    */
   override def outDatedCompliance(now: DateTime): IOResult[Unit] = {
+    import RunAnalysisKind.*
     nsrRepo.getAll()(QueryContext.systemQC).flatMap { cache =>
       val nodeWithOutdatedCompliance = cache.filter {
         case (id, compliance) =>
           compliance.runInfo.kind match {
-            // here, we have a special case for unexpected version: it is useless to recompute compliance until we don't have a new run,
-            // ie the node config was changed elsewhere. It means that "unexpected version" wins above "No report in interval",
-            // ie that that error is bigger.
-            case RunAnalysisKind.UnexpectedVersion => false
-            // other expiring status
-            case _                                 =>
+            // here, we only want to check for compliance that expires when time pass and we
+            // were in a good state. Bad states need an external action (new config, new runs)
+            // to change back to good state
+
+            // bad status need an external thing beyond time passing
+            case NoRunNoExpectedReport | NoExpectedReport | NoUserRulesDefined | NoReportInInterval |
+                UnexpectedVersion | UnexpectedNoVersion | UnexpectedUnknownVersion | ReportsDisabledInInterval =>
+              false
+            // good status that can become bad
+            case ComputeCompliance | KeepLastCompliance | Pending =>
               compliance.runInfo.expirationDateTime match {
                 case Some(t) => t.isBefore(now)
+                // if there is no expiration date time, we are in a non-standard situation
+                // and we need to wait for external change
                 case None    => false
               }
           }
@@ -413,6 +443,9 @@ class ComputeNodeStatusReportServiceImpl(
       } else {
         ReportLoggerPure.Cache.debug(
           s"Compliance status is expired for nodes: ${nodeWithOutdatedCompliance.map(_._1.value).mkString(", ")}"
+        ) *>
+        ReportLoggerPure.Cache.trace(
+          s"Status of expired compliance: ${nodeWithOutdatedCompliance.map { case (i, s) => s"${i.value}: ${s}" }.mkString(", ")}"
         ) *>
         // send outdated message to queue
         invalidateWithAction(nodeWithOutdatedCompliance.map(x => (x._1, CacheComplianceQueueAction.ExpiredCompliance(x._1))))

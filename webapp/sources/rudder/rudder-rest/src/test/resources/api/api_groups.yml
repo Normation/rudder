@@ -148,10 +148,8 @@ response:
               {
                 "name" : "rudder",
                 "value" : {
-                  "rudder" : {
-                    "compliance_expiration_policy" : {
-                      "mode" : "ExpireImmediately"
-                    }
+                  "compliance_expiration_policy" : {
+                    "mode" : "expire_immediately"
                   }
                 },
                 "provider" : "inherited",
@@ -159,10 +157,8 @@ response:
                   {
                     "kind" : "global",
                     "value" : {
-                      "rudder" : {
-                        "compliance_expiration_policy" : {
-                          "mode" : "ExpireImmediately"
-                        }
+                      "compliance_expiration_policy" : {
+                        "mode" : "expire_immediately"
                       }
                     }
                   }
@@ -177,10 +173,8 @@ response:
                   ]
                 },
                 "origval" : {
-                  "rudder" : {
-                    "compliance_expiration_policy" : {
-                      "mode" : "ExpireImmediately"
-                    }
+                  "compliance_expiration_policy" : {
+                    "mode" : "expire_immediately"
                   }
                 }
               },
@@ -311,14 +305,12 @@ response:
               {
                 "name" : "rudder",
                 "value" : {
-                  "rudder" : {
-                    "compliance_expiration_policy" : {
-                      "mode" : "ExpireImmediately"
-                    }
+                  "compliance_expiration_policy" : {
+                    "mode" : "expire_immediately"
                   }
                 },
                 "provider" : "inherited",
-                "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>{\n    \"rudder\" : {\n        \"compliance_expiration_policy\" : {\n            \"mode\" : \"ExpireImmediately\"\n        }\n    }\n}\n</pre></p>",
+                "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>{\n    \"compliance_expiration_policy\" : {\n        \"mode\" : \"expire_immediately\"\n    }\n}\n</pre></p>",
                 "hierarchyStatus" : {
                   "hasChildTypeConflicts" : false,
                   "fullHierarchy" : [
@@ -329,10 +321,8 @@ response:
                   ]
                 },
                 "origval" : {
-                  "rudder" : {
-                    "compliance_expiration_policy" : {
-                      "mode" : "ExpireImmediately"
-                    }
+                  "compliance_expiration_policy" : {
+                    "mode" : "expire_immediately"
                   }
                 }
               },              {

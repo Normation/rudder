@@ -153,7 +153,7 @@ class ReportsExecutionService(
                                case (nodeid, compliance) => (nodeid, UpdateCompliance(nodeid, compliance))
                              }.toSeq)
       _                   <- ReportLoggerPure.Cache.debug(
-                               s"Invalidated and updated compliance for nodes ${nodeWithCompliances.map(_._1.value).mkString(",")}"
+                               s"Invalidated and updated compliance for nodes: [${nodeWithCompliances.map(_._1.value).mkString(", ")}]"
                              )
       _                   <- complianceRepos.saveRunCompliance(nodeWithCompliances.values.toList) // unsure if here or in the queue
       _                   <- computeNodeStatusReportService.outDatedCompliance(new DateTime(startCompliance))

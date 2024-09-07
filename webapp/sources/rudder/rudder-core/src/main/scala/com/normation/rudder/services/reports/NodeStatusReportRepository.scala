@@ -161,17 +161,7 @@ class NodeStatusReportRepositoryImpl(
                              case Some(e) =>
                                e.runInfo.kind match {
                                  case RunAnalysisKind.ComputeCompliance => // keep existing compliance, change run info
-                                   Some(
-                                     (
-                                       id,
-                                       e.modify(_.runInfo.lastRunExpiration)
-                                         .setTo(report.runInfo.lastRunExpiration)
-                                         .modify(_.runInfo.lastRunDateTime)
-                                         .setTo(report.runInfo.lastRunDateTime)
-                                         .modify(_.runInfo.lastRunConfigId)
-                                         .setTo(report.runInfo.lastRunConfigId)
-                                     )
-                                   )
+                                   Some((id, e.modify(_.runInfo).setTo(report.runInfo)))
                                  case _                                 => // in any other case, change nothing but check if there's an actual change
                                    if (e == report) None else Some((id, e))
                                }

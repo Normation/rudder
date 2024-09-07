@@ -184,7 +184,7 @@ class ComplianceJdbcRepository(
       Update[RunCompliance](queryCompliance).updateMany(runCompliances).void
     } else {
       logger
-        .debug(
+        .trace(
           s"Not persisting compliance details in table 'nodecompliance' because settings 'rudder_save_db_compliance_details' is undefined or false"
         )
         .pure[ConnectionIO]
@@ -196,7 +196,7 @@ class ComplianceJdbcRepository(
       Update[LEVELS](queryComplianceLevel).updateMany(nodeComplianceLevels)
     } else {
       logger
-        .debug(
+        .trace(
           s"Not persisting compliance levels in table 'nodecompliancelevels' because settings 'rudder_save_db_compliance_level' is false"
         )
         .pure[ConnectionIO]

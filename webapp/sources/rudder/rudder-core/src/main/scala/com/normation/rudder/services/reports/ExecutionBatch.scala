@@ -759,17 +759,17 @@ object ExecutionBatch extends Loggable {
                 // expirationTime is the date after which we must have gotten a report for the current version
                 val expirationTime = t.plus(runValidityDuration(currentConfig.agentRun, currentConfig.complianceMode))
 
-                // expiration time is based on now as run is invalid and we can't get proper data
-                val complianceComputationExpirationTime =
-                  computeExpirationDate(now, currentConfig.n.agentRun, currentConfig.complianceMode)
                 // If the run has expired, consider that no report were sent
                 if (expirationTime.isBefore(now)) {
                   runType(
-                    s"Last run at ${t} is for the configId ${rv.value} but a new one should have been sent for configId ${currentConfig.nodeConfigId.value} before ${expirationTime}",
-                    NoReportInInterval(currentConfig, complianceComputationExpirationTime)
+                    s"last run at ${t} is for the configId ${rv.value} but a new one should have been sent for configId ${currentConfig.nodeConfigId.value} before ${expirationTime}",
+                    NoReportInInterval(currentConfig, expirationTime)
                   )
                 } else {
-                  val configurationExpirationTime = currentConfig.beginDate.plus(updateValidityDuration(currentConfig.agentRun))
+                  // expiration time is based on now as run is invalid and we can't get proper data
+                  val complianceComputationExpirationTime =
+                    computeExpirationDate(now, currentConfig.n.agentRun, currentConfig.complianceMode)
+                  val configurationExpirationTime         = currentConfig.beginDate.plus(updateValidityDuration(currentConfig.agentRun))
 
                   runType(
                     s"nodeId exists in DB and has configId, expected configId is ${currentConfig.nodeConfigId.value}, but ${rv.value} was not found (node corruption?)",
@@ -794,14 +794,10 @@ object ExecutionBatch extends Loggable {
                   case None =>
                     val expirationTime = t.plus(runValidityDuration(currentConfig.agentRun, currentConfig.complianceMode))
                     if (expirationTime.isBefore(now)) {
-                      // expiration time is based on now as run is invalid and we can't get proper data
-                      val complianceComputationExpirationTime =
-                        computeExpirationDate(now, currentConfig.n.agentRun, currentConfig.complianceMode)
-
                       // take care of the potential case where currentConfig != runConfig in the log message
                       runType(
-                        s"Last run at ${t} is for the configId ${runConfig.nodeConfigId.value} but a new one should have been sent for configId ${currentConfig.nodeConfigId.value} before ${expirationTime}",
-                        NoReportInInterval(currentConfig, complianceComputationExpirationTime)
+                        s"last run at ${t} is for the configId ${runConfig.nodeConfigId.value} but a new one should have been sent for configId ${currentConfig.nodeConfigId.value} before ${expirationTime}",
+                        NoReportInInterval(currentConfig, expirationTime)
                       )
                     } else { // nominal case
                       // here, we have to verify that the config id are different, because we can
@@ -815,7 +811,7 @@ object ExecutionBatch extends Loggable {
                       } else {
                         // the node is answering current config, on time
                         runType(
-                          s"Last run at ${t} is for the correct configId ${currentConfig.nodeConfigId.value} and not expired, compute compliance",
+                          s"last run at ${t} is for the correct configId ${currentConfig.nodeConfigId.value} and not expired, compute compliance",
                           ComputeCompliance(t, currentConfig, expirationTime)
                         )
                       }
@@ -847,13 +843,9 @@ object ExecutionBatch extends Loggable {
                       )
                     } else {
                       if (configurationExpirationTime.isBefore(now)) {
-                        // compliance expiration time in no reports when expired or disabled is so based on now
-                        val complianceComputationExpirationTime =
-                          computeExpirationDate(now, currentConfig.n.agentRun, currentConfig.complianceMode)
-
                         runType(
                           s"last run at ${t} was for expired configId ${rv.value} and no report received for current configId ${currentConfig.nodeConfigId.value} (one was expected before ${configurationExpirationTime})",
-                          NoReportInInterval(currentConfig, complianceComputationExpirationTime)
+                          NoReportInInterval(currentConfig, configurationExpirationTime)
                         )
                       } else {
                         // standard case: we changed version and are waiting for a run with the new one.
