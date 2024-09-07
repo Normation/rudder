@@ -187,10 +187,10 @@ sealed trait Variable {
 
   protected def castValue(x: String, escape: String => String): PureResult[Any] = {
     // we don't want to check constraint on empty value
-    // when the variable is optionnal.
-    // But I'm not sure if I understand what is happening with a an optionnal
+    // when the variable is optional.
+    // But I'm not sure if I understand what is happening with a an optional
     // boolean, since we are returning a string in that case :/
-    if (this.spec.constraint.mayBeEmpty && x.isEmpty) Right("")
+    if (this.spec.constraint.mayBeEmpty && (x == null || x.isEmpty)) Right("")
     else spec.constraint.typeName.getFormatedValidated(x, spec.name, escape)
   }
 }
