@@ -17,7 +17,7 @@
     BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
     $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
 
-    $resources_dir = $PSScriptRoot + "\resources"
+    Add-RudderVar -Name 'resources_dir' -Value ($PSScriptRoot + '\resources')
 
     $fallBackReportParams = @{
         ClassPrefix = 'skipped_method'

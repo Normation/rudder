@@ -20,7 +20,7 @@ function {{ id|technique_name }} {
     BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
     $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
 {% if has_resources %}
-    $resources_dir = $PSScriptRoot + "\resources"
+    Add-RudderVar -Name 'resources_dir' -Value ($PSScriptRoot + '\resources')
 {% endif %}
     $fallBackReportParams = @{
         ClassPrefix = 'skipped_method'
