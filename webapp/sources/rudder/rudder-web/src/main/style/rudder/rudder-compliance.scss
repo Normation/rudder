@@ -185,6 +185,7 @@ $small-prefix : "sm-";
 
 @mixin badge-url($score, $size) {
   background-image: url("../../images/score-badges/rudder-score-badge-" + $size + $score + ".svg");
+  background-repeat: no-repeat;
 }
 
 .badge-compliance-score{
