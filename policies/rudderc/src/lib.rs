@@ -10,7 +10,6 @@ use std::{
 use anyhow::bail;
 use anyhow::{anyhow, Context, Result};
 use rudder_cli::custom_panic_hook_ignore_sigpipe;
-#[cfg(not(feature = "embedded-lib"))]
 use tracing::debug;
 use tracing::error;
 
