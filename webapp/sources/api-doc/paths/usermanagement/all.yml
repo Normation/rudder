@@ -30,17 +30,13 @@ get:
               data:
                 type: object
                 required:
-                  - digest
+                  - roleListOverride
+                  - authenticationBackends
+                  - providerProperties
                   - users
+                  - digest
+                  - tenantsEnabled
                 properties:
-                  digest:
-                    type: string
-                    enum:
-                      - BCRYPT
-                      - SHA512
-                      - SHA256
-                      - SHA1
-                      - MD5
                   roleListOverride:
                     $ref: ../../components/schemas/role-list-override.yml
                   authenticationBackends:
@@ -68,8 +64,19 @@ get:
                     type: array
                     items:
                       $ref: ../../components/schemas/user.yml
+                  digest:
+                    type: string
+                    enum:
+                      - BCRYPT
+                    description: Default password hash algorithm
+                  tenantsEnabled:
+                    type: boolean
+                    description: Whether the tenants plugin is enabled or not, indicating if users only belong to their assigned tenants
+                    enum:
+                      - false
+                      - true
   tags:
-    - 🧩 User Management
+    - User management
   x-codeSamples:
     - lang: curl
       source:
