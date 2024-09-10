@@ -57,6 +57,8 @@ tags:
     description: Server configuration
   - name: System
     description: Internal components and administration
+  - name: User management
+    description: Manage user information and configuration file
   - name: Plugins
     description: Information about installed plugins
   - name: "🧩 Change requests"
@@ -89,12 +91,6 @@ tags:
 
 
       Manage relays.
-  - name: "🧩 User Management"
-    description: >-
-      **Requires that the `user-management` plugin is installed on the server.**
-
-
-      Manage user information and configuration file.
   - name: "🧩 Branding"
     description: >-
       **Requires that the `branding` plugin is installed on the server.**

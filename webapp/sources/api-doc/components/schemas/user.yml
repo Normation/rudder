@@ -75,6 +75,9 @@ properties:
         type: array
         items:
           $ref: right.yml
+  tenants:
+    type: string
+    example: all
   lastLogin:
     type: string
     format: date-time
