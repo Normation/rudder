@@ -271,12 +271,13 @@ showBlockTab model parentId block uiInfo techniqueUi =
         labelWorst = \weight -> case weight of
                          WorstReportWeightedOne -> "Use a weight of '1' for component"
                          WorstReportWeightedSum -> "Use sum of sub-components for weight"
+                         WorstReportByPercent -> "Use the compliance percent of sub-components"
 
         liWorst = \weight -> element "li"
                     |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = (WorstReport weight) }))
                     |> appendChild (element "a" |> addClass "dropdown-item" |> appendText (labelWorst weight))
 
-        availableWorst = List.map liWorst [ WorstReportWeightedOne, WorstReportWeightedSum]
+        availableWorst = List.map liWorst [ WorstReportWeightedOne, WorstReportWeightedSum, WorstReportByPercent]
       in
          element "div"
            |> appendChildList
