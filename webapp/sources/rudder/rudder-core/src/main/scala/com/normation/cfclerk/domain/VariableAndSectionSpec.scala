@@ -494,6 +494,35 @@ object DisplayPriority {
  * - `worst case (weight = sum all)`
  *    compliance value will have the same level as the worst case, and will have weight equals
  *    to the sum of weight of all sub components.
+ * - `worst case by percent`
+ *    compliance value will have the same level as the worst case with the least compliance percent
+ *
+ * Illustration :
+ *
+ *
+ * BLOCK                                          FOCUS ON C1                        WEIGHTED                     WORST-1 on B1                    WORST-SUM on B1              WORST-PERCENT on BLOCK
+ * |                                                     |                               |                                |                                |                                |
+ * +-- B1                                                |                               |                    +-----------------------+        +-----------------------+        +-----------------------+
+ * |   |                                                 |                               |                    | B1 worst      = 1E    |        | B1 worst      = 1E    |        | B1 weighted   = 2S-1E |
+ * |   +-- b1c1 = Error                                  |                             <-✗                    | B1 weight     = 1     |        | B1 weight     = 3     |        | B1 compliance = 66%   |
+ * |   +-- b1c2 = Success                                |                             <-✗                    +-----------------------+        +-----------------------+        +-----------------------+
+ * |   +-- b1c3 = Success                                |                             <-✓                                |                                |                                |
+ * |                                                     |                               |                                |                                |                                |
+ * +-- B2                                                |                               |                    +-----------------------+        +-----------------------+        +-----------------------+
+ * |   |                                                 |                               |                    | B2 weighted   = 1S-1U |        | B2 weighted   = 1S-1U |        | B2 weighted   = 1S-1U |
+ * |   +-- b2c1 = Success                                |                             <-✓                    | B2 weight     = 2     |        | B2 weight     = 2     |        | B2 compliance = 50%   |
+ * |   +-- b2c2 = Unexpected                             |                             <-✗                    +-----------------------+        +-----------------------+        +-----------------------+
+ * |                                        +-----------------------+                    |                                |                                |                                |
+ * +-- C1       = Error                     |        1 Error        |                  <-✓                       WEIGHTED on BLOCK                WEIGHTED on BLOCK                         |
+ *                                          | BLOCK compliance = 0% |       +------------------------+        +------------------------+       +------------------------+       +------------------------+
+ *                                          +-----------------------+       |     3 Success          |        |     1 Success          |       |     1 Success          |       |     1 Error (C1)       |
+ *                                                                          |     2 Error            |        |     2 Errors           |       |     4 Errors           |       | BLOCK compliance = 33% |
+ *                                                                          |     1 Unexpected       |        |     1 Unexpected       |       |     1 Unexpected       |       +------------------------+
+ *                                                                          | BLOCK compliance = 50% |        | BLOCK compliance = 25% |       | BLOCK compliance = 17% |       | IF C1 was not there :  |
+ *                                                                          +------------------------+        +------------------------+       +------------------------+       |     1 Success          |
+ *                                                                                                                                                                              |     1 Unexpected       |
+ *                                                                                                                                                                              | BLOCK compliance = 50% |
+ *                                                                                                                                                                              +------------------------+
  */
 sealed trait ReportingLogic {
   def value: String
@@ -509,19 +538,27 @@ object ReportingLogic {
   final case class FocusReport(component: String) extends ReportingLogic {
     val value: String = s"${FocusReport.key}:${component}"
   }
-  case object WorstReportWeightedOne extends WorstReportReportingLogic {
+
+  sealed trait WorstReportWeightedReportingLogic extends WorstReportReportingLogic
+  case object WorstReportWeightedOne             extends WorstReportWeightedReportingLogic {
     val value = "worst-case-weighted-one"
   }
-  case object WorstReportWeightedSum extends WorstReportReportingLogic {
+  case object WorstReportWeightedSum             extends WorstReportWeightedReportingLogic {
     val value = "worst-case-weighted-sum"
   }
+  case object WorstReportByPercent               extends WorstReportReportingLogic         {
+    val value = "worst-case-percent"
+  }
+
   case object WeightedReport extends ReportingLogic {
     val value = "weighted"
   }
+
   def parse(value: String, defaultFocusKey: String = ""): PureResult[ReportingLogic] = {
     value.toLowerCase match {
       case WorstReportWeightedOne.value => Right(WorstReportWeightedOne)
       case WorstReportWeightedSum.value => Right(WorstReportWeightedSum)
+      case WorstReportByPercent.value   => Right(WorstReportByPercent)
       case WeightedReport.value         => Right(WeightedReport)
       case s"${FocusReport.key}:${a}"   => Right(FocusReport(a))
       case FocusReport.key              => Right(FocusReport(defaultFocusKey))

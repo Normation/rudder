@@ -65,6 +65,7 @@ decodeCompositionRule =
         case v of
           "worst-case-weighted-sum" -> succeed (WorstReport WorstReportWeightedSum)
           "worst-case-weighted-one" -> succeed (WorstReport WorstReportWeightedOne)
+          "worst-case-percent"      -> succeed (WorstReport WorstReportByPercent)
           "weighted"                -> succeed WeightedReport
           "focus"                   -> succeed (FocusReport "")
           value                     ->

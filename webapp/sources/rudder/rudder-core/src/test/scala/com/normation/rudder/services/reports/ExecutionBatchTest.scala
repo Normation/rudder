@@ -50,6 +50,7 @@ import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.*
+import com.normation.rudder.domain.reports.BlockExpectedReport
 import com.normation.rudder.domain.reports.DirectiveExpectedReports
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.FullCompliance
@@ -2195,6 +2196,167 @@ class ExecutionBatchTest extends Specification {
     "Return an unexpected Block" in {
       (withBad.size === 1) and
       (withBad.head.compliance === ComplianceLevel(unexpected = 5))
+    }
+
+  }
+
+  "Sub block with reporting 'worst case by percent'" should {
+    val reports = Seq[ResultReports](
+      new ResultErrorReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id12",
+        "component1",
+        "b1c1",
+        executionTimestamp,
+        "message"
+      ),
+      new ResultRepairedReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id12",
+        "component2",
+        "b1c2",
+        executionTimestamp,
+        "message"
+      ),
+      new ResultRepairedReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id12",
+        "component3",
+        "b1c3",
+        executionTimestamp,
+        "message"
+      ),
+      new ResultSuccessReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id12",
+        "component1",
+        "b2c1",
+        executionTimestamp,
+        "message"
+      ),
+      new ResultRepairedReport(
+        executionTimestamp,
+        "cr",
+        "policy",
+        "nodeId",
+        "report_id12",
+        "component1",
+        "b3c1",
+        executionTimestamp,
+        "message"
+      )
+    )
+
+    val expectedComponent        = BlockExpectedReport(
+      "blockRoot",
+      ReportingLogic.WorstReportByPercent,
+      BlockExpectedReport(
+        "block1",
+        ReportingLogic.WeightedReport,
+        new ValueExpectedReport(
+          "component1",
+          ExpectedValueMatch("b1c1", "b1c1") :: Nil
+        ) :: new ValueExpectedReport(
+          "component2",
+          ExpectedValueMatch("b1c2", "b1c2") :: Nil
+        ) :: new ValueExpectedReport(
+          "component3",
+          ExpectedValueMatch("b1c3", "b1c3") :: Nil
+        ) :: Nil,
+        None
+      ) :: BlockExpectedReport(
+        "block2",
+        ReportingLogic.WeightedReport,
+        new ValueExpectedReport(
+          "component1",
+          ExpectedValueMatch("b2c1", "b2c1") :: Nil
+        ) :: Nil,
+        None
+      ) :: BlockExpectedReport(
+        "block3",
+        ReportingLogic.WeightedReport,
+        new ValueExpectedReport(
+          "component1",
+          ExpectedValueMatch("b3c1", "b3c1") :: Nil
+        ) :: Nil,
+        None
+      ) :: Nil,
+      None
+    )
+    val directiveExpectedReports = {
+      DirectiveExpectedReports(
+        DirectiveId(DirectiveUid("policy")),
+        None,
+        PolicyTypes.rudderBase,
+        components = expectedComponent :: Nil
+      )
+    }
+    val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
+    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+
+    val statusReports = ExecutionBatch
+      .getComplianceForRule(
+        mergeInfo,
+        reports,
+        mode,
+        ruleExpectedReports,
+        new ComputeComplianceTimer()
+      )
+      .collect { case r => r.directives("policy") }
+
+    "return one root component with 5 key values " in {
+      (statusReports.size === 1) and
+      (statusReports.head.components.filter(_.componentName == "blockRoot").head.componentValues.size === 5)
+    }
+    "return 4 component with the key values b1c2,b1c3,b2c1,b3c1 which is repaired " in {
+      val block1 = statusReports.head.components
+        .filter(_.componentName == "blockRoot")
+        .head
+        .asInstanceOf[BlockStatusReport]
+        .subComponents
+        .find(_.componentName == "block1")
+        .get
+      val block2 = statusReports.head.components
+        .filter(_.componentName == "blockRoot")
+        .head
+        .asInstanceOf[BlockStatusReport]
+        .subComponents
+        .find(_.componentName == "block2")
+        .get
+      val block3 = statusReports.head.components
+        .filter(_.componentName == "blockRoot")
+        .head
+        .asInstanceOf[BlockStatusReport]
+        .subComponents
+        .find(_.componentName == "block3")
+        .get
+
+      (block1.componentValues("b1c1").head.messages.size === 1) and
+      (block1.componentValues("b1c1").head.messages.head.reportType === EnforceError) and
+      (block1.componentValues("b1c2").head.messages.size === 1) and
+      (block1.componentValues("b1c2").head.messages.head.reportType === EnforceRepaired) and
+      (block1.componentValues("b1c3").head.messages.size === 1) and
+      (block1.componentValues("b1c3").head.messages.head.reportType === EnforceRepaired) and
+      (block2.componentValues("b2c1").head.messages.size === 1) and
+      (block2.componentValues("b2c1").head.messages.head.reportType === EnforceSuccess)
+      (block3.componentValues("b3c1").head.messages.size === 1) and
+      (block3.componentValues("b3c1").head.messages.head.reportType === EnforceRepaired)
+    }
+
+    "Return the worst Block" in { // b1 is the worst subComponent with 33% error
+      statusReports.head.compliance === ComplianceLevel(error = 1, repaired = 2)
     }
 
   }
