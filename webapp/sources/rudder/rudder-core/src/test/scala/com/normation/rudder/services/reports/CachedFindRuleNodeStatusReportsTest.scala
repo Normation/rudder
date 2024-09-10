@@ -242,9 +242,8 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
 
     (n1 must beEqualTo(Map())) and
     (n2 must beEqualTo(finder.reports.filter(x => okId.contains(x._1)))) and
-    // second time, only expired are invalidate (8) ; excepted UnexpectedVersion (1) and
-    // non ExpiringStatus (NoExpectedConfig => 6
-    (finder.updated.size must beEqualTo(9 + 6))
+    // second time, only the node with changing status (pending and compute) are invalidated
+    (finder.updated.size must beEqualTo(9 + 2))
   }
 
   "When run are expired but we keep compliance, we keep compliance in repo" >> {

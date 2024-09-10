@@ -79,10 +79,8 @@ response:
           {
             "id" : "rudder",
             "value" : {
-              "rudder" : {
-                "compliance_expiration_policy" : {
-                  "mode" : "ExpireImmediately"
-                }
+              "compliance_expiration_policy" : {
+                "mode" : "expire_immediately"
               }
             },
             "description" : "rudder system config",

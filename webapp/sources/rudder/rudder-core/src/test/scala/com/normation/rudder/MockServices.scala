@@ -1533,12 +1533,11 @@ class MockGlobalParam() {
 
   val rudderConfig: GlobalParameter = GlobalParameter
     .parse(
-      "rudder",
+      NodePropertyBasedComplianceExpirationService.PROP_NAME,
       GitVersion.DEFAULT_REV,
-      s"""{ "${NodePropertyBasedComplianceExpirationService.PROP_KEY}":
-         |  { "${NodePropertyBasedComplianceExpirationService.PROP_NAME}":
-         |    { "mode":"${NodeComplianceExpirationMode.ExpireImmediately}"}
-         | }}""".stripMargin,
+      s"""{ "${NodePropertyBasedComplianceExpirationService.PROP_SUB_NAME}":
+         |  { "mode":"${NodeComplianceExpirationMode.ExpireImmediately.entryName}"}
+         |}""".stripMargin,
       None,
       "rudder system config",
       Some(PropertyProvider.systemPropertyProvider)
@@ -1822,7 +1821,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     )
   )
 
-  val rootNodeFact = NodeFact.fromCompat(root, Right(FullInventory(rootInventory, None)), softwares.take(7), None)
+  val rootNodeFact: NodeFact = NodeFact.fromCompat(root, Right(FullInventory(rootInventory, None)), softwares.take(7), None)
 
   val node1Node: Node = Node(
     id1,

@@ -40,6 +40,7 @@ package com.normation.rudder.services.reports
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ComplianceLogger
+import com.normation.rudder.domain.logger.ComplianceLoggerPure
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.reports.NodeComplianceExpiration
 import com.normation.rudder.facts.nodes.QueryContext
@@ -47,6 +48,7 @@ import com.normation.rudder.properties.PropertiesRepository
 import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigRenderOptions
 import zio.Chunk
+import zio.ZIO
 import zio.json.*
 import zio.syntax.*
 
@@ -83,26 +85,30 @@ class NodePropertyBasedComplianceExpirationService(
   override def getExpirationPolicy(nodeIds: Iterable[NodeId]): IOResult[Map[NodeId, NodeComplianceExpiration]] = {
     val ids = nodeIds.toSet
     for {
-      propMap <- propRepository.getNodesProp(ids, propertyName)(QueryContext.systemQC)
+      propMap <- propRepository.getNodesProp(ids, propertyKey)(QueryContext.systemQC)
+      res      = nodeIds.map { id =>
+                   (
+                     id,
+                     propMap.get(id) match {
+                       case Some(p) => NodePropertyBasedComplianceExpirationService.getPolicy(p.prop, propertyKey, propertyName, id)
+                       case None    => NodeComplianceExpiration.default
+                     }
+                   )
+                 }
+      _       <- ComplianceLoggerPure.ifDebugEnabled(ZIO.foreachDiscard(res) {
+                   case (id, r) => ComplianceLoggerPure.debug(s"Compliance expiration policy for node '${id.value}' is ${r}")
+                 })
     } yield {
-      nodeIds.map { id =>
-        (
-          id,
-          propMap.get(id) match {
-            case Some(p) => NodePropertyBasedComplianceExpirationService.getPolicy(p.prop, propertyKey, propertyName, id)
-            case None    => NodeComplianceExpiration.default
-          }
-        )
-      }.toMap
+      res.toMap
     }
   }
 }
 
 object NodePropertyBasedComplianceExpirationService {
   // default key of the JSON structure containing the compliance duration configuration
-  val PROP_KEY  = "rudder"
+  val PROP_NAME     = "rudder"
   // default name of the sub-key for compliance duration configuration value.
-  val PROP_NAME = "compliance_expiration_policy"
+  val PROP_SUB_NAME = "compliance_expiration_policy"
 
   def getPolicy(p: NodeProperty, propKey: String, propName: String, debugId: NodeId): NodeComplianceExpiration = {
     try {

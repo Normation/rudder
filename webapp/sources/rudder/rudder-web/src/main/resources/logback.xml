@@ -311,17 +311,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
 
   <!--
-    Cache (nodes, compliance)
-    =========================
-    Information on cache, interesting for Rudder 3.0 and up
-    Set to debug or trace to have information.
-  -->
-  <logger name="com.normation.rudder.services.reports.CachedReportingServiceImpl" level="info" />
-  <logger name="com.normation.rudder.services.reports.CachedNodeChangesServiceImpl" level="info" />
-  <logger name="com.normation.rudder.services.nodes.NodeInfoServiceCachedImpl" level="info"/>
-
-
-  <!--
     For the following logger where "OPSLOG" is defined, will get the logs in both the
     webapp logs and file config in OPSLOG (by default, /var/log/rudder/core/rudder-webapp.log
 
@@ -355,6 +344,15 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <appender-ref ref="OPSLOG" />
     <appender-ref ref="STDOUT" />
   </logger>
+
+
+  <!--
+    Cache (nodes, compliance)
+    =========================
+    Information on cache, interesting for Rudder 3.0 and up
+    Set to debug or trace to have information.
+  -->
+  <logger name="compliance" level="info" />
 
   <!--
     =================

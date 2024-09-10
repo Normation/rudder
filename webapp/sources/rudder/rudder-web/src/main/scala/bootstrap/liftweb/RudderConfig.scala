@@ -3010,8 +3010,8 @@ object RudderConfigInit {
         findNewNodeStatusReports,
         new NodePropertyBasedComplianceExpirationService(
           propertiesRepository,
-          NodePropertyBasedComplianceExpirationService.PROP_KEY,
-          NodePropertyBasedComplianceExpirationService.PROP_NAME
+          NodePropertyBasedComplianceExpirationService.PROP_NAME,
+          NodePropertyBasedComplianceExpirationService.PROP_SUB_NAME
         ),
         Ref.make(Chunk[NodeStatusReportUpdateHook](new ScoreNodeStatusReportUpdateHook(scoreServiceManager))).runNow,
         RUDDER_JDBC_BATCH_MAX_SIZE
@@ -3361,7 +3361,6 @@ object RudderConfigInit {
     lazy val reportDisplayerImpl = new ReportDisplayer(
       roLdapRuleRepository,
       roLdapDirectiveRepository,
-      techniqueRepositoryImpl,
       nodeFactRepository,
       configService,
       logDisplayerImpl

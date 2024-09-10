@@ -1310,10 +1310,8 @@ response:
             {
               "name" : "rudder",
               "value" : {
-                "rudder" : {
-                  "compliance_expiration_policy" : {
-                    "mode" : "ExpireImmediately"
-                  }
+                "compliance_expiration_policy" : {
+                  "mode" : "expire_immediately"
                 }
               },
               "provider" : "inherited",
@@ -1321,10 +1319,8 @@ response:
                 {
                   "kind" : "global",
                   "value" : {
-                    "rudder" : {
-                      "compliance_expiration_policy" : {
-                        "mode" : "ExpireImmediately"
-                      }
+                    "compliance_expiration_policy" : {
+                      "mode" : "expire_immediately"
                     }
                   }
                 }
@@ -1339,10 +1335,8 @@ response:
                 ]
               },
               "origval" : {
-                "rudder" : {
-                  "compliance_expiration_policy" : {
-                    "mode" : "ExpireImmediately"
-                  }
+                "compliance_expiration_policy" : {
+                  "mode" : "expire_immediately"
                 }
               }
             },            

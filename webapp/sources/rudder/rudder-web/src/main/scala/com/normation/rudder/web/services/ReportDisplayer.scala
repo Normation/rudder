@@ -39,7 +39,6 @@ package com.normation.rudder.web.services
 
 import com.normation.appconfig.ReadConfigService
 import com.normation.box.*
-import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.AuthorizationType
@@ -56,6 +55,7 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
+import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import net.liftweb.common.*
 import net.liftweb.http.SHtml
@@ -64,7 +64,6 @@ import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
 
@@ -75,14 +74,12 @@ import scala.xml.NodeSeq.seqToNodeSeq
 class ReportDisplayer(
     ruleRepository:      RoRuleRepository,
     directiveRepository: RoDirectiveRepository,
-    techniqueRepository: TechniqueRepository,
     nodeFactRepo:        NodeFactRepository,
     configService:       ReadConfigService,
     logDisplayer:        LogDisplayer
 ) extends Loggable {
 
   def reportByNodeTemplate: NodeSeq = ChooseTemplate(List("templates-hidden", "reports_server"), "batches-list")
-  def directiveDetails:     NodeSeq = ChooseTemplate(List("templates-hidden", "reports_server"), "directive:foreach")
 
   /**
    * Main entry point to display the tab with reports of a node.
@@ -90,7 +87,7 @@ class ReportDisplayer(
    * - general compliance table (displayed by rules)
    * - missing reports table if such reports exists
    * - unknown reports table if such reports exists
-   * addOverriden decides if we need to add overriden policies (policy tab), or not (system tab)
+   * addOverridden decides if we need to add overridden policies (policy tab), or not (system tab)
    */
   def asyncDisplay(
       node:         CoreNodeFact,
@@ -165,25 +162,32 @@ class ReportDisplayer(
 
   private def displayIntro(report: NodeStatusReport, nodeSettings: RudderSettings, defaultInterval: Int): NodeSeq = {
 
-    import com.normation.rudder.domain.logger.ComplianceDebugLogger.RunAnalysisInfoToLog
-
+    def displayDate(d:    DateTime) = DateFormaterService.getDisplayDate(d)
+    def displayDateOpt(d: Option[DateTime]): String = d.fold("an unknown date")(displayDate)
     def explainCompliance(info: RunAnalysis): NodeSeq = {
-      val dateFormat = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ssZ")
 
       def currentConfigId(expectedConfig: RunAnalysis): String = {
-        s"Current configuration ID for this node is '${expectedConfig.expectedConfigId.fold("unknown")(_.value)}' (generated on ${expectedConfig.expectedConfigStart
-            .fold("unknown date")(_.toString(dateFormat))})"
+        s"Current configuration ID for this node is '${expectedConfig.expectedConfigId.fold("unknown")(_.value)}' " +
+        s"(generated on ${displayDateOpt(expectedConfig.expectedConfigStart)})"
+      }
+      def logRun(info: RunAnalysis):                    String = {
+        val configId = info.lastRunConfigId.fold("none or too old")(i => s"configId: ${i.value}")
+        val date     = info.lastRunDateTime.fold("unknown")(displayDate)
+        val exp      = info.lastRunExpiration.fold("")(r => s" | expired at ${displayDate(r)}")
+
+        s"${configId} received at: ${date}${exp}"
+
       }
 
       info.kind match {
         case R.ComputeCompliance =>
-          (<p>This node has up to date policy and the agent is running. Reports below are from the latest run, which started on the node at {
-            info.logRun
+          (<p>This node has up to date policy and the agent is running. Reports below are from the latest run: {
+            logRun(info)
           }.</p><p>{currentConfigId(info)}.</p>)
 
         case R.NoUserRulesDefined =>
-          (<p>This node has up to date policy and the agent is running, but no user rules are defined. Last run was started on the node at {
-            info.logRun
+          (<p>This node has up to date policy and the agent is running, but no user rules are defined. Last run is {
+            logRun(info)
           }.</p><p>{currentConfigId(info)}.</p>)
 
         case R.Pending =>
@@ -203,15 +207,15 @@ class ReportDisplayer(
                   if (date.isBefore(minDate)) { // most likely a disconnected node
                     s"The node was reporting on a previous configuration policy, and didn't send reports since a long time: please" +
                     s" check that the node connection to server is correct. It should report on the new one at latest" +
-                    s" ${expiration.toString(dateFormat)}. Previous known states are displayed below."
+                    s" ${displayDate(expiration)}. Previous known states are displayed below."
                   } else {
                     s"This is expected, the node is reporting on the previous configuration policy and should report on the new one at latest" +
-                    s" ${expiration.toString(dateFormat)}. Previous known states are displayed below."
+                    s" ${displayDate(expiration)}. Previous known states are displayed below."
                   }
                 case Some(exp) =>
-                  s"This is unexpected, since the node is reporting on a configuration policy that expired at ${exp.toString(dateFormat)}."
+                  s"This is unexpected, since the node is reporting on a configuration policy that expired at ${displayDate(exp)}."
               }) +
-              s" The latest reports received for this node are from a run started at ${date.toString(dateFormat)} (${info.logRun})."
+              s" The latest reports received for this node are from a run started at ${displayDate(date)} (${logRun(info)})."
           }
 
           (
@@ -231,15 +235,15 @@ class ReportDisplayer(
         case R.KeepLastCompliance =>
           (
             <p>No recent reports have been received for this node in the grace period since the last configuration policy change.
-              The grace period is expired since {info.expiredSince.fold("an unknown date")(_.toString(dateFormat))}.
+              The grace period is expired since {displayDateOpt(info.expiredSince)}.
                Still, this node has a configuration to keep its last known compliance until {
-              info.expirationDateTime.fold("an unknown date")(_.toString(dateFormat))
+              displayDateOpt(info.expirationDateTime)
             }.</p><p>{
               info.lastRunDateTime match {
                 case None    =>
                   "We don't have more information about a run that might have provided compliance."
                 case Some(t) =>
-                  s"The run from which that compliance was computed started at ${t.toString(dateFormat)}."
+                  s"The run from which that compliance was computed started at ${displayDate(t)}."
               }
             }</p><p>For information, expected node policies are displayed below.</p>
             <p>{currentConfigId(info)}.</p>
@@ -256,7 +260,7 @@ class ReportDisplayer(
 
           <p>This node has no configuration policy assigned to it, but reports have been received for it {
             configIdmsg
-          } (run started at {info.lastRunDateTime.fold("an unknown date")(_.toString(dateFormat))}).
+          } (run started at {displayDateOpt(info.lastRunDateTime)}).
              Either this node was deleted from Rudder but still has a running agent or the node is sending a corrupted configuration ID.
              Please run "rudder agent update -f" on the node to force a policy update and, if the problem persists,
              force a policy regeneration with the "Clear caches" button in Administration > Settings.</p>
@@ -265,7 +269,7 @@ class ReportDisplayer(
           (
             <p>This node is sending reports from an out-of-date configuration policy ({
               info.lastRunConfigId.fold("unknown")(_.value)
-            }, run started at {info.lastRunDateTime.fold("an unknown date")(_.toString(dateFormat))}).
+            }, run started at {displayDateOpt(info.lastRunDateTime)}).
                Please check that the node is able to update it's policy by running 'rudder agent update' on the node.</p>
             <p>For information, expected node policies are displayed below.</p>
             <p>{currentConfigId(info)}</p>
@@ -291,7 +295,7 @@ class ReportDisplayer(
             <p>This node is sending reports from an unknown configuration policy (with configuration ID '{
               info.lastRunConfigId.fold("missing")(_.value)
             }'
-               that is unknown to Rudder, run started at {info.lastRunDateTime.fold("an unknown date")(_.toString(dateFormat))}).
+               that is unknown to Rudder, run started at {displayDateOpt(info.lastRunDateTime)}).
                Please run "rudder agent update -f" on the node to force a policy update.</p>
             <p>For information, expected node policies are displayed below.</p>
             <p>{currentConfigId(info)}</p>

@@ -75,7 +75,7 @@ class LoadNodeComplianceCache(
                   loadFromDB()
                 } else {
                   BootstrapLogger.info(s"Table 'NodeLastCompliance' is empty, compute last compliance from last available runs") *>
-                  computeNewCompliane()
+                  computeNewCompliance()
                 }
     } yield ()).toBox match {
       case eb: EmptyBox =>
@@ -99,7 +99,7 @@ class LoadNodeComplianceCache(
   }
 
   // compute from last available runs, for example for migration
-  def computeNewCompliane(): IOResult[Unit] = {
+  def computeNewCompliance(): IOResult[Unit] = {
     for {
       nodeIds <- nodeFactRepository.getAll()(QueryContext.systemQC).map(_.keys)
       _       <- ReportLoggerPure.Repository.debug(s"Initialize node status reports for ${nodeIds.size} nodes")
