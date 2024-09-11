@@ -38,19 +38,31 @@
 package com.normation.cfclerk.services
 
 import better.files.File
+import com.normation.cfclerk.domain.TechniqueCategoryMetadata
+import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
+import com.normation.cfclerk.xmlparsers.SectionSpecParser
+import com.normation.cfclerk.xmlparsers.TechniqueParser
+import com.normation.cfclerk.xmlparsers.VariableSpecParser
 import com.normation.errors
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.effectUioUnit
+import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.db.DB
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitConfigItemRepository
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
+import com.normation.rudder.ncf.EditorTechnique
+import com.normation.rudder.ncf.TechniqueCompilationOutput
+import com.normation.rudder.ncf.TechniqueCompiler
+import com.normation.rudder.ncf.TechniqueCompilerApp
 import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
+import com.normation.rudder.repository.xml.TechniqueArchiverImpl
 import com.normation.rudder.repository.xml.XmlArchiverUtils
+import com.normation.rudder.services.user.TrivialPersonIdentService
 import com.normation.zio.*
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
@@ -64,7 +76,7 @@ import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import scala.annotation.nowarn
 import scala.util.Random
-import zio.*
+import zio.{System as _, *}
 import zio.syntax.*
 
 /**
@@ -83,7 +95,7 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
   sequential
 
   /**
-   * Add a switch to be able to see tmp files (not clean themps) with
+   * Add a switch to be able to see tmp files (not clean temps) with
    * -Dtests.clean.tmp=false
    */
   override def afterAll(): Unit = {
@@ -95,20 +107,43 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
 
   gitRoot.createDirectories()
 
-  val repo:    GitRepositoryProviderImpl                     = GitRepositoryProviderImpl.make(gitRoot.pathAsString).runNow
+  val repo:            GitRepositoryProviderImpl = GitRepositoryProviderImpl.make(gitRoot.pathAsString).runNow
+  val prettyPrinter:   RudderPrettyPrinter       = new RudderPrettyPrinter(Int.MaxValue, 2)
+  val modRepo:         GitModificationRepository = new GitModificationRepository {
+    override def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]] = None.succeed
+    override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin] =
+      DB.GitCommitJoin(commit, modId).succeed
+  }
+  val personIdent:     TrivialPersonIdentService = new TrivialPersonIdentService()
+  val techniqueParser: TechniqueParser           = {
+    val varParser = new VariableSpecParser
+    new TechniqueParser(varParser, new SectionSpecParser(varParser), new SystemVariableSpecServiceImpl())
+  }
+  val techniqueCompiler = new TechniqueCompiler {
+    override def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput] = {
+      TechniqueCompilationOutput(TechniqueCompilerApp.Rudderc, fallbacked = false, 0, Chunk.empty, "", "", "").succeed
+    }
+
+    override def getCompilationOutputFile(technique: EditorTechnique): File = File("compilation-config.yml")
+
+    override def getCompilationConfigFile(technique: EditorTechnique): File = File("compilation-output.yml")
+  }
+
+  // for test, we use as a group owner whatever git root directory has
+  val currentUserName: String = repo.rootDirectory.groupName
+
   val archive: GitConfigItemRepository with XmlArchiverUtils = new GitConfigItemRepository with XmlArchiverUtils {
     override val gitRepo:      GitRepositoryProvider = repo
     override def relativePath: String                = ""
-    override def xmlPrettyPrinter = new RudderPrettyPrinter(Int.MaxValue, 2)
+    override def xmlPrettyPrinter = prettyPrinter
     override def encoding:                  String                    = "UTF-8"
-    override def gitModificationRepository: GitModificationRepository = new GitModificationRepository {
-      override def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]] = None.succeed
-      override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin] =
-        DB.GitCommitJoin(commit, modId).succeed
-    }
+    override def gitModificationRepository: GitModificationRepository = modRepo
 
-    override def groupOwner: String = ""
+    override def groupOwner: String = currentUserName
   }
+
+  val techniqueArchive: TechniqueArchiverImpl =
+    new TechniqueArchiverImpl(repo, prettyPrinter, modRepo, personIdent, techniqueParser, techniqueCompiler, currentUserName)
 
   // listing files at a commit is complicated
 
@@ -140,9 +175,9 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
   "The test lib" should {
     "not throw JGitInternalError on concurrent write" in {
 
-      // to assess the usefulness of semaphor, you can remove `gitRepo.semaphore.withPermit`
+      // to assess the usefulness of semaphore, you can remove `gitRepo.semaphore.withPermit`
       // in `commitAddFile` to check that you get the JGitInternalException.
-      // More advanced tests may be needed to handle more complex cases of concurent access,
+      // More advanced tests may be needed to handle more complex cases of concurrent access,
       // see: https://issues.rudder.io/issues/19910
 
       val actor = new PersonIdent("test", "test@test.com")
@@ -167,6 +202,53 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
       created must containTheSameElementsAs(files)
 
     }
+
+    "save a category" should {
+
+      val category = TechniqueCategoryMetadata("My new category", "A new category", isSystem = false)
+      val catPath  = List("systemSettings", "myNewCategory")
+
+      val modId = new ModificationId("add-technique-cat")
+
+      "create a new file and commit if the category does not exist" in {
+
+        techniqueArchive
+          .saveTechniqueCategory(
+            catPath,
+            category,
+            modId,
+            EventActor("test"),
+            s"test: commit add category ${catPath.mkString("/")}"
+          )
+          .runNow
+
+        val catFile = repo.rootDirectory / "techniques" / "systemSettings" / "myNewCategory" / "category.xml"
+
+        val xml = catFile.contentAsString
+
+        val lastCommitMsg = repo.git.log().setMaxCount(1).call().iterator().next().getFullMessage
+
+        // note: no <system>false</system> ; it's only written when true
+        (xml ===
+        """<xml>
+          |  <name>My new category</name>
+          |  <description>A new category</description>
+          |</xml>""".stripMargin) and (
+          lastCommitMsg === "test: commit add category systemSettings/myNewCategory"
+        )
+
+      }
+
+      "does nothing when the category already exsits" in {
+        techniqueArchive.saveTechniqueCategory(catPath, category, modId, EventActor("test"), s"test: commit again").runNow
+        val lastCommitMsg = repo.git.log().setMaxCount(1).call().iterator().next().getFullMessage
+
+        // last commit must be the old one
+        lastCommitMsg === "test: commit add category systemSettings/myNewCategory"
+
+      }
+    }
+
   }
 
 }

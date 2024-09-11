@@ -931,26 +931,17 @@ class GitTechniqueReader(
       parseDescriptor:    Boolean // that option is a success optimization for the case diff between old/new commit
   ): IOResult[TechniqueCategory] = {
 
-    def nonEmpty(s: String):                                                   Option[String]                      = {
-      s match {
-        case null | "" => None
-        case _         => Some(s)
-      }
-    }
-    def parse(db: Repository, parseDesc: Boolean, catId: TechniqueCategoryId): IOResult[(String, String, Boolean)] = {
+    def parse(db: Repository, parseDesc: Boolean, catId: TechniqueCategoryId): IOResult[TechniqueCategoryMetadata] = {
       if (parseDesc) {
         val managedStream =
           ZIO.acquireRelease(IOResult.attempt(db.open(descriptorObjectId).openStream))(is => effectUioUnit(is.close()))
         for {
           xml <- loadDescriptorFile(managedStream, filePath)
         } yield {
-          val name        = nonEmpty((xml \\ "name").text).getOrElse(catId.name.value)
-          val description = nonEmpty((xml \\ "description").text).getOrElse("")
-          val isSystem    = (nonEmpty((xml \\ "system").text).getOrElse("false")).equalsIgnoreCase("true")
-          (name, description, isSystem)
+          TechniqueCategoryMetadata.parseXML(xml, catId.name.value)
         }
       } else {
-        (catId.name.value, "", false).succeed
+        TechniqueCategoryMetadata(catId.name.value, "", false).succeed
       }
     }
 
@@ -961,7 +952,7 @@ class GitTechniqueReader(
     for {
       triple <- parse(db, parseDescriptor, catId)
     } yield {
-      val (name, desc, system) = triple
+      val TechniqueCategoryMetadata(name, desc, system) = triple
       catId match {
         case RootTechniqueCategoryId => RootTechniqueCategory(name, desc, isSystem = system)
         case sId: SubTechniqueCategoryId => SubTechniqueCategory(sId, name, desc, isSystem = system)

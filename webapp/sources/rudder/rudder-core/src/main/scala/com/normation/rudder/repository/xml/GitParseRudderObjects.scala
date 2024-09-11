@@ -42,6 +42,7 @@ import com.normation.GitVersion.Revision
 import com.normation.GitVersion.RevisionInfo
 import com.normation.box.IOManaged
 import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueCategoryMetadata
 import com.normation.cfclerk.domain.TechniqueCategoryName
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
@@ -441,15 +442,24 @@ trait TechniqueRevisionRepository {
    * Directories are added at the beginning
    */
   def getTechniqueFileContents(id: TechniqueId): IOResult[Option[Seq[(String, Option[IOManaged[InputStream]])]]]
+
+  /*
+   * Always use git, does not look at what is on the FS even when revision is default.
+   * Retrieve the category object from the category.xml files under given path.
+   * Path is relative to technique directory root, so that for ex,
+   * `systemSettings/remoteAccess` will look for
+   * `/var/rudder/configuration-repository/techniques/systemSettings/remoteAccess/category.xml`
+   */
+  def getTechniqueCategoryMetadata(path: String, rev: Revision): IOResult[Option[TechniqueCategoryMetadata]]
 }
 
 class GitParseTechniqueLibrary(
-    techniqueParser:  TechniqueParser,
-    val repo:         GitRepositoryProvider,
-    revisionProvider: GitRevisionProvider,
-    libRootDirectory: String, // relative name to git root file
-
-    techniqueMetadata: String
+    techniqueParser:           TechniqueParser,
+    val repo:                  GitRepositoryProvider,
+    revisionProvider:          GitRevisionProvider,
+    libRootDirectory:          String, // relative name to git root file
+    techniqueMetadata:         String,
+    techniqueCategoryFilename: String = "category.xml"
 ) extends TechniqueRevisionRepository {
 
   /**
@@ -502,6 +512,52 @@ class GitParseTechniqueLibrary(
     )
   }
 
+  override def getTechniqueCategoryMetadata(catPath: String, rev: Revision): IOResult[Option[TechniqueCategoryMetadata]] = {
+    val root     = GitRootCategory.getGitDirectoryPath(libRootDirectory).root
+    val filePath = catPath + "/" + techniqueCategoryFilename
+    (for {
+      _      <- ConfigurationLoggerPure.revision.debug(s"Looking for technique category: ${filePath}")
+      treeId <- GitFindUtils.findRevTreeFromRevision(repo.db, rev, revisionProvider.currentRevTreeId)
+      _      <- ConfigurationLoggerPure.revision.trace(s"Git tree corresponding to revision: ${rev.value}: ${treeId.toString}")
+      paths  <- GitFindUtils.listFiles(repo.db, treeId, List(root), List(filePath))
+      _      <- ConfigurationLoggerPure.revision.trace(s"Found candidate paths: ${paths}")
+      data   <- paths.size match {
+                  case 0 =>
+                    ConfigurationLoggerPure.revision.debug(s"Technique category ${filePath} not found") *>
+                    None.succeed
+                  case 1 =>
+                    val gitPath = paths.head
+                    val catId   = catPath.split("/").last
+                    ConfigurationLoggerPure.revision.trace(
+                      s"Technique category ${filePath} found at path '${gitPath}', loading it'"
+                    ) *>
+                    (for {
+                      xml <- GitFindUtils.getFileContent(repo.db, treeId, gitPath) { inputStream =>
+                               ParseXml(inputStream, Some(gitPath)).chainError(s"Error when parsing file '${gitPath}' as XML")
+                             }
+                    } yield {
+                      Some(TechniqueCategoryMetadata.parseXML(xml, catId))
+                    }).tapError(err => {
+                      ConfigurationLoggerPure.revision.debug(
+                        s"Impossible to find technique category with path/revision: '${filePath}/${rev.value}': ${err.fullMsg}."
+                      )
+                    })
+                  case _ =>
+                    Unexpected(
+                      s"There is more than one technique category with path '${filePath}' in git: ${paths.mkString(",")}"
+                    ).fail
+                }
+    } yield {
+      data
+    }).tapBoth(
+      err => ConfigurationLoggerPure.error(err.fullMsg),
+      {
+        case None    => ConfigurationLoggerPure.revision.debug(s" -> not found")
+        case Some(_) => ConfigurationLoggerPure.revision.debug(s" -> found it!")
+      }
+    )
+  }
+
   override def getTechniqueRevision(name: TechniqueName, version: Version): IOResult[List[RevisionInfo]] = {
     val root = GitRootCategory.getGitDirectoryPath(libRootDirectory).root
     for {
@@ -530,6 +586,7 @@ class GitParseTechniqueLibrary(
     } yield {
       revs.toList
     }
+
   }
 
   /*
