@@ -213,7 +213,16 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         // only system group => none exported
         (children(testDir / s"${archiveName}/groups") must containTheSameElementsAs(Nil)) and
         (children(testDir / s"${archiveName}/directives") must containTheSameElementsAs(List("10__Clock_Configuration.json"))) and
-        (children(
+        // we have all level of category metadata for technique parents *except* the root category, that is system
+        // and that we don't want to change with import.
+        (directChildren(testDir / s"${archiveName}/techniques") must containTheSameElementsAs(List("systemSettings"))) and
+        (directChildren(testDir / s"${archiveName}/techniques/systemSettings") must containTheSameElementsAs(
+          List("misc", "category.json")
+        )) and
+        (directChildren(testDir / s"${archiveName}/techniques/systemSettings/misc") must containTheSameElementsAs(
+          List("clockConfiguration", "category.json")
+        )) and
+        (directChildren(
           testDir / s"${archiveName}/techniques/systemSettings/misc/clockConfiguration/3.0"
         ) must containTheSameElementsAs(List("changelog", "clockConfiguration.st", "metadata.xml")))
 
@@ -278,7 +287,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
 
       case err => ko(s"I got an error in test: ${err}")
     } and {
-      val tech     = restTestSetUp.mockTechniques.techniqueRepo
+      val tech = restTestSetUp.mockTechniques.techniqueRepo
         .get(
           TechniqueId(
             TechniqueName("test_import_export_archive"),
@@ -286,6 +295,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
           )
         )
         .getOrElse(throw new IllegalArgumentException("test"))
+
       // during import, we are actually migrating to Yaml
       val techInfo = TechniqueInfo(tech.id, tech.name, TechniqueType.Yaml)
 
@@ -295,6 +305,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         )
         .runNow
         .getOrElse(throw new IllegalArgumentException("test"))
+
       restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
       restTest.testBinaryPOSTResponse(
         s"/api/latest/archives/import",
@@ -540,7 +551,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     }
 
     /*
-     * Copy the content of a existing archive into an import directory, zip-it
+     * Copy the content of an existing archive into an import directory, zip-it
      */
     val dest      = testDir / "import-rule-with-dep"
     // so that we have systemSettings/misc/clockConfiguration
@@ -553,7 +564,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     (testDir / "archive-group" / "groups" / "category_1" / "category.json").copyToDirectory(subCatDir)
     (testDir / "archive-group" / "groups" / "category_1" / "Real_nodes.json").copyToDirectory(subCatDir)
 
-    val tech     = restTestSetUp.mockTechniques.techniqueRepo
+    val tech = restTestSetUp.mockTechniques.techniqueRepo
       .get(
         TechniqueId(
           TechniqueName("clockConfiguration"),
@@ -562,13 +573,15 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       )
       .getOrElse(throw new IllegalArgumentException("test"))
       .copy(name = "Time settings updated")
+
     val techInfo = TechniqueInfo(tech.id, tech.name, TechniqueType.Metadata)
 
-    val dir1  = restTestSetUp.mockDirectives.directiveRepo
+    val dir1 = restTestSetUp.mockDirectives.directiveRepo
       .getDirective(DirectiveUid("directive1"))
       .notOptional(s"test")
       .runNow
       .copy(shortDescription = "a new description")
+
     val group = {
       val (group, _) = restTestSetUp.mockNodeGroups.groupsRepo
         .getNodeGroup(NodeGroupId(NodeGroupUid("0000f5d3-8c61-4d20-88a7-bb947705ba8a")))
@@ -576,6 +589,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       // hidden properties are not copied in archive
       group.copy(description = "a new description").copy(properties = group.properties.filter(_.visibility == Displayed))
     }
+
     val rule1 = restTestSetUp.mockRules.ruleRepo
       .getOpt(RuleId(RuleUid("rule1")))
       .notOptional(s"test")
@@ -583,6 +597,11 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       .copy(shortDescription = "a new description")
 
     // change things
+    sed(
+      dest / "techniques" / "systemSettings" / "category.json",
+      """"name" : "System settings"""",
+      s""""name" : "System settings updated""""
+    )
     sed(
       dest / "techniques" / "systemSettings" / "misc" / "clockConfiguration" / "3.0" / "metadata.xml",
       """<TECHNIQUE name="Time settings">""",
@@ -618,7 +637,12 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         restTestSetUp.archiveAPIModule.archiveSaver.base.get.runNow match {
           case None         => ko(s"No policies were saved")
           case Some((p, m)) =>
-            (p.techniques(0).technique must beEqualTo(techInfo)) and
+            // we have 3 techniques cats: techniques/ncf_techniques (0), techniques/systemSettings/misc (1), and techniques/systemSettings (2)
+            // and two techniques: a_simple_yaml_technique (0) and clockConfiguration (1)
+            // and only one group (added by hand), directive and rule.
+
+            (p.techniqueCats.sortBy(_.metadata.name).apply(2).metadata.name must beEqualTo("System settings updated")) and
+            (p.techniques.sortBy(_.technique.id.name).apply(1).technique must beEqualTo(techInfo)) and
             (p.directives(0).directive must beEqualTo(dir1)) and
             (p.groups(0).group must beEqualTo(group))
             (p.rules(0) must beEqualTo(rule1))

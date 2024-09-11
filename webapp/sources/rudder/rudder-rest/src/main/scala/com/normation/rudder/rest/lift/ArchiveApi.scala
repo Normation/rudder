@@ -40,6 +40,7 @@ package com.normation.rudder.rest.lift
 import better.files.File
 import cats.data.NonEmptyList
 import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueCategoryMetadata
 import com.normation.cfclerk.domain.TechniqueCategoryName
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
@@ -97,10 +98,12 @@ import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.ArchiveApi as API
 import com.normation.rudder.rest.AuthzToken
+import com.normation.rudder.rest.EndpointSchema0
 import com.normation.rudder.rest.RudderJsonResponse
 import com.normation.rudder.rest.RudderJsonResponse.ResponseSchema
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rest.lift.ImportAnswer.*
+import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
@@ -130,7 +133,7 @@ import zio.syntax.*
  */
 final case class FeatureSwitch0[A <: LiftApiModule0](enable: A, disable: A)(featureSwitchState: IOResult[FeatureSwitch])
     extends LiftApiModule0 {
-  override val schema = enable.schema
+  override val schema: EndpointSchema0 = enable.schema
   override def process0(
       version:    ApiVersion,
       path:       ApiPath,
@@ -490,6 +493,56 @@ class ZipArchiveBuilderService(
    */
 
   /*
+   * Get zips for technique categories.
+   * - we need to don't have duplicate to avoid zipping the same things.
+   * - we may have two categories with different versions. Version aren't ordered, so we can't take
+   *   the newest. Since that case should be super rare and generally without impact (technique category description
+   *   are not often changed), just take one at random
+   * - we assume that path are the whole path (just missing leading "/")
+   */
+  def getTechniqueCategoryZippable(
+      techniquesDir: String,
+      cats:          Seq[(Chunk[TechniqueCategoryName], TechniqueVersion)]
+  ): IOResult[Seq[Zippable]] = {
+    for {
+      ref   <- Ref.Synchronized.make(Map[String, Zippable]())
+      _     <- ZIO.foreachDiscard(cats.distinctBy(_._1)) {
+                 case (cs, v) =>
+                   // build the list of path. getTechniqueCategoryMetadata will add the leading part of the
+                   // path and category.xml at the end, so remove leading "/" and skip last part.
+                   val (paths, _) = cs.foldLeft((List.empty[String], "")) {
+                     case (x, catName) if (catName.value == "/" || catName.value == TechniqueCategoryMetadata.FILE_NAME_XML) =>
+                       x
+                     case ((acc, parent), catName)                                                                           =>
+                       val newParent = parent + "/" + catName.value
+
+                       (newParent :: acc, newParent)
+                   }
+                   ZIO.foreachDiscard(paths) { p =>
+                     ref.updateZIO { m =>
+                       // at each level, we need to add the directory and the file
+                       val dirPath      = techniquesDir + "/" + p
+                       val filePathJson = dirPath + "/" + TechniqueCategoryMetadata.FILE_NAME_JSON
+                       if (m.contains(filePathJson)) m.succeed // if category.json is here, by construction its parent dir is, too
+                       else {
+                         techniqueRevisionRepo.getTechniqueCategoryMetadata(p, v.rev).map {
+                           case None       => m
+                           case Some(data) =>
+                             m + (dirPath    -> Zippable(dirPath, None))
+                             + (filePathJson -> Zippable(filePathJson, Some(getJsonZippableContent(data.toJsonPretty))))
+                         }
+                       }
+                     }
+                   }
+               }
+      infos <- ref.get
+    } yield {
+      val sorted = infos.toList.sortBy(_._1)
+      sorted.map(_._2)
+    }
+  }
+
+  /*
    * Getting technique zippable is more complex than other items because we can have a lot of
    * files. The strategy used is to always copy ALL files for the given technique
    * TechniquesDir is the path where techniques are stored, ie for technique "user/1.0", we have:
@@ -522,22 +575,18 @@ class ZipArchiveBuilderService(
       catDirs  = cats.collect { case TechniqueCategoryName(value) if value != "/" => value }
       basePath = techniquesDir + "/" + catDirs.mkString("/") + "/" + techniqueId.withDefaultRev.serialize + "/"
       // start by adding directories toward technique
-      zips     = catDirs
-                   .foldLeft(List[Zippable]()) {
-                     case (dirs, current) =>
-                       // each time, head is the last parent, revert at the end
-                       dirs.headOption match {
-                         case None         => Zippable(techniquesDir + "/" + current, None) :: Nil
-                         case Some(parent) => Zippable(parent.path + "/" + current, None) :: dirs
-                       }
-                   }
-                   .reverse ++ filtered.map { case (p, opt) => Zippable.make(basePath + p, opt) }
+      zips     = filtered.map { case (p, opt) => Zippable.make(basePath + p, opt) }
       _       <- ApplicationLoggerPure.Archive.debug(
                    s"Building archive '${archiveName}': adding technique zippables: ${zips.map(_.path).mkString(", ")}"
                  )
     } yield {
       zips
     }
+  }
+
+  def getRuleCatZippable(ids: Set[RuleCategoryId]): IOResult[Seq[Zippable]] = {
+    // todo : https://issues.rudder.io/issues/25061
+    Seq().succeed
   }
 
   /*
@@ -688,12 +737,13 @@ class ZipArchiveBuilderService(
       rulesDir         = root + "/" + RULES_DIR
       _               <- usedNames.update(_ + ((RULES_DIR, Set.empty[String])))
       rulesDirZip      = Zippable(rulesDir, None)
+      ruleCatsRef     <- Ref.make(Set[RuleCategoryId]())
       rulesZip        <- ZIO
                            .foreach(ruleIds) { ruleId =>
                              configRepo
                                .getRule(ruleId)
                                .notOptional(s"Rule with id ${ruleId.serialize} was not found in Rudder")
-                               .flatMap(rule => {
+                               .flatMap { rule =>
                                  if (rule.isSystem) None.succeed
                                  else {
                                    for {
@@ -704,13 +754,16 @@ class ZipArchiveBuilderService(
                                      path  = rulesDir + "/" + name
                                      _    <- ApplicationLoggerPure.Archive
                                                .debug(s"Building archive '${rootDirName}': adding rule zippable: ${path}")
+                                     _    <- ruleCatsRef.update(_ + rule.categoryId)
                                    } yield {
                                      Some(Zippable(path, Some(getJsonZippableContent(json))))
                                    }
                                  }
-                               })
+                               }
                            }
                            .map(_.flatten)
+      ruleCats        <- ruleCatsRef.get
+      ruleCatsZip     <- getRuleCatZippable(ruleCats)
       groupsDir        = root + "/" + GROUPS_DIR
       _               <- usedNames.update(_ + ((GROUPS_DIR, Set.empty[String])))
       groupsDirZip     = Zippable(groupsDir, None)
@@ -753,7 +806,10 @@ class ZipArchiveBuilderService(
       techniquesDirZip = Zippable(techniquesDir, None)
       depTechniques   <- if (includeDepTechniques) techniques.get.map(_.keys) else Nil.succeed
       allTech         <- ZIO.foreach(techniqueIds ++ depTechniques)(techniqueId => getTechnique(techniqueId, techniques))
-      techniquesZip   <- ZIO.foreach(allTech.filter(_._2.policyTypes.isBase)) {
+      // start by zipping categories after having dedup them
+      techCats         = allTech.collect { case (c, t) => (c, t.id.version) }
+      techCatsZip     <- getTechniqueCategoryZippable(techniquesDir, techCats)
+      techniquesZip   <- ZIO.foreach(allTech.filter(_._2.isBase)) {
                            case (cats, technique) =>
                              for {
                                techZips <- getTechniqueZippable(rootDirName, techniquesDir, cats, technique.id)
@@ -770,7 +826,7 @@ class ZipArchiveBuilderService(
         groupsDirZip,
         directivesDirZip,
         techniquesDirZip
-      ) ++ rulesZip ++ techniquesZip.flatten ++ directivesZip ++ groupsZip
+      ) ++ rulesZip ++ techCatsZip ++ techniquesZip.flatten ++ directivesZip ++ groupsZip
     }
   }
 
@@ -784,6 +840,13 @@ final case class PolicyArchiveMetadata(
 case object PolicyArchiveMetadata {
   def empty: PolicyArchiveMetadata = PolicyArchiveMetadata("")
 }
+
+final case class TechniqueCategoryArchive(
+    metadata: TechniqueCategoryMetadata,
+    // the path, last one is category with the metadata (ie also category id)
+    // Can't be empty because we don't change root category with archive.
+    category: NonEmptyChunk[String]
+)
 
 final case class TechniqueInfo(id: TechniqueId, name: String, kind: TechniqueType)
 
@@ -811,36 +874,41 @@ final case class GroupArchive(
  * For techniques, we only parse metadata.xml, and we keep files as is
  */
 final case class PolicyArchive(
-    metadata:   PolicyArchiveMetadata,
-    techniques: Chunk[TechniqueArchive],
-    directives: Chunk[DirectiveArchive],
-    groupCats:  Chunk[GroupCategoryArchive],
-    groups:     Chunk[GroupArchive],
-    rules:      Chunk[Rule]
+    metadata:      PolicyArchiveMetadata,
+    techniqueCats: Chunk[TechniqueCategoryArchive],
+    techniques:    Chunk[TechniqueArchive],
+    directives:    Chunk[DirectiveArchive],
+    groupCats:     Chunk[GroupCategoryArchive],
+    groups:        Chunk[GroupArchive],
+    rules:         Chunk[Rule]
 ) {
+  // format: off
   def debugString: String = {
     s"""Archive ${metadata.filename}:
-       | - techniques      : ${techniques.map(_.technique.id.serialize).sorted.mkString(", ")}
-       | - directives      : ${directives.map(d => s"'${d.directive.name}' [${d.directive.id.serialize}]").sorted.mkString(", ")}
-       | - group categories: ${groupCats.map(c => s"'${c.category.name}' [${c.category.id}]").sorted.mkString(", ")}
-       | - groups          : ${groups.map(g => s"'${g.group.name}' [${g.group.id.serialize}]").sorted.mkString(", ")}
-       | - rules           : ${rules.map(r => s"'${r.name}' [${r.id.serialize}]").sorted.mkString(", ")}""".stripMargin
+       | - technique categories: ${techniqueCats.map(c => s"${c.category.mkString("/", "/", "/")}${metadata.filename}").sorted.mkString(", ")}
+       | - techniques          : ${techniques.map(_.technique.id.serialize).sorted.mkString(", ")}
+       | - directives          : ${directives.map(d => s"'${d.directive.name}' [${d.directive.id.serialize}]").sorted.mkString(", ")}
+       | - group categories    : ${groupCats.map(c => s"'${c.category.name}' [${c.category.id}]").sorted.mkString(", ")}
+       | - groups              : ${groups.map(g => s"'${g.group.name}' [${g.group.id.serialize}]").sorted.mkString(", ")}
+       | - rules               : ${rules.map(r => s"'${r.name}' [${r.id.serialize}]").sorted.mkString(", ")}""".stripMargin
   }
+  // format: on
 }
 object PolicyArchive {
   def empty: PolicyArchive =
-    PolicyArchive(PolicyArchiveMetadata.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty)
+    PolicyArchive(PolicyArchiveMetadata.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty)
 }
 
 final case class SortedEntries(
-    techniques: Chunk[(String, Array[Byte])],
-    directives: Chunk[(String, Array[Byte])],
-    groupCats:  Chunk[(String, Array[Byte])],
-    groups:     Chunk[(String, Array[Byte])],
-    rules:      Chunk[(String, Array[Byte])]
+    techniquesCats: Chunk[(String, Array[Byte])],
+    techniques:     Chunk[(String, Array[Byte])],
+    directives:     Chunk[(String, Array[Byte])],
+    groupCats:      Chunk[(String, Array[Byte])],
+    groups:         Chunk[(String, Array[Byte])],
+    rules:          Chunk[(String, Array[Byte])]
 )
 object SortedEntries {
-  def empty: SortedEntries = SortedEntries(Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty)
+  def empty: SortedEntries = SortedEntries(Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty)
 }
 
 final case class PolicyArchiveUnzip(
@@ -878,20 +946,40 @@ class ZipArchiveReaderImpl(
   import com.softwaremill.quicklens.*
 
   // we must avoid to eagerly match "ncf_techniques" as "techniques" but still accept when it starts by "techniques" without /
-  val techniqueRegex: Regex = """(.*/|)techniques/(.+)""".r
-  val yamlRegex:      Regex = s"""(.+)/${TechniqueType.Yaml.name}""".r
-  val jsonRegex:      Regex = s"""(.+)/${TechniqueType.Json.name}""".r
-  val metadataRegex:  Regex = s"""(.+)/${TechniqueType.Metadata.name}""".r
-  val directiveRegex: Regex = """(.*/|)directives/(.+.json)""".r
-  val groupCatsRegex: Regex = """(.*/|)groups/(.*category.json)""".r
-  val groupRegex:     Regex = """(.*/|)groups/(.+.json)""".r
-  val ruleRegex:      Regex = """(.*/|)rules/(.+.json)""".r
+  val techniqueCatsRegex: Regex = """(.*/|)techniques/(.+category.json)""".r
+  val techniqueRegex:     Regex = """(.*/|)techniques/(.+)""".r
+  val yamlRegex:          Regex = s"""(.+)/${TechniqueType.Yaml.name}""".r
+  val jsonRegex:          Regex = s"""(.+)/${TechniqueType.Json.name}""".r
+  val metadataRegex:      Regex = s"""(.+)/${TechniqueType.Metadata.name}""".r
+  val directiveRegex:     Regex = """(.*/|)directives/(.+.json)""".r
+  val groupCatsRegex:     Regex = """(.*/|)groups/(.*category.json)""".r
+  val groupRegex:         Regex = """(.*/|)groups/(.+.json)""".r
+  val ruleRegex:          Regex = """(.*/|)rules/(.+.json)""".r
 
   /*
    * For technique, we are parsing metadata.xml.
    * We also find technique name, version, and categories from base path.
    * For file: we keep all, but we make their path relative to technique (ie we remove base path)
    */
+  def parseTechniqueCat(name: String, content: Array[Byte])(implicit
+      dec: JsonDecoder[TechniqueCategoryMetadata]
+  ): IOResult[TechniqueCategoryArchive] = {
+    // we need to keep path to be able to find back hierarchy later on
+    val catPath = name.split("/").dropRight(1).toList
+
+    catPath match {
+      case Nil          =>
+        Unexpected(
+          s"Category in archive must have at least one parent, but category relative path is: ${name}"
+        ).fail
+      case head :: tail =>
+        new String(content, StandardCharsets.UTF_8)
+          .fromJson[TechniqueCategoryMetadata]
+          .toIO
+          .map(c => TechniqueCategoryArchive(c, NonEmptyChunk.fromIterable(head, tail)))
+    }
+  }
+
   def parseTechnique(archiveName: String, basepath: String, files: Chunk[(String, Array[Byte])]): IOResult[TechniqueArchive] = {
     // base path should look like "some/list/of/cats/techniqueName/techniqueVersion
     def parseBasePath(p: String): IOResult[(TechniqueId, Chunk[String])] = {
@@ -1026,9 +1114,14 @@ class ZipArchiveReaderImpl(
     (new String(content, StandardCharsets.UTF_8)).fromJson[JRRule].toIO.flatMap(_.toRule())
   }
 
+  def parseTechniqueCats(arch: PolicyArchiveUnzip, cats: Chunk[(String, Array[Byte])])(implicit
+      dec: JsonDecoder[TechniqueCategoryMetadata]
+  ): IOResult[PolicyArchiveUnzip] = {
+    parseSimpleFile(arch, cats, modifyLens[PolicyArchiveUnzip](_.policies.techniqueCats), parseTechniqueCat)
+  }
   /*
    * Parse techniques.
-   * The map is [techniqueBasePath -> (metadata contant, list of all technique files, including metadata.xlm: (filename (including base path), content))
+   * The map is [techniqueBasePath -> (metadata content, list of all technique files, including metadata.xlm: (filename (including base path), content))
    */
   def parseTechniques(
       archiveName: String,
@@ -1084,27 +1177,30 @@ class ZipArchiveReaderImpl(
     val sortedEntries = zipEntries.foldLeft(SortedEntries.empty) {
       case (arch, (e, optContent)) =>
         (e.getName, optContent) match {
-          case (techniqueRegex(_, x), Some(content)) =>
+          case (techniqueCatsRegex(_, x), Some(content)) =>
+            ApplicationLoggerPure.Archive.logEffect.trace(s"Archive '${archiveName}': found technique category file ${x}")
+            arch.modify(_.techniquesCats).using(_ :+ (x, content))
+          case (techniqueRegex(_, x), Some(content))     =>
             ApplicationLoggerPure.Archive.logEffect.trace(s"Archive '${archiveName}': found technique file ${x}")
             arch.modify(_.techniques).using(_ :+ (x, content))
-          case (directiveRegex(_, x), Some(content)) =>
+          case (directiveRegex(_, x), Some(content))     =>
             ApplicationLoggerPure.Archive.logEffect.trace(s"Archive '${archiveName}': found directive file ${x}")
             arch.modify(_.directives).using(_ :+ (x, content))
-          case (groupCatsRegex(_, x), Some(content)) =>
+          case (groupCatsRegex(_, x), Some(content))     =>
             ApplicationLoggerPure.Archive.logEffect.trace(s"Archive '${archiveName}': found group category file ${x}")
             arch.modify(_.groupCats).using(_ :+ (x, content))
-          case (groupRegex(_, x), Some(content))     =>
+          case (groupRegex(_, x), Some(content))         =>
             ApplicationLoggerPure.Archive.logEffect.trace(s"Archive '${archiveName}': found group file ${x}")
             arch.modify(_.groups).using(_ :+ (x, content))
-          case (ruleRegex(_, x), Some(content))      =>
+          case (ruleRegex(_, x), Some(content))          =>
             ApplicationLoggerPure.Archive.logEffect.trace(s"Archive '${archiveName}': found rule file ${x}")
             arch.modify(_.rules).using(_ :+ (x, content))
-          case (name, Some(_))                       =>
+          case (name, Some(_))                           =>
             ApplicationLoggerPure.Archive.logEffect.debug(
               s"Archive '${archiveName}': file does not matches a known category: ${name}"
             )
             arch
-          case (name, None)                          =>
+          case (name, None)                              =>
             ApplicationLoggerPure.Archive.logEffect.trace(s"Directory '${name}' in archive '${archiveName}': looking for entries")
             arch
         }
@@ -1138,32 +1234,38 @@ class ZipArchiveReaderImpl(
 
     // now, parse everything and collect errors
     import com.normation.rudder.apidata.JsonResponseObjectDecodes.*
+    import com.normation.cfclerk.domain.TechniqueCategoryMetadata.codecTechniqueCategoryMetadata
     for {
-      _              <- ApplicationLoggerPure.Archive.debug(
-                          s"Processing archive '${archiveName}': techniques: '${techniqueUnzips.keys.mkString("', '")}'"
-                        )
-      withTechniques <- parseTechniques(archiveName, PolicyArchiveUnzip.empty, techniqueUnzips)
-      _              <- ApplicationLoggerPure.Archive.debug(
-                          s"Processing archive '${archiveName}': directives: '${sortedEntries.directives.map(_._1).mkString("', '")}'"
-                        )
-      withDirectives <- parseDirectives(withTechniques, sortedEntries.directives)
-      _              <- ApplicationLoggerPure.Archive.debug(
-                          s"Processing archive '${archiveName}': groups: '${sortedEntries.groups.map(_._1).mkString("', '")}'"
-                        )
-      withGroupCats  <- parseGroupCats(withDirectives, sortedEntries.groupCats)
-      _              <- ApplicationLoggerPure.Archive.debug(
-                          s"Processing archive '${archiveName}': rules: '${sortedEntries.rules.map(_._1).mkString("', '")}'"
-                        )
-      withGroups     <- parseGroups(withGroupCats, sortedEntries.groups)
-      _              <- ApplicationLoggerPure.Archive.debug(
-                          s"Processing archive '${archiveName}': rules: '${sortedEntries.rules.map(_._1).mkString("', '")}'"
-                        )
-      withRules      <- parseRules(withGroups, sortedEntries.rules)
+      _                 <- ApplicationLoggerPure.Archive.debug(
+                             s"Processing archive '${archiveName}': techniques: '${techniqueUnzips.keys.mkString("', '")}'"
+                           )
+      withTechniques    <- parseTechniques(archiveName, PolicyArchiveUnzip.empty, techniqueUnzips)
+      _                 <-
+        ApplicationLoggerPure.Archive.debug(
+          s"Processing archive '${archiveName}': technique categories: '${sortedEntries.techniquesCats.map(_._1).mkString("', '")}'"
+        )
+      withTechniqueCats <- parseTechniqueCats(withTechniques, sortedEntries.techniquesCats)
+      _                 <- ApplicationLoggerPure.Archive.debug(
+                             s"Processing archive '${archiveName}': directives: '${sortedEntries.directives.map(_._1).mkString("', '")}'"
+                           )
+      withDirectives    <- parseDirectives(withTechniqueCats, sortedEntries.directives)
+      _                 <- ApplicationLoggerPure.Archive.debug(
+                             s"Processing archive '${archiveName}': groups: '${sortedEntries.groups.map(_._1).mkString("', '")}'"
+                           )
+      withGroupCats     <- parseGroupCats(withDirectives, sortedEntries.groupCats)
+      _                 <- ApplicationLoggerPure.Archive.debug(
+                             s"Processing archive '${archiveName}': rules: '${sortedEntries.rules.map(_._1).mkString("', '")}'"
+                           )
+      withGroups        <- parseGroups(withGroupCats, sortedEntries.groups)
+      _                 <- ApplicationLoggerPure.Archive.debug(
+                             s"Processing archive '${archiveName}': rules: '${sortedEntries.rules.map(_._1).mkString("', '")}'"
+                           )
+      withRules         <- parseRules(withGroups, sortedEntries.rules)
       // aggregate errors
-      policies       <- withRules.errors.toList match {
-                          case Nil       => withRules.policies.succeed
-                          case h :: tail => Accumulated(NonEmptyList.of(h, tail*)).fail
-                        }
+      policies          <- withRules.errors.toList match {
+                             case Nil       => withRules.policies.succeed
+                             case h :: tail => Accumulated(NonEmptyList.of(h, tail*)).fail
+                           }
     } yield policies
   }
 }
@@ -1299,7 +1401,6 @@ object SaveArchiveServicebyRepo {
 class SaveArchiveServicebyRepo(
     techniqueArchiver: TechniqueArchiverImpl,
     techniqueReader:   TechniqueReader,
-    techniqueRepos:    TechniqueRepository,
     roDirectiveRepos:  RoDirectiveRepository,
     woDirectiveRepos:  WoDirectiveRepository,
     roGroupRepos:      RoNodeGroupRepository,
@@ -1312,6 +1413,23 @@ class SaveArchiveServicebyRepo(
 ) extends SaveArchiveService {
 
   val GroupRootId = NodeGroupCategoryId("GroupRoot")
+
+  def saveTechniqueCat(eventMetadata: EventMetadata, a: TechniqueCategoryArchive): IOResult[Unit] = {
+    val catPath = a.category.toList
+
+    ApplicationLoggerPure.Archive.debug(
+      s"Adding technique category from archive: '${a.metadata.name}' (${catPath.mkString("/")}/category.xml)"
+    ) *>
+    techniqueArchiver
+      .saveTechniqueCategory(
+        catPath,
+        a.metadata,
+        eventMetadata.modId,
+        eventMetadata.actor,
+        eventMetadata.msg.getOrElse(s"Update technique category '${catPath.mkString("/")}' from archive import")
+      )
+      .unit
+  }
 
   /*
    * Saving a techniques:
@@ -1481,6 +1599,7 @@ class SaveArchiveServicebyRepo(
     )
     val eventMetadata = cc.transformInto[EventMetadata]
     for {
+      _ <- ZIO.foreach(archive.techniqueCats)(saveTechniqueCat(eventMetadata, _))
       _ <- ZIO.foreach(archive.techniques)(saveTechnique(eventMetadata, _))
       _ <- IOResult.attempt(techniqueReader.readTechniques)
       _ <- ZIO.foreach(archive.directives)(saveDirective(eventMetadata, _))
