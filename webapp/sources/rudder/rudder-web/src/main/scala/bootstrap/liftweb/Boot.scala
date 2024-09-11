@@ -86,6 +86,7 @@ import net.liftweb.sitemap.Loc.TestAccess
 import net.liftweb.sitemap.Menu
 import net.liftweb.util.TimeHelpers.*
 import net.liftweb.util.Vendor
+import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import org.reflections.Reflections
 import org.springframework.security.core.Authentication
@@ -635,9 +636,15 @@ class Boot extends Loggable {
     // the session itself.
     // The global variable (rudder.js)
     LiftRules.noCometSessionCmd.default.set(() => {
+      val signOutReason = {
+        LiftSpringApplicationContext.springContext
+          .getBean(classOf[UserSessionInvalidationFilter])
+          .getUserSessionStatus()
+          .fold("")(r => s" because ${StringEscapeUtils.escapeHtml4(r)}")
+      }
       JsRaw(
-        s"isLoggedIn=false; createErrorNotification('You have been signed out. Please reload the page to sign in again.');"
-      ).cmd // JsRaw ok, no user input
+        s"isLoggedIn=false; createErrorNotification('You have been signed out${signOutReason}. Please reload the page to sign in again.');"
+      ).cmd // JsRaw ok, escaped
     })
 
     // Log CSP violations
