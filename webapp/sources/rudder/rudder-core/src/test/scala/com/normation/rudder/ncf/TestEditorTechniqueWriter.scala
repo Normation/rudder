@@ -43,6 +43,7 @@ import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.RootTechniqueCategory
 import com.normation.cfclerk.domain.TechniqueCategory
 import com.normation.cfclerk.domain.TechniqueCategoryId
+import com.normation.cfclerk.domain.TechniqueCategoryMetadata
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueResourceId
@@ -138,6 +139,14 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         modId:           ModificationId,
         committer:       EventActor,
         msg:             String
+    ): IOResult[Unit] = ZIO.unit
+
+    override def saveTechniqueCategory(
+        categories: Seq[String],
+        metadata:   TechniqueCategoryMetadata,
+        modId:      ModificationId,
+        committer:  EventActor,
+        msg:        String
     ): IOResult[Unit] = ZIO.unit
   }
 
