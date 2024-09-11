@@ -36,8 +36,7 @@
  */
 package bootstrap.liftweb
 
-import com.normation.errors.IOResult
-import com.normation.errors.SystemError
+import com.normation.errors.*
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.users.FileUserDetailListProvider
 import com.normation.rudder.users.RudderAuthorizationFileReloadCallback
@@ -51,6 +50,7 @@ import jakarta.servlet.ServletException
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import java.io.IOException
+import org.joda.time.DateTime
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.filter.OncePerRequestFilter
 import zio.*
@@ -97,6 +97,7 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
 
             (status.flatMap {
               case status if status.in(UserStatus.Disabled, UserStatus.Deleted) =>
+                val endSessionReason = s"Session invalidated for ${status.value} user"
                 IOResult
                   .attempt(session.invalidate())
                   .foldZIO(
@@ -114,6 +115,11 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
                           .fail
                     },
                     _ => {
+                      userRepository.logCloseSession(
+                        user.getUsername,
+                        DateTime.now,
+                        endSessionReason
+                      ) *>
                       ApplicationLoggerPure.info(
                         s"User session for user '${user.getUsername}' is invalidated because user has status '${status.value}'"
                       )
@@ -134,4 +140,22 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
 
   override protected def shouldNotFilterErrorDispatch = false
 
+  /**
+   * Get current status of user session invalidation in the cache.
+   * Returns None if no reason for invalidation is found (ex: normal logout).
+   */
+  def getUserSessionStatus(): Option[String] = {
+    Option(SecurityContextHolder.getContext.getAuthentication).flatMap { auth =>
+      val userDetails = auth.getPrincipal
+      userDetails match {
+        case user: RudderUserDetail =>
+          val status = userStatuses.get.map(_.getOrElse(user.getUsername, UserStatus.Deleted))
+          status.runNow match {
+            case UserStatus.Active => None
+            case status            => Some(s"user status changed to ${status.value}")
+          }
+        case _ => None
+      }
+    }
+  }
 }
