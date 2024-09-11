@@ -809,7 +809,7 @@ class ZipArchiveBuilderService(
       // start by zipping categories after having dedup them
       techCats         = allTech.collect { case (c, t) => (c, t.id.version) }
       techCatsZip     <- getTechniqueCategoryZippable(techniquesDir, techCats)
-      techniquesZip   <- ZIO.foreach(allTech.filter(_._2.isBase)) {
+      techniquesZip   <- ZIO.foreach(allTech.filter(_._2.policyTypes.isBase)) {
                            case (cats, technique) =>
                              for {
                                techZips <- getTechniqueZippable(rootDirName, techniquesDir, cats, technique.id)
