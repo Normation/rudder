@@ -1107,7 +1107,7 @@ class TestNodeConfiguration(
   lazy val clockVariables: Map[ComponentId, Variable] = {
     val spec = clockTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
     Seq(
-      spec("CLOCK_FQDNNTP").toVariable(Seq("true")),
+      spec("CLOCK_FQDNNTP").toVariable(Seq("")), // testing mandatory value with default "true"
       spec("CLOCK_HWSYNC_ENABLE").toVariable(Seq("true")),
       spec("CLOCK_NTPSERVERS").toVariable(Seq("${rudder.param.ntpserver}")),
       spec("CLOCK_SYNCSCHED").toVariable(Seq("240")),

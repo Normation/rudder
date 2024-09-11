@@ -137,9 +137,9 @@ sealed trait Variable {
       res <- if (seq != null) {
                if (!this.spec.checked) {
                  Right(seq)
-               } else if (!this.spec.multivalued && values.lengthCompare(1) > 0) {
+               } else if (!this.spec.multivalued && seq.lengthCompare(1) > 0) {
                  Left(LoadTechniqueError.Variable("Wrong variable length for " + this.spec.name))
-               } else if (values.map(x => Variable.checkValue(this, x)).contains(false)) {
+               } else if (seq.map(x => Variable.checkValue(this, x)).contains(false)) {
                  Left(
                    LoadTechniqueError.Variable("Wrong variable value for " + this.spec.name)
                  ) // this should really not be thrown
@@ -187,10 +187,10 @@ sealed trait Variable {
 
   protected def castValue(x: String, escape: String => String): PureResult[Any] = {
     // we don't want to check constraint on empty value
-    // when the variable is optionnal.
-    // But I'm not sure if I understand what is happening with a an optionnal
+    // when the variable is optional.
+    // But I'm not sure if I understand what is happening with a an optional
     // boolean, since we are returning a string in that case :/
-    if (this.spec.constraint.mayBeEmpty && x.isEmpty) Right("")
+    if (this.spec.constraint.mayBeEmpty && (x == null || x.isEmpty)) Right("")
     else spec.constraint.typeName.getFormatedValidated(x, spec.name, escape)
   }
 }
