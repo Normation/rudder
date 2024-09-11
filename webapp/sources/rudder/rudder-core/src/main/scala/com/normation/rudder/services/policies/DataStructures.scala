@@ -584,37 +584,56 @@ final case class BoundPolicyDraft(
    */
   def toPolicy(agent: AgentType): Either[String, Policy] = {
     PolicyTechnique.forAgent(technique, agent).flatMap { pt =>
-      expandedVars.values.collectFirst { case v if (!v.spec.constraint.mayBeEmpty && v.values.exists(_ == "")) => v } match {
-        case Some(v) =>
-          Left(
-            s"Error for policy for directive '${directiveName}' [${id.directiveId.debugString}] in rule '${ruleName}' [${id.ruleId.serialize}]: " +
-            s"a non optional value is missing for parameter '${v.spec.description}' [param ID: ${v.spec.name}]"
-          )
-        case None    =>
-          Right(
-            Policy(
-              id,
-              ruleName,
-              directiveName,
-              pt,
-              acceptationDate,
-              NonEmptyList.of(
-                PolicyVars(
-                  id,
-                  policyMode,
-                  expandedVars,
-                  originalVars,
-                  trackerVariable
-                )
-              ),
-              priority,
-              policyMode,
-              ruleOrder,
-              directiveOrder,
-              overrides
-            )
-          )
+      val checkedMandatoryValues: Either[Accumulated[RudderError], List[(ComponentId, Variable)]] = expandedVars.accumulatePure {
+        case (cid, variable) =>
+          // check if there is mandatory variable with missing/blank values
+          (variable.spec.constraint.mayBeEmpty, variable.values.exists(v => v == null || v.isBlank)) match {
+            case (false, true) =>
+              // first, if we have a default value, use that
+              variable.spec.constraint.default match {
+                case Some(d) =>
+                  variable
+                    .copyWithSavedValues(variable.values.map(v => if (v.isBlank) d else v))
+                    .map(v => (cid, v))
+                // else it's an error
+                case None    =>
+                  Left(
+                    Inconsistency(
+                      s"Error for policy for directive '${directiveName}' [${id.directiveId.debugString}] in rule '${ruleName}' [${id.ruleId.serialize}]: " +
+                      s"a non optional value is missing for parameter '${variable.spec.description}' [param ID: ${variable.spec.name}]"
+                    )
+                  )
+              }
+            case _             => Right((cid, variable))
+          }
       }
+
+      checkedMandatoryValues
+        .map(withDefaultVals => {
+          Policy(
+            id,
+            ruleName,
+            directiveName,
+            pt,
+            acceptationDate,
+            NonEmptyList.of(
+              PolicyVars(
+                id,
+                policyMode,
+                withDefaultVals.toMap,
+                originalVars,
+                trackerVariable
+              )
+            ),
+            priority,
+            policyMode,
+            ruleOrder,
+            directiveOrder,
+            overrides
+          )
+        })
+        .left
+        .map(_.deduplicate.msg)
     }
   }
 }
