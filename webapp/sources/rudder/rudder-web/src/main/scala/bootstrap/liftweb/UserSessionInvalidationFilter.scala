@@ -60,24 +60,26 @@ import zio.syntax.*
  */
 class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailListProvider: FileUserDetailListProvider)
     extends OncePerRequestFilter {
-  private val userStatuses = Ref
-    .make(Map.empty[String, UserStatus])
-    .map(ref => {
+  import UserSessionInvalidationFilter.*
 
-      userDetailListProvider.registerCallback(
-        RudderAuthorizationFileReloadCallback(
-          "user-session-invalidation",
-          (users: ValidatedUserList) => {
-            userRepository
-              .getStatuses(users.users.keys.toList)
-              .flatMap(ref.set)
-          }
+  private val userCache = {
+    Ref
+      .make(Map.empty[String, Int])
+      .map(ref => {
+
+        userDetailListProvider.registerCallback(
+          RudderAuthorizationFileReloadCallback(
+            "user-session-invalidation",
+            (users: ValidatedUserList) => {
+              userRepository.getStatuses(users.users.keys.toList).flatMap(updateUsers(ref, _)(users.users))
+            }
+          )
         )
-      )
 
-      ref
-    })
-    .runNow
+        ref
+      })
+      .runNow
+  }
 
   @throws[ServletException]
   @throws[IOException]
@@ -89,24 +91,25 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
         val userDetails = auth.getPrincipal
         userDetails match { // we should only do session invalidation in specific cases : status is disabled/deleted, user is unknown
           case user: RudderUserDetail =>
-            val status =
-              userStatuses.get.map(_.getOrElse(user.getUsername, UserStatus.Deleted)) // unknown user : falls back to deleted
+            val username   = user.getUsername
+            val cachedUser = userCache.get.map(_.get(username)).runNow
+            implicit val userDetail: RudderUserDetail = user
 
-            (status.flatMap {
-              case status if status.in(UserStatus.Disabled, UserStatus.Deleted) =>
-                val endSessionReason = s"Session invalidated for ${status.value} user"
+            (cachedUser match {
+              case checkUser(reason) =>
+                val endSessionReason = s"Session invalidated because ${reason}"
                 IOResult
                   .attempt(session.invalidate())
                   .foldZIO(
                     {
                       case SystemError(_, _: IllegalStateException) =>
                         ApplicationLoggerPure.info(
-                          s"User session for user '${user.getUsername}' is already invalidated for user with status '${status.value}'"
+                          s"User session for user '${username}' is already invalidated because : ${reason}"
                         )
                       case err                                      =>
                         err
                           .copy(msg = {
-                            s"User session for user '${user.getUsername}' could not be invalidated. " +
+                            s"User session for user '${username}' could not be invalidated for reason : ${reason}. " +
                             s"Please contact Rudder developers with the following explanation : ${err.fullMsg}"
                           })
                           .fail
@@ -118,11 +121,11 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
                         endSessionReason
                       ) *>
                       ApplicationLoggerPure.info(
-                        s"User session for user '${user.getUsername}' is invalidated because user has status '${status.value}'"
+                        s"User session for user '${username}' is invalidated because : ${reason}"
                       )
                     }
                   )
-              case _                                                            =>
+              case _                 =>
                 ZIO.unit
             }).runNow
           case _ => ()
@@ -146,13 +149,89 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
       val userDetails = auth.getPrincipal
       userDetails match {
         case user: RudderUserDetail =>
-          val status = userStatuses.get.map(_.getOrElse(user.getUsername, UserStatus.Deleted))
-          status.runNow match {
-            case UserStatus.Active => None
-            case status            => Some(s"user status changed to ${status.value}")
+          implicit val userDetail: RudderUserDetail = user
+          val cached = userCache.get.map(_.get(user.getUsername)).runNow
+          cached match {
+            case checkUser(reason) => Some(reason)
+            case _                 => None
           }
         case _ => None
       }
     }
+  }
+}
+
+private[liftweb] object UserSessionInvalidationFilter {
+
+  /**
+   * Match an user in cache : if no user, it means its cache has changed, with a known or unknown cause of invalidity
+   * if some user, it's ok, unless the last known status is invalid
+   */
+  object checkUser {
+    def unapply(user: Option[Int])(implicit userDetail: RudderUserDetail): Option[String] = {
+      user match {
+        case None                                                   => Some("user is unknown")
+        case Some(HASH_USER_INVALID_STATUS)                         => Some("user status has been updated to an invalid one")
+        // admin session should not be invalidated
+        case Some(HASH_USER_ADMIN)                                  => None
+        // user hash has changed
+        case Some(hash) if hashRudderUserDetail(userDetail) != hash => Some("user access to Rudder has been updated")
+        // user hash is in cache
+        case Some(_)                                                => None
+      }
+    }
+  }
+
+  // special hash values are negative
+  val HASH_USER_ADMIN:          Int = -1
+  val HASH_USER_INVALID_STATUS: Int = -2
+
+  // ensure the hash is positive, to be able to use special negative values
+  private def simpleHash(username: String, password: String, authz: Set[String]): Int = {
+    (username, password, authz).hashCode() & 0x7fffffff
+  }
+
+  // to this method should be only used to hash active users
+  def hashRudderUserDetail(user: RudderUserDetail): Int = {
+    if (user.isAdmin) {
+      HASH_USER_ADMIN
+    } else {
+      simpleHash(user.getUsername, user.getPassword, user.authz.authorizationTypes.map(_.id))
+    }
+  }
+
+  // special case of user that is not logged-in : hashed with known values
+  private[this] def hashRudderUserDetail(user: RudderUserDetail, status: UserStatus): Int = {
+    if (status.in(UserStatus.Disabled, UserStatus.Deleted)) {
+      HASH_USER_INVALID_STATUS
+    } else {
+      hashRudderUserDetail(user)
+    }
+  }
+
+  /**
+   * User status have to be updated from the database, since the loaded RudderUserDetail does not have
+   * the definitive status of the user after a file reload.
+   * This also adds new users to the Ref, having knowledge of their latest hash
+   */
+  def updateUsers(
+      ref:             Ref[Map[String, Int]],
+      newUserStatuses: Map[String, UserStatus]
+  ): Map[String, RudderUserDetail] => IOResult[Unit] = (users) => {
+    ref.update(cache => {
+      // user still in Ref but not in new users list should be removed
+      val updatedUsers = cache.flatMap {
+        case (id, _) => users.get(id).map(id -> hashRudderUserDetail(_, newUserStatuses.getOrElse(id, UserStatus.Deleted)))
+      }
+      // file users not yet in ref should be added to ref
+      val newUsers     = users.flatMap {
+        case (id, user) =>
+          cache.get(id) match {
+            case Some(_) => None
+            case None    => Some(id -> hashRudderUserDetail(user, newUserStatuses.getOrElse(id, UserStatus.Deleted)))
+          }
+      }
+      newUsers ++ updatedUsers
+    })
   }
 }

@@ -117,6 +117,10 @@ case class RudderUserDetail(
   // merge roles rights
   val authz: Rights = Rights(roles.flatMap(_.rights.authorizationTypes))
 
+  val isAdmin: Boolean = {
+    (AuthorizationType.AnyRights +: AuthorizationType.Administration.values).exists(authz.authorizationTypes.contains)
+  }
+
   override val (getUsername, getPassword, getAuthorities) = account match {
     case RudderAccount.User(login, password) => (login, password, RudderAuthType.User.grantedAuthorities)
     case RudderAccount.Api(api)              => (api.name.value, api.token.value, RudderAuthType.Api.grantedAuthorities)
