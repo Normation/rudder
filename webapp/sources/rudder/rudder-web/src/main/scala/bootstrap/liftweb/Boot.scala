@@ -640,10 +640,12 @@ class Boot extends Loggable {
         LiftSpringApplicationContext.springContext
           .getBean(classOf[UserSessionInvalidationFilter])
           .getUserSessionStatus()
-          .fold("")(r => s" because ${StringEscapeUtils.escapeHtml4(r)}")
+          .fold(". Please reload the page to sign in again.")(r =>
+            s" because ${StringEscapeUtils.escapeEcmaScript(r)}. Please reload the page and try to sign in again."
+          )
       }
       JsRaw(
-        s"isLoggedIn=false; createErrorNotification('You have been signed out${signOutReason}. Please reload the page to sign in again.');"
+        s"isLoggedIn=false; createErrorNotification('You have been signed out${signOutReason}');"
       ).cmd // JsRaw ok, escaped
     })
 
