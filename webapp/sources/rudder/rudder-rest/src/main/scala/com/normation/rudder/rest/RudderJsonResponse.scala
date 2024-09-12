@@ -38,8 +38,8 @@
 package com.normation.rudder.rest
 
 import com.normation.errors.*
+import com.normation.rudder.domain.logger.ApiLogger
 import com.normation.rudder.rest.lift.DefaultParams
-import com.normation.rudder.rest.lift.LiftApiProcessingLogger
 import com.normation.zio.*
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
@@ -200,7 +200,7 @@ object RudderJsonResponse {
         result
           .fold(
             err => {
-              LiftApiProcessingLogger.error(err.fullMsg)
+              ApiLogger.ResponseError.info(err.fullMsg)
               internalError(None, schema, err.fullMsg)
             },
             seq => successList(schema, seq.toList)
@@ -235,7 +235,7 @@ object RudderJsonResponse {
         result
           .fold(
             err => {
-              LiftApiProcessingLogger.error(err.fullMsg)
+              ApiLogger.ResponseError.info(err.fullMsg)
               internalError(id.error, schema, err.fullMsg)
             },
             one => successOne(schema, one, id.success(one))
@@ -262,7 +262,7 @@ object RudderJsonResponse {
         result
           .fold(
             err => {
-              LiftApiProcessingLogger.error(err.fullMsg)
+              ApiLogger.ResponseError.info(err.fullMsg)
               internalError(None, errorSchema, err.fullMsg)
             },
             one => {
@@ -280,7 +280,7 @@ object RudderJsonResponse {
         result
           .fold(
             err => {
-              LiftApiProcessingLogger.error(err.fullMsg)
+              ApiLogger.ResponseError.info(err.fullMsg)
               internalError(None, schema, err.fullMsg)
             },
             msg => successZero(schema, msg)

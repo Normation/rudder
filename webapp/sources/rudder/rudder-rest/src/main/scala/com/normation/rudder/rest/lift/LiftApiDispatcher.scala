@@ -197,7 +197,7 @@ class LiftHandler(
     try {
       req.body match {
         case Empty => "[request body is empty]"
-        case f: Failure => (f ?~! "Error geting request body:").messageChain
+        case f: Failure => (f ?~! "Error getting request body:").messageChain
         case Full(body) => new String(body.take(1024), "UTF-8") + (if (body.size > 1024) "..." else "")
       }
     } catch {
