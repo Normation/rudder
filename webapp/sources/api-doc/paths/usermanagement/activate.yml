@@ -1,0 +1,74 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2024 Normation SAS
+put:
+  summary: Activate user
+  description: Set user status to active
+  operationId: activateUser
+  parameters:
+    - $ref: ../../components/parameters/username.yml
+  responses:
+    "200":
+      description: User was activated
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - action
+              - id
+              - result
+              - data
+            properties:
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - activateUser
+              id:
+                type: string
+                description: The id of the updated user
+                example: johndoe
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+              data:
+                type: object
+                required:
+                  - status
+                properties:
+                  status:
+                    $ref: ../../components/schemas/user-status.yml
+                    example: active
+    "500":
+      description: User activation was an error
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - action
+              - result
+              - errorDetails
+            properties:
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - activateUser
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - error
+              errorDetails:
+                type: string
+                description: Details of the error
+                example: "Could not activate user 'johndoe'; cause was: Inconsistency: User 'johndoe' does not exist therefore cannot be activated"
+  tags:
+    - 🧩 User Management
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/usermanagement/activate.sh
