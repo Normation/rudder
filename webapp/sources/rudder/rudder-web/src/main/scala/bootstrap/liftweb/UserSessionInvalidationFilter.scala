@@ -101,8 +101,10 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
             (cachedUser match {
               case checkUser(reason) =>
                 val endSessionReason = s"Session invalidated because ${reason}"
-                IOResult
-                  .attempt(session.invalidate())
+                IOResult.attempt {
+                  session.invalidate()
+                  response.sendRedirect(request.getContextPath)
+                }
                   .foldZIO(
                     {
                       case SystemError(_, _: IllegalStateException) =>
@@ -129,14 +131,16 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
                     }
                   )
               case _                 =>
-                ZIO.unit
+                IOResult.attempt(filterChain.doFilter(request, response))
             }).runNow
           case _ => ()
         }
+      } else {
+        filterChain.doFilter(request, response)
       }
+    } else {
+      filterChain.doFilter(request, response)
     }
-
-    filterChain.doFilter(request, response)
   }
 
   override protected def shouldNotFilterAsyncDispatch = false
@@ -173,14 +177,16 @@ private[liftweb] object UserSessionInvalidationFilter {
   object checkUser {
     def unapply(user: Option[Int])(implicit userDetail: RudderUserDetail): Option[String] = {
       user match {
-        case None                                                   => Some("user is unknown")
-        case Some(HASH_USER_INVALID_STATUS)                         => Some("user status has been updated to an invalid one")
-        // admin session should not be invalidated
-        case Some(HASH_USER_ADMIN)                                  => None
+        case None                                                           => Some("user is unknown")
+        // admin session should not be invalidated, neither the cached nor current one
+        case Some(HASH_USER_ADMIN)                                          => None
+        case Some(_) if hashRudderUserDetail(userDetail) == HASH_USER_ADMIN => None
+        // invalid user status should be invalidated
+        case Some(HASH_USER_INVALID_STATUS)                                 => Some("user status has been updated to an invalid one")
         // user hash has changed
-        case Some(hash) if hashRudderUserDetail(userDetail) != hash => Some("user access to Rudder has been updated")
+        case Some(hash) if hashRudderUserDetail(userDetail) != hash         => Some("user access to Rudder has been updated")
         // user hash is in cache
-        case Some(_)                                                => None
+        case Some(_)                                                        => None
       }
     }
   }
@@ -204,11 +210,14 @@ private[liftweb] object UserSessionInvalidationFilter {
   }
 
   // special case of user that is not logged-in : hashed with known values
+  // admin check needs to be the first one because it is more important than status check
   private[this] def hashRudderUserDetail(user: RudderUserDetail, status: UserStatus): Int = {
-    if (status.in(UserStatus.Disabled, UserStatus.Deleted)) {
+    if (user.isAdmin) {
+      HASH_USER_ADMIN
+    } else if (status.in(UserStatus.Disabled, UserStatus.Deleted)) {
       HASH_USER_INVALID_STATUS
     } else {
-      hashRudderUserDetail(user)
+      simpleHash(user.getUsername, user.getPassword, user.authz.authorizationTypes.map(_.id))
     }
   }
 
