@@ -180,6 +180,7 @@ type alias UserForm =
 
 type alias Model =
     { contextPath : String
+    , userId : String
     , digest: String
     , tenantsEnabled : Bool
     , users: Users
