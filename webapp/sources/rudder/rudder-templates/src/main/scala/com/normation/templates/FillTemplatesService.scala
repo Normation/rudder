@@ -191,9 +191,9 @@ class SynchronizedFileTemplate(templateName: String, localTemplate: Either[Rudde
 /*
  * A performance optimized version of fill template which assumes that thread safety is managed for it.
  * Main changes:
- * - IT IS NOT THREADSAFE.
+ * - IT IS NOT THREAD SAFE.
  * - set variable's values directly as list and not one by one
- * - unwrappe STVariable array seq to avoid the huge conversion cost.
+ * - unwrap STVariable array seq to avoid the huge conversion cost.
  */
 object FillTemplateThreadUnsafe {
   ////////// Hottest method on whole Rudder //////////
@@ -206,10 +206,10 @@ object FillTemplateThreadUnsafe {
   ): IOResult[(String, String)] = {
     (for {
       // we need to work on an instance of the template
-      ///// BE CAREFULL: HERE, against all odds, the returned instance is NOT threadsafe. /////
+      ///// BE CAREFUL: HERE, against all odds, the returned instance is NOT thread safe. /////
       /*
-       * Here, we are using bestEffort to try to test a maxum of false values,
-       * but the StringTemplate thing is mutable, so we don't have the intersting
+       * Here, we are using bestEffort to try to test a maximum of false values,
+       * but the StringTemplate thing is mutable, so we don't have the interesting
        * content in case of success.
        */
       // return (variable name, variable value, error message)
@@ -233,7 +233,7 @@ object FillTemplateThreadUnsafe {
                       ) {
                         // if there is only one value in the value array, only set unique head value or else we encounter https://issues.rudder.io/issues/18205
                         // to sum up, if we pass an array here, StringTemplate will treat it as an array, and not an unique value, hence in the case of 18025,
-                        // the Boolean value is used in a condition and string template will only check if the array is empty or notr and not look at the boolean value
+                        // the Boolean value is used in a condition and string template will only check if the array is empty or not and not look at the boolean value
                         // if we have more than one value, directly set the array of values in place of values one by one (and let ST build back the array, mutating its map for values
                         // each time. Also: ST really need an array, so we use an array seq in STVariable (for immutability) and unwrap it here to
                         // avoid the cost of translation.
@@ -253,8 +253,8 @@ object FillTemplateThreadUnsafe {
       t1       <- currentTimeNanos
       _        <- timer.fill.update(_ + t1 - t0)
       // return the actual template with replaced variable in case of success
-      policy   <- IOResult.attempt("An error occured when converting template to string")(template.toString())
-      // if the technique is multipolicy, replace rudderTag by reportId
+      policy   <- IOResult.attempt("An error occurred when converting template to string")(template.toString())
+      // if the technique is multi-policy, replace rudderTag by reportId
       result    = replaceId match {
                     case None             => (policy, templateName)
                     case Some((from, to)) =>

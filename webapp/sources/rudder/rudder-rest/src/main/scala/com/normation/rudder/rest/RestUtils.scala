@@ -40,13 +40,13 @@ package com.normation.rudder.rest
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.domain.logger.ApiLogger
 import com.normation.rudder.users.UserService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
-import net.liftweb.common.Loggable
 import net.liftweb.http.*
 import net.liftweb.http.Req
 import net.liftweb.http.provider.HTTPCookie
@@ -79,7 +79,7 @@ case class JsonResponsePrettify(
 
 /**
  */
-object RestUtils extends Loggable {
+object RestUtils {
 
   def getCharset(req: Req): String = {
     // copied from `Req.forcedBodyAsJson`
@@ -178,7 +178,7 @@ object RestUtils extends Loggable {
     status match {
       case _: RestError =>
         // Log any error
-        logger.error(compactRender(message))
+        ApiLogger.ResponseError.info(compactRender(message))
       case _ => // Do nothing
     }
     val json = ("action" -> action) ~
@@ -227,7 +227,7 @@ object RestUtils extends Loggable {
       case eb: EmptyBox =>
         val err = eb ?~! errorMessage
         // we don't get DB error in message - add them in log
-        err.rootExceptionCause.foreach(ex => logger.error("Api error cause by exception: " + ex.getMessage))
+        err.rootExceptionCause.foreach(ex => ApiLogger.ResponseError.info("Api error cause by exception: " + ex.getMessage))
         toJsonError(id, err.messageChain)
     }
   }
