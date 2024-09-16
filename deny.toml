@@ -17,6 +17,8 @@ allow = [
 ignore = [
     # A DoS in h2
     "RUSTSEC-2024-0332",
+    # We are not vulnerable and would need to update rust version, already done in 8.2
+    "RUSTSEC-2024-0365",
 ]
 
 [bans]
