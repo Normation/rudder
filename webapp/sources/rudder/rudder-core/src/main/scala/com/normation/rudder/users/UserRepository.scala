@@ -211,7 +211,7 @@ trait UserRepository {
 
   def get(userId: String, isCaseSensitive: Boolean = true): IOResult[Option[UserInfo]]
 
-  def getStatuses(userIds: List[String]): IOResult[Map[String, UserStatus]]
+  def getAllStatuses(): IOResult[Map[String, UserStatus]]
 }
 
 object UserRepository {
@@ -550,8 +550,8 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
     })
   }
 
-  override def getStatuses(userIds: List[String]): IOResult[Map[String, UserStatus]] = {
-    userBase.get.map(_.collect { case (user, info) if userIds.contains(user) => (user, info.status) })
+  override def getAllStatuses(): IOResult[Map[String, UserStatus]] = {
+    userBase.get.map(_.map { case (user, info) => (user, info.status) })
   }
 }
 
@@ -1001,17 +1001,12 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
     }
   }
 
-  override def getStatuses(userIds: List[String]): IOResult[Map[String, UserStatus]] = {
-    NonEmptyList.fromList(userIds) match {
-      case None        => Map.empty[String, UserStatus].succeed
-      case Some(value) =>
-        transactIOResult(s"Error when getting status for users")(xa => {
-          (fr"select id, status from users where" ++ Fragments.in(fr"id", value))
-            .query[(String, UserStatus)]
-            .toMap
-            .transact(xa)
-        })
-
-    }
+  override def getAllStatuses(): IOResult[Map[String, UserStatus]] = {
+    transactIOResult(s"Error when getting status for all users")(xa => {
+      sql"select id, status from users"
+        .query[(String, UserStatus)]
+        .toMap
+        .transact(xa)
+    })
   }
 }

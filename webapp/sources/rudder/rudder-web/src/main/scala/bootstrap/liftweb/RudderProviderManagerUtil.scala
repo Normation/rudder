@@ -23,7 +23,7 @@ object RudderProviderManagerUtil {
       provider:          String,
       requestAttributes: RequestAttributes
   ): Unit = {
-    userRepository
+    (userRepository
       .logStartSession(
         details.getUsername,
         com.normation.rudder.Role.toDisplayNames(details.roles),
@@ -49,7 +49,9 @@ object RudderProviderManagerUtil {
               ) *>
               Inconsistency("Refused authentication: " + msg).fail
           }
-      }
-      .runNow
+      } *> // user session is started with known rights and password, we need to update users sessions cache to invalidate any change in user access
+    LiftSpringApplicationContext.springContext
+      .getBean(classOf[UserSessionInvalidationFilter])
+      .updateUser(details)).runNow
   }
 }

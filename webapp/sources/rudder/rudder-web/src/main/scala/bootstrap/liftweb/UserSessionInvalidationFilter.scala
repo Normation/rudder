@@ -74,7 +74,7 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
           RudderAuthorizationFileReloadCallback(
             "user-session-invalidation",
             (users: ValidatedUserList) => {
-              userRepository.getStatuses(users.users.keys.toList).flatMap(updateUsers(ref, _)(users.users))
+              userRepository.getAllStatuses().flatMap(updateUsers(ref, _)(users.users))
             }
           )
         )
@@ -166,6 +166,15 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
       }
     }
   }
+
+  /**
+    * New user that is logging in from an external provider (other than file) needs 
+    * to be added or updated in the cache independently from the cache refresh workflow :
+    * the user roles are not known yet and need to be updated.
+    */
+  def updateUser(user: RudderUserDetail): UIO[Unit] = {
+    userCache.update(_ + (user.getUsername -> hashRudderUserDetail(user)))
+  }
 }
 
 private[liftweb] object UserSessionInvalidationFilter {
@@ -195,6 +204,11 @@ private[liftweb] object UserSessionInvalidationFilter {
   val HASH_USER_ADMIN:          Int = -1
   val HASH_USER_INVALID_STATUS: Int = -2
 
+  // syntax that is reused in the context of checking user for "invalid status"
+  implicit class UserStatusOps(status: UserStatus) {
+    def isInvalid: Boolean = status.in(UserStatus.Disabled, UserStatus.Deleted)
+  }
+
   // ensure the hash is positive, to be able to use special negative values
   private def simpleHash(username: String, password: String, authz: Set[String]): Int = {
     (username, password, authz).hashCode() & 0x7fffffff
@@ -214,36 +228,47 @@ private[liftweb] object UserSessionInvalidationFilter {
   private[this] def hashRudderUserDetail(user: RudderUserDetail, status: UserStatus): Int = {
     if (user.isAdmin) {
       HASH_USER_ADMIN
-    } else if (status.in(UserStatus.Disabled, UserStatus.Deleted)) {
+    } else if (status.isInvalid) {
       HASH_USER_INVALID_STATUS
     } else {
       simpleHash(user.getUsername, user.getPassword, user.authz.authorizationTypes.map(_.id))
     }
   }
 
+  // used on a user that has no known password and roles, not a RudderUserDetail
+  private[this] def hashUser(username: String, status: UserStatus): Int = {
+    if (status.isInvalid) {
+      HASH_USER_INVALID_STATUS
+    } else {
+      // an user with empty roles is a safe fallback regarding security
+      simpleHash(username, "", Set.empty)
+    }
+  }
+
   /**
-   * User status have to be updated from the database, since the loaded RudderUserDetail does not have
-   * the definitive status of the user after a file reload.
-   * This also adds new users to the Ref, having knowledge of their latest hash
+   * User status have to be updated from the database.
+   * This also adds new users to the Ref, since their password is known.
+   * Externally provided users may be updated independently in the cache since 
+   * their password and roles are to be resolved at a specific time.
    */
   def updateUsers(
-      ref:             Ref[Map[String, Int]],
-      newUserStatuses: Map[String, UserStatus]
+      ref:     Ref[Map[String, Int]],
+      dbUsers: Map[String, UserStatus]
   ): Map[String, RudderUserDetail] => IOResult[Unit] = (users) => {
-    ref.update(cache => {
-      // user still in Ref but not in new users list should be removed
-      val updatedUsers = cache.flatMap {
-        case (id, _) => users.get(id).map(id -> hashRudderUserDetail(_, newUserStatuses.getOrElse(id, UserStatus.Deleted)))
-      }
-      // file users not yet in ref should be added to ref
-      val newUsers     = users.flatMap {
-        case (id, user) =>
-          cache.get(id) match {
-            case Some(_) => None
-            case None    => Some(id -> hashRudderUserDetail(user, newUserStatuses.getOrElse(id, UserStatus.Deleted)))
-          }
-      }
-      newUsers ++ updatedUsers
-    })
+    // the source of users is the database, which contains all current users (and their status only)
+    // user still in Ref but not in new users list should be removed
+    val newUsers = dbUsers.map {
+      case (id, status) =>
+        users.get(id) match {
+          case Some(user) =>
+            // user is in file : prioritize file definition (even if for provisioned users, roles/password may be different)
+            // cache will be updated with latest user at login anyway
+            id -> hashRudderUserDetail(user, status)
+          case None       =>
+            id -> hashUser(id, status)
+        }
+    }
+
+    ref.set(newUsers)
   }
 }
