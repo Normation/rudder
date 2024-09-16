@@ -76,6 +76,11 @@ object ApplicationLoggerPure extends NamedZioLogger {
 
 object ApiLogger extends Logger {
   override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("api-processing")
+
+  // a logger used to log API errors (when they return an error message) in webapp log
+  object ResponseError extends Logger {
+    override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("api-processing.response-error")
+  }
 }
 
 object ApiLoggerPure extends NamedZioLogger {
