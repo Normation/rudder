@@ -857,7 +857,7 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
       userInfos.find(_.id == userId).succeed
     }
 
-    override def getStatuses(userIds: List[String]): IOResult[Map[String, UserStatus]] = ???
+    override def getAllStatuses(): IOResult[Map[String, UserStatus]] = ???
   }
 
   val usersInputStream: () => InputStream = () => IOUtils.toInputStream(usersConfigFile.contentAsString, StandardCharsets.UTF_8)
