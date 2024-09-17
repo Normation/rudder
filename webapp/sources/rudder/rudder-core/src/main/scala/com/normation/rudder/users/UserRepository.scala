@@ -157,6 +157,7 @@ trait UserRepository {
    * - notOrigin: exclude user deleting for user not on that origin (typically file and rootUser).
    *              This is a post-filter, meaning that if no users are selected in the first two and this one is
    *              empty then none user are deleted (and not all users)
+   * - initial status which filters the users to delete based on their status, by default do not filter
    *
    * Returns the list of impacted userIds
    */
@@ -164,6 +165,7 @@ trait UserRepository {
       userId:            List[String],
       notLoggedSince:    Option[DateTime],
       excludeFromOrigin: List[String],
+      initialStatus:     Option[UserStatus],
       trace:             EventTrace
   ): IOResult[List[String]]
 
@@ -416,6 +418,13 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
     }
   }
 
+  private def predicateInitialStatus(u: UserInfo, initialStatus: Option[UserStatus]): Boolean = {
+    initialStatus match {
+      case Some(value) => u.status == value
+      case None        => u.status != UserStatus.Deleted
+    }
+  }
+
   // this one is inverted
   private def predicateNotOrigin(u: UserInfo, origin: List[String]) = !origin.contains(u.managedBy)
 
@@ -455,6 +464,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
       userIds:           List[String],
       notLoggedSince:    Option[DateTime],
       excludeFromOrigin: List[String],
+      initialStatus:     Option[UserStatus],
       trace:             EventTrace
   ): IOResult[List[String]] = {
     userBase.modify { users =>
@@ -465,7 +475,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
             (predicateUser(u, userIds) || predicateLogDate(
               u,
               notLoggedSince
-            )) && u.status != UserStatus.Deleted && predicateNotOrigin(u, excludeFromOrigin)
+            )) && predicateInitialStatus(u, initialStatus) && predicateNotOrigin(u, excludeFromOrigin)
           ) {
             modUserIds = k :: modUserIds
             (
@@ -893,6 +903,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
       userIds:           List[String],
       notLoggedSince:    Option[DateTime],
       excludeFromOrigin: List[String],
+      initialStatus:     Option[UserStatus],
       trace:             EventTrace
   ): IOResult[List[String]] = {
     changeStatus(
@@ -901,7 +912,9 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
       excludeFromOrigin,
       trace,
       UserStatus.Deleted,
-      Some(Fragment.const(s"status != '${UserStatus.Deleted.value}'"))
+      initialStatus
+        .map(s => Fragment.const(s"status = '${s.value}'"))
+        .orElse(Some(Fragment.const(s"status != '${UserStatus.Deleted.value}'")))
     )
   }
 

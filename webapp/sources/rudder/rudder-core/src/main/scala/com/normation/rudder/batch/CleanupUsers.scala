@@ -37,6 +37,7 @@
 
 package com.normation.rudder.batch
 
+import com.normation.errors.IOResult
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.users.*
@@ -58,16 +59,17 @@ import zio.*
  * Code derived from https://github.com/centic9/jgit-cookbook/blob/master/src/main/java/org/dstadler/jgit/porcelain/CollectGarbage.java
  */
 class CleanupUsers(
-    userRepository:  UserRepository,
-    optCron:         Option[CronExpr],
-    disableInactive: Duration,
-    deleteInactive:  Duration,
-    purgeDeleted:    Duration,
-    purgeSessions:   Duration,
-    localBackends:   List[String]
+    userRepository:     UserRepository,
+    getNonAdminUserIds: IOResult[List[String]],
+    optCron:            Option[CronExpr],
+    disableInactive:    Duration,
+    deleteInactive:     Duration,
+    purgeDeleted:       Duration,
+    purgeSessions:      Duration,
+    localBackends:      List[String]
 ) {
 
-  val logger = ApplicationLoggerPure.User
+  private val logger = ApplicationLoggerPure.Auth
 
   /*
    * Clean-up has different steps:
@@ -82,41 +84,68 @@ class CleanupUsers(
    *
    */
   val cleanup: UIO[Unit] = for {
-    t0 <- currentTimeMillis
-    d   = new DateTime(t0)
-    t   = EventTrace(RudderEventActor, d)
-    _  <- userRepository
-            .disable(Nil, Some(d.minus(disableInactive.toMillis)), Nil, t)
-            .catchAll(err =>
-              logger.error(s"Error when disabling user accounts inactive since '${disableInactive.toString}': ${err.fullMsg}")
+    t0   <- currentTimeMillis
+    d     = new DateTime(t0)
+    trace = EventTrace(RudderEventActor, d, _)
+    _    <-
+      // disable current users known not to be admin
+      getNonAdminUserIds
+        .flatMap(
+          userRepository
+            .disable(_, Some(d.minus(disableInactive.toMillis)), Nil, trace(s"User was inactive since last '${disableInactive}'"))
+        )
+        .foldZIO(
+          err => logger.error(s"Error when disabling user accounts inactive since '${disableInactive}': ${err.fullMsg}"),
+          disabledUsers => {
+            logger.warn(
+              s"Following users status changed to 'disabled' because they were inactive since '${disableInactive}': '${disabledUsers
+                  .mkString("' ,'")}'"
             )
-    _  <- userRepository
-            .delete(Nil, Some(d.minus(deleteInactive.toMillis)), localBackends, t)
-            .flatMap(deletedUsers =>
-              ApplicationLoggerPure.User.info(s"Following users status changed to 'deleted': '${deletedUsers.mkString("' ,'")}'")
-            )
-            .catchAll(err =>
-              logger.error(s"Error when deleting user accounts inactive since '${deleteInactive.toString}': ${err.fullMsg}")
-            )
-    _  <- userRepository
-            .purge(Nil, Some(d.minus(purgeDeleted.toMillis)), Nil, t)
-            .catchAll(err =>
-              logger.error(s"Error when purging user accounts deleted since '${purgeDeleted.toString}': ${err.fullMsg}")
-            )
-    dos = d.minus(purgeSessions.toMillis)
-    _  <-
+          }
+        )
+    _    <- userRepository
+              .delete(
+                Nil,
+                Some(d.minus(deleteInactive.toMillis)),
+                localBackends,
+                Some(UserStatus.Disabled),
+                trace(s"User was inactive since last '${deleteInactive}")
+              )
+              .foldZIO(
+                err => logger.error(s"Error when deleting user accounts inactive since '${deleteInactive}': ${err.fullMsg}"),
+                deletedUsers =>
+                  logger.info(s"Following users status changed from 'disabled' to 'deleted': '${deletedUsers.mkString("' ,'")}'")
+              )
+    _    <- userRepository
+              .purge(
+                Nil,
+                Some(d.minus(purgeDeleted.toMillis)),
+                Nil,
+                trace(s"User is purged definitively '${purgeDeleted}' after being deleted")
+              )
+              .foldZIO(
+                err => logger.error(s"Error when purging user accounts deleted since '${purgeDeleted}': ${err.fullMsg}"),
+                purgedUsers => {
+                  logger.info(
+                    s"Users were purged from the database because they were configured to be purged ${purgeDeleted} after deletion. Users list is : '${purgedUsers
+                        .mkString("' ,'")}'"
+                  )
+                }
+              )
+    dos   = d.minus(purgeSessions.toMillis)
+    _    <-
       userRepository
         .deleteOldSessions(dos)
-        .flatMap(deletedUsers =>
-          ApplicationLoggerPure.User.info(s"Log of user sessions older than ${DateFormaterService.serialize(dos)} were deleted")
+        .foldZIO(
+          err => {
+            logger.error(
+              s"Error when purging user sessions older than '${DateFormaterService.serialize(d)}': ${err.fullMsg}"
+            )
+          },
+          _ => logger.info(s"Log of user sessions older than ${DateFormaterService.serialize(dos)} were deleted")
         )
-        .catchAll(err => {
-          logger.error(
-            s"Error when purging user sessions older than '${DateFormaterService.serialize(d)}': ${err.fullMsg}"
-          )
-        })
-    t1 <- currentTimeMillis
-    _  <- logger.info(s"Cleaning user accounts and sessions performed in ${new org.joda.time.Duration(t1 - t0).toString}")
+    t1   <- currentTimeMillis
+    _    <- logger.info(s"Cleaning user accounts and sessions performed in ${new org.joda.time.Duration(t1 - t0).toString}")
   } yield ()
 
   // Must not fail.
