@@ -1087,7 +1087,7 @@ object RudderParsedProperties {
     case Right(opt) => opt
   }
   val RUDDER_USERS_CLEAN_LAST_LOGIN_DISABLE: Duration         =
-    parseDuration("rudder.users.cleanup.account.disableAfterLastLogin", 60.days)
+    parseDuration("rudder.users.cleanup.account.disableAfterLastLogin", 90.days)
   val RUDDER_USERS_CLEAN_LAST_LOGIN_DELETE:  Duration         =
     parseDuration("rudder.users.cleanup.account.deleteAfterLastLogin", 120.days)
   val RUDDER_USERS_CLEAN_DELETED_PURGE:      Duration         = parseDuration("rudder.users.cleanup.purgeDeletedAfter", 30.days)
@@ -1095,7 +1095,11 @@ object RudderParsedProperties {
 
   def parseDuration(propName: String, default: Duration): Duration = {
     try {
-      Duration.fromScala(scala.concurrent.duration.Duration(config.getString(propName)))
+      val configValue = config.getString(propName)
+      configValue.toLowerCase match {
+        case "never" => Duration.Infinity
+        case _       => Duration.fromScala(scala.concurrent.duration.Duration(configValue))
+      }
     } catch {
       case ex: ConfigException       => // default
         default
@@ -1603,6 +1607,7 @@ object RudderConfigInit {
     // batch for cleaning users
     lazy val userCleanupBatch: CleanupUsers   = new CleanupUsers(
       userRepository,
+      IOResult.attempt(rudderUserListProvider.authConfig.users.filter(!_._2.isAdmin).keys.toList),
       RUDDER_USERS_CLEAN_CRON,
       RUDDER_USERS_CLEAN_LAST_LOGIN_DISABLE,
       RUDDER_USERS_CLEAN_LAST_LOGIN_DELETE,

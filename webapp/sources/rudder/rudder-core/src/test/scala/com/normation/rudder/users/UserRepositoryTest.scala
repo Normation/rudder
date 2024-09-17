@@ -425,7 +425,12 @@ trait UserRepositoryTest extends Specification with Loggable {
       repo.get("Alice", isCaseSensitive = false).either.runNow must beLeft(
         errors.Inconsistency("Multiple users found for id 'Alice'")
       )
-      (repo.delete(List("Alice"), None, Nil, traceInit) *> repo.purge(List("Alice"), None, Nil, traceInit)).runNow must beEqualTo(
+      (repo.delete(List("Alice"), None, Nil, None, traceInit) *> repo.purge(
+        List("Alice"),
+        None,
+        Nil,
+        traceInit
+      )).runNow must beEqualTo(
         List("Alice")
       )
     }
@@ -454,7 +459,7 @@ trait UserRepositoryTest extends Specification with Loggable {
     }
     "If an user is purged, then everything about it is lost and it is created fresh" >> {
       // we only purge deleted users
-      (repo.delete(List("bob"), None, Nil, traceBobOidc) *>
+      (repo.delete(List("bob"), None, Nil, Some(UserStatus.Active), traceBobOidc) *>
       repo.purge(List("bob"), None, Nil, traceBobOidc)).runNow
       repo.setExistingUsers(AUTH_PLUGIN_NAME_REMOTE, List("bob"), traceBob2).runNow
       repo.getAll().runNow.toUTC must containTheSameElementsAs(userInfosBob2)
@@ -491,7 +496,7 @@ trait UserRepositoryTest extends Specification with Loggable {
       // set delete trace event to "dateInit" to make it simpler to know when the "deleted before" must be set to
       (
         repo
-          .delete(Nil, Some(dateInit.plusYears(1)), Nil, EventTrace(actor, dateInit))
+          .delete(Nil, Some(dateInit.plusYears(1)), Nil, None, EventTrace(actor, dateInit))
           .flatMap(users => errors.effectUioUnit(logger.debug(s"Users were marked deleted: ${users}"))) *>
         errors.effectUioUnit(println("**** delete done")) *>
         repo
@@ -533,7 +538,7 @@ trait UserRepositoryTest extends Specification with Loggable {
     }
 
     "delete all before date4 only not local must only delete charlie (set delete to date2)" >> {
-      repo.delete(Nil, Some(date4), List(AUTH_PLUGIN_NAME_LOCAL), EventTrace(actor, date2)).runNow
+      repo.delete(Nil, Some(date4), List(AUTH_PLUGIN_NAME_LOCAL), None, EventTrace(actor, date2)).runNow
       val users = repo.getAll().runNow.toUTC
       (users.map(_.id) must containTheSameElementsAs(List("alice", "bob", "charlie", "david"))) and
       (users.filter(_.status == UserStatus.Deleted).size === 1) and
@@ -550,7 +555,7 @@ trait UserRepositoryTest extends Specification with Loggable {
     }
 
     "delete+purge all before date4 must also remove alice, bob" >> {
-      (repo.delete(Nil, Some(date4), Nil, EventTrace(actor, date3)) *>
+      (repo.delete(Nil, Some(date4), Nil, None, EventTrace(actor, date3)) *>
       repo.purge(Nil, Some(date4), Nil, EventTrace(actor, date5))).runNow
       repo.getAll().runNow.map(_.id) must containTheSameElementsAs(List("david"))
     }
