@@ -305,21 +305,24 @@ class AppConfigAuth extends ApplicationContextAware {
       )
     }
 
-    val authConfigProvider  = new UserDetailListProvider {
+    val authConfigProvider = new UserDetailListProvider {
       // in the case of the root admin defined in config file, given is very specific use case, we enforce case sensitivity
       override def authConfig: ValidatedUserList =
         ValidatedUserList(encoder, isCaseSensitive = true, customRoles = Nil, users = admins)
     }
-    val rootAccountUserRepo = InMemoryUserRepository.make().runNow
-    rootAccountUserRepo.setExistingUsers(
-      "root-account",
-      admins.keys.toList,
-      EventTrace(com.normation.rudder.domain.eventlog.RudderEventActor, DateTime.now())
-    )
-    val provider            = new DaoAuthenticationProvider()
-    provider.setUserDetailsService(new RudderInMemoryUserDetailsService(authConfigProvider, rootAccountUserRepo))
-    provider.setPasswordEncoder(encoder) // force password encoder to the one we want
-    provider
+    (for {
+      rootAccountUserRepo <- InMemoryUserRepository.make()
+      _                   <- rootAccountUserRepo.setExistingUsers(
+                               "root-account",
+                               admins.keys.toList,
+                               EventTrace(com.normation.rudder.domain.eventlog.RudderEventActor, DateTime.now())
+                             )
+    } yield {
+      val provider = new DaoAuthenticationProvider()
+      provider.setUserDetailsService(new RudderInMemoryUserDetailsService(authConfigProvider, rootAccountUserRepo))
+      provider.setPasswordEncoder(encoder) // force password encoder to the one we want
+      provider
+    }).runNow
   }
 
   ///////////// FOR REST API /////////////
