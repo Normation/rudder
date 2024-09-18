@@ -3,14 +3,14 @@
 
 use std::{
     env::set_current_dir,
-    fs::create_dir_all,
+    fs::{self, create_dir_all},
     path::{Path, PathBuf},
 };
 
 use anyhow::bail;
 use anyhow::{anyhow, Context, Result};
 use rudder_cli::custom_panic_hook_ignore_sigpipe;
-use tracing::{debug, error};
+use tracing::debug;
 
 use crate::cli::{Command, MainArgs};
 
@@ -78,27 +78,33 @@ pub fn run(args: MainArgs) -> Result<()> {
     }
 
     if let Some(cwd) = args.directory {
-        if !cwd.clone().exists() {
-            error!("Directory path passed using the '-d' or '--directory' options must exist.");
-            bail!("Path not found '{}'", cwd.display())
-        }
-        // Also support being passed the technique.yml file
-        if cwd.ends_with(TECHNIQUE_SRC) {
-            set_current_dir(
-                cwd.parent().ok_or_else(|| {
-                    anyhow!("Could not open {} technique directory", cwd.display())
-                })?,
-            )?;
+        // Support being passed the technique.yml file directly
+        let actual_cwd = if cwd.ends_with(TECHNIQUE_SRC) {
+            let parent = cwd
+                .parent()
+                .ok_or_else(|| anyhow!("Could not open {} technique directory", cwd.display()))?;
+            if !parent.exists() {
+                fs::create_dir_all(parent).context(format!(
+                    "Creating the parent directory {}",
+                    parent.display()
+                ))?;
+            }
+            parent
         } else {
-            set_current_dir(&cwd).with_context(|| {
-                format!(
-                    "Failed to change the current workdir to '{}'",
-                    cwd.display()
-                )
-            })?;
-        }
+            if !cwd.exists() {
+                fs::create_dir_all(&cwd)
+                    .context(format!("Creating the directory {}", cwd.display()))?;
+            }
+            cwd.as_path()
+        };
+        set_current_dir(actual_cwd).with_context(|| {
+            format!(
+                "Failed to change the current workdir to '{}'",
+                cwd.display()
+            )
+        })?;
     }
-    debug!("WORKDIR: '{}'", cwd.clone().canonicalize()?.display());
+    debug!("Working directory: '{}'", cwd.canonicalize()?.display());
 
     match args.command {
         Command::Init => action::init(&cwd, None),
