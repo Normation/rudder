@@ -138,6 +138,12 @@ paths:
     $ref: paths/usermanagement/reload.yml
   "/usermanagement":
     $ref: paths/usermanagement/add.yml
+  "/usermanagement/status/activate/{username}":
+    $ref: paths/usermanagement/activate.yml
+  "/usermanagement/status/disable/{username}":
+    $ref: paths/usermanagement/disable.yml
+  "/usermanagement/coverage/{username}":
+    $ref: paths/usermanagement/coverage.yml
   "/scaleoutrelay/promote/{nodeId}":
     $ref: paths/scale-out-relay/promote.yml
   "/scaleoutrelay/demote/{nodeId}":
