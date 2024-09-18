@@ -826,6 +826,7 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
         userId:            List[String],
         notLoggedSince:    Option[DateTime],
         excludeFromOrigin: List[String],
+        initialStatus:     Option[UserStatus],
         trace:             EventTrace
     ): IOResult[List[String]] = {
       userId.succeed
