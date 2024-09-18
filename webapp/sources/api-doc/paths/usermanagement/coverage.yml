@@ -1,0 +1,77 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2024 Normation SAS
+post:
+  summary: Compute the role coverage
+  description: Compute the role coverage of an user
+  operationId: roleCoverage
+  parameters:
+    - $ref: ../../components/parameters/username.yml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - permissions
+            - authz
+          properties:
+            permissions:
+              type: array
+              description: List of roles
+              items:
+                type: string
+            authz:
+              type: array
+              description: List of authorizations
+              items:
+                type: string
+  responses:
+    "200":
+      description: Roles coverage
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - action
+              - result
+              - data
+            properties:
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - roleCoverage
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+              data:
+                type: object
+                required:
+                  - coverage 
+                properties:
+                  coverage:
+                    type: object
+                    required:
+                      - permissions
+                      - custom
+                    properties:
+                      permissions:
+                        type: array
+                        description: List of roles
+                        items:
+                          type: string
+                      custom:
+                        type: array
+                        description: List of custom rights
+                        items:
+                          type: string
+  tags:
+    - 🧩 User Management
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/usermanagement/coverage.sh
