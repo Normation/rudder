@@ -90,7 +90,7 @@ processApiDetailedError apiName decoder err =
         Detailed.Timeout ->
           formatApiNameMessage ("Unable to reach the server, try again")
         Detailed.NetworkError ->
-          formatApiNameMessage ("Unable to reach the server, check your network connection")
+          formatApiNameMessage ("You are trying to upload a file that exceeds the maximum upload size, or we are unable to reach the server, so please check your network connection.")
         Detailed.BadStatus metadata body ->
           case Json.Decode.decodeString decoder body of
             Ok { error } -> formatApiNameMessage (Maybe.withDefault "Unknown error" error)
