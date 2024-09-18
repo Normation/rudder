@@ -45,7 +45,6 @@ import com.normation.errors.SystemError
 import com.normation.errors.Unexpected
 import com.normation.rudder.*
 import com.normation.rudder.api.*
-import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.RoleApiMapping
@@ -195,7 +194,7 @@ object RudderPasswordEncoder {
         OpenBSDBCrypt.checkPassword(encodedPassword, rawPassword.toString.toCharArray)
       } catch {
         case e: Exception =>
-          ApplicationLogger.debug(s"Invalid password format: ${e.getMessage}")
+          ApplicationLoggerPure.Auth.debug(s"Invalid password format: ${e.getMessage}")
           false
       }
     }
@@ -274,6 +273,8 @@ final case class ValidatedUserList(
 
 object ValidatedUserList {
 
+  private val logger = ApplicationLoggerPure.Auth
+
   /**
    * Filter the list of users by checking if the username
    * is unique according to case sensitivity:
@@ -291,7 +292,7 @@ object ValidatedUserList {
       case (k, u :: Nil)                  => (u.getUsername, u) :: Nil
       // User name is not unique with case sensitivity disabled, refuse everything
       case (_, users) if !isCaseSensitive =>
-        ApplicationLogger.error(
+        logger.error(
           s"Several users have the same username case-insensitively equals to '${users.toList(0).getUsername}': they will be ignored"
         )
         Nil
@@ -303,13 +304,13 @@ object ValidatedUserList {
           case (k, u :: Nil) => (k, u) :: Nil
           // User name is not unique with case sensitivity disabled, Refuse login
           case (_, users)    =>
-            ApplicationLogger.error(s"Users with duplicates username will be ignored: ${users.map(_.getUsername).mkString(", ")}")
+            logger.error(s"Users with duplicates username will be ignored: ${users.map(_.getUsername).mkString(", ")}")
             Nil
         }
 
         // Notice that some users  with name different only by their case are defined, and that disabling case sensitivity would break those users
         // (not a warning, since we are in the case sensitive case, it's ok)
-        ApplicationLogger
+        logger
           .info(s"Users with potential username collision if case sensitivity is disabled: ${res.keys.mkString(", ")}")
         res
     }
@@ -390,6 +391,8 @@ final class FileUserDetailListProvider(
 
   import RudderPasswordEncoder.SecurityLevel.*
 
+  private val logger = ApplicationLoggerPure.Auth
+
   /**
    * Initialize user details list when class is instantiated with an empty list.
    * We also set case sensitivity to false as a default (which will be updated with the actual data from the file on reload).
@@ -423,18 +426,14 @@ final class FileUserDetailListProvider(
       cbs    <- callbacks.get
       _      <- ZIO.foreach(cbs) { cb =>
                   cb.exec(config)
-                    .catchAll(err =>
-                      ApplicationLoggerPure.warn(s"Error when executing user authorization call back '${cb.name}': ${err.fullMsg}")
-                    )
+                    .catchAll(err => logger.warn(s"Error when executing user authorization call back '${cb.name}': ${err.fullMsg}"))
                 }
     } yield ()
   }
 
   def reload(): Unit = {
     reloadPure()
-      .catchAll(err =>
-        ApplicationLoggerPure.error(s"Error when reloading users and roles authorisation configuration file: ${err.fullMsg}")
-      )
+      .catchAll(err => logger.error(s"Error when reloading users and roles authorisation configuration file: ${err.fullMsg}"))
       .runNow
   }
 
@@ -481,6 +480,8 @@ object UserFileProcessing {
   val JVM_AUTH_FILE_KEY      = "rudder.authFile"
   val DEFAULT_AUTH_FILE_NAME = "demo-rudder-users.xml"
 
+  private val logger = ApplicationLoggerPure.Auth
+
   // utility classes for a parsed custom role/user/everything before sanity check is done on them
   final case class ParsedRole(name: String, permissions: List[String])
   final case class ParsedUser(name: String, password: String, permissions: List[String], tenants: Option[List[String]])
@@ -495,7 +496,7 @@ object UserFileProcessing {
   def getUserResourceFile(): IOResult[UserFile] = {
     java.lang.System.getProperty(JVM_AUTH_FILE_KEY) match {
       case null | "" => // use default location in classpath
-        ApplicationLoggerPure.Authz.info(
+        logger.info(
           s"JVM property -D${JVM_AUTH_FILE_KEY} is not defined, using configuration file '${DEFAULT_AUTH_FILE_NAME}' in classpath"
         ) *>
         UserFile(
@@ -505,13 +506,13 @@ object UserFileProcessing {
       case x         => // so, it should be a full path, check it
         val config = File(x)
         if (config.exists && config.isReadable) {
-          ApplicationLoggerPure.Authz
+          logger
             .info(
               s"Using configuration file defined by JVM property -D${JVM_AUTH_FILE_KEY} : ${config.path}"
             ) *>
           UserFile(config.canonicalPath, () => config.newInputStream).succeed
         } else {
-          ApplicationLoggerPure.Authz.error(
+          logger.error(
             s"Can not find configuration file specified by JVM property ${JVM_AUTH_FILE_KEY}: ${config.path}; aborting"
           ) *> Unexpected(s"rudder-users configuration file not found at path: '${config.path}'").fail
         }
@@ -648,7 +649,7 @@ object UserFileProcessing {
           UncheckedCustomRole(n, r)
         }) match {
           case Left(err)   =>
-            ApplicationLoggerPure.Authz
+            logger
               .error(s"Role incorrectly defined in '${debugFileName}': ${err.fullMsg})") *> None.succeed
           case Right(role) =>
             Some(role).succeed
@@ -686,7 +687,7 @@ object UserFileProcessing {
               Some(ParsedUser(name, p, permissions, tenants)).succeed
 
             case _ =>
-              ApplicationLoggerPure.Authz.error(
+              logger.error(
                 s"Ignore user line in authentication file '${debugFileName}', some required attribute is missing: ${node.toString}"
               ) *> None.succeed
           }
@@ -702,7 +703,7 @@ object UserFileProcessing {
       // For now, we log every time we have an unknown value, and use the default modern hash algorithm.
       hash       <- parsedHash match {
                       case Left(unknownValue) =>
-                        ApplicationLoggerPure.Authz
+                        logger
                           .warn(
                             s"Attribute hash has an unknown value `${unknownValue}` in file '${debugFileName}', set by default on `${defaultHash.name}`"
                           )
@@ -717,11 +718,11 @@ object UserFileProcessing {
                            case "false" => false.succeed
                            case str     =>
                              (if (str.isEmpty) {
-                                ApplicationLoggerPure.Authz.info(
+                                logger.info(
                                   s"Case sensitivity: in file '${debugFileName}' parameter `case-sensitivity` is not set, set by default on `true`"
                                 )
                               } else {
-                                ApplicationLoggerPure.Authz.warn(
+                                logger.warn(
                                   s"Case sensitivity: unknown case-sensitivity parameter `$str` in file '${debugFileName}', set by default on `true`"
                                 )
                               }) *> true.succeed
@@ -740,7 +741,7 @@ object UserFileProcessing {
                           ) == RudderPasswordEncoder.SecurityLevel.Legacy
                           ZIO
                             .unless(legacy || str.isEmpty) {
-                              ApplicationLoggerPure.Authz.warn(
+                              logger.warn(
                                 s"Unsafe hashes: in file '${debugFileName}' parameter `unsafe-hashes` is not a boolean, set by default on `false`. If you still use non-bcrypt hash, you can set this parameter to `true`"
                               )
                             }
@@ -765,19 +766,19 @@ object UserFileProcessing {
       res <- RudderRoles.resolveCustomRoles(roles, knownRoles)
       _   <- ZIO.foreach(res.invalid) {
                case (r, err) =>
-                 ApplicationLoggerPure.Authz.error(
+                 logger.error(
                    s"Error with custom role definition: custom role '${r.name}' is invalid and will be ignored: ${err}"
                  )
              }
       _   <- ZIO.foreach(res.validRoles) { r =>
                r match {
                  case Role.NamedCustom(n, l) =>
-                   ApplicationLoggerPure.Authz.debug(
+                   logger.debug(
                      s"Custom role '${n}' defined as the union of roles: [${l.map(_.debugString).mkString(", ")}]"
                    )
                  // Should not happen, since there should be only custom roles, but to prevent warning here ...
                  case _                      =>
-                   ApplicationLoggerPure.Authz.debug(
+                   logger.debug(
                      s"Found role ${r.name}, in custom role definition, ignore this message"
                    )
                }
@@ -801,13 +802,13 @@ object UserFileProcessing {
                  .toIO
                  .flatMap { // check for adequate plugin
                    case NodeSecurityContext.ByTenants(_) if (!TODO_MODULE_TENANTS_ENABLED) =>
-                     ApplicationLoggerPure.Authz.warn(
+                     logger.warn(
                        s"Tenants definition are only available with the corresponding plugin. To prevent unwanted right escalation, " +
                        s"user '${name}' will be restricted to no tenants"
                      ) *> NodeSecurityContext.None.succeed
                    case x                                                                  => x.succeed
                  }
-                 .catchAll(err => ApplicationLoggerPure.Authz.warn(err.fullMsg) *> NodeSecurityContext.None.succeed)
+                 .catchAll(err => logger.warn(err.fullMsg) *> NodeSecurityContext.None.succeed)
         rs  <-
           RudderRoles
             .parseRoles(roles)
@@ -817,7 +818,7 @@ object UserFileProcessing {
                   List(Role.NoRights).succeed
 
                 case rs =>
-                  ApplicationLoggerPure.Authz.debug(
+                  logger.debug(
                     s"User '${name}' defined with authorizations: ${rs.map(_.debugString).mkString(", ")}"
                   ) *> rs.succeed
               }
