@@ -639,6 +639,8 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
     }
   }
 
+  private val logger = ApplicationLoggerPure.Auth
+
   // when we create a session for an user, we also update his "lastLogin" tom
   override def logStartSession(
       userId:            String,
@@ -679,7 +681,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
   override def closeAllOpenSession(endDate: DateTime, endCause: String): IOResult[Unit] = {
     val sql = sql"""update usersessions set enddate = ${endDate}, endcause = ${endCause} where enddate is null returning userid"""
     transactIOResult(s"Error when closing opened user session")(xa => sql.query[String].to[List].transact(xa)).flatMap(users =>
-      ApplicationLoggerPure.User.info(s"Close open sessions with reason '${endCause}' for users '${users.mkString("', '")}'")
+      logger.info(s"Close open sessions with reason '${endCause}' for users '${users.mkString("', '")}'")
     )
   }
 
@@ -707,7 +709,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
     transactIOResult(s"Error when purging user sessions older then: ${DateFormaterService.serialize(olderThan)}")(xa =>
       sql.update.run.transact(xa)
     ).flatMap(deletedSessionCount => {
-      ApplicationLoggerPure.User.info(
+      logger.info(
         s"${deletedSessionCount} user sessions older than ${DateFormaterService.serialize(olderThan)} were deleted"
       )
     })
@@ -792,7 +794,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
         diff               = updated.keySet.diff(dbUpdated.toSet).intersect(maybeUpdate.map(_.id).toSet)
       } yield diff).transact(xa).tapSome {
         case nonUpdated if nonUpdated.nonEmpty =>
-          ApplicationLoggerPure.warn(
+          logger.warn(
             s"Some users have conflicting id with existing ones, due to case-sensitivity parameter set to ${isCaseSensitive}. " +
             s"These users could not be handled : ${nonUpdated.mkString(", ")}. " +
             s"Please change the parameter value or consider removing duplicate users."
@@ -866,7 +868,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
         .updateMany(newStatus)
     }
 
-    ApplicationLoggerPure.User.trace(
+    logger.trace(
       s"Request to change status of users '${userIds.mkString("','")}' " +
       s"to ${targetStatus.value} with criteria 'notLoggedSince': '${notLoggedSince}'; " +
       s"'excludeFromOrigin': '${excludeFromOrigin.mkString(", ")}'; 'andSelectFragment': '${andSelectFragment}''"
@@ -895,7 +897,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
                         }
             commit   <- update(updated)
           } yield (selected.map(_._1))
-        ).transact(xa).tap(users => ApplicationLoggerPure.User.trace(s"Updated users: '${users.mkString("', ")}'"))
+        ).transact(xa).tap(users => logger.trace(s"Updated users: '${users.mkString("', ")}'"))
     }
   }
 
