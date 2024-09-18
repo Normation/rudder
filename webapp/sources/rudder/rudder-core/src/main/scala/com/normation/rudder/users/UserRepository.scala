@@ -708,11 +708,12 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
 
     transactIOResult(s"Error when purging user sessions older then: ${DateFormaterService.serialize(olderThan)}")(xa =>
       sql.update.run.transact(xa)
-    ).flatMap(deletedSessionCount => {
-      logger.info(
-        s"${deletedSessionCount} user sessions older than ${DateFormaterService.serialize(olderThan)} were deleted"
-      )
-    })
+    ).tapSome {
+      case deletedSessionCount if deletedSessionCount > 0 =>
+        logger.info(
+          s"${deletedSessionCount} user sessions older than ${DateFormaterService.serialize(olderThan)} were deleted"
+        )
+    }.unit
   }
 
   override def setExistingUsers(
