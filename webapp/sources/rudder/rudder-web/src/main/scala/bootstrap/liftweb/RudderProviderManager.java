@@ -16,11 +16,9 @@
 
 package bootstrap.liftweb;
 
-import com.normation.rudder.AuthorizationType;
-import com.normation.rudder.domain.logger.ApplicationLogger;
 import com.normation.rudder.users.*;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -51,7 +49,7 @@ public class RudderProviderManager implements org.springframework.security.authe
 	// ~ Static fields/initializers
 	// =====================================================================================
 
-	private static final Log logger = LogFactory.getLog("org.springframework.security.RudderProviderManager");
+	private static final Logger logger = LoggerFactory.getLogger("application.authentication");
 
 	// ~ Instance fields
 	// ================================================================================================
@@ -174,13 +172,13 @@ public class RudderProviderManager implements org.springframework.security.authe
 										if (requestAttributes instanceof ServletRequestAttributes) {
 											sessionId = requestAttributes.getSessionId();
 										} else {
-											ApplicationLogger.warn(() -> "Rudder does not know how to get sessionId on this authentication using " + requestAttributes.getClass().getName() + ". It could happen when previous session has not been closed properly. Please retry to log in after clearing the browser cache.");
+											logger.warn("Rudder does not know how to get sessionId on this authentication using " + requestAttributes.getClass().getName() + ". It could happen when previous session has not been closed properly. Please retry to log in after clearing the browser cache.");
 											throw new IllegalStateException("Unknown request attributes type for session id retrieval: " + requestAttributes.getClass().getName() + ", aborting authentication");
 										}
 									}
                                 } else {
                                   final String className = result.getDetails().getClass().getName();
-                                  ApplicationLogger.warn(() -> "Rudder does not know how to get sessionId from '"+className+"'. Please report to developers that message");
+                                  logger.warn("Rudder does not know how to get sessionId from '"+className+"'. Please report to developers that message");
                                   sessionId = Integer.toHexString(result.getDetails().hashCode());
                                 }
 								// Authentication under the same session id may have already been attempted, to prevent session fixation, refuse authentication and renew login session
@@ -203,7 +201,7 @@ public class RudderProviderManager implements org.springframework.security.authe
                     if(p.name() == "rootAdmin") {
                         logger.debug(msg);
                     } else {
-                        ApplicationLogger.info(() -> msg);
+                        logger.info(msg);
                     }
                 }
             }
@@ -256,7 +254,7 @@ public class RudderProviderManager implements org.springframework.security.authe
 	// a version of the exception is thrown without stack trace to avoid having pages and pages of exception
     // in logs. Only keep information if debug mode is enabled.
 	private AuthenticationException cleanException(AuthenticationException t) {
-        if(ApplicationLogger.isDebugEnabled()) {
+        if(logger.isDebugEnabled()) {
             return t;
         } else {
             return new AuthenticationException(t.getMessage(), t.getCause()) {

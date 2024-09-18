@@ -416,6 +416,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <appender-ref ref="STDOUT" />
   </logger>
 
+  <!--
+    Log information about user authentication and user-related access to Rudder 
+    (rights, session, user management in general).
+  -->
+  <!-- Uncomment to have precise log about user management and authentication -->
+  <!-- <logger name="application.authentication" level="debug"/> -->
 
   <!--
     Schechuled Jobs

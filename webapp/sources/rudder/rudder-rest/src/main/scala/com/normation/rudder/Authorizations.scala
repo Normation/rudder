@@ -459,6 +459,8 @@ object RudderRoles {
   // role names are case insensitive
   implicit val roleOrdering: Ordering[String] = Ordering.comparatorToOrdering(String.CASE_INSENSITIVE_ORDER)
 
+  private val logger = ApplicationLoggerPure.Auth
+
   // built-in roles are provided by Rudder core and can be provided by plugins. We assume people knows what they are doing
   // and fewer check are done on them.
   private val builtInCoreRoles = SortedMap[String, Role](Role.allBuiltInRoles.toList*)
@@ -511,12 +513,12 @@ object RudderRoles {
     val debugAuthz = addedAuthorisations.map(_.id).mkString(", ")
     if (Role.specialBuiltIn.exists(_.name == roleName.value)) {
       // this is a noop, just log that it does nothing
-      ApplicationLoggerPure.warn(
+      logger.warn(
         s"The role '${roleName.value}` can not have is permissions updated, ignoring request to add: ${debugAuthz}."
       )
     } else {
       for {
-        _   <- ApplicationLoggerPure.info(s"Extending built-in role '${roleName.value}' with permissions: ${debugAuthz}")
+        _   <- logger.info(s"Extending built-in role '${roleName.value}' with permissions: ${debugAuthz}")
         // first already existing, then override with new ones, then be sure that admin/no rights are not changed
         _   <- builtInRoles.update { existing =>
                  val rights = existing.get(roleName.value) match {
@@ -568,7 +570,7 @@ object RudderRoles {
     ZIO
       .foreach(nonEmptyRoles) { role =>
         parseRole(role).foldZIO(
-          err => ApplicationLoggerPure.Authz.warn(err.fullMsg) *> Nil.succeed,
+          err => logger.warn(err.fullMsg) *> Nil.succeed,
           r => List(r).succeed
         )
       }
@@ -620,7 +622,7 @@ object RudderRoles {
             ok <- ZIO.foreach(roles) { r =>
                     if (availableReferences.contains(r) || AuthorizationType.parseRight(r).isRight) { Some(r).succeed }
                     else {
-                      ApplicationLoggerPure.Authz.warn(
+                      logger.warn(
                         s"Role '${name}' reference unknown role '${r}': '${r}' will be ignored."
                       ) *> None.succeed
                     }
@@ -648,25 +650,25 @@ object RudderRoles {
       val toResolve = role.pending.distinctBy(_.toLowerCase)
       val firstPass = toResolve.foldLeft(role.modify(_.pending).setTo(Nil)) {
         case (current, roleName) =>
-          ApplicationLoggerPure.Authz.logEffect.trace(s"Custom role resolution step: ${current}")
+          logger.logEffect.trace(s"Custom role resolution step: ${current}")
           knownRoles.get(roleName) match {
             // role name not yet resolved or part of a cycle
             case None    =>
-              ApplicationLoggerPure.Authz.logEffect.trace(s"[${role.role.name}] not found in existing role: ${roleName}")
+              logger.logEffect.trace(s"[${role.role.name}] not found in existing role: ${roleName}")
               // try to parse role as an authorization, it is
               AuthorizationType.parseRight(roleName) match {
                 // here, we need to take care of valid authz syntax that are from non loaded plugin, or just non existing
                 case Right(x) =>
-                  ApplicationLoggerPure.Authz.logEffect.trace(s"[${role.role.name}] valid authorization: ${roleName}")
+                  logger.logEffect.trace(s"[${role.role.name}] valid authorization: ${roleName}")
                   current.modify(_.role.permissions).using(_.appended(Role.forRights(x)))
                 case Left(_)  =>
-                  ApplicationLoggerPure.Authz.logEffect.trace(s"[${role.role.name}] not an authorization: ${roleName}")
+                  logger.logEffect.trace(s"[${role.role.name}] not an authorization: ${roleName}")
                   current.modify(_.pending).using(roleName :: _)
               }
 
             // yeah, role name already resolved !
             case Some(r) =>
-              ApplicationLoggerPure.Authz.logEffect.trace(s"[${role.role.name}] found existing role: ${roleName}")
+              logger.logEffect.trace(s"[${role.role.name}] found existing role: ${roleName}")
               current.modify(_.role.permissions).using(_.appended(r))
           }
       }
@@ -737,14 +739,14 @@ object RudderRoles {
                          } else {
                            resolveOne(v, PendingRole(Role.NamedCustom(cr.name, Nil), cr.permissions)) match {
                              case Left(stillPending) =>
-                               ApplicationLoggerPure.Authz.trace(
+                               logger.trace(
                                  s"Custom role '${stillPending.role.name}' not fully resolved for roles: ${stillPending.pending.mkString(", ")}"
                                ) *>
                                pending.update(stillPending :: _)
                              case Right(nc)          =>
                                // before adding, remove possible duplicate resolved role
                                val toAdd = nc.copy(permissions = nc.permissions.distinct)
-                               ApplicationLoggerPure.Authz.trace(s"Custom role '${toAdd.name}' fully resolved") *>
+                               logger.trace(s"Custom role '${toAdd.name}' fully resolved") *>
                                resolved.update(_ + (toAdd.name -> toAdd)) *> resolveNew(toAdd, pending, resolved)
                            }
                          }
@@ -765,7 +767,7 @@ object RudderRoles {
       errors    <- Ref.make(List.empty[(UncheckedCustomRole, String)])
       inputs     = customRoles.map(role => PendingRole(Role.NamedCustom(role.name, Nil), Nil))
       debugR    <- resolved.get
-      _         <- ApplicationLoggerPure.Authz.debug(
+      _         <- logger.debug(
                      s"Resolving custom roles from known roles: ${debugR.keys.toList.sorted.mkString(", ")}"
                    )
       _         <- resolveAll(inputs, pending, resolved, errors)
