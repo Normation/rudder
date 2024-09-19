@@ -147,7 +147,7 @@ class EditorTechniqueReaderImpl(
     // We want everything in configuration repository to belong to the "rudder" group
     val groupOwner    = "rudder"
 
-    val cmd = Cmd(ruddercCmd, ruddercParams ::: ruddercLibs, Map.empty)
+    val cmd = Cmd(ruddercCmd, ruddercParams ::: ruddercLibs, Map.empty, None)
     for {
       updateCmd <- RunNuCommand.run(cmd)
       res       <- updateCmd.await

@@ -143,7 +143,7 @@ final class CheckFileDescriptorLimit(val nodeFactRepository: NodeFactRepository)
   def run:  IOResult[HealthcheckResult] = {
     // Check the soft limit.
     // That can be raise or lower by any user but cannot exceed the hard limit
-    val cmd = Cmd("/usr/bin/prlimit", "-n" :: "-o" :: "SOFT" :: "--noheadings" :: Nil, Map.empty)
+    val cmd = Cmd("/usr/bin/prlimit", "-n" :: "-o" :: "SOFT" :: "--noheadings" :: Nil, Map.empty, None)
     for {
       fdLimitCmd <- RunNuCommand.run(cmd)
       res        <- fdLimitCmd.await

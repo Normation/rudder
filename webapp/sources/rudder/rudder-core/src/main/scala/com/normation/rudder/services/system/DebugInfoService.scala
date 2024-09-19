@@ -65,7 +65,7 @@ class DebugInfoServiceImpl extends DebugInfoService {
     val environment = java.lang.System.getenv.asScala.toMap
     val timeOut     = Duration(30, TimeUnit.SECONDS)
     val scriptPath  = "/opt/rudder/bin/rudder-debug-info"
-    val cmd         = Cmd(scriptPath, Nil, environment)
+    val cmd         = Cmd(scriptPath, Nil, environment, Some("/opt/rudder/bin/"))
     // Since the API is blocking, we want to wait for the result.
     logger.debug(s"Launching debug-info script (${scriptPath})") *>
     RunNuCommand.run(cmd, timeOut)

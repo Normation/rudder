@@ -352,7 +352,7 @@ class RuddercServiceImpl(
       ("--directory" :: techniquePath.pathAsString :: "build" :: Nil)
     }
 
-    Cmd(ruddercCmd, params, Map("NO_COLOR" -> "1"))
+    Cmd(ruddercCmd, params, Map("NO_COLOR" -> "1"), None)
   }
 
   def logReturnCode(result: RuddercResult): IOResult[Unit] = {

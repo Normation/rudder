@@ -68,7 +68,7 @@ class RunNuCommandTest() extends Specification {
     "has only the environment variable explicitly defined" in {
       val prog = {
         for {
-          p <- RunNuCommand.run(Cmd("env", Nil, Map("PATH" -> PATH, "foo" -> "bar")))
+          p <- RunNuCommand.run(Cmd("env", Nil, Map("PATH" -> PATH, "foo" -> "bar"), None))
           c <- p.await.timeout(500.millis).notOptional("oups, timed out")
         } yield {
           s"return code=${c.code}\n" ++
@@ -85,7 +85,7 @@ class RunNuCommandTest() extends Specification {
       // (we have one more line because last line ends with a "\n"
       val prog = {
         for {
-          p <- RunNuCommand.run(Cmd("ls", "-1" :: "/proc/self/fd" :: Nil, Map("PATH" -> PATH)))
+          p <- RunNuCommand.run(Cmd("ls", "-1" :: "/proc/self/fd" :: Nil, Map("PATH" -> PATH), None))
           c <- p.await.timeout(500.millis).notOptional("oups, timed out")
         } yield {
           (c.code, c.stdout.split("\n").size)
@@ -103,7 +103,7 @@ class RunNuCommandTest() extends Specification {
 
       val prog = {
         for {
-          p <- RunNuCommand.run(Cmd("mkdir", "-p" :: file.getPath :: Nil, Map("PATH" -> PATH)))
+          p <- RunNuCommand.run(Cmd("mkdir", "-p" :: file.getPath :: Nil, Map("PATH" -> PATH), None))
           c <- p.await.timeout(500.millis).notOptional("oups, timed out")
         } yield {
           c.code
