@@ -37,6 +37,7 @@
 
 package com.normation.rudder.hooks
 
+import better.files.File
 import com.normation.NamedZioLogger
 import com.normation.errors.*
 import com.normation.zio.*
@@ -65,17 +66,20 @@ import zio.syntax.*
  * A failed hook is decided by the return code: 0 mean success, anything
  * else is a failure.
  *
- * Hooks are asynchronously executed by default, in a Future.
+ * Hooks are asynchronously executed by default.
  */
 
 /*
  * Information to run a set of commands.
  * All commands of a given set get the same parameters.
  * Parameters is an order list of strings, that can be empty.
- * It correspond to anything separated by a white space in an
+ * It corresponds to anything separated by a white space in an
  * unix command line.
+ *
+ * cwd is the path for the current working directory for the command (ie for resolution of relative paths).
+ * By default, it's the directory from which the application is started.
  */
-final case class Cmd(cmdPath: String, parameters: List[String], environment: Map[String, String]) {
+final case class Cmd(cmdPath: String, parameters: List[String], environment: Map[String, String], cwdPath: Option[String]) {
   def display: String = s"${cmdPath} ${parameters.mkString(" ")}"
 }
 final case class CmdResult(code: Int, stdout: String, stderr: String)
@@ -109,7 +113,7 @@ object RunNuCommand {
   SilentLogger.silent()
 
   /*
-   * An helper class that creates a promise to handle the async termination of the NuProcess
+   * A helper class that creates a promise to handle the async termination of the NuProcess
    * command and signal the completion to the caller.
    * Exit code, stdout and stderr content are accumulated in CmdResult data structure.
    */
@@ -134,12 +138,12 @@ object RunNuCommand {
   /**
    * Run a hook asynchronously.
    * The time limit should NEVER be set to 0 or Infinity, because it would cause process
-   * to NEVER terminate if something not exepected happen, like if the process
+   * to NEVER terminate if something not expected happen, like if the process
    * is waiting for stdin input.
    *
-   * All that run method is non blocking (but still I/O, there's a linux process
+   * All that run method is non-blocking (but still I/O, there's a linux process
    * creation under the hood).
-   * Waiting on the promise completion can be long, of course, depending of the
+   * Waiting on the promise completion can be long, of course, depending on the
    * command executed.
    */
   def run(cmd: Cmd, limit: Duration = 30.minute): IOResult[Promise[Nothing, CmdResult]] = {
@@ -180,6 +184,7 @@ object RunNuCommand {
       promise       <- Promise.make[Nothing, CmdResult]
       handler        = new CmdProcessHandler(promise)
       processBuilder = new NuProcessBuilder((cmd.cmdPath :: cmd.parameters).asJava, cmd.environment.asJava)
+      _              = setCwd(processBuilder, cmd.cwdPath)
       _             <- IOResult.attempt(errorMsg)(processBuilder.setProcessListener(handler))
 
       /*
@@ -190,7 +195,7 @@ object RunNuCommand {
        * In the meantime, we silent the logger, and we check for return code of min value with
        * commons use cases:
        *
-       * It is non blocking though, as the blocking part is done in the spwaned thread.
+       * It is non-blocking though, as the blocking part is done in the spwaned thread.
        */
       process <- IOResult.attempt(errorMsg)(processBuilder.start())
       _       <- if (process == null) {
@@ -208,6 +213,20 @@ object RunNuCommand {
     } yield {
       promise
     })
+  }
+
+  /*
+   * Set the current working directory for the command execution. Only does that is:
+   * - the path exists
+   * - the path is a directory
+   */
+  private[hooks] def setCwd(builder: NuProcessBuilder, optCwd: Option[String]): Unit = {
+    optCwd.foreach { cwd =>
+      val f = File(cwd)
+      if (f.exists && f.isDirectory) {
+        builder.setCwd(f.path)
+      }
+    }
   }
 
 }
