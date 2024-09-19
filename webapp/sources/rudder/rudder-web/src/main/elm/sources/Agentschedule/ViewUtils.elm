@@ -16,7 +16,7 @@ intervals = Dict.fromList
   , (15 , "15 minutes")
   , (20 , "20 minutes")
   , (30 , "30 minutes")
-  , (60 , "hour"      )
+  , (60 , "1 hour"    )
   , (120, "2 hours"   )
   , (240, "4 hours"   )
   , (360, "6 hours"   )
