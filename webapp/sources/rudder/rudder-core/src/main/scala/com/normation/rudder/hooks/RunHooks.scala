@@ -246,11 +246,11 @@ object RunHooks {
     }
 
     /*
-     * We can not use Future.fold, because it execute all scripts
+     * We can not use Future.fold, because it executes all scripts
      * in parallel and then combine their results. Our semantic
-     * is execute script one after the other, combining at each
+     * is executed script one after the other, combining at each
      * step.
-     * But we still want the whole operation to be non-bloking.
+     * But we still want the whole operation to be non-blocking.
      */
     val runAllSeq = ZIO.foldLeft(hooks.hooksFile)(Ok("", ""): HookReturnCode) {
       case (previousCode, (nextHookName, timeouts)) =>
@@ -270,7 +270,7 @@ object RunHooks {
                      .warn(s"Hook is taking more than ${warnTimeout.render} to finish: ${cmdInfo}")
                      .delay(warnTimeout)
                      .fork
-              p <- RunNuCommand.run(Cmd(path, Nil, env.toMap))
+              p <- RunNuCommand.run(Cmd(path, Nil, env.toMap, Some(hooks.basePath)))
               r <- p.await.timeout(killTimeout).flatMap {
                      case Some(ok) =>
                        ok.succeed
@@ -289,7 +289,7 @@ object RunHooks {
 
     val cmdInfo = s"'${hooks.basePath}' with environment parameters: [${hookParameters.debugString}]"
     (for {
-      // cmdInfo is just for comments/log. We use "*" to synthetize
+      // cmdInfo is just for comments/log. We use "*" to synthesize
       _       <- PureHooksLogger.debug(s"Run hooks: ${cmdInfo}")
       _       <- PureHooksLogger.trace(s"Hook environment variables: ${envVariables.debugString}")
       time_0  <- currentTimeNanos
@@ -323,7 +323,7 @@ object RunHooks {
    * Only the files with prefix ".hook" are selected as hooks, all
    * other files will be ignored.
    *
-   * The hooks will be run in lexigraphically order, so that the
+   * The hooks will be run in lexicographical order, so that the
    * "standard" ordering of unix hooks (or init.d) with numbers
    * works as expected:
    *
@@ -436,7 +436,7 @@ object RunHooks {
                 }
             }
           }
-          .sortBy(_._1) // sort them alphanumericaly
+          .sortBy(_._1) // sort them alphanumerically
         Hooks(basePath, files)
       } else {
         HooksLogger.debug(s"Ignoring hook directory '${dir.getAbsolutePath}' because path does not exist")

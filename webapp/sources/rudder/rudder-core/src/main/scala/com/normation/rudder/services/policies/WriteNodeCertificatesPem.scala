@@ -145,7 +145,7 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
           case cmdPath :: args =>
             for {
               promise <-
-                RunNuCommand.run(Cmd(cmdPath, args, Map()), Duration.fromNanos(5L * 60 * 1000 * 1000)) // error after 5 mins
+                RunNuCommand.run(Cmd(cmdPath, args, Map(), None), Duration.fromNanos(5L * 60 * 1000 * 1000)) // error after 5 mins
               result  <- promise.await
               _       <- ZIO.when(result.code != 0) {
                            Unexpected(
