@@ -121,7 +121,7 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
   }
   val techniqueCompiler = new TechniqueCompiler {
     override def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput] = {
-      TechniqueCompilationOutput(TechniqueCompilerApp.Rudderc, fallbacked = false, 0, Chunk.empty, "", "", "").succeed
+      TechniqueCompilationOutput(TechniqueCompilerApp.Rudderc, 0, Chunk.empty, "", "", "").succeed
     }
 
     override def getCompilationOutputFile(technique: EditorTechnique): File = File("compilation-config.yml")

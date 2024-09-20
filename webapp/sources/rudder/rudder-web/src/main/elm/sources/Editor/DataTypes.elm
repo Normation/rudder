@@ -67,7 +67,6 @@ type alias Method =
 
 type alias CompilationOutput =
   { compiler:  String
-  , fallbacked: Bool
   , resultCode: Int
   , msg:        String
   , stdout:     String

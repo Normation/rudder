@@ -127,7 +127,6 @@ decodeOutput : Decoder CompilationOutput
 decodeOutput =
   succeed CompilationOutput
     |> required "compiler" string
-    |> required "fallbacked"  bool
     |> required "resultCode"  int
     |> required "msg"  string
     |> required "stdout"  string
