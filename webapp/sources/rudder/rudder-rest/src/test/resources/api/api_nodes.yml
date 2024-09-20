@@ -54,6 +54,7 @@ response:
               "192.168.0.10"
             ],
             "description":"",
+            "acceptanceDate" : "2021-01-30T01:20:00+01:00",
             "lastInventoryDate":"2021-01-30T01:20:00+01:00",
             "policyServerId":"root",
             "managementTechnology":[
