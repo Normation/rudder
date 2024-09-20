@@ -128,9 +128,15 @@ class EventListDisplayer(repos: EventLogRepository) extends Loggable {
 
     val refresh = AnonFunc(SHtml.ajaxInvoke(() => getLastEvents))
 
+    // Display 2 days of logs before now
+    val hoursBeforeNow = 48
+
     WithNonce.scriptWithNonce(Script(OnLoad(JsRaw(s"""
      var refreshEventLogs = ${refresh.toJsCmd};
-     initDatePickers("#filterLogs", ${AnonFunc("param", SHtml.ajaxCall(JsVar("param"), getEventsInterval)._2).toJsCmd});
+     initDatePickers("#filterLogs", ${AnonFunc(
+        "param",
+        SHtml.ajaxCall(JsVar("param"), getEventsInterval)._2
+      ).toJsCmd}, new Date(), ${hoursBeforeNow});
      createEventLogTable('${gridName}',[], '${S.contextPath}', refreshEventLogs)
      refreshEventLogs();
     """)))) // JsRaw ok, escaped

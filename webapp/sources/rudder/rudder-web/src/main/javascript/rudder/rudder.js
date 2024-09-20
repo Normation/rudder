@@ -673,13 +673,16 @@ function showHideRunLogs(scrollTarget, tabId, init, refresh) {
       }, 400);
 }
 
-function initDatePickers(id, action) {
-  var dateNow = new Date();
-  var twoHoursBefore = new Date();
-  twoHoursBefore.setHours(twoHoursBefore.getHours() - 2);
+/**
+ * Initialize a date picker fields with default 2 hours from now date range.
+ * You can specify a value that is greater than 24 for hours.
+ */
+function initDatePickers(id, action, endDate = new Date(), hours = 2) {
+  var startDate = new Date(endDate)
+  startDate.setHours(endDate.getHours() - hours);
   $(id + ' .pickStartInput, ' + id + ' .pickEndInput').datetimepicker({dateFormat:'yy-mm-dd', timeFormat: 'HH:mm:ss', timeInput: true});
-  $(".pickStartInput").datetimepicker("setDate", twoHoursBefore);
-  $(".pickEndInput").datetimepicker("setDate", dateNow);
+  $(".pickStartInput").datetimepicker("setDate", startDate);
+  $(".pickEndInput").datetimepicker("setDate", endDate);
   $(id+"Button").click(function () {
     var param = '{"start":"'+$(id +" .pickStartInput").val()+'", "end":"'+$(id +" .pickEndInput").val()+'"}'
     action(param)
