@@ -254,14 +254,29 @@ class SystemVariableServiceImpl(
 
     val varAllowedNetworks = systemVariableSpecService.get("ALLOWED_NETWORKS").toVariable(allowedNetworks)
 
+    /*
+     * AgentRun is special for policy servers:
+     * - they always run every 5 minutes at 5, 10, etc
+     * - the root server doesn't have any splay time
+     * - relays are shifted 1 minute away from root (to avoid adding more load to root) plus they have
+     *   a 2 minutes splay time to avoid having all relays triggering load at the same time
+     */
     val agentRunParams: PureResult[(AgentRunInterval, LocalTime, String)] = {
       if (nodeInfo.rudderSettings.isPolicyServer) {
         // a triplet of agent run, start hour, the string schedule in cfengine format
-        val policyServerSchedule =
-          """ "Min00", "Min05", "Min10", "Min15", "Min20", "Min25", "Min30", "Min35", "Min40", "Min45", "Min50", "Min55" """
-        // root server has no splaytime
-        val startHour            = LocalTime.of(0, 0)
-        Right((AgentRunInterval(Some(false), 5, 0, 0, 0), startHour, policyServerSchedule))
+        if (nodeInfo.id == Constants.ROOT_POLICY_SERVER_ID) {
+          // root server strictly starts at 00:00 with 5 min interval and has no splay-time
+          val policyServerSchedule =
+            """ "Min00", "Min05", "Min10", "Min15", "Min20", "Min25", "Min30", "Min35", "Min40", "Min45", "Min50", "Min55" """
+          val startHour            = LocalTime.of(0, 0)
+          Right((AgentRunInterval(Some(false), 5, 0, 0, 0), startHour, policyServerSchedule))
+        } else {
+          // relay servers start 1 minutes away and splay-time of 2 minutes
+          val policyServerSchedule =
+            """ "Min01", "Min06", "Min11", "Min16", "Min21", "Min26", "Min31", "Min36", "Min41", "Min46", "Min51", "Min56" """
+          val startHour            = LocalTime.of(0, 1)
+          Right((AgentRunInterval(Some(false), 5, startMinute = 1, 0, splaytime = 2), startHour, policyServerSchedule))
+        }
       } else {
         val runInterval = nodeInfo.rudderSettings.reportingConfiguration.agentRunInterval match {
           case Some(nodeRunInterval) if nodeRunInterval.overrides.getOrElse(false) =>
