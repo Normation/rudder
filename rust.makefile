@@ -19,7 +19,7 @@ version:
 build: CARGO_INCREMENTAL=0
 build: version
 	cargo install --locked cargo-auditable@0.6.1
-	cargo auditable build ${CARGO_FEATURES} --release --locked
+	cargo auditable build ${CARGO_FEATURES} --release --locked --jobs 4
 
 dev-doc:
 	cargo doc --document-private-items --open
