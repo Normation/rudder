@@ -103,8 +103,13 @@ impl Database {
         webapp: &mut Webapp,
     ) -> Result<()> {
         info!("Installing {}", package);
-        let rpkg_path = if Path::new(&package).exists() && package.ends_with(".rpkg") {
-            package.to_string()
+        // Local install detection
+        let rpkg_path = if package.ends_with(".rpkg") || package.contains('/') {
+            if Path::new(&package).exists() {
+                package.to_string()
+            } else {
+                bail!("The {} plugin file does not exist", package)
+            }
         } else {
             let i = match index {
                 Some(i) => i,
