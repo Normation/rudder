@@ -1795,17 +1795,8 @@ object RudderConfigInit {
       techniqueCompiler,
       RUDDER_GROUP_OWNER_CONFIG_REPO
     )
-    lazy val techniqueCompiler:  TechniqueCompiler = new TechniqueCompilerWithFallback(
-      new WebappTechniqueCompiler(
-        interpolationCompiler,
-        prettyPrinter,
-        typeParameterService,
-        ncfTechniqueReader,
-        _.path,
-        RUDDER_GIT_ROOT_CONFIG_REPO
-      ),
+    lazy val techniqueCompiler:  TechniqueCompiler = new RuddercTechniqueCompiler(
       new RuddercServiceImpl(RUDDERC_CMD, 5.seconds),
-      TECHNIQUE_COMPILER_APP,
       _.path,
       RUDDER_GIT_ROOT_CONFIG_REPO
     )

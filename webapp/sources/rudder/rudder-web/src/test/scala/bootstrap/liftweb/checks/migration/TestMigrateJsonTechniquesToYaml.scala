@@ -52,10 +52,9 @@ import com.normation.rudder.ncf.ResourceFileState
 import com.normation.rudder.ncf.RuddercOptions
 import com.normation.rudder.ncf.RuddercResult
 import com.normation.rudder.ncf.RuddercService
+import com.normation.rudder.ncf.RuddercTechniqueCompiler
 import com.normation.rudder.ncf.TechniqueCompilationOutput
 import com.normation.rudder.ncf.TechniqueCompiler
-import com.normation.rudder.ncf.TechniqueCompilerApp
-import com.normation.rudder.ncf.TechniqueCompilerWithFallback
 import com.normation.rudder.ncf.TechniqueWriterImpl
 import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
@@ -140,10 +139,8 @@ class TestMigrateJsonTechniquesToYaml extends Specification with ContentMatchers
     override def getCompilationConfigFile(technique: EditorTechnique): File = null
   }
 
-  val techniqueCompiler = new TechniqueCompilerWithFallback(
-    webappCompiler,
+  val techniqueCompiler = new RuddercTechniqueCompiler(
     rudderc,
-    TechniqueCompilerApp.Rudderc,
     _.path,
     gitMock.configurationRepositoryRoot.pathAsString
   )

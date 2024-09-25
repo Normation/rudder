@@ -80,7 +80,6 @@ import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
-import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
 import com.normation.rudder.services.policies.InterpolatedValueCompilerImpl
@@ -545,26 +544,16 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     override def updateMethodsMetadataFile: IOResult[CmdResult] = ???
   }
 
-  val webappCompiler = new WebappTechniqueCompiler(
-    valueCompiler,
-    new RudderPrettyPrinter(Int.MaxValue, 2),
-    parameterTypeService,
-    editorTechniqueReader,
-    _.path,
-    basePath
-  )
-  val compiler       = new TechniqueCompilerWithFallback(
-    webappCompiler,
+  val compiler = new RuddercTechniqueCompiler(
     new RuddercService {
       override def compile(techniqueDir: File, options: RuddercOptions): IOResult[RuddercResult] = {
         RuddercResult.Fail(42, Chunk.empty, "error:see implementation of test", "", "").succeed
       }
     },
-    TechniqueCompilerApp.Webapp,
     _.path,
     basePath
   )
-  val writer         = new TechniqueWriterImpl(
+  val writer   = new TechniqueWriterImpl(
     TestTechniqueArchiver,
     TestLibUpdater,
     new DeleteEditorTechnique {
@@ -581,32 +570,10 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     compiler,
     basePath
   )
-  val dscWriter      = new DSCTechniqueWriter(
-    basePath,
-    valueCompiler,
-    new ParameterType.PlugableParameterTypeService,
-    _.path
-  )
-  val classicWriter  = new ClassicTechniqueWriter(basePath, new ParameterType.PlugableParameterTypeService, _.path)
 
-  val expectedMetadataPath: String = s"techniques/ncf_techniques/${technique.id.value}/${technique.version.value}/metadata.xml"
-  val dscTechniquePath:     String = s"techniques/ncf_techniques/${technique.id.value}/${technique.version.value}/technique.ps1"
-  val techniquePath:        String = s"techniques/ncf_techniques/${technique.id.value}/${technique.version.value}/technique.cf"
-  val yamlPath:             String = s"techniques/ncf_techniques/${technique.id.value}/${technique.version.value}/technique.yml"
-  val reportingPath:        String = s"techniques/ncf_techniques/${technique.id.value}/${technique.version.value}/rudder_reporting.cf"
+  val yamlPath: String = s"techniques/ncf_techniques/${technique.id.value}/${technique.version.value}/technique.yml"
 
   s"Preparing files for technique ${technique.name}" should {
-
-    "Should write metadata file without problem" in {
-      webappCompiler.writeMetadata(technique, methods).either.runNow must beRight(expectedMetadataPath)
-    }
-
-    "Should generate expected metadata content for our technique" in {
-      val expectedMetadataFile = new JFile(s"${expectedPath}/${expectedMetadataPath}")
-      val resultMetadataFile   = new JFile(s"${basePath}/${expectedMetadataPath}")
-      resultMetadataFile must haveSameLinesAs(expectedMetadataFile)
-    }
-
     "Should write yaml file without problem" in {
       writer.writeYaml(technique).either.runNow must beRight(yamlPath)
     }
@@ -615,36 +582,6 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       val expectedMetadataFile = new JFile(s"${expectedPath}/${yamlPath}")
       val resultMetadataFile   = new JFile(s"${basePath}/${yamlPath}")
       resultMetadataFile must haveSameLinesAs(expectedMetadataFile)
-    }
-
-    "Should write dsc technique file without problem" in {
-      dscWriter.writeAgentFiles(technique, methods).either.runNow must beRight(Seq(dscTechniquePath))
-    }
-
-    "Should generate expected dsc technique content for our technique" in {
-      val expectedDscFile        = new JFile(s"${expectedPath}/${dscTechniquePath}")
-      val resultDscFile          = new JFile(s"${basePath}/${dscTechniquePath}")
-      val mandatoryFalseRegex    = """.*\Q[parameter(Mandatory=$false)]\E.*""".r
-      val containsMandatoryFalse =
-        better.files.File(resultDscFile.getAbsolutePath).lines.collectFirst(l => mandatoryFalseRegex.matches(l))
-      (resultDscFile must haveSameLinesAs(expectedDscFile)) and
-      (containsMandatoryFalse.nonEmpty must beTrue)
-    }
-
-    "Should write classic technique files without problem" in {
-      classicWriter.writeAgentFiles(technique, methods).either.runNow must beRight(Seq(techniquePath, reportingPath))
-    }
-
-    "Should generate expected classic technique content for our technique" in {
-      val expectedFile = new JFile(s"${expectedPath}/${techniquePath}")
-      val resultFile   = new JFile(s"${basePath}/${techniquePath}")
-      resultFile must haveSameLinesAs(expectedFile)
-    }
-
-    "Should generate expected additional rudder reporting content for our technique" in {
-      val expectedFile = new JFile(s"${expectedPath}/${reportingPath}")
-      val resultFile   = new JFile(s"${basePath}/${reportingPath}")
-      resultFile must haveSameLinesAs(expectedFile)
     }
 
   }
@@ -683,28 +620,10 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     )
   }
 
-  val expectedMetadataPath_any: String =
-    s"techniques/ncf_techniques/${technique_any.id.value}/${technique_any.version.value}/metadata.xml"
-  val dscTechniquePath_any:     String =
-    s"techniques/ncf_techniques/${technique_any.id.value}/${technique_any.version.value}/technique.ps1"
-  val techniquePath_any:        String =
-    s"techniques/ncf_techniques/${technique_any.id.value}/${technique_any.version.value}/technique.cf"
-  val techniquePath_yaml:       String =
+  val techniquePath_yaml: String =
     s"techniques/ncf_techniques/${technique_any.id.value}/${technique_any.version.value}/technique.yml"
-  val reportingPath_any:        String =
-    s"techniques/ncf_techniques/${technique_any.id.value}/${technique_any.version.value}/rudder_reporting.cf"
 
   s"Preparing files for technique ${technique.id.value}" should {
-
-    "Should write metadata file without problem" in {
-      webappCompiler.writeMetadata(technique_any, methods).either.runNow must beRight(expectedMetadataPath_any)
-    }
-
-    "Should generate expected metadata content for our technique" in {
-      val expectedMetadataFile = new JFile(s"${expectedPath}/${expectedMetadataPath_any}")
-      val resultMetadataFile   = new JFile(s"${basePath}/${expectedMetadataPath_any}")
-      resultMetadataFile must haveSameLinesAs(expectedMetadataFile)
-    }
 
     "Should write yaml file without problem" in {
       writer.writeYaml(technique_any).either.runNow must beRight(techniquePath_yaml)
@@ -714,31 +633,6 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       val expectedMetadataFile = new JFile(s"${expectedPath}/${techniquePath_yaml}")
       val resultMetadataFile   = new JFile(s"${basePath}/${techniquePath_yaml}")
       resultMetadataFile must haveSameLinesAs(expectedMetadataFile)
-    }
-
-    "Should write dsc technique file without problem" in {
-      dscWriter.writeAgentFiles(technique_any, methods).either.runNow must beRight(Seq(dscTechniquePath_any))
-    }
-
-    "Should generate expected dsc technique content for our technique" in {
-      val expectedDscFile = new JFile(s"${expectedPath}/${dscTechniquePath_any}")
-      val resultDscFile   = new JFile(s"${basePath}/${dscTechniquePath_any}")
-      resultDscFile must haveSameLinesAs(expectedDscFile)
-    }
-
-    "Should write classic technique files without problem" in {
-      classicWriter.writeAgentFiles(technique_any, methods).either.runNow must beRight(Seq(techniquePath_any))
-    }
-
-    "Should generate expected classic technique content for our technique" in {
-      val expectedFile = new JFile(s"${expectedPath}/${techniquePath_any}")
-      val resultFile   = new JFile(s"${basePath}/${techniquePath_any}")
-      resultFile must haveSameLinesAs(expectedFile)
-    }
-
-    "Should not generate expected additional rudder reporting content for our technique" in {
-      val resultFile = new JFile(s"${basePath}/${reportingPath_any}")
-      resultFile must not(exist)
     }
   }
 
@@ -775,136 +669,14 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     )
   }
 
-  val expectedMetadataPath_var_cond: String =
-    s"${technique_var_cond.id.value}/${technique_var_cond.version.value}/metadata.xml"
-  val dscTechniquePath_var_cond:     String =
-    s"${technique_var_cond.id.value}/${technique_var_cond.version.value}/technique.ps1"
-  val techniquePath_var_cond:        String =
-    s"${technique_var_cond.id.value}/${technique_var_cond.version.value}/technique.cf"
-  val techniquePath_var_cond_yaml:   String =
+  val techniquePath_var_cond_yaml: String =
     s"${technique_var_cond.id.value}/${technique_var_cond.version.value}/technique.yml"
-  val reportingPath_var_cond:        String =
-    s"${technique_var_cond.id.value}/${technique_var_cond.version.value}/rudder_reporting.cf"
-  val expectedPathVarCond = "src/test/resources/configuration-repository/expected-share"
-  val basePathVarCond: String = s"${basePath}/techniques/ncf_techniques/"
 
   s"Preparing files for technique ${technique.id.value}" should {
-
-    "Should write metadata file without problem" in {
-      webappCompiler.writeMetadata(technique_var_cond, methods).either.runNow must beRight(
-        s"techniques/ncf_techniques/${expectedMetadataPath_var_cond}"
-      )
-    }
-
     "Should write metadata file without problem" in {
       writer.writeYaml(technique_var_cond).either.runNow must beRight(
         s"techniques/ncf_techniques/${techniquePath_var_cond_yaml}"
       )
     }
-    "Should generate expected metadata content for our technique" in {
-      val expectedMetadataFile = new JFile(s"${expectedPathVarCond}/${expectedMetadataPath_var_cond}")
-      val resultMetadataFile   = new JFile(s"${basePathVarCond}/${expectedMetadataPath_var_cond}")
-      resultMetadataFile must haveSameLinesAs(expectedMetadataFile)
-    }
-
-    "Should write dsc technique file without problem" in {
-      dscWriter.writeAgentFiles(technique_var_cond, methods).either.runNow must beRight(
-        Seq(s"techniques/ncf_techniques/${dscTechniquePath_var_cond}")
-      )
-    }
-
-    "Should generate expected dsc technique content for our technique" in {
-      val expectedDscFile = new JFile(s"${expectedPathVarCond}/${dscTechniquePath_var_cond}")
-      val resultDscFile   = new JFile(s"${basePathVarCond}/${dscTechniquePath_var_cond}")
-      resultDscFile must haveSameLinesAs(expectedDscFile)
-    }
-
-    "Should write classic technique files without problem" in {
-      classicWriter.writeAgentFiles(technique_var_cond, methods).either.runNow must beRight(
-        Seq(
-          s"techniques/ncf_techniques/${techniquePath_var_cond}",
-          s"techniques/ncf_techniques/${reportingPath_var_cond}"
-        )
-      )
-    }
-
-    "Should generate expected yaml technique content for our technique" in {
-      val expectedFile = new JFile(s"${expectedPathVarCond}/${techniquePath_var_cond_yaml}")
-      val resultFile   = new JFile(s"${basePathVarCond}/${techniquePath_var_cond_yaml}")
-      resultFile must haveSameLinesAs(expectedFile)
-    }
-    "Should generate expected classic technique content for our technique" in {
-      val expectedFile = new JFile(s"${expectedPathVarCond}/${techniquePath_var_cond}")
-      val resultFile   = new JFile(s"${basePathVarCond}/${techniquePath_var_cond}")
-      resultFile must haveSameLinesAs(expectedFile)
-    }
-
   }
-
-  // same than previous one but with direct call to techniqueWriter.writeTechnique
-  "Calling compile with no target should correctly fallback without error" >> {
-    val tech                     = technique_any.copy(version = new Version("2.0"))
-    val expectedMetadataPath_any = s"techniques/ncf_techniques/${tech.id.value}/${tech.version.value}/metadata.xml"
-    val dscTechniquePath_any     = s"techniques/ncf_techniques/${tech.id.value}/${tech.version.value}/technique.ps1"
-    val techniquePath_any        = s"techniques/ncf_techniques/${tech.id.value}/${tech.version.value}/technique.cf"
-
-    "Should write everything without error" in {
-      (writer.writeTechnique(tech, ModificationId("test"), EventActor("test")).either.runNow must beRight(tech))
-    }
-
-    "Should generate expected metadata content for our technique" in {
-      val expectedMetadataFile = new JFile(s"${expectedPath}/${expectedMetadataPath_any}")
-      val resultMetadataFile   = new JFile(s"${basePath}/${expectedMetadataPath_any}")
-      resultMetadataFile must haveSameLinesAs(expectedMetadataFile)
-    }
-
-    "Should generate expected classic technique content for our technique" in {
-      val expectedFile = new JFile(s"${expectedPath}/${techniquePath_any}")
-      val resultFile   = new JFile(s"${basePath}/${techniquePath_any}")
-      resultFile must haveSameLinesAs(expectedFile)
-    }
-
-    "Should generate expected dsc technique content for our technique" in {
-      val expectedDscFile = new JFile(s"${expectedPath}/${dscTechniquePath_any}")
-      val resultDscFile   = new JFile(s"${basePath}/${dscTechniquePath_any}")
-      resultDscFile must haveSameLinesAs(expectedDscFile)
-    }
-  }
-
-  "Constraints should" should {
-    "Correctly accept non whitespace text" in {
-      val value1 = "Some text"
-      val value2 = {
-        """Some
-          |text""".stripMargin
-      }
-      val value3 = "S"
-      val value4 = "ééé ```"
-      val value5 = "sdfsqdfsqfsdf sfhdskjhdfs jkhsdkfjhksqdhf"
-      val value6 = ""
-
-      Constraint.AllowWhiteSpace(allow = false).check(value1) must equalTo(Constraint.OK)
-      Constraint.AllowWhiteSpace(allow = false).check(value2) must equalTo(Constraint.OK)
-      Constraint.AllowWhiteSpace(allow = false).check(value3) must equalTo(Constraint.OK)
-      Constraint.AllowWhiteSpace(allow = false).check(value4) must equalTo(Constraint.OK)
-      Constraint.AllowWhiteSpace(allow = false).check(value5) must equalTo(Constraint.OK)
-      Constraint.AllowWhiteSpace(allow = false).check(value6) must equalTo(Constraint.OK)
-    }
-
-    "Correctly refuse text starting or ending with withspace" in {
-      val value1 = " Some text"
-      val value2 = {
-        """ Some
-          |text""".stripMargin
-      }
-      val value3 = " "
-      val value4 = "sdfsqdfsqfsdf sfhdskjhdfs jkhsdkfjhksqdhf "
-
-      Constraint.AllowWhiteSpace(allow = false).check(value1) must haveClass[Constraint.NOK]
-      Constraint.AllowWhiteSpace(allow = false).check(value2) must haveClass[Constraint.NOK]
-      Constraint.AllowWhiteSpace(allow = false).check(value3) must haveClass[Constraint.NOK]
-      Constraint.AllowWhiteSpace(allow = false).check(value4) must haveClass[Constraint.NOK]
-    }
-  }
-
 }
