@@ -1,5 +1,4 @@
 compiler: rudderc
-fallbacked: false
 resultCode: 42
 fileStatus:
   - path: foo
