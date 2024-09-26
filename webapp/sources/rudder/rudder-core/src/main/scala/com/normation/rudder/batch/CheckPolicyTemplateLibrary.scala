@@ -38,16 +38,21 @@
 package com.normation.rudder.batch
 
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
+import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.Constants.TECHLIB_MINIMUM_UPDATE_INTERVAL
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.utils.StringUuidGenerator
+import com.normation.zio.UnsafeRun
 import net.liftweb.actor.LAPinger
 import net.liftweb.actor.SpecializedLiftActor
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
+import scala.annotation.nowarn
+import zio.*
+import zio.syntax.*
 
 final case class StartLibUpdate(actor: EventActor)
 
@@ -67,17 +72,26 @@ class CheckTechniqueLibrary(
 ) {
 
   private val propertyName = "rudder.batch.techniqueLibrary.updateInterval"
-  val logger               = ScheduledJobLogger
+  private val logger       = ScheduledJobLogger
+  private val actor        = new LAUpdateTechLibManager
+  private val dur          = updateInterval.toLong.minutes
 
   // start batch
-  if (updateInterval < 1) {
-    logger.info(s"Disable automatic Technique library updates since property ${propertyName} is 0 or negative")
-  } else {
-    logger.trace("***** starting Technique Library Update batch *****")
-    val actor = new LAUpdateTechLibManager
-    // Do not run at start up, as it may have been done in startup check already. Only register next run
-    LAPinger.schedule(actor, StartLibUpdate(RudderEventActor), updateInterval * 1000L * 60)
-  }
+  (for {
+    batch <- if (updateInterval < 1) {
+               logger.info(s"Disable automatic Technique library updates since property ${propertyName} is 0 or negative").succeed
+             } else {
+               IOResult.attempt {
+
+                 logger.trace("***** starting Technique Library Update batch *****")
+                 actor ! StartLibUpdate(RudderEventActor)
+               }
+                 // Do not run at start up, as it may have been done in startup check already. Only register next run
+                 .delay(dur)
+                 .repeat(Schedule.spaced(dur).forever)
+                 .forkDaemon: @nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
+             }
+  } yield ()).runNow
 
   ////////////////////////////////////////////////////////////////
   //////////////////// implementation details ////////////////////
