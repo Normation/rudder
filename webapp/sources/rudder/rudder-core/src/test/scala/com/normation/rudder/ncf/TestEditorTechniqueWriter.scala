@@ -73,9 +73,9 @@ import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.workflows.ChangeRequest
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
+import com.normation.rudder.ncf.TechniqueWriterImpl
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -553,29 +553,12 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     _.path,
     basePath
   )
-  val writer   = new TechniqueWriterImpl(
-    TestTechniqueArchiver,
-    TestLibUpdater,
-    new DeleteEditorTechnique {
-      override def deleteTechnique(
-          techniqueName:    String,
-          techniqueVersion: String,
-          deleteDirective:  Boolean,
-          modId:            ModificationId,
-          committer:        QueryContext
-      ): IOResult[Unit] = {
-        ZIO.unit
-      }
-    },
-    compiler,
-    basePath
-  )
 
   val yamlPath: String = s"techniques/ncf_techniques/${technique.id.value}/${technique.version.value}/technique.yml"
 
   s"Preparing files for technique ${technique.name}" should {
     "Should write yaml file without problem" in {
-      writer.writeYaml(technique).either.runNow must beRight(yamlPath)
+      TechniqueWriterImpl.writeYaml(technique)(basePath).either.runNow must beRight(yamlPath)
     }
 
     "Should generate expected yaml content for our technique" in {
@@ -626,7 +609,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   s"Preparing files for technique ${technique.id.value}" should {
 
     "Should write yaml file without problem" in {
-      writer.writeYaml(technique_any).either.runNow must beRight(techniquePath_yaml)
+      TechniqueWriterImpl.writeYaml(technique_any)(basePath).either.runNow must beRight(techniquePath_yaml)
     }
 
     "Should generate expected yaml content for our technique" in {
@@ -674,7 +657,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
 
   s"Preparing files for technique ${technique.id.value}" should {
     "Should write metadata file without problem" in {
-      writer.writeYaml(technique_var_cond).either.runNow must beRight(
+      TechniqueWriterImpl.writeYaml(technique_var_cond)(basePath).either.runNow must beRight(
         s"techniques/ncf_techniques/${techniquePath_var_cond_yaml}"
       )
     }

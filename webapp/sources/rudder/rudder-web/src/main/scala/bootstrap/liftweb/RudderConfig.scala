@@ -555,9 +555,9 @@ object RudderParsedProperties {
   }
 
   val RUDDER_DIR_TECHNIQUES:                        String = RUDDER_GIT_ROOT_CONFIG_REPO + "/techniques"
-  val RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL:         Int    = config.getInt("rudder.batch.dyngroup.updateInterval") // 60 //one hour
+  val RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL:         Int    = config.getInt("rudder.batch.dyngroup.updateInterval") // in minutes
   val RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL: Int    =
-    config.getInt("rudder.batch.techniqueLibrary.updateInterval") // 60 * 5 //five minutes
+    config.getInt("rudder.batch.techniqueLibrary.updateInterval") // in minutes
   val RUDDER_BATCH_REPORTSCLEANER_ARCHIVE_TTL: Int =
     config.getInt("rudder.batch.reportscleaner.archive.TTL") // AutomaticReportsCleaning.defaultArchiveTTL
   val RUDDER_BATCH_REPORTSCLEANER_DELETE_TTL: Int =
@@ -895,15 +895,6 @@ object RudderParsedProperties {
     } catch {
       case ex: Exception => Full(30.minutes)
     }
-  }
-
-  val TECHNIQUE_COMPILER_APP: TechniqueCompilerApp = {
-    val default = TechniqueCompilerApp.Rudderc
-    (try {
-      TechniqueCompilerApp.parse(config.getString("rudder.technique.compiler.app"))
-    } catch {
-      case ex: ConfigException => Some(default)
-    }).getOrElse(default)
   }
 
   val RUDDERC_CMD: String = {
@@ -1796,12 +1787,21 @@ object RudderConfigInit {
       techniqueCompiler,
       RUDDER_GROUP_OWNER_CONFIG_REPO
     )
-    lazy val techniqueCompiler:  TechniqueCompiler = new RuddercTechniqueCompiler(
+    lazy val techniqueCompiler: TechniqueCompiler = new RuddercTechniqueCompiler(
       new RuddercServiceImpl(RUDDERC_CMD, 5.seconds),
       _.path,
       RUDDER_GIT_ROOT_CONFIG_REPO
     )
-    lazy val ncfTechniqueWriter: TechniqueWriter   = new TechniqueWriterImpl(
+
+    lazy val techniqueCompilationStatusService: ReadEditorTechniqueCompilationResult = new TechniqueCompilationStatusService(
+      ncfTechniqueReader,
+      techniqueCompiler
+    )
+
+    lazy val techniqueCompilationCache: TechniqueCompilationStatusSyncService =
+      TechniqueCompilationErrorsActorSync.make(asyncDeploymentAgent, techniqueCompilationStatusService).runNow
+
+    lazy val ncfTechniqueWriter: TechniqueWriter = new TechniqueWriterImpl(
       techniqueArchiver,
       updateTechniqueLibrary,
       new DeleteEditorTechniqueImpl(
@@ -1814,6 +1814,7 @@ object RudderConfigInit {
         RUDDER_GIT_ROOT_CONFIG_REPO
       ),
       techniqueCompiler,
+      techniqueCompilationCache,
       RUDDER_GIT_ROOT_CONFIG_REPO
     )
 
@@ -3142,7 +3143,7 @@ object RudderConfigInit {
 
     lazy val techniqueLibraryUpdater = new CheckTechniqueLibrary(
       techniqueRepositoryImpl,
-      asyncDeploymentAgent,
+      techniqueCompilationStatusService,
       uuidGen,
       RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL
     )
@@ -3232,6 +3233,7 @@ object RudderConfigInit {
         techniqueRepositoryImpl,
         uuidGen
       ),
+      new CheckTechniqueCompilationStatus(techniqueCompilationCache),
       new CheckAddSpecialNodeGroupsDescription(rwLdap),
       new CheckRemoveRuddercSetting(rwLdap),
       new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap),
@@ -3267,6 +3269,7 @@ object RudderConfigInit {
         ncfTechniqueWriter,
         uuidGen,
         updateTechniqueLibrary,
+        techniqueCompilationStatusService,
         gitConfigRepo.rootDirectory.pathAsString
       ),
       new TriggerPolicyUpdate(

@@ -49,6 +49,10 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
+import com.normation.rudder.domain.logger.StatusLoggerPure
+import com.normation.rudder.ncf.CompilationStatus
+import com.normation.rudder.ncf.CompilationStatusAllSuccess
+import com.normation.rudder.ncf.CompilationStatusErrors
 import com.normation.rudder.services.eventlog.EventLogDeploymentService
 import com.normation.rudder.services.marshalling.DeploymentStatusSerialisation
 import com.normation.rudder.services.policies.PromiseGenerationService
@@ -135,6 +139,15 @@ final case class DeploymentStatus(
     processing: DeployerState
 )
 
+case class UpdateCompilationStatus(
+    status: CompilationStatus
+)
+
+final case class AsyncDeploymentActorCreateUpdate(
+    deploymentStatus:  DeploymentStatus,
+    compilationStatus: CompilationStatus
+)
+
 /**
  * Async version of the deployment service.
  */
@@ -173,6 +186,7 @@ final class AsyncDeploymentActor(
   private case class NewDeployment(id: Long, modId: ModificationId, started: DateTime, actor: EventActor, eventLogId: Int)
 
   private var lastFinishedDeployement: CurrentDeploymentStatus = getLastFinishedDeployment
+  private var compilationStatus:       CompilationStatus       = CompilationStatusAllSuccess
   private var currentDeployerState:    DeployerState           = IdleDeployer
   private var currentDeploymentId = lastFinishedDeployement match {
     case NoStatus => 0L
@@ -202,7 +216,9 @@ final class AsyncDeploymentActor(
   /**
    * Manage what we send on other listener actors
    */
-  override def createUpdate: DeploymentStatus = DeploymentStatus(lastFinishedDeployement, currentDeployerState)
+  override def createUpdate: AsyncDeploymentActorCreateUpdate = {
+    AsyncDeploymentActorCreateUpdate(DeploymentStatus(lastFinishedDeployement, currentDeployerState), compilationStatus)
+  }
 
   private def WithDetails(xml: NodeSeq)(implicit actor: EventActor, reason: Option[String] = None) = {
     EventLogDetails(
@@ -434,6 +450,27 @@ final class AsyncDeploymentActor(
       }
       // update listeners
       updateListeners()
+    }
+
+    //
+    // Updating state from technique compilation output result
+    //
+    case UpdateCompilationStatus(status)                                                   => {
+      StatusLoggerPure.Techniques.logEffect.trace(
+        s"Compilation status has a new update command with payload : ${status}"
+      )
+      if (compilationStatus != status) {
+        compilationStatus = status
+        status match {
+          case CompilationStatusErrors(techniquesInError) =>
+            StatusLoggerPure.Techniques.logEffect.warn(s"Status of technique compilation has ${techniquesInError.size} errors")
+          case CompilationStatusAllSuccess                =>
+            StatusLoggerPure.Techniques.logEffect.debug(
+              s"Status of technique compilation has changed to success from previous : ${compilationStatus}"
+            )
+        }
+        updateListeners()
+      }
     }
 
     //

@@ -405,7 +405,7 @@ class TechniqueArchiverImpl(
 
     (for {
       res       <- techniqueCompiler.migrateCompileIfNeeded(techniquePath)
-      _         <- ZIO.when(res.resultCode != 0) {
+      _         <- ZIO.when(res.isError) {
                      Unexpected(
                        s"Error when trying to compile technique '${techniquePath.pathAsString}'. Error details are " +
                        s"available in `compilation-output.yml` file in the same directory. Error message: '${res.msg}'"

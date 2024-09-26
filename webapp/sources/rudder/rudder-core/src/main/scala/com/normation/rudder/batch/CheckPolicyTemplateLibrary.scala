@@ -43,9 +43,13 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.Constants.TECHLIB_MINIMUM_UPDATE_INTERVAL
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.ScheduledJobLogger
+import com.normation.rudder.ncf.ReadEditorTechniqueCompilationResult
 import com.normation.utils.StringUuidGenerator
+import com.normation.zio.UnsafeRun
 import net.liftweb.actor.LAPinger
 import net.liftweb.actor.SpecializedLiftActor
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Full
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 
@@ -60,14 +64,14 @@ final case class StartLibUpdate(actor: EventActor)
  * - else, use the given value.
  */
 class CheckTechniqueLibrary(
-    policyPackageUpdater: UpdateTechniqueLibrary,
-    asyncDeploymentAgent: AsyncDeploymentActor,
-    uuidGen:              StringUuidGenerator,
-    updateInterval:       Int // in minutes
+    policyPackageUpdater:              UpdateTechniqueLibrary,
+    techniqueCompilationStatusService: ReadEditorTechniqueCompilationResult,
+    uuidGen:                           StringUuidGenerator,
+    updateInterval:                    Int // in minutes
 ) {
 
   private val propertyName = "rudder.batch.techniqueLibrary.updateInterval"
-  val logger               = ScheduledJobLogger
+  private val logger       = ScheduledJobLogger
 
   // start batch
   if (updateInterval < 1) {
@@ -113,7 +117,17 @@ class CheckTechniqueLibrary(
           ModificationId(uuidGen.newUuid),
           actor,
           Some(s"Automatic batch update at ${DateTime.now.toString(ISODateTimeFormat.basicDateTime())}")
-        )
+        ) match {
+          case Full(t) =>
+            logger.trace(s"***** udpate successful for ${t.size} techniques")
+            // Update techniques compilation status even if there are no updated techniques : compilation status may have been updated
+            techniqueCompilationStatusService.get().runNow
+          case eb: EmptyBox =>
+            val msg = (eb ?~! ("An error occured while updating")).messageChain
+            logger.warn(
+              s"Techniques library reload failed and will be retrying in ${updateInterval} minutes, cause is: ${msg}"
+            )
+        }
 
     }
   }

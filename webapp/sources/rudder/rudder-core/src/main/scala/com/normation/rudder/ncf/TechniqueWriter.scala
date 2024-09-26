@@ -86,29 +86,18 @@ trait TechniqueWriter {
   ): IOResult[EditorTechnique]
 }
 
-/*
- * There is a configuration file option, `rudder.technique.compiler.app` that let you override
- * the choice for what app write techniques globally (techniqueCompilerApp).
- *
- * Then, you can locally override the choice for one technique with a local file `compilation.yaml`
- * in which you can force to fallback to `rudder` -> `rudder-only-unix` -> `webapp`.
- *
- * Finally, when `rudderc` is used, the webapp will look for its return code and generated files.
- * When the return code is XXXX, or if generated files doesn't pass a sanity check, then
- * the webapp is used to generate things. We also update the `compilation.yaml` to reflect the fact
- * that the last compilation used a fallback app and the error (if any)
- *
- * In that two last cases, then a big red persistent message is displayed in the technique editor
- * with the fact that a fallback was used.
- * In the last case, in addition, we need to display to the user the problem that they need to report
- * to rudder dev.
- */
+/**
+  * The implementation of that handles updating or creating the technique YAML file
+  * which is kept on the file system. It delegates to other services for update and delete,
+  * and archives to keep the file system up-to-date, and synces the global compilation state
+  */
 class TechniqueWriterImpl(
-    archiver:           TechniqueArchiver,
-    techLibUpdate:      UpdateTechniqueLibrary,
-    deleteService:      DeleteEditorTechnique,
-    compiler:           TechniqueCompiler,
-    baseConfigRepoPath: String // root of config repos
+    archiver:                 TechniqueArchiver,
+    techLibUpdate:            UpdateTechniqueLibrary,
+    deleteService:            DeleteEditorTechnique,
+    compiler:                 TechniqueCompiler,
+    compilationStatusService: TechniqueCompilationStatusSyncService,
+    baseConfigRepoPath:       String // root of config repos
 ) extends TechniqueWriter {
 
   def deleteTechnique(
@@ -125,7 +114,7 @@ class TechniqueWriterImpl(
       committer: EventActor
   ): IOResult[EditorTechnique] = {
     for {
-      updatedTechnique <- writeTechnique(technique, modId, committer)
+      updatedTechnique <- compileArchiveTechnique(technique, modId, committer)
       libUpdate        <-
         techLibUpdate
           .update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}"))
@@ -136,8 +125,18 @@ class TechniqueWriterImpl(
     }
   }
 
-  // Write and commit all techniques files
   override def writeTechnique(
+      technique: EditorTechnique,
+      modId:     ModificationId,
+      committer: EventActor
+  ): IOResult[EditorTechnique] = {
+    compileArchiveTechnique(technique, modId, committer)
+  }
+
+  ///// utility methods /////
+
+  // Write and commit all techniques files
+  private def compileArchiveTechnique(
       technique: EditorTechnique,
       modId:     ModificationId,
       committer: EventActor
@@ -151,11 +150,12 @@ class TechniqueWriterImpl(
                                      }
       techniqueWithResourceUpdated = technique.copy(resources = updateResources)
 
-      _        <- writeYaml(techniqueWithResourceUpdated)
+      _        <- TechniqueWriterImpl.writeYaml(techniqueWithResourceUpdated)(baseConfigRepoPath)
       time_1   <- currentTimeMillis
       _        <-
         TimingDebugLoggerPure.trace(s"writeTechnique: writing yaml for technique '${technique.name}' took ${time_1 - time_0}ms")
-      _        <- compiler.compileTechnique(techniqueWithResourceUpdated)
+      compiled <- compiler.compileTechnique(techniqueWithResourceUpdated)
+      _        <- compilationStatusService.syncOne(EditorTechniqueCompilationResult.from(techniqueWithResourceUpdated, compiled))
       time_3   <- currentTimeMillis
       id       <- TechniqueVersion.parse(technique.version.value).toIO.map(v => TechniqueId(TechniqueName(technique.id.value), v))
       // resources files are missing the the "resources/" prefix
@@ -171,20 +171,27 @@ class TechniqueWriterImpl(
       time_4   <- currentTimeMillis
       _        <- TimingDebugLoggerPure.trace(s"writeTechnique: committing technique '${technique.name}' took ${time_4 - time_3}ms")
       _        <- TimingDebugLoggerPure.debug(s"writeTechnique: writing technique '${technique.name}' took ${time_4 - time_0}ms")
+      time_5   <- currentTimeMillis
+      _        <-
+        TimingDebugLoggerPure.trace(s"writeTechnique: writing technique '${technique.name}' in cache took ${time_5 - time_4}ms")
 
     } yield {
       techniqueWithResourceUpdated
     }
   }
+}
 
-  ///// utility methods /////
+object TechniqueWriterImpl {
 
-  // write the given EditorTechnique as YAML file in ${technique.path}/technique.yml
-  def writeYaml(technique: EditorTechnique): IOResult[String] = {
+  /**
+    * write the given EditorTechnique as YAML file in ${technique.path}/technique.yml
+    * Returns the relative path to the technique YAML file from the baseConfigRepo
+    */
+  private[ncf] def writeYaml(technique: EditorTechnique)(basePath: String): IOResult[String] = {
     import YamlTechniqueSerializer.*
 
     val metadataPath = s"${technique.path}/${TechniqueFiles.yaml}"
-    val path         = s"${baseConfigRepoPath}/${metadataPath}"
+    val path         = s"${basePath}/${metadataPath}"
     for {
       content <- technique.toYaml().toIO
       _       <- IOResult.attempt(s"An error occurred while creating yaml file for Technique '${technique.name}'") {
