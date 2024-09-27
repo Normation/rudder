@@ -130,6 +130,7 @@ import com.normation.rudder.rule.category.*
 import com.normation.rudder.services.marshalling.NodeGroupCategoryUnserialisationImpl
 import com.normation.rudder.services.marshalling.NodeGroupUnserialisationImpl
 import com.normation.rudder.services.marshalling.RuleUnserialisationImpl
+import com.normation.rudder.services.policies.ComponentId
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.ParameterForConfiguration
@@ -375,20 +376,18 @@ class MockDirectives(mockTechniques: MockTechniques) {
      * in class TestNodeConfiguration
      */
 
-    val commonTechnique:                                                      Technique                   = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("common"), TV("1.0")))
-    def commonVariables(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]): Map[String, VariableSpec#V] = {
-      val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
-      Seq(
-        spec("OWNER").toVariable(Seq(allNodeInfos(nodeId).localAdministratorAccountName)),
-        spec("UUID").toVariable(Seq(nodeId.value)),
-        spec("POLICYSERVER_ID").toVariable(Seq(allNodeInfos(nodeId).policyServerId.value)),
-        spec("POLICYSERVER_ADMIN").toVariable(
-          Seq(allNodeInfos(allNodeInfos(nodeId).policyServerId).localAdministratorAccountName)
-        ),
-        spec("ALLOWEDNETWORK").toVariable(Seq(""))
-      ).map(v => (v.spec.name, v)).toMap
+    val commonTechnique:                                                      Technique                        = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("common"), TV("1.0")))
+    def commonVariables(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]): Map[ComponentId, VariableSpec#V] = {
+      commonTechnique.getAllVariableSpecs.collect {
+        case (c @ ComponentId("OWNER", _, _), s)              => (c, s.toVariable(Seq(allNodeInfos(nodeId).localAdministratorAccountName)))
+        case (c @ ComponentId("UUID", _, _), s)               => (c, s.toVariable(Seq(nodeId.value)))
+        case (c @ ComponentId("POLICYSERVER_ID", _, _), s)    => (c, s.toVariable(Seq(allNodeInfos(nodeId).policyServerId.value)))
+        case (c @ ComponentId("POLICYSERVER_ADMIN", _, _), s) =>
+          (c, s.toVariable(Seq(allNodeInfos(allNodeInfos(nodeId).policyServerId).localAdministratorAccountName)))
+        case (c @ ComponentId("ALLOWEDNETWORK", _, _), s)     => (c, s.toVariable(Seq("")))
+      }
     }
-    val commonDirective:                                                      Directive                   = Directive(
+    val commonDirective:                                                      Directive                        = Directive(
       DirectiveId(DirectiveUid("common-root"), GitVersion.DEFAULT_REV),
       TV("1.0"),
       Map(

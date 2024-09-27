@@ -40,9 +40,11 @@ package com.normation.rudder.services.policies.write
 import cats.implicits.*
 import com.normation.cfclerk.domain.BundleName
 import com.normation.cfclerk.domain.RunHook
+import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.SystemVariable
 import com.normation.cfclerk.domain.TechniqueGenerationMode
 import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
@@ -363,60 +365,78 @@ class BuildBundleSequence(
     val name = Promiser(policy.ruleName + "/" + policy.directiveName)
 
     // and for now, all bundle get the same reportKey
-    val techniqueBundles = policy.technique.agentConfig.bundlesequence.map { bundleName =>
-      if (bundleName.value.trim.nonEmpty) {
-        val vars = {
-          policy.technique.generationMode match {
-            case TechniqueGenerationMode.MultipleDirectivesWithParameters                             =>
-              for {
-                // Here we are looking for variables value from a Directive based on a ncf technique that has parameter
-                // ncf technique parameters ( having an id and a name, which is used inside the technique) were translated into Rudder variables spec
-                // (having a name, which acts as an id, and allow to do templating on techniques, and a description which is presented to users) with the following Rule
-                //  ncf Parameter | Rudder variable
-                //      id        |      name
-                //     name       |   description
-                // So here we only have Rudder variables, and we want to create a new object BundleParam, which name needs to be the value used inside the technique (so the tehcnique paramter name)
-                // And we will get the value in the Directive by looking for it with the name of the Variable (which is the id of the parameter)
-                //  ncf Parameter | Rudder variable | Bundle param
-                //      id        |      name       |     N/A
-                //     name       |   description   |     name = variable.description = parameter.name
-                //      N/A       |        N/A      |    value = values.get(variable.name) = values.get(parameter.id)
-                // We would definitely be happier if we add a way to describe them as Rudder technique parameter and not as variable
+    def getVars(
+        generationMode: TechniqueGenerationMode,
+        rootSection:    SectionSpec,
+        expandedVars:   Map[String, Variable]
+    ): PureResult[List[BundleParam]] = {
+      generationMode match {
+        case TechniqueGenerationMode.MultipleDirectivesWithParameters                             =>
+          rootSection.copyWithoutSystemVars.getAllVariables.accumulatePure { v =>
+            // Here we are looking for variables value from a Directive based on a ncf technique that has parameter
+            // ncf technique parameters ( having an id and a name, which is used inside the technique) were translated into Rudder variables spec
+            // (having a name, which acts as an id, and allow to do templating on techniques, and a description which is presented to users) with the following Rule
+            //  ncf Parameter | Rudder variable
+            //      id        |      name
+            //     name       |   description
+            // So here we only have Rudder variables, and we want to create a new object BundleParam, which name needs to be the value used inside the technique (so the technique parameter name)
+            // And we will get the value in the Directive by looking for it with the name of the Variable (which is the id of the parameter)
+            //  ncf Parameter | Rudder variable | Bundle param
+            //      id        |      name       |     N/A
+            //     name       |   description   |     name = variable.description = parameter.name
+            //      N/A       |        N/A      |    value = values.get(variable.name) = values.get(parameter.id)
+            // We would definitely be happier if we add a way to describe them as Rudder technique parameter and not as variable
+            val (varId, varName, variableName) = (v.name, v.description, v.variableName)
 
-                (varId, varName, variableName) <-
-                  policy.technique.rootSection.copyWithoutSystemVars.getAllVariables.map(v =>
-                    (v.name, v.description, v.variableName)
+            for {
+              value <-
+                expandedVars
+                  .get(varId)
+                  .flatMap(_.values.headOption)
+                  .notOptionalPure(
+                    s"Missing variable value for '${varId}' (${varName}) in node ${nodeId.value} -> ${name}. This is " +
+                    s"likely a bug, please report it to rudder devs"
                   )
-              } yield {
-                val value = policy.expandedVars.get(varId).map(_.values.headOption.getOrElse("")).getOrElse("")
-                BundleParam.DoubleQuote(value, varName, variableName)
-              }
-            case TechniqueGenerationMode.MergeDirectives | TechniqueGenerationMode.MultipleDirectives =>
-              Nil
+            } yield {
+              BundleParam.DoubleQuote(value, varName, variableName)
+            }
           }
-        }
-
-        List(Bundle(Some(policy.id), bundleName, vars.toList))
-      } else {
-        PolicyGenerationLogger.warn(
-          s"Technique '${policy.technique.id}' used in node '${nodeId.value}' contains some bundle with empty name, which is forbidden and so they are ignored in the final bundle sequence"
-        )
-        Nil
+        case TechniqueGenerationMode.MergeDirectives | TechniqueGenerationMode.MultipleDirectives =>
+          Right(Nil)
       }
-    }.flatten.toList
+    }
+
+    val techniqueBundles = policy.technique.agentConfig.bundlesequence.accumulatePure { bundleName =>
+      if (bundleName.value.trim.nonEmpty) {
+        for {
+          vars <- getVars(policy.technique.generationMode, policy.technique.rootSection, policy.expandedVars)
+        } yield {
+          List(Bundle(Some(policy.id), bundleName, vars))
+        }
+      } else {
+        val msg =
+          s"Technique '${policy.technique.id}' used in node '${nodeId.value}' contains some bundle with empty name, which is forbidden and so they are ignored in the final bundle sequence"
+        PolicyGenerationLogger.warn(msg)
+        Left(Inconsistency(msg))
+      }
+    }.map(_.flatten)
 
     for {
       policyMode <- PolicyMode.computeMode(globalPolicyMode, nodePolicyMode, policy.policyMode :: Nil)
-    } yield {
       // we must update technique bundle in case policy generation is multi-instance
-      val bundles = policy.technique.generationMode match {
-        case TechniqueGenerationMode.MultipleDirectives =>
-          techniqueBundles.map(b =>
-            b.copy(name = BundleName(b.name.value.replaceAll(Policy.TAG_OF_RUDDER_MULTI_POLICY, policy.id.getRudderUniqueId)))
-          )
-        case _                                          =>
-          techniqueBundles
-      }
+      bundles    <- policy.technique.generationMode match {
+                      case TechniqueGenerationMode.MultipleDirectives =>
+                        techniqueBundles.map(
+                          _.map(b => {
+                            b.copy(name =
+                              BundleName(b.name.value.replaceAll(Policy.TAG_OF_RUDDER_MULTI_POLICY, policy.id.getRudderUniqueId))
+                            )
+                          })
+                        )
+                      case _                                          =>
+                        techniqueBundles
+                    }
+    } yield {
       TechniqueBundles(
         name,
         policy.id.directiveId,
@@ -581,8 +601,8 @@ object CfengineBundleVariables {
   }
 
   /*
-   * utilitary method for formating an input list
-   * For the CFengine agent, we are waiting ONE string of the fully
+   * utility method for formating an input list
+   * For the CFEngine agent, we are waiting ONE string of the fully
    * formatted result, ie. something like: """
    *     "common/1.0/update.cf",
    *     "rudder-directives.cf",

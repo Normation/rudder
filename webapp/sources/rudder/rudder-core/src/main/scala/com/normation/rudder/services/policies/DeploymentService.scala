@@ -1280,8 +1280,8 @@ object BuildNodeConfiguration extends Loggable {
 
     val t0 = System.nanoTime()
     // group by nodes
-    // no consistancy / unicity check is done here, it will be done
-    // in an other phase. We are just switching to a node-first view.
+    // no consistency / unicity check is done here, it will be done
+    // in another phase. We are just switching to a node-first view.
     val policyDraftByNode: Map[NodeId, Seq[ParsedPolicyDraft]] = {
       val byNodeDrafts = scala.collection.mutable.Map.empty[NodeId, Vector[ParsedPolicyDraft]]
       ruleVals.foreach { rule =>
@@ -1317,7 +1317,7 @@ object BuildNodeConfiguration extends Loggable {
                               val toRemove = filteredTechniques.getOrElse(nodeId, Nil)
                               parsedDrafts.filterNot(d => toRemove.contains(d.technique.id.name))
                             }
-                            // if a node is in state "emtpy policies", we only keep system policies + log
+                            // if a node is in state "empty policies", we only keep system policies + log
                             filteredDrafts = if (context.nodeInfo.state == NodeState.EmptyPolicies) {
                                                PolicyGenerationLogger.info(
                                                  s"Node '${context.nodeInfo.hostname}' (${context.nodeInfo.id.value}) is in '${context.nodeInfo.state.name}' state, keeping only system policies for it"
@@ -1748,12 +1748,12 @@ object RuleExpectedReportBuilder extends Loggable {
         case (m, originalVariables) if (m.isEmpty && originalVariables.nonEmpty)                                          =>
           (Seq(DEFAULT_COMPONENT_KEY), originalVariables.values.flatMap(_.values).toSeq) // this is an autobounding policy
         case (variables, m) if (m.isEmpty)                                                                                =>
-          PolicyGenerationLogger.warn(
+          PolicyGenerationLogger.debug(
             s"Somewhere in the expansion of variables, the bounded variable ${boundingVar} for ${vars.trackerVariable.spec.name} in Directive ${directiveId.serialize} appeared, but was not originally there"
           )
           (variables.values.flatMap(_.values).toSeq, variables.values.flatMap(_.values).toSeq) // this is an autobounding policy
         case (variables, originalVariables)                                                                               =>
-          PolicyGenerationLogger.warn(
+          PolicyGenerationLogger.debug(
             s"Expanded and unexpanded values for bounded variable ${boundingVar} for ${vars.trackerVariable.spec.name} in Directive ${directiveId.serialize} have not the same size : ${variables.values} and ${originalVariables.values}"
           )
           (variables.values.flatMap(_.values).toSeq, originalVariables.values.flatMap(_.values).toSeq)

@@ -78,16 +78,15 @@ class RuleValServiceImpl(
     Full(
       variableSpecs.map {
         case (parents, spec) =>
-          // be carefull, component id are not defined at the varspec level, but in its parent spec one
+          // be careful, component id are not defined at the varspec level, but in its parent spec one
           val reportId = spec.id.orElse(parents.headOption.flatMap(_.id))
           context.get(spec.name) match {
             case None            =>
-              spec.toVariable()
-              (ComponentId(spec.toVariable().spec.name, parents.map(_.name), reportId), spec.toVariable())
+              (ComponentId(spec.name, parents.map(_.name), reportId), spec.toVariable())
             case Some(seqValues) =>
               val newVar = spec.toVariable(seqValues)
               assert(seqValues.toSet == newVar.values.toSet)
-              (ComponentId(newVar.spec.name, parents.map(_.name), reportId), newVar)
+              (ComponentId(spec.name, parents.map(_.name), reportId), newVar)
           }
       }.toMap
     )

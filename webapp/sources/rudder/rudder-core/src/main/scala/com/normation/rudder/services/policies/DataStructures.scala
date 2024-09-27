@@ -534,9 +534,9 @@ final case class ParsedPolicyDraft(
  */
 final case class BoundPolicyDraft(
     id:       PolicyId,
-    ruleName: String, // human readable name of the original rule, for ex for log
+    ruleName: String, // human-readable name of the original rule, for ex for log
 
-    directiveName: String, // human readable name of the original directive, for ex for log
+    directiveName: String, // human-readable name of the original directive, for ex for log
 
     technique:       Technique,
     acceptationDate: DateTime,
@@ -579,58 +579,114 @@ final case class BoundPolicyDraft(
    * for the targeted agent.
    * This is the place where we can check for variable consistency too, since we have the final
    * techniques and expanded variables (like: check that a mandatory variable was expanded to "").
+   *
+   * It's also the place where we add missing variables that are well defined, and where we check for
+   * constrains.
+   *
+   * If there is variable defined here but not in the technique, they are removed.
    */
   def toPolicy(agent: AgentType): Either[String, Policy] = {
     PolicyTechnique.forAgent(technique, agent).flatMap { pt =>
-      val checkedMandatoryValues: Either[Accumulated[RudderError], List[(ComponentId, Variable)]] = expandedVars.accumulatePure {
-        case (cid, variable) =>
-          // check if there is mandatory variable with missing/blank values
-          (variable.spec.constraint.mayBeEmpty, variable.values.exists(v => v == null || v.isBlank)) match {
-            case (false, true) =>
-              // first, if we have a default value, use that
-              variable.spec.constraint.default match {
-                case Some(d) =>
-                  variable
-                    .copyWithSavedValues(variable.values.map(v => if (v.isBlank) d else v))
-                    .map(v => (cid, v))
-                // else it's an error
-                case None    =>
-                  Left(
-                    Inconsistency(
-                      s"Error for policy for directive '${directiveName}' [${id.directiveId.debugString}] in rule '${ruleName}' [${id.ruleId.serialize}]: " +
-                      s"a non optional value is missing for parameter '${variable.spec.description}' [param ID: ${variable.spec.name}]"
-                    )
-                  )
-              }
-            case _             => Right((cid, variable))
-          }
-      }
+      // check that all variables from root section are here and well defined
+      // the lookup for variables is a bit complicated. We have unique variable by name, so for now, we must to only match on that.
+      // Since we use the same technique to build section path, it should be the same (apart in tests) but
+      // I prefer to do the lookup on name
+      val techVarSpecs = technique.getAllVariableSpecs.map { case (cid, s) => (cid.value, (cid, s)) }
 
-      checkedMandatoryValues
-        .map(withDefaultVals => {
-          Policy(
-            id,
-            ruleName,
-            directiveName,
-            pt,
-            acceptationDate,
-            NonEmptyList.of(
-              PolicyVars(
-                id,
-                policyMode,
-                withDefaultVals.toMap,
-                originalVars,
-                trackerVariable
-              )
-            ),
-            priority,
-            policyMode,
-            ruleOrder,
-            directiveOrder,
-            overrides
-          )
-        })
-        .left
+      val allVars = expandedVars + (ComponentId(trackerVariable.spec.name, Nil, None) -> trackerVariable)
+
+      (for {
+        checkedExistingValues <- allVars.accumulatePure {
+                                   case (cid, variable) =>
+                                     techVarSpecs.get(cid.value) match {
+                                       case None            =>
+                                         Left(
+                                           Inconsistency(
+                                             s"Error for policy for directive '${directiveName}' [${id.directiveId.debugString}] in rule '${ruleName}' [${id.ruleId.serialize}]: " +
+                                             s"a value is defined but the technique doesn't specify a variable with name '${variable.spec.name}' in section '${cid.parents.reverse
+                                                 .mkString("/")}'"
+                                           )
+                                         )
+                                       case Some((cid2, _)) =>
+                                         if (cid != cid2) {
+                                           PolicyGenerationLogger.debug(
+                                             s"In '${directiveName}' [${id.directiveId.debugString}] in rule '${ruleName}' [${id.ruleId.serialize}]: component Id are " +
+                                             s"not the same for technique and var for '${cid.value}'. In technique: '${cid2.parents.reverse
+                                                 .mkString("/")}' ; In var: '${cid.parents.reverse.mkString("/")}'"
+                                           )
+                                         }
+                                         // check if there is mandatory variable with missing/blank values
+                                         (
+                                           variable.spec.constraint.mayBeEmpty,
+                                           variable.values.exists(v => v == null || v.isEmpty)
+                                         ) match {
+                                           // simple case: it's optional, we don't care if empty or not.
+                                           case (true, _) => Right((cid, variable))
+
+                                           // simple case: all mandatory are filled
+                                           case (false, false) => Right((cid, variable))
+
+                                           // complicate case: mandatory with unfilled value: check if a default is available
+                                           case (false, true) =>
+                                             // first, if we have a default value, use that
+                                             variable.spec.constraint.default match {
+                                               case Some(d) =>
+                                                 variable
+                                                   .copyWithSavedValues(variable.values.map(v => if (v.isEmpty) d else v))
+                                                   .map(v => (cid, v))
+                                               // else it's an error
+                                               case None    =>
+                                                 Left(
+                                                   Inconsistency(
+                                                     s"Error for policy for directive '${directiveName}' [${id.directiveId.debugString}] in rule '${ruleName}' [${id.ruleId.serialize}]: " +
+                                                     s"a non optional value is missing for parameter '${variable.spec.description}' [param ID: ${variable.spec.name}]"
+                                                   )
+                                                 )
+                                             }
+
+                                         }
+                                     }
+                                 }
+        missing                = techVarSpecs -- checkedExistingValues.map(_._1.value).toSet
+        // add missing if possible
+        added                 <- missing.accumulatePure {
+                                   case (_, (cid, spec)) =>
+                                     (spec.constraint.mayBeEmpty, spec.constraint.default) match {
+                                       case (true, _)        => Right((cid, spec.toVariable()))
+                                       case (false, Some(d)) => Right((cid, spec.toVariable(Seq(d))))
+                                       case (false, None)    =>
+                                         Left(
+                                           Inconsistency(
+                                             s"Error for policy for directive '${directiveName}' [${id.directiveId.debugString}] in rule '${ruleName}' [${id.ruleId.serialize}]: " +
+                                             s"a non optional value is missing for parameter '${spec.description}' [param ID: ${spec.name}]"
+                                           )
+                                         )
+                                     }
+
+                                 }
+      } yield {
+        Policy(
+          id,
+          ruleName,
+          directiveName,
+          pt,
+          acceptationDate,
+          NonEmptyList.of(
+            PolicyVars(
+              id,
+              policyMode,
+              (added ++ checkedExistingValues).toMap,
+              originalVars,
+              trackerVariable
+            )
+          ),
+          priority,
+          policyMode,
+          ruleOrder,
+          directiveOrder,
+          overrides
+        )
+      }).left
         .map(_.deduplicate.msg)
     }
   }

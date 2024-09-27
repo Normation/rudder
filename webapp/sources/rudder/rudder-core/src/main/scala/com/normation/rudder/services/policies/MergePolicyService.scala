@@ -111,7 +111,7 @@ object MergePolicyService {
    */
   def buildPolicy(nodeInfo: NodeInfo, mode: GlobalPolicyMode, boundedPolicyDrafts: Seq[BoundPolicyDraft]): Box[List[Policy]] = {
 
-    // now manage merge of mutli-instance mono-policy techniques
+    // now manage merge of multi-instance mono-policy techniques
     // each merge can fails because of a consistency error, so we are grouping merge and checks
     // for a technique in a failable function.
     // must give at least one element in parameter
@@ -123,7 +123,7 @@ object MergePolicyService {
     ): Box[Policy] = {
 
       //
-      // ACTUALY check and merge if needed
+      // ACTUALLY check and merge if needed
       //
       drafts match {
         case Nil          =>
@@ -163,11 +163,11 @@ object MergePolicyService {
                                      )
                                  }
             /*
-             * Here, we must go to some lengh to try to keep the "directive" policy mode (for the merge). So we need to distinguish
+             * Here, we must go to some length to try to keep the "directive" policy mode (for the merge). So we need to distinguish
              * four cases:
              * - all drafts have None policy mode => the result is none.
              * - all drafts have Some(policy mode) and all the same => the directive get that Some(policy mode)
-             * - at least two draft have Some(policy mode) which are differents => it's an error, report it
+             * - at least two draft have Some(policy mode) which are different => it's an error, report it
              * - we have some homogeneous Some(policy mode) with at least one None => we must compute the resulting mode with default (global, node) values.
              * The last two can be computed with PolicyMode facility .
              */
@@ -184,7 +184,7 @@ object MergePolicyService {
                                      drafts.map(d => d.id.ruleId.serialize + " / " + d.id.directiveId.serialize).mkString(" ; "))
                                  }
             // actually merge.
-            // Be carefull, there is TWO merge to consider:
+            // Be careful, there is TWO merge to consider:
             // 1. the order on which the vars are merged. It must follow existing semantic, i.e:
             //    first by priority, then by rule order, then by directive order.
             sortedVars         = NonEmptyList(d, tail).sorted(priorityThenBundleOrder).map { d =>

@@ -731,7 +731,7 @@ class PolicyWriterServiceImpl(
     /*
      * Idea: sort template by content (ie what is cached). Put each unique cache in a seq with the corresponding list of
      * template to fill.
-     * Get the the corresponding list of filled template.
+     * Get the corresponding list of filled template.
      * Write it.
      * No semaphore, no synchronisation.
      */
