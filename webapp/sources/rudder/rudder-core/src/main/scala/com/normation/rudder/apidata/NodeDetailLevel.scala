@@ -40,8 +40,9 @@ package com.normation.rudder.apidata
 import com.normation.inventory.domain.*
 import com.normation.rudder.domain.logger.ApiLogger
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.facts.nodes.SecurityTag
+import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
 import com.normation.utils.DateFormaterService
+import java.time.LocalTime
 import net.liftweb.json.*
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL.*
@@ -61,7 +62,7 @@ sealed trait NodeDetailLevel {
       optRunDate: Option[DateTime],
       inventory:  Option[FullInventory],
       software:   Seq[Software],
-      optTenant:  Option[SecurityTag]
+      cnf:        MinimalNodeFactInterface
   ): JObject = {
 
     val jsonFields: List[JField] = NodeDetailLevel.allFields.filter(fields.contains).map { field =>
@@ -69,8 +70,8 @@ sealed trait NodeDetailLevel {
       val json = NodeDetailLevel.statusInfoFields
         .get(field)
         .map(_(status))
-        .orElse(NodeDetailLevel.nodeInfoFields.get(field).map(_((nodeInfo, optRunDate, optTenant))))
-        .orElse(inventory.flatMap(i => NodeDetailLevel.fullInventoryFields.get(field).map(_(i))))
+        .orElse(NodeDetailLevel.nodeInfoFields.get(field).map(_((nodeInfo, optRunDate, cnf))))
+        .orElse(inventory.flatMap(i => NodeDetailLevel.fullInventoryFields.get(field).map(_(i, cnf))))
         .orElse(NodeDetailLevel.softwareFields.get(field).map(_(software)))
         .getOrElse(JNothing)
 
@@ -132,6 +133,7 @@ object NodeDetailLevel {
     "machine",
     "ipAddresses",
     "description",
+    "acceptanceDate",
     "lastInventoryDate",
     "lastRunDate",
     "policyServerId",
@@ -179,25 +181,27 @@ object NodeDetailLevel {
     )
   }
 
-  type INFO = (NodeInfo, Option[DateTime], Option[SecurityTag])
+  type INFO = (NodeInfo, Option[DateTime], MinimalNodeFactInterface)
+
   private val nodeInfoFields: Map[String, INFO => JValue] = {
 
-    val id:            INFO => JValue = (info: INFO) => info._1.id.value
-    val hostname:      INFO => JValue = (info: INFO) => info._1.hostname
-    val state:         INFO => JValue = (info: INFO) => info._1.state.name
-    val description:   INFO => JValue = (info: INFO) => info._1.description
-    val policyServer:  INFO => JValue = (info: INFO) => info._1.policyServerId.value
-    val ram:           INFO => JValue = (info: INFO) => info._1.ram.map(MemorySize.sizeMb)
-    val arch:          INFO => JValue = (info: INFO) => info._1.archDescription
+    val id:             INFO => JValue = (info: INFO) => info._1.id.value
+    val hostname:       INFO => JValue = (info: INFO) => info._1.hostname
+    val state:          INFO => JValue = (info: INFO) => info._1.state.name
+    val description:    INFO => JValue = (info: INFO) => info._1.description
+    val policyServer:   INFO => JValue = (info: INFO) => info._1.policyServerId.value
+    val ram:            INFO => JValue = (info: INFO) => info._1.ram.map(MemorySize.sizeMb)
+    val arch:           INFO => JValue = (info: INFO) => info._1.archDescription
     // the date is in RFC 3339. Not having timezone for nodes can be very frustrating
-    val runDate:       INFO => JValue = (info: INFO) => info._2.map(d => JString(DateFormaterService.serialize(d))).getOrElse(JNothing)
+    val runDate:        INFO => JValue = (info: INFO) => info._2.map(d => JString(DateFormaterService.serialize(d))).getOrElse(JNothing)
+    val acceptanceDate: INFO => JValue = (info: INFO) => JString(DateFormaterService.serialize(info._3.creationDate))
     // this date should have had a timezone in it
-    val inventoryDate: INFO => JValue = (info: INFO) => DateFormaterService.serialize(info._1.inventoryDate)
-    val properties:    INFO => JValue = (info: INFO) => info._1.properties.sortBy(_.name).toApiJson
-    val policyMode:    INFO => JValue = (info: INFO) => info._1.policyMode.map(_.name).getOrElse[String]("default")
-    val timezone:      INFO => JValue = (info: INFO) => info._1.timezone.map(t => ("name" -> t.name) ~ ("offset" -> t.offset))
-    val tenant:        INFO => JValue = (info: INFO) =>
-      info._3.flatMap(_.tenants.headOption.map(t => JString(t.value))).getOrElse(JNothing)
+    val inventoryDate:  INFO => JValue = (info: INFO) => DateFormaterService.serialize(info._1.inventoryDate)
+    val properties:     INFO => JValue = (info: INFO) => info._1.properties.sortBy(_.name).toApiJson
+    val policyMode:     INFO => JValue = (info: INFO) => info._1.policyMode.map(_.name).getOrElse[String]("default")
+    val timezone:       INFO => JValue = (info: INFO) => info._1.timezone.map(t => ("name" -> t.name) ~ ("offset" -> t.offset))
+    val tenant:         INFO => JValue = (info: INFO) =>
+      info._3.rudderSettings.security.flatMap(_.tenants.headOption.map(t => JString(t.value))).getOrElse(JNothing)
 
     val os = { (info: INFO) =>
       val osType = info._1.osDetails.os match {
@@ -259,6 +263,7 @@ object NodeDetailLevel {
       ("machine"                 -> machine),
       ("ipAddresses"             -> ips),
       ("description"             -> description),
+      ("acceptanceDate"          -> acceptanceDate),
       ("lastRunDate"             -> runDate),
       ("lastInventoryDate"       -> inventoryDate),
       ("policyServerId"          -> policyServer),
@@ -303,9 +308,9 @@ object NodeDetailLevel {
 
   }
 
-  private val fullInventoryFields: Map[String, FullInventory => JValue] = {
+  private val fullInventoryFields: Map[String, (FullInventory, MinimalNodeFactInterface) => JValue] = {
 
-    val env = { (inv: FullInventory) =>
+    val env = { (inv: FullInventory, cnf: MinimalNodeFactInterface) =>
       val variables = inv.node.environmentVariables.map { env =>
         val value = JString(env.value.getOrElse(""))
         JField(env.name, value)
@@ -313,7 +318,7 @@ object NodeDetailLevel {
       JObject(variables)
     }
 
-    val network = { (inv: FullInventory) =>
+    val network = { (inv: FullInventory, cnf: MinimalNodeFactInterface) =>
       val network = inv.node.networks
         .map(network =>
           ("name"          -> network.name)
@@ -329,14 +334,21 @@ object NodeDetailLevel {
       JArray(network)
     }
 
-    val managementDetails = { (inv: FullInventory) =>
+    val managementDetails = { (inv: FullInventory, cnf: MinimalNodeFactInterface) =>
       val keys = inv.node.agents.map(ag => JString(ag.securityToken.key))
 
-      ("cfengineKeys" -> JArray(keys.toList)) ~
-      ("cfengineUser" -> inv.node.main.rootUser)
+      val run = cnf.rudderSettings.reportingConfiguration.agentRunInterval.map { r =>
+        ("runInterval" -> s"${r.interval} min") ~
+        ("firstRun"    -> LocalTime.of(r.startHour, r.startMinute).toString) ~
+        ("splayTime"   -> s"${r.splaytime} min")
+      }
+
+      ("cfengineKeys"     -> JArray(keys.toList)) ~
+      ("cfengineUser"     -> inv.node.main.rootUser) ~
+      ("scheduleOverride" -> run.getOrElse(JNothing))
     }
 
-    val fileSystems = { (inv: FullInventory) =>
+    val fileSystems = { (inv: FullInventory, cnf: MinimalNodeFactInterface) =>
       val fs   = inv.node.fileSystems.map { fs =>
         ("name"        -> fs.name) ~
         ("fileCount"   -> fs.fileCount) ~
@@ -352,7 +364,7 @@ object NodeDetailLevel {
       JArray(swap :: fs)
     }
 
-    val memories: FullInventory => JValue = { (inv: FullInventory) =>
+    val memories: (FullInventory, MinimalNodeFactInterface) => JValue = { (inv: FullInventory, cnf: MinimalNodeFactInterface) =>
       inv.machine.map { machine =>
         if (machine.memories.isEmpty) {
           JNothing
@@ -373,10 +385,10 @@ object NodeDetailLevel {
       }
     }
 
-    val softwareUpdate: FullInventory => JValue = {
+    val softwareUpdate: (FullInventory, MinimalNodeFactInterface) => JValue = {
       import com.normation.inventory.domain.JsonSerializers.implicits.*
       import com.normation.json.*
-      (inv: FullInventory) =>
+      (inv: FullInventory, cnf: MinimalNodeFactInterface) =>
         JArray(inv.node.softwareUpdates.flatMap { su =>
           su.toLiftJson match {
             case Left(err) =>
@@ -388,7 +400,7 @@ object NodeDetailLevel {
         }.toList)
     }
 
-    val storages: FullInventory => JValue = { (inv: FullInventory) =>
+    val storages: (FullInventory, MinimalNodeFactInterface) => JValue = { (inv: FullInventory, cnf: MinimalNodeFactInterface) =>
       inv.machine.map { machine =>
         if (machine.storages.isEmpty) {
           JNothing
@@ -409,7 +421,7 @@ object NodeDetailLevel {
       }
     }
 
-    val accounts = { (inv: FullInventory) =>
+    val accounts = { (inv: FullInventory, cnf: MinimalNodeFactInterface) =>
       val agents = inv.node.accounts.toList.map(JString)
       if (agents.isEmpty) {
         JNothing
@@ -418,7 +430,7 @@ object NodeDetailLevel {
       }
     }
 
-    val processors: FullInventory => JValue = { (inv: FullInventory) =>
+    val processors: (FullInventory, MinimalNodeFactInterface) => JValue = { (inv: FullInventory, cnf: MinimalNodeFactInterface) =>
       inv.machine.map { machine =>
         if (machine.processors.isEmpty) {
           JNothing
@@ -443,7 +455,7 @@ object NodeDetailLevel {
       }
     }
 
-    val ports: FullInventory => JValue = { (inv: FullInventory) =>
+    val ports: (FullInventory, MinimalNodeFactInterface) => JValue = { (inv: FullInventory, cnf: MinimalNodeFactInterface) =>
       inv.machine.map { machine =>
         if (machine.ports.isEmpty) {
           JNothing
@@ -459,26 +471,27 @@ object NodeDetailLevel {
       }
     }
 
-    val virtualMachines: FullInventory => JValue = { (inv: FullInventory) =>
-      if (inv.node.vms.isEmpty) {
-        JNothing
-      } else {
-        val virtualMachines = inv.node.vms.map { virtualMachine =>
-          ("name"        -> virtualMachine.name) ~
-          ("type"        -> virtualMachine.vmtype) ~
-          ("uuid"        -> virtualMachine.uuid.value) ~
-          ("vcpu"        -> virtualMachine.vcpu) ~
-          ("owner"       -> virtualMachine.owner) ~
-          ("status"      -> virtualMachine.status) ~
-          ("memory"      -> virtualMachine.memory) ~
-          ("subsystem"   -> virtualMachine.subsystem) ~
-          ("description" -> virtualMachine.description)
-        }.toList
-        JArray(virtualMachines)
-      }
+    val virtualMachines: (FullInventory, MinimalNodeFactInterface) => JValue = {
+      (inv: FullInventory, cnf: MinimalNodeFactInterface) =>
+        if (inv.node.vms.isEmpty) {
+          JNothing
+        } else {
+          val virtualMachines = inv.node.vms.map { virtualMachine =>
+            ("name"        -> virtualMachine.name) ~
+            ("type"        -> virtualMachine.vmtype) ~
+            ("uuid"        -> virtualMachine.uuid.value) ~
+            ("vcpu"        -> virtualMachine.vcpu) ~
+            ("owner"       -> virtualMachine.owner) ~
+            ("status"      -> virtualMachine.status) ~
+            ("memory"      -> virtualMachine.memory) ~
+            ("subsystem"   -> virtualMachine.subsystem) ~
+            ("description" -> virtualMachine.description)
+          }.toList
+          JArray(virtualMachines)
+        }
     }
 
-    val videos: FullInventory => JValue = { (inv: FullInventory) =>
+    val videos: (FullInventory, MinimalNodeFactInterface) => JValue = { (inv: FullInventory, cnf: MinimalNodeFactInterface) =>
       inv.machine.map { machine =>
         if (machine.videos.isEmpty) {
           JNothing
@@ -496,7 +509,7 @@ object NodeDetailLevel {
       }
     }
 
-    val bios: FullInventory => JValue = { (inv: FullInventory) =>
+    val bios: (FullInventory, MinimalNodeFactInterface) => JValue = { (inv: FullInventory, cnf: MinimalNodeFactInterface) =>
       inv.machine.map { machine =>
         if (machine.bios.isEmpty) {
           JNothing
@@ -515,24 +528,25 @@ object NodeDetailLevel {
       }
     }
 
-    val controllers: FullInventory => JValue = { (inv: FullInventory) =>
-      inv.machine.map { machine =>
-        if (machine.controllers.isEmpty) {
-          JNothing
-        } else {
-          val controllers = machine.controllers.map { controller =>
-            ("name"         -> controller.name) ~
-            ("type"         -> controller.cType) ~
-            ("quantity"     -> controller.quantity) ~
-            ("description"  -> controller.description) ~
-            ("manufacturer" -> controller.manufacturer.map(_.name))
-          }.toList
-          JArray(controllers)
+    val controllers: (FullInventory, MinimalNodeFactInterface) => JValue = {
+      (inv: FullInventory, cnf: MinimalNodeFactInterface) =>
+        inv.machine.map { machine =>
+          if (machine.controllers.isEmpty) {
+            JNothing
+          } else {
+            val controllers = machine.controllers.map { controller =>
+              ("name"         -> controller.name) ~
+              ("type"         -> controller.cType) ~
+              ("quantity"     -> controller.quantity) ~
+              ("description"  -> controller.description) ~
+              ("manufacturer" -> controller.manufacturer.map(_.name))
+            }.toList
+            JArray(controllers)
+          }
         }
-      }
     }
 
-    val slots: FullInventory => JValue = { (inv: FullInventory) =>
+    val slots: (FullInventory, MinimalNodeFactInterface) => JValue = { (inv: FullInventory, cnf: MinimalNodeFactInterface) =>
       inv.machine.map { machine =>
         if (machine.slots.isEmpty) {
           JNothing
@@ -548,7 +562,7 @@ object NodeDetailLevel {
       }
     }
 
-    val sounds: FullInventory => JValue = { (inv: FullInventory) =>
+    val sounds: (FullInventory, MinimalNodeFactInterface) => JValue = { (inv: FullInventory, cnf: MinimalNodeFactInterface) =>
       inv.machine.map { machine =>
         if (machine.sounds.isEmpty) {
           JNothing
@@ -563,7 +577,7 @@ object NodeDetailLevel {
       }
     }
 
-    val processes: FullInventory => JValue = { (inv: FullInventory) =>
+    val processes: (FullInventory, MinimalNodeFactInterface) => JValue = { (inv: FullInventory, cnf: MinimalNodeFactInterface) =>
       if (inv.node.processes.isEmpty) {
         JNothing
       } else {

@@ -57,6 +57,11 @@ properties:
     format: date
     example: "2020-02-29T14:48:28Z"
     description: "Date and time of the latest run, if one is available (node time). Up to API v11, format was: \"YYYY-MM-dd HH:mm\""
+  acceptanceDate:
+    type: string
+    example: "2020-02-29T10:11:32Z"
+    format: date
+    description: "Date and time of the acceptance of the node into Rudder."
   lastInventoryDate:
     type: string
     example: "2020-02-29T10:11:32Z"
@@ -333,6 +338,22 @@ properties:
         type: string
         description: Local user account used by the agent
         example: root
+      scheduleOverride:
+        type: object
+        description: Node agent run specific run schedule
+        properties:
+          runInterval:
+            type: string
+            description: duration of run interval, formatted with a time unit
+            example: "20 min"
+          firstRun:
+            type: string
+            description: time of the first run in HH:mm format
+            example: 00:11
+          splayTime:
+            type: string
+            description: duration of the configured splay time with a time unit
+            example: 7 min
   memories:
     type: array
     description: Memory slots
