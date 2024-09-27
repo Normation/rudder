@@ -1535,7 +1535,10 @@ h4.list-title.except{
 .section-title > .badge.exclude{
   background-color: #DA291C;
 }
-
+ul.applied-list{
+  display: flex;
+  flex-direction: column;
+}
 ul.applied-list > li {
   border: 1px solid #d6deef;
   padding: 10px;
