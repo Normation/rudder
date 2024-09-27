@@ -172,9 +172,9 @@ final case class TechniqueCompilationOutput(
     stderr:     String
 )
 
+// additional param to give to rudderc
 final case class TechniqueCompilationConfig(
-    // additional param to give to rudderc
-    args: Option[String]
+    args: Option[List[String]]
 )
 
 object TechniqueCompilationIO {
@@ -243,10 +243,13 @@ object RuddercResult       {
  * Option for rudder, like verbosity, etc
  */
 final case class RuddercOptions(
-    verbose: Boolean,
-    // unparsed additional args as a string
-    args:    String
+    args: List[String]
 )
+object RuddercOptions {
+  def fromConfig(config: TechniqueCompilationConfig): RuddercOptions = {
+    RuddercOptions(config.args.toList.flatten)
+  }
+}
 
 sealed trait NcfError extends RudderError {
   def message:   String
@@ -326,8 +329,7 @@ class RuddercServiceImpl(
 
   def buildCmdLine(techniquePath: File, options: RuddercOptions): Cmd = {
     val params = {
-      options.args ::
-      (if (options.verbose) List("-v") else Nil) :::
+      options.args :::
       ("--directory" :: techniquePath.pathAsString :: "build" :: Nil)
     }
 
@@ -401,7 +403,7 @@ class RuddercTechniqueCompiler(
       _         <- ZIO.foreach(TechniqueFiles.Generated.all) { name =>
                      IOResult.attempt((gitDir / getTechniqueRelativePath(technique) / name).delete(true))
                    }
-      res       <- compileTechniqueInternal(technique, config.args.getOrElse(""))
+      res       <- compileTechniqueInternal(technique, config)
       _         <- ZIO.when(res.resultCode != 0) {
                      writeCompilationOutputFile(technique, res)
                    }
@@ -415,12 +417,11 @@ class RuddercTechniqueCompiler(
    * In case of error or fallback, the compilation.yml file is updated.
    */
   def compileTechniqueInternal(
-      technique:      EditorTechnique,
-      additionalArgs: String
+      technique: EditorTechnique,
+      config:    TechniqueCompilationConfig
   ): IOResult[TechniqueCompilationOutput] = {
 
-    val verbose        = false
-    val ruddercOptions = RuddercOptions(verbose, additionalArgs)
+    val ruddercOptions = RuddercOptions.fromConfig(config)
 
     val ruddercAll = ruddercService.compile(gitDir / getTechniqueRelativePath(technique), ruddercOptions)
 
@@ -454,7 +455,12 @@ class RuddercTechniqueCompiler(
                  }
       res     <- content match {
                    case None    => TechniqueCompilationConfig(None).succeed // default
-                   case Some(x) => x.fromYaml[TechniqueCompilationConfig].toIO
+                   case Some(x) =>
+                     x.fromYaml[TechniqueCompilationConfig]
+                       .toIO
+                       .chainError(
+                         s"Could not read technique compilation configuration YAML file ${getCompilationConfigFile(technique)}"
+                       )
                  }
     } yield res
   }
