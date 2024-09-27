@@ -50,7 +50,6 @@ import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.MemorySize
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.NodeInventory
 import com.normation.inventory.domain.SecurityToken
 import com.normation.inventory.domain.SoftwareUpdate
 import com.normation.inventory.domain.Version
@@ -109,6 +108,7 @@ import enumeratum.Enum
 import enumeratum.EnumEntry
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.dsl.*
+import java.time.LocalTime
 import org.joda.time.DateTime
 import zio.*
 import zio.Tag as _
@@ -274,6 +274,7 @@ object JsonResponseObjects {
       machine:                     Option[nodes.MachineInfo],
       ipAddresses:                 Option[Chunk[String]],
       description:                 Option[String],
+      acceptanceDate:              Option[DateTime],
       lastInventoryDate:           Option[DateTime],
       lastRunDate:                 Option[DateTime],
       policyServerId:              Option[NodeId],
@@ -328,6 +329,7 @@ object JsonResponseObjects {
         .withFieldComputed(_.machine, levelField(_)("machine")(nodeInfo.machine))
         .withFieldComputed(_.ipAddresses, levelField("ipAddresses")(nodeInfo.ips.transformInto[Chunk[String]]))
         .withFieldComputed(_.description, levelField("description")(nodeInfo.description))
+        .withFieldComputed(_.acceptanceDate, levelField("acceptanceDate")(nodeFact.creationDate))
         .withFieldComputed(_.lastInventoryDate, levelField("lastInventoryDate")(nodeInfo.inventoryDate))
         .withFieldComputed(
           _.lastRunDate,
@@ -383,7 +385,7 @@ object JsonResponseObjects {
         )
         .withFieldComputed(
           _.managementTechnologyDetails,
-          levelField(_)("managementTechnologyDetails")(inventory.map(_.node.transformInto[ManagementDetails]))
+          levelField(_)("managementTechnologyDetails")(Some(nodeFact.transformInto[ManagementDetails]))
         )
         .withFieldComputed(
           _.memories,
@@ -505,18 +507,31 @@ object JsonResponseObjects {
       }
     }
 
+    final case class ScheduleOverride(
+        runInterval: String,
+        firstRun:    String,
+        splayTime:   String
+    )
+
     /**
      * The structure does not directly match the domain object, it aggregates some fields
      */
     final case class ManagementDetails(
-        cfengineKeys: Chunk[SecurityToken],
-        cfengineUser: String
+        cfengineKeys:     Chunk[SecurityToken],
+        cfengineUser:     String,
+        scheduleOverride: Option[ScheduleOverride]
     )
     object ManagementDetails {
-      implicit val transformer: Transformer[NodeInventory, ManagementDetails] = Transformer
-        .define[NodeInventory, ManagementDetails]
-        .withFieldComputed(_.cfengineKeys, n => Chunk.fromIterable(n.agents.map(_.securityToken)))
-        .withFieldComputed(_.cfengineUser, _.main.rootUser)
+      implicit val transformer: Transformer[NodeFact, ManagementDetails] = Transformer
+        .define[NodeFact, ManagementDetails]
+        .withFieldComputed(_.cfengineKeys, n => Chunk(n.rudderAgent.securityToken))
+        .withFieldComputed(_.cfengineUser, _.rudderAgent.user)
+        .withFieldComputed(
+          _.scheduleOverride,
+          _.rudderSettings.reportingConfiguration.agentRunInterval.map(r =>
+            ScheduleOverride(s"${r.interval} min", LocalTime.of(r.startHour, r.startMinute).toString, s"${r.splaytime} min")
+          )
+        )
         .buildTransformer
     }
 
@@ -561,6 +576,7 @@ object JsonResponseObjects {
       compliance:              Option[JRNodeCompliance],
       systemError:             Boolean,
       ipAddresses:             Chunk[IpAddress],
+      acceptanceDate:          String,         // display date
       lastRun:                 String,         // display date
       lastInventory:           String,         // display date
       software:                Map[String, String],
@@ -604,6 +620,10 @@ object JsonResponseObjects {
         .withFieldConst(
           _.lastRun,
           agentRunWithNodeConfig.map(d => DateFormaterService.getDisplayDate(d.agentRunId.date)).getOrElse("Never")
+        )
+        .withFieldComputed(
+          _.acceptanceDate,
+          nf => DateFormaterService.getDisplayDate(nf.creationDate)
         )
         .withFieldComputed(
           _.lastInventory,
@@ -1753,6 +1773,7 @@ trait RudderJsonEncoders {
   implicit val nodeKindEncoder:          JsonEncoder[NodeKind]            = JsonEncoder[String].contramap(_.name)
   implicit val securityTokenEncoder:     JsonEncoder[SecurityToken]       = JsonEncoder[String].contramap(_.key)
   implicit val managementEncoder:        JsonEncoder[Management]          = DeriveJsonEncoder.gen[Management]
+  implicit val scheduleOverrideEncoder:  JsonEncoder[ScheduleOverride]    = DeriveJsonEncoder.gen[ScheduleOverride]
   implicit val managementDetailsEncoder: JsonEncoder[ManagementDetails]   = DeriveJsonEncoder.gen[ManagementDetails]
   implicit val licenseEncoder:           JsonEncoder[domain.License]      = DeriveJsonEncoder.gen[domain.License]
   implicit val softwareUuidEncoder:      JsonEncoder[domain.SoftwareUuid] = JsonEncoder[String].contramap(_.value)
