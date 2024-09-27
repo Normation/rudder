@@ -789,7 +789,11 @@ class RestAuthenticationFilter(
                   failsAuthentication(httpRequest, httpResponse, err)
 
                 case Right(None) =>
-                  failsAuthentication(httpRequest, httpResponse, Inconsistency(s"No registered token '${token}'"))
+                  failsAuthentication(
+                    httpRequest,
+                    httpResponse,
+                    Inconsistency(s"No registered token '${apiToken.exposeSecretBeginning}'")
+                  )
 
                 case Right(Some(principal)) =>
                   if (principal.isEnabled) {

@@ -60,6 +60,9 @@ final case class ApiAccountName(value: String) extends AnyVal
 /**
  * The actual authentication token.
  *
+ * TODO: Once support for plain text tokens is dropped, make separate types for plain and hashed tokens.
+         Current situation is confusing, and hence a bit risky.
+ *
  * There are two versions of tokens:
  *
  * * v1: 32 alphanumeric characters stored as clear text
@@ -78,7 +81,13 @@ final case class ApiAccountName(value: String) extends AnyVal
  */
 case class ApiToken(value: String) extends AnyVal {
   // Avoid printing the value in logs, regardless of token type
-  override def toString: String = s"[REDACTED ApiToken]"
+  override def toString: String = "[REDACTED ApiToken]"
+
+  // For cases we need to print a part of the plain token for debug.
+  // Show the first 4 chars: enough to disambiguate, and preserves 166 bits of randomness.
+  def exposeSecretBeginning: String = {
+    value.take(4) + "[SHORTENED ApiToken]"
+  }
 
   def isHashed: Boolean = {
     value.startsWith(prefixV2)
