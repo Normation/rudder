@@ -1,18 +1,20 @@
-///! Type for parsing the `/etc/os-release` file.
-use std::path::Path;
-// Adapted from https://github.com/pop-os/os-release/tree/master
-// By System76, under MIT license
+//! Type for parsing the `/etc/os-release` file.
+//!
+//! For a broad list of sample `/etc/os-release` files, see:
+//! https://github.com/chef/os_release
+//!
+//! For the specs, see:
+//! https://www.freedesktop.org/software/systemd/man/latest/os-release.html
 
-/// For a broad list of sample `/etc/os-release` files, see:
-/// https://github.com/chef/os_release
-///
-/// For the specs, see:
-/// https://www.freedesktop.org/software/systemd/man/latest/os-release.html
 use std::{
     fs::File,
     io::{self, BufRead, BufReader},
     iter::FromIterator,
+    path::Path,
 };
+
+// Adapted from https://github.com/pop-os/os-release/tree/master
+// By System76, under MIT license
 
 const OS_RELEASE_ETC: &str = "/etc/os-release";
 const OS_RELEASE_USR: &str = "/usr/lib/os-release";

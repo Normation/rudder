@@ -291,7 +291,7 @@ impl RemoteRun {
 
         let response = client
             .inner()
-            .post(&format!(
+            .post(format!(
                 "https://{}:{}/rudder/relay-api/remote-run/{}",
                 hostname,
                 job_config.cfg.general.https_port,

@@ -65,8 +65,8 @@ pub fn check_update(
         }
 
         // Update takes time
-        let now_post = Utc::now();
-        let do_post_actions = db.post_event(&p.event_id, now_post)?;
+        let do_post_actions = db.post_event(&p.event_id)?;
+
         if do_post_actions {
             let init_report = db.get_report(&p.event_id)?;
             let report = post_update(init_report)?;
@@ -77,11 +77,10 @@ pub fn check_update(
                 fs::write(f, serde_json::to_string(&report)?.as_bytes())?;
             }
 
-            // Post-update actions may take time
             let now_finished = Utc::now();
             db.sent(&p.event_id, now_finished)?;
 
-            // The repaired status is the trigger to read and send it.
+            // The repaired status is the trigger to read and send the report.
             Ok(Outcome::Repaired("Update has run".to_string()))
         } else {
             Ok(Outcome::Success(None))
@@ -120,12 +119,16 @@ fn update(
 
     // We consider failure to probe system state a blocking error
     let before = pm.list_installed();
-    if before.inner.is_err() {
+    let before_list = match before.inner {
+        Ok(ref l) => Some(l.clone()),
+        _ => None,
+    };
+    report.step(before);
+    if report.is_err() {
         report.stderr("Failed to list installed packages, aborting upgrade");
         return Ok(report);
     }
-    let before_list = before.inner.as_ref().unwrap().clone();
-    report.step(before);
+    let before_list = before_list.unwrap();
 
     // Update package cache
     //
@@ -141,12 +144,16 @@ fn update(
     report.step(update_result);
 
     let after = pm.list_installed();
-    if after.inner.is_err() {
+    let after_list = match after.inner {
+        Ok(ref l) => Some(l.clone()),
+        _ => None,
+    };
+    report.step(after);
+    if report.is_err() {
         report.stderr("Failed to list installed packages, aborting upgrade");
         return Ok(report);
     }
-    let after_list = after.inner.as_ref().unwrap().clone();
-    report.step(after);
+    let after_list = after_list.unwrap();
 
     // Compute package list diff
     report.diff(before_list.diff(after_list));
@@ -177,7 +184,8 @@ fn update(
     let services = pm.services_to_restart();
     let services_list = match services.inner {
         Ok(ref p) => p.clone(),
-        Err(_) => {
+        Err(ref e) => {
+            eprintln!("{}", e);
             vec![]
         }
     };

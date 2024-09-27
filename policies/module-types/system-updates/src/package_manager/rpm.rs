@@ -3,8 +3,10 @@
 
 use std::{collections::HashMap, process::Command};
 
-use crate::output::ResultOutput;
-use crate::package_manager::{PackageId, PackageInfo, PackageList, PackageManager};
+use crate::{
+    output::ResultOutput,
+    package_manager::{PackageId, PackageInfo, PackageList, PackageManager},
+};
 use anyhow::Result;
 
 pub struct RpmPackageManager {}

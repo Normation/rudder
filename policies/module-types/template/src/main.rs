@@ -9,7 +9,7 @@ use std::{
 
 use anyhow::{bail, Context, Result};
 use minijinja::UndefinedBehavior;
-use rudder_module_type::cfengine::{called_from_agent, CFENGINE_MODE_ARG};
+use rudder_module_type::cfengine::called_from_agent;
 use rudder_module_type::{
     backup::Backup, parameters::Parameters, rudder_debug, run_module, CheckApplyResult,
     ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
