@@ -116,6 +116,7 @@ object NodeDetailLevel {
     "machine",
     "ipAddresses",
     "description",
+    "acceptanceDate",
     "lastInventoryDate",
     "lastRunDate",
     "policyServerId",

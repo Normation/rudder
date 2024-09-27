@@ -56,6 +56,7 @@ response:
               "192.168.0.10"
             ],
             "description":"",
+            "acceptanceDate" : "2021-01-30T00:20:00Z",
             "lastInventoryDate":"2021-01-30T00:20:00Z",
             "policyServerId":"root",
             "managementTechnology":[
@@ -138,6 +139,7 @@ response:
               "192.168.0.10"
             ],
             "description" : "",
+            "acceptanceDate" : "2021-01-30T00:20:00Z",
             "lastInventoryDate" : "2021-01-30T00:20:00Z",
             "policyServerId" : "root",
             "managementTechnology" : [
@@ -283,32 +285,6 @@ response:
                 ]
               }
             ]
-          }
-        ]
-      }
-    }
----
-description: List node with select and include managementTechnology
-method: GET
-url: /api/latest/nodes?include=minimal,managementTechnologyDetails&select=nodeAndPolicyServer&where=[{"objectType":"node","attribute":"nodeHostname","comparator":"eq","value":"node1.localhost"}]
-response:
-  code: 200
-  content: >-
-    {
-      "action":"listAcceptedNodes",
-      "result":"success",
-      "data":{
-        "nodes":[
-          {
-            "id":"node1",
-            "hostname":"node1.localhost",
-            "status":"accepted",
-            "managementTechnologyDetails":{
-              "cfengineKeys":[
-                "-----BEGIN RSA PUBLIC KEY-----\nMIIBCAKCAQEAlntroa72gD50MehPoyp6mRS5fzZpsZEHu42vq9KKxbqSsjfUmxnT\nRsi8CDvBt7DApIc7W1g0eJ6AsOfV7CEh3ooiyL/fC9SGATyDg5TjYPJZn3MPUktg\nYBzTd1MMyZL6zcLmIpQBH6XHkH7Do/RxFRtaSyicLxiO3H3wapH20TnkUvEpV5Qh\nzUkNM8vHZuu3m1FgLrK5NCN7BtoGWgeyVJvBMbWww5hS15IkCRuBkAOK/+h8xe2f\nhMQjrt9gW2qJpxZyFoPuMsWFIaX4wrN7Y8ZiN37U2q1G11tv2oQlJTQeiYaUnTX4\nz5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==\n-----END RSA PUBLIC KEY-----"
-              ],
-              "cfengineUser":"root"
-            }
           }
         ]
       }
@@ -716,6 +692,7 @@ response:
               "192.168.0.10"
             ],
             "description" : "",
+            "acceptanceDate" : "2021-01-30T00:20:00Z",
             "lastInventoryDate" : "2021-01-30T00:20:00Z",
             "policyServerId" : "root",
             "managementTechnology" : [
@@ -755,6 +732,7 @@ response:
               "192.168.0.10"
             ],
             "description" : "",
+            "acceptanceDate" : "2021-01-30T00:20:00Z",
             "lastInventoryDate" : "2021-01-30T00:20:00Z",
             "policyServerId" : "root",
             "managementTechnology" : [
@@ -1055,6 +1033,7 @@ response:
         "ipAddresses" : [
           "192.168.0.5"
         ],
+        "acceptanceDate" : "2021-01-30 01:20:00+0100",
         "lastRun" : "Never",
         "lastInventory" : "2021-01-30 01:20:00+0100",
         "software" : {},
@@ -1081,6 +1060,7 @@ response:
         "ipAddresses" : [
           "192.168.0.10"
         ],
+        "acceptanceDate" : "2021-01-30 01:20:00+0100",
         "lastRun" : "Never",
         "lastInventory" : "2021-01-30 01:20:00+0100",
         "software" : {},
@@ -1107,6 +1087,7 @@ response:
         "ipAddresses" : [
           "192.168.0.10"
         ],
+        "acceptanceDate" : "2021-01-30 01:20:00+0100",
         "lastRun" : "Never",
         "lastInventory" : "2021-01-30 01:20:00+0100",
         "software" : {},
@@ -1132,6 +1113,7 @@ response:
         "ipAddresses" : [
           "192.168.0.100"
         ],
+        "acceptanceDate" : "2021-01-30 01:20:00+0100",
         "lastRun" : "Never",
         "lastInventory" : "2021-01-30 01:20:00+0100",
         "software" : {},
@@ -1175,6 +1157,7 @@ response:
         "ipAddresses" : [
           "192.168.0.10"
         ],
+        "acceptanceDate" : "2021-01-30 01:20:00+0100",
         "lastRun" : "Never",
         "lastInventory" : "2021-01-30 01:20:00+0100",
         "software" : {
