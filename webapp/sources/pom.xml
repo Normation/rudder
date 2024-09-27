@@ -453,7 +453,7 @@ limitations under the License.
     <sourcecode-version>0.3.1</sourcecode-version>
     <quicklens-version>1.9.6</quicklens-version>
     <hikaricp-version>5.1.0</hikaricp-version>
-    <nuprocess-version>2.0.6</nuprocess-version>
+    <nuprocess-version>3.0.0</nuprocess-version>
     <postgresql-version>42.7.3</postgresql-version>
     <json-path-version>2.8.0</json-path-version>
     <json-smart-version>2.5.0</json-smart-version>
