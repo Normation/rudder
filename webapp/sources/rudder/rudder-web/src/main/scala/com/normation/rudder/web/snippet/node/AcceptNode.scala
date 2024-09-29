@@ -137,15 +137,17 @@ class AcceptNode extends Loggable {
         TimingDebugLogger.debug(s"Accepting node ${id.value}: ${System.currentTimeMillis - now}ms")
       }
       accept match {
-        case f: Failure  =>
+        case f:     Failure  =>
           S.error(
             <span>
             {f.messageChain}
           </span>
           )
-        case e: EmptyBox =>
-          logger.error(s"Add new node '$id.value' lead to Failure.", e)
-          S.error(<span class="error">Error while accepting node(s).</span>)
+        case empty: EmptyBox =>
+          val errorMsg = s"Add new node '$id.value' lead to Failure."
+          val e        = empty ?~! errorMsg
+          JsRaw(s"""createErrorNotification("${e.messageChain}")""")
+          logger.error(errorMsg, e)
         case Full(_) =>
           logger.debug(s"Successfully added node '${id.value}'")
       }
@@ -170,9 +172,11 @@ class AcceptNode extends Loggable {
           )
         )
         .toBox match {
-        case e: EmptyBox =>
-          logger.error(s"Refuse node '${id.value}' lead to Failure.", e)
-          S.error(<span class="error">Error while refusing node(s).</span>)
+        case empty: EmptyBox =>
+          val errorMsg = s"Refuse node '${id.value}' lead to Failure."
+          val e        = empty ?~! errorMsg
+          JsRaw(s"""createErrorNotification("${e.messageChain}")""")
+          logger.error(errorMsg, e)
         case Full(_) =>
           logger.debug(s"Successfully refused node '${id.value}'")
       }
