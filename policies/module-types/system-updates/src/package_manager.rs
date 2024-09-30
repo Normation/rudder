@@ -88,6 +88,7 @@ impl PackageList {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PackageDiff {
+    #[serde(flatten)]
     id: PackageId,
     #[serde(skip_serializing_if = "Option::is_none")]
     old_version: Option<String>,

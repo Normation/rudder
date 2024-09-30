@@ -69,7 +69,8 @@ impl From<ValidateResult> for ValidateOutcome {
         match item {
             Ok(()) => ValidateOutcome::Valid,
             Err(e) => {
-                rudder_error!("{}", e);
+                // Use Debug to show full anyhow error stack
+                rudder_error!("{:?}", e);
                 ValidateOutcome::Invalid
             }
         }
@@ -129,11 +130,13 @@ impl From<ProtocolResult> for ProtocolOutcome {
         match item {
             ProtocolResult::Success => ProtocolOutcome::Success,
             ProtocolResult::Failure(e) => {
-                rudder_error!("{}", e);
+                // Debug as we use anyhow's Error
+                rudder_error!("HIHI{:?}", e);
                 ProtocolOutcome::Failure
             }
             ProtocolResult::Error(e) => {
-                rudder_error!("{}", e);
+                // Debug as we use anyhow's Error
+                rudder_error!("HIIH{:?}", e);
                 ProtocolOutcome::Error
             }
         }
