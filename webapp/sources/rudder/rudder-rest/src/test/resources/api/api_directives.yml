@@ -251,7 +251,7 @@ response:
             "longDescription":"",
             "techniqueName":"Create_file",
             "techniqueVersion":"1.0",
-            "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Directory create","vars":[{"var":{"name":"expectedReportKey Directory create","value":"directory_create_/tmp/foo"}}]}},{"section":{"name":"File create","vars":[{"var":{"name":"expectedReportKey File create","value":"file_create_/tmp/foo/bar"}}]}},{"section":{"name":"Technique parameters","vars":[{"var":{"name":"1AAACD71-C2D5-482C-BCFF-5EEE6F8DA9C2","value":"\"foo"}}]}}]}},
+            "parameters":{"section":{"name":"sections","sections":[{"section":{"name":"Directory create","vars":[{"var":{"name":"expectedReportKey Directory create","value":"directory_create_/tmp/foo"}}]}},{"section":{"name":"File create","vars":[{"var":{"name":"expectedReportKey File create","value":"file_create_/tmp/foo/bar"}}]}},{"section":{"name":"Technique parameters","vars":[{"var":{"name":"1AAACD71-C2D5-482C-BCFF-5EEE6F8DA9C2","value":"\"foo"}},{"var":{"name":"3021FC4F-DA33-4D84-8991-C42EBAB2335F","value":""}}]}}]}},
             "priority":5,
             "enabled":false,
             "system":false,
@@ -2014,6 +2014,12 @@ response:
                                       "var": {
                                         "name": "1AAACD71-C2D5-482C-BCFF-5EEE6F8DA9C2",
                                         "value": "\"foo"
+                                      }
+                                    },
+                                    {
+                                      "var": {
+                                        "name": "3021FC4F-DA33-4D84-8991-C42EBAB2335F",
+                                        "value":""
                                       }
                                     }
                                   ]

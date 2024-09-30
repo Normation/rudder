@@ -265,7 +265,7 @@ class PrepareTemplateVariablesImpl(
           .findHandler(agentNodeProps)
           .toIO
           .chainError(s"Error when trying to fetch variable escaping method for node ${agentNodeProps.nodeId.value}")
-      // here, `traverse` seems to give similar but more consistant results than `traverseParN`
+      // here, `traverse` seems to give similar but more consistent results than `traverseParN`
       preparedTechniques <- ZIO.foreach(policies) { p =>
                               for {
                                 _         <-
@@ -357,54 +357,9 @@ class PrepareTemplateVariablesImpl(
     // we can't do it when we built node configuration because some (system variable at least (note: but only? If so, we could just check
     // them here, not everything).
 
-    val variables = policy.expandedVars + ((policy.trackerVariable.spec.name, policy.trackerVariable))
-
-    for {
-      stVariables <- policy.technique.getAllVariableSpecs.accumulate { variableSpec =>
-                       variableSpec match {
-                         case x: TrackerVariableSpec =>
-                           variables.get(x.name) match {
-                             case None    =>
-                               Inconsistency(
-                                 s"[${agentNodeProps.nodeId.value}:${policy.technique.id.debugString}] Misssing mandatory value for tracker variable: '${x.name}'"
-                               ).fail
-                             case Some(v) =>
-                               stVariableFromVariable(v, agentVariableHandler, agentNodeProps.nodeId, policy.technique.id)
-                                 .map(Some(_))
-                           }
-                         case x: SystemVariableSpec  =>
-                           systemVars.get(x.name) match {
-                             case None         =>
-                               if (x.constraint.mayBeEmpty) { // ok, that's expected
-                                 PolicyGenerationLoggerPure.trace(
-                                   s"[${agentNodeProps.nodeId.value}:${policy.technique.id.debugString}] Variable system named '${x.name}' not found in the extended variables environnement"
-                                 ) *>
-                                 None.succeed
-                               } else {
-                                 Inconsistency(
-                                   s"[${agentNodeProps.nodeId.value}:${policy.technique.id.debugString}] Missing value for system variable: '${x.name}'"
-                                 ).fail
-                               }
-                             case Some(sysvar) =>
-                               stVariableFromVariable(sysvar, agentVariableHandler, agentNodeProps.nodeId, policy.technique.id)
-                                 .map(Some(_))
-                           }
-                         case x: SectionVariableSpec =>
-                           variables.get(x.name) match {
-                             case None    =>
-                               Inconsistency(
-                                 s"[${agentNodeProps.nodeId.value}:${policy.technique.id.debugString}] Misssing value for standard variable: '${x.name}'"
-                               ).fail
-                             case Some(v) =>
-                               stVariableFromVariable(v, agentVariableHandler, agentNodeProps.nodeId, policy.technique.id)
-                                 .map(Some(_))
-                           }
-                       }
-                     }
-    } yield {
-      // return the collection without the none
-      stVariables.flatten
-    }
+    ZIO.foreach(policy.trackerVariable :: (systemVars.values ++ policy.expandedVars.values).toList)(v =>
+      stVariableFromVariable(v, agentVariableHandler, agentNodeProps.nodeId, policy.technique.id)
+    )
   }
 
 }

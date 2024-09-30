@@ -46,7 +46,7 @@ import com.normation.errors.Unexpected
 /**
  * This file define the model for metadata of object
  * contained in SECTIONS.
- * A section may contains other section or variables.
+ * A section may contain other section or variables.
  */
 
 /**

@@ -39,6 +39,7 @@ package com.normation.cfclerk.domain
 
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.policies.PolicyTypes
+import com.normation.rudder.services.policies.ComponentId
 import com.normation.utils.Utils.*
 import enumeratum.*
 import org.apache.commons.text.StringEscapeUtils
@@ -215,8 +216,22 @@ final case class Technique(
    */
   val templatesIds: Set[TechniqueResourceId] = agentConfigs.flatMap(cfg => cfg.templates.map(_.id)).toSet
 
-  val getAllVariableSpecs: Seq[VariableSpec] =
-    this.rootSection.getAllVariables ++ this.systemVariableSpecs :+ this.trackerVariableSpec
+  def getAllVariableSpecs: Map[ComponentId, VariableSpec] = {
+    val inputVars = rootSection
+      .getAllVariablesBySection(Nil)
+      .map {
+        case (parents, spec) =>
+          val reportId = spec.id.orElse(parents.headOption.flatMap(_.id))
+          (ComponentId(spec.name, parents.map(_.name), reportId), spec)
+      }
+      .toMap
+
+    val specialVars =
+      (this.systemVariableSpecs.toSeq :+ this.trackerVariableSpec).map(s => (ComponentId(s.name, Nil, None), s)).toMap
+
+    // we should not have redefinition - but with that, a special var could overwrite an input one
+    inputVars ++ specialVars
+  }
 
   // Escape the description, so that text cannot be used to inject anything in display
   def escapedDescription: String = {
