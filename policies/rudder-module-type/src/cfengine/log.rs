@@ -188,15 +188,23 @@ pub fn max_level() -> LevelFilter {
     unsafe { mem::transmute(MAX_LOG_LEVEL_FILTER.load(Ordering::Relaxed)) }
 }
 
+// We only support single_line logs
+// TODO: allow multi-line? We don't want to use JSON logs as we want to display them in live
+pub fn escape_lines(s: &str) -> String {
+    s.replace('\n', "\\n")
+}
+
 #[doc(hidden)]
 #[macro_export(local_inner_macros)]
 macro_rules! rudder_log {
     (target: $target:expr, $lvl:expr, $($arg:tt)+) => ({
         let lvl = $lvl;
         if lvl <= $crate::cfengine::log::max_level() {
+            let f = std::format!("{}", __log_format_args!($($arg)+));
+
             std::println!(
                 "log_{}={}",
-                lvl, __log_format_args!($($arg)+)
+                lvl, $crate::cfengine::log::escape_lines(&f)
             );
         }
     });

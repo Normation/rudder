@@ -217,7 +217,7 @@ pub(crate) struct ScheduleReport {
 impl ScheduleReport {
     pub fn new(datetime: DateTime<Utc>) -> Self {
         Self {
-            status: Status::Error,
+            status: Status::Success,
             date: datetime,
         }
     }

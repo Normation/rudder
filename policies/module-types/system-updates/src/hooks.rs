@@ -81,7 +81,7 @@ impl Hooks {
                 path.display()
             );
             rudder_debug!("{}", s);
-            res.stderr(s);
+            res.stdout(s);
             return res;
         }
         if !path.is_dir() {
