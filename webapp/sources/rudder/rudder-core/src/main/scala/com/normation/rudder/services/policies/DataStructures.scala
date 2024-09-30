@@ -618,9 +618,10 @@ final case class BoundPolicyDraft(
                                            )
                                          }
                                          // check if there is mandatory variable with missing/blank values
+                                         // NOTE : it's OK that system variables are not filled here yet
                                          (
-                                           variable.spec.constraint.mayBeEmpty,
-                                           variable.values.exists(v => v == null || v.isEmpty)
+                                           variable.spec.constraint.mayBeEmpty || variable.spec.isSystem,
+                                           variable.values.isEmpty || variable.values.exists(v => v == null || v.isEmpty)
                                          ) match {
                                            // simple case: it's optional, we don't care if empty or not.
                                            case (true, _) => Right((cid, variable))
@@ -653,7 +654,8 @@ final case class BoundPolicyDraft(
         // add missing if possible
         added                 <- missing.accumulatePure {
                                    case (_, (cid, spec)) =>
-                                     (spec.constraint.mayBeEmpty, spec.constraint.default) match {
+                                     // if mayBeEmpty or if it's a system variable, just add it - empty.
+                                     (spec.constraint.mayBeEmpty || spec.isSystem, spec.constraint.default) match {
                                        case (true, _)        => Right((cid, spec.toVariable()))
                                        case (false, Some(d)) => Right((cid, spec.toVariable(Seq(d))))
                                        case (false, None)    =>
