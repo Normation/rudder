@@ -353,11 +353,8 @@ class PrepareTemplateVariablesImpl(
       systemVars:           Map[String, Variable]
   ): IOResult[Seq[STVariable]] = {
 
-    // we want to check that all technique variables are correctly provided.
-    // we can't do it when we built node configuration because some (system variable at least (note: but only? If so, we could just check
-    // them here, not everything).
-
-    ZIO.foreach(policy.trackerVariable :: (systemVars.values ++ policy.expandedVars.values).toList)(v =>
+    // here, we want to be sure to get the system variable that were late defined in priority.
+    ZIO.foreach(policy.trackerVariable :: (policy.expandedVars ++ systemVars).values.toList)(v =>
       stVariableFromVariable(v, agentVariableHandler, agentNodeProps.nodeId, policy.technique.id)
     )
   }
