@@ -131,12 +131,12 @@ impl From<ProtocolResult> for ProtocolOutcome {
             ProtocolResult::Success => ProtocolOutcome::Success,
             ProtocolResult::Failure(e) => {
                 // Debug as we use anyhow's Error
-                rudder_error!("HIHI{:?}", e);
+                rudder_error!("{:?}", e);
                 ProtocolOutcome::Failure
             }
             ProtocolResult::Error(e) => {
                 // Debug as we use anyhow's Error
-                rudder_error!("HIIH{:?}", e);
+                rudder_error!("{:?}", e);
                 ProtocolOutcome::Error
             }
         }
