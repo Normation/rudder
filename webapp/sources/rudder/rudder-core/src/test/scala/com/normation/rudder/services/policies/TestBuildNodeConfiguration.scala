@@ -102,9 +102,9 @@ class TestBuildNodeConfiguration extends Specification {
   def newNode(i: Int): CoreNodeFact =
     fact1.modify(_.id).setTo(NodeId("node" + i)).modify(_.fqdn).setTo(s"node$i.localhost")
 
-  val allNodes:     MapView[NodeId, CoreNodeFact] = ((1 to 1000).map(newNode) :+ factRoot).map(n => (n.id, n)).toMap.view
+  val allNodes:   MapView[NodeId, CoreNodeFact] = ((1 to 100).map(newNode) :+ factRoot).map(n => (n.id, n)).toMap.view
   // only one group with all nodes
-  val group:        NodeGroup                     = {
+  val group:      NodeGroup                     = {
     NodeGroup(
       NodeGroupId(NodeGroupUid("allnodes")),
       name = "allnodes",
@@ -116,7 +116,7 @@ class TestBuildNodeConfiguration extends Specification {
       _isEnabled = true
     )
   }
-  val groupLib:     FullNodeGroupCategory         = FullNodeGroupCategory(
+  val groupLib:   FullNodeGroupCategory         = FullNodeGroupCategory(
     NodeGroupCategoryId("test_root"),
     "",
     "",
@@ -131,9 +131,13 @@ class TestBuildNodeConfiguration extends Specification {
       )
     )
   )
-  val directives:   Map[DirectiveId, Directive]   =
-    (1 to 1000).map(i => data.rpmDirective("rpm" + i, "somepkg" + i)).map(d => (d.id, d)).toMap
-  val directiveLib: FullActiveTechniqueCategory   = FullActiveTechniqueCategory(
+  val directives: Map[DirectiveId, Directive]   = {
+    ((1 to 100).map(i => data.rpmDirective("rpm" + i, "somepkg" + i)) :+
+    // add a directive with a node property with a default value of " " - it should work, see https://issues.rudder.io/issues/25557
+    data.rpmDirective("blank_default_node", """${node.properties[udp_open_ports] | default=" "}""")).map(d => (d.id, d))
+  }.toMap
+
+  val directiveLib: FullActiveTechniqueCategory = FullActiveTechniqueCategory(
     ActiveTechniqueCategoryId("root"),
     name = "root",
     description = "",
@@ -199,27 +203,27 @@ class TestBuildNodeConfiguration extends Specification {
 
     logger.trace(s"init   : ${System.currentTimeMillis - t0} ms")
 
-    for (i <- 0 until 10) {
-      logger.trace("\n--------------------------------")
-      val t1           = System.currentTimeMillis()
-      val ruleVal      =
-        ruleValService.buildRuleVal(rule, directiveLib, groupLib, allNodes.mapValues(_.rudderSettings.isPolicyServer))
-      val ruleVals     = Seq(ruleVal.getOrElse(throw new RuntimeException("oups")))
-      val t2           = System.currentTimeMillis()
-      val nodeContexts = buildContext
-        .getNodeContexts(
-          allNodes.keySet.toSet,
-          allNodes,
-          inheritedProps,
-          groupLib,
-          Nil,
-          data.globalAgentRun,
-          data.globalComplianceMode,
-          globalPolicyMode
-        )
-        .getOrElse(throw new RuntimeException("oups"))
-      val t3           = System.currentTimeMillis()
-      BuildNodeConfiguration.buildNodeConfigurations(
+    logger.trace("\n--------------------------------")
+    val t1           = System.currentTimeMillis()
+    val ruleVal      =
+      ruleValService.buildRuleVal(rule, directiveLib, groupLib, allNodes.mapValues(_.rudderSettings.isPolicyServer))
+    val ruleVals     = Seq(ruleVal.getOrElse(throw new RuntimeException("oups")))
+    val t2           = System.currentTimeMillis()
+    val nodeContexts = buildContext
+      .getNodeContexts(
+        allNodes.keySet.toSet,
+        allNodes,
+        inheritedProps,
+        groupLib,
+        Nil,
+        data.globalAgentRun,
+        data.globalComplianceMode,
+        globalPolicyMode
+      )
+      .getOrElse(throw new RuntimeException("oups"))
+    val t3           = System.currentTimeMillis()
+    val res          = BuildNodeConfiguration
+      .buildNodeConfigurations(
         activeNodeIds,
         ruleVals,
         nodeContexts.ok,
@@ -231,48 +235,13 @@ class TestBuildNodeConfiguration extends Specification {
         jsTimeout,
         generationContinueOnError
       )
-      val t4           = System.currentTimeMillis()
+      .openOrThrowException(throw new RuntimeException(s"Error: node configuration failed"))
+    val t4           = System.currentTimeMillis()
 
-      logger.trace(s"ruleval: ${t2 - t1} ms")
-      logger.trace(s"context: ${t3 - t2} ms")
-      logger.trace(s"config : ${t4 - t3} ms")
-    }
-    true === true
+    logger.trace(s"ruleval: ${t2 - t1} ms")
+    logger.trace(s"context: ${t3 - t2} ms")
+    logger.trace(s"config : ${t4 - t3} ms")
+
+    res.errors == Nil
   }
 }
-
-//object FOO {
-//
-//  import zio._
-//  import zio.syntax._
-//  import com.normation.zio._
-//  import com.normation.errors._
-//
-//  def main(args: Array[String]): Unit = {
-//
-//    def nano = ZIO.succeed(System.nanoTime)
-//    def log(s: String, t1: Long, t2: Long) = ZIO.succeed(logger.trace(s + s"${(t2-t1)/1000} µs"))
-//
-//    val count = 0 until 1
-//    val prog =
-//      ZIO.foreachParN(8)(0 until 10) { j =>
-//        for {
-//        ref  <- Ref.make(0L)
-//        t1   <- nano
-//        loop <- ZIO.foreach(count) { i => // yes only one element
-//                  for {
-//                    t2  <- nano
-//                    res <- i.succeed
-//                    t3  <- nano
-//                    _   <- ref.update(t => t + t3 - t2)
-//                  } yield (i)
-//                }
-//        t4   <- nano
-//        _    <- log(s"external $j : ", t1, t4)
-//        _    <- ref.get.flatMap(t => ZIO.succeed(logger.trace(s"inner sum $j: ${t/1000} µs")))
-//      } yield ()
-//    }
-//    ZioRuntime.unsafeRun(prog)
-//
-//  }
-//}

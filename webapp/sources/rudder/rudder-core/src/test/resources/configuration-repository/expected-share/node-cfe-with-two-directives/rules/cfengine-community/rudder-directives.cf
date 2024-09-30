@@ -33,8 +33,8 @@ bundle agent run_16d86a56_93ef_49aa_86b7_0d10102e4ea9
   methods:
       "50-rule-technique-ncf/Create a file" usebundle => rudder_reporting_context_v4("16d86a56-93ef-49aa-86b7-0d10102e4ea9","208716db-2675-43b9-ab57-bfbab84346aa","Create_file","","","16d86a56-93ef-49aa-86b7-0d10102e4ea9208716db-2675-43b9-ab57-bfbab84346aa");
       "50-rule-technique-ncf/Create a file" usebundle => enable_reporting;
-      "50-rule-technique-ncf/Create a file" usebundle => Create_file("\"foo");
-      "50-rule-technique-ncf/Create a file" usebundle => Create_file_rudder_reporting("\"foo");
+      "50-rule-technique-ncf/Create a file" usebundle => Create_file("\"foo"," ");
+      "50-rule-technique-ncf/Create a file" usebundle => Create_file_rudder_reporting("\"foo"," ");
       "50-rule-technique-ncf/Create a file" usebundle => clean_reporting_context;
 }
 bundle agent run_16617aa8_1f02_4e4a_87b6_d0bcdfb4019f

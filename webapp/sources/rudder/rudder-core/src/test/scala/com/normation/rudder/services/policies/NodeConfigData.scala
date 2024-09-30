@@ -48,7 +48,6 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.TechniqueVersionHelper
 import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.cfclerk.domain.Variable
-import com.normation.cfclerk.domain.VariableSpec
 import com.normation.cfclerk.services.impl.GitTechniqueReader
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.cfclerk.services.impl.TechniqueRepositoryImpl
@@ -644,9 +643,9 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
   implicit def toRID(id:  String):           RuleId            = RuleId(RuleUid(id))
   implicit def toRCID(id: String):           RuleCategoryId    = RuleCategoryId(id)
   val t1:   Technique           = Technique(("t1", "1.0"), "t1", "t1", Nil, TrackerVariableSpec(None, None), SectionSpec("root"), None)
-  val d1:   Directive           = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1", None)
-  val d2:   Directive           = Directive("d2", "1.0", Map("foo2" -> Seq("bar2")), "d2", "d2", Some(PolicyMode.Enforce))
-  val d3:   Directive           = Directive("d3", "1.0", Map("foo3" -> Seq("bar3")), "d3", "d3", Some(PolicyMode.Audit))
+  val d1:   Directive           = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1", None, _isEnabled = true)
+  val d2:   Directive           = Directive("d2", "1.0", Map("foo2" -> Seq("bar2")), "d2", "d2", Some(PolicyMode.Enforce), _isEnabled = true)
+  val d3:   Directive           = Directive("d3", "1.0", Map("foo3" -> Seq("bar3")), "d3", "d3", Some(PolicyMode.Audit), _isEnabled = true)
   val fat1: FullActiveTechnique = FullActiveTechnique(
     "d1",
     "t1",
@@ -911,7 +910,7 @@ class TestNodeConfiguration(
     .openOrThrowException("I should get global system variable in test!")
 
   val t9: Long = System.currentTimeMillis()
-  NodeConfigData.logger.trace(s"Nodes & groupes         : ${t9 - t8} ms")
+  NodeConfigData.logger.trace(s"Nodes & groups         : ${t9 - t8} ms")
 
   //
   // root has 4 system directive, let give them some variables
@@ -957,14 +956,16 @@ class TestNodeConfiguration(
   val commonTechnique:                                                      Technique                  =
     techniqueRepository.unsafeGet(TechniqueId(TechniqueName("common"), TechniqueVersionHelper("1.0")))
   def commonVariables(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]): Map[ComponentId, Variable] = {
-    val spec = commonTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
-    Seq(
-      spec("OWNER").toVariable(Seq(allNodeInfos(nodeId).localAdministratorAccountName)),
-      spec("UUID").toVariable(Seq(nodeId.value)),
-      spec("POLICYSERVER_ID").toVariable(Seq(allNodeInfos(nodeId).policyServerId.value)),
-      spec("POLICYSERVER_ADMIN").toVariable(Seq(allNodeInfos(allNodeInfos(nodeId).policyServerId).localAdministratorAccountName)),
-      spec("ALLOWEDNETWORK").toVariable(Seq(""))
-    ).map(v => (ComponentId(v.spec.name, Nil, None), v)).toMap // None because no reportId for old var
+    getVariablesFromSpec(
+      commonTechnique,
+      List(
+        ("OWNER", Seq(allNodeInfos(nodeId).localAdministratorAccountName)),
+        ("UUID", Seq(nodeId.value)),
+        ("POLICYSERVER_ID", Seq(allNodeInfos(nodeId).policyServerId.value)),
+        ("POLICYSERVER_ADMIN", Seq(allNodeInfos(allNodeInfos(nodeId).policyServerId).localAdministratorAccountName)),
+        ("ALLOWEDNETWORK", Seq(""))
+      )
+    )
   }
 
   val commonDirective: Directive = Directive(
@@ -1013,31 +1014,39 @@ class TestNodeConfiguration(
 
   // we have one rule with several system technique for root server config
 
+  // a version of get with a default value "value for ..."
+  def getVariablesFromSpec(
+      technique: Technique,
+      variables: List[(String, Seq[String])]
+  ): Map[ComponentId, Variable] = {
+    val specs = technique.getAllVariableSpecs
+    // add system variable as a base, we don't build them correctly because we skip NodeConfiguration set-up
+    // in that test, see TestBuildNodeConfiguration to see how it should be done
+    specs.collect { case (cid, s) if (s.isSystem) => (cid, s.toVariable(Seq(s"dummy_system_${s.name}"))) } ++
+    variables.map {
+      case (name, values) =>
+        specs
+          .find(s => s._1.value == name)
+          .getOrElse(
+            throw new RuntimeException(s"Missing variable spec '${name}' in technique ${technique.id.debugString} in test")
+          ) match {
+          case (cid, p: PredefinedValuesVariableSpec) => (cid, p.toVariable(p.providedValues._1 :: p.providedValues._2.toList))
+          case (cid, s)                               => (cid, s.toVariable(values))
+        }
+    }.toMap
+  }
+
   // get variable's values based on the kind of spec for that: if the values are provided, use them.
   def getVariables(
-      techiqueDebugId: String,
-      spec:            Map[String, VariableSpec],
-      variables:       List[String]
+      technique: Technique,
+      variables: List[String]
   ): Map[ComponentId, Variable] = {
-    variables
-      .map(name => {
-        spec
-          .get(name)
-          .getOrElse(
-            throw new RuntimeException(s"Missing variable spec '${name}' in technique ${techiqueDebugId} in test")
-          ) match {
-          case p: PredefinedValuesVariableSpec => p.toVariable(p.providedValues._1 :: p.providedValues._2.toList)
-          case s => s.toVariable(Seq(s"value for '${name}'"))
-        }
-      })
-      .map(v => (ComponentId(v.spec.name, Nil, None), v))
-      .toMap
+    getVariablesFromSpec(technique, variables.map(name => (name, Seq(s"value for '${name}'"))))
   }
 
   def simpleServerPolicy(name: String, variables: List[String] = List()): (Technique, BoundPolicyDraft) = {
     val technique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName(s"${name}"), TechniqueVersionHelper("1.0")))
-    val spec      = technique.getAllVariableSpecs.map(s => (s.name, s)).toMap
-    val vars      = getVariables(technique.id.serialize, spec, variables)
+    val vars      = getVariables(technique, variables)
     val policy    = {
       val id = PolicyId(RuleId("policy-server-root"), DirectiveId(DirectiveUid(s"${name}-root")), TechniqueVersionHelper("1.0"))
       draft(
@@ -1081,8 +1090,7 @@ class TestNodeConfiguration(
 
   val inventoryTechnique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("inventory"), TechniqueVersionHelper("1.0")))
   val inventoryVariables: Map[ComponentId, Variable] = {
-    val spec = inventoryTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
-    getVariables(inventoryTechnique.id.serialize, spec, List("expectedReportKey Inventory"))
+    getVariables(inventoryTechnique, List("expectedReportKey Inventory"))
   }
 
   val inventoryAll: BoundPolicyDraft = {
@@ -1105,14 +1113,16 @@ class TestNodeConfiguration(
   lazy val clockTechnique =
     techniqueRepository.unsafeGet(TechniqueId(TechniqueName("clockConfiguration"), TechniqueVersionHelper("3.0")))
   lazy val clockVariables: Map[ComponentId, Variable] = {
-    val spec = clockTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
-    Seq(
-      spec("CLOCK_FQDNNTP").toVariable(Seq("")), // testing mandatory value with default "true"
-      spec("CLOCK_HWSYNC_ENABLE").toVariable(Seq("true")),
-      spec("CLOCK_NTPSERVERS").toVariable(Seq("${rudder.param.ntpserver}")),
-      spec("CLOCK_SYNCSCHED").toVariable(Seq("240")),
-      spec("CLOCK_TIMEZONE").toVariable(Seq("dontchange"))
-    ).map(v => (ComponentId(v.spec.name, Nil, None), v)).toMap
+    getVariablesFromSpec(
+      clockTechnique,
+      List(
+        ("CLOCK_FQDNNTP", Seq("")), // testing mandatory value with default "true"
+        ("CLOCK_HWSYNC_ENABLE", Seq("true")),
+        ("CLOCK_NTPSERVERS", Seq("${rudder.param.ntpserver}")),
+        ("CLOCK_SYNCSCHED", Seq("240")),
+        ("CLOCK_TIMEZONE", Seq("dontchange"))
+      )
+    )
   }
   lazy val clock:          BoundPolicyDraft           = {
     val id = PolicyId(RuleId("rule1"), DirectiveId(DirectiveUid("directive1+rev1")), TechniqueVersionHelper("1.0+rev2"))
@@ -1136,17 +1146,19 @@ class TestNodeConfiguration(
   lazy val rpmTechnique =
     techniqueRepository.unsafeGet(TechniqueId(TechniqueName("rpmPackageInstallation"), TechniqueVersionHelper("7.0")))
   lazy val rpmVariables:                     Map[ComponentId, Variable] = {
-    val spec = rpmTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
-    Seq(
-      spec("RPM_PACKAGE_CHECK_INTERVAL").toVariable(Seq("5")),
-      spec("RPM_PACKAGE_POST_HOOK_COMMAND").toVariable(Seq("", "", "")),
-      spec("RPM_PACKAGE_POST_HOOK_RUN").toVariable(Seq("false", "false", "false")),
-      spec("RPM_PACKAGE_REDACTION").toVariable(Seq("add", "add", "add")),
-      spec("RPM_PACKAGE_REDLIST").toVariable(Seq("plop", "foo", "bar")),
-      spec("RPM_PACKAGE_VERSION").toVariable(Seq("", "", "")),
-      spec("RPM_PACKAGE_VERSION_CRITERION").toVariable(Seq("==", "==", "==")),
-      spec("RPM_PACKAGE_VERSION_DEFINITION").toVariable(Seq("default", "default", "default"))
-    ).map(v => (ComponentId(v.spec.name, Nil, None), v)).toMap
+    getVariablesFromSpec(
+      rpmTechnique,
+      List(
+        ("RPM_PACKAGE_CHECK_INTERVAL", Seq("5")),
+        ("RPM_PACKAGE_POST_HOOK_COMMAND", Seq("", "", "")),
+        ("RPM_PACKAGE_POST_HOOK_RUN", Seq("false", "false", "false")),
+        ("RPM_PACKAGE_REDACTION", Seq("add", "add", "add")),
+        ("RPM_PACKAGE_REDLIST", Seq("plop", "foo", "bar")),
+        ("RPM_PACKAGE_VERSION", Seq("", "", "")),
+        ("RPM_PACKAGE_VERSION_CRITERION", Seq("==", "==", "==")),
+        ("RPM_PACKAGE_VERSION_DEFINITION", Seq("default", "default", "default"))
+      )
+    )
   }
   def rpmDirective(id: String, pkg: String): Directive                  = Directive(
     DirectiveId(DirectiveUid(id), GitVersion.DEFAULT_REV),
@@ -1164,7 +1176,8 @@ class TestNodeConfiguration(
     id,
     "",
     None,
-    ""
+    "",
+    _isEnabled = true
   )
   lazy val rpm:                              BoundPolicyDraft           = {
     val id = PolicyId(RuleId("rule2"), DirectiveId(DirectiveUid("directive2")), TechniqueVersionHelper("1.0"))
@@ -1182,17 +1195,19 @@ class TestNodeConfiguration(
   lazy val pkgTechnique =
     techniqueRepository.unsafeGet(TechniqueId(TechniqueName("packageManagement"), TechniqueVersionHelper("1.0")))
   lazy val pkgVariables: Map[ComponentId, Variable] = {
-    val spec = pkgTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
-    Seq(
-      spec("PACKAGE_LIST").toVariable(Seq("htop")),
-      spec("PACKAGE_STATE").toVariable(Seq("present")),
-      spec("PACKAGE_VERSION").toVariable(Seq("latest")),
-      spec("PACKAGE_VERSION_SPECIFIC").toVariable(Seq("")),
-      spec("PACKAGE_ARCHITECTURE").toVariable(Seq("default")),
-      spec("PACKAGE_ARCHITECTURE_SPECIFIC").toVariable(Seq("")),
-      spec("PACKAGE_MANAGER").toVariable(Seq("default")),
-      spec("PACKAGE_POST_HOOK_COMMAND").toVariable(Seq(""))
-    ).map(v => (ComponentId(v.spec.name, Nil, None), v)).toMap
+    getVariablesFromSpec(
+      pkgTechnique,
+      List(
+        ("PACKAGE_LIST", Seq("htop")),
+        ("PACKAGE_STATE", Seq("present")),
+        ("PACKAGE_VERSION", Seq("latest")),
+        ("PACKAGE_VERSION_SPECIFIC", Seq("")),
+        ("PACKAGE_ARCHITECTURE", Seq("default")),
+        ("PACKAGE_ARCHITECTURE_SPECIFIC", Seq("")),
+        ("PACKAGE_MANAGER", Seq("default")),
+        ("PACKAGE_POST_HOOK_COMMAND", Seq(""))
+      )
+    )
   }
   lazy val pkg:          BoundPolicyDraft           = {
     val id = PolicyId(
@@ -1214,19 +1229,21 @@ class TestNodeConfiguration(
   lazy val fileTemplateTechnique =
     techniqueRepository.unsafeGet(TechniqueId(TechniqueName("fileTemplate"), TechniqueVersionHelper("1.0")))
   lazy val fileTemplateVariables1: Map[ComponentId, Variable] = {
-    val spec = fileTemplateTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
-    Seq(
-      spec("FILE_TEMPLATE_RAW_OR_NOT").toVariable(Seq("Raw")),
-      spec("FILE_TEMPLATE_TEMPLATE").toVariable(Seq("")),
-      spec("FILE_TEMPLATE_RAW_TEMPLATE").toVariable(Seq("some content")),
-      spec("FILE_TEMPLATE_AGENT_DESTINATION_PATH").toVariable(Seq("/tmp/destination.txt")),
-      spec("FILE_TEMPLATE_TEMPLATE_TYPE").toVariable(Seq("mustache")),
-      spec("FILE_TEMPLATE_OWNER").toVariable(Seq("root")),
-      spec("FILE_TEMPLATE_GROUP_OWNER").toVariable(Seq("root")),
-      spec("FILE_TEMPLATE_PERMISSIONS").toVariable(Seq("700")),
-      spec("FILE_TEMPLATE_PERSISTENT_POST_HOOK").toVariable(Seq("false")),
-      spec("FILE_TEMPLATE_TEMPLATE_POST_HOOK_COMMAND").toVariable(Seq(""))
-    ).map(v => (ComponentId(v.spec.name, Nil, None), v)).toMap
+    getVariablesFromSpec(
+      fileTemplateTechnique,
+      List(
+        ("FILE_TEMPLATE_RAW_OR_NOT", Seq("Raw")),
+        ("FILE_TEMPLATE_TEMPLATE", Seq("")),
+        ("FILE_TEMPLATE_RAW_TEMPLATE", Seq("some content")),
+        ("FILE_TEMPLATE_AGENT_DESTINATION_PATH", Seq("/tmp/destination.txt")),
+        ("FILE_TEMPLATE_TEMPLATE_TYPE", Seq("mustache")),
+        ("FILE_TEMPLATE_OWNER", Seq("root")),
+        ("FILE_TEMPLATE_GROUP_OWNER", Seq("root")),
+        ("FILE_TEMPLATE_PERMISSIONS", Seq("700")),
+        ("FILE_TEMPLATE_PERSISTENT_POST_HOOK", Seq("false")),
+        ("FILE_TEMPLATE_TEMPLATE_POST_HOOK_COMMAND", Seq(""))
+      )
+    )
   }
   lazy val fileTemplate1:          BoundPolicyDraft           = {
     val id = PolicyId(
@@ -1245,19 +1262,21 @@ class TestNodeConfiguration(
     )
   }
   lazy val fileTemplateVariables2 = {
-    val spec = fileTemplateTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
-    Seq(
-      spec("FILE_TEMPLATE_RAW_OR_NOT").toVariable(Seq("Raw")),
-      spec("FILE_TEMPLATE_TEMPLATE").toVariable(Seq("")),
-      spec("FILE_TEMPLATE_RAW_TEMPLATE").toVariable(Seq("some content")),
-      spec("FILE_TEMPLATE_AGENT_DESTINATION_PATH").toVariable(Seq("/tmp/other-destination.txt")),
-      spec("FILE_TEMPLATE_TEMPLATE_TYPE").toVariable(Seq("mustache")),
-      spec("FILE_TEMPLATE_OWNER").toVariable(Seq("root")),
-      spec("FILE_TEMPLATE_GROUP_OWNER").toVariable(Seq("root")),
-      spec("FILE_TEMPLATE_PERMISSIONS").toVariable(Seq("777")),
-      spec("FILE_TEMPLATE_PERSISTENT_POST_HOOK").toVariable(Seq("true")),
-      spec("FILE_TEMPLATE_TEMPLATE_POST_HOOK_COMMAND").toVariable(Seq("/bin/true"))
-    ).map(v => (v.spec.name, v)).toMap
+    getVariablesFromSpec(
+      fileTemplateTechnique,
+      List(
+        ("FILE_TEMPLATE_RAW_OR_NOT", Seq("Raw")),
+        ("FILE_TEMPLATE_TEMPLATE", Seq("")),
+        ("FILE_TEMPLATE_RAW_TEMPLATE", Seq("some content")),
+        ("FILE_TEMPLATE_AGENT_DESTINATION_PATH", Seq("/tmp/other-destination.txt")),
+        ("FILE_TEMPLATE_TEMPLATE_TYPE", Seq("mustache")),
+        ("FILE_TEMPLATE_OWNER", Seq("root")),
+        ("FILE_TEMPLATE_GROUP_OWNER", Seq("root")),
+        ("FILE_TEMPLATE_PERMISSIONS", Seq("777")),
+        ("FILE_TEMPLATE_PERSISTENT_POST_HOOK", Seq("true")),
+        ("FILE_TEMPLATE_TEMPLATE_POST_HOOK_COMMAND", Seq("/bin/true"))
+      )
+    )
   }
   lazy val fileTemplate2:          BoundPolicyDraft           = {
     val id = PolicyId(
@@ -1270,7 +1289,7 @@ class TestNodeConfiguration(
       ruleName = "60-rule-technique-std-lib",
       directiveName = "20-File template 2",
       technique = fileTemplateTechnique,
-      variableMap = fileTemplateVariables2.map(a => (ComponentId(a._1, Nil, None), a._2)),
+      variableMap = fileTemplateVariables2,
       system = false,
       policyMode = Some(PolicyMode.Enforce)
     )
@@ -1288,7 +1307,7 @@ class TestNodeConfiguration(
       ruleName = "99-rule-technique-std-lib",
       directiveName = "20-File template 2",
       technique = fileTemplateTechnique,
-      variableMap = fileTemplateVariables2.map(a => (ComponentId(a._1, Nil, None), a._2)),
+      variableMap = fileTemplateVariables2,
       system = false,
       policyMode = Some(PolicyMode.Enforce)
     )
@@ -1296,12 +1315,15 @@ class TestNodeConfiguration(
 
   val ncf1Technique = techniqueRepository.unsafeGet(TechniqueId(TechniqueName("Create_file"), TechniqueVersionHelper("1.0")))
   val ncf1Variables = {
-    val spec = ncf1Technique.getAllVariableSpecs.map(s => (s.name, s)).toMap
-    Seq(
-      spec("expectedReportKey Directory create").toVariable(Seq("directory_create_/tmp/foo")),
-      spec("expectedReportKey File create").toVariable(Seq("file_create_/tmp/foo/bar")),
-      spec("1AAACD71-C2D5-482C-BCFF-5EEE6F8DA9C2").toVariable(Seq("\"foo"))
-    ).map(v => (v.spec.name, v)).toMap
+    getVariablesFromSpec(
+      ncf1Technique,
+      List(
+        ("expectedReportKey Directory create", Seq("directory_create_/tmp/foo")),
+        ("expectedReportKey File create", Seq("file_create_/tmp/foo/bar")),
+        ("1AAACD71-C2D5-482C-BCFF-5EEE6F8DA9C2", Seq("\"foo"))
+        // here we don't define 3021FC4F-DA33-4D84-8991-C42EBAB2335F to check that the default " " is well used
+      )
+    )
   }
   val ncf1: BoundPolicyDraft = {
     val id = PolicyId(
@@ -1314,7 +1336,7 @@ class TestNodeConfiguration(
       ruleName = "50-rule-technique-ncf",
       directiveName = "Create a file",
       technique = ncf1Technique,
-      variableMap = ncf1Variables.map(a => (ComponentId(a._1, Nil, Some(s"reportId_${a._1}")), a._2)),
+      variableMap = ncf1Variables,
       system = false,
       policyMode = Some(PolicyMode.Enforce)
     )
@@ -1343,24 +1365,26 @@ class TestNodeConfiguration(
   lazy val copyGitFileTechnique    =
     techniqueRepository.unsafeGet(TechniqueId(TechniqueName("copyGitFile"), TechniqueVersionHelper("2.3")))
   def copyGitFileVariable(i: Int)  = {
-    val spec = copyGitFileTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
-    Seq(
-      spec("COPYFILE_NAME").toVariable(Seq("file_name_" + i + ".json")),
-      spec("COPYFILE_EXCLUDE_INCLUDE_OPTION").toVariable(Seq("none")),
-      spec("COPYFILE_EXCLUDE_INCLUDE").toVariable(Seq("")),
-      spec("COPYFILE_DESTINATION").toVariable(Seq("/tmp/destination_" + i + ".json")),
-      spec("COPYFILE_RECURSION").toVariable(Seq(s"${i % 2}")),
-      spec("COPYFILE_PURGE").toVariable(Seq("false")),
-      spec("COPYFILE_COMPARE_METHOD").toVariable(Seq("mtime")),
-      spec("COPYFILE_OWNER").toVariable(Seq("root")),
-      spec("COPYFILE_GROUP").toVariable(Seq("root")),
-      spec("COPYFILE_PERM").toVariable(Seq("644")),
-      spec("COPYFILE_SUID").toVariable(Seq("false")),
-      spec("COPYFILE_SGID").toVariable(Seq("false")),
-      spec("COPYFILE_STICKY_FOLDER").toVariable(Seq("false")),
-      spec("COPYFILE_POST_HOOK_RUN").toVariable(Seq("true")),
-      spec("COPYFILE_POST_HOOK_COMMAND").toVariable(Seq("/bin/echo Value_" + i + ".json"))
-    ).map(v => (v.spec.name, v)).toMap
+    getVariablesFromSpec(
+      copyGitFileTechnique,
+      List(
+        ("COPYFILE_NAME", Seq("file_name_" + i + ".json")),
+        ("COPYFILE_EXCLUDE_INCLUDE_OPTION", Seq("none")),
+        ("COPYFILE_EXCLUDE_INCLUDE", Seq("")),
+        ("COPYFILE_DESTINATION", Seq("/tmp/destination_" + i + ".json")),
+        ("COPYFILE_RECURSION", Seq(s"${i % 2}")),
+        ("COPYFILE_PURGE", Seq("false")),
+        ("COPYFILE_COMPARE_METHOD", Seq("mtime")),
+        ("COPYFILE_OWNER", Seq("root")),
+        ("COPYFILE_GROUP", Seq("root")),
+        ("COPYFILE_PERM", Seq("644")),
+        ("COPYFILE_SUID", Seq("false")),
+        ("COPYFILE_SGID", Seq("false")),
+        ("COPYFILE_STICKY_FOLDER", Seq("false")),
+        ("COPYFILE_POST_HOOK_RUN", Seq("true")),
+        ("COPYFILE_POST_HOOK_COMMAND", Seq("/bin/echo Value_" + i + ".json"))
+      )
+    )
   }
 
   def copyGitFileDirectives(i: Int): BoundPolicyDraft = {
@@ -1374,7 +1398,7 @@ class TestNodeConfiguration(
       ruleName = "90-copy-git-file",
       directiveName = "Copy git file",
       technique = copyGitFileTechnique,
-      variableMap = copyGitFileVariable(i).map(a => (ComponentId(a._1, Nil, None), a._2)),
+      variableMap = copyGitFileVariable(i),
       system = false,
       policyMode = Some(PolicyMode.Enforce)
     )
@@ -1428,11 +1452,13 @@ class TestNodeConfiguration(
   lazy val gvdTechnique  =
     techniqueRepository.unsafeGet(TechniqueId(TechniqueName("genericVariableDefinition"), TechniqueVersionHelper("2.0")))
   lazy val gvdVariables1 = {
-    val spec = gvdTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
-    Seq(
-      spec("GENERIC_VARIABLE_NAME").toVariable(Seq("var1")),
-      spec("GENERIC_VARIABLE_CONTENT").toVariable(Seq("value from gvd #1 should be first")) // the one to override
-    ).map(v => (v.spec.name, v)).toMap
+    getVariablesFromSpec(
+      gvdTechnique,
+      List(
+        ("GENERIC_VARIABLE_NAME", Seq("var1")),
+        ("GENERIC_VARIABLE_CONTENT", Seq("value from gvd #1 should be first")) // the one to override
+      )
+    )
   }
   lazy val gvd1: BoundPolicyDraft = {
     val id = PolicyId(RuleId("rule1"), DirectiveId(DirectiveUid("directive1")), TechniqueVersionHelper("1.0"))
@@ -1441,7 +1467,7 @@ class TestNodeConfiguration(
       ruleName = "10. Global configuration for all nodes",
       directiveName = "99. Generic Variable Def #1",
       technique = gvdTechnique,
-      variableMap = gvdVariables1.map(a => (ComponentId(a._1, Nil, None), a._2)),
+      variableMap = gvdVariables1,
       system = false,
       policyMode = Some(PolicyMode.Enforce)
     ).copy(
@@ -1449,11 +1475,13 @@ class TestNodeConfiguration(
     )
   }
   lazy val gvdVariables2 = {
-    val spec = gvdTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
-    Seq(
-      spec("GENERIC_VARIABLE_NAME").toVariable(Seq("var1")),
-      spec("GENERIC_VARIABLE_CONTENT").toVariable(Seq("value from gvd #2 should be last")) // the one to use for override
-    ).map(v => (v.spec.name, v)).toMap
+    getVariablesFromSpec(
+      gvdTechnique,
+      List(
+        ("GENERIC_VARIABLE_NAME", Seq("var1")),
+        ("GENERIC_VARIABLE_CONTENT", Seq("value from gvd #2 should be last")) // the one to use for override
+      )
+    )
   }
   lazy val gvd2: BoundPolicyDraft = {
     val id = PolicyId(RuleId("rule1"), DirectiveId(DirectiveUid("directive2")), TechniqueVersionHelper("1.0"))
@@ -1463,7 +1491,7 @@ class TestNodeConfiguration(
       directiveName = "00. Generic Variable Def #2", // sort name comes before sort name of directive 1
 
       technique = gvdTechnique,
-      variableMap = gvdVariables2.map(a => (ComponentId(a._1, Nil, None), a._2)),
+      variableMap = gvdVariables2,
       system = false,
       policyMode = Some(PolicyMode.Enforce)
     ).copy(
