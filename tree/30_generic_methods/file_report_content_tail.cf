@@ -40,8 +40,11 @@
 # #### Examples
 #
 # ```
-# # To get the 3 first line of /etc/hosts
-# file_report_content("/etc/hosts", "3");
+#  - name: Get the first 3 lines of /etc/hosts
+#    method: file_report_content_tail
+#    params:
+#      path: /etc/hosts
+#      limit: '3'
 # ```
 #
 # @parameter path     File to report content from
@@ -53,7 +56,7 @@
 # @parameter_rename target path
 # @class_prefix file_report_content_tail
 # @class_parameter path
-# @agent_support = ["cfengine-community"]
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent file_report_content_tail(path, limit)
 {
