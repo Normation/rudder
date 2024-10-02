@@ -41,6 +41,8 @@ import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
+import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
+import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import zio.*
@@ -52,12 +54,12 @@ import zio.*
 
 trait PropertiesRepository {
 
-  def getAllNodeProps()(implicit qc: QueryContext): IOResult[Map[NodeId, Chunk[NodePropertyHierarchy]]]
+  def getAllNodeProps()(implicit qc: QueryContext): IOResult[Map[NodeId, ResolvedNodePropertyHierarchy]]
 
   /*
    * Get all properties for node with given ID
    */
-  def getNodeProps(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Option[Chunk[NodePropertyHierarchy]]]
+  def getNodeProps(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Option[ResolvedNodePropertyHierarchy]]
 
   /*
    * Get a given property for a given node
@@ -71,7 +73,7 @@ trait PropertiesRepository {
    * The chunk is considered to be all of the node properties, so previous
    * properties not in the new chunk will be deleted.
    */
-  def saveNodeProps(props: Map[NodeId, Chunk[NodePropertyHierarchy]]): IOResult[Unit]
+  def saveNodeProps(props: Map[NodeId, ResolvedNodePropertyHierarchy]): IOResult[Unit]
 
   /*
    * Delete all properties for a node
@@ -81,7 +83,7 @@ trait PropertiesRepository {
   /*
    * Get all properties for node with given ID
    */
-  def getGroupProps(groupId: NodeGroupId): IOResult[Option[Chunk[NodePropertyHierarchy]]]
+  def getGroupProps(groupId: NodeGroupId): IOResult[Option[ResolvedNodePropertyHierarchy]]
 
   /*
    * Get a given property for a given node
@@ -93,7 +95,7 @@ trait PropertiesRepository {
    * The chunk is considered to be all of the node properties, so previous
    * properties not in the new chunk will be deleted.
    */
-  def saveGroupProps(props: Map[NodeGroupId, Chunk[NodePropertyHierarchy]]): IOResult[Unit]
+  def saveGroupProps(props: Map[NodeGroupId, ResolvedNodePropertyHierarchy]): IOResult[Unit]
 
   /*
    * Delete all properties for a node
@@ -104,8 +106,8 @@ trait PropertiesRepository {
 object InMemoryPropertiesRepository {
   def make(nodeFactRepo: NodeFactRepository): IOResult[InMemoryPropertiesRepository] = {
     for {
-      nodes  <- Ref.make(Map.empty[NodeId, Chunk[NodePropertyHierarchy]])
-      groups <- Ref.make(Map.empty[NodeGroupId, Chunk[NodePropertyHierarchy]])
+      nodes  <- Ref.make(Map.empty[NodeId, ResolvedNodePropertyHierarchy])
+      groups <- Ref.make(Map.empty[NodeGroupId, ResolvedNodePropertyHierarchy])
     } yield {
       new InMemoryPropertiesRepository(nodeFactRepo, nodes, groups)
     }
@@ -114,11 +116,11 @@ object InMemoryPropertiesRepository {
 
 class InMemoryPropertiesRepository(
     nodeFactRepository: NodeFactRepository,
-    nodeProps:          Ref[Map[NodeId, Chunk[NodePropertyHierarchy]]],
-    groupProps:         Ref[Map[NodeGroupId, Chunk[NodePropertyHierarchy]]]
+    nodeProps:          Ref[Map[NodeId, ResolvedNodePropertyHierarchy]],
+    groupProps:         Ref[Map[NodeGroupId, ResolvedNodePropertyHierarchy]]
 ) extends PropertiesRepository {
 
-  override def getAllNodeProps()(implicit qc: QueryContext): IOResult[Map[NodeId, Chunk[NodePropertyHierarchy]]] = {
+  override def getAllNodeProps()(implicit qc: QueryContext): IOResult[Map[NodeId, ResolvedNodePropertyHierarchy]] = {
     // we need core node fact to filter access
     for {
       ids   <- nodeFactRepository.getAll().map(_.keySet)
@@ -128,16 +130,17 @@ class InMemoryPropertiesRepository(
     }
   }
 
-  override def getNodeProps(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Option[Chunk[NodePropertyHierarchy]]] = {
+  override def getNodeProps(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Option[ResolvedNodePropertyHierarchy]] = {
     for {
       // needed to check access to node
-      _     <- nodeFactRepository.get(nodeId)
-      props <- nodeProps.get
+      foundNode <- nodeFactRepository.get(nodeId)
+      props     <- nodeProps.get
     } yield {
-      props.get(nodeId)
+      foundNode.flatMap(_ => props.get(nodeId))
     }
   }
 
+  // This API inherently swallows known errors, it does only return success node property in the collection
   override def getNodesProp(nodeIds: Set[NodeId], propName: String)(implicit
       qc: QueryContext
   ): IOResult[Map[NodeId, NodePropertyHierarchy]] = {
@@ -148,13 +151,13 @@ class InMemoryPropertiesRepository(
     } yield {
       val view = ids.intersect(nodeIds)
       props.collect {
-        case (id, ps) if view.contains(id) =>
+        case (id, SuccessNodePropertyHierarchy(ps)) if view.contains(id) =>
           ps.find(_.prop.name == propName).map(p => (id, p))
       }.flatten.toMap
     }
   }
 
-  override def saveNodeProps(props: Map[NodeId, Chunk[NodePropertyHierarchy]]): IOResult[Unit] = {
+  override def saveNodeProps(props: Map[NodeId, ResolvedNodePropertyHierarchy]): IOResult[Unit] = {
     nodeProps.set(props)
   }
 
@@ -162,15 +165,19 @@ class InMemoryPropertiesRepository(
     nodeProps.update(_.removed(nodeId))
   }
 
-  override def getGroupProps(groupId: NodeGroupId): IOResult[Option[Chunk[NodePropertyHierarchy]]] = {
-    groupProps.get.map(_.get(groupId))
+  override def getGroupProps(groupId: NodeGroupId): IOResult[Option[ResolvedNodePropertyHierarchy]] = {
+    groupProps.get.map(
+      _.get(groupId)
+    )
   }
 
   override def getGroupProp(groupId: NodeGroupId, propName: String): IOResult[Option[NodePropertyHierarchy]] = {
-    groupProps.get.map(_.get(groupId).flatMap(_.find(_.prop.name == propName)))
+    groupProps.get.map(
+      _.get(groupId).flatMap(_.resolved.find(_.prop.name == propName))
+    )
   }
 
-  override def saveGroupProps(props: Map[NodeGroupId, Chunk[NodePropertyHierarchy]]): IOResult[Unit] = {
+  override def saveGroupProps(props: Map[NodeGroupId, ResolvedNodePropertyHierarchy]): IOResult[Unit] = {
     groupProps.set(props)
   }
 

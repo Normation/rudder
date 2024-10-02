@@ -37,12 +37,16 @@
 
 package com.normation.rudder.domain.properties
 
+import cats.data.Ior
+import cats.kernel.Semigroup
+import cats.syntax.semigroup.*
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.errors.*
 import com.normation.inventory.domain.CustomProperty
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.services.policies.ParameterEntry
 import com.typesafe.config.*
@@ -51,6 +55,8 @@ import java.util.regex.Pattern
 import net.liftweb.json.*
 import net.liftweb.json.JsonDSL.*
 import org.apache.commons.text.StringEscapeUtils
+import zio.Chunk
+import zio.NonEmptyChunk
 
 /*
  * A property provider is the thing responsible for that property.
@@ -891,11 +897,6 @@ sealed trait ParentProperty {
   def value:       ConfigValue
 }
 
-/**
- * A node property with its inheritance/overriding context.
- */
-final case class NodePropertyHierarchy(prop: NodeProperty, hierarchy: List[ParentProperty])
-
 object ParentProperty {
   final case class Node(name: String, id: NodeId, value: ConfigValue)       extends ParentProperty {
     override def displayName: String = s"${name} (${id.value})"
@@ -923,6 +924,11 @@ object ParentProperty {
     }
   }
 }
+
+/**
+ * A node property with its inheritance/overriding context.
+ */
+final case class NodePropertyHierarchy(prop: NodeProperty, hierarchy: List[ParentProperty])
 
 /**
  * The part dealing with JsonSerialisation of node related
@@ -1016,6 +1022,212 @@ object JsonPropertySerialisation {
 
     def toDataJson: JObject = {
       parameters.map(dataJson(_)).toList.sortBy(_.name)
+    }
+  }
+
+}
+
+/**
+  * Error ADT that consists of specific errors on a property, or a 
+  */
+sealed trait NodePropertyError {
+  def message: String
+}
+
+/**
+  * Error that are specific to some properties.
+  */
+sealed trait NodePropertySpecificError extends NodePropertyError {
+
+  /**
+    * Properties whose name is the key of the map, are associated with 
+    * a hierarchy of inherited properties from parents that lead to the error,
+    * and an error message
+    */
+  def propertiesErrors: Map[String, (List[ParentProperty], String)]
+}
+object NodePropertyError         {
+  case class MissingParentGroup(groupId: NodeGroupId, groupName: String, parentGroupId: String) extends NodePropertyError {
+    def message: String = s"parent group with id '${parentGroupId}' is missing for group '${groupName}'(${groupId.serialize})"
+  }
+  object MissingParentGroup {
+    def apply(group: NodeGroup, parentGroupId: String): MissingParentGroup =
+      MissingParentGroup(group.id, group.name, parentGroupId)
+  }
+
+  // The message can be very broad or specific here, it is known from the DAG resolution
+  case class DAGError(override val message: String) extends NodePropertyError
+
+  // The model can end up with having an empty list of properties, so a this subtype may replace the Option API
+  case object NotFound extends NodePropertyError {
+    def message: String = "not found"
+  }
+  // There are conflicts by node property
+  case class PropertyInheritanceConflicts(
+      conflicts: Map[NodeProperty, NonEmptyChunk[List[ParentProperty]]]
+  ) extends NodePropertySpecificError {
+    def message: String = propertiesErrors.values.map {
+      case (conflicting, error) =>
+        s"In hierarchy with ${conflicting.map(_.displayName).mkString(", ")} :\n${error}"
+    }.mkString("\n")
+
+    def ++(that: PropertyInheritanceConflicts): PropertyInheritanceConflicts = {
+      PropertyInheritanceConflicts(conflicts ++ that.conflicts)
+    }
+
+    // the map needs to be evaluated eagerly to get all property errors at once and atomic checks
+    override val propertiesErrors: Map[String, (List[ParentProperty], String)] = {
+      conflicts.map {
+        case (k, props) =>
+          (
+            k.name,
+            (props.toList.flatten, conflictMessage(k, props))
+          )
+      }
+    }
+
+    private def conflictMessage(prop: NodeProperty, conflicts: NonEmptyChunk[List[ParentProperty]]): String = {
+      val faulty = conflicts.collect {
+        case g :: Nil     =>
+          g.displayName
+        case g :: parents =>
+          s"${g.displayName} (with inheritance from: ${parents.map(_.displayName).mkString("; ")}"
+      }
+
+      s"Error when trying to find overrides for group property '${prop.name}'. " +
+      s"Several groups which are not in an inheritance relation define it. You will need to define " +
+      s"a new group with all these groups as parent and choose the order on which you want to do " +
+      s"the override by hand. Faulty groups: ${faulty.mkString(", ")}"
+
+    }
+  }
+  object PropertyInheritanceConflicts {
+
+    /**
+      * Represent a single failure from a property and the conflicting inheritance lines
+      */
+    def one(prop: NodeProperty, parents: NonEmptyChunk[List[ParentProperty]]): PropertyInheritanceConflicts = {
+      PropertyInheritanceConflicts(
+        Map(prop -> parents)
+      )
+    }
+
+    // semigroup is used when using combinators from the Ior datatype to accumulate conflicts
+    implicit val semigroup: Semigroup[PropertyInheritanceConflicts] = Semigroup.instance(_ ++ _)
+  }
+
+  /**
+    * Instance of semigroup that result from the hierarchy of node property errors :
+    * non specific errors are more important that specific ones.
+    * The instance is used when using combinators from the Ior datatype 
+    * to accumulate conflicts or choose between errors.
+    * 
+    * From the ADT structure and the implementation of this instance,
+    * we assume that specific errors are discarded.
+    * To keep all errors, consider using a collection of errors and remove this instance.
+    */
+  implicit val semigroup: Semigroup[NodePropertyError] = {
+    Semigroup.instance {
+      case (a: NodePropertySpecificError, b: NodePropertySpecificError) => a |+| b // accumulate specific errors
+      case (g: NodePropertyError, _: NodePropertySpecificError)         => g       // choose the least specific
+      case (_: NodePropertyError, snd: NodePropertyError)               => snd     // the latest error (maybe we want a CombinedError)
+    }
+
+  }
+}
+object NodePropertySpecificError {
+  import NodePropertyError.PropertyInheritanceConflicts
+
+  implicit val semigroup: Semigroup[NodePropertySpecificError] = Semigroup.instance {
+    case (a: PropertyInheritanceConflicts, b: PropertyInheritanceConflicts) => a |+| b // accumulate conflicts
+  }
+}
+
+/**
+  * The status of resolution of the hierarchy of node properties :
+  * the node properties hierarchy can sometimes be evaluated 
+  * in a broken global context (e.g. groups structure is non resoluble)
+  * , or there can be failures to resolve some specific properties only.
+
+  * There is also a success case when all properties are successfully resolved,
+  * but the API assumes that there are resolved properties (even an empty set).
+  * 
+  * The API is very similar to a Ior one and in fact that datatype is used 
+  * for the combinators it provides, and this type is just the domain 
+  * definition that prevents the Ior datatype to be visible at many places.
+  */
+sealed abstract class ResolvedNodePropertyHierarchy(val resolved: Chunk[NodePropertyHierarchy]) {
+  def prependFailureMessage(msg: String): ResolvedNodePropertyHierarchy
+
+  def noResolved: Boolean = resolved.isEmpty
+}
+
+/**
+  * The failure that has some additional context message for when 
+  * there is a global context for the node property error.
+  * 
+  * It wraps the error to also serve as a translation agains the 
+  * case of having both success and error,
+  * and is somehow associated with the Ior datatype
+  */
+case class FailedNodePropertyHierarchy private (
+    success:        Chunk[NodePropertyHierarchy],
+    error:          NodePropertyError,
+    contextMessage: String
+) extends ResolvedNodePropertyHierarchy(success) {
+  // context message already has newline when prepended
+  def getMessage: String = (if (contextMessage.nonEmpty) s"${contextMessage}${error.message}" else error.message).strip
+
+  override def prependFailureMessage(msg: String): ResolvedNodePropertyHierarchy =
+    copy(contextMessage = msg ++ "\n" ++ contextMessage)
+}
+object FailedNodePropertyHierarchy {
+
+  /**
+    * Constuctor needs to validate that properties in success does not intersect specific node property errors
+    */
+  def apply(it: Iterable[NodePropertyHierarchy], error: NodePropertyError, contextMessage: String = "") = {
+    val success = error match {
+      case propErrors: NodePropertySpecificError =>
+        it.filterNot(p => propErrors.propertiesErrors.keySet.contains(p.prop.name))
+      case _ => Chunk.from(it)
+    }
+    new FailedNodePropertyHierarchy(Chunk.from(success), error, contextMessage)
+
+  }
+}
+
+/**
+  * Just a list of resolved properties (we know it's a non empty one 
+  * and model it like that for the constraint of instantiation)
+  */
+case class SuccessNodePropertyHierarchy(override val resolved: Chunk[NodePropertyHierarchy])
+    extends ResolvedNodePropertyHierarchy(resolved) {
+  override def prependFailureMessage(msg: String): ResolvedNodePropertyHierarchy = this
+}
+
+object ResolvedNodePropertyHierarchy {
+
+  def empty: SuccessNodePropertyHierarchy = SuccessNodePropertyHierarchy(Chunk.empty)
+
+  /**
+    * Main use case is to translate from Ior, and specifically an empty success with no error is an empty result
+    */
+  def from(ior: Ior[NodePropertyError, Iterable[NodePropertyHierarchy]]): ResolvedNodePropertyHierarchy = {
+    ior match {
+      case Ior.Left(err)     =>
+        FailedNodePropertyHierarchy(Chunk.empty, err)
+      case Ior.Both(err, it) =>
+        FailedNodePropertyHierarchy(it, err)
+      case Ior.Right(it)     =>
+        SuccessNodePropertyHierarchy(Chunk.from(it))
+    }
+  }
+
+  implicit class ResolvedNodePropertyHierarchyOptionOps(opt: Option[ResolvedNodePropertyHierarchy]) {
+    def orEmpty: ResolvedNodePropertyHierarchy = opt match {
+      case None        => empty
+      case Some(value) => value
     }
   }
 

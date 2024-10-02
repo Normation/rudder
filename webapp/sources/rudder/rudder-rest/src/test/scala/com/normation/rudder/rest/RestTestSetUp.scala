@@ -73,7 +73,7 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.properties.GlobalParameter
-import com.normation.rudder.domain.properties.NodePropertyHierarchy
+import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeModeConfig
@@ -339,17 +339,17 @@ class RestTestSetUp {
     override def writeCertificatesPem(allNodeInfos: MapView[NodeId, CoreNodeFact]): Unit = ???
     override def triggerNodeGroupUpdate(): Box[Unit] = ???
     override def beforeDeploymentSync(generationTime: DateTime): Box[Unit] = ???
-    override def HOOKS_D:                     String                                              = ???
-    override def HOOKS_IGNORE_SUFFIXES:       List[String]                                        = ???
-    override def UPDATED_NODE_IDS_PATH:       String                                              = ???
-    override def GENERATION_FAILURE_MSG_PATH: String                                              = ???
+    override def HOOKS_D:                     String                                               = ???
+    override def HOOKS_IGNORE_SUFFIXES:       List[String]                                         = ???
+    override def UPDATED_NODE_IDS_PATH:       String                                               = ???
+    override def GENERATION_FAILURE_MSG_PATH: String                                               = ???
     override def getAppliedRuleIds(
         rules:        Seq[Rule],
         groupLib:     FullNodeGroupCategory,
         directiveLib: FullActiveTechniqueCategory,
         allNodeInfos: MapView[NodeId, Boolean]
     ): Set[RuleId] = ???
-    override def findDependantRules():        Box[Seq[Rule]]                                      = ???
+    override def findDependantRules():        Box[Seq[Rule]]                                       = ???
     override def buildRuleVals(
         activesRules: Set[RuleId],
         rules:        Seq[Rule],
@@ -357,20 +357,20 @@ class RestTestSetUp {
         groupLib:     FullNodeGroupCategory,
         allNodeInfos: MapView[NodeId, Boolean]
     ): Box[Seq[RuleVal]] = ???
-    override def getNodeProperties:           IOResult[Map[NodeId, Chunk[NodePropertyHierarchy]]] = {
+    override def getNodeProperties:           IOResult[Map[NodeId, ResolvedNodePropertyHierarchy]] = {
       ???
     }
     override def getNodeContexts(
         nodeIds:              Set[NodeId],
         allNodeInfos:         MapView[NodeId, CoreNodeFact],
-        inheritedProps:       Map[NodeId, Chunk[NodePropertyHierarchy]],
+        inheritedProps:       Map[NodeId, ResolvedNodePropertyHierarchy],
         allGroups:            FullNodeGroupCategory,
         globalParameters:     List[GlobalParameter],
         globalAgentRun:       AgentRunInterval,
         globalComplianceMode: ComplianceMode,
         globalPolicyMode:     GlobalPolicyMode
     ): Box[NodesContextResult] = ???
-    override def getFilteredTechnique():      Map[NodeId, List[TechniqueName]]                    = ???
+    override def getFilteredTechnique():      Map[NodeId, List[TechniqueName]]                     = ???
     override def buildNodeConfigurations(
         activeNodeIds:             Set[NodeId],
         ruleVals:                  Seq[RuleVal],
@@ -384,7 +384,7 @@ class RestTestSetUp {
         generationContinueOnError: Boolean
     ): Box[NodeConfigurations] = ???
     override def forgetOtherNodeConfigurationState(keep: Set[NodeId]): Box[Set[NodeId]] = ???
-    override def getNodeConfigurationHash():  Box[Map[NodeId, NodeConfigurationHash]]             = ???
+    override def getNodeConfigurationHash():  Box[Map[NodeId, NodeConfigurationHash]]              = ???
     override def getNodesConfigVersion(
         allNodeConfigs: Map[NodeId, NodeConfiguration],
         hashes:         Map[NodeId, NodeConfigurationHash],

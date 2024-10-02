@@ -264,7 +264,7 @@ response:
                 },
                 "provider":"overridden",
                 "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>{\n    \"array\" : [\n        1,\n        3,\n        2\n    ],\n    \"json\" : {\n        \"var1\" : \"val1\",\n        \"var2\" : \"val2\"\n    },\n    \"string\" : \"a string\"\n}\n</pre></p><p>from <b>this group (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>{\n    \"array\" : [\n        5,\n        6\n    ],\n    \"group\" : \"string\",\n    \"json\" : {\n        \"g1\" : \"g1\"\n    }\n}\n</pre></p>",
-                  "hierarchyStatus":{
+                "hierarchyStatus":{
                   "hasChildTypeConflicts":false,
                   "fullHierarchy":[
                     {

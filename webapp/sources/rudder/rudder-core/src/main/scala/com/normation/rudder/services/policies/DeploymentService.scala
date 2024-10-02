@@ -568,7 +568,7 @@ trait PromiseGenerationService {
    * - groups library
    */
   def getNodeFacts():    Box[MapView[NodeId, CoreNodeFact]]
-  def getNodeProperties: IOResult[Map[NodeId, Chunk[NodePropertyHierarchy]]]
+  def getNodeProperties: IOResult[Map[NodeId, ResolvedNodePropertyHierarchy]]
   // get full active technique category, checking that:
   // - all ids in parameter are in it,
   // - filtering out other directives (and pruning relevant branches).
@@ -690,7 +690,7 @@ trait PromiseGenerationService {
   def getNodeContexts(
       nodeIds:              Set[NodeId],
       nodeFacts:            MapView[NodeId, CoreNodeFact],
-      inheritedProps:       Map[NodeId, Chunk[NodePropertyHierarchy]],
+      inheritedProps:       Map[NodeId, ResolvedNodePropertyHierarchy],
       allGroups:            FullNodeGroupCategory,
       globalParameters:     List[GlobalParameter],
       globalAgentRun:       AgentRunInterval,
@@ -920,8 +920,9 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   override def findDependantRules(): Box[Seq[Rule]]                     = roRuleRepo.getAll(true).toBox
   override def getNodeFacts():       Box[MapView[NodeId, CoreNodeFact]] = nodeFactRepository.getAll()(QueryContext.systemQC).toBox
 
-  override def getNodeProperties: IOResult[Map[NodeId, Chunk[NodePropertyHierarchy]]] =
+  override def getNodeProperties: IOResult[Map[NodeId, ResolvedNodePropertyHierarchy]] = {
     propertiesRepository.getAllNodeProps()(QueryContext.systemQC)
+  }
 
   override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory] = {
     configurationRepository.getDirectiveLibrary(ids).toBox
@@ -993,7 +994,7 @@ trait PromiseGeneration_BuildNodeContext {
   def getNodeContexts(
       nodeIds:              Set[NodeId],
       nodeFacts:            MapView[NodeId, CoreNodeFact],
-      inheritedProps:       Map[NodeId, Chunk[NodePropertyHierarchy]],
+      inheritedProps:       Map[NodeId, ResolvedNodePropertyHierarchy],
       allGroups:            FullNodeGroupCategory,
       globalParameters:     List[GlobalParameter],
       globalAgentRun:       AgentRunInterval,
@@ -1060,7 +1061,15 @@ trait PromiseGeneration_BuildNodeContext {
                                    .toBox
             nodeTargets        = allGroups.getTarget(info).map(_._2).toList
             timeMerge          = System.nanoTime
-            mergedProps        = inheritedProps.getOrElse(nodeId, Chunk())
+            mergedProps       <- inheritedProps.get(nodeId) match {
+                                   case None                                  =>
+                                     Full(Chunk.empty)
+                                   case Some(s: SuccessNodePropertyHierarchy) =>
+                                     Full(s.resolved)
+                                   case Some(f: FailedNodePropertyHierarchy)  =>
+                                     Failure(s"Property resolution failed for node ${nodeId.value} with error : ${f.getMessage}")
+
+                                 }
             nodeContextBefore <- systemVarService.getSystemVariables(
                                    info,
                                    nodeFacts,

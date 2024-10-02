@@ -360,9 +360,17 @@ class UpdateDynamicGroups(
                   s"Computing dynamic groups with dependencies finished in ${System.currentTimeMillis - preComputeDependantGroups} ms"
                 )
               // update all inherited properties with the new group graphe
-              _                            <- propertiesService.updateAll()
+              _                            <- propertiesService.updateAll().chainError("Properties cannot be updated when computing new dynamic groups")
             } yield {
               results ++ results2
+            }).onError(_.failureOrCause match {
+              case Left(err)  => DynamicGroupLoggerPure.error(err.fullMsg)
+              case Right(err) =>
+                DynamicGroupLoggerPure.error(
+                  "An error occurred when computing dynamic groups: " + err.dieOption.fold("unknown cause")(_.getMessage)
+                ) *> DynamicGroupLoggerPure.debug(
+                  s"Dynamic groups uncaught failure details : ${err}"
+                )
             }).toBox
 
             updateManager ! GroupUpdateMessage.DynamicUpdateResult(processId, modId, startTime, DateTime.now, result)
