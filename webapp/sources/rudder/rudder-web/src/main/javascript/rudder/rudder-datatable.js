@@ -1626,7 +1626,7 @@ function createNodeTable(gridId, refresh, scores) {
         select += "<option value='"+value+"'>"+value+"</option>"
       }
     }
-    select += "</select></div><div><select id='selectScoreDetails' class='form-select'></select></div><div><input class='form-control' id='colValue' type='text'></div><label for='colCheckbox' class='input-group'><span class='input-group-text'><input id='colCheckbox' type='checkbox'></span><div class='form-control'>Show inherited properties</div></label><button id='add-column' class='btn btn-default btn-icon'>Add column <i class='fa fa-plus-circle'></i></button><button id='reset-columns' class='btn btn-default btn-icon'>Reset columns <i class='fa fa-rotate-left'></i></button></div>"
+    select += "</select></div><div><select id='selectScoreDetails' class='form-select'></select></div><div><input class='form-control' id='colValue' type='text'></div><label for='colCheckbox' class='input-group'><span class='input-group-text'><input id='colCheckbox' type='checkbox'></span><div class='form-control'>Show inherited properties</div></label><button id='add-column' class='btn btn-default btn-icon flex-shrink-0'>Add column <i class='fa fa-plus-circle'></i></button><button id='reset-columns' class='btn btn-default btn-icon flex-shrink-0'>Reset columns <i class='fa fa-rotate-left'></i></button></div>"
     editOpen ? $("#select-columns").show() : $("#select-columns").hide()
     $("#select-columns").html(select)
     var selectedColumns =""
