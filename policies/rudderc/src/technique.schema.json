@@ -213,6 +213,7 @@
               "enum": [
                 "worst-case-weighted-one",
                 "worst-case-weighted-sum",
+                "focus-worst",
                 "disabled",
                 "enabled",
                 "weighted"
