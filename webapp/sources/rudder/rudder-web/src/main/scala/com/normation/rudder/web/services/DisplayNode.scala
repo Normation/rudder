@@ -511,7 +511,7 @@ object DisplayNode extends Loggable {
         {nodeStateIcon}
       </div>
       <div class="header-subtitle">
-        <a class="clipboard" title="Copy to clipboard" data-clipboard-text={sm.node.main.id.value}>
+        <a class="clipboard" title="Copy to clipboard" onclick={s"copy('${sm.node.main.id.value}')"}>
           <span id="nodeHeaderId">{sm.node.main.id.value}</span>
           <i class="ion ion-clipboard"></i>
         </a>
@@ -1056,7 +1056,7 @@ object DisplayNode extends Loggable {
              |  }, 400);
              |});
              |app.ports.copy.subscribe(function(str) {
-             |  navigator.clipboard.writeText(str);
+             |  copy(str);
              |});
              |app.ports.initInputs.subscribe(function(str) {
              |  setTimeout(function(){

@@ -30,22 +30,19 @@ class Login extends DispatchSnippet with DefaultExtendableSnippet[Login] {
                 <span id="cmd-user" class="cmd-text">
                   rudder server create-user -u &lt;username&gt;
                 </span>
-                <button class="btn btn-cmd-user btn-clipboard" type="button" data-clipboard-text="rudder server create-user -u " data-bs-toggle="tooltip" data-bs-placement="bottom" title="Copy to clipboard">
+                <button class="btn btn-cmd-user btn-clipboard" type="button" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Copy to clipboard">
                   <i class="far fa-clipboard"></i>
                 </button>
               </div>
               <script type="text/javascript">
                 // <![CDATA[
                 window.setTimeout('location.reload()', 10000);
-                new ClipboardJS('.btn-clipboard');
-                var checked;
-                $('.btn-cmd-user').on('click', function(){
-                  clearInterval(checked);
-                  $('.btn-cmd-user .fa-clipboard').attr('class', 'fas fa-check') ;
-                    checked = setInterval(function(){
-                    $('.btn-cmd-user .fa-check').attr('class', 'far fa-clipboard') ;
-                  },700);
-                });
+                $('.btn-clipboard').click(function(){
+                  navigator.clipboard.writeText("rudder server create-user -u " ).then(function(){
+                    $('.btn-clipboard').attr("title","Copied to clipboard!");
+                    $('.btn-cmd-user .fa-clipboard').attr('class', 'fas fa-check') ;
+                  }, function() {})
+                } );
                 // ]]>
               </script>
             </div>

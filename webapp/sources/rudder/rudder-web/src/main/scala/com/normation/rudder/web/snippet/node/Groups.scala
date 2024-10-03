@@ -652,7 +652,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
              |      }, 400);
              |    });
              |    app.ports.copy.subscribe(function(str) {
-             |      navigator.clipboard.writeText(str);
+             |      copy(str);
              |    });
              |    app.ports.initInputs.subscribe(function(str) {
              |      setTimeout(function(){
