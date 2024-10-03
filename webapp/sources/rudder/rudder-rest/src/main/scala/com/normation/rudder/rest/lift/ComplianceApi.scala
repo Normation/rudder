@@ -435,7 +435,7 @@ class ComplianceApi(
       (for {
         level     <- restExtractor.extractComplianceLevel(req.params)
         precision <- restExtractor.extractPercentPrecision(req.params)
-        nodes     <- complianceService.getNodesCompliance(false).toBox
+        nodes     <- complianceService.getNodesCompliance(PolicyTypeName.rudderBase).toBox
       } yield {
         if (version.value <= 6) {
           nodes.map(_.toJsonV6)
@@ -472,7 +472,7 @@ class ComplianceApi(
       (for {
         level     <- restExtractor.extractComplianceLevel(req.params)
         precision <- restExtractor.extractPercentPrecision(req.params)
-        node      <- complianceService.getNodeCompliance(NodeId(nodeId), onlySystems = false).toBox
+        node      <- complianceService.getNodeCompliance(NodeId(nodeId), PolicyTypeName.rudderBase).toBox
       } yield {
         if (version.value <= 6) {
           node.toJsonV6
@@ -509,7 +509,7 @@ class ComplianceApi(
       (for {
         level     <- restExtractor.extractComplianceLevel(req.params)
         precision <- restExtractor.extractPercentPrecision(req.params)
-        node      <- complianceService.getNodeCompliance(NodeId(nodeId), onlySystems = true).toBox
+        node      <- complianceService.getNodeCompliance(NodeId(nodeId), PolicyTypeName.rudderSystem).toBox
       } yield {
         node.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2))
       }) match {
@@ -1364,12 +1364,11 @@ class ComplianceAPIService(
     rulesRepo.getAll()
   }
   private def getByNodesCompliance(
-      onlyNode: Option[NodeId],
-      getRules: => IOResult[Seq[Rule]]
+      onlyNode:   Option[NodeId],
+      policyType: PolicyTypeName
   )(implicit qc: QueryContext): IOResult[Seq[ByNodeNodeCompliance]] = {
-
     for {
-      rules        <- getRules
+      rules        <- if (PolicyTypeName.rudderSystem == policyType) getSystemRules() else getAllUserRules()
       ruleMap       = rules.map { case x => (x.id, x) }.toMap
       allGroups    <- nodeGroupRepo.getAllNodeIdsChunk()
       groupLib     <- nodeGroupRepo.getFullGroupLibrary()
@@ -1469,7 +1468,7 @@ class ComplianceAPIService(
               compliance.mode, // Add this line to include no
               nodeInfos.get(nodeId).flatMap(_._2.policyMode),
               status.reports
-                .get(PolicyTypeName.rudderBase)
+                .get(policyType)
                 .toSeq
                 .flatMap(_.reports)
                 .map(r => {
@@ -1511,9 +1510,11 @@ class ComplianceAPIService(
     PolicyMode.parse(ComputePolicyMode.ruleMode(globalMode, directives, nodeModes)._1).toOption
   }
 
-  def getNodeCompliance(nodeId: NodeId, onlySystems: Boolean)(implicit qc: QueryContext): IOResult[ByNodeNodeCompliance] = {
+  def getNodeCompliance(nodeId: NodeId, policyTypeName: PolicyTypeName)(implicit
+      qc: QueryContext
+  ): IOResult[ByNodeNodeCompliance] = {
     for {
-      reports <- this.getByNodesCompliance(Some(nodeId), if (onlySystems) getSystemRules() else getAllUserRules())
+      reports <- this.getByNodesCompliance(Some(nodeId), policyTypeName)
       report  <- reports.find(_.id == nodeId).notOptional(s"No reports were found for node with ID '${nodeId.value}'")
     } yield {
       report
@@ -1521,8 +1522,8 @@ class ComplianceAPIService(
 
   }
 
-  def getNodesCompliance(onlySystems: Boolean)(implicit qc: QueryContext): IOResult[Seq[ByNodeNodeCompliance]] = {
-    this.getByNodesCompliance(None, if (onlySystems) getSystemRules() else getAllUserRules())
+  def getNodesCompliance(policyTypeName: PolicyTypeName)(implicit qc: QueryContext): IOResult[Seq[ByNodeNodeCompliance]] = {
+    this.getByNodesCompliance(None, policyTypeName)
   }
 
   def getGlobalCompliance()(implicit qc: QueryContext): IOResult[Option[(ComplianceLevel, Long)]] = {
