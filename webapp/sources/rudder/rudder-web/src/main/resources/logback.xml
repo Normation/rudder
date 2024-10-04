@@ -451,6 +451,13 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   </logger>
 
   <!--
+    Log about configuration information for the status of some specific parts of Rudder
+  -->
+  <logger name="status" level="info">
+    <appender-ref ref="STDOUT" />
+  </logger>
+
+  <!--
       This logger allows to log information about reports, especially DB cleaning operation
   -->
   <logger name="report" level="info" additivity="false">

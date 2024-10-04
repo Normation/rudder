@@ -42,8 +42,13 @@ import bootstrap.liftweb.RudderConfig
 import bootstrap.liftweb.RudderConfig.clearCacheService
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.batch.*
+import com.normation.rudder.ncf.CompilationStatus
+import com.normation.rudder.ncf.CompilationStatusAllSuccess
+import com.normation.rudder.ncf.CompilationStatusErrors
+import com.normation.rudder.ncf.EditorTechniqueError
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.RudderUserDetail
+import com.normation.rudder.web.snippet.WithNonce
 import com.normation.utils.DateFormaterService
 import net.liftweb.common.*
 import net.liftweb.http.*
@@ -57,9 +62,11 @@ import scala.xml.*
 class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   private val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
+  private val linkUtil             = RudderConfig.linkUtil
 
   // current states of the deployment
   private var deploymentStatus = DeploymentStatus(NoStatus, IdleDeployer)
+  private var compilationStatus:         CompilationStatus        = CompilationStatusAllSuccess
   // we need to get current user from SpringSecurity because it is not set in session anymore,
   // and comet doesn't know about requests
   private val currentUser:               Option[RudderUserDetail] = FindCurrentUser.get()
@@ -74,7 +81,12 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   override val defaultHtml = NodeSeq.Empty
 
-  override def lowPriority: PartialFunction[Any, Unit] = { case d: DeploymentStatus => deploymentStatus = d; reRender() }
+  override def lowPriority: PartialFunction[Any, Unit] = {
+    case msg: AsyncDeploymentActorCreateUpdate =>
+      deploymentStatus = msg.deploymentStatus
+      compilationStatus = msg.compilationStatus
+      reRender()
+  }
 
   private def displayTime(label: String, time: DateTime): NodeSeq = {
     val t = time.toString("yyyy-MM-dd HH:mm:ssZ")
@@ -105,13 +117,15 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   private def statusBackground: String = {
     deploymentStatus.processing match {
       case IdleDeployer =>
-        deploymentStatus.current match {
-          case NoStatus =>
-            "bg-neutral"
-          case _: SuccessStatus =>
-            "bg-ok"
-          case _: ErrorStatus   =>
+        (deploymentStatus.current, compilationStatus) match {
+          case (_: ErrorStatus, _)                             =>
             "bg-error"
+          case (_, _: CompilationStatusErrors)                 =>
+            "bg-error"
+          case (NoStatus, _)                                   =>
+            "bg-neutral"
+          case (_: SuccessStatus, CompilationStatusAllSuccess) =>
+            "bg-ok"
         }
       case _            =>
         "bg-refresh"
@@ -128,14 +142,14 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         statusClass:  String
     ) = {
       <li><a href="#" class={statusClass + " no-click"}><span class={iconClass}></span>{headText}</a></li>
-        <li><a href="#" class="no-click"><span class={statusClass + " fa fa-hourglass-start"}></span>{
+      <li><a href="#" class="no-click"><span class={statusClass + " fa fa-hourglass-start"}></span>{
         displayTime("Started at ", start)
       }</a>
-        </li>
-        <li><a href="#" class="no-click"><span class={statusClass + " fa fa-hourglass-end"}></span><span id="deployment-end">{
+      </li>
+      <li><a href="#" class="no-click"><span class={statusClass + " fa fa-hourglass-end"}></span><span id="deployment-end">{
         displayTime("Ended at ", end)
       }</span></a></li>
-          <li><a href="#" class="no-click"><span class={statusClass + " fa fa-clock-o"}></span>{durationText} {
+      <li><a href="#" class="no-click"><span class={statusClass + " fa fa-clock-o"}></span>{durationText} {
         DateFormaterService.getFormatedPeriod(start, end)
       }</a></li>
     }
@@ -235,6 +249,66 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       )
     } else NodeSeq.Empty
   }
+
+  private def showCompilation: NodeSeq = {
+    def tooltipContent(error: EditorTechniqueError):      String  = {
+      s"<h4 class='tags-tooltip-title'>Technique compilation output in ${error.id.value}/${error.version.value}</h4><div class='tooltip-inner-content'><pre class=\"code\">${error.errorMessage}</pre></div>"
+    }
+    def techniqueBtnId(error: EditorTechniqueError):      String  = {
+      s"status-compilation-${error.id.value}-${error.version.value}"
+    }
+    // The "a" tag has special display in the content, we need a button that opens link in new tab
+    def techniqueLinkScript(error: EditorTechniqueError): NodeSeq = {
+      val link  = linkUtil.techniqueLink(error.id.value)
+      val btnId = techniqueBtnId(error)
+      WithNonce.scriptWithNonce(
+        Script(
+          OnLoad(JsRaw(s"""
+            document.getElementById("${btnId}").onclick = function () {
+              window.open("${link}", "_blank");
+            };
+            """))
+        )
+      )
+    }
+    compilationStatus match {
+      case CompilationStatusAllSuccess                =>
+        NodeSeq.Empty
+      case CompilationStatusErrors(techniquesInError) =>
+        <li class="card border-start-0 border-end-0 border-top-0">
+          <div class="card-body">
+            <h5 class="card-title d-flex">
+              Technique compilation errors 
+              <span class="badge bg-danger float h-25">{techniquesInError.size}</span>
+            </h5>
+            <ul class="list-group">
+            {
+          NodeSeq.fromSeq(
+            techniquesInError
+              .map(t => {
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <button id={techniqueBtnId(t)} class="btn btn-link text-start">
+                    {t.name} <i class="fa fa-external-link"/>
+                  </button>
+                  {techniqueLinkScript(t)}
+                  <span>
+                    <i class="fa fa-question-circle info" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" data-bs-original-title={
+                  tooltipContent(t)
+                }></i>
+                  </span>
+                </li>
+              })
+              .toList ++ WithNonce.scriptWithNonce(
+              Script(OnLoad(JsRaw("""initBsTooltips();""")))
+            )
+          )
+        }
+            </ul>
+          </div>
+        </li>
+    }
+  }
+
   private def layout = {
     if (havePerm(AuthorizationType.Deployment.Read)) {
 
@@ -249,6 +323,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
           <li class="footer">
             {showGeneratePoliciesPopup}
           </li>
+          {showCompilation}
         </ul>
       </li> ++ errorPopup ++ generatePoliciesPopup
 

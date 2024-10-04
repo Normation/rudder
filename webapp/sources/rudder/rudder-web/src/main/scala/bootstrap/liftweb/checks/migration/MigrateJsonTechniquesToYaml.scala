@@ -58,10 +58,11 @@ import zio.*
  * Controlled by presence of flag file /opt/rudder/etc/force_ncf_technique_update
  */
 class MigrateJsonTechniquesToYaml(
-    techniqueWriter:   TechniqueWriter,
-    uuidGen:           StringUuidGenerator,
-    techLibUpdate:     UpdateTechniqueLibrary,
-    rootConfigRepoDir: String
+    techniqueWriter:                   TechniqueWriter,
+    uuidGen:                           StringUuidGenerator,
+    techLibUpdate:                     UpdateTechniqueLibrary,
+    techniqueCompilationStatusService: ReadEditorTechniqueCompilationResult,
+    rootConfigRepoDir:                 String
 ) extends BootstrapChecks {
 
   object TechniqueMigrationLogger extends NamedZioLogger {
@@ -139,6 +140,8 @@ class MigrateJsonTechniquesToYaml(
                           )
                           .toIO
                           .chainError(s"An error occurred during techniques update after update of all techniques from the editor")
+      // Update compilation status after every library change
+      _              <- techniqueCompilationStatusService.get().unless(libUpdate.isEmpty)
 
     } yield ()
   }

@@ -63,7 +63,6 @@ import com.normation.rudder.rest.lift.TechniqueApi.QueryFormat
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Version
-import java.nio.charset.StandardCharsets
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
@@ -886,14 +885,11 @@ class TechniqueAPIService14(
   def getTechniqueJson(editorTechnique: EditorTechnique): IOResult[Json] = {
     import techniqueSerializer.*
     import zio.json.*
-    import zio.json.yaml.DecoderYamlOps
     import TechniqueCompilationIO.codecTechniqueCompilationOutput
     import com.normation.zio.*
-    val outputFile = techniqueCompiler.getCompilationOutputFile(editorTechnique)
-    val json       = (for {
-      content <- IOResult.attempt("error when reading compilation output")(outputFile.contentAsString(StandardCharsets.UTF_8))
-      out     <- content.fromYaml[TechniqueCompilationOutput].toIO
-      json    <- out.toJsonAST.toIO
+    val json = (for {
+      content <- techniqueCompiler.getCompilationOutput(editorTechnique).notOptional("error when reading compilation output")
+      json    <- content.toJsonAST.toIO
     } yield {
       ("output", json) :: Nil
     }).catchAll(_ => Nil.succeed).runNow

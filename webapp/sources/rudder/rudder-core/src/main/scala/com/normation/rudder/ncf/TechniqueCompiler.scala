@@ -136,11 +136,24 @@ trait TechniqueCompiler {
   def getCompilationOutputFile(technique: EditorTechnique): File
 
   def getCompilationConfigFile(technique: EditorTechnique): File
+
+  def getCompilationOutput(technique: EditorTechnique): IOResult[Option[TechniqueCompilationOutput]] = {
+    import TechniqueCompilationIO.codecTechniqueCompilationOutput
+    val file = getCompilationOutputFile(technique)
+    (for {
+      f       <- IOResult.attempt(Option.when(file.exists)(file))
+      content <-
+        ZIO.foreach(f)(c => IOResult.attempt(c.contentAsString(StandardCharsets.UTF_8)))
+      out     <- ZIO.foreach(content)(_.fromYaml[TechniqueCompilationOutput].toIO)
+    } yield {
+      out
+    }).chainError(s"error when reading compilation output of technique ${technique.id.value}/${technique.version.value}")
+  }
 }
 
 /*
- * The action of actually writing the technique is either done by `rudderc`
- * (new default behavior) or by the `webapp` (old fashion).
+ * The action of actually writing the technique is either done by `rudderc`.
+ * We previously had the option to do it using the webapp itself, but it is now outdated.
  * We have a third option, `rudderc-unix-only`, which relies on the webapp
  * to still generate non-unix files (like ps1).
  */
@@ -170,7 +183,9 @@ final case class TechniqueCompilationOutput(
     msg:        String,
     stdout:     String,
     stderr:     String
-)
+) {
+  def isError: Boolean = resultCode != 0
+}
 
 // additional param to give to rudderc
 final case class TechniqueCompilationConfig(
@@ -368,8 +383,8 @@ class RuddercServiceImpl(
 }
 
 /*
- * The main compiler service, which is able to choose between rudderc and webapp based on
- * default & local config, and can fallback from rudder to webapp when needed.
+ * The main compiler service that handles filesystem techniques,
+ * and uses the rudderc service to compile techniques and manages the filesystem.
  */
 class RuddercTechniqueCompiler(
     ruddercService:           RuddercService,
@@ -404,7 +419,7 @@ class RuddercTechniqueCompiler(
                      IOResult.attempt((gitDir / getTechniqueRelativePath(technique) / name).delete(true))
                    }
       res       <- compileTechniqueInternal(technique, config)
-      _         <- ZIO.when(res.resultCode != 0) {
+      _         <- ZIO.when(res.isError) {
                      writeCompilationOutputFile(technique, res)
                    }
     } yield res
