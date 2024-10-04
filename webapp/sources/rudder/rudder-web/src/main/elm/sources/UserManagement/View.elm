@@ -448,30 +448,7 @@ displayRightPanel model user =
         formSubmitSection provider =
             [ div [ class "btn-container" ]
                 [ button [ class "btn btn-sm btn-danger btn-delete", onClick (OpenDeleteModal user.login) ] [ text "Delete" ]
-                , button
-                    [ class
-                        ("btn btn-sm btn-status-toggle "
-                            ++ (if user.status == Active then
-                                    "btn-default"
-
-                                else
-                                    "btn-primary"
-                               )
-                        )
-                    , onClick
-                        (if user.status == Active then
-                            DisableUser user.login
-
-                         else
-                            ActivateUser user.login
-                        )
-                    ]
-                    [ if user.status == Active then
-                        text "Disable"
-
-                      else
-                        text "Activate"
-                    ]
+                , displayToggleStatusButton model user
                 , button
                     [ class "btn btn-sm btn-success btn-save"
                     , type_ "button"
@@ -514,6 +491,35 @@ displayRightPanel model user =
             )
         ]
 
+displayToggleStatusButton : Model -> User -> Html Msg
+displayToggleStatusButton model user = -- Do not display button when active : user cannot disable itself
+    if user.login == model.userId && user.status == Active then
+        text ""
+    else
+        button
+        [ class
+            ("btn btn-sm btn-status-toggle "
+                ++ (if user.status == Active then
+                        "btn-default"
+
+                    else
+                        "btn-primary"
+                   )
+            )
+        , onClick
+            (if user.status == Active then
+                DisableUser user.login
+
+             else
+                ActivateUser user.login
+            )
+        ]
+        [ if user.status == Active then
+            text "Disable"
+
+          else
+            text "Activate"
+        ]
 
 displayUsersConf : Model -> Html Msg
 displayUsersConf model =
