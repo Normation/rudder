@@ -78,6 +78,7 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.properties.MergeNodeProperties
+import com.normation.rudder.properties.NodePropertiesService
 import com.normation.rudder.properties.PropertiesRepository
 import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
@@ -151,13 +152,14 @@ import zio.syntax.*
  * but make the implementation directly here.
  */
 class NodeApi(
-    zioJsonExtractor:    ZioJsonExtractor,
-    serializer:          RestDataSerializer,
-    nodeApiService:      NodeApiService,
-    userPropertyService: UserPropertyService,
-    inheritedProperties: NodeApiInheritedProperties,
-    uuidGen:             StringUuidGenerator,
-    deleteDefaultMode:   DeleteMode
+    zioJsonExtractor:      ZioJsonExtractor,
+    nodePropertiesService: NodePropertiesService,
+    serializer:            RestDataSerializer,
+    nodeApiService:        NodeApiService,
+    userPropertyService:   UserPropertyService,
+    inheritedProperties:   NodeApiInheritedProperties,
+    uuidGen:               StringUuidGenerator,
+    deleteDefaultMode:     DeleteMode
 ) extends LiftApiModuleProvider[API] {
 
   def schemas: ApiModuleProvider[API] = API
@@ -387,6 +389,8 @@ class NodeApi(
         restNode <- restExtractor.extractUpdateNode(req).toIO
         reason   <- extractReason(req)
         result   <- nodeApiService.updateRestNode(NodeId(id), restNode)
+        // await all properties update to guarantee that properties are resolved after node modification
+        _        <- nodePropertiesService.updateAll()
       } yield {
         result.transformInto[JRUpdateNode]
       }).chainError(s"An error occurred while updating Node '${id}'")

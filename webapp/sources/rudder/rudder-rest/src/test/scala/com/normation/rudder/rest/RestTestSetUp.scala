@@ -953,6 +953,7 @@ class RestTestSetUp {
     new GroupsInternalApi(groupInternalApiService),
     new NodeApi(
       zioJsonExtractor,
+      mockNodeGroups.propService,
       restDataSerializer,
       nodeApiService,
       userPropertyService,
@@ -962,6 +963,7 @@ class RestTestSetUp {
     ),
     new GroupsApi(
       mockNodeGroups.groupsRepo,
+      mockNodeGroups.propService,
       restExtractorService,
       zioJsonExtractor,
       uuidGen,

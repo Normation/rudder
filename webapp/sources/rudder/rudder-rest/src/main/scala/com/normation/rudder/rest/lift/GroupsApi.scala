@@ -59,6 +59,7 @@ import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.properties.MergeNodeProperties
+import com.normation.rudder.properties.NodePropertiesService
 import com.normation.rudder.properties.PropertiesRepository
 import com.normation.rudder.repository.CategoryAndNodeGroup
 import com.normation.rudder.repository.RoNodeGroupRepository
@@ -86,6 +87,7 @@ import zio.syntax.*
 
 class GroupsApi(
     readGroup:            RoNodeGroupRepository,
+    propertiesService:    NodePropertiesService,
     restExtractorService: RestExtractorService,
     zioJsonExtractor:     ZioJsonExtractor,
     uuidGen:              StringUuidGenerator,
@@ -532,6 +534,8 @@ class GroupsApi(
         restGroup <- zioJsonExtractor.extractGroup(req).chainError(s"Could not extract a group from request.").toIO
         id        <- NodeGroupId.parse(sid).toIO
         res       <- serviceV14.updateGroup(restGroup.copy(id = Some(id)), params, authzToken.qc.actor)
+        // await all properties update to guarantee that properties are resolved after group modification
+        _         <- propertiesService.updateAll()
       } yield {
         res
       }).toLiftResponseOne(params, schema, s => Some(s.id))
