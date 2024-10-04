@@ -618,7 +618,7 @@ class RestTestSetUp {
     new UpdateDynamicGroups(
       dynGroupService,
       dynGroupUpdaterService,
-      mockNodeGroups.propService,
+      mockNodeGroups.propSyncService,
       asyncDeploymentAgent,
       uuidGen,
       1,

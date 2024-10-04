@@ -48,7 +48,6 @@ import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.properties.NodePropertiesService
 import com.normation.rudder.services.queries.*
 import com.normation.rudder.utils.ParseMaxParallelism
 import com.normation.utils.StringUuidGenerator
@@ -97,7 +96,7 @@ final case class StartDynamicUpdate(id: Long, modId: ModificationId, started: Da
 class UpdateDynamicGroups(
     dynGroupService:               DynGroupService,
     dynGroupUpdaterService:        DynGroupUpdaterService,
-    propertiesService:             NodePropertiesService,
+    propertiesSyncService:         NodePropertiesSyncService,
     asyncDeploymentAgent:          AsyncDeploymentActor,
     uuidGen:                       StringUuidGenerator,
     updateInterval:                Int, // in minutes
@@ -359,8 +358,10 @@ class UpdateDynamicGroups(
                 DynamicGroupLoggerPure.Timing.debug(
                   s"Computing dynamic groups with dependencies finished in ${System.currentTimeMillis - preComputeDependantGroups} ms"
                 )
-              // update all inherited properties with the new group graphe
-              _                            <- propertiesService.updateAll().chainError("Properties cannot be updated when computing new dynamic groups")
+              // sync properties status
+              _                            <- propertiesSyncService
+                                                .syncProperties()(QueryContext.systemQC)
+                                                .chainError("Properties cannot be updated when computing new dynamic groups")
             } yield {
               results ++ results2
             }).onError(_.failureOrCause match {

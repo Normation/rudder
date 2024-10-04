@@ -1887,6 +1887,9 @@ object RudderConfigInit {
     lazy val propertiesService: NodePropertiesService =
       new NodePropertiesServiceImpl(roLDAPParameterRepository, roNodeGroupRepository, nodeFactRepository, propertiesRepository)
 
+    lazy val propertiesSyncService: NodePropertiesSyncService =
+      new NodePropertiesSyncServiceImpl(propertiesService, propertiesRepository, asyncDeploymentAgent)
+
     lazy val inventorySaver = new NodeFactInventorySaver(
       nodeFactRepository,
       (
@@ -3106,7 +3109,7 @@ object RudderConfigInit {
     lazy val dyngroupUpdaterBatch:           UpdateDynamicGroups        = new UpdateDynamicGroups(
       dynGroupServiceImpl,
       dynGroupUpdaterService,
-      propertiesService,
+      propertiesSyncService,
       asyncDeploymentAgentImpl,
       uuidGen,
       RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL,

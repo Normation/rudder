@@ -56,6 +56,7 @@ import com.normation.inventory.ldap.core.InventoryDitService
 import com.normation.inventory.ldap.core.InventoryDitServiceImpl
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.rudder.MockNodes.allNodeFacts
+import com.normation.rudder.batch.NodePropertiesSyncServiceImpl
 import com.normation.rudder.campaigns.*
 import com.normation.rudder.configuration.ConfigurationRepositoryImpl
 import com.normation.rudder.configuration.DirectiveRevisionRepository
@@ -117,6 +118,7 @@ import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFChangeRecord
+import net.liftweb.actor.MockLiftActor
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import org.apache.commons.io.FileUtils
@@ -2992,6 +2994,9 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
   val propService =
     new NodePropertiesServiceImpl(mockGlobalParam.paramsRepo, groupsRepo, mockNodes.nodeFactRepo, mockNodes.propRepo)
 
+  val mockPropSyncActor = new MockLiftActor
+  val propSyncService   =
+    new NodePropertiesSyncServiceImpl(propService, mockNodes.propRepo, mockPropSyncActor)
   (
     propService.updateAll() *>
     // that should be handle by dynamic group re-computation, but we don't have that in mock
