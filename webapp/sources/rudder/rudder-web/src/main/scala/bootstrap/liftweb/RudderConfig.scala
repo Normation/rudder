@@ -2067,6 +2067,7 @@ object RudderConfigInit {
         new ComplianceApi(restExtractorService, complianceAPIService, roDirectiveRepository),
         new GroupsApi(
           roLdapNodeGroupRepository,
+          propertiesService,
           restExtractorService,
           zioJsonExtractor,
           stringUuidGenerator,
@@ -2085,6 +2086,7 @@ object RudderConfigInit {
         ),
         new NodeApi(
           zioJsonExtractor,
+          propertiesService,
           restDataSerializer,
           nodeApiService,
           userPropertyService,
