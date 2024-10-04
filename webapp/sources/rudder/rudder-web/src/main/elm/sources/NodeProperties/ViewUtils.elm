@@ -114,6 +114,22 @@ getParentPropertyDisplay pp =
     ParentGroup { id, name, valueType } -> "<span>Value of type: <strong>" ++ valueType ++ "</strong> in group " ++ "\"" ++ name ++ "\" with id <em>" ++ id ++ "</em></span>"
     ParentNode { id, name, valueType } -> "<span>Value of type: <strong>" ++ valueType ++ "</strong> in node " ++ "\"" ++ name ++ "\" with id <em>" ++ id ++ "</em></span>"
 
+getInheritedPropertyWarning : Property -> Html Msg
+getInheritedPropertyWarning property =
+  -- ignore error message when there is already a format conflict warning, it duplicates the error
+  case property.hierarchyStatus of
+    Just hs ->
+      case (hs.errorMessage, hs.hasChildTypeConflicts) of
+        (Just err, False) ->
+          span
+          [
+              class "px-2"
+            , attribute "data-bs-toggle" "tooltip"
+            , attribute "data-bs-placement" "top"
+            , title (buildTooltipContent "Inherited property error" err)
+          ] [ i [class "fa fa-exclamation-triangle text-danger"][] ]
+        _ -> text ""
+    Nothing -> text ""
 
 getFormatConflictWarning : Property -> Html Msg
 getFormatConflictWarning property =
@@ -186,6 +202,15 @@ checkUsedName name properties =
       Nothing -> p.name == name
     )
 
+displayPropertiesError : Model -> List (Html Msg)
+displayPropertiesError model =
+  case model.errorMessage of
+    Just err -> -- error may contain new lines, separate them with <br/> tag 
+      [ div [class "alert alert-warning"]
+        ((i [class "fa fa-exclamation-triangle"][]) :: (List.intersperse (br [] []) (List.map text (String.lines err))))
+      ]
+    Nothing -> []
+
 displayJsonValue : Value -> String
 displayJsonValue value =
   case decodeValue Json.Decode.string value of
@@ -209,6 +234,7 @@ displayNodePropertyRow model =
         formatTxt = getFormatTxt format
         origVal = Maybe.withDefault p.value p.origval
         formatConflict = getFormatConflictWarning p
+        inheritedPropertyError = getInheritedPropertyWarning p
         defaultEditProperty = EditProperty p.name (displayJsonValue origVal) format True True False
 
         editedProperty = Dict.get p.name model.ui.editedProperties
@@ -247,6 +273,7 @@ displayNodePropertyRow model =
             [ td []
               [ div[]
                 [ text p.name
+                , inheritedPropertyError
                 , providerBadge
                 , span [class "find-action action-icon", title "Find usage of this property", onClick (CallApi (findPropertyUsage p.name ))]
                   [ i [class "fas fa-search"][]

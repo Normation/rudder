@@ -216,18 +216,18 @@ update msg model =
               }
           in
             ( newModel
-            , Cmd.batch [ initInputs "", initTooltips "" , successNotification successMsg, getNodeProperties newModel]
+            , Cmd.batch [ initInputs "", initTooltips "" , successNotification successMsg, getInheritedProperties newModel]
             )
         Err err ->
           processApiError "Saving node properties" err model
 
-    GetNodeProperties res ->
+    GetInheritedProperties res ->
       case  res of
-        Ok properties ->
+        Ok { properties, errorMessage } ->
           let
             modelUi  = model.ui
           in
-            ( { model | properties = properties, ui = { modelUi | loading = False } }
+            ( { model | properties = properties, ui = { modelUi | loading = False }, errorMessage = errorMessage }
               , Cmd.batch [initTooltips "", initInputs ""]
             )
         Err err ->

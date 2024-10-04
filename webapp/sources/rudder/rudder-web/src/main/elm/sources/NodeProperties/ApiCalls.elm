@@ -14,17 +14,17 @@ getUrl: Model -> List String -> List QueryParameter -> String
 getUrl m url p=
   Url.Builder.relative (m.contextPath :: "secure" :: "api"  :: (m.objectType ++ "s") :: m.nodeId :: url) p
 
-getNodeProperties : Model -> Cmd Msg
-getNodeProperties model =
-  let
-    decoder = if model.objectType == "node" then decodeGetProperties else decodeGetGroupProperties
+getInheritedProperties : Model -> Cmd Msg
+getInheritedProperties model =
+  let 
+    decoder = if model.objectType == "node" then decodeGetInheritedProperties else decodeGetGroupInheritedProperties
     req =
       request
         { method  = "GET"
         , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "displayInheritedProperties" ] []
         , body    = emptyBody
-        , expect  = expectJson GetNodeProperties decoder
+        , expect  = expectJson GetInheritedProperties decoder
         , timeout = Nothing
         , tracker = Nothing
         }
