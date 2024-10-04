@@ -139,8 +139,8 @@ encodeCompositionRule composition =
        string "worst-case-weighted-sum"
     (WorstReport WorstReportWeightedOne) ->
        string "worst-case-weighted-one"
-    (WorstReport WorstReportByPercent) ->
-       string "worst-case-percent"
+    (WorstReport FocusWorst) ->
+       string "focus-worst"
     WeightedReport ->
       string "weighted"
     FocusReport value ->

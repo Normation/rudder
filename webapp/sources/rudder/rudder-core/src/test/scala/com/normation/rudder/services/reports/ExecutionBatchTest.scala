@@ -2261,7 +2261,7 @@ class ExecutionBatchTest extends Specification {
 
     val expectedComponent        = BlockExpectedReport(
       "blockRoot",
-      ReportingLogic.WorstReportByPercent,
+      ReportingLogic.FocusWorst,
       BlockExpectedReport(
         "block1",
         ReportingLogic.WeightedReport,
@@ -2422,7 +2422,7 @@ class ExecutionBatchTest extends Specification {
 
     val expectedComponent        = BlockExpectedReport(
       "blockRoot",
-      ReportingLogic.WorstReportByPercent,
+      ReportingLogic.FocusWorst,
       BlockExpectedReport(
         "block1",
         ReportingLogic.WorstReportWeightedSum,

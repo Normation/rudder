@@ -364,7 +364,7 @@ final case class BlockStatusReport(
           case WorstReportWeightedSum => allReports
         }
         ComplianceLevel.compute(kept)
-      case WorstReportByPercent =>
+      case FocusWorst =>
         // Get reports of sub-components to find the worst by percent
         val allReports = subComponents.map {
           case b: BlockStatusReport =>
@@ -398,9 +398,9 @@ final case class BlockStatusReport(
 
   def status: ReportType = {
     reportingLogic match {
-      case WorstReportByPercent | WorstReportWeightedOne | WorstReportWeightedSum | WeightedReport =>
+      case FocusWorst | WorstReportWeightedOne | WorstReportWeightedSum | WeightedReport =>
         ReportType.getWorseType(subComponents.map(_.status))
-      case FocusReport(component)                                                                  =>
+      case FocusReport(component)                                                        =>
         ReportType.getWorseType(findChildren(component).map(_.status))
     }
   }
@@ -436,7 +436,7 @@ final case class ValueStatusReport(
 /**
  * Merge component status reports.
  * We assign a arbitrary preponderance order for reporting logic mode:
- * WorstReportWeightedOne > WorstReportWeightedSum > WorstReportByPercent > WeightedReport > FocusReport
+ * WorstReportWeightedOne > WorstReportWeightedSum > FocusWorst > WeightedReport > FocusReport
  * In the case of two focus, the focust for first component is kept.
  */
 object ComponentStatusReport extends Loggable {
@@ -464,7 +464,7 @@ object ComponentStatusReport extends Loggable {
                 (a, b) match {
                   case (WorstReportWeightedOne, _) | (_, WorstReportWeightedOne) => WorstReportWeightedOne
                   case (WorstReportWeightedSum, _) | (_, WorstReportWeightedSum) => WorstReportWeightedSum
-                  case (WorstReportByPercent, _) | (_, WorstReportByPercent)     => WorstReportByPercent
+                  case (FocusWorst, _) | (_, FocusWorst)                         => FocusWorst
                   case (WeightedReport, _) | (_, WeightedReport)                 => WeightedReport
                   case (FocusReport(a), _)                                       => FocusReport(a)
                 }
