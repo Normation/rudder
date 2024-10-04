@@ -1354,7 +1354,8 @@ case class RudderServiceApi(
     scoreService:                        ScoreService,
     tenantService:                       TenantService,
     computeNodeStatusReportService:      ComputeNodeStatusReportService & HasNodeStatusReportUpdateHook,
-    scoreRepository:                     ScoreRepository
+    scoreRepository:                     ScoreRepository,
+    propertiesRepository:                PropertiesRepository
 )
 
 /*
@@ -3664,7 +3665,8 @@ object RudderConfigInit {
       scoreService,
       tenantService,
       computeNodeStatusReportService,
-      scoreRepository
+      scoreRepository,
+      propertiesRepository
     )
 
     // need to be done here to avoid cyclic dependencies
