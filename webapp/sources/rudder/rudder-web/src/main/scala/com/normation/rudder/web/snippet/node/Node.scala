@@ -46,20 +46,8 @@ import net.liftweb.http.S
 import net.liftweb.http.StatefulSnippet
 
 /**
- *
- * Snippet that handle the "searchNodes" page.
- *
- * Two main feature:
- * - diplay details of a node
- * - search for nodes based on a query
- *
- * Node details are ALWAYS load via Ajax (see parseHashtag method).
- * Hashtag modification are detected with the hashchange" events,
- * supported since ie8/ff3.6/chrome5/safari5 - as to say,
- * immemorial times (see http://caniuse.com/hashchange for details)
- *
+ * Snippet that handle the "node details" (/node/uuid) page.
  */
-
 class NodeDetails extends StatefulSnippet with Loggable {
 
   private val getFullGroupLibrary = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
