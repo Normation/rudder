@@ -1,47 +1,14 @@
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf8" />
-  <!-- everything here will be ignored and replaced by common-layout -->
-</head>
-<body data-lift-content-id="plugin-main">
-  <div id="plugin-main" data-lift="surround?with=common-layout;at=content">
-    <head_merge>
-      <title>User Management</title>
-      <link rel="stylesheet" type="text/css" href="/style/rudder/rudder-user-management.css" media="screen" data-lift="with-cached-resource">
-      <script src="/javascript/rudder/elm/rudder-usermanagement.js" data-lift="with-cached-resource"></script>
-    </head_merge>
+<lift:surround with="common-layout" at="content">
+  <head_merge>
+    <title>User Management</title>
+    <link rel="stylesheet" type="text/css" href="/style/rudder/rudder-user-management.css" media="screen"
+      data-lift="with-cached-resource">
+    <script src="/javascript/rudder/elm/rudder-usermanagement.js" data-lift="with-cached-resource"></script>
+  </head_merge>
 
 
-    <div class="portlet ui-widget ui-widget-content ui-helper-clearfix arrondis">
-      <div class="inner-portlet">
-
-        <div class="portlet-content">
-          <div id="user-management-app">
-            <div id="user-management-content"/>
-          </div>
-          <script>
-            var main = document.getElementById("user-management-content")
-            var initValues = {
-                 contextPath : contextPath
-                };
-            var app  = Elm.UserManagement.init({node: main, flags: initValues});
-            app.ports.successNotification.subscribe(function(str) {
-              createSuccessNotification(str)
-            });
-            app.ports.errorNotification.subscribe(function(str) {
-              createErrorNotification(str)
-            });
-            app.ports.initTooltips.subscribe(function (msg) {
-              setTimeout(function () {
-                initBsTooltips();
-              }, 600);
-            });
-          </script>
-        </div>
-      </div>
-    </div>
+  <div id="user-management-app">
+    <div id="user-management-content" />
   </div>
-</body>
-</html>
-
+  <div data-lift="administration.UserManagementSnippet.render" />
+</lift:surround>
