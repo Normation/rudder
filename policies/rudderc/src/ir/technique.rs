@@ -615,6 +615,7 @@ impl Display for BlockReporting {
                 BlockReportingMode::Weighted => "weighted".to_string(),
                 BlockReportingMode::WorstCaseWeightedOne => "worst-case-weighted-one".to_string(),
                 BlockReportingMode::WorstCaseWeightedSum => "worst-case-weighted-sum".to_string(),
+                BlockReportingMode::FocusWorst => "focus-worst".to_string(),
                 BlockReportingMode::Focus => format!("focus:{}", self.id.as_ref().unwrap()),
             }
         )
@@ -626,6 +627,7 @@ impl Display for BlockReporting {
 pub enum BlockReportingMode {
     WorstCaseWeightedSum,
     WorstCaseWeightedOne,
+    FocusWorst,
     Focus,
     #[serde(alias = "enabled")]
     #[default]
@@ -643,6 +645,7 @@ impl Display for BlockReportingMode {
                 Self::Weighted => "weighted",
                 Self::WorstCaseWeightedOne => "worst-case-weighted-one",
                 Self::WorstCaseWeightedSum => "worst-case-weighted-sum",
+                Self::FocusWorst => "focus-worst",
                 Self::Focus => "focus",
             }
         )

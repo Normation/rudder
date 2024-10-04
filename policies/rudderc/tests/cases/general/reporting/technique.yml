@@ -77,3 +77,20 @@ items:
               mode: disabled
             params:
               name: ntp
+      - name: "Yet another block inside"
+        id: 344d64ca-10ec-4c50-b0e1-4c85903f8b4c
+        reporting:
+          mode: "focus-worst"
+        items:
+          - name: "Enabled reporting"
+            id: df06e919-02b7-41a7-a03f-4239592f3c21
+            method: package_present
+            params:
+              name: ntp
+          - name: "Disabled reporting"
+            id: d76686bb-79ab-4ae5-b45f-108492ab4101
+            method: package_present
+            reporting:
+              mode: disabled
+            params:
+              name: ntp

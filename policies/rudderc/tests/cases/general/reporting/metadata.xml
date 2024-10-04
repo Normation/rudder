@@ -84,6 +84,15 @@
           </REPORTKEYS>
         </SECTION>
       </SECTION>
+      <SECTION id="344d64ca-10ec-4c50-b0e1-4c85903f8b4c" name="Yet another block inside" reporting="focus-worst" component="true" multivalued="true">
+        <SECTION name="Enabled reporting" id="df06e919-02b7-41a7-a03f-4239592f3c21" component="true" multivalued="true">
+          <REPORTKEYS>
+            <VALUE id="df06e919-02b7-41a7-a03f-4239592f3c21">
+              ntp
+            </VALUE>
+          </REPORTKEYS>
+        </SECTION>
+      </SECTION>
     </SECTION>
   </SECTIONS>
 </TECHNIQUE>

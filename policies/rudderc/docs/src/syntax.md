@@ -114,13 +114,16 @@ Blocks contains:
   * `enforce`: Force the policy mode of all items within the block to enforce mode.
   * `audit`: Force the policy mode of all items within the block to audit mode.
 * `reporting` (optional):
-  * `mode`
-    * `weighted` (default)
-    * `worst-case-weighted-sum`: Take the worst outcome from all the method calls in the block
-    * `worst-case-weighted-one`: Take the worst outcome from as the block as if it was a single method
-    * `focus`: Apply the outcome of one of the included methods to the whole block, requires passing the `id` value
-    * `disabled`: No reporting
-  * `id` (required with `focus` mode): id of the method to focus reporting on.
+  * `mode`:
+    * A block's compliance is computed from the compliance of all its (first-level) components. The components (whether blocks, blocks with sub-clocks, methods, etc.) are seen as black boxes with their own compliance, and a weight (by default, each method carries a weight of 1). There are several options to compute the resulting compliance, i.e., percents plus weight, from these components.
+        * `weighted` (default): weighted average, the best choice in most cases.
+        * `focus`: Select a pre-defined component's compliance (including weight) and use it as compliance for the whole block. Requires passing the `id` value, which must the ID of a direct block subitem (block or method).
+        * `focus-worst`: Select the worst component's compliance (including weight) and use it as compliance for the whole block.
+        * `disabled`: Totally removes the block from compliance computation (i.e., attribute it a weight of 0).
+    * There is another type of computations, which are rarely the most suited. In these cases, the block's compliance is computed from its leaf methods, regardless of the block's tree structure.
+      * `worst-case-weighted-sum`: Select the worst status from all methods, and use it as the block compliance, with a weight equal to the total number of methods below the block.
+      * `worst-case-weighted-one`: Select the worst status from all methods, and use it as the block compliance, with a weight of 1.
+  * `id` (required with `focus` mode): ID of the method to focus reporting on.
 
 <div class="warning">
 Setting <code class="hljs">policy_mode_override</code> to <code class="hljs">enforce</code> will <strong>bypass the audit mode</strong>, so it must only be used
@@ -128,7 +131,7 @@ for actions that <strong>do not modify the system</strong> and are required for 
 writing a temporary file to compare its content with the system).
 </div>
 
-<div class="warning">Policy mode effective value will always be the most closest override layer, meanning that an overridden policy mode on a method call
+<div class="warning">Policy mode effective value will always be the closest override layer, meaning an overridden policy mode on a method call
 will always prevail over directives and blocks values.</div>
 
 ```yaml
