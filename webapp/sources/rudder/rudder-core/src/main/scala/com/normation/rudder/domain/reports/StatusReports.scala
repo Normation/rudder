@@ -369,14 +369,16 @@ final case class BlockStatusReport(
         val allReports = subComponents.map {
           case b: BlockStatusReport =>
             // Convert block compliance to percent, take the worst
-            b.getValues(_ => true).flatMap(_.messages.map(m => m.reportType))
+            b.compliance
           case o: ValueStatusReport =>
             // Value has 1 count
-            List(ReportType.getWorseType(o.getValues(_ => true).flatMap(_.messages.map(_ => o.status))))
+            ComplianceLevel.compute(
+              Iterable(ReportType.getWorseType(o.getValues(_ => true).flatMap(_.messages.map(_ => o.status))))
+            )
         }
         // Find worst by percent: compute numeric compliance with default precision
-        val worst      = allReports.minBy(ComplianceLevel.compute(_).computePercent().compliance)
-        ComplianceLevel.compute(worst)
+        val worst      = allReports.minBy(_.computePercent().compliance)
+        worst
       // focus on a given sub-component name (can be present several time, or 0 which leads to N/A)
       case FocusReport(component) => ComplianceLevel.sum(findChildren(component).map(_.compliance))
     }
