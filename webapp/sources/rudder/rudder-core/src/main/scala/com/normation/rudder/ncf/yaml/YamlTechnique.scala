@@ -244,12 +244,12 @@ object YamlTechniqueSerializer {
     def toReporting(logic: ReportingLogic): Reporting = {
       import ReportingLogic.*
       logic match {
-        case FocusReport(component)                                                                  =>
+        case FocusReport(component)                                                        =>
           Reporting(
             FocusReport.key,
             Some(component)
           )
-        case WeightedReport | WorstReportByPercent | WorstReportWeightedOne | WorstReportWeightedSum =>
+        case WeightedReport | FocusWorst | WorstReportWeightedOne | WorstReportWeightedSum =>
           Reporting(logic.value, None)
       }
     }
